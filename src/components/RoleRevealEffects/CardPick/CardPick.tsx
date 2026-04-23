@@ -1,5 +1,5 @@
 /**
- * CardPick - 桌面抽牌揭示效果（Reanimated 4 + Skia）
+ * CardPick - 桌面抽牌揭示效果（Reanimated 4 + SVG）
  *
  * 动画流程：木质画框 + 散落筹码的桌面 → 面朝下的牌平铺（网格排列）→
  * 玩家点选一张 → 其余牌暗化消失 → 金色粒子拖尾飞向中央 →
@@ -9,15 +9,6 @@
  * 让后查看的玩家看到更少的牌，营造"越来越少"的紧张感。
  * 渲染抽牌动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  RadialGradient,
-  RoundedRect,
-  vec,
-} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -27,14 +18,24 @@ import Animated, {
   interpolate,
   runOnJS,
   type SharedValue,
+  useAnimatedProps,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  FeGaussianBlur,
+  Filter,
+  G,
+  RadialGradient as SvgRadialGradient,
+  Rect as SvgRect,
+  Stop,
+} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -50,6 +51,10 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors } from '@/theme';
+
+const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
+const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -407,12 +412,20 @@ export const CardPick: React.FC<CardPickProps> = ({
     transform: [{ scaleX: -1 }],
   }));
 
-  // ── Skia derived values ──
-  const chargeR = useDerivedValue(() => 60 + chargeAuraPulse.value * 12);
-  const chargeOp = useDerivedValue(() => chargeAuraOpacity.value);
-  const lbOp = useDerivedValue(() => lightBarOpacity.value);
-  const lbX = useDerivedValue(() => -SCREEN_W * 0.3 + lightBarProgress.value * SCREEN_W * 0.6);
-  const lbX2 = useDerivedValue(() => lbX.value + 20);
+  // ── SVG animated props ──
+  const chargeAuraProps = useAnimatedProps(() => ({
+    r: String(60 + chargeAuraPulse.value * 12),
+    opacity: chargeAuraOpacity.value,
+  }));
+  const lightBarGroupProps = useAnimatedProps(() => ({
+    opacity: lightBarOpacity.value,
+  }));
+  const lightBar1Props = useAnimatedProps(() => ({
+    x: String(-SCREEN_W * 0.3 + lightBarProgress.value * SCREEN_W * 0.6),
+  }));
+  const lightBar2Props = useAnimatedProps(() => ({
+    x: String(-SCREEN_W * 0.3 + lightBarProgress.value * SCREEN_W * 0.6 + 20),
+  }));
 
   // ── Render ──
   return (
@@ -434,65 +447,80 @@ export const CardPick: React.FC<CardPickProps> = ({
         <View style={styles.woodFrameInner} />
       </View>
 
-      {/* Skia scene layer: chips, trail, charge aura, light bars */}
+      {/* SVG scene layer: chips, charge aura, light bars */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen}>
+        <Svg style={styles.fullScreen}>
+          <Defs>
+            <Filter id="charge-blur">
+              <FeGaussianBlur stdDeviation={10} />
+            </Filter>
+            <Filter id="lb-blur-6">
+              <FeGaussianBlur stdDeviation={6} />
+            </Filter>
+            <Filter id="lb-blur-4">
+              <FeGaussianBlur stdDeviation={4} />
+            </Filter>
+            <SvgRadialGradient id="charge-aura-grad" cx="50%" cy="50%" r="50%">
+              <Stop offset="0" stopColor={TABLE_COLORS.chargeAura} stopOpacity={0.375} />
+              <Stop offset="1" stopColor={TABLE_COLORS.chargeAura} stopOpacity={0} />
+            </SvgRadialGradient>
+          </Defs>
+
           {/* Table chips — decorative scattered tokens */}
           {TABLE_CHIPS.map((chip, i) => (
-            <Group key={`chip-${i}`}>
+            <G key={`chip-${i}`}>
               {/* Chip body */}
-              <Circle cx={chip.x} cy={chip.y} r={chip.r} color={chip.color} opacity={0.5} />
+              <SvgCircle cx={chip.x} cy={chip.y} r={chip.r} fill={chip.color} opacity={0.5} />
               {/* Inner ring */}
-              <Circle
+              <SvgCircle
                 cx={chip.x}
                 cy={chip.y}
                 r={chip.r * 0.6}
-                color="#ffffff"
+                stroke="#ffffff"
+                fill="none"
                 opacity={0.15}
-                style="stroke"
                 strokeWidth={1}
               />
               {/* Center dot */}
-              <Circle cx={chip.x} cy={chip.y} r={1.5} color="#ffffff" opacity={0.2} />
-            </Group>
+              <SvgCircle cx={chip.x} cy={chip.y} r={1.5} fill="#ffffff" opacity={0.2} />
+            </G>
           ))}
 
           {/* Charge aura — pulsing ring before flip */}
-          <Circle cx={SCREEN_W / 2} cy={SCREEN_H / 2} r={chargeR} opacity={chargeOp}>
-            <RadialGradient
-              c={vec(SCREEN_W / 2, SCREEN_H / 2)}
-              r={72}
-              colors={[`${TABLE_COLORS.chargeAura}60`, `${TABLE_COLORS.chargeAura}00`]}
-            />
-            <Blur blur={10} />
-          </Circle>
+          <AnimatedSvgCircle
+            cx={SCREEN_W / 2}
+            cy={SCREEN_H / 2}
+            fill="url(#charge-aura-grad)"
+            filter="url(#charge-blur)"
+            animatedProps={chargeAuraProps}
+          />
 
           {/* Light bars — sweep during flip */}
-          <Group opacity={lbOp} blendMode="screen">
-            <RoundedRect
-              x={lbX}
+          <AnimatedG animatedProps={lightBarGroupProps} {...{ style: { mixBlendMode: 'screen' } }}>
+            <AnimatedSvgRect
               y={SCREEN_H * 0.25}
               width={4}
               height={SCREEN_H * 0.5}
-              r={2}
-              color={TABLE_COLORS.lightBar}
+              rx={2}
+              ry={2}
+              fill={TABLE_COLORS.lightBar}
               opacity={0.4}
-            >
-              <Blur blur={6} />
-            </RoundedRect>
-            <RoundedRect
-              x={lbX2}
+              filter="url(#lb-blur-6)"
+              animatedProps={lightBar1Props}
+            />
+            <AnimatedSvgRect
               y={SCREEN_H * 0.3}
               width={2}
               height={SCREEN_H * 0.4}
-              r={1}
-              color={TABLE_COLORS.lightBar}
+              rx={1}
+              ry={1}
+              fill={TABLE_COLORS.lightBar}
               opacity={0.2}
-            >
-              <Blur blur={4} />
-            </RoundedRect>
-          </Group>
-        </Canvas>
+              filter="url(#lb-blur-4)"
+              animatedProps={lightBar2Props}
+            />
+          </AnimatedG>
+        </Svg>
       )}
 
       {/* Prompt text with dealer hand */}

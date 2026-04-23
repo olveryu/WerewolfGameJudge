@@ -13,7 +13,6 @@ import { Toaster } from 'sonner-native';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
@@ -76,9 +75,6 @@ function AppContent() {
       appLog.warn('Icon font load failed (graceful degradation)', err.message);
     });
   }, []);
-
-  // Pre-compile Skia GPU shaders via offscreen texture (eliminates first-frame jank)
-  useSkiaShaderWarmup();
 
   // Set up global alert listener
   useEffect(() => {

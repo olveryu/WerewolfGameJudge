@@ -1,43 +1,45 @@
 /**
- * ThirdRevealEffect — 第三方阵营揭示特效（Skia + Reanimated 4）
+ * ThirdRevealEffect — 第三方阵营揭示特效（SVG + Reanimated 4）
  *
  * 翻牌后在卡片区域渲染神秘系列动画：
- * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱紫色发光
- * 2. 旋转符文环（2 层）— Skia Circle stroke + dashPathEffect，持续旋转
- * 3. 螺旋轨道粒子（30 颗）— Skia Circle + Blur + blendMode="screen"，绕中心公转
- * 4. 召唤闪电弧（6 条）— Skia Path + Blur，从中心向外辐射的电弧
- * 5. 中心能量核心 — Skia Circle + RadialGradient + Blur 脉动
+ * 1. 卡片光晕 — SVG RadialGradient + feGaussianBlur，极亮爆发→持续微弱紫色发光
+ * 2. 旋转符文环（2 层）— SVG Path dashed arcs + animated transform，持续旋转
+ * 3. 螺旋轨道粒子（30 颗）— SVG Circle + feGaussianBlur，绕中心公转
+ * 4. 召唤闪电弧（6 条）— SVG Path + feGaussianBlur，从中心向外辐射的电弧
+ * 5. 中心能量核心 — SVG Circle + RadialGradient + feGaussianBlur 脉动
  *
  * 符文环和粒子持续循环，光晕持续保留。
  * 不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  Paint,
-  Path,
-  Picture,
-  RadialGradient,
-  Skia,
-  vec,
-} from '@shopify/react-native-skia';
 import React, { useEffect, useMemo } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
-import {
+import Animated, {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle,
+  Defs,
+  FeGaussianBlur,
+  Filter,
+  G,
+  Path,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 // ─── Pre-computed arrays ──────────────────────────────────────────────
 
@@ -58,10 +60,6 @@ const ARCS = Array.from({ length: ARC_COUNT }, (_, i) => {
   const angle = (i / ARC_COUNT) * Math.PI * 2;
   return { angle, lengthRatio: 0.25 + ((i * 37 + 11) % 20) / 100 };
 });
-
-// ── Immediate-mode Skia resources (reused across frames) ──
-const orbitRecorder = Skia.PictureRecorder();
-const orbitPaint = Skia.Paint();
 
 // ─── Sub-components ──────────────────────────────────────────────────
 
@@ -100,21 +98,28 @@ const LightningArc = React.memo(function LightningArc({
     return d;
   }, [centerX, centerY, angle, arcLength]);
 
-  const opacity = useDerivedValue(() => {
+  const animatedProps = useAnimatedProps(() => {
     const p = progress.value;
-    if (p < 0.05) return (p / 0.05) * 0.6;
-    if (p < 0.2) return 0.6;
-    return Math.max(0, 0.6 * (1 - (p - 0.2) / 0.3));
+    let opacity: number;
+    if (p < 0.05) opacity = (p / 0.05) * 0.6;
+    else if (p < 0.2) opacity = 0.6;
+    else opacity = Math.max(0, 0.6 * (1 - (p - 0.2) / 0.3));
+    return { opacity };
   });
 
   return (
-    <Path path={pathStr} color={color} style="stroke" strokeWidth={1.5} opacity={opacity}>
-      <Blur blur={2} />
-    </Path>
+    <AnimatedPath
+      d={pathStr}
+      stroke={color}
+      fill="none"
+      strokeWidth={1.5}
+      filter="url(#arc-blur)"
+      animatedProps={animatedProps}
+    />
   );
 });
 
-// ─── Rune ring as Skia circle stroke ─────────────────────────────────
+// ─── Rune ring as SVG dashed arc path ────────────────────────────────
 
 /** Rotating dashed rune ring */
 const RuneRing = React.memo(function RuneRing({
@@ -159,19 +164,70 @@ const RuneRing = React.memo(function RuneRing({
     return d;
   }, [centerX, centerY, radius, segCount, segAngle, dashAngle]);
 
-  const opacity = useDerivedValue(() => appear.value * 0.7);
-
-  // Rotation is applied via Group transform
-  const transform = useDerivedValue(() => [{ rotate: (rotation.value * Math.PI) / 180 }]);
+  const animatedProps = useAnimatedProps(() => {
+    const deg = (rotation.value * Math.PI) / 180;
+    return {
+      opacity: appear.value * 0.7,
+      transform: `translate(${centerX}, ${centerY}) rotate(${(deg * 180) / Math.PI}) translate(${-centerX}, ${-centerY})`,
+    };
+  });
 
   return (
-    <Group transform={transform} origin={vec(centerX, centerY)} opacity={opacity}>
-      <Path path={pathStr} color={color} style="stroke" strokeWidth={strokeWidth} strokeCap="round">
-        <Blur blur={1} />
-      </Path>
-    </Group>
+    <AnimatedG animatedProps={animatedProps}>
+      <Path
+        d={pathStr}
+        stroke={color}
+        fill="none"
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        filter="url(#rune-blur)"
+      />
+    </AnimatedG>
   );
 });
+
+/** Single orbit particle */
+const OrbitParticle: React.FC<{
+  particle: (typeof ORBIT_PARTICLES)[number];
+  particleOrbit: SharedValue<number>;
+  twinkleCycle: SharedValue<number>;
+  appear: SharedValue<number>;
+  baseRadius: number;
+  centerX: number;
+  centerY: number;
+  cardWidth: number;
+  color: string;
+}> = React.memo(
+  ({
+    particle,
+    particleOrbit,
+    twinkleCycle,
+    appear,
+    baseRadius,
+    centerX,
+    centerY,
+    cardWidth,
+    color,
+  }) => {
+    const radiusOffset = particle.radiusOffsetRatio * baseRadius;
+    const size = Math.max(1, particle.sizeRatio * cardWidth);
+    const wiggleAmp = cardWidth * 0.057;
+
+    const animatedProps = useAnimatedProps(() => {
+      const angleDeg = particleOrbit.value + particle.phaseOffset;
+      const angleRad = (angleDeg * Math.PI) / 180;
+      const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
+      const cx = Math.cos(angleRad) * r + centerX;
+      const cy = Math.sin(angleRad) * r + centerY + particle.driftY;
+      const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + particle.twinklePhase);
+      const opacity = appear.value * 0.7 * flicker;
+      return { cx, cy, opacity };
+    });
+
+    return <AnimatedCircle r={size} fill={color} animatedProps={animatedProps} />;
+  },
+);
+OrbitParticle.displayName = 'OrbitParticle';
 
 // ─── Main component ──────────────────────────────────────────────────
 
@@ -281,45 +337,36 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
     corePulse,
   ]);
 
-  // ── Derived values ──
-  const glowR = useDerivedValue(() => cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5));
-  const glowOpacity = useDerivedValue(() => glowIntensity.value * 0.65);
+  // ── Animated props ──
+  const glowGroupProps = useAnimatedProps(() => ({
+    opacity: glowIntensity.value * 0.65,
+  }));
+  const glowCircleProps = useAnimatedProps(() => ({
+    r: cardWidth * 0.5 * (0.5 + glowIntensity.value * 0.5),
+  }));
 
   // Central energy core pulsating
-  const coreR = useDerivedValue(() => cardWidth * 0.06 * (0.7 + corePulse.value * 0.3));
-  const coreGlowR = useDerivedValue(() => cardWidth * 0.15 * (0.6 + corePulse.value * 0.4));
-  const coreOpacity = useDerivedValue(() => appear.value * (0.4 + corePulse.value * 0.3));
+  const coreGroupProps = useAnimatedProps(() => ({
+    opacity: appear.value * (0.4 + corePulse.value * 0.3),
+  }));
+  const coreOrbProps = useAnimatedProps(() => ({
+    r: cardWidth * 0.06 * (0.7 + corePulse.value * 0.3),
+  }));
+  const coreGlowProps = useAnimatedProps(() => ({
+    r: cardWidth * 0.15 * (0.6 + corePulse.value * 0.4),
+  }));
 
   // Outer ring radius: ~60% of cardWidth
   const outerRingR = cardWidth * 0.52;
   // Inner ring: ~85% of outer
   const innerRingR = outerRingR * 0.82;
-
-  // ── Orbit particles: Immediate Mode via Picture API ──
-  // Replaces 30 OrbitParticle components (90 useDerivedValue per frame) with 1.
   const baseRadius = cardWidth * 0.35;
-  const orbitPicture = useDerivedValue(() => {
-    'worklet';
-    const c = orbitRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
-    const skColor = Skia.Color(particleColor);
-    for (let i = 0; i < ORBIT_PARTICLES.length; i++) {
-      const p = ORBIT_PARTICLES[i];
-      const radiusOffset = p.radiusOffsetRatio * baseRadius;
-      const size = Math.max(1, p.sizeRatio * cardWidth);
-      const wiggleAmp = cardWidth * 0.057;
-      const angleDeg = particleOrbit.value + p.phaseOffset;
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const r = baseRadius + radiusOffset + Math.sin(angleRad * 3) * wiggleAmp;
-      const cx = Math.cos(angleRad) * r + centerX;
-      const cy = Math.sin(angleRad) * r + centerY + p.driftY;
-      const flicker = 0.5 + 0.5 * Math.sin(twinkleCycle.value + p.twinklePhase);
-      const opacity = appear.value * 0.7 * flicker;
-      orbitPaint.setColor(skColor);
-      orbitPaint.setAlphaf(opacity);
-      c.drawCircle(cx, cy, size, orbitPaint);
-    }
-    return orbitRecorder.finishRecordingAsPicture();
-  });
+
+  // Gradient stop colors
+  const glowStop1 = `${primaryColor}60`;
+  const glowStop2 = `${primaryColor}00`;
+  const coreGlowStop1 = `${glowColor}80`;
+  const coreGlowStop2 = `${primaryColor}00`;
 
   const canvasStyle = useMemo(
     () => ({
@@ -335,21 +382,62 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
   );
 
   return (
-    <Canvas style={canvasStyle}>
+    <Svg style={canvasStyle} width={cardWidth} height={cardHeight}>
+      <Defs>
+        <RadialGradient
+          id="t-glow-grad"
+          cx={centerX}
+          cy={centerY}
+          r={cardWidth * 0.5}
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor={glowColor} />
+          <Stop offset="0.5" stopColor={glowStop1} />
+          <Stop offset="1" stopColor={glowStop2} />
+        </RadialGradient>
+        <RadialGradient
+          id="t-core-glow-grad"
+          cx={centerX}
+          cy={centerY}
+          r={cardWidth * 0.15}
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor={coreGlowStop1} />
+          <Stop offset="1" stopColor={coreGlowStop2} />
+        </RadialGradient>
+        <Filter id="t-glow-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.glowBlur} />
+        </Filter>
+        <Filter id="arc-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={2} />
+        </Filter>
+        <Filter id="rune-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={1} />
+        </Filter>
+        <Filter id="core-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={4} />
+        </Filter>
+        <Filter id="core-glow-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={10} />
+        </Filter>
+        <Filter id="orbit-blur" x="-50%" y="-50%" width="200%" height="200%">
+          <FeGaussianBlur in="SourceGraphic" stdDeviation={SK.particleBlur} />
+        </Filter>
+      </Defs>
+
       {/* Persistent card glow */}
-      <Group opacity={glowOpacity}>
-        <Circle cx={centerX} cy={centerY} r={glowR}>
-          <RadialGradient
-            c={vec(centerX, centerY)}
-            r={cardWidth * 0.5}
-            colors={[glowColor, `${primaryColor}60`, `${primaryColor}00`]}
-          />
-          <Blur blur={SK.glowBlur} />
-        </Circle>
-      </Group>
+      <AnimatedG animatedProps={glowGroupProps}>
+        <AnimatedCircle
+          cx={centerX}
+          cy={centerY}
+          fill="url(#t-glow-grad)"
+          filter="url(#t-glow-blur)"
+          animatedProps={glowCircleProps}
+        />
+      </AnimatedG>
 
       {/* Lightning arcs — brief flash at reveal */}
-      <Group blendMode="screen">
+      <G>
         {ARCS.map((arc, i) => (
           <LightningArc
             key={i}
@@ -362,7 +450,7 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
             cardWidth={cardWidth}
           />
         ))}
-      </Group>
+      </G>
 
       {/* Outer rune ring — clockwise */}
       <RuneRing
@@ -391,33 +479,42 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
       />
 
       {/* Central energy core */}
-      <Group opacity={coreOpacity}>
+      <AnimatedG animatedProps={coreGroupProps}>
         {/* Outer glow */}
-        <Circle cx={centerX} cy={centerY} r={coreGlowR}>
-          <RadialGradient
-            c={vec(centerX, centerY)}
-            r={cardWidth * 0.15}
-            colors={[`${glowColor}80`, `${primaryColor}00`]}
-          />
-          <Blur blur={10} />
-        </Circle>
+        <AnimatedCircle
+          cx={centerX}
+          cy={centerY}
+          fill="url(#t-core-glow-grad)"
+          filter="url(#core-glow-blur)"
+          animatedProps={coreGlowProps}
+        />
         {/* Core orb */}
-        <Circle cx={centerX} cy={centerY} r={coreR} color={glowColor}>
-          <Blur blur={4} />
-        </Circle>
-      </Group>
+        <AnimatedCircle
+          cx={centerX}
+          cy={centerY}
+          fill={glowColor}
+          filter="url(#core-blur)"
+          animatedProps={coreOrbProps}
+        />
+      </AnimatedG>
 
-      {/* Orbit particles — Picture API with group-level blur */}
-      <Group
-        blendMode="screen"
-        layer={
-          <Paint>
-            <Blur blur={SK.particleBlur} />
-          </Paint>
-        }
-      >
-        <Picture picture={orbitPicture} />
-      </Group>
-    </Canvas>
+      {/* Orbit particles */}
+      <G filter="url(#orbit-blur)">
+        {ORBIT_PARTICLES.map((particle, i) => (
+          <OrbitParticle
+            key={i}
+            particle={particle}
+            particleOrbit={particleOrbit}
+            twinkleCycle={twinkleCycle}
+            appear={appear}
+            baseRadius={baseRadius}
+            centerX={centerX}
+            centerY={centerY}
+            cardWidth={cardWidth}
+            color={particleColor}
+          />
+        ))}
+      </G>
+    </Svg>
   );
 };

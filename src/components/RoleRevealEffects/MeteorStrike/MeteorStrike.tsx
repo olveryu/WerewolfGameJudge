@@ -1,5 +1,5 @@
 /**
- * MeteorStrike - 流星坠落揭示动画（Skia + Reanimated 4）
+ * MeteorStrike - 流星坠落揭示动画（SVG + Reanimated 4）
  *
  * 视觉设计：原神祈愿风格深空夜幕 + 闪烁星辰 + 流星划过 + 坠地爆炸。
  * 交互：点击飞过屏幕的流星使其坠落 → 冲击波 + 爆炸粒子 → 角色卡揭示。
@@ -9,14 +9,6 @@
  * Reanimated 负责：驱动阶段切换 + 卡片入场。
  * 不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  LinearGradient as SkiaLinearGradient,
-  vec,
-} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -26,14 +18,23 @@ import Animated, {
   Easing,
   makeMutable,
   runOnJS,
+  useAnimatedProps,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  FeGaussianBlur,
+  Filter,
+  G,
+  LinearGradient as SvgLinearGradient,
+  Stop,
+} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -49,6 +50,9 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors } from '@/theme';
+
+const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#020010', '#0a0025', '#050015'] as const;
@@ -130,29 +134,35 @@ const ImpactParticleInner: React.FC<ImpactParticleProps> = ({ particle, cx, cy, 
   const endX = cx + Math.cos(particle.angle) * particle.speed * 25;
   const endY = cy + Math.sin(particle.angle) * particle.speed * 25 - 20;
 
-  const px = useDerivedValue(() => cx + (endX - cx) * progress.value);
-  const py = useDerivedValue(() => {
-    const linearY = cy + (endY - cy) * progress.value;
-    return linearY + progress.value * progress.value * 40;
-  });
-  const opacity = useDerivedValue(() => {
-    const p = progress.value;
-    if (p < 0.1) return p / 0.1;
-    return Math.max(0, 1 - (p - 0.1) / 0.9);
-  });
-  const r = useDerivedValue(() => particle.radius * Math.max(0, 1 - progress.value * 0.6));
-  const glowR = useDerivedValue(() => r.value * 2);
-
   const color = `hsl(${particle.hue}, 90%, 65%)`;
   const glowColor = `hsla(${particle.hue}, 90%, 65%, 0.3)`;
 
+  const groupProps = useAnimatedProps(() => {
+    const p = progress.value;
+    return { opacity: p < 0.1 ? p / 0.1 : Math.max(0, 1 - (p - 0.1) / 0.9) };
+  });
+  const coreProps = useAnimatedProps(() => {
+    const linearY = cy + (endY - cy) * progress.value;
+    return {
+      cx: cx + (endX - cx) * progress.value,
+      cy: linearY + progress.value * progress.value * 40,
+      r: particle.radius * Math.max(0, 1 - progress.value * 0.6),
+    };
+  });
+  const glowProps = useAnimatedProps(() => {
+    const linearY = cy + (endY - cy) * progress.value;
+    return {
+      cx: cx + (endX - cx) * progress.value,
+      cy: linearY + progress.value * progress.value * 40,
+      r: particle.radius * Math.max(0, 1 - progress.value * 0.6) * 2,
+    };
+  });
+
   return (
-    <Group opacity={opacity}>
-      <Circle cx={px} cy={py} r={r} color={color} />
-      <Circle cx={px} cy={py} r={glowR} color={glowColor}>
-        <Blur blur={3} />
-      </Circle>
-    </Group>
+    <AnimatedG animatedProps={groupProps}>
+      <AnimatedSvgCircle fill={color} animatedProps={coreProps} />
+      <AnimatedSvgCircle fill={glowColor} filter="url(#impact-blur)" animatedProps={glowProps} />
+    </AnimatedG>
   );
 };
 ImpactParticleInner.displayName = 'ImpactParticle';
@@ -167,24 +177,22 @@ interface ShockwaveRingProps {
 }
 
 const ShockwaveRingInner: React.FC<ShockwaveRingProps> = ({ cx, cy, progress, delay }) => {
-  const r = useDerivedValue(() => {
+  const animatedProps = useAnimatedProps(() => {
     const p = Math.max(0, progress.value - delay);
-    return p * 200;
-  });
-  const opacity = useDerivedValue(() => {
-    const p = Math.max(0, progress.value - delay);
-    return Math.max(0, 0.7 - p * 0.8);
+    return {
+      r: p * 200,
+      opacity: Math.max(0, 0.7 - p * 0.8),
+    };
   });
 
   return (
-    <Circle
+    <AnimatedSvgCircle
       cx={cx}
       cy={cy}
-      r={r}
-      style="stroke"
+      stroke={COLORS.shockwaveColor}
+      fill="none"
       strokeWidth={3}
-      color={COLORS.shockwaveColor}
-      opacity={opacity}
+      animatedProps={animatedProps}
     />
   );
 };
@@ -198,17 +206,95 @@ interface StarCircleProps {
 }
 
 const StarCircle: React.FC<StarCircleProps> = React.memo(({ star, starCycle }) => {
-  const twinkle = useDerivedValue(() => {
+  const animatedProps = useAnimatedProps(() => {
     const t = starCycle.value;
-    return 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * star.speed + star.phase));
+    const twinkle = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(t * star.speed + star.phase));
+    return { opacity: star.brightness * twinkle };
   });
-  const opacity = useDerivedValue(() => star.brightness * twinkle.value);
 
   return (
-    <Circle cx={star.x} cy={star.y} r={star.radius} color={COLORS.starColor} opacity={opacity} />
+    <AnimatedSvgCircle
+      cx={star.x}
+      cy={star.y}
+      r={star.radius}
+      fill={COLORS.starColor}
+      animatedProps={animatedProps}
+    />
   );
 });
 StarCircle.displayName = 'StarCircle';
+
+/** Trail glow dot — extracted so hooks can be used per-element */
+interface TrailDotProps {
+  pt: { x: SharedValue<number>; y: SharedValue<number>; opacity: SharedValue<number> };
+}
+
+const TrailDot: React.FC<TrailDotProps> = React.memo(({ pt }) => {
+  const groupProps = useAnimatedProps(() => ({ opacity: pt.opacity.value }));
+  const innerProps = useAnimatedProps(() => ({ cx: pt.x.value, cy: pt.y.value }));
+  const outerProps = useAnimatedProps(() => ({ cx: pt.x.value, cy: pt.y.value }));
+
+  return (
+    <AnimatedG animatedProps={groupProps}>
+      <AnimatedSvgCircle
+        r={4}
+        fill={COLORS.meteorTrail}
+        filter="url(#trail-blur-3)"
+        animatedProps={innerProps}
+      />
+      <AnimatedSvgCircle
+        r={10}
+        fill={COLORS.meteorTrailFade}
+        filter="url(#trail-blur-6)"
+        animatedProps={outerProps}
+      />
+    </AnimatedG>
+  );
+});
+TrailDot.displayName = 'TrailDot';
+
+/** Meteor head — glow + core + inner glow, all driven by shared values */
+interface MeteorHeadProps {
+  meteorX: SharedValue<number>;
+  meteorY: SharedValue<number>;
+  meteorOpacity: SharedValue<number>;
+}
+
+const MeteorHead: React.FC<MeteorHeadProps> = React.memo(({ meteorX, meteorY, meteorOpacity }) => {
+  const groupProps = useAnimatedProps(() => ({ opacity: meteorOpacity.value }));
+  const outerGlowProps = useAnimatedProps(() => ({
+    cx: meteorX.value,
+    cy: meteorY.value,
+    opacity: meteorOpacity.value * 0.6,
+  }));
+  const coreProps = useAnimatedProps(() => ({
+    cx: meteorX.value,
+    cy: meteorY.value,
+  }));
+  const innerGlowProps = useAnimatedProps(() => ({
+    cx: meteorX.value,
+    cy: meteorY.value,
+  }));
+
+  return (
+    <AnimatedG animatedProps={groupProps}>
+      <AnimatedSvgCircle
+        r={35}
+        fill="url(#meteor-grad)"
+        filter="url(#blur-12)"
+        animatedProps={outerGlowProps}
+      />
+      <AnimatedSvgCircle r={5} fill={COLORS.meteorCore} animatedProps={coreProps} />
+      <AnimatedSvgCircle
+        r={12}
+        fill={COLORS.meteorGlow}
+        filter="url(#blur-4)"
+        animatedProps={innerGlowProps}
+      />
+    </AnimatedG>
+  );
+});
+MeteorHead.displayName = 'MeteorHead';
 
 // ─── Main component ─────────────────────────────────────────────────────
 
@@ -482,10 +568,6 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
     opacity: flashOpacity.value,
   }));
 
-  // ── Meteor glow ──
-  const meteorGlowR = useDerivedValue(() => 35);
-  const meteorGlowOpacity = useDerivedValue(() => meteorOpacity.value * 0.6);
-
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
       {/* Deep-space background */}
@@ -503,7 +585,36 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         testID={`${testIDPrefix}-press-area`}
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Canvas style={styles.absoluteFillNoEvents}>
+          <Svg style={styles.absoluteFillNoEvents}>
+            <Defs>
+              <Filter id="trail-blur-3">
+                <FeGaussianBlur stdDeviation={3} />
+              </Filter>
+              <Filter id="trail-blur-6">
+                <FeGaussianBlur stdDeviation={6} />
+              </Filter>
+              <Filter id="blur-4">
+                <FeGaussianBlur stdDeviation={4} />
+              </Filter>
+              <Filter id="blur-12">
+                <FeGaussianBlur stdDeviation={12} />
+              </Filter>
+              <Filter id="impact-blur">
+                <FeGaussianBlur stdDeviation={3} />
+              </Filter>
+              <SvgLinearGradient
+                id="meteor-grad"
+                x1="0"
+                y1="0"
+                x2="50"
+                y2="50"
+                gradientUnits="userSpaceOnUse"
+              >
+                <Stop offset="0" stopColor={COLORS.meteorGlow} />
+                <Stop offset="1" stopColor={COLORS.meteorTrailFade} />
+              </SvgLinearGradient>
+            </Defs>
+
             {/* ── Stars ── */}
             {STARS.map((star, i) => (
               <StarCircle key={`star-${i}`} star={star} starCycle={starCycle} />
@@ -511,34 +622,11 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
 
             {/* ── Meteor trail glow ── */}
             {trailSV.map((pt, i) => (
-              <Group key={`trail-${i}`} opacity={pt.opacity}>
-                <Circle cx={pt.x} cy={pt.y} r={4} color={COLORS.meteorTrail}>
-                  <Blur blur={3} />
-                </Circle>
-                <Circle cx={pt.x} cy={pt.y} r={10} color={COLORS.meteorTrailFade}>
-                  <Blur blur={6} />
-                </Circle>
-              </Group>
+              <TrailDot key={`trail-${i}`} pt={pt} />
             ))}
 
             {/* ── Meteor head ── */}
-            <Group opacity={meteorOpacity}>
-              {/* Outer glow */}
-              <Circle cx={meteorXSV} cy={meteorYSV} r={meteorGlowR} opacity={meteorGlowOpacity}>
-                <SkiaLinearGradient
-                  start={vec(0, 0)}
-                  end={vec(50, 50)}
-                  colors={[COLORS.meteorGlow, COLORS.meteorTrailFade]}
-                />
-                <Blur blur={12} />
-              </Circle>
-              {/* Core */}
-              <Circle cx={meteorXSV} cy={meteorYSV} r={5} color={COLORS.meteorCore} />
-              {/* Inner glow */}
-              <Circle cx={meteorXSV} cy={meteorYSV} r={12} color={COLORS.meteorGlow}>
-                <Blur blur={4} />
-              </Circle>
-            </Group>
+            <MeteorHead meteorX={meteorXSV} meteorY={meteorYSV} meteorOpacity={meteorOpacity} />
 
             {/* ── Shockwaves ── */}
             {Array.from({ length: SHOCKWAVE_COUNT }, (_, i) => (
@@ -562,7 +650,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
                   progress={impactProgress}
                 />
               ))}
-          </Canvas>
+          </Svg>
         </Animated.View>
 
         {/* Flash overlay */}

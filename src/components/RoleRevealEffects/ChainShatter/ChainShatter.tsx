@@ -1,5 +1,5 @@
 /**
- * ChainShatter - 锁链击碎揭示动画（Skia + Reanimated 4）
+ * ChainShatter - 锁链击碎揭示动画（SVG + Reanimated 4）
  *
  * 视觉设计：中央锁头（金属蓝钢渐变锁身 + 铆钉 + 高光提梁 + 钥匙孔光晕）
  * + 左右各 4 个链环。背景飘浮尘埃粒子增加氛围。
@@ -15,7 +15,6 @@
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -24,14 +23,24 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   runOnJS,
+  useAnimatedProps,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  FeGaussianBlur,
+  Filter,
+  G,
+  Line as SvgLine,
+  Path as SvgPath,
+  Rect as SvgRect,
+} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -47,6 +56,10 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
+
+const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
+const AnimatedSvgLine = Animated.createAnimatedComponent(SvgLine);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#050510', '#0a0a1e', '#050510'] as const;
@@ -256,41 +269,67 @@ interface SkiaTorchFlameProps {
   flicker: SharedValue<number>;
 }
 
-/** Torch flame: cluster of overlapping circles with warm gradient — replaces emoji 🔥 */
+/** Torch flame: cluster of overlapping circles with warm gradient */
 const SkiaTorchFlame: React.FC<SkiaTorchFlameProps> = React.memo(({ x, y, flicker }) => {
-  // Outer glow
-  const glowOp = useDerivedValue(() => 0.15 + flicker.value * 0.15);
-  // Core flame opacity sways
-  const coreOp = useDerivedValue(() => 0.7 + flicker.value * 0.3);
-  // Inner white-hot tip
-  const tipOp = useDerivedValue(() => 0.8 + flicker.value * 0.2);
-  // Sway offset
-  const swayX = useDerivedValue(() => x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3);
-  const tipY = useDerivedValue(() => y - 8 + Math.sin(flicker.value * Math.PI * 4) * 2);
+  const glowProps = useAnimatedProps(() => ({
+    opacity: 0.15 + flicker.value * 0.15,
+  }));
+  const outerFlameProps = useAnimatedProps(() => ({
+    cx: x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3,
+    opacity: 0.7 + flicker.value * 0.3,
+  }));
+  const midFlameProps = useAnimatedProps(() => ({
+    cx: x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3,
+    opacity: 0.7 + flicker.value * 0.3,
+  }));
+  const innerFlameProps = useAnimatedProps(() => ({
+    cx: x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3,
+    cy: y - 8 + Math.sin(flicker.value * Math.PI * 4) * 2,
+    opacity: 0.8 + flicker.value * 0.2,
+  }));
+  const tipProps = useAnimatedProps(() => ({
+    cx: x + 15 + Math.sin(flicker.value * Math.PI * 2) * 3,
+    cy: y - 8 + Math.sin(flicker.value * Math.PI * 4) * 2,
+    opacity: 0.8 + flicker.value * 0.2,
+  }));
 
   return (
-    <Group>
-      {/* Wide warm glow around the flame */}
-      <Circle cx={x + 15} cy={y + 5} r={35} color={COLORS.torchGlow} opacity={glowOp}>
-        <Blur blur={20} />
-      </Circle>
-      {/* Outer flame — reddish orange, largest */}
-      <Circle cx={swayX} cy={y + 8} r={14} color="rgba(255, 80, 20, 0.7)" opacity={coreOp}>
-        <Blur blur={6} />
-      </Circle>
-      {/* Mid flame — bright orange */}
-      <Circle cx={swayX} cy={y} r={10} color="rgba(255, 160, 40, 0.85)" opacity={coreOp}>
-        <Blur blur={4} />
-      </Circle>
-      {/* Inner flame — yellow */}
-      <Circle cx={swayX} cy={tipY} r={6} color="rgba(255, 230, 80, 0.9)" opacity={tipOp}>
-        <Blur blur={2} />
-      </Circle>
-      {/* White-hot tip */}
-      <Circle cx={swayX} cy={tipY} r={3} color="rgba(255, 255, 220, 0.95)" opacity={tipOp}>
-        <Blur blur={1} />
-      </Circle>
-    </Group>
+    <G>
+      <AnimatedSvgCircle
+        cx={x + 15}
+        cy={y + 5}
+        r={35}
+        fill={COLORS.torchGlow}
+        filter="url(#torch-blur-20)"
+        animatedProps={glowProps}
+      />
+      <AnimatedSvgCircle
+        cy={y + 8}
+        r={14}
+        fill="rgba(255, 80, 20, 0.7)"
+        filter="url(#torch-blur-6)"
+        animatedProps={outerFlameProps}
+      />
+      <AnimatedSvgCircle
+        cy={y}
+        r={10}
+        fill="rgba(255, 160, 40, 0.85)"
+        filter="url(#torch-blur-4)"
+        animatedProps={midFlameProps}
+      />
+      <AnimatedSvgCircle
+        r={6}
+        fill="rgba(255, 230, 80, 0.9)"
+        filter="url(#torch-blur-2)"
+        animatedProps={innerFlameProps}
+      />
+      <AnimatedSvgCircle
+        r={3}
+        fill="rgba(255, 255, 220, 0.95)"
+        filter="url(#torch-blur-1)"
+        animatedProps={tipProps}
+      />
+    </G>
   );
 });
 SkiaTorchFlame.displayName = 'SkiaTorchFlame';
@@ -319,21 +358,22 @@ const CrackLine: React.FC<CrackLineProps> = ({ crack, opacity, maxHits }) => {
   }, [crack]);
 
   const color = useMemo(() => crackColor(crack.hitIndex, maxHits), [crack.hitIndex, maxHits]);
+  const groupProps = useAnimatedProps(() => ({ opacity: opacity.value }));
 
   return (
-    <Group opacity={opacity}>
+    <AnimatedG animatedProps={groupProps}>
       {/* Glow layer (wider, semi-transparent) */}
-      <Path
-        path={path}
-        color={color}
-        style="stroke"
+      <SvgPath
+        d={path}
+        stroke={color}
+        fill="none"
         strokeWidth={6}
-        strokeCap="round"
+        strokeLinecap="round"
         opacity={0.4}
       />
       {/* Core crack line */}
-      <Path path={path} color={color} style="stroke" strokeWidth={2} strokeCap="round" />
-    </Group>
+      <SvgPath d={path} stroke={color} fill="none" strokeWidth={2} strokeLinecap="round" />
+    </AnimatedG>
   );
 };
 
@@ -362,14 +402,14 @@ interface SparkParticleProps {
 }
 
 const SparkParticle: React.FC<SparkParticleProps> = ({ spark, cx, cy, progress }) => {
-  const x = useDerivedValue(() => cx + spark.vx * progress.value);
-  const y = useDerivedValue(
-    () => cy + spark.vy * progress.value + 60 * progress.value * progress.value,
-  );
-  const op = useDerivedValue(() => Math.max(0, 1 - progress.value * 1.5));
-  const r = useDerivedValue(() => spark.size * Math.max(0, 1 - progress.value));
+  const animatedProps = useAnimatedProps(() => ({
+    cx: cx + spark.vx * progress.value,
+    cy: cy + spark.vy * progress.value + 60 * progress.value * progress.value,
+    r: spark.size * Math.max(0, 1 - progress.value),
+    opacity: Math.max(0, 1 - progress.value * 1.5),
+  }));
 
-  return <Circle cx={x} cy={y} r={r} color={spark.color} opacity={op} />;
+  return <AnimatedSvgCircle fill={spark.color} animatedProps={animatedProps} />;
 };
 
 interface ShockwaveProps {
@@ -380,18 +420,19 @@ interface ShockwaveProps {
 }
 
 const Shockwave: React.FC<ShockwaveProps> = ({ cx, cy, progress, maxRadius }) => {
-  const r = useDerivedValue(() => progress.value * maxRadius);
-  const op = useDerivedValue(() => Math.max(0, 0.6 - progress.value * 0.8));
+  const animatedProps = useAnimatedProps(() => ({
+    r: progress.value * maxRadius,
+    opacity: Math.max(0, 0.6 - progress.value * 0.8),
+  }));
 
   return (
-    <Circle
+    <AnimatedSvgCircle
       cx={cx}
       cy={cy}
-      r={r}
-      color={COLORS.shockwaveRing}
-      style="stroke"
+      stroke={COLORS.shockwaveRing}
+      fill="none"
       strokeWidth={2}
-      opacity={op}
+      animatedProps={animatedProps}
     />
   );
 };
@@ -402,11 +443,15 @@ interface DustParticleProps {
 }
 
 const DustParticle: React.FC<DustParticleProps> = ({ dust, progress }) => {
-  const x = useDerivedValue(() => dust.x + Math.sin(progress.value * Math.PI * 2) * dust.driftX);
-  const y = useDerivedValue(() => dust.y + Math.cos(progress.value * Math.PI * 2) * dust.driftY);
-  const op = useDerivedValue(() => 0.08 + Math.sin(progress.value * Math.PI * 2) * 0.07);
+  const animatedProps = useAnimatedProps(() => ({
+    cx: dust.x + Math.sin(progress.value * Math.PI * 2) * dust.driftX,
+    cy: dust.y + Math.cos(progress.value * Math.PI * 2) * dust.driftY,
+    opacity: 0.08 + Math.sin(progress.value * Math.PI * 2) * 0.07,
+  }));
 
-  return <Circle cx={x} cy={y} r={dust.radius} color={COLORS.dustParticle} opacity={op} />;
+  return (
+    <AnimatedSvgCircle r={dust.radius} fill={COLORS.dustParticle} animatedProps={animatedProps} />
+  );
 };
 
 interface ShardPieceProps {
@@ -440,24 +485,18 @@ const ShardPiece: React.FC<ShardPieceProps> = ({ shard, cx, cy, gravity, progres
     );
   }, [halfW, halfH]);
 
-  const originX = useDerivedValue(() => cx + shard.vx * progress.value);
-  const originY = useDerivedValue(
-    () => cy + shard.vy * progress.value + gravity * progress.value * progress.value,
-  );
-  const rotation = useDerivedValue(() => shard.spin * progress.value);
-  const opacity = useDerivedValue(() => Math.max(0, 1 - progress.value * 1.2));
-
-  const transform = useDerivedValue(() => [
-    { translateX: originX.value },
-    { translateY: originY.value },
-    { rotate: rotation.value },
-  ]);
+  const animatedProps = useAnimatedProps(() => ({
+    x: cx + shard.vx * progress.value,
+    y: cy + shard.vy * progress.value + gravity * progress.value * progress.value,
+    rotation: shard.spin * progress.value * (180 / Math.PI),
+    opacity: Math.max(0, 1 - progress.value * 1.2),
+  }));
 
   return (
-    <Group transform={transform} opacity={opacity}>
-      <Path path={shardPath} color={shard.color} />
-      <Path path={shardPath} color="rgba(255,255,255,0.3)" style="stroke" strokeWidth={0.5} />
-    </Group>
+    <AnimatedG animatedProps={animatedProps}>
+      <SvgPath d={shardPath} fill={shard.color} />
+      <SvgPath d={shardPath} stroke="rgba(255,255,255,0.3)" fill="none" strokeWidth={0.5} />
+    </AnimatedG>
   );
 };
 
@@ -513,13 +552,22 @@ const RadialBurstLine: React.FC<RadialBurstLineProps> = ({
 }) => {
   const cosA = Math.cos(angle);
   const sinA = Math.sin(angle);
-  const innerR = useDerivedValue(() => progress.value * maxRadius * 0.2);
-  const outerR = useDerivedValue(() => progress.value * maxRadius);
-  const p1 = useDerivedValue(() => vec(cx + cosA * innerR.value, cy + sinA * innerR.value));
-  const p2 = useDerivedValue(() => vec(cx + cosA * outerR.value, cy + sinA * outerR.value));
-  const op = useDerivedValue(() => Math.max(0, 0.5 - progress.value * 0.7));
 
-  return <Line p1={p1} p2={p2} color={COLORS.radialBurst} strokeWidth={2} opacity={op} />;
+  const animatedProps = useAnimatedProps(() => {
+    const innerR = progress.value * maxRadius * 0.2;
+    const outerR = progress.value * maxRadius;
+    return {
+      x1: cx + cosA * innerR,
+      y1: cy + sinA * innerR,
+      x2: cx + cosA * outerR,
+      y2: cy + sinA * outerR,
+      opacity: Math.max(0, 0.5 - progress.value * 0.7),
+    };
+  });
+
+  return (
+    <AnimatedSvgLine stroke={COLORS.radialBurst} strokeWidth={2} animatedProps={animatedProps} />
+  );
 };
 
 // ─── Main component ─────────────────────────────────────────────────────
@@ -610,8 +658,10 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const c5 = useSharedValue(0);
   const crackOpacities = useMemo(() => [c0, c1, c2, c3, c4, c5], [c0, c1, c2, c3, c4, c5]);
 
-  // Derived value for Skia lock group opacity
-  const lockSkiaOpacity = useDerivedValue(() => lockOpacity.value);
+  // Lock group opacity for SVG
+  const lockGroupProps = useAnimatedProps(() => ({ opacity: lockOpacity.value }));
+  const lightningGroupProps = useAnimatedProps(() => ({ opacity: lightningFlash.value }));
+  const debrisGroupProps = useAnimatedProps(() => ({ opacity: debrisVisible.value }));
 
   // Radial burst progress for final shatter
   const radialBurstProgress = useSharedValue(0);
@@ -971,13 +1021,30 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
           </View>
         ))}
 
-      {/* Ambient dust particles + Skia torch flames (full-screen Skia canvas behind lock) */}
+      {/* Ambient dust particles + SVG torch flames (full-screen canvas behind lock) */}
       {phase !== 'revealed' && !reducedMotion && (
-        <Canvas style={styles.absoluteFillNoEvents}>
+        <Svg style={styles.absoluteFillNoEvents}>
+          <Defs>
+            <Filter id="torch-blur-20">
+              <FeGaussianBlur stdDeviation={20} />
+            </Filter>
+            <Filter id="torch-blur-6">
+              <FeGaussianBlur stdDeviation={6} />
+            </Filter>
+            <Filter id="torch-blur-4">
+              <FeGaussianBlur stdDeviation={4} />
+            </Filter>
+            <Filter id="torch-blur-2">
+              <FeGaussianBlur stdDeviation={2} />
+            </Filter>
+            <Filter id="torch-blur-1">
+              <FeGaussianBlur stdDeviation={1} />
+            </Filter>
+          </Defs>
           {dustParticles.map((dust, i) => (
             <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
           ))}
-          {/* Skia torch flames — warm glowing fire clusters */}
+          {/* SVG torch flames — warm glowing fire clusters */}
           {TORCH_POSITIONS.map((torch, i) => (
             <SkiaTorchFlame
               key={`skia-torch-${i}`}
@@ -986,7 +1053,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               flicker={torchFlicker}
             />
           ))}
-        </Canvas>
+        </Svg>
       )}
 
       {/* Pressable overlay for tap interaction */}
@@ -997,82 +1064,93 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, chainContainerStyle]}>
-            {/* Skia: lock + chains + cracks + sparks + shockwaves */}
-            <Canvas style={StyleSheet.absoluteFill}>
+            {/* SVG: lock + chains + cracks + sparks + shockwaves */}
+            <Svg style={StyleSheet.absoluteFill}>
+              <Defs>
+                <Filter id="lightning-blur">
+                  <FeGaussianBlur stdDeviation={4} />
+                </Filter>
+              </Defs>
+
               {/* Lock + chains (fade to 0 on shatter) */}
-              <Group opacity={lockSkiaOpacity}>
+              <AnimatedG animatedProps={lockGroupProps}>
                 {/* Lock body fill — dark steel */}
-                <Rect
+                <SvgRect
                   x={cx - lockW / 2}
                   y={cy - lockH / 2}
                   width={lockW}
                   height={lockH}
-                  color={COLORS.lockBody}
+                  fill={COLORS.lockBody}
                 />
                 {/* Lock body top highlight band */}
-                <Rect
+                <SvgRect
                   x={cx - lockW / 2}
                   y={cy - lockH / 2}
                   width={lockW}
                   height={lockH * 0.15}
-                  color={COLORS.lockHighlight}
+                  fill={COLORS.lockHighlight}
                   opacity={0.5}
                 />
                 {/* Lock body stroke — steel edge */}
-                <Rect
+                <SvgRect
                   x={cx - lockW / 2}
                   y={cy - lockH / 2}
                   width={lockW}
                   height={lockH}
-                  color={COLORS.lockStroke}
-                  style="stroke"
+                  stroke={COLORS.lockStroke}
+                  fill="none"
                   strokeWidth={2.5}
                 />
 
                 {/* Shackle (semi-circle arc above lock body) */}
-                <Path
-                  path={shacklePath}
-                  color={COLORS.shackle}
-                  style="stroke"
+                <SvgPath
+                  d={shacklePath}
+                  stroke={COLORS.shackle}
+                  fill="none"
                   strokeWidth={lockW * 0.1}
-                  strokeCap="round"
+                  strokeLinecap="round"
                 />
                 {/* Shackle highlight (thinner inner arc) */}
-                <Path
-                  path={shacklePath}
-                  color={COLORS.shackleHighlight}
-                  style="stroke"
+                <SvgPath
+                  d={shacklePath}
+                  stroke={COLORS.shackleHighlight}
+                  fill="none"
                   strokeWidth={lockW * 0.03}
-                  strokeCap="round"
+                  strokeLinecap="round"
                   opacity={0.4}
                 />
 
                 {/* Keyhole glow ring */}
-                <Circle cx={cx} cy={cy} r={lockW * 0.16} color={COLORS.keyholeGlow} />
+                <SvgCircle cx={cx} cy={cy} r={lockW * 0.16} fill={COLORS.keyholeGlow} />
                 {/* Keyhole circle */}
-                <Circle cx={cx} cy={cy} r={lockW * 0.1} color={COLORS.keyhole} />
+                <SvgCircle cx={cx} cy={cy} r={lockW * 0.1} fill={COLORS.keyhole} />
                 {/* Keyhole slot */}
-                <Path path={keyholePath} color={COLORS.keyhole} />
+                <SvgPath d={keyholePath} fill={COLORS.keyhole} />
 
                 {/* Rivets at four corners */}
                 {rivets.map((rivet, i) => (
                   <React.Fragment key={`rivet-${i}`}>
-                    <Circle cx={rivet.x} cy={rivet.y} r={lockW * 0.035} color={COLORS.rivetFill} />
-                    <Circle
+                    <SvgCircle
                       cx={rivet.x}
                       cy={rivet.y}
                       r={lockW * 0.035}
-                      color={COLORS.rivetHighlight}
-                      style="stroke"
+                      fill={COLORS.rivetFill}
+                    />
+                    <SvgCircle
+                      cx={rivet.x}
+                      cy={rivet.y}
+                      r={lockW * 0.035}
+                      stroke={COLORS.rivetHighlight}
+                      fill="none"
                       strokeWidth={1}
                       opacity={0.5}
                     />
                     {/* Rivet highlight dot */}
-                    <Circle
+                    <SvgCircle
                       cx={rivet.x - lockW * 0.01}
                       cy={rivet.y - lockW * 0.01}
                       r={lockW * 0.012}
-                      color={COLORS.rivetHighlight}
+                      fill={COLORS.rivetHighlight}
                       opacity={0.6}
                     />
                   </React.Fragment>
@@ -1081,11 +1159,11 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                 {/* Chain links with fill + stroke for depth */}
                 {chainLinkPaths.map((d, i) => (
                   <React.Fragment key={`link-${i}`}>
-                    <Path path={d} color={COLORS.chainLinkFill} />
-                    <Path path={d} color={COLORS.chainLinkStroke} style="stroke" strokeWidth={3} />
+                    <SvgPath d={d} fill={COLORS.chainLinkFill} />
+                    <SvgPath d={d} stroke={COLORS.chainLinkStroke} fill="none" strokeWidth={3} />
                   </React.Fragment>
                 ))}
-              </Group>
+              </AnimatedG>
 
               {/* Persistent crack lines (accumulate, gold→red) */}
               {cracks.map((crack, i) => (
@@ -1114,46 +1192,48 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               )}
 
               {/* Lightning arcs between cracks (visible after 3+ hits) */}
-              <Group opacity={lightningFlash}>
-                <Line
-                  p1={vec(cx - lockW * 0.25, cy - lockH * 0.2)}
-                  p2={vec(cx + lockW * 0.15, cy + lockH * 0.15)}
-                  color={COLORS.lightningArc}
+              <AnimatedG animatedProps={lightningGroupProps}>
+                <SvgLine
+                  x1={cx - lockW * 0.25}
+                  y1={cy - lockH * 0.2}
+                  x2={cx + lockW * 0.15}
+                  y2={cy + lockH * 0.15}
+                  stroke={COLORS.lightningArc}
                   strokeWidth={2}
-                  style="stroke"
                 />
-                <Line
-                  p1={vec(cx + lockW * 0.2, cy - lockH * 0.15)}
-                  p2={vec(cx - lockW * 0.1, cy + lockH * 0.2)}
-                  color={COLORS.lightningArc}
+                <SvgLine
+                  x1={cx + lockW * 0.2}
+                  y1={cy - lockH * 0.15}
+                  x2={cx - lockW * 0.1}
+                  y2={cy + lockH * 0.2}
+                  stroke={COLORS.lightningArc}
                   strokeWidth={2}
-                  style="stroke"
                 />
                 {/* Lightning glow */}
-                <Line
-                  p1={vec(cx - lockW * 0.25, cy - lockH * 0.2)}
-                  p2={vec(cx + lockW * 0.15, cy + lockH * 0.15)}
-                  color={COLORS.lightningGlow}
+                <SvgLine
+                  x1={cx - lockW * 0.25}
+                  y1={cy - lockH * 0.2}
+                  x2={cx + lockW * 0.15}
+                  y2={cy + lockH * 0.15}
+                  stroke={COLORS.lightningGlow}
                   strokeWidth={6}
-                  style="stroke"
-                >
-                  <Blur blur={4} />
-                </Line>
-              </Group>
+                  filter="url(#lightning-blur)"
+                />
+              </AnimatedG>
 
               {/* Ground debris (accumulate after hits) */}
-              <Group opacity={debrisVisible}>
+              <AnimatedG animatedProps={debrisGroupProps}>
                 {DEBRIS_PARTICLES.map((d, i) => (
-                  <Circle
+                  <SvgCircle
                     key={`debris-${i}`}
                     cx={d.x}
                     cy={d.y}
                     r={d.size}
-                    color={COLORS.debrisColor}
+                    fill={COLORS.debrisColor}
                   />
                 ))}
-              </Group>
-            </Canvas>
+              </AnimatedG>
+            </Svg>
 
             {/* Hit counter inside shake container */}
             {(phase === 'idle' || phase === 'hitting') && (
@@ -1180,7 +1260,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
           {/* Shard particles + radial burst (after shatter, with gravity + spin) */}
           {phase === 'shatter' && (
-            <Canvas style={StyleSheet.absoluteFill}>
+            <Svg style={StyleSheet.absoluteFill}>
               <RadialBurst
                 cx={cx}
                 cy={cy}
@@ -1197,7 +1277,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   progress={shatterProgress}
                 />
               ))}
-            </Canvas>
+            </Svg>
           )}
         </Animated.View>
 

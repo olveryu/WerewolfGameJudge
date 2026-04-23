@@ -15,18 +15,6 @@
  * Gesture Handler 负责：瞄准镜拖动 + 射击触发。
  * 不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  Line,
-  Picture,
-  RadialGradient,
-  Rect,
-  Skia,
-  vec,
-} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -37,14 +25,27 @@ import Animated, {
   Easing,
   interpolate,
   runOnJS,
+  useAnimatedProps,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle as SvgCircle,
+  Defs,
+  FeGaussianBlur,
+  Filter,
+  G,
+  Line as SvgLine,
+  LinearGradient as SvgLinearGradient,
+  Path as SvgPath,
+  RadialGradient as SvgRadialGradient,
+  Rect as SvgRect,
+  Stop,
+} from 'react-native-svg';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -60,6 +61,10 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { colors, crossPlatformTextShadow } from '@/theme';
+
+const AnimatedSvgCircle = Animated.createAnimatedComponent(SvgCircle);
+const AnimatedSvgLine = Animated.createAnimatedComponent(SvgLine);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 
@@ -239,98 +244,198 @@ const CelebrationParticle: React.FC<CelebrationParticleConfig> = React.memo(
 );
 CelebrationParticle.displayName = 'CelebrationParticle';
 
-// ─── Skia Firefly ───────────────────────────────────────────────────────
-interface SkiaFireflyProps {
+// ─── SVG Firefly ────────────────────────────────────────────────────────
+interface SvgFireflyProps {
   firefly: FireflyData;
   drift: SharedValue<number>;
   flicker: SharedValue<number>;
   masterOpacity: SharedValue<number>;
 }
 
-const SkiaFirefly: React.FC<SkiaFireflyProps> = React.memo(
+const SvgFirefly: React.FC<SvgFireflyProps> = React.memo(
   ({ firefly, drift, flicker, masterOpacity }) => {
-    const cx = useDerivedValue(
-      () =>
-        firefly.cx + Math.cos(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
-    );
-    const cy = useDerivedValue(
-      () =>
-        firefly.cy + Math.sin(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
-    );
-    const opacity = useDerivedValue(() => {
+    const groupProps = useAnimatedProps(() => {
       const flickerVal = 0.5 + Math.sin(flicker.value * Math.PI * 2) * 0.5;
-      return masterOpacity.value * interpolate(flickerVal, [0, 1], [0.2, 1]) * firefly.baseOpacity;
+      return {
+        opacity:
+          masterOpacity.value * interpolate(flickerVal, [0, 1], [0.2, 1]) * firefly.baseOpacity,
+      };
     });
+    const posProps = useAnimatedProps(() => ({
+      cx:
+        firefly.cx + Math.cos(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
+      cy:
+        firefly.cy + Math.sin(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
+    }));
+    const glowPosProps = useAnimatedProps(() => ({
+      cx:
+        firefly.cx + Math.cos(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
+      cy:
+        firefly.cy + Math.sin(drift.value * Math.PI * 2 + firefly.driftPhase) * firefly.driftRadius,
+    }));
 
     return (
-      <Group opacity={opacity}>
-        <Circle cx={cx} cy={cy} r={firefly.radius * 2.5} color={firefly.color}>
-          <Blur blur={4} />
-        </Circle>
-        <Circle cx={cx} cy={cy} r={firefly.radius} color={firefly.color} />
-      </Group>
+      <AnimatedG animatedProps={groupProps}>
+        <AnimatedSvgCircle
+          r={firefly.radius * 2.5}
+          fill={firefly.color}
+          filter="url(#firefly-blur)"
+          animatedProps={glowPosProps}
+        />
+        <AnimatedSvgCircle r={firefly.radius} fill={firefly.color} animatedProps={posProps} />
+      </AnimatedG>
     );
   },
 );
-SkiaFirefly.displayName = 'SkiaFirefly';
+SvgFirefly.displayName = 'SvgFirefly';
 
-// ─── Skia Shot Burst ────────────────────────────────────────────────────
-interface SkiaShotBurstProps {
+// ─── SVG Shot Burst ─────────────────────────────────────────────────────
+interface BurstRayLineProps {
+  cx: number;
+  cy: number;
+  ray: BurstRayData;
+  progress: SharedValue<number>;
+}
+
+const BurstRayLine: React.FC<BurstRayLineProps> = React.memo(({ cx, cy, ray, progress }) => {
+  const animatedProps = useAnimatedProps(() => ({
+    x2: cx + Math.cos(ray.angle) * ray.length * progress.value,
+    y2: cy + Math.sin(ray.angle) * ray.length * progress.value,
+    opacity: Math.max(0, 1 - progress.value) * 0.8,
+  }));
+
+  return (
+    <AnimatedSvgLine
+      x1={cx}
+      y1={cy}
+      stroke={HUNT_COLORS.burstRay}
+      strokeWidth={3}
+      strokeLinecap="round"
+      filter="url(#burst-blur)"
+      animatedProps={animatedProps}
+    />
+  );
+});
+BurstRayLine.displayName = 'BurstRayLine';
+
+interface SvgShotBurstProps {
   cx: number;
   cy: number;
   rays: BurstRayData[];
   progress: SharedValue<number>;
 }
 
-const SkiaShotBurst: React.FC<SkiaShotBurstProps> = React.memo(({ cx, cy, rays, progress }) => {
-  return (
-    <Group>
-      {rays.map((ray, i) => {
-        const RayLine: React.FC = () => {
-          const p2 = useDerivedValue(() =>
-            vec(
-              cx + Math.cos(ray.angle) * ray.length * progress.value,
-              cy + Math.sin(ray.angle) * ray.length * progress.value,
-            ),
-          );
-          const op = useDerivedValue(() => Math.max(0, 1 - progress.value) * 0.8);
-          return (
-            <Group opacity={op}>
-              <Line
-                p1={vec(cx, cy)}
-                p2={p2}
-                color={HUNT_COLORS.burstRay}
-                style="stroke"
-                strokeWidth={3}
-                strokeCap="round"
-              >
-                <Blur blur={3} />
-              </Line>
-            </Group>
-          );
-        };
-        return <RayLine key={i} />;
-      })}
-      {/* Shockwave ring */}
-      <SkiaShockwave cx={cx} cy={cy} progress={progress} />
-    </Group>
-  );
-});
-SkiaShotBurst.displayName = 'SkiaShotBurst';
+const SvgShotBurst: React.FC<SvgShotBurstProps> = React.memo(({ cx, cy, rays, progress }) => (
+  <G>
+    {rays.map((ray, i) => (
+      <BurstRayLine key={i} cx={cx} cy={cy} ray={ray} progress={progress} />
+    ))}
+    <SvgShockwave cx={cx} cy={cy} progress={progress} />
+  </G>
+));
+SvgShotBurst.displayName = 'SvgShotBurst';
 
-const SkiaShockwave: React.FC<{ cx: number; cy: number; progress: SharedValue<number> }> =
+const SvgShockwave: React.FC<{ cx: number; cy: number; progress: SharedValue<number> }> =
   React.memo(({ cx, cy, progress }) => {
-    const r = useDerivedValue(() => progress.value * 120);
-    const op = useDerivedValue(() => Math.max(0, 1 - progress.value) * 0.6);
+    const animatedProps = useAnimatedProps(() => ({
+      r: progress.value * 120,
+      opacity: Math.max(0, 1 - progress.value) * 0.6,
+    }));
     return (
-      <Group opacity={op}>
-        <Circle cx={cx} cy={cy} r={r} color={HUNT_COLORS.shockwave} style="stroke" strokeWidth={2}>
-          <Blur blur={2} />
-        </Circle>
-      </Group>
+      <AnimatedSvgCircle
+        cx={cx}
+        cy={cy}
+        stroke={HUNT_COLORS.shockwave}
+        fill="none"
+        strokeWidth={2}
+        filter="url(#shockwave-blur)"
+        animatedProps={animatedProps}
+      />
     );
   });
-SkiaShockwave.displayName = 'SkiaShockwave';
+SvgShockwave.displayName = 'SvgShockwave';
+
+// ─── Scope Overlay (animated position via AnimatedG) ────────────────────
+interface ScopeOverlayProps {
+  scopeX: SharedValue<number>;
+  scopeY: SharedValue<number>;
+  w: number;
+  h: number;
+}
+
+const ScopeOverlay: React.FC<ScopeOverlayProps> = React.memo(({ scopeX, scopeY, w, h }) => {
+  const lensProps = useAnimatedProps(() => ({
+    cx: scopeX.value,
+    cy: scopeY.value,
+  }));
+  const scopeGroupProps = useAnimatedProps(() => ({
+    x: scopeX.value,
+    y: scopeY.value,
+  }));
+
+  return (
+    <G>
+      <SvgRect x={0} y={0} width={w} height={h} fill={SCOPE_COLORS.overlay} />
+      {/* Lens brightening — gradient at canvas (0,0) per original */}
+      <AnimatedSvgCircle r={SCOPE_RADIUS} fill="url(#lens-grad)" animatedProps={lensProps} />
+      {/* Scope elements — move together */}
+      <AnimatedG animatedProps={scopeGroupProps}>
+        <SvgCircle
+          cx={0}
+          cy={0}
+          r={SCOPE_RADIUS}
+          stroke={SCOPE_COLORS.ring}
+          fill="none"
+          strokeWidth={3}
+        />
+        <SvgCircle
+          cx={0}
+          cy={0}
+          r={SCOPE_RADIUS + 6}
+          stroke={SCOPE_COLORS.outerRing}
+          fill="none"
+          strokeWidth={1.5}
+        />
+        {/* Crosshair lines */}
+        <SvgLine
+          x1={-(SCOPE_RADIUS - 10)}
+          y1={0}
+          x2={-12}
+          y2={0}
+          stroke={SCOPE_COLORS.crosshair}
+          strokeWidth={1}
+        />
+        <SvgLine
+          x1={12}
+          y1={0}
+          x2={SCOPE_RADIUS - 10}
+          y2={0}
+          stroke={SCOPE_COLORS.crosshair}
+          strokeWidth={1}
+        />
+        <SvgLine
+          x1={0}
+          y1={-(SCOPE_RADIUS - 10)}
+          x2={0}
+          y2={-12}
+          stroke={SCOPE_COLORS.crosshair}
+          strokeWidth={1}
+        />
+        <SvgLine
+          x1={0}
+          y1={12}
+          x2={0}
+          y2={SCOPE_RADIUS - 10}
+          stroke={SCOPE_COLORS.crosshair}
+          strokeWidth={1}
+        />
+        {/* Center dot */}
+        <SvgCircle cx={0} cy={0} r={2} fill={SCOPE_COLORS.centerDot} />
+      </AnimatedG>
+    </G>
+  );
+});
+ScopeOverlay.displayName = 'ScopeOverlay';
 
 // ─── Animated Animal ────────────────────────────────────────────────────
 interface AnimatedAnimalProps {
@@ -417,217 +522,285 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
 );
 AnimatedAnimal.displayName = 'AnimatedAnimal';
 
-// ─── Forest background (Skia Picture — rendered once) ───────────────────
-function createForestPicture(w: number, h: number) {
-  const recorder = Skia.PictureRecorder();
-  const canvas = recorder.beginRecording(Skia.XYWHRect(0, 0, w, h));
-  (() => {
-    const groundY = h * 0.72;
+// ─── Forest background SVG data + component ────────────────────────────
 
-    // Sky gradient
-    const skyPaint = Skia.Paint();
-    const skyShader = Skia.Shader.MakeLinearGradient(
-      { x: 0, y: 0 },
-      { x: 0, y: h },
-      [
-        Skia.Color(SKY_COLORS.top),
-        Skia.Color(SKY_COLORS.mid1),
-        Skia.Color(SKY_COLORS.mid2),
-        Skia.Color(SKY_COLORS.mid3),
-        Skia.Color(SKY_COLORS.bottom),
-      ],
-      [0, 0.3, 0.55, 0.75, 1],
-      0,
-    );
-    if (skyShader) {
-      skyPaint.setShader(skyShader);
-      canvas.drawRect({ x: 0, y: 0, width: w, height: h }, skyPaint);
-    }
-
-    // Stars
-    const starPaint = Skia.Paint();
-    for (let i = 0; i < 60; i++) {
-      const sx = Math.random() * w;
-      const sy = Math.random() * h * 0.45;
-      const sr = 0.5 + Math.random() * 2;
-      starPaint.setColor(Skia.Color(`rgba(200, 220, 255, ${0.3 + Math.random() * 0.7})`));
-      canvas.drawCircle(sx, sy, sr, starPaint);
-    }
-
-    // Moon
-    const mx = w * 0.8;
-    const my = h * 0.12;
-    const moonGlow = Skia.Paint();
-    const moonGlowShader = Skia.Shader.MakeRadialGradient(
-      { x: mx, y: my },
-      60,
-      [
-        Skia.Color('rgba(200,220,255,0.3)'),
-        Skia.Color('rgba(200,220,255,0.08)'),
-        Skia.Color('rgba(200,220,255,0)'),
-      ],
-      [0, 0.5, 1],
-      0,
-    );
-    if (moonGlowShader) {
-      moonGlow.setShader(moonGlowShader);
-      canvas.drawCircle(mx, my, 60, moonGlow);
-    }
-    const moonBody = Skia.Paint();
-    moonBody.setColor(Skia.Color('rgba(230, 240, 255, 0.92)'));
-    canvas.drawCircle(mx, my, 14, moonBody);
-    const moonShadow = Skia.Paint();
-    moonShadow.setColor(Skia.Color(SKY_COLORS.top));
-    canvas.drawCircle(mx + 6, my - 3, 11, moonShadow);
-
-    // Distant hills
-    const hillPaint = Skia.Paint();
-    hillPaint.setColor(Skia.Color('#0a2018'));
-    const hillPath = Skia.Path.Make();
-    hillPath.moveTo(0, h * 0.55);
-    for (let x = 0; x <= w; x += 20) {
-      hillPath.lineTo(x, h * 0.55 + Math.sin(x * 0.008) * 30 + Math.sin(x * 0.015) * 15);
-    }
-    hillPath.lineTo(w, h);
-    hillPath.lineTo(0, h);
-    hillPath.close();
-    canvas.drawPath(hillPath, hillPaint);
-
-    // Tree lines
-    drawSkiaTreeLine(canvas, w, h, h * 0.5, 0.6, '#071510', 25, 60);
-    drawSkiaTreeLine(canvas, w, h, h * 0.58, 0.8, '#0a1f15', 18, 80);
-
-    // Ground
-    const groundPaint = Skia.Paint();
-    const groundShader = Skia.Shader.MakeLinearGradient(
-      { x: 0, y: groundY },
-      { x: 0, y: h },
-      [Skia.Color('#122a1a'), Skia.Color('#0d1f12'), Skia.Color('#080f08')],
-      [0, 0.5, 1],
-      0,
-    );
-    if (groundShader) {
-      groundPaint.setShader(groundShader);
-      canvas.drawRect({ x: 0, y: groundY, width: w, height: h - groundY }, groundPaint);
-    }
-
-    // Grass tufts
-    const grassPaint = Skia.Paint();
-    grassPaint.setColor(Skia.Color('rgba(40, 80, 50, 0.6)'));
-    grassPaint.setStyle(1); // Stroke
-    grassPaint.setStrokeWidth(1.5);
-    grassPaint.setStrokeCap(1); // Round
-    for (let i = 0; i < 80; i++) {
-      const gx = Math.random() * w;
-      const gy = groundY + Math.random() * (h - groundY) * 0.3;
-      const gh = 8 + Math.random() * 14;
-      const grassPath = Skia.Path.Make();
-      grassPath.moveTo(gx, gy);
-      grassPath.quadTo(
-        gx + (Math.random() - 0.5) * 10,
-        gy - gh,
-        gx + (Math.random() - 0.5) * 6,
-        gy - gh,
-      );
-      canvas.drawPath(grassPath, grassPaint);
-    }
-
-    // Foreground trees
-    drawSkiaSilhouetteTree(canvas, h, -20, h * 0.25, 1);
-    drawSkiaSilhouetteTree(canvas, h, w - 40, h * 0.2, -1);
-    if (w > 350) {
-      drawSkiaSilhouetteTree(canvas, h, w * 0.15, h * 0.35, 1);
-      drawSkiaSilhouetteTree(canvas, h, w * 0.78, h * 0.3, -1);
-    }
-
-    // Low fog
-    for (let i = 0; i < 6; i++) {
-      const fx = Math.random() * w;
-      const fy = groundY - 10 + Math.random() * 40;
-      const fr = 80 + Math.random() * 120;
-      const fogPaint = Skia.Paint();
-      const fogShader = Skia.Shader.MakeRadialGradient(
-        { x: fx, y: fy },
-        fr,
-        [Skia.Color('rgba(100,140,120,0.15)'), Skia.Color('rgba(100,140,120,0)')],
-        [0, 1],
-        0,
-      );
-      if (fogShader) {
-        fogPaint.setShader(fogShader);
-        canvas.drawCircle(fx, fy, fr, fogPaint);
-      }
-    }
-
-    // Vignette
-    const vigPaint = Skia.Paint();
-    const vigR = Math.max(w, h) * 0.7;
-    const vigShader = Skia.Shader.MakeRadialGradient(
-      { x: w / 2, y: h / 2 },
-      vigR,
-      [Skia.Color('rgba(0,0,0,0)'), Skia.Color('rgba(0,0,0,0.6)')],
-      [0, 1],
-      0,
-    );
-    if (vigShader) {
-      vigPaint.setShader(vigShader);
-      canvas.drawRect({ x: 0, y: 0, width: w, height: h }, vigPaint);
-    }
-  })();
-  return recorder.finishRecordingAsPicture();
+interface ForestSvgData {
+  groundY: number;
+  stars: Array<{ x: number; y: number; r: number; opacity: number }>;
+  mx: number;
+  my: number;
+  hillD: string;
+  treeLine1D: string;
+  treeLine2D: string;
+  grassPaths: string[];
+  silhouetteTrees: Array<{
+    trunkX: number;
+    trunkY: number;
+    trunkH: number;
+    canopyDs: string[];
+  }>;
+  fogCircles: Array<{ cx: number; cy: number; r: number }>;
 }
 
-function drawSkiaTreeLine(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SkCanvas not re-exported
-  canvas: any,
+function buildTreeLineD(
   w: number,
   h: number,
   baseY: number,
   density: number,
-  color: string,
   minH: number,
   maxH: number,
-) {
-  const treePaint = Skia.Paint();
-  treePaint.setColor(Skia.Color(color));
-  const treePath = Skia.Path.Make();
-  treePath.moveTo(0, h);
+): string {
+  let d = `M 0 ${h}`;
   for (let x = -10; x <= w + 10; x += 12 + Math.random() * 8) {
     if (Math.random() > density) continue;
     const tH = minH + Math.random() * maxH;
     const tW = 6 + Math.random() * 10;
     const by = baseY + Math.sin(x * 0.01) * 20;
-    treePath.lineTo(x - tW / 2, by);
-    treePath.lineTo(x, by - tH);
-    treePath.lineTo(x + tW / 2, by);
+    d += ` L ${x - tW / 2} ${by} L ${x} ${by - tH} L ${x + tW / 2} ${by}`;
   }
-  treePath.lineTo(w + 10, h);
-  treePath.close();
-  canvas.drawPath(treePath, treePaint);
+  d += ` L ${w + 10} ${h} Z`;
+  return d;
 }
 
-function drawSkiaSilhouetteTree(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SkCanvas not re-exported
-  canvas: any,
+function buildSilhouetteTreeData(
   h: number,
   x: number,
   topY: number,
   dir: number,
-) {
-  const treePaint = Skia.Paint();
-  treePaint.setColor(Skia.Color('#040d08'));
-  canvas.drawRect({ x: x + 20 * dir, y: topY + 40, width: 18, height: h - topY - 40 }, treePaint);
+): ForestSvgData['silhouetteTrees'][number] {
+  const trunkX = x + 20 * dir;
+  const trunkY = topY + 40;
+  const trunkH = h - topY - 40;
+  const canopyDs: string[] = [];
   for (let i = 0; i < 3; i++) {
     const ly = topY + i * 35;
     const lw = 50 - i * 8;
-    const canopyPath = Skia.Path.Make();
-    canopyPath.moveTo(x + 28 * dir - lw, ly + 50);
-    canopyPath.lineTo(x + 28 * dir, ly);
-    canopyPath.lineTo(x + 28 * dir + lw, ly + 50);
-    canopyPath.close();
-    canvas.drawPath(canopyPath, treePaint);
+    canopyDs.push(
+      `M ${x + 28 * dir - lw} ${ly + 50} L ${x + 28 * dir} ${ly} L ${x + 28 * dir + lw} ${ly + 50} Z`,
+    );
   }
+  return { trunkX, trunkY, trunkH, canopyDs };
 }
+
+function buildForestSvgData(w: number, h: number): ForestSvgData {
+  const groundY = h * 0.72;
+
+  // Stars
+  const stars: ForestSvgData['stars'] = [];
+  for (let i = 0; i < 60; i++) {
+    stars.push({
+      x: Math.random() * w,
+      y: Math.random() * h * 0.45,
+      r: 0.5 + Math.random() * 2,
+      opacity: 0.3 + Math.random() * 0.7,
+    });
+  }
+
+  // Moon
+  const mx = w * 0.8;
+  const my = h * 0.12;
+
+  // Hills
+  let hillD = `M 0 ${h * 0.55}`;
+  for (let x = 0; x <= w; x += 20) {
+    hillD += ` L ${x} ${h * 0.55 + Math.sin(x * 0.008) * 30 + Math.sin(x * 0.015) * 15}`;
+  }
+  hillD += ` L ${w} ${h} L 0 ${h} Z`;
+
+  // Tree lines
+  const treeLine1D = buildTreeLineD(w, h, h * 0.5, 0.6, 25, 60);
+  const treeLine2D = buildTreeLineD(w, h, h * 0.58, 0.8, 18, 80);
+
+  // Grass
+  const grassPaths: string[] = [];
+  for (let i = 0; i < 80; i++) {
+    const gx = Math.random() * w;
+    const gy = groundY + Math.random() * (h - groundY) * 0.3;
+    const gh = 8 + Math.random() * 14;
+    const cpx = gx + (Math.random() - 0.5) * 10;
+    const endX = gx + (Math.random() - 0.5) * 6;
+    grassPaths.push(`M ${gx} ${gy} Q ${cpx} ${gy - gh} ${endX} ${gy - gh}`);
+  }
+
+  // Silhouette trees
+  const silhouetteTrees = [
+    buildSilhouetteTreeData(h, -20, h * 0.25, 1),
+    buildSilhouetteTreeData(h, w - 40, h * 0.2, -1),
+  ];
+  if (w > 350) {
+    silhouetteTrees.push(buildSilhouetteTreeData(h, w * 0.15, h * 0.35, 1));
+    silhouetteTrees.push(buildSilhouetteTreeData(h, w * 0.78, h * 0.3, -1));
+  }
+
+  // Low fog
+  const fogCircles: ForestSvgData['fogCircles'] = [];
+  for (let i = 0; i < 6; i++) {
+    fogCircles.push({
+      cx: Math.random() * w,
+      cy: groundY - 10 + Math.random() * 40,
+      r: 80 + Math.random() * 120,
+    });
+  }
+
+  return {
+    groundY,
+    stars,
+    mx,
+    my,
+    hillD,
+    treeLine1D,
+    treeLine2D,
+    grassPaths,
+    silhouetteTrees,
+    fogCircles,
+  };
+}
+
+/** Static forest background — rendered once, no animation */
+const ForestBackgroundSvg: React.FC<{ w: number; h: number }> = React.memo(({ w, h }) => {
+  const data = useMemo(() => buildForestSvgData(w, h), [w, h]);
+  const vigR = Math.max(w, h) * 0.7;
+
+  return (
+    <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <SvgLinearGradient
+          id="sky-grad"
+          x1="0"
+          y1="0"
+          x2="0"
+          y2={String(h)}
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor={SKY_COLORS.top} />
+          <Stop offset="0.3" stopColor={SKY_COLORS.mid1} />
+          <Stop offset="0.55" stopColor={SKY_COLORS.mid2} />
+          <Stop offset="0.75" stopColor={SKY_COLORS.mid3} />
+          <Stop offset="1" stopColor={SKY_COLORS.bottom} />
+        </SvgLinearGradient>
+        <SvgRadialGradient
+          id="moon-glow"
+          cx={String(data.mx)}
+          cy={String(data.my)}
+          r="60"
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor="rgb(200,220,255)" stopOpacity={0.3} />
+          <Stop offset="0.5" stopColor="rgb(200,220,255)" stopOpacity={0.08} />
+          <Stop offset="1" stopColor="rgb(200,220,255)" stopOpacity={0} />
+        </SvgRadialGradient>
+        <SvgLinearGradient
+          id="ground-grad"
+          x1="0"
+          y1={String(data.groundY)}
+          x2="0"
+          y2={String(h)}
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor="#122a1a" />
+          <Stop offset="0.5" stopColor="#0d1f12" />
+          <Stop offset="1" stopColor="#080f08" />
+        </SvgLinearGradient>
+        {data.fogCircles.map((fog, i) => (
+          <SvgRadialGradient
+            key={`fog-grad-${i}`}
+            id={`fog-grad-${i}`}
+            cx={String(fog.cx)}
+            cy={String(fog.cy)}
+            r={String(fog.r)}
+            gradientUnits="userSpaceOnUse"
+          >
+            <Stop offset="0" stopColor="rgb(100,140,120)" stopOpacity={0.15} />
+            <Stop offset="1" stopColor="rgb(100,140,120)" stopOpacity={0} />
+          </SvgRadialGradient>
+        ))}
+        <SvgRadialGradient
+          id="vignette-grad"
+          cx={String(w / 2)}
+          cy={String(h / 2)}
+          r={String(vigR)}
+          gradientUnits="userSpaceOnUse"
+        >
+          <Stop offset="0" stopColor="black" stopOpacity={0} />
+          <Stop offset="1" stopColor="black" stopOpacity={0.6} />
+        </SvgRadialGradient>
+      </Defs>
+
+      {/* Sky */}
+      <SvgRect x={0} y={0} width={w} height={h} fill="url(#sky-grad)" />
+
+      {/* Stars */}
+      {data.stars.map((s, i) => (
+        <SvgCircle
+          key={`star-${i}`}
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="rgb(200, 220, 255)"
+          opacity={s.opacity}
+        />
+      ))}
+
+      {/* Moon */}
+      <SvgCircle cx={data.mx} cy={data.my} r={60} fill="url(#moon-glow)" />
+      <SvgCircle cx={data.mx} cy={data.my} r={14} fill="rgba(230, 240, 255, 0.92)" />
+      <SvgCircle cx={data.mx + 6} cy={data.my - 3} r={11} fill={SKY_COLORS.top} />
+
+      {/* Hills */}
+      <SvgPath d={data.hillD} fill="#0a2018" />
+
+      {/* Tree lines */}
+      <SvgPath d={data.treeLine1D} fill="#071510" />
+      <SvgPath d={data.treeLine2D} fill="#0a1f15" />
+
+      {/* Ground */}
+      <SvgRect
+        x={0}
+        y={data.groundY}
+        width={w}
+        height={h - data.groundY}
+        fill="url(#ground-grad)"
+      />
+
+      {/* Grass */}
+      {data.grassPaths.map((d, i) => (
+        <SvgPath
+          key={`grass-${i}`}
+          d={d}
+          stroke="rgba(40, 80, 50, 0.6)"
+          fill="none"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+        />
+      ))}
+
+      {/* Silhouette trees */}
+      {data.silhouetteTrees.map((tree, i) => (
+        <G key={`stree-${i}`}>
+          <SvgRect x={tree.trunkX} y={tree.trunkY} width={18} height={tree.trunkH} fill="#040d08" />
+          {tree.canopyDs.map((d, j) => (
+            <SvgPath key={`canopy-${i}-${j}`} d={d} fill="#040d08" />
+          ))}
+        </G>
+      ))}
+
+      {/* Fog */}
+      {data.fogCircles.map((fog, i) => (
+        <SvgCircle
+          key={`fog-${i}`}
+          cx={fog.cx}
+          cy={fog.cy}
+          r={fog.r}
+          fill={`url(#fog-grad-${i})`}
+        />
+      ))}
+
+      {/* Vignette */}
+      <SvgRect x={0} y={0} width={w} height={h} fill="url(#vignette-grad)" />
+    </Svg>
+  );
+});
+ForestBackgroundSvg.displayName = 'ForestBackgroundSvg';
 
 // ─── Animal generation ──────────────────────────────────────────────────
 let animalIdCounter = 0;
@@ -725,10 +898,6 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
   const [fireflies] = useState(() => generateFireflies(screenWidth, screenHeight));
   const [burstRays] = useState(generateBurstRays);
-  const forestPicture = useMemo(
-    () => createForestPicture(screenWidth, screenHeight),
-    [screenWidth, screenHeight],
-  );
 
   // ── Shared values ──
   const scopeX = useSharedValue(screenWidth / 2);
@@ -1085,116 +1254,64 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   }));
 
   // ── Scope Skia overlay ──
-  // We use a derived value for crosshair line endpoints
-  // Crosshair line endpoints as derived SkPoint values
-  const crossLeftP1 = useDerivedValue(() => vec(scopeX.value - (SCOPE_RADIUS - 10), scopeY.value));
-  const crossLeftP2 = useDerivedValue(() => vec(scopeX.value - 12, scopeY.value));
-  const crossRightP1 = useDerivedValue(() => vec(scopeX.value + 12, scopeY.value));
-  const crossRightP2 = useDerivedValue(() => vec(scopeX.value + (SCOPE_RADIUS - 10), scopeY.value));
-  const crossTopP1 = useDerivedValue(() => vec(scopeX.value, scopeY.value - (SCOPE_RADIUS - 10)));
-  const crossTopP2 = useDerivedValue(() => vec(scopeX.value, scopeY.value - 12));
-  const crossBotP1 = useDerivedValue(() => vec(scopeX.value, scopeY.value + 12));
-  const crossBotP2 = useDerivedValue(() => vec(scopeX.value, scopeY.value + (SCOPE_RADIUS - 10)));
 
   return (
     <GestureDetector gesture={composedGesture}>
       <View testID={`${testIDPrefix}-container`} style={styles.container}>
-        {/* Skia layer: forest bg + fireflies + scope + burst */}
+        {/* SVG layer: forest bg + fireflies + scope + burst */}
         {!reducedMotion && (
-          <Canvas style={styles.absoluteFillNoEvents}>
-            <Picture picture={forestPicture} />
+          <View style={styles.absoluteFillNoEvents}>
+            <ForestBackgroundSvg w={screenWidth} h={screenHeight} />
+            <Svg style={StyleSheet.absoluteFill}>
+              <Defs>
+                <Filter id="firefly-blur">
+                  <FeGaussianBlur stdDeviation={4} />
+                </Filter>
+                <Filter id="burst-blur">
+                  <FeGaussianBlur stdDeviation={3} />
+                </Filter>
+                <Filter id="shockwave-blur">
+                  <FeGaussianBlur stdDeviation={2} />
+                </Filter>
+                <SvgRadialGradient
+                  id="lens-grad"
+                  cx="0"
+                  cy="0"
+                  r={String(SCOPE_RADIUS)}
+                  gradientUnits="userSpaceOnUse"
+                >
+                  <Stop offset="0" stopColor={SCOPE_COLORS.lensCenter} />
+                  <Stop offset="0.7" stopColor={SCOPE_COLORS.lensEdge} />
+                  <Stop offset="1" stopColor="transparent" />
+                </SvgRadialGradient>
+              </Defs>
 
-            {fireflies.map((f, i) => (
-              <SkiaFirefly
-                key={`ff-${i}`}
-                firefly={f}
-                drift={ffDrifts[i]}
-                flicker={ffFlickers[i]}
-                masterOpacity={atmosphereOpacity}
-              />
-            ))}
+              {fireflies.map((f, i) => (
+                <SvgFirefly
+                  key={`ff-${i}`}
+                  firefly={f}
+                  drift={ffDrifts[i]}
+                  flicker={ffFlickers[i]}
+                  masterOpacity={atmosphereOpacity}
+                />
+              ))}
 
-            {/* Scope dark overlay */}
-            {phase === 'hunting' && (
-              <Group>
-                <Rect
-                  x={0}
-                  y={0}
-                  width={screenWidth}
-                  height={screenHeight}
-                  color={SCOPE_COLORS.overlay}
-                />
-                {/* Lens brightening */}
-                <Circle cx={scopeX} cy={scopeY} r={SCOPE_RADIUS}>
-                  <RadialGradient
-                    c={vec(0, 0)}
-                    r={SCOPE_RADIUS}
-                    colors={[SCOPE_COLORS.lensCenter, SCOPE_COLORS.lensEdge, 'transparent']}
-                    positions={[0, 0.7, 1]}
-                  />
-                </Circle>
-                {/* Scope ring */}
-                <Circle
-                  cx={scopeX}
-                  cy={scopeY}
-                  r={SCOPE_RADIUS}
-                  color={SCOPE_COLORS.ring}
-                  style="stroke"
-                  strokeWidth={3}
-                />
-                {/* Outer ring */}
-                <Circle
-                  cx={scopeX}
-                  cy={scopeY}
-                  r={SCOPE_RADIUS + 6}
-                  color={SCOPE_COLORS.outerRing}
-                  style="stroke"
-                  strokeWidth={1.5}
-                />
-                {/* Crosshair lines */}
-                <Line
-                  p1={crossLeftP1}
-                  p2={crossLeftP2}
-                  color={SCOPE_COLORS.crosshair}
-                  style="stroke"
-                  strokeWidth={1}
-                />
-                <Line
-                  p1={crossRightP1}
-                  p2={crossRightP2}
-                  color={SCOPE_COLORS.crosshair}
-                  style="stroke"
-                  strokeWidth={1}
-                />
-                <Line
-                  p1={crossTopP1}
-                  p2={crossTopP2}
-                  color={SCOPE_COLORS.crosshair}
-                  style="stroke"
-                  strokeWidth={1}
-                />
-                <Line
-                  p1={crossBotP1}
-                  p2={crossBotP2}
-                  color={SCOPE_COLORS.crosshair}
-                  style="stroke"
-                  strokeWidth={1}
-                />
-                {/* Center dot */}
-                <Circle cx={scopeX} cy={scopeY} r={2} color={SCOPE_COLORS.centerDot} />
-              </Group>
-            )}
+              {/* Scope overlay */}
+              {phase === 'hunting' && (
+                <ScopeOverlay scopeX={scopeX} scopeY={scopeY} w={screenWidth} h={screenHeight} />
+              )}
 
-            {/* Hit burst */}
-            {hitBurstPos && (
-              <SkiaShotBurst
-                cx={hitBurstPos.x}
-                cy={hitBurstPos.y}
-                rays={burstRays}
-                progress={burstProgress}
-              />
-            )}
-          </Canvas>
+              {/* Hit burst */}
+              {hitBurstPos && (
+                <SvgShotBurst
+                  cx={hitBurstPos.x}
+                  cy={hitBurstPos.y}
+                  rays={burstRays}
+                  progress={burstProgress}
+                />
+              )}
+            </Svg>
+          </View>
         )}
 
         {/* Reduced motion fallback background */}

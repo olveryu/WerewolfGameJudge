@@ -1,22 +1,38 @@
 /**
- * CapsuleMachine — Skia Canvas 扭蛋机渲染组件
+ * CapsuleMachine — SVG 扭蛋机渲染组件
  *
- * 使用 useDerivedValue + Picture API 在 UI 线程渲染整个场景：
+ * 使用 SVG + Reanimated useAnimatedProps 渲染：
  * 背景、机身、玻璃罩、28 颗球、管道、旋钮、地面、闪光。
  * 物理状态来自 useGachaPhysics 的 shared values。
+ *
+ * 球通过 AnimatedBall 子组件驱动（每个球 1 个 useAnimatedProps）。
+ * 碎片/火花通过 useAnimatedReaction → React state 桥接渲染。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
-import { forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   runOnJS,
+  useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
-  useDerivedValue,
 } from 'react-native-reanimated';
+import Svg, {
+  Circle as SvgCircle,
+  ClipPath,
+  Defs,
+  Ellipse,
+  G,
+  Line as SvgLine,
+  Path as SvgPath,
+  Rect as SvgRect,
+} from 'react-native-svg';
+
+import { colors } from '@/theme/colors';
 
 import {
   BALL_COLORS,
+  BALL_R,
   BODY_B,
   BODY_L,
   BODY_R,
@@ -43,51 +59,80 @@ const STRIDE = 6;
 const F_ESCAPED = 1;
 const F_OPENED = 4;
 
-// ─── Pre-allocated Skia resources ───────────────────────────────────────
-const recorder = Skia.PictureRecorder();
-const paint = Skia.Paint();
-const strokePaint = Skia.Paint();
-strokePaint.setStyle(1); // Stroke
+// Shell / sparkle stride constants
+const SHELL_STRIDE = 9;
+const SPARK_STRIDE = 7;
 
-// Pre-convert ball colors to Skia format
-const SKIA_BALL_COLORS = BALL_COLORS.map((c) => Skia.Color(c));
-const SKIA_WHITE = Skia.Color('#FFFFFF');
-const SKIA_WHITE_FAINT = Skia.Color('rgba(255,255,255,0.2)');
-const SKIA_WHITE_HIGHLIGHT = Skia.Color('rgba(255,255,255,0.3)');
-const SKIA_BG = Skia.Color(MACHINE.bg);
-const SKIA_BG_LIGHT = Skia.Color(MACHINE.bgLight);
-const SKIA_BODY = Skia.Color(MACHINE.body);
-const SKIA_BODY_MID = Skia.Color(MACHINE.bodyMid);
-const SKIA_DOME_FILL = Skia.Color(MACHINE.dome);
-const SKIA_DOME_STROKE = Skia.Color(MACHINE.domeStroke);
-const SKIA_CHUTE = Skia.Color(MACHINE.chute);
-const SKIA_FLOOR_FILL = Skia.Color(MACHINE.floor);
-const SKIA_FLOOR_LINE = Skia.Color(MACHINE.floorLine);
-const SKIA_SHADOW = Skia.Color(MACHINE.shadow);
-const SKIA_GATE = Skia.Color(MACHINE.gate);
-const SKIA_DIAL_BODY = Skia.Color(MACHINE.dialBody);
-const SKIA_DIAL_HIGHLIGHT = Skia.Color(MACHINE.dialHighlight);
-const SKIA_DIAL_KNOB = Skia.Color(MACHINE.dialKnob);
-const SKIA_DIAL_STROKE = Skia.Color(MACHINE.dialStroke);
-
-// Rarity glow colors (indexed 0-3: common, rare, epic, legendary)
-const RARITY_GLOW_COLORS = [
-  Skia.Color('rgba(158,158,158,0.5)'),
-  Skia.Color('rgba(74,144,217,0.6)'),
-  Skia.Color('rgba(155,89,182,0.7)'),
-  Skia.Color('rgba(245,166,35,0.8)'),
+// Rarity glow colors (CSS — indexed 0-3: common, rare, epic, legendary)
+const RARITY_GLOW_CSS = [
+  'rgba(158,158,158,0.5)',
+  'rgba(74,144,217,0.6)',
+  'rgba(155,89,182,0.7)',
+  'rgba(245,166,35,0.8)',
 ];
 
-// Pre-allocated colors used inside scenePicture worklet
-const SKIA_BALL_CENTER_LINE = Skia.Color('rgba(0,0,0,0.15)');
-const SKIA_BALL_OUTLINE = Skia.Color('rgba(0,0,0,0.12)');
-const SKIA_DOME_HIGHLIGHT_L = Skia.Color('rgba(255,255,255,0.13)');
-const SKIA_DOME_HIGHLIGHT_R = Skia.Color('rgba(255,255,255,0.07)');
-const SKIA_CROSSHAIR = Skia.Color('rgba(255,255,255,0.12)');
-const SKIA_BODY_EDGE = Skia.Color(MACHINE.bodyEdge);
-const SKIA_CHUTE_STROKE = Skia.Color(MACHINE.chuteStroke);
-const SKIA_FLASH = Skia.Color('#FFFFFF');
-const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
+// ─── Animated SVG components ────────────────────────────────────────────
+const AnimatedG = Animated.createAnimatedComponent(G);
+const AnimatedSvgPath = Animated.createAnimatedComponent(SvgPath);
+const AnimatedSvgRect = Animated.createAnimatedComponent(SvgRect);
+
+// ─── AnimatedBall ───────────────────────────────────────────────────────
+
+interface AnimatedBallProps {
+  index: number;
+  ballData: SharedValue<number[]>;
+  showWhenEscaped: boolean;
+  r: number;
+}
+
+/**
+ * Single capsule ball — animated position + visibility from physics ballData.
+ * Top half colored, bottom half white, center line, highlight, ring, outline.
+ * Drawn at local (0,0); AnimatedG x/y moves to physics position.
+ */
+const AnimatedBall = React.memo<AnimatedBallProps>(function AnimatedBall({
+  index,
+  ballData,
+  showWhenEscaped,
+  r,
+}) {
+  const color = BALL_COLORS[index % BALL_COLORS.length];
+
+  const groupProps = useAnimatedProps(() => {
+    const base = index * STRIDE;
+    const bx = ballData.value[base];
+    const by = ballData.value[base + 1];
+    const flags = ballData.value[base + 5];
+    const escaped = (flags & F_ESCAPED) !== 0;
+    const opened = (flags & F_OPENED) !== 0;
+    const visible = showWhenEscaped ? escaped && !opened : !escaped && !opened;
+    return { x: bx, y: by, opacity: visible ? 1 : 0 };
+  });
+
+  // Pre-compute arc paths (radius stable per animation cycle)
+  // Top half pie: center → left → arc clockwise through top → close
+  const topArc = `M 0 0 L ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0 Z`;
+  // Bottom half pie: center → right → arc clockwise through bottom → close
+  const botArc = `M 0 0 L ${r} 0 A ${r} ${r} 0 0 1 ${-r} 0 Z`;
+
+  return (
+    <AnimatedG animatedProps={groupProps}>
+      <SvgPath d={topArc} fill={color} />
+      <SvgPath d={botArc} fill="white" />
+      <SvgLine x1={-r} y1={0} x2={r} y2={0} stroke="rgba(0,0,0,0.15)" strokeWidth={1.5} />
+      <SvgCircle cx={-r * 0.28} cy={-r * 0.35} r={r * 0.22} fill="rgba(255,255,255,0.3)" />
+      <SvgCircle
+        cx={0}
+        cy={-r * 0.08}
+        r={r * 0.28}
+        stroke="rgba(255,255,255,0.2)"
+        fill="none"
+        strokeWidth={1.5}
+      />
+      <SvgCircle cx={0} cy={0} r={r} stroke="rgba(0,0,0,0.12)" fill="none" strokeWidth={1} />
+    </AnimatedG>
+  );
+});
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -102,6 +147,22 @@ interface CapsuleMachineProps {
   height: number;
   drawType: 'normal' | 'golden';
   onPhaseChange?: (phase: number) => void;
+}
+
+interface ShellData {
+  x: number;
+  y: number;
+  size: number;
+  alpha: number;
+  colorIdx: number;
+}
+
+interface SparkData {
+  x: number;
+  y: number;
+  life: number;
+  size: number;
+  rarityIdx: number;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -136,264 +197,97 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       },
     );
 
-    // ── Skia scene picture ────────────────────────────────────────────
-    const scenePicture = useDerivedValue(() => {
-      'worklet';
-      // Subscribe to render tick
-      void physics.renderTick.value;
+    // Ball radius — stable after preSettle; track changes for single/multi draws
+    const [ballR, setBallR] = useState(physics.ballData.value[4] || BALL_R * s);
+    useAnimatedReaction(
+      () => physics.ballData.value[4],
+      (r, prev) => {
+        if (r > 0 && r !== prev) runOnJS(setBallR)(r);
+      },
+    );
 
-      const W = canvasW;
-      const H = canvasH;
-      const c = recorder.beginRecording(Skia.XYWHRect(0, 0, W, H));
+    const ballIndices = useMemo(() => Array.from({ length: NUM_BALLS }, (_, i) => i), []);
 
-      // Background
-      paint.setColor(SKIA_BG);
-      c.drawRect(Skia.XYWHRect(0, 0, W, H), paint);
-      // Radial glow behind dome — outer ring (purple tint)
-      paint.setColor(SKIA_BG_LIGHT);
-      paint.setAlphaf(0.2);
-      c.drawCircle(W / 2, H * 0.32, H * 0.55, paint);
-      // Mid ring (brighter)
-      paint.setAlphaf(0.35);
-      c.drawCircle(W / 2, H * 0.32, H * 0.35, paint);
-      // Inner glow
-      paint.setAlphaf(0.15);
-      c.drawCircle(W / 2, H * 0.32, H * 0.2, paint);
-      paint.setAlphaf(1);
+    // ── Particle sync (worklet → React state) ────────────────────────
+    const [particles, setParticles] = useState<{
+      shells: ShellData[];
+      sparkles: SparkData[];
+    }>({ shells: [], sparkles: [] });
 
-      // Floor area
-      paint.setColor(SKIA_FLOOR_FILL);
-      c.drawRect(Skia.XYWHRect(0, FLOOR_Y * s, W, H - FLOOR_Y * s), paint);
-      strokePaint.setColor(SKIA_FLOOR_LINE);
-      strokePaint.setStrokeWidth(1);
-      c.drawLine(30 * s, FLOOR_Y * s, W - 30 * s, FLOOR_Y * s, strokePaint);
-
-      // Machine shadow
-      paint.setColor(SKIA_SHADOW);
-      c.drawOval(Skia.XYWHRect(W / 2 - 148 * s, BODY_B * s + 10 * s, 296 * s, 28 * s), paint);
-
-      // Machine body
-      const bodyRect = Skia.RRectXY(
-        Skia.XYWHRect(BODY_L * s, BODY_T * s, (BODY_R - BODY_L) * s, (BODY_B - BODY_T) * s),
-        6 * s,
-        6 * s,
-      );
-      paint.setColor(SKIA_BODY_MID);
-      c.drawRRect(bodyRect, paint);
-      strokePaint.setColor(SKIA_BODY_EDGE);
-      strokePaint.setStrokeWidth(2);
-      c.drawRRect(bodyRect, strokePaint);
-
-      // Glass dome fill + stroke
-      const domeCx = DOME_CX * s;
-      const domeCy = DOME_CY * s;
-      const domeR = DOME_R * s;
-
-      // Draw balls INSIDE dome (clip to dome circle)
-      c.save();
-      const domePath = Skia.Path.Make();
-      domePath.addCircle(domeCx, domeCy, domeR);
-      c.clipPath(domePath, 1, true); // Intersect
-      const data = physics.ballData.value;
-      for (let i = 0; i < NUM_BALLS; i++) {
-        const base = i * STRIDE;
-        const flags = data[base + 5];
-        if ((flags & F_ESCAPED) !== 0 || (flags & F_OPENED) !== 0) continue;
-        const bx = data[base];
-        const by = data[base + 1];
-        const r = data[base + 4];
-        // Top half (colored)
-        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]);
-        c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 180, 180, true, paint);
-        // Bottom half (white)
-        paint.setColor(SKIA_WHITE);
-        c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 0, 180, true, paint);
-        // Center line
-        strokePaint.setColor(SKIA_BALL_CENTER_LINE);
-        strokePaint.setStrokeWidth(1.5);
-        c.drawLine(bx - r, by, bx + r, by, strokePaint);
-        // Highlight
-        paint.setColor(SKIA_WHITE_HIGHLIGHT);
-        c.drawCircle(bx - r * 0.28, by - r * 0.35, r * 0.22, paint);
-        // Ring
-        strokePaint.setColor(SKIA_WHITE_FAINT);
-        strokePaint.setStrokeWidth(1.5);
-        c.drawCircle(bx, by - r * 0.08, r * 0.28, strokePaint);
-        // Outer outline for contrast on light bg
-        strokePaint.setColor(SKIA_BALL_OUTLINE);
-        strokePaint.setStrokeWidth(1);
-        c.drawCircle(bx, by, r, strokePaint);
-      }
-      c.restore();
-
-      // Dome outline + glass effect
-      strokePaint.setColor(SKIA_DOME_STROKE);
-      strokePaint.setStrokeWidth(3);
-      c.drawCircle(domeCx, domeCy, domeR, strokePaint);
-      // Glass fill
-      paint.setColor(SKIA_DOME_FILL);
-      c.drawCircle(domeCx, domeCy, domeR, paint);
-      // Left arc highlight
-      paint.setColor(SKIA_DOME_HIGHLIGHT_L);
-      c.drawOval(Skia.XYWHRect(domeCx - 71 * s, domeCy - 87 * s, 32 * s, 144 * s), paint);
-      // Top-right small highlight
-      paint.setColor(SKIA_DOME_HIGHLIGHT_R);
-      c.drawOval(Skia.XYWHRect(domeCx + 35 * s, domeCy - 77 * s, 20 * s, 44 * s), paint);
-      // Bottom reflection arc
-      paint.setColor(SKIA_DOME_BOTTOM_ARC);
-      c.drawOval(Skia.XYWHRect(domeCx - 60 * s, domeCy + 50 * s, 120 * s, 50 * s), paint);
-
-      // Gate indicator
-      if (physics.gateOpen.value === 1) {
-        paint.setColor(SKIA_GATE);
-        c.drawRect(
-          Skia.XYWHRect(
-            HOLE_CX * s - HOLE_HALF_W * s,
-            HOLE_Y * s - 4 * s,
-            HOLE_HALF_W * 2 * s,
-            8 * s,
-          ),
-          paint,
-        );
-      }
-
-      // Chute
-      const chuteHW = physics.gateOpen.value === 1 ? 40 * s : 28 * s;
-      const chutePath = Skia.Path.Make();
-      chutePath.moveTo(W / 2 - chuteHW, CHUTE_TOP * s);
-      chutePath.lineTo(W / 2 - chuteHW + 4 * s, CHUTE_BOT * s);
-      chutePath.quadTo(W / 2, CHUTE_BOT * s + 12 * s, W / 2 + chuteHW - 4 * s, CHUTE_BOT * s);
-      chutePath.lineTo(W / 2 + chuteHW, CHUTE_TOP * s);
-      chutePath.close();
-      paint.setColor(SKIA_CHUTE);
-      c.drawPath(chutePath, paint);
-      strokePaint.setColor(SKIA_CHUTE_STROKE);
-      strokePaint.setStrokeWidth(1.5);
-      c.drawPath(chutePath, strokePaint);
-
-      // Dial
-      const dialX = W / 2;
-      const dialY = DIAL_Y * s;
-      const dialR = 32 * s;
-      paint.setColor(SKIA_DIAL_BODY);
-      c.drawCircle(dialX, dialY, dialR, paint);
-      strokePaint.setColor(SKIA_DIAL_STROKE);
-      strokePaint.setStrokeWidth(2);
-      c.drawCircle(dialX, dialY, dialR, strokePaint);
-      // Knob
-      paint.setColor(SKIA_DIAL_HIGHLIGHT);
-      c.drawCircle(dialX, dialY - 23 * s, 8 * s, paint);
-      paint.setColor(SKIA_DIAL_KNOB);
-      c.drawCircle(dialX - 1 * s, dialY - 22 * s, 3 * s, paint);
-      // Crosshair
-      strokePaint.setColor(SKIA_CROSSHAIR);
-      strokePaint.setStrokeWidth(2);
-      c.drawLine(dialX - 9 * s, dialY, dialX + 9 * s, dialY, strokePaint);
-      c.drawLine(dialX, dialY - 9 * s, dialX, dialY + 9 * s, strokePaint);
-
-      // Base feet
-      paint.setColor(SKIA_BODY);
-      c.drawRRect(
-        Skia.RRectXY(Skia.XYWHRect(BODY_L * s + 18 * s, BODY_B * s, 28 * s, 22 * s), 3 * s, 3 * s),
-        paint,
-      );
-      c.drawRRect(
-        Skia.RRectXY(Skia.XYWHRect(BODY_R * s - 46 * s, BODY_B * s, 28 * s, 22 * s), 3 * s, 3 * s),
-        paint,
-      );
-
-      // Escaped balls (in chute + on floor)
-      for (let i = 0; i < NUM_BALLS; i++) {
-        const base = i * STRIDE;
-        const flags = data[base + 5];
-        if ((flags & F_ESCAPED) === 0 || (flags & F_OPENED) !== 0) continue;
-        const bx = data[base];
-        const by = data[base + 1];
-        const r = data[base + 4];
-        // Top half
-        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]);
-        c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 180, 180, true, paint);
-        // Bottom half
-        paint.setColor(SKIA_WHITE);
-        c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 0, 180, true, paint);
-        // Center line
-        strokePaint.setColor(SKIA_BALL_CENTER_LINE);
-        strokePaint.setStrokeWidth(1.5);
-        c.drawLine(bx - r, by, bx + r, by, strokePaint);
-        // Highlight
-        paint.setColor(SKIA_WHITE_HIGHLIGHT);
-        c.drawCircle(bx - r * 0.28, by - r * 0.35, r * 0.22, paint);
-        // Ring
-        strokePaint.setColor(SKIA_WHITE_FAINT);
-        strokePaint.setStrokeWidth(1.5);
-        c.drawCircle(bx, by - r * 0.08, r * 0.28, strokePaint);
-        // Outer outline for contrast on light bg
-        strokePaint.setColor(SKIA_BALL_OUTLINE);
-        strokePaint.setStrokeWidth(1);
-        c.drawCircle(bx, by, r, strokePaint);
-      }
-
-      // Shell fragment pieces
-      const sp = physics.shellPieces.value;
-      const SHELL_STRIDE = 9;
+    const syncParticles = useCallback((sp: number[], sk: number[]) => {
+      const shells: ShellData[] = [];
       for (let i = 0; i < sp.length; i += SHELL_STRIDE) {
-        const sx = sp[i];
-        const sy = sp[i + 1];
-        const sz = sp[i + 4];
-        const sAlpha = sp[i + 7];
-        const ci = sp[i + 8];
-        if (sAlpha <= 0) continue;
-        paint.setAlphaf(sAlpha);
-        if (ci < 0) {
-          paint.setColor(SKIA_WHITE);
-        } else {
-          paint.setColor(SKIA_BALL_COLORS[ci % SKIA_BALL_COLORS.length]);
+        if (sp[i + 7] > 0) {
+          shells.push({
+            x: sp[i],
+            y: sp[i + 1],
+            size: sp[i + 4],
+            alpha: sp[i + 7],
+            colorIdx: sp[i + 8],
+          });
         }
-        c.drawCircle(sx, sy, sz, paint);
       }
-      paint.setAlphaf(1);
-
-      // Sparkles — cross-shaped rarity-colored particles
-      const sk = physics.sparkles.value;
-      const SPARK_STRIDE = 7;
+      const sparkles: SparkData[] = [];
       for (let i = 0; i < sk.length; i += SPARK_STRIDE) {
-        const sx = sk[i];
-        const sy = sk[i + 1];
-        const life = sk[i + 4];
-        const sz = sk[i + 5] * life;
-        const ri = sk[i + 6];
-        if (life <= 0) continue;
-        const sparkColor = RARITY_GLOW_COLORS[ri] ?? RARITY_GLOW_COLORS[0];
-        paint.setColor(sparkColor);
-        paint.setAlphaf(life);
-        c.drawCircle(sx, sy, sz * 0.5, paint);
-        // Cross lines
-        strokePaint.setColor(sparkColor);
-        strokePaint.setStrokeWidth(1);
-        strokePaint.setAlphaf(life);
-        const arm = sz * 1.8;
-        c.drawLine(sx - arm, sy, sx + arm, sy, strokePaint);
-        c.drawLine(sx, sy - arm, sx, sy + arm, strokePaint);
+        if (sk[i + 4] > 0) {
+          sparkles.push({
+            x: sk[i],
+            y: sk[i + 1],
+            life: sk[i + 4],
+            size: sk[i + 5],
+            rarityIdx: sk[i + 6],
+          });
+        }
       }
-      paint.setAlphaf(1);
-      strokePaint.setAlphaf(1);
+      setParticles({ shells, sparkles });
+    }, []);
 
-      // Flash overlay
-      const fa = physics.flashAlpha.value;
-      if (fa > 0.01) {
-        paint.setColor(SKIA_FLASH);
-        paint.setAlphaf(fa);
-        c.drawRect(Skia.XYWHRect(0, 0, W, H), paint);
-        paint.setAlphaf(1);
-      }
+    useAnimatedReaction(
+      () => physics.renderTick.value,
+      () => {
+        const sp = physics.shellPieces.value;
+        const sk = physics.sparkles.value;
+        if (sp.length === 0 && sk.length === 0) return;
+        runOnJS(syncParticles)(sp, sk);
+      },
+    );
 
-      return recorder.finishRecordingAsPicture();
+    // ── Animated chute path (width depends on gate state) ────────────
+    const chutePathProps = useAnimatedProps(() => {
+      const chuteHW = physics.gateOpen.value === 1 ? 40 * s : 28 * s;
+      const W = canvasW;
+      return {
+        d: [
+          `M ${W / 2 - chuteHW} ${CHUTE_TOP * s}`,
+          `L ${W / 2 - chuteHW + 4 * s} ${CHUTE_BOT * s}`,
+          `Q ${W / 2} ${CHUTE_BOT * s + 12 * s} ${W / 2 + chuteHW - 4 * s} ${CHUTE_BOT * s}`,
+          `L ${W / 2 + chuteHW} ${CHUTE_TOP * s}`,
+          'Z',
+        ].join(' '),
+      };
     });
+
+    // Gate indicator visibility
+    const gateProps = useAnimatedProps(() => ({
+      opacity: physics.gateOpen.value === 1 ? 1 : 0,
+    }));
+
+    // Flash overlay
+    const flashStyle = useAnimatedStyle(() => ({
+      opacity: physics.flashAlpha.value,
+    }));
 
     // ── Animated styles for shake ──────────────────────────────────────
     const shakeStyle = useAnimatedStyle(() => ({
       transform: [{ translateX: physics.shakeX.value }, { translateY: physics.shakeY.value }],
     }));
+
+    // ── Pre-scaled geometry ────────────────────────────────────────────
+    const W = canvasW;
+    const H = canvasH;
+    const domeCx = DOME_CX * s;
+    const domeCy = DOME_CY * s;
+    const domeR = DOME_R * s;
 
     // ── Label text ────────────────────────────────────────────────────
     const labelStyle = useMemo(
@@ -414,9 +308,246 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
     return (
       <View style={[styles.container, { width: canvasW, height: canvasH }]}>
         <Animated.View style={[StyleSheet.absoluteFill, shakeStyle]}>
-          <Canvas style={{ width: canvasW, height: canvasH }}>
-            <Picture picture={scenePicture} />
-          </Canvas>
+          <Svg width={canvasW} height={canvasH}>
+            <Defs>
+              <ClipPath id="dome-clip">
+                <SvgCircle cx={domeCx} cy={domeCy} r={domeR} />
+              </ClipPath>
+            </Defs>
+
+            {/* Background */}
+            <SvgRect x={0} y={0} width={W} height={H} fill={MACHINE.bg} />
+            {/* Radial glow behind dome */}
+            <SvgCircle cx={W / 2} cy={H * 0.32} r={H * 0.55} fill={MACHINE.bgLight} opacity={0.2} />
+            <SvgCircle
+              cx={W / 2}
+              cy={H * 0.32}
+              r={H * 0.35}
+              fill={MACHINE.bgLight}
+              opacity={0.35}
+            />
+            <SvgCircle cx={W / 2} cy={H * 0.32} r={H * 0.2} fill={MACHINE.bgLight} opacity={0.15} />
+
+            {/* Floor */}
+            <SvgRect
+              x={0}
+              y={FLOOR_Y * s}
+              width={W}
+              height={H - FLOOR_Y * s}
+              fill={MACHINE.floor}
+            />
+            <SvgLine
+              x1={30 * s}
+              y1={FLOOR_Y * s}
+              x2={W - 30 * s}
+              y2={FLOOR_Y * s}
+              stroke={MACHINE.floorLine}
+              strokeWidth={1}
+            />
+
+            {/* Shadow */}
+            <Ellipse
+              cx={W / 2}
+              cy={BODY_B * s + 24 * s}
+              rx={148 * s}
+              ry={14 * s}
+              fill={MACHINE.shadow}
+            />
+
+            {/* Machine body */}
+            <SvgRect
+              x={BODY_L * s}
+              y={BODY_T * s}
+              width={(BODY_R - BODY_L) * s}
+              height={(BODY_B - BODY_T) * s}
+              rx={6 * s}
+              ry={6 * s}
+              fill={MACHINE.bodyMid}
+            />
+            <SvgRect
+              x={BODY_L * s}
+              y={BODY_T * s}
+              width={(BODY_R - BODY_L) * s}
+              height={(BODY_B - BODY_T) * s}
+              rx={6 * s}
+              ry={6 * s}
+              stroke={MACHINE.bodyEdge}
+              fill="none"
+              strokeWidth={2}
+            />
+
+            {/* Dome balls (clipped to dome circle) */}
+            <G clipPath="url(#dome-clip)">
+              {ballIndices.map((i) => (
+                <AnimatedBall
+                  key={`dome-${i}`}
+                  index={i}
+                  ballData={physics.ballData}
+                  showWhenEscaped={false}
+                  r={ballR}
+                />
+              ))}
+            </G>
+
+            {/* Dome outline (stroke first, then glass fill on top) */}
+            <SvgCircle
+              cx={domeCx}
+              cy={domeCy}
+              r={domeR}
+              stroke={MACHINE.domeStroke}
+              fill="none"
+              strokeWidth={3}
+            />
+            <SvgCircle cx={domeCx} cy={domeCy} r={domeR} fill={MACHINE.dome} />
+            {/* Left arc highlight */}
+            <Ellipse
+              cx={domeCx - 55 * s}
+              cy={domeCy - 15 * s}
+              rx={16 * s}
+              ry={72 * s}
+              fill="rgba(255,255,255,0.13)"
+            />
+            {/* Top-right small highlight */}
+            <Ellipse
+              cx={domeCx + 45 * s}
+              cy={domeCy - 55 * s}
+              rx={10 * s}
+              ry={22 * s}
+              fill="rgba(255,255,255,0.07)"
+            />
+            {/* Bottom reflection arc */}
+            <Ellipse
+              cx={domeCx}
+              cy={domeCy + 75 * s}
+              rx={60 * s}
+              ry={25 * s}
+              fill="rgba(255,255,255,0.06)"
+            />
+
+            {/* Gate indicator */}
+            <AnimatedSvgRect
+              x={HOLE_CX * s - HOLE_HALF_W * s}
+              y={HOLE_Y * s - 4 * s}
+              width={HOLE_HALF_W * 2 * s}
+              height={8 * s}
+              fill={MACHINE.gate}
+              animatedProps={gateProps}
+            />
+
+            {/* Chute (fill + stroke combined) */}
+            <AnimatedSvgPath
+              fill={MACHINE.chute}
+              stroke={MACHINE.chuteStroke}
+              strokeWidth={1.5}
+              animatedProps={chutePathProps}
+            />
+
+            {/* Dial */}
+            <SvgCircle cx={W / 2} cy={DIAL_Y * s} r={32 * s} fill={MACHINE.dialBody} />
+            <SvgCircle
+              cx={W / 2}
+              cy={DIAL_Y * s}
+              r={32 * s}
+              stroke={MACHINE.dialStroke}
+              fill="none"
+              strokeWidth={2}
+            />
+            {/* Knob */}
+            <SvgCircle cx={W / 2} cy={DIAL_Y * s - 23 * s} r={8 * s} fill={MACHINE.dialHighlight} />
+            <SvgCircle cx={W / 2 - s} cy={DIAL_Y * s - 22 * s} r={3 * s} fill={MACHINE.dialKnob} />
+            {/* Crosshair */}
+            <SvgLine
+              x1={W / 2 - 9 * s}
+              y1={DIAL_Y * s}
+              x2={W / 2 + 9 * s}
+              y2={DIAL_Y * s}
+              stroke="rgba(255,255,255,0.12)"
+              strokeWidth={2}
+            />
+            <SvgLine
+              x1={W / 2}
+              y1={DIAL_Y * s - 9 * s}
+              x2={W / 2}
+              y2={DIAL_Y * s + 9 * s}
+              stroke="rgba(255,255,255,0.12)"
+              strokeWidth={2}
+            />
+
+            {/* Base feet */}
+            <SvgRect
+              x={BODY_L * s + 18 * s}
+              y={BODY_B * s}
+              width={28 * s}
+              height={22 * s}
+              rx={3 * s}
+              ry={3 * s}
+              fill={MACHINE.body}
+            />
+            <SvgRect
+              x={BODY_R * s - 46 * s}
+              y={BODY_B * s}
+              width={28 * s}
+              height={22 * s}
+              rx={3 * s}
+              ry={3 * s}
+              fill={MACHINE.body}
+            />
+
+            {/* Escaped balls (not clipped to dome) */}
+            {ballIndices.map((i) => (
+              <AnimatedBall
+                key={`esc-${i}`}
+                index={i}
+                ballData={physics.ballData}
+                showWhenEscaped
+                r={ballR}
+              />
+            ))}
+
+            {/* Shell fragment pieces */}
+            {particles.shells.map((sh, i) => (
+              <SvgCircle
+                key={`shell-${i}`}
+                cx={sh.x}
+                cy={sh.y}
+                r={sh.size}
+                fill={sh.colorIdx < 0 ? '#FFFFFF' : BALL_COLORS[sh.colorIdx % BALL_COLORS.length]}
+                opacity={sh.alpha}
+              />
+            ))}
+
+            {/* Sparkles — cross-shaped rarity-colored particles */}
+            {particles.sparkles.map((sk, i) => {
+              const sz = sk.size * sk.life;
+              const arm = sz * 1.8;
+              const sparkColor = RARITY_GLOW_CSS[sk.rarityIdx] ?? RARITY_GLOW_CSS[0];
+              return (
+                <G key={`spark-${i}`} opacity={sk.life}>
+                  <SvgCircle cx={sk.x} cy={sk.y} r={sz * 0.5} fill={sparkColor} />
+                  <SvgLine
+                    x1={sk.x - arm}
+                    y1={sk.y}
+                    x2={sk.x + arm}
+                    y2={sk.y}
+                    stroke={sparkColor}
+                    strokeWidth={1}
+                  />
+                  <SvgLine
+                    x1={sk.x}
+                    y1={sk.y - arm}
+                    x2={sk.x}
+                    y2={sk.y + arm}
+                    stroke={sparkColor}
+                    strokeWidth={1}
+                  />
+                </G>
+              );
+            })}
+          </Svg>
+
+          {/* Flash overlay */}
+          <Animated.View style={[StyleSheet.absoluteFill, flashStyle, styles.flashOverlay]} />
+
           <Text style={labelStyle}>{drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}</Text>
         </Animated.View>
       </View>
@@ -427,5 +558,9 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
+  },
+  flashOverlay: {
+    backgroundColor: colors.surface,
+    pointerEvents: 'none',
   },
 });

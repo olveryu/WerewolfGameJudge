@@ -41,7 +41,7 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 /** Files excluded entirely from scanning */
-const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx', 'SkiaShaderWarmup.tsx']);
+const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx']);
 
 function getProductionFiles(dir: string): string[] {
   const results: string[] = [];
@@ -183,8 +183,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // GachaScreen: domain-specific decorative constants extracted to sub-components
   'src/screens/GachaScreen/GachaScreen.tsx': 0,
 
-  // CapsuleMachine: Skia color constants (domain-specific rendering), badge font
-  'src/screens/GachaScreen/components/CapsuleMachine.tsx': 17,
+  // CapsuleMachine: SVG inline colors (domain-specific rendering), badge font
+  'src/screens/GachaScreen/components/CapsuleMachine.tsx': 18,
 
   // RewardPreview: inline font styles for reward display
   'src/screens/GachaScreen/components/RewardPreview.tsx': 2,
