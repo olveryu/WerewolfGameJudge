@@ -199,6 +199,12 @@ export class BgmPlayer {
       this.#webGainNode = this.#webAudioCtx.createGain();
       this.#webGainNode.connect(this.#webAudioCtx.destination);
     }
+
+    // Chrome auto-suspends idle AudioContexts. Resume before play so audio
+    // actually routes through the GainNode → destination.
+    if (this.#webAudioCtx.state === 'suspended') {
+      void this.#webAudioCtx.resume();
+    }
     const gain = this.#webGainNode!;
     gain.gain.value = this.#volume;
 
