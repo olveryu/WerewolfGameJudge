@@ -109,8 +109,8 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      # Publish JS bundles to npm → npmmirror CDN serves to China users
-      - name: Publish JS bundles to npm
+      # Publish JS bundle manifest library to npm → npmmirror CDN
+      - name: Publish JS bundle manifest to npm
         id: npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -119,7 +119,45 @@ jobs:
           WORK=$(mktemp -d)
           mkdir -p "$WORK/assets/js"
           cp dist/assets/js/* "$WORK/assets/js/"
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"CDN assets for WerewolfGameJudge","files":["assets/"]}' "$PKG_VERSION" > "$WORK/package.json"
+
+          # Generate index.js — importable manifest of bundled assets
+          FILES=$(cd "$WORK" && find assets/js -type f -name '*.js' | sort)
+          {
+            echo '"use strict";'
+            echo "const VERSION = \"$PKG_VERSION\";"
+            echo "const ASSETS = ["
+            for f in $FILES; do
+              echo "  \"$f\","
+            done
+            echo "];"
+            echo "module.exports = { version: VERSION, assets: ASSETS };"
+          } > "$WORK/index.js"
+
+          cat > "$WORK/README.md" << 'EOF'
+          # werewolf-judge-cdn
+
+          Asset manifest and JS bundles for [WerewolfGameJudge](https://github.com/olveryu/WerewolfGameJudge).
+
+          ## Usage
+
+          ```js
+          const { version, assets } = require('werewolf-judge-cdn');
+          // version — package version (matches git commit SHA prefix)
+          // assets  — array of relative paths to JS bundle files
+          ```
+
+          Each version is published automatically by CI. The `assets` array lists
+          all Metro-bundled JS files included in the package, enabling deployment
+          scripts and Service Workers to enumerate and cache them.
+
+          ## License
+
+          MIT
+          EOF
+          # Trim leading spaces from heredoc (YAML indent)
+          sed -i 's/^          //' "$WORK/README.md"
+
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Asset manifest and JS bundles for WerewolfGameJudge","main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
           cd "$WORK"
           npm publish --access public
