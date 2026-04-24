@@ -1,8 +1,6 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Sentry from '@sentry/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -13,11 +11,13 @@ import { Toaster } from 'sonner-native';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
 import { getSentryIntegrations } from '@/lib/sentryIntegrations';
 import { AppNavigator } from '@/navigation';
@@ -45,6 +45,9 @@ Sentry.init({
 
 // Keep splash screen visible while app initializes
 void SplashScreen.preventAutoHideAsync();
+
+// Configure splash → JS transition: 400ms cross-fade
+SplashScreen.setOptions({ duration: 400, fade: true });
 
 // ─── Boot timing telemetry ──────────────────────────────────────────────
 // performance.mark() in index.ts records timestamps before Sentry.init().
@@ -117,6 +120,35 @@ reportBootTiming();
 
 const appLog = log.extend('App');
 
+/** Remove the HTML splash overlay on web (defined in web/index.html). */
+function dismissWebSplash() {
+  if (Platform.OS !== 'web') return;
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+  const pctEl = document.getElementById('splash-pct');
+  const bar = splash.querySelector<HTMLElement>('.progress-bar');
+  if (bar) bar.style.width = '100%';
+  if (pctEl) pctEl.textContent = '100%';
+  setTimeout(() => {
+    splash.classList.add('hidden');
+    setTimeout(() => splash.remove(), 300); // match CSS transition duration
+  }, 200);
+}
+
+/**
+ * Boot phase state machine:
+ *  'splash'  → native/HTML splash covers everything
+ *  'loading' → JS LoadingScreen with step progress (slow auth path)
+ *  'ready'   → content visible
+ *
+ * Fast path: auth completes within SPLASH_THRESHOLD → splash → ready (skip LoadingScreen)
+ * Slow path: auth takes longer → splash → loading → ready
+ */
+type BootPhase = 'splash' | 'loading' | 'ready';
+
+/** ms to wait before switching from splash to JS LoadingScreen */
+const SPLASH_THRESHOLD_MS = 300;
+
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const facade = useGameFacade();
@@ -138,15 +170,6 @@ function AppContent() {
     return unsubscribe;
   }, [facade]);
 
-  // Preload icon font on web — catch timeout to prevent unhandled rejection
-  // in WeChat WebView where font loading may be blocked (WEREWOLFJUDGE-15)
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    Font.loadAsync(Ionicons.font).catch((err: Error) => {
-      appLog.warn('Icon font load failed (graceful degradation)', err.message);
-    });
-  }, []);
-
   // Set up global alert listener
   useEffect(() => {
     setAlertListener((config) => {
@@ -155,31 +178,38 @@ function AppContent() {
     return () => setAlertListener(null);
   }, []);
 
-  // Hide splash screen and signal app ready — wait for auth to resolve first
-  // so HomeScreen renders with final user state (no tips card flash).
-  const { loading: authLoading, wechatLoginFailed } = useAuthContext();
+  // ── Boot progress & phase ─────────────────────────────────────────────
+  // useBootProgress tracks real init steps (fonts + auth) and consolidates
+  // the font loading that was previously a standalone fire-and-forget effect.
+  const { wechatLoginFailed } = useAuthContext();
+  const bootProgress = useBootProgress();
+  const [bootPhase, setBootPhase] = useState<BootPhase>('splash');
 
+  // Phase transitions
   useEffect(() => {
-    if (authLoading) return;
+    if (bootPhase === 'ready') return;
 
-    void SplashScreen.hideAsync(); // native only; web is no-op
-    // Web: remove the HTML splash overlay defined in web/index.html
-    if (Platform.OS === 'web') {
-      const splash = document.getElementById('splash-screen');
-      if (splash) {
-        // Set progress to 100% before hiding
-        const pctEl = document.getElementById('splash-pct');
-        const bar = splash.querySelector<HTMLElement>('.progress-bar');
-        if (bar) bar.style.width = '100%';
-        if (pctEl) pctEl.textContent = '100%';
-        setTimeout(() => {
-          splash.classList.add('hidden');
-          setTimeout(() => splash.remove(), 300); // match CSS transition duration
-        }, 200);
-      }
+    if (bootProgress.isReady) {
+      // Auth + fonts done → go directly to ready (fast or slow path)
+      void SplashScreen.hideAsync();
+      dismissWebSplash();
+      signalAppReady();
+      setBootPhase('ready');
+      return;
     }
-    signalAppReady();
-  }, [authLoading]);
+
+    if (bootPhase === 'splash') {
+      // Still in splash → wait threshold then show JS LoadingScreen
+      const timer = setTimeout(() => {
+        void SplashScreen.hideAsync();
+        dismissWebSplash();
+        setBootPhase('loading');
+      }, SPLASH_THRESHOLD_MS);
+      return () => clearTimeout(timer);
+    }
+    // bootPhase === 'loading': wait for isReady (handled above)
+    return undefined;
+  }, [bootPhase, bootProgress.isReady]);
 
   // Web: sync HTML theme-color meta and body background with current theme
   useEffect(() => {
@@ -200,6 +230,23 @@ function AppContent() {
       <>
         <StatusBar style="dark" backgroundColor={colors.background} />
         <WxLoginFailedScreen />
+      </>
+    );
+  }
+
+  // Splash phase: render nothing (native/HTML splash covers everything)
+  // Loading phase: show JS LoadingScreen with real step progress
+  if (bootPhase !== 'ready') {
+    return (
+      <>
+        <StatusBar style="dark" backgroundColor={colors.background} />
+        {bootPhase === 'loading' && (
+          <LoadingScreen
+            steps={bootProgress.steps}
+            error={bootProgress.error}
+            onRetry={bootProgress.retry}
+          />
+        )}
       </>
     );
   }

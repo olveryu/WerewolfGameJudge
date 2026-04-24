@@ -41,6 +41,8 @@ interface AuthContextValue {
   wechatLoginFailed: boolean;
   /** Re-fetch current user from service and update local state. */
   refreshUser: () => Promise<void>;
+  /** Re-run initial auth (waitForInit + getCurrentUser). Used by boot error retry. */
+  retryInit: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -91,37 +93,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (userEquals(prev, newUser) ? prev : newUser));
   }, []);
 
-  // Load current user on mount - runs ONCE at app startup
+  // Load current user — called on mount and by retryInit.
+  const loadUser = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await authService.waitForInit();
+      const result = await authService.getCurrentUser();
+      if (result?.data?.user) {
+        const u = toUser(result.data.user);
+        updateUserIfChanged(u);
+        if (u) {
+          authLog.info('User loaded', { id: u.id, isAnonymous: u.isAnonymous });
+        }
+      } else {
+        authLog.info('No stored user');
+      }
+    } catch (e: unknown) {
+      const raw = e instanceof Error ? e.message : String(e);
+      const friendly = mapAuthError(raw);
+      authLog.error('auth error', { label: 'Failed to load user' }, raw, e);
+      if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
+        Sentry.captureException(e);
+      setError(friendly);
+    } finally {
+      setLoading(false);
+    }
+  }, [authService, updateUserIfChanged]);
+
+  // Run once at app startup
   // wxcode auth is handled by CFAuthService.#autoSignIn (service layer),
   // so waitForInit() guarantees #currentUserId is ready before we read user state.
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        await authService.waitForInit();
-        const result = await authService.getCurrentUser();
-        if (result?.data?.user) {
-          const u = toUser(result.data.user);
-          updateUserIfChanged(u);
-          if (u) {
-            authLog.info('User loaded', { id: u.id, isAnonymous: u.isAnonymous });
-          }
-        } else {
-          authLog.info('No stored user');
-        }
-      } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const friendly = mapAuthError(raw);
-        authLog.error('auth error', { label: 'Failed to load user' }, raw, e);
-        if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
-          Sentry.captureException(e);
-        setError(friendly);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void loadUser();
-  }, [authService, updateUserIfChanged]);
+  }, [loadUser]);
+
+  /** Re-run initial auth. Used by boot error retry UI. */
+  const retryInit = useCallback(() => {
+    void loadUser();
+  }, [loadUser]);
 
   /** Re-fetch current user from service and update local state. */
   const refreshUser = useCallback(async () => {
@@ -142,8 +152,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAuthenticated: !!user,
       wechatLoginFailed: authService.wechatLoginFailed,
       refreshUser,
+      retryInit,
     }),
-    [user, loading, error, authService.wechatLoginFailed, refreshUser],
+    [user, loading, error, authService.wechatLoginFailed, refreshUser, retryInit],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
