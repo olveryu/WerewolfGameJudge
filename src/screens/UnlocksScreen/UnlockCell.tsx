@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     borderColor: withAlpha(colors.border, 0),
   },
   unlockedBorder: {
-    borderColor: colors.primary,
+    borderColor: colors.background,
     backgroundColor: colors.surface,
     ...shadows.sm,
   },
