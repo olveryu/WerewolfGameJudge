@@ -110,7 +110,9 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       # Publish JS bundle manifest library to npm → npmmirror CDN
+      # TODO: remove 'if: false' after cnpm/unpkg-white-list#553 is merged
       - name: Publish JS bundle manifest to npm
+        if: false
         id: npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -165,6 +167,7 @@ jobs:
           echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
 
       - name: Sync npmmirror and wait
+        if: false
         run: |
           PKG_VERSION="${{ steps.npm.outputs.version }}"
           # Trigger sync
@@ -182,6 +185,7 @@ jobs:
           exit 1
 
       - name: Rewrite HTML to use npmmirror CDN
+        if: false
         run: |
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files"
           perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE}/assets/js/|g" dist/index.html
