@@ -108,18 +108,18 @@ self.addEventListener('fetch', function (event) {
 // ─── Matchers ────────────────────────────────────────────────
 
 function isCanvasKitCDN(url) {
-  return url.hostname.includes('npmmirror.com') && url.pathname.includes('canvaskit-wasm');
+  return url.hostname === 'cdn.npmmirror.com' && url.pathname.includes('canvaskit-wasm');
 }
 
 /** JS bundles served from npmmirror CDN (content-hashed, immutable). */
 function isCdnJsBundle(url) {
-  return url.hostname.includes('npmmirror.com') && url.pathname.includes('/assets/js/');
+  return url.hostname === 'cdn.npmmirror.com' && url.pathname.includes('/assets/js/');
 }
 
 /** Non-JS static assets served from npmmirror CDN (fonts, audio, images — content-hashed, immutable). */
 function isCdnStaticAsset(url) {
   return (
-    url.hostname.includes('npmmirror.com') &&
+    url.hostname === 'cdn.npmmirror.com' &&
     url.pathname.includes('/assets/') &&
     !url.pathname.includes('/assets/js/') &&
     !url.pathname.includes('canvaskit-wasm')
