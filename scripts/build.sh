@@ -109,6 +109,14 @@ if [ -f dist/index.html ]; then
     perl -i -pe "s|</body>|${SCRIPT_TAGS}  </body>|" dist/index.html
     echo "✅ 自定义 index.html，注入 ${JS_COUNT} 个 JS bundle"
   fi
+
+  # CDN rewrite：CI 设置 CDN_BASE_URL 时，把 script src 从相对路径改为 CDN 绝对 URL
+  # 例如 CDN_BASE_URL=https://cdn.jsdelivr.net/gh/olveryu/WerewolfGameJudge@abc1234
+  # /assets/js/xxx.js → https://cdn.jsdelivr.net/gh/olveryu/WerewolfGameJudge@abc1234/assets/js/xxx.js
+  if [ -n "$CDN_BASE_URL" ]; then
+    perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE_URL}/assets/js/|g" dist/index.html
+    echo "✅ JS bundle 路径已改写为 CDN: ${CDN_BASE_URL}/assets/js/"
+  fi
 fi
 
 # JS bundle 内部引用替换 _expo → assets

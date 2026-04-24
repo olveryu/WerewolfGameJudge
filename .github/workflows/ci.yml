@@ -87,6 +87,9 @@ jobs:
       needs.quality.result == 'success' &&
       github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: quality
+    permissions:
+      contents: write
+      deployments: write
     steps:
       - uses: actions/checkout@v6
 
@@ -105,6 +108,33 @@ jobs:
           CF_PAGES_BRANCH: main
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      # Push JS bundles to cdn branch → jsdelivr serves from China nodes
+      - name: Push JS bundles to cdn branch
+        id: cdn
+        run: |
+          CDN_DIR=$(mktemp -d)
+          cp -r dist/assets/js "$CDN_DIR/assets_js"
+          cd "$CDN_DIR"
+          git init -b cdn
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p assets/js
+          mv assets_js/* assets/js/
+          rmdir assets_js
+          git add -A
+          git commit -m "cdn: update JS bundles from ${GITHUB_SHA::8}"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push --force origin cdn
+          CDN_SHA=$(git rev-parse HEAD)
+          echo "sha=$CDN_SHA" >> "$GITHUB_OUTPUT"
+          echo "✅ JS bundles pushed to cdn branch (${CDN_SHA::8})"
+
+      - name: Rewrite HTML to use jsdelivr CDN
+        run: |
+          CDN_BASE="https://cdn.jsdelivr.net/gh/${{ github.repository }}@${{ steps.cdn.outputs.sha }}"
+          perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE}/assets/js/|g" dist/index.html
+          echo "✅ script src rewritten to ${CDN_BASE}/assets/js/"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
