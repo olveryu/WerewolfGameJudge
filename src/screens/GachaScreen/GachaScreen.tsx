@@ -2,7 +2,7 @@
  * GachaScreen — 扭蛋抽奖主界面
  *
  * 上半区：Skia CapsuleMachine 动画（28 球物理 + 搅拌 + 掉落 + 碎裂）。
- * 下半区：渐变过渡 + 券数展示（TicketDisplay） + 抽奖按钮（DrawButton）。
+ * 下半区：TicketTabBar（双面板切换） + 大数字/pity + 抽奖按钮（primary/secondary）。
  * 单抽结果：SingleResultReveal（4 级稀有度分层演出）。
  * 10 连抽结果：TenResultOverlay（高稀有度延迟亮起 + 发光边框）。
  */
@@ -31,14 +31,15 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import { colors, componentSizes, spacing, textStyles, typography, withAlpha } from '@/theme';
+import { colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
 import { DrawButton } from './components/DrawButton';
+import { PityProgressBar } from './components/PityProgressBar';
 import { SingleResultReveal } from './components/SingleResultReveal';
 import { TenResultOverlay } from './components/TenResultOverlay';
-import { TicketDisplay } from './components/TicketDisplay';
+import { TicketTabBar } from './components/TicketTabBar';
 import { PHASE } from './gachaConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
@@ -58,6 +59,7 @@ export function GachaScreen({ navigation }: Props) {
   const [lastResults, setLastResults] = useState<DrawResultItem[]>([]);
   const [showTenOverlay, setShowTenOverlay] = useState(false);
   const [showSingleResult, setShowSingleResult] = useState(false);
+  const [activeTab, setActiveTab] = useState<'normal' | 'golden'>('normal');
   const pendingCountRef = useRef(0);
 
   const handleGoBack = useCallback(() => {
@@ -157,6 +159,21 @@ export function GachaScreen({ navigation }: Props) {
   const totalItems = TOTAL_UNLOCKABLE_COUNT;
   const busy = isAnimating || isDrawPending;
 
+  // Auto-select tab: if current tab has 0 tickets and other has some, switch
+  const handleTabSwitch = useCallback(
+    (tab: 'normal' | 'golden') => {
+      if (!busy) setActiveTab(tab);
+    },
+    [busy],
+  );
+
+  // Derive counts for active tab
+  const isGoldenTab = activeTab === 'golden';
+  const activeDraws = isGoldenTab ? goldenDraws : normalDraws;
+  const activePity = isGoldenTab ? goldenPity : normalPity;
+  const activeDrawType: 'normal' | 'golden' = activeTab;
+  const multiCount = Math.min(10, activeDraws || 10);
+
   // ── Loading ───────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -221,85 +238,90 @@ export function GachaScreen({ navigation }: Props) {
         )}
       </View>
 
-      {/* Gradient transition (replaces hard border) */}
+      {/* Divider line */}
       <LinearGradient
-        colors={[withAlpha(colors.background, 0), colors.surface]}
-        style={styles.gradientTransition}
+        colors={[
+          'transparent',
+          isGoldenTab
+            ? withAlpha(GOLDEN_DIVIDER_COLOR, 0.35)
+            : withAlpha(NORMAL_DIVIDER_COLOR, 0.35),
+          'transparent',
+        ]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.divider}
       />
 
-      {/* Bottom panel: ticket displays + draw buttons */}
+      {/* Bottom panel: tab bar + stats + draw buttons */}
       <View
         style={[styles.bottomPanel, { paddingBottom: Math.max(insets.bottom, spacing.medium) }]}
       >
-        {/* Ticket displays */}
-        <View style={styles.ticketRow}>
-          <TicketDisplay
-            count={normalDraws}
-            label="普通"
-            pity={normalPity}
-            pityThreshold={PITY_THRESHOLD}
+        {/* Tab bar: shows both ticket counts */}
+        <TicketTabBar
+          activeTab={activeTab}
+          normalCount={normalDraws}
+          goldenCount={goldenDraws}
+          onSwitch={handleTabSwitch}
+          reducedMotion={reducedMotion}
+        />
+
+        {/* Stats row: big count left + pity right */}
+        <View style={styles.statsRow}>
+          <View style={styles.bigCountWrap}>
+            <Text
+              style={[
+                styles.bigCount,
+                isGoldenTab && styles.bigCountGolden,
+                activeDraws === 0 && styles.bigCountZero,
+              ]}
+            >
+              {activeDraws}
+            </Text>
+            <Text style={[styles.countUnit, isGoldenTab && styles.countUnitGolden]}>张</Text>
+          </View>
+          <View style={styles.pitySection}>
+            <Text style={styles.pityLabel}>距离保底</Text>
+            <PityProgressBar
+              pity={activePity}
+              threshold={PITY_THRESHOLD}
+              golden={isGoldenTab}
+              reducedMotion={reducedMotion}
+            />
+          </View>
+        </View>
+
+        {/* Draw buttons — vertical stack: ×10 primary + ×1 secondary */}
+        <View style={styles.buttonStack}>
+          <DrawButton
+            label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
+            disabled={!isAnon && (activeDraws < 2 || busy)}
+            onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
+            golden={isGoldenTab}
+            multiPull
+            multiPullCount={isAnon ? undefined : activeDraws}
             reducedMotion={reducedMotion}
           />
-          <TicketDisplay
-            count={goldenDraws}
-            label="黄金"
-            pity={goldenPity}
-            pityThreshold={PITY_THRESHOLD}
-            golden
+          <DrawButton
+            label="抽 ×1"
+            disabled={!isAnon && (activeDraws < 1 || busy)}
+            onPress={() => handleDraw(activeDrawType, 1)}
+            golden={isGoldenTab}
+            variant="secondary"
             reducedMotion={reducedMotion}
           />
         </View>
 
         {/* Hint + Collection link */}
-        <View style={styles.hintRow}>
-          <Text style={styles.hintText}>注册送5普通+1黄金 · 每局+1普通 · 升级+1黄金</Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.metaHint}>每局+1普通 · 升级+1黄金</Text>
           <Pressable
             style={styles.collectionLink}
             onPress={() => navigation.navigate('Unlocks', undefined)}
           >
             <Text style={styles.collectionText}>
-              {unlockedCount}/{totalItems}
+              {unlockedCount}/{totalItems} 收藏 →
             </Text>
-            <Ionicons name="chevron-forward" size={12} color={colors.textMuted} />
           </Pressable>
-        </View>
-
-        {/* Draw buttons — 2×2 grid with material design */}
-        <View style={styles.buttonGrid}>
-          <View style={styles.buttonRow}>
-            <DrawButton
-              label="普通 ×1"
-              disabled={!isAnon && (normalDraws < 1 || busy)}
-              onPress={() => handleDraw('normal', 1)}
-              reducedMotion={reducedMotion}
-            />
-            <DrawButton
-              label={`普通 ×${isAnon ? 10 : Math.min(10, normalDraws)}`}
-              disabled={!isAnon && (normalDraws < 2 || busy)}
-              onPress={() => handleDraw('normal', Math.min(10, normalDraws || 10))}
-              multiPull
-              multiPullCount={isAnon ? undefined : normalDraws}
-              reducedMotion={reducedMotion}
-            />
-          </View>
-          <View style={styles.buttonRow}>
-            <DrawButton
-              label="黄金 ×1"
-              disabled={!isAnon && (goldenDraws < 1 || busy)}
-              onPress={() => handleDraw('golden', 1)}
-              golden
-              reducedMotion={reducedMotion}
-            />
-            <DrawButton
-              label={`黄金 ×${isAnon ? 10 : Math.min(10, goldenDraws)}`}
-              disabled={!isAnon && (goldenDraws < 2 || busy)}
-              onPress={() => handleDraw('golden', Math.min(10, goldenDraws || 10))}
-              golden
-              multiPull
-              multiPullCount={isAnon ? undefined : goldenDraws}
-              reducedMotion={reducedMotion}
-            />
-          </View>
         </View>
       </View>
 
@@ -314,6 +336,14 @@ export function GachaScreen({ navigation }: Props) {
     </SafeAreaView>
   );
 }
+
+// ─── Panel Colors ───────────────────────────────────────────────────────
+
+const PANEL_BG_START = '#13111C';
+const NORMAL_DIVIDER_COLOR = '#6366F1';
+const GOLDEN_DIVIDER_COLOR = '#DAA520';
+const GOLDEN_COUNT_COLOR = '#F5D680';
+const PANEL_TEXT = '#FFFFFF';
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 
@@ -334,31 +364,80 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ── Gradient transition ──
-  gradientTransition: {
-    height: 32,
+  // ── Divider ──
+  divider: {
+    height: 2,
     pointerEvents: 'none',
   },
 
   // ── Bottom panel ──
   bottomPanel: {
     paddingHorizontal: spacing.screenH,
-    gap: spacing.small,
-    backgroundColor: colors.surface,
+    paddingTop: spacing.small,
+    gap: spacing.medium,
+    backgroundColor: PANEL_BG_START,
   },
-  ticketRow: {
+
+  // ── Stats row ──
+  statsRow: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  bigCountWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.micro,
+  },
+  bigCount: {
+    fontSize: typography.display + 12,
+    fontWeight: typography.weights.bold,
+    color: PANEL_TEXT,
+    lineHeight: typography.display + 14,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: typography.letterSpacing.hero,
+  },
+  bigCountGolden: {
+    color: GOLDEN_COUNT_COLOR,
+  },
+  bigCountZero: {
+    opacity: 0.25,
+  },
+  countUnit: {
+    fontSize: typography.secondary,
+    color: withAlpha(PANEL_TEXT, 0.25),
+    fontWeight: typography.weights.medium,
+  },
+  countUnitGolden: {
+    color: withAlpha(GOLDEN_COUNT_COLOR, 0.3),
+  },
+
+  // ── Pity ──
+  pitySection: {
+    alignItems: 'flex-end',
+    gap: spacing.tight,
+    flex: 1,
+    maxWidth: 120,
+  },
+  pityLabel: {
+    fontSize: typography.captionSmall,
+    color: withAlpha(PANEL_TEXT, 0.3),
+  },
+
+  // ── Draw buttons ──
+  buttonStack: {
     gap: spacing.small,
   },
-  hintRow: {
+
+  // ── Meta row ──
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  hintText: {
-    ...textStyles.caption,
-    color: colors.textMuted,
-    flex: 1,
+  metaHint: {
+    fontSize: typography.captionSmall,
+    color: withAlpha(PANEL_TEXT, 0.2),
   },
   collectionLink: {
     flexDirection: 'row',
@@ -368,18 +447,9 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.small,
   },
   collectionText: {
-    fontSize: typography.captionSmall,
+    fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
-    color: colors.textMuted,
+    color: withAlpha(PANEL_TEXT, 0.35),
     fontVariant: ['tabular-nums'],
-  },
-
-  // ── Draw buttons ──
-  buttonGrid: {
-    gap: spacing.small,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.small,
   },
 });

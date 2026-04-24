@@ -40,6 +40,8 @@ interface DrawButtonProps {
   /** Actual draw count for multi-pull button (e.g. 6 when only 6 tickets remain). */
   multiPullCount?: number;
   reducedMotion?: boolean | null;
+  /** Visual variant. 'primary' = gradient fill + shimmer (default). 'secondary' = ghost outline. */
+  variant?: 'primary' | 'secondary';
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -52,16 +54,18 @@ export function DrawButton({
   multiPull,
   multiPullCount,
   reducedMotion,
+  variant = 'primary',
 }: DrawButtonProps) {
+  const isSecondary = variant === 'secondary';
   const pressScale = useSharedValue(1);
   const shimmerX = useSharedValue(-1);
 
-  // Shimmer loop — continuous translateX sweep
+  // Shimmer loop — continuous translateX sweep (primary only)
   useEffect(() => {
-    if (reducedMotion || disabled) return;
+    if (isSecondary || reducedMotion || disabled) return;
     shimmerX.value = -1;
     shimmerX.value = withRepeat(withTiming(2, { duration: golden ? 2200 : 3000 }), -1, false);
-  }, [shimmerX, reducedMotion, disabled, golden]);
+  }, [shimmerX, reducedMotion, disabled, golden, isSecondary]);
 
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressScale.value }],
@@ -82,6 +86,27 @@ export function DrawButton({
 
   const gradientColors = golden ? GOLDEN_GRADIENT : NORMAL_GRADIENT;
 
+  // ── Secondary (ghost) variant ──
+  if (isSecondary) {
+    return (
+      <Animated.View style={[styles.wrapper, disabled && styles.wrapperDisabled, pressStyle]}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          disabled={disabled}
+          style={[styles.pressable, styles.secondaryBody]}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityState={{ disabled }}
+        >
+          <Text style={[styles.label, styles.secondaryLabel]}>{label}</Text>
+        </Pressable>
+      </Animated.View>
+    );
+  }
+
+  // ── Primary (gradient) variant ──
   return (
     <Animated.View
       style={[
@@ -210,5 +235,19 @@ const styles = StyleSheet.create({
     fontSize: typography.captionSmall,
     color: withAlpha(colors.textInverse, 0.7),
     marginTop: spacing.micro,
+  },
+
+  // ── Secondary (ghost) variant ──
+  secondaryBody: {
+    borderRadius: borderRadius.medium + 2,
+    borderWidth: 1,
+    borderColor: withAlpha('#FFFFFF', 0.1),
+    backgroundColor: withAlpha('#FFFFFF', 0.04),
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.medium,
+  },
+  secondaryLabel: {
+    color: withAlpha('#FFFFFF', 0.6),
   },
 });
