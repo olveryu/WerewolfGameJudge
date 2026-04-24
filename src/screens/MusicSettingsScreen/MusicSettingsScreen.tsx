@@ -19,7 +19,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
 import type { RootStackParamList } from '@/navigation/types';
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
-import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
+import { BGM_TRACKS, BGM_VOLUME } from '@/services/infra/audio/audioRegistry';
 import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 
@@ -37,7 +37,7 @@ export const MusicSettingsScreen: React.FC = () => {
 
   const [bgmEnabled, setBgmEnabled] = useState(true);
   const [bgmTrack, setBgmTrack] = useState<BgmTrackSetting>('random');
-  const [bgmVolume, setBgmVolume] = useState(0.1);
+  const [bgmVolume, setBgmVolume] = useState(BGM_VOLUME);
   const [roleAudioVolume, setRoleAudioVolume] = useState(1.0);
   const [previewingTrack, setPreviewingTrack] = useState<string | null>(null);
   const [previewingRoleAudio, setPreviewingRoleAudio] = useState(false);

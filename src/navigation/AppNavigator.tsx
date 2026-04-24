@@ -19,6 +19,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React, { lazy, Suspense, useEffect } from 'react';
 import { Platform } from 'react-native';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { SITE_URL } from '@/config/api';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
@@ -276,7 +277,9 @@ export const AppNavigator: React.FC = () => {
           animation: 'default',
         }}
         screenLayout={({ children }) => (
-          <Suspense fallback={<LoadingScreen message="加载中" />}>{children}</Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingScreen message="加载中" />}>{children}</Suspense>
+          </ErrorBoundary>
         )}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '狼人kill电子裁判' }} />

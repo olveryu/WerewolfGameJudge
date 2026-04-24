@@ -252,8 +252,8 @@ export const VALID_BGM_TRACK_IDS: ReadonlySet<string> = new Set<BgmTrackId>(
 /** BGM setting value: a specific track or 'random' (shuffle playlist). */
 export type BgmTrackSetting = BgmTrackId | 'random';
 
-/** BGM volume (0.0 to 1.0) — keep low so TTS narration is clearly audible. */
-export const BGM_VOLUME = 0.1;
+/** Default BGM volume (0.0 to 1.0). */
+export const BGM_VOLUME = 0.5;
 
 // ---------------------------------------------------------------------------
 // Contract-test helpers

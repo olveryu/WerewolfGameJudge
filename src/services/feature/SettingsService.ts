@@ -15,14 +15,14 @@ const SETTINGS_KEY = '@werewolf_settings';
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
-import { VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
+import { BGM_VOLUME, VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
 
 interface UserSettings {
   /** Whether to play background music during night phase (default: true) */
   bgmEnabled: boolean;
   /** Selected BGM track or 'random' for shuffle playlist (default: 'random') */
   bgmTrack: BgmTrackSetting;
-  /** BGM volume 0.0–1.0 (default: 0.1) */
+  /** BGM volume 0.0–1.0 (default: BGM_VOLUME) */
   bgmVolume: number;
   /** Role audio (TTS narration) volume 0.0–1.0 (default: 1.0) */
   roleAudioVolume: number;
@@ -51,7 +51,7 @@ const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnim
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   bgmTrack: 'random',
-  bgmVolume: 0.1,
+  bgmVolume: BGM_VOLUME,
   roleAudioVolume: 1.0,
   roleRevealAnimation: 'random',
 };
