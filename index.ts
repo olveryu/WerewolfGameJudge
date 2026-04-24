@@ -4,23 +4,16 @@ import { registerRootComponent } from 'expo';
 import { Platform } from 'react-native';
 
 /**
- * Entry-point blocking pattern (community best practice for react-native-skia web).
+ * Entry-point with deferred Skia loading (route-based code splitting).
  *
- * Web: Two globals must be initialised BEFORE any module that imports from
- * `@shopify/react-native-skia` is evaluated:
+ * Skia (CanvasKit WASM 7.5 MB) is only used on 3 secondary screens
+ * (Room / Gacha / AnimationSettings). Loading it here blocks the
+ * entire app — including HomeScreen which doesn't use Skia at all.
  *
- * 1. `global.CanvasKit` — set by LoadSkiaWeb(). `Skia.web.js` captures it at
- *    module scope; a static `import App` would trigger the entire import tree
- *    synchronously, leaving CanvasKit `undefined`.
- *
- * 2. `global.SkiaViewApi` — set by `specs/NativeSkiaModule.web.js`.
- *    `sksg/Container.web.js` and `sksg/StaticContainer.js` use bare-name
- *    `SkiaViewApi` (a global, not an import). Metro's `inlineRequires` defers
- *    side-effect-only imports, so the global is not yet set when referenced.
- *    We pre-import NativeSkiaModule here to guarantee it.
- *
- * Static imports of `expo`, `react-native`, and `@shopify/.../web` are safe —
- * they don't trigger `Skia.web.js`. Only `./App` must be dynamically imported.
+ * Instead, Skia globals are initialised via prefetch in AppNavigator
+ * after the first screen renders. Screens that import from
+ * `@shopify/react-native-skia` are loaded with React.lazy(), ensuring
+ * Skia modules are not evaluated until the globals are ready.
  *
  * Native: Skia uses native bindings — no async init needed.
  *
@@ -37,31 +30,7 @@ async function main() {
     performance.mark('boot:start');
 
     // WeChat browser (non-mini-program) sets this flag in showWechatGuide()
-    // before JS finishes — skip Skia WASM download and React mount entirely.
-    if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
-
-    performance.mark('skia:import-start');
-    const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
-    performance.mark('skia:import-end');
-
-    // Load CanvasKit WASM from jsdelivr CDN (has Chinese mainland edge nodes).
-    // Emscripten internally uses WebAssembly.instantiateStreaming for this URL,
-    // enabling download + compilation to happen in parallel.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { version } = require('canvaskit-wasm/package.json') as { version: string };
-    performance.mark('skia:wasm-start');
-    await LoadSkiaWeb({
-      locateFile: (file: string) =>
-        `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/${file}`,
-    });
-    performance.mark('skia:wasm-end');
-
-    // Sets global.SkiaViewApi — must happen before App tree evaluation.
-    performance.mark('skia:viewapi-start');
-    await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
-    performance.mark('skia:viewapi-end');
-
-    // Re-check after async Skia init — flag may have been set during WASM download.
+    // before JS finishes — skip React mount entirely.
     if ((globalThis as Record<string, unknown>).__SKIP_APP) return;
   }
 

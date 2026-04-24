@@ -13,7 +13,6 @@ import { Toaster } from 'sonner-native';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
@@ -69,9 +68,6 @@ function reportBootTiming() {
       (rootSpan) => {
         // Child span for each boot phase
         const phases: [string, string, string][] = [
-          ['skia.import', 'skia:import-start', 'skia:import-end'],
-          ['skia.wasm', 'skia:wasm-start', 'skia:wasm-end'],
-          ['skia.viewapi', 'skia:viewapi-start', 'skia:viewapi-end'],
           ['app.import', 'app:import-start', 'app:import-end'],
         ];
         for (const [opName, startMark, endMark] of phases) {
@@ -150,9 +146,6 @@ function AppContent() {
       appLog.warn('Icon font load failed (graceful degradation)', err.message);
     });
   }, []);
-
-  // Pre-compile Skia GPU shaders via offscreen texture (eliminates first-frame jank)
-  useSkiaShaderWarmup();
 
   // Set up global alert listener
   useEffect(() => {
