@@ -109,9 +109,9 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      # Publish JS bundle manifest library to npm → npmmirror CDN
+      # Publish all built assets to npm → npmmirror CDN (JS + fonts + audio + images)
       # TODO: remove 'if: false' after cnpm/unpkg-white-list#553 is merged
-      - name: Publish JS bundle manifest to npm
+      - name: Publish assets to npm
         if: false
         id: npm
         env:
@@ -119,11 +119,12 @@ jobs:
         run: |
           PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
           WORK=$(mktemp -d)
-          mkdir -p "$WORK/assets/js"
-          cp dist/assets/js/* "$WORK/assets/js/"
 
-          # Generate index.js — importable manifest of bundled assets
-          FILES=$(cd "$WORK" && find assets/js -type f -name '*.js' | sort)
+          # Copy entire assets/ tree (JS bundles, fonts, audio, images, etc.)
+          cp -r dist/assets "$WORK/assets"
+
+          # Generate index.js — importable manifest of all bundled assets
+          FILES=$(cd "$WORK" && find assets -type f | sort)
           {
             echo '"use strict";'
             echo "const VERSION = \"$PKG_VERSION\";"
@@ -138,19 +139,19 @@ jobs:
           cat > "$WORK/README.md" << 'EOF'
           # werewolf-judge-cdn
 
-          Asset manifest and JS bundles for [WerewolfGameJudge](https://github.com/olveryu/WerewolfGameJudge).
+          Static assets for [WerewolfGameJudge](https://github.com/olveryu/WerewolfGameJudge).
 
           ## Usage
 
           ```js
           const { version, assets } = require('werewolf-judge-cdn');
           // version — package version (matches git commit SHA prefix)
-          // assets  — array of relative paths to JS bundle files
+          // assets  — array of relative paths to all asset files
           ```
 
           Each version is published automatically by CI. The `assets` array lists
-          all Metro-bundled JS files included in the package, enabling deployment
-          scripts and Service Workers to enumerate and cache them.
+          all files (JS bundles, fonts, audio, images) included in the package,
+          enabling deployment scripts and Service Workers to enumerate and cache them.
 
           ## License
 
@@ -159,7 +160,7 @@ jobs:
           # Trim leading spaces from heredoc (YAML indent)
           sed -i 's/^          //' "$WORK/README.md"
 
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Asset manifest and JS bundles for WerewolfGameJudge","main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Static assets for WerewolfGameJudge","main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
           cd "$WORK"
           npm publish --access public
@@ -184,12 +185,21 @@ jobs:
           echo "❌ npmmirror sync timeout after 120s"
           exit 1
 
-      - name: Rewrite HTML to use npmmirror CDN
+      - name: Rewrite asset URLs to use npmmirror CDN
         if: false
         run: |
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files"
-          perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE}/assets/js/|g" dist/index.html
-          echo "✅ script src rewritten to ${CDN_BASE}/assets/js/"
+
+          # HTML: rewrite src="/assets/... and href="/assets/... to CDN
+          perl -i -pe "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
+          perl -i -pe "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
+
+          # JS bundles: rewrite "/assets/ string literals to CDN (Metro asset references)
+          for jsfile in dist/assets/js/*.js; do
+            perl -i -pe "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
+          done
+
+          echo "✅ All asset URLs rewritten to ${CDN_BASE}/assets/"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

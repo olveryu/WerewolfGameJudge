@@ -110,12 +110,21 @@ if [ -f dist/index.html ]; then
     echo "✅ 自定义 index.html，注入 ${JS_COUNT} 个 JS bundle"
   fi
 
-  # CDN rewrite：CI 设置 CDN_BASE_URL 时，把 script src 从相对路径改为 CDN 绝对 URL
+  # CDN rewrite：CI 设置 CDN_BASE_URL 时，把所有 /assets/ 引用改为 CDN 绝对 URL
   # 例如 CDN_BASE_URL=https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-abc12345/files
-  # /assets/js/xxx.js → https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-abc12345/files/assets/js/xxx.js
+  # /assets/js/xxx.js → https://cdn.npmmirror.com/.../files/assets/js/xxx.js
+  # /assets/assets/audio/xxx.mp3 → https://cdn.npmmirror.com/.../files/assets/assets/audio/xxx.mp3
   if [ -n "$CDN_BASE_URL" ]; then
-    perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE_URL}/assets/js/|g" dist/index.html
-    echo "✅ JS bundle 路径已改写为 CDN: ${CDN_BASE_URL}/assets/js/"
+    # HTML: rewrite src="/assets/... and href="/assets/... to CDN
+    perl -i -pe "s|src=\"/assets/|src=\"${CDN_BASE_URL}/assets/|g" dist/index.html
+    perl -i -pe "s|href=\"/assets/|href=\"${CDN_BASE_URL}/assets/|g" dist/index.html
+
+    # JS bundles: rewrite "/assets/ string literals (Metro asset references)
+    for jsfile in dist/assets/js/*.js; do
+      perl -i -pe "s|\"/assets/|\"${CDN_BASE_URL}/assets/|g" "$jsfile"
+    done
+
+    echo "✅ 所有资源路径已改写为 CDN: ${CDN_BASE_URL}/assets/"
   fi
 fi
 

@@ -77,6 +77,12 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
+  // CDN static assets (npmmirror): cache-first — content-hashed filenames, immutable
+  if (isCdnStaticAsset(url)) {
+    event.respondWith(cacheFirst(request, CACHE.static));
+    return;
+  }
+
   // Same-origin only below
   if (url.origin !== self.location.origin) return;
 
@@ -108,6 +114,16 @@ function isCanvasKitCDN(url) {
 /** JS bundles served from npmmirror CDN (content-hashed, immutable). */
 function isCdnJsBundle(url) {
   return url.hostname.includes('npmmirror.com') && url.pathname.includes('/assets/js/');
+}
+
+/** Non-JS static assets served from npmmirror CDN (fonts, audio, images — content-hashed, immutable). */
+function isCdnStaticAsset(url) {
+  return (
+    url.hostname.includes('npmmirror.com') &&
+    url.pathname.includes('/assets/') &&
+    !url.pathname.includes('/assets/js/') &&
+    !url.pathname.includes('canvaskit-wasm')
+  );
 }
 
 function isImmutableAsset(pathname) {
