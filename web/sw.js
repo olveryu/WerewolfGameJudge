@@ -125,21 +125,21 @@ function isImmutableAsset(pathname) {
 // ─── Strategies ──────────────────────────────────────────────
 
 function cacheFirst(request, cacheName) {
-  return caches.match(request).then(function (cached) {
-    if (cached) return cached;
+  return caches.open(cacheName).then(function (cache) {
+    return cache.match(request).then(function (cached) {
+      if (cached) return cached;
 
-    return fetch(request)
-      .then(function (response) {
-        if (response.ok) {
-          caches.open(cacheName).then(function (cache) {
+      return fetch(request)
+        .then(function (response) {
+          if (response.ok) {
             cache.put(request, response.clone());
-          });
-        }
-        return response;
-      })
-      .catch(function () {
-        return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
-      });
+          }
+          return response;
+        })
+        .catch(function () {
+          return new Response('Network error', { status: 503, statusText: 'Service Unavailable' });
+        });
+    });
   });
 }
 
