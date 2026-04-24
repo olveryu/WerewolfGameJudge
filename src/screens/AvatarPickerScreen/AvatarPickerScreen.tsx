@@ -46,6 +46,7 @@ import {
   compareByRarity,
   getRarityCellConfig,
   getRarityCellStyle,
+  getRaritySelectedStyle,
   RARITY_ORDER,
   RARITY_VISUAL,
 } from '@/config/rarityVisual';
@@ -986,7 +987,7 @@ const AvatarCell = memo<AvatarCellProps>(
         style={[
           styles.pickerItem,
           rarityCellStyle,
-          isSelected && styles.pickerItemSelected,
+          isSelected && getRaritySelectedStyle(rarity),
           locked && styles.pickerItemLocked,
         ]}
         onPress={handlePress}
@@ -1036,13 +1037,15 @@ const FrameCell = memo<FrameCellProps>(
     const isSelected = selectedFrame === item.id;
     const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
     const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
+    const selectedStyle =
+      item.id !== 'none' ? getRaritySelectedStyle(item.rarity) : styles.frameGridCellSelected;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
           rarityCellStyle,
-          isSelected && styles.frameGridCellSelected,
+          isSelected && selectedStyle,
           !isSelected && item.isActive && selectedFrame === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
         ]}
@@ -1104,13 +1107,15 @@ const FlairCell = memo<FlairCellProps>(
     const FlairComponent = item.id !== 'none' ? getFlairById(item.id)?.Component : undefined;
     const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
     const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
+    const selectedStyle =
+      item.id !== 'none' ? getRaritySelectedStyle(item.rarity) : styles.frameGridCellSelected;
 
     return (
       <TouchableOpacity
         style={[
           styles.frameGridCell,
           rarityCellStyle,
-          isSelected && styles.frameGridCellSelected,
+          isSelected && selectedStyle,
           !isSelected && item.isActive && selectedFlair === null && styles.frameGridCellActive,
           !item.unlocked && styles.frameGridCellLocked,
         ]}
@@ -1177,13 +1182,15 @@ const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPre
   const isSelected = selectedNameStyle === item.id;
   const rarityCfg = item.id !== 'none' ? getRarityCellConfig(item.rarity) : null;
   const rarityCellStyle = item.id !== 'none' ? getRarityCellStyle(item.rarity) : null;
+  const selectedStyle =
+    item.id !== 'none' ? getRaritySelectedStyle(item.rarity) : styles.frameGridCellSelected;
 
   return (
     <TouchableOpacity
       style={[
         styles.frameGridCell,
         rarityCellStyle,
-        isSelected && styles.frameGridCellSelected,
+        isSelected && selectedStyle,
         !isSelected && item.isActive && selectedNameStyle === null && styles.frameGridCellActive,
         !item.unlocked && styles.frameGridCellLocked,
       ]}

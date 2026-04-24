@@ -42,8 +42,6 @@ export const RARITY_VISUAL: Record<Rarity, RarityVisual> = {
 interface RarityCellConfig {
   /** Top → bottom gradient colors for cell background tint */
   gradientColors: readonly [string, string];
-  /** Border color override */
-  borderColor: string;
   /** boxShadow glow (legendary only, empty for others) */
   glow: ViewStyle;
 }
@@ -55,28 +53,25 @@ interface RarityCellConfig {
 const RARITY_CELL: Record<Exclude<Rarity, 'common'>, RarityCellConfig> = {
   rare: {
     gradientColors: [
-      withAlpha(RARITY_VISUAL.rare.color, 0),
-      withAlpha(RARITY_VISUAL.rare.color, 0.06),
+      withAlpha(RARITY_VISUAL.rare.color, 0.03),
+      withAlpha(RARITY_VISUAL.rare.color, 0.18),
     ],
-    borderColor: withAlpha(RARITY_VISUAL.rare.color, 0.2),
     glow: {} as ViewStyle,
   },
   epic: {
     gradientColors: [
-      withAlpha(RARITY_VISUAL.epic.color, 0.02),
-      withAlpha(RARITY_VISUAL.epic.color, 0.12),
+      withAlpha(RARITY_VISUAL.epic.color, 0.05),
+      withAlpha(RARITY_VISUAL.epic.color, 0.25),
     ],
-    borderColor: withAlpha(RARITY_VISUAL.epic.color, 0.35),
     glow: {} as ViewStyle,
   },
   legendary: {
     gradientColors: [
-      withAlpha(RARITY_VISUAL.legendary.color, 0.03),
-      withAlpha(RARITY_VISUAL.legendary.color, 0.15),
+      withAlpha(RARITY_VISUAL.legendary.color, 0.08),
+      withAlpha(RARITY_VISUAL.legendary.color, 0.3),
     ],
-    borderColor: withAlpha(RARITY_VISUAL.legendary.color, 0.5),
     glow: {
-      boxShadow: `0px 0px 10px ${withAlpha(RARITY_VISUAL.legendary.color, 0.2)}`,
+      boxShadow: `0px 0px 10px ${withAlpha(RARITY_VISUAL.legendary.color, 0.25)}`,
     } as ViewStyle,
   },
 };
@@ -87,11 +82,20 @@ export function getRarityCellConfig(rarity: Rarity | null): RarityCellConfig | n
   return RARITY_CELL[rarity];
 }
 
-/** Flat style (borderColor + glow) for a rarity cell, or null for common/missing. */
+/** Flat style (legendary glow only) for a rarity cell, or null for common/missing. */
 export function getRarityCellStyle(rarity: Rarity | null): ViewStyle | null {
   const cfg = getRarityCellConfig(rarity);
   if (!cfg) return null;
-  return { borderColor: cfg.borderColor, ...cfg.glow };
+  // Rarity is communicated via RarityCellBg background gradient (mainstream pattern).
+  // Border channel is reserved for selection state.
+  if (Object.keys(cfg.glow).length === 0) return null;
+  return cfg.glow;
+}
+
+/** Selected-state style: border + tinted background follow the rarity theme color. */
+export function getRaritySelectedStyle(rarity: Rarity | null): ViewStyle {
+  const color = RARITY_VISUAL[rarity ?? 'common'].color;
+  return { borderColor: color, backgroundColor: withAlpha(color, 0.08) };
 }
 
 const RARITY_INDEX: Record<Rarity, number> = { legendary: 0, epic: 1, rare: 2, common: 3 };
