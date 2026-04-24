@@ -33,15 +33,10 @@ async function main() {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { version } = require('canvaskit-wasm/package.json') as { version: string };
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
-    const loadSkia = (base: string) =>
-      LoadSkiaWeb({ locateFile: (file: string) => `${base}${file}` });
-    try {
-      // npmmirror (Alibaba CDN) — fast in mainland China + usable worldwide
-      await loadSkia(`https://registry.npmmirror.com/canvaskit-wasm/${version}/files/bin/full/`);
-    } catch {
-      // Fallback: jsdelivr — global CDN, degraded in China due to DNS pollution
-      await loadSkia(`https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/`);
-    }
+    await LoadSkiaWeb({
+      locateFile: (file: string) =>
+        `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/${file}`,
+    });
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }
 
