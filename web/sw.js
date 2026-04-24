@@ -2,11 +2,12 @@
  * Service Worker — runtime caching for WerewolfGameJudge web app.
  *
  * Strategies:
- *   CanvasKit CDN (WASM):                   cache-first  — URL contains version, immutable
- *   Static assets (fonts/audio/pwa/images): cache-first  — content-hashed filenames, immutable
- *   CDN JS bundles (npmmirror /assets/js/*): cache-first — Metro source-hash in filename, immutable
- *   JS bundles (/assets/js/*):              network-first (5s timeout) — same-origin fallback
- *   Navigation (HTML):                      network-first (3s timeout) — SPA entry
+ *   CanvasKit CDN (WASM):                    cache-first  — URL contains version, immutable
+ *   CDN JS bundles (R2 / npmmirror):          cache-first  — Metro source-hash in filename, immutable
+ *   CDN static assets (R2 / npmmirror):       cache-first  — content-hashed filenames, immutable
+ *   Same-origin static (fonts/audio/images):  cache-first  — content-hashed filenames, immutable
+ *   JS bundles (/assets/js/*):                network-first (5s timeout) — same-origin fallback
+ *   Navigation (HTML):                        network-first (3s timeout) — SPA entry
  *
  * Not cached: /room/* (API), /manifest.json, *.txt (verification), non-GET.
  */
@@ -19,6 +20,9 @@ var CACHE = {
 };
 
 var CURRENT_CACHES = new Set(Object.values(CACHE));
+
+/** Hostnames serving project assets via CDN (R2 primary, npmmirror fallback). */
+var CDN_ASSET_HOSTS = new Set(['cdn.werewolfjudge.eu.org', 'cdn.npmmirror.com']);
 
 // ─── Lifecycle ───────────────────────────────────────────────
 
@@ -71,13 +75,13 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // CDN JS bundles (npmmirror): cache-first — Metro source-hash in filename = immutable
+  // CDN JS bundles (R2 / npmmirror): cache-first — Metro source-hash in filename = immutable
   if (isCdnJsBundle(url)) {
     event.respondWith(cacheFirst(request, CACHE.js));
     return;
   }
 
-  // CDN static assets (npmmirror): cache-first — content-hashed filenames, immutable
+  // CDN static assets (R2 / npmmirror): cache-first — content-hashed filenames, immutable
   if (isCdnStaticAsset(url)) {
     event.respondWith(cacheFirst(request, CACHE.static));
     return;
@@ -111,15 +115,15 @@ function isCanvasKitCDN(url) {
   return url.hostname === 'cdn.npmmirror.com' && url.pathname.includes('canvaskit-wasm');
 }
 
-/** JS bundles served from npmmirror CDN (content-hashed, immutable). */
+/** JS bundles served from CDN — R2 or npmmirror (content-hashed, immutable). */
 function isCdnJsBundle(url) {
-  return url.hostname === 'cdn.npmmirror.com' && url.pathname.includes('/assets/js/');
+  return CDN_ASSET_HOSTS.has(url.hostname) && url.pathname.includes('/assets/js/');
 }
 
-/** Non-JS static assets served from npmmirror CDN (fonts, audio, images — content-hashed, immutable). */
+/** Non-JS static assets served from CDN — R2 or npmmirror (fonts, audio, images — content-hashed, immutable). */
 function isCdnStaticAsset(url) {
   return (
-    url.hostname === 'cdn.npmmirror.com' &&
+    CDN_ASSET_HOSTS.has(url.hostname) &&
     url.pathname.includes('/assets/') &&
     !url.pathname.includes('/assets/js/') &&
     !url.pathname.includes('canvaskit-wasm')

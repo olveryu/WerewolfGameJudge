@@ -111,9 +111,9 @@ if [ -f dist/index.html ]; then
   fi
 
   # CDN rewrite：CI 设置 CDN_BASE_URL 时，把所有 /assets/ 引用改为 CDN 绝对 URL
-  # 例如 CDN_BASE_URL=https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-abc12345/files
-  # /assets/js/xxx.js → https://cdn.npmmirror.com/.../files/assets/js/xxx.js
-  # /assets/assets/audio/xxx.mp3 → https://cdn.npmmirror.com/.../files/assets/assets/audio/xxx.mp3
+  # 例如 CDN_BASE_URL=https://cdn.werewolfjudge.eu.org
+  # /assets/js/xxx.js → https://cdn.werewolfjudge.eu.org/assets/js/xxx.js
+  # /assets/assets/audio/xxx.mp3 → https://cdn.werewolfjudge.eu.org/assets/assets/audio/xxx.mp3
   if [ -n "$CDN_BASE_URL" ]; then
     # HTML: rewrite src="/assets/... and href="/assets/... to CDN
     perl -i -pe "s|src=\"/assets/|src=\"${CDN_BASE_URL}/assets/|g" dist/index.html

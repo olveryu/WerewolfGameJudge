@@ -106,8 +106,49 @@ jobs:
         run: bash scripts/build.sh
         env:
           CF_PAGES_BRANCH: main
+          CDN_BASE_URL: https://cdn.werewolfjudge.eu.org
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      - name: Upload assets to R2 CDN
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          content_type() {
+            case "${1##*.}" in
+              js|mjs) echo "application/javascript" ;;
+              css)    echo "text/css" ;;
+              html)   echo "text/html" ;;
+              json|map) echo "application/json" ;;
+              woff2)  echo "font/woff2" ;;
+              woff)   echo "font/woff" ;;
+              ttf)    echo "font/ttf" ;;
+              otf)    echo "font/otf" ;;
+              png)    echo "image/png" ;;
+              jpg|jpeg) echo "image/jpeg" ;;
+              gif)    echo "image/gif" ;;
+              svg)    echo "image/svg+xml" ;;
+              webp)   echo "image/webp" ;;
+              mp3)    echo "audio/mpeg" ;;
+              ogg)    echo "audio/ogg" ;;
+              wav)    echo "audio/wav" ;;
+              wasm)   echo "application/wasm" ;;
+              *)      echo "application/octet-stream" ;;
+            esac
+          }
+
+          cd dist
+          COUNT=0
+          while IFS= read -r -d '' file; do
+            CT=$(content_type "$file")
+            npx wrangler r2 object put "werewolf-cdn/$file" \
+              --file="$file" \
+              --content-type="$CT" \
+              --cache-control="public, max-age=31536000, immutable"
+            COUNT=$((COUNT + 1))
+          done < <(find assets -type f -print0)
+          echo "✅ Uploaded $COUNT files to R2"
 
       # Publish all built assets to npm → npmmirror CDN (JS + fonts + audio + images)
       # TODO: remove 'if: false' after cnpm/unpkg-white-list#553 is merged

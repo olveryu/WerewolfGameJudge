@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": ["miniprogram-ci"],
+  "ignoreBinaries": ["miniprogram-ci", "wrangler"],
   "workspaces": {
     ".": {
       "entry": ["App.tsx!", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
