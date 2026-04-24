@@ -139,19 +139,24 @@ jobs:
           cat > "$WORK/README.md" << 'EOF'
           # werewolf-judge-cdn
 
-          Static assets for [WerewolfGameJudge](https://github.com/olveryu/WerewolfGameJudge).
+          Runtime asset loader and manifest for the [WerewolfJudge](https://github.com/olveryu/WerewolfGameJudge) web app.
+
+          Provides a versioned manifest of all bundled assets (fonts, audio sprites, image bundles)
+          so that Service Workers, deployment scripts, and build tools can enumerate and pre-cache them.
+
+          ## Installation
+
+          ```bash
+          npm install werewolf-judge-cdn
+          ```
 
           ## Usage
 
           ```js
           const { version, assets } = require('werewolf-judge-cdn');
-          // version — package version (matches git commit SHA prefix)
-          // assets  — array of relative paths to all asset files
+          // version — semver string tied to the build commit
+          // assets  — array of relative asset paths for cache pre-warming
           ```
-
-          Each version is published automatically by CI. The `assets` array lists
-          all files (JS bundles, fonts, audio, images) included in the package,
-          enabling deployment scripts and Service Workers to enumerate and cache them.
 
           ## License
 
@@ -160,7 +165,7 @@ jobs:
           # Trim leading spaces from heredoc (YAML indent)
           sed -i 's/^          //' "$WORK/README.md"
 
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Static assets for WerewolfGameJudge","main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
           cd "$WORK"
           npm publish --access public
