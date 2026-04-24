@@ -4,7 +4,7 @@
  * Strategies:
  *   CanvasKit CDN (WASM):                   cache-first  — URL contains version, immutable
  *   Static assets (fonts/audio/pwa/images): cache-first  — content-hashed filenames, immutable
- *   CDN JS bundles (jsdelivr /assets/js/*): cache-first  — Metro source-hash in filename, immutable
+ *   CDN JS bundles (npmmirror /assets/js/*): cache-first — Metro source-hash in filename, immutable
  *   JS bundles (/assets/js/*):              network-first (5s timeout) — same-origin fallback
  *   Navigation (HTML):                      network-first (3s timeout) — SPA entry
  *
@@ -71,7 +71,7 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  // CDN JS bundles (jsdelivr): cache-first — Metro source-hash in filename = immutable
+  // CDN JS bundles (npmmirror): cache-first — Metro source-hash in filename = immutable
   if (isCdnJsBundle(url)) {
     event.respondWith(cacheFirst(request, CACHE.js));
     return;
@@ -102,15 +102,12 @@ self.addEventListener('fetch', function (event) {
 // ─── Matchers ────────────────────────────────────────────────
 
 function isCanvasKitCDN(url) {
-  return (
-    (url.hostname.includes('jsdelivr.net') || url.hostname.includes('npmmirror.com')) &&
-    url.pathname.includes('canvaskit-wasm')
-  );
+  return url.hostname.includes('npmmirror.com') && url.pathname.includes('canvaskit-wasm');
 }
 
-/** JS bundles served from jsdelivr CDN (content-hashed, immutable). */
+/** JS bundles served from npmmirror CDN (content-hashed, immutable). */
 function isCdnJsBundle(url) {
-  return url.hostname.includes('jsdelivr.net') && url.pathname.includes('/assets/js/');
+  return url.hostname.includes('npmmirror.com') && url.pathname.includes('/assets/js/');
 }
 
 function isImmutableAsset(pathname) {

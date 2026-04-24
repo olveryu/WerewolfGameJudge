@@ -35,7 +35,7 @@ async function main() {
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
-        `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/${file}`,
+        `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`,
     });
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }

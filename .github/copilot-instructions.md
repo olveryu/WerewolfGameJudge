@@ -89,6 +89,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
 - **Worker（D1）** — 房间元数据、auth、rate limit。
 - **Cloudflare Pages** — 前端静态资源。
+- **CDN（npmmirror）** — JS bundles 通过 CI npm publish `werewolf-judge-cdn@0.0.0-<sha8>` → npmmirror 自动同步 → HTML 改写为 `cdn.npmmirror.com` 绝对 URL。CanvasKit WASM 同样走 npmmirror。npm token 90 天有效，过期后 CI deploy-frontend 失败，需续签并更新 GitHub secret `NPM_TOKEN`。
 - **微信小程序** — web-view 壳，加载 Cloudflare Pages 托管的 Web 版。小程序原生代码在 `miniapp/`，不含游戏逻辑。
 - **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
 - 禁止 P2P 消息。断线恢复统一读 DO（`/room/state` → `stub.getState()`）。

@@ -88,7 +88,7 @@ jobs:
       github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: quality
     permissions:
-      contents: write
+      contents: read
       deployments: write
     steps:
       - uses: actions/checkout@v6
@@ -109,30 +109,43 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      # Push JS bundles to cdn branch → jsdelivr serves from China nodes
-      - name: Push JS bundles to cdn branch
-        id: cdn
+      # Publish JS bundles to npm → npmmirror CDN serves to China users
+      - name: Publish JS bundles to npm
+        id: npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          CDN_DIR=$(mktemp -d)
-          cp -r dist/assets/js "$CDN_DIR/assets_js"
-          cd "$CDN_DIR"
-          git init -b cdn
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdir -p assets/js
-          mv assets_js/* assets/js/
-          rmdir assets_js
-          git add -A
-          git commit -m "cdn: update JS bundles from ${GITHUB_SHA::8}"
-          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          git push --force origin cdn
-          CDN_SHA=$(git rev-parse HEAD)
-          echo "sha=$CDN_SHA" >> "$GITHUB_OUTPUT"
-          echo "✅ JS bundles pushed to cdn branch (${CDN_SHA::8})"
+          PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
+          WORK=$(mktemp -d)
+          mkdir -p "$WORK/assets/js"
+          cp dist/assets/js/* "$WORK/assets/js/"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"CDN assets for WerewolfGameJudge","files":["assets/"]}' "$PKG_VERSION" > "$WORK/package.json"
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
+          cd "$WORK"
+          npm publish --access public
+          echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
+          echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
 
-      - name: Rewrite HTML to use jsdelivr CDN
+      - name: Sync npmmirror and wait
         run: |
-          CDN_BASE="https://cdn.jsdelivr.net/gh/${{ github.repository }}@${{ steps.cdn.outputs.sha }}"
+          PKG_VERSION="${{ steps.npm.outputs.version }}"
+          # Trigger sync
+          curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"
+          # Poll until npmmirror has the version (up to 120s)
+          for i in $(seq 1 24); do
+            if curl -sf "https://registry.npmmirror.com/werewolf-judge-cdn/$PKG_VERSION" > /dev/null 2>&1; then
+              echo "✅ npmmirror synced werewolf-judge-cdn@$PKG_VERSION"
+              exit 0
+            fi
+            echo "⏳ Waiting for npmmirror sync... ($((i*5))s)"
+            sleep 5
+          done
+          echo "❌ npmmirror sync timeout after 120s"
+          exit 1
+
+      - name: Rewrite HTML to use npmmirror CDN
+        run: |
+          CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files"
           perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE}/assets/js/|g" dist/index.html
           echo "✅ script src rewritten to ${CDN_BASE}/assets/js/"
 

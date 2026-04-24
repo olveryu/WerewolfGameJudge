@@ -111,8 +111,8 @@ if [ -f dist/index.html ]; then
   fi
 
   # CDN rewrite：CI 设置 CDN_BASE_URL 时，把 script src 从相对路径改为 CDN 绝对 URL
-  # 例如 CDN_BASE_URL=https://cdn.jsdelivr.net/gh/olveryu/WerewolfGameJudge@abc1234
-  # /assets/js/xxx.js → https://cdn.jsdelivr.net/gh/olveryu/WerewolfGameJudge@abc1234/assets/js/xxx.js
+  # 例如 CDN_BASE_URL=https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-abc12345/files
+  # /assets/js/xxx.js → https://cdn.npmmirror.com/packages/werewolf-judge-cdn/0.0.0-abc12345/files/assets/js/xxx.js
   if [ -n "$CDN_BASE_URL" ]; then
     perl -i -pe "s|src=\"/assets/js/|src=\"${CDN_BASE_URL}/assets/js/|g" dist/index.html
     echo "✅ JS bundle 路径已改写为 CDN: ${CDN_BASE_URL}/assets/js/"
