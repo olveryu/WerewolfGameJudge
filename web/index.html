@@ -40,10 +40,11 @@
     <!-- Manifest -->
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Preload CanvasKit WASM (Skia animations) — starts download before JS execution -->
+    <!-- Preload CanvasKit WASM (Skia animations) — starts download before JS execution.
+         npmmirror (Alibaba CDN): fast in China; jsdelivr fallback handled in index.ts. -->
     <link
       rel="preload"
-      href="https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/canvaskit.wasm"
+      href="https://registry.npmmirror.com/canvaskit-wasm/0.40.0/files/bin/canvaskit.wasm"
       as="fetch"
       crossorigin="anonymous"
     />
