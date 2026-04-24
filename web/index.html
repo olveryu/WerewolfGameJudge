@@ -533,21 +533,9 @@
         });
       })();
 
-      // 清理残留 Service Worker：之前版本注册过 SW，现已移除 PWA 离线功能。
-      // 一次性注销 + 清缓存，防止旧 SW 的 fetch handler 返回过期资源导致白屏。
+      // 注册 Service Worker：缓存 WASM/字体/音频等静态资源，加速二次加载
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function (regs) {
-          regs.forEach(function (r) {
-            r.unregister();
-          });
-        });
-        if (typeof caches !== 'undefined') {
-          caches.keys().then(function (keys) {
-            keys.forEach(function (k) {
-              caches.delete(k);
-            });
-          });
-        }
+        navigator.serviceWorker.register('/sw.js');
       }
     </script>
   </body>

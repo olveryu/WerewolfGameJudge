@@ -26,6 +26,10 @@
 /index.html
   Cache-Control: no-cache
 
+# Service Worker must revalidate on every request
+/sw.js
+  Cache-Control: no-cache
+
 # WeChat domain verification file
 /HVChYlYloJ.txt
   Content-Type: text/plain
