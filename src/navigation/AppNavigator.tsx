@@ -223,22 +223,34 @@ export const AppNavigator: React.FC = () => {
     const prefetch = () => {
       // 1. Skia globals — must be set before any Skia screen module is evaluated.
       //    LoadSkiaWeb sets global.CanvasKit; NativeSkiaModule sets global.SkiaViewApi.
+      //    Skia-dependent screens have module-level Skia.*() calls (e.g. Skia.Paint(),
+      //    Skia.Color()) that execute at evaluation time, so they MUST wait for this.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { version } = require('canvaskit-wasm/package.json') as { version: string };
-      void import('@shopify/react-native-skia/lib/module/web').then(
-        ({ LoadSkiaWeb: loadSkiaWeb }) =>
+      const skiaReady = import('@shopify/react-native-skia/lib/module/web')
+        .then(({ LoadSkiaWeb: loadSkiaWeb }) =>
           loadSkiaWeb({
             locateFile: (file: string) =>
               `https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/${file}`,
-          }).then(() => import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule')),
-      );
+          }),
+        )
+        .then(() => import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule'));
 
-      // 2. Screen chunks — Skia-dependent screens first, then the rest.
-      //    import() returns a cached promise if the module is already loaded,
-      //    so React.lazy and this prefetch share the same download.
-      void import('@/screens/RoomScreen/RoomScreen');
-      void import('@/screens/GachaScreen/GachaScreen');
-      void import('@/screens/AnimationSettingsScreen/AnimationSettingsScreen');
+      // 2a. Skia-dependent screen chunks — chain after WASM + SkiaViewApi are ready.
+      //     These chunks execute Skia.*() at module scope during evaluation.
+      skiaReady
+        .then(() => {
+          void import('@/screens/RoomScreen/RoomScreen');
+          void import('@/screens/GachaScreen/GachaScreen');
+          void import('@/screens/AnimationSettingsScreen/AnimationSettingsScreen');
+        })
+        .catch((err) => {
+          navLog.warn('Skia WASM prefetch failed, Skia screens will load on demand', err);
+        });
+
+      // 2b. Non-Skia screen chunks — safe to prefetch in parallel immediately.
+      //     import() returns a cached promise if the module is already loaded,
+      //     so React.lazy and this prefetch share the same download.
       void import('@/screens/ConfigScreen/ConfigScreen');
       void import('@/screens/BoardPickerScreen/BoardPickerScreen');
       void import('@/screens/SettingsScreen/SettingsScreen');
