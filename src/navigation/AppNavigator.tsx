@@ -5,9 +5,6 @@
  * 通过 `linking` 配置实现 URL ↔ 导航状态双向同步（Web 刷新恢复页面）。
  * 涵盖导航栋定义、Screen 注册、header 样式配置、linking 路由映射。
  * 不包含业务逻辑，不直接调用 service。
- *
- * Web: 非首屏 screen 使用 React.lazy code splitting，减少主 bundle 体积。
- * Skia WASM 和所有 lazy screen 在首屏渲染后 requestIdleCallback 预加载。
  */
 import {
   getPathFromState as defaultGetPathFromState,
@@ -16,84 +13,32 @@ import {
   NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React, { lazy, Suspense, useEffect } from 'react';
-import { Platform } from 'react-native';
+import React from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { SITE_URL } from '@/config/api';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
+import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
+import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
+import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
+import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
+import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordScreen';
+import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
+import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
+import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
+import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
+import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
+import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
+import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { navigationRef } from './navigationRef';
 import { RootStackParamList } from './types';
-
-// ── Route-based code splitting (React Navigation recommended pattern for Web) ──
-// React.lazy must be defined outside the component to avoid remounting on re-render.
-// @see https://reactnavigation.org/docs/web-support
-//
-// Named exports → default export adapter via .then(m => ({ default: m.X }))
-const BoardPickerScreen = lazy(() =>
-  import('@/screens/BoardPickerScreen/BoardPickerScreen').then((m) => ({
-    default: m.BoardPickerScreen,
-  })),
-);
-const ConfigScreen = lazy(() =>
-  import('@/screens/ConfigScreen/ConfigScreen').then((m) => ({ default: m.ConfigScreen })),
-);
-const RoomScreen = lazy(() =>
-  import('@/screens/RoomScreen/RoomScreen').then((m) => ({ default: m.RoomScreen })),
-);
-const SettingsScreen = lazy(() =>
-  import('@/screens/SettingsScreen/SettingsScreen').then((m) => ({ default: m.SettingsScreen })),
-);
-const AnimationSettingsScreen = lazy(() =>
-  import('@/screens/AnimationSettingsScreen/AnimationSettingsScreen').then((m) => ({
-    default: m.AnimationSettingsScreen,
-  })),
-);
-const MusicSettingsScreen = lazy(() =>
-  import('@/screens/MusicSettingsScreen/MusicSettingsScreen').then((m) => ({
-    default: m.MusicSettingsScreen,
-  })),
-);
-const EncyclopediaScreen = lazy(() =>
-  import('@/screens/EncyclopediaScreen/EncyclopediaScreen').then((m) => ({
-    default: m.EncyclopediaScreen,
-  })),
-);
-const NotepadScreen = lazy(() =>
-  import('@/screens/NotepadScreen/NotepadScreen').then((m) => ({ default: m.NotepadScreen })),
-);
-const AvatarPickerScreen = lazy(() =>
-  import('@/screens/AvatarPickerScreen/AvatarPickerScreen').then((m) => ({
-    default: m.AvatarPickerScreen,
-  })),
-);
-const UnlocksScreen = lazy(() =>
-  import('@/screens/UnlocksScreen/UnlocksScreen').then((m) => ({ default: m.UnlocksScreen })),
-);
-const GachaScreen = lazy(() =>
-  import('@/screens/GachaScreen/GachaScreen').then((m) => ({ default: m.GachaScreen })),
-);
-const AuthLoginScreen = lazy(() =>
-  import('@/screens/AuthScreen/AuthLoginScreen').then((m) => ({ default: m.AuthLoginScreen })),
-);
-const AuthEmailScreen = lazy(() =>
-  import('@/screens/AuthScreen/AuthEmailScreen').then((m) => ({ default: m.AuthEmailScreen })),
-);
-const AuthForgotPasswordScreen = lazy(() =>
-  import('@/screens/AuthScreen/AuthForgotPasswordScreen').then((m) => ({
-    default: m.AuthForgotPasswordScreen,
-  })),
-);
-const AuthResetPasswordScreen = lazy(() =>
-  import('@/screens/AuthScreen/AuthResetPasswordScreen').then((m) => ({
-    default: m.AuthResetPasswordScreen,
-  })),
-);
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -215,41 +160,6 @@ export const AppNavigator: React.FC = () => {
     navLog.debug('render');
   }
 
-  // Web: prefetch all lazy screen chunks after first render.
-  // requestIdleCallback ensures prefetch doesn't compete with first-paint rendering.
-  // Skia WASM is loaded in index.ts before App import, so all module-level
-  // Skia.*() calls are safe by the time these chunks evaluate.
-  // On native, Skia uses native bindings and screens are not code-split.
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-    const prefetch = () => {
-      // import() returns a cached promise if the module is already loaded,
-      // so React.lazy and this prefetch share the same download.
-      void import('@/screens/RoomScreen/RoomScreen');
-      void import('@/screens/GachaScreen/GachaScreen');
-      void import('@/screens/AnimationSettingsScreen/AnimationSettingsScreen');
-      void import('@/screens/ConfigScreen/ConfigScreen');
-      void import('@/screens/BoardPickerScreen/BoardPickerScreen');
-      void import('@/screens/SettingsScreen/SettingsScreen');
-      void import('@/screens/EncyclopediaScreen/EncyclopediaScreen');
-      void import('@/screens/MusicSettingsScreen/MusicSettingsScreen');
-      void import('@/screens/NotepadScreen/NotepadScreen');
-      void import('@/screens/AvatarPickerScreen/AvatarPickerScreen');
-      void import('@/screens/UnlocksScreen/UnlocksScreen');
-      void import('@/screens/AuthScreen/AuthLoginScreen');
-      void import('@/screens/AuthScreen/AuthEmailScreen');
-      void import('@/screens/AuthScreen/AuthForgotPasswordScreen');
-      void import('@/screens/AuthScreen/AuthResetPasswordScreen');
-    };
-
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(prefetch);
-    } else {
-      // Safari <16.4 fallback
-      setTimeout(prefetch, 200);
-    }
-  }, []);
-
   return (
     <NavigationContainer
       linking={linking}
@@ -265,11 +175,7 @@ export const AppNavigator: React.FC = () => {
           contentStyle: { backgroundColor: colors.background },
           animation: 'default',
         }}
-        screenLayout={({ children }) => (
-          <ErrorBoundary>
-            <Suspense fallback={<LoadingScreen message="加载中" />}>{children}</Suspense>
-          </ErrorBoundary>
-        )}
+        screenLayout={({ children }) => <ErrorBoundary>{children}</ErrorBoundary>}
       >
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: '狼人kill电子裁判' }} />
         <Stack.Screen

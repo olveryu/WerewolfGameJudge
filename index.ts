@@ -37,10 +37,10 @@ async function main() {
       LoadSkiaWeb({ locateFile: (file: string) => `${base}${file}` });
     try {
       // npmmirror (Alibaba CDN) — fast in mainland China + usable worldwide
-      await loadSkia(`https://registry.npmmirror.com/canvaskit-wasm/${version}/files/bin/`);
+      await loadSkia(`https://registry.npmmirror.com/canvaskit-wasm/${version}/files/bin/full/`);
     } catch {
       // Fallback: jsdelivr — global CDN, degraded in China due to DNS pollution
-      await loadSkia(`https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/`);
+      await loadSkia(`https://cdn.jsdelivr.net/npm/canvaskit-wasm@${version}/bin/full/`);
     }
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }
