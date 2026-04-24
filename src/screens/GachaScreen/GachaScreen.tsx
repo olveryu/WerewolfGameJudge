@@ -28,6 +28,7 @@ import { toast } from 'sonner-native';
 
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { colors, componentSizes, spacing, textStyles, typography, withAlpha } from '@/theme';
@@ -46,6 +47,8 @@ export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const { user } = useAuthContext();
+  const isAnon = !user || user.isAnonymous;
   const { data: status, isLoading } = useGachaStatusQuery();
   const { mutate: draw, isPending: isDrawPending } = useDrawMutation();
 
@@ -80,6 +83,13 @@ export function GachaScreen({ navigation }: Props) {
   // ── Draw handler ──────────────────────────────────────────────────────
   const handleDraw = useCallback(
     (drawType: 'normal' | 'golden', count: number) => {
+      if (isAnon) {
+        navigation.navigate('AuthLogin', {
+          loginTitle: '登录',
+          loginSubtitle: '登录后即可抽奖',
+        });
+        return;
+      }
       if (isAnimating || isDrawPending) return;
 
       setCurrentDrawType(drawType);
@@ -118,7 +128,7 @@ export function GachaScreen({ navigation }: Props) {
         },
       );
     },
-    [isAnimating, draw, isDrawPending, reducedMotion],
+    [isAnon, isAnimating, draw, isDrawPending, reducedMotion, navigation],
   );
 
   const handleCloseTenOverlay = useCallback(() => {
@@ -259,34 +269,34 @@ export function GachaScreen({ navigation }: Props) {
           <View style={styles.buttonRow}>
             <DrawButton
               label="普通 ×1"
-              disabled={normalDraws < 1 || busy}
+              disabled={!isAnon && (normalDraws < 1 || busy)}
               onPress={() => handleDraw('normal', 1)}
               reducedMotion={reducedMotion}
             />
             <DrawButton
-              label={`普通 ×${Math.min(10, normalDraws)}`}
-              disabled={normalDraws < 2 || busy}
-              onPress={() => handleDraw('normal', Math.min(10, normalDraws))}
+              label={`普通 ×${isAnon ? 10 : Math.min(10, normalDraws)}`}
+              disabled={!isAnon && (normalDraws < 2 || busy)}
+              onPress={() => handleDraw('normal', Math.min(10, normalDraws || 10))}
               multiPull
-              multiPullCount={normalDraws}
+              multiPullCount={isAnon ? undefined : normalDraws}
               reducedMotion={reducedMotion}
             />
           </View>
           <View style={styles.buttonRow}>
             <DrawButton
               label="黄金 ×1"
-              disabled={goldenDraws < 1 || busy}
+              disabled={!isAnon && (goldenDraws < 1 || busy)}
               onPress={() => handleDraw('golden', 1)}
               golden
               reducedMotion={reducedMotion}
             />
             <DrawButton
-              label={`黄金 ×${Math.min(10, goldenDraws)}`}
-              disabled={goldenDraws < 2 || busy}
-              onPress={() => handleDraw('golden', Math.min(10, goldenDraws))}
+              label={`黄金 ×${isAnon ? 10 : Math.min(10, goldenDraws)}`}
+              disabled={!isAnon && (goldenDraws < 2 || busy)}
+              onPress={() => handleDraw('golden', Math.min(10, goldenDraws || 10))}
               golden
               multiPull
-              multiPullCount={goldenDraws}
+              multiPullCount={isAnon ? undefined : goldenDraws}
               reducedMotion={reducedMotion}
             />
           </View>

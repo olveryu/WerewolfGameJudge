@@ -36,6 +36,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
     onEmailSignIn,
     onAnonymousLogin,
     hideAnonymous,
+    isUpgrade,
     onBrowseAvatars,
     onCancel,
     styles,
@@ -77,7 +78,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           )}
         </View>
 
-        {/* 邮箱注册 — 主按钮 */}
+        {/* 邮箱注册 / 绑定邮箱 — 主按钮 */}
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={onEmailSignUp}
@@ -85,9 +86,11 @@ export const LoginOptions = memo<LoginOptionsProps>(
         >
           <Text style={styles.primaryButtonText}>
             <Ionicons name={UI_ICONS.EMAIL} size={typography.body} />
-            {' 邮箱注册'}
+            {isUpgrade ? ' 绑定邮箱' : ' 邮箱注册'}
           </Text>
-          <Text style={styles.buttonCaptionInverse}>选头像起昵称，解锁绚丽头像框</Text>
+          <Text style={styles.buttonCaptionInverse}>
+            {isUpgrade ? '保留游戏数据，解锁完整功能' : '选头像起昵称，解锁绚丽头像框'}
+          </Text>
           <Text style={styles.buttonCaptionInverseMuted}>
             <Ionicons name="sparkles-outline" size={typography.caption} /> 免验证，输入即注册
           </Text>

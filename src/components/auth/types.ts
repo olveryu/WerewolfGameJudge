@@ -88,6 +88,8 @@ export interface LoginOptionsProps {
   onAnonymousLogin: () => void;
   /** 微信小程序环境下隐藏匿名登录按钮 */
   hideAnonymous?: boolean;
+  /** 匿名用户升级模式：「邮箱注册」→「绑定邮箱」 */
+  isUpgrade?: boolean;
   /** 点击「浏览全部头像」→ 进入 AvatarPicker */
   onBrowseAvatars?: () => void;
   /** 不传则不显示取消按钮（Settings 不需要） */

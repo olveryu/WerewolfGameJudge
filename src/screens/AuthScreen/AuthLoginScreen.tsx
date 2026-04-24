@@ -31,7 +31,8 @@ export const AuthLoginScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AuthLogin'>>();
   const route = useRoute<RouteProp>();
 
-  const { loading: authLoading, refreshUser } = useAuthContext();
+  const { user, loading: authLoading, refreshUser } = useAuthContext();
+  const isAnon = !!user?.isAnonymous;
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
 
   const loginTitle = route.params?.loginTitle ?? '登录';
@@ -40,10 +41,12 @@ export const AuthLoginScreen: React.FC = () => {
   const handleEmailSignUp = useCallback(() => {
     navigation.navigate('AuthEmail', {
       mode: 'signUp',
-      navigateSettingsOnSignUp: true,
+      ...(isAnon
+        ? { formTitle: '绑定邮箱', showToggleMode: false }
+        : { navigateSettingsOnSignUp: true }),
       openedFromAuthLogin: true,
     });
-  }, [navigation]);
+  }, [navigation, isAnon]);
 
   const handleEmailSignIn = useCallback(() => {
     navigation.navigate('AuthEmail', { mode: 'signIn', openedFromAuthLogin: true });
@@ -82,7 +85,8 @@ export const AuthLoginScreen: React.FC = () => {
           onAnonymousLogin={() => {
             void handleAnonymousLogin();
           }}
-          hideAnonymous={isMiniProgram()}
+          hideAnonymous={isAnon || isMiniProgram()}
+          isUpgrade={isAnon}
           onBrowseAvatars={handleBrowseAvatars}
           onCancel={handleCancel}
           styles={styles}
