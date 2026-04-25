@@ -29,6 +29,8 @@ export interface User {
   seatFlair: string | null;
   /** Selected name style ID (text effect on player name) */
   nameStyle: string | null;
+  /** Selected role reveal effect ID (animation when viewing role) */
+  equippedEffect: string | null;
   isAnonymous: boolean;
 }
 
@@ -60,6 +62,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
     a.avatarFrame === b.avatarFrame &&
     a.seatFlair === b.seatFlair &&
     a.nameStyle === b.nameStyle &&
+    a.equippedEffect === b.equippedEffect &&
     a.isAnonymous === b.isAnonymous
   );
 };
@@ -76,6 +79,7 @@ const toUser = (authUser: AuthUser | null): User | null => {
     avatarFrame: (authUser.user_metadata?.avatar_frame as string) || null,
     seatFlair: (authUser.user_metadata?.seat_flair as string) || null,
     nameStyle: (authUser.user_metadata?.name_style as string) || null,
+    equippedEffect: (authUser.user_metadata?.equipped_effect as string) || null,
     isAnonymous: authUser.is_anonymous || false,
   };
 };

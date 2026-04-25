@@ -132,10 +132,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     navigation.navigate('Encyclopedia', { roomCode: route.params.roomCode });
   }, [navigation, route.params.roomCode]);
 
-  const handleAnimationSettings = useCallback(() => {
-    navigation.navigate('AnimationSettings', { roomCode: route.params.roomCode });
-  }, [navigation, route.params.roomCode]);
-
   const handleMusicSettings = useCallback(() => {
     navigation.navigate('MusicSettings', { roomCode: route.params.roomCode });
   }, [navigation, route.params.roomCode]);
@@ -468,9 +464,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
               !isMiniProgram() &&
               (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
             }
-            showAnimationSettings={
-              isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
-            }
             showMusicSettings={
               isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
             }
@@ -525,7 +518,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 });
               })
             }
-            onAnimationSettings={handleAnimationSettings}
             onMusicSettings={handleMusicSettings}
             onUserSettings={handleAvatarPress}
             onShareRoom={handleShareRoom}

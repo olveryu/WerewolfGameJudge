@@ -9,9 +9,11 @@ export {
   getUnlockedFlairs,
   getUnlockedFrames,
   getUnlockedNameStyles,
+  getUnlockedRoleRevealEffects,
   isFlairUnlocked,
   isFrameUnlocked,
   isNameStyleUnlocked,
+  isRoleRevealEffectUnlocked,
   pickRandomReward,
 } from './frameUnlock';
 export {
@@ -41,6 +43,7 @@ export {
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
+  FREE_ROLE_REVEAL_EFFECT_IDS,
   getItemRarity,
   LEGENDARY_FRAME_IDS,
   NAME_STYLE_IDS,
@@ -49,6 +52,8 @@ export {
   REWARD_POOL,
   type RewardItem,
   type RewardType,
+  ROLE_REVEAL_EFFECT_IDS,
+  type RoleRevealEffectId,
   SEAT_FLAIR_IDS,
   TOTAL_UNLOCKABLE_COUNT,
 } from './rewardCatalog';

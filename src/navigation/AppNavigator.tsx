@@ -18,7 +18,6 @@ import React from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
-import { AnimationSettingsScreen } from '@/screens/AnimationSettingsScreen/AnimationSettingsScreen';
 import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
 import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
 import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
@@ -54,12 +53,11 @@ const navLog = log.extend('AppNavigator');
  * | Room     | `/room/:roomCode?isHost=true` |
  * | Settings | `/settings`                    |
  *
- * `template` / `roleRevealAnimation` 是复杂对象或仅创建时需要，
- * 不放入 URL（通过 getPathFromState 剥离）。
+ * `template` 是复杂对象且仅创建时需要，不放入 URL（通过 getPathFromState 剥离）。
  */
 
 /** Params that are programmatic-only and should never appear in the URL. */
-const TRANSIENT_PARAMS = ['template', 'roleRevealAnimation'];
+const TRANSIENT_PARAMS = ['template'];
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -81,7 +79,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
         },
       },
       Settings: 'settings/:roomCode?',
-      AnimationSettings: 'settings/animation/:roomCode?',
       MusicSettings: 'settings/music/:roomCode?',
       Encyclopedia: 'encyclopedia/:roomCode?',
       Notepad: 'notepad/:roomCode',
@@ -108,13 +105,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
       // Screens that can be opened from Room: inject Home + Room when roomCode is present.
       // Without roomCode, they were opened from Home — just inject Home as base.
-      const ROOM_CHILD_SCREENS = new Set([
-        'Notepad',
-        'AnimationSettings',
-        'MusicSettings',
-        'Settings',
-        'Encyclopedia',
-      ]);
+      const ROOM_CHILD_SCREENS = new Set(['Notepad', 'MusicSettings', 'Settings', 'Encyclopedia']);
       if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
         const roomCode = (topRoute.params as { roomCode?: string })?.roomCode;
         if (roomCode) {
@@ -198,11 +189,6 @@ export const AppNavigator: React.FC = () => {
           name="Settings"
           component={SettingsScreen}
           options={{ title: '设置', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="AnimationSettings"
-          component={AnimationSettingsScreen}
-          options={{ title: '翻牌动画' }}
         />
         <Stack.Screen
           name="MusicSettings"

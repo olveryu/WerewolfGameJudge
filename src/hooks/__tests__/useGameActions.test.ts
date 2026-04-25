@@ -30,7 +30,6 @@ function createMockFacade(overrides: Record<string, unknown> = {}) {
     restartGame: jest.fn().mockResolvedValue({ success: true }),
     clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
     shareNightReview: jest.fn().mockResolvedValue({ success: true }),
-    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
     markViewedRole: jest.fn().mockResolvedValue({ success: true }),
     submitAction: jest.fn().mockResolvedValue({ success: true }),
@@ -150,15 +149,6 @@ describe('useGameActions - game control', () => {
     await act(() => result.current.shareNightReview([1, 3, 5]));
 
     expect(deps.facade.shareNightReview).toHaveBeenCalledWith([1, 3, 5]);
-  });
-
-  it('setRoleRevealAnimation should call facade for host', async () => {
-    const deps = createDeps();
-    const { result } = renderHook(() => useGameActions(deps));
-
-    await act(() => result.current.setRoleRevealAnimation('flip' as any));
-
-    expect(deps.facade.setRoleRevealAnimation).toHaveBeenCalledWith('flip');
   });
 
   it('setAudioPlaying should return host_only reason when not host', async () => {

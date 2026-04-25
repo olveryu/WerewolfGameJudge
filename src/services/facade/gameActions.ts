@@ -11,7 +11,6 @@
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
@@ -45,13 +44,6 @@ export const updateTemplate = defineGameAction<[GameTemplate]>({
   name: 'updateTemplate',
   path: '/game/update-template',
   body: (template) => ({ templateRoles: template.roles }),
-});
-
-/** Host: 设置开牌动画 */
-export const setRoleRevealAnimation = defineGameAction<[RoleRevealAnimation]>({
-  name: 'setRoleRevealAnimation',
-  path: '/game/set-animation',
-  body: (animation) => ({ animation }),
 });
 
 /** Host: 重新开始游戏 */

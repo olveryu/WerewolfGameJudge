@@ -2,7 +2,7 @@
  * HeaderActions — 房间顶栏右侧操作区
  *
  * 仅一个可见项时直接渲染按钮（如用户头像）；多项时显示 "..." 打开下拉菜单。
- * 菜单项包括：分享房间、翻牌动画、音乐设置、用户设置、填充机器人、全员起立等。
+ * 菜单项包括：分享房间、音乐设置、用户设置、填充机器人、全员起立等。
  *
  * Memoized，接收 parent 预创建的 styles。不 import Service / showAlert。
  */
@@ -31,8 +31,6 @@ interface HeaderActionsProps {
   showUserSettings: boolean;
   /** Show share room option (only in unseated/seated phase) */
   showShareRoom: boolean;
-  /** Show animation settings option (only before game starts) */
-  showAnimationSettings: boolean;
   /** Show music settings option (only before game starts) */
   showMusicSettings: boolean;
   /** Show fill with bots option (in dropdown) */
@@ -48,7 +46,6 @@ interface HeaderActionsProps {
   onMarkAllBotsViewed: () => void;
   onMarkAllBotsGroupConfirmed: () => void;
   onClearAllSeats: () => void;
-  onAnimationSettings: () => void;
   onMusicSettings: () => void;
   onUserSettings: () => void;
   onShareRoom: () => void;
@@ -62,7 +59,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   ticketCount,
   showUserSettings,
   showShareRoom,
-  showAnimationSettings,
   showMusicSettings,
   showFillWithBots,
   showMarkAllBotsViewed,
@@ -72,7 +68,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   onMarkAllBotsViewed,
   onMarkAllBotsGroupConfirmed,
   onClearAllSeats,
-  onAnimationSettings,
   onMusicSettings,
   onUserSettings,
   onShareRoom,
@@ -108,11 +103,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
     onClearAllSeats();
   }, [onClearAllSeats]);
 
-  const handleAnimationSettings = useCallback(() => {
-    setMenuOpen(false);
-    onAnimationSettings();
-  }, [onAnimationSettings]);
-
   const handleMusicSettings = useCallback(() => {
     setMenuOpen(false);
     onMusicSettings();
@@ -136,7 +126,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
   // When only "用户设置" is visible, show its icon directly instead of the "..." dropdown
   const hasOtherItems =
     showShareRoom ||
-    showAnimationSettings ||
     showMusicSettings ||
     showFillWithBots ||
     showMarkAllBotsViewed ||
@@ -188,16 +177,6 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
                       <Text style={styles.menuItemText}>分享房间</Text>
                     </TouchableOpacity>
                   )}
-                  {showAnimationSettings && (
-                    <TouchableOpacity style={styles.menuItem} onPress={handleAnimationSettings}>
-                      <Ionicons
-                        name="color-wand-outline"
-                        size={MENU_ICON_SIZE}
-                        color={colors.text}
-                      />
-                      <Text style={styles.menuItemText}>翻牌动画</Text>
-                    </TouchableOpacity>
-                  )}
                   {showMusicSettings && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleMusicSettings}>
                       <Ionicons
@@ -225,10 +204,7 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
                   )}
 
                   {/* Gap: Actions → Operations */}
-                  {(showShareRoom ||
-                    showAnimationSettings ||
-                    showMusicSettings ||
-                    showUserSettings) &&
+                  {(showShareRoom || showMusicSettings || showUserSettings) &&
                     (showClearAllSeats ||
                       showFillWithBots ||
                       showMarkAllBotsViewed ||

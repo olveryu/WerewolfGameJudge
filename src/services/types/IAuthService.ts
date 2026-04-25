@@ -62,7 +62,7 @@ export interface IAuthService {
   /** 邮箱密码登录，返回 userId */
   signInWithEmail(email: string, password: string): Promise<string>;
 
-  /** 更新用户资料（昵称 / 头像 / 头像框 / 座位装饰 / 名字特效） */
+  /** 更新用户资料（昵称 / 头像 / 头像框 / 座位装饰 / 名字特效 / 开牌特效） */
   updateProfile(updates: {
     displayName?: string;
     avatarUrl?: string;
@@ -70,6 +70,7 @@ export interface IAuthService {
     avatarFrame?: string;
     seatFlair?: string;
     nameStyle?: string;
+    equippedEffect?: string;
   }): Promise<void>;
 
   /** 登出 */

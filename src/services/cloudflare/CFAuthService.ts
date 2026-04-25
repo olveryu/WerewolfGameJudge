@@ -160,6 +160,7 @@ export class CFAuthService implements IAuthService {
     avatarFrame?: string;
     seatFlair?: string;
     nameStyle?: string;
+    equippedEffect?: string;
   }): Promise<void> {
     await cfPut('/auth/profile', updates);
   }
@@ -417,6 +418,19 @@ export class CFAuthService implements IAuthService {
       }
     } catch (e) {
       authLog.debug('getCurrentNameStyle failed', e);
+    }
+    return null;
+  }
+
+  async getCurrentEquippedEffect(): Promise<string | null> {
+    try {
+      const resp = await this.getCurrentUser();
+      if (resp) {
+        const user = resp.data.user;
+        return (user?.user_metadata?.equipped_effect as string) || null;
+      }
+    } catch (e) {
+      authLog.debug('getCurrentEquippedEffect failed', e);
     }
     return null;
   }

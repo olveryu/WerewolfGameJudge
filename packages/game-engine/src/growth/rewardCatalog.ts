@@ -6,7 +6,7 @@
  * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
  */
 
-export type RewardType = 'avatar' | 'frame' | 'seatFlair' | 'nameStyle';
+export type RewardType = 'avatar' | 'frame' | 'seatFlair' | 'nameStyle' | 'roleRevealEffect';
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
@@ -261,6 +261,23 @@ export const NAME_STYLE_IDS = [
   'lustrousAzure', 'lustrousIndigo', 'lustrousViolet', 'lustrousRose', 'lustrousSlate',
 ] as const;
 
+/** 全部开牌特效 ID（与 RoleRevealAnimation 中的 RandomizableAnimation 1:1 对应）。 */
+// prettier-ignore
+export const ROLE_REVEAL_EFFECT_IDS = [
+  'roulette',
+  'roleHunt',
+  'scratch',
+  'tarot',
+  'gachaMachine',
+  'cardPick',
+  'sealBreak',
+  'chainShatter',
+  'fortuneWheel',
+  'meteorStrike',
+  'filmRewind',
+  'vortexCollapse',
+] as const;
+
 /** 头像 ID literal union */
 export type AvatarId = (typeof AVATAR_IDS)[number];
 
@@ -273,6 +290,9 @@ export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 /** 名字特效 ID literal union */
 export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
 
+/** 开牌特效 ID literal union */
+export type RoleRevealEffectId = (typeof ROLE_REVEAL_EFFECT_IDS)[number];
+
 /** 注册即得的免费头像 ID */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set<string>();
 
@@ -284,6 +304,9 @@ export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 注册即得的免费名字特效 ID（无） */
 export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
+
+/** 注册即得的免费开牌特效 ID（无） */
+export const FREE_ROLE_REVEAL_EFFECT_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 头像稀有度映射 */
 const AVATAR_RARITY: Record<string, Rarity> = {
@@ -483,6 +506,22 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   // Common (100) — simple colored effects
 };
 
+/** 开牌特效稀有度映射 — 全部传说 */
+const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
+  roulette: 'legendary',
+  roleHunt: 'legendary',
+  scratch: 'legendary',
+  tarot: 'legendary',
+  gachaMachine: 'legendary',
+  cardPick: 'legendary',
+  sealBreak: 'legendary',
+  chainShatter: 'legendary',
+  fortuneWheel: 'legendary',
+  meteorStrike: 'legendary',
+  filmRewind: 'legendary',
+  vortexCollapse: 'legendary',
+};
+
 /** 名字样式稀有度映射 */
 const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Legendary (4)
@@ -561,10 +600,15 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Common (100) — factory plain/soft/muted/warm/cool/light/dusty/faded/pale/hazy × 10 colors
 };
 
-/** 按 ID 查稀有度（avatar/frame/flair/nameStyle 统一查询） */
+/** 按 ID 查稀有度（avatar/frame/flair/nameStyle/roleRevealEffect 统一查询） */
 export function getItemRarity(id: string): Rarity {
   return (
-    AVATAR_RARITY[id] ?? FRAME_RARITY[id] ?? FLAIR_RARITY[id] ?? NAME_STYLE_RARITY[id] ?? 'common'
+    AVATAR_RARITY[id] ??
+    FRAME_RARITY[id] ??
+    FLAIR_RARITY[id] ??
+    NAME_STYLE_RARITY[id] ??
+    ROLE_REVEAL_EFFECT_RARITY[id] ??
+    'common'
   );
 }
 
@@ -585,11 +629,28 @@ export const REWARD_POOL: readonly RewardItem[] = [
   ...NAME_STYLE_IDS.filter((id) => !FREE_NAME_STYLE_IDS.has(id)).map(
     (id) => ({ type: 'nameStyle', id, rarity: NAME_STYLE_RARITY[id] ?? 'common' }) as const,
   ),
+  ...ROLE_REVEAL_EFFECT_IDS.filter((id) => !FREE_ROLE_REVEAL_EFFECT_IDS.has(id)).map(
+    (id) =>
+      ({
+        type: 'roleRevealEffect',
+        id,
+        rarity: ROLE_REVEAL_EFFECT_RARITY[id] ?? 'legendary',
+      }) as const,
+  ),
 ];
 
 /** 免费物品总数 */
 export const FREE_ITEM_COUNT =
-  FREE_AVATAR_IDS.size + FREE_FRAME_IDS.size + FREE_FLAIR_IDS.size + FREE_NAME_STYLE_IDS.size;
+  FREE_AVATAR_IDS.size +
+  FREE_FRAME_IDS.size +
+  FREE_FLAIR_IDS.size +
+  FREE_NAME_STYLE_IDS.size +
+  FREE_ROLE_REVEAL_EFFECT_IDS.size;
 
 /** 全部可获得物品总数（含免费） */
 export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;
+
+/** id → RewardItem 快速查找索引（O(1) 替代 REWARD_POOL.find()） */
+export const REWARD_POOL_BY_ID: ReadonlyMap<string, RewardItem> = new Map(
+  REWARD_POOL.map((item) => [item.id, item]),
+);

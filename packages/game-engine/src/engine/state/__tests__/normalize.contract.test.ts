@@ -29,8 +29,6 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'isAudioPlaying',
 
   // 开牌动画配置
-  'roleRevealAnimation',
-  'resolvedRoleRevealAnimation',
   'roleRevealRandomNonce',
 
   // Night flow 状态
@@ -129,8 +127,6 @@ describe('normalizeState contract', () => {
       isAudioPlaying: false,
 
       // 开牌动画配置
-      roleRevealAnimation: 'roleHunt',
-      resolvedRoleRevealAnimation: 'roleHunt',
       roleRevealRandomNonce: 'nonce-123',
 
       // Night flow 状态

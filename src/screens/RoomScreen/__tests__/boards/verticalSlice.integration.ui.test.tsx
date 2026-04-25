@@ -180,10 +180,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       markAllBotsGroupConfirmed: jest.fn(),
       setControlledSeat: jest.fn(),
 
-      // Reveal animation
-      roleRevealAnimation: null,
-      resolvedRoleRevealAnimation: null,
-
       // Connection
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),
@@ -201,7 +197,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       assignRoles: jest.fn(),
       startGame: jest.fn(),
       restartGame: jest.fn(),
-      setRoleRevealAnimation: jest.fn(),
       setAudioPlaying: jest.fn(),
       viewedRole: jest.fn(),
       submitAction: jest.fn().mockResolvedValue(undefined),
@@ -302,9 +297,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       markAllBotsGroupConfirmed: jest.fn(),
       setControlledSeat: jest.fn(),
 
-      roleRevealAnimation: null,
-      resolvedRoleRevealAnimation: null,
-
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),
 
@@ -320,7 +312,6 @@ describe('Vertical Slice: real state → UI rendering', () => {
       assignRoles: jest.fn(),
       startGame: jest.fn(),
       restartGame: jest.fn(),
-      setRoleRevealAnimation: jest.fn(),
       setAudioPlaying: jest.fn(),
       viewedRole: jest.fn(),
       submitAction: jest.fn().mockResolvedValue(undefined),

@@ -13,29 +13,12 @@ import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleReveal
 // Types
 // ---------------------------------------------------------------------------
 
-/**
- * 动画选项配置（label + icon + shortDesc 缺一不可）
- *
- * - value: 对应 RoleRevealAnimation 枚举值
- * - label: 中文短名（2~4 字）
- * - icon:  Ionicons 名称
- * - shortDesc: 8~14 字效果描述
- * - isRandom / isNone: UI 差异化渲染标记
- */
-/**
- * 操作类型标签，用于 UI badge 展示
- *
- * auto=自动播放 | tap=点击 | swipe=滑动 | hold=长按 | combo=连击 | drag=拖拽
- */
-export type OperationType = 'auto' | 'tap' | 'swipe' | 'hold' | 'combo' | 'drag';
-
-export interface AnimationOptionConfig {
+interface AnimationOptionConfig {
   readonly value: RoleRevealAnimation;
   readonly label: string;
   readonly icon: string;
   readonly shortDesc: string;
-  /** 操作方式标签（badge 展示），random/none 不需要 */
-  readonly operationType?: OperationType;
+  readonly operationType?: string;
   readonly isRandom?: true;
   readonly isNone?: true;
 }
@@ -44,7 +27,7 @@ export interface AnimationOptionConfig {
 // Registry — 新增动画在此追加，satisfies 保证字段完整
 // ---------------------------------------------------------------------------
 
-export const ANIMATION_OPTIONS = [
+const ANIMATION_OPTIONS = [
   {
     value: 'random',
     label: '随机',
@@ -145,17 +128,12 @@ export const ANIMATION_OPTIONS = [
   },
 ] as const satisfies readonly AnimationOptionConfig[];
 
-/** 操作类型 → 中文标签（badge 展示用） */
-export const OPERATION_TYPE_LABELS: Record<OperationType, string> = {
-  auto: '自动',
-  tap: '点击',
-  swipe: '滑动',
-  hold: '长按',
-  combo: '连击',
-  drag: '拖拽',
-} as const;
+/** value → config 快速查找索引 */
+const ANIMATION_OPTIONS_BY_VALUE: ReadonlyMap<string, (typeof ANIMATION_OPTIONS)[number]> = new Map(
+  ANIMATION_OPTIONS.map((o) => [o.value, o]),
+);
 
-/** 通过 value 查找动画配置的 label（用于随机解析结果展示） */
-export function getAnimationLabel(value: string): string | undefined {
-  return ANIMATION_OPTIONS.find((opt) => opt.value === value)?.label;
+/** 按 value 查找动画配置。random/none 也在内。 */
+export function getAnimationOption(value: string): (typeof ANIMATION_OPTIONS)[number] | undefined {
+  return ANIMATION_OPTIONS_BY_VALUE.get(value);
 }

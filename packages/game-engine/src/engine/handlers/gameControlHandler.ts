@@ -30,7 +30,6 @@ import type {
   FillWithBotsIntent,
   MarkAllBotsViewedIntent,
   RestartGameIntent,
-  SetRoleRevealAnimationIntent,
   ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
@@ -43,7 +42,6 @@ import type {
   RestartGameAction,
   SetBoardNominationAction,
   SetNightReviewAllowedSeatsAction,
-  SetRoleRevealAnimationAction,
   SetWolfKillOverrideAction,
   StartNightAction,
   StateAction,
@@ -400,28 +398,6 @@ export function handleUpdateTemplate(
   const action: UpdateTemplateAction = {
     type: 'UPDATE_TEMPLATE',
     payload: { templateRoles: intent.payload.templateRoles },
-  };
-
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
-}
-
-/**
- * 处理设置开牌动画（Host-only）
- *
- * Host 在房间内选择开牌动画时调用。
- * 前置条件：仅 Host 可操作（无状态阶段限制）
- */
-export function handleSetRoleRevealAnimation(
-  intent: SetRoleRevealAnimationIntent,
-  context: HandlerContext,
-): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-
-  const action: SetRoleRevealAnimationAction = {
-    type: 'SET_ROLE_REVEAL_ANIMATION',
-    animation: intent.animation,
-    nonce: intent.animation === 'random' ? randomHex(8) : undefined,
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

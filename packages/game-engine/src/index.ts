@@ -109,7 +109,6 @@ export {
   handleFillWithBots,
   handleMarkAllBotsViewed,
   handleRestartGame,
-  handleSetRoleRevealAnimation,
   handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,

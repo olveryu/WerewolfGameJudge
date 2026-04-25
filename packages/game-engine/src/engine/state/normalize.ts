@@ -88,9 +88,7 @@ export function normalizeState(raw: GameState): GameState {
     // Night flow 状态（关键：currentStepId 必须透传）
     currentStepId: raw.currentStepId,
 
-    // 开牌动画配置（必须透传，否则 UI 读不到）
-    roleRevealAnimation: raw.roleRevealAnimation,
-    resolvedRoleRevealAnimation: raw.resolvedRoleRevealAnimation,
+    // 开牌动画种子（必须透传，否则发言顺序 RNG 读不到）
     roleRevealRandomNonce: raw.roleRevealRandomNonce,
 
     // 其他可选字段（透传）

@@ -14,7 +14,6 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback } from 'react';
 import { toast } from 'sonner-native';
@@ -76,7 +75,6 @@ interface GameActionsState {
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
 
   // Player night actions
@@ -169,15 +167,6 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
       if (!facade.isHostPlayer()) return;
       const result = await facade.shareNightReview(allowedSeats);
       handleMutationResult(result, '分享详细信息', toastError);
-    },
-    [facade],
-  );
-
-  // Set role reveal animation (host only)
-  const setRoleRevealAnimation = useCallback(
-    async (animation: RoleRevealAnimation): Promise<void> => {
-      if (!facade.isHostPlayer()) return;
-      await facade.setRoleRevealAnimation(animation);
     },
     [facade],
   );
@@ -336,7 +325,6 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     restartGame,
     clearAllSeats,
     shareNightReview,
-    setRoleRevealAnimation,
     setAudioPlaying,
     viewedRole,
     submitAction,

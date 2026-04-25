@@ -19,7 +19,6 @@ import {
   handleFillWithBots,
   handleMarkAllBotsViewed,
   handleRestartGame,
-  handleSetRoleRevealAnimation,
   handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
@@ -40,7 +39,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
@@ -332,16 +330,6 @@ export class GameRoom extends DurableObject<Env> {
       },
       { enabled: true },
     );
-  }
-
-  async setAnimation(animation: string): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleSetRoleRevealAnimation(
-        { type: 'SET_ROLE_REVEAL_ANIMATION', animation: animation as RoleRevealAnimation },
-        ctx,
-      );
-    });
   }
 
   async viewRole(userId: string, seatNum: number): Promise<GameActionResult> {

@@ -1,5 +1,4 @@
 import { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -24,10 +23,8 @@ export type RootStackParamList = {
     roomCode: string;
     isHost: boolean;
     template?: GameTemplate;
-    roleRevealAnimation?: RoleRevealAnimation;
   };
   Settings: { roomCode?: string } | undefined;
-  AnimationSettings: { roomCode?: string } | undefined;
   MusicSettings: { roomCode?: string } | undefined;
   Encyclopedia: { roomCode?: string; roleId?: string } | undefined;
   Notepad: { roomCode: string };

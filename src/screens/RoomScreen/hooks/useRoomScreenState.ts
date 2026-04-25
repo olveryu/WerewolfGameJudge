@@ -7,16 +7,23 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getUnlockedRoleRevealEffects } from '@werewolf/game-engine/growth';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import {
+  RANDOMIZABLE_ANIMATIONS,
+  resolveRandomAnimation,
+} from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
@@ -70,7 +77,6 @@ interface RoomScreenRouteParams {
   roomCode: string;
   isHost: boolean;
   template?: GameTemplate;
-  roleRevealAnimation?: RoleRevealAnimation;
 }
 
 /** Navigation type required by useRoomScreenState */
@@ -90,7 +96,6 @@ export function useRoomScreenState(
     // joinRoom auto-detects host status from DB record.hostUserId
     isHost: isHostParam = false,
     template,
-    roleRevealAnimation: initialRoleRevealAnimation,
   } = params;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -108,8 +113,6 @@ export function useRoomScreenState(
     currentSchema,
     currentStepId,
     isAudioPlaying,
-    roleRevealAnimation,
-    resolvedRoleRevealAnimation,
     connectionStatus,
     manualReconnect,
     error: gameRoomError,
@@ -122,7 +125,6 @@ export function useRoomScreenState(
     startGame,
     restartGame,
     clearAllSeats,
-    setRoleRevealAnimation,
     shareNightReview,
     viewedRole,
     submitAction,
@@ -164,6 +166,34 @@ export function useRoomScreenState(
   } = useGameRoom();
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Personal role reveal animation (from user profile, not GameState)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const { user } = useAuthContext();
+  const { data: statsData } = useUserStatsQuery();
+
+  const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation = useMemo(() => {
+    const effect = user?.equippedEffect;
+    if (!effect) return 'none';
+    if (effect === 'none') return 'none';
+    if (effect === 'random') {
+      const unlocked = getUnlockedRoleRevealEffects(statsData?.unlockedItems ?? []);
+      if (unlocked.size === 0) return 'none';
+      const candidates = [...unlocked];
+      const picked = resolveRandomAnimation(roomCode);
+      return candidates.includes(picked)
+        ? (picked as ResolvedRoleRevealAnimation)
+        : (candidates[0] as ResolvedRoleRevealAnimation);
+    }
+    // Validate against known animation IDs — DB may contain stale values
+    if (!(RANDOMIZABLE_ANIMATIONS as readonly string[]).includes(effect)) {
+      roomScreenLog.warn('Unknown equippedEffect from profile, falling back to none', { effect });
+      return 'none';
+    }
+    return effect as ResolvedRoleRevealAnimation;
+  }, [user?.equippedEffect, statsData?.unlockedItems, roomCode]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Derived primitives
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -196,21 +226,6 @@ export function useRoomScreenState(
   const [pendingSeat, setPendingSeat] = useState<number | null>(null);
   const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
-  // ── Sync animation setting from route params (popTo from AnimationSettingsScreen) ──
-  // AnimationSettingsScreen saves to SettingsService and passes the value back
-  // via navigation.popTo('Room', { roleRevealAnimation }). Detect the change
-  // here and sync to gameState via facade (same pattern as Config ← BoardPicker).
-  useEffect(() => {
-    if (!isHost || !initialRoleRevealAnimation) return;
-    if (initialRoleRevealAnimation !== roleRevealAnimation) {
-      fireAndForget(
-        setRoleRevealAnimation(initialRoleRevealAnimation),
-        '[useRoomScreenState] sync animation from route params',
-        roomScreenLog,
-      );
-    }
-  }, [initialRoleRevealAnimation]); // eslint-disable-line react-hooks/exhaustive-deps -- intentionally only re-run when route param changes
-
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
     stepDeadline: gameState?.stepDeadline,
@@ -232,8 +247,6 @@ export function useRoomScreenState(
     initializeRoom,
     joinRoom,
     hasGameState: !!gameState,
-    initialRoleRevealAnimation,
-    setRoleRevealAnimation,
     gameRoomError,
   });
 
@@ -806,7 +819,6 @@ export function useRoomScreenState(
     currentActionRole,
     currentSchema,
     isAudioPlaying,
-    roleRevealAnimation,
     resolvedRoleRevealAnimation,
     connectionStatus,
     gameRoomError,

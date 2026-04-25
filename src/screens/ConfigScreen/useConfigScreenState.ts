@@ -17,7 +17,6 @@ import {
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
@@ -94,7 +93,6 @@ export function useConfigScreenState({
   );
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
-  const [roleRevealAnimation, setRoleRevealAnimation] = useState<RoleRevealAnimation>('random');
   const [selectedTemplate, setSelectedTemplate] = useState(
     presetInitial?.matchedPreset ??
       (isEditMode || isNominateMode ? (PRESET_TEMPLATES[0]?.name ?? '') : '__custom__'),
@@ -146,9 +144,6 @@ export function useConfigScreenState({
           setVariantOverrides(restored.variantOverrides);
           setSelectedTemplate(restored.matchedPreset ?? '__custom__');
         }
-        if (state?.roleRevealAnimation) {
-          setRoleRevealAnimation(state.roleRevealAnimation);
-        }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
         handleError(error, { label: '加载房间', logger: configLog, alertTitle: false });
@@ -170,8 +165,6 @@ export function useConfigScreenState({
 
   useEffect(() => {
     if (!existingRoomCode) {
-      const lastChoice = settingsService.getRoleRevealAnimation();
-      setRoleRevealAnimation(lastChoice);
       setBgmEnabled(settingsService.isBgmEnabled());
     }
   }, [existingRoomCode, settingsService]);
@@ -285,14 +278,12 @@ export function useConfigScreenState({
           showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
           return;
         }
-        await facade.setRoleRevealAnimation(roleRevealAnimation);
         if (navigation.canGoBack()) {
           navigation.goBack();
         } else {
           navigation.navigate('Home');
         }
       } else {
-        await settingsService.setRoleRevealAnimation(roleRevealAnimation);
         // Create room record in DB first — get confirmed/final roomCode
         await authService.waitForInit();
         const hostUserId = authService.getCurrentUserId();
@@ -310,7 +301,6 @@ export function useConfigScreenState({
           roomCode,
           isHost: true,
           template,
-          roleRevealAnimation,
         });
       }
     } catch (e) {
@@ -330,7 +320,6 @@ export function useConfigScreenState({
     nominateMode,
     existingRoomCode,
     facade,
-    roleRevealAnimation,
     settingsService,
     bgmEnabled,
     isLoading,
@@ -341,10 +330,6 @@ export function useConfigScreenState({
   ]);
 
   // ── Template label ───────────────────────────────────────────────────────
-
-  const handleAnimationChange = useCallback((v: string) => {
-    setRoleRevealAnimation(v as RoleRevealAnimation);
-  }, []);
 
   const handleBgmChange = useCallback((v: string) => {
     setBgmEnabled(v === 'on');
@@ -554,12 +539,10 @@ export function useConfigScreenState({
     selectedTemplateLabel,
 
     // Settings
-    roleRevealAnimation,
     bgmEnabled,
     settingsSheetVisible,
     handleOpenSettings,
     handleCloseSettings,
-    handleAnimationChange,
     handleBgmChange,
 
     // Role info (with variant switching)

@@ -13,7 +13,6 @@ import type { GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
 import type { CurrentNightResults } from '../resolvers/types';
-import type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from '../types';
 
 // =============================================================================
 // Confirm Status (discriminated union, role tag)
@@ -143,19 +142,7 @@ export interface GameState {
   isAudioPlaying: boolean;
 
   /**
-   * 开牌动画配置（Host 控制）
-   * 可为具体动画、none 或 random
-   */
-  roleRevealAnimation?: RoleRevealAnimation;
-
-  /**
-   * 解析后的开牌动画（Host 解析 random 后广播）
-   * 客户端使用此字段渲染，不含 random
-   */
-  resolvedRoleRevealAnimation?: ResolvedRoleRevealAnimation;
-
-  /**
-   * 本局开牌动画随机种子（用于 random 解析）
+   * 本局开牌动画随机种子（用于 random 解析 + 发言顺序 RNG）
    * Host 在创建房间/重开游戏时生成
    * seed = roomCode + ':' + roleRevealRandomNonce
    */

@@ -8,7 +8,6 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
 
@@ -164,13 +163,6 @@ export interface IGameFacade {
    * 更新模板（Host only，仅在 unseated 状态）
    */
   updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }>;
-
-  /**
-   * 设置开牌动画（Host only）
-   */
-  setRoleRevealAnimation(
-    animation: RoleRevealAnimation,
-  ): Promise<{ success: boolean; reason?: string }>;
 
   /**
    * 开始夜晚

@@ -52,6 +52,7 @@ export interface AvatarPickerScreenStyles {
   heroPreviewRight: ViewStyle;
   heroFrameLabel: TextStyle;
   heroUploadBtn: ViewStyle;
+  nameStyleHeroName: TextStyle;
   // Frame grid
   frameGridContent: ViewStyle;
   frameColumnWrapper: ViewStyle;
@@ -65,12 +66,21 @@ export interface AvatarPickerScreenStyles {
   flairPreviewCell: ViewStyle;
   nameStylePreviewCell: ViewStyle;
   nameStylePreviewText: TextStyle;
+  effectPreviewCell: ViewStyle;
+  // Effect Hero area
+  effectHeroIcon: ViewStyle;
+  effectHeroName: TextStyle;
+  effectHeroDesc: TextStyle;
+  effectHeroRarity: TextStyle;
+  effectHeroActions: ViewStyle;
   // ReadOnly upgrade card
   pickerUpgradeCard: ViewStyle;
   pickerUpgradeTitle: TextStyle;
   pickerUpgradeBenefits: ViewStyle;
   pickerUpgradeBenefit: TextStyle;
 }
+
+const HERO_ICON_SIZE = 72;
 
 export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPickerScreenStyles =>
   StyleSheet.create<AvatarPickerScreenStyles>({
@@ -242,6 +252,12 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
       gap: spacing.tight,
       marginTop: spacing.small,
     },
+    nameStyleHeroName: {
+      ...textStyles.bodyMedium,
+      fontWeight: typography.weights.semibold,
+      marginTop: spacing.tight,
+      textAlign: 'center' as const,
+    },
     // Frame grid (FlatList-managed columns)
     frameGridContent: {
       paddingHorizontal: spacing.medium,
@@ -300,6 +316,37 @@ export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPicke
     nameStylePreviewText: {
       fontSize: typography.caption,
       fontWeight: typography.weights.medium,
+    },
+    effectPreviewCell: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    // Effect Hero area
+    effectHeroIcon: {
+      width: HERO_ICON_SIZE,
+      height: HERO_ICON_SIZE,
+      borderRadius: borderRadius.large,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    effectHeroName: {
+      ...textStyles.bodyMedium,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    effectHeroDesc: {
+      ...textStyles.caption,
+      color: colors.textSecondary,
+    },
+    effectHeroRarity: {
+      ...textStyles.caption,
+      fontWeight: typography.weights.semibold,
+    },
+    effectHeroActions: {
+      flexDirection: 'row',
+      gap: spacing.small,
+      marginTop: spacing.tight,
     },
     // ReadOnly upgrade card
     pickerUpgradeCard: {

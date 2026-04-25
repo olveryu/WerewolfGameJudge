@@ -42,10 +42,11 @@ const avatarIds = extractIds(catalogSrc, 'AVATAR_IDS');
 const frameIds = extractIds(catalogSrc, 'FRAME_IDS');
 const flairIds = extractIds(catalogSrc, 'SEAT_FLAIR_IDS');
 const nameStyleIds = extractIds(catalogSrc, 'NAME_STYLE_IDS');
-const allIds = [...avatarIds, ...frameIds, ...flairIds, ...nameStyleIds];
+const effectIds = extractIds(catalogSrc, 'ROLE_REVEAL_EFFECT_IDS');
+const allIds = [...avatarIds, ...frameIds, ...flairIds, ...nameStyleIds, ...effectIds];
 
 console.log(
-  `Parsed ${avatarIds.length} avatars, ${frameIds.length} frames, ${flairIds.length} flairs, ${nameStyleIds.length} nameStyles (${allIds.length} total)`,
+  `Parsed ${avatarIds.length} avatars, ${frameIds.length} frames, ${flairIds.length} flairs, ${nameStyleIds.length} nameStyles, ${effectIds.length} effects (${allIds.length} total)`,
 );
 
 // ── 生成 SQL ────────────────────────────────────────────────────────────────

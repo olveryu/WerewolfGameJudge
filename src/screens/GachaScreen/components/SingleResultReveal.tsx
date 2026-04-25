@@ -9,7 +9,7 @@
  *
  * reducedMotion 时所有动画退化为简单 fade-in。
  */
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -61,7 +61,7 @@ const BORDER_WIDTHS: Record<Rarity, number> = {
   legendary: 3,
 };
 
-const REWARD_TYPE_LABELS: Record<string, string> = {
+const REWARD_TYPE_LABELS: Record<RewardType, string> = {
   avatar: '头像',
   frame: '头像框',
   seatFlair: '座位装饰',
@@ -87,9 +87,9 @@ export function SingleResultReveal({
   reducedMotion,
 }: SingleResultRevealProps) {
   const rarity = item.rarity;
-  const visual = RARITY_VISUAL[rarity] ?? RARITY_VISUAL.common;
+  const visual = RARITY_VISUAL[rarity];
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
-  const typeLabel = REWARD_TYPE_LABELS[item.rewardType] ?? item.rewardType;
+  const typeLabel = REWARD_TYPE_LABELS[item.rewardType];
   const previewSize = PREVIEW_SIZES[rarity];
   const overlayOpacity = OVERLAY_OPACITY[rarity];
   const borderWidth = BORDER_WIDTHS[rarity];

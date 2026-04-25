@@ -151,7 +151,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(563);
+      expect(REWARD_POOL.length).toBe(575);
     });
 
     it('should have correct rarity distribution', () => {
@@ -159,7 +159,7 @@ describe('gachaProbability', () => {
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
-      expect(counts.legendary).toBe(25);
+      expect(counts.legendary).toBe(37);
       expect(counts.epic).toBe(55);
       expect(counts.rare).toBe(164);
       expect(counts.common).toBe(319);

@@ -9,7 +9,6 @@ import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
 import type { ConfirmStatus, Player, ProtocolAction, RosterEntry } from '../../protocol/types';
 import type { AudioEffect, BoardNomination } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
-import type { RoleRevealAnimation } from '../../types';
 import type { DeathReason } from '../DeathCalculator';
 
 // =============================================================================
@@ -36,13 +35,6 @@ export interface UpdateTemplateAction {
   payload: {
     templateRoles: RoleId[];
   };
-}
-
-export interface SetRoleRevealAnimationAction {
-  type: 'SET_ROLE_REVEAL_ANIMATION';
-  animation: RoleRevealAnimation;
-  /** Pre-computed nonce for random animation resolution (injected by handler) */
-  nonce?: string;
 }
 
 // =============================================================================
@@ -464,7 +456,6 @@ export type StateAction =
   | InitializeGameAction
   | RestartGameAction
   | UpdateTemplateAction
-  | SetRoleRevealAnimationAction
   // 座位
   | PlayerJoinAction
   | PlayerLeaveAction

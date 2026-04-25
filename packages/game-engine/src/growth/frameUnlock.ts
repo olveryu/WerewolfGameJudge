@@ -11,7 +11,9 @@ import {
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
+  FREE_ROLE_REVEAL_EFFECT_IDS,
   REWARD_POOL,
+  REWARD_POOL_BY_ID,
   type RewardItem,
   type RewardType,
 } from './rewardCatalog';
@@ -37,9 +39,11 @@ export function pickRandomReward(
       ? 'frame'
       : level % 7 === 0
         ? 'nameStyle'
-        : level % 3 === 0
-          ? 'seatFlair'
-          : 'avatar';
+        : level % 11 === 0
+          ? 'roleRevealEffect'
+          : level % 3 === 0
+            ? 'seatFlair'
+            : 'avatar';
   const preferred = REWARD_POOL.filter(
     (item) => item.type === preferredType && !unlockedIds.has(item.id),
   );
@@ -55,8 +59,7 @@ export function pickRandomReward(
 export function getUnlockedAvatars(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_AVATAR_IDS);
   for (const id of unlockedIds) {
-    const item = REWARD_POOL.find((r) => r.id === id);
-    if (item?.type === 'avatar') set.add(id);
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'avatar') set.add(id);
   }
   return set;
 }
@@ -65,8 +68,7 @@ export function getUnlockedAvatars(unlockedIds: readonly string[]): ReadonlySet<
 export function getUnlockedFrames(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_FRAME_IDS);
   for (const id of unlockedIds) {
-    const item = REWARD_POOL.find((r) => r.id === id);
-    if (item?.type === 'frame') set.add(id);
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'frame') set.add(id);
   }
   return set;
 }
@@ -80,8 +82,7 @@ export function isFrameUnlocked(frameId: string, unlockedIds: readonly string[])
 export function getUnlockedFlairs(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_FLAIR_IDS);
   for (const id of unlockedIds) {
-    const item = REWARD_POOL.find((r) => r.id === id);
-    if (item?.type === 'seatFlair') set.add(id);
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'seatFlair') set.add(id);
   }
   return set;
 }
@@ -95,8 +96,7 @@ export function isFlairUnlocked(flairId: string, unlockedIds: readonly string[])
 export function getUnlockedNameStyles(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_NAME_STYLE_IDS);
   for (const id of unlockedIds) {
-    const item = REWARD_POOL.find((r) => r.id === id);
-    if (item?.type === 'nameStyle') set.add(id);
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'nameStyle') set.add(id);
   }
   return set;
 }
@@ -104,4 +104,21 @@ export function getUnlockedNameStyles(unlockedIds: readonly string[]): ReadonlyS
 /** 名字特效是否已解锁 */
 export function isNameStyleUnlocked(nameStyleId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedNameStyles(unlockedIds).has(nameStyleId);
+}
+
+/** 已解锁开牌特效 id 集合（免费 + 玩家解锁的 roleRevealEffect 类型） */
+export function getUnlockedRoleRevealEffects(unlockedIds: readonly string[]): ReadonlySet<string> {
+  const set = new Set<string>(FREE_ROLE_REVEAL_EFFECT_IDS);
+  for (const id of unlockedIds) {
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'roleRevealEffect') set.add(id);
+  }
+  return set;
+}
+
+/** 开牌特效是否已解锁 */
+export function isRoleRevealEffectUnlocked(
+  effectId: string,
+  unlockedIds: readonly string[],
+): boolean {
+  return getUnlockedRoleRevealEffects(unlockedIds).has(effectId);
 }

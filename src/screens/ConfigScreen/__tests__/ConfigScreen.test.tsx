@@ -74,7 +74,6 @@ const createMockFacade = (): IGameFacade =>
     resumeAfterRejoin: jest.fn(),
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
-    setRoleRevealAnimation: jest.fn(),
     addConnectionStatusListener: jest.fn(() => jest.fn()),
   }) as unknown as IGameFacade;
 

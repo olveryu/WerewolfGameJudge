@@ -29,7 +29,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
@@ -436,12 +435,6 @@ export class GameFacade implements IGameFacade {
 
   async updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }> {
     return gameActions.updateTemplate(this.#getActionsContext(), template);
-  }
-
-  async setRoleRevealAnimation(
-    animation: RoleRevealAnimation,
-  ): Promise<{ success: boolean; reason?: string }> {
-    return gameActions.setRoleRevealAnimation(this.#getActionsContext(), animation);
   }
 
   async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {

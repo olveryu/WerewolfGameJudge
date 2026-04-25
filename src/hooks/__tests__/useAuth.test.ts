@@ -45,7 +45,6 @@ describe('useAuth hook', () => {
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
-        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
         addListener: jest.fn().mockReturnValue(jest.fn()),
       },
       audioService: {
@@ -102,6 +101,7 @@ describe('useAuth hook', () => {
         avatarFrame: null,
         seatFlair: null,
         nameStyle: null,
+        equippedEffect: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -140,6 +140,7 @@ describe('useAuth hook', () => {
         avatarFrame: null,
         seatFlair: null,
         nameStyle: null,
+        equippedEffect: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -233,6 +234,7 @@ describe('useAuth hook', () => {
         avatarFrame: null,
         seatFlair: null,
         nameStyle: null,
+        equippedEffect: null,
         isAnonymous: false,
       });
     });
@@ -261,6 +263,7 @@ describe('useAuth hook', () => {
         avatarFrame: null,
         seatFlair: null,
         nameStyle: null,
+        equippedEffect: null,
         isAnonymous: true,
       });
     });
@@ -296,6 +299,7 @@ describe('User interface', () => {
       avatarFrame: null,
       seatFlair: null,
       nameStyle: null,
+      equippedEffect: null,
       isAnonymous: false,
     };
 
@@ -317,6 +321,7 @@ describe('User interface', () => {
       avatarFrame: null,
       seatFlair: null,
       nameStyle: null,
+      equippedEffect: null,
       isAnonymous: true,
     };
 

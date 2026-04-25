@@ -106,8 +106,6 @@ describe('Room creation → navigation roomCode contract', () => {
       roomService: {},
       settingsService: {
         load: jest.fn().mockResolvedValue(undefined),
-        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
-        setRoleRevealAnimation: jest.fn().mockResolvedValue(undefined),
         setBgmEnabled: jest.fn().mockResolvedValue(undefined),
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),

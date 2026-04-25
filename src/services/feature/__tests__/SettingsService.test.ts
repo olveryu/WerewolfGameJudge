@@ -31,50 +31,12 @@ describe('SettingsService', () => {
     it('loads settings from MMKV storage', async () => {
       const storedSettings = {
         bgmEnabled: false,
-        roleRevealAnimation: 'roleHunt',
       };
       (storage.getString as jest.Mock).mockReturnValue(JSON.stringify(storedSettings));
 
       await service.load();
 
       expect(storage.getString).toHaveBeenCalledWith('@werewolf_settings');
-    });
-  });
-
-  describe('roleRevealAnimation', () => {
-    it('can get and set animation to roleHunt', async () => {
-      await service.setRoleRevealAnimation('roleHunt');
-      expect(service.getRoleRevealAnimation()).toBe('roleHunt');
-    });
-
-    it('sets and persists animation', async () => {
-      await service.setRoleRevealAnimation('roleHunt');
-
-      expect(storage.set).toHaveBeenCalledWith(
-        '@werewolf_settings',
-        expect.stringContaining('"roleRevealAnimation":"roleHunt"'),
-      );
-    });
-
-    it('can set to none', async () => {
-      await service.setRoleRevealAnimation('none');
-      expect(service.getRoleRevealAnimation()).toBe('none');
-    });
-
-    it('can set to roulette', async () => {
-      await service.setRoleRevealAnimation('roulette');
-      expect(service.getRoleRevealAnimation()).toBe('roulette');
-    });
-
-    it('cycles through all animation types', async () => {
-      await service.setRoleRevealAnimation('roulette');
-      expect(service.getRoleRevealAnimation()).toBe('roulette');
-
-      await service.setRoleRevealAnimation('roleHunt');
-      expect(service.getRoleRevealAnimation()).toBe('roleHunt');
-
-      await service.setRoleRevealAnimation('none');
-      expect(service.getRoleRevealAnimation()).toBe('none');
     });
   });
 
@@ -107,7 +69,6 @@ describe('SettingsService', () => {
       const settings = service.getAll();
 
       expect(settings).toHaveProperty('bgmEnabled');
-      expect(settings).toHaveProperty('roleRevealAnimation');
     });
 
     it('returns a copy (not the original object)', () => {
@@ -124,11 +85,9 @@ describe('SettingsService', () => {
       const listener = jest.fn();
       service.addListener(listener);
 
-      await service.setRoleRevealAnimation('roleHunt');
+      await service.setBgmEnabled(false);
 
-      expect(listener).toHaveBeenCalledWith(
-        expect.objectContaining({ roleRevealAnimation: 'roleHunt' }),
-      );
+      expect(listener).toHaveBeenCalledWith(expect.objectContaining({ bgmEnabled: false }));
     });
 
     it('returns unsubscribe function', async () => {
@@ -138,7 +97,7 @@ describe('SettingsService', () => {
       unsubscribe();
       listener.mockClear(); // Clear any previous calls
 
-      await service.setRoleRevealAnimation('none');
+      await service.setBgmEnabled(true);
 
       expect(listener).not.toHaveBeenCalled();
     });

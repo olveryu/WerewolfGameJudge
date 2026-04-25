@@ -20,6 +20,7 @@ export const updateProfileSchema = z.object({
   avatarFrame: z.string().max(100).optional(),
   seatFlair: z.string().max(100).optional(),
   nameStyle: z.string().max(100).optional(),
+  equippedEffect: z.string().max(100).optional(),
 });
 
 export const changePasswordSchema = z.object({

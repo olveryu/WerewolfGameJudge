@@ -6,7 +6,6 @@
  */
 
 import { GameStatus, getPlayerCount } from '../../models';
-import { type ResolvedRoleRevealAnimation, resolveRandomAnimation } from '../../types';
 import type { Complete } from '../state/normalize';
 import type { GameState } from '../store/types';
 import type {
@@ -18,7 +17,6 @@ import type {
   PlayerViewedRoleAction,
   RestartGameAction,
   SetBoardNominationAction,
-  SetRoleRevealAnimationAction,
   UpdatePlayerProfileAction,
   UpdateTemplateAction,
   UpvoteBoardNominationAction,
@@ -67,23 +65,11 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
   // 使用 handler 预计算的 nonce（保证 reducer 纯函数性）
   const newNonce = action.nonce;
 
-  // 如果当前是 random，重新解析
-  let resolvedAnimation = state.resolvedRoleRevealAnimation;
-  if (state.roleRevealAnimation === 'random') {
-    const seed = `${state.roomCode}:${newNonce}`;
-    const previous =
-      state.resolvedRoleRevealAnimation !== 'none'
-        ? (state.resolvedRoleRevealAnimation as import('../../types/RoleRevealAnimation').RandomizableAnimation)
-        : undefined;
-    resolvedAnimation = resolveRandomAnimation(seed, previous);
-  }
-
   return {
     // ── 保留字段（跨局不变） ──────────────────────────────
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
-    roleRevealAnimation: state.roleRevealAnimation,
     debugMode: state.debugMode,
     roster: state.roster,
 
@@ -142,9 +128,8 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     // boardNominations: 保留，重开不清空
     boardNominations: state.boardNominations,
 
-    // ── 重开时更新 nonce 和 resolved 动画 ─────────────────
+    // ── 重开时更新 nonce ─────────────────────────
     roleRevealRandomNonce: newNonce,
-    resolvedRoleRevealAnimation: resolvedAnimation,
   } satisfies Complete<GameState>;
 }
 
@@ -180,37 +165,6 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
     players: newPlayers,
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
     // boardNominations: 保留，采纳不清空
-  };
-}
-
-export function handleSetRoleRevealAnimation(
-  state: GameState,
-  action: SetRoleRevealAnimationAction,
-): GameState {
-  const animation = action.animation;
-  let resolved: ResolvedRoleRevealAnimation;
-  const nonce = action.nonce ?? state.roleRevealRandomNonce;
-
-  if (animation === 'random') {
-    if (!nonce) {
-      throw new Error('SET_ROLE_REVEAL_ANIMATION: nonce required when animation is random');
-    }
-    // seed = roomCode + ':' + nonce，确保同一房间同一局同一动画
-    const seed = `${state.roomCode ?? 'default'}:${nonce}`;
-    const previous =
-      state.resolvedRoleRevealAnimation !== 'none'
-        ? (state.resolvedRoleRevealAnimation as import('../../types/RoleRevealAnimation').RandomizableAnimation)
-        : undefined;
-    resolved = resolveRandomAnimation(seed, previous);
-  } else {
-    resolved = animation;
-  }
-
-  return {
-    ...state,
-    roleRevealAnimation: animation,
-    resolvedRoleRevealAnimation: resolved,
-    roleRevealRandomNonce: nonce,
   };
 }
 

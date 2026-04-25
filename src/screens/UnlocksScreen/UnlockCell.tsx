@@ -10,6 +10,7 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { NameStyleText } from '@/components/nameStyles';
 import { RarityCellBg } from '@/components/RarityCellBg';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
+import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
@@ -22,6 +23,7 @@ const CHECK_BADGE_SIZE = 18;
 const LOCK_BADGE_SIZE = 16;
 const FLAIR_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 const NAME_STYLE_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
+const EFFECT_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 
 // ── Main cell ───────────────────────────────────────────────────────────────
 
@@ -33,6 +35,8 @@ export const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
       <FrameThumb id={item.id} unlocked={item.unlocked} />
     ) : item.type === 'nameStyle' ? (
       <NameStyleThumb id={item.id} displayName={item.displayName} />
+    ) : item.type === 'effect' ? (
+      <EffectThumb id={item.id} unlocked={item.unlocked} />
     ) : (
       <FlairThumb id={item.id} unlocked={item.unlocked} />
     );
@@ -150,6 +154,24 @@ const NameStyleThumb = React.memo<{ id: string; displayName: string }>(({ id, di
 
 NameStyleThumb.displayName = 'NameStyleThumb';
 
+const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
+  const opt = getAnimationOption(id);
+  const iconName = (opt?.icon ?? 'help-outline') as React.ComponentProps<typeof Ionicons>['name'];
+  return (
+    <View
+      style={[
+        styles.effectPreview,
+        { width: EFFECT_PREVIEW_SIZE, height: EFFECT_PREVIEW_SIZE },
+        !unlocked && styles.grayscale,
+      ]}
+    >
+      <Ionicons name={iconName} size={28} color={unlocked ? colors.text : colors.textMuted} />
+    </View>
+  );
+});
+
+EffectThumb.displayName = 'EffectThumb';
+
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const NUM_COLUMNS = 4;
@@ -196,6 +218,12 @@ const styles = StyleSheet.create({
   nameStylePreviewText: {
     fontSize: typography.caption,
     fontWeight: typography.weights.medium,
+  },
+  effectPreview: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
   },
   checkBadge: {
     position: 'absolute',

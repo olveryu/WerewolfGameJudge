@@ -16,7 +16,6 @@ import {
   boardWithdrawSchema,
   roomCodeSchema,
   seatActionSchema,
-  setAnimationSchema,
   shareReviewSchema,
   updateProfileRouteSchema,
   updateTemplateSchema,
@@ -92,14 +91,6 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
       level,
     );
   });
-  return c.json(result, resultToStatus(result as GameActionResult));
-});
-
-gameRoutes.post('/set-animation', jsonBody(setAnimationSchema), async (c) => {
-  const { roomCode, animation } = c.req.valid('json');
-  const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode, c.req.raw).setAnimation(animation),
-  );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
 

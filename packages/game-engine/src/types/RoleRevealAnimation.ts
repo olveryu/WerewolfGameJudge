@@ -1,97 +1,29 @@
 /**
  * RoleRevealAnimation - 角色揭示动画类型定义
  *
- * 纯类型文件，无运行时代码。
- * 所有需要此类型的文件都应从此处 import。
+ * 类型 + resolveRandomAnimation 工具函数。
+ * 权威 ID 列表来自 `rewardCatalog.ts`（ROLE_REVEAL_EFFECT_IDS），本文件派生类型。
  */
 
-/**
- * 角色揭示动画配置类型（包含 random）
- * - roulette: 轮盘动画
- * - roleHunt: 角色猎场动画
- * - scratch: 刮刮卡动画
- * - tarot: 塔罗牌抽取动画
- * - gachaMachine: 扭蛋机动画
- * - cardPick: 抽牌动画
- * - sealBreak: 封印解除动画
- * - chainShatter: 锁链粉碎动画
- * - fortuneWheel: 命运转盘动画
- * - meteorStrike: 流星捕获动画
- * - filmRewind: 胶片倒带动画
- * - vortexCollapse: 虚空坍缩动画
- * - none: 无动画（简单卡片）
- * - random: 随机选择（Host 解析后广播）
- */
-export type RoleRevealAnimation =
-  | 'roulette'
-  | 'roleHunt'
-  | 'scratch'
-  | 'tarot'
-  | 'gachaMachine'
-  | 'cardPick'
-  | 'sealBreak'
-  | 'chainShatter'
-  | 'fortuneWheel'
-  | 'meteorStrike'
-  | 'filmRewind'
-  | 'vortexCollapse'
-  | 'none'
-  | 'random';
+import { ROLE_REVEAL_EFFECT_IDS, type RoleRevealEffectId } from '../growth/rewardCatalog';
 
 /**
- * 解析后的角色揭示动画类型（不含 random）
- * - Host 解析 random 后得到的实际动画
- * - 客户端只使用此类型渲染
+ * 可随机选择的动画类型（不含 none 和 random）。
+ * 从 rewardCatalog 的 ROLE_REVEAL_EFFECT_IDS 派生，保证单一权威来源。
  */
-export type ResolvedRoleRevealAnimation =
-  | 'roulette'
-  | 'roleHunt'
-  | 'scratch'
-  | 'tarot'
-  | 'gachaMachine'
-  | 'cardPick'
-  | 'sealBreak'
-  | 'chainShatter'
-  | 'fortuneWheel'
-  | 'meteorStrike'
-  | 'filmRewind'
-  | 'vortexCollapse'
-  | 'none';
+export type RandomizableAnimation = RoleRevealEffectId;
+
+/** 角色揭示动画配置类型（包含 random / none） */
+export type RoleRevealAnimation = RandomizableAnimation | 'none' | 'random';
+
+/** 解析后的角色揭示动画类型（不含 random） */
+export type ResolvedRoleRevealAnimation = RandomizableAnimation | 'none';
 
 /**
- * 可随机选择的动画类型（不含 none 和 random）
+ * 可随机选择的动画数组（用于 random 解析）。
+ * 从 ROLE_REVEAL_EFFECT_IDS 派生，不再独立维护。
  */
-export type RandomizableAnimation =
-  | 'roulette'
-  | 'roleHunt'
-  | 'scratch'
-  | 'tarot'
-  | 'gachaMachine'
-  | 'cardPick'
-  | 'sealBreak'
-  | 'chainShatter'
-  | 'fortuneWheel'
-  | 'meteorStrike'
-  | 'filmRewind'
-  | 'vortexCollapse';
-
-/**
- * 可随机选择的动画数组（用于 random 解析）
- */
-export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = [
-  'roulette',
-  'roleHunt',
-  'scratch',
-  'tarot',
-  'gachaMachine',
-  'cardPick',
-  'sealBreak',
-  'chainShatter',
-  'fortuneWheel',
-  'meteorStrike',
-  'filmRewind',
-  'vortexCollapse',
-] as const;
+export const RANDOMIZABLE_ANIMATIONS: readonly RandomizableAnimation[] = ROLE_REVEAL_EFFECT_IDS;
 
 /**
  * 确定性 hash 函数（用于 random 解析）

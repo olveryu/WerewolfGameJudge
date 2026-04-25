@@ -2,15 +2,14 @@
  * useRoomInit.ts - Room initialization hook
  *
  * Calls useGameRoom init APIs (initializeRoom, joinRoom, takeSeat), manages local
- * loading/retry UI state, sets role reveal animation on room creation (host only), and
- * surfaces gameRoomError for error display. Does not control night phase or push game
- * actions, does not import services or business logic, does not access or modify
- * GameState fields, does not contain night flow / audio / policy logic, and
- * does not create room record in DB (that's done in ConfigScreen before navigation).
+ * loading/retry UI state, and surfaces gameRoomError for error display.
+ * Does not control night phase or push game actions, does not import services
+ * or business logic, does not access or modify GameState fields, does not
+ * contain night flow / audio / policy logic, and does not create room record
+ * in DB (that's done in ConfigScreen before navigation).
  */
 
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { roomScreenLog } from '@/utils/logger';
@@ -28,10 +27,6 @@ interface UseRoomInitParams {
   joinRoom: (roomCode: string) => Promise<boolean>;
   /** Check if we have received game state */
   hasGameState: boolean;
-  /** Initial role reveal animation setting from ConfigScreen (host only) */
-  initialRoleRevealAnimation?: RoleRevealAnimation;
-  /** From useGameRoom: set role reveal animation (host only) */
-  setRoleRevealAnimation?: (animation: RoleRevealAnimation) => Promise<void>;
   /** Error message from useGameRoom (shown when retry button is visible) */
   gameRoomError?: string | null;
 }
@@ -49,7 +44,7 @@ interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: initializeRoom → setRoleRevealAnimation → initialized
+ * Host: initializeRoom → initialized
  * Player: joinRoom → initialized
  *
  * Note: DB room creation is done in ConfigScreen BEFORE navigation.
@@ -64,8 +59,6 @@ export function useRoomInit({
   initializeRoom,
   joinRoom,
   hasGameState,
-  initialRoleRevealAnimation,
-  setRoleRevealAnimation,
   gameRoomError,
 }: UseRoomInitParams): UseRoomInitResult {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -124,13 +117,6 @@ export function useRoomInit({
           return;
         }
 
-        // Set role reveal animation if provided from ConfigScreen
-        if (initialRoleRevealAnimation && setRoleRevealAnimation) {
-          roomScreenLog.debug('Setting role reveal animation', {
-            animation: initialRoleRevealAnimation,
-          });
-          await setRoleRevealAnimation(initialRoleRevealAnimation);
-        }
         setIsInitialized(true);
         initInProgressRef.current = false;
         roomScreenLog.debug('Host init complete');
@@ -163,8 +149,6 @@ export function useRoomInit({
     roomCode,
     initializeRoom,
     joinRoom,
-    initialRoleRevealAnimation,
-    setRoleRevealAnimation,
     // NOTE: gameRoomError intentionally excluded — read via ref to avoid
     // infinite loop (error → re-trigger → joinRoom → error → …)
   ]);

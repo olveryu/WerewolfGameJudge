@@ -19,10 +19,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useGameFacade } from '@/contexts';
@@ -78,8 +74,6 @@ interface UseGameRoomResult {
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   isAudioPlaying: boolean;
-  roleRevealAnimation: RoleRevealAnimation;
-  resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
   currentSchemaId: SchemaId | null;
   currentSchema: ActionSchema | null;
   currentStepId: SchemaId | null;
@@ -118,7 +112,6 @@ interface UseGameRoomResult {
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  setRoleRevealAnimation: (animation: RoleRevealAnimation) => Promise<void>;
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<void>;
@@ -352,8 +345,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     roomStatus,
     currentActionRole: nightDerived.currentActionRole,
     isAudioPlaying: nightDerived.isAudioPlaying,
-    roleRevealAnimation: nightDerived.roleRevealAnimation,
-    resolvedRoleRevealAnimation: nightDerived.resolvedRoleRevealAnimation,
     currentSchemaId: nightDerived.currentSchemaId,
     currentSchema: nightDerived.currentSchema,
     currentStepId: nightDerived.currentStepId,
@@ -383,7 +374,6 @@ export const useGameRoom = (): UseGameRoomResult => {
     restartGame: actions.restartGame,
     clearAllSeats: actions.clearAllSeats,
     shareNightReview: actions.shareNightReview,
-    setRoleRevealAnimation: actions.setRoleRevealAnimation,
     viewedRole: actions.viewedRole,
     submitAction: actions.submitAction,
     submitRevealAck: actions.submitRevealAck,

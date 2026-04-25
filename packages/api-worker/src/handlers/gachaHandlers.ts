@@ -9,6 +9,7 @@
 
 import type { DrawType, Rarity } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
+import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -80,7 +81,7 @@ function cryptoRandomInt(max: number): number {
 
 interface DrawResult {
   rarity: Rarity;
-  rewardType: string;
+  rewardType: RewardType;
   rewardId: string;
   isNew: boolean;
   isPityTriggered: boolean;

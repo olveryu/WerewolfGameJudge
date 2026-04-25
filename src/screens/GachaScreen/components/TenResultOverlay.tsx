@@ -100,7 +100,7 @@ function ResultCell({
     transform: [{ scale: scale.value }],
   }));
 
-  const visual = RARITY_VISUAL[item.rarity] ?? RARITY_VISUAL.common;
+  const visual = RARITY_VISUAL[item.rarity];
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
 
   return (

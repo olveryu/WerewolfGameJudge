@@ -12,8 +12,6 @@ import { settingsServiceLog } from '@/utils/logger';
 
 const SETTINGS_KEY = '@werewolf_settings';
 
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_VOLUME, VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
 
@@ -26,34 +24,13 @@ interface UserSettings {
   bgmVolume: number;
   /** Role audio (TTS narration) volume 0.0–1.0 (default: 1.0) */
   roleAudioVolume: number;
-  /** Role reveal animation style (default: 'roulette') */
-  roleRevealAnimation: RoleRevealAnimation;
 }
-
-/** Valid role reveal animation values for runtime validation of persisted data */
-const VALID_ROLE_REVEAL_ANIMATIONS: ReadonlySet<string> = new Set<RoleRevealAnimation>([
-  'roulette',
-  'roleHunt',
-  'scratch',
-  'tarot',
-  'gachaMachine',
-  'cardPick',
-  'sealBreak',
-  'chainShatter',
-  'fortuneWheel',
-  'meteorStrike',
-  'filmRewind',
-  'vortexCollapse',
-  'none',
-  'random',
-]);
 
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
   roleAudioVolume: 1.0,
-  roleRevealAnimation: 'random',
 };
 
 export class SettingsService {
@@ -77,13 +54,6 @@ export class SettingsService {
           const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
 
           // Validate + clamp persisted values to current valid ranges
-          if (!VALID_ROLE_REVEAL_ANIMATIONS.has(merged.roleRevealAnimation)) {
-            settingsServiceLog.warn(
-              'Invalid persisted roleRevealAnimation, resetting to default:',
-              merged.roleRevealAnimation,
-            );
-            merged.roleRevealAnimation = DEFAULT_SETTINGS.roleRevealAnimation;
-          }
           // Validate boolean fields (guard against corrupted persisted data)
           if (typeof merged.bgmEnabled !== 'boolean') {
             settingsServiceLog.warn(
@@ -232,23 +202,8 @@ export class SettingsService {
   }
 
   // =========================================================================
-  // Role Reveal Animation Settings
+  // All Settings
   // =========================================================================
-
-  /**
-   * Get current role reveal animation.
-   */
-  getRoleRevealAnimation(): RoleRevealAnimation {
-    return this.#settings.roleRevealAnimation;
-  }
-
-  /**
-   * Set role reveal animation and persist.
-   */
-  async setRoleRevealAnimation(anim: RoleRevealAnimation): Promise<void> {
-    this.#settings.roleRevealAnimation = anim;
-    await this.#save();
-  }
 
   /**
    * Get all settings (for debugging/display).

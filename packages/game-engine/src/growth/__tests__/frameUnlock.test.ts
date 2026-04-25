@@ -15,8 +15,10 @@ import {
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
+  FREE_ROLE_REVEAL_EFFECT_IDS,
   NAME_STYLE_IDS,
   REWARD_POOL,
+  ROLE_REVEAL_EFFECT_IDS,
   SEAT_FLAIR_IDS,
 } from '../rewardCatalog';
 
@@ -26,11 +28,13 @@ describe('rewardCatalog', () => {
       AVATAR_IDS.length +
         FRAME_IDS.length +
         SEAT_FLAIR_IDS.length +
-        NAME_STYLE_IDS.length -
+        NAME_STYLE_IDS.length +
+        ROLE_REVEAL_EFFECT_IDS.length -
         FREE_AVATAR_IDS.size -
         FREE_FRAME_IDS.size -
         FREE_FLAIR_IDS.size -
-        FREE_NAME_STYLE_IDS.size,
+        FREE_NAME_STYLE_IDS.size -
+        FREE_ROLE_REVEAL_EFFECT_IDS.size,
     );
   });
 

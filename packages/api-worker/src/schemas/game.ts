@@ -57,12 +57,6 @@ export const seatActionSchema = z.discriminatedUnion('action', [
   seatKickSchema,
 ]);
 
-/** POST /game/set-animation */
-export const setAnimationSchema = z.object({
-  roomCode: z.string().min(1),
-  animation: z.string().min(1),
-});
-
 /** POST /game/update-template */
 export const updateTemplateSchema = z.object({
   roomCode: z.string().min(1),

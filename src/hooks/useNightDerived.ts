@@ -14,10 +14,6 @@ import {
   getSchema,
   type SchemaId,
 } from '@werewolf/game-engine/models/roles/spec';
-import type {
-  ResolvedRoleRevealAnimation,
-  RoleRevealAnimation,
-} from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useMemo } from 'react';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -33,10 +29,6 @@ interface NightDerivedValues {
   currentStepId: SchemaId | null;
   /** Whether audio is currently playing */
   isAudioPlaying: boolean;
-  /** Role reveal animation setting */
-  roleRevealAnimation: RoleRevealAnimation;
-  /** Resolved animation for UI rendering (never 'random') */
-  resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation;
 }
 
 /**
@@ -73,21 +65,11 @@ export function useNightDerived(gameState: LocalGameState | null): NightDerivedV
   // Check if audio is currently playing
   const isAudioPlaying: boolean = gameState?.isAudioPlaying ?? false;
 
-  // Role reveal animation (Host controlled, all players use)
-  const roleRevealAnimation: RoleRevealAnimation = gameState?.roleRevealAnimation ?? 'random';
-
-  // Resolved animation (for UI rendering - never 'random')
-  // 'random' fallback 时返回 'roulette'（实际上 Host 会解析 random）
-  const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation =
-    gameState?.resolvedRoleRevealAnimation ?? 'roulette';
-
   return {
     currentActionRole,
     currentSchemaId,
     currentSchema,
     currentStepId,
     isAudioPlaying,
-    roleRevealAnimation,
-    resolvedRoleRevealAnimation,
   };
 }

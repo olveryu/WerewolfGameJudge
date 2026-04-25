@@ -21,7 +21,6 @@ import {
   handlePlayerViewedRole,
   handleRestartGame,
   handleSetBoardNomination,
-  handleSetRoleRevealAnimation,
   handleUpdatePlayerProfile,
   handleUpdateTemplate,
   handleUpvoteBoardNomination,
@@ -55,8 +54,6 @@ export function gameReducer(state: GameState, action: StateAction): GameState {
       return handleRestartGame(state, action);
     case 'UPDATE_TEMPLATE':
       return handleUpdateTemplate(state, action);
-    case 'SET_ROLE_REVEAL_ANIMATION':
-      return handleSetRoleRevealAnimation(state, action);
     case 'PLAYER_JOIN':
       return handlePlayerJoin(state, action);
     case 'PLAYER_LEAVE':

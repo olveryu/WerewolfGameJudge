@@ -6,7 +6,6 @@
  */
 
 import type { RoleId } from '../../models';
-import type { RoleRevealAnimation } from '../../types';
 
 // =============================================================================
 // 座位相关 Intent
@@ -93,15 +92,6 @@ export interface UpdateTemplateIntent {
   payload: {
     templateRoles: RoleId[];
   };
-}
-
-/**
- * 设置开牌动画 Intent（Host-only）
- * 用于 Host 在房间内选择开牌动画
- */
-export interface SetRoleRevealAnimationIntent {
-  type: 'SET_ROLE_REVEAL_ANIMATION';
-  animation: RoleRevealAnimation;
 }
 
 /**

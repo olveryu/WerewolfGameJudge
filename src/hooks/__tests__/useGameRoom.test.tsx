@@ -49,7 +49,6 @@ describe('useGameRoom - ACK reason transparency', () => {
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
-    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
     restartGame: jest.fn().mockResolvedValue({ success: true }),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
@@ -107,7 +106,6 @@ describe('useGameRoom - ACK reason transparency', () => {
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
-        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },
       audioService: {
         startBgm: jest.fn().mockResolvedValue(undefined),
@@ -348,7 +346,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
-    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
     restartGame: jest.fn().mockResolvedValue({ success: true }),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
@@ -404,7 +401,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
-        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },
       audioService: {
         startBgm: jest.fn().mockResolvedValue(undefined),
@@ -623,7 +619,6 @@ describe('useGameRoom - rejoin continue overlay', () => {
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
-    setRoleRevealAnimation: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
     restartGame: jest.fn().mockResolvedValue({ success: true }),
     fillWithBots: jest.fn().mockResolvedValue({ success: true }),
@@ -679,7 +674,6 @@ describe('useGameRoom - rejoin continue overlay', () => {
         isBgmEnabled: jest.fn().mockReturnValue(true),
         getBgmTrack: jest.fn().mockReturnValue('random'),
         toggleBgm: jest.fn(),
-        getRoleRevealAnimation: jest.fn().mockReturnValue('random'),
       },
       audioService: {
         startBgm: jest.fn().mockResolvedValue(undefined),

@@ -5,7 +5,7 @@
  * 使用 cfGet/cfPost 统一封装。
  */
 
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
@@ -20,7 +20,7 @@ interface GachaStatus {
 
 export interface DrawResultItem {
   rarity: Rarity;
-  rewardType: string;
+  rewardType: RewardType;
   rewardId: string;
   isNew: boolean;
   isPityTriggered: boolean;

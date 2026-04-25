@@ -42,7 +42,6 @@ function createMockFacade(): IGameFacade & {
     leaveSeatWithAck: jest.fn(),
     assignRoles: jest.fn(),
     updateTemplate: jest.fn(),
-    setRoleRevealAnimation: jest.fn(),
     startNight: jest.fn(),
     restartGame: jest.fn(),
     fillWithBots: jest.fn(),
