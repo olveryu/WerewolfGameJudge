@@ -48,6 +48,7 @@ export class CFAuthService implements IAuthService {
       if (wxCode) {
         if (existingUserId && !this.#isAnonymous) {
           if (this.#hasWechat) {
+            clearWxCode();
             authLog.debug('WeChat already bound, skipping bind');
           } else {
             authLog.info('Binding WeChat to existing session');
