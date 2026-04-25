@@ -137,8 +137,7 @@ done
 cp web/_headers dist/
 cp web/_redirects dist/
 cp web/_routes.json dist/
-cp web/sw.js dist/
-echo "✅ 已复制 _headers + _redirects + _routes.json + sw.js"
+echo "✅ 已复制 _headers + _redirects + _routes.json"
 
 # ── 4. Sentry Source Maps ───────────────────────
 
