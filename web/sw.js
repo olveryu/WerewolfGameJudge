@@ -1,9 +1,10 @@
 /**
  * Suicide Service Worker — replaces the previous caching SW.
  *
- * On activate: deletes ALL caches and unregisters itself.
- * Existing users will fetch this version (skipWaiting), clearing stale caches.
- * Once all users have transitioned, this file can be removed entirely.
+ * On activate: deletes ALL caches, force-reloads every open tab (so stale
+ * cached HTML is replaced), then unregisters itself.
+ *
+ * No fetch handler — all requests fall through to the network after claim().
  */
 
 self.addEventListener('install', function () {
@@ -23,6 +24,16 @@ self.addEventListener('activate', function (event) {
       })
       .then(function () {
         return self.clients.claim();
+      })
+      .then(function () {
+        // Force-reload all open windows so they fetch fresh HTML from network.
+        // This SW has no fetch handler, so navigations go straight to the server.
+        return self.clients.matchAll({ type: 'window' });
+      })
+      .then(function (clients) {
+        clients.forEach(function (client) {
+          client.navigate(client.url);
+        });
       })
       .then(function () {
         return self.registration.unregister();
