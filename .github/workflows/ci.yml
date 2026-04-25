@@ -106,11 +106,12 @@ jobs:
         run: bash scripts/build.sh
         env:
           CF_PAGES_BRANCH: main
-          CDN_BASE_URL: https://cdn.werewolfjudge.eu.org
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
+      # R2 upload disabled — using jsdelivr npm CDN instead
       - name: Upload assets to R2 CDN
+        if: false
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -121,10 +122,8 @@ jobs:
             --cache-control "public, max-age=31536000, immutable"
           echo "✅ Assets synced to R2"
 
-      # Publish all built assets to npm → npmmirror CDN (JS + fonts + audio + images)
-      # TODO: remove 'if: false' after cnpm/unpkg-white-list#553 is merged
+      # Publish all built assets to npm → jsdelivr CDN (JS + fonts + audio + images)
       - name: Publish assets to npm
-        if: false
         id: npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -202,10 +201,9 @@ jobs:
           echo "❌ npmmirror sync timeout after 120s"
           exit 1
 
-      - name: Rewrite asset URLs to use npmmirror CDN
-        if: false
+      - name: Rewrite asset URLs to use jsdelivr CDN
         run: |
-          CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files"
+          CDN_BASE="https://cdn.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}"
 
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
           perl -i -pe "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
@@ -227,7 +225,9 @@ jobs:
           command: pages deploy dist --project-name=werewolfgamejudge
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
+      # R2 purge disabled — jsdelivr uses versioned URLs, no purge needed
       - name: Purge CDN cache
+        if: false
         run: |
           curl -sf -X POST \
             "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
