@@ -464,7 +464,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             user={user}
             ticketCount={ticketCount}
             showUserSettings
-            showShareRoom={roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated}
+            showShareRoom={
+              !isMiniProgram() &&
+              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
+            }
             showAnimationSettings={
               isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
             }
