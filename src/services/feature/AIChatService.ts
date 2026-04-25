@@ -20,7 +20,7 @@ const chatLog = log.extend('AIChatService');
 const API_CONFIG = {
   /** Workers AI chat endpoint */
   baseURL: `${API_BASE_URL}/gemini-proxy`,
-  maxTokens: 512,
+  maxTokens: 2048,
 };
 
 // Token 优化配置
