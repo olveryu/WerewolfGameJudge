@@ -203,7 +203,7 @@ jobs:
 
       - name: Rewrite asset URLs to use jsdelivr CDN
         env:
-          CDN_BASE: https://cdn.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
+          CDN_BASE: https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
         run: |
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
           sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
