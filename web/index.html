@@ -533,9 +533,18 @@
         });
       })();
 
-      // 注册 Service Worker：缓存 WASM/字体/音频等静态资源，加速二次加载
+      // 清除旧 Service Worker 及其缓存（已弃用 SW 缓存策略）
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (r) {
+            r.unregister();
+          });
+        });
+        caches.keys().then(function (keys) {
+          keys.forEach(function (k) {
+            caches.delete(k);
+          });
+        });
       }
     </script>
   </body>
