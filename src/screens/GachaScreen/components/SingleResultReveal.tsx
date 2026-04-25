@@ -11,7 +11,7 @@
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -25,7 +25,16 @@ import Animated, {
 
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
@@ -57,6 +66,7 @@ const REWARD_TYPE_LABELS: Record<string, string> = {
   frame: '头像框',
   seatFlair: '座位装饰',
   nameStyle: '名称样式',
+  roleRevealEffect: '翻牌特效',
 };
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -64,12 +74,18 @@ const REWARD_TYPE_LABELS: Record<string, string> = {
 interface SingleResultRevealProps {
   item: DrawResultItem;
   onDismiss: () => void;
+  onGoEquip?: () => void;
   reducedMotion?: boolean | null;
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-export function SingleResultReveal({ item, onDismiss, reducedMotion }: SingleResultRevealProps) {
+export function SingleResultReveal({
+  item,
+  onDismiss,
+  onGoEquip,
+  reducedMotion,
+}: SingleResultRevealProps) {
   const rarity = item.rarity;
   const visual = RARITY_VISUAL[rarity] ?? RARITY_VISUAL.common;
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
@@ -176,66 +192,81 @@ export function SingleResultReveal({ item, onDismiss, reducedMotion }: SingleRes
   const overlayBg = `rgba(26, 26, 46, ${overlayOpacity})`;
 
   return (
-    <Pressable style={[styles.overlay, { backgroundColor: overlayBg }]} onPress={onDismiss}>
-      {/* Radial glow for rare+ */}
-      {rarity !== 'common' && (
-        <Animated.View
-          style={[
-            styles.radialGlow,
-            { backgroundColor: withAlpha(visual.color, 0.15) },
-            glowAnimStyle,
-          ]}
-        />
-      )}
-
-      {/* Light pillar for legendary */}
-      {rarity === 'legendary' && <Animated.View style={[styles.lightPillar, glowAnimStyle]} />}
-
-      {/* Card */}
-      <Animated.View
-        style={[
-          styles.card,
-          {
-            borderWidth,
-            borderColor: visual.color,
-            boxShadow: isEpicOrLegendary
-              ? `0px 0px ${rarity === 'legendary' ? 40 : 24}px ${withAlpha(visual.color, 0.3)}`
-              : rarity === 'rare'
-                ? `0px 0px 16px ${withAlpha(visual.color, 0.2)}`
-                : undefined,
-          },
-          cardAnimStyle,
-        ]}
-      >
-        {/* Rarity badge */}
-        <View
-          style={[
-            styles.rarityBadge,
-            { backgroundColor: visual.color },
-            rarity === 'legendary' && styles.rarityBadgeLegendary,
-          ]}
-        >
-          <Text style={styles.rarityBadgeText}>{visual.label}</Text>
-        </View>
-
-        {/* Pity tag */}
-        {item.isPityTriggered && (
-          <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>
+    <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
+      <Pressable style={[styles.overlay, { backgroundColor: overlayBg }]} onPress={onDismiss}>
+        {/* Radial glow for rare+ */}
+        {rarity !== 'common' && (
+          <Animated.View
+            style={[
+              styles.radialGlow,
+              { backgroundColor: withAlpha(visual.color, 0.15) },
+              glowAnimStyle,
+            ]}
+          />
         )}
 
-        {/* Preview */}
-        <View style={styles.previewWrap}>
-          <RewardPreview rewardType={item.rewardType} rewardId={item.rewardId} size={previewSize} />
+        {/* Light pillar for legendary */}
+        {rarity === 'legendary' && <Animated.View style={[styles.lightPillar, glowAnimStyle]} />}
+
+        {/* Card */}
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              borderWidth,
+              borderColor: visual.color,
+              boxShadow: isEpicOrLegendary
+                ? `0px 0px ${rarity === 'legendary' ? 40 : 24}px ${withAlpha(visual.color, 0.3)}`
+                : rarity === 'rare'
+                  ? `0px 0px 16px ${withAlpha(visual.color, 0.2)}`
+                  : undefined,
+            },
+            cardAnimStyle,
+          ]}
+        >
+          {/* Rarity badge */}
+          <View
+            style={[
+              styles.rarityBadge,
+              { backgroundColor: visual.color },
+              rarity === 'legendary' && styles.rarityBadgeLegendary,
+            ]}
+          >
+            <Text style={styles.rarityBadgeText}>{visual.label}</Text>
+          </View>
+
+          {/* Pity tag */}
+          {item.isPityTriggered && (
+            <Text style={[styles.pityTag, { color: visual.color }]}>保底</Text>
+          )}
+
+          {/* Preview */}
+          <View style={styles.previewWrap}>
+            <RewardPreview
+              rewardType={item.rewardType}
+              rewardId={item.rewardId}
+              size={previewSize}
+            />
+          </View>
+
+          {/* Info */}
+          <Text style={styles.itemName}>{displayName}</Text>
+          <Text style={styles.itemType}>{typeLabel}</Text>
+          {item.isNew && <Text style={styles.newTag}>NEW</Text>}
+        </Animated.View>
+
+        <View style={styles.bottomActions}>
+          {onGoEquip && (
+            <Pressable style={styles.equipButton} onPress={onGoEquip}>
+              <Text style={styles.equipButtonText}>去装扮</Text>
+            </Pressable>
+          )}
+          <Pressable onPress={onDismiss} style={styles.dismissLink}>
+            <Text style={styles.dismissText}>关闭</Text>
+          </Pressable>
         </View>
-
-        {/* Info */}
-        <Text style={styles.itemName}>{displayName}</Text>
-        <Text style={styles.itemType}>{typeLabel}</Text>
-        {item.isNew && <Text style={styles.newTag}>NEW</Text>}
-      </Animated.View>
-
-      <Text style={styles.tapHint}>点击关闭</Text>
-    </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -243,11 +274,10 @@ export function SingleResultReveal({ item, onDismiss, reducedMotion }: SingleRes
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.medium,
-    zIndex: 50,
   },
   radialGlow: {
     position: 'absolute',
@@ -306,8 +336,36 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.success,
   },
-  tapHint: {
-    ...textStyles.caption,
-    color: withAlpha(colors.textInverse, 0.5),
+  bottomActions: {
+    position: 'absolute',
+    bottom: spacing.xlarge,
+    left: spacing.screenH,
+    right: spacing.screenH,
+    alignItems: 'center',
+    gap: spacing.medium,
+  },
+  equipButton: {
+    width: '100%',
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  equipButtonText: {
+    ...textStyles.bodySemibold,
+    color: colors.surface,
+  },
+  dismissLink: {
+    width: '100%',
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  dismissText: {
+    ...textStyles.bodySemibold,
+    color: colors.text,
   },
 });

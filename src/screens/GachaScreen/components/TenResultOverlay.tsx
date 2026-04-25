@@ -7,7 +7,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -20,7 +20,16 @@ import Animated, {
 
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  fixed,
+  shadows,
+  spacing,
+  textStyles,
+  typography,
+  withAlpha,
+} from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
@@ -28,6 +37,7 @@ interface TenResultOverlayProps {
   results: DrawResultItem[];
   drawType: 'normal' | 'golden';
   onClose: () => void;
+  onGoEquip?: () => void;
 }
 
 const PREVIEW_SIZE_TEN = 48;
@@ -130,7 +140,7 @@ interface RarityGroup {
   startIndex: number;
 }
 
-export function TenResultOverlay({ results, drawType, onClose }: TenResultOverlayProps) {
+export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenResultOverlayProps) {
   const groups = useMemo((): RarityGroup[] => {
     const withItems = RARITY_ORDER.map((rarity) => ({
       rarity,
@@ -143,68 +153,78 @@ export function TenResultOverlay({ results, drawType, onClose }: TenResultOverla
   }, [results]);
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.titleRow}>
-        <Ionicons
-          name={drawType === 'golden' ? 'star' : 'sparkles'}
-          size={20}
-          color={drawType === 'golden' ? '#FFD700' : colors.primary}
-        />
-        <Text style={styles.title}>{drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}</Text>
-      </View>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.gridContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        {groups.map((group) => {
-          const visual = RARITY_VISUAL[group.rarity];
-          const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
-          return (
-            <View key={group.rarity}>
-              <View style={styles.groupHeader}>
-                <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
-                <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
-                <View
-                  style={[
-                    styles.groupCountBadge,
-                    { backgroundColor: withAlpha(visual.color, 0.15) },
-                  ]}
-                >
-                  <Text style={[styles.groupCountText, { color: visual.color }]}>
-                    ×{group.items.length}
-                  </Text>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <View style={styles.titleRow}>
+          <Ionicons
+            name={drawType === 'golden' ? 'star' : 'sparkles'}
+            size={20}
+            color={drawType === 'golden' ? '#FFD700' : colors.primary}
+          />
+          <Text style={styles.title}>
+            {drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}
+          </Text>
+        </View>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.gridContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {groups.map((group) => {
+            const visual = RARITY_VISUAL[group.rarity];
+            const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
+            return (
+              <View key={group.rarity}>
+                <View style={styles.groupHeader}>
+                  <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
+                  <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
+                  <View
+                    style={[
+                      styles.groupCountBadge,
+                      { backgroundColor: withAlpha(visual.color, 0.15) },
+                    ]}
+                  >
+                    <Text style={[styles.groupCountText, { color: visual.color }]}>
+                      ×{group.items.length}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.grid}>
+                  {group.items.map((item, i) => (
+                    <ResultCell
+                      key={`${item.rewardId}-${group.startIndex + i}`}
+                      item={item}
+                      index={group.startIndex + i}
+                      isHighRarity={isHighGroup}
+                    />
+                  ))}
                 </View>
               </View>
-              <View style={styles.grid}>
-                {group.items.map((item, i) => (
-                  <ResultCell
-                    key={`${item.rewardId}-${group.startIndex + i}`}
-                    item={item}
-                    index={group.startIndex + i}
-                    isHighRarity={isHighGroup}
-                  />
-                ))}
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-      <Pressable style={styles.closeButton} onPress={onClose}>
-        <Text style={styles.closeButtonText}>好的</Text>
-      </Pressable>
-    </View>
+            );
+          })}
+        </ScrollView>
+        <View style={styles.bottomActions}>
+          {onGoEquip && (
+            <Pressable style={styles.equipButton} onPress={onGoEquip}>
+              <Text style={styles.equipButtonText}>去装扮</Text>
+            </Pressable>
+          )}
+          <Pressable onPress={onClose} style={styles.dismissLink}>
+            <Text style={styles.dismissText}>关闭</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.medium,
-    zIndex: 100,
   },
   titleRow: {
     flexDirection: 'row',
@@ -292,17 +312,35 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: typography.weights.semibold,
   },
-  closeButton: {
-    marginTop: spacing.small,
-    paddingVertical: spacing.medium,
-    paddingHorizontal: spacing.xlarge,
-    borderRadius: borderRadius.medium,
-    backgroundColor: colors.primary,
+  bottomActions: {
+    width: '90%',
+    maxWidth: 380,
+    alignItems: 'center',
+    gap: spacing.small,
     marginBottom: spacing.large,
   },
-  closeButtonText: {
-    fontSize: typography.body,
-    fontWeight: typography.weights.semibold,
+  equipButton: {
+    width: '100%',
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+  },
+  equipButtonText: {
+    ...textStyles.bodySemibold,
     color: colors.surface,
+  },
+  dismissLink: {
+    width: '100%',
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceHover,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  dismissText: {
+    ...textStyles.bodySemibold,
+    color: colors.text,
   },
 });

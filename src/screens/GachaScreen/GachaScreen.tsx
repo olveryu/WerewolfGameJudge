@@ -10,13 +10,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
-import { TOTAL_UNLOCKABLE_COUNT } from '@werewolf/game-engine/growth/rewardCatalog';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   type LayoutChangeEvent,
-  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -156,8 +154,7 @@ export function GachaScreen({ navigation }: Props) {
   const goldenDraws = status?.goldenDraws ?? 0;
   const normalPity = status?.normalPity ?? 0;
   const goldenPity = status?.goldenPity ?? 0;
-  const unlockedCount = status?.unlockedCount ?? 0;
-  const totalItems = TOTAL_UNLOCKABLE_COUNT;
+
   const busy = isAnimating || isDrawPending;
 
   // Auto-select tab: if current tab has 0 tickets and other has some, switch
@@ -184,13 +181,22 @@ export function GachaScreen({ navigation }: Props) {
           onBack={handleGoBack}
           topInset={insets.top}
           headerRight={
-            <Button
-              variant="icon"
-              onPress={() => navigation.navigate('Unlocks', undefined)}
-              accessibilityLabel="收藏"
-            >
-              <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-            </Button>
+            <View style={styles.headerActions}>
+              <Button
+                variant="icon"
+                onPress={() => navigation.navigate('AvatarPicker', undefined)}
+                accessibilityLabel="装扮"
+              >
+                <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
+              </Button>
+              <Button
+                variant="icon"
+                onPress={() => navigation.navigate('Unlocks', undefined)}
+                accessibilityLabel="收藏"
+              >
+                <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+              </Button>
+            </View>
           }
         />
         <View style={styles.loadingContainer}>
@@ -208,13 +214,22 @@ export function GachaScreen({ navigation }: Props) {
         onBack={handleGoBack}
         topInset={insets.top}
         headerRight={
-          <Button
-            variant="icon"
-            onPress={() => navigation.navigate('Unlocks', undefined)}
-            accessibilityLabel="收藏"
-          >
-            <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-          </Button>
+          <View style={styles.headerActions}>
+            <Button
+              variant="icon"
+              onPress={() => navigation.navigate('AvatarPicker', undefined)}
+              accessibilityLabel="装扮"
+            >
+              <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
+            </Button>
+            <Button
+              variant="icon"
+              onPress={() => navigation.navigate('Unlocks', undefined)}
+              accessibilityLabel="收藏"
+            >
+              <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+            </Button>
+          </View>
         }
       />
 
@@ -234,6 +249,10 @@ export function GachaScreen({ navigation }: Props) {
           <SingleResultReveal
             item={lastResults[0]}
             onDismiss={handleDismissSingleResult}
+            onGoEquip={() => {
+              handleDismissSingleResult();
+              navigation.navigate('AvatarPicker', undefined);
+            }}
             reducedMotion={reducedMotion}
           />
         )}
@@ -306,18 +325,8 @@ export function GachaScreen({ navigation }: Props) {
             />
           </View>
 
-          {/* Hint + Collection link */}
-          <View style={styles.metaRow}>
-            <Text style={styles.metaHint}>每局+1普通 · 升级+1黄金</Text>
-            <Pressable
-              style={styles.collectionLink}
-              onPress={() => navigation.navigate('Unlocks', undefined)}
-            >
-              <Text style={styles.collectionText}>
-                {unlockedCount}/{totalItems} 收藏 →
-              </Text>
-            </Pressable>
-          </View>
+          {/* Hint */}
+          <Text style={styles.metaHint}>每局+1普通 · 升级+1黄金</Text>
         </View>
       </View>
 
@@ -327,6 +336,10 @@ export function GachaScreen({ navigation }: Props) {
           results={lastResults}
           drawType={currentDrawType}
           onClose={handleCloseTenOverlay}
+          onGoEquip={() => {
+            handleCloseTenOverlay();
+            navigation.navigate('AvatarPicker', undefined);
+          }}
         />
       )}
     </SafeAreaView>
@@ -424,27 +437,15 @@ const styles = StyleSheet.create({
     gap: spacing.small,
   },
 
-  // ── Meta row ──
-  metaRow: {
+  // ── Header / Meta ──
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.small,
   },
   metaHint: {
     fontSize: typography.captionSmall,
     color: colors.textMuted,
-  },
-  collectionLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.micro,
-    paddingVertical: spacing.tight,
-    paddingLeft: spacing.small,
-  },
-  collectionText: {
-    fontSize: typography.caption,
-    fontWeight: typography.weights.semibold,
-    color: colors.textMuted,
-    fontVariant: ['tabular-nums'],
+    textAlign: 'center',
   },
 });
