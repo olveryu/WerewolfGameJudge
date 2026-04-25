@@ -202,16 +202,16 @@ jobs:
           exit 1
 
       - name: Rewrite asset URLs to use jsdelivr CDN
+        env:
+          CDN_BASE: https://cdn.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
         run: |
-          CDN_BASE="https://cdn.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}"
-
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
-          perl -i -pe "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
-          perl -i -pe "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
+          sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
+          sed -i "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
 
           # JS bundles: rewrite "/assets/ string literals to CDN (Metro asset references)
           for jsfile in dist/assets/js/*.js; do
-            perl -i -pe "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
+            sed -i "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
           done
 
           echo "✅ All asset URLs rewritten to ${CDN_BASE}/assets/"
