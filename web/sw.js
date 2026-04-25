@@ -22,10 +22,10 @@ self.addEventListener('activate', function (event) {
         );
       })
       .then(function () {
-        return self.registration.unregister();
+        return self.clients.claim();
       })
       .then(function () {
-        return self.clients.claim();
+        return self.registration.unregister();
       }),
   );
 });

@@ -50,6 +50,19 @@
 
     <title>狼人kill电子裁判</title>
 
+    <!-- Auto-reload when suicide SW replaces stale caching SW -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!reloading) {
+            reloading = true;
+            location.reload();
+          }
+        });
+      }
+    </script>
+
     <!-- Expo required reset styles -->
     <style id="expo-reset">
       /* These styles make the body full-height */
