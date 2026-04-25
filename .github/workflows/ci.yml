@@ -118,8 +118,7 @@ jobs:
         run: |
           aws s3 sync dist/assets/ s3://werewolf-cdn/assets/ \
             --endpoint-url "https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
-            --cache-control "public, max-age=31536000, immutable" \
-            --size-only
+            --cache-control "public, max-age=31536000, immutable"
           echo "✅ Assets synced to R2"
 
       # Publish all built assets to npm → npmmirror CDN (JS + fonts + audio + images)
