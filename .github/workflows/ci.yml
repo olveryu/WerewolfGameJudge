@@ -145,7 +145,8 @@ jobs:
             npx wrangler r2 object put "werewolf-cdn/$file" \
               --file="$file" \
               --content-type="$CT" \
-              --cache-control="public, max-age=31536000, immutable"
+              --cache-control="public, max-age=31536000, immutable" \
+              --remote
             COUNT=$((COUNT + 1))
           done < <(find assets -type f -print0)
           echo "✅ Uploaded $COUNT files to R2"
