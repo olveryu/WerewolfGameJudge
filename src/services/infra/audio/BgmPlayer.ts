@@ -53,6 +53,8 @@ export class BgmPlayer {
   #webElement: HTMLAudioElement | null = null;
   #webAudioCtx: AudioContext | null = null;
   #webGainNode: GainNode | null = null;
+  // Prevents GC of the source node — the element↔source binding is permanent.
+  // eslint-disable-next-line no-unused-private-class-members
   #webSourceNode: MediaElementAudioSourceNode | null = null;
   #webEndedHandler: (() => void) | null = null;
   #webTimeupdateHandler: (() => void) | null = null;
@@ -114,10 +116,11 @@ export class BgmPlayer {
     }
     this.#destroyWebPlayer();
     this.#cleanupNativePlayer();
-    // Don't close the AudioContext — it's shared via webAudioUnlock and
-    // closing it permanently poisons the singleton. Just null refs.
-    this.#webAudioCtx = null;
-    this.#webGainNode = null;
+    // Keep #webAudioCtx, #webGainNode, #webElement, and #webSourceNode alive.
+    // AudioContext is a shared singleton from webAudioUnlock — closing or
+    // nulling it poisons the singleton.  The element↔source binding is
+    // permanent per spec (createMediaElementSource can only be called once
+    // per element); nulling them causes an InvalidStateError on next start().
     audioLog.debug('BGM stopped');
   }
 
@@ -336,16 +339,17 @@ export class BgmPlayer {
 
   // ─── Cleanup ───────────────────────────────────────────────────────────
 
-  /** Full web teardown — destroy element, source, context. Used by stop(). */
+  /**
+   * Stop web playback — pause + clear src + remove listeners.
+   *
+   * The HTMLAudioElement, MediaElementAudioSourceNode, AudioContext, and
+   * GainNode are intentionally kept alive:
+   * - AudioContext is a shared singleton from webAudioUnlock.
+   * - createMediaElementSource() permanently binds an element to a source
+   *   node (spec §1.22); calling it again on the same element throws
+   *   InvalidStateError.  Reuse the binding and swap src instead.
+   */
   #destroyWebPlayer(): void {
-    if (this.#webSourceNode) {
-      try {
-        this.#webSourceNode.disconnect();
-      } catch {
-        /* ignore */
-      }
-      this.#webSourceNode = null;
-    }
     if (this.#webElement) {
       if (this.#webEndedHandler) {
         this.#webElement.removeEventListener('ended', this.#webEndedHandler);
@@ -357,11 +361,11 @@ export class BgmPlayer {
       }
       try {
         this.#webElement.pause();
-        this.#webElement.src = '';
+        this.#webElement.removeAttribute('src');
+        this.#webElement.load();
       } catch {
         /* ignore */
       }
-      this.#webElement = null;
     }
   }
 
