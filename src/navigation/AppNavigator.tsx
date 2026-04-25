@@ -18,11 +18,11 @@ import React from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
+import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
 import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
 import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
 import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
 import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordScreen';
-import { AvatarPickerScreen } from '@/screens/AvatarPickerScreen/AvatarPickerScreen';
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
@@ -82,7 +82,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       MusicSettings: 'settings/music/:roomCode?',
       Encyclopedia: 'encyclopedia/:roomCode?',
       Notepad: 'notepad/:roomCode',
-      AvatarPicker: 'avatar-picker',
+      Appearance: 'appearance',
       Unlocks: 'unlocks/:userId?',
       Gacha: 'gacha',
       AuthLogin: 'auth/login',
@@ -206,8 +206,8 @@ export const AppNavigator: React.FC = () => {
           options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
-          name="AvatarPicker"
-          component={AvatarPickerScreen}
+          name="Appearance"
+          component={AppearanceScreen}
           options={{ title: '选择形象' }}
         />
         <Stack.Screen name="Unlocks" component={UnlocksScreen} options={{ title: '解锁一览' }} />

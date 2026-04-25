@@ -24,7 +24,7 @@ import { borderRadius, colors } from '@/theme';
 import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
-/** wolf-paw icon（预览底图，与 AvatarPickerScreen 默认头像一致） */
+/** wolf-paw icon（预览底图，与 AppearanceScreen 默认头像一致） */
 const WOLF_PAW = getAvatarIcon('preview');
 
 // ─── Display name resolver ──────────────────────────────────────────────

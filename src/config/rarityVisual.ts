@@ -1,7 +1,7 @@
 /**
  * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 阴影、格子样式）。
  *
- * GachaScreen / UnlocksScreen / AvatarPickerScreen 共用。
+ * GachaScreen / UnlocksScreen / AppearanceScreen 共用。
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import type { ViewStyle } from 'react-native';

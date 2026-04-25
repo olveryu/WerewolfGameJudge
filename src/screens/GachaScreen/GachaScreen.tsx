@@ -184,7 +184,7 @@ export function GachaScreen({ navigation }: Props) {
             <View style={styles.headerActions}>
               <Button
                 variant="icon"
-                onPress={() => navigation.navigate('AvatarPicker', undefined)}
+                onPress={() => navigation.navigate('Appearance', undefined)}
                 accessibilityLabel="装扮"
               >
                 <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
@@ -217,7 +217,7 @@ export function GachaScreen({ navigation }: Props) {
           <View style={styles.headerActions}>
             <Button
               variant="icon"
-              onPress={() => navigation.navigate('AvatarPicker', undefined)}
+              onPress={() => navigation.navigate('Appearance', undefined)}
               accessibilityLabel="装扮"
             >
               <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
@@ -251,7 +251,7 @@ export function GachaScreen({ navigation }: Props) {
             onDismiss={handleDismissSingleResult}
             onGoEquip={() => {
               handleDismissSingleResult();
-              navigation.navigate('AvatarPicker', undefined);
+              navigation.navigate('Appearance', undefined);
             }}
             reducedMotion={reducedMotion}
           />
@@ -338,7 +338,7 @@ export function GachaScreen({ navigation }: Props) {
           onClose={handleCloseTenOverlay}
           onGoEquip={() => {
             handleCloseTenOverlay();
-            navigation.navigate('AvatarPicker', undefined);
+            navigation.navigate('Appearance', undefined);
           }}
         />
       )}

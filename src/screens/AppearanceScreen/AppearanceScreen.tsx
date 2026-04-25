@@ -1,5 +1,5 @@
 /**
- * AvatarPickerScreen - 头像与头像框选择（全屏 Screen）
+ * AppearanceScreen - 头像与头像框选择（全屏 Screen）
  *
  * 两个 Tab：「头像」（自定义 + 内置 4 列网格）和「头像框」（3×2 大尺寸试穿网格）。
  * 顶部 Hero 预览区实时合成头像 + 框效果，两个 Tab 共享。
@@ -92,7 +92,7 @@ import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 import { getErrorMessage } from '@/utils/errorUtils';
 import { settingsLog } from '@/utils/logger';
 
-import { type AvatarPickerScreenStyles, createAvatarPickerScreenStyles } from './components';
+import { type AppearanceScreenStyles, createAppearanceScreenStyles } from './components';
 
 const NUM_COLUMNS = 4;
 const FRAME_NUM_COLUMNS = 3;
@@ -158,10 +158,10 @@ interface EffectGridItem {
   rarity: Rarity | null;
 }
 
-export const AvatarPickerScreen: React.FC = () => {
+export const AppearanceScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const styles = useMemo(() => createAvatarPickerScreenStyles(colors), []);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'AvatarPicker'>>();
+  const styles = useMemo(() => createAppearanceScreenStyles(colors), []);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Appearance'>>();
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: uploadAvatar } = useUploadAvatar();
@@ -1233,7 +1233,7 @@ interface AvatarCellProps {
   rarity: Rarity | null;
   onPress: (index: number) => void;
   onLongPress: (index: number) => void;
-  styles: AvatarPickerScreenStyles;
+  styles: AppearanceScreenStyles;
   colors: { textInverse: string; textMuted: string };
 }
 
@@ -1305,7 +1305,7 @@ interface FrameCellProps {
   previewAvatarUrl: string | null | undefined;
   userId: string;
   onPress: (id: FrameId | 'none') => void;
-  styles: AvatarPickerScreenStyles;
+  styles: AppearanceScreenStyles;
 }
 
 const FrameCell = memo<FrameCellProps>(
@@ -1374,7 +1374,7 @@ interface FlairCellProps {
   previewAvatarUrl: string | null | undefined;
   userId: string;
   onPress: (id: FlairId | 'none') => void;
-  styles: AvatarPickerScreenStyles;
+  styles: AppearanceScreenStyles;
 }
 
 const FlairCell = memo<FlairCellProps>(
@@ -1451,7 +1451,7 @@ interface NameStyleCellProps {
   item: NameStyleGridItem;
   selectedNameStyle: NameStyleId | 'none' | null;
   onPress: (id: NameStyleId | 'none') => void;
-  styles: AvatarPickerScreenStyles;
+  styles: AppearanceScreenStyles;
 }
 
 const NameStyleCell = memo<NameStyleCellProps>(({ item, selectedNameStyle, onPress, styles }) => {
@@ -1520,7 +1520,7 @@ interface EffectCellProps {
   item: EffectGridItem;
   selectedEffect: RoleRevealEffectId | 'none' | 'random' | null;
   onPress: (id: RoleRevealEffectId | 'none' | 'random') => void;
-  styles: AvatarPickerScreenStyles;
+  styles: AppearanceScreenStyles;
 }
 
 const EffectCell = memo<EffectCellProps>(({ item, selectedEffect, onPress, styles }) => {

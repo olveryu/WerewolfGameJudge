@@ -151,7 +151,7 @@ export const SettingsScreen: React.FC = () => {
   }, [signOut, refreshUser]);
 
   const handlePickAvatar = useCallback(() => {
-    navigation.navigate('AvatarPicker');
+    navigation.navigate('Appearance');
   }, [navigation]);
 
   const handleNavigateUnlocks = useCallback(() => {
@@ -286,7 +286,7 @@ export const SettingsScreen: React.FC = () => {
   }, [signInAnonymously, refreshUser]);
 
   const handleBrowseAvatars = useCallback(() => {
-    navigation.navigate('AvatarPicker');
+    navigation.navigate('Appearance');
   }, [navigation]);
 
   const renderAuthSection = () => {

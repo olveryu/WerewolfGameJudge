@@ -27,7 +27,7 @@ description: 'Use when editing RoomScreen files: policy, hooks, executors, seatT
 | `EncyclopediaScreen`      | `screens/EncyclopediaScreen/`      | 角色图鉴                                |
 | `SettingsScreen`          | `screens/SettingsScreen/`          | 用户设置                                |
 | `Auth*Screen`             | `screens/AuthScreen/`              | 登录 / 注册 / 忘记密码 / 重置密码       |
-| `AvatarPickerScreen`      | `screens/AvatarPickerScreen/`      | 头像/头像框/座位装饰选择（等级解锁）    |
+| `AppearanceScreen`        | `screens/AppearanceScreen/`        | 头像/头像框/座位装饰选择（等级解锁）    |
 | `UnlocksScreen`           | `screens/UnlocksScreen/`           | 解锁奖励展示（头像/框/特效三 tab）      |
 | `BoardPickerScreen`       | `screens/BoardPickerScreen/`       | 板子/模板选择                           |
 | `AnimationSettingsScreen` | `screens/AnimationSettingsScreen/` | 角色翻牌动画选择                        |

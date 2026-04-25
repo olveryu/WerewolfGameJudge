@@ -56,7 +56,7 @@ applyTo: 'src/screens/**,src/components/**'
 | ----------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
 | `Avatar`          | `src/components/Avatar.tsx`          | 基础头像渲染（内部组件）                                                       |
 | `UserAvatar`      | `src/components/UserAvatar.tsx`      | 用户头像按钮 + 等级 badge（HomeScreen TopBar / RoomScreen HeaderActions 共用） |
-| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AvatarPickerScreen）                             |
+| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AppearanceScreen）                               |
 
 ### 座位装饰 (seatFlairs)
 

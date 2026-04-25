@@ -70,7 +70,7 @@ export const AuthLoginScreen: React.FC = () => {
   }, [navigation]);
 
   const handleBrowseAvatars = useCallback(() => {
-    navigation.navigate('AvatarPicker');
+    navigation.navigate('Appearance');
   }, [navigation]);
 
   return (

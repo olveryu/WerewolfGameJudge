@@ -1,5 +1,5 @@
 /**
- * AvatarPickerScreen styles
+ * AppearanceScreen styles
  *
  * Picker-specific styles extracted from SettingsScreenStyles.
  * Created once in parent Screen, passed to all sub-components via props.
@@ -18,7 +18,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-export interface AvatarPickerScreenStyles {
+export interface AppearanceScreenStyles {
   container: ViewStyle;
   content: ViewStyle;
   // Picker grid
@@ -82,8 +82,8 @@ export interface AvatarPickerScreenStyles {
 
 const HERO_ICON_SIZE = 72;
 
-export const createAvatarPickerScreenStyles = (colors: ThemeColors): AvatarPickerScreenStyles =>
-  StyleSheet.create<AvatarPickerScreenStyles>({
+export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScreenStyles =>
+  StyleSheet.create<AppearanceScreenStyles>({
     container: {
       flex: 1,
       backgroundColor: colors.transparent,

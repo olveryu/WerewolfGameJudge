@@ -3,7 +3,7 @@
  *
  * 作为 grid cell 的第一个子元素（absolute 定位），从上至下渲染
  * 稀有度主题色渐变。Common 不渲染。
- * AvatarPickerScreen / UnlocksScreen 格子共用。
+ * AppearanceScreen / UnlocksScreen 格子共用。
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { LinearGradient } from 'expo-linear-gradient';

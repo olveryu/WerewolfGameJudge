@@ -28,7 +28,7 @@ export type RootStackParamList = {
   MusicSettings: { roomCode?: string } | undefined;
   Encyclopedia: { roomCode?: string; roleId?: string } | undefined;
   Notepad: { roomCode: string };
-  AvatarPicker: undefined;
+  Appearance: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;
   Gacha: undefined;
   // Auth modal screens
