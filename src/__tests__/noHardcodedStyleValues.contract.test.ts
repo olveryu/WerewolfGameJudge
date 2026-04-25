@@ -180,8 +180,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // palette.ts: base color definitions for factory-generated name styles
   'src/components/nameStyles/common/palette.ts': 10,
 
-  // GachaScreen: dark panel bg + divider + count colors
-  'src/screens/GachaScreen/GachaScreen.tsx': 5,
+  // GachaScreen: golden count color constant
+  'src/screens/GachaScreen/GachaScreen.tsx': 1,
 
   // CapsuleMachine: Skia color constants (domain-specific rendering), badge font
   'src/screens/GachaScreen/components/CapsuleMachine.tsx': 17,
@@ -192,8 +192,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // TenResultOverlay: compact grid tiny labels (fontSize 9/8), golden icon color
   'src/screens/GachaScreen/components/TenResultOverlay.tsx': 4,
 
-  // DrawButton: gradient color stops + secondary ghost variant colors
-  'src/screens/GachaScreen/components/DrawButton.tsx': 6,
+  // DrawButton: gradient color stops (domain-specific decorative)
+  'src/screens/GachaScreen/components/DrawButton.tsx': 3,
 
   // PityProgressBar: golden pity colors, progress track borderRadius: 4
   'src/screens/GachaScreen/components/PityProgressBar.tsx': 3,
@@ -201,8 +201,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // SingleResultReveal: legendary light pillar glow color
   'src/screens/GachaScreen/components/SingleResultReveal.tsx': 1,
 
-  // TicketTabBar: tab tint colors + white text on dark panel
-  'src/screens/GachaScreen/components/TicketTabBar.tsx': 5,
+  // TicketTabBar: tab tint colors (normal indigo + golden)
+  'src/screens/GachaScreen/components/TicketTabBar.tsx': 3,
 
   // gachaConstants: ball color palette + decorative rendering constants
   'src/screens/GachaScreen/gachaConstants.ts': 49,

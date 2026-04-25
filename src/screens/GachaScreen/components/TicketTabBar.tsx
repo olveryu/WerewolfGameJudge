@@ -9,15 +9,13 @@ import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
-import { borderRadius, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
 const NORMAL_TINT = '#6366F1';
-const GOLDEN_TINT = '#F5D680';
+const GOLDEN_TINT = '#B8860B';
 const GOLDEN_ICON = '#DAA520';
-const TAB_TEXT = '#FFFFFF';
-const COUNT_NORMAL = '#A5B4FC';
 
 const SLIDER_EASING_DURATION = 300;
 
@@ -124,7 +122,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     borderRadius: borderRadius.medium,
-    backgroundColor: withAlpha(TAB_TEXT, 0.03),
+    backgroundColor: withAlpha(colors.text, 0.04),
     padding: SLIDER_PAD,
     position: 'relative',
   },
@@ -168,10 +166,10 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.secondary,
     fontWeight: typography.weights.semibold,
-    color: TAB_TEXT,
+    color: colors.text,
   },
   labelInactive: {
-    color: withAlpha(TAB_TEXT, 0.6),
+    color: colors.textMuted,
   },
   count: {
     fontSize: typography.body - 1,
@@ -180,7 +178,7 @@ const styles = StyleSheet.create({
     minWidth: 20,
   },
   countNormal: {
-    color: COUNT_NORMAL,
+    color: NORMAL_TINT,
   },
   countGolden: {
     color: GOLDEN_TINT,

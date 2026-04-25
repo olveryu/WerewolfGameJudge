@@ -32,6 +32,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import { createSharedStyles } from '@/theme/sharedStyles';
 
 import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
@@ -238,18 +239,10 @@ export function GachaScreen({ navigation }: Props) {
         )}
       </View>
 
-      {/* Divider line */}
+      {/* Gradient transition */}
       <LinearGradient
-        colors={[
-          'transparent',
-          isGoldenTab
-            ? withAlpha(GOLDEN_DIVIDER_COLOR, 0.35)
-            : withAlpha(NORMAL_DIVIDER_COLOR, 0.35),
-          'transparent',
-        ]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={styles.divider}
+        colors={[withAlpha(colors.background, 0), colors.background]}
+        style={styles.gradientTransition}
       />
 
       {/* Bottom panel: tab bar + stats + draw buttons */}
@@ -265,63 +258,66 @@ export function GachaScreen({ navigation }: Props) {
           reducedMotion={reducedMotion}
         />
 
-        {/* Stats row: big count left + pity right */}
-        <View style={styles.statsRow}>
-          <View style={styles.bigCountWrap}>
-            <Text
-              style={[
-                styles.bigCount,
-                isGoldenTab && styles.bigCountGolden,
-                activeDraws === 0 && styles.bigCountZero,
-              ]}
-            >
-              {activeDraws}
-            </Text>
-            <Text style={[styles.countUnit, isGoldenTab && styles.countUnitGolden]}>张</Text>
+        {/* Card wrapper */}
+        <View style={styles.card}>
+          {/* Stats row: big count left + pity right */}
+          <View style={styles.statsRow}>
+            <View style={styles.bigCountWrap}>
+              <Text
+                style={[
+                  styles.bigCount,
+                  isGoldenTab && styles.bigCountGolden,
+                  activeDraws === 0 && styles.bigCountZero,
+                ]}
+              >
+                {activeDraws}
+              </Text>
+              <Text style={[styles.countUnit, isGoldenTab && styles.countUnitGolden]}>张</Text>
+            </View>
+            <View style={styles.pitySection}>
+              <Text style={styles.pityLabel}>距离保底</Text>
+              <PityProgressBar
+                pity={activePity}
+                threshold={PITY_THRESHOLD}
+                golden={isGoldenTab}
+                reducedMotion={reducedMotion}
+              />
+            </View>
           </View>
-          <View style={styles.pitySection}>
-            <Text style={styles.pityLabel}>距离保底</Text>
-            <PityProgressBar
-              pity={activePity}
-              threshold={PITY_THRESHOLD}
+
+          {/* Draw buttons — vertical stack: ×10 primary + ×1 secondary */}
+          <View style={styles.buttonStack}>
+            <DrawButton
+              label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
+              disabled={!isAnon && (activeDraws < 2 || busy)}
+              onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
               golden={isGoldenTab}
+              multiPull
+              multiPullCount={isAnon ? undefined : activeDraws}
+              reducedMotion={reducedMotion}
+            />
+            <DrawButton
+              label="抽 ×1"
+              disabled={!isAnon && (activeDraws < 1 || busy)}
+              onPress={() => handleDraw(activeDrawType, 1)}
+              golden={isGoldenTab}
+              variant="secondary"
               reducedMotion={reducedMotion}
             />
           </View>
-        </View>
 
-        {/* Draw buttons — vertical stack: ×10 primary + ×1 secondary */}
-        <View style={styles.buttonStack}>
-          <DrawButton
-            label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
-            disabled={!isAnon && (activeDraws < 2 || busy)}
-            onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
-            golden={isGoldenTab}
-            multiPull
-            multiPullCount={isAnon ? undefined : activeDraws}
-            reducedMotion={reducedMotion}
-          />
-          <DrawButton
-            label="抽 ×1"
-            disabled={!isAnon && (activeDraws < 1 || busy)}
-            onPress={() => handleDraw(activeDrawType, 1)}
-            golden={isGoldenTab}
-            variant="secondary"
-            reducedMotion={reducedMotion}
-          />
-        </View>
-
-        {/* Hint + Collection link */}
-        <View style={styles.metaRow}>
-          <Text style={styles.metaHint}>每局+1普通 · 升级+1黄金</Text>
-          <Pressable
-            style={styles.collectionLink}
-            onPress={() => navigation.navigate('Unlocks', undefined)}
-          >
-            <Text style={styles.collectionText}>
-              {unlockedCount}/{totalItems} 收藏 →
-            </Text>
-          </Pressable>
+          {/* Hint + Collection link */}
+          <View style={styles.metaRow}>
+            <Text style={styles.metaHint}>每局+1普通 · 升级+1黄金</Text>
+            <Pressable
+              style={styles.collectionLink}
+              onPress={() => navigation.navigate('Unlocks', undefined)}
+            >
+              <Text style={styles.collectionText}>
+                {unlockedCount}/{totalItems} 收藏 →
+              </Text>
+            </Pressable>
+          </View>
         </View>
       </View>
 
@@ -339,11 +335,7 @@ export function GachaScreen({ navigation }: Props) {
 
 // ─── Panel Colors ───────────────────────────────────────────────────────
 
-const PANEL_BG_START = '#13111C';
-const NORMAL_DIVIDER_COLOR = '#6366F1';
-const GOLDEN_DIVIDER_COLOR = '#DAA520';
-const GOLDEN_COUNT_COLOR = '#F5D680';
-const PANEL_TEXT = '#FFFFFF';
+const GOLDEN_COUNT_COLOR = '#B8860B';
 
 // ─── Styles ─────────────────────────────────────────────────────────────
 
@@ -364,18 +356,21 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ── Divider ──
-  divider: {
-    height: 2,
+  // ── Gradient transition ──
+  gradientTransition: {
+    height: 32,
     pointerEvents: 'none',
   },
 
   // ── Bottom panel ──
   bottomPanel: {
     paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.small,
     gap: spacing.medium,
-    backgroundColor: PANEL_BG_START,
+    backgroundColor: colors.background,
+  },
+  card: {
+    ...createSharedStyles(colors).cardBase,
+    gap: spacing.medium,
   },
 
   // ── Stats row ──
@@ -392,7 +387,7 @@ const styles = StyleSheet.create({
   bigCount: {
     fontSize: typography.display + 12,
     fontWeight: typography.weights.bold,
-    color: PANEL_TEXT,
+    color: colors.text,
     lineHeight: typography.display + 14,
     fontVariant: ['tabular-nums'],
     letterSpacing: typography.letterSpacing.hero,
@@ -405,11 +400,11 @@ const styles = StyleSheet.create({
   },
   countUnit: {
     fontSize: typography.secondary,
-    color: withAlpha(PANEL_TEXT, 0.25),
+    color: colors.textMuted,
     fontWeight: typography.weights.medium,
   },
   countUnitGolden: {
-    color: withAlpha(GOLDEN_COUNT_COLOR, 0.3),
+    color: withAlpha(GOLDEN_COUNT_COLOR, 0.5),
   },
 
   // ── Pity ──
@@ -421,7 +416,7 @@ const styles = StyleSheet.create({
   },
   pityLabel: {
     fontSize: typography.captionSmall,
-    color: withAlpha(PANEL_TEXT, 0.3),
+    color: colors.textMuted,
   },
 
   // ── Draw buttons ──
@@ -437,7 +432,7 @@ const styles = StyleSheet.create({
   },
   metaHint: {
     fontSize: typography.captionSmall,
-    color: withAlpha(PANEL_TEXT, 0.2),
+    color: colors.textMuted,
   },
   collectionLink: {
     flexDirection: 'row',
@@ -449,7 +444,7 @@ const styles = StyleSheet.create({
   collectionText: {
     fontSize: typography.caption,
     fontWeight: typography.weights.semibold,
-    color: withAlpha(PANEL_TEXT, 0.35),
+    color: colors.textMuted,
     fontVariant: ['tabular-nums'],
   },
 });

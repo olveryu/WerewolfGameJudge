@@ -241,13 +241,13 @@ const styles = StyleSheet.create({
   secondaryBody: {
     borderRadius: borderRadius.medium + 2,
     borderWidth: 1,
-    borderColor: withAlpha('#FFFFFF', 0.1),
-    backgroundColor: withAlpha('#FFFFFF', 0.04),
+    borderColor: colors.borderLight,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.medium,
   },
   secondaryLabel: {
-    color: withAlpha('#FFFFFF', 0.6),
+    color: colors.textSecondary,
   },
 });
