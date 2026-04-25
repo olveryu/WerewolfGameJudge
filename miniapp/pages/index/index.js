@@ -13,6 +13,10 @@ Page({
     // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
     var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
 
+    // Cache-busting: 微信 web-view 可能缓存 HTML/SW，加时间戳强制网络请求
+    var bustSep = targetUrl.indexOf('?') === -1 ? '?' : '&'
+    targetUrl += bustSep + '_t=' + Date.now()
+
     // 2) wx.login 获取 code，拼入 URL 让 web 端自动登录
     wx.login({
       success: function (res) {
