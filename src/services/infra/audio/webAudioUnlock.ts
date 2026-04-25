@@ -86,6 +86,7 @@ function unlock(): void {
     unlockedAudioElement = audio;
 
     const bgmAudio = new Audio();
+    bgmAudio.crossOrigin = 'anonymous';
     bgmAudio.src = SILENT_WAV;
     bgmAudio.load();
     unlockedBgmElement = bgmAudio;
