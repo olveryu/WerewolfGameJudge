@@ -199,11 +199,16 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   // Custom seat entrance animation (from equipped seatAnimation cosmetic)
   const [isPlayingEntrance, setIsPlayingEntrance] = useState(false);
+  // Tracks whether the animation is actively playing (vs in the loop gap)
+  const [isAnimActive, setIsAnimActive] = useState(false);
   const animConfig = useMemo(
     () => getSeatAnimationById(playerSeatAnimation),
     [playerSeatAnimation],
   );
   const AnimComponent = animConfig?.Component;
+  const handleAnimActiveChange = useCallback((active: boolean) => {
+    setIsAnimActive(active);
+  }, []);
 
   // Player join/leave animation
   useEffect(() => {
@@ -245,6 +250,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
       isLeavingRef.current = true;
       setIsPlayingEntrance(false);
+      setIsAnimActive(false);
       // Note: We don't animate here because the avatar will be unmounted immediately
       // The animation would cause issues with unmounted components
       // For a smoother experience, we could use a delayed unmount, but that's more complex
@@ -362,6 +368,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               size={tileSize - spacing.tight}
               borderRadius={borderRadius.large}
               loopDelay={ENTRANCE_LOOP_DELAY_MS}
+              onActiveChange={handleAnimActiveChange}
             >
               <AvatarWithFrame
                 value={playerUserId}
@@ -408,13 +415,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           ) : null}
 
-          {/* Seat flair animation layer — on top of avatar (hidden during entrance) */}
-          {hasPlayer && !isPlayingEntrance && FlairComponent && (
+          {/* Seat flair animation layer — hidden only while entrance animation is actively playing */}
+          {hasPlayer && !isAnimActive && FlairComponent && (
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
           )}
 
-          {/* Seat pet — bottom-right corner, hidden during entrance animation */}
-          {hasPlayer && !isPlayingEntrance && PetComponent && (
+          {/* Seat pet — hidden only while entrance animation is actively playing */}
+          {hasPlayer && !isAnimActive && PetComponent && (
             <View style={styles.petWrapper}>
               <PetComponent size={petSize} />
             </View>

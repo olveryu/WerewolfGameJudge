@@ -5,7 +5,7 @@
  * 本组件通过 key 递增触发 React 重新挂载来实现循环播放，
  * 每轮之间有可配置的间隔。用于 AppearanceScreen / UnlocksScreen 的网格预览。
  */
-import { memo, useCallback, useReducer, useRef } from 'react';
+import { memo, useCallback, useEffect, useReducer, useRef } from 'react';
 import { View } from 'react-native';
 
 import type { SeatAnimationProps } from './SeatAnimationProps';
@@ -24,19 +24,27 @@ interface LoopingSeatAnimationProps {
   children: React.ReactNode;
   /** 循环间隔 ms，默认 800 */
   loopDelay?: number;
+  /** 动画活跃状态变化回调：true=正在播放，false=间隙等待 */
+  onActiveChange?: (active: boolean) => void;
 }
 
 export const LoopingSeatAnimation = memo<LoopingSeatAnimationProps>(
   // eslint-disable-next-line @typescript-eslint/naming-convention -- React component prop requires PascalCase
-  ({ Component, size, borderRadius, children, loopDelay = DEFAULT_LOOP_DELAY }) => {
+  ({ Component, size, borderRadius, children, loopDelay = DEFAULT_LOOP_DELAY, onActiveChange }) => {
     const [cycle, bump] = useReducer((n: number) => n + 1, 0);
     const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+    // Signal animation started on each new cycle (mount / remount)
+    useEffect(() => {
+      onActiveChange?.(true);
+    }, [cycle, onActiveChange]);
+
     const handleComplete = useCallback(() => {
+      onActiveChange?.(false);
       // Clear any pending timer to prevent stacking
       if (timerRef.current != null) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(bump, loopDelay);
-    }, [loopDelay]);
+    }, [loopDelay, onActiveChange]);
 
     return (
       <View style={{ width: size, height: size }}>
