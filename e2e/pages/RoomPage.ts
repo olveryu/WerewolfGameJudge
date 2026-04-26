@@ -255,34 +255,6 @@ export class RoomPage {
     await this.page.locator('[data-testid="room-settings-button"]').click();
   }
 
-  /**
-   * Disable role reveal animation so E2E tests see the static "知道了" card.
-   *
-   * Opens HostMenuDropdown → clicks "翻牌动画" → navigates to AnimationSettingsScreen
-   * → selects "关闭" (none) → goes back to room.
-   */
-  async setAnimationNone() {
-    // Open host menu via ⋯ button
-    const menuBtn = this.page.locator('[data-testid="room-menu-button"]');
-    await menuBtn.waitFor({ state: 'visible', timeout: 3000 });
-    await menuBtn.click();
-
-    // Click "翻牌动画" in dropdown menu → navigates to AnimationSettingsScreen
-    const animItem = this.page.getByText('翻牌动画', { exact: true });
-    await animItem.waitFor({ state: 'visible', timeout: 3000 });
-    await animItem.click();
-
-    // Click the "关闭" option (none)
-    const noneOption = this.page.locator('[data-testid="anim-settings-option-none"]');
-    await noneOption.waitFor({ state: 'visible', timeout: 3000 });
-    await noneOption.click();
-
-    // Navigate back to room
-    const backButton = this.page.locator('[data-testid="anim-settings-back"]');
-    await backButton.waitFor({ state: 'visible', timeout: 3000 });
-    await backButton.click();
-  }
-
   /** Check if "昨夜信息" button is visible (night ended indicator). */
   async isLastNightInfoVisible(): Promise<boolean> {
     return this.page

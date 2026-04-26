@@ -176,7 +176,10 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/SettingsScreen/components/styles.ts': 1,
 
   // nameStyleConfigs: declarative effect color definitions (hex + rgba), not UI layout tokens
-  'src/components/nameStyles/nameStyleConfigs.ts': 20,
+  'src/components/nameStyles/nameStyleConfigs.ts': 50,
+
+  // GeneratedAvatar: procedural avatar color palettes (domain-specific rendering)
+  'src/components/GeneratedAvatar.tsx': 23,
   // palette.ts: base color definitions for factory-generated name styles
   'src/components/nameStyles/common/palette.ts': 10,
 

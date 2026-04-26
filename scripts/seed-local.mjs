@@ -30,12 +30,21 @@ const DEV_PASSWORD_HASH =
 const catalogPath = resolve(__dirname, '../packages/game-engine/src/growth/rewardCatalog.ts');
 const catalogSrc = readFileSync(catalogPath, 'utf-8');
 
-/** 从 TS 源码中提取 `export const NAME = [...]` 数组的字符串元素 */
+/** 从 TS 源码中提取数组元素（支持 `...VAR_NAME` spread 引用） */
 function extractIds(source, varName) {
-  const re = new RegExp(`export\\s+const\\s+${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*as\\s+const`);
+  // Match both `export const` and plain `const`
+  const re = new RegExp(
+    `(?:export\\s+)?const\\s+${varName}\\s*=\\s*\\[([\\s\\S]*?)\\]\\s*as\\s+const`,
+  );
   const match = source.match(re);
   if (!match) throw new Error(`Cannot find ${varName} in rewardCatalog.ts`);
-  return [...match[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  const body = match[1];
+  const ids = [];
+  // Collect inline string literals
+  for (const m of body.matchAll(/'([^']+)'/g)) ids.push(m[1]);
+  // Resolve spread references: ...SOME_VAR
+  for (const m of body.matchAll(/\.\.\.(\w+)/g)) ids.push(...extractIds(source, m[1]));
+  return ids;
 }
 
 const avatarIds = extractIds(catalogSrc, 'AVATAR_IDS');

@@ -236,9 +236,6 @@ export async function setupNPlayerGame(
   const hostRoom = new RoomPage(hostPage);
   await hostRoom.seatAt(0);
 
-  // Disable animation so role viewing uses static "知道了" card
-  await hostRoom.setAnimationNone();
-
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
     const joinerPage = joinerPages[i];
@@ -315,9 +312,6 @@ export async function setupNPlayerGameWithRoles(
   // Host manually takes seat 0
   const hostRoom = new RoomPage(hostPage);
   await hostRoom.seatAt(0);
-
-  // Disable animation so role viewing uses static "知道了" card
-  await hostRoom.setAnimationNone();
 
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
