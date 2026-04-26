@@ -23,7 +23,6 @@ import { useJoinRoom } from '@/hooks/mutations/useRoomMutations';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { storage } from '@/lib/storage';
 import { SupersededError } from '@/services/connection/types';
-import type { UserStats } from '@/services/feature/StatsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { RoomRecord } from '@/services/types/IRoomService';
@@ -226,7 +225,10 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     async (seat: number): Promise<boolean> => {
       try {
         const displayName = authUser?.displayName ?? authService.generateDisplayName();
-        const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
+        const level = await queryClient
+          .ensureQueryData(userStatsOptions())
+          .then((s) => s.level)
+          .catch(() => undefined);
 
         return await facade.takeSeat(
           seat,
@@ -268,7 +270,10 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     async (seat: number): Promise<{ success: boolean; reason?: string }> => {
       try {
         const displayName = authUser?.displayName ?? authService.generateDisplayName();
-        const level = queryClient.getQueryData<UserStats>(userStatsOptions().queryKey)?.level;
+        const level = await queryClient
+          .ensureQueryData(userStatsOptions())
+          .then((s) => s.level)
+          .catch(() => undefined);
 
         const result = await facade.takeSeatWithAck(
           seat,

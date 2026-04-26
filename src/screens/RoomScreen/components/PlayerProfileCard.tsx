@@ -31,6 +31,7 @@ import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { PressableScale } from '@/components/PressableScale';
 import { getFlairById } from '@/components/seatFlairs';
+import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -142,6 +143,15 @@ function resolveNameStyleSlot(styleId: string | undefined): SlotInfo {
   };
 }
 
+function resolveEffectSlot(effectId: string | undefined): SlotInfo {
+  if (!effectId) return { name: '', rarity: null, typeLabel: '翻牌宠物' };
+  return {
+    name: getPetByEffectId(effectId)?.name ?? effectId,
+    rarity: getItemRarity(effectId),
+    typeLabel: '翻牌宠物',
+  };
+}
+
 /** 单个装备槽 */
 const EquipmentSlot: React.FC<{
   slot: SlotInfo;
@@ -188,6 +198,14 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
   const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
   const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
   const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
+  const effectSlot = useMemo(
+    () => resolveEffectSlot(profile.roleRevealEffect),
+    [profile.roleRevealEffect],
+  );
+  const EffectPetComponent = useMemo(
+    () => getPetByEffectId(profile.roleRevealEffect)?.Component,
+    [profile.roleRevealEffect],
+  );
 
   return (
     <View style={styles.equipSection}>
@@ -198,7 +216,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <View style={styles.equipDividerLine} />
       </View>
 
-      {/* 4 slots in a row */}
+      {/* Row 1: Avatar / Frame / Seat Flair */}
       <View style={styles.equipRow}>
         {/* Avatar */}
         <EquipmentSlot slot={avatarSlot}>
@@ -228,7 +246,10 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <EquipmentSlot slot={flairSlot}>
           {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
         </EquipmentSlot>
+      </View>
 
+      {/* Row 2: Name Style / Role Reveal Pet */}
+      <View style={styles.equipRow}>
         {/* Name Style */}
         <EquipmentSlot slot={nameStyleSlot}>
           {profile.nameStyle ? (
@@ -236,6 +257,11 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
               Aa
             </NameStyleText>
           ) : null}
+        </EquipmentSlot>
+
+        {/* Role Reveal Effect (Pet) */}
+        <EquipmentSlot slot={effectSlot}>
+          {EffectPetComponent ? <EffectPetComponent size={SLOT_PREVIEW_SIZE} /> : null}
         </EquipmentSlot>
       </View>
     </View>
