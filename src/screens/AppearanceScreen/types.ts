@@ -26,15 +26,16 @@ export const PREVIEW_ALL_ROLES = [
   createRoleData('guard', '守卫', 'god'),
 ];
 
-export type Selection = number | 'custom' | 'default' | null;
+/** Avatar selection: avatarId string, 'custom', 'default', or null for none. */
+export type Selection = string | null;
 export type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect';
 export type RarityFilter = 'all' | Rarity;
 
-/** Discriminated union for all avatar grid cells: special (default/custom) + builtin + placeholder */
+/** Discriminated union for all avatar grid cells. */
 export type AvatarCellItem =
   | { key: string; type: 'default' }
   | { key: string; type: 'custom' }
-  | { key: string; type: 'builtin'; index: number }
+  | { key: string; type: 'avatar'; avatarId: string }
   | { key: string; type: 'placeholder' };
 
 /** Unified item type for frame FlatList, including the "none" sentinel. */

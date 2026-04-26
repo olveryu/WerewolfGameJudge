@@ -11,7 +11,7 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { compareByRarity } from '@/config/rarityVisual';
-import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
+import { AVATAR_KEYS } from '@/utils/avatar';
 
 import {
   type AvatarCellItem,
@@ -33,22 +33,22 @@ export function buildAvatarGridData(
     specials.push({ key: 'special-custom', type: 'custom' });
   }
 
-  const builtins: AvatarCellItem[] = AVATAR_IMAGES.map((_, i) => ({
-    key: String(i),
-    type: 'builtin' as const,
-    index: i,
+  const avatars: AvatarCellItem[] = AVATAR_KEYS.map((avatarId) => ({
+    key: avatarId,
+    type: 'avatar' as const,
+    avatarId,
   }));
-  builtins.sort((a, b) => {
-    if (a.type !== 'builtin' || b.type !== 'builtin') return 0;
-    const aUnlocked = unlockedAvatars.has(AVATAR_KEYS[a.index]);
-    const bUnlocked = unlockedAvatars.has(AVATAR_KEYS[b.index]);
+  avatars.sort((a, b) => {
+    if (a.type !== 'avatar' || b.type !== 'avatar') return 0;
+    const aUnlocked = unlockedAvatars.has(a.avatarId);
+    const bUnlocked = unlockedAvatars.has(b.avatarId);
     return (
       Number(!aUnlocked) - Number(!bUnlocked) ||
-      compareByRarity(getItemRarity(AVATAR_KEYS[a.index]), getItemRarity(AVATAR_KEYS[b.index]))
+      compareByRarity(getItemRarity(a.avatarId), getItemRarity(b.avatarId))
     );
   });
 
-  const items = [...specials, ...builtins];
+  const items = [...specials, ...avatars];
   const remainder = items.length % NUM_COLUMNS;
   if (remainder !== 0) {
     for (let i = 0; i < NUM_COLUMNS - remainder; i++) {
@@ -178,7 +178,7 @@ export function filterAvatarGridData(
 ): AvatarCellItem[] {
   if (rarityFilter === 'all') return data;
   const filtered = data.filter(
-    (item) => item.type === 'builtin' && getItemRarity(AVATAR_KEYS[item.index]) === rarityFilter,
+    (item) => item.type === 'avatar' && getItemRarity(item.avatarId) === rarityFilter,
   );
   const remainder = filtered.length % NUM_COLUMNS;
   if (remainder !== 0) {

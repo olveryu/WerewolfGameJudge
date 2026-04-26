@@ -27,12 +27,7 @@ import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import type { RootStackParamList } from '@/navigation/types';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
-import {
-  AVATAR_KEYS,
-  BUILTIN_AVATAR_PREFIX,
-  isBuiltinAvatarUrl,
-  makeBuiltinAvatarUrl,
-} from '@/utils/avatar';
+import { BUILTIN_AVATAR_PREFIX, isBuiltinAvatarUrl, makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
 import {
@@ -57,11 +52,10 @@ export function useAppearanceState() {
 
   const readOnly = !user || (user.isAnonymous ?? false);
 
-  // Resolve current builtin avatar index (-1 if not builtin)
-  const currentBuiltinIndex = useMemo(() => {
-    if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return -1;
-    const key = user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
-    return (AVATAR_KEYS as readonly string[]).indexOf(key);
+  // Resolve current builtin avatar ID (null if not builtin)
+  const currentAvatarId = useMemo(() => {
+    if (!user?.avatarUrl || !isBuiltinAvatarUrl(user.avatarUrl)) return null;
+    return user.avatarUrl.slice(BUILTIN_AVATAR_PREFIX.length);
   }, [user?.avatarUrl]);
 
   const currentFrameId = user?.avatarFrame ?? null;
@@ -72,7 +66,7 @@ export function useAppearanceState() {
   // ── Local selection state ──
 
   const [selected, setSelected] = useState<Selection>(null);
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const [previewAvatarId, setPreviewAvatarId] = useState<string | null>(null);
   const [selectedFrame, setSelectedFrame] = useState<FrameId | 'none' | null>(null);
   const [selectedFlair, setSelectedFlair] = useState<FlairId | 'none' | null>(null);
   const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyleId | 'none' | null>(null);
@@ -98,7 +92,7 @@ export function useAppearanceState() {
       ? null
       : selected === 'custom'
         ? user?.customAvatarUrl
-        : typeof selected === 'number'
+        : selected !== null
           ? makeBuiltinAvatarUrl(selected)
           : user?.avatarUrl;
 
@@ -237,15 +231,14 @@ export function useAppearanceState() {
     setSelected('default');
   }, []);
 
-  const handlePressBuiltin = useCallback(
-    (index: number) => {
+  const handlePressAvatar = useCallback(
+    (avatarId: string) => {
       if (readOnly) return;
-      const roleId = AVATAR_KEYS[index];
-      if (roleId && !unlockedAvatars.has(roleId)) {
+      if (!unlockedAvatars.has(avatarId)) {
         showAlert('未解锁', '提升等级后可解锁更多头像');
         return;
       }
-      setSelected(index);
+      setSelected(avatarId);
     },
     [readOnly, unlockedAvatars],
   );
@@ -311,12 +304,12 @@ export function useAppearanceState() {
     setPreviewEffectType(heroEffectId as RevealEffectType);
   }, [heroEffectId]);
 
-  const handleLongPress = useCallback((index: number) => {
-    setPreviewIndex(index);
+  const handleLongPress = useCallback((avatarId: string) => {
+    setPreviewAvatarId(avatarId);
   }, []);
 
   const handleClosePreview = useCallback(() => {
-    setPreviewIndex(null);
+    setPreviewAvatarId(null);
   }, []);
 
   const handleUpgrade = useCallback(() => {
@@ -349,7 +342,7 @@ export function useAppearanceState() {
     hasSelection,
     isDefaultActive,
     isCustomActive,
-    currentBuiltinIndex,
+    currentAvatarId,
     // Grid data (filtered)
     filteredAvatarData,
     filteredFrameData,
@@ -365,7 +358,7 @@ export function useAppearanceState() {
     // Handlers
     handleGoBack,
     handlePressDefault,
-    handlePressBuiltin,
+    handlePressAvatar,
     handlePressCustom,
     handlePressFrame,
     handlePressFlair,
@@ -379,7 +372,7 @@ export function useAppearanceState() {
     handleConfirm,
     handleUpgrade,
     // Preview
-    previewIndex,
+    previewAvatarId,
     previewEffectType,
     setPreviewEffectType,
     // Misc

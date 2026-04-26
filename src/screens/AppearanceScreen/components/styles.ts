@@ -25,6 +25,7 @@ export interface AppearanceScreenStyles {
   pickerGrid: ViewStyle;
   pickerItem: ViewStyle;
   pickerItemImage: ImageStyle;
+  pickerItemGeneratedAvatar: ViewStyle;
   pickerItemWolfPawContainer: ViewStyle;
   pickerItemWolfPawIcon: ImageStyle;
   pickerItemSelected: ViewStyle;
@@ -112,6 +113,13 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
       width: '100%',
       height: '100%',
       borderRadius: borderRadius.medium - fixed.borderWidthThick,
+    },
+    pickerItemGeneratedAvatar: {
+      width: '100%',
+      height: '100%',
+      borderRadius: borderRadius.medium - fixed.borderWidthThick,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     pickerItemWolfPawContainer: {
       width: '100%',

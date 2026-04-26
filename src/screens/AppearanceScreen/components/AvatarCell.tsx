@@ -1,47 +1,43 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Image, ImageSourcePropType, TouchableOpacity, View } from 'react-native';
 
+import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { RarityCellBg } from '@/components/RarityCellBg';
 import { getRarityCellStyle, getRaritySelectedStyle } from '@/config/rarityVisual';
 import { borderRadius as borderRadiusToken, colors, componentSizes, fixed } from '@/theme';
+import { getHandDrawnThumb } from '@/utils/avatar';
 
 import type { AppearanceScreenStyles } from './styles';
 
 interface AvatarCellProps {
-  index: number;
-  imageSource: number;
+  avatarId: string;
   isSelected: boolean;
   isCurrentlyUsed: boolean;
   locked: boolean;
   rarity: Rarity | null;
-  onPress: (index: number) => void;
-  onLongPress: (index: number) => void;
+  onPress: (avatarId: string) => void;
+  onLongPress: (avatarId: string) => void;
   styles: AppearanceScreenStyles;
 }
 
 export const AvatarCell = memo<AvatarCellProps>(
-  ({
-    index,
-    imageSource,
-    isSelected,
-    isCurrentlyUsed,
-    locked,
-    rarity,
-    onPress,
-    onLongPress,
-    styles,
-  }) => {
+  ({ avatarId, isSelected, isCurrentlyUsed, locked, rarity, onPress, onLongPress, styles }) => {
     const handlePress = useCallback(() => {
-      onPress(index);
-    }, [onPress, index]);
+      onPress(avatarId);
+    }, [onPress, avatarId]);
 
     const handleLongPress = useCallback(() => {
-      onLongPress(index);
-    }, [onLongPress, index]);
+      onLongPress(avatarId);
+    }, [onLongPress, avatarId]);
 
     const rarityCellStyle = getRarityCellStyle(rarity);
+
+    const imageSource = useMemo(
+      () => (isGeneratedAvatar(avatarId) ? null : getHandDrawnThumb(avatarId)),
+      [avatarId],
+    );
 
     return (
       <TouchableOpacity
@@ -59,11 +55,17 @@ export const AvatarCell = memo<AvatarCellProps>(
           rarity={rarity}
           borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
         />
-        <Image
-          source={imageSource as ImageSourcePropType}
-          style={styles.pickerItemImage}
-          resizeMode="cover"
-        />
+        {imageSource != null ? (
+          <Image
+            source={imageSource as ImageSourcePropType}
+            style={styles.pickerItemImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.pickerItemGeneratedAvatar}>
+            <GeneratedAvatar seed={avatarId} size={componentSizes.avatar.xl} />
+          </View>
+        )}
         {locked && (
           <View style={styles.pickerItemLockOverlay}>
             <Ionicons name="lock-closed" size={componentSizes.icon.sm} color={colors.textMuted} />

@@ -103,7 +103,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         newAvatarUrl = '';
       } else if (p.selected === 'custom') {
         newAvatarUrl = p.customAvatarUrl ?? undefined;
-      } else if (typeof p.selected === 'number') {
+      } else if (p.selected !== null) {
         newAvatarUrl = makeBuiltinAvatarUrl(p.selected);
       }
 

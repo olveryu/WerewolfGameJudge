@@ -21,10 +21,11 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { RoleRevealAnimator } from '@/components/RoleRevealEffects';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, componentSizes } from '@/theme';
-import { AVATAR_KEYS, getAvatarImageByIndex, getAvatarThumbByIndex } from '@/utils/avatar';
+import { getHandDrawnImage } from '@/utils/avatar';
 
 import { createAppearanceScreenStyles } from './components';
 import { AppearanceFooter } from './components/AppearanceFooter';
@@ -174,29 +175,27 @@ export const AppearanceScreen: React.FC = () => {
         );
       }
 
-      // type === 'builtin'
-      const isCurrentlyUsed = item.index === state.currentBuiltinIndex;
-      const isSelected = item.index === state.selected;
-      const imageSource = getAvatarThumbByIndex(item.index);
-      const roleId = AVATAR_KEYS[item.index];
-      const locked = !!roleId && !state.unlockedAvatars.has(roleId);
+      // type === 'avatar' (both hand-drawn and generated)
+      const { avatarId } = item;
+      const isCurrentlyUsed = avatarId === state.currentAvatarId;
+      const isSelected = avatarId === state.selected;
+      const locked = !state.unlockedAvatars.has(avatarId);
 
       return (
         <AvatarCell
-          index={item.index}
-          imageSource={imageSource}
+          avatarId={avatarId}
           isSelected={isSelected}
           isCurrentlyUsed={isCurrentlyUsed}
           locked={locked}
-          rarity={getItemRarity(roleId)}
-          onPress={state.handlePressBuiltin}
+          rarity={getItemRarity(avatarId)}
+          onPress={state.handlePressAvatar}
           onLongPress={state.handleLongPress}
           styles={styles}
         />
       );
     },
     [
-      state.currentBuiltinIndex,
+      state.currentAvatarId,
       state.selected,
       state.unlockedAvatars,
       state.isDefaultActive,
@@ -205,7 +204,7 @@ export const AppearanceScreen: React.FC = () => {
       state.user,
       state.handlePressDefault,
       state.handlePressCustom,
-      state.handlePressBuiltin,
+      state.handlePressAvatar,
       state.handleLongPress,
       styles,
     ],
@@ -350,13 +349,19 @@ export const AppearanceScreen: React.FC = () => {
         />
       </View>
 
-      {state.previewIndex !== null && (
+      {state.previewAvatarId !== null && (
         <Pressable style={styles.pickerPreviewOverlay} onPress={state.handleClosePreview}>
-          <Image
-            source={getAvatarImageByIndex(state.previewIndex) as ImageSourcePropType}
-            style={styles.pickerPreviewImage}
-            resizeMode="cover"
-          />
+          {isGeneratedAvatar(state.previewAvatarId) ? (
+            <View style={styles.pickerPreviewImage}>
+              <GeneratedAvatar seed={state.previewAvatarId} size={200} />
+            </View>
+          ) : (
+            <Image
+              source={getHandDrawnImage(state.previewAvatarId) as ImageSourcePropType}
+              style={styles.pickerPreviewImage}
+              resizeMode="cover"
+            />
+          )}
         </Pressable>
       )}
 
