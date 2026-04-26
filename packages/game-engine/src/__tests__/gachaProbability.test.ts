@@ -72,6 +72,24 @@ describe('gachaProbability', () => {
       }
     });
 
+    it('normal pity should clamp to rare without inflating legendary rate', () => {
+      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const N = 100_000;
+      for (let i = 0; i < N; i++) {
+        const val = (i / N) * 100;
+        const { rarity } = rollRarity('normal', PITY_THRESHOLD - 1, val);
+        counts[rarity]++;
+      }
+      // legendary/epic 保持原始概率不变
+      expect(Math.abs((counts.legendary / N) * 100 - NORMAL_RATES.legendary)).toBeLessThan(1);
+      expect(Math.abs((counts.epic / N) * 100 - NORMAL_RATES.epic)).toBeLessThan(1);
+      // rare 吃掉原 common 的份额
+      expect(
+        Math.abs((counts.rare / N) * 100 - (NORMAL_RATES.rare + NORMAL_RATES.common)),
+      ).toBeLessThan(1);
+      expect(counts.common).toBe(0);
+    });
+
     it('golden pity at count=9 should never return common or rare', () => {
       for (let i = 0; i < 1000; i++) {
         const val = (i / 1000) * 100;
@@ -79,6 +97,26 @@ describe('gachaProbability', () => {
         expect(rarity === 'epic' || rarity === 'legendary').toBe(true);
         expect(pityReset).toBe(true);
       }
+    });
+
+    it('golden pity should clamp to epic without inflating legendary rate', () => {
+      const counts: Record<Rarity, number> = { common: 0, rare: 0, epic: 0, legendary: 0 };
+      const N = 100_000;
+      for (let i = 0; i < N; i++) {
+        const val = (i / N) * 100;
+        const { rarity } = rollRarity('golden', PITY_THRESHOLD - 1, val);
+        counts[rarity]++;
+      }
+      // legendary 保持原始概率不变
+      expect(Math.abs((counts.legendary / N) * 100 - GOLDEN_RATES.legendary)).toBeLessThan(1);
+      // epic 吃掉原 common+rare 的份额
+      expect(
+        Math.abs(
+          (counts.epic / N) * 100 - (GOLDEN_RATES.epic + GOLDEN_RATES.rare + GOLDEN_RATES.common),
+        ),
+      ).toBeLessThan(1);
+      expect(counts.common).toBe(0);
+      expect(counts.rare).toBe(0);
     });
 
     it('normal: rolling rare resets pity', () => {

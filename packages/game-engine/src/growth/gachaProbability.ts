@@ -53,21 +53,17 @@ export function rollRarity(
   const rates = drawType === 'golden' ? GOLDEN_RATES : NORMAL_RATES;
   const isPityTrigger = pityCount >= PITY_THRESHOLD - 1; // pityCount=9 → 第 10 次
 
-  let rarity: Rarity;
+  // 正常 roll（保底时也走同一概率表，仅 clamp 下限）
+  let rarity: Rarity = rollFromRates(rates, randomValue);
+
   if (isPityTrigger) {
-    // 保底触发：在保底阈值以上的稀有度中按比例 roll
-    if (drawType === 'golden') {
-      // 黄金保底：Epic+
-      rarity = rollFromSubset(rates, ['epic', 'legendary'], randomValue);
-    } else {
-      // 普通保底：Rare+
-      rarity = rollFromSubset(rates, ['rare', 'epic', 'legendary'], randomValue);
+    // 保底触发：低于保底线的结果 clamp 到保底线，高稀有度概率不变
+    const pityFloor: Rarity = drawType === 'golden' ? 'epic' : 'rare';
+    if (RARITY_UPGRADE_ORDER.indexOf(rarity) < RARITY_UPGRADE_ORDER.indexOf(pityFloor)) {
+      rarity = pityFloor;
     }
     return { rarity, pityReset: true };
   }
-
-  // 正常 roll
-  rarity = rollFromRates(rates, randomValue);
 
   // 判断是否 reset pity
   const resetsNormalPity = rarity !== 'common'; // Rare/Epic/Legendary reset
@@ -123,21 +119,4 @@ function rollFromRates(rates: Readonly<Record<Rarity, number>>, value: number): 
   cumulative += rates.rare;
   if (value < cumulative) return 'rare';
   return 'common';
-}
-
-/** 从子集稀有度中按等比例 roll */
-function rollFromSubset(
-  rates: Readonly<Record<Rarity, number>>,
-  subset: readonly Rarity[],
-  value: number,
-): Rarity {
-  const totalWeight = subset.reduce((sum, r) => sum + rates[r], 0);
-  // 将 value 重映射到 [0, totalWeight)
-  const mapped = (value / 100) * totalWeight;
-  let cumulative = 0;
-  for (const r of subset) {
-    cumulative += rates[r];
-    if (mapped < cumulative) return r;
-  }
-  return subset[subset.length - 1];
 }
