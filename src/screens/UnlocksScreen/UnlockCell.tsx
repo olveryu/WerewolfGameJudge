@@ -7,13 +7,14 @@ import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native
 
 import { type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { NameStyleText } from '@/components/nameStyles';
 import { RarityCellBg } from '@/components/RarityCellBg';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
-import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
+import { getHandDrawnThumb } from '@/utils/avatar';
 
 import type { UnlockItem } from './useUnlocksScreenState';
 
@@ -89,10 +90,18 @@ UnlockCell.displayName = 'UnlockCell';
 
 // ── Type-specific thumbnails ────────────────────────────────────────────────
 
-const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
-  const avatarIndex = (AVATAR_KEYS as readonly string[]).indexOf(id);
-  const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
+const AVATAR_THUMB_SIZE = CELL_SIZE - 4;
 
+const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
+  if (isGeneratedAvatar(id)) {
+    return (
+      <View style={[styles.generatedAvatarWrapper, !unlocked && styles.grayscale]}>
+        <GeneratedAvatar seed={id} size={AVATAR_THUMB_SIZE} />
+      </View>
+    );
+  }
+
+  const thumbSource = getHandDrawnThumb(id);
   if (thumbSource == null) return null;
 
   return (
@@ -205,6 +214,12 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: CELL_SIZE - 4,
     height: CELL_SIZE - 4,
+  },
+  generatedAvatarWrapper: {
+    width: CELL_SIZE - 4,
+    height: CELL_SIZE - 4,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   grayscale: {
     opacity: 0.4,
