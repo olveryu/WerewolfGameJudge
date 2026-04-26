@@ -17,11 +17,12 @@ import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native'
 
 import { type FrameId, getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { getFlairById } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { borderRadius, colors } from '@/theme';
-import { AVATAR_KEYS, getAvatarThumbByIndex } from '@/utils/avatar';
+import { getAvatarThumbByIndex, HAND_DRAWN_KEYS } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
 /** wolf-paw icon（预览底图，与 AppearanceScreen 默认头像一致） */
@@ -32,6 +33,11 @@ const WOLF_PAW = getAvatarIcon('preview');
 export function getRewardDisplayName(rewardType: RewardType, rewardId: string): string {
   switch (rewardType) {
     case 'avatar':
+      if (isGeneratedAvatar(rewardId)) {
+        return rewardId.startsWith('genR')
+          ? `人像 ${rewardId.slice(4)}`
+          : `色环 ${rewardId.slice(4)}`;
+      }
       return getRoleDisplayName(rewardId) ?? rewardId;
     case 'frame':
       return getFrameById(rewardId)?.name ?? rewardId;
@@ -74,7 +80,14 @@ RewardPreview.displayName = 'RewardPreview';
 // ─── Per-type previews ──────────────────────────────────────────────────
 
 function AvatarPreview({ id, size }: { id: string; size: number }) {
-  const avatarIndex = (AVATAR_KEYS as readonly string[]).indexOf(id);
+  if (isGeneratedAvatar(id)) {
+    return (
+      <View style={[styles.generatedAvatarWrap, { width: size, height: size }]}>
+        <GeneratedAvatar seed={id} size={size} />
+      </View>
+    );
+  }
+  const avatarIndex = (HAND_DRAWN_KEYS as readonly string[]).indexOf(id);
   const thumbSource = avatarIndex >= 0 ? getAvatarThumbByIndex(avatarIndex) : undefined;
   if (thumbSource == null) return null;
 
@@ -133,6 +146,10 @@ function EffectPreview({ id, size }: { id: string; size: number }) {
 }
 
 const styles = StyleSheet.create({
+  generatedAvatarWrap: {
+    overflow: 'hidden',
+    borderRadius: borderRadius.medium,
+  },
   flairContainer: {
     overflow: 'hidden',
     borderRadius: borderRadius.medium,

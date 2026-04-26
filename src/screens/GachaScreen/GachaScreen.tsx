@@ -36,6 +36,7 @@ import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
 import { DrawButton } from './components/DrawButton';
 import { PityProgressBar } from './components/PityProgressBar';
+import { RateDisclosureModal } from './components/RateDisclosureModal';
 import { SingleResultReveal } from './components/SingleResultReveal';
 import { TenResultOverlay } from './components/TenResultOverlay';
 import { TicketTabBar } from './components/TicketTabBar';
@@ -59,6 +60,7 @@ export function GachaScreen({ navigation }: Props) {
   const [showTenOverlay, setShowTenOverlay] = useState(false);
   const [showSingleResult, setShowSingleResult] = useState(false);
   const [activeTab, setActiveTab] = useState<'normal' | 'golden'>('normal');
+  const [showRates, setShowRates] = useState(false);
   const pendingCountRef = useRef(0);
 
   const handleGoBack = useCallback(() => {
@@ -325,8 +327,13 @@ export function GachaScreen({ navigation }: Props) {
             />
           </View>
 
-          {/* Hint */}
-          <Text style={styles.metaHint}>每局+2普通 · 升级+2黄金</Text>
+          {/* Hint + rate disclosure */}
+          <View style={styles.metaRow}>
+            <Text style={styles.metaHint}>每局+2普通 · 升级+2黄金</Text>
+            <Text style={styles.rateLink} onPress={() => setShowRates(true)}>
+              概率公示
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -342,6 +349,8 @@ export function GachaScreen({ navigation }: Props) {
           }}
         />
       )}
+
+      <RateDisclosureModal visible={showRates} onClose={() => setShowRates(false)} />
     </SafeAreaView>
   );
 }
@@ -447,5 +456,16 @@ const styles = StyleSheet.create({
     fontSize: typography.captionSmall,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  rateLink: {
+    fontSize: typography.captionSmall,
+    color: colors.primary,
+    textDecorationLine: 'underline',
   },
 });

@@ -1,7 +1,7 @@
 /**
  * PlayerProfileCard — 玩家资料卡弹窗（游戏卡牌风格）
  *
- * 点击其他玩家座位时弹出，展示公开资料（头像+头像框、等级称号、局数）。
+ * 点击其他玩家座位时弹出，展示公开资料（头像+头像框、等级称号、局数、装备橱窗）。
  * Host 额外显示"移出座位"按钮。Bot 显示简化卡（无 API）。
  * 纯展示 + 数据获取，不含游戏逻辑。
  */
@@ -12,6 +12,8 @@ import {
   getLevelTitle,
   LEVEL_THRESHOLDS,
 } from '@werewolf/game-engine/growth/level';
+import { getItemRarity, type Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -22,14 +24,19 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Avatar } from '@/components/Avatar';
-import { type FrameId } from '@/components/avatarFrames';
+import { type FrameId, getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
+import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
+import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { PressableScale } from '@/components/PressableScale';
 import { getFlairById } from '@/components/seatFlairs';
+import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
 import { RootStackParamList } from '@/navigation/types';
+import type { UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';
 
 interface PlayerProfileCardProps {
   visible: boolean;
@@ -81,6 +88,160 @@ const XpProgressBar: React.FC<{ progress: number }> = memo(({ progress }) => {
   );
 });
 XpProgressBar.displayName = 'XpProgressBar';
+
+// ---------------------------------------------------------------------------
+// Equipment showcase — 4 equipped item slots
+// ---------------------------------------------------------------------------
+
+interface SlotInfo {
+  name: string;
+  rarity: Rarity | null;
+  typeLabel: string;
+}
+
+const SLOT_PREVIEW_SIZE = 28;
+
+/** 从 avatarUrl 解析头像显示名 + 稀有度 */
+function resolveAvatarSlot(avatarUrl: string | undefined): SlotInfo {
+  if (!avatarUrl) return { name: '', rarity: null, typeLabel: '头像' };
+  if (isBuiltinAvatarUrl(avatarUrl)) {
+    const id = getBuiltinAvatarId(avatarUrl);
+    if (isGeneratedAvatar(id)) {
+      const name = id.startsWith('genR') ? `光环 ${id.slice(4)}` : `像素 ${id.slice(4)}`;
+      return { name, rarity: getItemRarity(id), typeLabel: '头像' };
+    }
+    return { name: getRoleDisplayName(id), rarity: getItemRarity(id), typeLabel: '头像' };
+  }
+  return { name: '自定义', rarity: null, typeLabel: '头像' };
+}
+
+function resolveFrameSlot(frameId: string | undefined): SlotInfo {
+  if (!frameId) return { name: '', rarity: null, typeLabel: '头像框' };
+  return {
+    name: getFrameById(frameId)?.name ?? frameId,
+    rarity: getItemRarity(frameId),
+    typeLabel: '头像框',
+  };
+}
+
+function resolveFlairSlot(flairId: string | undefined): SlotInfo {
+  if (!flairId) return { name: '', rarity: null, typeLabel: '座位特效' };
+  return {
+    name: getFlairById(flairId)?.name ?? flairId,
+    rarity: getItemRarity(flairId),
+    typeLabel: '座位特效',
+  };
+}
+
+function resolveNameStyleSlot(styleId: string | undefined): SlotInfo {
+  if (!styleId) return { name: '', rarity: null, typeLabel: '名字样式' };
+  return {
+    name: getNameStyleById(styleId)?.name ?? styleId,
+    rarity: getItemRarity(styleId),
+    typeLabel: '名字样式',
+  };
+}
+
+/** 单个装备槽 */
+const EquipmentSlot: React.FC<{
+  slot: SlotInfo;
+  children: React.ReactNode;
+}> = memo(({ slot, children }) => {
+  const isEmpty = !slot.name;
+  const visual = slot.rarity ? RARITY_VISUAL[slot.rarity] : null;
+  const isLegendary = slot.rarity === 'legendary';
+
+  return (
+    <View
+      style={[
+        styles.equipSlot,
+        isLegendary && {
+          boxShadow: `0px 0px 8px ${withAlpha(visual!.color, 0.2)}`,
+        },
+      ]}
+    >
+      <View style={[styles.equipSlotPreview, isEmpty && styles.equipSlotPreviewEmpty]}>
+        {children}
+      </View>
+      {isEmpty ? (
+        <Text style={styles.equipSlotEmptyName}>未装备</Text>
+      ) : (
+        <Text style={styles.equipSlotName} numberOfLines={1}>
+          {slot.name}
+        </Text>
+      )}
+      <Text style={styles.equipSlotType}>{slot.typeLabel}</Text>
+      {visual && (
+        <View style={styles.equipSlotRarityRow}>
+          <View style={[styles.equipSlotDot, { backgroundColor: visual.color }]} />
+          <Text style={[styles.equipSlotRarityText, { color: visual.color }]}>{visual.label}</Text>
+        </View>
+      )}
+    </View>
+  );
+});
+EquipmentSlot.displayName = 'EquipmentSlot';
+
+/** 装备橱窗 — 4 个装备槽水平排列 */
+const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ profile }) => {
+  const avatarSlot = useMemo(() => resolveAvatarSlot(profile.avatarUrl), [profile.avatarUrl]);
+  const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
+  const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
+  const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
+
+  return (
+    <View style={styles.equipSection}>
+      {/* Section divider */}
+      <View style={styles.equipDividerRow}>
+        <View style={styles.equipDividerLine} />
+        <Text style={styles.equipDividerLabel}>当前装备</Text>
+        <View style={styles.equipDividerLine} />
+      </View>
+
+      {/* 4 slots in a row */}
+      <View style={styles.equipRow}>
+        {/* Avatar */}
+        <EquipmentSlot slot={avatarSlot}>
+          {avatarSlot.name ? (
+            <Avatar
+              value="equip-preview"
+              avatarUrl={profile.avatarUrl}
+              size={SLOT_PREVIEW_SIZE}
+              borderRadius={SLOT_PREVIEW_SIZE / 2}
+            />
+          ) : null}
+        </EquipmentSlot>
+
+        {/* Frame */}
+        <EquipmentSlot slot={frameSlot}>
+          {profile.avatarFrame ? (
+            <AvatarWithFrame
+              value="equip-preview"
+              frameId={profile.avatarFrame as FrameId}
+              size={SLOT_PREVIEW_SIZE}
+              borderRadius={SLOT_PREVIEW_SIZE / 2}
+            />
+          ) : null}
+        </EquipmentSlot>
+
+        {/* Seat Flair */}
+        <EquipmentSlot slot={flairSlot}>
+          {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
+        </EquipmentSlot>
+
+        {/* Name Style */}
+        <EquipmentSlot slot={nameStyleSlot}>
+          {profile.nameStyle ? (
+            <NameStyleText styleId={profile.nameStyle} style={styles.equipSlotNameStylePreview}>
+              Aa
+            </NameStyleText>
+          ) : null}
+        </EquipmentSlot>
+      </View>
+    </View>
+  );
+});
+EquipmentShowcase.displayName = 'EquipmentShowcase';
 
 // ---------------------------------------------------------------------------
 // Main component
@@ -221,9 +382,19 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             </View>
 
             {/* ── Name + title ── */}
-            <Text style={styles.displayName} numberOfLines={1}>
-              {profile.displayName || `${targetSeat + 1}号玩家`}
-            </Text>
+            {profile.nameStyle ? (
+              <NameStyleText
+                styleId={profile.nameStyle}
+                style={styles.displayName}
+                numberOfLines={1}
+              >
+                {profile.displayName || `${targetSeat + 1}号玩家`}
+              </NameStyleText>
+            ) : (
+              <Text style={styles.displayName} numberOfLines={1}>
+                {profile.displayName || `${targetSeat + 1}号玩家`}
+              </Text>
+            )}
             <View style={[styles.titleChip, { borderColor: withAlpha(titleColor, 0.3) }]}>
               <Text style={[styles.titleText, { color: titleColor }]}>
                 {profile.title ?? getLevelTitle(profile.level)}
@@ -253,6 +424,9 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                 <Text style={[styles.statLabel, styles.statLabelTappable]}>已解锁 ›</Text>
               </PressableScale>
             </View>
+
+            {/* ── Equipment showcase ── */}
+            <EquipmentShowcase profile={profile} />
 
             {/* ── Host kick button ── */}
             {isHost && onKick && (
@@ -452,5 +626,93 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     fontWeight: typography.weights.medium,
     color: colors.error,
+  },
+
+  // Equipment showcase
+  equipSection: {
+    width: '100%',
+    paddingHorizontal: spacing.medium,
+    marginTop: spacing.medium,
+  },
+  equipDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.small,
+    gap: spacing.small,
+  },
+  equipDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderLight,
+  },
+  equipDividerLabel: {
+    fontSize: typography.captionSmall,
+    color: colors.textMuted,
+    letterSpacing: typography.letterSpacing.wide,
+  },
+  equipRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.tight,
+  },
+  equipSlot: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.micro,
+    borderRadius: borderRadius.medium,
+    backgroundColor: withAlpha(colors.text, 0.03),
+    gap: spacing.micro,
+  },
+  equipSlotPreview: {
+    width: SLOT_PREVIEW_SIZE,
+    height: SLOT_PREVIEW_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  equipSlotPreviewEmpty: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderLight,
+    borderRadius: SLOT_PREVIEW_SIZE / 2,
+  },
+  equipSlotName: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.medium,
+    color: colors.text,
+    maxWidth: '100%',
+    textAlign: 'center',
+  },
+  equipSlotEmptyName: {
+    fontSize: typography.captionSmall,
+    color: colors.textMuted,
+  },
+  equipSlotType: {
+    fontSize: typography.captionSmall,
+    color: colors.textMuted,
+    letterSpacing: typography.letterSpacing.wide,
+  },
+  equipSlotRarityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  equipSlotDot: {
+    width: 5,
+    height: 5,
+    borderRadius: borderRadius.full,
+  },
+  equipSlotRarityText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
+  },
+  equipSlotIcon: {
+    fontSize: typography.secondary,
+    color: colors.textSecondary,
+  },
+  equipSlotNameStylePreview: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.bold,
   },
 });
