@@ -16,18 +16,18 @@ export const PITY_THRESHOLD = 10;
 
 /** 普通抽概率（%），总和 = 100 */
 export const NORMAL_RATES: Readonly<Record<Rarity, number>> = {
-  legendary: 1.5,
+  legendary: 2.5,
   epic: 4,
   rare: 10,
-  common: 84.5,
+  common: 83.5,
 };
 
 /** 黄金抽概率（%），总和 = 100 */
 export const GOLDEN_RATES: Readonly<Record<Rarity, number>> = {
-  legendary: 3,
+  legendary: 5,
   epic: 8,
   rare: 20,
-  common: 69,
+  common: 67,
 };
 
 /** 稀有度升级顺序（用于去重时向上 fallback） */

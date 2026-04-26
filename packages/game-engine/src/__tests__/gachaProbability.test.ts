@@ -13,26 +13,26 @@ describe('gachaProbability', () => {
 
   describe('rollRarity', () => {
     it('should return correct rarity boundaries for normal draw', () => {
-      // legendary: 0–1.5, epic: 1.5–5.5, rare: 5.5–15.5, common: 15.5–100
+      // legendary: 0–2.5, epic: 2.5–6.5, rare: 6.5–16.5, common: 16.5–100
       expect(rollRarity('normal', 0, 0).rarity).toBe('legendary');
-      expect(rollRarity('normal', 0, 1.4).rarity).toBe('legendary');
-      expect(rollRarity('normal', 0, 1.5).rarity).toBe('epic');
-      expect(rollRarity('normal', 0, 5.4).rarity).toBe('epic');
-      expect(rollRarity('normal', 0, 5.5).rarity).toBe('rare');
-      expect(rollRarity('normal', 0, 15.4).rarity).toBe('rare');
-      expect(rollRarity('normal', 0, 15.5).rarity).toBe('common');
+      expect(rollRarity('normal', 0, 2.4).rarity).toBe('legendary');
+      expect(rollRarity('normal', 0, 2.5).rarity).toBe('epic');
+      expect(rollRarity('normal', 0, 6.4).rarity).toBe('epic');
+      expect(rollRarity('normal', 0, 6.5).rarity).toBe('rare');
+      expect(rollRarity('normal', 0, 16.4).rarity).toBe('rare');
+      expect(rollRarity('normal', 0, 16.5).rarity).toBe('common');
       expect(rollRarity('normal', 0, 99.9).rarity).toBe('common');
     });
 
     it('should return correct rarity boundaries for golden draw', () => {
-      // legendary: 0–3, epic: 3–11, rare: 11–31, common: 31–100
+      // legendary: 0–5, epic: 5–13, rare: 13–33, common: 33–100
       expect(rollRarity('golden', 0, 0).rarity).toBe('legendary');
-      expect(rollRarity('golden', 0, 2.9).rarity).toBe('legendary');
-      expect(rollRarity('golden', 0, 3).rarity).toBe('epic');
-      expect(rollRarity('golden', 0, 10.9).rarity).toBe('epic');
-      expect(rollRarity('golden', 0, 11).rarity).toBe('rare');
-      expect(rollRarity('golden', 0, 30.9).rarity).toBe('rare');
-      expect(rollRarity('golden', 0, 31).rarity).toBe('common');
+      expect(rollRarity('golden', 0, 4.9).rarity).toBe('legendary');
+      expect(rollRarity('golden', 0, 5).rarity).toBe('epic');
+      expect(rollRarity('golden', 0, 12.9).rarity).toBe('epic');
+      expect(rollRarity('golden', 0, 13).rarity).toBe('rare');
+      expect(rollRarity('golden', 0, 32.9).rarity).toBe('rare');
+      expect(rollRarity('golden', 0, 33).rarity).toBe('common');
     });
 
     it('normal distribution should match rates within 1% over 100k trials', () => {
@@ -189,7 +189,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(575);
+      expect(REWARD_POOL.length).toBe(815);
     });
 
     it('should have correct rarity distribution', () => {
@@ -197,10 +197,10 @@ describe('gachaProbability', () => {
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
-      expect(counts.legendary).toBe(31);
-      expect(counts.epic).toBe(61);
-      expect(counts.rare).toBe(164);
-      expect(counts.common).toBe(319);
+      expect(counts.legendary).toBe(38);
+      expect(counts.epic).toBe(177);
+      expect(counts.rare).toBe(200);
+      expect(counts.common).toBe(400);
     });
 
     it('should have correct per-type rarity distribution', () => {
@@ -209,24 +209,24 @@ describe('gachaProbability', () => {
         if (!byType[item.type]) byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0 };
         byType[item.type][item.rarity]++;
       }
-      // Avatars: L3/E7/R14/C18 = 42
-      expect(byType['avatar'].legendary).toBe(3);
-      expect(byType['avatar'].epic).toBe(7);
-      expect(byType['avatar'].rare).toBe(14);
-      expect(byType['avatar'].common).toBe(19);
-      // Frames: L11/E9/R50/C100 = 170
+      // Avatars: L10/E33/R50/C100 = 193
+      expect(byType['avatar'].legendary).toBe(10);
+      expect(byType['avatar'].epic).toBe(33);
+      expect(byType['avatar'].rare).toBe(50);
+      expect(byType['avatar'].common).toBe(100);
+      // Frames: L11/E39/R50/C100 = 200
       expect(byType['frame'].legendary).toBe(11);
-      expect(byType['frame'].epic).toBe(9);
+      expect(byType['frame'].epic).toBe(39);
       expect(byType['frame'].rare).toBe(50);
       expect(byType['frame'].common).toBe(100);
-      // SeatFlairs: L7/E23/R50/C100 = 180
+      // SeatFlairs: L7/E53/R50/C100 = 210
       expect(byType['seatFlair'].legendary).toBe(7);
-      expect(byType['seatFlair'].epic).toBe(23);
+      expect(byType['seatFlair'].epic).toBe(53);
       expect(byType['seatFlair'].rare).toBe(50);
       expect(byType['seatFlair'].common).toBe(100);
-      // NameStyles: L4/E16/R50/C100 = 170
+      // NameStyles: L4/E46/R50/C100 = 200
       expect(byType['nameStyle'].legendary).toBe(4);
-      expect(byType['nameStyle'].epic).toBe(16);
+      expect(byType['nameStyle'].epic).toBe(46);
       expect(byType['nameStyle'].rare).toBe(50);
       expect(byType['nameStyle'].common).toBe(100);
     });

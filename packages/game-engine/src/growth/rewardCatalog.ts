@@ -21,7 +21,8 @@ export interface RewardItem {
  * 无头像时显示 wolf-paw 默认图标（不在此列表中）。
  */
 // prettier-ignore
-export const AVATAR_IDS = [
+/** 手绘头像 ID（43 个，Rare+ 档） */
+const HAND_DRAWN_AVATAR_IDS = [
   'avenger',
   'awakenedGargoyle',
   'bloodMoon',
@@ -67,6 +68,37 @@ export const AVATAR_IDS = [
   'wolfWitch',
 ] as const;
 
+/** 程序化生成头像 ID — Common（ring variant, 100 个） */
+// prettier-ignore
+const GENERATED_COMMON_IDS = [
+  'genC001', 'genC002', 'genC003', 'genC004', 'genC005', 'genC006', 'genC007', 'genC008', 'genC009', 'genC010',
+  'genC011', 'genC012', 'genC013', 'genC014', 'genC015', 'genC016', 'genC017', 'genC018', 'genC019', 'genC020',
+  'genC021', 'genC022', 'genC023', 'genC024', 'genC025', 'genC026', 'genC027', 'genC028', 'genC029', 'genC030',
+  'genC031', 'genC032', 'genC033', 'genC034', 'genC035', 'genC036', 'genC037', 'genC038', 'genC039', 'genC040',
+  'genC041', 'genC042', 'genC043', 'genC044', 'genC045', 'genC046', 'genC047', 'genC048', 'genC049', 'genC050',
+  'genC051', 'genC052', 'genC053', 'genC054', 'genC055', 'genC056', 'genC057', 'genC058', 'genC059', 'genC060',
+  'genC061', 'genC062', 'genC063', 'genC064', 'genC065', 'genC066', 'genC067', 'genC068', 'genC069', 'genC070',
+  'genC071', 'genC072', 'genC073', 'genC074', 'genC075', 'genC076', 'genC077', 'genC078', 'genC079', 'genC080',
+  'genC081', 'genC082', 'genC083', 'genC084', 'genC085', 'genC086', 'genC087', 'genC088', 'genC089', 'genC090',
+  'genC091', 'genC092', 'genC093', 'genC094', 'genC095', 'genC096', 'genC097', 'genC098', 'genC099', 'genC100',
+] as const;
+
+/** 程序化生成头像 ID — Rare（beam variant, 50 个） */
+// prettier-ignore
+const GENERATED_RARE_IDS = [
+  'genR001', 'genR002', 'genR003', 'genR004', 'genR005', 'genR006', 'genR007', 'genR008', 'genR009', 'genR010',
+  'genR011', 'genR012', 'genR013', 'genR014', 'genR015', 'genR016', 'genR017', 'genR018', 'genR019', 'genR020',
+  'genR021', 'genR022', 'genR023', 'genR024', 'genR025', 'genR026', 'genR027', 'genR028', 'genR029', 'genR030',
+  'genR031', 'genR032', 'genR033', 'genR034', 'genR035', 'genR036', 'genR037', 'genR038', 'genR039', 'genR040',
+  'genR041', 'genR042', 'genR043', 'genR044', 'genR045', 'genR046', 'genR047', 'genR048', 'genR049', 'genR050',
+] as const;
+
+export const AVATAR_IDS = [
+  ...HAND_DRAWN_AVATAR_IDS,
+  ...GENERATED_COMMON_IDS,
+  ...GENERATED_RARE_IDS,
+] as const;
+
 /** 传说头像框 ID 集合 — 用于客户端渲染传说动效判定 */
 // prettier-ignore
 export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
@@ -77,7 +109,7 @@ export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
 /** 全部头像框 ID（与 `avatarFrames/index.ts` Component 注册表 1:1 对应）。 */
 // prettier-ignore
 export const FRAME_IDS = [
-  // Epic (9) — hand-crafted themed SVG frames
+  // Epic (39) — hand-crafted themed SVG frames
   'ironForge',
   'moonSilver',
   'bloodThorn',
@@ -87,6 +119,36 @@ export const FRAME_IDS = [
   'frostCrystal',
   'jadeSeal',
   'emberAsh',
+  'nightShade',
+  'sunForge',
+  'crystalVein',
+  'wolfFang',
+  'serpentScale',
+  'thornCrown',
+  'mysticRune',
+  'wildBriar',
+  'venomGlass',
+  'starForge',
+  'duskIron',
+  'spectralEdge',
+  'wraithBone',
+  'viperCoil',
+  'moonGate',
+  'stormWeave',
+  'sandStone',
+  'ravenWing',
+  'frostForge',
+  'goldLeaf',
+  'spiritBark',
+  'nightBloom',
+  'flameThorn',
+  'oceanDeep',
+  'thunderForge',
+  'witchMark',
+  'lionCrest',
+  'sirenCall',
+  'ashWood',
+  'crystalThorn',
   // Legendary (11) — most elaborate hand-crafted frames
   'stormBolt',
   'dragonScale',
@@ -136,7 +198,7 @@ export const FRAME_IDS = [
 /** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */
 // prettier-ignore
 export const SEAT_FLAIR_IDS = [
-  // Epic (23) — hand-crafted themed SVG flair
+  // Epic (53) — hand-crafted themed SVG flair
   'emberGlow',
   'frostAura',
   'shadowMist',
@@ -160,6 +222,36 @@ export const SEAT_FLAIR_IDS = [
   'flowerBloom',
   'firefly',
   'forestLeaf',
+  'crystalShard',
+  'moonBeam',
+  'darkSmoke',
+  'solarFlare',
+  'nightGlow',
+  'oceanWave',
+  'thornVine',
+  'mistVeil',
+  'lavaBurst',
+  'starDust',
+  'arcticWind',
+  'thunderClap',
+  'sandStormFlair',
+  'venomDrip',
+  'auraBurst',
+  'dawnLight',
+  'eclipseRing',
+  'blazeTrail',
+  'coralGlow',
+  'willowWisp',
+  'jadeMist',
+  'obsidianPulse',
+  'amberDrop',
+  'silverStream',
+  'tidePool',
+  'mirageHeat',
+  'petalDance',
+  'stormSurge',
+  'ashCloud',
+  'lunarFrost',
   // Legendary (7) — most elaborate hand-crafted flair
   'runeCircle',
   'prismShard',
@@ -205,7 +297,7 @@ export const SEAT_FLAIR_IDS = [
 /** 全部名字特效 ID（与 `nameStyles/index.ts` 配置注册表 1:1 对应）。 */
 // prettier-ignore
 export const NAME_STYLE_IDS = [
-  // Epic (16) — hand-crafted gradient text
+  // Epic (46) — hand-crafted gradient text
   'silverGleam',
   'copperEmber',
   'bloodMoonGlow',
@@ -222,6 +314,36 @@ export const NAME_STYLE_IDS = [
   'shadowPulse',
   'crimsonTide',
   'stormElectric',
+  'obsidianFlame',
+  'sapphireGlow',
+  'emeraldMist',
+  'rubyShimmer',
+  'topazRadiance',
+  'onyxPulse',
+  'opalBreeze',
+  'garnetFlare',
+  'turquoiseTide',
+  'pearlLuster',
+  'bronzeBlaze',
+  'ivoryFrost',
+  'platinumSheen',
+  'coralSunrise',
+  'lavenderDusk',
+  'cinnabarGlow',
+  'cobaltStorm',
+  'malachiteShift',
+  'tanzaniteDream',
+  'citrineWarm',
+  'moonlitSilver',
+  'sunsetEmber',
+  'auroraBoreal',
+  'midnightVelvet',
+  'desertGold',
+  'arcticCrystal',
+  'volcanicAsh',
+  'oceanBreeze',
+  'thunderGold',
+  'forestDew',
   // Legendary (4) — gradient + multi-animation
   'phoenixRebirth',
   'voidStar',
@@ -278,8 +400,14 @@ export const ROLE_REVEAL_EFFECT_IDS = [
   'vortexCollapse',
 ] as const;
 
-/** 头像 ID literal union */
+/** 头像 ID literal union（手绘 + 生成） */
 export type AvatarId = (typeof AVATAR_IDS)[number];
+
+/** 手绘头像 ID literal union（有图片资源的 43 个） */
+export type HandDrawnAvatarId = (typeof HAND_DRAWN_AVATAR_IDS)[number];
+
+/** 手绘头像 ID 列表（导出给客户端图片注册表使用） */
+export { HAND_DRAWN_AVATAR_IDS };
 
 /** 头像框 ID literal union */
 export type FrameId = (typeof FRAME_IDS)[number];
@@ -310,34 +438,54 @@ export const FREE_ROLE_REVEAL_EFFECT_IDS: ReadonlySet<string> = new Set<string>(
 
 /** 头像稀有度映射 */
 const AVATAR_RARITY: Record<string, Rarity> = {
-  // Legendary (3)
+  // Legendary (10) — 原 legendary 3 + 原 epic 7 升档
   darkWolfKing: 'legendary',
   nightmare: 'legendary',
   masquerade: 'legendary',
-  // Epic (7)
-  wolfKing: 'epic',
-  wolfQueen: 'epic',
-  bloodMoon: 'epic',
-  spiritKnight: 'epic',
-  awakenedGargoyle: 'epic',
-  witch: 'epic',
-  seer: 'epic',
-  // Rare (14)
-  hunter: 'rare',
-  guard: 'rare',
-  knight: 'rare',
-  magician: 'rare',
-  piper: 'rare',
-  poisoner: 'rare',
-  gargoyle: 'rare',
-  dreamcatcher: 'rare',
-  avenger: 'rare',
-  mirrorSeer: 'rare',
-  psychic: 'rare',
-  cursedFox: 'rare',
-  witcher: 'rare',
-  wolfWitch: 'rare',
-  // Common (18) — everything else
+  wolfKing: 'legendary',
+  wolfQueen: 'legendary',
+  bloodMoon: 'legendary',
+  spiritKnight: 'legendary',
+  awakenedGargoyle: 'legendary',
+  witch: 'legendary',
+  seer: 'legendary',
+  // Epic (33) — 原 rare 14 升档 + 原 common 19 升档
+  hunter: 'epic',
+  guard: 'epic',
+  knight: 'epic',
+  magician: 'epic',
+  piper: 'epic',
+  poisoner: 'epic',
+  gargoyle: 'epic',
+  dreamcatcher: 'epic',
+  avenger: 'epic',
+  mirrorSeer: 'epic',
+  psychic: 'epic',
+  cursedFox: 'epic',
+  witcher: 'epic',
+  wolfWitch: 'epic',
+  crow: 'epic',
+  cupid: 'epic',
+  dancer: 'epic',
+  drunkSeer: 'epic',
+  graveyardKeeper: 'epic',
+  idiot: 'epic',
+  maskedMan: 'epic',
+  pureWhite: 'epic',
+  shadow: 'epic',
+  silenceElder: 'epic',
+  slacker: 'epic',
+  thief: 'epic',
+  treasureMaster: 'epic',
+  villager: 'epic',
+  votebanElder: 'epic',
+  warden: 'epic',
+  wildChild: 'epic',
+  wolf: 'epic',
+  wolfRobot: 'epic',
+  // Rare (50) — generated beam variant
+  ...Object.fromEntries(GENERATED_RARE_IDS.map((id) => [id, 'rare' as Rarity])),
+  // Common (100) — generated pixel variant (fallback default)
 };
 
 /** 头像框稀有度映射 */
@@ -354,7 +502,7 @@ const FRAME_RARITY: Record<string, Rarity> = {
   coralReef: 'legendary',
   darkVine: 'legendary',
   sakuraDrift: 'legendary',
-  // Epic (9) — hand-crafted themed SVG
+  // Epic (39) — hand-crafted themed SVG
   ironForge: 'epic',
   moonSilver: 'epic',
   bloodThorn: 'epic',
@@ -364,6 +512,36 @@ const FRAME_RARITY: Record<string, Rarity> = {
   emberAsh: 'epic',
   jadeSeal: 'epic',
   hellFire: 'epic',
+  nightShade: 'epic',
+  sunForge: 'epic',
+  crystalVein: 'epic',
+  wolfFang: 'epic',
+  serpentScale: 'epic',
+  thornCrown: 'epic',
+  mysticRune: 'epic',
+  wildBriar: 'epic',
+  venomGlass: 'epic',
+  starForge: 'epic',
+  duskIron: 'epic',
+  spectralEdge: 'epic',
+  wraithBone: 'epic',
+  viperCoil: 'epic',
+  moonGate: 'epic',
+  stormWeave: 'epic',
+  sandStone: 'epic',
+  ravenWing: 'epic',
+  frostForge: 'epic',
+  goldLeaf: 'epic',
+  spiritBark: 'epic',
+  nightBloom: 'epic',
+  flameThorn: 'epic',
+  oceanDeep: 'epic',
+  thunderForge: 'epic',
+  witchMark: 'epic',
+  lionCrest: 'epic',
+  sirenCall: 'epic',
+  ashWood: 'epic',
+  crystalThorn: 'epic',
   // Rare (50) — 5 shapes × 10 colors, multi-layer decorative borders
   inlayRed: 'rare',
   inlayOrange: 'rare',
@@ -428,7 +606,7 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   magmaFloat: 'legendary',
   butterfly: 'legendary',
   shadowClaw: 'legendary',
-  // Epic (23) — hand-crafted themed SVG flair
+  // Epic (53) — hand-crafted themed SVG flair
   emberGlow: 'epic',
   frostAura: 'epic',
   shadowMist: 'epic',
@@ -452,6 +630,36 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   flowerBloom: 'epic',
   firefly: 'epic',
   forestLeaf: 'epic',
+  crystalShard: 'epic',
+  moonBeam: 'epic',
+  darkSmoke: 'epic',
+  solarFlare: 'epic',
+  nightGlow: 'epic',
+  oceanWave: 'epic',
+  thornVine: 'epic',
+  mistVeil: 'epic',
+  lavaBurst: 'epic',
+  starDust: 'epic',
+  arcticWind: 'epic',
+  thunderClap: 'epic',
+  sandStormFlair: 'epic',
+  venomDrip: 'epic',
+  auraBurst: 'epic',
+  dawnLight: 'epic',
+  eclipseRing: 'epic',
+  blazeTrail: 'epic',
+  coralGlow: 'epic',
+  willowWisp: 'epic',
+  jadeMist: 'epic',
+  obsidianPulse: 'epic',
+  amberDrop: 'epic',
+  silverStream: 'epic',
+  tidePool: 'epic',
+  mirageHeat: 'epic',
+  petalDance: 'epic',
+  stormSurge: 'epic',
+  ashCloud: 'epic',
+  lunarFrost: 'epic',
   // Rare (50) — 5 patterns × 10 colors, multi-element decorative animation
   cascadeRed: 'rare',
   cascadeOrange: 'rare',
@@ -531,7 +739,7 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   voidStar: 'legendary',
   phoenixRebirth: 'legendary',
   dragonBreath: 'legendary',
-  // Epic (16) — merged former rare + epic, all gradient text (no animation)
+  // Epic (46) — merged former rare + epic, all gradient text (no animation)
   silverGleam: 'epic',
   copperEmber: 'epic',
   bloodMoonGlow: 'epic',
@@ -548,6 +756,36 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   venomShift: 'epic',
   shadowPulse: 'epic',
   crimsonTide: 'epic',
+  obsidianFlame: 'epic',
+  sapphireGlow: 'epic',
+  emeraldMist: 'epic',
+  rubyShimmer: 'epic',
+  topazRadiance: 'epic',
+  onyxPulse: 'epic',
+  opalBreeze: 'epic',
+  garnetFlare: 'epic',
+  turquoiseTide: 'epic',
+  pearlLuster: 'epic',
+  bronzeBlaze: 'epic',
+  ivoryFrost: 'epic',
+  platinumSheen: 'epic',
+  coralSunrise: 'epic',
+  lavenderDusk: 'epic',
+  cinnabarGlow: 'epic',
+  cobaltStorm: 'epic',
+  malachiteShift: 'epic',
+  tanzaniteDream: 'epic',
+  citrineWarm: 'epic',
+  moonlitSilver: 'epic',
+  sunsetEmber: 'epic',
+  auroraBoreal: 'epic',
+  midnightVelvet: 'epic',
+  desertGold: 'epic',
+  arcticCrystal: 'epic',
+  volcanicAsh: 'epic',
+  oceanBreeze: 'epic',
+  thunderGold: 'epic',
+  forestDew: 'epic',
   // Rare (50) — glow/radiant/bright/vivid/lustrous × 10 colors
   shimmerCrimson: 'rare',
   shimmerCoral: 'rare',
