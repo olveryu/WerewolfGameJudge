@@ -506,20 +506,22 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   // Common (100) — simple colored effects
 };
 
-/** 开牌特效稀有度映射 — 全部传说 */
+/** 开牌特效稀有度映射 — 6 legendary + 6 epic（按实现复杂度分级） */
 const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
-  roulette: 'legendary',
+  // Legendary (6) — 复杂交互 / 多阶段演出
   roleHunt: 'legendary',
-  scratch: 'legendary',
-  tarot: 'legendary',
-  gachaMachine: 'legendary',
-  cardPick: 'legendary',
   sealBreak: 'legendary',
   chainShatter: 'legendary',
+  tarot: 'legendary',
   fortuneWheel: 'legendary',
-  meteorStrike: 'legendary',
-  filmRewind: 'legendary',
-  vortexCollapse: 'legendary',
+  scratch: 'legendary',
+  // Epic (6) — 较简单动画
+  roulette: 'epic',
+  vortexCollapse: 'epic',
+  gachaMachine: 'epic',
+  meteorStrike: 'epic',
+  filmRewind: 'epic',
+  cardPick: 'epic',
 };
 
 /** 名字样式稀有度映射 */
