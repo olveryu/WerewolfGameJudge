@@ -326,7 +326,7 @@ export function GachaScreen({ navigation }: Props) {
           </View>
 
           {/* Hint */}
-          <Text style={styles.metaHint}>每局+1普通 · 升级+2黄金</Text>
+          <Text style={styles.metaHint}>每局+2普通 · 升级+2黄金</Text>
         </View>
       </View>
 

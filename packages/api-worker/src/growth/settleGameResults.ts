@@ -5,7 +5,7 @@
  * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
  * XP 仅写入注册用户。匿名玩家仅计入有效局人数。
  * 幂等：user_stats.last_room_code 保证不重复写入。
- * 每局获得 1 张普通抽奖券；升级额外获得 2 张黄金抽奖券。
+ * 每局获得 2 张普通抽奖券；升级额外获得 2 张黄金抽奖券。
  */
 
 import { getLevel } from '@werewolf/game-engine/growth/level';
@@ -19,7 +19,7 @@ import { users, userStats } from '../db/schema';
 const MIN_PLAYERS = 9;
 
 /** 每局获得的普通抽奖券 */
-const NORMAL_DRAWS_PER_GAME = 1;
+const NORMAL_DRAWS_PER_GAME = 2;
 /** 升级额外获得的黄金抽奖券 */
 const GOLDEN_DRAWS_ON_LEVEL_UP = 2;
 
