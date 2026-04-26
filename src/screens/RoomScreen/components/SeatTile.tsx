@@ -27,6 +27,7 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { NameStyleText } from '@/components/nameStyles';
 import { getSeatAnimationById } from '@/components/seatAnimations';
+import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAnimation';
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
@@ -43,6 +44,9 @@ import {
 } from '@/theme';
 
 const GRID_COLUMNS = 4;
+
+/** Delay between entrance animation loops (ms). */
+const ENTRANCE_LOOP_DELAY_MS = 5000;
 
 /** Adaptive column count based on screen width (tablet-friendly). */
 export function getGridColumns(screenWidth: number): number {
@@ -200,9 +204,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     [playerSeatAnimation],
   );
   const AnimComponent = animConfig?.Component;
-  const handleEntranceComplete = useCallback(() => {
-    setIsPlayingEntrance(false);
-  }, []);
 
   // Player join/leave animation
   useEffect(() => {
@@ -243,6 +244,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {
       // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
       isLeavingRef.current = true;
+      setIsPlayingEntrance(false);
       // Note: We don't animate here because the avatar will be unmounted immediately
       // The animation would cause issues with unmounted components
       // For a smoother experience, we could use a delayed unmount, but that's more complex
@@ -355,10 +357,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
           {hasPlayer && isPlayingEntrance && AnimComponent ? (
-            <AnimComponent
+            <LoopingSeatAnimation
+              Component={AnimComponent}
               size={tileSize - spacing.tight}
               borderRadius={borderRadius.large}
-              onComplete={handleEntranceComplete}
+              loopDelay={ENTRANCE_LOOP_DELAY_MS}
             >
               <AvatarWithFrame
                 value={playerUserId}
@@ -375,7 +378,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                 }
                 frameId={playerAvatarFrame}
               />
-            </AnimComponent>
+            </LoopingSeatAnimation>
           ) : hasPlayer ? (
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
