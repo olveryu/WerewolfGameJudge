@@ -83,15 +83,8 @@ describe('getAvatarImageByIndex', () => {
     expect(img1).toBe(img2);
   });
 
-  it('handles negative index by taking absolute value', () => {
-    const imgPositive = getAvatarImageByIndex(5);
-    const imgNegative = getAvatarImageByIndex(-5);
-    expect(imgPositive).toBe(imgNegative);
-  });
-
-  it('handles out-of-range index by wrapping with modulo', () => {
-    const imgBase = getAvatarImageByIndex(0);
-    const imgWrapped = getAvatarImageByIndex(AVATAR_COUNT);
-    expect(imgBase).toBe(imgWrapped);
+  it('returns undefined for out-of-range index', () => {
+    expect(getAvatarImageByIndex(-1)).toBeUndefined();
+    expect(getAvatarImageByIndex(AVATAR_COUNT)).toBeUndefined();
   });
 });

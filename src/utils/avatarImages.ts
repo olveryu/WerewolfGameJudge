@@ -4,10 +4,10 @@
  * Native platforms use full-size 2048px raw PNGs and 512px badge PNGs.
  * See avatarImages.web.ts for the web variant (512px + 128px WebP).
  */
-import type { AvatarId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { HandDrawnAvatarId } from '@werewolf/game-engine/growth/rewardCatalog';
 
 // prettier-ignore
-export const AVATAR_IMAGE_MAP: Record<AvatarId, number> = {
+export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   avenger: require('../../assets/avatars/raw/avenger.png'),
   awakenedGargoyle: require('../../assets/avatars/raw/awakenedGargoyle.png'),
   bloodMoon: require('../../assets/avatars/raw/bloodMoon.png'),
@@ -54,7 +54,7 @@ export const AVATAR_IMAGE_MAP: Record<AvatarId, number> = {
 };
 
 // prettier-ignore
-export const AVATAR_THUMB_MAP: Record<AvatarId, number> = {
+export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   avenger: require('../../assets/badges/png/512/role_avenger.png'),
   awakenedGargoyle: require('../../assets/badges/png/512/role_awakenedGargoyle.png'),
   bloodMoon: require('../../assets/badges/png/512/role_bloodMoon.png'),

@@ -10,8 +10,10 @@ import React, { memo, useMemo } from 'react';
 import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/theme';
-import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
+import { getBuiltinAvatarId, getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
+
+import { GeneratedAvatar, isGeneratedAvatar } from './GeneratedAvatar';
 
 interface AvatarProps {
   value: string;
@@ -28,12 +30,10 @@ interface AvatarProps {
  * Avatar component that displays either a custom uploaded avatar
  * or a deterministic lucide icon based on userId.
  *
- * Default avatar selection priority:
- * 1. avatarUrl (custom uploaded / remote)
- * 2. avatarUrl (builtin:// → local asset)
- * 3. Wolf paw icon with tint color based on userId hash (fallback)
- *
- * Memoized to prevent unnecessary re-renders when parent components update
+ * Rendering priority:
+ * 1. Remote URL → ExpoImage
+ * 2. builtin:// URL → hand-drawn Image or generated SVG
+ * 3. Wolf paw fallback
  */
 const AvatarComponent: React.FC<AvatarProps> = ({
   value,
@@ -65,11 +65,20 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     [avatarUrl],
   );
 
-  // Memoize builtin image source
-  const builtinSource = useMemo(
-    () => (avatarUrl && isBuiltinAvatarUrl(avatarUrl) ? getBuiltinAvatarImage(avatarUrl) : null),
-    [avatarUrl],
-  );
+  /**
+   * Resolve builtin:// URL into one of two variants:
+   * - { type: 'image', source } for hand-drawn avatars with local files
+   * - { type: 'generated', avatarId } for procedurally generated SVG avatars
+   * - null for non-builtin URLs
+   */
+  const builtinVariant = useMemo(() => {
+    if (!avatarUrl || !isBuiltinAvatarUrl(avatarUrl)) return null;
+    const id = getBuiltinAvatarId(avatarUrl);
+    if (isGeneratedAvatar(id)) return { type: 'generated' as const, avatarId: id };
+    const source = getBuiltinAvatarImage(avatarUrl);
+    if (source != null) return { type: 'image' as const, source };
+    return null;
+  }, [avatarUrl]);
 
   // Deterministic icon + color based on userId
   const iconInfo = useMemo(() => getAvatarIcon(value), [value]);
@@ -94,11 +103,18 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     );
   }
 
-  // 2. Builtin avatar (local asset)
-  if (builtinSource) {
+  // 2. Builtin avatar (hand-drawn image or generated SVG)
+  if (builtinVariant) {
+    if (builtinVariant.type === 'generated') {
+      return (
+        <View style={imageStyle}>
+          <GeneratedAvatar seed={builtinVariant.avatarId} size={size} />
+        </View>
+      );
+    }
     return (
       <Image
-        source={builtinSource as ImageSourcePropType}
+        source={builtinVariant.source as ImageSourcePropType}
         style={imageStyle}
         resizeMode="cover"
         accessibilityLabel="头像"

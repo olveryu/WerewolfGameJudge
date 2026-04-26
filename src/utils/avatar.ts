@@ -13,7 +13,12 @@
  * - avatarImages.web.ts — web: 512px WebP avatars + 128px WebP badges
  */
 
-import { AVATAR_IDS, type AvatarId } from '@werewolf/game-engine/growth/rewardCatalog';
+import {
+  AVATAR_IDS,
+  type AvatarId,
+  HAND_DRAWN_AVATAR_IDS,
+  type HandDrawnAvatarId,
+} from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 
@@ -21,29 +26,38 @@ import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 export const BUILTIN_AVATAR_PREFIX = 'builtin://';
 
 /**
- * Role name keys in stable sorted order (from shared catalog).
- * Each key matches the filename (without extension) in assets/avatars/raw/.
+ * All avatar ID keys in stable sorted order (from shared catalog).
+ * Includes both hand-drawn (43) and generated (150).
  */
 export const AVATAR_KEYS: readonly AvatarId[] = AVATAR_IDS;
 
-/** All local avatar image sources, in AVATAR_IDS order. */
-export const AVATAR_IMAGES: readonly number[] = AVATAR_IDS.map((id) => AVATAR_IMAGE_MAP[id]);
+/** Hand-drawn avatar keys (with actual image files) */
+export const HAND_DRAWN_KEYS: readonly HandDrawnAvatarId[] = HAND_DRAWN_AVATAR_IDS;
 
-/** All local avatar thumbnails, in AVATAR_IDS order. */
-const AVATAR_THUMBS: readonly number[] = AVATAR_IDS.map((id) => AVATAR_THUMB_MAP[id]);
+/** All hand-drawn avatar image sources, in HAND_DRAWN_AVATAR_IDS order. */
+export const AVATAR_IMAGES: readonly number[] = HAND_DRAWN_AVATAR_IDS.map(
+  (id) => AVATAR_IMAGE_MAP[id],
+);
+
+/** All hand-drawn avatar thumbnails, in HAND_DRAWN_AVATAR_IDS order. */
+const AVATAR_THUMBS: readonly number[] = HAND_DRAWN_AVATAR_IDS.map((id) => AVATAR_THUMB_MAP[id]);
 
 /**
  * Get 512px thumbnail image source by index (for grids / preview strips).
- * @param index - 0-based avatar index
+ * @param index - 0-based index into HAND_DRAWN_AVATAR_IDS
  */
 export function getAvatarThumbByIndex(index: number): number {
-  const safeIndex = Math.abs(index) % AVATAR_THUMBS.length;
-  return AVATAR_THUMBS[safeIndex];
+  return AVATAR_THUMBS[index];
 }
 
-/** Derive role name key (e.g. "seer") from 0-based index. */
-function avatarKeyForIndex(index: number): string {
-  return AVATAR_KEYS[index];
+/** Resolve a hand-drawn avatarId to its thumbnail. Returns undefined for generated/unknown IDs. */
+export function getHandDrawnThumb(avatarId: string): number | undefined {
+  return AVATAR_THUMB_MAP[avatarId as HandDrawnAvatarId];
+}
+
+/** Resolve a hand-drawn avatarId to its full-size image. Returns undefined for generated/unknown IDs. */
+export function getHandDrawnImage(avatarId: string): number | undefined {
+  return AVATAR_IMAGE_MAP[avatarId as HandDrawnAvatarId];
 }
 
 /**
@@ -111,12 +125,11 @@ export function getUniqueAvatarMap(roomId: string, uids: string[]): Map<string, 
 
 /**
  * Get avatar image source by index.
- * @param index - 0-based avatar index
+ * @param index - 0-based index into HAND_DRAWN_AVATAR_IDS
  * @returns The avatar image source (require() result)
  */
 export function getAvatarImageByIndex(index: number): number {
-  const safeIndex = Math.abs(index) % AVATAR_IMAGES.length;
-  return AVATAR_IMAGES[safeIndex];
+  return AVATAR_IMAGES[index];
 }
 
 /** Check whether an avatarUrl is a builtin avatar reference (e.g. "builtin://seer") */
@@ -124,16 +137,23 @@ export function isBuiltinAvatarUrl(url: string): boolean {
   return url.startsWith(BUILTIN_AVATAR_PREFIX);
 }
 
-/** Resolve a builtin:// URL to the local image source (require() result). */
-export function getBuiltinAvatarImage(url: string): number {
-  const key = url.slice(BUILTIN_AVATAR_PREFIX.length); // e.g. "seer"
-  const index = (AVATAR_KEYS as readonly string[]).indexOf(key);
-  if (index === -1) return AVATAR_IMAGES[0];
+/** Extract the avatar ID from a builtin:// URL (e.g. "builtin://seer" → "seer") */
+export function getBuiltinAvatarId(url: string): string {
+  return url.slice(BUILTIN_AVATAR_PREFIX.length);
+}
+
+/**
+ * Resolve a builtin:// URL to the local image source (require() result).
+ * Returns null for generated avatars (they render via GeneratedAvatar component).
+ */
+export function getBuiltinAvatarImage(url: string): number | null {
+  const key = getBuiltinAvatarId(url);
+  const index = (HAND_DRAWN_KEYS as readonly string[]).indexOf(key);
+  if (index === -1) return null;
   return AVATAR_IMAGES[index];
 }
 
-/** Create a builtin:// URL for the avatar at the given 0-based index. */
-export function makeBuiltinAvatarUrl(index: number): string {
-  const safeIndex = Math.abs(index) % AVATAR_IMAGES.length;
-  return `${BUILTIN_AVATAR_PREFIX}${avatarKeyForIndex(safeIndex)}`;
+/** Create a builtin:// URL from an avatar ID. */
+export function makeBuiltinAvatarUrl(avatarId: string): string {
+  return `${BUILTIN_AVATAR_PREFIX}${avatarId}`;
 }
