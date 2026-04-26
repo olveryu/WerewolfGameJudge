@@ -405,13 +405,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           ) : null}
 
-          {/* Seat flair animation layer — on top of avatar */}
-          {hasPlayer && FlairComponent && (
+          {/* Seat flair animation layer — on top of avatar (hidden during entrance) */}
+          {hasPlayer && !isPlayingEntrance && FlairComponent && (
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
           )}
 
-          {/* Seat pet — bottom-right corner, from equipped role reveal effect */}
-          {hasPlayer && PetComponent && (
+          {/* Seat pet — bottom-right corner, hidden during entrance animation */}
+          {hasPlayer && !isPlayingEntrance && PetComponent && (
             <View style={styles.petWrapper}>
               <PetComponent size={petSize} />
             </View>

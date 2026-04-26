@@ -61,7 +61,7 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
   return c.json(
     {
       displayName: userRow.displayName ?? '',
-      avatarUrl: userRow.customAvatarUrl ?? userRow.avatarUrl ?? undefined,
+      avatarUrl: userRow.avatarUrl ?? undefined,
       avatarFrame: userRow.avatarFrame ?? undefined,
       seatFlair: userRow.equippedFlair ?? undefined,
       nameStyle: userRow.equippedNameStyle ?? undefined,

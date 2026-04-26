@@ -23,18 +23,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { CloseButton } from '@/components/CloseButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  shadows,
-  spacing,
-  textStyles,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
@@ -195,6 +187,7 @@ export function SingleResultReveal({
   return (
     <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
       <Pressable style={[styles.overlay, { backgroundColor: overlayBg }]} onPress={onDismiss}>
+        <CloseButton onPress={onDismiss} variant="onOverlay" style={styles.closeButton} />
         {/* Radial glow for rare+ */}
         {rarity !== 'common' && (
           <Animated.View
@@ -256,16 +249,13 @@ export function SingleResultReveal({
           {item.isNew && <Text style={styles.newTag}>NEW</Text>}
         </Animated.View>
 
-        <View style={styles.bottomActions}>
-          {onGoEquip && (
+        {onGoEquip && (
+          <View style={styles.bottomActions}>
             <Pressable style={styles.equipButton} onPress={onGoEquip}>
               <Text style={styles.equipButtonText}>去装扮</Text>
             </Pressable>
-          )}
-          <Pressable onPress={onDismiss} style={styles.dismissLink}>
-            <Text style={styles.dismissText}>关闭</Text>
-          </Pressable>
-        </View>
+          </View>
+        )}
       </Pressable>
     </Modal>
   );
@@ -356,17 +346,8 @@ const styles = StyleSheet.create({
     ...textStyles.bodySemibold,
     color: colors.surface,
   },
-  dismissLink: {
-    width: '100%',
-    paddingVertical: spacing.medium,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surfaceHover,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  dismissText: {
-    ...textStyles.bodySemibold,
-    color: colors.text,
+  closeButton: {
+    top: spacing.xlarge,
+    right: spacing.screenH,
   },
 });

@@ -25,6 +25,7 @@ export const STATUS_ICONS = {
 // ── Generic UI icons ─────────────────────────────────────────
 
 export const UI_ICONS = {
+  CLOSE: 'close',
   HINT: 'bulb-outline',
   EDIT: 'create-outline',
   NOTE: 'document-text-outline',

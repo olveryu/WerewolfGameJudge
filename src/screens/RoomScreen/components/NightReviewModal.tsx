@@ -6,27 +6,13 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React, { useMemo } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
+import { CloseButton } from '@/components/CloseButton';
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  spacing,
-  textStyles,
-  type ThemeColors,
-  typography,
-} from '@/theme';
+import { colors, fixed, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
 
@@ -51,7 +37,10 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
       onClose={onClose}
       contentStyle={contentStyle}
       testID={TESTIDS.nightReviewModal}
+      dismissOnOverlayPress
     >
+      <CloseButton onPress={onClose} />
+
       <Text style={styles.title}>夜晚行动回顾</Text>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -84,18 +73,6 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
           </Text>
         ))}
       </ScrollView>
-
-      {/* Action buttons */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={styles.closeButton}
-          onPress={onClose}
-          activeOpacity={fixed.activeOpacity}
-          accessibilityLabel="关闭"
-        >
-          <Text style={styles.closeButtonText}>关闭</Text>
-        </TouchableOpacity>
-      </View>
     </BaseCenterModal>
   );
 };
@@ -135,22 +112,6 @@ function createStyles(colors: ThemeColors) {
       height: fixed.divider,
       backgroundColor: colors.border,
       marginVertical: spacing.medium,
-    },
-    buttonRow: {
-      marginTop: spacing.medium,
-    },
-    closeButton: {
-      backgroundColor: colors.surfaceHover,
-      borderRadius: borderRadius.full,
-      paddingVertical: spacing.medium,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-    },
-    closeButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.text,
     },
   });
 }

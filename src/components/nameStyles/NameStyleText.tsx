@@ -82,6 +82,10 @@ function buildWebStyle(config: NameStyleConfig): Record<string, unknown> {
     style.WebkitBackgroundClip = 'text';
     style.backgroundClip = 'text';
     style.WebkitTextFillColor = 'transparent';
+    // Force inline display so background only covers the text's inline box,
+    // preventing gradient leaking as a visible color block in WebViews (WeChat).
+    style.display = 'inline';
+    style.padding = 0;
     if (config.gradient.backgroundSize) {
       style.backgroundSize = config.gradient.backgroundSize;
     }

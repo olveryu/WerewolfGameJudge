@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { CloseButton } from '@/components/CloseButton';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import {
@@ -155,6 +156,7 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
+        <CloseButton onPress={onClose} variant="onOverlay" style={styles.closeButton} />
         <View style={styles.titleRow}>
           <Ionicons
             name={drawType === 'golden' ? 'star' : 'sparkles'}
@@ -203,16 +205,13 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
             );
           })}
         </ScrollView>
-        <View style={styles.bottomActions}>
-          {onGoEquip && (
+        {onGoEquip && (
+          <View style={styles.bottomActions}>
             <Pressable style={styles.equipButton} onPress={onGoEquip}>
               <Text style={styles.equipButtonText}>去装扮</Text>
             </Pressable>
-          )}
-          <Pressable onPress={onClose} style={styles.dismissLink}>
-            <Text style={styles.dismissText}>关闭</Text>
-          </Pressable>
-        </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -330,17 +329,8 @@ const styles = StyleSheet.create({
     ...textStyles.bodySemibold,
     color: colors.surface,
   },
-  dismissLink: {
-    width: '100%',
-    paddingVertical: spacing.medium,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surfaceHover,
-    borderWidth: fixed.borderWidth,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  dismissText: {
-    ...textStyles.bodySemibold,
-    color: colors.text,
+  closeButton: {
+    top: spacing.xlarge,
+    right: spacing.screenH,
   },
 });

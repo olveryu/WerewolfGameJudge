@@ -27,6 +27,7 @@ import { Avatar } from '@/components/Avatar';
 import { type FrameId, getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
+import { CloseButton } from '@/components/CloseButton';
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { PressableScale } from '@/components/PressableScale';
@@ -360,10 +361,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
       contentStyle={styles.modalContent}
     >
       <View style={styles.card}>
-        {/* ── Close button (top-right) ── */}
-        <PressableScale onPress={onClose} style={styles.closeButton} accessibilityLabel="关闭">
-          <Text style={styles.closeButtonText}>✕</Text>
-        </PressableScale>
+        <CloseButton onPress={onClose} />
 
         {loading && (
           <View style={styles.loadingContainer}>
@@ -521,24 +519,6 @@ const styles = StyleSheet.create({
     minHeight: 240,
     alignItems: 'center',
     overflow: 'visible',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: spacing.small,
-    right: spacing.small,
-    zIndex: 10,
-    width: componentSizes.icon.xl,
-    height: componentSizes.icon.xl,
-    borderRadius: componentSizes.icon.xl / 2,
-    backgroundColor: withAlpha(colors.text, 0.1),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeButtonText: {
-    fontSize: typography.secondary,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    lineHeight: typography.secondary,
   },
   loadingContainer: {
     height: 240,
