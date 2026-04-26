@@ -3,9 +3,11 @@ import {
   getUnlockedFlairs,
   getUnlockedFrames,
   getUnlockedNameStyles,
+  getUnlockedSeatAnimations,
   isFlairUnlocked,
   isFrameUnlocked,
   isNameStyleUnlocked,
+  isSeatAnimationUnlocked,
   pickRandomReward,
 } from '../frameUnlock';
 import {
@@ -16,25 +18,29 @@ import {
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
   FREE_ROLE_REVEAL_EFFECT_IDS,
+  FREE_SEAT_ANIMATION_IDS,
   NAME_STYLE_IDS,
   REWARD_POOL,
   ROLE_REVEAL_EFFECT_IDS,
+  SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '../rewardCatalog';
 
 describe('rewardCatalog', () => {
-  it('REWARD_POOL has correct total items (avatars + frames + flairs + nameStyles - free)', () => {
+  it('REWARD_POOL has correct total items (avatars + frames + flairs + nameStyles + roleRevealEffects + seatAnimations - free)', () => {
     expect(REWARD_POOL).toHaveLength(
       AVATAR_IDS.length +
         FRAME_IDS.length +
         SEAT_FLAIR_IDS.length +
         NAME_STYLE_IDS.length +
-        ROLE_REVEAL_EFFECT_IDS.length -
+        ROLE_REVEAL_EFFECT_IDS.length +
+        SEAT_ANIMATION_IDS.length -
         FREE_AVATAR_IDS.size -
         FREE_FRAME_IDS.size -
         FREE_FLAIR_IDS.size -
         FREE_NAME_STYLE_IDS.size -
-        FREE_ROLE_REVEAL_EFFECT_IDS.size,
+        FREE_ROLE_REVEAL_EFFECT_IDS.size -
+        FREE_SEAT_ANIMATION_IDS.size,
     );
   });
 
@@ -60,6 +66,8 @@ describe('rewardCatalog', () => {
     expect(frames).toHaveLength(200);
     expect(flairs).toHaveLength(210);
     expect(nameStyles).toHaveLength(200);
+    const seatAnimations = REWARD_POOL.filter((r) => r.type === 'seatAnimation');
+    expect(seatAnimations).toHaveLength(200);
   });
 });
 
@@ -90,6 +98,13 @@ describe('pickRandomReward', () => {
     const result = pickRandomReward(unlocked, () => 0, 7);
     expect(result).toBeDefined();
     expect(result!.type).toBe('nameStyle');
+  });
+
+  it('returns a seatAnimation at 13x level', () => {
+    const unlocked = new Set<string>();
+    const result = pickRandomReward(unlocked, () => 0, 13);
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('seatAnimation');
   });
 
   it('returns a seatFlair at level 6', () => {
@@ -249,5 +264,38 @@ describe('isNameStyleUnlocked', () => {
 
   it('unknown nameStyle returns false', () => {
     expect(isNameStyleUnlocked('nonExistent', ['silverGleam'])).toBe(false);
+  });
+});
+
+describe('getUnlockedSeatAnimations', () => {
+  it('returns only free seatAnimations with empty unlocked list', () => {
+    expect(getUnlockedSeatAnimations([])).toEqual(FREE_SEAT_ANIMATION_IDS);
+  });
+
+  it('includes unlocked seatAnimation ids', () => {
+    const unlocked = getUnlockedSeatAnimations(['wolfKingEntry', 'witchBrew']);
+    expect(unlocked.has('wolfKingEntry')).toBe(true);
+    expect(unlocked.has('witchBrew')).toBe(true);
+    expect(unlocked.size).toBe(2);
+  });
+
+  it('ignores avatar ids in unlock list', () => {
+    const unlocked = getUnlockedSeatAnimations(['seer']);
+    expect(unlocked.has('seer')).toBe(false);
+    expect(unlocked.size).toBe(0);
+  });
+});
+
+describe('isSeatAnimationUnlocked', () => {
+  it('wolfKingEntry is locked without explicit unlock', () => {
+    expect(isSeatAnimationUnlocked('wolfKingEntry', [])).toBe(false);
+  });
+
+  it('wolfKingEntry is unlocked when in list', () => {
+    expect(isSeatAnimationUnlocked('wolfKingEntry', ['wolfKingEntry'])).toBe(true);
+  });
+
+  it('unknown seatAnimation returns false', () => {
+    expect(isSeatAnimationUnlocked('nonExistent', ['wolfKingEntry'])).toBe(false);
   });
 });

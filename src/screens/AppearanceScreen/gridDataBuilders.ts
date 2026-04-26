@@ -3,11 +3,13 @@ import {
   isFrameUnlocked,
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
+  isSeatAnimationUnlocked,
 } from '@werewolf/game-engine/growth/frameUnlock';
 import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';
+import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { compareByRarity } from '@/config/rarityVisual';
@@ -21,6 +23,7 @@ import {
   type NameStyleGridItem,
   NUM_COLUMNS,
   type RarityFilter,
+  type SeatAnimationGridItem,
 } from './types';
 
 export function buildAvatarGridData(
@@ -187,4 +190,29 @@ export function filterAvatarGridData(
     }
   }
   return filtered;
+}
+
+export function buildSeatAnimationGridData(
+  unlockedIds: readonly string[],
+  currentSeatAnimationId: string | null,
+  isNoSeatAnimationActive: boolean,
+): SeatAnimationGridItem[] {
+  const none: SeatAnimationGridItem = {
+    id: 'none',
+    name: '无',
+    unlocked: true,
+    isActive: isNoSeatAnimationActive,
+    rarity: null,
+  };
+  const items: SeatAnimationGridItem[] = SEAT_ANIMATIONS.map((a) => ({
+    id: a.id,
+    name: a.name,
+    unlocked: isSeatAnimationUnlocked(a.id, unlockedIds),
+    isActive: currentSeatAnimationId === a.id,
+    rarity: getItemRarity(a.id),
+  }));
+  items.sort(
+    (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+  );
+  return [none, ...items];
 }

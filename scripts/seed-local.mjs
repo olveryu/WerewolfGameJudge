@@ -53,7 +53,14 @@ const flairIds = extractIds(catalogSrc, 'SEAT_FLAIR_IDS');
 const nameStyleIds = extractIds(catalogSrc, 'NAME_STYLE_IDS');
 const effectIds = extractIds(catalogSrc, 'ROLE_REVEAL_EFFECT_IDS');
 const seatAnimationIds = extractIds(catalogSrc, 'SEAT_ANIMATION_IDS');
-const allIds = [...avatarIds, ...frameIds, ...flairIds, ...nameStyleIds, ...effectIds, ...seatAnimationIds];
+const allIds = [
+  ...avatarIds,
+  ...frameIds,
+  ...flairIds,
+  ...nameStyleIds,
+  ...effectIds,
+  ...seatAnimationIds,
+];
 
 console.log(
   `Parsed ${avatarIds.length} avatars, ${frameIds.length} frames, ${flairIds.length} flairs, ${nameStyleIds.length} nameStyles, ${effectIds.length} effects, ${seatAnimationIds.length} seatAnimations (${allIds.length} total)`,

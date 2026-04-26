@@ -24,6 +24,9 @@ export const gachaRoutes = new Hono<AppEnv>();
 /** Minimum hours between daily reward claims (server-side cooldown guard) */
 const DAILY_REWARD_COOLDOWN_HOURS = 20;
 
+/** 每日登录奖励的普通抽奖券数 */
+const NORMAL_DRAWS_PER_DAILY_LOGIN = 2;
+
 /** GET /api/gacha/status */
 gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
@@ -234,7 +237,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
   return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
 });
 
-/** POST /api/gacha/daily-reward — 每日登录奖励：领取 1 次普通抽 */
+/** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 */
 gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
@@ -265,21 +268,21 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
         .insert(userStats)
         .values({
           userId,
-          normalDraws: 1,
+          normalDraws: NORMAL_DRAWS_PER_DAILY_LOGIN,
           lastLoginRewardAt: claimedAt,
           updatedAt: claimedAt,
         })
         .onConflictDoUpdate({
           target: userStats.userId,
           set: {
-            normalDraws: sql`${userStats.normalDraws} + 1`,
+            normalDraws: sql`${userStats.normalDraws} + ${NORMAL_DRAWS_PER_DAILY_LOGIN}`,
             lastLoginRewardAt: claimedAt,
             version: sql`${userStats.version} + 1`,
             updatedAt: sql`datetime('now')`,
           },
         });
 
-      return c.json({ claimed: true, normalDrawsAdded: 1 });
+      return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
@@ -296,7 +299,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
     const updated = await db
       .update(userStats)
       .set({
-        normalDraws: sql`${userStats.normalDraws} + 1`,
+        normalDraws: sql`${userStats.normalDraws} + ${NORMAL_DRAWS_PER_DAILY_LOGIN}`,
         lastLoginRewardAt: new Date().toISOString(),
         version: sql`${userStats.version} + 1`,
         updatedAt: sql`datetime('now')`,
@@ -308,7 +311,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
       continue;
     }
 
-    return c.json({ claimed: true, normalDrawsAdded: 1 });
+    return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
   }
 
   return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);

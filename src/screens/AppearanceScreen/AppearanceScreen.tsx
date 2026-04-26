@@ -38,6 +38,7 @@ import { HeroPreview } from './components/HeroPreview';
 import { NameStyleCell } from './components/NameStyleCell';
 import { PickerTabBar } from './components/PickerTabBar';
 import { RarityFilterBar } from './components/RarityFilterBar';
+import { SeatAnimationCell } from './components/SeatAnimationCell';
 import { useAppearanceState } from './hooks/useAppearanceState';
 import type {
   AvatarCellItem,
@@ -45,6 +46,7 @@ import type {
   FlairGridItem,
   FrameGridItem,
   NameStyleGridItem,
+  SeatAnimationGridItem,
 } from './types';
 import { FRAME_NUM_COLUMNS, NUM_COLUMNS, PREVIEW_ALL_ROLES, PREVIEW_ROLE } from './types';
 
@@ -60,6 +62,7 @@ export const AppearanceScreen: React.FC = () => {
   const flairKeyExtractor = useCallback((item: FlairGridItem) => item.id, []);
   const nameStyleKeyExtractor = useCallback((item: NameStyleGridItem) => item.id, []);
   const effectKeyExtractor = useCallback((item: EffectGridItem) => item.id, []);
+  const seatAnimationKeyExtractor = useCallback((item: SeatAnimationGridItem) => item.id, []);
 
   // ── Render callbacks ──
 
@@ -113,6 +116,26 @@ export const AppearanceScreen: React.FC = () => {
       />
     ),
     [state.selectedEffect, state.handlePressEffect, styles],
+  );
+
+  const renderSeatAnimationItem = useCallback(
+    ({ item }: ListRenderItemInfo<SeatAnimationGridItem>) => (
+      <SeatAnimationCell
+        item={item}
+        selectedSeatAnimation={state.selectedSeatAnimation}
+        previewAvatarUrl={state.previewAvatarUrl}
+        userId={state.user?.id ?? 'anonymous'}
+        onPress={state.handlePressSeatAnimation}
+        styles={styles}
+      />
+    ),
+    [
+      state.selectedSeatAnimation,
+      state.previewAvatarUrl,
+      state.user?.id,
+      state.handlePressSeatAnimation,
+      styles,
+    ],
   );
 
   const renderItem = useCallback(
@@ -324,6 +347,20 @@ export const AppearanceScreen: React.FC = () => {
             data={state.filteredEffectData}
             renderItem={renderEffectItem}
             keyExtractor={effectKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : state.activeTab === 'seatAnimation' ? (
+          <FlatList
+            key="seatAnimation"
+            data={state.filteredSeatAnimationData}
+            renderItem={renderSeatAnimationItem}
+            keyExtractor={seatAnimationKeyExtractor}
             numColumns={FRAME_NUM_COLUMNS}
             columnWrapperStyle={styles.frameColumnWrapper}
             contentContainerStyle={styles.frameGridContent}

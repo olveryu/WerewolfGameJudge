@@ -12,6 +12,7 @@ import {
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
   FREE_ROLE_REVEAL_EFFECT_IDS,
+  FREE_SEAT_ANIMATION_IDS,
   REWARD_POOL,
   REWARD_POOL_BY_ID,
   type RewardItem,
@@ -41,9 +42,11 @@ export function pickRandomReward(
         ? 'nameStyle'
         : level % 11 === 0
           ? 'roleRevealEffect'
-          : level % 3 === 0
-            ? 'seatFlair'
-            : 'avatar';
+          : level % 13 === 0
+            ? 'seatAnimation'
+            : level % 3 === 0
+              ? 'seatFlair'
+              : 'avatar';
   const preferred = REWARD_POOL.filter(
     (item) => item.type === preferredType && !unlockedIds.has(item.id),
   );
@@ -121,4 +124,21 @@ export function isRoleRevealEffectUnlocked(
   unlockedIds: readonly string[],
 ): boolean {
   return getUnlockedRoleRevealEffects(unlockedIds).has(effectId);
+}
+
+/** 已解锁入坐动画 id 集合（免费 + 玩家解锁的 seatAnimation 类型） */
+export function getUnlockedSeatAnimations(unlockedIds: readonly string[]): ReadonlySet<string> {
+  const set = new Set<string>(FREE_SEAT_ANIMATION_IDS);
+  for (const id of unlockedIds) {
+    if (REWARD_POOL_BY_ID.get(id)?.type === 'seatAnimation') set.add(id);
+  }
+  return set;
+}
+
+/** 入坐动画是否已解锁 */
+export function isSeatAnimationUnlocked(
+  animationId: string,
+  unlockedIds: readonly string[],
+): boolean {
+  return getUnlockedSeatAnimations(unlockedIds).has(animationId);
 }

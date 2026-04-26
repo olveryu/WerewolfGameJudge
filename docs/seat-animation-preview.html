@@ -1,0 +1,2333 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>入坐动画预览 — 狼人杀扭蛋奖励</title>
+    <style>
+      :root {
+        --bg: #0f1117;
+        --card: #1a1d28;
+        --border: #2a2d3a;
+        --text: #e2e8f0;
+        --text-muted: #8892a4;
+        --common: #a0aec0;
+        --rare: #63b3ed;
+        --epic: #b794f4;
+        --legendary: #f6e05e;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+        padding: 24px;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      h2 {
+        font-size: 20px;
+        margin: 32px 0 16px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      h2 .badge {
+        font-size: 12px;
+        padding: 2px 10px;
+        border-radius: 10px;
+        font-weight: 600;
+      }
+      .badge-common {
+        background: var(--common);
+        color: #1a202c;
+      }
+      .badge-rare {
+        background: var(--rare);
+        color: #1a202c;
+      }
+      .badge-epic {
+        background: var(--epic);
+        color: #1a202c;
+      }
+      .badge-legendary {
+        background: var(--legendary);
+        color: #1a202c;
+      }
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .grid.large {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      }
+      .tile-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .tile {
+        width: 100px;
+        height: 100px;
+        border-radius: 18px;
+        background: #252836;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid var(--border);
+        transition: border-color 0.2s;
+      }
+      .tile:hover {
+        border-color: #4a5568;
+      }
+      .tile .avatar {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
+        background: url('../assets/avatars/web/wolfKing.webp') center/cover no-repeat;
+        border-radius: 18px;
+      }
+      .tile .avatar span {
+        display: none;
+      }
+      .tile .anim-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+        pointer-events: none;
+      }
+      .tile-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-align: center;
+        max-width: 120px;
+        word-break: break-all;
+      }
+      .replay-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 16px;
+      }
+
+      /* ========= COMMON KEYFRAMES ========= */
+      @keyframes anim-fade {
+        0% {
+          opacity: 0;
+          transform: scale(0.85);
+        }
+        60% {
+          opacity: 1;
+          transform: scale(1.02);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes anim-slideUp {
+        0% {
+          opacity: 0;
+          transform: translateY(40px);
+        }
+        70% {
+          opacity: 1;
+          transform: translateY(-4px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes anim-slideDown {
+        0% {
+          opacity: 0;
+          transform: translateY(-40px);
+        }
+        70% {
+          opacity: 1;
+          transform: translateY(4px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes anim-zoomIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.1);
+        }
+        60% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+        80% {
+          transform: scale(0.96);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes anim-zoomOut {
+        0% {
+          opacity: 0;
+          transform: scale(2.5);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(0.92);
+        }
+        80% {
+          opacity: 1;
+          transform: scale(1.04);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes anim-spin {
+        0% {
+          opacity: 0;
+          transform: rotate(-360deg) scale(0.5);
+        }
+        60% {
+          opacity: 1;
+          transform: rotate(15deg) scale(1.05);
+        }
+        80% {
+          transform: rotate(-5deg) scale(0.98);
+        }
+        100% {
+          opacity: 1;
+          transform: rotate(0deg) scale(1);
+        }
+      }
+      @keyframes anim-bounce {
+        0% {
+          opacity: 0;
+          transform: translateY(60px) scale(0.8);
+        }
+        30% {
+          opacity: 1;
+          transform: translateY(-15px) scale(1.05);
+        }
+        50% {
+          transform: translateY(8px) scale(0.97);
+        }
+        70% {
+          transform: translateY(-4px) scale(1.02);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes anim-flip {
+        0% {
+          opacity: 0;
+          transform: perspective(400px) rotateY(90deg);
+        }
+        50% {
+          opacity: 0.8;
+          transform: perspective(400px) rotateY(-10deg);
+        }
+        80% {
+          opacity: 1;
+          transform: perspective(400px) rotateY(3deg);
+        }
+        100% {
+          opacity: 1;
+          transform: perspective(400px) rotateY(0deg);
+        }
+      }
+      @keyframes anim-blur {
+        0% {
+          opacity: 0;
+          transform: scale(1.3);
+          filter: blur(12px);
+        }
+        60% {
+          opacity: 0.8;
+          transform: scale(1.02);
+          filter: blur(3px);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: blur(0px);
+        }
+      }
+      @keyframes anim-pop {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.25);
+        }
+        70% {
+          transform: scale(0.9);
+        }
+        85% {
+          transform: scale(1.08);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* ========= RARE KEYFRAMES ========= */
+      @keyframes anim-spiral-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.3) rotate(-180deg);
+        }
+        60% {
+          opacity: 0.5;
+          transform: scale(0.8) rotate(-30deg);
+        }
+        85% {
+          opacity: 1;
+          transform: scale(1.05) rotate(5deg);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+      @keyframes spiral-orbit {
+        0% {
+          transform: rotate(0deg) translateX(40px) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        90% {
+          opacity: 1;
+        }
+        100% {
+          transform: rotate(720deg) translateX(0px) rotate(-720deg);
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-tl {
+        0% {
+          transform: translate(-45px, -45px) rotate(-30deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translate(0, 0) rotate(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-tr {
+        0% {
+          transform: translate(45px, -45px) rotate(30deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translate(0, 0) rotate(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-bl {
+        0% {
+          transform: translate(-45px, 45px) rotate(30deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translate(0, 0) rotate(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-br {
+        0% {
+          transform: translate(45px, 45px) rotate(-30deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translate(0, 0) rotate(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-t {
+        0% {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-b {
+        0% {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-l {
+        0% {
+          transform: translateX(-50px);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes shatter-r {
+        0% {
+          transform: translateX(50px);
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        70% {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes anim-shatter-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        70% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        85% {
+          opacity: 1;
+          transform: scale(1.06);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes portal-ring {
+        0% {
+          r: 5;
+          opacity: 0;
+          stroke-width: 3;
+        }
+        20% {
+          opacity: 1;
+        }
+        70% {
+          r: 45;
+          opacity: 0.6;
+          stroke-width: 1;
+        }
+        100% {
+          r: 55;
+          opacity: 0;
+          stroke-width: 0.5;
+        }
+      }
+      @keyframes anim-portal-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        60% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        80% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes lightning-flash {
+        0% {
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        25% {
+          opacity: 0;
+        }
+        35% {
+          opacity: 1;
+        }
+        45% {
+          opacity: 0.3;
+        }
+        50% {
+          opacity: 1;
+        }
+        70% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes anim-lightning-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.8);
+          filter: brightness(3);
+        }
+        50% {
+          opacity: 0;
+          transform: scale(0.8);
+          filter: brightness(3);
+        }
+        65% {
+          opacity: 1;
+          transform: scale(1.1);
+          filter: brightness(2);
+        }
+        80% {
+          transform: scale(0.98);
+          filter: brightness(1.2);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: brightness(1);
+        }
+      }
+      @keyframes bloom-petal {
+        0% {
+          opacity: 0;
+          transform: rotate(var(--rot)) translateY(0) scale(0.3);
+        }
+        30% {
+          opacity: 1;
+          transform: rotate(var(--rot)) translateY(-10px) scale(1);
+        }
+        70% {
+          opacity: 0.8;
+          transform: rotate(var(--rot)) translateY(-30px) scale(0.8);
+        }
+        100% {
+          opacity: 0;
+          transform: rotate(var(--rot)) translateY(-45px) scale(0.3);
+        }
+      }
+      @keyframes anim-bloom-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        55% {
+          opacity: 0;
+          transform: scale(0.6);
+        }
+        75% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      /* ========= EPIC KEYFRAMES ========= */
+      @keyframes wolfClaw1 {
+        0% {
+          clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
+          opacity: 0;
+        }
+        20% {
+          opacity: 1;
+        }
+        50% {
+          clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+        }
+        100% {
+          clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+          opacity: 0;
+        }
+      }
+      @keyframes wolfClaw-avatar {
+        0% {
+          opacity: 0;
+          clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
+        }
+        40% {
+          opacity: 0;
+          clip-path: polygon(50% 0%, 50% 0%, 50% 100%, 50% 100%);
+        }
+        70% {
+          opacity: 1;
+          clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+        }
+        100% {
+          opacity: 1;
+          clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+        }
+      }
+      @keyframes moonrise {
+        0% {
+          transform: translateY(80px) scale(0.3);
+          opacity: 0;
+        }
+        40% {
+          transform: translateY(10px) scale(1.1);
+          opacity: 1;
+        }
+        60% {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-10px) scale(1.2);
+        }
+      }
+      @keyframes moonrise-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0.2);
+        }
+        50% {
+          opacity: 0;
+          filter: brightness(0.2);
+        }
+        70% {
+          opacity: 1;
+          filter: brightness(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1);
+        }
+      }
+      @keyframes bloodMist {
+        0% {
+          opacity: 0;
+          filter: blur(15px);
+          transform: scale(2);
+        }
+        30% {
+          opacity: 0.6;
+          filter: blur(8px);
+          transform: scale(1.3);
+        }
+        70% {
+          opacity: 0.8;
+          filter: blur(2px);
+          transform: scale(1);
+        }
+        100% {
+          opacity: 0;
+          filter: blur(0);
+          transform: scale(0.9);
+        }
+      }
+      @keyframes bloodMist-avatar {
+        0% {
+          opacity: 0;
+          filter: blur(8px) saturate(3);
+        }
+        60% {
+          opacity: 0;
+          filter: blur(8px) saturate(3);
+        }
+        80% {
+          opacity: 1;
+          filter: blur(1px) saturate(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: blur(0) saturate(1);
+        }
+      }
+      @keyframes fireRebirth-flame {
+        0% {
+          opacity: 0;
+          transform: scaleY(0);
+        }
+        20% {
+          opacity: 1;
+          transform: scaleY(1.2);
+        }
+        60% {
+          opacity: 1;
+          transform: scaleY(1);
+        }
+        80% {
+          opacity: 0.5;
+          transform: scaleY(0.3);
+        }
+        100% {
+          opacity: 0;
+          transform: scaleY(0);
+        }
+      }
+      @keyframes fireRebirth-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        55% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        70% {
+          opacity: 1;
+          filter: brightness(2) saturate(2);
+        }
+        85% {
+          filter: brightness(1.2) saturate(1.3);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1) saturate(1);
+        }
+      }
+      @keyframes frostCrystal {
+        0% {
+          opacity: 0;
+          transform: scale(0.2) rotate(0deg);
+        }
+        40% {
+          opacity: 1;
+          transform: scale(1.1) rotate(60deg);
+        }
+        70% {
+          opacity: 1;
+          transform: scale(1) rotate(90deg);
+        }
+        85% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.3) rotate(120deg);
+        }
+      }
+      @keyframes frost-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(2) hue-rotate(180deg);
+        }
+        60% {
+          opacity: 0;
+          filter: brightness(2) hue-rotate(180deg);
+        }
+        80% {
+          opacity: 1;
+          filter: brightness(1.3) hue-rotate(30deg);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1) hue-rotate(0deg);
+        }
+      }
+      @keyframes shadowVortex {
+        0% {
+          opacity: 0;
+          transform: rotate(0deg) scale(2);
+        }
+        30% {
+          opacity: 0.8;
+          transform: rotate(180deg) scale(0.8);
+        }
+        60% {
+          opacity: 1;
+          transform: rotate(360deg) scale(0.5);
+        }
+        100% {
+          opacity: 0;
+          transform: rotate(540deg) scale(0);
+        }
+      }
+      @keyframes shadow-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0) rotate(180deg);
+        }
+        50% {
+          opacity: 0;
+          transform: scale(0) rotate(90deg);
+        }
+        75% {
+          opacity: 1;
+          transform: scale(1.1) rotate(-5deg);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1) rotate(0deg);
+        }
+      }
+      @keyframes runeActivate {
+        0% {
+          opacity: 0;
+          stroke-dashoffset: 300;
+        }
+        30% {
+          opacity: 1;
+          stroke-dashoffset: 150;
+        }
+        70% {
+          opacity: 1;
+          stroke-dashoffset: 0;
+        }
+        100% {
+          opacity: 0;
+          stroke-dashoffset: 0;
+        }
+      }
+      @keyframes rune-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0.3);
+        }
+        65% {
+          opacity: 0;
+          filter: brightness(0.3);
+        }
+        80% {
+          opacity: 1;
+          filter: brightness(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1);
+        }
+      }
+      @keyframes chainBreak-l {
+        0% {
+          transform: translateX(0) rotate(0);
+          opacity: 1;
+        }
+        30% {
+          transform: translateX(0) rotate(0);
+          opacity: 1;
+        }
+        60% {
+          transform: translateX(-30px) rotate(-20deg);
+          opacity: 0.5;
+        }
+        100% {
+          transform: translateX(-50px) rotate(-40deg);
+          opacity: 0;
+        }
+      }
+      @keyframes chainBreak-r {
+        0% {
+          transform: translateX(0) rotate(0);
+          opacity: 1;
+        }
+        30% {
+          transform: translateX(0) rotate(0);
+          opacity: 1;
+        }
+        60% {
+          transform: translateX(30px) rotate(20deg);
+          opacity: 0.5;
+        }
+        100% {
+          transform: translateX(50px) rotate(40deg);
+          opacity: 0;
+        }
+      }
+      @keyframes chain-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        40% {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        60% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes poisonDrip {
+        0% {
+          transform: translateY(-40px);
+          opacity: 0;
+        }
+        20% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+        50% {
+          transform: translateY(30px);
+          opacity: 0.8;
+        }
+        100% {
+          transform: translateY(50px);
+          opacity: 0;
+        }
+      }
+      @keyframes poison-avatar {
+        0% {
+          opacity: 0;
+          filter: hue-rotate(90deg) brightness(0.5);
+        }
+        50% {
+          opacity: 0;
+          filter: hue-rotate(90deg) brightness(0.5);
+        }
+        70% {
+          opacity: 0.8;
+          filter: hue-rotate(30deg) brightness(1.3);
+        }
+        100% {
+          opacity: 1;
+          filter: hue-rotate(0deg) brightness(1);
+        }
+      }
+
+      /* ========= LEGENDARY KEYFRAMES ========= */
+      @keyframes lWolfShadow {
+        0% {
+          opacity: 0;
+          transform: scale(0.5);
+          filter: blur(10px);
+        }
+        15% {
+          opacity: 0.7;
+          transform: scale(1.2);
+          filter: blur(5px);
+        }
+        30% {
+          opacity: 0;
+          transform: scale(1.5);
+          filter: blur(15px);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lWolfHowl {
+        0% {
+          opacity: 0;
+          r: 5;
+        }
+        25% {
+          opacity: 0;
+        }
+        35% {
+          opacity: 1;
+          r: 8;
+        }
+        55% {
+          opacity: 0.5;
+          r: 40;
+        }
+        65% {
+          opacity: 0;
+          r: 50;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lWolfGoldBurst {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        55% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        65% {
+          opacity: 1;
+          transform: scale(1.3);
+        }
+        80% {
+          opacity: 0.6;
+          transform: scale(2);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(2.5);
+        }
+      }
+      @keyframes lWolf-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.3);
+          filter: brightness(0);
+        }
+        65% {
+          opacity: 0;
+          transform: scale(0.3);
+          filter: brightness(0);
+        }
+        80% {
+          opacity: 1;
+          transform: scale(1.1);
+          filter: brightness(2);
+        }
+        90% {
+          transform: scale(0.97);
+          filter: brightness(1.2);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: brightness(1);
+        }
+      }
+      @keyframes lWitchBubble {
+        0% {
+          opacity: 0;
+          r: 2;
+          cy: 70;
+        }
+        10% {
+          opacity: 1;
+        }
+        50% {
+          r: 4;
+          cy: 40;
+          opacity: 0.8;
+        }
+        100% {
+          r: 1;
+          cy: 10;
+          opacity: 0;
+        }
+      }
+      @keyframes lWitchSteam {
+        0% {
+          opacity: 0;
+          transform: translateY(0) scale(1);
+          filter: blur(2px);
+        }
+        25% {
+          opacity: 0;
+        }
+        35% {
+          opacity: 0.6;
+          transform: translateY(-10px) scale(1.2);
+          filter: blur(4px);
+        }
+        60% {
+          opacity: 0.3;
+          transform: translateY(-30px) scale(1.5);
+          filter: blur(8px);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-50px) scale(2);
+          filter: blur(12px);
+        }
+      }
+      @keyframes lWitch-avatar {
+        0% {
+          opacity: 0;
+          filter: hue-rotate(120deg) brightness(0.3);
+        }
+        70% {
+          opacity: 0;
+          filter: hue-rotate(120deg) brightness(0.3);
+        }
+        85% {
+          opacity: 1;
+          filter: hue-rotate(20deg) brightness(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: hue-rotate(0deg) brightness(1);
+        }
+      }
+      @keyframes lSeerCrystal {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        20% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(0.9);
+        }
+        35% {
+          opacity: 0;
+          transform: scale(2);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lSeerStar {
+        0% {
+          opacity: 0;
+        }
+        30% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+          transform: scale(0.5);
+        }
+        60% {
+          opacity: 0.8;
+          transform: scale(1.5);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(3);
+        }
+      }
+      @keyframes lSeer-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        55% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        70% {
+          opacity: 1;
+          transform: scale(1.12);
+          filter: brightness(1.8);
+        }
+        85% {
+          transform: scale(0.96);
+          filter: brightness(1.1);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+          filter: brightness(1);
+        }
+      }
+      @keyframes lHunterCrosshair {
+        0% {
+          opacity: 0;
+          transform: scale(3);
+        }
+        15% {
+          opacity: 1;
+          transform: scale(1.5);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        35% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lHunterFlash {
+        0% {
+          opacity: 0;
+        }
+        32% {
+          opacity: 0;
+        }
+        35% {
+          opacity: 1;
+        }
+        40% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lHunterHole {
+        0% {
+          r: 0;
+          opacity: 0;
+        }
+        35% {
+          r: 0;
+          opacity: 0;
+        }
+        45% {
+          r: 5;
+          opacity: 1;
+        }
+        70% {
+          r: 45;
+          opacity: 0.8;
+        }
+        100% {
+          r: 55;
+          opacity: 0;
+        }
+      }
+      @keyframes lHunter-avatar {
+        0% {
+          opacity: 0;
+          clip-path: circle(0% at 50% 50%);
+        }
+        45% {
+          opacity: 0;
+          clip-path: circle(0% at 50% 50%);
+        }
+        65% {
+          opacity: 1;
+          clip-path: circle(55% at 50% 50%);
+        }
+        100% {
+          opacity: 1;
+          clip-path: circle(100% at 50% 50%);
+        }
+      }
+      @keyframes lGuardShield {
+        0% {
+          opacity: 0;
+          transform: translateY(-60px) rotate(720deg) scale(0.3);
+        }
+        25% {
+          opacity: 1;
+          transform: translateY(5px) rotate(0deg) scale(1.1);
+        }
+        35% {
+          transform: translateY(0) rotate(0deg) scale(1);
+        }
+        60% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.5);
+        }
+      }
+      @keyframes lGuardAura {
+        0% {
+          opacity: 0;
+          r: 20;
+        }
+        30% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 0.6;
+          r: 25;
+        }
+        70% {
+          opacity: 0.4;
+          r: 45;
+        }
+        100% {
+          opacity: 0;
+          r: 55;
+        }
+      }
+      @keyframes lGuard-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        55% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        70% {
+          opacity: 1;
+          transform: scale(1.08);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      @keyframes lNightSun {
+        0% {
+          opacity: 1;
+          transform: translateY(0);
+          fill: #f6ad55;
+        }
+        25% {
+          opacity: 0;
+          transform: translateY(40px);
+          fill: #e53e3e;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lNightStar {
+        0% {
+          opacity: 0;
+        }
+        25% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+        }
+        70% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lNightMoon {
+        0% {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        40% {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        60% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+      }
+      @keyframes lNight-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        70% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        85% {
+          opacity: 1;
+          filter: brightness(0.8);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1);
+        }
+      }
+      @keyframes lDawnHorizon {
+        0% {
+          opacity: 0;
+          transform: scaleX(0);
+        }
+        15% {
+          opacity: 1;
+          transform: scaleX(1);
+        }
+        40% {
+          opacity: 1;
+        }
+        60% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lDawnRay {
+        0% {
+          opacity: 0;
+          transform: scaleY(0);
+        }
+        15% {
+          opacity: 0;
+        }
+        30% {
+          opacity: 0.8;
+          transform: scaleY(1);
+        }
+        60% {
+          opacity: 0.3;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lDawnBird {
+        0% {
+          opacity: 0;
+          transform: translateX(-30px) translateY(10px);
+        }
+        40% {
+          opacity: 0;
+        }
+        55% {
+          opacity: 1;
+          transform: translateX(0) translateY(0);
+        }
+        70% {
+          opacity: 1;
+          transform: translateX(10px) translateY(-5px);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(30px) translateY(-10px);
+        }
+      }
+      @keyframes lDawn-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0.2);
+        }
+        65% {
+          opacity: 0;
+          filter: brightness(0.2);
+        }
+        80% {
+          opacity: 1;
+          filter: brightness(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1);
+        }
+      }
+      @keyframes lBloodRipple {
+        0% {
+          r: 5;
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.8;
+        }
+        50% {
+          r: 40;
+          opacity: 0.3;
+        }
+        100% {
+          r: 55;
+          opacity: 0;
+        }
+      }
+      @keyframes lBloodMoon {
+        0% {
+          opacity: 0;
+          transform: translateY(30px) scale(0.5);
+        }
+        20% {
+          opacity: 0;
+        }
+        35% {
+          opacity: 1;
+          transform: translateY(5px) scale(1);
+        }
+        55% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        70% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lBloodWolf {
+        0% {
+          opacity: 0;
+          transform: translateX(-40px);
+        }
+        50% {
+          opacity: 0;
+        }
+        60% {
+          opacity: 0.8;
+          transform: translateX(-10px);
+        }
+        70% {
+          opacity: 0.6;
+          transform: translateX(40px);
+        }
+        80% {
+          opacity: 0;
+          transform: translateX(60px);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lBlood-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0) saturate(3);
+        }
+        72% {
+          opacity: 0;
+          filter: brightness(0) saturate(3);
+        }
+        85% {
+          opacity: 1;
+          filter: brightness(1.3) saturate(1.5);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1) saturate(1);
+        }
+      }
+      @keyframes lSpiritFlame {
+        0% {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        10% {
+          opacity: 0.8;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 0.5;
+          transform: translateY(-20px);
+        }
+        60% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lSpiritCircle {
+        0% {
+          opacity: 0;
+          stroke-dashoffset: 300;
+        }
+        20% {
+          opacity: 0;
+        }
+        40% {
+          opacity: 1;
+          stroke-dashoffset: 150;
+        }
+        65% {
+          opacity: 1;
+          stroke-dashoffset: 0;
+        }
+        80% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lSpiritGather {
+        0% {
+          opacity: 0;
+        }
+        60% {
+          opacity: 0;
+        }
+        70% {
+          opacity: 1;
+          r: 15;
+        }
+        85% {
+          opacity: 0.5;
+          r: 5;
+        }
+        100% {
+          opacity: 0;
+          r: 0;
+        }
+      }
+      @keyframes lSpirit-avatar {
+        0% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        75% {
+          opacity: 0;
+          filter: brightness(0);
+        }
+        88% {
+          opacity: 1;
+          filter: brightness(1.8);
+        }
+        100% {
+          opacity: 1;
+          filter: brightness(1);
+        }
+      }
+      @keyframes lCardDrop {
+        0% {
+          opacity: 0;
+          transform: translateY(-80px) rotate(0deg) scale(0.8);
+        }
+        20% {
+          opacity: 1;
+          transform: translateY(0) rotate(0deg) scale(1);
+        }
+        35% {
+          transform: translateY(0) rotate(0deg) scale(1);
+        }
+        55% {
+          transform: translateY(0) rotateY(180deg) scale(1);
+        }
+        70% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 0;
+          transform: translateY(0) rotateY(180deg) scale(1.2);
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+      @keyframes lCard-avatar {
+        0% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        70% {
+          opacity: 0;
+          transform: scale(0.5);
+        }
+        85% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+        95% {
+          transform: scale(0.97);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      .controls {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        gap: 8px;
+        z-index: 100;
+      }
+      .controls button {
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .controls button:hover {
+        background: #2a2d3a;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🐺 入坐动画预览</h1>
+    <p class="subtitle">点击任意座位重播动画。每种类型展示代表性示例。</p>
+
+    <h2>Common 基础动画 <span class="badge badge-common">×100 = 10模板×10色</span></h2>
+    <p class="replay-hint">每个模板展示一种颜色，实际每个模板有 10 色变体。最低时长 2.0s。</p>
+    <div class="grid" id="common-grid"></div>
+
+    <h2>Rare 进阶动画 <span class="badge badge-rare">×50 = 5模板×10色</span></h2>
+    <p class="replay-hint">SVG 粒子/特效层 + 头像入场。最低时长 2.5s。</p>
+    <div class="grid large" id="rare-grid"></div>
+
+    <h2>Epic 史诗动画 <span class="badge badge-epic">×40 手工设计</span></h2>
+    <p class="replay-hint">狼人杀主题，每个独特视觉叙事。最低时长 3.0s。展示 10 个代表作。</p>
+    <div class="grid large" id="epic-grid"></div>
+
+    <h2>Legendary 传说动画 <span class="badge badge-legendary">×10 最高制作</span></h2>
+    <p class="replay-hint">多阶段组合动效，4s+ 节奏感叙事。全部 10 个。</p>
+    <div class="grid large" id="legendary-grid"></div>
+
+    <div class="controls">
+      <button onclick="replayAll()">🔄 全部重播</button>
+    </div>
+
+    <script>
+      const AVATAR = '';
+
+      // ======== COMMON ========
+      const COMMON_TEMPLATES = [
+        { name: 'fade', color: '#e53e3e', label: 'fadeRedEnter', dur: '2s', ease: 'ease-out' },
+        {
+          name: 'slideUp',
+          color: '#dd6b20',
+          label: 'slideUpOrangeEnter',
+          dur: '2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+        {
+          name: 'slideDown',
+          color: '#d69e2e',
+          label: 'slideDownAmberEnter',
+          dur: '2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+        {
+          name: 'zoomIn',
+          color: '#38a169',
+          label: 'zoomInGreenEnter',
+          dur: '2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+        {
+          name: 'zoomOut',
+          color: '#319795',
+          label: 'zoomOutTealEnter',
+          dur: '2.2s',
+          ease: 'ease-out',
+        },
+        {
+          name: 'spin',
+          color: '#3182ce',
+          label: 'spinBlueEnter',
+          dur: '2.2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+        {
+          name: 'bounce',
+          color: '#5a67d8',
+          label: 'bounceIndigoEnter',
+          dur: '2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+        { name: 'flip', color: '#805ad5', label: 'flipPurpleEnter', dur: '2s', ease: 'ease-out' },
+        { name: 'blur', color: '#d53f8c', label: 'blurPinkEnter', dur: '2.2s', ease: 'ease-out' },
+        {
+          name: 'pop',
+          color: '#718096',
+          label: 'popGrayEnter',
+          dur: '2s',
+          ease: 'cubic-bezier(0.34,1.56,0.64,1)',
+        },
+      ];
+
+      function createCommonTile(t) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile-wrapper';
+        wrapper.innerHTML = `
+    <div class="tile" data-type="common" data-anim="${t.name}" data-dur="${t.dur}" data-ease="${t.ease}" data-color="${t.color}">
+      <div class="avatar" style="animation: anim-${t.name} ${t.dur} ${t.ease} forwards;">${AVATAR}</div>
+    </div>
+    <div class="tile-label" style="color:${t.color}">${t.label}</div>
+  `;
+        return wrapper;
+      }
+
+      // ======== RARE ========
+      const RARE_TEMPLATES = [
+        { name: 'spiral', color: '#e53e3e', light: '#feb2b2', label: 'spiralRedEnter' },
+        { name: 'shatter', color: '#3182ce', light: '#90cdf4', label: 'shatterBlueEnter' },
+        { name: 'portal', color: '#805ad5', light: '#d6bcfa', label: 'portalPurpleEnter' },
+        { name: 'lightning', color: '#d69e2e', light: '#faf089', label: 'lightningAmberEnter' },
+        { name: 'bloom', color: '#d53f8c', light: '#fbb6ce', label: 'bloomPinkEnter' },
+      ];
+
+      function createSpiralSvg(c, light) {
+        const particles = [];
+        for (let i = 0; i < 12; i++) {
+          const delay = (i / 12) * 2;
+          particles.push(`<circle cx="50" cy="50" r="3" fill="${i % 2 === 0 ? c : light}"
+      style="transform-origin:50px 50px; animation: spiral-orbit 2.5s ease-in ${delay}s forwards; opacity:0;" />`);
+        }
+        return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">${particles.join('')}</svg>`;
+      }
+
+      function createShatterSvg(c, light) {
+        // 8 pieces converging from 8 directions to center area
+        const pieces = [
+          { x: 25, y: 25, anim: 'shatter-tl', delay: 0 },
+          { x: 60, y: 25, anim: 'shatter-tr', delay: 0.06 },
+          { x: 25, y: 60, anim: 'shatter-bl', delay: 0.12 },
+          { x: 60, y: 60, anim: 'shatter-br', delay: 0.18 },
+          { x: 42, y: 20, anim: 'shatter-t', delay: 0.08 },
+          { x: 42, y: 65, anim: 'shatter-b', delay: 0.14 },
+          { x: 18, y: 42, anim: 'shatter-l', delay: 0.1 },
+          { x: 65, y: 42, anim: 'shatter-r', delay: 0.16 },
+        ];
+        return `<svg viewBox="0 0 100 100" style="width:100%;height:100%;overflow:visible">
+    ${pieces
+      .map(
+        (p, i) => `<rect x="${p.x}" y="${p.y}" width="15" height="15" rx="3"
+      fill="${i % 2 === 0 ? c : light}" opacity="0"
+      style="transform-origin:${p.x + 7.5}px ${p.y + 7.5}px;animation: ${p.anim} 2.5s ease-out ${p.delay}s forwards;" />`,
+      )
+      .join('')}
+  </svg>`;
+      }
+
+      function createPortalSvg(c, light) {
+        const rings = [];
+        for (let i = 0; i < 4; i++) {
+          const delay = i * 0.3;
+          rings.push(`<circle cx="50" cy="50" r="5" fill="none" stroke="${i % 2 === 0 ? c : light}" stroke-width="2"
+      style="animation: portal-ring 2.5s ease-out ${delay}s forwards; opacity:0;" />`);
+        }
+        return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">${rings.join('')}</svg>`;
+      }
+
+      function createLightningSvg(c, light) {
+        return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">
+    <path d="M55 5 L40 42 L55 42 L38 95 L65 50 L48 50 Z" fill="${c}"
+      style="animation: lightning-flash 2.5s ease-out forwards;" />
+    <path d="M58 10 L45 40 L57 40 L42 88 L63 48 L50 48 Z" fill="${light}" opacity="0.5"
+      style="animation: lightning-flash 2.5s ease-out 0.1s forwards;" />
+    <rect x="0" y="0" width="100" height="100" fill="${light}" opacity="0"
+      style="animation: lHunterFlash 2.5s ease-out 0.3s forwards;" />
+  </svg>`;
+      }
+
+      function createBloomSvg(c, light) {
+        const petals = [];
+        for (let i = 0; i < 8; i++) {
+          const rot = (i / 8) * 360;
+          const delay = i * 0.1;
+          petals.push(`<ellipse cx="50" cy="50" rx="6" ry="15" fill="${i % 2 === 0 ? c : light}" opacity="0"
+      style="--rot:${rot}deg; transform-origin:50px 50px; animation: bloom-petal 2.5s ease-out ${delay}s forwards;" />`);
+        }
+        return `<svg viewBox="0 0 100 100" style="width:100%;height:100%">${petals.join('')}</svg>`;
+      }
+
+      const RARE_SVG_CREATORS = {
+        spiral: createSpiralSvg,
+        shatter: createShatterSvg,
+        portal: createPortalSvg,
+        lightning: createLightningSvg,
+        bloom: createBloomSvg,
+      };
+
+      function createRareTile(t) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile-wrapper';
+        const avatarAnim = {
+          spiral: 'anim-spiral-avatar',
+          shatter: 'anim-shatter-avatar',
+          portal: 'anim-portal-avatar',
+          lightning: 'anim-lightning-avatar',
+          bloom: 'anim-bloom-avatar',
+        }[t.name];
+        wrapper.innerHTML = `
+    <div class="tile" data-type="rare" data-anim="${t.name}" data-color="${t.color}" data-light="${t.light}">
+      <div class="anim-layer">${RARE_SVG_CREATORS[t.name](t.color, t.light)}</div>
+      <div class="avatar" style="animation: ${avatarAnim} 2.5s ease-out forwards;">${AVATAR}</div>
+    </div>
+    <div class="tile-label" style="color:${t.color}">${t.label}</div>
+  `;
+        return wrapper;
+      }
+
+      // ======== EPIC ========
+      const EPIC_SAMPLES = [
+        {
+          id: 'wolfClawEnter',
+          label: '狼爪撕裂',
+          avatarAnim: 'wolfClaw-avatar',
+          dur: '3s',
+          overlay: (s) => `<div style="position:absolute;inset:0;z-index:3;pointer-events:none;">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1a1a2e,#16213e);
+        animation: wolfClaw1 ${s} ease-out forwards;">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+          <path d="M20 0 L25 40 L15 45 L30 100" stroke="#e53e3e" stroke-width="3" fill="none" opacity="0.8"/>
+          <path d="M45 0 L50 35 L40 40 L55 100" stroke="#e53e3e" stroke-width="3" fill="none" opacity="0.8"/>
+          <path d="M70 0 L75 38 L65 42 L80 100" stroke="#e53e3e" stroke-width="3" fill="none" opacity="0.8"/>
+        </svg>
+      </div>
+    </div>`,
+        },
+        {
+          id: 'moonriseEnter',
+          label: '满月升起',
+          avatarAnim: 'moonrise-avatar',
+          dur: '3.2s',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+        <circle cx="50" cy="50" r="18" fill="#f6e05e" opacity="0.15"
+          style="animation: moonrise ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="12" fill="#f6ad55" opacity="0.3"
+          style="animation: moonrise ${s} ease-out 0.15s forwards;" />
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'bloodMistEnter',
+          label: '血雾凝聚',
+          avatarAnim: 'bloodMist-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;inset:-10px;border-radius:18px;background:radial-gradient(circle,#c53030 0%,transparent 70%);
+        animation: bloodMist ${s} ease-out forwards;"></div>
+    </div>`,
+        },
+        {
+          id: 'fireRebirthEnter',
+          label: '浴火重生',
+          avatarAnim: 'fireRebirth-avatar',
+          dur: '3.2s',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;bottom:0;left:10%;right:10%;height:100%;
+        background:linear-gradient(0deg,#e53e3e,#dd6b20,#f6e05e,transparent);
+        border-radius:18px;transform-origin:bottom;
+        animation: fireRebirth-flame ${s} ease-out forwards;"></div>
+    </div>`,
+        },
+        {
+          id: 'frostCrystalEnter',
+          label: '冰霜结晶',
+          avatarAnim: 'frost-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+        <polygon points="50,10 55,45 90,50 55,55 50,90 45,55 10,50 45,45" fill="none"
+          stroke="#90cdf4" stroke-width="1.5" opacity="0"
+          style="transform-origin:50px 50px;animation: frostCrystal ${s} ease-out forwards;" />
+        <polygon points="50,20 53,45 80,50 53,55 50,80 47,55 20,50 47,45" fill="none"
+          stroke="#bee3f8" stroke-width="1" opacity="0"
+          style="transform-origin:50px 50px;animation: frostCrystal ${s} ease-out 0.2s forwards;" />
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'shadowVortexEnter',
+          label: '暗影漩涡',
+          avatarAnim: 'shadow-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;inset:0;border-radius:50%;
+        background:conic-gradient(from 0deg,#1a1a2e,#2d3748,#1a1a2e,#4a5568,#1a1a2e);
+        animation: shadowVortex ${s} ease-in-out forwards;transform-origin:center;"></div>
+    </div>`,
+        },
+        {
+          id: 'runeActivateEnter',
+          label: '符文激活',
+          avatarAnim: 'rune-avatar',
+          dur: '3.2s',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="#b794f4" stroke-width="2"
+          stroke-dasharray="300" stroke-dashoffset="300"
+          style="animation: runeActivate ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="30" fill="none" stroke="#d6bcfa" stroke-width="1"
+          stroke-dasharray="300" stroke-dashoffset="300"
+          style="animation: runeActivate ${s} ease-out 0.3s forwards;" />
+        <text x="50" y="55" text-anchor="middle" fill="#b794f4" font-size="14" opacity="0"
+          style="animation: runeActivate ${s} ease-out 0.2s forwards;">ᚱ ᚢ ᚾ</text>
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'chainBreakEnter',
+          label: '锁链断裂',
+          avatarAnim: 'chain-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+        <g style="transform-origin:50px 50px;animation:chainBreak-l ${s} ease-out forwards;">
+          <ellipse cx="30" cy="40" rx="12" ry="8" fill="none" stroke="#718096" stroke-width="3"/>
+          <ellipse cx="30" cy="60" rx="12" ry="8" fill="none" stroke="#a0aec0" stroke-width="3"/>
+        </g>
+        <g style="transform-origin:50px 50px;animation:chainBreak-r ${s} ease-out forwards;">
+          <ellipse cx="70" cy="40" rx="12" ry="8" fill="none" stroke="#718096" stroke-width="3"/>
+          <ellipse cx="70" cy="60" rx="12" ry="8" fill="none" stroke="#a0aec0" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'poisonDripEnter',
+          label: '毒液侵蚀',
+          avatarAnim: 'poison-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="width:100%;height:100%">
+        ${[20, 40, 60, 80, 30, 70]
+          .map(
+            (x, i) => `<circle cx="${x}" cy="0" r="${3 + Math.random() * 3}"
+          fill="${i % 2 === 0 ? '#38a169' : '#9ae6b4'}" opacity="0"
+          style="animation: poisonDrip ${s} ease-in ${i * 0.2}s forwards;" />`,
+          )
+          .join('')}
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'mirageFadeEnter',
+          label: '海市蜃楼',
+          avatarAnim: 'bloodMist-avatar',
+          dur: '3s',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;inset:0;border-radius:18px;
+        background:linear-gradient(180deg,transparent,#63b3ed33,#805ad533,transparent);
+        animation: bloodMist ${s} ease-out forwards;filter:blur(4px);"></div>
+    </div>`,
+        },
+      ];
+
+      function createEpicTile(t) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile-wrapper';
+        wrapper.innerHTML = `
+    <div class="tile" data-type="epic" data-id="${t.id}" data-dur="${t.dur}">
+      ${t.overlay(t.dur)}
+      <div class="avatar" style="animation: ${t.avatarAnim} ${t.dur} ease-out forwards;">${AVATAR}</div>
+    </div>
+    <div class="tile-label" style="color:var(--epic)">${t.label}<br><span style="opacity:0.6">${t.id}</span></div>
+  `;
+        return wrapper;
+      }
+
+      // ======== LEGENDARY ========
+      const LEGENDARY_ITEMS = [
+        {
+          id: 'wolfKingEntry',
+          label: '狼王降临',
+          dur: '4.5s',
+          avatarAnim: 'lWolf-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#1a1a2e,#2d3748);
+        animation: lWolfShadow ${s} ease-out forwards;"></div>
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <circle cx="50" cy="50" r="5" fill="none" stroke="#f6e05e" stroke-width="2" opacity="0"
+          style="animation: lWolfHowl ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="5" fill="none" stroke="#f6ad55" stroke-width="1.5" opacity="0"
+          style="animation: lWolfHowl ${s} ease-out 0.15s forwards;" />
+        <circle cx="50" cy="50" r="5" fill="none" stroke="#ecc94b" stroke-width="1" opacity="0"
+          style="animation: lWolfHowl ${s} ease-out 0.3s forwards;" />
+      </svg>
+      <div style="position:absolute;inset:-5px;border-radius:50%;
+        background:radial-gradient(circle,#f6e05e55,transparent);
+        animation: lWolfGoldBurst ${s} ease-out forwards;transform-origin:center;"></div>
+    </div>`,
+        },
+        {
+          id: 'witchBrew',
+          label: '女巫调药',
+          dur: '4.5s',
+          avatarAnim: 'lWitch-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        ${[20, 35, 50, 65, 80]
+          .map(
+            (
+              x,
+              i,
+            ) => `<circle cx="${x}" cy="70" r="2" fill="${i % 2 === 0 ? '#38a169' : '#9ae6b4'}" opacity="0"
+          style="animation: lWitchBubble ${s} ease-out ${i * 0.3}s forwards;" />`,
+          )
+          .join('')}
+      </svg>
+      <div style="position:absolute;bottom:0;left:0;right:0;height:60%;
+        background:linear-gradient(0deg,#38a16944,#9ae6b422,transparent);border-radius:0 0 18px 18px;
+        animation: lWitchSteam ${s} ease-out 0.5s forwards;"></div>
+    </div>`,
+        },
+        {
+          id: 'seerVision',
+          label: '预言家视觉',
+          dur: '4.5s',
+          avatarAnim: 'lSeer-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <circle cx="50" cy="50" r="20" fill="#805ad533" stroke="#b794f4" stroke-width="1.5"
+          style="animation: lSeerCrystal ${s} ease-out forwards;" />
+        ${[0, 72, 144, 216, 288]
+          .map((deg, i) => {
+            const x = 50 + 30 * Math.cos((deg * Math.PI) / 180);
+            const y = 50 + 30 * Math.sin((deg * Math.PI) / 180);
+            return `<circle cx="${x}" cy="${y}" r="2" fill="#f6e05e" opacity="0"
+            style="animation: lSeerStar ${s} ease-out ${0.3 + i * 0.1}s forwards;" />`;
+          })
+          .join('')}
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'hunterShot',
+          label: '猎人之枪',
+          dur: '4.5s',
+          avatarAnim: 'lHunter-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <circle cx="50" cy="50" r="25" fill="none" stroke="#e53e3e" stroke-width="1" opacity="0"
+          style="animation: lHunterCrosshair ${s} ease-out forwards;" />
+        <line x1="50" y1="20" x2="50" y2="80" stroke="#e53e3e" stroke-width="0.5" opacity="0"
+          style="animation: lHunterCrosshair ${s} ease-out forwards;" />
+        <line x1="20" y1="50" x2="80" y2="50" stroke="#e53e3e" stroke-width="0.5" opacity="0"
+          style="animation: lHunterCrosshair ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="0" fill="#f6e05e" opacity="0"
+          style="animation: lHunterHole ${s} ease-out forwards;" />
+      </svg>
+      <div style="position:absolute;inset:0;background:#fff;opacity:0;border-radius:18px;
+        animation: lHunterFlash ${s} ease-out forwards;"></div>
+    </div>`,
+        },
+        {
+          id: 'guardShield',
+          label: '守卫之盾',
+          dur: '4.5s',
+          avatarAnim: 'lGuard-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <path d="M50 15 L70 30 L70 55 Q70 75 50 85 Q30 75 30 55 L30 30 Z"
+          fill="none" stroke="#f6e05e" stroke-width="2" opacity="0"
+          style="transform-origin:50px 50px;animation: lGuardShield ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="20" fill="none" stroke="#f6e05e33" stroke-width="8" opacity="0"
+          style="animation: lGuardAura ${s} ease-out forwards;" />
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'nightFall',
+          label: '天黑请闭眼',
+          dur: '5s',
+          avatarAnim: 'lNight-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <circle cx="50" cy="50" r="10" fill="#f6ad55" style="animation: lNightSun ${s} ease-out forwards;" />
+        ${[
+          { x: 25, y: 20 },
+          { x: 75, y: 25 },
+          { x: 30, y: 70 },
+          { x: 70, y: 65 },
+          { x: 50, y: 40 },
+          { x: 15, y: 45 },
+          { x: 85, y: 50 },
+        ]
+          .map(
+            (p, i) =>
+              `<circle cx="${p.x}" cy="${p.y}" r="1.5" fill="#fff" opacity="0"
+            style="animation: lNightStar ${s} ease-out ${0.1 * i}s forwards;" />`,
+          )
+          .join('')}
+        <circle cx="50" cy="50" r="12" fill="#ecc94b" opacity="0"
+          style="animation: lNightMoon ${s} ease-out forwards;" />
+        <circle cx="56" cy="46" r="10" fill="#0f1117" opacity="0"
+          style="animation: lNightMoon ${s} ease-out forwards;" />
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'dawnBreak',
+          label: '天亮请睁眼',
+          dur: '5s',
+          avatarAnim: 'lDawn-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        <rect x="0" y="65" width="100" height="4" rx="2" fill="#f6ad55" opacity="0"
+          style="transform-origin:50px 67px;animation: lDawnHorizon ${s} ease-out forwards;" />
+        ${[30, 42, 54, 66, 78]
+          .map(
+            (x, i) => `<rect x="${x - 1}" y="35" width="2" height="30" fill="#faf089" opacity="0"
+          style="transform-origin:${x}px 65px;animation: lDawnRay ${s} ease-out ${i * 0.1}s forwards;" />`,
+          )
+          .join('')}
+        <text x="30" y="35" font-size="8" opacity="0"
+          style="animation: lDawnBird ${s} ease-out forwards;">🕊️</text>
+        <text x="60" y="30" font-size="6" opacity="0"
+          style="animation: lDawnBird ${s} ease-out 0.3s forwards;">🕊️</text>
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'bloodMoonRise',
+          label: '血月升起',
+          dur: '5s',
+          avatarAnim: 'lBlood-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        ${[0, 1, 2]
+          .map(
+            (
+              i,
+            ) => `<circle cx="50" cy="50" r="5" fill="none" stroke="#c53030" stroke-width="2" opacity="0"
+          style="animation: lBloodRipple ${s} ease-out ${i * 0.4}s forwards;" />`,
+          )
+          .join('')}
+        <circle cx="50" cy="40" r="15" fill="#c53030" opacity="0"
+          style="animation: lBloodMoon ${s} ease-out forwards;" />
+        <circle cx="56" cy="37" r="12" fill="#0f1117" opacity="0"
+          style="animation: lBloodMoon ${s} ease-out forwards;" />
+        <text x="50" y="55" text-anchor="middle" font-size="20" opacity="0"
+          style="animation: lBloodWolf ${s} ease-out forwards;">�</text>
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'spiritSummon',
+          label: '灵魂召唤',
+          dur: '5s',
+          avatarAnim: 'lSpirit-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%">
+        ${[
+          { x: 20, y: 80 },
+          { x: 80, y: 75 },
+          { x: 15, y: 40 },
+          { x: 85, y: 35 },
+          { x: 50, y: 85 },
+        ]
+          .map(
+            (p, i) =>
+              `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#b794f4" opacity="0"
+            style="animation: lSpiritFlame ${s} ease-out ${i * 0.3}s forwards;" />`,
+          )
+          .join('')}
+        <circle cx="50" cy="50" r="35" fill="none" stroke="#805ad5" stroke-width="1.5"
+          stroke-dasharray="300" stroke-dashoffset="300"
+          style="animation: lSpiritCircle ${s} ease-out forwards;" />
+        <circle cx="50" cy="50" r="25" fill="none" stroke="#b794f4" stroke-width="1"
+          stroke-dasharray="300" stroke-dashoffset="300"
+          style="animation: lSpiritCircle ${s} ease-out 0.3s forwards;" />
+        <circle cx="50" cy="50" r="15" fill="#805ad533" opacity="0"
+          style="animation: lSpiritGather ${s} ease-out forwards;" />
+      </svg>
+    </div>`,
+        },
+        {
+          id: 'cardReveal',
+          label: '翻牌入场',
+          dur: '5s',
+          avatarAnim: 'lCard-avatar',
+          overlay: (s) => `<div class="anim-layer">
+      <div style="position:absolute;left:20%;top:5%;width:60%;height:90%;
+        background:linear-gradient(135deg,#2d3748,#4a5568);border-radius:8px;
+        border:2px solid #f6e05e;display:flex;align-items:center;justify-content:center;
+        font-size:28px;color:#f6e05e;
+        animation: lCardDrop ${s} ease-out forwards;
+        transform-origin:center;perspective:400px;">
+        ?
+      </div>
+    </div>`,
+        },
+      ];
+
+      function createLegendaryTile(t) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'tile-wrapper';
+        wrapper.innerHTML = `
+    <div class="tile" data-type="legendary" data-id="${t.id}" data-dur="${t.dur}" style="border-color:#f6e05e44;">
+      ${t.overlay(t.dur)}
+      <div class="avatar" style="animation: ${t.avatarAnim} ${t.dur} ease-out forwards;">${AVATAR}</div>
+    </div>
+    <div class="tile-label" style="color:var(--legendary)">${t.label}<br><span style="opacity:0.6">${t.id}</span></div>
+  `;
+        return wrapper;
+      }
+
+      // ======== BUILD GRIDS ========
+      const commonGrid = document.getElementById('common-grid');
+      COMMON_TEMPLATES.forEach((t) => commonGrid.appendChild(createCommonTile(t)));
+
+      const rareGrid = document.getElementById('rare-grid');
+      RARE_TEMPLATES.forEach((t) => rareGrid.appendChild(createRareTile(t)));
+
+      const epicGrid = document.getElementById('epic-grid');
+      EPIC_SAMPLES.forEach((t) => epicGrid.appendChild(createEpicTile(t)));
+
+      const legendaryGrid = document.getElementById('legendary-grid');
+      LEGENDARY_ITEMS.forEach((t) => legendaryGrid.appendChild(createLegendaryTile(t)));
+
+      // ======== REPLAY LOGIC ========
+      document.querySelectorAll('.tile').forEach((tile) => {
+        tile.addEventListener('click', () => replayTile(tile));
+      });
+
+      function replayTile(tile) {
+        const clone = tile.cloneNode(true);
+        clone.addEventListener('click', () => replayTile(clone));
+        tile.parentNode.replaceChild(clone, tile);
+      }
+
+      function replayAll() {
+        document.querySelectorAll('.tile').forEach((tile) => replayTile(tile));
+      }
+    </script>
+  </body>
+</html>

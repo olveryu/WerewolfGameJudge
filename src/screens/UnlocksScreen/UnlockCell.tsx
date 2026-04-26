@@ -10,12 +10,15 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { NameStyleText } from '@/components/nameStyles';
 import { RarityCellBg } from '@/components/RarityCellBg';
+import { getSeatAnimationById } from '@/components/seatAnimations';
+import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAnimation';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
 import { getHandDrawnThumb } from '@/utils/avatar';
+import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
 import type { UnlockItem } from './useUnlocksScreenState';
 
@@ -24,6 +27,7 @@ const CELL_SIZE = 80;
 const CHECK_BADGE_SIZE = 18;
 const LOCK_BADGE_SIZE = 16;
 const FLAIR_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
+const ANIM_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 const NAME_STYLE_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 const EFFECT_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 
@@ -39,6 +43,8 @@ export const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
       <NameStyleThumb id={item.id} displayName={item.displayName} />
     ) : item.type === 'effect' ? (
       <EffectThumb id={item.id} unlocked={item.unlocked} />
+    ) : item.type === 'seatAnimation' ? (
+      <SeatAnimationThumb id={item.id} unlocked={item.unlocked} />
     ) : (
       <FlairThumb id={item.id} unlocked={item.unlocked} />
     );
@@ -191,6 +197,33 @@ const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocke
 
 EffectThumb.displayName = 'EffectThumb';
 
+const WOLF_PAW = getAvatarIcon('preview');
+
+const SeatAnimationThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
+  const anim = getSeatAnimationById(id);
+  if (!anim) return null;
+  return (
+    <View style={[styles.animPreview, !unlocked && styles.grayscale]}>
+      <LoopingSeatAnimation
+        Component={anim.Component}
+        size={ANIM_PREVIEW_SIZE}
+        borderRadius={borderRadius.medium}
+      >
+        <View style={styles.animPawWrap}>
+          <Image
+            source={WOLF_PAW.image}
+            style={styles.animPawIcon}
+            tintColor={WOLF_PAW.color}
+            resizeMode="contain"
+          />
+        </View>
+      </LoopingSeatAnimation>
+    </View>
+  );
+});
+
+SeatAnimationThumb.displayName = 'SeatAnimationThumb';
+
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const NUM_COLUMNS = 4;
@@ -281,5 +314,19 @@ const styles = StyleSheet.create({
   },
   lockedText: {
     color: colors.textMuted,
+  },
+  animPawWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  animPawIcon: {
+    width: ANIM_PREVIEW_SIZE * 0.55,
+    height: ANIM_PREVIEW_SIZE * 0.55,
+  },
+  animPreview: {
+    width: ANIM_PREVIEW_SIZE,
+    height: ANIM_PREVIEW_SIZE,
+    overflow: 'hidden',
   },
 });

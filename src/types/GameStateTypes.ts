@@ -28,6 +28,7 @@ export interface LocalPlayer {
   avatarUrl?: string;
   avatarFrame?: string;
   seatFlair?: string;
+  seatAnimation?: string;
   nameStyle?: string;
   roleRevealEffect?: string;
   level?: number;

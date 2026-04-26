@@ -92,6 +92,7 @@ export interface SeatViewModel {
     avatarUrl?: string;
     avatarFrame?: string;
     seatFlair?: string;
+    seatAnimation?: string;
     nameStyle?: string;
     roleRevealEffect?: string;
     level?: number;
@@ -456,6 +457,7 @@ export function buildSeatViewModels(
             avatarUrl: player.avatarUrl,
             avatarFrame: player.avatarFrame,
             seatFlair: player.seatFlair,
+            seatAnimation: player.seatAnimation,
             nameStyle: player.nameStyle,
             roleRevealEffect: player.roleRevealEffect,
             level: player.level,

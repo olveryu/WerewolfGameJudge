@@ -44,7 +44,7 @@ async function getJson(path: string, token: string): Promise<Response> {
 
 beforeAll(async () => {
   await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
+    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, equipped_effect TEXT, equipped_seat_animation TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
   );
   await env.DB.exec(
     `CREATE TABLE IF NOT EXISTS user_stats (user_id TEXT PRIMARY KEY REFERENCES users(id), xp INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 0, games_played INTEGER NOT NULL DEFAULT 0, last_room_code TEXT, unlocked_items TEXT NOT NULL DEFAULT '[]', normal_draws INTEGER NOT NULL DEFAULT 0, golden_draws INTEGER NOT NULL DEFAULT 0, normal_pity INTEGER NOT NULL DEFAULT 0, golden_pity INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 0, last_login_reward_at TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
@@ -72,18 +72,18 @@ describe('POST /api/gacha/daily-reward', () => {
     await cleanStats();
   });
 
-  it('grants 1 normal draw on first claim (no user_stats row)', async () => {
+  it('grants 2 normal draws on first claim (no user_stats row)', async () => {
     const token = await mintToken();
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.claimed).toBe(true);
-    expect(body.normalDrawsAdded).toBe(1);
+    expect(body.normalDrawsAdded).toBe(2);
 
     // Verify via GET /api/gacha/status
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
-    expect(status.normalDraws).toBe(1);
+    expect(status.normalDraws).toBe(2);
     expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
@@ -112,11 +112,11 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.claimed).toBe(true);
-    expect(body.normalDrawsAdded).toBe(1);
+    expect(body.normalDrawsAdded).toBe(2);
 
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
-    expect(status.normalDraws).toBe(4);
+    expect(status.normalDraws).toBe(5);
   });
 
   it('rejects claim within 20h cooldown', async () => {

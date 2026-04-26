@@ -13,6 +13,7 @@ import {
   NAME_STYLE_IDS,
   type Rarity,
   ROLE_REVEAL_EFFECT_IDS,
+  SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
@@ -20,6 +21,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';
+import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { compareByRarity } from '@/config/rarityVisual';
@@ -28,7 +30,7 @@ import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 
 export const NUM_COLUMNS = 4;
 
-export type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect';
+export type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
 
 export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'avatar', label: '头像' },
@@ -36,6 +38,7 @@ export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'flair', label: '装饰' },
   { key: 'nameStyle', label: '名字' },
   { key: 'effect', label: '特效' },
+  { key: 'seatAnimation', label: '入座' },
 ] as const;
 
 export type RarityFilter = 'all' | Rarity;
@@ -156,6 +159,23 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
     [unlockedSet],
   );
 
+  const seatAnimationItems = useMemo(
+    (): UnlockItem[] =>
+      SEAT_ANIMATION_IDS.map((id) => {
+        const anim = SEAT_ANIMATIONS.find((a) => a.id === id);
+        return {
+          id,
+          type: 'seatAnimation' as const,
+          displayName: anim?.name ?? id,
+          unlocked: unlockedSet.has(id),
+          rarity: getItemRarity(id),
+        };
+      }).sort(
+        (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
+      ),
+    [unlockedSet],
+  );
+
   const allTabItems =
     activeTab === 'avatar'
       ? avatarItems
@@ -165,7 +185,9 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
           ? flairItems
           : activeTab === 'nameStyle'
             ? nameStyleItems
-            : effectItems;
+            : activeTab === 'effect'
+              ? effectItems
+              : seatAnimationItems;
 
   // Apply rarity sub-tab filter
   const currentItems = useMemo(

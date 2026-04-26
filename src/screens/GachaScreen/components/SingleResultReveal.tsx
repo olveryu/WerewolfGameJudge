@@ -65,6 +65,7 @@ const REWARD_TYPE_LABELS: Record<RewardType, string> = {
   avatar: '头像',
   frame: '头像框',
   seatFlair: '座位装饰',
+  seatAnimation: '入座动画',
   nameStyle: '名称样式',
   roleRevealEffect: '翻牌特效',
 };

@@ -32,6 +32,7 @@ import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { PressableScale } from '@/components/PressableScale';
 import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
+import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -156,6 +157,15 @@ function resolveSeatAnimationSlot(animId: string | undefined): SlotInfo {
   };
 }
 
+function resolveRoleRevealSlot(effectId: string | undefined): SlotInfo {
+  if (!effectId) return { name: '', rarity: null, typeLabel: '翻牌动画' };
+  return {
+    name: getPetByEffectId(effectId)?.name ?? effectId,
+    rarity: getItemRarity(effectId),
+    typeLabel: '翻牌动画',
+  };
+}
+
 /** 单个装备槽 */
 const EquipmentSlot: React.FC<{
   slot: SlotInfo;
@@ -196,12 +206,16 @@ const EquipmentSlot: React.FC<{
 });
 EquipmentSlot.displayName = 'EquipmentSlot';
 
-/** 装备橱窗 — 4 个装备槽水平排列 */
+/** 装备橱窗 — 6 个装备槽，2 行 × 3 列 */
 const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ profile }) => {
   const avatarSlot = useMemo(() => resolveAvatarSlot(profile.avatarUrl), [profile.avatarUrl]);
   const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
-  const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
   const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
+  const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
+  const roleRevealSlot = useMemo(
+    () => resolveRoleRevealSlot(profile.roleRevealEffect),
+    [profile.roleRevealEffect],
+  );
   const seatAnimationSlot = useMemo(
     () => resolveSeatAnimationSlot(profile.seatAnimation),
     [profile.seatAnimation],
@@ -216,7 +230,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <View style={styles.equipDividerLine} />
       </View>
 
-      {/* 4 slots in a row */}
+      {/* Row 1: 个人外观 */}
       <View style={styles.equipRow}>
         {/* Avatar */}
         <EquipmentSlot slot={avatarSlot}>
@@ -242,11 +256,6 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
           ) : null}
         </EquipmentSlot>
 
-        {/* Seat Flair */}
-        <EquipmentSlot slot={flairSlot}>
-          {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
-        </EquipmentSlot>
-
         {/* Name Style */}
         <EquipmentSlot slot={nameStyleSlot}>
           {profile.nameStyle ? (
@@ -254,6 +263,19 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
               Aa
             </NameStyleText>
           ) : null}
+        </EquipmentSlot>
+      </View>
+
+      {/* Row 2: 特效 */}
+      <View style={styles.equipRow}>
+        {/* Seat Flair */}
+        <EquipmentSlot slot={flairSlot}>
+          {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
+        </EquipmentSlot>
+
+        {/* Role Reveal Effect (翻牌动画/宠物) */}
+        <EquipmentSlot slot={roleRevealSlot}>
+          {roleRevealSlot.name ? <Text style={styles.equipSlotIcon}>🎴</Text> : null}
         </EquipmentSlot>
 
         {/* Seat Animation */}
@@ -338,6 +360,11 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
       contentStyle={styles.modalContent}
     >
       <View style={styles.card}>
+        {/* ── Close button (top-right) ── */}
+        <PressableScale onPress={onClose} style={styles.closeButton} accessibilityLabel="关闭">
+          <Text style={styles.closeButtonText}>✕</Text>
+        </PressableScale>
+
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
@@ -494,6 +521,24 @@ const styles = StyleSheet.create({
     minHeight: 240,
     alignItems: 'center',
     overflow: 'visible',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: spacing.small,
+    right: spacing.small,
+    zIndex: 10,
+    width: componentSizes.icon.xl,
+    height: componentSizes.icon.xl,
+    borderRadius: componentSizes.icon.xl / 2,
+    backgroundColor: withAlpha(colors.text, 0.1),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: typography.secondary,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+    lineHeight: typography.secondary,
   },
   loadingContainer: {
     height: 240,

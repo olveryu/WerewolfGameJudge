@@ -189,7 +189,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(815);
+      expect(REWARD_POOL.length).toBe(1015);
     });
 
     it('should have correct rarity distribution', () => {
@@ -197,10 +197,10 @@ describe('gachaProbability', () => {
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
-      expect(counts.legendary).toBe(38);
-      expect(counts.epic).toBe(177);
-      expect(counts.rare).toBe(200);
-      expect(counts.common).toBe(400);
+      expect(counts.legendary).toBe(48);
+      expect(counts.epic).toBe(217);
+      expect(counts.rare).toBe(250);
+      expect(counts.common).toBe(500);
     });
 
     it('should have correct per-type rarity distribution', () => {
@@ -229,6 +229,11 @@ describe('gachaProbability', () => {
       expect(byType['nameStyle'].epic).toBe(46);
       expect(byType['nameStyle'].rare).toBe(50);
       expect(byType['nameStyle'].common).toBe(100);
+      // SeatAnimations: L10/E40/R50/C100 = 200
+      expect(byType['seatAnimation'].legendary).toBe(10);
+      expect(byType['seatAnimation'].epic).toBe(40);
+      expect(byType['seatAnimation'].rare).toBe(50);
+      expect(byType['seatAnimation'].common).toBe(100);
     });
   });
 });

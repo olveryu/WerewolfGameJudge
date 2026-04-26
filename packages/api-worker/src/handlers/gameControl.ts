@@ -74,6 +74,7 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
     seatFlair,
     nameStyle,
     roleRevealEffect,
+    seatAnimation,
     level,
   } = c.req.valid('json');
 
@@ -91,6 +92,7 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
       targetSeat,
       level,
       roleRevealEffect,
+      seatAnimation,
     );
   });
   return c.json(result, resultToStatus(result as GameActionResult));
@@ -136,6 +138,7 @@ gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c)
     seatFlair,
     nameStyle,
     roleRevealEffect,
+    seatAnimation,
   } = c.req.valid('json');
   const result = await callDO(() =>
     getGameRoomStub(c.env, roomCode, c.req.raw).updateProfile(
@@ -146,6 +149,7 @@ gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c)
       seatFlair,
       nameStyle,
       roleRevealEffect,
+      seatAnimation,
     ),
   );
   return c.json(result, resultToStatus(result as GameActionResult));

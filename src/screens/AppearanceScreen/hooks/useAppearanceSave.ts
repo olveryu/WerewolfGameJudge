@@ -1,4 +1,8 @@
-import type { NameStyleId, RoleRevealEffectId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type {
+  NameStyleId,
+  RoleRevealEffectId,
+  SeatAnimationId,
+} from '@werewolf/game-engine/growth/rewardCatalog';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useRef, useState } from 'react';
 import { Linking } from 'react-native';
@@ -20,6 +24,7 @@ interface UseAppearanceSaveParams {
   selectedFlair: FlairId | 'none' | null;
   selectedNameStyle: NameStyleId | 'none' | null;
   selectedEffect: RoleRevealEffectId | 'none' | 'random' | null;
+  selectedSeatAnimation: SeatAnimationId | 'none' | null;
   hasSelection: boolean;
   customAvatarUrl: string | null | undefined;
   heroEffectId: string;
@@ -139,6 +144,14 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         newEquippedEffect = p.selectedEffect;
       }
 
+      // Resolve new seatAnimation (if changed)
+      let newSeatAnimation: string | undefined;
+      if (p.selectedSeatAnimation === 'none') {
+        newSeatAnimation = '';
+      } else if (p.selectedSeatAnimation !== null) {
+        newSeatAnimation = p.selectedSeatAnimation;
+      }
+
       // Persist to auth profile
       const profilePatch: Record<string, string> = {};
       if (newAvatarUrl !== undefined) profilePatch.avatarUrl = newAvatarUrl;
@@ -146,6 +159,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       if (newFlair !== undefined) profilePatch.seatFlair = newFlair;
       if (newNameStyle !== undefined) profilePatch.nameStyle = newNameStyle;
       if (newEquippedEffect !== undefined) profilePatch.equippedEffect = newEquippedEffect;
+      if (newSeatAnimation !== undefined) profilePatch.seatAnimation = newSeatAnimation;
       if (Object.keys(profilePatch).length > 0) {
         await p.updateProfile(profilePatch);
         await p.refreshUser();
@@ -157,7 +171,8 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         (newAvatarUrl !== undefined ||
           newFrame !== undefined ||
           newFlair !== undefined ||
-          newNameStyle !== undefined)
+          newNameStyle !== undefined ||
+          newSeatAnimation !== undefined)
       ) {
         const result = await p.facade.updatePlayerProfile(
           undefined,
@@ -165,6 +180,8 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           newFrame,
           newFlair,
           newNameStyle,
+          undefined,
+          newSeatAnimation,
         );
         if (!result.success) {
           settingsLog.warn('Avatar/frame/flair sync to GameState failed', {

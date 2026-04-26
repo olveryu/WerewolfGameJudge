@@ -70,6 +70,7 @@ export interface UpdatePlayerProfileAction {
     seatFlair?: string;
     nameStyle?: string;
     roleRevealEffect?: string;
+    seatAnimation?: string;
   };
 }
 

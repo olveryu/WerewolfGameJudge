@@ -36,6 +36,7 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
     avatarUrl: roster?.avatarUrl,
     avatarFrame: roster?.avatarFrame,
     seatFlair: roster?.seatFlair,
+    seatAnimation: roster?.seatAnimation,
     nameStyle: roster?.nameStyle,
     roleRevealEffect: roster?.roleRevealEffect,
     level: roster?.level,

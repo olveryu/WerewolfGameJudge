@@ -12,6 +12,7 @@ const TABS: { key: PickerTab; label: string }[] = [
   { key: 'flair', label: '装饰' },
   { key: 'nameStyle', label: '名字' },
   { key: 'effect', label: '特效' },
+  { key: 'seatAnimation', label: '入座' },
 ];
 
 interface PickerTabBarProps {

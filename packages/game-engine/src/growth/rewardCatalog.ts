@@ -6,7 +6,13 @@
  * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
  */
 
-export type RewardType = 'avatar' | 'frame' | 'seatFlair' | 'nameStyle' | 'roleRevealEffect';
+export type RewardType =
+  | 'avatar'
+  | 'frame'
+  | 'seatFlair'
+  | 'nameStyle'
+  | 'roleRevealEffect'
+  | 'seatAnimation';
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
@@ -400,6 +406,95 @@ export const ROLE_REVEAL_EFFECT_IDS = [
   'vortexCollapse',
 ] as const;
 
+/** 全部入坐动画 ID（与 `seatAnimations/index.ts` Component 注册表 1:1 对应）。 */
+// prettier-ignore
+export const SEAT_ANIMATION_IDS = [
+  // Epic (40) — hand-crafted themed entrance animations
+  'wolfClawEnter',
+  'moonriseEnter',
+  'bloodMistEnter',
+  'fireRebirthEnter',
+  'frostShatterEnter',
+  'shadowVortexEnter',
+  'runeActivateEnter',
+  'chainBreakEnter',
+  'poisonDripEnter',
+  'mirageFadeEnter',
+  'thunderStrikeEnter',
+  'crystalFormEnter',
+  'darkPortalEnter',
+  'phoenixAshEnter',
+  'ghostPhaseEnter',
+  'vineGrowEnter',
+  'starfallEnter',
+  'sandstormEnter',
+  'oceanSurgeEnter',
+  'lavaCrackEnter',
+  'prismRefractEnter',
+  'batSwarmEnter',
+  'clockworkEnter',
+  'inkSplashEnter',
+  'mirrorCrackEnter',
+  'gravityWellEnter',
+  'sonicBoomEnter',
+  'petalStormEnter',
+  'shadowStepEnter',
+  'emberTrailEnter',
+  'auroraWaveEnter',
+  'voidTearEnter',
+  'serpentCoilEnter',
+  'stormEyeEnter',
+  'duskFadeEnter',
+  'mysticSealEnter',
+  'witchFireEnter',
+  'crowFlockEnter',
+  'tombRiseEnter',
+  'spiritChainEnter',
+  // Legendary (10) — multi-phase elaborate entrance animations
+  'wolfKingEntry',
+  'witchBrew',
+  'seerVision',
+  'hunterShot',
+  'guardShield',
+  'nightFall',
+  'dawnBreak',
+  'bloodMoonRise',
+  'spiritSummon',
+  'cardReveal',
+  // Common (100) — 10 patterns × 10 colors, simple avatar entrance
+  'fadeRedEnter', 'fadeOrangeEnter', 'fadeAmberEnter', 'fadeGreenEnter', 'fadeTealEnter',
+  'fadeBlueEnter', 'fadeIndigoEnter', 'fadePurpleEnter', 'fadePinkEnter', 'fadeGrayEnter',
+  'slideUpRedEnter', 'slideUpOrangeEnter', 'slideUpAmberEnter', 'slideUpGreenEnter', 'slideUpTealEnter',
+  'slideUpBlueEnter', 'slideUpIndigoEnter', 'slideUpPurpleEnter', 'slideUpPinkEnter', 'slideUpGrayEnter',
+  'slideDownRedEnter', 'slideDownOrangeEnter', 'slideDownAmberEnter', 'slideDownGreenEnter', 'slideDownTealEnter',
+  'slideDownBlueEnter', 'slideDownIndigoEnter', 'slideDownPurpleEnter', 'slideDownPinkEnter', 'slideDownGrayEnter',
+  'zoomInRedEnter', 'zoomInOrangeEnter', 'zoomInAmberEnter', 'zoomInGreenEnter', 'zoomInTealEnter',
+  'zoomInBlueEnter', 'zoomInIndigoEnter', 'zoomInPurpleEnter', 'zoomInPinkEnter', 'zoomInGrayEnter',
+  'zoomOutRedEnter', 'zoomOutOrangeEnter', 'zoomOutAmberEnter', 'zoomOutGreenEnter', 'zoomOutTealEnter',
+  'zoomOutBlueEnter', 'zoomOutIndigoEnter', 'zoomOutPurpleEnter', 'zoomOutPinkEnter', 'zoomOutGrayEnter',
+  'spinRedEnter', 'spinOrangeEnter', 'spinAmberEnter', 'spinGreenEnter', 'spinTealEnter',
+  'spinBlueEnter', 'spinIndigoEnter', 'spinPurpleEnter', 'spinPinkEnter', 'spinGrayEnter',
+  'bounceRedEnter', 'bounceOrangeEnter', 'bounceAmberEnter', 'bounceGreenEnter', 'bounceTealEnter',
+  'bounceBlueEnter', 'bounceIndigoEnter', 'bouncePurpleEnter', 'bouncePinkEnter', 'bounceGrayEnter',
+  'flipRedEnter', 'flipOrangeEnter', 'flipAmberEnter', 'flipGreenEnter', 'flipTealEnter',
+  'flipBlueEnter', 'flipIndigoEnter', 'flipPurpleEnter', 'flipPinkEnter', 'flipGrayEnter',
+  'blurRedEnter', 'blurOrangeEnter', 'blurAmberEnter', 'blurGreenEnter', 'blurTealEnter',
+  'blurBlueEnter', 'blurIndigoEnter', 'blurPurpleEnter', 'blurPinkEnter', 'blurGrayEnter',
+  'popRedEnter', 'popOrangeEnter', 'popAmberEnter', 'popGreenEnter', 'popTealEnter',
+  'popBlueEnter', 'popIndigoEnter', 'popPurpleEnter', 'popPinkEnter', 'popGrayEnter',
+  // Rare (50) — 5 patterns × 10 colors, SVG particle entrance
+  'spiralRedEnter', 'spiralOrangeEnter', 'spiralAmberEnter', 'spiralGreenEnter', 'spiralTealEnter',
+  'spiralBlueEnter', 'spiralIndigoEnter', 'spiralPurpleEnter', 'spiralPinkEnter', 'spiralGrayEnter',
+  'shatterRedEnter', 'shatterOrangeEnter', 'shatterAmberEnter', 'shatterGreenEnter', 'shatterTealEnter',
+  'shatterBlueEnter', 'shatterIndigoEnter', 'shatterPurpleEnter', 'shatterPinkEnter', 'shatterGrayEnter',
+  'portalRedEnter', 'portalOrangeEnter', 'portalAmberEnter', 'portalGreenEnter', 'portalTealEnter',
+  'portalBlueEnter', 'portalIndigoEnter', 'portalPurpleEnter', 'portalPinkEnter', 'portalGrayEnter',
+  'lightningRedEnter', 'lightningOrangeEnter', 'lightningAmberEnter', 'lightningGreenEnter', 'lightningTealEnter',
+  'lightningBlueEnter', 'lightningIndigoEnter', 'lightningPurpleEnter', 'lightningPinkEnter', 'lightningGrayEnter',
+  'bloomRedEnter', 'bloomOrangeEnter', 'bloomAmberEnter', 'bloomGreenEnter', 'bloomTealEnter',
+  'bloomBlueEnter', 'bloomIndigoEnter', 'bloomPurpleEnter', 'bloomPinkEnter', 'bloomGrayEnter',
+] as const;
+
 /** 头像 ID literal union（手绘 + 生成） */
 export type AvatarId = (typeof AVATAR_IDS)[number];
 
@@ -421,6 +516,9 @@ export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
 /** 开牌特效 ID literal union */
 export type RoleRevealEffectId = (typeof ROLE_REVEAL_EFFECT_IDS)[number];
 
+/** 入坐动画 ID literal union */
+export type SeatAnimationId = (typeof SEAT_ANIMATION_IDS)[number];
+
 /** 注册即得的免费头像 ID */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set<string>();
 
@@ -435,6 +533,9 @@ export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 注册即得的免费开牌特效 ID（无） */
 export const FREE_ROLE_REVEAL_EFFECT_IDS: ReadonlySet<string> = new Set<string>();
+
+/** 注册即得的免费入坐动画 ID（无） */
+export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();
 
 /** 头像稀有度映射 */
 const AVATAR_RARITY: Record<string, Rarity> = {
@@ -840,7 +941,54 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Common (100) — factory plain/soft/muted/warm/cool/light/dusty/faded/pale/hazy × 10 colors
 };
 
-/** 按 ID 查稀有度（avatar/frame/flair/nameStyle/roleRevealEffect 统一查询） */
+// prettier-ignore
+/** 入坐动画稀有度映射 */
+const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
+  // Legendary (10)
+  wolfKingEntry: 'legendary', witchBrew: 'legendary', seerVision: 'legendary',
+  hunterShot: 'legendary', guardShield: 'legendary', nightFall: 'legendary',
+  dawnBreak: 'legendary', bloodMoonRise: 'legendary', spiritSummon: 'legendary',
+  cardReveal: 'legendary',
+  // Epic (40)
+  wolfClawEnter: 'epic', moonriseEnter: 'epic', bloodMistEnter: 'epic',
+  fireRebirthEnter: 'epic', frostShatterEnter: 'epic', shadowVortexEnter: 'epic',
+  runeActivateEnter: 'epic', chainBreakEnter: 'epic', poisonDripEnter: 'epic',
+  mirageFadeEnter: 'epic', thunderStrikeEnter: 'epic', crystalFormEnter: 'epic',
+  darkPortalEnter: 'epic', phoenixAshEnter: 'epic', ghostPhaseEnter: 'epic',
+  vineGrowEnter: 'epic', starfallEnter: 'epic', sandstormEnter: 'epic',
+  oceanSurgeEnter: 'epic', lavaCrackEnter: 'epic', prismRefractEnter: 'epic',
+  batSwarmEnter: 'epic', clockworkEnter: 'epic', inkSplashEnter: 'epic',
+  mirrorCrackEnter: 'epic', gravityWellEnter: 'epic', sonicBoomEnter: 'epic',
+  petalStormEnter: 'epic', shadowStepEnter: 'epic', emberTrailEnter: 'epic',
+  auroraWaveEnter: 'epic', voidTearEnter: 'epic', serpentCoilEnter: 'epic',
+  stormEyeEnter: 'epic', duskFadeEnter: 'epic', mysticSealEnter: 'epic',
+  witchFireEnter: 'epic', crowFlockEnter: 'epic', tombRiseEnter: 'epic',
+  spiritChainEnter: 'epic',
+  // Rare (50) — 5 patterns × 10 colors
+  spiralRedEnter: 'rare', spiralOrangeEnter: 'rare', spiralAmberEnter: 'rare',
+  spiralGreenEnter: 'rare', spiralTealEnter: 'rare', spiralBlueEnter: 'rare',
+  spiralIndigoEnter: 'rare', spiralPurpleEnter: 'rare', spiralPinkEnter: 'rare',
+  spiralGrayEnter: 'rare',
+  shatterRedEnter: 'rare', shatterOrangeEnter: 'rare', shatterAmberEnter: 'rare',
+  shatterGreenEnter: 'rare', shatterTealEnter: 'rare', shatterBlueEnter: 'rare',
+  shatterIndigoEnter: 'rare', shatterPurpleEnter: 'rare', shatterPinkEnter: 'rare',
+  shatterGrayEnter: 'rare',
+  portalRedEnter: 'rare', portalOrangeEnter: 'rare', portalAmberEnter: 'rare',
+  portalGreenEnter: 'rare', portalTealEnter: 'rare', portalBlueEnter: 'rare',
+  portalIndigoEnter: 'rare', portalPurpleEnter: 'rare', portalPinkEnter: 'rare',
+  portalGrayEnter: 'rare',
+  lightningRedEnter: 'rare', lightningOrangeEnter: 'rare', lightningAmberEnter: 'rare',
+  lightningGreenEnter: 'rare', lightningTealEnter: 'rare', lightningBlueEnter: 'rare',
+  lightningIndigoEnter: 'rare', lightningPurpleEnter: 'rare', lightningPinkEnter: 'rare',
+  lightningGrayEnter: 'rare',
+  bloomRedEnter: 'rare', bloomOrangeEnter: 'rare', bloomAmberEnter: 'rare',
+  bloomGreenEnter: 'rare', bloomTealEnter: 'rare', bloomBlueEnter: 'rare',
+  bloomIndigoEnter: 'rare', bloomPurpleEnter: 'rare', bloomPinkEnter: 'rare',
+  bloomGrayEnter: 'rare',
+  // Common (100) — 10 patterns × 10 colors (not listed → falls through to 'common')
+};
+
+/** 按 ID 查稀有度（avatar/frame/flair/nameStyle/roleRevealEffect/seatAnimation 统一查询） */
 export function getItemRarity(id: string): Rarity {
   return (
     AVATAR_RARITY[id] ??
@@ -848,6 +996,7 @@ export function getItemRarity(id: string): Rarity {
     FLAIR_RARITY[id] ??
     NAME_STYLE_RARITY[id] ??
     ROLE_REVEAL_EFFECT_RARITY[id] ??
+    SEAT_ANIMATION_RARITY[id] ??
     'common'
   );
 }
@@ -877,6 +1026,9 @@ export const REWARD_POOL: readonly RewardItem[] = [
         rarity: ROLE_REVEAL_EFFECT_RARITY[id] ?? 'legendary',
       }) as const,
   ),
+  ...SEAT_ANIMATION_IDS.filter((id) => !FREE_SEAT_ANIMATION_IDS.has(id)).map(
+    (id) => ({ type: 'seatAnimation', id, rarity: SEAT_ANIMATION_RARITY[id] ?? 'common' }) as const,
+  ),
 ];
 
 /** 免费物品总数 */
@@ -885,7 +1037,8 @@ export const FREE_ITEM_COUNT =
   FREE_FRAME_IDS.size +
   FREE_FLAIR_IDS.size +
   FREE_NAME_STYLE_IDS.size +
-  FREE_ROLE_REVEAL_EFFECT_IDS.size;
+  FREE_ROLE_REVEAL_EFFECT_IDS.size +
+  FREE_SEAT_ANIMATION_IDS.size;
 
 /** 全部可获得物品总数（含免费） */
 export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;

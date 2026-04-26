@@ -7,9 +7,10 @@
  * one-time code protection.
  */
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { userProfileOptions } from '@/hooks/queries/queryOptions';
 
 export function useSignInAnonymously() {
   const { authService } = useServices();
@@ -43,9 +44,13 @@ export function useSignUpWithEmail() {
 
 export function useUpdateProfile() {
   const { authService } = useServices();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (updates: Parameters<typeof authService.updateProfile>[0]) =>
       authService.updateProfile(updates),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: userProfileOptions('').queryKey.slice(0, 1) });
+    },
   });
 }
 

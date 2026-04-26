@@ -30,6 +30,7 @@ module.exports = {
   }),
   useQueryClient: jest.fn().mockReturnValue({
     fetchQuery: jest.fn().mockResolvedValue(undefined),
+    ensureQueryData: jest.fn().mockResolvedValue(undefined),
     invalidateQueries: jest.fn().mockResolvedValue(undefined),
     getQueryData: jest.fn().mockReturnValue(undefined),
     setQueryData: jest.fn(),

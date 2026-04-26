@@ -22,6 +22,7 @@ export const users = sqliteTable(
     equippedFlair: text('equipped_flair'),
     equippedNameStyle: text('equipped_name_style'),
     equippedEffect: text('equipped_effect'),
+    equippedSeatAnimation: text('equipped_seat_animation'),
     wechatOpenid: text('wechat_openid'),
     isAnonymous: integer('is_anonymous').notNull().default(1),
     lastCountry: text('last_country'),

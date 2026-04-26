@@ -6,11 +6,13 @@ import {
   isFrameUnlocked,
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
+  isSeatAnimationUnlocked,
 } from '@werewolf/game-engine/growth/frameUnlock';
 import {
   getItemRarity,
   type NameStyleId,
   type RoleRevealEffectId,
+  type SeatAnimationId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -36,6 +38,7 @@ import {
   buildFlairGridData,
   buildFrameGridData,
   buildNameStyleGridData,
+  buildSeatAnimationGridData,
   filterAvatarGridData,
 } from '../gridDataBuilders';
 import type { PickerTab, RarityFilter, Selection } from '../types';
@@ -62,6 +65,7 @@ export function useAppearanceState() {
   const currentFlairId = user?.seatFlair ?? null;
   const currentNameStyleId = user?.nameStyle ?? null;
   const currentEquippedEffect = user?.equippedEffect ?? null;
+  const currentSeatAnimationId = user?.seatAnimation ?? null;
 
   // ── Local selection state ──
 
@@ -72,6 +76,9 @@ export function useAppearanceState() {
   const [selectedNameStyle, setSelectedNameStyle] = useState<NameStyleId | 'none' | null>(null);
   const [selectedEffect, setSelectedEffect] = useState<
     RoleRevealEffectId | 'none' | 'random' | null
+  >(null);
+  const [selectedSeatAnimation, setSelectedSeatAnimation] = useState<
+    SeatAnimationId | 'none' | null
   >(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
@@ -112,13 +119,15 @@ export function useAppearanceState() {
     selectedFrame !== null ||
     selectedFlair !== null ||
     selectedNameStyle !== null ||
-    selectedEffect !== null;
+    selectedEffect !== null ||
+    selectedSeatAnimation !== null;
 
   const isNoFrameActive = !currentFrameId;
   const isNoFlairActive = !currentFlairId;
   const isNoNameStyleActive = !currentNameStyleId;
   const isNoEffectActive = !currentEquippedEffect;
   const isRandomEffectActive = currentEquippedEffect === 'random';
+  const isNoSeatAnimationActive = !currentSeatAnimationId;
 
   // ── Grid data ──
 
@@ -153,6 +162,11 @@ export function useAppearanceState() {
     [unlockedIds, currentEquippedEffect, isNoEffectActive, isRandomEffectActive],
   );
 
+  const seatAnimationGridData = useMemo(
+    () => buildSeatAnimationGridData(unlockedIds, currentSeatAnimationId, isNoSeatAnimationActive),
+    [unlockedIds, currentSeatAnimationId, isNoSeatAnimationActive],
+  );
+
   // ── Rarity-filtered data ──
 
   const filteredAvatarData = useMemo(
@@ -180,6 +194,13 @@ export function useAppearanceState() {
     return effectGridData.filter((item) => item.rarity === null || item.rarity === rarityFilter);
   }, [effectGridData, rarityFilter]);
 
+  const filteredSeatAnimationData = useMemo(() => {
+    if (rarityFilter === 'all') return seatAnimationGridData;
+    return seatAnimationGridData.filter(
+      (item) => item.rarity === null || item.rarity === rarityFilter,
+    );
+  }, [seatAnimationGridData, rarityFilter]);
+
   // ── Effect Hero derived state ──
 
   const heroEffectId = selectedEffect ?? currentEquippedEffect ?? 'none';
@@ -205,6 +226,7 @@ export function useAppearanceState() {
     selectedFlair,
     selectedNameStyle,
     selectedEffect,
+    selectedSeatAnimation,
     hasSelection,
     customAvatarUrl: user?.customAvatarUrl,
     heroEffectId,
@@ -291,6 +313,18 @@ export function useAppearanceState() {
     [readOnly],
   );
 
+  const handlePressSeatAnimation = useCallback(
+    (animId: SeatAnimationId | 'none') => {
+      if (readOnly) return;
+      if (animId !== 'none' && !isSeatAnimationUnlocked(animId, unlockedIds)) {
+        showAlert('未解锁', '提升等级后随机解锁');
+        return;
+      }
+      setSelectedSeatAnimation(animId);
+    },
+    [readOnly, unlockedIds],
+  );
+
   const handleTabChange = useCallback((tab: PickerTab) => {
     setActiveTab(tab);
     setRarityFilter('all');
@@ -333,6 +367,7 @@ export function useAppearanceState() {
     selectedFlair,
     selectedNameStyle,
     selectedEffect,
+    selectedSeatAnimation,
     // Derived
     previewAvatarUrl,
     effectiveFrame,
@@ -349,6 +384,7 @@ export function useAppearanceState() {
     filteredFlairData,
     filteredNameStyleData,
     filteredEffectData,
+    filteredSeatAnimationData,
     // Effect hero
     heroEffectId,
     heroEffectOption,
@@ -364,6 +400,7 @@ export function useAppearanceState() {
     handlePressFlair,
     handlePressNameStyle,
     handlePressEffect,
+    handlePressSeatAnimation,
     handlePreviewEffect,
     handleEquipEffect,
     handleLongPress,

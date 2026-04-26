@@ -33,6 +33,7 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
         equippedFlair: users.equippedFlair,
         equippedNameStyle: users.equippedNameStyle,
         equippedEffect: users.equippedEffect,
+        equippedSeatAnimation: users.equippedSeatAnimation,
       })
       .from(users)
       .where(eq(users.id, targetUserId))
@@ -65,6 +66,7 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
       seatFlair: userRow.equippedFlair ?? undefined,
       nameStyle: userRow.equippedNameStyle ?? undefined,
       roleRevealEffect: userRow.equippedEffect ?? undefined,
+      seatAnimation: userRow.equippedSeatAnimation ?? undefined,
       level,
       title: getLevelTitle(level),
       xp: statsRow?.xp ?? 0,

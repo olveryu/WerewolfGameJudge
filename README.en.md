@@ -74,7 +74,7 @@ Unsure about a rule? Tap the AI bubble on any role card for instant skill detail
 
 ### 🎰 Gacha Collection & Progression
 
-Earn XP + 1 normal draw ticket every valid game, plus 1 golden ticket on level-up. Daily login also grants 1 free normal ticket. Spend tickets at the capsule machine to collect avatars, avatar frames, seat flairs, and name styles — single or 10-pull, 4 rarity tiers (Common / Rare / Epic / Legendary) with a 10-draw pity guarantee. 563 collectible items across 52 levels. Skia physics capsule machine animation + rarity-tiered reveal effects.
+Earn XP + 2 normal draw tickets every valid game, plus 2 golden tickets on level-up. Daily login also grants 2 free normal tickets. Spend tickets at the capsule machine to collect avatars, avatar frames, seat flairs, and name styles — single or 10-pull, 4 rarity tiers (Common / Rare / Epic / Legendary) with a 10-draw pity guarantee. 563 collectible items across 52 levels. Skia physics capsule machine animation + rarity-tiered reveal effects.
 
 ### 🌐 Cross-platform
 

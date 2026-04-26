@@ -26,6 +26,7 @@ export const userProfileOptions = (userId: string) =>
   queryOptions({
     queryKey: ['userProfile', userId] as const,
     queryFn: () => fetchUserProfile(userId),
+    staleTime: 0,
   });
 
 export const userUnlocksOptions = (userId: string) =>

@@ -34,6 +34,7 @@ const EXCLUDED_DIRS = new Set([
   'RoleRevealEffects',
   'AIChatBubble',
   'avatarFrames',
+  'seatAnimations',
   'seatFlairs',
   'seatPets',
   '__tests__',

@@ -50,6 +50,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     seatFlair,
     nameStyle,
     roleRevealEffect,
+    seatAnimation,
     level,
   } = intent.payload;
   const { state } = context;
@@ -114,6 +115,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
         seatFlair,
         nameStyle,
         roleRevealEffect,
+        seatAnimation,
         level,
       },
     },
@@ -202,8 +204,16 @@ export function handleUpdatePlayerProfile(
   intent: UpdatePlayerProfileIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle, roleRevealEffect } =
-    intent.payload;
+  const {
+    userId,
+    displayName,
+    avatarUrl,
+    avatarFrame,
+    seatFlair,
+    nameStyle,
+    roleRevealEffect,
+    seatAnimation,
+  } = intent.payload;
   const { state, mySeat } = context;
 
   if (!state) {
@@ -228,6 +238,7 @@ export function handleUpdatePlayerProfile(
       seatFlair,
       nameStyle,
       roleRevealEffect,
+      seatAnimation,
     },
   };
 

@@ -6,7 +6,7 @@
  * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -26,6 +26,7 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { NameStyleText } from '@/components/nameStyles';
+import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
@@ -77,7 +78,6 @@ export interface SeatTileStyles {
   levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
   emptyTile: ViewStyle;
-  rippleRing: ViewStyle;
   playerName: TextStyle;
   playerNameHighlight: TextStyle;
   playerNamePlaceholder: ViewStyle;
@@ -101,6 +101,8 @@ export interface SeatTileProps {
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
   playerSeatFlair?: string;
+  /** Seat entrance animation ID (plays when player joins). */
+  playerSeatAnimation?: string;
   /** Role reveal effect ID (determines seat pet). */
   playerRoleRevealEffect?: string;
   /** Name style ID (text effect on player name). */
@@ -140,6 +142,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerAvatarUrl,
   playerAvatarFrame,
   playerSeatFlair,
+  playerSeatAnimation,
   playerRoleRevealEffect,
   playerNameStyle,
   playerDisplayName,
@@ -181,10 +184,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const opacityAnim = useMemo(() => new Animated.Value(hasPlayer ? 1 : 0), []);
 
-  // C1: Ripple ring on join
-  const rippleScale = useMemo(() => new Animated.Value(0), []);
-  const rippleOpacity = useMemo(() => new Animated.Value(0), []);
-
   // C2: Ready badge pop-in
   // eslint-disable-next-line react-hooks/exhaustive-deps -- showReadyBadge is intentionally only used for initial value
   const readyBadgeScale = useMemo(() => new Animated.Value(showReadyBadge ? 1 : 0), []);
@@ -194,50 +193,53 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   const selectedScale = useMemo(() => new Animated.Value(1), []);
   const prevIsSelectedRef = useRef(isSelected);
 
+  // Custom seat entrance animation (from equipped seatAnimation cosmetic)
+  const [isPlayingEntrance, setIsPlayingEntrance] = useState(false);
+  const animConfig = useMemo(
+    () => getSeatAnimationById(playerSeatAnimation),
+    [playerSeatAnimation],
+  );
+  const AnimComponent = animConfig?.Component;
+  const handleEntranceComplete = useCallback(() => {
+    setIsPlayingEntrance(false);
+  }, []);
+
   // Player join/leave animation
   useEffect(() => {
     if (prevHasPlayerRef.current === false && hasPlayer) {
-      // Player just joined - slide up + bounce
       isLeavingRef.current = false;
-      slideAnim.setValue(30);
-      scaleAnim.setValue(0.5);
-      opacityAnim.setValue(0);
+      if (AnimComponent) {
+        // Use custom entrance animation — skip default RN Animated
+        setIsPlayingEntrance(true);
+        slideAnim.setValue(0);
+        scaleAnim.setValue(1);
+        opacityAnim.setValue(1);
+      } else {
+        // Default: slide up + bounce
+        slideAnim.setValue(30);
+        scaleAnim.setValue(0.5);
+        opacityAnim.setValue(0);
 
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          friction: 6,
-          tension: 100,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          friction: 5,
-          tension: 120,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ]).start();
-
-      // C1: Fire ripple ring animation
-      rippleScale.setValue(0.5);
-      rippleOpacity.setValue(0.6);
-      Animated.parallel([
-        Animated.timing(rippleScale, {
-          toValue: 1.8,
-          duration: 300,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-        Animated.timing(rippleOpacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: USE_NATIVE_DRIVER,
-        }),
-      ]).start();
+        Animated.parallel([
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            friction: 6,
+            tension: 100,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+          Animated.timing(opacityAnim, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: USE_NATIVE_DRIVER,
+          }),
+        ]).start();
+      }
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {
       // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
       isLeavingRef.current = true;
@@ -246,7 +248,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       // For a smoother experience, we could use a delayed unmount, but that's more complex
     }
     prevHasPlayerRef.current = hasPlayer;
-  }, [hasPlayer, slideAnim, scaleAnim, opacityAnim, rippleScale, rippleOpacity]);
+  }, [hasPlayer, AnimComponent, slideAnim, scaleAnim, opacityAnim]);
 
   // C2: Ready badge pop-in animation
   useEffect(() => {
@@ -312,14 +314,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     transform: [{ scale: selectedScale }],
   };
 
-  // C1: Ripple ring animated style
-  const rippleStyle = {
-    ...styles.rippleRing,
-    transform: [{ scale: rippleScale }],
-    opacity: rippleOpacity,
-    pointerEvents: 'none' as const,
-  };
-
   // Get role display name for bot (debug mode only)
   const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
 
@@ -360,7 +354,29 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           delayLongPress={500}
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
-          {hasPlayer && (
+          {hasPlayer && isPlayingEntrance && AnimComponent ? (
+            <AnimComponent
+              size={tileSize - spacing.tight}
+              borderRadius={borderRadius.large}
+              onComplete={handleEntranceComplete}
+            >
+              <AvatarWithFrame
+                value={playerUserId}
+                size={
+                  playerAvatarFrame
+                    ? tileSize - spacing.tight
+                    : tileSize - spacing.tight - fixed.borderWidthThick * 2
+                }
+                avatarUrl={playerAvatarUrl}
+                borderRadius={
+                  playerAvatarFrame
+                    ? borderRadius.large
+                    : borderRadius.large - fixed.borderWidthThick
+                }
+                frameId={playerAvatarFrame}
+              />
+            </AnimComponent>
+          ) : hasPlayer ? (
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
                 value={playerUserId}
@@ -387,7 +403,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                 />
               )}
             </Animated.View>
-          )}
+          ) : null}
 
           {/* Seat flair animation layer — on top of avatar */}
           {hasPlayer && FlairComponent && (
@@ -425,9 +441,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </View>
           )}
         </TouchableOpacity>
-
-        {/* C1: Ripple ring — expands and fades on player join */}
-        <Animated.View style={rippleStyle} />
       </Animated.View>
 
       {/* Floating seat number badge - overlaps top-left corner of tile */}
@@ -598,16 +611,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       borderStyle: 'dashed' as const,
       borderColor: withAlpha(colors.primary, 0.25),
       backgroundColor: withAlpha(colors.primary, 0.03),
-    },
-    rippleRing: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      borderWidth: fixed.borderWidthThick,
-      borderColor: colors.primary,
-      borderRadius: borderRadius.large,
     },
     playerName: {
       fontSize: typography.caption,

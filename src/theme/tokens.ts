@@ -281,6 +281,7 @@ export const componentSizes = {
     dot: scale(8),
     sm: scale(primitiveSize[16]),
     md: scale(primitiveSize[20]),
+    lg: scale(primitiveSize[24]),
   },
 
   /** 标签/Chip */

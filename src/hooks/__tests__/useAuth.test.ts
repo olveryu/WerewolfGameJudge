@@ -102,6 +102,7 @@ describe('useAuth hook', () => {
         seatFlair: null,
         nameStyle: null,
         equippedEffect: null,
+        seatAnimation: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -141,6 +142,7 @@ describe('useAuth hook', () => {
         seatFlair: null,
         nameStyle: null,
         equippedEffect: null,
+        seatAnimation: null,
         isAnonymous: false,
       });
       expect(result.current.isAuthenticated).toBe(true);
@@ -235,6 +237,7 @@ describe('useAuth hook', () => {
         seatFlair: null,
         nameStyle: null,
         equippedEffect: null,
+        seatAnimation: null,
         isAnonymous: false,
       });
     });
@@ -264,6 +267,7 @@ describe('useAuth hook', () => {
         seatFlair: null,
         nameStyle: null,
         equippedEffect: null,
+        seatAnimation: null,
         isAnonymous: true,
       });
     });
@@ -300,6 +304,7 @@ describe('User interface', () => {
       seatFlair: null,
       nameStyle: null,
       equippedEffect: null,
+      seatAnimation: null,
       isAnonymous: false,
     };
 
@@ -322,6 +327,7 @@ describe('User interface', () => {
       seatFlair: null,
       nameStyle: null,
       equippedEffect: null,
+      seatAnimation: null,
       isAnonymous: true,
     };
 

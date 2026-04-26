@@ -21,6 +21,7 @@ export const updateProfileSchema = z.object({
   seatFlair: z.string().max(100).optional(),
   nameStyle: z.string().max(100).optional(),
   equippedEffect: z.string().max(100).optional(),
+  seatAnimation: z.string().max(100).optional(),
 });
 
 export const changePasswordSchema = z.object({

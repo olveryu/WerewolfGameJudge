@@ -2,6 +2,7 @@ import type {
   NameStyleId,
   Rarity,
   RoleRevealEffectId,
+  SeatAnimationId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import type { FrameId } from '@/components/avatarFrames';
@@ -28,7 +29,7 @@ export const PREVIEW_ALL_ROLES = [
 
 /** Avatar selection: avatarId string, 'custom', 'default', or null for none. */
 export type Selection = string | null;
-export type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect';
+export type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
 export type RarityFilter = 'all' | Rarity;
 
 /** Discriminated union for all avatar grid cells. */
@@ -67,6 +68,14 @@ export interface EffectGridItem {
   id: RoleRevealEffectId | 'none' | 'random';
   name: string;
   icon: string;
+  unlocked: boolean;
+  isActive: boolean;
+  rarity: Rarity | null;
+}
+
+export interface SeatAnimationGridItem {
+  id: SeatAnimationId | 'none';
+  name: string;
   unlocked: boolean;
   isActive: boolean;
   rarity: Rarity | null;

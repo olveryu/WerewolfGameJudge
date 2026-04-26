@@ -19,6 +19,7 @@ import { type FrameId, getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
+import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { borderRadius, colors } from '@/theme';
@@ -45,6 +46,8 @@ export function getRewardDisplayName(rewardType: RewardType, rewardId: string): 
       return getFlairById(rewardId)?.name ?? rewardId;
     case 'nameStyle':
       return getNameStyleById(rewardId)?.name ?? rewardId;
+    case 'seatAnimation':
+      return getSeatAnimationById(rewardId)?.name ?? rewardId;
     case 'roleRevealEffect': {
       const opt = getAnimationOption(rewardId);
       return opt?.label ?? rewardId;
@@ -70,6 +73,8 @@ export const RewardPreview = React.memo<RewardPreviewProps>(({ rewardType, rewar
       return <FlairPreview id={rewardId} size={size} />;
     case 'nameStyle':
       return <NameStylePreview id={rewardId} size={size} />;
+    case 'seatAnimation':
+      return <SeatAnimationPreview id={rewardId} size={size} />;
     case 'roleRevealEffect':
       return <EffectPreview id={rewardId} size={size} />;
   }
@@ -141,6 +146,27 @@ function EffectPreview({ id, size }: { id: string; size: number }) {
   return (
     <View style={[styles.effectContainer, { width: size, height: size }]}>
       <Ionicons name={iconName} size={size * 0.5} color={colors.text} />
+    </View>
+  );
+}
+
+function SeatAnimationPreview({ id, size }: { id: string; size: number }) {
+  const noop = React.useCallback(() => {}, []);
+  const anim = getSeatAnimationById(id);
+  if (!anim) return null;
+  const Comp = anim.Component;
+  return (
+    <View style={[styles.flairContainer, { width: size, height: size }]}>
+      <Comp size={size} borderRadius={borderRadius.medium} onComplete={noop}>
+        <View style={styles.flairAvatarWrap}>
+          <Image
+            source={WOLF_PAW.image}
+            style={styles.flairPawIcon}
+            tintColor={WOLF_PAW.color}
+            resizeMode="contain"
+          />
+        </View>
+      </Comp>
     </View>
   );
 }

@@ -329,7 +329,7 @@ export function GachaScreen({ navigation }: Props) {
 
           {/* Hint + rate disclosure */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaHint}>每局+2普通 · 升级+2黄金</Text>
+            <Text style={styles.metaHint}>每局+2普通 · 每日+2普通 · 升级+2黄金</Text>
             <Text style={styles.rateLink} onPress={() => setShowRates(true)}>
               概率公示
             </Text>

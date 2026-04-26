@@ -22,6 +22,7 @@ export interface UserPublicProfile {
   seatFlair?: string;
   nameStyle?: string;
   roleRevealEffect?: string;
+  seatAnimation?: string;
   level: number;
   title: string;
   xp: number;

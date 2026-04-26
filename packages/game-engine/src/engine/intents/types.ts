@@ -22,6 +22,7 @@ export interface JoinSeatIntent {
     seatFlair?: string;
     nameStyle?: string;
     roleRevealEffect?: string;
+    seatAnimation?: string;
     level?: number;
   };
 }
@@ -122,6 +123,7 @@ export interface UpdatePlayerProfileIntent {
     seatFlair?: string;
     nameStyle?: string;
     roleRevealEffect?: string;
+    seatAnimation?: string;
   };
 }
 
