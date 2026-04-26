@@ -162,6 +162,7 @@ export class CFAuthService implements IAuthService {
     seatFlair?: string;
     nameStyle?: string;
     equippedEffect?: string;
+    seatAnimation?: string;
   }): Promise<void> {
     await cfPut('/auth/profile', updates);
   }

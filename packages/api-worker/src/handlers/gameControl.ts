@@ -73,8 +73,6 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
     avatarFrame,
     seatFlair,
     nameStyle,
-    roleRevealEffect,
-    seatAnimation,
     level,
   } = c.req.valid('json');
 
@@ -91,8 +89,6 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
       nameStyle,
       targetSeat,
       level,
-      roleRevealEffect,
-      seatAnimation,
     );
   });
   return c.json(result, resultToStatus(result as GameActionResult));

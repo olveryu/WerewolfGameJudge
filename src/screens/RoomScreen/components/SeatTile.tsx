@@ -212,16 +212,21 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   // Player join/leave animation
   useEffect(() => {
-    if (prevHasPlayerRef.current === false && hasPlayer) {
+    const isFirstRender = prevHasPlayerRef.current === null;
+    const wasEmpty = prevHasPlayerRef.current === false;
+
+    if ((wasEmpty || isFirstRender) && hasPlayer) {
       isLeavingRef.current = false;
       if (AnimComponent) {
-        // Use custom entrance animation — skip default RN Animated
+        // Use custom entrance animation — skip default RN Animated.
+        // Triggers on fresh join (wasEmpty) AND on mount with existing player
+        // (reconnect / navigation back) so the looping animation resumes.
         setIsPlayingEntrance(true);
         slideAnim.setValue(0);
         scaleAnim.setValue(1);
         opacityAnim.setValue(1);
-      } else {
-        // Default: slide up + bounce
+      } else if (wasEmpty) {
+        // Default slide-up + bounce — only on fresh join, not reconnect
         slideAnim.setValue(30);
         scaleAnim.setValue(0.5);
         opacityAnim.setValue(0);
@@ -247,13 +252,10 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
         ]).start();
       }
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {
-      // Player just left - mark as leaving (animation handled by keeping avatar visible briefly)
+      // Player just left
       isLeavingRef.current = true;
       setIsPlayingEntrance(false);
       setIsAnimActive(false);
-      // Note: We don't animate here because the avatar will be unmounted immediately
-      // The animation would cause issues with unmounted components
-      // For a smoother experience, we could use a delayed unmount, but that's more complex
     }
     prevHasPlayerRef.current = hasPlayer;
   }, [hasPlayer, AnimComponent, slideAnim, scaleAnim, opacityAnim]);

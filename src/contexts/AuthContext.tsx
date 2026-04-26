@@ -31,7 +31,7 @@ export interface User {
   nameStyle: string | null;
   /** Selected role reveal effect ID (animation when viewing role) */
   equippedEffect: string | null;
-  /** Selected seat animation ID (animation when sitting down) */
+  /** Selected seat entrance animation ID */
   seatAnimation: string | null;
   isAnonymous: boolean;
 }

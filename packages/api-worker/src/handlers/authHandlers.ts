@@ -38,9 +38,9 @@ function requestGeo(c: { req: { raw: Request } }) {
   };
 }
 
-/** 注册欢迎奖励：普通券 10 + 黄金券 5 */
-const WELCOME_NORMAL_DRAWS = 10;
-const WELCOME_GOLDEN_DRAWS = 5;
+/** 注册欢迎奖励：普通券 5 + 黄金券 1 */
+const WELCOME_NORMAL_DRAWS = 5;
+const WELCOME_GOLDEN_DRAWS = 1;
 
 /** 给新注册用户发放欢迎抽奖券（upsert，已有行则累加） */
 async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string): Promise<void> {
@@ -295,7 +295,6 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
           equippedFlair: users.equippedFlair,
           equippedNameStyle: users.equippedNameStyle,
           equippedEffect: users.equippedEffect,
-          equippedSeatAnimation: users.equippedSeatAnimation,
         })
         .from(users)
         .where(eq(users.id, existing.id))
@@ -318,7 +317,6 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
               seat_flair: merged?.equippedFlair,
               name_style: merged?.equippedNameStyle,
               equipped_effect: merged?.equippedEffect,
-              seat_animation: merged?.equippedSeatAnimation,
             },
           },
         },
@@ -450,7 +448,6 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
     })
     .from(users)
     .where(eq(users.email, email))
@@ -502,7 +499,6 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
           seat_flair: user.equippedFlair,
           name_style: user.equippedNameStyle,
           equipped_effect: user.equippedEffect,
-          seat_animation: user.equippedSeatAnimation,
         },
       },
     },
@@ -831,7 +827,6 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
     })
     .from(users)
     .where(eq(users.id, token.userId))
@@ -853,7 +848,6 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
           seat_flair: user?.equippedFlair,
           name_style: user?.equippedNameStyle,
           equipped_effect: user?.equippedEffect,
-          seat_animation: user?.equippedSeatAnimation,
         },
       },
     },
@@ -903,7 +897,6 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
     })
     .from(users)
     .where(eq(users.wechatOpenid, openid))
@@ -937,7 +930,6 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
             seat_flair: existing.equippedFlair,
             name_style: existing.equippedNameStyle,
             equipped_effect: existing.equippedEffect,
-            seat_animation: existing.equippedSeatAnimation,
           },
         },
       },
