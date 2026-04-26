@@ -236,6 +236,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           authUser?.seatFlair ?? undefined,
           authUser?.nameStyle ?? undefined,
           level,
+          authUser?.equippedEffect ?? undefined,
         );
       } catch (err) {
         handleError(err, {
@@ -277,6 +278,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           authUser?.seatFlair ?? undefined,
           authUser?.nameStyle ?? undefined,
           level,
+          authUser?.equippedEffect ?? undefined,
         );
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)

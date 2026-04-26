@@ -142,6 +142,7 @@ describe('useGameRoom - ACK reason transparency', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
       );
     });
 

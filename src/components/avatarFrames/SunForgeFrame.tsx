@@ -1,45 +1,38 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
  * SunForgeFrame — 日锻
  *
- * 灼金锻造 · 放射角棘 · 锤纹肌理 · 太阳核心中锋点。
+ * 黄金日轮框 · 四角火焰日冕向外喷射 · 光芒线条 · 太阳纹章。
  */
 export const SunForgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
-  const mainG = `sfM${userId}`;
-  const glowG = `sfGl${userId}`;
+  const mainG = `sfgM${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
-        <LinearGradient id={mainG} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#FFD700" stopOpacity={0.9} />
-          <Stop offset="0.35" stopColor="#B8860B" stopOpacity={1} />
-          <Stop offset="0.65" stopColor="#8B6914" stopOpacity={1} />
-          <Stop offset="1" stopColor="#FFD700" stopOpacity={0.9} />
-        </LinearGradient>
-        <LinearGradient id={glowG} x1="0.5" y1="0" x2="0.5" y2="1">
-          <Stop offset="0" stopColor="#FFF8DC" stopOpacity={0.4} />
-          <Stop offset="0.5" stopColor="#FFD700" stopOpacity={0} />
-          <Stop offset="1" stopColor="#FFF8DC" stopOpacity={0.4} />
+        <LinearGradient id={mainG} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#F1C40F" stopOpacity={0.9} />
+          <Stop offset="0.5" stopColor="#D4AC0D" stopOpacity={1} />
+          <Stop offset="1" stopColor="#F1C40F" stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
-      {/* Shadow */}
+      {/* Outer glow */}
       <Rect
-        x={1}
-        y={1}
-        width={100}
-        height={100}
-        rx={rx}
+        x={-1}
+        y={-1}
+        width={102}
+        height={102}
+        rx={rx + 1}
         fill="none"
-        stroke="#3A2800"
-        strokeWidth={6.5}
-        opacity={0.15}
+        stroke="#F9E79F"
+        strokeWidth={1.5}
+        opacity={0.3}
       />
-      {/* Main frame */}
+      {/* Base frame */}
       <Rect
         x={0}
         y={0}
@@ -48,82 +41,88 @@ export const SunForgeFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${mainG})`}
-        strokeWidth={5}
+        strokeWidth={4.5}
       />
-      {/* Top glow */}
+      {/* Inner ring */}
       <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
+        x={5}
+        y={5}
+        width={90}
+        height={90}
+        rx={Math.max(rx - 4, 0)}
         fill="none"
-        stroke={`url(#${glowG})`}
-        strokeWidth={1.8}
+        stroke="#F9E79F"
+        strokeWidth={0.7}
+        opacity={0.5}
       />
-      {/* Inner border */}
-      <Rect
-        x={6}
-        y={6}
-        width={88}
-        height={88}
-        rx={Math.max(rx - 5, 0)}
-        fill="none"
-        stroke="#B8860B"
-        strokeWidth={0.8}
-        opacity={0.45}
+      {/* Solar corona flares at corners */}
+      <Path
+        d="M0,0 L-4,-7 L2,-3 L-1,-8 L4,-4 Z"
+        fill="#D4AC0D"
+        stroke="#F1C40F"
+        strokeWidth={0.5}
+        opacity={0.85}
       />
-      {/* Corner sun spokes — top-left */}
-      <G opacity={0.6} stroke="#FFD700" strokeLinecap="round">
-        <Line x1={-4} y1={-4} x2={3} y2={3} strokeWidth={1.2} />
-        <Line x1={-5} y1={2} x2={2} y2={-1} strokeWidth={0.9} opacity={0.75} />
-        <Line x1={2} y1={-5} x2={-1} y2={2} strokeWidth={0.9} opacity={0.75} />
-      </G>
-      {/* Corner sun spokes — top-right */}
-      <G opacity={0.6} stroke="#FFD700" strokeLinecap="round">
-        <Line x1={104} y1={-4} x2={97} y2={3} strokeWidth={1.2} />
-        <Line x1={105} y1={2} x2={98} y2={-1} strokeWidth={0.9} opacity={0.75} />
-        <Line x1={98} y1={-5} x2={101} y2={2} strokeWidth={0.9} opacity={0.75} />
-      </G>
-      {/* Corner sun spokes — bottom-left */}
-      <G opacity={0.6} stroke="#FFD700" strokeLinecap="round">
-        <Line x1={-4} y1={104} x2={3} y2={97} strokeWidth={1.2} />
-        <Line x1={-5} y1={98} x2={2} y2={101} strokeWidth={0.9} opacity={0.75} />
-        <Line x1={2} y1={105} x2={-1} y2={98} strokeWidth={0.9} opacity={0.75} />
-      </G>
-      {/* Corner sun spokes — bottom-right */}
-      <G opacity={0.6} stroke="#FFD700" strokeLinecap="round">
-        <Line x1={104} y1={104} x2={97} y2={97} strokeWidth={1.2} />
-        <Line x1={105} y1={98} x2={98} y2={101} strokeWidth={0.9} opacity={0.75} />
-        <Line x1={98} y1={105} x2={101} y2={98} strokeWidth={0.9} opacity={0.75} />
-      </G>
-      {/* Hammered texture — top edge */}
-      <G opacity={0.3} stroke="#B8860B" strokeLinecap="round">
-        <Line x1={15} y1={-1} x2={18} y2={1} strokeWidth={0.6} />
-        <Line x1={28} y1={0.5} x2={31} y2={-1} strokeWidth={0.5} />
-        <Line x1={42} y1={-1} x2={44} y2={0.5} strokeWidth={0.6} />
-        <Line x1={58} y1={0.5} x2={60} y2={-1} strokeWidth={0.5} />
-        <Line x1={72} y1={-0.5} x2={74} y2={1} strokeWidth={0.6} />
-        <Line x1={85} y1={0} x2={87} y2={-1} strokeWidth={0.5} />
-      </G>
-      {/* Hammered texture — bottom edge */}
-      <G opacity={0.3} stroke="#B8860B" strokeLinecap="round">
-        <Line x1={15} y1={101} x2={18} y2={99} strokeWidth={0.6} />
-        <Line x1={28} y1={99.5} x2={31} y2={101} strokeWidth={0.5} />
-        <Line x1={42} y1={101} x2={44} y2={99.5} strokeWidth={0.6} />
-        <Line x1={58} y1={99.5} x2={60} y2={101} strokeWidth={0.5} />
-        <Line x1={72} y1={100.5} x2={74} y2={99} strokeWidth={0.6} />
-        <Line x1={85} y1={100} x2={87} y2={101} strokeWidth={0.5} />
-      </G>
-      {/* Sun discs — mid-edges (halo + core) */}
-      <Circle cx={50} cy={-3} r={2.5} fill="#FFD700" opacity={0.35} />
-      <Circle cx={50} cy={-3} r={1.2} fill="#FFF8DC" opacity={0.5} />
-      <Circle cx={50} cy={103} r={2.5} fill="#FFD700" opacity={0.35} />
-      <Circle cx={50} cy={103} r={1.2} fill="#FFF8DC" opacity={0.5} />
-      <Circle cx={-3} cy={50} r={2.5} fill="#FFD700" opacity={0.35} />
-      <Circle cx={-3} cy={50} r={1.2} fill="#FFF8DC" opacity={0.5} />
-      <Circle cx={103} cy={50} r={2.5} fill="#FFD700" opacity={0.35} />
-      <Circle cx={103} cy={50} r={1.2} fill="#FFF8DC" opacity={0.5} />
+      <Path
+        d="M100,0 L104,-7 L98,-3 L101,-8 L96,-4 Z"
+        fill="#D4AC0D"
+        stroke="#F1C40F"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />
+      <Path
+        d="M0,100 L-4,107 L2,103 L-1,108 L4,104 Z"
+        fill="#D4AC0D"
+        stroke="#F1C40F"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />
+      <Path
+        d="M100,100 L104,107 L98,103 L101,108 L96,104 Z"
+        fill="#D4AC0D"
+        stroke="#F1C40F"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />
+      {/* Sunray spikes — top edge */}
+      <Path d="M20,0 L22,-5 L24,0" fill="#D4AC0D" opacity={0.75} />
+      <Path d="M35,0 L37,-4 L39,0" fill="#F1C40F" opacity={0.7} />
+      <Path d="M48,0 L50,-6 L52,0" fill="#D4AC0D" opacity={0.8} />
+      <Path d="M61,0 L63,-4 L65,0" fill="#F1C40F" opacity={0.7} />
+      <Path d="M76,0 L78,-5 L80,0" fill="#D4AC0D" opacity={0.75} />
+      {/* Sunray spikes — bottom */}
+      <Path d="M20,100 L22,105 L24,100" fill="#D4AC0D" opacity={0.75} />
+      <Path d="M48,100 L50,106 L52,100" fill="#D4AC0D" opacity={0.8} />
+      <Path d="M76,100 L78,105 L80,100" fill="#D4AC0D" opacity={0.75} />
+      {/* Side rays */}
+      <Path d="M0,25 L-4,27 L0,29" fill="#D4AC0D" opacity={0.7} />
+      <Path d="M0,48 L-5,50 L0,52" fill="#D4AC0D" opacity={0.75} />
+      <Path d="M0,73 L-4,75 L0,77" fill="#D4AC0D" opacity={0.7} />
+      <Path d="M100,25 L104,27 L100,29" fill="#D4AC0D" opacity={0.7} />
+      <Path d="M100,48 L105,50 L100,52" fill="#D4AC0D" opacity={0.75} />
+      <Path d="M100,73 L104,75 L100,77" fill="#D4AC0D" opacity={0.7} />
+      {/* Sun emblem — top center */}
+      <Circle
+        cx={50}
+        cy={-1}
+        r={3}
+        fill="#B7950B"
+        stroke="#F1C40F"
+        strokeWidth={0.7}
+        opacity={0.7}
+      />
+      <Circle cx={50} cy={-1} r={1.5} fill="#F9E79F" opacity={0.8} />
+      {/* Sun emblem — bottom center */}
+      <Circle
+        cx={50}
+        cy={101}
+        r={3}
+        fill="#B7950B"
+        stroke="#F1C40F"
+        strokeWidth={0.7}
+        opacity={0.7}
+      />
+      <Circle cx={50} cy={101} r={1.5} fill="#F9E79F" opacity={0.8} />
     </Svg>
   );
 });

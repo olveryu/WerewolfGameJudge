@@ -61,6 +61,7 @@ export async function takeSeat(
   seatFlair?: string,
   nameStyle?: string,
   level?: number,
+  roleRevealEffect?: string,
 ): Promise<boolean> {
   const result = await takeSeatWithAck(
     ctx,
@@ -71,6 +72,7 @@ export async function takeSeat(
     seatFlair,
     nameStyle,
     level,
+    roleRevealEffect,
   );
   return result.success;
 }
@@ -87,6 +89,7 @@ export async function takeSeatWithAck(
   seatFlair?: string,
   nameStyle?: string,
   level?: number,
+  roleRevealEffect?: string,
 ): Promise<{ success: boolean; reason?: string }> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
@@ -106,6 +109,7 @@ export async function takeSeatWithAck(
       avatarFrame,
       seatFlair,
       nameStyle,
+      roleRevealEffect,
       level,
     },
     ctx.store,

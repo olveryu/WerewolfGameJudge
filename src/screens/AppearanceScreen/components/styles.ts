@@ -72,6 +72,7 @@ export interface AppearanceScreenStyles {
   effectHeroIcon: ViewStyle;
   effectHeroName: TextStyle;
   effectHeroDesc: TextStyle;
+  effectHeroPetHint: TextStyle;
   effectHeroRarity: TextStyle;
   effectHeroActions: ViewStyle;
   // ReadOnly upgrade card
@@ -346,6 +347,11 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
     effectHeroDesc: {
       ...textStyles.caption,
       color: colors.textSecondary,
+    },
+    effectHeroPetHint: {
+      ...textStyles.caption,
+      color: colors.warning,
+      marginTop: spacing.micro,
     },
     effectHeroRarity: {
       ...textStyles.caption,

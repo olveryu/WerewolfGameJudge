@@ -1,46 +1,31 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
  * CrystalVeinFrame — 晶脉
  *
- * 透明晶棱 · 折射斜线 · 棱镜彩虹叠层 · 菱形角饰 · 中锋晶尖。
+ * 深色框体上裂开发光的水晶脉络 · 脉络从四角向中心延伸 · 裂口内透出青白光芒。
  */
 export const CrystalVeinFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
   const mainG = `cvM${userId}`;
-  const prismG = `cvP${userId}`;
+  const veinG = `cvV${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={mainG} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#E8F0FF" stopOpacity={0.85} />
-          <Stop offset="0.3" stopColor="#A0C0E0" stopOpacity={1} />
-          <Stop offset="0.6" stopColor="#7090B8" stopOpacity={1} />
-          <Stop offset="1" stopColor="#E8F0FF" stopOpacity={0.85} />
+          <Stop offset="0" stopColor="#2C3E50" stopOpacity={0.95} />
+          <Stop offset="0.5" stopColor="#1A252F" stopOpacity={1} />
+          <Stop offset="1" stopColor="#2C3E50" stopOpacity={0.95} />
         </LinearGradient>
-        <LinearGradient id={prismG} x1="0" y1="0" x2="1" y2="0">
-          <Stop offset="0" stopColor="#FF6B6B" stopOpacity={0.3} />
-          <Stop offset="0.33" stopColor="#6BFF6B" stopOpacity={0.3} />
-          <Stop offset="0.66" stopColor="#6B6BFF" stopOpacity={0.3} />
-          <Stop offset="1" stopColor="#FF6B6B" stopOpacity={0.3} />
+        <LinearGradient id={veinG} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#76D7EA" stopOpacity={0.9} />
+          <Stop offset="1" stopColor="#48C9B0" stopOpacity={0.8} />
         </LinearGradient>
       </Defs>
-      {/* Shadow */}
-      <Rect
-        x={1}
-        y={1}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke="#304050"
-        strokeWidth={6}
-        opacity={0.12}
-      />
-      {/* Main crystal frame */}
+      {/* Base dark frame */}
       <Rect
         x={0}
         y={0}
@@ -51,93 +36,117 @@ export const CrystalVeinFrame = memo<FrameProps>(({ size, rx }) => {
         stroke={`url(#${mainG})`}
         strokeWidth={5}
       />
-      {/* Prism rainbow sheen */}
-      <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
+      {/* Crystal veins — glowing cracks extending beyond frame */}
+      {/* Top-left vein cluster */}
+      <Path
+        d="M-3,-3 L8,0 L12,5 L8,8"
         fill="none"
-        stroke={`url(#${prismG})`}
+        stroke={`url(#${veinG})`}
         strokeWidth={1.5}
+        opacity={0.8}
+        strokeLinecap="round"
       />
-      {/* Inner bevel */}
-      <Rect
-        x={6}
-        y={6}
-        width={88}
-        height={88}
-        rx={Math.max(rx - 5, 0)}
+      <Path
+        d="M-2,5 L5,3 L10,8"
         fill="none"
-        stroke="#7090B8"
-        strokeWidth={0.8}
-        opacity={0.4}
-      />
-      {/* Diagonal refraction lines at corners */}
-      <G opacity={0.45} stroke="#A0C0E0" strokeWidth={0.8}>
-        <Line x1={-3} y1={8} x2={8} y2={-3} />
-        <Line x1={92} y1={-3} x2={103} y2={8} />
-        <Line x1={-3} y1={92} x2={8} y2={103} />
-        <Line x1={92} y1={103} x2={103} y2={92} />
-      </G>
-      <G opacity={0.35} stroke="#B0D0F0" strokeWidth={0.6}>
-        <Line x1={-3} y1={16} x2={16} y2={-3} />
-        <Line x1={84} y1={-3} x2={103} y2={16} />
-        <Line x1={-3} y1={84} x2={16} y2={103} />
-        <Line x1={84} y1={103} x2={103} y2={84} />
-      </G>
-      {/* Diamond prisms at corners */}
-      <Path
-        d="M-3,0 L0,-5 L3,0 L0,5 Z"
-        fill="#E8F0FF"
-        stroke="#7090B8"
-        strokeWidth={0.5}
+        stroke="#76D7EA"
+        strokeWidth={1}
         opacity={0.6}
+        strokeLinecap="round"
       />
+      {/* Top-right vein cluster */}
       <Path
-        d="M100,-5 L103,0 L100,5 L97,0 Z"
-        fill="#E8F0FF"
-        stroke="#7090B8"
-        strokeWidth={0.5}
-        opacity={0.6}
-      />
-      <Path
-        d="M-3,100 L0,95 L3,100 L0,105 Z"
-        fill="#E8F0FF"
-        stroke="#7090B8"
-        strokeWidth={0.5}
-        opacity={0.6}
-      />
-      <Path
-        d="M100,105 L103,100 L100,95 L97,100 Z"
-        fill="#E8F0FF"
-        stroke="#7090B8"
-        strokeWidth={0.5}
-        opacity={0.6}
-      />
-      {/* Mid-edge crystal points */}
-      <Path d="M48,-5 L50,-8 L52,-5" fill="none" stroke="#B0D0F0" strokeWidth={0.8} opacity={0.5} />
-      <Path
-        d="M48,105 L50,108 L52,105"
+        d="M103,-3 L92,0 L88,5 L92,8"
         fill="none"
-        stroke="#B0D0F0"
-        strokeWidth={0.8}
-        opacity={0.5}
+        stroke={`url(#${veinG})`}
+        strokeWidth={1.5}
+        opacity={0.8}
+        strokeLinecap="round"
       />
-      <Path d="M-5,48 L-8,50 L-5,52" fill="none" stroke="#B0D0F0" strokeWidth={0.8} opacity={0.5} />
       <Path
-        d="M105,48 L108,50 L105,52"
+        d="M102,5 L95,3 L90,8"
         fill="none"
-        stroke="#B0D0F0"
-        strokeWidth={0.8}
-        opacity={0.5}
+        stroke="#76D7EA"
+        strokeWidth={1}
+        opacity={0.6}
+        strokeLinecap="round"
       />
-      {/* Refraction sparkles — different colors from prism */}
-      <Circle cx={15} cy={-2} r={0.6} fill="#FF9090" opacity={0.4} />
-      <Circle cx={30} cy={-3} r={0.5} fill="#90FF90" opacity={0.4} />
-      <Circle cx={70} cy={-2} r={0.6} fill="#9090FF" opacity={0.4} />
-      <Circle cx={85} cy={-3} r={0.5} fill="#FF9090" opacity={0.4} />
+      {/* Bottom-left vein cluster */}
+      <Path
+        d="M-3,103 L8,100 L12,95 L8,92"
+        fill="none"
+        stroke={`url(#${veinG})`}
+        strokeWidth={1.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,95 L5,97 L10,92"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      {/* Bottom-right vein cluster */}
+      <Path
+        d="M103,103 L92,100 L88,95 L92,92"
+        fill="none"
+        stroke={`url(#${veinG})`}
+        strokeWidth={1.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,95 L95,97 L90,92"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      {/* Mid-edge vein branches */}
+      <Path
+        d="M45,-3 L50,3 L55,-3"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1.2}
+        opacity={0.7}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M45,103 L50,97 L55,103"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1.2}
+        opacity={0.7}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-3,45 L3,50 L-3,55"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1.2}
+        opacity={0.7}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M103,45 L97,50 L103,55"
+        fill="none"
+        stroke="#76D7EA"
+        strokeWidth={1.2}
+        opacity={0.7}
+        strokeLinecap="round"
+      />
+      {/* Glow nodes at vein junctions */}
+      <Circle cx={-1} cy={-1} r={2} fill="#76D7EA" opacity={0.6} />
+      <Circle cx={101} cy={-1} r={2} fill="#76D7EA" opacity={0.6} />
+      <Circle cx={-1} cy={101} r={2} fill="#76D7EA" opacity={0.6} />
+      <Circle cx={101} cy={101} r={2} fill="#76D7EA" opacity={0.6} />
+      <Circle cx={50} cy={-2} r={1.5} fill="#48C9B0" opacity={0.7} />
+      <Circle cx={50} cy={102} r={1.5} fill="#48C9B0" opacity={0.7} />
+      <Circle cx={-2} cy={50} r={1.5} fill="#48C9B0" opacity={0.7} />
+      <Circle cx={102} cy={50} r={1.5} fill="#48C9B0" opacity={0.7} />
     </Svg>
   );
 });

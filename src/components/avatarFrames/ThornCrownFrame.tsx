@@ -1,45 +1,26 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
- * ThornCrownFrame — 荆棘冠
+ * ThornCrownFrame — 荆冠
  *
- * 有机贝塞尔荆棘缠绕四边 · 尖刺交错凸出 · 暗红玫瑰点缀 · 枯藤褐色渐变。
+ * 古铜荆棘冠 · 粗壮荆条编织环绕 · 尖刺向外突出 · 暗红宝石镶嵌。
  */
 export const ThornCrownFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
   const mainG = `tcM${userId}`;
-  const roseG = `tcR${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={mainG} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#6B4226" stopOpacity={0.9} />
-          <Stop offset="0.4" stopColor="#4A2E1A" stopOpacity={1} />
-          <Stop offset="0.7" stopColor="#3A2010" stopOpacity={1} />
-          <Stop offset="1" stopColor="#6B4226" stopOpacity={0.9} />
-        </LinearGradient>
-        <LinearGradient id={roseG} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#CC2244" stopOpacity={0.4} />
-          <Stop offset="0.5" stopColor="#880022" stopOpacity={0} />
-          <Stop offset="1" stopColor="#CC2244" stopOpacity={0.4} />
+          <Stop offset="0" stopColor="#8B6914" stopOpacity={0.9} />
+          <Stop offset="0.5" stopColor="#6B4F10" stopOpacity={1} />
+          <Stop offset="1" stopColor="#8B6914" stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
-      {/* Shadow */}
-      <Rect
-        x={1}
-        y={1}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke="#1A0A00"
-        strokeWidth={6}
-        opacity={0.18}
-      />
-      {/* Main frame */}
+      {/* Base frame */}
       <Rect
         x={0}
         y={0}
@@ -48,92 +29,146 @@ export const ThornCrownFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${mainG})`}
-        strokeWidth={5}
+        strokeWidth={4.5}
       />
-      {/* Rose tint */}
-      <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke={`url(#${roseG})`}
-        strokeWidth={1.5}
-      />
-      {/* Inner groove */}
-      <Rect
-        x={7}
-        y={7}
-        width={86}
-        height={86}
-        rx={Math.max(rx - 6, 0)}
-        fill="none"
-        stroke="#4A2E1A"
-        strokeWidth={0.7}
-        opacity={0.4}
-      />
-      {/* Vine along top — organic bezier wave */}
+      {/* Bramble weave overlay */}
       <Path
-        d="M10,-2 Q20,-6 30,-2 Q35,1 40,-3 Q48,-6 55,-2 Q62,1 70,-3 Q78,-6 90,-2"
+        d="M10,0 Q15,-2 20,0 Q25,-1 30,0 Q35,-2 40,0 Q45,-1 50,0 Q55,-2 60,0 Q65,-1 70,0 Q75,-2 80,0 Q85,-1 90,0"
         fill="none"
-        stroke="#5A3618"
-        strokeWidth={1.2}
-        opacity={0.6}
-        strokeLinecap="round"
+        stroke="#6B4F10"
+        strokeWidth={2}
+        opacity={0.7}
       />
-      {/* Thorns on top vine */}
-      <Path d="M18,-3 L16,-7 L20,-4" fill="#5A3618" opacity={0.5} />
-      <Path d="M35,-1 L34,-5 L37,-2" fill="#5A3618" opacity={0.45} />
-      <Path d="M52,-3 L50,-7 L54,-4" fill="#5A3618" opacity={0.5} />
-      <Path d="M70,-2 L68,-6 L72,-3" fill="#5A3618" opacity={0.45} />
-      <Path d="M85,-2 L84,-6 L87,-3" fill="#5A3618" opacity={0.5} />
-      {/* Vine along bottom */}
       <Path
-        d="M10,102 Q20,106 30,102 Q35,99 40,103 Q48,106 55,102 Q62,99 70,103 Q78,106 90,102"
+        d="M10,100 Q15,102 20,100 Q25,101 30,100 Q35,102 40,100 Q45,101 50,100 Q55,102 60,100 Q65,101 70,100 Q75,102 80,100 Q85,101 90,100"
         fill="none"
-        stroke="#5A3618"
-        strokeWidth={1.2}
-        opacity={0.6}
-        strokeLinecap="round"
+        stroke="#6B4F10"
+        strokeWidth={2}
+        opacity={0.7}
       />
-      {/* Bottom thorns */}
-      <Path d="M18,103 L16,107 L20,104" fill="#5A3618" opacity={0.5} />
-      <Path d="M52,103 L50,107 L54,104" fill="#5A3618" opacity={0.5} />
-      <Path d="M85,102 L84,106 L87,103" fill="#5A3618" opacity={0.45} />
-      {/* Vine along left */}
+      {/* Thorn spikes — top */}
       <Path
-        d="M-2,10 Q-6,20 -2,30 Q1,38 -3,45 Q-6,55 -2,65 Q1,73 -2,80 Q-5,88 -2,92"
-        fill="none"
-        stroke="#5A3618"
-        strokeWidth={1}
-        opacity={0.5}
-        strokeLinecap="round"
+        d="M18,0 L16,-6 L20,-1"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.8}
       />
-      {/* Vine along right */}
       <Path
-        d="M102,10 Q106,20 102,30 Q99,38 103,45 Q106,55 102,65 Q99,73 102,80 Q105,88 102,92"
-        fill="none"
-        stroke="#5A3618"
-        strokeWidth={1}
-        opacity={0.5}
-        strokeLinecap="round"
+        d="M35,0 L33,-5 L37,-1"
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.75}
       />
-      {/* Rose accents — left edge */}
-      <G opacity={0.65}>
-        <Circle cx={-2} cy={30} r={2.5} fill="#CC2244" />
-        <Circle cx={-2} cy={30} r={1.2} fill="#DD4466" />
-      </G>
-      {/* Rose — right edge */}
-      <G opacity={0.65}>
-        <Circle cx={102} cy={65} r={2.5} fill="#CC2244" />
-        <Circle cx={102} cy={65} r={1.2} fill="#DD4466" />
-      </G>
-      {/* Rose — top-right area */}
-      <G opacity={0.55}>
-        <Circle cx={90} cy={-2} r={2} fill="#CC2244" />
-        <Circle cx={90} cy={-2} r={1} fill="#DD4466" />
-      </G>
+      <Path
+        d="M50,0 L48,-7 L52,-1"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />
+      <Path
+        d="M65,0 L63,-5 L67,-1"
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.75}
+      />
+      <Path
+        d="M82,0 L80,-6 L84,-1"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.8}
+      />
+      {/* Thorn spikes — bottom */}
+      <Path
+        d="M18,100 L16,106 L20,101"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.8}
+      />
+      <Path
+        d="M50,100 L48,107 L52,101"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.85}
+      />
+      <Path
+        d="M82,100 L80,106 L84,101"
+        fill="#6B4F10"
+        stroke="#8B6914"
+        strokeWidth={0.5}
+        opacity={0.8}
+      />
+      {/* Thorn spikes — sides */}
+      <Path d="M0,20 L-5,18 L-1,22" fill="#6B4F10" opacity={0.8} />
+      <Path d="M0,50 L-6,48 L-1,52" fill="#6B4F10" opacity={0.85} />
+      <Path d="M0,80 L-5,78 L-1,82" fill="#6B4F10" opacity={0.8} />
+      <Path d="M100,25 L105,23 L101,27" fill="#6B4F10" opacity={0.8} />
+      <Path d="M100,50 L106,48 L101,52" fill="#6B4F10" opacity={0.85} />
+      <Path d="M100,75 L105,73 L101,77" fill="#6B4F10" opacity={0.8} />
+      {/* Corner bramble knots */}
+      <Circle
+        cx={0}
+        cy={0}
+        r={3}
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.8}
+        opacity={0.75}
+      />
+      <Circle
+        cx={100}
+        cy={0}
+        r={3}
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.8}
+        opacity={0.75}
+      />
+      <Circle
+        cx={0}
+        cy={100}
+        r={3}
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.8}
+        opacity={0.75}
+      />
+      <Circle
+        cx={100}
+        cy={100}
+        r={3}
+        fill="#5A4110"
+        stroke="#8B6914"
+        strokeWidth={0.8}
+        opacity={0.75}
+      />
+      {/* Dark ruby gems */}
+      <Circle
+        cx={50}
+        cy={-2}
+        r={2}
+        fill="#7B241C"
+        stroke="#C0392B"
+        strokeWidth={0.5}
+        opacity={0.8}
+      />
+      <Circle cx={50} cy={-2.5} r={0.6} fill="#E74C3C" opacity={0.7} />
+      <Circle
+        cx={50}
+        cy={102}
+        r={2}
+        fill="#7B241C"
+        stroke="#C0392B"
+        strokeWidth={0.5}
+        opacity={0.8}
+      />
+      <Circle cx={50} cy={101.5} r={0.6} fill="#E74C3C" opacity={0.7} />
     </Svg>
   );
 });

@@ -27,6 +27,7 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { NameStyleText } from '@/components/nameStyles';
 import { getFlairById } from '@/components/seatFlairs';
+import { getPetByEffectId } from '@/components/seatPets';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
 import {
@@ -70,6 +71,7 @@ export interface SeatTileStyles {
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
+  petWrapper: ViewStyle;
   wolfVoteBadge: TextStyle;
   levelBadge: ViewStyle;
   levelBadgeText: TextStyle;
@@ -99,6 +101,8 @@ export interface SeatTileProps {
   playerAvatarFrame?: string;
   /** Seat flair ID (decoration animation around the tile). */
   playerSeatFlair?: string;
+  /** Role reveal effect ID (determines seat pet). */
+  playerRoleRevealEffect?: string;
   /** Name style ID (text effect on player name). */
   playerNameStyle?: string;
   playerDisplayName: string | null;
@@ -136,6 +140,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerAvatarUrl,
   playerAvatarFrame,
   playerSeatFlair,
+  playerRoleRevealEffect,
   playerNameStyle,
   playerDisplayName,
   isPlayerAnonymous,
@@ -323,6 +328,14 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   const FlairComponent = flairConfig?.Component;
   const flairSize = tileSize - spacing.tight;
 
+  // Resolve seat pet component (from equipped role reveal effect)
+  const petConfig = useMemo(
+    () => getPetByEffectId(playerRoleRevealEffect),
+    [playerRoleRevealEffect],
+  );
+  const PetComponent = petConfig?.Component;
+  const petSize = Math.round(tileSize * 0.32);
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <Animated.View style={tileAnimatedStyle}>
@@ -379,6 +392,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           {/* Seat flair animation layer — on top of avatar */}
           {hasPlayer && FlairComponent && (
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
+          )}
+
+          {/* Seat pet — bottom-right corner, from equipped role reveal effect */}
+          {hasPlayer && PetComponent && (
+            <View style={styles.petWrapper}>
+              <PetComponent size={petSize} />
+            </View>
           )}
 
           {!hasPlayer && <Text style={styles.emptyIndicator}>+</Text>}
@@ -534,6 +554,12 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     readyBadgeIcon: {
       color: colors.success,
+    },
+    petWrapper: {
+      position: 'absolute',
+      top: -8,
+      right: -8,
+      pointerEvents: 'none',
     },
     wolfVoteBadge: {
       position: 'absolute',

@@ -95,6 +95,7 @@ export interface RosterEntry {
   avatarFrame?: string;
   seatFlair?: string;
   nameStyle?: string;
+  roleRevealEffect?: string;
   level?: number;
 }
 

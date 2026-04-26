@@ -118,6 +118,7 @@ export interface IGameFacade {
     seatFlair?: string,
     nameStyle?: string,
     level?: number,
+    roleRevealEffect?: string,
   ): Promise<boolean>;
 
   /**
@@ -133,6 +134,7 @@ export interface IGameFacade {
     seatFlair?: string,
     nameStyle?: string,
     level?: number,
+    roleRevealEffect?: string,
   ): Promise<{ success: boolean; reason?: string }>;
   /**
    * 离座
@@ -208,6 +210,7 @@ export interface IGameFacade {
     avatarFrame?: string,
     seatFlair?: string,
     nameStyle?: string,
+    roleRevealEffect?: string,
   ): Promise<{ success: boolean; reason?: string }>;
 
   /**

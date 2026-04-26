@@ -198,16 +198,19 @@ export const markAllBotsGroupConfirmed = defineGameAction({
 // =============================================================================
 
 /** 同步玩家资料到 GameState（任何在座玩家） */
-export const updatePlayerProfile = defineGameAction<[string?, string?, string?, string?, string?]>({
+export const updatePlayerProfile = defineGameAction<
+  [string?, string?, string?, string?, string?, string?]
+>({
   name: 'updatePlayerProfile',
   path: '/game/update-profile',
   needsUserId: true,
-  body: (displayName, avatarUrl, avatarFrame, seatFlair, nameStyle) => ({
+  body: (displayName, avatarUrl, avatarFrame, seatFlair, nameStyle, roleRevealEffect) => ({
     displayName,
     avatarUrl,
     avatarFrame,
     seatFlair,
     nameStyle,
+    roleRevealEffect,
   }),
 });
 

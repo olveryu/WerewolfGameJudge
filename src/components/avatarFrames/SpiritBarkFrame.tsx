@@ -1,30 +1,23 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
  * SpiritBarkFrame — 灵木
  *
- * 古树皮纹理(纵向不规则线条) · 灵魂面孔浮雕(空洞眼嘴) · 苔藓斑块 · 年轮内框。
+ * 古树皮框 · 四角粗壮树根向外蜿蜒 · 树瘤突起 · 灵光苔藓斑点。
  */
 export const SpiritBarkFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
   const mainG = `sbM${userId}`;
-  const mossG = `sbMo${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={mainG} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#6B5B3A" stopOpacity={0.9} />
-          <Stop offset="0.4" stopColor="#4A3A20" stopOpacity={1} />
-          <Stop offset="0.7" stopColor="#352A15" stopOpacity={1} />
-          <Stop offset="1" stopColor="#6B5B3A" stopOpacity={0.9} />
-        </LinearGradient>
-        <LinearGradient id={mossG} x1="0" y1="1" x2="0" y2="0">
-          <Stop offset="0" stopColor="#4A8040" stopOpacity={0.3} />
-          <Stop offset="0.3" stopColor="#308030" stopOpacity={0} />
-          <Stop offset="1" stopColor="#4A8040" stopOpacity={0} />
+          <Stop offset="0" stopColor="#6B4226" stopOpacity={0.9} />
+          <Stop offset="0.5" stopColor="#4A2C17" stopOpacity={1} />
+          <Stop offset="1" stopColor="#6B4226" stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
       {/* Shadow */}
@@ -35,11 +28,11 @@ export const SpiritBarkFrame = memo<FrameProps>(({ size, rx }) => {
         height={100}
         rx={rx}
         fill="none"
-        stroke="#1A1008"
+        stroke="#1A0E08"
         strokeWidth={6}
-        opacity={0.18}
+        opacity={0.15}
       />
-      {/* Bark frame */}
+      {/* Main bark frame */}
       <Rect
         x={0}
         y={0}
@@ -48,97 +41,158 @@ export const SpiritBarkFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${mainG})`}
-        strokeWidth={5.5}
+        strokeWidth={5}
       />
-      {/* Moss tint bottom */}
+      {/* Inner ring */}
       <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
+        x={5}
+        y={5}
+        width={90}
+        height={90}
+        rx={Math.max(rx - 4, 0)}
         fill="none"
-        stroke={`url(#${mossG})`}
-        strokeWidth={2}
+        stroke="#8B5E3C"
+        strokeWidth={0.7}
+        opacity={0.4}
       />
-      {/* Tree ring inner border */}
-      <Rect
-        x={6}
-        y={6}
-        width={88}
-        height={88}
-        rx={Math.max(rx - 5, 0)}
+      {/* Root tendrils from corners — thick, visible */}
+      <Path
+        d="M-2,-2 Q-8,5 -6,15 Q-4,10 -1,6"
         fill="none"
-        stroke="#4A3A20"
+        stroke="#5C3A1E"
+        strokeWidth={3}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M0,-3 Q-5,3 -4,10"
+        fill="none"
+        stroke="#7B4F2E"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,-2 Q108,5 106,15 Q104,10 101,6"
+        fill="none"
+        stroke="#5C3A1E"
+        strokeWidth={3}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M100,-3 Q105,3 104,10"
+        fill="none"
+        stroke="#7B4F2E"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,102 Q-8,95 -6,85 Q-4,90 -1,94"
+        fill="none"
+        stroke="#5C3A1E"
+        strokeWidth={3}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M0,103 Q-5,97 -4,90"
+        fill="none"
+        stroke="#7B4F2E"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,102 Q108,95 106,85 Q104,90 101,94"
+        fill="none"
+        stroke="#5C3A1E"
+        strokeWidth={3}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      {/* Bark knots along edges */}
+      <Circle
+        cx={30}
+        cy={-1}
+        r={2.5}
+        fill="#5C3A1E"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.7}
+      />
+      <Circle
+        cx={70}
+        cy={-1}
+        r={2}
+        fill="#4A2C17"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.65}
+      />
+      <Circle
+        cx={-1}
+        cy={40}
+        r={2.2}
+        fill="#5C3A1E"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.7}
+      />
+      <Circle
+        cx={101}
+        cy={60}
+        r={2.5}
+        fill="#5C3A1E"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.7}
+      />
+      <Circle
+        cx={40}
+        cy={101}
+        r={2}
+        fill="#4A2C17"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.65}
+      />
+      <Circle
+        cx={75}
+        cy={101}
+        r={2.3}
+        fill="#5C3A1E"
+        stroke="#7B4F2E"
+        strokeWidth={0.6}
+        opacity={0.7}
+      />
+      {/* Moss glow spots */}
+      <Circle cx={15} cy={-3} r={1.2} fill="#58D68D" opacity={0.6} />
+      <Circle cx={-3} cy={25} r={1} fill="#58D68D" opacity={0.5} />
+      <Circle cx={85} cy={103} r={1.2} fill="#58D68D" opacity={0.6} />
+      <Circle cx={103} cy={75} r={1} fill="#58D68D" opacity={0.5} />
+      {/* Bark grain lines */}
+      <Path
+        d="M10,0 L12,3"
+        stroke="#3A1F0F"
         strokeWidth={0.8}
         opacity={0.4}
+        strokeLinecap="round"
       />
-      <Rect
-        x={8}
-        y={8}
-        width={84}
-        height={84}
-        rx={Math.max(rx - 7, 0)}
-        fill="none"
-        stroke="#5A4A30"
-        strokeWidth={0.4}
-        opacity={0.25}
-      />
-      {/* Bark texture — vertical irregular lines along left/right */}
-      <G opacity={0.3} fill="none" stroke="#5A4A30" strokeWidth={0.5} strokeLinecap="round">
-        <Path d="M-1,10 L0,15 L-1,20 L1,25 L-1,30" />
-        <Path d="M1,35 L-1,40 L0,45 L-1,50" />
-        <Path d="M0,55 L1,60 L-1,65 L0,70" />
-        <Path d="M-1,75 L1,80 L-1,85 L0,90" />
-        <Path d="M101,12 L100,18 L101,23 L99,28" />
-        <Path d="M100,38 L101,43 L99,48 L101,53" />
-        <Path d="M99,60 L101,65 L100,70 L101,78" />
-        <Path d="M100,82 L99,87 L101,92" />
-      </G>
-      {/* Spirit face — left edge (hollow eyes + gaping mouth) */}
-      <G opacity={0.45}>
-        <Circle cx={-1} cy={35} r={1.8} fill="#1A1008" />
-        <Circle cx={-1} cy={42} r={1.8} fill="#1A1008" />
-        <Path d="M-3,48 Q-1,51 1,48" fill="#1A1008" />
-      </G>
-      {/* Spirit face — right edge */}
-      <G opacity={0.4}>
-        <Circle cx={101} cy={55} r={1.5} fill="#1A1008" />
-        <Circle cx={101} cy={61} r={1.5} fill="#1A1008" />
-        <Path d="M99,66 Q101,69 103,66" fill="#1A1008" />
-      </G>
-      {/* Moss patches */}
-      <G opacity={0.4} fill="#4A8040">
-        <Circle cx={5} cy={95} r={2.5} />
-        <Circle cx={8} cy={93} r={1.5} />
-        <Circle cx={3} cy={92} r={1} />
-      </G>
-      <G opacity={0.35} fill="#4A8040">
-        <Circle cx={92} cy={98} r={2} />
-        <Circle cx={95} cy={96} r={1.2} />
-      </G>
-      <G opacity={0.3} fill="#4A8040">
-        <Circle cx={-3} cy={88} r={1.5} />
-        <Circle cx={103} cy={90} r={1.8} />
-      </G>
-      {/* Knotholes */}
-      <Circle
-        cx={50}
-        cy={-2}
-        r={2}
-        fill="#352A15"
-        stroke="#4A3A20"
-        strokeWidth={0.5}
+      <Path
+        d="M50,0 L52,3"
+        stroke="#3A1F0F"
+        strokeWidth={0.8}
         opacity={0.4}
+        strokeLinecap="round"
       />
-      <Circle
-        cx={50}
-        cy={102}
-        r={2}
-        fill="#352A15"
-        stroke="#4A3A20"
-        strokeWidth={0.5}
+      <Path
+        d="M0,55 L3,57"
+        stroke="#3A1F0F"
+        strokeWidth={0.8}
         opacity={0.4}
+        strokeLinecap="round"
       />
     </Svg>
   );

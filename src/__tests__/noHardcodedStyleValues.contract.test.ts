@@ -35,6 +35,7 @@ const EXCLUDED_DIRS = new Set([
   'AIChatBubble',
   'avatarFrames',
   'seatFlairs',
+  'seatPets',
   '__tests__',
   '__mocks__',
   'node_modules',

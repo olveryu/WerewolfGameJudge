@@ -123,6 +123,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           playerAvatarUrl={seat.player?.avatarUrl}
           playerAvatarFrame={seat.player?.avatarFrame}
           playerSeatFlair={seat.player?.seatFlair}
+          playerRoleRevealEffect={seat.player?.roleRevealEffect}
           playerNameStyle={seat.player?.nameStyle}
           playerDisplayName={seat.player?.displayName ?? null}
           isPlayerAnonymous={!!seat.player && !seat.player.avatarUrl}

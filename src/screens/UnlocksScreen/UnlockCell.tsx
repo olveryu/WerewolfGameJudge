@@ -11,6 +11,7 @@ import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar
 import { NameStyleText } from '@/components/nameStyles';
 import { RarityCellBg } from '@/components/RarityCellBg';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
+import { getPetByEffectId } from '@/components/seatPets';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
@@ -165,7 +166,8 @@ NameStyleThumb.displayName = 'NameStyleThumb';
 
 const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked }) => {
   const opt = getAnimationOption(id);
-  const iconName = (opt?.icon ?? 'help-outline') as React.ComponentProps<typeof Ionicons>['name'];
+  const petConfig = getPetByEffectId(id);
+  const PetComponent = petConfig?.Component;
   return (
     <View
       style={[
@@ -174,7 +176,15 @@ const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocke
         !unlocked && styles.grayscale,
       ]}
     >
-      <Ionicons name={iconName} size={28} color={unlocked ? colors.text : colors.textMuted} />
+      {PetComponent ? (
+        <PetComponent size={EFFECT_PREVIEW_SIZE - 8} />
+      ) : (
+        <Ionicons
+          name={(opt?.icon ?? 'help-outline') as React.ComponentProps<typeof Ionicons>['name']}
+          size={28}
+          color={unlocked ? colors.text : colors.textMuted}
+        />
+      )}
     </View>
   );
 });

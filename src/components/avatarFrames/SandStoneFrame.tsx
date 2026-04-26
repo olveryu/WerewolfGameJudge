@@ -1,30 +1,24 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
  * SandStoneFrame — 砂岩
  *
- * 风蚀砂岩纹理 · 象形文字雕刻(水平短线+符号) · 裂缝沿角 · 沙粒散布。
+ * 风化砂岩框 · 四角裂出的楔形石块 · 象形符号浮雕 · 风蚀曲线轮廓。
  */
 export const SandStoneFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
   const mainG = `ssM${userId}`;
-  const windG = `ssW${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={mainG} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#D4B88C" stopOpacity={0.85} />
-          <Stop offset="0.35" stopColor="#B89860" stopOpacity={1} />
-          <Stop offset="0.65" stopColor="#A08040" stopOpacity={1} />
-          <Stop offset="1" stopColor="#D4B88C" stopOpacity={0.85} />
-        </LinearGradient>
-        <LinearGradient id={windG} x1="1" y1="0" x2="0" y2="0">
-          <Stop offset="0" stopColor="#E8D0A8" stopOpacity={0.3} />
-          <Stop offset="0.4" stopColor="#C0A070" stopOpacity={0} />
-          <Stop offset="1" stopColor="#E8D0A8" stopOpacity={0} />
+          <Stop offset="0" stopColor="#D4B88C" stopOpacity={0.9} />
+          <Stop offset="0.4" stopColor="#B89860" stopOpacity={1} />
+          <Stop offset="0.6" stopColor="#A08040" stopOpacity={1} />
+          <Stop offset="1" stopColor="#D4B88C" stopOpacity={0.9} />
         </LinearGradient>
       </Defs>
       {/* Shadow */}
@@ -48,78 +42,117 @@ export const SandStoneFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${mainG})`}
-        strokeWidth={5.5}
+        strokeWidth={5}
       />
-      {/* Wind erosion highlight */}
-      <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke={`url(#${windG})`}
-        strokeWidth={2}
-      />
-      {/* Inner groove */}
-      <Rect
-        x={7}
-        y={7}
-        width={86}
-        height={86}
-        rx={Math.max(rx - 6, 0)}
-        fill="none"
-        stroke="#A08040"
+      {/* Broken stone wedges at corners */}
+      <Path
+        d="M-2,-2 L-6,-6 L3,-5 L-4,3 Z"
+        fill="#C0A060"
+        stroke="#D4B88C"
         strokeWidth={0.6}
-        opacity={0.35}
+        opacity={0.8}
       />
-      {/* Hieroglyphic carvings — top edge (simplified Egyptian-like symbols) */}
-      <G opacity={0.35} fill="none" stroke="#806830" strokeWidth={0.6}>
-        {/* Eye-like symbol */}
-        <Path d="M18,-1 Q20,-3 22,-1 M20,-2 L20,0" />
-        {/* Wave */}
-        <Path d="M33,-1 Q35,-3 37,-1 Q39,-3 41,-1" />
-        {/* Ankh-like cross */}
-        <Path d="M55,-3 Q55,-5 57,-3 L57,0 M55.5,-1 L58.5,-1" />
-        {/* Bird-like */}
-        <Path d="M70,-2 L73,-4 L76,-2 L73,-1 Z" />
-      </G>
-      {/* Hieroglyphic carvings — bottom edge */}
-      <G opacity={0.35} fill="none" stroke="#806830" strokeWidth={0.6}>
-        <Path d="M22,101 Q24,103 26,101 M24,102 L24,100" />
-        <Path d="M45,101 Q47,103 49,101 Q51,103 53,101" />
-        <Path d="M68,100 L70,103 L72,100" />
-        <Path d="M82,101 Q84,99 86,101 L84,103 Z" />
-      </G>
-      {/* Cracks from corners */}
-      <G opacity={0.3} fill="none" stroke="#705020" strokeWidth={0.5} strokeLinecap="round">
-        <Path d="M-2,-2 L3,4 L1,8 L5,12" />
-        <Path d="M102,-2 L97,3 L99,7 L95,10" />
-        <Path d="M-2,102 L4,97 L2,93 L6,90" />
-        <Path d="M102,102 L98,97 L100,93" />
-      </G>
-      {/* Sand grains scatter */}
-      <G opacity={0.4}>
-        <Circle cx={10} cy={-3} r={0.6} fill="#D4B88C" />
-        <Circle cx={30} cy={-4} r={0.4} fill="#C0A070" />
-        <Circle cx={55} cy={-3} r={0.5} fill="#D4B88C" />
-        <Circle cx={80} cy={-4} r={0.4} fill="#C0A070" />
-        <Circle cx={-3} cy={20} r={0.5} fill="#D4B88C" />
-        <Circle cx={-4} cy={55} r={0.4} fill="#C0A070" />
-        <Circle cx={-3} cy={85} r={0.5} fill="#D4B88C" />
-        <Circle cx={103} cy={30} r={0.4} fill="#C0A070" />
-        <Circle cx={104} cy={68} r={0.5} fill="#D4B88C" />
-        <Circle cx={25} cy={103} r={0.5} fill="#C0A070" />
-        <Circle cx={65} cy={104} r={0.4} fill="#D4B88C" />
-        <Circle cx={90} cy={103} r={0.5} fill="#C0A070" />
-      </G>
-      {/* Erosion pitting along edges */}
-      <G opacity={0.2}>
-        <Circle cx={45} cy={0} r={1.2} fill="none" stroke="#806830" strokeWidth={0.4} />
-        <Circle cx={0} cy={42} r={1} fill="none" stroke="#806830" strokeWidth={0.4} />
-        <Circle cx={100} cy={55} r={1.1} fill="none" stroke="#806830" strokeWidth={0.4} />
-        <Circle cx={60} cy={100} r={1} fill="none" stroke="#806830" strokeWidth={0.4} />
-      </G>
+      <Path
+        d="M102,-2 L106,-6 L97,-5 L104,3 Z"
+        fill="#C0A060"
+        stroke="#D4B88C"
+        strokeWidth={0.6}
+        opacity={0.8}
+      />
+      <Path
+        d="M-2,102 L-6,106 L3,105 L-4,97 Z"
+        fill="#C0A060"
+        stroke="#D4B88C"
+        strokeWidth={0.6}
+        opacity={0.8}
+      />
+      <Path
+        d="M102,102 L106,106 L97,105 L104,97 Z"
+        fill="#C0A060"
+        stroke="#D4B88C"
+        strokeWidth={0.6}
+        opacity={0.8}
+      />
+      {/* Erosion cracks extending from corners */}
+      <Path
+        d="M-4,-4 L5,8"
+        fill="none"
+        stroke="#806830"
+        strokeWidth={1}
+        opacity={0.5}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M104,-4 L95,8"
+        fill="none"
+        stroke="#806830"
+        strokeWidth={1}
+        opacity={0.5}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-4,104 L5,92"
+        fill="none"
+        stroke="#806830"
+        strokeWidth={1}
+        opacity={0.5}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M104,104 L95,92"
+        fill="none"
+        stroke="#806830"
+        strokeWidth={1}
+        opacity={0.5}
+        strokeLinecap="round"
+      />
+      {/* Hieroglyphic carved symbols — top edge */}
+      <Path d="M20,-2 Q22,-5 24,-2 L22,0 Z" fill="#A08040" opacity={0.7} />
+      <Path d="M38,-2 L40,-5 L42,-2 L40,-1 Z" fill="#B89860" opacity={0.65} />
+      <Path d="M58,-2 Q60,-6 62,-2 L60,0 Z" fill="#A08040" opacity={0.7} />
+      <Path d="M76,-2 L78,-5 L80,-2 L78,-1 Z" fill="#B89860" opacity={0.65} />
+      {/* Hieroglyphic — bottom edge */}
+      <Path d="M25,102 Q27,105 29,102 L27,100 Z" fill="#A08040" opacity={0.7} />
+      <Path d="M50,102 L52,106 L54,102 L52,100 Z" fill="#B89860" opacity={0.65} />
+      <Path d="M72,102 Q74,105 76,102 L74,100 Z" fill="#A08040" opacity={0.7} />
+      {/* Side erosion bumps */}
+      <Path
+        d="M-2,25 Q-5,28 -2,31"
+        fill="none"
+        stroke="#C0A060"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,60 Q-5,63 -2,66"
+        fill="none"
+        stroke="#C0A060"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,35 Q105,38 102,41"
+        fill="none"
+        stroke="#C0A060"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,70 Q105,73 102,76"
+        fill="none"
+        stroke="#C0A060"
+        strokeWidth={1.5}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      {/* Sand grain accents */}
+      <Circle cx={50} cy={-4} r={1.2} fill="#D4B88C" opacity={0.7} />
+      <Circle cx={-4} cy={50} r={1.2} fill="#D4B88C" opacity={0.7} />
+      <Circle cx={104} cy={50} r={1.2} fill="#D4B88C" opacity={0.7} />
+      <Circle cx={50} cy={104} r={1.2} fill="#D4B88C" opacity={0.7} />
     </Svg>
   );
 });

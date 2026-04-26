@@ -280,6 +280,7 @@ export const useGameRoom = (): UseGameRoomResult => {
         user.avatarFrame ?? undefined,
         user.seatFlair ?? undefined,
         user.nameStyle ?? undefined,
+        user.equippedEffect ?? undefined,
       )
       .catch((err: unknown) => {
         gameRoomLog.warn('Profile sync on reconnect failed', err);

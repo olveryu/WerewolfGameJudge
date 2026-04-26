@@ -201,7 +201,8 @@ export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
 ): GameState {
-  const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle } = action.payload;
+  const { userId, displayName, avatarUrl, avatarFrame, seatFlair, nameStyle, roleRevealEffect } =
+    action.payload;
   const existing = state.roster[userId];
   if (!existing) return state; // no-op if userId not in roster
 
@@ -216,6 +217,7 @@ export function handleUpdatePlayerProfile(
         ...(avatarFrame !== undefined && { avatarFrame }),
         ...(seatFlair !== undefined && { seatFlair }),
         ...(nameStyle !== undefined && { nameStyle }),
+        ...(roleRevealEffect !== undefined && { roleRevealEffect }),
       },
     },
   };

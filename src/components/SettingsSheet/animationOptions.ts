@@ -19,6 +19,8 @@ interface AnimationOptionConfig {
   readonly icon: string;
   readonly shortDesc: string;
   readonly operationType?: string;
+  /** 装备后座位出现的宠物名（none / random 无宠物） */
+  readonly petName?: string;
   readonly isRandom?: true;
   readonly isNone?: true;
 }
@@ -48,6 +50,7 @@ const ANIMATION_OPTIONS = [
     icon: 'radio-button-on-outline',
     shortDesc: '自动旋转，轮盘停下揭晓身份',
     operationType: 'auto',
+    petName: '骰灵',
   },
   {
     value: 'roleHunt',
@@ -55,6 +58,7 @@ const ANIMATION_OPTIONS = [
     icon: 'search-outline',
     shortDesc: '点击目标，探照灯锁定揭晓身份',
     operationType: 'tap',
+    petName: '猎犬',
   },
   {
     value: 'scratch',
@@ -62,6 +66,7 @@ const ANIMATION_OPTIONS = [
     icon: 'hand-left-outline',
     shortDesc: '手指滑动刮开银层，揭晓身份',
     operationType: 'swipe',
+    petName: '刮刮猫',
   },
   {
     value: 'tarot',
@@ -69,6 +74,7 @@ const ANIMATION_OPTIONS = [
     icon: 'moon-outline',
     shortDesc: '选一张塔罗牌翻开，揭晓身份',
     operationType: 'tap',
+    petName: '水晶球',
   },
   {
     value: 'gachaMachine',
@@ -76,6 +82,7 @@ const ANIMATION_OPTIONS = [
     icon: 'baseball-outline',
     shortDesc: '转动旋钮，扭蛋掉落揭晓身份',
     operationType: 'tap',
+    petName: '蛋仔',
   },
   {
     value: 'cardPick',
@@ -83,6 +90,7 @@ const ANIMATION_OPTIONS = [
     icon: 'copy-outline',
     shortDesc: '从牌堆点选一张，翻开揭晓身份',
     operationType: 'tap',
+    petName: '牌灵',
   },
   {
     value: 'sealBreak',
@@ -90,6 +98,7 @@ const ANIMATION_OPTIONS = [
     icon: 'shield-outline',
     shortDesc: '长按蓄力，破除封印揭晓身份',
     operationType: 'hold',
+    petName: '印兽',
   },
   {
     value: 'chainShatter',
@@ -97,6 +106,7 @@ const ANIMATION_OPTIONS = [
     icon: 'link-outline',
     shortDesc: '连续点击 6 次，击碎锁链揭晓身份',
     operationType: 'combo',
+    petName: '锁龙',
   },
   {
     value: 'fortuneWheel',
@@ -104,6 +114,7 @@ const ANIMATION_OPTIONS = [
     icon: 'pie-chart-outline',
     shortDesc: '拨动转盘旋转，命运指针定格揭晓',
     operationType: 'drag',
+    petName: '幸运星',
   },
   {
     value: 'meteorStrike',
@@ -111,6 +122,7 @@ const ANIMATION_OPTIONS = [
     icon: 'flash-outline',
     shortDesc: '点击捕获流星，冲击波揭晓身份',
     operationType: 'tap',
+    petName: '陨石仔',
   },
   {
     value: 'filmRewind',
@@ -118,6 +130,7 @@ const ANIMATION_OPTIONS = [
     icon: 'film-outline',
     shortDesc: '老胶片倒数放映，自动揭晓身份',
     operationType: 'auto',
+    petName: '胶片虫',
   },
   {
     value: 'vortexCollapse',
@@ -125,6 +138,7 @@ const ANIMATION_OPTIONS = [
     icon: 'planet-outline',
     shortDesc: '画圈加速漩涡旋转，坍缩爆发揭晓',
     operationType: 'drag',
+    petName: '漩涡眼',
   },
 ] as const satisfies readonly AnimationOptionConfig[];
 

@@ -20,6 +20,7 @@ const seatSitSchema = z.object({
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
   nameStyle: z.string().optional(),
+  roleRevealEffect: z.string().optional(),
   level: z.coerce.number().int().min(0).optional(),
 });
 
@@ -34,6 +35,7 @@ const seatStandupSchema = z.object({
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
   nameStyle: z.string().optional(),
+  roleRevealEffect: z.string().optional(),
   level: z.coerce.number().int().min(0).optional(),
 });
 
@@ -48,6 +50,7 @@ const seatKickSchema = z.object({
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
   nameStyle: z.string().optional(),
+  roleRevealEffect: z.string().optional(),
   level: z.coerce.number().int().min(0).optional(),
 });
 
@@ -85,6 +88,7 @@ export const updateProfileRouteSchema = z.object({
   avatarFrame: z.string().optional(),
   seatFlair: z.string().optional(),
   nameStyle: z.string().optional(),
+  roleRevealEffect: z.string().optional(),
 });
 
 /** POST /game/board-nominate */

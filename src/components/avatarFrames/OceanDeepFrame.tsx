@@ -1,45 +1,26 @@
 import { memo, useId } from 'react';
-import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import type { FrameProps } from './FrameProps';
 
 /**
- * OceanDeepFrame — 深渊
+ * OceanDeepFrame — 深海
  *
- * 深海生物荧光 · 触手/须角缠绕四角 · 气泡散布 · 海底暗绿蓝渐变。
+ * 深海蓝框 · 触手从四角和边缘向外蜷曲 · 气泡链 · 深渊发光点。
  */
 export const OceanDeepFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
   const mainG = `odM${userId}`;
-  const bioG = `odB${userId}`;
   return (
     <Svg width={size} height={size} viewBox="-8 -8 116 116">
       <Defs>
         <LinearGradient id={mainG} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#0A2030" stopOpacity={0.95} />
-          <Stop offset="0.5" stopColor="#051520" stopOpacity={1} />
-          <Stop offset="1" stopColor="#0A2030" stopOpacity={0.95} />
-        </LinearGradient>
-        <LinearGradient id={bioG} x1="0" y1="1" x2="0" y2="0">
-          <Stop offset="0" stopColor="#00FFAA" stopOpacity={0.2} />
-          <Stop offset="0.3" stopColor="#0088AA" stopOpacity={0.1} />
-          <Stop offset="0.6" stopColor="#005580" stopOpacity={0} />
-          <Stop offset="1" stopColor="#00FFAA" stopOpacity={0} />
+          <Stop offset="0" stopColor="#1A5276" stopOpacity={0.95} />
+          <Stop offset="0.5" stopColor="#0E3651" stopOpacity={1} />
+          <Stop offset="1" stopColor="#1A5276" stopOpacity={0.95} />
         </LinearGradient>
       </Defs>
-      {/* Shadow */}
-      <Rect
-        x={1}
-        y={1}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke="#000810"
-        strokeWidth={6}
-        opacity={0.25}
-      />
-      {/* Deep ocean frame */}
+      {/* Base frame */}
       <Rect
         x={0}
         y={0}
@@ -48,102 +29,139 @@ export const OceanDeepFrame = memo<FrameProps>(({ size, rx }) => {
         rx={rx}
         fill="none"
         stroke={`url(#${mainG})`}
-        strokeWidth={5}
+        strokeWidth={4.5}
       />
-      {/* Bioluminescence */}
+      {/* Inner bioluminescent line */}
       <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
+        x={5}
+        y={5}
+        width={90}
+        height={90}
+        rx={Math.max(rx - 4, 0)}
         fill="none"
-        stroke={`url(#${bioG})`}
-        strokeWidth={2.5}
-      />
-      {/* Inner */}
-      <Rect
-        x={7}
-        y={7}
-        width={86}
-        height={86}
-        rx={Math.max(rx - 6, 0)}
-        fill="none"
-        stroke="#0A2030"
+        stroke="#2E86C1"
         strokeWidth={0.6}
         opacity={0.4}
       />
-      {/* Tentacle — top-left corner (S-curve with suckers) */}
-      <G opacity={0.5}>
-        <Path
-          d="M-5,8 Q-3,2 0,-2 Q3,-5 8,-4 Q5,-2 3,0 Q1,3 -1,5"
-          fill="none"
-          stroke="#205040"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-        />
-        <Circle cx={-3} cy={5} r={0.5} fill="#40A080" opacity={0.4} />
-        <Circle cx={0} cy={1} r={0.5} fill="#40A080" opacity={0.4} />
-        <Circle cx={3} cy={-2} r={0.5} fill="#40A080" opacity={0.4} />
-      </G>
-      {/* Tentacle — bottom-right corner */}
-      <G opacity={0.5}>
-        <Path
-          d="M105,92 Q103,98 100,102 Q97,105 92,104 Q95,102 97,100 Q99,97 101,95"
-          fill="none"
-          stroke="#205040"
-          strokeWidth={1.5}
-          strokeLinecap="round"
-        />
-        <Circle cx={103} cy={95} r={0.5} fill="#40A080" opacity={0.4} />
-        <Circle cx={100} cy={99} r={0.5} fill="#40A080" opacity={0.4} />
-        <Circle cx={97} cy={102} r={0.5} fill="#40A080" opacity={0.4} />
-      </G>
-      {/* Tentacle — top-right */}
-      <G opacity={0.4}>
-        <Path
-          d="M92,-4 Q98,-3 102,0 Q105,3 104,8"
-          fill="none"
-          stroke="#205040"
-          strokeWidth={1.2}
-          strokeLinecap="round"
-        />
-        <Circle cx={98} cy={-1} r={0.4} fill="#40A080" opacity={0.35} />
-        <Circle cx={102} cy={3} r={0.4} fill="#40A080" opacity={0.35} />
-      </G>
-      {/* Tentacle — bottom-left */}
-      <G opacity={0.4}>
-        <Path
-          d="M8,104 Q2,103 -2,100 Q-5,97 -4,92"
-          fill="none"
-          stroke="#205040"
-          strokeWidth={1.2}
-          strokeLinecap="round"
-        />
-        <Circle cx={2} cy={101} r={0.4} fill="#40A080" opacity={0.35} />
-        <Circle cx={-2} cy={97} r={0.4} fill="#40A080" opacity={0.35} />
-      </G>
-      {/* Bubbles rising */}
-      <G opacity={0.4}>
-        <Circle cx={-3} cy={30} r={1.5} fill="none" stroke="#40A0A0" strokeWidth={0.4} />
-        <Circle cx={-4} cy={25} r={1} fill="none" stroke="#40A0A0" strokeWidth={0.3} />
-        <Circle cx={-2} cy={20} r={0.7} fill="none" stroke="#40A0A0" strokeWidth={0.3} />
-      </G>
-      <G opacity={0.35}>
-        <Circle cx={103} cy={50} r={1.3} fill="none" stroke="#40A0A0" strokeWidth={0.4} />
-        <Circle cx={104} cy={45} r={0.9} fill="none" stroke="#40A0A0" strokeWidth={0.3} />
-        <Circle cx={102} cy={40} r={0.6} fill="none" stroke="#40A0A0" strokeWidth={0.3} />
-      </G>
-      {/* Bioluminescent dots */}
-      <G opacity={0.6}>
-        <Circle cx={20} cy={-3} r={0.6} fill="#00FFAA" />
-        <Circle cx={50} cy={-4} r={0.5} fill="#00CCAA" />
-        <Circle cx={80} cy={-3} r={0.7} fill="#00FFAA" />
-        <Circle cx={-4} cy={60} r={0.5} fill="#00CCAA" />
-        <Circle cx={-3} cy={80} r={0.6} fill="#00FFAA" />
-        <Circle cx={30} cy={103} r={0.5} fill="#00CCAA" />
-        <Circle cx={65} cy={104} r={0.6} fill="#00FFAA" />
-      </G>
+      {/* Tentacles from corners — bold, curling outward */}
+      <Path
+        d="M-2,-2 Q-8,5 -6,12 Q-4,8 -1,5"
+        fill="none"
+        stroke="#1A5276"
+        strokeWidth={2.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,0 Q-10,8 -7,15"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.2}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,-2 Q108,5 106,12 Q104,8 101,5"
+        fill="none"
+        stroke="#1A5276"
+        strokeWidth={2.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,0 Q110,8 107,15"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.2}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,102 Q-8,95 -6,88 Q-4,92 -1,95"
+        fill="none"
+        stroke="#1A5276"
+        strokeWidth={2.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M-2,100 Q-10,92 -7,85"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.2}
+        opacity={0.6}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M102,102 Q108,95 106,88 Q104,92 101,95"
+        fill="none"
+        stroke="#1A5276"
+        strokeWidth={2.5}
+        opacity={0.8}
+        strokeLinecap="round"
+      />
+      {/* Wave tentacles along top */}
+      <Path
+        d="M25,-1 Q30,-6 35,-1"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.5}
+        opacity={0.65}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M55,-1 Q60,-5 65,-1"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.5}
+        opacity={0.65}
+        strokeLinecap="round"
+      />
+      {/* Wave tentacles along bottom */}
+      <Path
+        d="M30,101 Q35,106 40,101"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.5}
+        opacity={0.65}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M60,101 Q65,105 70,101"
+        fill="none"
+        stroke="#2E86C1"
+        strokeWidth={1.5}
+        opacity={0.65}
+        strokeLinecap="round"
+      />
+      {/* Bubble chains */}
+      <Circle cx={-4} cy={30} r={2} fill="none" stroke="#5DADE2" strokeWidth={0.7} opacity={0.6} />
+      <Circle
+        cx={-5}
+        cy={25}
+        r={1.5}
+        fill="none"
+        stroke="#5DADE2"
+        strokeWidth={0.6}
+        opacity={0.5}
+      />
+      <Circle cx={-6} cy={21} r={1} fill="none" stroke="#5DADE2" strokeWidth={0.5} opacity={0.4} />
+      <Circle cx={104} cy={70} r={2} fill="none" stroke="#5DADE2" strokeWidth={0.7} opacity={0.6} />
+      <Circle
+        cx={105}
+        cy={75}
+        r={1.5}
+        fill="none"
+        stroke="#5DADE2"
+        strokeWidth={0.6}
+        opacity={0.5}
+      />
+      <Circle cx={106} cy={79} r={1} fill="none" stroke="#5DADE2" strokeWidth={0.5} opacity={0.4} />
+      {/* Bioluminescent glow dots */}
+      <Circle cx={15} cy={-3} r={1.2} fill="#5DADE2" opacity={0.7} />
+      <Circle cx={85} cy={103} r={1.2} fill="#5DADE2" opacity={0.7} />
+      <Circle cx={50} cy={-3} r={1.5} fill="#AED6F1" opacity={0.6} />
+      <Circle cx={50} cy={103} r={1.5} fill="#AED6F1" opacity={0.6} />
     </Svg>
   );
 });
