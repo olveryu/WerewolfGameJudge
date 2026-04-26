@@ -63,13 +63,13 @@ export class RoomPage {
     });
   }
 
-  /** Click own seat and confirm "离座" dialog. */
+  /** Click own seat → profile card opens → click "离座" button. No second confirm. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('离座', {
-      timeout: 5000,
-    });
-    await this.page.getByTestId('seat-confirm-ok').click();
+    // Profile card should appear (self-profile)
+    await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
+    // Click "离座" button inside the profile card
+    await this.page.getByText('离座', { exact: true }).click();
     // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
       timeout: 5000,
@@ -78,12 +78,14 @@ export class RoomPage {
 
   /**
    * Host kicks a player from their seat.
-   * Taps the occupied seat → confirms "移出" destructive dialog → waits for seat to empty.
+   * Taps the occupied seat → profile card opens → clicks "移出座位" → directly kicks (no confirm dialog).
    */
   async kickPlayer(seat: number) {
     await this.getSeatTile(seat).click();
-    await expect(this.page.getByTestId('alert-title')).toHaveText('移出座位', { timeout: 5000 });
-    await this.page.getByText('移出', { exact: true }).click();
+    // Profile card should appear
+    await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
+    // Click "移出座位" button inside the profile card — directly executes kick
+    await this.page.getByText('移出座位', { exact: true }).click();
     // Wait for kicked seat to show as empty via broadcast
     const tile = this.getSeatTile(seat);
     await expect

@@ -30,8 +30,8 @@ import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { PressableScale } from '@/components/PressableScale';
+import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
-import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
 import { RootStackParamList } from '@/navigation/types';
@@ -50,8 +50,12 @@ interface PlayerProfileCardProps {
   isHost: boolean;
   /** Display name from roster (used for bots or fallback) */
   rosterName?: string;
+  /** Whether this is the current player's own profile */
+  isSelf?: boolean;
   /** Callback when host taps kick button */
   onKick?: (seat: number) => void;
+  /** Callback when self taps leave seat button */
+  onLeaveSeat?: (seat: number) => void;
 }
 
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
@@ -143,12 +147,12 @@ function resolveNameStyleSlot(styleId: string | undefined): SlotInfo {
   };
 }
 
-function resolveEffectSlot(effectId: string | undefined): SlotInfo {
-  if (!effectId) return { name: '', rarity: null, typeLabel: '翻牌宠物' };
+function resolveSeatAnimationSlot(animId: string | undefined): SlotInfo {
+  if (!animId) return { name: '', rarity: null, typeLabel: '入座动画' };
   return {
-    name: getPetByEffectId(effectId)?.name ?? effectId,
-    rarity: getItemRarity(effectId),
-    typeLabel: '翻牌宠物',
+    name: getSeatAnimationById(animId)?.name ?? animId,
+    rarity: getItemRarity(animId),
+    typeLabel: '入座动画',
   };
 }
 
@@ -198,13 +202,9 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
   const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
   const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
   const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
-  const effectSlot = useMemo(
-    () => resolveEffectSlot(profile.roleRevealEffect),
-    [profile.roleRevealEffect],
-  );
-  const EffectPetComponent = useMemo(
-    () => getPetByEffectId(profile.roleRevealEffect)?.Component,
-    [profile.roleRevealEffect],
+  const seatAnimationSlot = useMemo(
+    () => resolveSeatAnimationSlot(profile.seatAnimation),
+    [profile.seatAnimation],
   );
 
   return (
@@ -216,7 +216,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <View style={styles.equipDividerLine} />
       </View>
 
-      {/* Row 1: Avatar / Frame / Seat Flair */}
+      {/* 4 slots in a row */}
       <View style={styles.equipRow}>
         {/* Avatar */}
         <EquipmentSlot slot={avatarSlot}>
@@ -246,10 +246,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <EquipmentSlot slot={flairSlot}>
           {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
         </EquipmentSlot>
-      </View>
 
-      {/* Row 2: Name Style / Role Reveal Pet */}
-      <View style={styles.equipRow}>
         {/* Name Style */}
         <EquipmentSlot slot={nameStyleSlot}>
           {profile.nameStyle ? (
@@ -259,9 +256,9 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
           ) : null}
         </EquipmentSlot>
 
-        {/* Role Reveal Effect (Pet) */}
-        <EquipmentSlot slot={effectSlot}>
-          {EffectPetComponent ? <EffectPetComponent size={SLOT_PREVIEW_SIZE} /> : null}
+        {/* Seat Animation */}
+        <EquipmentSlot slot={seatAnimationSlot}>
+          {seatAnimationSlot.name ? <Text style={styles.equipSlotIcon}>🎬</Text> : null}
         </EquipmentSlot>
       </View>
     </View>
@@ -279,7 +276,9 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   targetSeat,
   isHost,
   rosterName,
+  isSelf,
   onKick,
+  onLeaveSeat,
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isBot = targetUserId.startsWith('bot-');
@@ -297,6 +296,10 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
     onClose();
     onKick?.(targetSeat);
   }, [onClose, onKick, targetSeat]);
+
+  const handleLeaveSeat = useCallback(() => {
+    onLeaveSeat?.(targetSeat);
+  }, [onLeaveSeat, targetSeat]);
 
   const handleViewUnlocks = useCallback(() => {
     onClose();
@@ -454,8 +457,15 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             {/* ── Equipment showcase ── */}
             <EquipmentShowcase profile={profile} />
 
-            {/* ── Host kick button ── */}
-            {isHost && onKick && (
+            {/* ── Self leave seat button ── */}
+            {isSelf && onLeaveSeat && (
+              <PressableScale onPress={handleLeaveSeat} style={styles.leaveSeatButton}>
+                <Text style={styles.leaveSeatButtonText}>离座</Text>
+              </PressableScale>
+            )}
+
+            {/* ── Host kick button (other players only) ── */}
+            {!isSelf && isHost && onKick && (
               <PressableScale onPress={handleKick} style={styles.kickButton}>
                 <Text style={styles.kickButtonText}>移出座位</Text>
               </PressableScale>
@@ -652,6 +662,23 @@ const styles = StyleSheet.create({
     fontSize: typography.secondary,
     fontWeight: typography.weights.medium,
     color: colors.error,
+  },
+
+  // Leave seat (self-profile)
+  leaveSeatButton: {
+    width: CARD_WIDTH - spacing.large * 2,
+    height: componentSizes.button.md,
+    borderRadius: borderRadius.small,
+    backgroundColor: withAlpha(colors.warning, 0.08),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.medium,
+    marginBottom: spacing.large,
+  },
+  leaveSeatButtonText: {
+    fontSize: typography.secondary,
+    fontWeight: typography.weights.medium,
+    color: colors.warning,
   },
 
   // Equipment showcase

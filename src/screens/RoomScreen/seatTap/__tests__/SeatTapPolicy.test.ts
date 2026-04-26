@@ -26,6 +26,7 @@ describe('SeatTapPolicy', () => {
         imActioner: true,
         hasGameState: true,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -47,6 +48,7 @@ describe('SeatTapPolicy', () => {
         imActioner: true,
         hasGameState: true,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -69,6 +71,7 @@ describe('SeatTapPolicy', () => {
         imActioner: false,
         hasGameState: true,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -90,6 +93,7 @@ describe('SeatTapPolicy', () => {
         imActioner: true,
         hasGameState: true,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -110,6 +114,7 @@ describe('SeatTapPolicy', () => {
         imActioner: false,
         hasGameState: true,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -135,6 +140,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -154,6 +160,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -173,6 +180,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-abc',
         };
 
@@ -194,6 +202,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-def',
         };
 
@@ -215,6 +224,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-ghi',
         };
 
@@ -236,6 +246,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -254,6 +265,7 @@ describe('SeatTapPolicy', () => {
           imActioner: true,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -273,6 +285,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -294,6 +307,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -313,6 +327,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-assigned',
         };
 
@@ -333,6 +348,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -352,6 +368,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-ready',
         };
 
@@ -372,6 +389,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: false,
+          isSelfSeated: false,
         };
 
         const result = getSeatTapResult(input);
@@ -391,6 +409,7 @@ describe('SeatTapPolicy', () => {
           imActioner: false,
           hasGameState: true,
           isSeatOccupiedByOther: true,
+          isSelfSeated: false,
           targetUserId: 'user-ended',
         };
 
@@ -401,6 +420,135 @@ describe('SeatTapPolicy', () => {
           expect(result.targetUserId).toBe('user-ended');
         }
       });
+    });
+  });
+
+  // ==========================================================================
+  // Self-tap: VIEW_PROFILE for own seat
+  // ==========================================================================
+  describe('Self-tap: VIEW_PROFILE for own seat', () => {
+    it('returns VIEW_PROFILE when self-seated player taps own seat in unseated phase', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Unseated,
+        isAudioPlaying: false,
+        seat: 2,
+        disabledReason: undefined,
+        imActioner: false,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: true,
+        myUserId: 'user-self',
+      };
+
+      const result = getSeatTapResult(input);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      if (result.kind === 'VIEW_PROFILE') {
+        expect(result.seat).toBe(2);
+        expect(result.targetUserId).toBe('user-self');
+      }
+    });
+
+    it('returns VIEW_PROFILE when self-seated player taps own seat in seated phase', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Seated,
+        isAudioPlaying: false,
+        seat: 3,
+        disabledReason: undefined,
+        imActioner: false,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: true,
+        myUserId: 'user-self',
+      };
+
+      const result = getSeatTapResult(input);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      if (result.kind === 'VIEW_PROFILE') {
+        expect(result.seat).toBe(3);
+        expect(result.targetUserId).toBe('user-self');
+      }
+    });
+
+    it('returns VIEW_PROFILE when self-seated player taps own seat in assigned phase', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Assigned,
+        isAudioPlaying: false,
+        seat: 1,
+        disabledReason: undefined,
+        imActioner: false,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: true,
+        myUserId: 'user-self',
+      };
+
+      const result = getSeatTapResult(input);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      if (result.kind === 'VIEW_PROFILE') {
+        expect(result.seat).toBe(1);
+        expect(result.targetUserId).toBe('user-self');
+      }
+    });
+
+    it('returns VIEW_PROFILE when self-seated player taps own seat in ended phase', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Ended,
+        isAudioPlaying: false,
+        seat: 5,
+        disabledReason: undefined,
+        imActioner: false,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: true,
+        myUserId: 'user-self',
+      };
+
+      const result = getSeatTapResult(input);
+
+      expect(result.kind).toBe('VIEW_PROFILE');
+      if (result.kind === 'VIEW_PROFILE') {
+        expect(result.seat).toBe(5);
+        expect(result.targetUserId).toBe('user-self');
+      }
+    });
+
+    it('does not return VIEW_PROFILE for self during ongoing phase (uses normal action flow)', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Ongoing,
+        isAudioPlaying: false,
+        seat: 2,
+        disabledReason: undefined,
+        imActioner: true,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: true,
+        myUserId: 'user-self',
+      };
+
+      const result = getSeatTapResult(input);
+
+      // During ongoing, self-tap goes through normal action flow, not profile
+      expect(result.kind).toBe('ACTION_FLOW');
+    });
+
+    it('returns SEATING_FLOW for empty seat when player is not seated (tapping empty seat is not self)', () => {
+      const input: SeatTapPolicyInput = {
+        roomStatus: GameStatus.Unseated,
+        isAudioPlaying: false,
+        seat: 4,
+        disabledReason: undefined,
+        imActioner: false,
+        hasGameState: true,
+        isSeatOccupiedByOther: false,
+        isSelfSeated: false,
+      };
+
+      const result = getSeatTapResult(input);
+
+      expect(result.kind).toBe('SEATING_FLOW');
     });
   });
 
@@ -417,6 +565,7 @@ describe('SeatTapPolicy', () => {
         imActioner: true,
         hasGameState: false,
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);
@@ -436,6 +585,7 @@ describe('SeatTapPolicy', () => {
         imActioner: true,
         hasGameState: false, // No game state means undefined status
         isSeatOccupiedByOther: false,
+        isSelfSeated: false,
       };
 
       const result = getSeatTapResult(input);

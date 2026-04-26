@@ -199,8 +199,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
+    profileCardIsSelf,
     closeProfileCard,
     handleProfileKick,
+    handleProfileLeaveSeat,
     // Local UI state
     isStartingGame,
     isHostActionSubmitting,
@@ -661,7 +663,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         targetSeat={profileCardTargetSeat}
         rosterName={profileCardRosterName}
         isHost={isHost}
+        isSelf={profileCardIsSelf}
         onKick={handleProfileKick}
+        onLeaveSeat={handleProfileLeaveSeat}
       />
 
       {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}

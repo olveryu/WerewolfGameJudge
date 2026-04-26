@@ -613,8 +613,10 @@ export function useRoomScreenState(
     profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
+    profileCardIsSelf,
     closeProfileCard,
     handleProfileKick,
+    handleProfileLeaveSeat,
   } = useInteractionDispatcher({
     gameState,
     roomStatus,
@@ -635,6 +637,7 @@ export function useRoomScreenState(
     getActionIntent,
     showEnterSeatDialog,
     showLeaveSeatDialog,
+    leaveSeat,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,
     setRoleCardVisible,
@@ -873,8 +876,10 @@ export function useRoomScreenState(
     profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
+    profileCardIsSelf,
     closeProfileCard,
     handleProfileKick,
+    handleProfileLeaveSeat,
 
     // ── Local UI state ──
     isStartingGame,

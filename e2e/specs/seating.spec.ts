@@ -112,15 +112,13 @@ test.describe('Seating', () => {
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
-      // Click own seat → should show "离座" modal (not "入座")
+      // Click own seat → should show player profile card (self-profile with "离座" button)
       await room.getSeatTile(0).click();
-      await expect(page.getByTestId('seat-confirm-title')).toHaveText('离座', { timeout: 5000 });
+      await expect(page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
 
-      // Dismiss
-      await page
-        .getByText('取消')
-        .click()
-        .catch(() => {});
+      // Dismiss profile card
+      await page.mouse.click(5, 5);
+      await expect(page.getByTestId('player-profile-card')).not.toBeVisible({ timeout: 3000 });
 
       await room.screenshot(testInfo, 'single-player-seated.png');
     } finally {
@@ -218,13 +216,8 @@ test.describe('Seating', () => {
       await roomA.getSeatTile(1).click();
       await expect(pageA.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
 
-      // Click "移出座位" button inside the profile card → kick confirmation dialog
+      // Click "移出座位" button inside the profile card → directly kicks (no confirm dialog)
       await pageA.getByText('移出座位', { exact: true }).click();
-      await expect(pageA.getByTestId('alert-title')).toHaveText('移出座位', { timeout: 5000 });
-      await expect(pageA.getByText(/确定要将.*移出座位吗/)).toBeVisible({ timeout: 3000 });
-
-      // Confirm kick
-      await pageA.getByText('移出', { exact: true }).click();
 
       // Host sees seat 2 become empty
       const hostSeat2After = await pollSeatEmpty(roomA, 2);

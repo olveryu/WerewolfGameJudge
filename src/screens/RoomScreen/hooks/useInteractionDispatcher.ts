@@ -60,6 +60,9 @@ interface UseInteractionDispatcherParams {
   showEnterSeatDialog: (seat: number) => void;
   showLeaveSeatDialog: (seat: number) => void;
   handleLeaveRoom: () => void;
+
+  // ── Seat operations (raw API) ──
+  leaveSeat: () => Promise<void>;
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
 
   // ── Host dialogs ──
@@ -96,8 +99,12 @@ interface UseInteractionDispatcherResult {
   profileCardTargetSeat: number;
   /** Display name from roster (for bots or offline render without API) */
   profileCardRosterName: string;
+  /** Whether the profile card is showing the current player's own profile */
+  profileCardIsSelf: boolean;
   closeProfileCard: () => void;
   handleProfileKick: ((seat: number) => void) | undefined;
+  /** Callback when self-profile leave seat button is tapped */
+  handleProfileLeaveSeat: ((seat: number) => void) | undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,6 +132,7 @@ export function useInteractionDispatcher({
   showEnterSeatDialog,
   showLeaveSeatDialog,
   handleLeaveRoom,
+  leaveSeat,
   viewedRole,
   handleSettingsPress,
   showPrepareToFlipDialog,
@@ -145,6 +153,7 @@ export function useInteractionDispatcher({
   const [profileCardTargetUserId, setProfileCardTargetUserId] = useState('');
   const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
   const [profileCardRosterName, setProfileCardRosterName] = useState('');
+  const [profileCardIsSelf, setProfileCardIsSelf] = useState(false);
 
   const closeProfileCard = useCallback(() => {
     setProfileCardVisible(false);
@@ -156,21 +165,36 @@ export function useInteractionDispatcher({
     () =>
       canKick
         ? (seat: number) => {
-            const player = gameState?.players.get(seat);
-            const playerName = player?.displayName ?? `${seat + 1}号座位`;
             roomScreenLog.debug('handleProfileKick', { seat });
-            showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
-              void kickPlayer(seat).catch((err) => {
-                handleError(err, {
-                  label: 'kickPlayer',
-                  logger: roomScreenLog,
-                  alertTitle: '移出失败',
-                });
+            setProfileCardVisible(false);
+            void kickPlayer(seat).catch((err) => {
+              handleError(err, {
+                label: 'kickPlayer',
+                logger: roomScreenLog,
+                alertTitle: '移出失败',
               });
             });
           }
         : undefined,
-    [canKick, gameState, kickPlayer],
+    [canKick, kickPlayer],
+  );
+
+  const handleProfileLeaveSeat = useMemo(
+    () =>
+      canKick
+        ? (_seat: number) => {
+            roomScreenLog.debug('handleProfileLeaveSeat', { seat: _seat });
+            setProfileCardVisible(false);
+            void leaveSeat().catch((err) => {
+              handleError(err, {
+                label: 'leaveSeat',
+                logger: roomScreenLog,
+                alertTitle: '离座失败',
+              });
+            });
+          }
+        : undefined,
+    [canKick, leaveSeat],
   );
 
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
@@ -438,14 +462,17 @@ export function useInteractionDispatcher({
 
         case 'VIEW_PROFILE': {
           const targetPlayer = gameState?.players.get(result.seat);
+          const isSelf = result.seat === mySeat;
           roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
             targetUserId: result.targetUserId,
             rosterName: targetPlayer?.displayName,
+            isSelf,
           });
           setProfileCardTargetUserId(result.targetUserId);
           setProfileCardTargetSeat(result.seat);
           setProfileCardRosterName(targetPlayer?.displayName ?? '');
+          setProfileCardIsSelf(isSelf);
           setProfileCardVisible(true);
           return;
         }
@@ -476,6 +503,7 @@ export function useInteractionDispatcher({
       kickPlayer,
       effectiveSeat,
       pendingHunterStatusViewed,
+      mySeat,
       gameState,
       setPendingRevealDialog,
       setRoleCardVisible,
@@ -509,7 +537,9 @@ export function useInteractionDispatcher({
     profileCardTargetUserId,
     profileCardTargetSeat,
     profileCardRosterName,
+    profileCardIsSelf,
     closeProfileCard,
     handleProfileKick,
+    handleProfileLeaveSeat,
   };
 }

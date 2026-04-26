@@ -78,6 +78,10 @@ export interface SeatTapPolicyInput {
   isSeatOccupiedByOther: boolean;
   /** UID of the player occupying the tapped seat (if occupied by other) */
   targetUserId?: string;
+  /** Whether the tapped seat is the current player's own occupied seat */
+  isSelfSeated: boolean;
+  /** UID of the current player (for self-profile) */
+  myUserId?: string;
 }
 
 // =============================================================================
@@ -103,6 +107,8 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     hasGameState,
     isSeatOccupiedByOther,
     targetUserId,
+    isSelfSeated,
+    myUserId,
   } = input;
 
   // Guard: no game state
@@ -132,10 +138,16 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Priority 3: View Profile (any non-ongoing phase, tapping other player)
+  // Priority 3: View Profile (any non-ongoing phase, tapping occupied seat)
+  // Includes both other players and self — self gets leave button in profile card
   // ─────────────────────────────────────────────────────────────────────────
-  if (roomStatus !== GameStatus.Ongoing && isSeatOccupiedByOther && targetUserId) {
-    return { kind: 'VIEW_PROFILE', seat, targetUserId };
+  if (roomStatus !== GameStatus.Ongoing) {
+    if (isSeatOccupiedByOther && targetUserId) {
+      return { kind: 'VIEW_PROFILE', seat, targetUserId };
+    }
+    if (isSelfSeated && myUserId) {
+      return { kind: 'VIEW_PROFILE', seat, targetUserId: myUserId };
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
