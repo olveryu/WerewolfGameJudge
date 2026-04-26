@@ -38,9 +38,9 @@ function requestGeo(c: { req: { raw: Request } }) {
   };
 }
 
-/** 注册欢迎奖励：普通券 5 + 黄金券 1 */
-const WELCOME_NORMAL_DRAWS = 5;
-const WELCOME_GOLDEN_DRAWS = 1;
+/** 注册欢迎奖励：普通券 10 + 黄金券 5 */
+const WELCOME_NORMAL_DRAWS = 10;
+const WELCOME_GOLDEN_DRAWS = 5;
 
 /** 给新注册用户发放欢迎抽奖券（upsert，已有行则累加） */
 async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string): Promise<void> {

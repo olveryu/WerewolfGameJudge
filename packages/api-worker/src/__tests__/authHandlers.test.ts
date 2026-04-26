@@ -122,8 +122,8 @@ describe('POST /auth/signup', () => {
       .bind(body.user.id)
       .first<{ normal_draws: number; golden_draws: number }>();
 
-    expect(stats!.normal_draws).toBe(5);
-    expect(stats!.golden_draws).toBe(1);
+    expect(stats!.normal_draws).toBe(10);
+    expect(stats!.golden_draws).toBe(5);
   });
 
   it('rejects duplicate email', async () => {
