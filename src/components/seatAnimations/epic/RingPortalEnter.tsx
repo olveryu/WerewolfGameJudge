@@ -13,6 +13,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
@@ -20,6 +21,7 @@ import Svg from 'react-native-svg';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
+import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface RingPortalConfig {
   /** Ring stroke color */
@@ -67,7 +69,9 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
   ({ size, borderRadius, onComplete, children, config }) => {
     const ringProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
+    const childScale = useSharedValue(0.5);
     const glowOpacity = useSharedValue(0);
+    const { flashStyle, glowProps: epicGlowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       ringProgress.value = withTiming(1, {
@@ -88,11 +92,15 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
           },
         ),
       );
-    }, [ringProgress, childOpacity, glowOpacity, onComplete]);
+      childScale.value = withDelay(
+        EPIC_DURATION * 0.3,
+        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
+      );
+    }, [ringProgress, childOpacity, childScale, glowOpacity, onComplete]);
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,
-      transform: [{ scale: 0.5 + childOpacity.value * 0.5 }],
+      transform: [{ scale: childScale.value }],
     }));
 
     const glowProps = useAnimatedProps(() => {
@@ -114,6 +122,12 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
           <AnimatedCircle
             cx={size / 2}
             cy={size / 2}
+            animatedProps={epicGlowProps}
+            fill={config.color}
+          />
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
             animatedProps={glowProps}
             fill={config.glowColor}
           />
@@ -126,6 +140,10 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
         >
           {children}
         </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+        />
       </View>
     );
   },

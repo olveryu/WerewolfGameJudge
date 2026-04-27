@@ -13,6 +13,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
@@ -20,6 +21,7 @@ import Svg from 'react-native-svg';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
+import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface RisingElementConfig {
   /** Element color */
@@ -101,6 +103,8 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
   ({ size, borderRadius, onComplete, children, config }) => {
     const elementProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
+    const childScale = useSharedValue(0.8);
+    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       elementProgress.value = withTiming(1, {
@@ -117,7 +121,11 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
           },
         ),
       );
-    }, [elementProgress, childOpacity, onComplete]);
+      childScale.value = withDelay(
+        EPIC_DURATION * 0.25,
+        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
+      );
+    }, [elementProgress, childOpacity, childScale, onComplete]);
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,
@@ -126,6 +134,7 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
           translateY:
             (1 - childOpacity.value) * (config.direction === 'up' ? size * 0.15 : -size * 0.15),
         },
+        { scale: childScale.value },
       ],
     }));
 
@@ -137,6 +146,12 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            animatedProps={glowProps}
+            fill={config.color}
+          />
           {elements.map((i) => (
             <RisingElement
               key={i}
@@ -153,6 +168,10 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
         >
           {children}
         </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+        />
       </View>
     );
   },

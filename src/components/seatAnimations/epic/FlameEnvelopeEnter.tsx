@@ -13,13 +13,15 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedPath } from '../svgAnimatedPrimitives';
+import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
+import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface FlameEnvelopeConfig {
   /** Flame primary color */
@@ -77,6 +79,8 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
   ({ size, borderRadius, onComplete, children, config }) => {
     const flameProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
+    const childScale = useSharedValue(0.8);
+    const { flashStyle, glowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       flameProgress.value = withTiming(1, {
@@ -93,11 +97,15 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
           },
         ),
       );
-    }, [flameProgress, childOpacity, onComplete]);
+      childScale.value = withDelay(
+        EPIC_DURATION * 0.3,
+        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
+      );
+    }, [flameProgress, childOpacity, childScale, onComplete]);
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,
-      transform: [{ scale: 0.8 + childOpacity.value * 0.2 }],
+      transform: [{ scale: childScale.value }],
     }));
 
     const flames = useMemo(
@@ -108,6 +116,12 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            animatedProps={glowProps}
+            fill={config.color}
+          />
           {flames.map((i) => (
             <FlameTongue
               key={i}
@@ -124,6 +138,10 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
         >
           {children}
         </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+        />
       </View>
     );
   },

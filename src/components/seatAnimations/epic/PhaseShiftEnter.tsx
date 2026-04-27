@@ -12,6 +12,8 @@ import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
@@ -19,6 +21,7 @@ import Svg from 'react-native-svg';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
+import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
 
 export interface PhaseShiftConfig {
   /** Shimmer/ghost color */
@@ -32,6 +35,8 @@ export interface PhaseShiftConfig {
 export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftConfig }>(
   ({ size, borderRadius, onComplete, children, config }) => {
     const progress = useSharedValue(0);
+    const childScale = useSharedValue(0.85);
+    const { flashStyle, glowProps: epicGlowProps } = useEpicEnhancers(size);
 
     useEffect(() => {
       progress.value = withTiming(
@@ -44,7 +49,11 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
           if (finished) runOnJS(onComplete)();
         },
       );
-    }, [progress, onComplete]);
+      childScale.value = withDelay(
+        EPIC_DURATION * 0.2,
+        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
+      );
+    }, [progress, childScale, onComplete]);
 
     // Ghost copy offset
     const ghostStyle = useAnimatedStyle(() => {
@@ -74,6 +83,7 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: progress.value,
+      transform: [{ scale: childScale.value }],
     }));
 
     const glowProps = useAnimatedProps(() => {
@@ -87,6 +97,12 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
     return (
       <View style={[styles.container, { width: size, height: size }]}>
         <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+          <AnimatedCircle
+            cx={size / 2}
+            cy={size / 2}
+            animatedProps={epicGlowProps}
+            fill={config.color}
+          />
           <AnimatedCircle
             cx={size / 2}
             cy={size / 2}
@@ -109,6 +125,10 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
         >
           {children}
         </Animated.View>
+        <Animated.View
+          pointerEvents="none"
+          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+        />
       </View>
     );
   },
