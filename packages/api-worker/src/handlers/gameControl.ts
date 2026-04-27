@@ -62,34 +62,11 @@ gameRoutes.post('/restart', jsonBody(roomCodeSchema), async (c) => {
 // ── Parameterized handlers ──────────────────────────────────────────────────
 
 gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
-  const {
-    roomCode,
-    action,
-    userId,
-    seat,
-    targetSeat,
-    displayName,
-    avatarUrl,
-    avatarFrame,
-    seatFlair,
-    nameStyle,
-    level,
-  } = c.req.valid('json');
+  const { roomCode, ...params } = c.req.valid('json');
 
   const result = await callDO(() => {
     const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-    return stub.seat(
-      action,
-      userId,
-      seat ?? null,
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      targetSeat,
-      level,
-    );
+    return stub.seat(params);
   });
   return c.json(result, resultToStatus(result as GameActionResult));
 });

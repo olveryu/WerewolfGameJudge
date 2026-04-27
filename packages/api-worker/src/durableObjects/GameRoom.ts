@@ -43,6 +43,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
 import { type PlayerSettleResult, settleGameResults } from '../growth/settleGameResults';
+import type { SeatActionParams } from '../schemas/game';
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -268,20 +269,8 @@ export class GameRoom extends DurableObject<Env> {
 
   // ── (B) Parameterized RPC methods ───────────────────────────────────────
 
-  async seat(
-    action: 'sit' | 'standup' | 'kick',
-    userId: string,
-    seatNum: number | null,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    targetSeat?: number,
-    level?: number,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<GameActionResult> {
+  async seat(params: SeatActionParams): Promise<GameActionResult> {
+    const { action, userId } = params;
     return this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, userId);
@@ -290,16 +279,16 @@ export class GameRoom extends DurableObject<Env> {
             {
               type: 'JOIN_SEAT',
               payload: {
-                seat: seatNum!,
+                seat: params.seat!,
                 userId,
-                displayName: displayName ?? '',
-                avatarUrl,
-                avatarFrame,
-                seatFlair,
-                nameStyle,
-                roleRevealEffect,
-                seatAnimation,
-                level,
+                displayName: params.displayName ?? '',
+                avatarUrl: params.avatarUrl,
+                avatarFrame: params.avatarFrame,
+                seatFlair: params.seatFlair,
+                nameStyle: params.nameStyle,
+                roleRevealEffect: params.roleRevealEffect,
+                seatAnimation: params.seatAnimation,
+                level: params.level,
               },
             },
             ctx,
@@ -307,7 +296,7 @@ export class GameRoom extends DurableObject<Env> {
         }
         if (action === 'kick') {
           return handleKickPlayer(
-            { type: 'KICK_PLAYER', payload: { targetSeat: targetSeat! } },
+            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat! } },
             ctx,
           );
         }

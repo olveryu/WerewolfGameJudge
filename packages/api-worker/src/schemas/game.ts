@@ -63,6 +63,13 @@ export const seatActionSchema = z.discriminatedUnion('action', [
   seatKickSchema,
 ]);
 
+/**
+ * Seat action params — Zod output minus `roomCode`.
+ * GameRoom.seat() 直接接受此类型，路由层 `{ roomCode, ...params }` 透传。
+ * 新增字段只改 schema + intent + handler，路由层零改动。
+ */
+export type SeatActionParams = Omit<z.infer<typeof seatActionSchema>, 'roomCode'>;
+
 /** POST /game/update-template */
 export const updateTemplateSchema = z.object({
   roomCode: z.string().min(1),

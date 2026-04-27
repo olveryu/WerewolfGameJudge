@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { GameActionResult } from '../durableObjects/gameProcessor';
 import type { GameRoom } from '../durableObjects/GameRoom';
+import type { SeatActionParams } from '../schemas/game';
 
 function createTemplate(roles: string[]) {
   return { name: 'Test', numberOfPlayers: roles.length, roles };
@@ -22,6 +23,37 @@ function createTemplate(roles: string[]) {
 function getStub(): DurableObjectStub<GameRoom> {
   const id = env.GAME_ROOM.newUniqueId();
   return env.GAME_ROOM.get(id);
+}
+
+/** Shorthand: sit a player with displayName only (most common case). */
+function sit(
+  stub: DurableObjectStub<GameRoom>,
+  userId: string,
+  seat: number,
+  displayName: string,
+  extra?: Partial<SeatActionParams>,
+): Promise<GameActionResult> {
+  return stub.seat({
+    action: 'sit',
+    userId,
+    seat,
+    displayName,
+    ...extra,
+  }) as Promise<GameActionResult>;
+}
+
+/** Shorthand: standup. */
+function standup(stub: DurableObjectStub<GameRoom>, userId: string): Promise<GameActionResult> {
+  return stub.seat({ action: 'standup', userId }) as Promise<GameActionResult>;
+}
+
+/** Shorthand: kick. */
+function kick(
+  stub: DurableObjectStub<GameRoom>,
+  hostUserId: string,
+  targetSeat: number,
+): Promise<GameActionResult> {
+  return stub.seat({ action: 'kick', userId: hostUserId, targetSeat }) as Promise<GameActionResult>;
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -87,7 +119,7 @@ describe('GameRoom seat management', () => {
   it('sit places player in seat', async () => {
     const stub = await initRoom();
 
-    const result = (await stub.seat('sit', 'p1', 0, 'Player1')) as GameActionResult;
+    const result = await sit(stub, 'p1', 0, 'Player1');
 
     expect(result.success).toBe(true);
     expect(result.state?.players[0]).toBeTruthy();
@@ -98,9 +130,9 @@ describe('GameRoom seat management', () => {
 
   it('standup removes player from seat', async () => {
     const stub = await initRoom();
-    await stub.seat('sit', 'p1', 0, 'Player1');
+    await sit(stub, 'p1', 0, 'Player1');
 
-    const result = (await stub.seat('standup', 'p1', null)) as GameActionResult;
+    const result = await standup(stub, 'p1');
 
     expect(result.success).toBe(true);
     expect(result.state?.players[0]).toBeNull();
@@ -109,21 +141,11 @@ describe('GameRoom seat management', () => {
   it('kick removes target player', async () => {
     const stub = await initRoom();
     // Host sits at seat 0
-    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await sit(stub, 'host-uid', 0, 'Host');
     // Player sits at seat 1
-    await stub.seat('sit', 'p1', 1, 'Player1');
+    await sit(stub, 'p1', 1, 'Player1');
 
-    const result = (await stub.seat(
-      'kick',
-      'host-uid',
-      null,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      1,
-    )) as GameActionResult;
+    const result = await kick(stub, 'host-uid', 1);
 
     expect(result.success).toBe(true);
     expect(result.state?.players[1]).toBeNull();
@@ -140,9 +162,9 @@ describe('GameRoom game flow', () => {
     await stub.init(buildInitialGameState('FLOW-ROOM', 'host-uid', template));
 
     // Seat all players (host + 2 others)
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
 
     return stub;
   }
@@ -165,7 +187,7 @@ describe('GameRoom game flow', () => {
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('BOT-ROOM', 'host-uid', template));
     // Only seat the host
-    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await sit(stub, 'host-uid', 0, 'Host');
 
     const result = (await stub.fillWithBots()) as GameActionResult;
 
@@ -203,10 +225,10 @@ describe('GameRoom game flow', () => {
     await stub.init(buildInitialGameState('REV-ROOM', 'host-uid', template));
     expect(await stub.getRevision()).toBe(1);
 
-    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await sit(stub, 'host-uid', 0, 'Host');
     expect(await stub.getRevision()).toBe(2);
 
-    await stub.seat('sit', 'p1', 1, 'P1');
+    await sit(stub, 'p1', 1, 'P1');
     expect(await stub.getRevision()).toBe(3);
   });
 });
@@ -227,9 +249,9 @@ describe('GameRoom error handling', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('ERR-ROOM', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
     // Don't view roles → startNight should fail
 
@@ -274,9 +296,9 @@ describe('GameRoom night flow', () => {
     const template = createTemplate(roles);
     await stub.init(buildInitialGameState('NIGHT-ROOM', 'host-uid', template));
 
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
 
     // Host views all roles (host can mark any seat)
@@ -308,9 +330,9 @@ describe('GameRoom night flow', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('VR-ERR', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
 
     // p1 tries to view seat 2 (not their seat)
@@ -324,9 +346,9 @@ describe('GameRoom night flow', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('VR-OK', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
 
     const result = (await stub.viewRole('p1', 1)) as GameActionResult;
@@ -343,8 +365,8 @@ describe('GameRoom clearAllSeats', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('CLEAR-ROOM', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
 
     const result = (await stub.clearAllSeats()) as GameActionResult;
 
@@ -360,9 +382,9 @@ describe('GameRoom clearAllSeats', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('CLEAR-ERR', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
-    await stub.seat('sit', 'p1', 1, 'P1');
-    await stub.seat('sit', 'p2', 2, 'P2');
+    await sit(stub, 'host-uid', 0, 'Host');
+    await sit(stub, 'p1', 1, 'P1');
+    await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
 
     const result = (await stub.clearAllSeats()) as GameActionResult;
@@ -461,7 +483,7 @@ describe('GameRoom markAllBotsViewed', () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
     await stub.init(buildInitialGameState('BOTV-ROOM', 'host-uid', template));
-    await stub.seat('sit', 'host-uid', 0, 'Host');
+    await sit(stub, 'host-uid', 0, 'Host');
     await stub.fillWithBots();
     await stub.assignRoles();
 
