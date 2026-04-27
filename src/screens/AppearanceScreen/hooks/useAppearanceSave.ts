@@ -172,6 +172,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           newFrame !== undefined ||
           newFlair !== undefined ||
           newNameStyle !== undefined ||
+          newEquippedEffect !== undefined ||
           newSeatAnimation !== undefined)
       ) {
         const result = await p.facade.updatePlayerProfile(
@@ -180,11 +181,11 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           newFrame,
           newFlair,
           newNameStyle,
-          undefined,
+          newEquippedEffect,
           newSeatAnimation,
         );
         if (!result.success) {
-          settingsLog.warn('Avatar/frame/flair sync to GameState failed', {
+          settingsLog.warn('Cosmetic sync to GameState failed', {
             reason: result.reason,
           });
         }
@@ -216,6 +217,23 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       const value = p.heroEffectId === 'none' ? '' : p.heroEffectId;
       await p.updateProfile({ equippedEffect: value });
       await p.refreshUser();
+
+      // Sync roleRevealEffect to GameState so other players see the change
+      if (p.isInRoom) {
+        const result = await p.facade.updatePlayerProfile(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          value,
+          undefined,
+        );
+        if (!result.success) {
+          settingsLog.warn('Effect sync to GameState failed', { reason: result.reason });
+        }
+      }
+
       toast.success(
         p.heroEffectId === 'none'
           ? '已卸下特效'
