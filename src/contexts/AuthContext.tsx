@@ -70,21 +70,27 @@ const userEquals = (a: User | null, b: User | null): boolean => {
   );
 };
 
+// Extract a string from unknown metadata value. Returns null for non-string, empty string, and nullish.
+function metaString(val: unknown): string | null {
+  return typeof val === 'string' && val !== '' ? val : null;
+}
+
 // Convert auth user to our User type
 const toUser = (authUser: AuthUser | null): User | null => {
   if (!authUser) return null;
+  const meta = authUser.user_metadata;
   return {
     id: authUser.id,
-    email: authUser.email || null,
-    displayName: (authUser.user_metadata?.display_name as string) || null,
-    avatarUrl: (authUser.user_metadata?.avatar_url as string) || null,
-    customAvatarUrl: (authUser.user_metadata?.custom_avatar_url as string) || null,
-    avatarFrame: (authUser.user_metadata?.avatar_frame as string) || null,
-    seatFlair: (authUser.user_metadata?.seat_flair as string) || null,
-    nameStyle: (authUser.user_metadata?.name_style as string) || null,
-    equippedEffect: (authUser.user_metadata?.equipped_effect as string) || null,
-    seatAnimation: (authUser.user_metadata?.seat_animation as string) || null,
-    isAnonymous: authUser.is_anonymous || false,
+    email: authUser.email ?? null,
+    displayName: metaString(meta?.display_name),
+    avatarUrl: metaString(meta?.avatar_url),
+    customAvatarUrl: metaString(meta?.custom_avatar_url),
+    avatarFrame: metaString(meta?.avatar_frame),
+    seatFlair: metaString(meta?.seat_flair),
+    nameStyle: metaString(meta?.name_style),
+    equippedEffect: metaString(meta?.equipped_effect),
+    seatAnimation: metaString(meta?.seat_animation),
+    isAnonymous: authUser.is_anonymous ?? false,
   };
 };
 
