@@ -18,6 +18,7 @@ import { drawHistory, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { dailyRewardSchema, gachaDrawSchema } from '../schemas/gacha';
+import { jsonBody } from './shared';
 
 export const gachaRoutes = new Hono<AppEnv>();
 
@@ -94,17 +95,10 @@ interface DrawResult {
 const MAX_DRAW_RETRIES = 3;
 
 /** POST /api/gacha/draw */
-gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
+gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
-
-  const body = await c.req.json();
-  const parsed = gachaDrawSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: 'invalid_request', details: parsed.error.issues }, 400);
-  }
-
-  const { drawType, count } = parsed.data;
+  const { drawType, count } = c.req.valid('json');
 
   for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
     // 1. Read current stats (including version for OCC)
@@ -238,17 +232,10 @@ gachaRoutes.post('/gacha/draw', requireAuth, async (c) => {
 });
 
 /** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 */
-gachaRoutes.post('/gacha/daily-reward', requireAuth, async (c) => {
+gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
-
-  const body = await c.req.json();
-  const parsed = dailyRewardSchema.safeParse(body);
-  if (!parsed.success) {
-    return c.json({ error: 'invalid_request', details: parsed.error.issues }, 400);
-  }
-
-  const { localDate: _localDate } = parsed.data;
+  const { localDate: _localDate } = c.req.valid('json');
 
   for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
     const stats = await db
