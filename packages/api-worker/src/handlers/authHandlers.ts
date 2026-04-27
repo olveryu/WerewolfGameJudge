@@ -5,6 +5,13 @@
  * JWT 签发/验证，密码用 PBKDF2 哈希存储到 D1。
  */
 
+import {
+  isFlairUnlocked,
+  isFrameUnlocked,
+  isNameStyleUnlocked,
+  isRoleRevealEffectUnlocked,
+  isSeatAnimationUnlocked,
+} from '@werewolf/game-engine/growth/frameUnlock';
 import { getLevel } from '@werewolf/game-engine/growth/level';
 import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { eq, sql } from 'drizzle-orm';
@@ -578,6 +585,52 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
   const db = createDb(env.DB);
   const userId = c.var.userId;
   const parsed = c.req.valid('json');
+
+  // ── Validate cosmetic equip ownership ──────────────────────────────────
+  // Empty string means "unequip" and is always allowed.
+  const cosmeticFields = {
+    avatarFrame: parsed.avatarFrame,
+    seatFlair: parsed.seatFlair,
+    nameStyle: parsed.nameStyle,
+    equippedEffect: parsed.equippedEffect,
+    seatAnimation: parsed.seatAnimation,
+  };
+  const needsOwnershipCheck = Object.values(cosmeticFields).some(
+    (v) => v !== undefined && v !== '',
+  );
+
+  if (needsOwnershipCheck) {
+    const stats = await db
+      .select({ unlockedItems: userStats.unlockedItems })
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .get();
+    const unlockedIds: readonly string[] = stats
+      ? (JSON.parse(stats.unlockedItems) as string[])
+      : [];
+
+    if (cosmeticFields.avatarFrame && !isFrameUnlocked(cosmeticFields.avatarFrame, unlockedIds)) {
+      return c.json({ error: 'item_not_unlocked', field: 'avatarFrame' }, 403);
+    }
+    if (cosmeticFields.seatFlair && !isFlairUnlocked(cosmeticFields.seatFlair, unlockedIds)) {
+      return c.json({ error: 'item_not_unlocked', field: 'seatFlair' }, 403);
+    }
+    if (cosmeticFields.nameStyle && !isNameStyleUnlocked(cosmeticFields.nameStyle, unlockedIds)) {
+      return c.json({ error: 'item_not_unlocked', field: 'nameStyle' }, 403);
+    }
+    if (
+      cosmeticFields.equippedEffect &&
+      !isRoleRevealEffectUnlocked(cosmeticFields.equippedEffect, unlockedIds)
+    ) {
+      return c.json({ error: 'item_not_unlocked', field: 'equippedEffect' }, 403);
+    }
+    if (
+      cosmeticFields.seatAnimation &&
+      !isSeatAnimationUnlocked(cosmeticFields.seatAnimation, unlockedIds)
+    ) {
+      return c.json({ error: 'item_not_unlocked', field: 'seatAnimation' }, 403);
+    }
+  }
 
   // Build set object for only provided fields
   const set: Record<string, unknown> = {};
