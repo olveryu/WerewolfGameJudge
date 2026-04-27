@@ -34,7 +34,10 @@ import { handleSetAudioPlaying } from '@werewolf/game-engine/engine/handlers/ste
 import { handlerError, handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
+import type {
+  StateAction,
+  UpdatePlayerProfileAction,
+} from '@werewolf/game-engine/engine/reducer/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
@@ -339,34 +342,10 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
-  async updateProfile(
-    userId: string,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<GameActionResult> {
+  async updateProfile(payload: UpdatePlayerProfileAction['payload']): Promise<GameActionResult> {
     return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, userId);
-      return handleUpdatePlayerProfile(
-        {
-          type: 'UPDATE_PLAYER_PROFILE',
-          payload: {
-            userId,
-            displayName,
-            avatarUrl,
-            avatarFrame,
-            seatFlair,
-            nameStyle,
-            roleRevealEffect,
-            seatAnimation,
-          },
-        },
-        ctx,
-      );
+      const ctx = buildHandlerContext(state, payload.userId);
+      return handleUpdatePlayerProfile({ type: 'UPDATE_PLAYER_PROFILE', payload }, ctx);
     });
   }
 

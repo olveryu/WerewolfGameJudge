@@ -102,28 +102,9 @@ gameRoutes.post('/share-review', jsonBody(shareReviewSchema), async (c) => {
 });
 
 gameRoutes.post('/update-profile', jsonBody(updateProfileRouteSchema), async (c) => {
-  const {
-    roomCode,
-    userId,
-    displayName,
-    avatarUrl,
-    avatarFrame,
-    seatFlair,
-    nameStyle,
-    roleRevealEffect,
-    seatAnimation,
-  } = c.req.valid('json');
+  const { roomCode, ...payload } = c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode, c.req.raw).updateProfile(
-      userId,
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      roleRevealEffect,
-      seatAnimation,
-    ),
+    getGameRoomStub(c.env, roomCode, c.req.raw).updateProfile(payload),
   );
   return c.json(result, resultToStatus(result as GameActionResult));
 });
