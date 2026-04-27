@@ -166,6 +166,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       }
 
       // Sync to GameState only when in a room (otherwise no GameState exists)
+      let gameStateSyncFailed = false;
       if (
         p.isInRoom &&
         (newAvatarUrl !== undefined ||
@@ -185,13 +186,18 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           newSeatAnimation,
         );
         if (!result.success) {
+          gameStateSyncFailed = true;
           settingsLog.warn('Cosmetic sync to GameState failed', {
             reason: result.reason,
           });
         }
       }
 
-      toast.success('形象已更新');
+      if (gameStateSyncFailed) {
+        toast.warning('形象已保存，游戏内可能需要重新入座刷新');
+      } else {
+        toast.success('形象已更新');
+      }
       p.goBack();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
