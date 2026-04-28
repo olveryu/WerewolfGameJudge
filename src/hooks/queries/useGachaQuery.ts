@@ -17,13 +17,20 @@ import {
   type DrawResponse,
   performDraw,
 } from '@/services/feature/GachaService';
+import { log } from '@/utils/logger';
 
 import { gachaStatusOptions, userStatsOptions } from './queryOptions';
 import { useAuthenticatedQuery } from './useAuthenticatedQuery';
 
-/** Player's local date as YYYY-MM-DD */
+const gachaLog = log.extend('Gacha');
+
+/** Player's local date as YYYY-MM-DD (locale-independent, zero-padded) */
 function getLocalDate(): string {
-  return new Date().toLocaleDateString('en-CA');
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /**
@@ -88,6 +95,9 @@ export function useAutoClaimDailyReward() {
         if (data.claimed) {
           toast.success('每日登录奖励', { description: '获得 2 次普通抽！' });
         }
+      },
+      onError: (err) => {
+        gachaLog.warn('Auto claim daily reward failed', { error: String(err) });
       },
     });
   }, [status, claimDailyReward, isClaimPending]);
