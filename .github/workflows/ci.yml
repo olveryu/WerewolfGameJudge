@@ -184,27 +184,35 @@ jobs:
           echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
 
       - name: Sync npmmirror and wait
-        if: false
         run: |
           PKG_VERSION="${{ steps.npm.outputs.version }}"
+          CDN_FILE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files/index.js"
           # Trigger sync
           curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"
-          # Poll until npmmirror has the version (up to 120s)
+          # Poll until CDN files are available (up to 120s)
           for i in $(seq 1 24); do
-            if curl -sf "https://registry.npmmirror.com/werewolf-judge-cdn/$PKG_VERSION" > /dev/null 2>&1; then
-              echo "✅ npmmirror synced werewolf-judge-cdn@$PKG_VERSION"
+            if curl -sf --connect-timeout 5 --max-time 10 "$CDN_FILE" > /dev/null 2>&1; then
+              echo "✅ npmmirror CDN ready: werewolf-judge-cdn@$PKG_VERSION"
               exit 0
             fi
-            echo "⏳ Waiting for npmmirror sync... ($((i*5))s)"
+            echo "⏳ Waiting for npmmirror CDN sync... ($((i*5))s)"
             sleep 5
           done
-          echo "❌ npmmirror sync timeout after 120s"
-          exit 1
+          echo "❌ npmmirror CDN sync timeout after 120s — falling back to fastly.jsdelivr.net"
+          echo "CDN_FALLBACK=true" >> "$GITHUB_ENV"
 
-      - name: Rewrite asset URLs to use jsdelivr CDN
+      - name: Rewrite asset URLs to use CDN
         env:
-          CDN_BASE: https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
+          CDN_NPMMIRROR: https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files
+          CDN_JSDELIVR: https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
         run: |
+          if [ "$CDN_FALLBACK" = "true" ]; then
+            CDN_BASE="$CDN_JSDELIVR"
+            echo "⚠️ Using fallback CDN: $CDN_BASE"
+          else
+            CDN_BASE="$CDN_NPMMIRROR"
+          fi
+
           # HTML: rewrite src="/assets/... and href="/assets/... to CDN
           sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
           sed -i "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
