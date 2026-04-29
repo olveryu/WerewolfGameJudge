@@ -136,9 +136,10 @@ jobs:
 
           # Pre-compress CanvasKit WASM for CDN delivery (8 MB → ~3.2 MB gzip).
           # Client fetches .wasm.gz and decompresses via DecompressionStream.
+          # cp first: pnpm hardlinks node_modules files, gzip -k refuses multi-link targets.
           mkdir -p "$WORK/wasm"
-          gzip -9 -k node_modules/canvaskit-wasm/bin/full/canvaskit.wasm
-          mv node_modules/canvaskit-wasm/bin/full/canvaskit.wasm.gz "$WORK/wasm/canvaskit.wasm.gz"
+          cp node_modules/canvaskit-wasm/bin/full/canvaskit.wasm "$WORK/wasm/canvaskit.wasm"
+          gzip -9 "$WORK/wasm/canvaskit.wasm"
 
           # Generate index.js — importable manifest of all bundled assets
           FILES=$(cd "$WORK" && find assets wasm -type f | sort)
