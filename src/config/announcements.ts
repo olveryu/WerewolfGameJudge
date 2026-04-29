@@ -13,6 +13,18 @@ interface Announcement {
 
 /** 按版本号索引的公告内容。key 格式与 APP_VERSION 一致：`v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.2.0': {
+    title: 'v2.2.0 更新内容',
+    items: [
+      '新增 30 款头像框、30 款座位装饰、12 只座位宠物',
+      '座位入场动画：闪光 + 光晕 + 弹簧缩放效果',
+      '角色揭示特效可在资料卡预览',
+      '外观系统全面升级，支持更多装饰类型',
+      '新增扭蛋概率公示',
+      '修复装饰品断线重连后未同步',
+      '优化国内访问速度（CDN 切换）',
+    ],
+  },
   'v2.1.0': {
     title: 'v2.1.0 更新内容',
     items: [

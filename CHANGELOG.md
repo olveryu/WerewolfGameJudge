@@ -5,6 +5,132 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.2.0] - 2026-04-29
+
+- fix(ci): cp wasm before gzip to avoid pnpm hardlink refusal
+- perf(web): pre-gzip canvaskit.wasm for npmmirror CDN
+- ci(cdn): switch CDN to npmmirror with jsdelivr fallback
+- fix(gacha): use locale-independent date format for daily reward
+- feat(seatAnimations): add flash + glow + spring scale to epic-tier entrance animations
+- chore: add security.txt for cloudflare security center
+- fix(cosmetics): show warning toast when GameState sync fails
+- refactor(cosmetics): use object param for GameRoom.updateProfile
+- refactor(cosmetics): migrate gacha routes to jsonBody middleware
+- fix(cosmetics): sync unequipped cosmetics on reconnect
+- fix(cosmetics): replace as-string casts with runtime-safe metaString in toUser
+- fix(cosmetics): sync roleRevealEffect to GameState on equip/save
+- fix(cosmetics): validate equip ownership server-side in PUT /auth/profile
+- fix(api-worker): refactor GameRoom.seat() to object params
+- fix(cosmetics): sync seatAnimation through full auth + game profile pipeline
+- fix(seat): show flair/pet during entrance loop gap
+- feat(seat): loop entrance animation every 5s
+- fix(ui): closeButton refactor, gradient text inline fix, entrance anim cleanup
+- feat(gacha): standardize seat animation durations, restore profile card slots, fix UI
+- fix(seed): include SEAT_ANIMATION_IDS in dev user full-unlock
+- feat(room): self-tap shows profile card with leave button, remove double confirms
+- feat(profile): add role reveal effect to user profile and equipment showcase
+- feat(gacha): add seat pet system — 12 animated pets tied to role reveal effects
+- fix(unlocks): render generated avatars in UnlocksScreen
+- chore: update eslint config, e2e helpers, seed script, and contract tests
+- feat(game-engine): update reward catalog and gacha probability
+- feat(appearance): update AppearanceScreen for new cosmetic types
+- feat(gacha): add rate disclosure modal and update gacha/reward UI
+- feat(gacha): add GeneratedAvatar component and update avatar utils
+- feat(gacha): add 30 seat flair components
+- feat(gacha): add 30 avatar frame components
+- feat(gacha): increase per-game normal draws from 1 to 2
+- fix(rewardCatalog): update rarity mapping for role reveal effects and adjust comments
+- refactor(gacha): simplify rollRarity logic and remove rollFromSubset function
+- feat(gacha): rebalance welcome bonus and level-up rewards
+- refactor(appearance): extract sub-modules from AppearanceScreen
+- fix(auth): clear wxcode from URL when WeChat already bound
+- refactor(appearance): rename AvatarPickerScreen → AppearanceScreen
+- feat(avatar-picker): show styled display name in hero area, fix equippedEffect persistence
+- fix(cdn): use fastly.jsdelivr.net to bypass DNS pollution in China
+- feat(gacha): wrap overlays in Modal, redesign buttons, add header nav icons
+- style(gacha): switch bottom panel to light theme with card wrapper
+- chore(web): remove suicide service worker
+- fix(web): remove redundant controllerchange listener
+- fix(web): remove canvaskit WASM preload with hardcoded version
+- fix(ci): use sed instead of perl for jsdelivr URL rewrite
+- feat(cdn): switch from R2 to jsdelivr npm CDN for China acceleration
+- fix(AIChatService): increase maxTokens to 2048 for improved chat response capacity
+- fix(pwa): suicide SW force-navigates all clients on activate
+- fix(miniapp): add cache-busting param to bypass webview stale cache
+- fix(pwa): auto-reload when suicide SW replaces stale caching SW
+- fix(ci): remove --size-only from R2 sync to fix stale JS bundles
+- fix(pwa): replace service worker with suicide SW to clear stale caches
+- fix(audio): preserve Web Audio element↔source binding across stop/start cycles
+- fix(audio): add crossOrigin to BGM element for CDN CORS
+- fix(room): hide share room button in wechat miniprogram
+- perf(cdn): replace wrangler r2 loop with aws s3 sync
+- fix(cdn): add --remote flag to wrangler r2 object put
+- feat(cdn): add R2 upload to CI, update sw.js for dual-host CDN caching
+- feat(gacha): redesign bottom panel with dual-tab switcher
+- ci(cdn): improve npm package metadata for whitelist review
+- feat(gacha): redirect anonymous users to auth on draw button press
+- fix(sw): use exact hostname match for CDN URL validation
+- feat(cdn): publish all assets to npmmirror CDN and compress BGM
+- ci: temporarily skip npmmirror CDN steps (pending white list #553)
+- feat(ci): publish werewolf-judge-cdn as importable manifest library
+- fix(sw): open cache before clone to prevent body-used TypeError
+- fix(build): copy sw.js to dist for Cloudflare Pages
+- feat(web): switch CDN from jsdelivr to npmmirror for China acceleration
+- feat(web): serve JS bundles from jsdelivr CDN for China acceleration
+- feat(web): add Service Worker for runtime caching
+- revert(web): switch CanvasKit CDN back to jsdelivr
+- fix(web): update CanvasKit CDN paths to use full directory for WASM files
+- perf(web): switch CanvasKit CDN to npmmirror with jsdelivr fallback
+- fix(web): load Skia WASM in entry-point before App import
+- fix(gacha): rarity via background gradient, selection via rarity-colored border
+- fix(UnlockCell): update unlockedBorder color to match background
+- fix(nav): chain Skia screen prefetch after WASM load
+- feat(boot): step-based LoadingScreen with real progress, error retry, reduced motion
+- fix(nav): wrap screenLayout with ErrorBoundary for chunk load resilience
+- perf(web): lazy-load Skia WASM and code-split all non-Home screens
+- fix(room): hide kick button outside Unseated/Seated phases
+- fix(audio): resume suspended AudioContext before BGM play
+- fix(sentry): remove **SENTRY_TRACING**:false that killed all performance tracing
+- fix(audio): register webAudioUnlock synchronously in constructor
+- fix(sentry): add @sentry/browser to knip ignore, fix formatting
+- chore(sentry): temp 100% sampling + integration diag log
+- chore(sentry): temporary debug:true to diagnose missing performance data
+- fix(sentry): add browserTracingIntegration for web performance tracing
+- feat(sentry): add reactNavigationIntegration for performance tracing
+- fix(web): update CanvasKit WASM preload to use CDN for improved loading performance
+- refactor(web): update Skia initialization pattern and remove CanvasKit WASM handling
+- refactor(tarot): consolidate prompt text into HintWithWarning, remove dead Skia init from index.ts
+- perf(web): add WASM immutable caching + jsdelivr CDN race
+- revert: undo Skia removal (3dff02db, bfb150e8, d4c73e8f)
+- fix(test): tighten CapsuleMachine ratchet 18 → 17 after color extraction
+- Merge pull request #44 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-da47bb892b
+- chore: update lockfile after removing @shopify/react-native-skia
+- refactor(effects): replace Skia with SVG/Reanimated in all role reveal effects
+- feat(audio): add gesture-authorized BGM element for improved playback handling
+- fix(hooks): destructure useMutation to stabilize useCallback/useEffect deps
+- chore(deps): bump hono in the npm_and_yarn group across 1 directory
+- fix(api-worker): use new_sqlite_classes for WeChatAuthProxy
+- docs(api-worker): fix WeChatAuthProxy comment accuracy
+- feat(api-worker): proxy WeChat API via DO with locationHint apac
+- refactor(facade): remove optimistic update infrastructure
+- perf(api-worker): add DO locationHint from cf.continent
+- chore: remove unused exports flagged by knip
+- test(api-worker): add auth handler integration tests
+- test(api-worker): add GameRoom DO integration tests for night flow, clearAllSeats, board nomination
+- refactor(encyclopedia): extract useEncyclopediaScreenState hook and styles
+- refactor(board-picker): extract useBoardPickerScreenState hook and BoardCard component
+- refactor(unlocks): extract useUnlocksScreenState hook and UnlockCell component
+- chore: remove stale supabase references
+- refactor(logging): remove colons from warning and error messages for consistency
+- perf(config): read displayName from AuthContext instead of HTTP
+- perf(hooks): eliminate redundant HTTP requests in seat/profile flows
+- fix(room): sync profile to roster on reconnect
+- fix(e2e): use idiomatic addLocatorHandler for announcement modal
+- feat(miniapp): keep screen on during gameplay
+- test: convert all real-timer waits to fake timers or remove no-ops
+- refactor(web): replace pointerEventsStyle constant with per-component StyleSheet entries
+- feat(home): replace announcement pagination with scrollable version list
+
 ## [2.1.0] - 2026-04-22
 
 - docs(announcements): add v2.1.0 What's New entry
