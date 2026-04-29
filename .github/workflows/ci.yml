@@ -134,8 +134,14 @@ jobs:
           # Copy entire assets/ tree (JS bundles, fonts, audio, images, etc.)
           cp -r dist/assets "$WORK/assets"
 
+          # Pre-compress CanvasKit WASM for CDN delivery (8 MB → ~3.2 MB gzip).
+          # Client fetches .wasm.gz and decompresses via DecompressionStream.
+          mkdir -p "$WORK/wasm"
+          gzip -9 -k node_modules/canvaskit-wasm/bin/full/canvaskit.wasm
+          mv node_modules/canvaskit-wasm/bin/full/canvaskit.wasm.gz "$WORK/wasm/canvaskit.wasm.gz"
+
           # Generate index.js — importable manifest of all bundled assets
-          FILES=$(cd "$WORK" && find assets -type f | sort)
+          FILES=$(cd "$WORK" && find assets wasm -type f | sort)
           {
             echo '"use strict";'
             echo "const VERSION = \"$PKG_VERSION\";"
@@ -176,7 +182,7 @@ jobs:
           # Trim leading spaces from heredoc (YAML indent)
           sed -i 's/^          //' "$WORK/README.md"
 
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","wasm/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
           cd "$WORK"
           npm publish --access public
@@ -220,9 +226,11 @@ jobs:
           # JS bundles: rewrite "/assets/ string literals to CDN (Metro asset references)
           for jsfile in dist/assets/js/*.js; do
             sed -i "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
+            # Replace WASM placeholder with versioned CDN URL for pre-compressed canvaskit
+            sed -i "s|__CANVASKIT_WASM_GZ_URL__|${CDN_BASE}/wasm/canvaskit.wasm.gz|g" "$jsfile"
           done
 
-          echo "✅ All asset URLs rewritten to ${CDN_BASE}/assets/"
+          echo "✅ All asset URLs rewritten to ${CDN_BASE}"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

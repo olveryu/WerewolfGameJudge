@@ -30,12 +30,37 @@ async function main() {
 
     // Load Skia WASM before importing App so that all module-level
     // Skia.*() calls execute after SkiaViewApi is available.
+    //
+    // npmmirror CDN (Aliyun OSS) does not compress application/wasm, so we
+    // ship a pre-gzipped .wasm.gz in the npm package and decompress it on
+    // the client via DecompressionStream. This cuts 8 MB → ~3.2 MB over
+    // China CDN nodes.
+    // CI rewrites this placeholder to the versioned npmmirror CDN URL.
+    // Local dev falls back to the uncompressed canvaskit-wasm from node_modules.
+    const wasmGzUrl = '__CANVASKIT_WASM_GZ_URL__';
+    const useCompressedWasm = !wasmGzUrl.startsWith('__');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { version } = require('canvaskit-wasm/package.json') as { version: string };
     const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
         `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`,
+      ...(useCompressedWasm && {
+        instantiateWasm(
+          importObject: WebAssembly.Imports,
+          receiveInstance: (instance: WebAssembly.Instance) => void,
+        ) {
+          void (async () => {
+            const resp = await fetch(wasmGzUrl);
+            const ds = new DecompressionStream('gzip');
+            const decompressed = resp.body!.pipeThrough(ds);
+            const bytes = await new Response(decompressed).arrayBuffer();
+            const { instance } = await WebAssembly.instantiate(bytes, importObject);
+            receiveInstance(instance);
+          })();
+          return {}; // Emscripten expects synchronous {} return
+        },
+      }),
     });
     await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }
