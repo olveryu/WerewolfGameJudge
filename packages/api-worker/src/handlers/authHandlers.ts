@@ -20,12 +20,21 @@ import { Hono } from 'hono';
 import { createDb } from '../db';
 import { drawHistory, loginAttempts, passwordResetTokens, users, userStats } from '../db/schema';
 import type { AppEnv, Env } from '../env';
-import { extractBearerToken, requireAuth, signToken, verifyToken } from '../lib/auth';
+import {
+  bumpTokenVersion,
+  extractBearerToken,
+  issueTokenPair,
+  requireAuth,
+  revokeAllRefreshTokens,
+  rotateRefreshToken,
+  verifyToken,
+} from '../lib/auth';
 import { sendPasswordResetEmail } from '../lib/email';
 import { hashPassword, verifyPassword } from '../lib/password';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
+  refreshTokenSchema,
   resetPasswordSchema,
   signInSchema,
   signUpSchema,
@@ -194,11 +203,11 @@ authRoutes.post('/anonymous', async (c) => {
     updatedAt: now,
   });
 
-  const token = await signToken(userId, env, { anon: true });
+  const tokens = await issueTokenPair(userId, env, { anon: true, ver: 0 });
 
   return c.json(
     {
-      access_token: token,
+      ...tokens,
       user: { id: userId, is_anonymous: true, email: null, user_metadata: {} },
     },
     200,
@@ -307,11 +316,19 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         .where(eq(users.id, existing.id))
         .get();
 
-      const token = await signToken(existing.id, env, { email });
+      const mergedUser = await db
+        .select({ tokenVersion: users.tokenVersion })
+        .from(users)
+        .where(eq(users.id, existing.id))
+        .get();
+      const tokens = await issueTokenPair(existing.id, env, {
+        email,
+        ver: mergedUser!.tokenVersion,
+      });
 
       return c.json(
         {
-          access_token: token,
+          ...tokens,
           user: {
             id: existing.id,
             email,
@@ -350,16 +367,19 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 
     // Read back the actual display_name (may be the pre-existing one)
     const upgraded = await db
-      .select({ displayName: users.displayName })
+      .select({ displayName: users.displayName, tokenVersion: users.tokenVersion })
       .from(users)
       .where(eq(users.id, existingUserId))
       .get();
 
-    const token = await signToken(existingUserId, env, { email });
+    const tokens = await issueTokenPair(existingUserId, env, {
+      email,
+      ver: upgraded!.tokenVersion,
+    });
 
     return c.json(
       {
-        access_token: token,
+        ...tokens,
         user: {
           id: existingUserId,
           email,
@@ -398,11 +418,11 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   // Welcome bonus for new registered user
   await grantWelcomeBonus(db, userId);
 
-  const token = await signToken(userId, env, { email });
+  const tokens = await issueTokenPair(userId, env, { email, ver: 0 });
 
   return c.json(
     {
-      access_token: token,
+      ...tokens,
       user: {
         id: userId,
         email,
@@ -455,6 +475,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(eq(users.email, email))
@@ -489,11 +510,11 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       .where(eq(users.id, user.id));
   }
 
-  const token = await signToken(user.id, env, { email });
+  const tokens = await issueTokenPair(user.id, env, { email, ver: user.tokenVersion });
 
   return c.json(
     {
-      access_token: token,
+      ...tokens,
       user: {
         id: user.id,
         email,
@@ -521,12 +542,12 @@ authRoutes.get('/user', async (c) => {
   const db = createDb(env.DB);
   const token = extractBearerToken(c.req.raw);
   if (!token) {
-    return c.json({ data: { user: null } }, 200);
+    return c.json({ error: 'unauthorized' }, 401);
   }
 
   const payload = await verifyToken(token, env);
   if (!payload) {
-    return c.json({ data: { user: null } }, 200);
+    return c.json({ error: 'unauthorized' }, 401);
   }
 
   const user = await db
@@ -543,13 +564,19 @@ authRoutes.get('/user', async (c) => {
       equippedSeatAnimation: users.equippedSeatAnimation,
       isAnonymous: users.isAnonymous,
       wechatOpenid: users.wechatOpenid,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(eq(users.id, payload.sub))
     .get();
 
   if (!user) {
-    return c.json({ data: { user: null } }, 200);
+    return c.json({ error: 'user_not_found' }, 404);
+  }
+
+  // Verify token version (revocation check)
+  if (user.tokenVersion !== payload.ver) {
+    return c.json({ error: 'token_revoked' }, 401);
   }
 
   return c.json(
@@ -685,15 +712,25 @@ authRoutes.put('/password', requireAuth, jsonBody(changePasswordSchema), async (
     .set({ passwordHash: newHash, updatedAt: sql`datetime('now')` })
     .where(eq(users.id, userId));
 
+  // Revoke all tokens — user must re-login with new password
+  await bumpTokenVersion(userId, env);
+  await revokeAllRefreshTokens(userId, env);
+
   return c.json({ success: true }, 200);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/signout — 登出（JWT 是无状态的，客户端清除 token 即可）
+// POST /auth/signout — 登出（revoke tokens，使所有设备下线）
 // ─────────────────────────────────────────────────────────────────────────────
-authRoutes.post('/signout', async (c) => {
-  // JWT is stateless — signout is client-side token removal.
-  // Server acknowledges; any future request with old token still validates until expiry.
+authRoutes.post('/signout', requireAuth, async (c) => {
+  const userId = c.var.userId;
+  const env = c.env;
+
+  // Bump token version to invalidate all access tokens
+  await bumpTokenVersion(userId, env);
+  // Delete all refresh tokens
+  await revokeAllRefreshTokens(userId, env);
+
   return c.json({ success: true }, 200);
 });
 
@@ -860,15 +897,18 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
     .set({ isUsed: 1 })
     .where(eq(passwordResetTokens.id, token.id));
 
-  // Update password
+  // Update password + revoke old tokens
   const newHash = await hashPassword(parsed.newPassword);
   await db
     .update(users)
     .set({ passwordHash: newHash, updatedAt: sql`datetime('now')` })
     .where(eq(users.id, token.userId));
 
-  // Auto-login: return JWT
-  const jwt = await signToken(token.userId, env, { email });
+  const newVer = await bumpTokenVersion(token.userId, env);
+  await revokeAllRefreshTokens(token.userId, env);
+
+  // Auto-login: issue new token pair
+  const tokens = await issueTokenPair(token.userId, env, { email, ver: newVer });
 
   // Fetch user metadata for response
   const user = await db
@@ -888,7 +928,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   return c.json(
     {
       success: true,
-      access_token: jwt,
+      ...tokens,
       user: {
         id: token.userId,
         email,
@@ -950,6 +990,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(eq(users.wechatOpenid, openid))
@@ -964,13 +1005,14 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
       .set({ ...geo, updatedAt: sql`datetime('now')` })
       .where(eq(users.id, existing.id));
 
-    const token = await signToken(existing.id, env, {
+    const tokens = await issueTokenPair(existing.id, env, {
       email: existing.email ?? undefined,
+      ver: existing.tokenVersion,
     });
 
     return c.json(
       {
-        access_token: token,
+        ...tokens,
         user: {
           id: existing.id,
           email: existing.email,
@@ -1006,11 +1048,11 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
   // Welcome bonus for new WeChat user
   await grantWelcomeBonus(db, userId);
 
-  const token = await signToken(userId, env);
+  const tokens = await issueTokenPair(userId, env, { ver: 0 });
 
   return c.json(
     {
-      access_token: token,
+      ...tokens,
       user: {
         id: userId,
         email: null,
@@ -1085,4 +1127,25 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
     .where(eq(users.id, userId));
 
   return c.json({ success: true }, 200);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/refresh — Refresh token rotation（换取新 access + refresh token）
+// ─────────────────────────────────────────────────────────────────────────────
+authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
+  const env = c.env;
+  const parsed = c.req.valid('json');
+
+  const result = await rotateRefreshToken(parsed.refresh_token, env);
+  if (!result) {
+    return c.json({ error: 'invalid_refresh_token' }, 401);
+  }
+
+  return c.json(
+    {
+      access_token: result.accessToken,
+      refresh_token: result.refreshToken,
+    },
+    200,
+  );
 });

@@ -17,6 +17,8 @@ export interface Env {
   WECHAT_AUTH: DurableObjectNamespace<import('./durableObjects/WeChatAuthProxy').WeChatAuthProxy>;
   // ── Workers AI ─────────────────────────────────────────────────────
   AI: Ai;
+  // ── Analytics Engine (load timing telemetry) ────────────────────────
+  LOAD_TIMING: AnalyticsEngineDataset;
   // ── Environment Variables ──────────────────────────────────────
   ENVIRONMENT: string;
   CORS_ORIGIN: string;

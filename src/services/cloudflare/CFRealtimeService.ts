@@ -20,6 +20,8 @@ import type {
 } from '@/services/types/IRealtimeTransport';
 import { realtimeLog } from '@/utils/logger';
 
+import { getCurrentToken } from './cfFetch';
+
 /** WebSocket 连接超时（ms） */
 const WS_CONNECT_TIMEOUT_MS = 8_000;
 
@@ -33,13 +35,14 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#handlers = handlers;
   }
 
-  connect(roomCode: string, userId: string): void {
+  connect(roomCode: string, _userId: string): void {
     // Close any existing connection first (silent, no event)
     this.#closeWsSilent();
 
     const generation = ++this.#generation;
     const wsBase = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&userId=${encodeURIComponent(userId)}`;
+    const token = getCurrentToken();
+    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&token=${encodeURIComponent(token ?? '')}`;
 
     realtimeLog.info('Transport: connecting', { roomCode });
     const ws = new WebSocket(wsUrl);

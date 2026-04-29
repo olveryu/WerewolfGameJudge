@@ -3,6 +3,7 @@
  *
  * 统一封装 fetch 调用：JWT Bearer token 注入、超时（AbortSignal.timeout）、
  * 网络层自动重试（fetchWithRetry）、JSON 响应解析、
+ * 401 自动 refresh（单次 refresh 锁 + 队列）、
  * 结构化错误处理（非 JSON 响应返回 `{ success: false, reason: 'SERVER_ERROR' }`）。
  * 纯 IO 模块，不含业务逻辑。
  */
@@ -10,11 +11,27 @@
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
 import { cfFetchLog } from '@/utils/logger';
 
-/** 从 AsyncStorage 读取 JWT token 的回调（由 CFAuthService 注入） */
+// ── Token 管理 ──────────────────────────────────────────────────────────────
+
+/** 从内存缓存读取 access token 的回调（由 CFAuthService 注入） */
 let tokenProvider: (() => string | null) | null = null;
+
+/** 执行 refresh token → 新 token pair 的回调（由 CFAuthService 注入） */
+let refreshHandler: (() => Promise<boolean>) | null = null;
+
+/** 当 refresh 也失败（token 彻底过期）时的回调（由 CFAuthService 注入） */
+let onAuthExpired: (() => void) | null = null;
 
 export function setTokenProvider(provider: () => string | null): void {
   tokenProvider = provider;
+}
+
+export function setRefreshHandler(handler: () => Promise<boolean>): void {
+  refreshHandler = handler;
+}
+
+export function setOnAuthExpired(handler: () => void): void {
+  onAuthExpired = handler;
 }
 
 /** 获取当前 JWT token（供 CFStorageService 等非 cfFetch 调用者使用） */
@@ -22,12 +39,33 @@ export function getCurrentToken(): string | null {
   return tokenProvider?.() ?? null;
 }
 
+// ── Refresh 锁：确保同一时刻只有一个 refresh 请求 ──────────────────────────
+
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * 带锁的 refresh：多个并发 401 请求共享同一个 refresh 调用。
+ * 返回 true 表示 refresh 成功（新 token 已设置），false 表示失败。
+ */
+async function refreshWithLock(): Promise<boolean> {
+  if (!refreshHandler) return false;
+
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = refreshHandler().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+// ── 网络层重试 ──────────────────────────────────────────────────────────────
+
 /**
  * 网络层重试: 仅重试 fetch() 抛出的 TypeError（DNS/TCP/TLS 失败 = 请求大概率未到达服务器）。
  * DOMException（AbortError/TimeoutError）和编程错误直接抛出，不重试。
- *
- * 注意 total-operation timeout 语义：调用方传入的 AbortSignal.timeout(N) 在所有
- * attempt 间共享同一倒计时。首次 attempt 快速失败后剩余时间供后续 attempt 使用。
  */
 export async function fetchWithRetry(
   input: RequestInfo | URL,
@@ -37,14 +75,9 @@ export async function fetchWithRetry(
     try {
       return await fetch(input, init);
     } catch (error) {
-      // 只重试 TypeError（fetch() 网络失败的标准错误类型）。
-      // DOMException（AbortError/TimeoutError）和其他错误直接抛出。
       if (!(error instanceof TypeError)) throw error;
-      // signal 已 aborted（超时 TimeoutError 在 delay 期间触发）→ 不重试
       if (init?.signal?.aborted) throw error;
-      // 最后一次重试也失败 → 抛出
       if (attempt === FETCH_RETRY_COUNT) throw error;
-      // 指数退避: 1s, 2s
       const delay = FETCH_RETRY_BASE_MS * 2 ** attempt;
       cfFetchLog.debug('fetch network error, retrying', {
         attempt: attempt + 1,
@@ -54,17 +87,68 @@ export async function fetchWithRetry(
       await new Promise((r) => setTimeout(r, delay));
     }
   }
-  // TypeScript: unreachable, for 循环必定 return 或 throw
   throw new Error('fetchWithRetry: unreachable');
 }
 
+// ── 内部请求执行（带 401 拦截）────────────────────────────────────────────
+
+interface RequestOptions {
+  method: string;
+  path: string;
+  body?: string | FormData;
+  headers: Record<string, string>;
+  timeoutMs: number;
+  noRetry?: boolean;
+  /** 是 refresh 请求自身，跳过 401 拦截 */
+  skipAuthIntercept?: boolean;
+}
+
+async function executeRequest<T>(opts: RequestOptions): Promise<T> {
+  const url = `${API_BASE_URL}${opts.path}`;
+  const fetchFn = opts.noRetry ? fetch : fetchWithRetry;
+
+  const doFetch = (headers: Record<string, string>) =>
+    fetchFn(url, {
+      method: opts.method,
+      headers,
+      body: opts.body,
+      signal: AbortSignal.timeout(opts.timeoutMs),
+    });
+
+  // 第一次请求
+  const headers = { ...opts.headers };
+  const token = tokenProvider?.();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await doFetch(headers);
+
+  // 401 拦截：尝试 refresh 后重试一次
+  if (res.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
+    cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
+    const refreshed = await refreshWithLock();
+    if (refreshed) {
+      // 用新 token 重试
+      const retryHeaders = { ...opts.headers };
+      const newToken = tokenProvider?.();
+      if (newToken) {
+        retryHeaders['Authorization'] = `Bearer ${newToken}`;
+      }
+      const retryRes = await doFetch(retryHeaders);
+      return parseJsonResponse<T>(retryRes, opts.path);
+    }
+    // Refresh 失败 → 触发 auth expired 回调
+    onAuthExpired?.();
+  }
+
+  return parseJsonResponse<T>(res, opts.path);
+}
+
+// ── 公共 API ────────────────────────────────────────────────────────────────
+
 /**
  * 发起 JSON POST 请求到 Workers API。
- *
- * - 自动注入 Authorization: Bearer <token>
- * - 校验 res.ok + content-type 含 application/json
- * - AbortSignal.timeout 超时保护
- * - fetchWithRetry 网络层自动重试（可通过 noRetry 禁用）
  */
 export async function cfPost<T = Record<string, unknown>>(
   path: string,
@@ -73,51 +157,39 @@ export async function cfPost<T = Record<string, unknown>>(
     timeoutMs?: number;
     extraHeaders?: Record<string, string>;
     noRetry?: boolean;
+    skipAuthIntercept?: boolean;
   },
 ): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
   cfFetchLog.debug('POST', { path });
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...options?.extraHeaders,
-  };
-
-  const token = tokenProvider?.();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const fetchFn = options?.noRetry ? fetch : fetchWithRetry;
-  const res = await fetchFn(url, {
+  return executeRequest<T>({
     method: 'POST',
-    headers,
+    path,
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(options?.timeoutMs ?? API_TIMEOUT_MS),
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.extraHeaders,
+    },
+    timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    noRetry: options?.noRetry,
+    skipAuthIntercept: options?.skipAuthIntercept,
   });
-
-  return parseJsonResponse<T>(res, path);
 }
 
 /**
  * 发起 GET 请求到 Workers API。
  */
-export async function cfGet<T = Record<string, unknown>>(path: string): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
+export async function cfGet<T = Record<string, unknown>>(
+  path: string,
+  options?: { skipAuthIntercept?: boolean },
+): Promise<T> {
   cfFetchLog.debug('GET', { path });
-  const headers: Record<string, string> = {};
-
-  const token = tokenProvider?.();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetchWithRetry(url, {
+  return executeRequest<T>({
     method: 'GET',
-    headers,
-    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    path,
+    headers: {},
+    timeoutMs: API_TIMEOUT_MS,
+    skipAuthIntercept: options?.skipAuthIntercept,
   });
-
-  return parseJsonResponse<T>(res, path);
 }
 
 /**
@@ -127,25 +199,16 @@ export async function cfPut<T = Record<string, unknown>>(
   path: string,
   body?: Record<string, unknown>,
 ): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
   cfFetchLog.debug('PUT', { path });
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  const token = tokenProvider?.();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetchWithRetry(url, {
+  return executeRequest<T>({
     method: 'PUT',
-    headers,
+    path,
     body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(API_TIMEOUT_MS),
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    timeoutMs: API_TIMEOUT_MS,
   });
-
-  return parseJsonResponse<T>(res, path);
 }
 
 /**
@@ -162,7 +225,6 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
         reason: 'SERVER_ERROR',
       });
     }
-    // 200 but not JSON — unusual
     cfFetchLog.warn('Non-JSON 200 response', { path });
     throw Object.assign(new Error('响应格式异常'), { reason: 'SERVER_ERROR' });
   }
@@ -183,32 +245,18 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
 
 /**
  * 上传 multipart/form-data 到 Workers API。
- *
- * - 自动注入 Authorization: Bearer <token>
- * - 不设 Content-Type（让浏览器自动加 boundary）
- * - fetchWithRetry 网络层自动重试
- * - AbortSignal.timeout 超时保护
  */
 export async function cfUpload<T = Record<string, unknown>>(
   path: string,
   formData: FormData,
   timeoutMs?: number,
 ): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
   cfFetchLog.debug('UPLOAD', { path });
-  const headers: Record<string, string> = {};
-
-  const token = tokenProvider?.();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const res = await fetchWithRetry(url, {
+  return executeRequest<T>({
     method: 'POST',
-    headers,
-    body: formData,
-    signal: AbortSignal.timeout(timeoutMs ?? API_TIMEOUT_MS),
+    path,
+    body: formData as unknown as string, // FormData handled by fetch natively
+    headers: {}, // No Content-Type — let browser set multipart boundary
+    timeoutMs: timeoutMs ?? API_TIMEOUT_MS,
   });
-
-  return parseJsonResponse<T>(res, path);
 }

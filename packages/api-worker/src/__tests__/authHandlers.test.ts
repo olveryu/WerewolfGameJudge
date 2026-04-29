@@ -41,10 +41,19 @@ async function getJson(path: string, token?: string): Promise<Response> {
 
 beforeAll(async () => {
   await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, equipped_effect TEXT, equipped_seat_animation TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
+    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, equipped_effect TEXT, equipped_seat_animation TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, token_version INTEGER NOT NULL DEFAULT 0, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
   );
   await env.DB.exec(
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wechat_openid ON users(wechat_openid);`,
+  );
+  await env.DB.exec(
+    `CREATE TABLE IF NOT EXISTS refresh_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));`,
+  );
+  await env.DB.exec(
+    `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);`,
+  );
+  await env.DB.exec(
+    `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);`,
   );
   await env.DB.exec(
     `CREATE TABLE IF NOT EXISTS user_stats (user_id TEXT PRIMARY KEY REFERENCES users(id), xp INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 0, games_played INTEGER NOT NULL DEFAULT 0, last_room_code TEXT, unlocked_items TEXT NOT NULL DEFAULT '[]', normal_draws INTEGER NOT NULL DEFAULT 0, golden_draws INTEGER NOT NULL DEFAULT 0, normal_pity INTEGER NOT NULL DEFAULT 0, golden_pity INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 0, last_login_reward_at TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
@@ -63,6 +72,7 @@ beforeAll(async () => {
 /** Clean all test data between tests */
 beforeEach(async () => {
   await env.DB.exec(`DELETE FROM draw_history;`);
+  await env.DB.exec(`DELETE FROM refresh_tokens;`);
   await env.DB.exec(`DELETE FROM password_reset_tokens;`);
   await env.DB.exec(`DELETE FROM login_attempts;`);
   await env.DB.exec(`DELETE FROM user_stats;`);
@@ -247,20 +257,14 @@ describe('POST /auth/signin', () => {
 // ── GET /auth/user ──────────────────────────────────────────────────────────
 
 describe('GET /auth/user', () => {
-  it('returns null without token', async () => {
+  it('returns 401 without token', async () => {
     const res = await getJson('/auth/user');
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.data.user).toBeNull();
+    expect(res.status).toBe(401);
   });
 
-  it('returns null with invalid token', async () => {
+  it('returns 401 with invalid token', async () => {
     const res = await getJson('/auth/user', 'garbage-token');
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.data.user).toBeNull();
+    expect(res.status).toBe(401);
   });
 
   it('returns user profile with valid token', async () => {
@@ -385,12 +389,23 @@ describe('PUT /auth/password', () => {
 // ── POST /auth/signout ──────────────────────────────────────────────────────
 
 describe('POST /auth/signout', () => {
-  it('always returns success (stateless JWT)', async () => {
-    const res = await postJson('/auth/signout', {});
+  it('returns success with valid token', async () => {
+    const signupRes = await postJson('/auth/signup', {
+      email: 'out@test.local',
+      password: 'pass123',
+    });
+    const { access_token } = await signupRes.json();
+
+    const res = await postJson('/auth/signout', {}, access_token);
     expect(res.status).toBe(200);
 
     const body = await res.json();
     expect(body.success).toBe(true);
+  });
+
+  it('returns 401 without token', async () => {
+    const res = await postJson('/auth/signout', {});
+    expect(res.status).toBe(401);
   });
 });
 

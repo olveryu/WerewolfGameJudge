@@ -42,6 +42,11 @@ new_sqlite_classes = ["WeChatAuthProxy"]
 [ai]
 binding = "AI"
 
+# ── Analytics Engine (load timing telemetry, 90-day auto-expiry) ─────────────
+[[analytics_engine_datasets]]
+binding = "LOAD_TIMING"
+dataset = "load_timing"
+
 # ── Custom Domain (workers.dev 在中国大陆不可达) ────────────────────────────────
 [[routes]]
 pattern = "api.werewolfjudge.eu.org"

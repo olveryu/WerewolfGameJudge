@@ -5,7 +5,7 @@
  * 表名、列名使用 snake_case，与 D1 中的物理列一致。
  */
 
-import { integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // ── users ───────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ export const users = sqliteTable(
     equippedSeatAnimation: text('equipped_seat_animation'),
     wechatOpenid: text('wechat_openid'),
     isAnonymous: integer('is_anonymous').notNull().default(1),
+    tokenVersion: integer('token_version').notNull().default(0),
     lastCountry: text('last_country'),
     lastColo: text('last_colo'),
     createdAt: text('created_at').notNull(),
@@ -56,6 +57,25 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   verifyAttempts: integer('verify_attempts').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
+
+// ── refresh_tokens ──────────────────────────────────────────────────────────
+
+export const refreshTokens = sqliteTable(
+  'refresh_tokens',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: text('expires_at').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    index('idx_refresh_tokens_user_id').on(table.userId),
+    index('idx_refresh_tokens_token_hash').on(table.tokenHash),
+  ],
+);
 
 // ── login_attempts ──────────────────────────────────────────────────────────
 

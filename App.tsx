@@ -118,6 +118,63 @@ function reportBootTiming() {
 }
 reportBootTiming();
 
+/** Send per-resource load timing to our Analytics Engine via beacon. */
+function reportLoadTiming() {
+  if (Platform.OS !== 'web') return;
+  try {
+    const marks = performance.getEntriesByType('mark') as PerformanceMark[];
+    const getMs = (name: string) => marks.find((m) => m.name === name)?.startTime;
+    const bootStart = getMs('boot:start');
+    const registered = getMs('app:registered');
+    const totalMs = bootStart != null && registered != null ? registered - bootStart : 0;
+
+    // HTML document TTFB
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const htmlTtfb =
+      navEntries.length > 0 ? Math.round(navEntries[0].responseStart - navEntries[0].startTime) : 0;
+
+    // Collect significant resources (JS, WASM, fonts — skip tiny icons)
+    const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+    const significant = resources.filter((r) => r.transferSize > 1024 || r.name.includes('.wasm'));
+
+    const entries = significant.slice(0, 50).map((r) => ({
+      name: r.name,
+      duration: Math.round(r.duration),
+      transferSize: Math.round(r.transferSize),
+      decodedBodySize: Math.round(r.decodedBodySize),
+      dns: Math.round(r.domainLookupEnd - r.domainLookupStart),
+      tcp: Math.round(r.connectEnd - r.connectStart),
+      tls: r.secureConnectionStart > 0 ? Math.round(r.connectEnd - r.secureConnectionStart) : 0,
+      ttfb: Math.round(r.responseStart - r.requestStart),
+      download: Math.round(r.responseEnd - r.responseStart),
+    }));
+
+    if (entries.length === 0) return;
+
+    const payload = JSON.stringify({
+      totalMs: Math.round(totalMs),
+      htmlTtfb,
+      resources: entries,
+      ua: navigator.userAgent,
+    });
+
+    const url = `${process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://api.werewolfjudge.eu.org'}/telemetry/load-timing`;
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+    } else {
+      void fetch(url, {
+        method: 'POST',
+        body: payload,
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  } catch {
+    // telemetry is best-effort — never block app
+  }
+}
+reportLoadTiming();
+
 const appLog = log.extend('App');
 
 /** Remove the HTML splash overlay on web (defined in web/index.html). */

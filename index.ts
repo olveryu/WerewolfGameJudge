@@ -52,8 +52,28 @@ async function main() {
         ) {
           void (async () => {
             const resp = await fetch(wasmGzUrl);
+            const total = Number(resp.headers.get('Content-Length')) || 0;
             const ds = new DecompressionStream('gzip');
-            const decompressed = resp.body!.pipeThrough(ds);
+
+            // Read compressed stream with progress reporting
+            const reader = resp.body!.getReader();
+            let loaded = 0;
+            const compressedStream = new ReadableStream({
+              async pull(controller) {
+                const { done, value } = await reader.read();
+                if (done) {
+                  controller.close();
+                  return;
+                }
+                loaded += value.byteLength;
+                window.dispatchEvent(
+                  new CustomEvent('wasm-progress', { detail: { loaded, total } }),
+                );
+                controller.enqueue(value);
+              },
+            });
+
+            const decompressed = compressedStream.pipeThrough(ds);
             const bytes = await new Response(decompressed).arrayBuffer();
             const { instance } = await WebAssembly.instantiate(bytes, importObject);
             receiveInstance(instance);

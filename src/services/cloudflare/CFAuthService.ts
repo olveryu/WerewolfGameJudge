@@ -2,13 +2,11 @@
  * CFAuthService — Cloudflare Workers JWT 认证服务
  *
  * 实现 IAuthService 接口，通过 HTTP 调用 Workers /auth/* 端点。
- * JWT token 持久化在 MMKV，刷新/恢复 session 靠 GET /auth/user。
- * 与 Supabase AuthService 行为语义兼容（匿名 + 邮箱升级 + 资料管理）。
- * 不涉及游戏逻辑或游戏状态存储。
+ * 管理 access token（短期 JWT, 1h）+ refresh token（90d, rotation）。
+ * Token 持久化在 MMKV，401 自动 refresh 由 cfFetch 拦截器驱动。
  */
 
 import * as Sentry from '@sentry/react-native';
-import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
@@ -17,13 +15,22 @@ import { authLog } from '@/utils/logger';
 import { clearWxCode, isMiniProgram, readWxCode } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
-import { cfGet, cfPost, cfPut, setTokenProvider } from './cfFetch';
+import {
+  cfGet,
+  cfPost,
+  cfPut,
+  setOnAuthExpired,
+  setRefreshHandler,
+  setTokenProvider,
+} from './cfFetch';
 
-const TOKEN_STORAGE_KEY = 'cf_auth_token';
+const ACCESS_TOKEN_KEY = 'cf_auth_token';
+const REFRESH_TOKEN_KEY = 'cf_refresh_token';
 
 export class CFAuthService implements IAuthService {
   #currentUserId: string | null = null;
-  #cachedToken: string | null = null;
+  #cachedAccessToken: string | null = null;
+  #cachedRefreshToken: string | null = null;
   #isAnonymous = false;
   #hasWechat = false;
   #generatedName: string | null = null;
@@ -36,7 +43,12 @@ export class CFAuthService implements IAuthService {
 
   constructor() {
     // Register token provider so cfFetch auto-injects Bearer header
-    setTokenProvider(() => this.#cachedToken);
+    setTokenProvider(() => this.#cachedAccessToken);
+    // Register refresh handler for 401 interception
+    setRefreshHandler(() => this.#refreshTokens());
+    // Register auth expired callback
+    setOnAuthExpired(() => this.#handleAuthExpired());
+
     this.#initPromise = this.#autoSignIn();
   }
 
@@ -62,7 +74,6 @@ export class CFAuthService implements IAuthService {
             }
           }
         } else {
-          // 没有 session 或匿名 → 走微信登录（单次尝试，code 一次性不可重试）
           try {
             await this.signInWithWechat(wxCode);
             clearWxCode();
@@ -71,11 +82,9 @@ export class CFAuthService implements IAuthService {
             clearWxCode();
             authLog.warn('WeChat sign-in failed', e);
             if (!isMiniProgram()) {
-              // 非小程序（残留 wxcode 链接等）→ fallback 匿名
               authLog.warn('WeChat sign-in failed outside miniprogram, falling back to anonymous');
               await this.signInAnonymously();
             } else {
-              // 小程序内：标记失败，App 层渲染全屏错误页
               this.#wechatLoginFailed = true;
             }
           }
@@ -89,7 +98,6 @@ export class CFAuthService implements IAuthService {
   }
 
   async waitForInit(): Promise<void> {
-    // Must exceed signInWithWechat's 20s timeout to avoid premature rejection
     await withTimeout(this.#initPromise, 25000, () => new Error('登录超时，请重试'));
   }
 
@@ -101,7 +109,6 @@ export class CFAuthService implements IAuthService {
   }
 
   isConfigured(): boolean {
-    // CF backend is always configured if this service was instantiated
     return true;
   }
 
@@ -109,19 +116,21 @@ export class CFAuthService implements IAuthService {
     return this.#currentUserId;
   }
 
-  getCurrentUser(): Promise<GetCurrentUserResponse> | null {
-    if (!this.#cachedToken) return null;
+  async getCurrentUser(): Promise<GetCurrentUserResponse | null> {
+    if (!this.#cachedAccessToken) return null;
     return cfGet<GetCurrentUserResponse>('/auth/user');
   }
 
   async signInAnonymously(): Promise<string> {
     const data = await cfPost<{
       access_token: string;
+      refresh_token: string;
       user: { id: string; is_anonymous: boolean };
-    }>('/auth/anonymous');
+    }>('/auth/anonymous', undefined, { skipAuthIntercept: true });
 
-    await this.#saveToken(data.access_token);
+    this.#saveTokens(data.access_token, data.refresh_token);
     this.#currentUserId = data.user.id;
+    this.#isAnonymous = true;
     Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
@@ -133,11 +142,13 @@ export class CFAuthService implements IAuthService {
   ): Promise<{ userId: string; user: AuthUser | null }> {
     const data = await cfPost<{
       access_token: string;
+      refresh_token: string;
       user: AuthUser;
     }>('/auth/signup', { email, password, displayName });
 
-    await this.#saveToken(data.access_token);
+    this.#saveTokens(data.access_token, data.refresh_token);
     this.#currentUserId = data.user.id;
+    this.#isAnonymous = false;
     Sentry.setUser({ id: data.user.id });
     return { userId: data.user.id, user: data.user };
   }
@@ -145,11 +156,13 @@ export class CFAuthService implements IAuthService {
   async signInWithEmail(email: string, password: string): Promise<string> {
     const data = await cfPost<{
       access_token: string;
+      refresh_token: string;
       user: { id: string };
-    }>('/auth/signin', { email, password });
+    }>('/auth/signin', { email, password }, { skipAuthIntercept: true });
 
-    await this.#saveToken(data.access_token);
+    this.#saveTokens(data.access_token, data.refresh_token);
     this.#currentUserId = data.user.id;
+    this.#isAnonymous = false;
     Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
@@ -168,8 +181,12 @@ export class CFAuthService implements IAuthService {
   }
 
   async signOut(): Promise<void> {
-    await cfPost('/auth/signout');
-    await this.#clearToken();
+    try {
+      await cfPost('/auth/signout');
+    } catch {
+      // Best effort — server may reject if token already expired
+    }
+    this.#clearTokens();
     this.#currentUserId = null;
     this.#isAnonymous = false;
     Sentry.setUser(null);
@@ -177,34 +194,40 @@ export class CFAuthService implements IAuthService {
 
   async changePassword(oldPassword: string, newPassword: string): Promise<void> {
     await cfPut('/auth/password', { oldPassword, newPassword });
+    // Server bumps tokenVersion — current tokens still work until expiry
+    // but refresh will get new version. Force re-login for security:
+    this.#clearTokens();
   }
 
   async forgotPassword(email: string): Promise<void> {
-    await cfPost('/auth/forgot-password', { email });
+    await cfPost('/auth/forgot-password', { email }, { skipAuthIntercept: true });
   }
 
   async resetPassword(email: string, code: string, newPassword: string): Promise<string> {
     const data = await cfPost<{
       access_token: string;
+      refresh_token: string;
       user: { id: string };
-    }>('/auth/reset-password', { email, code, newPassword });
+    }>('/auth/reset-password', { email, code, newPassword }, { skipAuthIntercept: true });
 
-    await this.#saveToken(data.access_token);
+    this.#saveTokens(data.access_token, data.refresh_token);
     this.#currentUserId = data.user.id;
+    this.#isAnonymous = false;
     Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
 
   async signInWithWechat(code: string): Promise<string> {
-    // 微信登录涉及跨境调 api.weixin.qq.com，给 Worker 更多时间
     const WECHAT_AUTH_TIMEOUT_MS = 20000;
     const data = await cfPost<{
       access_token: string;
+      refresh_token: string;
       user: { id: string };
-    }>('/auth/wechat', { code }, { timeoutMs: WECHAT_AUTH_TIMEOUT_MS });
+    }>('/auth/wechat', { code }, { timeoutMs: WECHAT_AUTH_TIMEOUT_MS, skipAuthIntercept: true });
 
-    await this.#saveToken(data.access_token);
+    this.#saveTokens(data.access_token, data.refresh_token);
     this.#currentUserId = data.user.id;
+    this.#isAnonymous = false;
     Sentry.setUser({ id: data.user.id });
     return data.user.id;
   }
@@ -213,38 +236,76 @@ export class CFAuthService implements IAuthService {
     await cfPost('/auth/bind-wechat', { code });
   }
 
+  /**
+   * Restore session from MMKV.
+   * - If access token works: restore immediately.
+   * - If access token fails but refresh succeeds: restore with refreshed token.
+   * - If network error: keep tokens (don't clear), decode userId from access token locally.
+   * - If both tokens invalid (401/403): clear and return null.
+   */
   async initAuth(): Promise<string | null> {
-    const token = storage.getString(TOKEN_STORAGE_KEY) ?? null;
-    if (!token) return null;
+    const accessToken = storage.getString(ACCESS_TOKEN_KEY) ?? null;
+    const refreshToken = storage.getString(REFRESH_TOKEN_KEY) ?? null;
+    if (!accessToken) return null;
 
-    this.#cachedToken = token;
-    // Verify token is still valid by calling /auth/user
-    // cfFetch already handles network-layer retry (fetchWithRetry), no manual retry needed
+    this.#cachedAccessToken = accessToken;
+    this.#cachedRefreshToken = refreshToken;
+
     try {
-      const resp = await cfGet<GetCurrentUserResponse>('/auth/user');
-      if (resp.data.user) {
-        this.#currentUserId = resp.data.user.id;
-        this.#isAnonymous = resp.data.user.is_anonymous ?? false;
-        this.#hasWechat = resp.data.user.has_wechat ?? false;
-        Sentry.setUser({ id: resp.data.user.id });
-        return this.#currentUserId;
-      }
+      const resp = await cfGet<GetCurrentUserResponse>('/auth/user', { skipAuthIntercept: true });
+      this.#currentUserId = resp.data.user!.id;
+      this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
+      this.#hasWechat = resp.data.user!.has_wechat ?? false;
+      Sentry.setUser({ id: resp.data.user!.id });
+      return this.#currentUserId;
     } catch (error: unknown) {
       const status = (error as { status?: number }).status;
-      if (status !== 401 && status !== 403) {
-        // 网络错误（cfFetch 已重试过仍失败）
-        authLog.warn('initAuth: network error after retries', { status });
-      }
-    }
 
-    await this.#clearToken();
-    return null;
+      if (status === 401 || status === 404) {
+        // Access token expired/revoked — try refresh
+        if (refreshToken) {
+          const refreshed = await this.#refreshTokens();
+          if (refreshed) {
+            // Retry /auth/user with new token
+            try {
+              const resp = await cfGet<GetCurrentUserResponse>('/auth/user', {
+                skipAuthIntercept: true,
+              });
+              this.#currentUserId = resp.data.user!.id;
+              this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
+              this.#hasWechat = resp.data.user!.has_wechat ?? false;
+              Sentry.setUser({ id: resp.data.user!.id });
+              return this.#currentUserId;
+            } catch {
+              // Refreshed but still fails — clear everything
+              this.#clearTokens();
+              return null;
+            }
+          }
+        }
+        // No refresh token or refresh failed
+        this.#clearTokens();
+        return null;
+      }
+
+      // Network error — don't clear tokens, try to decode userId locally
+      authLog.warn('initAuth: network error, keeping tokens for offline use', { status });
+      const userId = this.#decodeUserIdFromJwt(accessToken);
+      if (userId) {
+        this.#currentUserId = userId;
+        Sentry.setUser({ id: userId });
+        return userId;
+      }
+      return null;
+    }
   }
 
   generateDisplayName(): string {
     if (this.#generatedName) return this.#generatedName;
 
-    // 100 个狼人杀梗前缀
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAllRoleIds, getRoleSpec } = require('@werewolf/game-engine/models/roles');
+
     const adjectives = [
       '首刀',
       '自刀',
@@ -347,7 +408,7 @@ export class CFAuthService implements IAuthService {
       '存活',
       '盘逻辑',
     ];
-    const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
+    const nouns = getAllRoleIds().map((id: string) => getRoleSpec(id).displayName);
 
     const arr = new Uint32Array(2);
     crypto.getRandomValues(arr);
@@ -358,92 +419,73 @@ export class CFAuthService implements IAuthService {
     return this.#generatedName;
   }
 
-  async getCurrentDisplayName(): Promise<string> {
+  // ── Private: Token management ─────────────────────────────────────────────
+
+  #saveTokens(accessToken: string, refreshToken: string): void {
+    this.#cachedAccessToken = accessToken;
+    this.#cachedRefreshToken = refreshToken;
+    storage.set(ACCESS_TOKEN_KEY, accessToken);
+    storage.set(REFRESH_TOKEN_KEY, refreshToken);
+  }
+
+  #clearTokens(): void {
+    this.#cachedAccessToken = null;
+    this.#cachedRefreshToken = null;
+    storage.remove(ACCESS_TOKEN_KEY);
+    storage.remove(REFRESH_TOKEN_KEY);
+  }
+
+  /**
+   * Attempt to refresh the access token using the stored refresh token.
+   * Returns true if successful (new tokens saved), false otherwise.
+   */
+  async #refreshTokens(): Promise<boolean> {
+    const refreshToken = this.#cachedRefreshToken;
+    if (!refreshToken) return false;
+
     try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        const registeredName = user?.user_metadata?.display_name as string | undefined;
-        if (registeredName) return registeredName;
+      const data = await cfPost<{
+        access_token: string;
+        refresh_token: string;
+      }>(
+        '/auth/refresh',
+        { refresh_token: refreshToken },
+        { skipAuthIntercept: true, noRetry: true },
+      );
+      this.#saveTokens(data.access_token, data.refresh_token);
+      authLog.debug('Token refresh succeeded');
+      return true;
+    } catch (error: unknown) {
+      const status = (error as { status?: number }).status;
+      if (status === 401) {
+        // Refresh token is invalid/expired — session is dead
+        authLog.warn('Refresh token invalid, clearing session');
+        this.#clearTokens();
+        this.#currentUserId = null;
+        return false;
       }
-    } catch (e) {
-      authLog.debug('getCurrentDisplayName failed, falling through to generated name', e);
+      // Network error — don't clear, maybe we're offline
+      authLog.warn('Token refresh network error', { status });
+      return false;
     }
-    return this.generateDisplayName();
   }
 
-  async getCurrentAvatarUrl(): Promise<string | null> {
+  #handleAuthExpired(): void {
+    authLog.warn('Auth expired — all tokens invalid');
+    this.#clearTokens();
+    this.#currentUserId = null;
+    Sentry.setUser(null);
+  }
+
+  /** Decode the `sub` claim from a JWT without verifying signature (local offline use only) */
+  #decodeUserIdFromJwt(token: string): string | null {
     try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        return (user?.user_metadata?.avatar_url as string) || null;
-      }
-    } catch (e) {
-      authLog.debug('getCurrentAvatarUrl failed', e);
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(atob(parts[1])) as { sub?: string };
+      return payload.sub ?? null;
+    } catch {
+      return null;
     }
-    return null;
-  }
-
-  async getCurrentAvatarFrame(): Promise<string | null> {
-    try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        return (user?.user_metadata?.avatar_frame as string) || null;
-      }
-    } catch (e) {
-      authLog.debug('getCurrentAvatarFrame failed', e);
-    }
-    return null;
-  }
-
-  async getCurrentSeatFlair(): Promise<string | null> {
-    try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        return (user?.user_metadata?.seat_flair as string) || null;
-      }
-    } catch (e) {
-      authLog.debug('getCurrentSeatFlair failed', e);
-    }
-    return null;
-  }
-
-  async getCurrentNameStyle(): Promise<string | null> {
-    try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        return (user?.user_metadata?.name_style as string) || null;
-      }
-    } catch (e) {
-      authLog.debug('getCurrentNameStyle failed', e);
-    }
-    return null;
-  }
-
-  async getCurrentEquippedEffect(): Promise<string | null> {
-    try {
-      const resp = await this.getCurrentUser();
-      if (resp) {
-        const user = resp.data.user;
-        return (user?.user_metadata?.equipped_effect as string) || null;
-      }
-    } catch (e) {
-      authLog.debug('getCurrentEquippedEffect failed', e);
-    }
-    return null;
-  }
-
-  async #saveToken(token: string): Promise<void> {
-    this.#cachedToken = token;
-    storage.set(TOKEN_STORAGE_KEY, token);
-  }
-
-  async #clearToken(): Promise<void> {
-    this.#cachedToken = null;
-    storage.remove(TOKEN_STORAGE_KEY);
   }
 }

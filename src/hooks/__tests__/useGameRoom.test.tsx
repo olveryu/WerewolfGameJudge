@@ -88,11 +88,6 @@ describe('useGameRoom - ACK reason transparency', () => {
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('player-uid'),
-        getCurrentDisplayName: jest.fn().mockResolvedValue('Test Player'),
-        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-        getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
-        getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
-        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),
@@ -385,11 +380,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
-        getCurrentDisplayName: jest.fn().mockResolvedValue('Host Player'),
-        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-        getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
-        getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
-        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),
@@ -658,11 +648,6 @@ describe('useGameRoom - rejoin continue overlay', () => {
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
-        getCurrentDisplayName: jest.fn().mockResolvedValue('Host'),
-        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
-        getCurrentAvatarFrame: jest.fn().mockResolvedValue(null),
-        getCurrentSeatFlair: jest.fn().mockResolvedValue(null),
-        getCurrentNameStyle: jest.fn().mockResolvedValue(null),
       },
       roomService: {
         createRoom: jest.fn(),

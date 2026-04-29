@@ -42,3 +42,7 @@ export const resetPasswordSchema = z.object({
 export const wechatCodeSchema = z.object({
   code: z.string().min(1).max(200),
 });
+
+export const refreshTokenSchema = z.object({
+  refresh_token: z.string().min(1).max(128),
+});

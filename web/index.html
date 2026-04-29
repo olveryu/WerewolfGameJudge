@@ -138,6 +138,20 @@
         }
       }
 
+      #splash-resource {
+        color: #52525b;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+        font-size: 11px;
+        margin-top: 12px;
+        opacity: 0.6;
+        max-width: 80%;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-height: 16px;
+      }
+
       /* Real-progress bar — driven by PerformanceObserver resource count */
       #splash-screen .progress-track {
         width: 60%;
@@ -275,6 +289,7 @@
       <img src="/assets/pwa/icon-192.png" alt="狼人kill电子裁判" />
       <div class="loading-text">加载中... <span id="splash-pct">0%</span></div>
       <div class="progress-track"><div class="progress-bar"></div></div>
+      <div id="splash-resource"></div>
       <button id="splash-refresh">刷新页面</button>
     </div>
 
@@ -415,6 +430,7 @@
       (function () {
         var bar = document.querySelector('#splash-screen .progress-bar');
         var pctEl = document.getElementById('splash-pct');
+        var resEl = document.getElementById('splash-resource');
         if (!bar) return;
 
         var loaded = 0;
@@ -422,10 +438,28 @@
         // Use 20 as expected total; progress is capped at 90% until React takes over.
         var EXPECTED_TOTAL = 20;
 
+        function shortName(url) {
+          try {
+            var path = new URL(url).pathname;
+            var segments = path.split('/');
+            return segments[segments.length - 1] || path;
+          } catch (e) {
+            return url.split('/').pop() || url;
+          }
+        }
+
         function setProgress(pct) {
           var clamped = Math.min(Math.round(pct), 90);
           bar.style.width = clamped + '%';
           if (pctEl) pctEl.textContent = clamped + '%';
+        }
+
+        function showResource(entry) {
+          if (!resEl) return;
+          var name = shortName(entry.name);
+          var kb = entry.transferSize ? Math.round(entry.transferSize / 1024) : '?';
+          var ms = Math.round(entry.duration);
+          resEl.textContent = '\u2713 ' + name + ' (' + kb + 'KB, ' + ms + 'ms)';
         }
 
         // Count resources already loaded before observer starts
@@ -438,8 +472,13 @@
         if (typeof PerformanceObserver !== 'undefined') {
           try {
             var observer = new PerformanceObserver(function (list) {
-              loaded += list.getEntries().length;
+              var entries = list.getEntries();
+              loaded += entries.length;
               setProgress((loaded / EXPECTED_TOTAL) * 100);
+              // Show the last completed resource (most relevant to user)
+              if (entries.length > 0) {
+                showResource(entries[entries.length - 1]);
+              }
             });
             observer.observe({ type: 'resource', buffered: false });
           } catch (e) {
@@ -458,6 +497,20 @@
             clearInterval(trickle);
           }
         }, 500);
+
+        // Listen for WASM download progress events (dispatched from index.ts)
+        window.addEventListener('wasm-progress', function (e) {
+          var d = e.detail;
+          if (!resEl) return;
+          if (d.total > 0) {
+            var pct = Math.round((d.loaded / d.total) * 100);
+            var loadedMB = (d.loaded / 1048576).toFixed(1);
+            var totalMB = (d.total / 1048576).toFixed(1);
+            resEl.textContent = 'canvaskit.wasm ' + loadedMB + '/' + totalMB + ' MB (' + pct + '%)';
+          } else {
+            resEl.textContent = 'canvaskit.wasm ' + (d.loaded / 1048576).toFixed(1) + ' MB...';
+          }
+        });
       })();
 
       // 隐藏启动画面 — 由 React App.tsx 控制。

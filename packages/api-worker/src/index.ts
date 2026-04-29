@@ -41,6 +41,7 @@ import { roomRoutes } from './handlers/roomHandlers';
 import { getGameRoomStub } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
 import { statsRoutes } from './handlers/statsHandlers';
+import { telemetryRoutes } from './handlers/telemetryHandlers';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
@@ -99,12 +100,26 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 app.get('/ws', async (c) => {
   const roomCode = c.req.query('roomCode');
+  const token = c.req.query('token');
   if (!roomCode) {
     return c.json({ error: 'roomCode required' }, 400);
   }
+  if (!token) {
+    return c.json({ error: 'token required' }, 401);
+  }
+
+  // Verify JWT before allowing WebSocket upgrade
+  const { verifyToken } = await import('./lib/auth');
+  const payload = await verifyToken(token, c.env);
+  if (!payload) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
+
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
   const doUrl = new URL(c.req.url);
   doUrl.pathname = '/websocket';
+  // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
+  doUrl.searchParams.set('userId', payload.sub);
   return stub.fetch(new Request(doUrl.toString(), c.req.raw));
 });
 
@@ -119,6 +134,7 @@ app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
 app.route('/api', statsRoutes);
 app.route('/api', gachaRoutes);
+app.route('/telemetry', telemetryRoutes);
 
 // ── Worker entry ────────────────────────────────────────────────────────────
 

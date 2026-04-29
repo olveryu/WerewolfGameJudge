@@ -45,9 +45,9 @@ export interface IAuthService {
 
   /**
    * 获取当前用户完整信息。
-   * 未配置时返回 null。
+   * 未登录或 token 失效时返回 null。
    */
-  getCurrentUser(): Promise<GetCurrentUserResponse> | null;
+  getCurrentUser(): Promise<GetCurrentUserResponse | null>;
 
   /** 匿名登录，返回 userId */
   signInAnonymously(): Promise<string>;
@@ -97,19 +97,4 @@ export interface IAuthService {
 
   /** 生成随机中文昵称（狼人杀梗前缀 + 角色名），session 内缓存 */
   generateDisplayName(): string;
-
-  /** 获取当前用户昵称 */
-  getCurrentDisplayName(): Promise<string>;
-
-  /** 获取当前用户头像 URL */
-  getCurrentAvatarUrl(): Promise<string | null>;
-
-  /** 获取当前用户头像框 ID */
-  getCurrentAvatarFrame(): Promise<string | null>;
-
-  /** 获取当前用户座位装饰 ID */
-  getCurrentSeatFlair(): Promise<string | null>;
-
-  /** 获取当前用户名称样式 ID */
-  getCurrentNameStyle(): Promise<string | null>;
 }

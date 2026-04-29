@@ -29,8 +29,6 @@ describe('useAuth hook', () => {
         getCurrentUser: mockGetCurrentUser,
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('test-uid'),
-        getCurrentDisplayName: jest.fn().mockResolvedValue('Test User'),
-        getCurrentAvatarUrl: jest.fn().mockResolvedValue(null),
         onAuthStateChange: jest
           .fn()
           .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
