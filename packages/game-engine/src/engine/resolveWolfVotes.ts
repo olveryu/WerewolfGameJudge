@@ -4,12 +4,16 @@
  * @param votes - Map of wolf seat → target seat (-1 = abstain)
  * @param options.requireUnanimity - When true, all non-abstain votes must target
  *   the same seat; any disagreement results in no kill. Used when cupid is in the template.
+ * @param options.rng - Optional random number generator for tie-breaking (testing).
  */
+
+import { randomPick, type Rng, secureRng } from '../utils/random';
+
 export function resolveWolfVotes(
   votes: Map<number, number>,
-  options?: { requireUnanimity?: boolean },
+  options?: { requireUnanimity?: boolean; rng?: Rng },
 ): number | null {
-  // Convention in this codebase: -1 means “abstain / no-kill”.
+  // Convention in this codebase: -1 means "abstain / no-kill".
   // It should not participate in majority/tie calculations.
   const nonAbstainVotes = Array.from(votes.values()).filter((v) => v !== -1);
 
@@ -24,38 +28,34 @@ export function resolveWolfVotes(
     voteCounts.set(target, (voteCounts.get(target) ?? 0) + 1);
   }
 
-  // Find max vote count and whether it’s unique.
+  // Find max vote count and collect all targets with that count.
   let maxCount = 0;
-  let maxTarget: number | null = null;
-  let maxCountTargets = 0;
+  let maxTargets: number[] = [];
 
   for (const [target, count] of voteCounts.entries()) {
     if (count > maxCount) {
       maxCount = count;
-      maxTarget = target;
-      maxCountTargets = 1;
+      maxTargets = [target];
     } else if (count === maxCount) {
-      maxCountTargets += 1;
+      maxTargets.push(target);
     }
   }
 
-  // Tie => no kill.
-  if (maxCountTargets !== 1 || maxTarget === null) {
+  if (maxTargets.length === 0) {
     return null;
   }
 
   // Unanimity mode (cupid board): ALL non-abstain votes must be the same target.
+  // Tie or disagreement => no kill.
   if (options?.requireUnanimity) {
-    return maxCount === nonAbstainVotes.length ? maxTarget : null;
+    if (maxTargets.length !== 1) return null;
+    return maxCount === nonAbstainVotes.length ? maxTargets[0] : null;
   }
 
-  // Require strict majority among *non-abstain* votes.
-  // Example: [0] => majority (1/1) => kill 0.
-  // Example: [0, 1] => tie (1/2) => null.
-  // Example: [0, 0, 1] => majority (2/3) => kill 0.
-  if (maxCount <= nonAbstainVotes.length / 2) {
-    return null;
+  // Normal mode: plurality wins. On tie, randomly pick one from tied targets.
+  if (maxTargets.length === 1) {
+    return maxTargets[0];
   }
-
-  return maxTarget;
+  const rng = options?.rng ?? secureRng;
+  return randomPick(maxTargets, rng);
 }

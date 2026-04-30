@@ -379,8 +379,8 @@ describe('nightFlowHandler', () => {
         }
       });
 
-      it('should return empty deaths on tie vote (放弃袭击)', () => {
-        // 两只狼投不同目标 = 平票 = 放弃袭击
+      it('should randomly pick one target on tie vote (平票随机刀)', () => {
+        // 两只狼投不同目标 = 平票 = 随机选一个目标刀
         // currentStepId: undefined 表示 night plan 已走完
         const context: HandlerContext = {
           state: createOngoingState({
@@ -397,8 +397,9 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0];
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 平票 = 放弃袭击 = 无死亡
-          expect(action.payload.deaths).toEqual([]);
+          // 平票 = 随机选一个刀
+          expect(action.payload.deaths).toHaveLength(1);
+          expect([4, 5]).toContain(action.payload.deaths[0]);
         }
       });
 
