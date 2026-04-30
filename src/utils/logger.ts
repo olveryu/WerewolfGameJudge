@@ -73,7 +73,6 @@ const withMinSeverity = <T extends (...args: any[]) => any>(minSeverity: number,
 };
 
 // severity levels: debug=0, info=1, warn=2, error=3
-const INFO_SEVERITY = 1;
 const WARN_SEVERITY = 2;
 
 const config = {
@@ -82,8 +81,8 @@ const config = {
     __DEV__ ? consoleTransport : withMinSeverity(WARN_SEVERITY, consoleTransport),
     // Debug panel always receives all levels
     mobileDebugTransport,
-    // Production: forward info+ to Sentry Structured Logs (skip debug to save quota)
-    ...(__DEV__ ? [] : [withMinSeverity(INFO_SEVERITY, sentryTransport)]),
+    // Production: forward all levels to Sentry Structured Logs
+    ...(__DEV__ ? [] : [sentryTransport]),
   ],
   // Global minimum = debug so mobileDebugTransport can receive everything
   severity: 'debug' as const,
