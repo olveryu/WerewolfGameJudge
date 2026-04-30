@@ -148,6 +148,61 @@ export const findMatchingPresetName = (roles: RoleId[]): string | null => {
   return null;
 };
 
+/**
+ * Find the closest matching preset by multiset similarity.
+ *
+ * Similarity = |multiset intersection| / max(|A|, |B|).
+ * Only considers presets whose names appear in `candidateNames` (if provided).
+ * Returns the best match name if similarity >= threshold, otherwise null.
+ */
+export const findClosestPresetName = (
+  roles: RoleId[],
+  threshold = 0.7,
+  candidateNames?: ReadonlySet<string>,
+): string | null => {
+  const roleCounts = toMultiset(roles);
+  let bestName: string | null = null;
+  let bestScore = threshold; // only beat threshold to qualify
+
+  for (const preset of PRESET_TEMPLATES) {
+    if (candidateNames && !candidateNames.has(preset.name)) continue;
+
+    const presetCounts = toMultiset(preset.roles);
+    const intersection = multisetIntersectionSize(roleCounts, presetCounts);
+    const maxLen = Math.max(roles.length, preset.roles.length);
+    if (maxLen === 0) continue;
+
+    const score = intersection / maxLen;
+    if (score > bestScore) {
+      bestScore = score;
+      bestName = preset.name;
+    }
+  }
+
+  return bestName;
+};
+
+/** Convert array to multiset (Map<element, count>) */
+const toMultiset = (arr: readonly string[]): Map<string, number> => {
+  const map = new Map<string, number>();
+  for (const item of arr) {
+    map.set(item, (map.get(item) ?? 0) + 1);
+  }
+  return map;
+};
+
+/** Compute |A ∩ B| for two multisets (min-count intersection) */
+const multisetIntersectionSize = (a: Map<string, number>, b: Map<string, number>): number => {
+  let count = 0;
+  for (const [key, countA] of a) {
+    const countB = b.get(key);
+    if (countB !== undefined) {
+      count += Math.min(countA, countB);
+    }
+  }
+  return count;
+};
+
 // Predefined templates matching Flutter app
 export const PRESET_TEMPLATES: PresetTemplate[] = [
   {

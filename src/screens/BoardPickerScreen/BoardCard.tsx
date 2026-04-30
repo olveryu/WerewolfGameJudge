@@ -6,6 +6,7 @@ import { getPlayerCount, type PresetTemplate } from '@werewolf/game-engine/model
 import React, { useCallback, useMemo } from 'react';
 import { LayoutAnimation, Text, TouchableOpacity, View } from 'react-native';
 
+import { BOARD_STRATEGY } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import {
@@ -30,12 +31,22 @@ interface BoardCardProps {
   onToggleExpand: (name: string) => void;
   onSelect: (name: string) => void;
   onRolePress: (roleId: string) => void;
+  onStrategyPress: (name: string) => void;
   styles: BoardPickerStyles;
   maxChips: number;
 }
 
 export const BoardCard = React.memo<BoardCardProps>(
-  ({ template, isExpanded, onToggleExpand, onSelect, onRolePress, styles, maxChips }) => {
+  ({
+    template,
+    isExpanded,
+    onToggleExpand,
+    onSelect,
+    onRolePress,
+    onStrategyPress,
+    styles,
+    maxChips,
+  }) => {
     const stats = useMemo(() => computeFactionStats(template.roles), [template.roles]);
     const keyRoles = useMemo(
       () => getKeyRoles(template.roles, maxChips),
@@ -54,6 +65,12 @@ export const BoardCard = React.memo<BoardCardProps>(
     const handleSelect = useCallback(() => {
       onSelect(template.name);
     }, [onSelect, template.name]);
+
+    const handleStrategyPress = useCallback(() => {
+      onStrategyPress(template.name);
+    }, [onStrategyPress, template.name]);
+
+    const hasStrategy = template.name in BOARD_STRATEGY;
 
     return (
       <View style={[styles.card, isExpanded && styles.cardSelected]}>
@@ -147,7 +164,7 @@ export const BoardCard = React.memo<BoardCardProps>(
           )}
         </TouchableOpacity>
 
-        {/* Expanded: full role list + select button */}
+        {/* Expanded: full role list + action buttons */}
         {isExpanded && (
           <View style={styles.cardExpanded}>
             <View style={styles.cardDivider} />
@@ -160,19 +177,49 @@ export const BoardCard = React.memo<BoardCardProps>(
               />{' '}
               点击角色名查看能力说明
             </Text>
-            <Button
-              variant="primary"
-              size="sm"
-              onPress={handleSelect}
-              style={{ marginTop: spacing.medium }}
-            >
-              以此为基础
-            </Button>
+            <View style={cardActionRowStyle}>
+              {hasStrategy && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={
+                    <Ionicons
+                      name="book-outline"
+                      size={componentSizes.icon.sm}
+                      color={colors.text}
+                    />
+                  }
+                  onPress={handleStrategyPress}
+                >
+                  查看攻略
+                </Button>
+              )}
+              <Button
+                variant="primary"
+                size="sm"
+                onPress={handleSelect}
+                style={cardSelectButtonStyle}
+              >
+                以此为基础
+              </Button>
+            </View>
           </View>
         )}
       </View>
     );
   },
 );
+
+const cardActionRowStyle = {
+  flexDirection: 'row' as const,
+  justifyContent: 'space-between' as const,
+  alignItems: 'center' as const,
+  marginTop: spacing.medium,
+  gap: spacing.small,
+};
+
+const cardSelectButtonStyle = {
+  flex: 1,
+};
 
 BoardCard.displayName = 'BoardCard';

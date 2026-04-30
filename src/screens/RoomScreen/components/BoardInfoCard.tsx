@@ -34,6 +34,8 @@ interface BoardInfoCardProps {
   onRolePress?: (roleId: string) => void;
   /** Callback when the notepad button is pressed */
   onNotepadPress?: () => void;
+  /** Callback when the strategy button is pressed */
+  onStrategyPress?: () => void;
   /** Pre-created styles from parent */
   styles: BoardInfoCardStyles;
   /** Whether to show nomination buttons (Unseated/Seated phase) */
@@ -85,6 +87,7 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
   collapsed = false,
   onRolePress,
   onNotepadPress,
+  onStrategyPress,
   styles,
   showNominations = false,
   hasMyNomination = false,
@@ -114,8 +117,18 @@ const BoardInfoCardComponent: React.FC<BoardInfoCardProps> = ({
         onPress={handleToggle}
         activeOpacity={fixed.activeOpacity}
       >
-        <Text style={styles.boardInfoTitle}>角色配置（{playerCount}人局）</Text>
+        <Text style={styles.boardInfoTitle}>配置（{playerCount}人）</Text>
         <View style={styles.headerRowRight}>
+          {onStrategyPress != null && (
+            <TouchableOpacity
+              onPress={onStrategyPress}
+              style={styles.notepadBtn}
+              activeOpacity={fixed.activeOpacity}
+            >
+              <Ionicons name="book-outline" size={componentSizes.icon.sm} color={colors.primary} />
+              <Text style={styles.notepadBtnText}>攻略</Text>
+            </TouchableOpacity>
+          )}
           {onNotepadPress != null && (
             <TouchableOpacity
               onPress={onNotepadPress}

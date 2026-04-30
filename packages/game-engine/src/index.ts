@@ -62,6 +62,7 @@ export {
   BOTTOM_CARD_COUNT,
   createCustomTemplate,
   createTemplateFromRoles,
+  findClosestPresetName,
   findMatchingPresetName,
   type GameTemplate,
   getPlayerCount,

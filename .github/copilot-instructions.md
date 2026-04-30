@@ -25,6 +25,13 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - `pnpm run release` — bump 版本号 → CHANGELOG → commit → tag → push
 - `pnpm -F @werewolf/api-worker db:seed:local` — 本地 D1 seed：创建 dev 用户（`dev@test.local` / `dev123`）+ 全物品解锁
 
+### Dev 环境启动
+
+- `npm run dev` 通过 concurrently 启动 worker + web，子进程是 non-interactive 的
+- Wrangler OAuth token 大约每 24h 过期。过期症状：`Failed to fetch auth token: 400 Bad Request`
+- 修复：`cd packages/api-worker && npx wrangler login`（交互式浏览器授权）
+- 首次启动或拉取新 migration 后需要：`pnpm -F @werewolf/api-worker db:migrate:local`
+
 ---
 
 ## ⚠️ 第一原则：社区惯例优先

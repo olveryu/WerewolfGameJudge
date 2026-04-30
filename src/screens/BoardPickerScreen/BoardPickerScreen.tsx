@@ -9,7 +9,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
 import { TEMPLATE_CATEGORY_LABELS, TemplateCategory } from '@werewolf/game-engine/models/Template';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BoardStrategyContent } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -31,7 +32,15 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { type TemplateSectionData } from '@/screens/ConfigScreen/configHelpers';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, spacing, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  shadows,
+  spacing,
+  textStyles,
+  withAlpha,
+} from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import { BoardCard, estimateMaxChips } from './BoardCard';
@@ -42,6 +51,39 @@ import { useBoardPickerScreenState } from './useBoardPickerScreenState';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// ── Strategy Modal styles (module-level, stable references) ──
+
+const strategyOverlayStyle = {
+  flex: 1,
+  backgroundColor: withAlpha(colors.background, 0.5),
+  justifyContent: 'flex-end' as const,
+};
+
+const strategyModalStyle = {
+  backgroundColor: colors.surface,
+  borderTopLeftRadius: borderRadius.xlarge,
+  borderTopRightRadius: borderRadius.xlarge,
+  paddingHorizontal: spacing.large,
+  paddingBottom: spacing.large,
+  maxHeight: '85%',
+  width: '100%',
+  ...shadows.md,
+} as const;
+
+const strategyHeaderStyle = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  justifyContent: 'space-between' as const,
+  paddingTop: spacing.medium,
+  paddingBottom: spacing.small,
+};
+
+const strategyTitleStyle = {
+  ...textStyles.subtitleSemibold,
+  color: colors.text,
+  flex: 1,
+};
 
 /** Tab order for category filter bar */
 const CATEGORY_TABS: TemplateCategory[] = [
@@ -89,6 +131,17 @@ export const BoardPickerScreen: React.FC = () => {
     handleToggleFactionSection,
   } = useBoardPickerScreenState();
 
+  // ── Strategy Modal state ──
+  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+
+  const handleStrategyPress = useCallback((name: string) => {
+    setStrategyBoardName(name);
+  }, []);
+
+  const handleStrategyClose = useCallback(() => {
+    setStrategyBoardName(null);
+  }, []);
+
   // ── Renderers ──
   const renderItem = useCallback(
     ({ item }: { item: PresetTemplate }) => (
@@ -98,11 +151,20 @@ export const BoardPickerScreen: React.FC = () => {
         onToggleExpand={handleToggleExpand}
         onSelect={handleSelect}
         onRolePress={handleRolePress}
+        onStrategyPress={handleStrategyPress}
         styles={styles}
         maxChips={maxChips}
       />
     ),
-    [expandedName, handleToggleExpand, handleSelect, handleRolePress, styles, maxChips],
+    [
+      expandedName,
+      handleToggleExpand,
+      handleSelect,
+      handleRolePress,
+      handleStrategyPress,
+      styles,
+      maxChips,
+    ],
   );
 
   const renderSectionHeader = useCallback(
@@ -333,6 +395,33 @@ export const BoardPickerScreen: React.FC = () => {
         showRealIdentity
         onAskAI={isAIChatReady() ? (rid) => askAIAboutRole(rid, handlePreviewClose) : undefined}
       />
+
+      {/* Board Strategy Modal */}
+      <Modal
+        visible={strategyBoardName !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={handleStrategyClose}
+      >
+        <Pressable style={strategyOverlayStyle} onPress={handleStrategyClose}>
+          <Pressable
+            style={strategyModalStyle}
+            onPress={() => {
+              /* prevent dismiss */
+            }}
+          >
+            <View style={strategyHeaderStyle}>
+              <Text style={strategyTitleStyle} numberOfLines={1}>
+                {strategyBoardName} · 攻略
+              </Text>
+              <Button variant="icon" size="sm" onPress={handleStrategyClose}>
+                <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
+              </Button>
+            </View>
+            {strategyBoardName && <BoardStrategyContent boardName={strategyBoardName} />}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };

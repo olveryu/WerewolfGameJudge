@@ -11,12 +11,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
+import { BOARD_STRATEGY, BoardStrategyContent } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -26,7 +28,16 @@ import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout, spacing } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  layout,
+  shadows,
+  spacing,
+  textStyles,
+  withAlpha,
+} from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -61,6 +72,40 @@ import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
+// ── Strategy Modal styles ────────────────────────────────────────────────────
+const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
+
+const strategyOverlayStyle = {
+  flex: 1,
+  backgroundColor: withAlpha(colors.background, 0.5),
+  justifyContent: 'flex-end' as const,
+};
+
+const strategyModalStyle = {
+  backgroundColor: colors.surface,
+  borderTopLeftRadius: borderRadius.xlarge,
+  borderTopRightRadius: borderRadius.xlarge,
+  paddingHorizontal: spacing.large,
+  paddingBottom: spacing.large,
+  maxHeight: '85%' as const,
+  width: '100%' as const,
+  ...shadows.md,
+};
+
+const strategyHeaderStyle = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  justifyContent: 'space-between' as const,
+  paddingTop: spacing.medium,
+  paddingBottom: spacing.small,
+};
+
+const strategyTitleStyle = {
+  ...textStyles.subtitleSemibold,
+  color: colors.text,
+  flex: 1,
+};
+
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
@@ -75,6 +120,13 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleNotepadPress = useCallback(() => {
     navigation.navigate('Notepad', { roomCode: route.params.roomCode });
   }, [navigation, route.params.roomCode]);
+
+  // ─── Strategy Modal ───────────────────────────────────────────────────
+  const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
+
+  const handleStrategyClose = useCallback(() => {
+    setStrategyBoardName(null);
+  }, []);
 
   // ─── QR Code Modal state ──────────────────────────────────────────────
   const [qrModalVisible, setQrModalVisible] = useState(false);
@@ -273,6 +325,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       setNominationModalVisible(false);
     }
   }, [showNominations]);
+
+  // ─── Strategy: find closest matching board with strategy data ──────────
+  const matchedStrategyName = useMemo(() => {
+    if (!gameState) return null;
+    const roles = gameState.template.roles;
+    // Exact match first (via name or roles)
+    const exactName = gameState.template.name;
+    if (exactName && BOARD_STRATEGY_KEYS.has(exactName)) return exactName;
+    // Fuzzy match — only against boards that have strategy content
+    return findClosestPresetName(roles, 0.7, BOARD_STRATEGY_KEYS);
+  }, [gameState]);
+
+  const handleStrategyPress = useCallback(() => {
+    if (matchedStrategyName) {
+      setStrategyBoardName(matchedStrategyName);
+    }
+  }, [matchedStrategyName]);
 
   // ─── Bottom panel layout ───────────────────────────────────────────────
   const layoutCtx: LayoutContext = useMemo(
@@ -570,6 +639,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           collapsed={roomStatus === GameStatus.Ongoing || roomStatus === GameStatus.Ended}
           onRolePress={handleSkillPreviewOpen}
           onNotepadPress={handleNotepadPress}
+          onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
           styles={componentStyles.boardInfoCard}
           showNominations={showNominations}
           hasMyNomination={hasMyNomination}
@@ -749,6 +819,33 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           onClose={closeChooseCardModal}
         />
       )}
+
+      {/* Board Strategy Modal — 攻略详情 */}
+      <Modal
+        visible={strategyBoardName !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={handleStrategyClose}
+      >
+        <Pressable style={strategyOverlayStyle} onPress={handleStrategyClose}>
+          <Pressable
+            style={strategyModalStyle}
+            onPress={() => {
+              /* prevent dismiss */
+            }}
+          >
+            <View style={strategyHeaderStyle}>
+              <Text style={strategyTitleStyle} numberOfLines={1}>
+                {strategyBoardName} · 攻略
+              </Text>
+              <Button variant="icon" size="sm" onPress={handleStrategyClose}>
+                <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
+              </Button>
+            </View>
+            {strategyBoardName && <BoardStrategyContent boardName={strategyBoardName} />}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 };
