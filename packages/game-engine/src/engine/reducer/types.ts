@@ -204,7 +204,11 @@ export interface SetUiHintAction {
   type: 'SET_UI_HINT';
   payload: {
     currentActorHint: {
-      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled' | 'wolf_unanimity_required';
+      kind:
+        | 'blocked_by_nightmare'
+        | 'wolf_kill_disabled'
+        | 'wolf_unanimity_required'
+        | 'wolf_tie_random';
       targetRoleIds: RoleId[];
       message: string;
       bottomAction?: 'skipOnly' | 'wolfEmptyOnly';

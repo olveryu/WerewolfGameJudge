@@ -101,6 +101,22 @@ export function maybeCreateUiHintAction(
     };
   }
 
+  // Case 1.6: wolfVote 普通板子 → 提示平票随机刀
+  if (schema?.kind === 'wolfVote') {
+    const wolfRoleIds = getWolfRoleIds();
+    nightFlowLog.debug('setting wolf_tie_random hint (normal board)');
+    return {
+      type: 'SET_UI_HINT',
+      payload: {
+        currentActorHint: {
+          kind: 'wolf_tie_random',
+          targetRoleIds: wolfRoleIds,
+          message: '平票将随机刀人',
+        },
+      },
+    };
+  }
+
   // Case 2: 下一步行动者被 nightmare 封锁
   if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
     nightFlowLog.debug('setting blocked_by_nightmare hint', { nextActorSeat, roleId });

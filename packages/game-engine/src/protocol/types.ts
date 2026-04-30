@@ -348,7 +348,11 @@ export interface GameState {
    */
   ui?: {
     currentActorHint?: {
-      kind: 'blocked_by_nightmare' | 'wolf_kill_disabled' | 'wolf_unanimity_required';
+      kind:
+        | 'blocked_by_nightmare'
+        | 'wolf_kill_disabled'
+        | 'wolf_unanimity_required'
+        | 'wolf_tie_random';
       /**
        * 哪些角色能看到这个 hint（UI 按 myRole 过滤）
        * - blocked_by_nightmare: [被封锁角色的 roleId]

@@ -98,6 +98,16 @@ describe('maybeCreateUiHintAction', () => {
     expect(action.payload.currentActorHint!.kind).toBe('wolf_unanimity_required');
   });
 
+  it('should set wolf_tie_random on normal board wolfVote step', () => {
+    const state = createMinimalState({
+      templateRoles: ['wolf', 'seer', 'villager', 'hunter'],
+    });
+    const action = maybeCreateUiHintAction(step('wolf', 'wolfKill', 2), state);
+    expect(action.payload.currentActorHint).not.toBeNull();
+    expect(action.payload.currentActorHint!.kind).toBe('wolf_tie_random');
+    expect(action.payload.currentActorHint!.message).toBe('平票将随机刀人');
+  });
+
   it('should prioritize wolfKillOverride over cupid unanimity', () => {
     const state = createMinimalState({
       templateRoles: ['wolf', 'seer', 'villager', 'cupid'],
