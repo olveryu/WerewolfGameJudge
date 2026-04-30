@@ -41,7 +41,9 @@ async function main() {
     const useCompressedWasm = !wasmGzUrl.startsWith('__');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { version } = require('canvaskit-wasm/package.json') as { version: string };
-    const { LoadSkiaWeb } = await import('@shopify/react-native-skia/lib/module/web');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { LoadSkiaWeb } =
+      require('@shopify/react-native-skia/lib/module/web') as typeof import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
         `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`,
@@ -82,11 +84,13 @@ async function main() {
         },
       }),
     });
-    await import('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@shopify/react-native-skia/lib/module/specs/NativeSkiaModule');
   }
 
   performance.mark('app:import-start');
-  const App = (await import('./App')).default;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const App = (require('./App') as { default: React.ComponentType }).default;
   performance.mark('app:import-end');
 
   register(App);
