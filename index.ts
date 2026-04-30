@@ -41,8 +41,9 @@ async function main() {
     const useCompressedWasm = !wasmGzUrl.startsWith('__');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { version } = require('canvaskit-wasm/package.json') as { version: string };
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { LoadSkiaWeb } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('@shopify/react-native-skia/lib/module/web') as typeof import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
