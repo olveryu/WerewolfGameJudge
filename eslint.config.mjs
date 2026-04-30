@@ -39,6 +39,9 @@ export default tseslint.config(
   reactPlugin.configs.flat['jsx-runtime'],
   reactHooks.configs.flat.recommended,
 
+  // Global React settings (must be top-level so react plugin picks it up)
+  { settings: { react: { version: 'detect' } } },
+
   // =========================================================================
   // Main config for all TS/TSX files
   // =========================================================================
