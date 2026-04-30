@@ -132,7 +132,10 @@ export function useRoomInit({
           roomScreenLog.debug('Player join complete');
         } else {
           initInProgressRef.current = false;
-          roomScreenLog.warn('joinRoom failed', { roomCode });
+          roomScreenLog.warn('joinRoom failed', {
+            roomCode,
+            error: gameRoomErrorRef.current ?? 'unknown',
+          });
           setLoadingMessage('加入房间失败');
           setShowRetryButton(true);
         }

@@ -387,8 +387,8 @@ export class ConnectionManager {
       if (dbRevision > this.#ctx.lastRevision) {
         this.#dispatch({ type: 'REVISION_DRIFT', dbRevision });
       }
-    } catch {
-      connectionLog.warn('Revision poll failed');
+    } catch (e) {
+      connectionLog.warn('Revision poll failed', { roomCode, error: e });
     }
   }
 

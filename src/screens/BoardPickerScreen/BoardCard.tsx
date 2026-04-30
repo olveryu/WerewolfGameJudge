@@ -34,6 +34,8 @@ interface BoardCardProps {
   onStrategyPress: (name: string) => void;
   styles: BoardPickerStyles;
   maxChips: number;
+  /** Whether to show the "以此为基础" select button. Defaults to true. */
+  showSelectButton?: boolean;
 }
 
 export const BoardCard = React.memo<BoardCardProps>(
@@ -46,6 +48,7 @@ export const BoardCard = React.memo<BoardCardProps>(
     onStrategyPress,
     styles,
     maxChips,
+    showSelectButton = true,
   }) => {
     const stats = useMemo(() => computeFactionStats(template.roles), [template.roles]);
     const keyRoles = useMemo(
@@ -177,16 +180,16 @@ export const BoardCard = React.memo<BoardCardProps>(
               />{' '}
               点击角色名查看能力说明
             </Text>
-            <View style={cardActionRowStyle}>
+            <View style={showSelectButton ? cardActionRowStyle : cardActionRowCenteredStyle}>
               {hasStrategy && (
                 <Button
-                  variant="secondary"
+                  variant={showSelectButton ? 'secondary' : 'primary'}
                   size="sm"
                   icon={
                     <Ionicons
                       name="book-outline"
                       size={componentSizes.icon.sm}
-                      color={colors.text}
+                      color={showSelectButton ? colors.text : colors.textInverse}
                     />
                   }
                   onPress={handleStrategyPress}
@@ -194,14 +197,16 @@ export const BoardCard = React.memo<BoardCardProps>(
                   查看攻略
                 </Button>
               )}
-              <Button
-                variant="primary"
-                size="sm"
-                onPress={handleSelect}
-                style={cardSelectButtonStyle}
-              >
-                以此为基础
-              </Button>
+              {showSelectButton && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onPress={handleSelect}
+                  style={cardSelectButtonStyle}
+                >
+                  以此为基础
+                </Button>
+              )}
             </View>
           </View>
         )}
@@ -216,6 +221,13 @@ const cardActionRowStyle = {
   alignItems: 'center' as const,
   marginTop: spacing.medium,
   gap: spacing.small,
+};
+
+const cardActionRowCenteredStyle = {
+  flexDirection: 'row' as const,
+  justifyContent: 'center' as const,
+  alignItems: 'center' as const,
+  marginTop: spacing.medium,
 };
 
 const cardSelectButtonStyle = {

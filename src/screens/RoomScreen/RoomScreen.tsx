@@ -13,12 +13,12 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
-import { BOARD_STRATEGY, BoardStrategyContent } from '@/components/BoardStrategy';
+import { BOARD_STRATEGY, BoardStrategyModal } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
@@ -28,16 +28,7 @@ import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  layout,
-  shadows,
-  spacing,
-  textStyles,
-  withAlpha,
-} from '@/theme';
+import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -72,39 +63,8 @@ import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
-// ── Strategy Modal styles ────────────────────────────────────────────────────
+// ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
-
-const strategyOverlayStyle = {
-  flex: 1,
-  backgroundColor: withAlpha(colors.background, 0.5),
-  justifyContent: 'flex-end' as const,
-};
-
-const strategyModalStyle = {
-  backgroundColor: colors.surface,
-  borderTopLeftRadius: borderRadius.xlarge,
-  borderTopRightRadius: borderRadius.xlarge,
-  paddingHorizontal: spacing.large,
-  paddingBottom: spacing.large,
-  maxHeight: '85%' as const,
-  width: '100%' as const,
-  ...shadows.md,
-};
-
-const strategyHeaderStyle = {
-  flexDirection: 'row' as const,
-  alignItems: 'center' as const,
-  justifyContent: 'space-between' as const,
-  paddingTop: spacing.medium,
-  paddingBottom: spacing.small,
-};
-
-const strategyTitleStyle = {
-  ...textStyles.subtitleSemibold,
-  color: colors.text,
-  flex: 1,
-};
 
 export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { user } = useAuthContext();
@@ -821,31 +781,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
 
       {/* Board Strategy Modal — 攻略详情 */}
-      <Modal
-        visible={strategyBoardName !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={handleStrategyClose}
-      >
-        <Pressable style={strategyOverlayStyle} onPress={handleStrategyClose}>
-          <Pressable
-            style={strategyModalStyle}
-            onPress={() => {
-              /* prevent dismiss */
-            }}
-          >
-            <View style={strategyHeaderStyle}>
-              <Text style={strategyTitleStyle} numberOfLines={1}>
-                {strategyBoardName} · 攻略
-              </Text>
-              <Button variant="icon" size="sm" onPress={handleStrategyClose}>
-                <Ionicons name="close" size={componentSizes.icon.md} color={colors.textSecondary} />
-              </Button>
-            </View>
-            {strategyBoardName && <BoardStrategyContent boardName={strategyBoardName} />}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
     </SafeAreaView>
   );
 };

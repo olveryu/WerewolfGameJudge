@@ -400,6 +400,7 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
       textAlign: 'center',
+      marginTop: spacing.small,
     },
 
     // ── Empty state ───────────────────────────────

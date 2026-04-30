@@ -26,7 +26,7 @@ export type RootStackParamList = {
   };
   Settings: { roomCode?: string } | undefined;
   MusicSettings: { roomCode?: string } | undefined;
-  Encyclopedia: { roomCode?: string; roleId?: string } | undefined;
+  Encyclopedia: { roomCode?: string; roleId?: string; initialTab?: 'roles' | 'boards' } | undefined;
   Notepad: { roomCode: string };
   Appearance: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;

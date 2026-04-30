@@ -56,8 +56,8 @@ export function readWxCode(): string | null {
   try {
     const params = new URLSearchParams(window.location.search);
     return params.get('wxcode');
-  } catch {
-    log.warn('Failed to read wxcode');
+  } catch (e) {
+    log.warn('Failed to read wxcode', e);
     return null;
   }
 }
@@ -72,8 +72,8 @@ export function clearWxCode(): void {
     const qs = params.toString();
     const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
     window.history.replaceState(null, '', newUrl);
-  } catch {
-    log.warn('Failed to clear wxcode');
+  } catch (e) {
+    log.warn('Failed to clear wxcode', e);
   }
 }
 
@@ -85,8 +85,8 @@ export function wxReLaunch(): void {
   if (Platform.OS !== 'web') return;
   try {
     window.wx?.miniProgram?.reLaunch({ url: '/pages/index/index' });
-  } catch {
-    log.warn('Failed to call wx.miniProgram.reLaunch');
+  } catch (e) {
+    log.warn('Failed to call wx.miniProgram.reLaunch', e);
   }
 }
 

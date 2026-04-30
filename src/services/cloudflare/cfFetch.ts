@@ -219,13 +219,17 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
 
   if (!contentType.includes('application/json')) {
     if (!res.ok) {
-      cfFetchLog.warn('HTTP error (non-JSON)', { status: res.status, path });
+      cfFetchLog.warn('HTTP error (non-JSON)', {
+        status: res.status,
+        statusText: res.statusText,
+        path,
+      });
       throw Object.assign(new Error(`服务端错误 (${res.status})`), {
         status: res.status,
         reason: 'SERVER_ERROR',
       });
     }
-    cfFetchLog.warn('Non-JSON 200 response', { path });
+    cfFetchLog.warn('Non-JSON 200 response', { path, status: res.status, contentType });
     throw Object.assign(new Error('响应格式异常'), { reason: 'SERVER_ERROR' });
   }
 
@@ -233,7 +237,12 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
 
   if (!res.ok) {
     const errBody = data as Record<string, unknown>;
-    cfFetchLog.warn('HTTP error', { status: res.status, path, reason: errBody.reason });
+    cfFetchLog.warn('HTTP error', {
+      status: res.status,
+      path,
+      error: errBody.error,
+      reason: errBody.reason,
+    });
     throw Object.assign(
       new Error((errBody.error as string) ?? (errBody.reason as string) ?? `HTTP ${res.status}`),
       { status: res.status, reason: errBody.reason ?? 'SERVER_ERROR', body: errBody },

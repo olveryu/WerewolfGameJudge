@@ -87,7 +87,11 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
         };
 
         audio.onerror = () => {
-          audioLog.warn('WEB Audio error', { label });
+          audioLog.warn('WEB Audio error', {
+            label,
+            errorCode: audio.error?.code,
+            errorMessage: audio.error?.message,
+          });
           this.#settle();
         };
 
