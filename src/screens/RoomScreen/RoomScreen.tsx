@@ -294,7 +294,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     const exactName = gameState.template.name;
     if (exactName && BOARD_STRATEGY_KEYS.has(exactName)) return exactName;
     // Fuzzy match — only against boards that have strategy content
-    return findClosestPresetName(roles, 0.7, BOARD_STRATEGY_KEYS);
+    return findClosestPresetName(roles, 0.1, BOARD_STRATEGY_KEYS);
   }, [gameState]);
 
   const handleStrategyPress = useCallback(() => {
