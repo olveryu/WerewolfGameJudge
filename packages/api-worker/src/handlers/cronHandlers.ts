@@ -11,6 +11,9 @@ import { sql } from 'drizzle-orm';
 import { createDb } from '../db';
 import { loginAttempts, rooms, users } from '../db/schema';
 import type { Env } from '../env';
+import { createLogger } from '../lib/logger';
+
+const log = createLogger('cron');
 
 const ROOM_MAX_AGE_HOURS = 24;
 const ANON_INACTIVE_DAYS = 14;
@@ -24,7 +27,7 @@ async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> {
     .returning({ id: rooms.id });
 
   const deleted = result.length;
-  console.log(`[cron] cleanupStaleRooms: deleted ${deleted} rows`);
+  log.info('cleanupStaleRooms', { deleted });
   return { deleted };
 }
 
@@ -45,7 +48,7 @@ async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
     .returning({ id: users.id });
 
   const deleted = result.length;
-  console.log(`[cron] cleanupAnonymousUsers: deleted ${deleted} rows`);
+  log.info('cleanupAnonymousUsers', { deleted });
   return { deleted };
 }
 
@@ -57,7 +60,7 @@ async function cleanupOldLoginAttempts(env: Env): Promise<{ deleted: number }> {
     .returning({ id: loginAttempts.id });
 
   const deleted = result.length;
-  console.log(`[cron] cleanupOldLoginAttempts: deleted ${deleted} rows`);
+  log.info('cleanupOldLoginAttempts', { deleted });
   return { deleted };
 }
 
@@ -66,7 +69,9 @@ export async function runScheduledCleanup(env: Env): Promise<void> {
   const rooms = await cleanupStaleRooms(env);
   const users = await cleanupAnonymousUsers(env);
   const logins = await cleanupOldLoginAttempts(env);
-  console.log(
-    `[cron] cleanup complete — rooms: ${rooms.deleted}, anonymousUsers: ${users.deleted}, loginAttempts: ${logins.deleted}`,
-  );
+  log.info('cleanup complete', {
+    rooms: rooms.deleted,
+    anonymousUsers: users.deleted,
+    loginAttempts: logins.deleted,
+  });
 }

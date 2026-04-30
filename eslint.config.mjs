@@ -298,8 +298,8 @@ export default tseslint.config(
       },
     },
     rules: {
-      // Workers use console for logging (no project logger available in this runtime)
-      'no-console': 'off',
+      // Workers must use structured logger — only lib/logger.ts may call console directly
+      'no-console': 'error',
       // Disable React / React Native rules — no UI framework in Workers
       'react/no-unknown-property': 'off',
       'react-native/no-raw-text': 'off',
@@ -307,6 +307,13 @@ export default tseslint.config(
       'react-native/no-single-element-style-arrays': 'off',
       'react-native/no-inline-styles': 'off',
       '@typescript-eslint/naming-convention': 'off',
+    },
+  },
+  // Allow console.* only in the Worker logger abstraction
+  {
+    files: ['packages/api-worker/src/lib/logger.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 );

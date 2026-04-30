@@ -198,8 +198,8 @@ export class GameFacade implements IGameFacade {
     for (const fn of this.#settleResultListeners) {
       try {
         fn(result);
-      } catch {
-        facadeLog.error('SettleResult listener error');
+      } catch (e) {
+        facadeLog.error('SettleResult listener error', e);
       }
     }
   }

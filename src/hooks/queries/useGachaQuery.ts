@@ -17,12 +17,10 @@ import {
   type DrawResponse,
   performDraw,
 } from '@/services/feature/GachaService';
-import { log } from '@/utils/logger';
+import { gachaLog } from '@/utils/logger';
 
 import { gachaStatusOptions, userStatsOptions } from './queryOptions';
 import { useAuthenticatedQuery } from './useAuthenticatedQuery';
-
-const gachaLog = log.extend('Gacha');
 
 /** Player's local date as YYYY-MM-DD (locale-independent, zero-padded) */
 function getLocalDate(): string {
@@ -49,9 +47,13 @@ export function useDrawMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ drawType, count }: { drawType: 'normal' | 'golden'; count?: number }) =>
-      performDraw(drawType, count),
-    onSuccess: (_data: DrawResponse) => {
+    mutationFn: ({ drawType, count }: { drawType: 'normal' | 'golden'; count?: number }) => {
+      gachaLog.debug('Draw requested', { drawType, count });
+      return performDraw(drawType, count);
+    },
+    onSuccess: (data: DrawResponse, { drawType, count }) => {
+      const rarities = data.results.map((r) => r.rarity);
+      gachaLog.info('Draw success', { drawType, count, rarities });
       // Invalidate both gacha status and user stats (unlocked items changed)
       void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
       void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });

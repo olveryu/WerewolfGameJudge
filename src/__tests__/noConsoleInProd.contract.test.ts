@@ -2,12 +2,19 @@
  * Contract test: Ensure production code does not contain console calls
  *
  * Production files should not contain console.log/warn/error, use structured logger instead.
- * Scan scope: all .ts and .tsx files in src, excluding tests and stories.
+ * Scan scope: all .ts and .tsx files in src/ and packages/api-worker/src/,
+ * excluding tests, stories, and the logger abstraction itself.
  */
 
 describe('No console.* in production code', () => {
   const fs = require('node:fs');
   const path = require('node:path');
+
+  /** Files allowed to use console.* directly */
+  const ALLOWED_FILES = new Set([
+    path.join(process.cwd(), 'src/utils/logger.ts'),
+    path.join(process.cwd(), 'packages/api-worker/src/lib/logger.ts'),
+  ]);
 
   /**
    * Recursively get all production files under a directory
@@ -42,7 +49,12 @@ describe('No console.* in production code', () => {
   }
 
   const srcDir = path.join(process.cwd(), 'src');
-  const allProductionFiles = getAllProductionFiles(srcDir);
+  const workerSrcDir = path.join(process.cwd(), 'packages/api-worker/src');
+
+  const allProductionFiles = [
+    ...getAllProductionFiles(srcDir),
+    ...getAllProductionFiles(workerSrcDir),
+  ].filter((f) => !ALLOWED_FILES.has(f));
 
   // Ensure we found files to check
   it('should find production files to check', () => {

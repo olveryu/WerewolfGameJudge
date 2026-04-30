@@ -11,8 +11,11 @@ import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
+import { createLogger } from '../lib/logger';
 import { geminiProxySchema } from '../schemas/gemini';
 import { jsonBody } from './shared';
+
+const log = createLogger('ai-chat');
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_OPENAI_BASE = `${GEMINI_API_BASE}/openai`;
@@ -254,24 +257,28 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
 
         if (status === 429 || status === 503) {
           // Quota/overload — try next model
-          console.info(`[ai-chat] Gemini ${model} → ${status}, trying next model`);
+          log.info('Gemini model unavailable, trying next', { model, status });
           continue;
         }
 
         // 400 (geo block, bad request) or other — no point trying more models
-        console.info(
-          `[ai-chat] Gemini ${model} → ${status}, skipping remaining models:`,
-          errorText.slice(0, 200),
-        );
+        log.info('Gemini model failed, skipping remaining', {
+          model,
+          status,
+          error: errorText.slice(0, 200),
+        });
         break;
       } catch (error) {
-        console.error(`[ai-chat] Gemini ${model} network error:`, error);
+        log.error('Gemini network error', {
+          model,
+          error: error instanceof Error ? error.message : String(error),
+        });
         break;
       }
     }
 
     if (models.length === 0) {
-      console.info('[ai-chat] No Gemini models discovered, falling back to Workers AI');
+      log.info('No Gemini models discovered, falling back to Workers AI');
     }
   }
 
@@ -303,7 +310,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
     if (isNeuronsExhausted) {
       return c.json({ error: 'quota_exhausted' }, 429);
     }
-    console.error('[ai-chat] Workers AI unexpected error:', errMsg);
+    log.error('Workers AI unexpected error', { error: errMsg });
     return c.json({ error: 'ai_unavailable' }, 503);
   }
 });

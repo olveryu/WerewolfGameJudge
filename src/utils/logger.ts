@@ -116,6 +116,7 @@ export const chatLog = log.extend('Chat');
 export const cfFetchLog = log.extend('cfFetch');
 export const statsLog = log.extend('Stats');
 export const shareLog = log.extend('Share');
+export const gachaLog = log.extend('Gacha');
 
 /**
  * Map auth error messages to user-friendly Chinese messages.

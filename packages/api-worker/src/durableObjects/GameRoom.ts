@@ -46,7 +46,10 @@ import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
 import { type PlayerSettleResult, settleGameResults } from '../growth/settleGameResults';
+import { createLogger } from '../lib/logger';
 import type { SeatActionParams } from '../schemas/game';
+
+const log = createLogger('GameRoom');
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -123,7 +126,9 @@ export class GameRoom extends DurableObject<Env> {
       const revision = result.revision!;
       this.ctx.waitUntil(
         this.#runSettle(result.state, revision).catch((err) => {
-          console.error('[GameRoom] settleGameResults failed, scheduling retry:', err);
+          log.error('settleGameResults failed, scheduling retry', {
+            error: err instanceof Error ? err.message : String(err),
+          });
           this.#scheduleSettleRetry(revision, 0);
         }),
       );
@@ -140,7 +145,7 @@ export class GameRoom extends DurableObject<Env> {
   /** 设置 alarm 重试结算 */
   #scheduleSettleRetry(revision: number, attempt: number): void {
     if (attempt >= GameRoom.SETTLE_MAX_RETRIES) {
-      console.error('[GameRoom] settle retries exhausted', { revision, attempt });
+      log.error('settle retries exhausted', { revision, attempt });
       return;
     }
     void this.ctx.storage.put('settle_pending', { revision, attempt });
@@ -172,7 +177,11 @@ export class GameRoom extends DurableObject<Env> {
       await this.#runSettle(state, pending.revision);
       await this.ctx.storage.delete('settle_pending');
     } catch (err) {
-      console.error('[GameRoom] settle retry failed:', err);
+      log.error('settle retry failed', {
+        revision: pending.revision,
+        attempt: pending.attempt,
+        error: err instanceof Error ? err.message : String(err),
+      });
       this.#scheduleSettleRetry(pending.revision, pending.attempt + 1);
     }
   }

@@ -79,7 +79,10 @@ async function callApiOnce(
   } catch (e) {
     // Rethrow programming errors (ReferenceError = always a code bug).
     // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
-    if (e instanceof ReferenceError) throw e;
+    if (e instanceof ReferenceError) {
+      facadeLog.error('Programmer error in API call', { label, path, error: e });
+      throw e;
+    }
 
     // AbortSignal.timeout() throws DOMException { name: 'TimeoutError' }
     // User cancel throws DOMException { name: 'AbortError' }

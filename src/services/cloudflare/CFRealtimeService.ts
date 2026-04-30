@@ -98,6 +98,10 @@ export class CFRealtimeService implements IRealtimeTransport {
   send(data: string): void {
     if (this.#ws?.readyState === WebSocket.OPEN) {
       this.#ws.send(data);
+    } else {
+      realtimeLog.warn('Transport: send dropped (WS not open)', {
+        readyState: this.#ws?.readyState,
+      });
     }
   }
 

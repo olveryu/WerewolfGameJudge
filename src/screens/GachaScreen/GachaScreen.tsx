@@ -9,6 +9,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
 import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
@@ -31,6 +32,7 @@ import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQu
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
+import { gachaLog } from '@/utils/logger';
 
 import type { RootStackParamList } from '../../navigation/types';
 import { CapsuleMachine, type CapsuleMachineRef } from './components/CapsuleMachine';
@@ -126,6 +128,15 @@ export function GachaScreen({ navigation }: Props) {
           onError: (error: Error) => {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
+            // 业务拒绝（券不足、已收集完）仅 warn；非预期错误报 Sentry
+            const isExpected =
+              error.message.includes('抽奖券不足') || error.message.includes('已收集全部物品');
+            if (isExpected) {
+              gachaLog.warn('Draw rejected', { drawType, count, message: error.message });
+            } else {
+              gachaLog.error('Draw failed', { drawType, count, error });
+              Sentry.captureException(error);
+            }
             toast.error(error.message || '抽奖失败，请稍后重试');
           },
         },

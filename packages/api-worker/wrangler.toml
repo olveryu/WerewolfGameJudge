@@ -5,6 +5,10 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 
+# ── Observability (Workers Logs — structured JSON, dashboard 可查询) ──────────
+[observability]
+enabled = true
+
 # ── Smart Placement (自动将 Worker 调度到离后端服务更近的节点) ────────────
 [placement]
 mode = "smart"
@@ -56,6 +60,7 @@ custom_domain = true
 [vars]
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
+SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
 
 # ── Cron Triggers ────────────────────────────────────────────────────────────
 [triggers]
@@ -70,4 +75,4 @@ port = 8787
 
 # ── Development Overrides ────────────────────────────────────────────────────
 [env.dev]
-vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*" }
+vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*", SENTRY_DSN = "" }

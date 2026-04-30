@@ -141,6 +141,8 @@ export const linking: LinkingOptions<RootStackParamList> = {
       }
       return url.pathname + url.search;
     } catch {
+      // Non-parseable paths (e.g. empty/relative) fall through unchanged
+      navLog.debug('getPathFromState: URL parse fallback', { path });
       return path;
     }
   },

@@ -277,7 +277,7 @@ export async function* streamChatMessage(
             yield { type: 'delta', content: delta };
           }
         } catch {
-          // Skip malformed JSON chunks
+          chatLog.debug('SSE chunk parse failed, skipping', { data });
         }
       }
     }

@@ -17,8 +17,11 @@ import { createDb } from '../db';
 import { drawHistory, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
+import { createLogger } from '../lib/logger';
 import { dailyRewardSchema, gachaDrawSchema } from '../schemas/gacha';
 import { jsonBody } from './shared';
+
+const log = createLogger('gacha');
 
 export const gachaRoutes = new Hono<AppEnv>();
 
@@ -99,6 +102,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
   const { drawType, count } = c.req.valid('json');
+  log.info('draw request', { userId, drawType, count });
 
   for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
     // 1. Read current stats (including version for OCC)
@@ -116,12 +120,19 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       .get();
 
     if (!stats) {
+      log.warn('no stats row', { userId });
       return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
     }
 
     // 2. Check sufficient tickets
     const availableTickets = drawType === 'golden' ? stats.goldenDraws : stats.normalDraws;
     if (availableTickets < count) {
+      log.warn('insufficient draws', {
+        userId,
+        drawType,
+        available: availableTickets,
+        requested: count,
+      });
       return c.json({ error: 'insufficient_draws', message: '抽奖券不足' }, 400);
     }
 
@@ -184,6 +195,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     if (results.length === 0) {
+      log.info('all collected', { userId });
       return c.json({ error: 'all_collected', message: '已收集全部物品' }, 400);
     }
 
@@ -218,6 +230,8 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     // 7. Return results
+    const rarities = results.map((r) => r.rarity);
+    log.info('draw success', { userId, drawType, count: results.length, rarities });
     return c.json({
       results,
       remaining: {
@@ -228,6 +242,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
   }
 
   // All retries exhausted — concurrent conflict persisted
+  log.error('OCC retries exhausted', { userId, drawType, count });
   return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
 });
 

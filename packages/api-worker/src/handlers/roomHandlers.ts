@@ -14,8 +14,11 @@ import { createDb } from '../db';
 import { rooms } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
+import { createLogger } from '../lib/logger';
 import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
 import { getGameRoomStub, jsonBody } from './shared';
+
+const log = createLogger('room');
 
 export const roomRoutes = new Hono<AppEnv>();
 
@@ -41,6 +44,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
     if (message.includes('UNIQUE') || message.includes('constraint')) {
       return c.json({ error: 'room_code_conflict' }, 409);
     }
+    log.error('create DB insert failed', { roomCode: parsed.roomCode, userId, error: message });
     throw err;
   }
 
@@ -51,6 +55,10 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       await stub.init(parsed.initialState as GameState);
     } catch (err) {
       // DO init failed → rollback D1 record
+      log.error('DO init failed, rolling back', {
+        roomCode: parsed.roomCode,
+        error: err instanceof Error ? err.message : String(err),
+      });
       await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
       throw err;
     }

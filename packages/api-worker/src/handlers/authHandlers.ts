@@ -30,6 +30,7 @@ import {
   verifyToken,
 } from '../lib/auth';
 import { sendPasswordResetEmail } from '../lib/email';
+import { createLogger } from '../lib/logger';
 import { hashPassword, verifyPassword } from '../lib/password';
 import {
   changePasswordSchema,
@@ -42,6 +43,8 @@ import {
   wechatCodeSchema,
 } from '../schemas/auth';
 import { getWeChatAuthStub, jsonBody } from './shared';
+
+const log = createLogger('auth');
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -297,7 +300,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         ]);
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
-        console.error('Account merge DB error:', msg);
+        log.error('account merge DB error', { userId: existingUserId, msg });
         return c.json({ error: 'account merge failed' }, 500);
       }
 
@@ -502,7 +505,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       .update(users)
       .set({ passwordHash: result.newHash, ...geo, updatedAt: sql`datetime('now')` })
       .where(eq(users.id, user.id));
-    console.log(`Rehashed password for user ${user.id} (bcrypt → PBKDF2)`);
+    log.info('rehashed password (bcrypt → PBKDF2)', { userId: user.id });
   } else {
     await db
       .update(users)
@@ -834,7 +837,9 @@ authRoutes.post('/forgot-password', jsonBody(forgotPasswordSchema), async (c) =>
   try {
     await sendPasswordResetEmail(env, email, code);
   } catch (error) {
-    console.error('Failed to send reset email:', error);
+    log.error('failed to send reset email', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return c.json({ error: 'failed to send email, try again later' }, 500);
   }
 
@@ -966,7 +971,10 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
   let wxData: { openid?: string; errcode?: number; errmsg?: string };
   try {
     wxData = await wxStub.code2Session(parsed.code, env.WECHAT_APP_ID, env.WECHAT_APP_SECRET);
-  } catch {
+  } catch (err) {
+    log.warn('wechat code2Session timeout', {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
   }
 
@@ -1081,7 +1089,11 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
   let wxData: { openid?: string; errcode?: number; errmsg?: string };
   try {
     wxData = await wxStub.code2Session(parsed.code, env.WECHAT_APP_ID, env.WECHAT_APP_SECRET);
-  } catch {
+  } catch (err) {
+    log.warn('bind-wechat code2Session timeout', {
+      userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
   }
 

@@ -13,6 +13,9 @@ import type { z } from 'zod';
 import type { GameRoom } from '../durableObjects/GameRoom';
 import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
+import { createLogger } from '../lib/logger';
+
+const log = createLogger('do');
 
 /**
  * Hono validator middleware — JSON body 解析 + zod 校验。
@@ -104,9 +107,11 @@ export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
   } catch (err: unknown) {
     const doErr = err as { retryable?: boolean; overloaded?: boolean; message?: string };
     if (doErr.retryable) {
+      log.warn('retryable error', { message: doErr.message });
       throw new HTTPException(503, { message: 'SERVICE_UNAVAILABLE' });
     }
     if (doErr.overloaded) {
+      log.warn('overloaded', { message: doErr.message });
       throw new HTTPException(429, { message: 'OVERLOADED' });
     }
     throw err;

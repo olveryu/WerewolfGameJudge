@@ -19,11 +19,13 @@
  *   GET  /health                  — 健康检查
  */
 
+import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv, Env } from './env';
+import { createLogger } from './lib/logger';
 
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './durableObjects/GameRoom';
@@ -47,6 +49,8 @@ import { telemetryRoutes } from './handlers/telemetryHandlers';
 
 const app = new Hono<AppEnv>();
 
+const log = createLogger('worker');
+
 // ── CORS middleware ─────────────────────────────────────────────────────────
 
 app.use(
@@ -65,16 +69,14 @@ app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
   const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
-  console.log(
-    JSON.stringify({
-      method: c.req.method,
-      path: c.req.path,
-      status: c.res.status,
-      country: cf?.country,
-      colo: cf?.colo,
-      ms: Date.now() - start,
-    }),
-  );
+  log.info('request', {
+    method: c.req.method,
+    path: c.req.path,
+    status: c.res.status,
+    country: cf?.country,
+    colo: cf?.colo,
+    ms: Date.now() - start,
+  });
 });
 
 // ── Error handler ───────────────────────────────────────────────────────────
@@ -86,7 +88,7 @@ app.onError((err, c) => {
   if (err instanceof SyntaxError) {
     return c.json({ success: false, reason: 'INVALID_JSON' }, 400);
   }
-  console.error('[worker] Unhandled error:', err);
+  log.error('unhandled error', { error: err instanceof Error ? err.message : String(err) });
   return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
 });
 
@@ -138,9 +140,20 @@ app.route('/telemetry', telemetryRoutes);
 
 // ── Worker entry ────────────────────────────────────────────────────────────
 
-export default {
-  fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runScheduledCleanup(env));
-  },
-};
+export default Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
+    environment: env.ENVIRONMENT,
+  }),
+  {
+    fetch: app.fetch,
+    async scheduled(
+      controller: ScheduledController,
+      env: Env,
+      ctx: ExecutionContext,
+    ): Promise<void> {
+      ctx.waitUntil(runScheduledCleanup(env));
+    },
+  } satisfies ExportedHandler<Env>,
+);
