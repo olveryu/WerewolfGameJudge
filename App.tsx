@@ -163,7 +163,7 @@ function reportLoadTiming() {
 
     const url = `${process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://api.werewolfjudge.eu.org'}/telemetry/load-timing`;
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+      navigator.sendBeacon(url, payload);
     } else {
       void fetch(url, {
         method: 'POST',
