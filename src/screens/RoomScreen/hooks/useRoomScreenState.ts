@@ -706,7 +706,7 @@ export function useRoomScreenState(
         case GameStatus.Ongoing:
           return null;
         case GameStatus.Ended:
-          return '游戏结束 → 可「重新开始」或修改配置再来一局';
+          return '天亮了 → 可「重新开始」或修改配置再来一局';
         default:
           return null;
       }
@@ -730,7 +730,7 @@ export function useRoomScreenState(
       case GameStatus.Ready:
         return '准备就绪，等待房主开始';
       case GameStatus.Ended:
-        return '游戏结束';
+        return '天亮了';
       default:
         return null;
     }
