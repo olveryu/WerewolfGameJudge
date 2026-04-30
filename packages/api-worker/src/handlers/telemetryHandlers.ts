@@ -9,12 +9,17 @@ import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
 import { loadTimingSchema } from '../schemas/telemetry';
-import { jsonBody } from './shared';
 
 export const telemetryRoutes = new Hono<AppEnv>();
 
-telemetryRoutes.post('/load-timing', jsonBody(loadTimingSchema), async (c) => {
-  const payload = c.req.valid('json');
+telemetryRoutes.post('/load-timing', async (c) => {
+  // sendBeacon sends text/plain to avoid CORS preflight — parse manually
+  const raw = await c.req.text();
+  const parsed = loadTimingSchema.safeParse(JSON.parse(raw));
+  if (!parsed.success) {
+    return c.json({ success: false, reason: 'VALIDATION_ERROR' }, 400);
+  }
+  const payload = parsed.data;
   const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
 
   // Write one data point per resource entry — each becomes a queryable row
