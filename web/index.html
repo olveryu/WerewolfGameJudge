@@ -457,9 +457,25 @@
         function showResource(entry) {
           if (!resEl) return;
           var name = shortName(entry.name);
-          var kb = entry.transferSize ? Math.round(entry.transferSize / 1024) : '?';
+          var label = friendlyName(name);
+          var kb = entry.transferSize ? Math.round(entry.transferSize / 1024) : null;
           var ms = Math.round(entry.duration);
-          resEl.textContent = '\u2713 ' + name + ' (' + kb + 'KB, ' + ms + 'ms)';
+          var detail = kb ? ' (' + kb + 'KB, ' + ms + 'ms)' : ' (' + ms + 'ms)';
+          resEl.textContent = '\u2713 ' + label + detail;
+        }
+
+        /** Map raw filenames to user-friendly Chinese labels */
+        function friendlyName(filename) {
+          if (filename.includes('canvaskit')) return '绘图引擎';
+          if (filename.match(/^index[.-]/)) return '主程序';
+          if (filename.includes('vendor') || filename.includes('node_modules')) return '依赖库';
+          if (filename.match(/\.woff2?$|\.ttf$/)) return '字体';
+          if (filename.match(/\.css$/)) return '样式表';
+          if (filename.match(/\.png$|\.jpg$|\.webp$|\.svg$/)) return '图片资源';
+          if (filename.match(/\.json$/)) return '配置数据';
+          if (filename.match(/\.js$/)) return '功能模块';
+          if (filename.match(/\.wasm$/)) return '运算引擎';
+          return filename;
         }
 
         // Count resources already loaded before observer starts
@@ -506,9 +522,9 @@
             var pct = Math.round((d.loaded / d.total) * 100);
             var loadedMB = (d.loaded / 1048576).toFixed(1);
             var totalMB = (d.total / 1048576).toFixed(1);
-            resEl.textContent = 'canvaskit.wasm ' + loadedMB + '/' + totalMB + ' MB (' + pct + '%)';
+            resEl.textContent = '绘图引擎 ' + loadedMB + '/' + totalMB + ' MB (' + pct + '%)';
           } else {
-            resEl.textContent = 'canvaskit.wasm ' + (d.loaded / 1048576).toFixed(1) + ' MB...';
+            resEl.textContent = '绘图引擎 ' + (d.loaded / 1048576).toFixed(1) + ' MB...';
           }
         });
       })();

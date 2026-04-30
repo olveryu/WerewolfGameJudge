@@ -134,8 +134,11 @@ function reportLoadTiming() {
       navEntries.length > 0 ? Math.round(navEntries[0].responseStart - navEntries[0].startTime) : 0;
 
     // Collect significant resources (JS, WASM, fonts — skip tiny icons)
+    // Include cache hits (transferSize=0) for duration diagnostics
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-    const significant = resources.filter((r) => r.transferSize > 1024 || r.name.includes('.wasm'));
+    const significant = resources.filter(
+      (r) => r.transferSize > 1024 || r.name.includes('.wasm') || r.name.includes('.js'),
+    );
 
     const entries = significant.slice(0, 50).map((r) => ({
       name: r.name,
@@ -173,7 +176,8 @@ function reportLoadTiming() {
     // telemetry is best-effort — never block app
   }
 }
-reportLoadTiming();
+// Delay to next macrotask so app:registered mark is available
+setTimeout(reportLoadTiming, 0);
 
 const appLog = log.extend('App');
 
