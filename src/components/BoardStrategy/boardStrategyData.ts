@@ -37,7 +37,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   预女猎白: {
     difficulty: 1,
     recommendLevel: '新手入门',
-    tags: ['标准板', '无第三方', '逻辑清晰'],
+    tags: ['经典'],
     summary:
       '好人通过预言家验人建立逻辑基点，狼人通过悍跳争夺警徽。轮次优势是胜负关键，神牌需精准追轮次。',
     goodStrategy: [
@@ -58,7 +58,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   狼美守卫: {
     difficulty: 3,
     recommendLevel: '进阶',
-    tags: ['有守卫', '强狼牌', '连人机制'],
+    tags: ['强控制', '连带出局'],
     summary:
       '狼美人可连人殉情，守卫需精准守人避免同守同救。狼人通过狼美人威胁神牌，好人需先出狼美人。',
     goodStrategy: [
@@ -79,7 +79,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   狼王守卫: {
     difficulty: 3,
     recommendLevel: '进阶',
-    tags: ['有守卫', '强狼牌', '开枪机制'],
+    tags: ['狼王', '经典'],
     summary:
       '狼王出局可开枪带走一人，守卫需保护关键神牌。好人需区分狼王和普通狼，避免被狼王带走神牌。',
     goodStrategy: [
@@ -100,7 +100,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   白狼王守卫: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['有守卫', '强狼牌', '自爆带人'],
+    tags: ['狼王', '高爆发'],
     summary:
       '白狼王可自爆带走一人，是最强狼牌之一。好人需隐藏神牌身份，白狼王需精准找到并带走女巫或守卫。',
     goodStrategy: [
@@ -121,7 +121,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   石像鬼守墓人: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['信息差', '验身份', '追轮次'],
+    tags: ['信息战'],
     summary:
       '石像鬼每晚验人且不与狼队见面，守墓人可知道被投出人的身份。信息差是核心博弈点，好人需通过守墓人信息修正逻辑。',
     goodStrategy: [
@@ -142,7 +142,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   噩梦之影守卫: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['有守卫', '恐惧机制', '强狼牌'],
+    tags: ['强控制'],
     summary:
       '噩梦之影每晚可恐惧一人使其技能失效，守卫需预判恐惧对象。好人需隐藏神牌，避免被噩梦之影恐惧关键技能。',
     goodStrategy: [
@@ -163,7 +163,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   血月猎魔: {
     difficulty: 3,
     recommendLevel: '进阶',
-    tags: ['血月使徒', '猎魔人', '追轮次'],
+    tags: ['高爆发', '反伤免疫'],
     summary:
       '血月使徒自爆可使神牌技能失效一晚，猎魔人可猎杀狼人。好人需利用猎魔人追轮次，狼人需先解决猎魔人。',
     goodStrategy: [
@@ -184,7 +184,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   狼王摄梦人: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['摄梦机制', '强神牌', '狼王'],
+    tags: ['狼王', '连带出局'],
     summary:
       '摄梦人每晚选择一名玩家成为梦游者，梦游者免疫夜间伤害。但摄梦人夜间出局时梦游者一并出局（白天放逐不触发连带）。狼王和摄梦人都是关键追轮次角色。',
     goodStrategy: [
@@ -209,7 +209,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   狼王魔术师: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['换身份机制', '强神牌', '狼王'],
+    tags: ['狼王', '强控制'],
     summary:
       '魔术师每晚可交换两人号码，狼人刀人或验人都会交换到对方身上。魔术师是最强神牌之一，可大幅改变轮次。',
     goodStrategy: [
@@ -230,7 +230,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   机械狼人通灵师: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['机械狼', '通灵师', '验身份'],
+    tags: ['信息战', '变身转化'],
     summary:
       '机械狼可学习一名玩家的技能，通灵师可验出玩家具体身份。信息差和技能学习是核心博弈点，机械狼可伪装成神牌。',
     goodStrategy: [
@@ -251,7 +251,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   恶灵骑士: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['反伤机制', '强狼牌', '免疫夜间伤害'],
+    tags: ['反伤免疫'],
     summary:
       '恶灵骑士永久免疫夜间伤害（狼刀/毒药均无效），被非狼人阵营角色查验或女巫毒杀时反伤：查验仍有结果，但查验者/下毒者次日出局。好人需精准推人而非验/毒。',
     goodStrategy: [
@@ -276,7 +276,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   纯白夜影: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['纯白之女', '狼巫', '验杀机制'],
+    tags: ['信息战', '高爆发'],
     summary:
       '纯白之女和狼巫每晚互相查验身份。首夜仅获取信息不触发击杀，从第二夜起才有验杀效果：纯白验到狼人则该狼出局，狼巫验到纯白则纯白出局。',
     goodStrategy: [
@@ -301,7 +301,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   灯影预言家: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['双预言家', '反转验人', '信息博弈'],
+    tags: ['狼王', '信息战'],
     summary:
       '场上同时存在真预言家和灯影预言家（镜像预言家）。灯影验人结果与真实阵营相反，且自身不知道是假预言家。两个"预言家"报出矛盾查验是核心博弈。',
     goodStrategy: [
@@ -326,7 +326,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   假面舞会: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['舞池机制', '阵营反转', '从第二夜起'],
+    tags: ['强控制', '变身转化'],
     summary:
       '假面（狼）从第二夜起可赐予面具反转阵营归属，舞者（神）从第二夜起选3人共舞、人数少的阵营出局。首夜双方无技能，第二夜起展开舞池与面具的博弈。',
     goodStrategy: [
@@ -351,7 +351,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   吹笛者: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['第三方', '魅惑机制', '多阵营'],
+    tags: ['第三方'],
     summary:
       '吹笛者每晚可魅惑两人，当所有存活玩家都被魅惑时吹笛者获胜。好人需同时找狼和吹笛者，狼人也需警惕吹笛者。',
     goodStrategy: [
@@ -377,7 +377,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   预女猎白混: {
     difficulty: 3,
     recommendLevel: '进阶',
-    tags: ['第三方', '混血儿', '阵营不定'],
+    tags: ['第三方'],
     summary:
       '混血儿首夜选择一名榜样，与榜样同阵营。好人需分辨混血儿阵营，狼人可利用混血儿混淆好人视线。',
     goodStrategy: [
@@ -399,7 +399,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   预女猎白野: {
     difficulty: 3,
     recommendLevel: '进阶',
-    tags: ['第三方', '野孩子', '变狼机制'],
+    tags: ['第三方', '变身转化'],
     summary:
       '野孩子首夜选择一名榜样，榜样被投票出局时野孩子变成狼人。注意：仅投票放逐触发变身，夜间死亡不触发。好人需避免投出榜样或提前找出野孩子。',
     goodStrategy: [
@@ -429,7 +429,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   唯邻是从: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['转化机制', '觉醒石像鬼', '内鬼局'],
+    tags: ['强控制', '变身转化'],
     summary:
       '觉醒石像鬼首夜必须将一名与狼人座位相邻的好人转化为狼人阵营。被转化者知晓身份转变但不入狼队聊天，保留原技能。好人需找出谁被转化。',
     goodStrategy: [
@@ -457,7 +457,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   孤注一掷: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['囚徒困境', '典狱长', '交易机制'],
+    tags: ['强控制', '高爆发'],
     summary:
       '典狱长从第二夜起每晚选择2名玩家进行囚徒困境交易：同选交易则双方免夜间伤害，同选背叛则互为技能目标，一交一叛则选交易的人出局。交易信息战与常规狼刀并行。',
     goodStrategy: [
@@ -482,7 +482,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   影子复仇者: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['第三方', '影子机制', '复仇机制'],
+    tags: ['第三方', '高爆发'],
     summary:
       '影子复仇者首夜选择一名宿主，宿主死亡后影子复仇者继承其身份并复仇。三方博弈复杂，需同时应对好人和狼人。',
     goodStrategy: [
@@ -512,7 +512,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   盗宝大师: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['底牌选择', '独狼', '身份伪装'],
+    tags: ['第三方', '信息战'],
     summary:
       '盗宝大师是永久狼人阵营的独立第三方，不与狼队见面。首夜查看3张底牌（1狼+1神+1民），每晚从神职牌和平民牌中选1张获得完整技能。被查验时以当夜选择身份为准，伪装能力极强。',
     goodStrategy: [
@@ -542,7 +542,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   盗贼丘比特: {
     difficulty: 5,
     recommendLevel: '高手',
-    tags: ['第三方', '盗贼', '丘比特', '人狼恋'],
+    tags: ['第三方', '变身转化', '连带出局'],
     summary:
       '盗贼从两张底牌中选一张作为永久身份（有狼牌时必须选狼），丘比特连接两人成为情侣。人狼恋时情侣成为第三方，需同时对抗好人和狼人。',
     goodStrategy: [
@@ -572,7 +572,7 @@ export const BOARD_STRATEGY: Readonly<Record<string, BoardStrategy>> = {
   咒狐乌鸦: {
     difficulty: 4,
     recommendLevel: '高手',
-    tags: ['第三方', '咒狐', '乌鸦', '诅咒机制'],
+    tags: ['第三方', '反伤免疫'],
     summary:
       '咒狐是独立第三方，免疫狼刀但被预言家验到直接出局；乌鸦是神职好人，每晚诅咒一人使其次日得票+1。咒狐存活到终局可窃取任一阵营的胜利。',
     goodStrategy: [
