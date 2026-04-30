@@ -202,19 +202,25 @@ jobs:
       - name: Sync npmmirror and wait
         run: |
           PKG_VERSION="${{ steps.npm.outputs.version }}"
-          CDN_FILE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files/index.js"
-          # Trigger sync
-          curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"
-          # Poll until CDN files are available (up to 120s)
-          for i in $(seq 1 24); do
-            if curl -sf --connect-timeout 5 --max-time 10 "$CDN_FILE" > /dev/null 2>&1; then
-              echo "✅ npmmirror CDN ready: werewolf-judge-cdn@$PKG_VERSION"
+          # Trigger sync and capture task ID
+          SYNC_RESP=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
+          SYNC_ID=$(echo "$SYNC_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+          echo "Sync triggered: $SYNC_ID"
+          # Poll sync task status until success (up to 180s)
+          for i in $(seq 1 36); do
+            STATE=$(curl -s "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs/$SYNC_ID" \
+              | python3 -c "import sys,json; print(json.load(sys.stdin).get('state','unknown'))")
+            if [ "$STATE" = "success" ]; then
+              echo "✅ npmmirror sync complete: werewolf-judge-cdn@$PKG_VERSION"
               exit 0
+            elif [ "$STATE" = "fail" ]; then
+              echo "❌ npmmirror sync failed"
+              break
             fi
-            echo "⏳ Waiting for npmmirror CDN sync... ($((i*5))s)"
+            echo "⏳ Sync state: $STATE ($((i*5))s)"
             sleep 5
           done
-          echo "❌ npmmirror CDN sync timeout after 120s — falling back to fastly.jsdelivr.net"
+          echo "❌ npmmirror CDN sync timeout/failed — falling back to fastly.jsdelivr.net"
           echo "CDN_FALLBACK=true" >> "$GITHUB_ENV"
 
       # If npmmirror sync failed, rewrite HTML to use jsdelivr for initial script tags.
