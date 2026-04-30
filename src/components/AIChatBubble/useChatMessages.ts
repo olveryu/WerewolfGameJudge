@@ -132,7 +132,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   // ── Send message (streaming) ───────────────────────
   const sendMessage = useCallback(
-    async (text: string, displayText?: string, maxTokens?: number) => {
+    async (text: string, displayText?: string, maxTokens?: number, skipHistory?: boolean) => {
       if (!text || loadingRef.current) return;
       if (cooldownRef.current > 0) return;
       if (!isAIChatReady()) {
@@ -181,9 +181,11 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         const mySeat = facade.getMySeat();
         const gameContext = buildPlayerContext(gameState, mySeat);
 
-        const contextMessages: ChatMessage[] = prevMessages
-          .slice(-MAX_CONTEXT_MESSAGES)
-          .map((m) => ({ role: m.role, content: m.content }));
+        const contextMessages: ChatMessage[] = skipHistory
+          ? []
+          : prevMessages
+              .slice(-MAX_CONTEXT_MESSAGES)
+              .map((m) => ({ role: m.role, content: m.content }));
         contextMessages.push({ role: 'user', content: text });
 
         let fullContent = '';
@@ -328,7 +330,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
 
   const sendWithDisplay = useCallback(
     (fullText: string, displayText: string, maxTokens?: number) => {
-      void sendMessage(fullText, displayText, maxTokens);
+      void sendMessage(fullText, displayText, maxTokens, true);
     },
     [sendMessage],
   );
