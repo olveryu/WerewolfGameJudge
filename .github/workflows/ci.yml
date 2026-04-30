@@ -109,20 +109,29 @@ jobs:
           EXPO_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
-      # R2 upload disabled — using jsdelivr npm CDN instead
-      - name: Upload assets to R2 CDN
-        if: false
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
+      # Rewrite asset URLs BEFORE npm publish so CDN-hosted JS files
+      # contain absolute CDN URLs for dynamic chunks (App.js, etc.)
+      - name: Rewrite asset URLs to use CDN
+        id: cdn
         run: |
-          aws s3 sync dist/assets/ s3://werewolf-cdn/assets/ \
-            --endpoint-url "https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
-            --cache-control "public, max-age=31536000, immutable"
-          echo "✅ Assets synced to R2"
+          PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
+          CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
 
-      # Publish all built assets to npm → jsdelivr CDN (JS + fonts + audio + images)
+          # JS bundles: rewrite "/assets/ string literals to CDN (Metro chunk references)
+          for jsfile in dist/assets/js/*.js; do
+            sed -i "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
+            # Replace WASM placeholder with versioned CDN URL for pre-compressed canvaskit
+            sed -i "s|__CANVASKIT_WASM_GZ_URL__|${CDN_BASE}/wasm/canvaskit.wasm.gz|g" "$jsfile"
+          done
+
+          # HTML: rewrite src="/assets/... and href="/assets/... to CDN
+          sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
+          sed -i "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
+
+          echo "cdn_base=$CDN_BASE" >> "$GITHUB_OUTPUT"
+          echo "✅ All asset URLs rewritten to ${CDN_BASE}"
+
+      # Publish REWRITTEN assets to npm → npmmirror CDN
       - name: Publish assets to npm
         id: npm
         env:
@@ -131,7 +140,7 @@ jobs:
           PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
           WORK=$(mktemp -d)
 
-          # Copy entire assets/ tree (JS bundles, fonts, audio, images, etc.)
+          # Copy already-rewritten assets/ tree (JS bundles have CDN URLs baked in)
           cp -r dist/assets "$WORK/assets"
 
           # Pre-compress CanvasKit WASM for CDN delivery (8 MB → ~3.2 MB gzip).
@@ -208,30 +217,18 @@ jobs:
           echo "❌ npmmirror CDN sync timeout after 120s — falling back to fastly.jsdelivr.net"
           echo "CDN_FALLBACK=true" >> "$GITHUB_ENV"
 
-      - name: Rewrite asset URLs to use CDN
-        env:
-          CDN_NPMMIRROR: https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${{ steps.npm.outputs.version }}/files
-          CDN_JSDELIVR: https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${{ steps.npm.outputs.version }}
+      # If npmmirror sync failed, rewrite HTML to use jsdelivr for initial script tags.
+      # Note: JS chunk URLs are already baked to npmmirror in the npm package.
+      # jsdelivr serves npm immediately, so initial scripts load; chunks will work
+      # once npmmirror finishes syncing (usually within minutes).
+      - name: Fallback - rewrite HTML to jsdelivr
+        if: env.CDN_FALLBACK == 'true'
         run: |
-          if [ "$CDN_FALLBACK" = "true" ]; then
-            CDN_BASE="$CDN_JSDELIVR"
-            echo "⚠️ Using fallback CDN: $CDN_BASE"
-          else
-            CDN_BASE="$CDN_NPMMIRROR"
-          fi
-
-          # HTML: rewrite src="/assets/... and href="/assets/... to CDN
-          sed -i "s|src=\"/assets/|src=\"${CDN_BASE}/assets/|g" dist/index.html
-          sed -i "s|href=\"/assets/|href=\"${CDN_BASE}/assets/|g" dist/index.html
-
-          # JS bundles: rewrite "/assets/ string literals to CDN (Metro asset references)
-          for jsfile in dist/assets/js/*.js; do
-            sed -i "s|\"/assets/|\"${CDN_BASE}/assets/|g" "$jsfile"
-            # Replace WASM placeholder with versioned CDN URL for pre-compressed canvaskit
-            sed -i "s|__CANVASKIT_WASM_GZ_URL__|${CDN_BASE}/wasm/canvaskit.wasm.gz|g" "$jsfile"
-          done
-
-          echo "✅ All asset URLs rewritten to ${CDN_BASE}"
+          PKG_VERSION="${{ steps.npm.outputs.version }}"
+          CDN_NPMMIRROR="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
+          CDN_JSDELIVR="https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${PKG_VERSION}"
+          sed -i "s|${CDN_NPMMIRROR}|${CDN_JSDELIVR}|g" dist/index.html
+          echo "⚠️ HTML initial scripts rewritten to fallback CDN: $CDN_JSDELIVR"
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
