@@ -90,6 +90,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      id-token: write
     steps:
       - uses: actions/checkout@v6
 
@@ -99,8 +100,12 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
 
       - run: pnpm install --frozen-lockfile
+
+      # OIDC trusted publishing requires npm >= 11.5.1 (Node 22 ships npm 10.x)
+      - run: npm install -g npm@11
 
       - name: Build
         run: bash scripts/build.sh
@@ -131,11 +136,9 @@ jobs:
           echo "cdn_base=$CDN_BASE" >> "$GITHUB_OUTPUT"
           echo "✅ All asset URLs rewritten to ${CDN_BASE}"
 
-      # Publish REWRITTEN assets to npm → npmmirror CDN
+      # Publish REWRITTEN assets to npm → npmmirror CDN (OIDC trusted publishing, no token needed)
       - name: Publish assets to npm
         id: npm
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
           WORK=$(mktemp -d)
@@ -192,8 +195,7 @@ jobs:
           # Trim leading spaces from heredoc (YAML indent)
           sed -i 's/^          //' "$WORK/README.md"
 
-          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","wasm/","README.md"]}' "$PKG_VERSION" > "$WORK/package.json"
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > "$WORK/.npmrc"
+          printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","wasm/","README.md"],"repository":{"type":"git","url":"https://github.com/olveryu/WerewolfGameJudge.git"}}' "$PKG_VERSION" > "$WORK/package.json"
           cd "$WORK"
           npm publish --access public
           echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
