@@ -58,5 +58,12 @@ Page({
       title: '狼人杀自助电子法官',
       query: ''
     }
+  },
+
+  onAddToFavorites() {
+    return {
+      title: '狼人杀自助电子法官',
+      query: ''
+    }
   }
 })
