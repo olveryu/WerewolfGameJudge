@@ -34,6 +34,9 @@
       "startUrl": "/",
       "scope": "/"
     },
+    "experiments": {
+      "reactCompiler": true
+    },
     "plugins": [
       "expo-audio",
       "expo-splash-screen",

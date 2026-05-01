@@ -66,6 +66,7 @@
     "@shopify/react-native-skia": "2.4.18",
     "@tanstack/react-query": "^5.99.0",
     "@werewolf/game-engine": "workspace:*",
+    "babel-plugin-react-compiler": "^1.0.0",
     "expo": "55.0.15",
     "expo-audio": "~55.0.13",
     "expo-file-system": "^55.0.16",

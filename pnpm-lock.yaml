@@ -32,6 +32,9 @@ importers:
       '@werewolf/game-engine':
         specifier: workspace:*
         version: link:packages/game-engine
+      babel-plugin-react-compiler:
+        specifier: ^1.0.0
+        version: 1.0.0
       expo:
         specifier: 55.0.15
         version: 55.0.15(@babel/core@7.29.0)(@expo/dom-webview@55.0.5)(react-dom@19.2.0(react@19.2.0))(react-native-worklets@0.7.4(@babel/core@7.29.0)(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.0))(react@19.2.0))(react-native@0.83.4(@babel/core@7.29.0)(@react-native/metro-config@0.85.1(@babel/core@7.29.0))(@types/react@19.2.14)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
