@@ -28,7 +28,8 @@ import {
   type FSMContext,
   PING_INTERVAL_MS,
   PONG_TIMEOUT_MS,
-  REVISION_POLL_INTERVAL_MS,
+  REVISION_POLL_BASE_MS,
+  REVISION_POLL_MAX_MS,
   type SideEffect,
   SupersededError,
 } from './types';
@@ -67,12 +68,15 @@ export class ConnectionManager {
   #retryTimer: ReturnType<typeof setTimeout> | null = null;
   #pingInterval: ReturnType<typeof setInterval> | null = null;
   #pongTimeout: ReturnType<typeof setTimeout> | null = null;
-  #revisionPollInterval: ReturnType<typeof setInterval> | null = null;
+  #revisionPollTimer: ReturnType<typeof setTimeout> | null = null;
+  #revisionPollCurrentMs: number = REVISION_POLL_BASE_MS;
 
   // Platform listeners
   #onlineHandler: (() => void) | null = null;
   #offlineHandler: (() => void) | null = null;
   #visibilityHandler: (() => void) | null = null;
+  #pageshowHandler: ((e: PageTransitionEvent) => void) | null = null;
+  #focusHandler: (() => void) | null = null;
 
   // connectAndWait() pending promise resolution
   #connectWaitResolve: (() => void) | null = null;
@@ -91,6 +95,8 @@ export class ConnectionManager {
       onStateUpdate: (state, revision, lastAction) => {
         deps.onStateUpdate(state, revision, lastAction);
         this.#dispatch({ type: 'STATE_UPDATE', revision });
+        // Activity detected — reset revision poll to fast interval
+        this.#resetRevisionPollInterval();
       },
       onPong: () => this.#handlePong(),
       onSettleResult: (result) => deps.onSettleResult?.(result),
@@ -359,37 +365,76 @@ export class ConnectionManager {
     }
   }
 
-  // ─── Revision Poll ────────────────────────────────────────────────────────
+  // ─── Revision Poll (adaptive backoff) ───────────────────────────────────
+
+  /** Generation counter: incremented on start/stop/reset to cancel stale async chains */
+  #revisionPollGeneration = 0;
 
   #startRevisionPoll(): void {
     this.#stopRevisionPoll();
-    this.#revisionPollInterval = setInterval(() => {
-      // Only poll when visible
-      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-      void this.#checkRevision();
-    }, REVISION_POLL_INTERVAL_MS);
+    this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
+    this.#scheduleNextRevisionPoll();
   }
 
   #stopRevisionPoll(): void {
-    if (this.#revisionPollInterval) {
-      clearInterval(this.#revisionPollInterval);
-      this.#revisionPollInterval = null;
+    this.#revisionPollGeneration++;
+    if (this.#revisionPollTimer) {
+      clearTimeout(this.#revisionPollTimer);
+      this.#revisionPollTimer = null;
     }
   }
 
-  async #checkRevision(): Promise<void> {
-    const roomCode = this.#ctx.roomCode;
-    if (!roomCode) return;
+  /** Reset poll interval to base (called on STATE_UPDATE activity) */
+  #resetRevisionPollInterval(): void {
+    this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
+    // Cancel current chain (including in-flight check) and start fresh
+    this.#stopRevisionPoll();
+    this.#scheduleNextRevisionPoll();
+  }
 
+  #scheduleNextRevisionPoll(): void {
+    const gen = this.#revisionPollGeneration;
+    this.#revisionPollTimer = setTimeout(() => {
+      this.#revisionPollTimer = null;
+      if (gen !== this.#revisionPollGeneration) return; // stale chain
+      // Only poll when visible
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        this.#scheduleNextRevisionPoll();
+        return;
+      }
+      void this.#checkRevisionAndReschedule(gen);
+    }, this.#revisionPollCurrentMs);
+  }
+
+  async #checkRevisionAndReschedule(generation: number): Promise<void> {
+    const roomCode = this.#ctx.roomCode;
+    if (!roomCode) {
+      if (generation === this.#revisionPollGeneration) this.#scheduleNextRevisionPoll();
+      return;
+    }
+
+    let hadDrift = false;
     try {
       const dbRevision = await this.#deps.getStateRevision(roomCode);
-      if (dbRevision == null) return;
-      if (dbRevision > this.#ctx.lastRevision) {
+      if (dbRevision != null && dbRevision > this.#ctx.lastRevision) {
+        hadDrift = true;
         this.#dispatch({ type: 'REVISION_DRIFT', dbRevision });
       }
     } catch (e) {
       connectionLog.warn('Revision poll failed', { roomCode, error: e });
     }
+
+    // If generation changed during async check, this chain is cancelled
+    if (generation !== this.#revisionPollGeneration) return;
+
+    if (hadDrift) {
+      // Activity: reset to fast polling
+      this.#revisionPollCurrentMs = REVISION_POLL_BASE_MS;
+    } else {
+      // No activity: back off (double interval, capped at max)
+      this.#revisionPollCurrentMs = Math.min(this.#revisionPollCurrentMs * 2, REVISION_POLL_MAX_MS);
+    }
+    this.#scheduleNextRevisionPoll();
   }
 
   // ─── Platform Event Listeners ─────────────────────────────────────────────
@@ -414,6 +459,31 @@ export class ConnectionManager {
       };
       document.addEventListener('visibilitychange', this.#visibilityHandler);
     }
+
+    // Fallback: pageshow (fires on BFCache restore & WKWebView resume where
+    // visibilitychange may not fire reliably)
+    if (typeof globalThis.window?.addEventListener === 'function') {
+      this.#pageshowHandler = (e: PageTransitionEvent) => {
+        // Only act if FSM thinks we're hidden but the page is actually visible
+        if (e.persisted && !this.#ctx.visible && document.visibilityState === 'visible') {
+          connectionLog.debug('pageshow fallback → VISIBILITY_VISIBLE');
+          this.#dispatch({ type: 'VISIBILITY_VISIBLE' });
+        }
+      };
+      globalThis.window.addEventListener('pageshow', this.#pageshowHandler);
+    }
+
+    // Fallback: focus (Android WebView sometimes fires focus before visibilitychange
+    // on resume from background; WKWebView may only fire focus without visibilitychange)
+    if (typeof globalThis.window?.addEventListener === 'function') {
+      this.#focusHandler = () => {
+        if (!this.#ctx.visible && document.visibilityState === 'visible') {
+          connectionLog.debug('focus fallback → VISIBILITY_VISIBLE');
+          this.#dispatch({ type: 'VISIBILITY_VISIBLE' });
+        }
+      };
+      globalThis.window.addEventListener('focus', this.#focusHandler);
+    }
   }
 
   #unregisterPlatformListeners(): void {
@@ -425,6 +495,14 @@ export class ConnectionManager {
       if (this.#offlineHandler) {
         globalThis.window.removeEventListener('offline', this.#offlineHandler);
         this.#offlineHandler = null;
+      }
+      if (this.#pageshowHandler) {
+        globalThis.window.removeEventListener('pageshow', this.#pageshowHandler);
+        this.#pageshowHandler = null;
+      }
+      if (this.#focusHandler) {
+        globalThis.window.removeEventListener('focus', this.#focusHandler);
+        this.#focusHandler = null;
       }
     }
     if (typeof document !== 'undefined' && this.#visibilityHandler) {

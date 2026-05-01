@@ -122,5 +122,8 @@ export const PING_INTERVAL_MS = 25_000;
 /** Pong timeout in milliseconds (server → client response deadline) */
 export const PONG_TIMEOUT_MS = 10_000;
 
-/** Revision poll interval in milliseconds */
-export const REVISION_POLL_INTERVAL_MS = 5_000;
+/** Revision poll base interval in milliseconds (resets to this on activity) */
+export const REVISION_POLL_BASE_MS = 5_000;
+
+/** Revision poll maximum interval in milliseconds (cap for backoff) */
+export const REVISION_POLL_MAX_MS = 60_000;

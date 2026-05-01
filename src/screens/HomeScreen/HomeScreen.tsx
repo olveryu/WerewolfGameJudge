@@ -30,6 +30,7 @@ import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { LAST_ROOM_CODE_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { storage } from '@/lib/storage';
 import { type RootStackParamList } from '@/navigation/types';
@@ -58,6 +59,7 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading, error: authError } = useAuth();
+  const { roomService } = useServices();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [lastRoomCode, setLastRoomNumber] = useState<string | null>(null);
@@ -81,6 +83,7 @@ export const HomeScreen: React.FC = () => {
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
@@ -98,6 +101,7 @@ export const HomeScreen: React.FC = () => {
     const unsubscribe = navigation.addListener('focus', () => {
       setIsCreating(false);
       setIsJoining(false);
+      setIsReturning(false);
       if (!user) {
         pendingActionRef.current = null;
       }
@@ -173,14 +177,30 @@ export const HomeScreen: React.FC = () => {
     }
   }, [roomCode, navigation]);
 
-  const handleReturnToLastGame = useCallback(() => {
+  const handleReturnToLastGame = useCallback(async () => {
     if (!lastRoomCode) {
       showErrorAlert('无记录', '没有上局游戏记录');
       return;
     }
-    homeLog.info('Return to last game', { roomCode: lastRoomCode });
-    navigation.navigate('Room', { roomCode: lastRoomCode, isHost: false });
-  }, [lastRoomCode, navigation]);
+    setIsReturning(true);
+    try {
+      const exists = await roomService.roomExists(lastRoomCode);
+      if (!exists) {
+        homeLog.info('Last room no longer exists', { roomCode: lastRoomCode });
+        storage.remove(LAST_ROOM_CODE_KEY);
+        setLastRoomNumber(null);
+        showErrorAlert('房间已失效', '上局房间已不存在，请创建或加入新房间');
+        return;
+      }
+      homeLog.info('Return to last game', { roomCode: lastRoomCode });
+      navigation.navigate('Room', { roomCode: lastRoomCode, isHost: false });
+    } catch (e) {
+      homeLog.warn('roomExists check failed', { roomCode: lastRoomCode, error: e });
+      showErrorAlert('网络异常', '无法检查房间状态，请稍后重试');
+    } finally {
+      setIsReturning(false);
+    }
+  }, [lastRoomCode, navigation, roomService]);
 
   const handleCancelJoin = useCallback(() => {
     setShowJoinModal(false);
@@ -294,11 +314,11 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   const handleReturnLastGamePressRef = useRef(() => {
-    requireAuth(handleReturnToLastGame);
+    requireAuth(() => void handleReturnToLastGame());
   });
   useLayoutEffect(() => {
     handleReturnLastGamePressRef.current = () => {
-      requireAuth(handleReturnToLastGame);
+      requireAuth(() => void handleReturnToLastGame());
     };
   });
   const handleReturnLastGamePress = useCallback(() => {
@@ -441,8 +461,8 @@ export const HomeScreen: React.FC = () => {
           </PressableScale>
           <PressableScale
             onPress={handleReturnLastGamePress}
-            disabled={authLoading}
-            style={[styles.actionCard, authLoading && styles.actionCardDisabled]}
+            disabled={authLoading || isReturning}
+            style={[styles.actionCard, (authLoading || isReturning) && styles.actionCardDisabled]}
             testID={TESTIDS.homeReturnLastGameButton}
           >
             <View style={styles.actionCardIcon}>
@@ -452,7 +472,7 @@ export const HomeScreen: React.FC = () => {
                 color={colors.primary}
               />
             </View>
-            <Text style={styles.actionCardTitle}>返回上局</Text>
+            <Text style={styles.actionCardTitle}>{isReturning ? '检查中' : '返回上局'}</Text>
             <Text style={styles.actionCardSubtitle}>
               {lastRoomCode ? `房间 ${lastRoomCode}` : '无记录'}
             </Text>

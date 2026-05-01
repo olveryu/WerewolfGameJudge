@@ -88,23 +88,40 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
 
   // Pre-capture the share card on web so navigator.share() can be called
   // within the user-activation window (avoids NotAllowedError).
+  // Skip in mini-program: share card view is not rendered (uses WeChat forward guide instead).
   useEffect(() => {
-    if (!visible || Platform.OS !== 'web') return;
+    if (!visible || Platform.OS !== 'web' || isMiniProgram()) return;
     preCapturedRef.current = null;
     setIsPreCaptureReady(false);
-    const timer = setTimeout(() => {
-      captureShareCard(shareCardRef)
-        .then((b64) => {
-          preCapturedRef.current = b64;
-          setIsPreCaptureReady(true);
-        })
-        .catch((e) => {
-          // Pre-capture failed; enable button anyway for on-demand fallback
-          log.debug('Pre-capture share card failed', e);
-          setIsPreCaptureReady(true);
-        });
-    }, 300);
-    return () => clearTimeout(timer);
+    // Use rAF + timeout to ensure the modal's layout & QR code have rendered
+    // (Android WebView needs more time than 300ms)
+    let cancelled = false;
+    const frameId = requestAnimationFrame(() => {
+      const timer = setTimeout(() => {
+        if (cancelled) return;
+        captureShareCard(shareCardRef)
+          .then((b64) => {
+            if (cancelled) return;
+            preCapturedRef.current = b64;
+            setIsPreCaptureReady(true);
+          })
+          .catch((e: unknown) => {
+            if (cancelled) return;
+            // Pre-capture failed; enable button anyway for on-demand fallback
+            log.warn('Pre-capture share card failed', {
+              error: e instanceof Error ? e.message : String(e),
+            });
+            setIsPreCaptureReady(true);
+          });
+      }, 500);
+      cleanupTimer = timer;
+    });
+    let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frameId);
+      if (cleanupTimer) clearTimeout(cleanupTimer);
+    };
   }, [visible]);
 
   const getBase64 = useCallback(async () => {

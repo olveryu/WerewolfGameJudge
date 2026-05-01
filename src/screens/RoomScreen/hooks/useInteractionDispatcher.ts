@@ -11,7 +11,7 @@
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import {
   getInteractionResult,
@@ -199,8 +199,16 @@ export function useInteractionDispatcher({
 
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
+  /** Debounce guard: prevent rapid seat taps from opening multiple dialogs */
+  const lastSeatTapRef = useRef(0);
+  const SEAT_TAP_DEBOUNCE_MS = 300;
+
   const handleSeatingTap = useCallback(
     (seat: number) => {
+      const now = Date.now();
+      if (now - lastSeatTapRef.current < SEAT_TAP_DEBOUNCE_MS) return;
+      lastSeatTapRef.current = now;
+
       if (mySeat !== null && seat === mySeat) {
         showLeaveSeatDialog(seat);
       } else {

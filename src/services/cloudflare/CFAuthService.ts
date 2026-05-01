@@ -252,6 +252,21 @@ export class CFAuthService implements IAuthService {
     this.#cachedAccessToken = accessToken;
     this.#cachedRefreshToken = refreshToken;
 
+    // Pre-check: if access token is already expired, skip the doomed GET and
+    // go straight to refresh (saves ~200ms RTT on every cold start in WeChat WebView)
+    if (this.#isTokenExpired(accessToken)) {
+      authLog.debug('initAuth: access token expired locally, skipping GET /auth/user');
+      if (refreshToken) {
+        const refreshed = await this.#refreshTokens();
+        if (refreshed) {
+          return this.#fetchAndCacheUser();
+        }
+      }
+      // No refresh token or refresh failed
+      this.#clearTokens();
+      return null;
+    }
+
     try {
       const resp = await cfGet<GetCurrentUserResponse>('/auth/user', { skipAuthIntercept: true });
       this.#currentUserId = resp.data.user!.id;
@@ -267,21 +282,7 @@ export class CFAuthService implements IAuthService {
         if (refreshToken) {
           const refreshed = await this.#refreshTokens();
           if (refreshed) {
-            // Retry /auth/user with new token
-            try {
-              const resp = await cfGet<GetCurrentUserResponse>('/auth/user', {
-                skipAuthIntercept: true,
-              });
-              this.#currentUserId = resp.data.user!.id;
-              this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
-              this.#hasWechat = resp.data.user!.has_wechat ?? false;
-              Sentry.setUser({ id: resp.data.user!.id });
-              return this.#currentUserId;
-            } catch {
-              // Refreshed but still fails — clear everything
-              this.#clearTokens();
-              return null;
-            }
+            return this.#fetchAndCacheUser();
           }
         }
         // No refresh token or refresh failed
@@ -473,6 +474,44 @@ export class CFAuthService implements IAuthService {
     this.#clearTokens();
     this.#currentUserId = null;
     Sentry.setUser(null);
+  }
+
+  /**
+   * Check if a JWT access token is expired (with 30s buffer for clock skew).
+   * Does NOT verify signature — purely local expiry check.
+   */
+  #isTokenExpired(token: string): boolean {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return true; // malformed → treat as expired
+      const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
+      if (typeof payload.exp !== 'number') return true;
+      // 30s buffer: treat as expired if within 30s of actual expiry
+      return payload.exp * 1000 < Date.now() - 30_000;
+    } catch {
+      return true; // decode failure → treat as expired
+    }
+  }
+
+  /**
+   * Fetch /auth/user and cache the result. Used after successful token refresh.
+   * Returns userId on success, null on failure (clears tokens).
+   */
+  async #fetchAndCacheUser(): Promise<string | null> {
+    try {
+      const resp = await cfGet<GetCurrentUserResponse>('/auth/user', {
+        skipAuthIntercept: true,
+      });
+      this.#currentUserId = resp.data.user!.id;
+      this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
+      this.#hasWechat = resp.data.user!.has_wechat ?? false;
+      Sentry.setUser({ id: resp.data.user!.id });
+      return this.#currentUserId;
+    } catch {
+      // Refreshed but still fails — clear everything
+      this.#clearTokens();
+      return null;
+    }
   }
 
   /** Decode the `sub` claim from a JWT without verifying signature (local offline use only) */
