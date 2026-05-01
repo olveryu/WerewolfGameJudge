@@ -91,6 +91,18 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 ---
 
+## 关键文档
+
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — 部署架构与环境配置
+- [docs/gacha-system-design.md](docs/gacha-system-design.md) — 扭蛋系统设计
+- [docs/growth-system-design.md](docs/growth-system-design.md) — XP/等级成长系统
+- [docs/network-resilience-design.md](docs/network-resilience-design.md) — 断线重连策略
+- [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md) — RoomScreen 状态机
+- [docs/PRESET_BOARDS.md](docs/PRESET_BOARDS.md) — 预设板子列表
+- [e2e/helpers/README.md](e2e/helpers/README.md) — E2E helper 架构
+
+---
+
 ## 架构边界
 
 - **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
