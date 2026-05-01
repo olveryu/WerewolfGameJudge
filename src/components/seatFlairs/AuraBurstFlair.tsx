@@ -31,7 +31,7 @@ interface RingSeed {
 
 const RingParticle = memo<{ seed: RingSeed; size: number; progress: { value: number } }>(
   ({ seed, size, progress }) => {
-    const [cr, cg, cb] = COLORS[seed.ci];
+    const [cr, cg, cb] = COLORS[seed.ci]!;
     const cx = size / 2;
     const cy = size / 2;
 

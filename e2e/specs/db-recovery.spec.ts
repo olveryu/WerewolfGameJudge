@@ -35,8 +35,8 @@ test.describe('DB state recovery after network interruption', () => {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
-    const joinerPage = joinerPages[0];
-    const joinerContext = fixture.contexts[1]; // joiner's BrowserContext
+    const joinerPage = joinerPages[0]!;
+    const joinerContext = fixture.contexts[1]!; // joiner's BrowserContext
 
     try {
       // Step 2: Advance night partially — submit some actions
@@ -134,9 +134,9 @@ test.describe('DB state recovery after network interruption', () => {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
-    const joinerPage = joinerPages[0];
-    const hostContext = fixture.contexts[0];
-    const joinerContext = fixture.contexts[1];
+    const joinerPage = joinerPages[0]!;
+    const hostContext = fixture.contexts[0]!;
+    const joinerContext = fixture.contexts[1]!;
 
     try {
       // Step 2: Advance night partially — submit some actions

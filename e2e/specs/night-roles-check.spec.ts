@@ -60,7 +60,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Drive wolf kill first
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
 
         // Wolf kills villager (or seer if only 2 non-wolves)
@@ -68,18 +68,18 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveWolfVote(pages, [wolfIdx], killTarget);
 
         // Wait for seer's turn
-        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn, 'Seer turn should be detected').toBe(true);
 
         // Seer checks the villager (check reveals "好人")
         const checkTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
-        await clickSeatAndConfirm(pages[seerIdx], checkTarget);
+        await clickSeatAndConfirm(pages[seerIdx]!, checkTarget);
 
         // Read reveal
-        const revealText = await readAlertText(pages[seerIdx]);
+        const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain(`${checkTarget + 1}号`);
         expect(revealText).toContain('好人');
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 80);
@@ -111,23 +111,23 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Wait for psychic's turn
-        const psychicTurn = await waitForRoleTurn(pages[psychicIdx], ['通灵', '选择'], pages, 120);
+        const psychicTurn = await waitForRoleTurn(pages[psychicIdx]!, ['通灵', '选择'], pages, 120);
         expect(psychicTurn, 'Psychic turn should be detected').toBe(true);
 
         // Check wolf
         const checkSeat = roleMap.get(wolfIdx)!.seat;
-        await clickSeatAndConfirm(pages[psychicIdx], checkSeat);
+        await clickSeatAndConfirm(pages[psychicIdx]!, checkSeat);
 
         // Read reveal — "通灵结果：X号是狼人"
-        const revealText = await readAlertText(pages[psychicIdx]);
+        const revealText = await readAlertText(pages[psychicIdx]!);
         expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('狼人');
-        await dismissAlert(pages[psychicIdx]);
+        await dismissAlert(pages[psychicIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 80);
@@ -167,22 +167,27 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(
+          pages[wolfIndices[0]!]!,
+          ['袭击', '选择'],
+          pages,
+          120,
+        );
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for gargoyle check step
-        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx], ['查验'], pages, 120);
+        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['查验'], pages, 120);
         expect(gargTurn, 'Gargoyle turn should be detected').toBe(true);
 
         // Check the seer
-        await clickSeatAndConfirm(pages[gargoyleIdx], seerSeat);
+        await clickSeatAndConfirm(pages[gargoyleIdx]!, seerSeat);
 
         // Read reveal — "石像鬼探查：X号是预言家"
-        const revealText = await readAlertText(pages[gargoyleIdx]);
+        const revealText = await readAlertText(pages[gargoyleIdx]!);
         expect(revealText).toContain(formatSeat(seerSeat));
         expect(revealText).toContain('预言家');
-        await dismissAlert(pages[gargoyleIdx]);
+        await dismissAlert(pages[gargoyleIdx]!);
 
         // Skip seer's turn and finish
         const ended = await waitForNightEnd(pages, 120);
@@ -221,25 +226,25 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
         // Drive wolf kill
-        const firstWolf = allWolfIndices[0];
-        const wolfTurn = await waitForRoleTurn(pages[firstWolf], ['袭击', '选择'], pages, 120);
+        const firstWolf = allWolfIndices[0]!;
+        const wolfTurn = await waitForRoleTurn(pages[firstWolf]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for wolfRobot learn step
         if (wrIdx !== -1) {
-          const wrTurn = await waitForRoleTurn(pages[wrIdx], ['学习'], pages, 120);
+          const wrTurn = await waitForRoleTurn(pages[wrIdx]!, ['学习'], pages, 120);
           expect(wrTurn, 'WolfRobot turn should be detected').toBe(true);
 
           // Learn the villager
           const learnSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
-          await clickSeatAndConfirm(pages[wrIdx], learnSeat);
+          await clickSeatAndConfirm(pages[wrIdx]!, learnSeat);
 
           // Read reveal — "学习结果：X号是普通村民"
-          const revealText = await readAlertText(pages[wrIdx]);
+          const revealText = await readAlertText(pages[wrIdx]!);
           expect(revealText).toContain(formatSeat(learnSeat));
           expect(revealText).toContain('平民');
-          await dismissAlert(pages[wrIdx]);
+          await dismissAlert(pages[wrIdx]!);
         }
 
         // Finish night
@@ -278,24 +283,24 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx], ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
         expect(magTurn).toBe(true);
-        await driveMagicianSwap(pages[magIdx], wolfSeat, villagerSeat);
+        await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kills another villager (the one NOT swapped)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Seer checks the wolf's ORIGINAL seat — after swap, villager is there → 好人
-        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
-        await clickSeatAndConfirm(pages[seerIdx], wolfSeat);
+        await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
         // Reveal should show 好人 (because villager was swapped to that seat)
-        const revealText = await readAlertText(pages[seerIdx]);
+        const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain('好人');
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
@@ -335,9 +340,9 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx], ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
         expect(magTurn).toBe(true);
-        await driveMagicianSwap(pages[magIdx], wolfSeat, villagerSeat);
+        await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kill — gargoyle is wolf faction, participates in wolf vote
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), gargoyleIdx].filter(
@@ -345,7 +350,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         );
 
         const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['袭击', '选择'],
           pages,
           120,
@@ -354,13 +359,13 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveWolfVote(pages, allWolfIndices, killTargetSeat);
 
         // Gargoyle checks wolf's ORIGINAL seat → villager is there after swap → 普通村民
-        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx], ['查验'], pages, 120);
+        const gargTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['查验'], pages, 120);
         expect(gargTurn).toBe(true);
-        await clickSeatAndConfirm(pages[gargoyleIdx], wolfSeat);
+        await clickSeatAndConfirm(pages[gargoyleIdx]!, wolfSeat);
 
-        const revealText = await readAlertText(pages[gargoyleIdx]);
+        const revealText = await readAlertText(pages[gargoyleIdx]!);
         expect(revealText).toContain('平民');
-        await dismissAlert(pages[gargoyleIdx]);
+        await dismissAlert(pages[gargoyleIdx]!);
 
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
@@ -399,23 +404,23 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTargetSeat = villagers[1]?.[1].seat ?? villagerSeat;
 
         // Magician swaps wolf and villager1
-        const magTurn = await waitForRoleTurn(pages[magIdx], ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magIdx]!, ['交换', '选择'], pages, 120);
         expect(magTurn).toBe(true);
-        await driveMagicianSwap(pages[magIdx], wolfSeat, villagerSeat);
+        await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
         // Wolf kills villager2
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
         // Psychic checks wolf's ORIGINAL seat → villager is there → 普通村民
-        const psychicTurn = await waitForRoleTurn(pages[psychicIdx], ['通灵', '选择'], pages, 120);
+        const psychicTurn = await waitForRoleTurn(pages[psychicIdx]!, ['通灵', '选择'], pages, 120);
         expect(psychicTurn).toBe(true);
-        await clickSeatAndConfirm(pages[psychicIdx], wolfSeat);
+        await clickSeatAndConfirm(pages[psychicIdx]!, wolfSeat);
 
-        const revealText = await readAlertText(pages[psychicIdx]);
+        const revealText = await readAlertText(pages[psychicIdx]!);
         expect(revealText).toContain('平民');
-        await dismissAlert(pages[psychicIdx]);
+        await dismissAlert(pages[psychicIdx]!);
 
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
@@ -458,7 +463,7 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         // Wolf kills a villager
         const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['袭击', '选择'],
           pages,
           120,
@@ -467,22 +472,22 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveWolfVote(pages, allWolfIndices, killSeat);
 
         // Seer checks spiritKnight → should still see 狼人 (check resolves before reflect)
-        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
-        await clickSeatAndConfirm(pages[seerIdx], skSeat);
+        await clickSeatAndConfirm(pages[seerIdx]!, skSeat);
 
-        const revealText = await readAlertText(pages[seerIdx]);
+        const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain(formatSeat(skSeat));
         expect(revealText).toContain('狼人');
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Night ends — seer dies from reflection
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
         // Verify deaths include seer (reflection kill)
-        await viewLastNightInfo(pages[0]);
-        const hasDeath = await isTextVisible(pages[0], '死亡');
+        await viewLastNightInfo(pages[0]!);
+        const hasDeath = await isTextVisible(pages[0]!, '死亡');
         expect(hasDeath, 'Should have deaths (seer dies from reflection)').toBe(true);
       },
     );
@@ -523,23 +528,28 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTarget = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(
+          pages[wolfIndices[0]!]!,
+          ['袭击', '选择'],
+          pages,
+          120,
+        );
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget);
 
         // Wait for pureWhite's turn
-        const pwTurn = await waitForRoleTurn(pages[pureWhiteIdx], ['查验', '选择'], pages, 120);
+        const pwTurn = await waitForRoleTurn(pages[pureWhiteIdx]!, ['查验', '选择'], pages, 120);
         expect(pwTurn, 'PureWhite turn should be detected').toBe(true);
 
         // Check the villager
         const checkSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
-        await clickSeatAndConfirm(pages[pureWhiteIdx], checkSeat);
+        await clickSeatAndConfirm(pages[pureWhiteIdx]!, checkSeat);
 
         // Read reveal — "纯白查验：X号是普通村民"
-        const revealText = await readAlertText(pages[pureWhiteIdx]);
+        const revealText = await readAlertText(pages[pureWhiteIdx]!);
         expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('平民');
-        await dismissAlert(pages[pureWhiteIdx]);
+        await dismissAlert(pages[pureWhiteIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
@@ -579,24 +589,29 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killTarget = pureWhiteIdx !== -1 ? roleMap.get(pureWhiteIdx)!.seat : 0;
 
         // Drive wolf kill (kill pureWhite so villager survives for wolfWitch to check)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(
+          pages[wolfIndices[0]!]!,
+          ['袭击', '选择'],
+          pages,
+          120,
+        );
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killTarget);
 
         // Wait for wolfWitch's turn (use '查验' only — '选择' also appears in the
         // wolfKill prompt and would match before the step actually transitions)
-        const wwTurn = await waitForRoleTurn(pages[wolfWitchIdx], ['查验'], pages, 120);
+        const wwTurn = await waitForRoleTurn(pages[wolfWitchIdx]!, ['查验'], pages, 120);
         expect(wwTurn, 'WolfWitch turn should be detected').toBe(true);
 
         // Check the villager (notWolfFaction constraint — can only check non-wolf)
         const checkSeat = villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : 0;
-        await clickSeatAndConfirm(pages[wolfWitchIdx], checkSeat);
+        await clickSeatAndConfirm(pages[wolfWitchIdx]!, checkSeat);
 
         // Read reveal — "狼巫查验：X号是普通村民"
-        const revealText = await readAlertText(pages[wolfWitchIdx]);
+        const revealText = await readAlertText(pages[wolfWitchIdx]!);
         expect(revealText).toContain(formatSeat(checkSeat));
         expect(revealText).toContain('平民');
-        await dismissAlert(pages[wolfWitchIdx]);
+        await dismissAlert(pages[wolfWitchIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
@@ -634,29 +649,34 @@ test.describe('Night Roles — Check / Reveal', () => {
         // wolfRobot does NOT participate in wolf vote
         // Drive wolf kill with only generic wolves
         const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIndices[0]], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(
+          pages[wolfIndices[0]!]!,
+          ['袭击', '选择'],
+          pages,
+          120,
+        );
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, wolfIndices, killSeat);
 
         // Wait for wolfRobot learn step
-        const wrTurn = await waitForRoleTurn(pages[wrIdx], ['学习'], pages, 120);
+        const wrTurn = await waitForRoleTurn(pages[wrIdx]!, ['学习'], pages, 120);
         expect(wrTurn).toBe(true);
 
         // Learn the hunter
-        await clickSeatAndConfirm(pages[wrIdx], hunterSeat);
+        await clickSeatAndConfirm(pages[wrIdx]!, hunterSeat);
 
         // Read learn reveal — should contain 猎人
-        const revealText = await readAlertText(pages[wrIdx]);
+        const revealText = await readAlertText(pages[wrIdx]!);
         expect(revealText).toContain('猎人');
-        await dismissAlert(pages[wrIdx]);
+        await dismissAlert(pages[wrIdx]!);
 
         // Hunter gate prompt — "查看技能状态" button should appear
-        await clickBottomButton(pages[wrIdx], '查看技能状态');
+        await clickBottomButton(pages[wrIdx]!, '查看技能状态');
 
         // Gate dialog shows hunter shoot status — "可发动技能" (not poisoned)
-        const gateText = await readAlertText(pages[wrIdx]);
+        const gateText = await readAlertText(pages[wrIdx]!);
         expect(gateText).toContain('可发动技能');
-        await dismissAlert(pages[wrIdx]);
+        await dismissAlert(pages[wrIdx]!);
 
         // Night should complete after gate is acknowledged
         const ended = await waitForNightEnd(pages, 120);
@@ -696,31 +716,31 @@ test.describe('Night Roles — Check / Reveal', () => {
         const killSeat = villagerEntry?.[1].seat ?? 0;
 
         // Wolf kills villager (not cursedFox or seer)
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
         // Seer checks cursedFox → should see 好人 (Team.Third → 好人)
-        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
-        await clickSeatAndConfirm(pages[seerIdx], cursedFoxSeat);
+        await clickSeatAndConfirm(pages[seerIdx]!, cursedFoxSeat);
 
-        const revealText = await readAlertText(pages[seerIdx]);
+        const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain(formatSeat(cursedFoxSeat));
         expect(revealText).toContain('好人');
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Night ends — cursedFox dies from check
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
         // Verify cursedFox is in death list
-        await viewLastNightInfo(pages[0]);
-        const nightInfo = await readAlertText(pages[0]);
+        await viewLastNightInfo(pages[0]!);
+        const nightInfo = await readAlertText(pages[0]!);
         expect(nightInfo).toContain(formatSeat(cursedFoxSeat));
 
         // Should not be 平安夜 (villager wolf-killed + cursedFox check-killed)
-        const peaceful = await isTextVisible(pages[0], '平安夜');
+        const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(peaceful, 'Should not be 平安夜 with cursedFox check death').toBe(false);
       },
     );

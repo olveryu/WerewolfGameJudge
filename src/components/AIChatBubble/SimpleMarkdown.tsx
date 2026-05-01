@@ -113,7 +113,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
   let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i];
+    const line = lines[i]!;
     const trimmed = line.trim();
     const lineKey = `md-${i}`;
 
@@ -121,8 +121,8 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
     if (trimmed.startsWith('```')) {
       const codeLines: string[] = [];
       i++; // skip opening ```
-      while (i < lines.length && !lines[i].trim().startsWith('```')) {
-        codeLines.push(lines[i]);
+      while (i < lines.length && !lines[i]!.trim().startsWith('```')) {
+        codeLines.push(lines[i]!);
         i++;
       }
       i++; // skip closing ```
@@ -153,7 +153,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
     // ── Headers: # / ## / ### ───────────────────────
     const headerMatch = /^(#{1,3})\s+(.+)/.exec(trimmed);
     if (headerMatch) {
-      const level = headerMatch[1].length as 1 | 2 | 3;
+      const level = headerMatch[1]!.length as 1 | 2 | 3;
       const sizes = { 1: typography.subtitle + 2, 2: typography.subtitle, 3: typography.body };
       elements.push(
         <Text
@@ -166,7 +166,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
             },
           ]}
         >
-          {headerMatch[2]}
+          {headerMatch[2]!}
         </Text>,
       );
       i++;
@@ -180,7 +180,7 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
         <View key={lineKey} style={localStyles.listItem}>
           <Text style={bulletStyle}>•</Text>
           <Text style={localStyles.listText}>
-            {renderInlineFormatting(unorderedMatch[1], baseStyle, boldStyle, codeStyle)}
+            {renderInlineFormatting(unorderedMatch[1]!, baseStyle, boldStyle, codeStyle)}
           </Text>
         </View>,
       );
@@ -193,9 +193,9 @@ export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverte
     if (orderedMatch) {
       elements.push(
         <View key={lineKey} style={localStyles.listItem}>
-          <Text style={bulletStyle}>{orderedMatch[1]}.</Text>
+          <Text style={bulletStyle}>{orderedMatch[1]!}.</Text>
           <Text style={localStyles.listText}>
-            {renderInlineFormatting(orderedMatch[2], baseStyle, boldStyle, codeStyle)}
+            {renderInlineFormatting(orderedMatch[2]!, baseStyle, boldStyle, codeStyle)}
           </Text>
         </View>,
       );

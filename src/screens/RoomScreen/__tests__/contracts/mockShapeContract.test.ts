@@ -37,7 +37,7 @@ function extractReturnKeys(source: string): string[] {
     throw new Error('Could not parse return block in useGameRoom.ts');
   }
 
-  const block = braceMatch[1];
+  const block = braceMatch[1]!;
   const keys: string[] = [];
 
   for (const line of block.split('\n')) {
@@ -58,7 +58,7 @@ function extractReturnKeys(source: string): string[] {
     // E.g.: `isAudioPlaying: nightDerived.isAudioPlaying,` → isAudioPlaying
     const keyMatch = trimmed.match(/^(\w+)\s*[,:]/);
     if (keyMatch) {
-      keys.push(keyMatch[1]);
+      keys.push(keyMatch[1]!);
     }
   }
 

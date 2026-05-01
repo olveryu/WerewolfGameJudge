@@ -46,7 +46,7 @@ export function useNightDerived(gameState: LocalGameState | null): NightDerivedV
     if (gameState.status !== GameStatus.Ongoing) return NONE;
     const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
     if (gameState.currentStepIndex >= nightPlan.steps.length) return NONE;
-    const step = nightPlan.steps[gameState.currentStepIndex];
+    const step = nightPlan.steps[gameState.currentStepIndex]!;
     return {
       currentActionRole: step.roleId as RoleId | null,
       currentSchemaId: step.stepId as SchemaId | null,

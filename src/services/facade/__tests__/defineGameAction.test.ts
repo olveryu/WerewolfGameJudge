@@ -81,7 +81,7 @@ describe('defineGameAction', () => {
 
     expect(result.success).toBe(true);
     const body = JSON.parse(
-      (jest.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string,
+      (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
     ) as Record<string, unknown>;
     expect(body).toEqual({ roomCode: 'ABCD' });
   });
@@ -101,7 +101,7 @@ describe('defineGameAction', () => {
     await action(createMockCtx(), 3, 'wolf');
 
     const body = JSON.parse(
-      (jest.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string,
+      (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
     ) as Record<string, unknown>;
     expect(body).toEqual({ roomCode: 'ABCD', seat: 3, role: 'wolf' });
   });
@@ -122,7 +122,7 @@ describe('defineGameAction', () => {
     await action(createMockCtx({ myUserId: 'player-42' }), 5);
 
     const body = JSON.parse(
-      (jest.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string,
+      (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
     ) as Record<string, unknown>;
     expect(body).toEqual({ roomCode: 'ABCD', userId: 'player-42', seat: 5 });
   });

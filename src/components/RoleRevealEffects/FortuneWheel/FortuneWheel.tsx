@@ -107,7 +107,7 @@ function buildStarfieldPicture() {
   const starColor = Skia.Color('#ccccff');
   const glowColor = Skia.Color('#aaaaff');
   for (let i = 0; i < STARS.length; i++) {
-    const { x, y, r } = STARS[i];
+    const { x, y, r } = STARS[i]!;
     // Glow halo
     starfieldPaint.setColor(glowColor);
     starfieldPaint.setAlphaf(0.3);
@@ -194,7 +194,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     if (roles.length < 6) {
       const padded = [...roles];
       while (padded.length < 6) {
-        padded.push(roles[padded.length % roles.length]);
+        padded.push(roles[padded.length % roles.length]!);
       }
       return padded;
     }
@@ -263,9 +263,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     for (let i = 0; i < segmentData.length; i++) {
       const seg = segmentData[i];
       const opacity = 0.5 + Math.sin(gemPulse.value + (i * Math.PI) / 3) * 0.3;
-      gemPaintRes.setColor(Skia.Color(GEM_COLORS[i % GEM_COLORS.length]));
+      gemPaintRes.setColor(Skia.Color(GEM_COLORS[i % GEM_COLORS.length]!));
       gemPaintRes.setAlphaf(opacity);
-      c.drawCircle(seg.dotX, seg.dotY, DOT_R + 2, gemPaintRes);
+      c.drawCircle(seg!.dotX, seg!.dotY, DOT_R + 2, gemPaintRes);
     }
     return gemRecorder.finishRecordingAsPicture();
   });

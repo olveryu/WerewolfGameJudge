@@ -58,10 +58,10 @@ export const ConstellationFlair = memo<ColoredFlairProps>(({ size, colors }) => 
       // Each line fades in then out over its segment
       const alpha = t < 0.3 ? t / 0.3 : t > 0.7 ? (1 - t) / 0.3 : 1;
       return {
-        x1: STARS[link[0]].x * size,
-        y1: STARS[link[0]].y * size,
-        x2: STARS[link[1]].x * size,
-        y2: STARS[link[1]].y * size,
+        x1: STARS[link[0]]!.x * size,
+        y1: STARS[link[0]]!.y * size,
+        x2: STARS[link[1]]!.x * size,
+        y2: STARS[link[1]]!.y * size,
         opacity: alpha * 0.35,
       } as Record<string, number>;
     });

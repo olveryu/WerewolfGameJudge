@@ -139,7 +139,7 @@ describe('useRoomSeatDialogs', () => {
 
       // Flush — success closes modal
       await act(async () => {
-        await mockTakeSeat.mock.results[0].value;
+        await mockTakeSeat.mock.results[0]!.value;
       });
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
@@ -169,7 +169,7 @@ describe('useRoomSeatDialogs', () => {
 
       // Flush — failure closes modal + shows alert
       await act(async () => {
-        await mockTakeSeat.mock.results[0].value;
+        await mockTakeSeat.mock.results[0]!.value;
       });
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
@@ -245,7 +245,7 @@ describe('useRoomSeatDialogs', () => {
 
       // Flush — success closes modal
       await act(async () => {
-        await mockLeaveSeat.mock.results[0].value;
+        await mockLeaveSeat.mock.results[0]!.value;
       });
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
@@ -344,8 +344,8 @@ describe('useRoomSeatDialogs', () => {
       });
 
       // Get the buttons passed to showAlert
-      const alertCall = mockShowAlert.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
 
       // Find and click the confirm button
       const confirmButton = buttons.find((b) => b.text === '确定');
@@ -398,8 +398,8 @@ describe('useRoomSeatDialogs', () => {
       });
 
       // Get the buttons passed to showAlert
-      const alertCall = mockShowAlert.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
 
       // Find and click the confirm button
       const confirmButton = buttons.find((b) => b.text === '确定');
@@ -448,7 +448,7 @@ describe('useRoomSeatDialogs', () => {
       // Resolve first
       await act(async () => {
         resolveTakeSeat(true);
-        await mockTakeSeat.mock.results[0].value;
+        await mockTakeSeat.mock.results[0]!.value;
       });
     });
 
@@ -481,7 +481,7 @@ describe('useRoomSeatDialogs', () => {
       // Resolve first
       await act(async () => {
         resolveLeaveSeat();
-        await mockLeaveSeat.mock.results[0].value;
+        await mockLeaveSeat.mock.results[0]!.value;
       });
     });
   });

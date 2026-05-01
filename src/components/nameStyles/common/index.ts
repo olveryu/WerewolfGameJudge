@@ -42,7 +42,7 @@ function shiftHex(hex: string, prefixIdx: number): string {
   const b = parseInt(hex.slice(5, 7), 16);
   // Mix with white (lighten) or gray (mute) based on prefix
   const factors = [1.0, 0.85, 0.75, 0.9, 0.8, 0.95, 0.7, 0.88, 0.92, 0.78];
-  const f = factors[prefixIdx];
+  const f = factors[prefixIdx]!;
   const mix = prefixIdx <= 4 ? 255 : 180; // warm/cool lighten toward white; others toward gray
   const nr = Math.round(r * f + mix * (1 - f));
   const ng = Math.round(g * f + mix * (1 - f));
@@ -205,9 +205,9 @@ function capitalize(s: string): string {
 export const COMMON_NAME_STYLE_CONFIGS: Record<string, NameStyleConfig> = {};
 
 for (let pi = 0; pi < COMMON_PREFIXES.length; pi++) {
-  const { prefix, cn } = COMMON_PREFIXES[pi];
+  const { prefix, cn } = COMMON_PREFIXES[pi]!;
   for (const colorKey of COLOR_KEYS) {
-    const c = BASE_PALETTE[colorKey];
+    const c = BASE_PALETTE[colorKey]!;
     const id = `${prefix}${capitalize(colorKey)}`;
     const color = shiftHex(c.hex, pi);
     const shiftedRgb = shiftRgb(c, pi);
@@ -226,10 +226,10 @@ for (let pi = 0; pi < COMMON_PREFIXES.length; pi++) {
 export const RARE_NAME_STYLE_CONFIGS: Record<string, NameStyleConfig> = {};
 
 for (let pi = 0; pi < RARE_PREFIXES.length; pi++) {
-  const { prefix, cn } = RARE_PREFIXES[pi];
-  const factory = RARE_SHADOW_FACTORIES[pi];
+  const { prefix, cn } = RARE_PREFIXES[pi]!;
+  const factory = RARE_SHADOW_FACTORIES[pi]!;
   for (const colorKey of COLOR_KEYS) {
-    const c = BASE_PALETTE[colorKey];
+    const c = BASE_PALETTE[colorKey]!;
     const id = `${prefix}${capitalize(colorKey)}`;
     const result = factory(c);
     // radiant factory returns { color, shadows } to also lighten the text color

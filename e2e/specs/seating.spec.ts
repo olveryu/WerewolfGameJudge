@@ -128,7 +128,8 @@ test.describe('Seating', () => {
 
   test('two player seat conflict detection', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
-    const [pageA, pageB] = fixture.pages;
+    const [pageA] = fixture.pages;
+    const pageB = fixture.pages[1]!;
 
     try {
       // Host creates room
@@ -180,7 +181,8 @@ test.describe('Seating', () => {
 
   test('host kicks seated player', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
-    const [pageA, pageB] = fixture.pages;
+    const [pageA] = fixture.pages;
+    const pageB = fixture.pages[1]!;
 
     try {
       // Host creates room
@@ -236,7 +238,8 @@ test.describe('Seating', () => {
 
   test('host sees joiner seat update via broadcast', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
-    const [pageA, pageB] = fixture.pages;
+    const [pageA] = fixture.pages;
+    const pageB = fixture.pages[1]!;
 
     try {
       // Host creates room
@@ -284,7 +287,8 @@ test.describe('Seating', () => {
 
   test('seat switching clears old seat', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
-    const [pageA, pageB] = fixture.pages;
+    const [pageA] = fixture.pages;
+    const pageB = fixture.pages[1]!;
 
     try {
       // Host creates room
@@ -341,7 +345,8 @@ test.describe('Seating', () => {
 
   test('stand up broadcasts empty seat to all', async ({ browser }, testInfo) => {
     const fixture = await createPlayerContexts(browser, 2);
-    const [pageA, pageB] = fixture.pages;
+    const [pageA] = fixture.pages;
+    const pageB = fixture.pages[1]!;
 
     try {
       // Host creates room

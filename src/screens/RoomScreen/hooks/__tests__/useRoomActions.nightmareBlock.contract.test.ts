@@ -101,13 +101,13 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
       // Should show normal skip button from schema
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('skip');
+      expect(bottomAction.buttons[0]!.key).toBe('skip');
       // Label comes from schema.ui.bottomActionText
       const skipText = getSchema('seerCheck').ui?.bottomActionText;
       if (!skipText) {
         throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
       }
-      expect(bottomAction.buttons[0].label).toBe(skipText);
+      expect(bottomAction.buttons[0]!.label).toBe(skipText);
     });
 
     it('confirm schema 玩家 (hunter) 未被 block 时 → 只显示 confirm 按钮（必须确认）', () => {
@@ -123,12 +123,12 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
       // server-authoritative design: 未 blocked 时只显示 confirm，无 skip 选项
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('confirm');
+      expect(bottomAction.buttons[0]!.key).toBe('confirm');
       const confirmText = getSchema('hunterConfirm').ui?.bottomActionText;
       if (!confirmText) {
         throw new Error('[TEST] Missing hunterConfirm.ui.bottomActionText');
       }
-      expect(bottomAction.buttons[0].label).toBe(confirmText);
+      expect(bottomAction.buttons[0]!.label).toBe(confirmText);
     });
   });
 });
@@ -168,10 +168,10 @@ describe('B) 狼人投票 - UI 返回正常 wolfVote intent', () => {
       // Should show normal empty vote button
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('放弃袭击');
-      expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-      expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1); // empty vote
+      expect(bottomAction.buttons[0]!.key).toBe('wolfEmpty');
+      expect(bottomAction.buttons[0]!.label).toBe('放弃袭击');
+      expect(bottomAction.buttons[0]!.intent.type).toBe('wolfVote');
+      expect(bottomAction.buttons[0]!.intent.targetSeat).toBe(-1); // empty vote
     });
   });
 });

@@ -181,7 +181,7 @@ describe('seatActions (HTTP API)', () => {
       await takeSeatWithAck(ctx, 1);
 
       const body = JSON.parse(
-        (jest.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string,
+        (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
       ) as Record<string, unknown>;
       expect(body.displayName).toBeUndefined();
       expect(body.avatarUrl).toBeUndefined();

@@ -53,5 +53,5 @@ export function resolveRandomAnimation(
   if (previous != null && RANDOMIZABLE_ANIMATIONS[index] === previous) {
     index = (index + 1) % len;
   }
-  return RANDOMIZABLE_ANIMATIONS[index];
+  return RANDOMIZABLE_ANIMATIONS[index]!;
 }

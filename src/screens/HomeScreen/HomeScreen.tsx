@@ -231,7 +231,7 @@ export const HomeScreen: React.FC = () => {
   }, [allRoleIds.length]);
 
   const randomRoleData = useMemo(() => {
-    const roleId = allRoleIds[randomRoleIndex % allRoleIds.length];
+    const roleId = allRoleIds[randomRoleIndex % allRoleIds.length]!;
     const spec = getRoleSpec(roleId);
     // Map faction to color + label
     let factionColor = colors.villager;
@@ -248,7 +248,7 @@ export const HomeScreen: React.FC = () => {
     }
     // Avatar image: AVATAR_KEYS matches RoleId names, use indexOf for exact match
     const avatarKeyIdx = AVATAR_KEYS.indexOf(roleId);
-    const avatarImage = avatarKeyIdx >= 0 ? AVATAR_IMAGES[avatarKeyIdx] : AVATAR_IMAGES[0];
+    const avatarImage = avatarKeyIdx >= 0 ? AVATAR_IMAGES[avatarKeyIdx]! : AVATAR_IMAGES[0]!;
     return {
       roleId,
       displayName: spec.displayName,

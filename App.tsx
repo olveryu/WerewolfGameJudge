@@ -131,7 +131,9 @@ function reportLoadTiming() {
     // HTML document TTFB
     const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
     const htmlTtfb =
-      navEntries.length > 0 ? Math.round(navEntries[0].responseStart - navEntries[0].startTime) : 0;
+      navEntries.length > 0
+        ? Math.round(navEntries[0]!.responseStart - navEntries[0]!.startTime)
+        : 0;
 
     // Collect significant resources (JS, WASM, fonts — skip tiny icons)
     // Include cache hits (transferSize=0) for duration diagnostics

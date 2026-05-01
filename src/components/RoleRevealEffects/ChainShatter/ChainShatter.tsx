@@ -186,7 +186,7 @@ function generateShards(count: number): ShardData[] {
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed - 30,
       size: 6 + Math.random() * 14,
-      color: COLORS.shardPalette[i % COLORS.shardPalette.length],
+      color: COLORS.shardPalette[i % COLORS.shardPalette.length]!,
       spin: (Math.random() - 0.5) * 8,
     });
   }
@@ -227,7 +227,7 @@ function generateSparks(count: number): SparkData[] {
     sparks.push({
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed - 40,
-      color: COLORS.sparkPalette[i % COLORS.sparkPalette.length],
+      color: COLORS.sparkPalette[i % COLORS.sparkPalette.length]!,
       size: 2 + Math.random() * 3,
     });
   }
@@ -431,7 +431,7 @@ const ShardPiece: React.FC<ShardPieceProps> = ({ shard, cx, cy, gravity, progres
       { x: -halfW, y: halfH * 0.6 },
     ];
     return (
-      `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)} ` +
+      `M ${pts[0]!.x.toFixed(1)} ${pts[0]!.y.toFixed(1)} ` +
       pts
         .slice(1)
         .map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
@@ -807,7 +807,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     setCracks((prev) => [...prev, newCrack]);
 
     // Crack stays visible (flash in → hold) instead of fading out
-    crackOpacities[crackIdx].value = withSequence(
+    crackOpacities[crackIdx]!.value = withSequence(
       withTiming(1, { duration: 50 }),
       withTiming(0.85, { duration: 200 }),
     );
@@ -819,8 +819,8 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
     // Animate spark progress
     const spIdx = crackIdx % sparkProgresses.length;
-    sparkProgresses[spIdx].value = 0;
-    sparkProgresses[spIdx].value = withTiming(1, {
+    sparkProgresses[spIdx]!.value = 0;
+    sparkProgresses[spIdx]!.value = withTiming(1, {
       duration: 400,
       easing: Easing.out(Easing.cubic),
     });
@@ -1092,7 +1092,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                 <CrackLine
                   key={`crack-${i}`}
                   crack={crack}
-                  opacity={crackOpacities[Math.min(i, crackOpacities.length - 1)]}
+                  opacity={crackOpacities[Math.min(i, crackOpacities.length - 1)]!}
                   maxHits={CS.requiredHits}
                 />
               ))}
@@ -1104,7 +1104,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   sparks={burst.sparks}
                   cx={cx}
                   cy={cy}
-                  progress={sparkProgresses[bIdx % sparkProgresses.length]}
+                  progress={sparkProgresses[bIdx % sparkProgresses.length]!}
                 />
               ))}
 

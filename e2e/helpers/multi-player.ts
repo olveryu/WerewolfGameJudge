@@ -238,7 +238,7 @@ export async function setupNPlayerGame(
 
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
-    const joinerPage = joinerPages[i];
+    const joinerPage = joinerPages[i]!;
     const seat = i + 1; // Seats 2, 3, 4, ...
 
     await getVisibleText(joinerPage, '进入房间').first().click();
@@ -315,7 +315,7 @@ export async function setupNPlayerGameWithRoles(
 
   // Step 3: Joiners join and take seats
   for (let i = 0; i < joinerPages.length; i++) {
-    const joinerPage = joinerPages[i];
+    const joinerPage = joinerPages[i]!;
     const seat = i + 1;
 
     await getVisibleText(joinerPage, '进入房间').first().click();
@@ -338,7 +338,7 @@ export async function setupNPlayerGameWithRoles(
   // Step 6: All view roles — capture each player's role
   const roleMap = new Map<number, CapturedRole>();
   for (let i = 0; i < fixture.pages.length; i++) {
-    const room = new RoomPage(fixture.pages[i]);
+    const room = new RoomPage(fixture.pages[i]!);
     const displayName = await room.viewRoleAndCapture();
     roleMap.set(i, { displayName, seat: i });
   }

@@ -389,7 +389,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.actions).toHaveLength(1);
-      expect(newState.actions?.[0].schemaId).toBe('seerCheck');
+      expect(newState.actions?.[0]!.schemaId).toBe('seerCheck');
     });
 
     it('should create actions array if undefined', () => {

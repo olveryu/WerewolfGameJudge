@@ -267,7 +267,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
         id: i,
         targetX: Math.cos(angle) * distance,
         targetY: Math.sin(angle) * distance - 50,
-        emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length],
+        emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length]!,
         duration: 800 + Math.random() * 400,
       });
     }
@@ -507,7 +507,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                   phase={phase}
                   reducedMotion={reducedMotion}
                   color={i % 2 === 0 ? SLOT_COLORS.neonPink : SLOT_COLORS.neonBlue}
-                  delay={BULB_DELAYS[i]}
+                  delay={BULB_DELAYS[i]!}
                 />
               ))}
             </View>
@@ -593,7 +593,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                   phase={phase}
                   reducedMotion={reducedMotion}
                   color={i % 2 === 0 ? SLOT_COLORS.neonGreen : SLOT_COLORS.gold}
-                  delay={BULB_DELAYS[6 + i]}
+                  delay={BULB_DELAYS[6 + i]!}
                 />
               ))}
             </View>

@@ -37,7 +37,7 @@ export const FireflyFlair = memo<ColoredFlairProps>(({ size, colors }) => {
   }, [progress]);
 
   const flyProps = Array.from({ length: FLY_COUNT }, (_, i) => {
-    const seed = seedRef.current[i];
+    const seed = seedRef.current[i]!;
     const freqX = 1.0 + seed * 2;
     const freqY = 0.8 + seed * 1.5;
     const freqBlink = 2 + seed * 3;

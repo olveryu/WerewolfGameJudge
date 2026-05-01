@@ -22,8 +22,8 @@ test.describe('offline recovery canary', () => {
       configureTemplate: async (config) => config.configure2Player(),
     });
 
-    const joinerPage = joinerPages[0];
-    const joinerContext = fixture.contexts[1];
+    const joinerPage = joinerPages[0]!;
+    const joinerContext = fixture.contexts[1]!;
 
     try {
       await test.step('joiner goes offline', async () => {

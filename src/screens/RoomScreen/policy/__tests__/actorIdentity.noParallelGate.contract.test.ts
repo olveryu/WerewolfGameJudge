@@ -60,7 +60,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
       const violatingLines: string[] = [];
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = lines[i]!;
         // Skip comments and imports
         if (
           line.trim().startsWith('//') ||
@@ -85,7 +85,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
       const violatingLines: string[] = [];
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = lines[i]!;
         if (
           line.trim().startsWith('//') ||
           line.trim().startsWith('*') ||
@@ -133,7 +133,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
         const lines = content.split('\n');
 
         for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
+          const line = lines[i]!;
           // Skip comments
           if (line.trim().startsWith('//') || line.trim().startsWith('*')) {
             continue;
@@ -174,7 +174,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
       const audioKeyDefinitions: string[] = [];
 
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = lines[i]!;
         if (
           line.trim().startsWith('//') ||
           line.trim().startsWith('*') ||

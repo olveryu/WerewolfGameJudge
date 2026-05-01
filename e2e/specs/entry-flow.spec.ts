@@ -127,7 +127,8 @@ test.describe('Enter room via join flow', () => {
   test('joiner enters room via room code from home', async ({ browser }) => {
     // Step 1: Host creates a room
     fixture = await createPlayerContexts(browser, 2);
-    const [hostPage, joinerPage] = fixture.pages;
+    const [hostPage] = fixture.pages;
+    const joinerPage = fixture.pages[1]!;
 
     await hostPage.getByText('创建房间').click();
     const boardPicker = new BoardPickerPage(hostPage);

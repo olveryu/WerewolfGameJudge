@@ -157,14 +157,14 @@ export function buildNightPlan(
     const seerIndices: number[] = [];
     const seerSteps: NightPlanStep[] = [];
     for (let i = 0; i < steps.length; i++) {
-      if (seerLabelMap[steps[i].roleId] != null) {
+      if (seerLabelMap[steps[i]!.roleId] != null) {
         seerIndices.push(i);
-        seerSteps.push(steps[i]);
+        seerSteps.push(steps[i]!);
       }
     }
-    seerSteps.sort((a, b) => seerLabelMap[a.roleId] - seerLabelMap[b.roleId]);
+    seerSteps.sort((a, b) => seerLabelMap[a.roleId]! - seerLabelMap[b.roleId]!);
     for (let i = 0; i < seerIndices.length; i++) {
-      steps[seerIndices[i]] = seerSteps[i];
+      steps[seerIndices[i]!] = seerSteps[i]!;
     }
     // Recompute order
     steps = steps.map((s, i) => ({ ...s, order: i }));

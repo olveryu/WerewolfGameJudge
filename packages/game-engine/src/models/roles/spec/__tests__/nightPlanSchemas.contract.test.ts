@@ -84,7 +84,7 @@ describe('buildSchemas ↔ SCHEMAS equivalence', () => {
   describe.each(schemaKeys)('schema "%s"', (schemaId) => {
     const cached = SCHEMAS[schemaId as keyof typeof SCHEMAS];
 
-    const built = builtSchemas[schemaId];
+    const built = builtSchemas[schemaId]!;
 
     it('should have same actionKind', () => {
       expect(built.kind).toBe(cached.kind);
@@ -163,7 +163,7 @@ describe('buildSchemas ↔ SCHEMAS equivalence', () => {
         const builtCompound = built as typeof cached;
         expect(builtCompound.steps.length).toBe(cached.steps.length);
         cached.steps.forEach((cachedStep, idx) => {
-          const builtStep = builtCompound.steps[idx];
+          const builtStep = builtCompound.steps[idx]!;
           expect(builtStep.key).toBe(cachedStep.key);
           expect(builtStep.displayName).toBe(cachedStep.displayName);
           expect(builtStep.kind).toBe(cachedStep.kind);

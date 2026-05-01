@@ -73,7 +73,7 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
     SCRATCH_COLORS.confettiPink,
     SCRATCH_COLORS.confettiCyan,
     SCRATCH_COLORS.confettiGreen,
-  ][i % 4],
+  ][i % 4]!,
 }));
 
 // ── Immediate-mode Skia resources (reused across frames) ──
@@ -190,7 +190,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     const op = confettiOpacity.value;
     if (op > 0) {
       for (let i = 0; i < CONFETTI.length; i++) {
-        const p = CONFETTI[i];
+        const p = CONFETTI[i]!;
         const cx = SCREEN_W / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
         const cy =
           SCREEN_H / 2 +
@@ -260,7 +260,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         startY: y,
         targetX: x + Math.cos(angle) * distance,
         targetY: y + Math.sin(angle) * distance + 20,
-        color: SCRATCH_COLORS.shavingColors[id % SCRATCH_COLORS.shavingColors.length],
+        color: SCRATCH_COLORS.shavingColors[id % SCRATCH_COLORS.shavingColors.length]!,
         size: 4 + Math.random() * 6,
       },
     ]);

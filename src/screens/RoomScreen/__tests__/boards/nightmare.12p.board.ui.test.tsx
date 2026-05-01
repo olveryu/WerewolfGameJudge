@@ -256,7 +256,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Verify the rejection message matches BLOCKED_UI_DEFAULTS
       const rejectedEvents = harness.eventsOfType('actionRejected');
       expect(rejectedEvents.length).toBeGreaterThan(0);
-      expect(rejectedEvents[0].message).toContain(BLOCKED_UI_DEFAULTS.message);
+      expect(rejectedEvents[0]!.message).toContain(BLOCKED_UI_DEFAULTS.message);
 
       reactiveMock.disconnect();
     });
@@ -627,7 +627,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         BLOCKED_UI_DEFAULTS.message,
       );
       expect(rejectedEvents.length).toBeGreaterThan(0);
-      expect(rejectedEvents[0].message).toContain(BLOCKED_UI_DEFAULTS.message);
+      expect(rejectedEvents[0]!.message).toContain(BLOCKED_UI_DEFAULTS.message);
 
       // Step 4: witchSavePrompt
       await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 9);

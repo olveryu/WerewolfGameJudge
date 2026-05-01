@@ -255,7 +255,7 @@ export function GachaScreen({ navigation }: Props) {
         {/* Single result overlay — 4-tier rarity presentation */}
         {showSingleResult && lastResults.length > 0 && (
           <SingleResultReveal
-            item={lastResults[0]}
+            item={lastResults[0]!}
             onDismiss={handleDismissSingleResult}
             onGoEquip={() => {
               handleDismissSingleResult();

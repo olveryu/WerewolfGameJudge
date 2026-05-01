@@ -43,7 +43,7 @@ describe('spacing', () => {
       spacing.xxlarge,
     ];
     for (let i = 1; i < ordered.length; i++) {
-      expect(ordered[i]).toBeGreaterThan(ordered[i - 1]);
+      expect(ordered[i]!).toBeGreaterThan(ordered[i - 1]!);
     }
   });
 });
@@ -62,7 +62,7 @@ describe('typography', () => {
       typography.display,
     ];
     for (let i = 1; i < ordered.length; i++) {
-      expect(ordered[i]).toBeGreaterThan(ordered[i - 1]);
+      expect(ordered[i]!).toBeGreaterThan(ordered[i - 1]!);
     }
   });
 

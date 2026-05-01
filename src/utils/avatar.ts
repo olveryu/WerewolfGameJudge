@@ -47,7 +47,7 @@ const AVATAR_THUMBS: readonly number[] = HAND_DRAWN_AVATAR_IDS.map((id) => AVATA
  * @param index - 0-based index into HAND_DRAWN_AVATAR_IDS
  */
 export function getAvatarThumbByIndex(index: number): number {
-  return AVATAR_THUMBS[index];
+  return AVATAR_THUMBS[index]!;
 }
 
 /** Resolve a hand-drawn avatarId to its thumbnail. Returns undefined for generated/unknown IDs. */
@@ -129,7 +129,7 @@ export function getUniqueAvatarMap(roomId: string, uids: string[]): Map<string, 
  * @returns The avatar image source (require() result)
  */
 export function getAvatarImageByIndex(index: number): number {
-  return AVATAR_IMAGES[index];
+  return AVATAR_IMAGES[index]!;
 }
 
 /** Check whether an avatarUrl is a builtin avatar reference (e.g. "builtin://seer") */
@@ -150,7 +150,7 @@ export function getBuiltinAvatarImage(url: string): number | null {
   const key = getBuiltinAvatarId(url);
   const index = (HAND_DRAWN_KEYS as readonly string[]).indexOf(key);
   if (index === -1) return null;
-  return AVATAR_IMAGES[index];
+  return AVATAR_IMAGES[index]!;
 }
 
 /** Create a builtin:// URL from an avatar ID. */

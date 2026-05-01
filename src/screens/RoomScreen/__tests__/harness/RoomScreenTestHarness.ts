@@ -338,7 +338,7 @@ export class RoomScreenTestHarness {
    */
   getLastEventOfType(type: DialogType): DialogEvent | null {
     for (let i = this.#events.length - 1; i >= 0; i--) {
-      if (this.#events[i].type === type) return this.#events[i];
+      if (this.#events[i]!.type === type) return this.#events[i]!;
     }
     return null;
   }
@@ -380,7 +380,7 @@ export class RoomScreenTestHarness {
           `Last dialog "${last.title}" has ${last.buttons.length} button(s): [${last.buttons.join(', ')}]`,
       );
     }
-    this.#pressButtonOnEvent(last, last.buttons[index]);
+    this.#pressButtonOnEvent(last, last.buttons[index]!);
   }
 
   /**
@@ -455,7 +455,7 @@ export class RoomScreenTestHarness {
       const primary = rawButtons.find((b) => b.style !== 'cancel');
       if (primary?.text) return primary.text;
     }
-    return event.buttons[0];
+    return event.buttons[0]!;
   }
 
   /**

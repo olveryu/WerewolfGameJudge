@@ -88,7 +88,7 @@ export const COMMON_FRAME_ENTRIES: Record<string, CommonFrameEntry> = {};
 
 for (const shape of COMMON_SHAPES) {
   for (const colorKey of PALETTE_KEYS) {
-    const id = `${shape.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
+    const id = `${shape.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_COLOR_NAMES[colorKey]}${shape.label}`;
     const colors = FRAME_PALETTE[colorKey];
     COMMON_FRAME_ENTRIES[id] = {
@@ -106,7 +106,7 @@ export const RARE_FRAME_ENTRIES: Record<string, CommonFrameEntry> = {};
 
 for (const shape of RARE_SHAPES) {
   for (const colorKey of PALETTE_KEYS) {
-    const id = `${shape.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
+    const id = `${shape.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_COLOR_NAMES[colorKey]}${shape.label}`;
     const colors = FRAME_PALETTE[colorKey];
     RARE_FRAME_ENTRIES[id] = {

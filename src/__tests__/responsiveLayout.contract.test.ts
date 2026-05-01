@@ -82,7 +82,7 @@ function findViolations(content: string): Violation[] {
   const lines = content.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     const trimmed = line.trimStart();
 
     // Skip comments
@@ -99,7 +99,7 @@ function findViolations(content: string): Violation[] {
       violations.push({
         line: i + 1,
         rule: 'no-flexGrow-zero',
-        text: lines[i].trim(),
+        text: lines[i]!.trim(),
       });
     }
 
@@ -120,7 +120,7 @@ function findViolations(content: string): Violation[] {
         violations.push({
           line: i + 1,
           rule: 'min-paddingBottom-for-safe-area',
-          text: lines[i].trim(),
+          text: lines[i]!.trim(),
         });
       }
     }

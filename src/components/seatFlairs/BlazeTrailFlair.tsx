@@ -34,7 +34,7 @@ const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }
     const cx = size / 2;
     const cy = size / 2;
     const r = size * 0.44;
-    const { outer, mid, core } = COLORS[ci];
+    const { outer, mid, core } = COLORS[ci]!;
 
     const buildArcD = (radius: number, startAngle: number, endAngle: number) => {
       'worklet';

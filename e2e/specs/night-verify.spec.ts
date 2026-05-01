@@ -57,7 +57,7 @@ test.describe('Night Verification', () => {
       expect(wolfIdx, 'Wolf page should be identified').not.toBe(-1);
       expect(villagerIdx, 'Villager page should be identified').not.toBe(-1);
 
-      const wolfPage = pages[wolfIdx];
+      const wolfPage = pages[wolfIdx]!;
       const villagerSeat = roleMap.get(villagerIdx)!.seat;
       const hostPage = pages[0];
 
@@ -128,13 +128,13 @@ test.describe('Night Verification', () => {
       expect(wolfIndices.length, 'Should have wolf pages').toBeGreaterThan(0);
       expect(seerIdx, 'Seer page should be identified').not.toBe(-1);
 
-      const seerPage = pages[seerIdx];
+      const seerPage = pages[seerIdx]!;
       // Pick a wolf to check — use the first wolf's seat
-      const targetWolfIdx = wolfIndices[0];
+      const targetWolfIdx = wolfIndices[0]!;
       const targetWolfSeat = roleMap.get(targetWolfIdx)!.seat;
 
       // --- Phase 1: Drive wolf vote ---
-      const firstWolfPage = pages[wolfIndices[0]];
+      const firstWolfPage = pages[wolfIndices[0]!]!;
       await firstWolfPage
         .locator('[data-testid="action-message"]')
         .waitFor({ state: 'visible', timeout: 30_000 });

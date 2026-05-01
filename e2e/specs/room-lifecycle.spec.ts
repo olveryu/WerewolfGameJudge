@@ -85,7 +85,7 @@ test.describe('Room Lifecycle', () => {
       playerCount: 2,
       startGame: false,
     });
-    const joinerPage = joinerPages[0];
+    const joinerPage = joinerPages[0]!;
 
     try {
       // Click back button

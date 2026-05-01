@@ -43,7 +43,7 @@ const LeafParticle = memo<{
   size: number;
   progress: { value: number };
 }>(({ seed, colorIndex, size, progress }) => {
-  const [cr, cg, cb] = COLORS[colorIndex];
+  const [cr, cg, cb] = COLORS[colorIndex]!;
 
   const circle1Props = useAnimatedProps(() => {
     'worklet';

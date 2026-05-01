@@ -21,7 +21,7 @@ export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
   const t = [0];
   for (let lv = 1; lv <= 51; lv++) {
     const delta = lv <= 20 ? 60 : lv <= 40 ? 90 : 120;
-    t.push(t[lv - 1] + delta);
+    t.push(t[lv - 1]! + delta);
   }
   return t;
 })() as readonly number[];
@@ -31,7 +31,7 @@ const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1;
 /** 根据累计 XP 计算等级 */
 export function getLevel(xp: number): number {
   for (let i = MAX_LEVEL; i >= 0; i--) {
-    if (xp >= LEVEL_THRESHOLDS[i]) return i;
+    if (xp >= LEVEL_THRESHOLDS[i]!) return i;
   }
   return 0;
 }
@@ -40,8 +40,8 @@ export function getLevel(xp: number): number {
 export function getLevelProgress(xp: number): number {
   const level = getLevel(xp);
   if (level >= MAX_LEVEL) return 1;
-  const currentThreshold = LEVEL_THRESHOLDS[level];
-  const nextThreshold = LEVEL_THRESHOLDS[level + 1];
+  const currentThreshold = LEVEL_THRESHOLDS[level]!;
+  const nextThreshold = LEVEL_THRESHOLDS[level + 1]!;
   return (xp - currentThreshold) / (nextThreshold - currentThreshold);
 }
 
@@ -67,5 +67,5 @@ export function getLevelTitle(level: number): string {
 export function rollXp(): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  return XP_BASE + (array[0] % (XP_RANDOM_MAX + 1));
+  return XP_BASE + (array[0]! % (XP_RANDOM_MAX + 1));
 }

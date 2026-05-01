@@ -48,8 +48,8 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'secondary')).toEqual([]);
       expect(keys(layout, 'ghost')).toEqual([]);
       // Settings uses info color
-      expect(layout.primary[0].buttonColor).toBe(colors.info);
-      expect(layout.primary[0].testID).toBe(TESTIDS.roomSettingsButton);
+      expect(layout.primary[0]!.buttonColor).toBe(colors.info);
+      expect(layout.primary[0]!.testID).toBe(TESTIDS.roomSettingsButton);
     });
 
     it('host (not seated yet) → primary: settings', () => {
@@ -65,8 +65,8 @@ describe('resolveBottomLayout', () => {
         makeCtx({ roomStatus: GameStatus.Unseated, isHost: false, effectiveSeat: 1 }),
       );
       expect(keys(layout, 'primary')).toEqual(['waitForHost']);
-      expect(layout.primary[0].disabled).toBe(true);
-      expect(layout.primary[0].fireWhenDisabled).toBe(true);
+      expect(layout.primary[0]!.disabled).toBe(true);
+      expect(layout.primary[0]!.fireWhenDisabled).toBe(true);
     });
 
     it('spectator → empty layout', () => {
@@ -90,7 +90,7 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['prepareToFlip']);
       expect(keys(layout, 'ghost')).toEqual(['settings']);
-      expect(layout.primary[0].testID).toBe(TESTIDS.prepareToFlipButton);
+      expect(layout.primary[0]!.testID).toBe(TESTIDS.prepareToFlipButton);
     });
 
     it('player → primary: waitForHost', () => {
@@ -120,8 +120,8 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['viewRole']);
       expect(keys(layout, 'ghost')).toEqual(['restart']);
-      expect(layout.ghost[0].textColor).toBe(colors.error);
-      expect(layout.ghost[0].testID).toBe(TESTIDS.restartButton);
+      expect(layout.ghost[0]!.textColor).toBe(colors.error);
+      expect(layout.ghost[0]!.testID).toBe(TESTIDS.restartButton);
     });
 
     it('player → primary: viewRole only', () => {
@@ -151,7 +151,7 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['startGame']);
       expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
-      expect(layout.primary[0].testID).toBe(TESTIDS.startGameButton);
+      expect(layout.primary[0]!.testID).toBe(TESTIDS.startGameButton);
     });
 
     it('host submitting → startGame disabled', () => {
@@ -163,7 +163,7 @@ describe('resolveBottomLayout', () => {
           isHostActionSubmitting: true,
         }),
       );
-      expect(layout.primary[0].disabled).toBe(true);
+      expect(layout.primary[0]!.disabled).toBe(true);
     });
 
     it('player → primary: viewRole', () => {
@@ -300,8 +300,8 @@ describe('resolveBottomLayout', () => {
         expect(keys(layout, 'primary')).toEqual([]);
         expect(keys(layout, 'secondary')).toEqual(['skip']);
         expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
-        expect(layout.secondary[0].variant).toBe('secondary');
-        expect(layout.secondary[0].size).toBe('md');
+        expect(layout.secondary[0]!.variant).toBe('secondary');
+        expect(layout.secondary[0]!.size).toBe('md');
       });
 
       it('player actioner → secondary: skip, ghost: viewRole', () => {
@@ -324,8 +324,8 @@ describe('resolveBottomLayout', () => {
         const layout = resolveBottomLayout(actorCtx(true), [wolfCancelButton, wolfEmptyButton]);
         expect(keys(layout, 'primary')).toEqual(['wolfCancel']);
         expect(keys(layout, 'secondary')).toEqual(['wolfEmpty']);
-        expect(layout.primary[0].variant).toBe('primary');
-        expect(layout.primary[0].size).toBe('lg');
+        expect(layout.primary[0]!.variant).toBe('primary');
+        expect(layout.primary[0]!.size).toBe('lg');
       });
     });
 
@@ -447,8 +447,8 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['restart']);
       // Ended restart is primary variant, not danger
-      expect(layout.primary[0].variant).toBe('primary');
-      expect(layout.primary[0].size).toBe('lg');
+      expect(layout.primary[0]!.variant).toBe('primary');
+      expect(layout.primary[0]!.size).toBe('lg');
       // Ghost buttons
       expect(keys(layout, 'ghost')).toEqual(['viewRole', 'nightReview', 'lastNightInfo']);
     });

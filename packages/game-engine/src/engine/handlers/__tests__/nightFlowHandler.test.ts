@@ -161,7 +161,7 @@ describe('nightFlowHandler', () => {
         // 从 wolfKill 推进且有 witch，应该返回 3 个 actions (ADVANCE + SET_WITCH_CONTEXT + SET_UI_HINT)
         expect(success.actions).toHaveLength(3);
 
-        const advanceAction = success.actions[0];
+        const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
         if (advanceAction.type === 'ADVANCE_TO_NEXT_ACTION') {
           expect(advanceAction.payload.nextStepIndex).toBe(1);
@@ -170,11 +170,11 @@ describe('nightFlowHandler', () => {
         }
 
         // 从 wolfKill 推进且有 witch，应该有 SET_WITCH_CONTEXT action
-        const witchContextAction = success.actions[1];
+        const witchContextAction = success.actions[1]!;
         expect(witchContextAction.type).toBe('SET_WITCH_CONTEXT');
 
         // 应该有 SET_UI_HINT action 清除当前提示
-        const uiHintAction = success.actions[2];
+        const uiHintAction = success.actions[2]!;
         expect(uiHintAction.type).toBe('SET_UI_HINT');
 
         expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
@@ -200,7 +200,7 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         if (action.type === 'ADVANCE_TO_NEXT_ACTION') {
           expect(action.payload.nextStepIndex).toBe(lastIndex + 1);
           expect(action.payload.nextStepId).toBeNull();
@@ -350,7 +350,7 @@ describe('nightFlowHandler', () => {
         const success = expectSuccess(result);
         expect(success.actions).toHaveLength(1);
 
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toEqual([]);
@@ -374,7 +374,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toContain(4);
@@ -396,7 +396,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // 平票 = 随机选一个刀
@@ -424,7 +424,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           expect(action.payload.deaths).toEqual([]);
@@ -457,7 +457,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // 被守卫保护，无死亡
@@ -496,7 +496,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // seat 2 原本死亡，swap 后 seat 4 死亡（seat 2 存活）
@@ -535,7 +535,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // 预言家不死（spiritKnight 身份在 seat 4，不在 seat 2）
@@ -572,7 +572,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // 预言家查到了 swap 后的灵骑 → 反弹致死
@@ -604,7 +604,7 @@ describe('nightFlowHandler', () => {
 
         const result = handleEndNight(intent, context);
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
           // 袭击 villager → seat 4 死亡
@@ -672,7 +672,7 @@ describe('nightFlowHandler', () => {
 
         const success = expectSuccess(result);
         expect(success.actions).toHaveLength(1);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('SET_AUDIO_PLAYING');
         if (action.type === 'SET_AUDIO_PLAYING') {
           expect(action.payload.isPlaying).toBe(true);
@@ -694,7 +694,7 @@ describe('nightFlowHandler', () => {
         const result = handleSetAudioPlaying(intent, context);
 
         const success = expectSuccess(result);
-        const action = success.actions[0];
+        const action = success.actions[0]!;
         expect(action.type).toBe('SET_AUDIO_PLAYING');
         if (action.type === 'SET_AUDIO_PLAYING') {
           expect(action.payload.isPlaying).toBe(false);

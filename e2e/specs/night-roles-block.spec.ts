@@ -58,7 +58,7 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Magician is the first step — wait for turn
-        const magTurn = await waitForRoleTurn(pages[magicianIdx], ['交换', '选择'], pages, 120);
+        const magTurn = await waitForRoleTurn(pages[magicianIdx]!, ['交换', '选择'], pages, 120);
         expect(magTurn, 'Magician turn should be detected').toBe(true);
 
         // Swap the other two players
@@ -66,10 +66,10 @@ test.describe('Night Roles — Block / Skip', () => {
           .filter(([idx]) => idx !== magicianIdx)
           .map(([, info]) => info.seat);
         expect(otherSeats.length).toBeGreaterThanOrEqual(2);
-        await driveMagicianSwap(pages[magicianIdx], otherSeats[0], otherSeats[1]);
+        await driveMagicianSwap(pages[magicianIdx]!, otherSeats[0]!, otherSeats[1]!);
 
         // Drive wolf kill after magician
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         // Wolf kills any non-wolf target
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName !== '狼人');
@@ -114,7 +114,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         // Wait for nightmare's turn
         const nightmareTurn = await waitForRoleTurn(
-          pages[nightmareIdx],
+          pages[nightmareIdx]!,
           ['封锁', '选择'],
           pages,
           120,
@@ -122,13 +122,13 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(nightmareTurn, 'Nightmare turn should be detected').toBe(true);
 
         // Block the guard
-        await clickSeatAndConfirm(pages[nightmareIdx], guardSeat);
+        await clickSeatAndConfirm(pages[nightmareIdx]!, guardSeat);
 
         // Guard's turn — should see blocked message or skip
         // (nightmare blocks skip guard's action automatically)
 
         // Wolf (nightmare is a wolf) kills target
-        const wolfTurn = await waitForRoleTurn(pages[nightmareIdx], ['袭击'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['袭击'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [nightmareIdx], killSeat);
 
@@ -136,8 +136,8 @@ test.describe('Night Roles — Block / Skip', () => {
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
-        await viewLastNightInfo(pages[0]);
-        const peaceful = await isTextVisible(pages[0], '平安夜');
+        await viewLastNightInfo(pages[0]!);
+        const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(!peaceful, 'Should NOT be 平安夜 (guard was blocked)').toBe(true);
       },
     );
@@ -165,15 +165,15 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Wait for slacker's turn (early in step order)
-        const slackerTurn = await waitForRoleTurn(pages[slackerIdx], ['榜样', '选择'], pages, 120);
+        const slackerTurn = await waitForRoleTurn(pages[slackerIdx]!, ['榜样', '选择'], pages, 120);
         expect(slackerTurn, 'Slacker turn should be detected').toBe(true);
 
         // Choose wolf as idol (any seat except self)
         const idolSeat = roleMap.get(wolfIdx)!.seat;
-        await clickSeatAndConfirm(pages[slackerIdx], idolSeat);
+        await clickSeatAndConfirm(pages[slackerIdx]!, idolSeat);
 
         // Drive wolf kill
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         const villagerEntry = [...roleMap.entries()].find(
           ([, info]) => info.displayName === '平民',
@@ -212,9 +212,9 @@ test.describe('Night Roles — Block / Skip', () => {
         const seerSeat = roleMap.get(seerIdx)!.seat;
 
         // Nightmare blocks seer
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx], ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
         expect(nmTurn).toBe(true);
-        await clickSeatAndConfirm(pages[nightmareIdx], seerSeat);
+        await clickSeatAndConfirm(pages[nightmareIdx]!, seerSeat);
 
         // Wolf kill — nightmare + generic wolf are both wolf faction
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(
@@ -223,7 +223,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['袭击', '选择'],
           pages,
           120,
@@ -232,13 +232,13 @@ test.describe('Night Roles — Block / Skip', () => {
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for seer's blocked turn — alert or action message contains "封锁"
-        const seerBlocked = await waitForRoleTurn(pages[seerIdx], ['封锁'], pages, 120);
+        const seerBlocked = await waitForRoleTurn(pages[seerIdx]!, ['封锁'], pages, 120);
         expect(seerBlocked, 'Seer should see blocked prompt').toBe(true);
 
         // Verify blocked text
-        const blockedText = await readAlertText(pages[seerIdx]);
+        const blockedText = await readAlertText(pages[seerIdx]!);
         expect(blockedText).toContain('封锁');
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Finish night
         const ended = await waitForNightEnd(pages, 120);
@@ -272,9 +272,9 @@ test.describe('Night Roles — Block / Skip', () => {
         const witchSeat = roleMap.get(witchIdx)!.seat;
 
         // Nightmare blocks witch
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx], ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
         expect(nmTurn).toBe(true);
-        await clickSeatAndConfirm(pages[nightmareIdx], witchSeat);
+        await clickSeatAndConfirm(pages[nightmareIdx]!, witchSeat);
 
         // Wolf kill
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(
@@ -283,7 +283,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['袭击', '选择'],
           pages,
           120,
@@ -292,13 +292,13 @@ test.describe('Night Roles — Block / Skip', () => {
         await driveWolfVote(pages, allWolfIndices, killTarget ? killTarget[1].seat : 0);
 
         // Wait for witch's blocked turn
-        const witchBlocked = await waitForRoleTurn(pages[witchIdx], ['封锁'], pages, 120);
+        const witchBlocked = await waitForRoleTurn(pages[witchIdx]!, ['封锁'], pages, 120);
         expect(witchBlocked, 'Witch should see blocked prompt').toBe(true);
 
         // Verify blocked text
-        const blockedText = await readAlertText(pages[witchIdx]);
+        const blockedText = await readAlertText(pages[witchIdx]!);
         expect(blockedText).toContain('封锁');
-        await dismissAlert(pages[witchIdx]);
+        await dismissAlert(pages[witchIdx]!);
 
         // Finish night — villager dies (witch couldn't save)
         const ended = await waitForNightEnd(pages, 120);
@@ -331,9 +331,9 @@ test.describe('Night Roles — Block / Skip', () => {
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
 
         // Nightmare blocks the generic wolf → wolfKillDisabled
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx], ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
         expect(nmTurn).toBe(true);
-        await clickSeatAndConfirm(pages[nightmareIdx], wolfSeat);
+        await clickSeatAndConfirm(pages[nightmareIdx]!, wolfSeat);
 
         // Wolf vote step — all wolves should see blocked / disabled prompt
         const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), nightmareIdx].filter(
@@ -342,7 +342,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         // Wait for wolf step on any wolf page — detect "无法袭击" or "封锁"
         const wolfBlocked = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['无法袭击', '封锁'],
           pages,
           120,
@@ -352,7 +352,7 @@ test.describe('Night Roles — Block / Skip', () => {
         // When wolfKillDisabled, the button label is "放弃袭击（被封锁）".
         // Each wolf must click it to submit empty vote.
         for (const wIdx of allWolfIndices) {
-          const wPage = pages[wIdx];
+          const wPage = pages[wIdx]!;
           await dismissAlert(wPage);
 
           // Wait for the blocked button to appear in the bottom panel
@@ -376,8 +376,8 @@ test.describe('Night Roles — Block / Skip', () => {
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
-        await viewLastNightInfo(pages[0]);
-        const peaceful = await isTextVisible(pages[0], '平安夜');
+        await viewLastNightInfo(pages[0]!);
+        const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(peaceful, 'Should be 平安夜 (wolf kill disabled)').toBe(true);
       },
     );
@@ -406,18 +406,18 @@ test.describe('Night Roles — Block / Skip', () => {
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 
         // Seer's turn — skip via "不用技能"
-        const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+        const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
-        await dismissAlert(pages[seerIdx]);
-        await clickBottomButton(pages[seerIdx], '不用技能');
+        await dismissAlert(pages[seerIdx]!);
+        await clickBottomButton(pages[seerIdx]!, '不用技能');
 
         // Confirm skip if alert appears
-        await dismissAlert(pages[seerIdx]);
+        await dismissAlert(pages[seerIdx]!);
 
         // Night should end
         const ended = await waitForNightEnd(pages, 80);
@@ -451,22 +451,21 @@ test.describe('Night Roles — Block / Skip', () => {
         const dcSeat = roleMap.get(dcIdx)!.seat;
 
         // Nightmare blocks dreamcatcher
-        const nmTurn = await waitForRoleTurn(pages[nightmareIdx], ['封锁', '选择'], pages, 120);
+        const nmTurn = await waitForRoleTurn(pages[nightmareIdx]!, ['封锁', '选择'], pages, 120);
         expect(nmTurn).toBe(true);
-        await clickSeatAndConfirm(pages[nightmareIdx], dcSeat);
+        await clickSeatAndConfirm(pages[nightmareIdx]!, dcSeat);
 
         // Dreamcatcher's step comes BEFORE wolf vote in night order.
         // Wait for DC to see blocked prompt before advancing wolf vote.
-        const dcBlocked = await waitForRoleTurn(pages[dcIdx], ['封锁'], pages, 120);
+        const dcBlocked = await waitForRoleTurn(pages[dcIdx]!, ['封锁'], pages, 120);
         expect(dcBlocked, 'Dreamcatcher should see blocked prompt').toBe(true);
 
-        const blockedText = await readAlertText(pages[dcIdx]);
+        const blockedText = await readAlertText(pages[dcIdx]!);
         expect(blockedText).toContain('封锁');
-        await dismissAlert(pages[dcIdx]);
+        await dismissAlert(pages[dcIdx]!);
 
         // Skip the blocked step on DC's page (click "跳过" button if visible)
-        const skipBtn = pages[dcIdx]
-          .locator('[data-testid="bottom-action-panel"]')
+        const skipBtn = pages[dcIdx]!.locator('[data-testid="bottom-action-panel"]')
           .getByText('跳过', { exact: false })
           .first();
         if (await skipBtn.isVisible().catch(() => false)) {
@@ -480,7 +479,7 @@ test.describe('Night Roles — Block / Skip', () => {
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
         const wolfTurn = await waitForRoleTurn(
-          pages[allWolfIndices[0]],
+          pages[allWolfIndices[0]!]!,
           ['袭击', '选择'],
           pages,
           120,
@@ -517,15 +516,15 @@ test.describe('Night Roles — Block / Skip', () => {
         expect(wolfIdx).not.toBe(-1);
 
         // Guard's turn — skip via "不用技能"
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 120);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 120);
         expect(guardTurn).toBe(true);
-        await dismissAlert(pages[guardIdx]);
-        await clickBottomButton(pages[guardIdx], '不用技能');
-        await dismissAlert(pages[guardIdx]);
+        await dismissAlert(pages[guardIdx]!);
+        await clickBottomButton(pages[guardIdx]!, '不用技能');
+        await dismissAlert(pages[guardIdx]!);
 
         // Drive wolf kill
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTarget ? killTarget[1].seat : 0);
 

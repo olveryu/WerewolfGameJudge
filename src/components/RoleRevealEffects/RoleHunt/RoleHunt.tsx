@@ -97,7 +97,7 @@ function roleIdToAnimalEmoji(roleId: string): string {
   for (let i = 0; i < roleId.length; i++) {
     hash = (hash * 31 + roleId.charCodeAt(i)) | 0;
   }
-  return HUNT_ANIMAL_EMOJIS[Math.abs(hash) % HUNT_ANIMAL_EMOJIS.length];
+  return HUNT_ANIMAL_EMOJIS[Math.abs(hash) % HUNT_ANIMAL_EMOJIS.length]!;
 }
 
 const SKY_COLORS = {
@@ -177,7 +177,7 @@ function generateFireflies(w: number, h: number): FireflyData[] {
       cx: Math.random() * w,
       cy: h * 0.3 + Math.random() * h * 0.5,
       radius: 1 + Math.random() * 1.5,
-      color: HUNT_COLORS.firefly[i % 5],
+      color: HUNT_COLORS.firefly[i % 5]!,
       driftRadius: 15 + Math.random() * 25,
       driftPhase: Math.random() * Math.PI * 2,
       driftDuration: 3000 + Math.random() * 3000,
@@ -814,11 +814,11 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   useEffect(() => {
     if (reducedMotion) return;
     fireflies.forEach((f, i) => {
-      ffDrifts[i].value = withRepeat(
+      ffDrifts[i]!.value = withRepeat(
         withTiming(1, { duration: f.driftDuration, easing: Easing.linear }),
         -1,
       );
-      ffFlickers[i].value = withRepeat(
+      ffFlickers[i]!.value = withRepeat(
         withSequence(
           withTiming(1, { duration: f.flickerDuration, easing: Easing.inOut(Easing.sin) }),
           withTiming(0, { duration: f.flickerDuration, easing: Easing.inOut(Easing.sin) }),
@@ -842,7 +842,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     const initialAnimals: AnimalData[] = [];
     initialAnimals.push(createAnimal(role, role, screenWidth, screenHeight));
     for (let i = 0; i < 3; i++) {
-      const randomRole = spawnRoles[Math.floor(Math.random() * spawnRoles.length)];
+      const randomRole = spawnRoles[Math.floor(Math.random() * spawnRoles.length)]!;
       initialAnimals.push(createAnimal(randomRole, role, screenWidth, screenHeight));
     }
     setAnimals(initialAnimals);
@@ -852,7 +852,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
     spawnTimerRef.current = setInterval(() => {
       if (phaseRef.current !== 'hunting') return;
-      const randomRole = spawnRoles[Math.floor(Math.random() * spawnRoles.length)];
+      const randomRole = spawnRoles[Math.floor(Math.random() * spawnRoles.length)]!;
       const newAnimal = createAnimal(randomRole, role, screenWidth, screenHeight);
       setAnimals((prev) => [...prev, newAnimal]);
       setAnimalStates((prev) => ({ ...prev, [newAnimal.id]: 'alive' }));
@@ -896,7 +896,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         id: i,
         targetX: Math.cos(angle) * distance,
         targetY: Math.sin(angle) * distance - 20,
-        emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length],
+        emoji: CELEBRATION_EMOJIS[i % CELEBRATION_EMOJIS.length]!,
         duration: 500 + Math.random() * 500,
       });
     }
@@ -1101,8 +1101,8 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
               <SkiaFirefly
                 key={`ff-${i}`}
                 firefly={f}
-                drift={ffDrifts[i]}
-                flicker={ffFlickers[i]}
+                drift={ffDrifts[i]!}
+                flicker={ffFlickers[i]!}
                 masterOpacity={atmosphereOpacity}
               />
             ))}

@@ -74,7 +74,7 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent(1), ctx);
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    expect(success.actions[0]!.type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should allow player to mark their own seat', () => {
@@ -82,7 +82,7 @@ describe('handleViewedRole', () => {
     const ctx = createContext(state, { myUserId: 'p0', mySeat: 0 });
     const result = handleViewedRole(intent(0), ctx);
     const success = expectSuccess(result);
-    expect(success.actions[0]).toEqual({
+    expect(success.actions[0]!).toEqual({
       type: 'PLAYER_VIEWED_ROLE',
       payload: { seat: 0 },
     });

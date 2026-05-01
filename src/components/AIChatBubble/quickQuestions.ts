@@ -659,7 +659,7 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     const available = GENERAL_QUESTIONS.filter((q) => !used.has(q));
     const shuffled = shuffleArray(available);
     for (let i = 0; i < remaining && i < shuffled.length; i++) {
-      questions.push(shuffled[i]);
+      questions.push(shuffled[i]!);
     }
   }
 

@@ -49,12 +49,12 @@ export function resolveWolfVotes(
   // Tie or disagreement => no kill.
   if (options?.requireUnanimity) {
     if (maxTargets.length !== 1) return null;
-    return maxCount === nonAbstainVotes.length ? maxTargets[0] : null;
+    return maxCount === nonAbstainVotes.length ? maxTargets[0]! : null;
   }
 
   // Normal mode: plurality wins. On tie, randomly pick one from tied targets.
   if (maxTargets.length === 1) {
-    return maxTargets[0];
+    return maxTargets[0]!;
   }
   const rng = options?.rng ?? secureRng;
   return randomPick(maxTargets, rng);

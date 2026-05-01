@@ -54,7 +54,7 @@ export const thiefChooseResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: REJECT_INVALID_INDEX };
   }
 
-  const chosenRoleId = bottomCards[cardIndex];
+  const chosenRoleId = bottomCards[cardIndex]!;
 
   // Check: if any bottom card is wolf faction, player MUST choose a wolf card
   const hasWolfCard = bottomCards.some((r) => isWolfFaction(r));

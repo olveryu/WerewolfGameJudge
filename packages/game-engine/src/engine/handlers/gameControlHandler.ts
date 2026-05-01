@@ -124,7 +124,7 @@ export function handleAssignRoles(
   const seats = Object.keys(state.players).map((s) => Number.parseInt(s, 10));
 
   for (let i = 0; i < seats.length; i++) {
-    assignments[seats[i]] = seatedRoles[i];
+    assignments[seats[i]!] = seatedRoles[i]!;
   }
 
   // 记录底牌角色/丘比特座位
@@ -160,7 +160,7 @@ export function handleAssignRoles(
   let seerLabelMap: Readonly<Record<string, number>> | undefined;
   if (seerLikeRoles.length >= 2) {
     const labels = shuffleArray(Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1));
-    seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]]));
+    seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]!]));
   }
 
   // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）
@@ -295,7 +295,7 @@ export function handleStartNight(
     return handlerSuccess([endNightAction], STANDARD_SIDE_EFFECTS);
   }
 
-  const firstStepId = nightPlan.steps[0].stepId;
+  const firstStepId = nightPlan.steps[0]!.stepId;
   const firstStepSpec = getStepSpec(firstStepId);
 
   // 收集需要返回的 actions

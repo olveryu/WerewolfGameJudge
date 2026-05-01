@@ -37,7 +37,7 @@ interface EmberSeed {
 
 const EmberParticle = memo<{ seed: EmberSeed; size: number; progress: { value: number } }>(
   ({ seed, size, progress }) => {
-    const [cr, cg, cb] = COLORS[seed.ci];
+    const [cr, cg, cb] = COLORS[seed.ci]!;
 
     const animatedProps = useAnimatedProps(() => {
       'worklet';

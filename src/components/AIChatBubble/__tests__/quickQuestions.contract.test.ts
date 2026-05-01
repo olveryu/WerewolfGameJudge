@@ -23,7 +23,7 @@ describe('ROLE_QUESTIONS coverage contract', () => {
   const foundKeys = new Set<string>();
   let match: RegExpExecArray | null;
   while ((match = keyRegex.exec(source)) !== null) {
-    foundKeys.add(match[1]);
+    foundKeys.add(match[1]!);
   }
 
   // Filter to only keys that appear between "ROLE_QUESTIONS" declaration and its closing "};"
@@ -36,7 +36,7 @@ describe('ROLE_QUESTIONS coverage contract', () => {
   const blockRegex = /^\s{2}(\w+):\s*\[/gm;
   let blockMatch: RegExpExecArray | null;
   while ((blockMatch = blockRegex.exec(roleQuestionsBlock)) !== null) {
-    blockKeys.add(blockMatch[1]);
+    blockKeys.add(blockMatch[1]!);
   }
 
   it('ROLE_QUESTIONS covers every role in ROLE_SPECS', () => {

@@ -88,7 +88,7 @@ export const COMMON_ANIMATION_ENTRIES: Record<string, AnimationEntry> = {};
 
 for (const pattern of COMMON_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
-    const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}Enter`;
+    const id = `${pattern.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}Enter`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
     const colors = FLAIR_PALETTE[colorKey];
     COMMON_ANIMATION_ENTRIES[id] = {
@@ -106,7 +106,7 @@ export const RARE_ANIMATION_ENTRIES: Record<string, AnimationEntry> = {};
 
 for (const pattern of RARE_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
-    const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}Enter`;
+    const id = `${pattern.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}Enter`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
     const colors = FLAIR_PALETTE[colorKey];
     RARE_ANIMATION_ENTRIES[id] = {

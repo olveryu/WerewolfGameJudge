@@ -167,7 +167,7 @@ function generateShards(count: number): ShardData[] {
       angle,
       distance: 120 + Math.random() * 200,
       size: 6 + Math.random() * 12,
-      color: COLORS.shardColors[i % COLORS.shardColors.length],
+      color: COLORS.shardColors[i % COLORS.shardColors.length]!,
     });
   }
   return result;

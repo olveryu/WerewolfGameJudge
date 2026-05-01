@@ -545,7 +545,7 @@ export async function extractRoomCode(page: Page): Promise<string> {
   // Match "房间 XXXX" pattern - room number follows "房间 " text
   const match = headerText?.match(/房间\s*(\d{4})/);
   if (!match) throw new Error(`Could not extract room number from: ${headerText}`);
-  return match[1];
+  return match[1]!;
 }
 
 /**

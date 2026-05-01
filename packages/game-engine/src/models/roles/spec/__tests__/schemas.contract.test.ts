@@ -377,7 +377,7 @@ describe('SCHEMAS contract', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
 
-      const saveStep = witchSchema.steps[0];
+      const saveStep = witchSchema.steps[0]!;
       expect(saveStep.key).toBe('save');
       expect(saveStep.ui?.promptTemplate).toBeDefined();
       expect(saveStep.ui?.promptTemplate).toContain('{seat}');
@@ -385,7 +385,7 @@ describe('SCHEMAS contract', () => {
 
     it('witchAction poison step should NOT have promptTemplate (static prompt)', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-      const poisonStep = witchSchema.steps[1];
+      const poisonStep = witchSchema.steps[1]!;
       expect(poisonStep.key).toBe('poison');
       expect(poisonStep.ui?.promptTemplate).toBeUndefined();
     });
@@ -397,7 +397,7 @@ describe('SCHEMAS contract', () => {
   describe('witchAction.cannotSavePrompt contract', () => {
     it('witchAction save step should have cannotSavePrompt for self-kill scenario', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-      const saveStep = witchSchema.steps[0];
+      const saveStep = witchSchema.steps[0]!;
       expect(saveStep.key).toBe('save');
       expect(saveStep.ui?.cannotSavePrompt).toBeDefined();
       expect(typeof saveStep.ui?.cannotSavePrompt).toBe('string');
@@ -406,7 +406,7 @@ describe('SCHEMAS contract', () => {
 
     it('witchAction poison step should NOT have cannotSavePrompt', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-      const poisonStep = witchSchema.steps[1];
+      const poisonStep = witchSchema.steps[1]!;
       expect(poisonStep.key).toBe('poison');
       expect(poisonStep.ui?.cannotSavePrompt).toBeUndefined();
     });

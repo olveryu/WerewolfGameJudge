@@ -154,7 +154,7 @@ test.describe('Rejoin during ongoing game', () => {
       playerCount: 2,
       configureTemplate: async (config) => config.configure2Player(),
     });
-    const joinerPage = joinerPages[0];
+    const joinerPage = joinerPages[0]!;
 
     try {
       // Step 2: Advance night partially

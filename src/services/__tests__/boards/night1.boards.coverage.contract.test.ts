@@ -130,7 +130,7 @@ describe('Night-1 Boards Coverage Contract', () => {
     it.each(REQUIRED_12P_TEMPLATES)(
       '板子 "%s" 必须有对应的 integration test 文件',
       (templateName) => {
-        const pattern = TEMPLATE_TO_TEST_PATTERN[templateName];
+        const pattern = TEMPLATE_TO_TEST_PATTERN[templateName]!;
         expect(pattern).toBeDefined();
 
         // 查找至少一个测试文件包含该模板名

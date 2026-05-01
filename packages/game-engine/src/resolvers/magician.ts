@@ -25,7 +25,8 @@ export const magicianSwapResolver: ResolverFn = (context, input) => {
     return { valid: false, rejectReason: '必须选择两名交换对象' };
   }
 
-  const [target1, target2] = targets;
+  const target1 = targets[0]!;
+  const target2 = targets[1]!;
 
   // Cannot swap with non-existent players
   if (!players.has(target1) || !players.has(target2)) {

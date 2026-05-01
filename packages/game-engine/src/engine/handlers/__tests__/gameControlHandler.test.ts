@@ -74,7 +74,7 @@ describe('handleAssignRoles', () => {
     const success = expectSuccess(result);
     // PR1: 只产生 ASSIGN_ROLES，不产生 START_NIGHT
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('ASSIGN_ROLES');
+    expect(success.actions[0]!.type).toBe('ASSIGN_ROLES');
   });
 
   it('should assign all template roles', () => {
@@ -175,7 +175,7 @@ describe('handleStartNight', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('START_NIGHT');
+    expect(success.actions[0]!.type).toBe('START_NIGHT');
   });
 
   it('should set currentStepIndex to 0', () => {
@@ -337,8 +337,8 @@ describe('handleStartNight', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('END_NIGHT');
-    if (success.actions[0].type === 'END_NIGHT') {
+    expect(success.actions[0]!.type).toBe('END_NIGHT');
+    if (success.actions[0]!.type === 'END_NIGHT') {
       expect(success.actions[0].payload.deaths).toEqual([]);
     }
     expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
@@ -356,7 +356,7 @@ describe('handleRestartGame', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('RESTART_GAME');
+    expect(success.actions[0]!.type).toBe('RESTART_GAME');
   });
 
   it('should include side effects', () => {
@@ -390,7 +390,7 @@ describe('handleUpdateTemplate', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('UPDATE_TEMPLATE');
+    expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
     expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
@@ -410,7 +410,7 @@ describe('handleUpdateTemplate', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('UPDATE_TEMPLATE');
+    expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
   });
 
   it('should fail when state is null (gate: no_state)', () => {

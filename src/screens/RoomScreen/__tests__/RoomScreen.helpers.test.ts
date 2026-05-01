@@ -308,17 +308,17 @@ describe('buildSeatViewModels', () => {
     expect(seats).toHaveLength(3);
 
     // Seat 0: my spot, not wolf
-    expect(seats[0].seat).toBe(0);
-    expect(seats[0].isMySpot).toBe(true);
-    expect(seats[0].isWolf).toBe(false);
-    expect(seats[0].player?.displayName).toBe('Player1');
+    expect(seats[0]!.seat).toBe(0);
+    expect(seats[0]!.isMySpot).toBe(true);
+    expect(seats[0]!.isWolf).toBe(false);
+    expect(seats[0]!.player?.displayName).toBe('Player1');
 
     // Seat 1: wolf, selected
-    expect(seats[1].isWolf).toBe(true);
-    expect(seats[1].isSelected).toBe(true);
+    expect(seats[1]!.isWolf).toBe(true);
+    expect(seats[1]!.isSelected).toBe(true);
 
     // Seat 2: empty
-    expect(seats[2].player).toBeNull();
+    expect(seats[2]!.player).toBeNull();
   });
 
   it('should highlight only visible wolves when showWolves=true (gargoyle/wolfRobot hidden)', () => {
@@ -389,11 +389,11 @@ describe('buildSeatViewModels', () => {
     const seats = buildSeatViewModels(mockState, null, true, null);
 
     // Only wolf with canSeeWolves=true is highlighted
-    expect(seats[0].isWolf).toBe(true);
+    expect(seats[0]!.isWolf).toBe(true);
     // gargoyle and wolfRobot have canSeeWolves=false, so they are NOT highlighted
-    expect(seats[1].isWolf).toBe(false);
-    expect(seats[2].isWolf).toBe(false);
-    expect(seats[3].isWolf).toBe(false);
+    expect(seats[1]!.isWolf).toBe(false);
+    expect(seats[2]!.isWolf).toBe(false);
+    expect(seats[3]!.isWolf).toBe(false);
   });
 
   it('should highlight based on assigned player.role (not template.roles ordering)', () => {
@@ -444,8 +444,8 @@ describe('buildSeatViewModels', () => {
     };
 
     const seats = buildSeatViewModels(mockState, null, true, null);
-    expect(seats[0].isWolf).toBe(false);
-    expect(seats[1].isWolf).toBe(true);
+    expect(seats[0]!.isWolf).toBe(false);
+    expect(seats[1]!.isWolf).toBe(true);
   });
 
   describe('schemaConstraints option (UX early rejection)', () => {
@@ -510,10 +510,10 @@ describe('buildSeatViewModels', () => {
       });
 
       // My seat should be disabled
-      expect(seats[0].disabledReason).toBe('不能选择自己');
+      expect(seats[0]!.disabledReason).toBe('不能选择自己');
       // Other seats should not be disabled
-      expect(seats[1].disabledReason).toBeUndefined();
-      expect(seats[2].disabledReason).toBeUndefined();
+      expect(seats[1]!.disabledReason).toBeUndefined();
+      expect(seats[2]!.disabledReason).toBeUndefined();
     });
 
     it('no constraint means own seat is selectable', () => {
@@ -577,9 +577,9 @@ describe('buildSeatViewModels', () => {
       });
 
       // All seats should be selectable
-      expect(seats[0].disabledReason).toBeUndefined();
-      expect(seats[1].disabledReason).toBeUndefined();
-      expect(seats[2].disabledReason).toBeUndefined();
+      expect(seats[0]!.disabledReason).toBeUndefined();
+      expect(seats[1]!.disabledReason).toBeUndefined();
+      expect(seats[2]!.disabledReason).toBeUndefined();
     });
   });
 
@@ -645,10 +645,10 @@ describe('buildSeatViewModels', () => {
       const seats = buildSeatViewModels(state, 0, true, null);
 
       // Wolf seat 0 should show formatted badge
-      expect(seats[0].wolfVoteBadge).toBe('袭击3号');
+      expect(seats[0]!.wolfVoteBadge).toBe('袭击3号');
       // Non-wolf seats should not have wolfVoteBadge
-      expect(seats[1].wolfVoteBadge).toBeUndefined();
-      expect(seats[2].wolfVoteBadge).toBeUndefined();
+      expect(seats[1]!.wolfVoteBadge).toBeUndefined();
+      expect(seats[2]!.wolfVoteBadge).toBeUndefined();
     });
 
     it('should NOT populate wolfVoteBadge when showWolves=false', () => {
@@ -656,14 +656,14 @@ describe('buildSeatViewModels', () => {
       const seats = buildSeatViewModels(state, 0, false, null);
 
       // Even though wolf voted, showWolves=false hides it
-      expect(seats[0].wolfVoteBadge).toBeUndefined();
+      expect(seats[0]!.wolfVoteBadge).toBeUndefined();
     });
 
     it('should show schema emptyVoteText for empty knife vote', () => {
       const state = createWolfVoteState({ '0': -1 }); // seat 0 voted empty knife
       const seats = buildSeatViewModels(state, 0, true, null);
 
-      expect(seats[0].wolfVoteBadge).toBe('放弃袭击');
+      expect(seats[0]!.wolfVoteBadge).toBe('放弃袭击');
     });
 
     it('wolfVoteBadge and showReadyBadge should be mutually exclusive', () => {
@@ -671,8 +671,8 @@ describe('buildSeatViewModels', () => {
       const seats = buildSeatViewModels(state, 0, true, null);
 
       // Wolf seat 0 has wolfVoteBadge → showReadyBadge must be false
-      expect(seats[0].wolfVoteBadge).toBe('袭击3号');
-      expect(seats[0].showReadyBadge).toBe(false);
+      expect(seats[0]!.wolfVoteBadge).toBe('袭击3号');
+      expect(seats[0]!.showReadyBadge).toBe(false);
     });
   });
 
@@ -736,9 +736,9 @@ describe('buildSeatViewModels', () => {
         showReadyBadges: true,
       });
 
-      expect(seats[0].showReadyBadge).toBe(true);
-      expect(seats[1].showReadyBadge).toBe(false); // has NOT viewed
-      expect(seats[2].showReadyBadge).toBe(true);
+      expect(seats[0]!.showReadyBadge).toBe(true);
+      expect(seats[1]!.showReadyBadge).toBe(false); // has NOT viewed
+      expect(seats[2]!.showReadyBadge).toBe(true);
     });
 
     it('should not show ready badge when player slot is null', () => {
@@ -769,7 +769,7 @@ describe('buildSeatViewModels', () => {
         showReadyBadges: true,
       });
 
-      expect(seats[0].showReadyBadge).toBe(false);
+      expect(seats[0]!.showReadyBadge).toBe(false);
     });
 
     it('should not show ready badge when showReadyBadges is not set', () => {
@@ -808,7 +808,7 @@ describe('buildSeatViewModels', () => {
       };
 
       const seats = buildSeatViewModels(mockState, null, false, null);
-      expect(seats[0].showReadyBadge).toBeFalsy();
+      expect(seats[0]!.showReadyBadge).toBeFalsy();
     });
   });
 
@@ -841,9 +841,9 @@ describe('buildSeatViewModels', () => {
         secondSelectedSeat: 2,
       });
 
-      expect(seats[0].isSelected).toBe(true); // primary
-      expect(seats[1].isSelected).toBe(false);
-      expect(seats[2].isSelected).toBe(true); // secondary
+      expect(seats[0]!.isSelected).toBe(true); // primary
+      expect(seats[1]!.isSelected).toBe(false);
+      expect(seats[2]!.isSelected).toBe(true); // secondary
     });
   });
 });
