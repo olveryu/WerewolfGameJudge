@@ -10,6 +10,9 @@ compatibility_flags = ["nodejs_compat"]
 # ── Env vars (test-only) ─────────────────────────────────────────────────────
 [vars]
 JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
+CORS_ORIGIN = "*"
+ENVIRONMENT = "test"
+SENTRY_DSN = ""
 
 # ── D1 Database (local miniflare) ───────────────────────────────────────────
 [[d1_databases]]

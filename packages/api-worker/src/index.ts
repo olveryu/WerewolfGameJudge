@@ -56,7 +56,7 @@ const log = createLogger('worker');
 app.use(
   '*',
   cors({
-    origin: (_, c) => c.env.CORS_ORIGIN ?? '*',
+    origin: (_, c) => c.env.CORS_ORIGIN,
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id'],
     maxAge: 3600,
