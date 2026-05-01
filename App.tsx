@@ -192,10 +192,19 @@ function dismissWebSplash() {
   const bar = splash.querySelector<HTMLElement>('.progress-bar');
   if (bar) bar.style.width = '100%';
   if (pctEl) pctEl.textContent = '100%';
-  setTimeout(() => {
-    splash.classList.add('hidden');
-    setTimeout(() => splash.remove(), 300); // match CSS transition duration
-  }, 200);
+
+  // 切换 body 背景到主题色（splash 是 z-index:9999 全覆盖，切换时用户看不到）
+  const themeBg = document.documentElement.style.getPropertyValue('--theme-bg') || '#F2F2F7';
+  document.documentElement.style.backgroundColor = themeBg;
+  document.body.style.backgroundColor = themeBg;
+
+  // 等一帧让浏览器完成背景渲染，再淡出 splash，避免闪色
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      splash.classList.add('hidden');
+      setTimeout(() => splash.remove(), 300); // match CSS transition duration
+    }, 200);
+  });
 }
 
 /**

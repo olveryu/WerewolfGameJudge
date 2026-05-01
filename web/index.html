@@ -55,7 +55,7 @@
       /* These styles disable body scrolling if you are using <ScrollView> */
       body {
         overflow: hidden;
-        background-color: #f2f2f7;
+        background-color: #0a0a12;
       }
       /* These styles make the root element full-height */
       #root {
@@ -69,14 +69,14 @@
     </style>
 
     <style>
-      /* 全屏样式 - 使用 light 主题默认背景色 */
+      /* 全屏样式 — 初始暗色匹配 splash，dismissWebSplash 后切换到主题色 */
       html,
       body,
       #root {
         width: 100%;
         margin: 0;
         padding: 0;
-        background-color: #f2f2f7;
+        background-color: #0a0a12;
         /* 防止双击缩放延迟，替代 user-scalable=no（保留无障碍缩放能力） */
         touch-action: manipulation;
       }
@@ -488,11 +488,11 @@
         }
         var theme = THEMES[themeKey];
 
-        // 应用背景色（splash 使用自身暗色背景，不随主题变）
-        document.documentElement.style.backgroundColor = theme.background;
-        document.body.style.backgroundColor = theme.background;
-        document.documentElement.style.color = theme.text;
+        // 背景色：splash 期间用暗色（#0a0a12），避免闪白。
+        // 主题背景色存入 CSS 变量，由 dismissWebSplash 在 splash 淡出后应用。
+        document.documentElement.style.setProperty('--theme-bg', theme.background);
         document.documentElement.style.setProperty('--theme-primary', theme.primary);
+        document.documentElement.style.color = theme.text;
 
         // 更新 theme-color meta
         var themeMeta = document.querySelector('meta[name="theme-color"]');
