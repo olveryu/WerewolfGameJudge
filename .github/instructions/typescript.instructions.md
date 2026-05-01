@@ -10,6 +10,12 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 
 - 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。api-worker handler body 校验用 `jsonBody(schema)` 中间件 + `c.req.valid('json')`，禁止 `as` cast。
 - `unknown` + 类型收窄替代 `any`（第三方库类型缺失需附注释 suppress）。
+- ESLint `@typescript-eslint/no-unsafe-*` 六条规则（`no-unsafe-argument`、`no-unsafe-assignment`、`no-unsafe-call`、`no-unsafe-member-access`、`no-unsafe-return`、`no-unsafe-enum-comparison`）均为 `error`，禁止 `any` 泄漏到类型安全代码中。
+- `noUncheckedIndexedAccess` 已启用。数组/字典索引访问返回 `T | undefined`，必须处理：
+  - 已有 length / boundary 守卫证明安全：用 `!` non-null assertion（`arr[i]!`）。
+  - 无法证明安全：用 narrowing guard 或 optional chaining 处理 `undefined`。
+  - 复合赋值（`+=`、`|=`）需展开：`data[x] = data[x]! + y`。
+  - 禁止对已经是非 `undefined` 类型的表达式加 `!`（ESLint `no-unnecessary-type-assertion` 会报警告）。
 - Discriminated Union（`type` / `kind` 标签字段），禁止 optional 字段堆叠区分变体。
 - Exhaustive `switch`：`default` 用 `assertNever` 或 `const _: never`。
 - `satisfies` 用于"既检查类型又保留字面量推导"（`ROLE_SPECS`、`SCHEMAS`、config 对象等）。
