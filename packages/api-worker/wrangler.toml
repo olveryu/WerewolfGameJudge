@@ -5,8 +5,11 @@ compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = false
 
-# ── Observability (Workers Logs — structured JSON, dashboard 可查询) ──────────
+# ── Observability (Workers Logs + Traces — structured JSON, dashboard 可查询) ─
 [observability]
+enabled = true
+
+[observability.traces]
 enabled = true
 
 # ── Smart Placement (自动将 Worker 调度到离后端服务更近的节点) ────────────
