@@ -197,7 +197,7 @@ jobs:
 
           printf '{"name":"werewolf-judge-cdn","version":"%s","description":"Runtime asset loader and manifest for the WerewolfJudge web app — fonts, audio sprites, and image bundles","license":"MIT","keywords":["werewolf","assets","manifest","loader"],"main":"index.js","files":["index.js","assets/","wasm/","README.md"],"repository":{"type":"git","url":"https://github.com/olveryu/WerewolfGameJudge.git"}}' "$PKG_VERSION" > "$WORK/package.json"
           cd "$WORK"
-          npm publish --access public
+          npm publish --access public --tag latest
           echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
           echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
 
