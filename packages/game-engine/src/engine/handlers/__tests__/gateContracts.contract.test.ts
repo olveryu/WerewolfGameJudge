@@ -18,6 +18,7 @@ import {
 } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
+import type { ActionRejectedAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
@@ -156,9 +157,11 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     const rej = expectRejection(result);
     expect(rej.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     // Must produce ACTION_REJECTED action for UI broadcast
-    const rejectedAction = rej.actions.find((a) => a.type === 'ACTION_REJECTED');
+    const rejectedAction = rej.actions.find(
+      (a): a is ActionRejectedAction => a.type === 'ACTION_REJECTED',
+    );
     expect(rejectedAction).toBeTruthy();
-    expect((rejectedAction as any).payload.reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    expect(rejectedAction!.payload.reason).toBe(BLOCKED_UI_DEFAULTS.message);
   });
 
   /**

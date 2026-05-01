@@ -11,8 +11,8 @@
  *   - screens/ → services/ with runtime (non-type) imports, except allowed enums
  */
 
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 // ─── Shared file walker ─────────────────────────────────────────────────────
 

@@ -84,7 +84,7 @@ export function processAction(
     return { success: false, reason: 'ROOM_NOT_FOUND' };
   }
 
-  const state: GameState = JSON.parse(rows[0].game_state as string);
+  const state = JSON.parse(rows[0].game_state as string) as GameState;
   const revision = rows[0].revision as number;
 
   // 2. 调用 game-engine 纯函数

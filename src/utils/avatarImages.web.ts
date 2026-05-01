@@ -6,96 +6,185 @@
  */
 import type { HandDrawnAvatarId } from '@werewolf/game-engine/growth/rewardCatalog';
 
+// --- Raw avatar imports ---
+import avenger from '../../assets/avatars/web/avenger.webp';
+import awakenedGargoyle from '../../assets/avatars/web/awakenedGargoyle.webp';
+import bloodMoon from '../../assets/avatars/web/bloodMoon.webp';
+import crow from '../../assets/avatars/web/crow.webp';
+import cupid from '../../assets/avatars/web/cupid.webp';
+import cursedFox from '../../assets/avatars/web/cursedFox.webp';
+import dancer from '../../assets/avatars/web/dancer.webp';
+import darkWolfKing from '../../assets/avatars/web/darkWolfKing.webp';
+import dreamcatcher from '../../assets/avatars/web/dreamcatcher.webp';
+import drunkSeer from '../../assets/avatars/web/drunkSeer.webp';
+import gargoyle from '../../assets/avatars/web/gargoyle.webp';
+import graveyardKeeper from '../../assets/avatars/web/graveyardKeeper.webp';
+import guard from '../../assets/avatars/web/guard.webp';
+import hunter from '../../assets/avatars/web/hunter.webp';
+import idiot from '../../assets/avatars/web/idiot.webp';
+import knight from '../../assets/avatars/web/knight.webp';
+import magician from '../../assets/avatars/web/magician.webp';
+import maskedMan from '../../assets/avatars/web/maskedMan.webp';
+import masquerade from '../../assets/avatars/web/masquerade.webp';
+import mirrorSeer from '../../assets/avatars/web/mirrorSeer.webp';
+import nightmare from '../../assets/avatars/web/nightmare.webp';
+import piper from '../../assets/avatars/web/piper.webp';
+import poisoner from '../../assets/avatars/web/poisoner.webp';
+import psychic from '../../assets/avatars/web/psychic.webp';
+import pureWhite from '../../assets/avatars/web/pureWhite.webp';
+import seer from '../../assets/avatars/web/seer.webp';
+import shadow from '../../assets/avatars/web/shadow.webp';
+import silenceElder from '../../assets/avatars/web/silenceElder.webp';
+import slacker from '../../assets/avatars/web/slacker.webp';
+import spiritKnight from '../../assets/avatars/web/spiritKnight.webp';
+import thief from '../../assets/avatars/web/thief.webp';
+import treasureMaster from '../../assets/avatars/web/treasureMaster.webp';
+import villager from '../../assets/avatars/web/villager.webp';
+import votebanElder from '../../assets/avatars/web/votebanElder.webp';
+import warden from '../../assets/avatars/web/warden.webp';
+import wildChild from '../../assets/avatars/web/wildChild.webp';
+import witch from '../../assets/avatars/web/witch.webp';
+import witcher from '../../assets/avatars/web/witcher.webp';
+import wolf from '../../assets/avatars/web/wolf.webp';
+import wolfKing from '../../assets/avatars/web/wolfKing.webp';
+import wolfQueen from '../../assets/avatars/web/wolfQueen.webp';
+import wolfRobot from '../../assets/avatars/web/wolfRobot.webp';
+import wolfWitch from '../../assets/avatars/web/wolfWitch.webp';
+// --- Thumbnail imports ---
+import thumb_avenger from '../../assets/badges/web/role_avenger.webp';
+import thumb_awakenedGargoyle from '../../assets/badges/web/role_awakenedGargoyle.webp';
+import thumb_bloodMoon from '../../assets/badges/web/role_bloodMoon.webp';
+import thumb_crow from '../../assets/badges/web/role_crow.webp';
+import thumb_cupid from '../../assets/badges/web/role_cupid.webp';
+import thumb_cursedFox from '../../assets/badges/web/role_cursedFox.webp';
+import thumb_dancer from '../../assets/badges/web/role_dancer.webp';
+import thumb_darkWolfKing from '../../assets/badges/web/role_darkWolfKing.webp';
+import thumb_dreamcatcher from '../../assets/badges/web/role_dreamcatcher.webp';
+import thumb_drunkSeer from '../../assets/badges/web/role_drunkSeer.webp';
+import thumb_gargoyle from '../../assets/badges/web/role_gargoyle.webp';
+import thumb_graveyardKeeper from '../../assets/badges/web/role_graveyardKeeper.webp';
+import thumb_guard from '../../assets/badges/web/role_guard.webp';
+import thumb_hunter from '../../assets/badges/web/role_hunter.webp';
+import thumb_idiot from '../../assets/badges/web/role_idiot.webp';
+import thumb_knight from '../../assets/badges/web/role_knight.webp';
+import thumb_magician from '../../assets/badges/web/role_magician.webp';
+import thumb_maskedMan from '../../assets/badges/web/role_maskedMan.webp';
+import thumb_masquerade from '../../assets/badges/web/role_masquerade.webp';
+import thumb_mirrorSeer from '../../assets/badges/web/role_mirrorSeer.webp';
+import thumb_nightmare from '../../assets/badges/web/role_nightmare.webp';
+import thumb_piper from '../../assets/badges/web/role_piper.webp';
+import thumb_poisoner from '../../assets/badges/web/role_poisoner.webp';
+import thumb_psychic from '../../assets/badges/web/role_psychic.webp';
+import thumb_pureWhite from '../../assets/badges/web/role_pureWhite.webp';
+import thumb_seer from '../../assets/badges/web/role_seer.webp';
+import thumb_shadow from '../../assets/badges/web/role_shadow.webp';
+import thumb_silenceElder from '../../assets/badges/web/role_silenceElder.webp';
+import thumb_slacker from '../../assets/badges/web/role_slacker.webp';
+import thumb_spiritKnight from '../../assets/badges/web/role_spiritKnight.webp';
+import thumb_thief from '../../assets/badges/web/role_thief.webp';
+import thumb_treasureMaster from '../../assets/badges/web/role_treasureMaster.webp';
+import thumb_villager from '../../assets/badges/web/role_villager.webp';
+import thumb_votebanElder from '../../assets/badges/web/role_votebanElder.webp';
+import thumb_warden from '../../assets/badges/web/role_warden.webp';
+import thumb_wildChild from '../../assets/badges/web/role_wildChild.webp';
+import thumb_witch from '../../assets/badges/web/role_witch.webp';
+import thumb_witcher from '../../assets/badges/web/role_witcher.webp';
+import thumb_wolf from '../../assets/badges/web/role_wolf.webp';
+import thumb_wolfKing from '../../assets/badges/web/role_wolfKing.webp';
+import thumb_wolfQueen from '../../assets/badges/web/role_wolfQueen.webp';
+import thumb_wolfRobot from '../../assets/badges/web/role_wolfRobot.webp';
+import thumb_wolfWitch from '../../assets/badges/web/role_wolfWitch.webp';
+
 // prettier-ignore
 export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
-  avenger: require('../../assets/avatars/web/avenger.webp'),
-  awakenedGargoyle: require('../../assets/avatars/web/awakenedGargoyle.webp'),
-  bloodMoon: require('../../assets/avatars/web/bloodMoon.webp'),
-  crow: require('../../assets/avatars/web/crow.webp'),
-  cursedFox: require('../../assets/avatars/web/cursedFox.webp'),
-  cupid: require('../../assets/avatars/web/cupid.webp'),
-  dancer: require('../../assets/avatars/web/dancer.webp'),
-  darkWolfKing: require('../../assets/avatars/web/darkWolfKing.webp'),
-  dreamcatcher: require('../../assets/avatars/web/dreamcatcher.webp'),
-  drunkSeer: require('../../assets/avatars/web/drunkSeer.webp'),
-  gargoyle: require('../../assets/avatars/web/gargoyle.webp'),
-  graveyardKeeper: require('../../assets/avatars/web/graveyardKeeper.webp'),
-  guard: require('../../assets/avatars/web/guard.webp'),
-  hunter: require('../../assets/avatars/web/hunter.webp'),
-  idiot: require('../../assets/avatars/web/idiot.webp'),
-  knight: require('../../assets/avatars/web/knight.webp'),
-  magician: require('../../assets/avatars/web/magician.webp'),
-  maskedMan: require('../../assets/avatars/web/maskedMan.webp'),
-  masquerade: require('../../assets/avatars/web/masquerade.webp'),
-  mirrorSeer: require('../../assets/avatars/web/mirrorSeer.webp'),
-  nightmare: require('../../assets/avatars/web/nightmare.webp'),
-  piper: require('../../assets/avatars/web/piper.webp'),
-  poisoner: require('../../assets/avatars/web/poisoner.webp'),
-  psychic: require('../../assets/avatars/web/psychic.webp'),
-  pureWhite: require('../../assets/avatars/web/pureWhite.webp'),
-  seer: require('../../assets/avatars/web/seer.webp'),
-  shadow: require('../../assets/avatars/web/shadow.webp'),
-  silenceElder: require('../../assets/avatars/web/silenceElder.webp'),
-  slacker: require('../../assets/avatars/web/slacker.webp'),
-  spiritKnight: require('../../assets/avatars/web/spiritKnight.webp'),
-  thief: require('../../assets/avatars/web/thief.webp'),
-  treasureMaster: require('../../assets/avatars/web/treasureMaster.webp'),
-  villager: require('../../assets/avatars/web/villager.webp'),
-  votebanElder: require('../../assets/avatars/web/votebanElder.webp'),
-  warden: require('../../assets/avatars/web/warden.webp'),
-  wildChild: require('../../assets/avatars/web/wildChild.webp'),
-  witch: require('../../assets/avatars/web/witch.webp'),
-  witcher: require('../../assets/avatars/web/witcher.webp'),
-  wolf: require('../../assets/avatars/web/wolf.webp'),
-  wolfKing: require('../../assets/avatars/web/wolfKing.webp'),
-  wolfQueen: require('../../assets/avatars/web/wolfQueen.webp'),
-  wolfRobot: require('../../assets/avatars/web/wolfRobot.webp'),
-  wolfWitch: require('../../assets/avatars/web/wolfWitch.webp'),
+  avenger,
+  awakenedGargoyle,
+  bloodMoon,
+  crow,
+  cursedFox,
+  cupid,
+  dancer,
+  darkWolfKing,
+  dreamcatcher,
+  drunkSeer,
+  gargoyle,
+  graveyardKeeper,
+  guard,
+  hunter,
+  idiot,
+  knight,
+  magician,
+  maskedMan,
+  masquerade,
+  mirrorSeer,
+  nightmare,
+  piper,
+  poisoner,
+  psychic,
+  pureWhite,
+  seer,
+  shadow,
+  silenceElder,
+  slacker,
+  spiritKnight,
+  thief,
+  treasureMaster,
+  villager,
+  votebanElder,
+  warden,
+  wildChild,
+  witch,
+  witcher,
+  wolf,
+  wolfKing,
+  wolfQueen,
+  wolfRobot,
+  wolfWitch,
 };
 
 // prettier-ignore
 export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
-  avenger: require('../../assets/badges/web/role_avenger.webp'),
-  awakenedGargoyle: require('../../assets/badges/web/role_awakenedGargoyle.webp'),
-  bloodMoon: require('../../assets/badges/web/role_bloodMoon.webp'),
-  crow: require('../../assets/badges/web/role_crow.webp'),
-  cursedFox: require('../../assets/badges/web/role_cursedFox.webp'),
-  cupid: require('../../assets/badges/web/role_cupid.webp'),
-  dancer: require('../../assets/badges/web/role_dancer.webp'),
-  darkWolfKing: require('../../assets/badges/web/role_darkWolfKing.webp'),
-  dreamcatcher: require('../../assets/badges/web/role_dreamcatcher.webp'),
-  drunkSeer: require('../../assets/badges/web/role_drunkSeer.webp'),
-  gargoyle: require('../../assets/badges/web/role_gargoyle.webp'),
-  graveyardKeeper: require('../../assets/badges/web/role_graveyardKeeper.webp'),
-  guard: require('../../assets/badges/web/role_guard.webp'),
-  hunter: require('../../assets/badges/web/role_hunter.webp'),
-  idiot: require('../../assets/badges/web/role_idiot.webp'),
-  knight: require('../../assets/badges/web/role_knight.webp'),
-  magician: require('../../assets/badges/web/role_magician.webp'),
-  maskedMan: require('../../assets/badges/web/role_maskedMan.webp'),
-  masquerade: require('../../assets/badges/web/role_masquerade.webp'),
-  mirrorSeer: require('../../assets/badges/web/role_mirrorSeer.webp'),
-  nightmare: require('../../assets/badges/web/role_nightmare.webp'),
-  piper: require('../../assets/badges/web/role_piper.webp'),
-  poisoner: require('../../assets/badges/web/role_poisoner.webp'),
-  psychic: require('../../assets/badges/web/role_psychic.webp'),
-  pureWhite: require('../../assets/badges/web/role_pureWhite.webp'),
-  seer: require('../../assets/badges/web/role_seer.webp'),
-  shadow: require('../../assets/badges/web/role_shadow.webp'),
-  silenceElder: require('../../assets/badges/web/role_silenceElder.webp'),
-  slacker: require('../../assets/badges/web/role_slacker.webp'),
-  spiritKnight: require('../../assets/badges/web/role_spiritKnight.webp'),
-  thief: require('../../assets/badges/web/role_thief.webp'),
-  treasureMaster: require('../../assets/badges/web/role_treasureMaster.webp'),
-  villager: require('../../assets/badges/web/role_villager.webp'),
-  votebanElder: require('../../assets/badges/web/role_votebanElder.webp'),
-  warden: require('../../assets/badges/web/role_warden.webp'),
-  wildChild: require('../../assets/badges/web/role_wildChild.webp'),
-  witch: require('../../assets/badges/web/role_witch.webp'),
-  witcher: require('../../assets/badges/web/role_witcher.webp'),
-  wolf: require('../../assets/badges/web/role_wolf.webp'),
-  wolfKing: require('../../assets/badges/web/role_wolfKing.webp'),
-  wolfQueen: require('../../assets/badges/web/role_wolfQueen.webp'),
-  wolfRobot: require('../../assets/badges/web/role_wolfRobot.webp'),
-  wolfWitch: require('../../assets/badges/web/role_wolfWitch.webp'),
+  avenger: thumb_avenger,
+  awakenedGargoyle: thumb_awakenedGargoyle,
+  bloodMoon: thumb_bloodMoon,
+  crow: thumb_crow,
+  cursedFox: thumb_cursedFox,
+  cupid: thumb_cupid,
+  dancer: thumb_dancer,
+  darkWolfKing: thumb_darkWolfKing,
+  dreamcatcher: thumb_dreamcatcher,
+  drunkSeer: thumb_drunkSeer,
+  gargoyle: thumb_gargoyle,
+  graveyardKeeper: thumb_graveyardKeeper,
+  guard: thumb_guard,
+  hunter: thumb_hunter,
+  idiot: thumb_idiot,
+  knight: thumb_knight,
+  magician: thumb_magician,
+  maskedMan: thumb_maskedMan,
+  masquerade: thumb_masquerade,
+  mirrorSeer: thumb_mirrorSeer,
+  nightmare: thumb_nightmare,
+  piper: thumb_piper,
+  poisoner: thumb_poisoner,
+  psychic: thumb_psychic,
+  pureWhite: thumb_pureWhite,
+  seer: thumb_seer,
+  shadow: thumb_shadow,
+  silenceElder: thumb_silenceElder,
+  slacker: thumb_slacker,
+  spiritKnight: thumb_spiritKnight,
+  thief: thumb_thief,
+  treasureMaster: thumb_treasureMaster,
+  villager: thumb_villager,
+  votebanElder: thumb_votebanElder,
+  warden: thumb_warden,
+  wildChild: thumb_wildChild,
+  witch: thumb_witch,
+  witcher: thumb_witcher,
+  wolf: thumb_wolf,
+  wolfKing: thumb_wolfKing,
+  wolfQueen: thumb_wolfQueen,
+  wolfRobot: thumb_wolfRobot,
+  wolfWitch: thumb_wolfWitch,
 };

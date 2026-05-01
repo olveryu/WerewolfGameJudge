@@ -6,10 +6,10 @@
  * excluding tests, stories, and the logger abstraction itself.
  */
 
-describe('No console.* in production code', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
+describe('No console.* in production code', () => {
   /** Files allowed to use console.* directly */
   const ALLOWED_FILES = new Set([
     path.join(process.cwd(), 'src/utils/logger.ts'),
@@ -70,9 +70,6 @@ describe('No console.* in production code', () => {
 });
 
 describe('No Math.random in speakOrder logic', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-
   it('should not use Math.random in useRoomHostDialogs.ts', () => {
     const fullPath = path.join(process.cwd(), 'src/screens/RoomScreen/useRoomHostDialogs.ts');
     const content = fs.readFileSync(fullPath, 'utf-8');

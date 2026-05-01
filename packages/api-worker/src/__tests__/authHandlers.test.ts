@@ -10,6 +10,40 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
+// ── Response type contracts ─────────────────────────────────────────────────
+
+interface AuthSuccessResponse {
+  access_token: string;
+  user: {
+    id: string;
+    email: string | null;
+    is_anonymous: boolean;
+    user_metadata: { display_name?: string };
+  };
+}
+
+interface AuthErrorResponse {
+  error: string;
+  reason?: string;
+}
+
+interface UserProfileResponse {
+  data: {
+    user: {
+      id: string;
+      email: string | null;
+      is_anonymous: boolean;
+      user_metadata: { display_name?: string };
+    };
+  };
+}
+
+interface ResetPasswordSuccessResponse {
+  success: boolean;
+  access_token: string;
+  user: { email: string };
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 async function postJson(path: string, body: unknown, token?: string): Promise<Response> {
@@ -62,7 +96,7 @@ describe('POST /auth/anonymous', () => {
     const res = await postJson('/auth/anonymous', {});
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     expect(body.access_token).toBeTruthy();
     expect(body.user.id).toBeTruthy();
     expect(body.user.is_anonymous).toBe(true);
@@ -72,8 +106,8 @@ describe('POST /auth/anonymous', () => {
   it('creates distinct users on consecutive calls', async () => {
     const res1 = await postJson('/auth/anonymous', {});
     const res2 = await postJson('/auth/anonymous', {});
-    const body1 = await res1.json();
-    const body2 = await res2.json();
+    const body1 = await res1.json<AuthSuccessResponse>();
+    const body2 = await res2.json<AuthSuccessResponse>();
     expect(body1.user.id).not.toBe(body2.user.id);
   });
 });
@@ -88,7 +122,7 @@ describe('POST /auth/signup', () => {
     });
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     expect(body.access_token).toBeTruthy();
     expect(body.user.email).toBe('new@test.local');
     expect(body.user.is_anonymous).toBe(false);
@@ -99,7 +133,7 @@ describe('POST /auth/signup', () => {
       email: 'bonus@test.local',
       password: 'pass123',
     });
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
 
     // Check user_stats for welcome bonus (5 normal + 1 golden)
     const stats = await env.DB.prepare(
@@ -117,7 +151,7 @@ describe('POST /auth/signup', () => {
     const res = await postJson('/auth/signup', { email: 'dup@test.local', password: 'pass456' });
     expect(res.status).toBe(409);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('email already registered');
   });
 
@@ -127,7 +161,7 @@ describe('POST /auth/signup', () => {
       password: 'pass123',
       displayName: 'MyName',
     });
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     expect(body.user.user_metadata.display_name).toBe('MyName');
   });
 
@@ -136,14 +170,14 @@ describe('POST /auth/signup', () => {
       email: 'UPPER@Test.LOCAL',
       password: 'pass123',
     });
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     expect(body.user.email).toBe('upper@test.local');
   });
 
   it('upgrades anonymous user in-place', async () => {
     // Create anonymous user
     const anonRes = await postJson('/auth/anonymous', {});
-    const anonBody = await anonRes.json();
+    const anonBody = await anonRes.json<AuthSuccessResponse>();
 
     // Signup with same token → upgrade
     const res = await postJson(
@@ -153,7 +187,7 @@ describe('POST /auth/signup', () => {
     );
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     // UID should be preserved
     expect(body.user.id).toBe(anonBody.user.id);
     expect(body.user.email).toBe('upgraded@test.local');
@@ -164,7 +198,7 @@ describe('POST /auth/signup', () => {
     const res = await postJson('/auth/signup', { email: 'bad@test.local' });
     expect(res.status).toBe(400);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.reason).toBe('VALIDATION_ERROR');
   });
 });
@@ -184,7 +218,7 @@ describe('POST /auth/signin', () => {
     });
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<AuthSuccessResponse>();
     expect(body.access_token).toBeTruthy();
     expect(body.user.email).toBe('login@test.local');
     expect(body.user.is_anonymous).toBe(false);
@@ -197,7 +231,7 @@ describe('POST /auth/signin', () => {
     });
     expect(res.status).toBe(401);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('invalid credentials');
   });
 
@@ -208,7 +242,7 @@ describe('POST /auth/signin', () => {
     });
     expect(res.status).toBe(401);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('invalid credentials');
   });
 
@@ -225,7 +259,7 @@ describe('POST /auth/signin', () => {
     });
     expect(res.status).toBe(429);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('too many login attempts, try again later');
   });
 });
@@ -250,12 +284,12 @@ describe('GET /auth/user', () => {
       password: 'pass123',
       displayName: 'Profiler',
     });
-    const { access_token } = await signupRes.json();
+    const { access_token } = await signupRes.json<AuthSuccessResponse>();
 
     const res = await getJson('/auth/user', access_token);
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<UserProfileResponse>();
     expect(body.data.user.email).toBe('profile@test.local');
     expect(body.data.user.is_anonymous).toBe(false);
     expect(body.data.user.user_metadata.display_name).toBe('Profiler');
@@ -270,17 +304,17 @@ describe('PUT /auth/profile', () => {
       email: 'upd@test.local',
       password: 'pass123',
     });
-    const { access_token } = await signupRes.json();
+    const { access_token } = await signupRes.json<AuthSuccessResponse>();
 
     const res = await putJson('/auth/profile', { displayName: 'NewName' }, access_token);
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<{ success: boolean }>();
     expect(body.success).toBe(true);
 
     // Verify via GET /auth/user
     const userRes = await getJson('/auth/user', access_token);
-    const userBody = await userRes.json();
+    const userBody = await userRes.json<UserProfileResponse>();
     expect(userBody.data.user.user_metadata.display_name).toBe('NewName');
   });
 
@@ -298,7 +332,7 @@ describe('PUT /auth/profile', () => {
       email: 'noop@test.local',
       password: 'pass123',
     });
-    const { access_token } = await signupRes.json();
+    const { access_token } = await signupRes.json<AuthSuccessResponse>();
 
     const res = await putJson('/auth/profile', {}, access_token);
     expect(res.status).toBe(200);
@@ -315,7 +349,7 @@ describe('PUT /auth/password', () => {
       email: 'pw@test.local',
       password: 'oldpass',
     });
-    token = (await res.json()).access_token;
+    token = (await res.json<AuthSuccessResponse>()).access_token;
   });
 
   it('changes password with correct old password', async () => {
@@ -342,13 +376,13 @@ describe('PUT /auth/password', () => {
     );
     expect(res.status).toBe(401);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('invalid old password');
   });
 
   it('rejects anonymous user password change', async () => {
     const anonRes = await postJson('/auth/anonymous', {});
-    const anonBody = await anonRes.json();
+    const anonBody = await anonRes.json<AuthSuccessResponse>();
 
     const res = await putJson(
       '/auth/password',
@@ -357,7 +391,7 @@ describe('PUT /auth/password', () => {
     );
     expect(res.status).toBe(400);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('account has no password (anonymous user)');
   });
 });
@@ -370,12 +404,12 @@ describe('POST /auth/signout', () => {
       email: 'out@test.local',
       password: 'pass123',
     });
-    const { access_token } = await signupRes.json();
+    const { access_token } = await signupRes.json<AuthSuccessResponse>();
 
     const res = await postJson('/auth/signout', {}, access_token);
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<{ success: boolean }>();
     expect(body.success).toBe(true);
   });
 
@@ -394,7 +428,7 @@ describe('password reset flow', () => {
     });
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<{ success: boolean }>();
     expect(body.success).toBe(true);
   });
 
@@ -412,7 +446,7 @@ describe('password reset flow', () => {
     });
     expect(res.status).toBe(400);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('invalid or expired code');
   });
 
@@ -454,7 +488,7 @@ describe('password reset flow', () => {
     });
     expect(res.status).toBe(200);
 
-    const body = await res.json();
+    const body = await res.json<ResetPasswordSuccessResponse>();
     expect(body.success).toBe(true);
     expect(body.access_token).toBeTruthy();
     expect(body.user.email).toBe('resetok@test.local');
@@ -511,7 +545,7 @@ describe('password reset flow', () => {
     });
     expect(res.status).toBe(400);
 
-    const body = await res.json();
+    const body = await res.json<AuthErrorResponse>();
     expect(body.error).toBe('invalid or expired code');
   });
 });

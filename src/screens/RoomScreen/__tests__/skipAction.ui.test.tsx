@@ -1,11 +1,13 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ChooseSeatSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -28,8 +30,9 @@ let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 
 const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema => {
   // Use the real schema as source-of-truth, then override the one test-specific knob.
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-  const schema = getSchema(schemaId);
+  const { getSchema } =
+    require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
+  const schema = getSchema(schemaId as SchemaId);
   if (schema.kind !== 'chooseSeat') {
     throw new Error(`Expected chooseSeat schema for ${schemaId}`);
   }
@@ -41,7 +44,7 @@ const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema
 
 // Minimal RoomScreen runtime: we only care that pressing "不用技能" triggers submitAction(null)
 jest.mock('../../../hooks/useGameRoom', () => {
-  const { GameStatus } = require('@werewolf/game-engine');
+  const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
     useGameRoom: () => {
       const gameState = {
@@ -79,10 +82,14 @@ jest.mock('../../../hooks/useGameRoom', () => {
         facade: { getState: () => gameState },
         gameState,
 
-        connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
+        connectionStatus: (
+          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
+        ).ConnectionStatus.Live,
 
         isHost: false,
-        roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+        roomStatus: (
+          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+        ).GameStatus.Ongoing,
 
         currentActionRole: 'seer',
         currentSchema: getChooseSeatSchema(mockedSchemaId),
@@ -176,18 +183,12 @@ describe('RoomScreen skip action UI', () => {
       throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
     }
 
-    const props: any = {
-      navigation: mockNavigation,
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '噩梦之影守卫',
-        },
-      },
-    };
+    const route = {
+      params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
+    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
+    const nav = mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation'];
 
-    const { queryByText } = render(<RoomScreen {...props} />);
+    const { queryByText } = render(<RoomScreen navigation={nav} route={route} />);
 
     // chooseSeat + canSkip=false => no bottom skip button
     await waitFor(() => {
@@ -202,18 +203,12 @@ describe('RoomScreen skip action UI', () => {
     if (!skipText) {
       throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
     }
-    const props: any = {
-      navigation: mockNavigation,
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '噩梦之影守卫',
-        },
-      },
-    };
+    const route = {
+      params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
+    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
+    const nav = mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation'];
 
-    const { findByText } = render(<RoomScreen {...props} />);
+    const { findByText } = render(<RoomScreen navigation={nav} route={route} />);
 
     const skipButton = await findByText(skipText);
     fireEvent.press(skipButton);
@@ -223,10 +218,10 @@ describe('RoomScreen skip action UI', () => {
     });
 
     // Confirm the *skip confirm* alert (auto-intent prompts may also call showAlert)
-    const skipCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '跳过本次行动？');
+    const skipCall = jest.mocked(showAlert).mock.calls.find((c) => c[0] === '跳过本次行动？');
     expect(skipCall).toBeDefined();
 
-    const buttons = skipCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = skipCall![2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
 

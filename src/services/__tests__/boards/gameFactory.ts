@@ -381,7 +381,10 @@ export function createGame(
       }
 
       default:
-        return { success: false, reason: `Unsupported message type: ${(msg as any).type}` };
+        return {
+          success: false,
+          reason: `Unsupported message type: ${(msg as { type: string }).type}`,
+        };
     }
   };
 

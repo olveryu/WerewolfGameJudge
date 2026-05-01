@@ -14,7 +14,10 @@
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
 
+import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { GameFacade } from '@/services/facade/GameFacade';
+import type { AudioService } from '@/services/infra/AudioService';
+import type { IRoomService } from '@/services/types/IRoomService';
 
 // P0-1: Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
@@ -69,7 +72,7 @@ describe('restartGame Contract (HTTP API)', () => {
     // DI: 直接注入 mock
     facade = new GameFacade({
       store: new GameStore(),
-      connectionManager: mockConnectionManager as any,
+      connectionManager: mockConnectionManager as unknown as ConnectionManager,
       audioService: {
         playNightAudio: jest.fn().mockResolvedValue(undefined),
         playNightEndAudio: jest.fn().mockResolvedValue(undefined),
@@ -80,10 +83,10 @@ describe('restartGame Contract (HTTP API)', () => {
         cleanup: jest.fn(),
         stop: jest.fn(),
         stopBgm: jest.fn(),
-      } as any,
+      } as unknown as AudioService,
       roomService: {
         getGameState: jest.fn().mockResolvedValue(null),
-      } as any,
+      } as unknown as IRoomService,
     });
 
     await facade.createRoom('1234', 'host-uid', mockTemplate);
@@ -111,7 +114,7 @@ describe('restartGame Contract (HTTP API)', () => {
         expect.stringContaining('/game/restart'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"1234"'),
+          body: expect.stringContaining('"roomCode":"1234"') as string,
         }),
       );
     });

@@ -5,7 +5,8 @@
  * based on game state and player seat.
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 import { generateQuickQuestions } from '@/components/AIChatBubble/quickQuestions';
 
@@ -36,7 +37,7 @@ describe('generateQuickQuestions', () => {
   });
 
   it('includes "本局角色技能介绍？" when templateRoles present', () => {
-    const state = makeMinimalState({ templateRoles: ['wolf', 'seer', 'villager'] as any[] });
+    const state = makeMinimalState({ templateRoles: ['wolf', 'seer', 'villager'] as RoleId[] });
     const qs = generateQuickQuestions(state, null);
     expect(qs).toContain('本局角色技能介绍？');
     expect(qs).toHaveLength(6);
@@ -44,10 +45,10 @@ describe('generateQuickQuestions', () => {
 
   it('includes role-specific questions when player has a role', () => {
     const state = makeMinimalState({
-      templateRoles: ['wolf', 'seer'] as any[],
+      templateRoles: ['wolf', 'seer'] as RoleId[],
       players: {
-        1: { role: 'wolf', seat: 1 },
-      } as any,
+        1: { role: 'wolf', seat: 1 } as unknown as Player,
+      },
     });
 
     // Run multiple times to account for randomness
@@ -64,10 +65,10 @@ describe('generateQuickQuestions', () => {
 
   it('returns 6 unique questions (no duplicates)', () => {
     const state = makeMinimalState({
-      templateRoles: ['wolf', 'seer'] as any[],
+      templateRoles: ['wolf', 'seer'] as RoleId[],
       players: {
-        2: { role: 'seer', seat: 2 },
-      } as any,
+        2: { role: 'seer', seat: 2 } as unknown as Player,
+      },
     });
 
     const qs = generateQuickQuestions(state, 2);
@@ -79,8 +80,8 @@ describe('generateQuickQuestions', () => {
     const state = makeMinimalState({
       templateRoles: [],
       players: {
-        0: { role: 'witch', seat: 0 },
-      } as any,
+        0: { role: 'witch', seat: 0 } as unknown as Player,
+      },
     });
 
     const qs = generateQuickQuestions(state, 0);
@@ -98,10 +99,10 @@ describe('generateQuickQuestions', () => {
 
   it('handles role with no defined ROLE_QUESTIONS entry', () => {
     const state = makeMinimalState({
-      templateRoles: ['unknownRole'] as any[],
+      templateRoles: ['unknownRole' as RoleId],
       players: {
-        1: { role: 'unknownRole' as any, seat: 1 },
-      } as any,
+        1: { role: 'unknownRole' as RoleId, seat: 1 } as unknown as Player,
+      },
     });
 
     const qs = generateQuickQuestions(state, 1);

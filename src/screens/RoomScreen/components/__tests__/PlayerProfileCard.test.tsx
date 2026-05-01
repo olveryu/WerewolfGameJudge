@@ -8,7 +8,7 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn() }),
 }));
 
-const mockUseUserProfileQuery = jest.fn();
+const mockUseUserProfileQuery = jest.fn<unknown, unknown[]>();
 jest.mock('@/hooks/queries/useUserProfileQuery', () => ({
   useUserProfileQuery: (...args: unknown[]) => mockUseUserProfileQuery(...args),
 }));

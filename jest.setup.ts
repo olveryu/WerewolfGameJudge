@@ -4,7 +4,7 @@
  */
 
 // Reanimated jest mock (must be before any component imports)
-require('react-native-reanimated').setUpTests();
+(require('react-native-reanimated') as { setUpTests: () => void }).setUpTests();
 
 // Safe area context — global mock via __mocks__/react-native-safe-area-context.tsx
 // (resolved by moduleNameMapper in jest.config.js)
@@ -333,9 +333,15 @@ jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { 
 jest.mock(
   'react-native/Libraries/Components/Touchable/TouchableOpacity',
   () => {
-    const React = require('react');
+    const React = require('react') as typeof import('react');
 
-    function TouchableOpacityShim(props: any) {
+    function TouchableOpacityShim(
+      props: Record<string, unknown> & {
+        children?: React.ReactNode;
+        onPress?: () => void;
+        disabled?: boolean;
+      },
+    ) {
       const { children, onPress, disabled, ...rest } = props;
       return React.createElement(
         'TouchableOpacity',

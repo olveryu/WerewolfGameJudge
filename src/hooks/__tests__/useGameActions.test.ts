@@ -7,13 +7,17 @@
 
 import { act, renderHook } from '@testing-library/react-native';
 
+import type { BgmControlState } from '@/hooks/useBgmControl';
+import type { DebugModeState } from '@/hooks/useDebugMode';
 import { useGameActions } from '@/hooks/useGameActions';
+import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { LocalGameState } from '@/types/GameStateTypes';
 
 // Mock showAlert
-const mockShowAlert = jest.fn();
+const mockShowAlert = jest.fn<void, [string, string]>();
 jest.mock('@/utils/alert', () => ({
-  ...jest.requireActual('@/utils/alert'),
-  showAlert: (...args: unknown[]) => mockShowAlert(...args),
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
+  showAlert: (...args: unknown[]) => mockShowAlert(...(args as [string, string])),
 }));
 
 // Toast is mapped via moduleNameMapper → __mocks__/sonner-native.ts
@@ -21,48 +25,96 @@ import { toast } from 'sonner-native';
 
 // ---- Factory helpers ----
 
-function createMockFacade(overrides: Record<string, unknown> = {}) {
+type MutationResult = { success: boolean; reason?: string };
+
+type MockFacade = {
+  [K in keyof IGameFacade]: jest.Mock;
+};
+
+function createMockFacade(overrides: Partial<MockFacade> = {}): MockFacade {
   return {
     isHostPlayer: jest.fn(() => true),
-    updateTemplate: jest.fn().mockResolvedValue({ success: true }),
-    assignRoles: jest.fn().mockResolvedValue({ success: true }),
-    startNight: jest.fn().mockResolvedValue({ success: true }),
-    restartGame: jest.fn().mockResolvedValue({ success: true }),
-    clearAllSeats: jest.fn().mockResolvedValue({ success: true }),
-    shareNightReview: jest.fn().mockResolvedValue({ success: true }),
-    setAudioPlaying: jest.fn().mockResolvedValue({ success: true }),
-    markViewedRole: jest.fn().mockResolvedValue({ success: true }),
-    submitAction: jest.fn().mockResolvedValue({ success: true }),
-    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
-    sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue({ success: true }),
-    postProgression: jest.fn().mockResolvedValue({ success: true }),
+    updateTemplate: jest
+      .fn<Promise<MutationResult>, [unknown]>()
+      .mockResolvedValue({ success: true }),
+    assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    clearAllSeats: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    shareNightReview: jest
+      .fn<Promise<MutationResult>, [number[]]>()
+      .mockResolvedValue({ success: true }),
+    setAudioPlaying: jest
+      .fn<Promise<MutationResult>, [boolean]>()
+      .mockResolvedValue({ success: true }),
+    markViewedRole: jest
+      .fn<Promise<MutationResult>, [number]>()
+      .mockResolvedValue({ success: true }),
+    submitAction: jest
+      .fn<Promise<MutationResult>, [number, string, number | null, unknown]>()
+      .mockResolvedValue({ success: true }),
+    submitRevealAck: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    sendWolfRobotHunterStatusViewed: jest
+      .fn<Promise<MutationResult>, [number]>()
+      .mockResolvedValue({ success: true }),
+    postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
     ...overrides,
-  } as any;
+  } as MockFacade;
 }
 
-function createMockBgm() {
+function createMockBgm(): Pick<BgmControlState, 'startBgmIfEnabled' | 'stopBgm'> {
   return { startBgmIfEnabled: jest.fn(), stopBgm: jest.fn() };
 }
 
-function createMockDebug(overrides: Record<string, unknown> = {}) {
+interface MockDebugOverrides {
+  controlledSeat?: number | null;
+  effectiveSeat?: number | null;
+  effectiveRole?: string | null;
+  setControlledSeat?: jest.Mock;
+}
+
+function createMockDebug(
+  overrides: MockDebugOverrides = {},
+): Pick<
+  DebugModeState,
+  'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
+> {
   return {
     controlledSeat: null,
     effectiveSeat: 1,
     effectiveRole: 'wolf',
     setControlledSeat: jest.fn(),
     ...overrides,
-  };
+  } as Pick<
+    DebugModeState,
+    'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
+  >;
 }
 
-function createDeps(overrides: Record<string, unknown> = {}) {
+type GameActionsDeps = Parameters<typeof useGameActions>[0];
+
+interface MockDepsOverrides {
+  facade?: MockFacade;
+  bgm?: Pick<BgmControlState, 'startBgmIfEnabled' | 'stopBgm'>;
+  debug?: Pick<
+    DebugModeState,
+    'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
+  >;
+  mySeat?: number | null;
+  gameState?: Partial<LocalGameState> | null;
+}
+
+function createDeps(overrides: MockDepsOverrides = {}): GameActionsDeps {
+  const { gameState, ...rest } = overrides;
   return {
     facade: createMockFacade(),
     bgm: createMockBgm(),
     debug: createMockDebug(),
     mySeat: 1,
     gameState: null,
-    ...overrides,
-  } as any;
+    ...rest,
+    ...(gameState !== undefined && { gameState: gameState as LocalGameState | null }),
+  } as unknown as GameActionsDeps;
 }
 
 // ---- Tests ----
@@ -74,16 +126,20 @@ describe('useGameActions - game control', () => {
     const deps = createDeps();
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.updateTemplate({ roles: [] } as any));
+    await act(() => result.current.updateTemplate({ name: '', numberOfPlayers: 0, roles: [] }));
 
-    expect(deps.facade.updateTemplate).toHaveBeenCalledWith({ roles: [] });
+    expect(deps.facade.updateTemplate).toHaveBeenCalledWith({
+      name: '',
+      numberOfPlayers: 0,
+      roles: [],
+    });
   });
 
   it('updateTemplate should skip when not host', async () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.updateTemplate({ roles: [] } as any));
+    await act(() => result.current.updateTemplate({ name: '', numberOfPlayers: 0, roles: [] }));
 
     expect(deps.facade.updateTemplate).not.toHaveBeenCalled();
   });
@@ -155,7 +211,7 @@ describe('useGameActions - game control', () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
     const { result } = renderHook(() => useGameActions(deps));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.setAudioPlaying(true);
     });
@@ -300,8 +356,13 @@ describe('useGameActions - game state queries', () => {
   });
 
   it('getLastNightInfo should return "昨夜平安夜" when lastNightDeaths is null/undefined', () => {
+    // Testing runtime defensive behavior: lastNightDeaths can be null from legacy state
     const deps = createDeps({
-      gameState: { lastNightDeaths: null, wolfVotes: new Map(), currentNightResults: {} },
+      gameState: {
+        lastNightDeaths: null as unknown as number[],
+        wolfVotes: new Map(),
+        currentNightResults: {},
+      },
     });
     const { result } = renderHook(() => useGameActions(deps));
 

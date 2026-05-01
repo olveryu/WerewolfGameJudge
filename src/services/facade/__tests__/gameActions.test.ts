@@ -32,13 +32,17 @@ jest.mock('../../infra/AudioService', () => ({
 // fetchWithRetry passthrough: tests mock global.fetch directly,
 // so bypass network-layer retry to avoid delays and timer interference.
 jest.mock('@/services/cloudflare/cfFetch', () => ({
-  ...jest.requireActual('@/services/cloudflare/cfFetch'),
+  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  ),
   fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
 }));
 
 // Import after mocks
 import * as Sentry from '@sentry/react-native';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
+import type { GameActionsContext } from '@/services/facade/gameActions';
 import {
   assignRoles,
   clearAllSeats,
@@ -69,21 +73,21 @@ const DEFAULT_STATE: Partial<GameState> = {
       role: 'wolf',
       hasViewedRole: false,
       displayName: 'P0',
-    } as any,
+    } as unknown as GameState['players'][number],
     1: {
       userId: 'p2',
       seat: 1,
       role: 'seer',
       hasViewedRole: false,
       displayName: 'P1',
-    } as any,
+    } as unknown as GameState['players'][number],
     2: {
       userId: 'p3',
       seat: 2,
       role: 'villager',
       hasViewedRole: false,
       displayName: 'P2',
-    } as any,
+    } as unknown as GameState['players'][number],
   },
 };
 
@@ -102,7 +106,9 @@ function createMockCtx(storeState?: Partial<GameState> | null) {
     store: createMockStore(storeState),
     myUserId: 'host-1',
     getMySeat: () => 0,
-    audioService: { preloadForRoles: jest.fn().mockResolvedValue(undefined) } as any,
+    audioService: {
+      preloadForRoles: jest.fn().mockResolvedValue(undefined),
+    } as unknown as GameActionsContext['audioService'],
   };
 }
 
@@ -346,15 +352,19 @@ describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
   });
 
   it.each([
-    ['assignRoles', (ctx: any) => assignRoles(ctx)],
-    ['startNight', (ctx: any) => startNight(ctx)],
-    ['restartGame', (ctx: any) => restartGame(ctx)],
-    ['updateTemplate', (ctx: any) => updateTemplate(ctx, { roles: ['wolf', 'villager'] } as any)],
-    ['shareNightReview', (ctx: any) => shareNightReview(ctx, [1, 2])],
-    ['fillWithBots', (ctx: any) => fillWithBots(ctx)],
-    ['markAllBotsViewed', (ctx: any) => markAllBotsViewed(ctx)],
-    ['markAllBotsGroupConfirmed', (ctx: any) => markAllBotsGroupConfirmed(ctx)],
-    ['clearAllSeats', (ctx: any) => clearAllSeats(ctx)],
+    ['assignRoles', (ctx: GameActionsContext) => assignRoles(ctx)],
+    ['startNight', (ctx: GameActionsContext) => startNight(ctx)],
+    ['restartGame', (ctx: GameActionsContext) => restartGame(ctx)],
+    [
+      'updateTemplate',
+      (ctx: GameActionsContext) =>
+        updateTemplate(ctx, { roles: ['wolf', 'villager'] } as unknown as GameTemplate),
+    ],
+    ['shareNightReview', (ctx: GameActionsContext) => shareNightReview(ctx, [1, 2])],
+    ['fillWithBots', (ctx: GameActionsContext) => fillWithBots(ctx)],
+    ['markAllBotsViewed', (ctx: GameActionsContext) => markAllBotsViewed(ctx)],
+    ['markAllBotsGroupConfirmed', (ctx: GameActionsContext) => markAllBotsGroupConfirmed(ctx)],
+    ['clearAllSeats', (ctx: GameActionsContext) => clearAllSeats(ctx)],
   ] as const)('%s should return NOT_CONNECTED when roomCode is null', async (_name, fn) => {
     const ctx = createMockCtx(null);
     const result = await fn(ctx);
@@ -362,12 +372,15 @@ describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
   });
 
   it.each([
-    ['submitAction', (ctx: any) => submitAction(ctx, 0, 'wolf', 1)],
-    ['setAudioPlaying', (ctx: any) => setAudioPlaying(ctx, true)],
-    ['clearRevealAcks', (ctx: any) => clearRevealAcks(ctx)],
-    ['setWolfRobotHunterStatusViewed', (ctx: any) => setWolfRobotHunterStatusViewed(ctx, 0)],
-    ['postAudioAck', (ctx: any) => postAudioAck(ctx)],
-    ['postProgression', (ctx: any) => postProgression(ctx)],
+    ['submitAction', (ctx: GameActionsContext) => submitAction(ctx, 0, 'wolf', 1)],
+    ['setAudioPlaying', (ctx: GameActionsContext) => setAudioPlaying(ctx, true)],
+    ['clearRevealAcks', (ctx: GameActionsContext) => clearRevealAcks(ctx)],
+    [
+      'setWolfRobotHunterStatusViewed',
+      (ctx: GameActionsContext) => setWolfRobotHunterStatusViewed(ctx, 0),
+    ],
+    ['postAudioAck', (ctx: GameActionsContext) => postAudioAck(ctx)],
+    ['postProgression', (ctx: GameActionsContext) => postProgression(ctx)],
   ] as const)('%s should return NOT_CONNECTED when state is null', async (_name, fn) => {
     const ctx = createMockCtx(null);
     const result = await fn(ctx);
@@ -389,7 +402,7 @@ describe('startNight — preloads audio on success', () => {
       revision: 1,
     });
 
-    const ctx = createMockCtx({ roomCode: 'ABCD', hostUserId: 'host-1' } as any);
+    const ctx = createMockCtx({ roomCode: 'ABCD', hostUserId: 'host-1' });
     const result = await startNight(ctx);
 
     expect(result.success).toBe(true);

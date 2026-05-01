@@ -10,12 +10,12 @@ import { defineConfig, devices } from '@playwright/test';
  * Default: http://localhost:8081 (Expo Metro web default)
  * Override: E2E_BASE_URL=https://... npx playwright test
  */
-const E2E_BASE_URL = process.env.E2E_BASE_URL ?? 'http://localhost:8081';
+const E2E_BASE_URL = (process.env.E2E_BASE_URL as string | undefined) ?? 'http://localhost:8081';
 const LOCAL_CF_API_URL = 'http://127.0.0.1:8787';
-const WEB_PORT = process.env.WEB_PORT || '8081';
+const WEB_PORT = (process.env.WEB_PORT as string | undefined) || '8081';
 
 // Export to process.env so ui.ts and webServer can access it
-process.env.E2E_BASE_URL = E2E_BASE_URL;
+(process.env as Record<string, string | undefined>).E2E_BASE_URL = E2E_BASE_URL;
 
 /**
  * Playwright configuration for Werewolf Game E2E tests.

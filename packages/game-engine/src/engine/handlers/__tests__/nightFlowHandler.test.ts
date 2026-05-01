@@ -25,6 +25,7 @@ import type {
   EndNightIntent,
   SetAudioPlayingIntent,
 } from '@werewolf/game-engine/engine/intents/types';
+import type { EndNightAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
@@ -215,8 +216,12 @@ describe('nightFlowHandler', () => {
     const intent: EndNightIntent = { type: 'END_NIGHT' };
 
     it('should resolve wolf kill from wolfVotesBySeat via resolveWolfVotes (empty + kill => kill)', () => {
-      const context: any = {
+      const context: HandlerContext = {
+        myUserId: null,
+        mySeat: null,
         state: {
+          roomCode: 'ROOM',
+          hostUserId: 'HOST',
           status: GameStatus.Ongoing,
           isAudioPlaying: false,
           templateRoles: ['wolf', 'villager'],
@@ -224,14 +229,12 @@ describe('nightFlowHandler', () => {
             0: {
               userId: 'u0',
               seat: 0,
-              displayName: 'P0',
               role: 'wolf',
               hasViewedRole: true,
             },
             1: {
               userId: 'u1',
               seat: 1,
-              displayName: 'P1',
               role: 'villager',
               hasViewedRole: true,
             },
@@ -252,12 +255,11 @@ describe('nightFlowHandler', () => {
         },
       };
 
-      const result = handleEndNight({ type: 'END_NIGHT' } as any, context);
+      const result = handleEndNight({ type: 'END_NIGHT' }, context);
       const success = expectSuccess(result);
-      const end = (success.actions ?? []).find((a: any) => a.type === 'END_NIGHT');
+      const end = success.actions.find((a): a is EndNightAction => a.type === 'END_NIGHT');
       expect(end).toBeDefined();
-      const endNightAction = end as any;
-      expect(endNightAction.payload.deaths).toEqual([0]);
+      expect(end!.payload.deaths).toEqual([0]);
     });
 
     describe('Gate: no_state', () => {

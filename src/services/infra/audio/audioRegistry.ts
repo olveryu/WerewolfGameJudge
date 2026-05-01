@@ -9,6 +9,78 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
+import avengerBegin from '../../../../assets/audio/avenger.mp3';
+import awakenedGargoyleBegin from '../../../../assets/audio/awakened_gargoyle.mp3';
+import awakenedGargoyleConvertRevealBegin from '../../../../assets/audio/awakened_gargoyle_convert_reveal.mp3';
+import crowBegin from '../../../../assets/audio/crow.mp3';
+import cupidBegin from '../../../../assets/audio/cupid.mp3';
+import cupidLoversRevealBegin from '../../../../assets/audio/cupid_lovers_reveal.mp3';
+import darkWolfKingBegin from '../../../../assets/audio/dark_wolf_king.mp3';
+import dreamcatcherBegin from '../../../../assets/audio/dreamcatcher.mp3';
+import gargoyleBegin from '../../../../assets/audio/gargoyle.mp3';
+import guardBegin from '../../../../assets/audio/guard.mp3';
+import hunterBegin from '../../../../assets/audio/hunter.mp3';
+import magicianBegin from '../../../../assets/audio/magician.mp3';
+import nightBegin from '../../../../assets/audio/night.mp3';
+import nightEndBegin from '../../../../assets/audio/night_end.mp3';
+import nightmareBegin from '../../../../assets/audio/nightmare.mp3';
+import piperBegin from '../../../../assets/audio/piper.mp3';
+import piperHypnotizedRevealBegin from '../../../../assets/audio/piper_hypnotized_reveal.mp3';
+import poisonerBegin from '../../../../assets/audio/poisoner.mp3';
+import psychicBegin from '../../../../assets/audio/psychic.mp3';
+import pureWhiteBegin from '../../../../assets/audio/pure_white.mp3';
+import seerBegin from '../../../../assets/audio/seer.mp3';
+import seer1Begin from '../../../../assets/audio/seer_1.mp3';
+import seer2Begin from '../../../../assets/audio/seer_2.mp3';
+import shadowBegin from '../../../../assets/audio/shadow.mp3';
+import silenceElderBegin from '../../../../assets/audio/silence_elder.mp3';
+import slackerBegin from '../../../../assets/audio/slacker.mp3';
+import thiefBegin from '../../../../assets/audio/thief.mp3';
+import treasureMasterBegin from '../../../../assets/audio/treasure_master.mp3';
+import votebanElderBegin from '../../../../assets/audio/voteban_elder.mp3';
+import wildChildBegin from '../../../../assets/audio/wild_child.mp3';
+import witchBegin from '../../../../assets/audio/witch.mp3';
+import wolfBegin from '../../../../assets/audio/wolf.mp3';
+import wolfQueenBegin from '../../../../assets/audio/wolf_queen.mp3';
+import wolfRobotBegin from '../../../../assets/audio/wolf_robot.mp3';
+import wolfWitchBegin from '../../../../assets/audio/wolf_witch.mp3';
+import avengerEnd from '../../../../assets/audio_end/avenger.mp3';
+import awakenedGargoyleEnd from '../../../../assets/audio_end/awakened_gargoyle.mp3';
+import awakenedGargoyleConvertRevealEnd from '../../../../assets/audio_end/awakened_gargoyle_convert_reveal.mp3';
+import crowEnd from '../../../../assets/audio_end/crow.mp3';
+import cupidEnd from '../../../../assets/audio_end/cupid.mp3';
+import cupidLoversRevealEnd from '../../../../assets/audio_end/cupid_lovers_reveal.mp3';
+import darkWolfKingEnd from '../../../../assets/audio_end/dark_wolf_king.mp3';
+import dreamcatcherEnd from '../../../../assets/audio_end/dreamcatcher.mp3';
+import gargoyleEnd from '../../../../assets/audio_end/gargoyle.mp3';
+import guardEnd from '../../../../assets/audio_end/guard.mp3';
+import hunterEnd from '../../../../assets/audio_end/hunter.mp3';
+import magicianEnd from '../../../../assets/audio_end/magician.mp3';
+import nightmareEnd from '../../../../assets/audio_end/nightmare.mp3';
+import piperEnd from '../../../../assets/audio_end/piper.mp3';
+import piperHypnotizedRevealEnd from '../../../../assets/audio_end/piper_hypnotized_reveal.mp3';
+import poisonerEnd from '../../../../assets/audio_end/poisoner.mp3';
+import psychicEnd from '../../../../assets/audio_end/psychic.mp3';
+import pureWhiteEnd from '../../../../assets/audio_end/pure_white.mp3';
+import seerEnd from '../../../../assets/audio_end/seer.mp3';
+import seer1End from '../../../../assets/audio_end/seer_1.mp3';
+import seer2End from '../../../../assets/audio_end/seer_2.mp3';
+import shadowEnd from '../../../../assets/audio_end/shadow.mp3';
+import silenceElderEnd from '../../../../assets/audio_end/silence_elder.mp3';
+import slackerEnd from '../../../../assets/audio_end/slacker.mp3';
+import thiefEnd from '../../../../assets/audio_end/thief.mp3';
+import treasureMasterEnd from '../../../../assets/audio_end/treasure_master.mp3';
+import votebanElderEnd from '../../../../assets/audio_end/voteban_elder.mp3';
+import wildChildEnd from '../../../../assets/audio_end/wild_child.mp3';
+import witchEnd from '../../../../assets/audio_end/witch.mp3';
+import wolfEnd from '../../../../assets/audio_end/wolf.mp3';
+import wolfQueenEnd from '../../../../assets/audio_end/wolf_queen.mp3';
+import wolfRobotEnd from '../../../../assets/audio_end/wolf_robot.mp3';
+import wolfWitchEnd from '../../../../assets/audio_end/wolf_witch.mp3';
+import bgmFinale from '../../../../assets/bgm/finale.m4a';
+import bgmSpeakSoftlyLove from '../../../../assets/bgm/speak_softly_love.m4a';
+import bgmTheGodfatherWaltz from '../../../../assets/bgm/the_godfather_waltz.m4a';
+import bgmTheImmigrant from '../../../../assets/bgm/the_immigrant.m4a';
 import type { AudioAsset } from './types';
 
 // ---------------------------------------------------------------------------
@@ -28,124 +100,124 @@ interface RoleAudioEntry {
  */
 export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
   slacker: {
-    begin: require('../../../../assets/audio/slacker.mp3'),
-    end: require('../../../../assets/audio_end/slacker.mp3'),
+    begin: slackerBegin,
+    end: slackerEnd,
   },
   wildChild: {
-    begin: require('../../../../assets/audio/wild_child.mp3'),
-    end: require('../../../../assets/audio_end/wild_child.mp3'),
+    begin: wildChildBegin,
+    end: wildChildEnd,
   },
   wolfRobot: {
-    begin: require('../../../../assets/audio/wolf_robot.mp3'),
-    end: require('../../../../assets/audio_end/wolf_robot.mp3'),
+    begin: wolfRobotBegin,
+    end: wolfRobotEnd,
   },
   magician: {
-    begin: require('../../../../assets/audio/magician.mp3'),
-    end: require('../../../../assets/audio_end/magician.mp3'),
+    begin: magicianBegin,
+    end: magicianEnd,
   },
   dreamcatcher: {
-    begin: require('../../../../assets/audio/dreamcatcher.mp3'),
-    end: require('../../../../assets/audio_end/dreamcatcher.mp3'),
+    begin: dreamcatcherBegin,
+    end: dreamcatcherEnd,
   },
   gargoyle: {
-    begin: require('../../../../assets/audio/gargoyle.mp3'),
-    end: require('../../../../assets/audio_end/gargoyle.mp3'),
+    begin: gargoyleBegin,
+    end: gargoyleEnd,
   },
   awakenedGargoyle: {
-    begin: require('../../../../assets/audio/awakened_gargoyle.mp3'),
-    end: require('../../../../assets/audio_end/awakened_gargoyle.mp3'),
+    begin: awakenedGargoyleBegin,
+    end: awakenedGargoyleEnd,
   },
   nightmare: {
-    begin: require('../../../../assets/audio/nightmare.mp3'),
-    end: require('../../../../assets/audio_end/nightmare.mp3'),
+    begin: nightmareBegin,
+    end: nightmareEnd,
   },
   guard: {
-    begin: require('../../../../assets/audio/guard.mp3'),
-    end: require('../../../../assets/audio_end/guard.mp3'),
+    begin: guardBegin,
+    end: guardEnd,
   },
   wolf: {
-    begin: require('../../../../assets/audio/wolf.mp3'),
-    end: require('../../../../assets/audio_end/wolf.mp3'),
+    begin: wolfBegin,
+    end: wolfEnd,
   },
   wolfQueen: {
-    begin: require('../../../../assets/audio/wolf_queen.mp3'),
-    end: require('../../../../assets/audio_end/wolf_queen.mp3'),
+    begin: wolfQueenBegin,
+    end: wolfQueenEnd,
   },
   witch: {
-    begin: require('../../../../assets/audio/witch.mp3'),
-    end: require('../../../../assets/audio_end/witch.mp3'),
+    begin: witchBegin,
+    end: witchEnd,
   },
   seer: {
-    begin: require('../../../../assets/audio/seer.mp3'),
-    end: require('../../../../assets/audio_end/seer.mp3'),
+    begin: seerBegin,
+    end: seerEnd,
   },
   mirrorSeer: {
-    begin: require('../../../../assets/audio/seer.mp3'),
-    end: require('../../../../assets/audio_end/seer.mp3'),
+    begin: seerBegin,
+    end: seerEnd,
   },
   drunkSeer: {
-    begin: require('../../../../assets/audio/seer.mp3'),
-    end: require('../../../../assets/audio_end/seer.mp3'),
+    begin: seerBegin,
+    end: seerEnd,
   },
   psychic: {
-    begin: require('../../../../assets/audio/psychic.mp3'),
-    end: require('../../../../assets/audio_end/psychic.mp3'),
+    begin: psychicBegin,
+    end: psychicEnd,
   },
   hunter: {
-    begin: require('../../../../assets/audio/hunter.mp3'),
-    end: require('../../../../assets/audio_end/hunter.mp3'),
+    begin: hunterBegin,
+    end: hunterEnd,
   },
   darkWolfKing: {
-    begin: require('../../../../assets/audio/dark_wolf_king.mp3'),
-    end: require('../../../../assets/audio_end/dark_wolf_king.mp3'),
+    begin: darkWolfKingBegin,
+    end: darkWolfKingEnd,
   },
   pureWhite: {
-    begin: require('../../../../assets/audio/pure_white.mp3'),
-    end: require('../../../../assets/audio_end/pure_white.mp3'),
+    begin: pureWhiteBegin,
+    end: pureWhiteEnd,
   },
   wolfWitch: {
-    begin: require('../../../../assets/audio/wolf_witch.mp3'),
-    end: require('../../../../assets/audio_end/wolf_witch.mp3'),
+    begin: wolfWitchBegin,
+    end: wolfWitchEnd,
   },
   silenceElder: {
-    begin: require('../../../../assets/audio/silence_elder.mp3'),
-    end: require('../../../../assets/audio_end/silence_elder.mp3'),
+    begin: silenceElderBegin,
+    end: silenceElderEnd,
   },
   votebanElder: {
-    begin: require('../../../../assets/audio/voteban_elder.mp3'),
-    end: require('../../../../assets/audio_end/voteban_elder.mp3'),
+    begin: votebanElderBegin,
+    end: votebanElderEnd,
   },
   piper: {
-    begin: require('../../../../assets/audio/piper.mp3'),
-    end: require('../../../../assets/audio_end/piper.mp3'),
+    begin: piperBegin,
+    end: piperEnd,
   },
   shadow: {
-    begin: require('../../../../assets/audio/shadow.mp3'),
-    end: require('../../../../assets/audio_end/shadow.mp3'),
+    begin: shadowBegin,
+    end: shadowEnd,
   },
   avenger: {
-    begin: require('../../../../assets/audio/avenger.mp3'),
-    end: require('../../../../assets/audio_end/avenger.mp3'),
+    begin: avengerBegin,
+    end: avengerEnd,
   },
   crow: {
-    begin: require('../../../../assets/audio/crow.mp3'),
-    end: require('../../../../assets/audio_end/crow.mp3'),
+    begin: crowBegin,
+    end: crowEnd,
   },
   poisoner: {
-    begin: require('../../../../assets/audio/poisoner.mp3'),
-    end: require('../../../../assets/audio_end/poisoner.mp3'),
+    begin: poisonerBegin,
+    end: poisonerEnd,
   },
   treasureMaster: {
-    begin: require('../../../../assets/audio/treasure_master.mp3'),
-    end: require('../../../../assets/audio_end/treasure_master.mp3'),
+    begin: treasureMasterBegin,
+    end: treasureMasterEnd,
   },
   thief: {
-    begin: require('../../../../assets/audio/thief.mp3'),
-    end: require('../../../../assets/audio_end/thief.mp3'),
+    begin: thiefBegin,
+    end: thiefEnd,
   },
   cupid: {
-    begin: require('../../../../assets/audio/cupid.mp3'),
-    end: require('../../../../assets/audio_end/cupid.mp3'),
+    begin: cupidBegin,
+    end: cupidEnd,
   },
 };
 
@@ -155,13 +227,13 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
 
 /** Multi-seer label audio (used when >=2 seer-like roles are in play). */
 export const SEER_LABEL_AUDIO: Record<string, AudioAsset> = {
-  seer_1: require('../../../../assets/audio/seer_1.mp3'),
-  seer_2: require('../../../../assets/audio/seer_2.mp3'),
+  seer_1: seer1Begin,
+  seer_2: seer2Begin,
 };
 
 export const SEER_LABEL_AUDIO_END: Record<string, AudioAsset> = {
-  seer_1: require('../../../../assets/audio_end/seer_1.mp3'),
-  seer_2: require('../../../../assets/audio_end/seer_2.mp3'),
+  seer_1: seer1End,
+  seer_2: seer2End,
 };
 
 // ---------------------------------------------------------------------------
@@ -174,16 +246,16 @@ export const SEER_LABEL_AUDIO_END: Record<string, AudioAsset> = {
  */
 export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
   piperHypnotizedReveal: {
-    begin: require('../../../../assets/audio/piper_hypnotized_reveal.mp3'),
-    end: require('../../../../assets/audio_end/piper_hypnotized_reveal.mp3'),
+    begin: piperHypnotizedRevealBegin,
+    end: piperHypnotizedRevealEnd,
   },
   awakenedGargoyleConvertReveal: {
-    begin: require('../../../../assets/audio/awakened_gargoyle_convert_reveal.mp3'),
-    end: require('../../../../assets/audio_end/awakened_gargoyle_convert_reveal.mp3'),
+    begin: awakenedGargoyleConvertRevealBegin,
+    end: awakenedGargoyleConvertRevealEnd,
   },
   cupidLoversReveal: {
-    begin: require('../../../../assets/audio/cupid_lovers_reveal.mp3'),
-    end: require('../../../../assets/audio_end/cupid_lovers_reveal.mp3'),
+    begin: cupidLoversRevealBegin,
+    end: cupidLoversRevealEnd,
   },
 };
 
@@ -191,8 +263,8 @@ export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
 // Night flow audio
 // ---------------------------------------------------------------------------
 
-export const NIGHT_AUDIO: AudioAsset = require('../../../../assets/audio/night.mp3');
-export const NIGHT_END_AUDIO: AudioAsset = require('../../../../assets/audio/night_end.mp3');
+export const NIGHT_AUDIO: AudioAsset = nightBegin;
+export const NIGHT_END_AUDIO: AudioAsset = nightEndBegin;
 
 // ---------------------------------------------------------------------------
 // Background music
@@ -219,28 +291,28 @@ export const BGM_TRACKS: readonly BgmTrackEntry[] = [
     label: 'The Godfather Waltz',
     subtitle: '教父华尔兹',
     mood: '优雅庄重',
-    asset: require('../../../../assets/bgm/the_godfather_waltz.m4a'),
+    asset: bgmTheGodfatherWaltz,
   },
   {
     id: 'speakSoftlyLove',
     label: 'Speak Softly Love',
     subtitle: '温柔倾诉',
     mood: '浪漫深情',
-    asset: require('../../../../assets/bgm/speak_softly_love.m4a'),
+    asset: bgmSpeakSoftlyLove,
   },
   {
     id: 'theImmigrant',
     label: 'The Immigrant',
     subtitle: '移民者',
     mood: '悠远苍凉',
-    asset: require('../../../../assets/bgm/the_immigrant.m4a'),
+    asset: bgmTheImmigrant,
   },
   {
     id: 'finale',
     label: 'Finale',
     subtitle: '终曲',
     mood: '紧张宏大',
-    asset: require('../../../../assets/bgm/finale.m4a'),
+    asset: bgmFinale,
   },
 ] as const;
 

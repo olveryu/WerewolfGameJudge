@@ -126,31 +126,34 @@ export class CFRealtimeService implements IRealtimeTransport {
 
   #parseMessage(event: MessageEvent): void {
     try {
-      const data = JSON.parse(event.data as string);
-      if (data.type === 'STATE_UPDATE' && data.state && data.revision != null) {
-        realtimeLog.debug('Transport: STATE_UPDATE', { revision: data.revision });
-        this.#handlers?.onStateUpdate(
-          data.state as GameState,
-          data.revision as number,
-          data.lastAction as string | undefined,
-        );
-      } else if (
-        data.type === 'SETTLE_RESULT' &&
-        typeof data.xpEarned === 'number' &&
-        typeof data.newXp === 'number' &&
-        typeof data.newLevel === 'number' &&
-        typeof data.previousLevel === 'number'
-      ) {
-        this.#handlers?.onSettleResult({
-          xpEarned: data.xpEarned,
-          newXp: data.newXp,
-          newLevel: data.newLevel,
-          previousLevel: data.previousLevel,
-          normalDrawsEarned:
-            typeof data.normalDrawsEarned === 'number' ? data.normalDrawsEarned : 0,
-          goldenDrawsEarned:
-            typeof data.goldenDrawsEarned === 'number' ? data.goldenDrawsEarned : 0,
-        });
+      const data: unknown = JSON.parse(event.data as string);
+      if (!isWsObject(data)) return;
+
+      if (data.type === 'STATE_UPDATE' && 'state' in data && 'revision' in data) {
+        const { state, revision, lastAction } = data as {
+          state: GameState;
+          revision: number;
+          lastAction?: string;
+        };
+        realtimeLog.debug('Transport: STATE_UPDATE', { revision });
+        this.#handlers?.onStateUpdate(state, revision, lastAction);
+      } else if (data.type === 'SETTLE_RESULT') {
+        const d = data as Record<string, unknown>;
+        if (
+          typeof d.xpEarned === 'number' &&
+          typeof d.newXp === 'number' &&
+          typeof d.newLevel === 'number' &&
+          typeof d.previousLevel === 'number'
+        ) {
+          this.#handlers?.onSettleResult({
+            xpEarned: d.xpEarned,
+            newXp: d.newXp,
+            newLevel: d.newLevel,
+            previousLevel: d.previousLevel,
+            normalDrawsEarned: typeof d.normalDrawsEarned === 'number' ? d.normalDrawsEarned : 0,
+            goldenDrawsEarned: typeof d.goldenDrawsEarned === 'number' ? d.goldenDrawsEarned : 0,
+          });
+        }
       } else if (data.type === 'pong') {
         this.#handlers?.onPong();
       }
@@ -158,4 +161,14 @@ export class CFRealtimeService implements IRealtimeTransport {
       realtimeLog.warn('Transport: failed to parse WS message');
     }
   }
+}
+
+/** Type guard: parsed JSON is a non-null object with a string `type` field. */
+function isWsObject(data: unknown): data is { type: string } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    typeof (data as Record<string, unknown>).type === 'string'
+  );
 }

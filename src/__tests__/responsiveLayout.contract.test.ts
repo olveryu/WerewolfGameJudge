@@ -12,8 +12,8 @@
  * Uses the same file walker pattern as noHardcodedStyleValues.contract.test.ts.
  */
 
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 // ─── File walker ────────────────────────────────────────────────────────────
 

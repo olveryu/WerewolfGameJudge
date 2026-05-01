@@ -10,11 +10,13 @@
  */
 
 import { render, waitFor } from '@testing-library/react-native';
+import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
+  mockRoomRoute,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -27,7 +29,7 @@ import { showAlert } from '@/utils/alert';
 // =============================================================================
 
 jest.mock('../../../../utils/alert', () => ({
-  ...jest.requireActual('../../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../../utils/alert')>('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -74,18 +76,12 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe('Audio Guard (isAudioPlaying=true)', () => {
-  const renderRoom = () =>
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
   });
 
   describe('seat tap blocked during audio', () => {
@@ -146,7 +142,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
       const { queryByText } = renderRoom();
 
       // The skip button text should not be rendered
-      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
       const skipText = getSchema('seerCheck').ui?.bottomActionText;
       if (!skipText) throw new Error('[TEST] Missing seerCheck.ui.bottomActionText');
 
@@ -170,7 +165,6 @@ describe('Audio Guard (isAudioPlaying=true)', () => {
 
       const { queryByText } = renderRoom();
 
-      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
       const emptyText = getSchema('wolfKill').ui?.emptyVoteText;
       if (!emptyText) throw new Error('[TEST] Missing wolfKill.ui.emptyVoteText');
 

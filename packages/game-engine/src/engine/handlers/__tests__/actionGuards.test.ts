@@ -51,23 +51,23 @@ describe('isBottomCardActorOverride', () => {
   });
 
   it('should return true when treasureMasterChosenCard matches step roleId', () => {
-    const state = createMinimalState({ treasureMasterChosenCard: 'seer' as any });
+    const state = createMinimalState({ treasureMasterChosenCard: 'seer' });
     // seerCheck step has roleId 'seer'
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(true);
   });
 
   it('should return false when treasureMasterChosenCard does not match', () => {
-    const state = createMinimalState({ treasureMasterChosenCard: 'witch' as any });
+    const state = createMinimalState({ treasureMasterChosenCard: 'witch' });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(false);
   });
 
   it('should return true when thiefChosenCard matches step roleId', () => {
-    const state = createMinimalState({ thiefChosenCard: 'seer' as any });
+    const state = createMinimalState({ thiefChosenCard: 'seer' });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(true);
   });
 
   it('should return false when thiefChosenCard does not match', () => {
-    const state = createMinimalState({ thiefChosenCard: 'guard' as any });
+    const state = createMinimalState({ thiefChosenCard: 'guard' });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(false);
   });
 });
@@ -93,10 +93,9 @@ describe('isSkipAction', () => {
   describe('chooseSeat kind', () => {
     const schema = { kind: 'chooseSeat' } as ActionSchema;
 
-    it('should return true when target is null or undefined', () => {
+    it('should return true when target is undefined', () => {
       expect(isSkipAction(schema, { schemaId: 'seerCheck' })).toBe(true);
       expect(isSkipAction(schema, { schemaId: 'seerCheck', target: undefined })).toBe(true);
-      expect(isSkipAction(schema, { schemaId: 'seerCheck', target: null as any })).toBe(true);
     });
 
     it('should return false when target is a seat number', () => {
@@ -184,10 +183,13 @@ describe('isSkipAction', () => {
   describe('chooseCard kind', () => {
     const schema = { kind: 'chooseCard' } as ActionSchema;
 
-    it('should return true when cardIndex is null or undefined', () => {
+    it('should return true when cardIndex is undefined', () => {
       expect(isSkipAction(schema, { schemaId: 'treasureMasterChoose' })).toBe(true);
       expect(
-        isSkipAction(schema, { schemaId: 'treasureMasterChoose', cardIndex: null as any }),
+        isSkipAction(schema, {
+          schemaId: 'treasureMasterChoose',
+          cardIndex: undefined,
+        }),
       ).toBe(true);
     });
 
@@ -341,7 +343,7 @@ describe('validateActionPreconditions', () => {
   it('should reject when player role does not match (Gate 5b)', () => {
     // Seat 0 has role 'seer', but submitting as 'witch'
     const state = createMinimalState({ currentStepId: 'seerCheck' });
-    const result = validateActionPreconditions(state, 0, 'witch' as any);
+    const result = validateActionPreconditions(state, 0, 'witch');
     expect(result.valid).toBe(false);
     if (!result.valid) {
       const err = expectError(result.result);

@@ -2,6 +2,9 @@
  * Tests for room code generation
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
 import { generateRoomCode } from '@/utils/roomCode';
 
 describe('generateRoomCode', () => {
@@ -46,10 +49,6 @@ describe('generateRoomCode', () => {
 describe('ConfigScreen Math.random contract', () => {
   it('should not use Math.random in ConfigScreen.tsx', () => {
     // This is a static analysis contract test
-    // Use __dirname which is resolved at runtime by Jest
-    const fs = require('node:fs');
-    const path = require('node:path');
-
     // Navigate from src/utils/__tests__ to src/screens/ConfigScreen
     const configScreenPath = path.join(process.cwd(), 'src/screens/ConfigScreen/ConfigScreen.tsx');
 

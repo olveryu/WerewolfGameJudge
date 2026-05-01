@@ -5,6 +5,8 @@
  * a structured AI analysis request text.
  */
 
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+
 import type { NotepadState } from '@/hooks/useNotepad';
 
 import { buildNotepadSummary } from '../notepadSummary';
@@ -41,7 +43,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('shows role guess with displayName', () => {
-    const state = { ...emptyState(), roleGuesses: { 2: 'wolf' as any } };
+    const state = { ...emptyState(), roleGuesses: { 2: 'wolf' as RoleId } };
     const result = buildNotepadSummary(state, 6);
     expect(result).not.toBeNull();
     expect(result).toContain('2号位');
@@ -105,7 +107,7 @@ describe('buildNotepadSummary', () => {
       ...emptyState(),
       playerNotes: { 1: '逻辑清晰' },
       handStates: { 1: true },
-      roleGuesses: { 1: 'seer' as any },
+      roleGuesses: { 1: 'seer' as RoleId },
     };
     const result = buildNotepadSummary(state, 6);
     expect(result).not.toBeNull();
@@ -113,7 +115,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('returns non-null for seat with only role guess (no note text)', () => {
-    const state = { ...emptyState(), roleGuesses: { 3: 'wolf' as any } };
+    const state = { ...emptyState(), roleGuesses: { 3: 'wolf' as RoleId } };
     const result = buildNotepadSummary(state, 6);
     expect(result).not.toBeNull();
     expect(result).toContain('3号位');

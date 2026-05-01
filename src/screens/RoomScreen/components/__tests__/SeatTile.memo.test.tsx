@@ -202,7 +202,7 @@ describe('createSeatTileStyles optimization', () => {
     // - This avoids 12x StyleSheet.create calls
 
     // Spy on StyleSheet.create to count calls
-    const { StyleSheet } = require('react-native');
+    const { StyleSheet } = require('react-native') as typeof import('react-native');
     const createSpy = jest.spyOn(StyleSheet, 'create');
     createSpy.mockClear();
 

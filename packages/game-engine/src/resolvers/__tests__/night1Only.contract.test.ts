@@ -4,6 +4,7 @@
  * This app is Night-1 only: resolvers must not enforce cross-night constraints.
  */
 
+import type { RoleId } from '../../models/roles';
 import { RESOLVERS } from '../index';
 import type { ResolverContext } from '../types';
 import { wolfKillResolver } from '../wolf';
@@ -16,7 +17,7 @@ const wolfQueenCharmResolver = RESOLVERS.wolfQueenCharm!;
 const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn!;
 
 function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
-  const players = new Map<number, any>([
+  const players: ReadonlyMap<number, RoleId> = new Map<number, RoleId>([
     [0, 'wolf'],
     [1, 'villager'],
     [2, 'wolfQueen'],
@@ -38,9 +39,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = nightmareBlockResolver(
       makeContext({
         actorSeat: 0,
-        actorRoleId: 'nightmare' as any,
+        actorRoleId: 'nightmare',
       }),
-      { schemaId: 'nightmareBlock' as any, target: 0 },
+      { schemaId: 'nightmareBlock', target: 0 },
     );
 
     expect(res.valid).toBe(true);
@@ -50,9 +51,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = nightmareBlockResolver(
       makeContext({
         actorSeat: 3,
-        actorRoleId: 'nightmare' as any,
+        actorRoleId: 'nightmare',
       }),
-      { schemaId: 'nightmareBlock' as any, target: 1 },
+      { schemaId: 'nightmareBlock', target: 1 },
     );
 
     expect(res.valid).toBe(true);
@@ -62,9 +63,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = guardProtectResolver(
       makeContext({
         actorSeat: 3,
-        actorRoleId: 'guard' as any,
+        actorRoleId: 'guard',
       }),
-      { schemaId: 'guardProtect' as any, target: 1 },
+      { schemaId: 'guardProtect', target: 1 },
     );
 
     expect(res.valid).toBe(true);
@@ -74,9 +75,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = dreamcatcherDreamResolver(
       makeContext({
         actorSeat: 3,
-        actorRoleId: 'dreamcatcher' as any,
+        actorRoleId: 'dreamcatcher',
       }),
-      { schemaId: 'dreamcatcherDream' as any, target: 1 },
+      { schemaId: 'dreamcatcherDream', target: 1 },
     );
 
     expect(res.valid).toBe(true);
@@ -86,9 +87,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = dreamcatcherDreamResolver(
       makeContext({
         actorSeat: 1,
-        actorRoleId: 'dreamcatcher' as any,
+        actorRoleId: 'dreamcatcher',
       }),
-      { schemaId: 'dreamcatcherDream' as any, target: 1 },
+      { schemaId: 'dreamcatcherDream', target: 1 },
     );
 
     expect(res.valid).toBe(false);
@@ -98,9 +99,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = wolfQueenCharmResolver(
       makeContext({
         actorSeat: 1,
-        actorRoleId: 'wolfQueen' as any,
+        actorRoleId: 'wolfQueen',
       }),
-      { schemaId: 'wolfQueenCharm' as any, target: 1 },
+      { schemaId: 'wolfQueenCharm', target: 1 },
     );
 
     expect(res.valid).toBe(false);
@@ -110,9 +111,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = wolfRobotLearnResolver(
       makeContext({
         actorSeat: 1,
-        actorRoleId: 'wolfRobot' as any,
+        actorRoleId: 'wolfRobot',
       }),
-      { schemaId: 'wolfRobotLearn' as any, target: 1 },
+      { schemaId: 'wolfRobotLearn', target: 1 },
     );
 
     expect(res.valid).toBe(false);
@@ -122,9 +123,9 @@ describe('Night-1-only resolvers contract', () => {
     const res = slackerChooseIdolResolver(
       makeContext({
         actorSeat: 1,
-        actorRoleId: 'slacker' as any,
+        actorRoleId: 'slacker',
       }),
-      { schemaId: 'slackerChooseIdol' as any, target: 1 },
+      { schemaId: 'slackerChooseIdol', target: 1 },
     );
 
     expect(res.valid).toBe(false);
@@ -132,8 +133,8 @@ describe('Night-1-only resolvers contract', () => {
 
   it('wolfKill: can kill anyone including self and wolf teammates (neutral judge)', () => {
     // kill self
-    const selfRes = wolfKillResolver(makeContext({ actorSeat: 0, actorRoleId: 'wolf' as any }), {
-      schemaId: 'wolfKill' as any,
+    const selfRes = wolfKillResolver(makeContext({ actorSeat: 0, actorRoleId: 'wolf' }), {
+      schemaId: 'wolfKill',
       target: 0,
     });
     expect(selfRes.valid).toBe(true);
@@ -143,13 +144,13 @@ describe('Night-1-only resolvers contract', () => {
     const teammateRes = wolfKillResolver(
       makeContext({
         actorSeat: 0,
-        actorRoleId: 'wolf' as any,
+        actorRoleId: 'wolf',
         players: new Map([
-          [0, 'wolf' as any],
-          [2, 'wolf' as any], // non-immune teammate
+          [0, 'wolf'],
+          [2, 'wolf'], // non-immune teammate
         ]),
       }),
-      { schemaId: 'wolfKill' as any, target: 2 },
+      { schemaId: 'wolfKill', target: 2 },
     );
     expect(teammateRes.valid).toBe(true);
   });

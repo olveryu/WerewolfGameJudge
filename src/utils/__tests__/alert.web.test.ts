@@ -24,7 +24,8 @@ afterEach(() => {
 
 describe('showAlert - listener mode', () => {
   it('calls listener when set', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     const listener = jest.fn();
     setAlertListener(listener);
 
@@ -41,7 +42,8 @@ describe('showAlert - listener mode', () => {
   });
 
   it('passes custom buttons to listener', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     const listener = jest.fn();
     setAlertListener(listener);
 
@@ -63,11 +65,12 @@ describe('showAlert - listener mode', () => {
 
 describe('showAlert - web fallback (no listener)', () => {
   it('uses window.alert for single button', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockAlert = jest.fn();
-    global.window = { ...global.window, alert: mockAlert } as any;
+    global.window = { ...global.window, alert: mockAlert } as unknown as Window & typeof globalThis;
 
     const onPress = jest.fn();
     showAlert('提示', '操作成功', [{ text: '确定', onPress }]);
@@ -77,22 +80,25 @@ describe('showAlert - web fallback (no listener)', () => {
   });
 
   it('uses window.alert without message', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockAlert = jest.fn();
-    global.window = { ...global.window, alert: mockAlert } as any;
+    global.window = { ...global.window, alert: mockAlert } as unknown as Window & typeof globalThis;
 
     showAlert('只有标题');
     expect(mockAlert).toHaveBeenCalledWith('只有标题');
   });
 
   it('uses window.confirm for two buttons — confirmed', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockConfirm = jest.fn().mockReturnValue(true);
-    global.window = { ...global.window, confirm: mockConfirm } as any;
+    global.window = { ...global.window, confirm: mockConfirm } as unknown as Window &
+      typeof globalThis;
 
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
@@ -107,11 +113,13 @@ describe('showAlert - web fallback (no listener)', () => {
   });
 
   it('uses window.confirm for two buttons — cancelled', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockConfirm = jest.fn().mockReturnValue(false);
-    global.window = { ...global.window, confirm: mockConfirm } as any;
+    global.window = { ...global.window, confirm: mockConfirm } as unknown as Window &
+      typeof globalThis;
 
     const onCancel = jest.fn();
     const onConfirm = jest.fn();
@@ -125,11 +133,13 @@ describe('showAlert - web fallback (no listener)', () => {
   });
 
   it('uses window.prompt for 3+ buttons', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockPrompt = jest.fn().mockReturnValue('2');
-    global.window = { ...global.window, prompt: mockPrompt } as any;
+    global.window = { ...global.window, prompt: mockPrompt } as unknown as Window &
+      typeof globalThis;
 
     const on1 = jest.fn();
     const on2 = jest.fn();
@@ -147,11 +157,13 @@ describe('showAlert - web fallback (no listener)', () => {
   });
 
   it('handles prompt cancellation (null result)', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockPrompt = jest.fn().mockReturnValue(null);
-    global.window = { ...global.window, prompt: mockPrompt } as any;
+    global.window = { ...global.window, prompt: mockPrompt } as unknown as Window &
+      typeof globalThis;
 
     const onPress = jest.fn();
     showAlert('选择', '', [
@@ -164,11 +176,13 @@ describe('showAlert - web fallback (no listener)', () => {
   });
 
   it('handles prompt with out-of-range index', () => {
-    const { showAlert, setAlertListener } = require('@/utils/alert');
+    const { showAlert, setAlertListener } =
+      require('@/utils/alert') as typeof import('@/utils/alert');
     setAlertListener(null);
 
     const mockPrompt = jest.fn().mockReturnValue('99');
-    global.window = { ...global.window, prompt: mockPrompt } as any;
+    global.window = { ...global.window, prompt: mockPrompt } as unknown as Window &
+      typeof globalThis;
 
     const onPress = jest.fn();
     showAlert('选择', '', [

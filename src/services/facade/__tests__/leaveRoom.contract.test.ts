@@ -6,7 +6,10 @@
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
 
+import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { GameFacade } from '@/services/facade/GameFacade';
+import type { AudioService } from '@/services/infra/AudioService';
+import type { IRoomService } from '@/services/types/IRoomService';
 
 // Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
@@ -29,7 +32,7 @@ const mockAudio = () =>
     stopBgm: jest.fn(),
     cleanup: jest.fn(),
     clearPreloaded: jest.fn(),
-  }) as any;
+  }) as unknown as AudioService;
 
 const mockConnectionManager = () =>
   ({
@@ -42,7 +45,7 @@ const mockConnectionManager = () =>
     updateRevision: jest.fn(),
     getState: jest.fn().mockReturnValue('Idle'),
     getContext: jest.fn(),
-  }) as any;
+  }) as unknown as ConnectionManager;
 
 const createTestFacade = () =>
   new GameFacade({
@@ -51,7 +54,7 @@ const createTestFacade = () =>
     audioService: mockAudio(),
     roomService: {
       getGameState: jest.fn().mockResolvedValue(null),
-    } as any,
+    } as unknown as IRoomService,
   });
 
 describe('GameFacade.leaveRoom() listener lifecycle contract', () => {

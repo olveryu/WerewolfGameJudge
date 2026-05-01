@@ -7,6 +7,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
@@ -303,9 +304,6 @@ export class CFAuthService implements IAuthService {
   generateDisplayName(): string {
     if (this.#generatedName) return this.#generatedName;
 
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { getAllRoleIds, getRoleSpec } = require('@werewolf/game-engine/models/roles');
-
     const adjectives = [
       '首刀',
       '自刀',
@@ -408,7 +406,7 @@ export class CFAuthService implements IAuthService {
       '存活',
       '盘逻辑',
     ];
-    const nouns = getAllRoleIds().map((id: string) => getRoleSpec(id).displayName);
+    const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
 
     const arr = new Uint32Array(2);
     crypto.getRandomValues(arr);

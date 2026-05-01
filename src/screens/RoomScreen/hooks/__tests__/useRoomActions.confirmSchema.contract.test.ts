@@ -42,7 +42,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
     });
 
     it('should NOT have constraints (no target selection)', () => {
-      expect((SCHEMAS.hunterConfirm as any).constraints).toBeUndefined();
+      expect('constraints' in SCHEMAS.hunterConfirm).toBe(false);
     });
   });
 
@@ -72,7 +72,7 @@ describe('confirm schema contract (hunter/darkWolfKing)', () => {
     });
 
     it('should NOT have constraints (no target selection)', () => {
-      expect((SCHEMAS.darkWolfKingConfirm as any).constraints).toBeUndefined();
+      expect('constraints' in SCHEMAS.darkWolfKingConfirm).toBe(false);
     });
   });
 

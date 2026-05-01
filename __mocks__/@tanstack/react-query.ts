@@ -3,7 +3,7 @@
  * Provides stub hooks and a passthrough QueryClientProvider
  * so components can render without a real QueryClient context.
  */
-const React = require('react');
+import type React from 'react';
 
 const noopRefetch = jest.fn().mockResolvedValue({ data: undefined });
 const noopMutate = jest.fn();

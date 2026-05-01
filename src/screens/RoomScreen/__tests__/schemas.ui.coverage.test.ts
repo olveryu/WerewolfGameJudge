@@ -73,8 +73,8 @@ describe('RoomScreen schema ui coverage (contract)', () => {
 
       // chooseSeat/swap schemas with canSkip should have bottom action text (skip button).
       if ((schema.kind === 'chooseSeat' || schema.kind === 'swap') && schema.canSkip) {
-        expect(typeof (schema as any).ui.bottomActionText).toBe('string');
-        expect((schema as any).ui.bottomActionText.length).toBeGreaterThan(0);
+        expect(typeof schema.ui!.bottomActionText).toBe('string');
+        expect(schema.ui!.bottomActionText!.length).toBeGreaterThan(0);
       }
 
       // Display name should be stable, non-empty.

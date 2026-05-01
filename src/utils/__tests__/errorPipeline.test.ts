@@ -9,7 +9,7 @@ import { showAlert } from '@/utils/alert';
 import { handleError } from '../errorPipeline';
 
 jest.mock('@/utils/alert', () => ({
-  ...jest.requireActual('@/utils/alert'),
+  ...jest.requireActual<typeof import('@/utils/alert')>('@/utils/alert'),
   showAlert: jest.fn(),
 }));
 

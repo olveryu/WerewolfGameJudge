@@ -3,8 +3,10 @@
  */
 
 import {
+  checkNightmareBlockGuard,
   handleSubmitAction,
   handleViewedRole,
+  isSkipAction,
 } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type {
@@ -14,6 +16,7 @@ import type {
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
 import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
 
@@ -869,10 +872,6 @@ describe('handleSubmitAction', () => {
 // =============================================================================
 
 describe('isSkipAction (schema-aware skip detection)', () => {
-  // Import from actionHandler (exported for testing)
-  const { isSkipAction } = require('@werewolf/game-engine/engine/handlers/actionHandler');
-  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec');
-
   it('should detect skip for chooseSeat schema with target=undefined', () => {
     const result = isSkipAction(SCHEMAS.seerCheck, { schemaId: 'seerCheck', target: undefined });
     expect(result).toBe(true);
@@ -912,8 +911,8 @@ describe('isSkipAction (schema-aware skip detection)', () => {
     expect(result).toBe(false);
   });
 
-  it('should detect skip for wolfVote schema with target=null', () => {
-    const result = isSkipAction(SCHEMAS.wolfKill, { schemaId: 'wolfKill', target: null });
+  it('should detect skip for wolfVote schema with target=undefined', () => {
+    const result = isSkipAction(SCHEMAS.wolfKill, { schemaId: 'wolfKill', target: undefined });
     expect(result).toBe(true);
   });
 
@@ -924,11 +923,6 @@ describe('isSkipAction (schema-aware skip detection)', () => {
 });
 
 describe('checkNightmareBlockGuard (single-point guard)', () => {
-  const {
-    checkNightmareBlockGuard,
-  } = require('@werewolf/game-engine/engine/handlers/actionHandler');
-  const { SCHEMAS, BLOCKED_UI_DEFAULTS } = require('@werewolf/game-engine/models/roles/spec');
-
   describe('chooseSeat schema', () => {
     it('should reject blocked player with non-skip action', () => {
       const reason = checkNightmareBlockGuard(

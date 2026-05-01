@@ -4,6 +4,7 @@
  * 显示阵营标题 + 计数角标，选中态带色下划线。
  * 渲染 UI 并通过回调上报 onTabChange，不 import service，不包含业务逻辑判断。
  */
+import { type Faction } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
@@ -13,7 +14,7 @@ import { fixed, withAlpha } from '@/theme';
 import { type ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {
-  key: string;
+  key: Faction;
   title: string;
   count: number;
   accentColor: string;
@@ -21,8 +22,8 @@ export interface FactionTabItem {
 
 interface FactionTabsProps {
   tabs: FactionTabItem[];
-  activeKey: string;
-  onTabPress: (key: string) => void;
+  activeKey: Faction;
+  onTabPress: (key: Faction) => void;
   styles: ConfigScreenStyles;
 }
 
@@ -52,7 +53,7 @@ FactionTabs.displayName = 'FactionTabs';
 interface FactionTabProps {
   tab: FactionTabItem;
   isActive: boolean;
-  onPress: (key: string) => void;
+  onPress: (key: Faction) => void;
   styles: ConfigScreenStyles;
 }
 

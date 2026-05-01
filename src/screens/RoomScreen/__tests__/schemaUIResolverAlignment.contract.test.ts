@@ -238,7 +238,9 @@ describe('UI reads constraints from schema (no hardcode)', () => {
   it('buildSeatViewModels uses schemaConstraints parameter (not hardcoded role checks)', () => {
     // 这个测试在 RoomScreen.helpers.test.ts 中有详细覆盖
     // 这里只做存在性断言
-    const { buildSeatViewModels } = require('@/screens/RoomScreen/RoomScreen.helpers');
+    const { buildSeatViewModels } = require('@/screens/RoomScreen/RoomScreen.helpers') as {
+      buildSeatViewModels: (...args: unknown[]) => unknown;
+    };
     expect(typeof buildSeatViewModels).toBe('function');
 
     // 函数签名中包含 schemaConstraints 参数

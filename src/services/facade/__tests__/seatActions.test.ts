@@ -31,7 +31,9 @@ jest.mock('../../../utils/logger', () => ({
 // fetchWithRetry passthrough: tests mock global.fetch directly,
 // so bypass network-layer retry to avoid delays and timer interference.
 jest.mock('@/services/cloudflare/cfFetch', () => ({
-  ...jest.requireActual('@/services/cloudflare/cfFetch'),
+  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  ),
   fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
 }));
 
@@ -102,8 +104,8 @@ describe('seatActions (HTTP API)', () => {
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
             'x-region': 'us-west-1',
-            'x-request-id': expect.any(String),
-          }),
+            'x-request-id': expect.any(String) as string,
+          }) as Record<string, string>,
           body: JSON.stringify({
             roomCode: 'ABCD',
             action: 'sit',
@@ -178,7 +180,9 @@ describe('seatActions (HTTP API)', () => {
 
       await takeSeatWithAck(ctx, 1);
 
-      const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+      const body = JSON.parse(
+        (jest.mocked(global.fetch).mock.calls[0][1] as RequestInit).body as string,
+      ) as Record<string, unknown>;
       expect(body.displayName).toBeUndefined();
       expect(body.avatarUrl).toBeUndefined();
     });
@@ -310,7 +314,7 @@ describe('seatActions (HTTP API)', () => {
       const mockState = { roomCode: 'ABCD', players: {} };
       global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 5 });
       const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
-      const ctx = createMockCtx({ store: mockStore as any });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
       await takeSeatWithAck(ctx, 2, 'Alice');
 
@@ -320,7 +324,7 @@ describe('seatActions (HTTP API)', () => {
     it('should NOT call applySnapshot when response has no state', async () => {
       global.fetch = mockFetchSuccess({ success: true });
       const mockStore = createMockStore({ roomCode: 'ABCD', players: {} });
-      const ctx = createMockCtx({ store: mockStore as any });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
       await takeSeatWithAck(ctx, 2, 'Alice');
 
@@ -343,7 +347,7 @@ describe('seatActions (HTTP API)', () => {
         roomCode: 'ABCD',
         players: { 1: { userId: 'test-uid', seat: 1 } },
       });
-      const ctx = createMockCtx({ store: mockStore as any });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
       await leaveSeatWithAck(ctx);
 

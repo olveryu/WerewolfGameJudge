@@ -12,22 +12,27 @@ import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
+import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
+import type { AudioService } from '@/services/infra/AudioService';
+import type { IRoomService } from '@/services/types/IRoomService';
 
 // P0-1: Mock AudioService
 const mockAudioServiceInstance = {
-  playNightAudio: jest.fn().mockResolvedValue(undefined),
-  playNightEndAudio: jest.fn().mockResolvedValue(undefined),
-  playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
-  playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
-  preloadForRoles: jest.fn().mockResolvedValue(undefined),
-  clearPreloaded: jest.fn(),
-  cleanup: jest.fn(),
-  stop: jest.fn(),
-  stopBgm: jest.fn(),
+  playNightAudio: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+  playNightEndAudio: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+  playRoleBeginningAudio: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
+  playRoleEndingAudio: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
+  preloadForRoles: jest.fn<Promise<void>, [RoleId[]]>().mockResolvedValue(undefined),
+  clearPreloaded: jest.fn<void, []>(),
+  cleanup: jest.fn<void, []>(),
+  stop: jest.fn<void, []>(),
+  stopBgm: jest.fn<void, []>(),
 };
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
@@ -37,15 +42,40 @@ jest.mock('../../infra/AudioService', () => ({
 // fetchWithRetry passthrough: tests mock global.fetch directly,
 // so bypass network-layer retry to avoid delays and timer interference.
 jest.mock('@/services/cloudflare/cfFetch', () => ({
-  ...jest.requireActual('@/services/cloudflare/cfFetch'),
+  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  ),
   fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
 }));
 
 // Mock RoomService (DB state persistence)
 const mockRoomService = () =>
   ({
-    getGameState: jest.fn().mockResolvedValue(null),
-  }) as any;
+    getGameState: jest
+      .fn<Promise<{ state: GameState; revision: number } | null>, [string]>()
+      .mockResolvedValue(null),
+  }) as unknown as IRoomService;
+
+/** Helper: build a complete GameState with sensible defaults for tests */
+function buildTestState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    roomCode: 'TEST',
+    hostUserId: 'host-uid',
+    status: GameStatus.Unseated,
+    templateRoles: [] as RoleId[],
+    players: {},
+    roster: {},
+    currentStepIndex: -1,
+    isAudioPlaying: false,
+    actions: [],
+    pendingRevealAcks: [],
+    hypnotizedSeats: [],
+    piperRevealAcks: [],
+    conversionRevealAcks: [],
+    cupidLoversRevealAcks: [],
+    ...overrides,
+  };
+}
 
 /**
  * Create a mock ConnectionManager.
@@ -54,20 +84,24 @@ const mockRoomService = () =>
  */
 const createMockConnectionManager = (
   store?: GameStore,
-  roomService?: { getGameState: jest.Mock },
+  roomService?: {
+    getGameState: jest.Mock<Promise<{ state: GameState; revision: number } | null>, [string]>;
+  },
 ) => ({
-  connectAndWait: jest.fn().mockImplementation(async (roomCode: string) => {
-    if (store && roomService) {
-      const dbState = await roomService.getGameState(roomCode);
-      if (dbState) store.applySnapshot(dbState.state, dbState.revision);
-    }
-  }),
-  connect: jest.fn(),
-  dispose: jest.fn(),
-  manualReconnect: jest.fn(),
-  addStateListener: jest.fn().mockReturnValue(() => {}),
-  updateRevision: jest.fn(),
-  getState: jest.fn().mockReturnValue('Idle'),
+  connectAndWait: jest
+    .fn<Promise<void>, [string, string]>()
+    .mockImplementation(async (roomCode: string) => {
+      if (store && roomService) {
+        const dbState = await roomService.getGameState(roomCode);
+        if (dbState) store.applySnapshot(dbState.state, dbState.revision);
+      }
+    }),
+  connect: jest.fn<void, [string, string]>(),
+  dispose: jest.fn<void, []>(),
+  manualReconnect: jest.fn<void, []>(),
+  addStateListener: jest.fn<() => void, [(...args: unknown[]) => void]>().mockReturnValue(() => {}),
+  updateRevision: jest.fn<void, [number]>(),
+  getState: jest.fn<string, []>().mockReturnValue('Idle'),
   getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
 });
 
@@ -75,35 +109,36 @@ describe('GameFacade', () => {
   let facade: GameFacade;
   let testStore: GameStore;
   let mockConnectionManager: {
-    connectAndWait: jest.Mock;
-    connect: jest.Mock;
-    disconnect: jest.Mock;
-    dispose: jest.Mock;
-    manualReconnect: jest.Mock;
-    addStateListener: jest.Mock;
-    updateRevision: jest.Mock;
-    getState: jest.Mock;
+    connectAndWait: jest.Mock<Promise<void>, [string, string]>;
+    connect: jest.Mock<void, [string, string]>;
+    disconnect: jest.Mock<void, []>;
+    dispose: jest.Mock<void, []>;
+    manualReconnect: jest.Mock<void, []>;
+    addStateListener: jest.Mock<() => void, [(...args: unknown[]) => void]>;
+    updateRevision: jest.Mock<void, [number]>;
+    getState: jest.Mock<string, []>;
     getContext: jest.Mock;
   };
 
-  const mockTemplate = {
-    id: 'test-template',
+  const mockTemplate: GameTemplate = {
     name: 'Test Template',
     numberOfPlayers: 6,
-    roles: ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'] as any[],
+    roles: ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'] as RoleId[],
   };
 
   beforeEach(() => {
     // Setup mock ConnectionManager
     mockConnectionManager = {
-      connectAndWait: jest.fn().mockResolvedValue(undefined),
-      connect: jest.fn(),
-      disconnect: jest.fn(),
-      dispose: jest.fn(),
-      manualReconnect: jest.fn(),
-      addStateListener: jest.fn().mockReturnValue(() => {}),
-      updateRevision: jest.fn(),
-      getState: jest.fn().mockReturnValue('Idle'),
+      connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
+      connect: jest.fn<void, [string, string]>(),
+      disconnect: jest.fn<void, []>(),
+      dispose: jest.fn<void, []>(),
+      manualReconnect: jest.fn<void, []>(),
+      addStateListener: jest
+        .fn<() => void, [(...args: unknown[]) => void]>()
+        .mockReturnValue(() => {}),
+      updateRevision: jest.fn<void, [number]>(),
+      getState: jest.fn<string, []>().mockReturnValue('Idle'),
       getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
     };
 
@@ -111,8 +146,8 @@ describe('GameFacade', () => {
     testStore = new GameStore();
     facade = new GameFacade({
       store: testStore,
-      connectionManager: mockConnectionManager as any,
-      audioService: mockAudioServiceInstance as any,
+      connectionManager: mockConnectionManager as unknown as ConnectionManager,
+      audioService: mockAudioServiceInstance as unknown as AudioService,
       roomService: mockRoomService(),
     });
   });
@@ -191,7 +226,7 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"sit"'),
+          body: expect.stringContaining('"action":"sit"') as string,
         }),
       );
     });
@@ -264,15 +299,11 @@ describe('GameFacade', () => {
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'ABCD',
-          hostUserId: 'host-uid',
-          status: GameStatus.Unseated,
-          templateRoles: ['wolf', 'seer'] as any[],
+          templateRoles: ['wolf', 'seer'] as RoleId[],
           players: { 0: null, 1: null },
-          currentStepIndex: -1,
-          isAudioPlaying: false,
-        } as any,
+        }),
         1,
       );
     });
@@ -295,7 +326,7 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/seat'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"sit"'),
+          body: expect.stringContaining('"action":"sit"') as string,
         }),
       );
     });
@@ -357,28 +388,20 @@ describe('GameFacade', () => {
     });
 
     it('should apply snapshot when receiving state via postgres_changes', () => {
-      const state = {
+      const state = buildTestState({
         roomCode: 'ABCD',
-        hostUserId: 'host-uid',
-        status: GameStatus.Unseated,
-        templateRoles: ['wolf', 'seer'] as any[],
+        templateRoles: ['wolf', 'seer'] as RoleId[],
         players: {
           0: null,
           1: {
             userId: 'player-uid',
             seat: 1,
-            displayName: 'Player One',
             hasViewedRole: false,
           },
         },
-        currentStepIndex: -1,
-        isAudioPlaying: false,
-        actions: [],
-        pendingRevealAcks: [],
-        roster: {},
-      };
+      });
 
-      testStore.applySnapshot(state as any, 5);
+      testStore.applySnapshot(state, 5);
 
       expect(facade.getStateRevision()).toBe(5);
       expect(facade.getMySeat()).toBe(1);
@@ -393,15 +416,11 @@ describe('GameFacade', () => {
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'ABCD',
-          hostUserId: 'host-uid',
-          status: GameStatus.Unseated,
-          templateRoles: ['wolf', 'seer'] as any[],
+          templateRoles: ['wolf', 'seer'] as RoleId[],
           players: { 0: null, 1: null },
-          currentStepIndex: -1,
-          isAudioPlaying: false,
-        } as any,
+        }),
         1,
       );
     });
@@ -463,15 +482,11 @@ describe('GameFacade', () => {
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'ABCD',
-          hostUserId: 'host-uid',
-          status: GameStatus.Unseated,
-          templateRoles: ['wolf', 'seer'] as any[],
+          templateRoles: ['wolf', 'seer'] as RoleId[],
           players: { 0: null, 1: null },
-          currentStepIndex: -1,
-          isAudioPlaying: false,
-        } as any,
+        }),
         1,
       );
     });
@@ -615,7 +630,7 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/assign'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"ABCD"'),
+          body: expect.stringContaining('"roomCode":"ABCD"') as string,
         }),
       );
     });
@@ -649,8 +664,8 @@ describe('GameFacade', () => {
       // Player without store state
       const playerFacade = new GameFacade({
         store: new GameStore(),
-        connectionManager: mockConnectionManager as any,
-        audioService: mockAudioServiceInstance as any,
+        connectionManager: mockConnectionManager as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
         roomService: mockRoomService(),
       });
 
@@ -697,13 +712,13 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/view-role'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"seat":2'),
+          body: expect.stringContaining('"seat":2') as string,
         }),
       );
       expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
-          body: expect.stringContaining('"userId":"host-uid"'),
+          body: expect.stringContaining('"userId":"host-uid"') as string,
         }),
       );
     });
@@ -729,9 +744,12 @@ describe('GameFacade', () => {
       };
       const playerFacade = new GameFacade({
         store: playerStore,
-        connectionManager: createMockConnectionManager(playerStore, playerRoomService) as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: playerRoomService as any,
+        connectionManager: createMockConnectionManager(
+          playerStore,
+          playerRoomService,
+        ) as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
+        roomService: playerRoomService as unknown as IRoomService,
       });
       await playerFacade.joinRoom('ABCD', 'player-uid', false);
 
@@ -813,7 +831,7 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/start'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"ABCD"'),
+          body: expect.stringContaining('"roomCode":"ABCD"') as string,
         }),
       );
     });
@@ -821,8 +839,8 @@ describe('GameFacade', () => {
     it('should return NOT_CONNECTED when not connected', async () => {
       const emptyFacade = new GameFacade({
         store: new GameStore(),
-        connectionManager: mockConnectionManager as any,
-        audioService: mockAudioServiceInstance as any,
+        connectionManager: mockConnectionManager as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
         roomService: mockRoomService(),
       });
 
@@ -914,7 +932,7 @@ describe('GameFacade', () => {
         expect.stringContaining('/game/night/action'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"role":"seer"'),
+          body: expect.stringContaining('"role":"seer"') as string,
         }),
       );
     });
@@ -1052,9 +1070,12 @@ describe('GameFacade', () => {
       };
       const facadeWithDb = new GameFacade({
         store: rejoinStore,
-        connectionManager: createMockConnectionManager(rejoinStore, rejoinRoomService) as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: rejoinRoomService as any,
+        connectionManager: createMockConnectionManager(
+          rejoinStore,
+          rejoinRoomService,
+        ) as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
+        roomService: rejoinRoomService as unknown as IRoomService,
       });
 
       const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
@@ -1073,9 +1094,12 @@ describe('GameFacade', () => {
       };
       const facadeWithDb = new GameFacade({
         store: rejoinStore2,
-        connectionManager: createMockConnectionManager(rejoinStore2, rejoinRoomService2) as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: rejoinRoomService2 as any,
+        connectionManager: createMockConnectionManager(
+          rejoinStore2,
+          rejoinRoomService2,
+        ) as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
+        roomService: rejoinRoomService2 as unknown as IRoomService,
       });
 
       const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
@@ -1147,9 +1171,12 @@ describe('GameFacade', () => {
       };
       const f = new GameFacade({
         store: rejoinStore,
-        connectionManager: createMockConnectionManager(rejoinStore, rejoinRoomService) as any,
-        audioService: mockAudioServiceInstance as any,
-        roomService: rejoinRoomService as any,
+        connectionManager: createMockConnectionManager(
+          rejoinStore,
+          rejoinRoomService,
+        ) as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
+        roomService: rejoinRoomService as unknown as IRoomService,
       });
 
       await f.joinRoom('REJN', 'host-uid', true);
@@ -1258,46 +1285,43 @@ describe('GameFacade', () => {
     const setupRetryFacade = async () => {
       statusListeners = [];
       retryConnectionManager = {
-        connectAndWait: jest.fn().mockResolvedValue(undefined),
-        connect: jest.fn(),
-        disconnect: jest.fn(),
-        dispose: jest.fn(),
-        manualReconnect: jest.fn(),
-        addStateListener: jest.fn().mockImplementation((listener: (s: string) => void) => {
-          statusListeners.push(listener);
-          return () => {
-            statusListeners = statusListeners.filter((l) => l !== listener);
-          };
-        }),
-        updateRevision: jest.fn(),
-        getState: jest.fn().mockReturnValue('Idle'),
+        connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
+        connect: jest.fn<void, [string, string]>(),
+        disconnect: jest.fn<void, []>(),
+        dispose: jest.fn<void, []>(),
+        manualReconnect: jest.fn<void, []>(),
+        addStateListener: jest
+          .fn<() => void, [(...args: unknown[]) => void]>()
+          .mockImplementation((listener: (s: string) => void) => {
+            statusListeners.push(listener);
+            return () => {
+              statusListeners = statusListeners.filter((l) => l !== listener);
+            };
+          }),
+        updateRevision: jest.fn<void, [number]>(),
+        getState: jest.fn<string, []>().mockReturnValue('Idle'),
         getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
       };
 
       retryStore = new GameStore();
       const f = new GameFacade({
         store: retryStore,
-        connectionManager: retryConnectionManager as any,
-        audioService: mockAudioServiceInstance as any,
+        connectionManager: retryConnectionManager as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
         roomService: {
           getGameState: jest.fn().mockResolvedValue({
-            state: {
+            state: buildTestState({
               roomCode: 'RTRY',
-              hostUserId: 'host-uid',
               status: GameStatus.Ongoing,
-              templateRoles: [],
-              numberOfPlayers: 6,
-              players: {},
               currentStepId: 'wolfKill',
               currentStepIndex: 0,
-              nightSteps: ['wolfKill'],
               isAudioPlaying: true,
               pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
               seerLabelMap: {},
-            },
+            }),
             revision: 10,
           }),
-        } as any,
+        } as unknown as IRoomService,
       });
       await f.createRoom('RTRY', 'host-uid', mockTemplate);
       return f;
@@ -1313,20 +1337,15 @@ describe('GameFacade', () => {
       // The facade constructor subscribes to store, so applySnapshot with pendingAudioEffects triggers it
       const store = retryStore;
       store.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'RTRY',
-          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
-          templateRoles: [],
-          numberOfPlayers: 6,
-          players: {},
           currentStepId: 'wolfKill',
           currentStepIndex: 0,
-          nightSteps: ['wolfKill'],
           isAudioPlaying: true,
           pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
           seerLabelMap: {},
-        } as any,
+        }),
         20,
       );
 
@@ -1370,20 +1389,15 @@ describe('GameFacade', () => {
 
       const store = retryStore;
       store.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'RTRY',
-          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
-          templateRoles: [],
-          numberOfPlayers: 6,
-          players: {},
           currentStepId: 'wolfKill',
           currentStepIndex: 0,
-          nightSteps: ['wolfKill'],
           isAudioPlaying: true,
           pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
           seerLabelMap: {},
-        } as any,
+        }),
         20,
       );
 
@@ -1407,20 +1421,15 @@ describe('GameFacade', () => {
 
       const store = retryStore;
       store.applySnapshot(
-        {
+        buildTestState({
           roomCode: 'RTRY',
-          hostUserId: 'host-uid',
           status: GameStatus.Ongoing,
-          templateRoles: [],
-          numberOfPlayers: 6,
-          players: {},
           currentStepId: 'wolfKill',
           currentStepIndex: 0,
-          nightSteps: ['wolfKill'],
           isAudioPlaying: true,
           pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
           seerLabelMap: {},
-        } as any,
+        }),
         20,
       );
       // Advance past callApiWithRetry NETWORK_ERROR retries
@@ -1460,13 +1469,11 @@ describe('GameFacade', () => {
         origRemoveEventListener = globalThis.window?.removeEventListener;
         origNavigatorOnLine = globalThis.navigator?.onLine;
         // Patch: 只拦截 'online' 事件
-        (globalThis.window as any).addEventListener = (type: string, listener: EventListener) => {
+        const mutableWindow = globalThis.window as unknown as Record<string, unknown>;
+        mutableWindow.addEventListener = (type: string, listener: EventListener) => {
           if (type === 'online') onlineListeners.add(listener);
         };
-        (globalThis.window as any).removeEventListener = (
-          type: string,
-          listener: EventListener,
-        ) => {
+        mutableWindow.removeEventListener = (type: string, listener: EventListener) => {
           if (type === 'online') onlineListeners.delete(listener);
         };
         // Default: navigator.onLine = false (offline → listener path)
@@ -1481,15 +1488,16 @@ describe('GameFacade', () => {
         // Safety: ensure fake timers don't leak to subsequent describe blocks
         jest.useRealTimers();
         // Restore original (may be undefined in RN env)
+        const mutableWindow = globalThis.window as unknown as Record<string, unknown>;
         if (origAddEventListener) {
           globalThis.window.addEventListener = origAddEventListener;
         } else {
-          delete (globalThis.window as any).addEventListener;
+          delete mutableWindow.addEventListener;
         }
         if (origRemoveEventListener) {
           globalThis.window.removeEventListener = origRemoveEventListener;
         } else {
-          delete (globalThis.window as any).removeEventListener;
+          delete mutableWindow.removeEventListener;
         }
         if (origNavigatorOnLine !== undefined) {
           Object.defineProperty(globalThis.navigator, 'onLine', {
@@ -1507,20 +1515,15 @@ describe('GameFacade', () => {
       /** Helper: trigger ack failure to set #pendingAudioAckRetry + register online listener */
       const triggerAckFailureAndSettle = async () => {
         retryStore.applySnapshot(
-          {
+          buildTestState({
             roomCode: 'RTRY',
-            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
-            templateRoles: [],
-            numberOfPlayers: 6,
-            players: {},
             currentStepId: 'wolfKill',
             currentStepIndex: 0,
-            nightSteps: ['wolfKill'],
             isAudioPlaying: true,
             pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
             seerLabelMap: {},
-          } as any,
+          }),
           20,
         );
         // Advance past callApiWithRetry NETWORK_ERROR retry delays + online listener registration
@@ -1657,20 +1660,15 @@ describe('GameFacade', () => {
 
         // Inline trigger (can't use triggerAckFailureAndSettle — its real setTimeout is faked)
         retryStore.applySnapshot(
-          {
+          buildTestState({
             roomCode: 'RTRY',
-            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
-            templateRoles: [],
-            numberOfPlayers: 6,
-            players: {},
             currentStepId: 'wolfKill',
             currentStepIndex: 0,
-            nightSteps: ['wolfKill'],
             isAudioPlaying: true,
             pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
             seerLabelMap: {},
-          } as any,
+          }),
           20,
         );
         // Advance to let audio play + ack fail (including callApiWithRetry
@@ -1709,20 +1707,15 @@ describe('GameFacade', () => {
 
         // Inline trigger: applySnapshot → store subscription → playPendingAudioEffects → ack fail
         retryStore.applySnapshot(
-          {
+          buildTestState({
             roomCode: 'RTRY',
-            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
-            templateRoles: [],
-            numberOfPlayers: 6,
-            players: {},
             currentStepId: 'wolfKill',
             currentStepIndex: 0,
-            nightSteps: ['wolfKill'],
             isAudioPlaying: true,
             pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
             seerLabelMap: {},
-          } as any,
+          }),
           20,
         );
         // Advance to let audio play + ack fail (including callApiWithRetry
@@ -1764,20 +1757,15 @@ describe('GameFacade', () => {
 
         // Inline trigger
         retryStore.applySnapshot(
-          {
+          buildTestState({
             roomCode: 'RTRY',
-            hostUserId: 'host-uid',
             status: GameStatus.Ongoing,
-            templateRoles: [],
-            numberOfPlayers: 6,
-            players: {},
             currentStepId: 'wolfKill',
             currentStepIndex: 0,
-            nightSteps: ['wolfKill'],
             isAudioPlaying: true,
             pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
             seerLabelMap: {},
-          } as any,
+          }),
           20,
         );
         // Advance to let audio play + ack fail (including callApiWithRetry

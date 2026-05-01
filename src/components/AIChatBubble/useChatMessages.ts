@@ -80,7 +80,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
   // ── Load saved messages ────────────────────────────
   useEffect(() => {
     const saved = storage.getString(STORAGE_KEY_MESSAGES);
-    if (saved) setMessages(JSON.parse(saved));
+    if (saved) setMessages(JSON.parse(saved) as DisplayMessage[]);
   }, []);
 
   // ── Persist messages (debounced 500ms) ─────────────────────

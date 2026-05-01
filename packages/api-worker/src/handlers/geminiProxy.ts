@@ -32,15 +32,21 @@ let cacheTimestamp = 0;
  * 从 ListModels API 获取适合文本聊天的 Gemini Flash 模型，按版本降序排列。
  * 版本号高的优先，同版本内 non-lite 优先（质量高），lite 其次（额度多）。
  */
+/** Shape of a single model entry from the Gemini ListModels API response. */
+interface GeminiModel {
+  name: string;
+  supportedGenerationMethods?: string[];
+}
+
 async function fetchSortedModels(apiKey: string): Promise<string[]> {
   const res = await fetch(`${GEMINI_API_BASE}/models?key=${apiKey}`);
   if (!res.ok) return [];
 
-  const data = await res.json();
+  const data: { models?: GeminiModel[] } = await res.json();
   if (!data.models) return [];
 
   const candidates = data.models
-    .filter((m) => {
+    .filter((m: GeminiModel) => {
       const id = m.name.replace('models/', '');
       return (
         id.startsWith('gemini-') &&
@@ -49,7 +55,7 @@ async function fetchSortedModels(apiKey: string): Promise<string[]> {
         m.supportedGenerationMethods?.includes('generateContent')
       );
     })
-    .map((m) => m.name.replace('models/', ''));
+    .map((m: GeminiModel) => m.name.replace('models/', ''));
 
   return candidates.sort((a, b) => {
     const va = parseVersion(a);
@@ -103,7 +109,7 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
   let buffer = '';
 
   return workersAIStream.pipeThrough(
-    new TransformStream({
+    new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         buffer += decoder.decode(chunk, { stream: true });
         const lines = buffer.split('\n');
@@ -120,11 +126,11 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
           }
 
           try {
-            const parsed = JSON.parse(data);
+            const parsed: unknown = JSON.parse(data);
             // Workers AI: {"response":"..."} → OpenAI: {"choices":[{"delta":{"content":"..."}}]}
-            if ('response' in parsed) {
+            if (typeof parsed === 'object' && parsed !== null && 'response' in parsed) {
               const openAIChunk = {
-                choices: [{ delta: { content: parsed.response } }],
+                choices: [{ delta: { content: (parsed as { response: string }).response } }],
               };
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
             } else {
@@ -247,7 +253,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
               },
             });
           }
-          const data = await geminiResponse.json();
+          const data: Record<string, unknown> = await geminiResponse.json();
           return c.json(data, 200);
         }
 
@@ -303,7 +309,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         },
       });
     }
-    return Response.json(aiResponse);
+    return Response.json(aiResponse as Record<string, unknown>);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     const isNeuronsExhausted = /exceeded|neurons|rate limit|too many/i.test(errMsg);

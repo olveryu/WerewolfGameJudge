@@ -6,7 +6,7 @@
  * Adding a new RevealKind forces a compile error in REVEAL_HANDLERS.
  */
 
-import { type RevealKind, type SchemaId, SCHEMAS } from '../../models';
+import { type RevealKind, type RoleId, type SchemaId, SCHEMAS } from '../../models';
 import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ResolverResult } from '../../resolvers/types';
@@ -19,15 +19,22 @@ import type { ApplyResolverResultAction } from '../reducer/types';
 /**
  * Extract gateTriggersOnRoles from the first learn effect in wolfRobot's abilities.
  * Returns empty array if not found (no gate triggered).
+ * Validates each role string against ROLE_SPECS at startup (fail-fast).
  */
-function deriveGateTriggerRoles(): readonly string[] {
+function deriveGateTriggerRoles(): readonly RoleId[] {
   const spec = ROLE_SPECS.wolfRobot as RoleSpec;
   for (const ability of spec.abilities) {
     if (ability.type !== 'active') continue;
     const active = ability;
     for (const effect of active.effects) {
       if (effect.kind === 'learn') {
-        return effect.gateTriggersOnRoles ?? [];
+        const raw = effect.gateTriggersOnRoles ?? [];
+        for (const r of raw) {
+          if (!(r in ROLE_SPECS)) {
+            throw new Error(`[FAIL-FAST] gateTriggersOnRoles contains unknown role: '${r}'`);
+          }
+        }
+        return raw as RoleId[];
       }
     }
   }

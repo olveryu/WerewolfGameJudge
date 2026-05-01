@@ -48,7 +48,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
     const p = ref.current;
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
+      if (status !== ImagePicker.PermissionStatus.GRANTED) {
         showConfirmAlert(
           '需要相册权限',
           '请在系统设置中开启相册访问权限',

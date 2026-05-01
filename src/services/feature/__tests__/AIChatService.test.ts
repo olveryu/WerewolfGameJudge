@@ -231,9 +231,9 @@ describe('AIChatService - streamChatMessage', () => {
     // Verify fetch was called with system prompt containing context
     expect(global.fetch).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({
+      expect.objectContaining<RequestInit>({
         method: 'POST',
-        body: expect.stringContaining('游戏状态'),
+        body: expect.stringContaining('游戏状态') as unknown as string,
       }),
     );
   });
@@ -268,7 +268,9 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+      messages: Array<{ role: string; content: string }>;
+    };
     // system + last 6 messages = 7 total
     expect(body.messages).toHaveLength(7);
     expect(body.messages[0].role).toBe('system');
@@ -311,7 +313,9 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+      messages: Array<{ role: string; content: string }>;
+    };
     const systemMsg = body.messages[0].content;
     expect(systemMsg).toContain('角色配置');
     expect(systemMsg).toContain('狼人');
@@ -344,7 +348,9 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body);
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+      messages: Array<{ role: string; content: string }>;
+    };
     expect(body.messages[0].content).toContain('不在游戏房间中');
   });
 

@@ -26,7 +26,7 @@ const CONNECTION_REFUSED_SIGNATURE = 'ERR_CONNECTION_REFUSED';
  * REQUIRED: E2E_BASE_URL must be set. Throws if not set (fail-fast, never silent fallback).
  */
 function getBaseURL(): string {
-  const envBaseURL = process.env.E2E_BASE_URL;
+  const envBaseURL = process.env.E2E_BASE_URL as string | undefined;
   if (!envBaseURL) {
     throw new Error(
       '[gotoWithRetry] E2E_BASE_URL not set. ' +

@@ -24,6 +24,7 @@ import {
   Picture,
   RadialGradient,
   Rect,
+  type SkCanvas,
   Skia,
   vec,
 } from '@shopify/react-native-skia';
@@ -578,8 +579,7 @@ function createForestPicture(w: number, h: number) {
 }
 
 function drawSkiaTreeLine(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SkCanvas not re-exported
-  canvas: any,
+  canvas: SkCanvas,
   w: number,
   h: number,
   baseY: number,
@@ -606,14 +606,7 @@ function drawSkiaTreeLine(
   canvas.drawPath(treePath, treePaint);
 }
 
-function drawSkiaSilhouetteTree(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- SkCanvas not re-exported
-  canvas: any,
-  h: number,
-  x: number,
-  topY: number,
-  dir: number,
-) {
+function drawSkiaSilhouetteTree(canvas: SkCanvas, h: number, x: number, topY: number, dir: number) {
   const treePaint = Skia.Paint();
   treePaint.setColor(Skia.Color('#040d08'));
   canvas.drawRect({ x: x + 20 * dir, y: topY + 40, width: 18, height: h - topY - 40 }, treePaint);

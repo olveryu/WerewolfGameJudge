@@ -12,6 +12,8 @@
 
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 
+import type { AlertButton } from '@/utils/alert';
+
 // =============================================================================
 // Dialog Type Definitions (Single Source of Truth)
 // =============================================================================
@@ -73,7 +75,7 @@ export interface DialogEvent {
   buttons: string[];
   timestamp: number;
   /** Raw call arguments for debugging */
-  raw: { title: string; message?: string; buttons?: any[] };
+  raw: { title: string; message?: string; buttons?: AlertButton[] };
   /**
    * Button callbacks keyed by button text.
    * Use harness.pressButton() to invoke; do NOT call directly.
@@ -450,7 +452,7 @@ export class RoomScreenTestHarness {
   #findPrimaryButton(event: DialogEvent): string {
     const rawButtons = event.raw.buttons;
     if (rawButtons && rawButtons.length > 1) {
-      const primary = rawButtons.find((b: any) => b.style !== 'cancel');
+      const primary = rawButtons.find((b) => b.style !== 'cancel');
       if (primary?.text) return primary.text;
     }
     return event.buttons[0];
@@ -483,11 +485,11 @@ export class RoomScreenTestHarness {
    * Record a showAlert call
    * @internal Called by the mock
    */
-  record(title: string, message?: string, buttons?: any[]): void {
+  record(title: string, message?: string, buttons?: AlertButton[]): void {
     const msg = message || '';
     const type = classifyDialog(title, msg);
-    const btnArray = buttons || [{ text: '确定' }];
-    const buttonTexts = btnArray.map((b: any) => b.text || '');
+    const btnArray: AlertButton[] = buttons || [{ text: '确定' }];
+    const buttonTexts = btnArray.map((b) => b.text || '');
 
     // Build per-event callback map
     const callbacks = new Map<string, (() => void) | undefined>();
@@ -517,7 +519,8 @@ export class RoomScreenTestHarness {
  * Create a mock for showAlert that records to the harness
  */
 export function createShowAlertMock(harness: RoomScreenTestHarness) {
-  return jest.fn((title: string, message?: string, buttons?: any[]) => {
+  return jest.fn((title: string, message?: string, buttons?: AlertButton[]): boolean => {
     harness.record(title, message, buttons);
+    return true;
   });
 }

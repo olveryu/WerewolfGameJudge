@@ -14,6 +14,7 @@ import {
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { Player } from '@werewolf/game-engine/protocol/types';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
@@ -43,7 +44,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Unseated,
-    templateRoles: new Array<string>(totalSeats).fill('villager') as any,
+    templateRoles: new Array<RoleId>(totalSeats).fill('villager'),
     players: defaultPlayers,
     currentStepIndex: -1,
     isAudioPlaying: false,

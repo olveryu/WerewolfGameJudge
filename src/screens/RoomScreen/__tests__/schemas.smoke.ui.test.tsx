@@ -1,21 +1,21 @@
 import { render, waitFor } from '@testing-library/react-native';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
-import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
 }));
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
-type UseGameRoomReturn = any;
-let mockUseGameRoomImpl: () => UseGameRoomReturn;
+let mockUseGameRoomImpl: () => ReturnType<typeof makeBaseUseGameRoomReturn>;
 
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomImpl(),
@@ -28,11 +28,11 @@ jest.mock('../hooks/useActionerState', () => ({
   }),
 }));
 
-type UseRoomActionsReturn = any;
-let mockUseRoomActionsImpl: () => UseRoomActionsReturn;
+let mockUseRoomActionsImpl: () => unknown;
 
 jest.mock('../hooks/useRoomActions', () => {
-  const actual = jest.requireActual('../hooks/useRoomActions');
+  const actual =
+    jest.requireActual<typeof import('../hooks/useRoomActions')>('../hooks/useRoomActions');
   return {
     ...actual,
     useRoomActions: () => mockUseRoomActionsImpl(),
@@ -74,7 +74,7 @@ jest.mock('../useRoomActionDialogs', () => ({
 
 import { useRoomActionDialogs } from '@/screens/RoomScreen/useRoomActionDialogs';
 
-const schemaToRole: Record<string, string> = {
+const schemaToRole: Record<string, RoleId> = {
   // god
   seerCheck: 'seer',
   mirrorSeerCheck: 'mirrorSeer',
@@ -115,7 +115,7 @@ const schemaToRole: Record<string, string> = {
   cupidLoversReveal: 'cupid',
 };
 
-function roleForSchemaId(schemaId: string): string {
+function roleForSchemaId(schemaId: string): RoleId {
   const role = schemaToRole[schemaId];
   if (!role) {
     throw new Error(`[schemas.smoke.ui] Missing role mapping for schemaId: ${schemaId}`);
@@ -134,8 +134,8 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
       const role = roleForSchemaId(schemaId);
 
       // Some schemas require extra hook data to avoid hitting code paths that assume it.
-      const overrides: any = {};
-      const gameStateOverrides: any = {};
+      const overrides: Record<string, unknown> = {};
+      const gameStateOverrides: Record<string, unknown> = {};
       if (schemaId === 'witchAction') {
         gameStateOverrides.witchContext = {
           killedSeat: 2,
@@ -154,7 +154,8 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
 
       // Default: use the real hook logic (to keep RoomScreen mount behavior realistic).
       // IMPORTANT: useRoomActions signature is (gameContext, deps).
-      const actual = jest.requireActual('../hooks/useRoomActions');
+      const actual =
+        jest.requireActual<typeof import('../hooks/useRoomActions')>('../hooks/useRoomActions');
       const room = mockUseGameRoomImpl();
       mockUseRoomActionsImpl = () =>
         actual.useRoomActions(
@@ -173,22 +174,18 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
           {
             hasWolfVoted: room.hasWolfVoted,
             getWolfVoteSummary: room.getWolfVoteSummary,
-            getWitchContext: () => room.gameState?.witchContext ?? null,
+            getWitchContext: () =>
+              ((room.gameState as Record<string, unknown>)?.witchContext ?? null) as {
+                killedSeat: number;
+                canSave: boolean;
+                canPoison: boolean;
+              } | null,
           },
         );
 
-      const props: any = {
-        navigation: mockNavigation,
-        route: {
-          params: {
-            roomCode: '1234',
-            isHost: false,
-            template: '梦魇守卫',
-          },
-        },
-      };
-
-      const { queryByText } = render(<RoomScreen {...props} />);
+      const { queryByText } = render(
+        <RoomScreen navigation={mockNavigation} route={mockRoomRoute} />,
+      );
 
       if (schemaId === 'wolfKill') {
         // wolfKill is a wolfVote schema: its copy shows via dialog (showAlert), not in the tree.
@@ -200,7 +197,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
 
         await waitFor(() => {
           expect(dialogs.showWolfVoteDialog).toHaveBeenCalled();
-          const lastCall = (dialogs.showWolfVoteDialog as jest.Mock).mock.calls.at(-1);
+          const lastCall = jest.mocked(dialogs.showWolfVoteDialog).mock.calls.at(-1);
           // Schema is passed as 5th arg (schema-driven contract)
           expect(lastCall?.[4]).toBe(schema);
         });
@@ -209,7 +206,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
 
       // Key-copy assertion: for non-wolfVote schemas, the prompt should render in the tree.
       // (wolfVote prompts are shown via dialog.)
-      const prompt = (schema as any)?.ui?.prompt;
+      const prompt = schema.ui?.prompt;
       if (typeof prompt !== 'string' || !prompt) {
         throw new Error(`[schemas.smoke.ui] Missing rendered text for schema: ${schemaId}`);
       }

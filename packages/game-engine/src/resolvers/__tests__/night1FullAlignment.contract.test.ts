@@ -417,7 +417,7 @@ describe('Nightmare blocking behavior', () => {
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(wolfSeat);
     expect(result.updates?.wolfKillOverride).toBeDefined();
-    expect((result.updates?.wolfKillOverride as any).source).toBe('nightmare');
+    expect(result.updates?.wolfKillOverride?.source).toBe('nightmare');
   });
 
   it('nightmare resolver does NOT set wolfKillOverride when blocking non-wolf', () => {

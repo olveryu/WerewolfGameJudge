@@ -35,6 +35,7 @@ export {
   createGameRoomMock,
   createReactiveGameRoomMock,
   mockNavigation,
+  mockRoomRoute,
   tapSeat,
   waitForRoomScreen,
 } from './boardTestUtils';

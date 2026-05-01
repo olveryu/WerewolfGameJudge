@@ -37,7 +37,7 @@ jest.mock('@/lib/storage', () => ({
 
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

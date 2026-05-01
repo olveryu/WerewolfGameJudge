@@ -14,6 +14,7 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec';
 
 import {
@@ -31,6 +32,7 @@ import {
   createShowAlertMock,
   getBoardByName,
   mockNavigation,
+  mockRoomRoute,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -39,7 +41,7 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../../utils/alert', () => ({
-  ...jest.requireActual('../../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../../utils/alert')>('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -85,13 +87,7 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
-  const renderRoom = () =>
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
   const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
     mockUseGameRoomReturn = m;
   };
@@ -99,7 +95,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
   });
 
   describe('actionPrompt coverage', () => {
@@ -112,10 +108,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -131,10 +124,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -158,10 +148,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -183,10 +170,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -206,10 +190,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -229,10 +210,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -252,10 +230,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -280,10 +255,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -302,10 +274,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -337,10 +306,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen
-          route={{ params: { roomCode: '1234', isHost: false } } as any}
-          navigation={mockNavigation as any}
-        />,
+        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -361,7 +327,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         renderRoom,
         'wolf',
         3,
-        new Map<number, any>([
+        new Map<number, RoleId>([
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
@@ -404,7 +370,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         renderRoom,
         'wolf',
         3,
-        new Map<number, any>([
+        new Map<number, RoleId>([
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
@@ -463,7 +429,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         renderRoom,
         'wolf',
         3,
-        new Map<number, any>([
+        new Map<number, RoleId>([
           [3, 'wolf'],
           [4, 'wolf'],
           [5, 'wolf'],
