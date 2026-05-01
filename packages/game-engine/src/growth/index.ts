@@ -25,6 +25,7 @@ export {
   PITY_THRESHOLD,
   rollRarity,
   selectReward,
+  type SelectRewardResult,
 } from './gachaProbability';
 export {
   getLevel,
@@ -53,6 +54,7 @@ export {
   type NameStyleId,
   type Rarity,
   REWARD_POOL,
+  REWARD_POOL_BY_ID,
   type RewardItem,
   type RewardType,
   ROLE_REVEAL_EFFECT_IDS,
@@ -60,5 +62,7 @@ export {
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
   type SeatAnimationId,
+  SHARD_COSTS,
+  SHARD_VALUES,
   TOTAL_UNLOCKABLE_COUNT,
 } from './rewardCatalog';

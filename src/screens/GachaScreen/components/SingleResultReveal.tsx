@@ -246,7 +246,14 @@ export function SingleResultReveal({
           {/* Info */}
           <Text style={styles.itemName}>{displayName}</Text>
           <Text style={styles.itemType}>{typeLabel}</Text>
-          {item.isNew && <Text style={styles.newTag}>NEW</Text>}
+          {item.isDuplicate ? (
+            <View style={styles.duplicateRow}>
+              <Text style={styles.duplicateTag}>已拥有</Text>
+              <Text style={styles.shardAward}>✦ +{item.shardsAwarded}</Text>
+            </View>
+          ) : (
+            item.isNew && <Text style={styles.newTag}>NEW</Text>
+          )}
         </Animated.View>
 
         {onGoEquip && (
@@ -326,6 +333,21 @@ const styles = StyleSheet.create({
     fontSize: typography.captionSmall,
     fontWeight: typography.weights.bold,
     color: colors.success,
+  },
+  duplicateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  duplicateTag: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+  },
+  shardAward: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.bold,
+    color: colors.warning,
   },
   bottomActions: {
     position: 'absolute',

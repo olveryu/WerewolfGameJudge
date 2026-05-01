@@ -100,6 +100,7 @@ export const userStats = sqliteTable('user_stats', {
   goldenDraws: integer('golden_draws').notNull().default(0),
   normalPity: integer('normal_pity').notNull().default(0),
   goldenPity: integer('golden_pity').notNull().default(0),
+  shards: integer('shards').notNull().default(0),
   version: integer('version').notNull().default(0),
   lastLoginRewardAt: text('last_login_reward_at'),
   updatedAt: text('updated_at').notNull(),
@@ -118,5 +119,7 @@ export const drawHistory = sqliteTable('draw_history', {
   rewardId: text('reward_id').notNull(),
   pityCount: integer('pity_count').notNull(),
   isPityTriggered: integer('is_pity_triggered').notNull().default(0),
+  isDuplicate: integer('is_duplicate').notNull().default(0),
+  shardsAwarded: integer('shards_awarded').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });

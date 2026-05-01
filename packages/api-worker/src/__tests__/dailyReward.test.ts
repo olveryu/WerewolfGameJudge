@@ -9,6 +9,8 @@ import { env, SELF } from 'cloudflare:test';
 import { SignJWT } from 'jose';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { bootstrapTestSchema } from './testSchemaBootstrap';
+
 const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production');
 const TEST_USER_ID = 'daily-reward-test-user';
 
@@ -43,15 +45,7 @@ async function getJson(path: string, token: string): Promise<Response> {
 // ── Schema bootstrap (vitest D1 starts empty) ──────────────────────────────
 
 beforeAll(async () => {
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, equipped_effect TEXT, equipped_seat_animation TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, token_version INTEGER NOT NULL DEFAULT 0, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS refresh_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS user_stats (user_id TEXT PRIMARY KEY REFERENCES users(id), xp INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 0, games_played INTEGER NOT NULL DEFAULT 0, last_room_code TEXT, unlocked_items TEXT NOT NULL DEFAULT '[]', normal_draws INTEGER NOT NULL DEFAULT 0, golden_draws INTEGER NOT NULL DEFAULT 0, normal_pity INTEGER NOT NULL DEFAULT 0, golden_pity INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 0, last_login_reward_at TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
+  await bootstrapTestSchema(env.DB);
 });
 
 async function ensureUser(userId: string = TEST_USER_ID): Promise<void> {

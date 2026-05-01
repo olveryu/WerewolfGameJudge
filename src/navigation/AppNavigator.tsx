@@ -32,6 +32,7 @@ import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettings
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
+import { ShardExchangeScreen } from '@/screens/ShardExchangeScreen/ShardExchangeScreen';
 import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
@@ -214,6 +215,11 @@ export const AppNavigator: React.FC = () => {
         />
         <Stack.Screen name="Unlocks" component={UnlocksScreen} options={{ title: '解锁一览' }} />
         <Stack.Screen name="Gacha" component={GachaScreen} options={{ title: '扭蛋抽奖' }} />
+        <Stack.Screen
+          name="ShardExchange"
+          component={ShardExchangeScreen}
+          options={{ title: '碎片兑换' }}
+        />
         {/* Auth modal screens — transparent overlay with centered card */}
         <Stack.Group
           screenOptions={{

@@ -1047,3 +1047,21 @@ export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;
 export const REWARD_POOL_BY_ID: ReadonlyMap<string, RewardItem> = new Map(
   REWARD_POOL.map((item) => [item.id, item]),
 );
+
+// ── Shard System ────────────────────────────────────────────────────────
+
+/** 抽到重复物品时获得的碎片数 */
+export const SHARD_VALUES: Readonly<Record<Rarity, number>> = {
+  common: 5,
+  rare: 15,
+  epic: 50,
+  legendary: 200,
+};
+
+/** 碎片兑换指定物品的消耗数 */
+export const SHARD_COSTS: Readonly<Record<Rarity, number>> = {
+  common: 30,
+  rare: 90,
+  epic: 300,
+  legendary: 1200,
+};

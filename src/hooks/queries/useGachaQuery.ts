@@ -15,6 +15,8 @@ import {
   claimDailyReward,
   type DailyRewardResponse,
   type DrawResponse,
+  type ExchangeResponse,
+  exchangeShard,
   performDraw,
 } from '@/services/feature/GachaService';
 import { gachaLog } from '@/utils/logger';
@@ -103,4 +105,24 @@ export function useAutoClaimDailyReward() {
       },
     });
   }, [status, claimDailyReward, isClaimPending]);
+}
+
+export function useExchangeShardMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (rewardId: string) => {
+      gachaLog.debug('Exchange requested', { rewardId });
+      return exchangeShard(rewardId);
+    },
+    onSuccess: (data: ExchangeResponse) => {
+      gachaLog.info('Exchange success', {
+        rewardId: data.rewardId,
+        cost: data.cost,
+        remainingShards: data.remainingShards,
+      });
+      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
+      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+    },
+  });
 }

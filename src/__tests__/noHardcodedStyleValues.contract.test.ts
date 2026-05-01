@@ -194,8 +194,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // RewardPreview: inline font styles for reward display
   'src/screens/GachaScreen/components/RewardPreview.tsx': 2,
 
-  // TenResultOverlay: compact grid tiny labels (fontSize 9/8), golden icon color
-  'src/screens/GachaScreen/components/TenResultOverlay.tsx': 4,
+  // TenResultOverlay: golden icon color
+  'src/screens/GachaScreen/components/TenResultOverlay.tsx': 1,
 
   // DrawButton: gradient color stops (domain-specific decorative)
   'src/screens/GachaScreen/components/DrawButton.tsx': 3,

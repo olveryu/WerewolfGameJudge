@@ -8,6 +8,8 @@
 import { env, SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { bootstrapTestSchema } from './testSchemaBootstrap';
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 async function postJson(path: string, body: unknown, token?: string): Promise<Response> {
@@ -40,33 +42,7 @@ async function getJson(path: string, token?: string): Promise<Response> {
 // ── Schema bootstrap ────────────────────────────────────────────────────────
 
 beforeAll(async () => {
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT, password_hash TEXT, display_name TEXT, avatar_url TEXT, custom_avatar_url TEXT, avatar_frame TEXT, equipped_flair TEXT, equipped_name_style TEXT, equipped_effect TEXT, equipped_seat_animation TEXT, wechat_openid TEXT, is_anonymous INTEGER NOT NULL DEFAULT 1, token_version INTEGER NOT NULL DEFAULT 0, last_country TEXT, last_colo TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wechat_openid ON users(wechat_openid);`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS refresh_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);`,
-  );
-  await env.DB.exec(
-    `CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS user_stats (user_id TEXT PRIMARY KEY REFERENCES users(id), xp INTEGER NOT NULL DEFAULT 0, level INTEGER NOT NULL DEFAULT 0, games_played INTEGER NOT NULL DEFAULT 0, last_room_code TEXT, unlocked_items TEXT NOT NULL DEFAULT '[]', normal_draws INTEGER NOT NULL DEFAULT 0, golden_draws INTEGER NOT NULL DEFAULT 0, normal_pity INTEGER NOT NULL DEFAULT 0, golden_pity INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 0, last_login_reward_at TEXT, updated_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS password_reset_tokens (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, token_hash TEXT NOT NULL, expires_at TEXT NOT NULL, is_used INTEGER NOT NULL DEFAULT 0, verify_attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS login_attempts (id TEXT PRIMARY KEY, email_hash TEXT NOT NULL, attempted_at TEXT NOT NULL);`,
-  );
-  await env.DB.exec(
-    `CREATE TABLE IF NOT EXISTS draw_history (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), draw_type TEXT NOT NULL, rarity TEXT NOT NULL, reward_type TEXT NOT NULL, reward_id TEXT NOT NULL, pity_count INTEGER NOT NULL, is_pity_triggered INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')));`,
-  );
+  await bootstrapTestSchema(env.DB);
 });
 
 /** Clean all test data between tests */

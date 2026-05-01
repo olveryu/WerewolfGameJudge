@@ -1,15 +1,17 @@
 /**
  * handlers/gachaHandlers — 扭蛋/抽奖 Hono routes
  *
- * GET  /api/gacha/status — 查询当前抽奖券数量 + pity 计数
- * POST /api/gacha/draw   — 执行抽奖（扣券 + roll + 解锁 + 记录历史）
+ * GET  /api/gacha/status   — 查询当前抽奖券数量 + pity 计数 + 碎片余额
+ * POST /api/gacha/draw     — 执行抽奖（扣券 + roll + 解锁/碎片 + 记录历史）
+ * POST /api/gacha/exchange — 碎片兑换指定物品
  *
- * 事务性：draw 操作在单次 D1 batch 中完成，保证原子性。
+ * 事务性：draw/exchange 操作使用 OCC，保证原子性。
  */
 
 import type { DrawType, Rarity } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
+import { REWARD_POOL_BY_ID, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -18,7 +20,7 @@ import { drawHistory, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
-import { dailyRewardSchema, gachaDrawSchema } from '../schemas/gacha';
+import { dailyRewardSchema, gachaDrawSchema, shardExchangeSchema } from '../schemas/gacha';
 import { jsonBody } from './shared';
 
 const log = createLogger('gacha');
@@ -42,6 +44,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       goldenDraws: userStats.goldenDraws,
       normalPity: userStats.normalPity,
       goldenPity: userStats.goldenPity,
+      shards: userStats.shards,
       unlockedItems: userStats.unlockedItems,
       lastLoginRewardAt: userStats.lastLoginRewardAt,
     })
@@ -55,6 +58,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       goldenDraws: 0,
       normalPity: 0,
       goldenPity: 0,
+      shards: 0,
       unlockedCount: 0,
       lastLoginRewardAt: null,
     });
@@ -67,6 +71,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     goldenDraws: stats.goldenDraws,
     normalPity: stats.normalPity,
     goldenPity: stats.goldenPity,
+    shards: stats.shards,
     unlockedCount: unlockedItems.length,
     lastLoginRewardAt: stats.lastLoginRewardAt,
   });
@@ -92,6 +97,8 @@ interface DrawResult {
   rewardId: string;
   isNew: boolean;
   isPityTriggered: boolean;
+  isDuplicate: boolean;
+  shardsAwarded: number;
 }
 
 /** Max OCC retries for concurrent draw conflict */
@@ -151,9 +158,12 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       rewardId: string;
       pityCount: number;
       isPityTriggered: number;
+      isDuplicate: number;
+      shardsAwarded: number;
       createdAt: string;
     }> = [];
 
+    let totalShardsAwarded = 0;
     const now = new Date().toISOString();
 
     // 4. Execute draws
@@ -161,45 +171,48 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       const randomValue = cryptoRandomPercent();
       const { rarity, pityReset } = rollRarity(drawType, currentPity, randomValue);
 
-      const reward = selectReward(rarity, unlockedSet, cryptoRandomInt);
+      const result = selectReward(rarity, unlockedSet, cryptoRandomInt);
 
-      if (reward) {
-        const isNew = !unlockedSet.has(reward.id);
-        if (isNew) unlockedSet.add(reward.id);
-
-        results.push({
-          rarity,
-          rewardType: reward.type,
-          rewardId: reward.id,
-          isNew,
-          isPityTriggered: pityReset,
-        });
-
-        historyEntries.push({
-          id: crypto.randomUUID(),
-          userId,
-          drawType,
-          rarity,
-          rewardType: reward.type,
-          rewardId: reward.id,
-          pityCount: currentPity,
-          isPityTriggered: pityReset ? 1 : 0,
-          createdAt: now,
-        });
-      } else {
-        // All items collected
+      if (!result) {
+        // Pool is empty (should not happen — pool is static), break
         break;
       }
+
+      const { reward, isDuplicate, shardsAwarded } = result;
+
+      if (!isDuplicate) {
+        unlockedSet.add(reward.id);
+      }
+      totalShardsAwarded += shardsAwarded;
+
+      results.push({
+        rarity,
+        rewardType: reward.type,
+        rewardId: reward.id,
+        isNew: !isDuplicate,
+        isPityTriggered: pityReset,
+        isDuplicate,
+        shardsAwarded,
+      });
+
+      historyEntries.push({
+        id: crypto.randomUUID(),
+        userId,
+        drawType,
+        rarity,
+        rewardType: reward.type,
+        rewardId: reward.id,
+        pityCount: currentPity,
+        isPityTriggered: pityReset ? 1 : 0,
+        isDuplicate: isDuplicate ? 1 : 0,
+        shardsAwarded,
+        createdAt: now,
+      });
 
       currentPity = pityReset ? 0 : currentPity + 1;
     }
 
-    if (results.length === 0) {
-      log.info('all collected', { userId });
-      return c.json({ error: 'all_collected', message: '已收集全部物品' }, 400);
-    }
-
-    // 5. OCC write: deduct tickets, update pity, update unlocked items, bump version
+    // 5. OCC write: deduct tickets, update pity, update unlocked items, add shards, bump version
     const actualCount = results.length;
     const updatedItems = JSON.stringify([...unlockedSet]);
 
@@ -213,6 +226,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       .set({
         ...pityUpdate,
         unlockedItems: updatedItems,
+        shards: sql`${userStats.shards} + ${totalShardsAwarded}`,
         version: sql`${userStats.version} + 1`,
         updatedAt: sql`datetime('now')`,
       })
@@ -224,16 +238,26 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       continue;
     }
 
-    // 6. Insert draw history records (no conflict risk — unique IDs)
+    // 6. Insert draw history records via D1 batch API.
+    // Each statement carries only 11 params (one row), avoiding D1's 100-param-per-query limit.
+    // Batch is transactional: all-or-nothing.
     if (historyEntries.length > 0) {
-      await db.insert(drawHistory).values(historyEntries);
+      const stmts = historyEntries.map((entry) => db.insert(drawHistory).values(entry));
+      await db.batch(stmts as [(typeof stmts)[0], ...typeof stmts]);
     }
 
     // 7. Return results
     const rarities = results.map((r) => r.rarity);
-    log.info('draw success', { userId, drawType, count: results.length, rarities });
+    log.info('draw success', {
+      userId,
+      drawType,
+      count: results.length,
+      rarities,
+      totalShardsAwarded,
+    });
     return c.json({
       results,
+      totalShardsAwarded,
       remaining: {
         normalDraws: drawType === 'normal' ? availableTickets - actualCount : stats.normalDraws,
         goldenDraws: drawType === 'golden' ? availableTickets - actualCount : stats.goldenDraws,
@@ -316,5 +340,83 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
     return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
   }
 
+  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
+});
+
+/** POST /api/gacha/exchange — 碎片兑换指定物品 */
+gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), async (c) => {
+  const db = createDb(c.env.DB);
+  const userId = c.var.userId;
+  const { rewardId } = c.req.valid('json');
+  log.info('exchange request', { userId, rewardId });
+
+  // 1. Validate the item exists in the reward pool
+  const rewardItem = REWARD_POOL_BY_ID.get(rewardId);
+  if (!rewardItem) {
+    log.warn('invalid reward id', { userId, rewardId });
+    return c.json({ error: 'invalid_item', message: '物品不存在' }, 400);
+  }
+
+  const cost = SHARD_COSTS[rewardItem.rarity];
+
+  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+    // 2. Read current stats
+    const stats = await db
+      .select({
+        shards: userStats.shards,
+        unlockedItems: userStats.unlockedItems,
+        version: userStats.version,
+      })
+      .from(userStats)
+      .where(eq(userStats.userId, userId))
+      .get();
+
+    if (!stats) {
+      log.warn('no stats row', { userId });
+      return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
+    }
+
+    // 3. Check sufficient shards
+    if (stats.shards < cost) {
+      log.warn('insufficient shards', { userId, shards: stats.shards, cost });
+      return c.json({ error: 'insufficient_shards', message: '碎片不足' }, 400);
+    }
+
+    // 4. Check not already owned
+    const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
+    if (unlockedIds.includes(rewardId)) {
+      log.warn('already owned', { userId, rewardId });
+      return c.json({ error: 'already_owned', message: '已拥有该物品' }, 400);
+    }
+
+    // 5. OCC write: deduct shards, add to unlocked, bump version
+    const updatedItems = JSON.stringify([...unlockedIds, rewardId]);
+
+    const updated = await db
+      .update(userStats)
+      .set({
+        shards: sql`${userStats.shards} - ${cost}`,
+        unlockedItems: updatedItems,
+        version: sql`${userStats.version} + 1`,
+        updatedAt: sql`datetime('now')`,
+      })
+      .where(and(eq(userStats.userId, userId), eq(userStats.version, stats.version)))
+      .returning({ version: userStats.version });
+
+    if (updated.length === 0) {
+      continue;
+    }
+
+    log.info('exchange success', { userId, rewardId, cost, remainingShards: stats.shards - cost });
+    return c.json({
+      rewardId,
+      rewardType: rewardItem.type,
+      rarity: rewardItem.rarity,
+      cost,
+      remainingShards: stats.shards - cost,
+    });
+  }
+
+  log.error('OCC retries exhausted', { userId, rewardId });
   return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
 });

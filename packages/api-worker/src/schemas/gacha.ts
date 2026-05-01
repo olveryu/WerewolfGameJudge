@@ -12,3 +12,8 @@ export const gachaDrawSchema = z.object({
 export const dailyRewardSchema = z.object({
   localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
+
+/** POST /api/gacha/exchange — body */
+export const shardExchangeSchema = z.object({
+  rewardId: z.string().min(1),
+});

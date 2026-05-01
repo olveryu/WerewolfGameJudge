@@ -148,31 +148,28 @@ describe('gachaProbability', () => {
     it('should return item of target rarity', () => {
       const result = selectReward('epic', new Set(), deterministicRandom);
       expect(result).toBeDefined();
-      expect(result!.rarity).toBe('epic');
+      expect(result!.reward.rarity).toBe('epic');
+      expect(result!.isDuplicate).toBe(false);
+      expect(result!.shardsAwarded).toBe(0);
     });
 
-    it('should not return already-owned items', () => {
+    it('should mark duplicate and award shards for already-owned items', () => {
       const epicItems = REWARD_POOL.filter((i) => i.rarity === 'epic');
-      const ownedIds = new Set(epicItems.slice(0, 3).map((i) => i.id));
+      const ownedIds = new Set([epicItems[0].id]);
       const result = selectReward('epic', ownedIds, deterministicRandom);
       expect(result).toBeDefined();
-      expect(ownedIds.has(result!.id)).toBe(false);
+      expect(result!.reward.id).toBe(epicItems[0].id);
+      expect(result!.isDuplicate).toBe(true);
+      expect(result!.shardsAwarded).toBe(50); // SHARD_VALUES.epic
     });
 
-    it('should upgrade rarity when target pool is empty', () => {
-      // Own all common items
-      const commonIds = new Set(REWARD_POOL.filter((i) => i.rarity === 'common').map((i) => i.id));
-      const result = selectReward('common', commonIds, deterministicRandom);
+    it('should return item even when pool has owned items (allows duplicates)', () => {
+      const epicItems = REWARD_POOL.filter((i) => i.rarity === 'epic');
+      const ownedIds = new Set(epicItems.map((i) => i.id));
+      const result = selectReward('epic', ownedIds, deterministicRandom);
       expect(result).toBeDefined();
-      expect(result!.rarity).not.toBe('common');
-      // Should be rare (next upgrade)
-      expect(result!.rarity).toBe('rare');
-    });
-
-    it('should return undefined when all items collected', () => {
-      const allIds = new Set(REWARD_POOL.map((i) => i.id));
-      const result = selectReward('common', allIds, deterministicRandom);
-      expect(result).toBeUndefined();
+      expect(result!.isDuplicate).toBe(true);
+      expect(result!.shardsAwarded).toBe(50);
     });
 
     it('should respect randomFn index', () => {
@@ -181,7 +178,7 @@ describe('gachaProbability', () => {
       const lastPicker = (max: number) => max - 1;
       const result = selectReward('epic', new Set(), lastPicker);
       expect(result).toBeDefined();
-      expect(result!.id).toBe(epicPool[epicPool.length - 1].id);
+      expect(result!.reward.id).toBe(epicPool[epicPool.length - 1].id);
     });
   });
 

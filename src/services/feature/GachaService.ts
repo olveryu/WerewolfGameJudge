@@ -1,7 +1,7 @@
 /**
  * GachaService — 扭蛋/抽奖客户端 service
  *
- * 查询抽奖状态、执行抽奖、领取每日登录奖励。
+ * 查询抽奖状态、执行抽奖、领取每日登录奖励、碎片兑换。
  * 使用 cfGet/cfPost 统一封装。
  */
 
@@ -14,6 +14,7 @@ interface GachaStatus {
   goldenDraws: number;
   normalPity: number;
   goldenPity: number;
+  shards: number;
   unlockedCount: number;
   lastLoginRewardAt: string | null;
 }
@@ -24,10 +25,13 @@ export interface DrawResultItem {
   rewardId: string;
   isNew: boolean;
   isPityTriggered: boolean;
+  isDuplicate: boolean;
+  shardsAwarded: number;
 }
 
 export interface DrawResponse {
   results: DrawResultItem[];
+  totalShardsAwarded: number;
   remaining: {
     normalDraws: number;
     goldenDraws: number;
@@ -38,6 +42,14 @@ export interface DailyRewardResponse {
   claimed: boolean;
   normalDrawsAdded?: number;
   reason?: string;
+}
+
+export interface ExchangeResponse {
+  rewardId: string;
+  rewardType: RewardType;
+  rarity: Rarity;
+  cost: number;
+  remainingShards: number;
 }
 
 /** 获取当前用户的抽奖状态 */
@@ -56,4 +68,9 @@ export async function performDraw(
 /** 领取每日登录奖励（2 次普通抽） */
 export async function claimDailyReward(localDate: string): Promise<DailyRewardResponse> {
   return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', { localDate });
+}
+
+/** 碎片兑换指定物品（非幂等操作，禁用网络层自动重试） */
+export async function exchangeShard(rewardId: string): Promise<ExchangeResponse> {
+  return cfPost<ExchangeResponse>('/api/gacha/exchange', { rewardId }, { noRetry: true });
 }

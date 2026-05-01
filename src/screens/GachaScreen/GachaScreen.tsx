@@ -16,6 +16,7 @@ import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   type LayoutChangeEvent,
+  Pressable,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -30,7 +31,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { DrawResultItem } from '@/services/feature/GachaService';
-import { colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
 import { gachaLog } from '@/utils/logger';
 
@@ -167,6 +168,7 @@ export function GachaScreen({ navigation }: Props) {
   const goldenDraws = status?.goldenDraws ?? 0;
   const normalPity = status?.normalPity ?? 0;
   const goldenPity = status?.goldenPity ?? 0;
+  const shards = status?.shards ?? 0;
 
   const busy = isAnimating || isDrawPending;
 
@@ -186,6 +188,25 @@ export function GachaScreen({ navigation }: Props) {
   const multiCount = Math.min(10, activeDraws || 10);
 
   // ── Loading ───────────────────────────────────────────────────────────
+  const headerRight = (
+    <View style={styles.headerActions}>
+      <Button
+        variant="icon"
+        onPress={() => navigation.navigate('Appearance', undefined)}
+        accessibilityLabel="装扮"
+      >
+        <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
+      </Button>
+      <Button
+        variant="icon"
+        onPress={() => navigation.navigate('Unlocks', undefined)}
+        accessibilityLabel="收藏"
+      >
+        <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
+      </Button>
+    </View>
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={['left', 'right']}>
@@ -193,24 +214,7 @@ export function GachaScreen({ navigation }: Props) {
           title="扭蛋抽奖"
           onBack={handleGoBack}
           topInset={insets.top}
-          headerRight={
-            <View style={styles.headerActions}>
-              <Button
-                variant="icon"
-                onPress={() => navigation.navigate('Appearance', undefined)}
-                accessibilityLabel="装扮"
-              >
-                <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
-              </Button>
-              <Button
-                variant="icon"
-                onPress={() => navigation.navigate('Unlocks', undefined)}
-                accessibilityLabel="收藏"
-              >
-                <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-              </Button>
-            </View>
-          }
+          headerRight={headerRight}
         />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -226,24 +230,7 @@ export function GachaScreen({ navigation }: Props) {
         title="扭蛋抽奖"
         onBack={handleGoBack}
         topInset={insets.top}
-        headerRight={
-          <View style={styles.headerActions}>
-            <Button
-              variant="icon"
-              onPress={() => navigation.navigate('Appearance', undefined)}
-              accessibilityLabel="装扮"
-            >
-              <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
-            </Button>
-            <Button
-              variant="icon"
-              onPress={() => navigation.navigate('Unlocks', undefined)}
-              accessibilityLabel="收藏"
-            >
-              <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
-            </Button>
-          </View>
-        }
+        headerRight={headerRight}
       />
 
       {/* Machine area */}
@@ -316,6 +303,23 @@ export function GachaScreen({ navigation }: Props) {
               />
             </View>
           </View>
+
+          {/* Shard balance — tap to exchange */}
+          <Pressable
+            style={styles.shardRow}
+            onPress={() => navigation.navigate('ShardExchange', undefined)}
+            accessibilityLabel="碎片兑换"
+          >
+            <View style={styles.shardInfo}>
+              <Ionicons name="diamond-outline" size={14} color={colors.warning} />
+              <Text style={styles.shardCount}>✦ {shards.toLocaleString()}</Text>
+              <Text style={styles.shardLabel}>碎片</Text>
+            </View>
+            <View style={styles.shardExchangeHint}>
+              <Text style={styles.shardExchangeText}>兑换</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
+            </View>
+          </Pressable>
 
           {/* Draw buttons — vertical stack: ×10 primary + ×1 secondary */}
           <View style={styles.buttonStack}>
@@ -462,6 +466,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
+  },
+  // ── Shard row (in card) ──
+  shardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: withAlpha(colors.warning, 0.08),
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.medium,
+  },
+  shardInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+  },
+  shardCount: {
+    fontSize: typography.secondary,
+    fontWeight: typography.weights.bold,
+    color: colors.warning,
+    fontVariant: ['tabular-nums'],
+  },
+  shardLabel: {
+    fontSize: typography.caption,
+    color: colors.textMuted,
+  },
+  shardExchangeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+  },
+  shardExchangeText: {
+    fontSize: typography.caption,
+    color: colors.textMuted,
   },
   metaHint: {
     fontSize: typography.captionSmall,

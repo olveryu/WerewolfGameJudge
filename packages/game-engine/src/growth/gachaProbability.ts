@@ -2,12 +2,12 @@
  * gachaProbability — 扭蛋概率引擎（纯函数）
  *
  * 核心：rollRarity() 根据抽奖类型 + pity 计算稀有度，
- *       selectReward() 从指定稀有度池中去重选取物品。
+ *       selectReward() 从指定稀有度池中随机选取物品（允许重复）。
  * 随机数由调用方注入，函数本身无副作用。
  */
 
 import type { Rarity, RewardItem } from './rewardCatalog';
-import { REWARD_POOL } from './rewardCatalog';
+import { REWARD_POOL, SHARD_VALUES } from './rewardCatalog';
 
 export type DrawType = 'normal' | 'golden';
 
@@ -73,37 +73,55 @@ export function rollRarity(
   return { rarity, pityReset };
 }
 
+/** selectReward 返回结果 */
+export interface SelectRewardResult {
+  readonly reward: RewardItem;
+  /** 玩家是否已拥有该物品 */
+  readonly isDuplicate: boolean;
+  /** 重复时获得的碎片数（非重复为 0） */
+  readonly shardsAwarded: number;
+}
+
 /**
- * 从指定稀有度的未解锁池中选取物品。
- * 如果目标稀有度已清空，向上升级（Common→Rare→Epic→Legendary）。
- * 全部集齐返回 undefined。
+ * 从指定稀有度池中随机选取物品。允许重复，重复时计算碎片奖励。
+ *
+ * 如果目标稀有度池为空（不应发生），向上 fallback。
  */
 export function selectReward(
   targetRarity: Rarity,
   unlockedIds: ReadonlySet<string>,
   randomFn: (max: number) => number,
-): RewardItem | undefined {
+): SelectRewardResult | undefined {
   const startIdx = RARITY_UPGRADE_ORDER.indexOf(targetRarity);
 
-  // 从目标稀有度开始，向上尝试
   for (let i = startIdx; i < RARITY_UPGRADE_ORDER.length; i++) {
     const r = RARITY_UPGRADE_ORDER[i];
-    const pool = REWARD_POOL.filter((item) => item.rarity === r && !unlockedIds.has(item.id));
+    const pool = REWARD_POOL.filter((item) => item.rarity === r);
     if (pool.length > 0) {
-      return pool[randomFn(pool.length)];
+      const reward = pool[randomFn(pool.length)];
+      const isDuplicate = unlockedIds.has(reward.id);
+      return {
+        reward,
+        isDuplicate,
+        shardsAwarded: isDuplicate ? SHARD_VALUES[reward.rarity] : 0,
+      };
     }
   }
 
-  // 向上全空，从目标稀有度向下尝试（理论上不常见，但防御性处理）
   for (let i = startIdx - 1; i >= 0; i--) {
     const r = RARITY_UPGRADE_ORDER[i];
-    const pool = REWARD_POOL.filter((item) => item.rarity === r && !unlockedIds.has(item.id));
+    const pool = REWARD_POOL.filter((item) => item.rarity === r);
     if (pool.length > 0) {
-      return pool[randomFn(pool.length)];
+      const reward = pool[randomFn(pool.length)];
+      const isDuplicate = unlockedIds.has(reward.id);
+      return {
+        reward,
+        isDuplicate,
+        shardsAwarded: isDuplicate ? SHARD_VALUES[reward.rarity] : 0,
+      };
     }
   }
 
-  // 全部集齐
   return undefined;
 }
 

@@ -31,6 +31,7 @@ export type RootStackParamList = {
   Appearance: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;
   Gacha: undefined;
+  ShardExchange: undefined;
   // Auth modal screens
   AuthLogin:
     | {

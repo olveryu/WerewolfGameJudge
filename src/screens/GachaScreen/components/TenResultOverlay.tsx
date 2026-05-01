@@ -128,7 +128,11 @@ function ResultCell({
         {displayName}
       </Text>
       <Text style={[styles.cellRarity, { color: visual.color }]}>{visual.label}</Text>
-      {item.isNew && <Text style={styles.cellNew}>NEW</Text>}
+      {item.isDuplicate ? (
+        <Text style={styles.cellShard}>✦ +{item.shardsAwarded}</Text>
+      ) : (
+        item.isNew && <Text style={styles.cellNew}>NEW</Text>
+      )}
     </Animated.View>
   );
 }
@@ -152,6 +156,11 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
       startIndex: withItems.slice(0, i).reduce((sum, prev) => sum + prev.items.length, 0),
     }));
   }, [results]);
+
+  const totalShards = useMemo(
+    () => results.reduce((sum, r) => sum + r.shardsAwarded, 0),
+    [results],
+  );
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -205,6 +214,11 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
             );
           })}
         </ScrollView>
+        {totalShards > 0 && (
+          <View style={styles.shardSummary}>
+            <Text style={styles.shardSummaryText}>本次获得 ✦ {totalShards} 碎片</Text>
+          </View>
+        )}
         {onGoEquip && (
           <View style={styles.bottomActions}>
             <Pressable style={styles.equipButton} onPress={onGoEquip}>
@@ -299,16 +313,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cellRarity: {
-    fontSize: 9,
+    fontSize: typography.captionSmall,
     opacity: 0.7,
   },
   cellNew: {
-    fontSize: 8,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.bold,
     color: colors.success,
   },
+  cellShard: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.bold,
+    color: colors.warning,
+  },
   pityTag: {
-    fontSize: 8,
+    fontSize: typography.captionSmall,
     fontWeight: typography.weights.semibold,
   },
   bottomActions: {
@@ -317,6 +336,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.small,
     marginBottom: spacing.large,
+  },
+  shardSummary: {
+    backgroundColor: withAlpha(colors.warning, 0.12),
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.medium,
+    marginBottom: spacing.small,
+  },
+  shardSummaryText: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.warning,
+    textAlign: 'center',
   },
   equipButton: {
     width: '100%',
