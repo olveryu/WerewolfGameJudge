@@ -12,7 +12,7 @@ import { NameStyleText } from '@/components/nameStyles';
 import { UI_ICONS } from '@/config/iconTokens';
 import { typography } from '@/theme';
 
-import { SettingsScreenStyles } from './styles';
+import { type SettingsScreenStyles } from './styles';
 
 interface NameSectionProps {
   isAnonymous: boolean;

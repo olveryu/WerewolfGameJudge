@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
+import type React from 'react';
 import { Text, View } from 'react-native';
 
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';

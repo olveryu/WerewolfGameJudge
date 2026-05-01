@@ -10,7 +10,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';

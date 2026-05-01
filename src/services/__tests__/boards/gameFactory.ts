@@ -29,7 +29,7 @@ import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
 import {
   createTemplateFromRoles,
-  GameTemplate,
+  type GameTemplate,
   getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,

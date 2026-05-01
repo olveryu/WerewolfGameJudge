@@ -7,17 +7,11 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -37,7 +31,7 @@ import {
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { storage } from '@/lib/storage';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';

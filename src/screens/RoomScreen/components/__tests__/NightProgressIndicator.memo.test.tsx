@@ -13,7 +13,7 @@
  * 4. styles reference unchanged ⇒ no re-render contribution
  */
 import { render } from '@testing-library/react-native';
-import React from 'react';
+import type React from 'react';
 
 import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
 import {

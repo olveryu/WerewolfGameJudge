@@ -10,7 +10,7 @@ import { Text, TouchableOpacity, type ViewStyle } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { fixed } from '@/theme';
 
-import { ConfigScreenStyles } from './styles';
+import { type ConfigScreenStyles } from './styles';
 
 export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'third';
 

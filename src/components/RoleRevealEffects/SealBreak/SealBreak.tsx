@@ -22,7 +22,8 @@ import {
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {

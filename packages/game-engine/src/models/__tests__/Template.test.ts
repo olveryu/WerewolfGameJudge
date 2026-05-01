@@ -1,4 +1,4 @@
-import { buildNightPlan, RoleId } from '@werewolf/game-engine/models/roles';
+import { buildNightPlan, type RoleId } from '@werewolf/game-engine/models/roles';
 import {
   BOTTOM_CARD_COUNT,
   createCustomTemplate,

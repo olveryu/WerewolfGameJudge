@@ -5,7 +5,8 @@
  * 支持可选文本输入（prompt 模式）。
  * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,

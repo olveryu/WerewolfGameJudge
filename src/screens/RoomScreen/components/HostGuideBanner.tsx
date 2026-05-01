@@ -6,7 +6,8 @@
  * Returns null when message is empty (e.g. during Ongoing phase).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';

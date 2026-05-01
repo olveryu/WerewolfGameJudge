@@ -8,7 +8,8 @@
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';

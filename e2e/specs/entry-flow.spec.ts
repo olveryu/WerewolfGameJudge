@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { closeAll, createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixture';
+import { closeAll, createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import {
   ensureAnonLogin,
   enterRoomCodeViaNumPad,

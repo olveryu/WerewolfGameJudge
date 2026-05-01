@@ -22,7 +22,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupGame, createGame, GameContext } from './gameFactory';
+import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '机械狼人通灵师';

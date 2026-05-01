@@ -10,7 +10,7 @@ import { memo } from 'react';
 import {
   ActivityIndicator,
   Image,
-  ImageSourcePropType,
+  type ImageSourcePropType,
   Text,
   TouchableOpacity,
   View,
@@ -20,10 +20,10 @@ import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { getFlairById } from '@/components/seatFlairs';
 import { UI_ICONS } from '@/config/iconTokens';
-import { colors, componentSizes, fixed, ThemeColors } from '@/theme';
+import { colors, componentSizes, fixed, type ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
 
-import { SettingsScreenStyles } from './styles';
+import { type SettingsScreenStyles } from './styles';
 
 /** Number of avatars shown in the anonymous-user preview strip. */
 const PREVIEW_STRIP_COUNT = 4;

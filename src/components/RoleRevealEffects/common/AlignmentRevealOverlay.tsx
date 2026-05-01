@@ -10,7 +10,8 @@
  * 确保裂痕在角色图片后面。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect } from 'react';
+import type React from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BreathingBorder } from '@/components/RoleRevealEffects/common/effects/BreathingBorder';

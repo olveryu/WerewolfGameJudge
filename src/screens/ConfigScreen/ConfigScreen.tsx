@@ -7,8 +7,8 @@
  * 不使用硬编码样式值，不使用 console.*。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useMemo } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -19,7 +19,7 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';

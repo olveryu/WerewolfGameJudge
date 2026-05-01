@@ -82,6 +82,12 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
 
+      // Enforce `import type` for type-only imports (required by verbatimModuleSyntax)
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false },
+      ],
+
       // TypeScript — type-checked: disable no-unsafe-* family (too noisy with third-party `any`)
       '@typescript-eslint/no-unsafe-argument': 'off',
       '@typescript-eslint/no-unsafe-assignment': 'off',

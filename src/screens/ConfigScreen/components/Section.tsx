@@ -3,10 +3,11 @@
  *
  * 接收 title + children（RoleChip 列表）。仅渲染分区 UI，不 import service，不包含业务逻辑判断。
  */
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Text, View } from 'react-native';
 
-import { ConfigScreenStyles } from './styles';
+import { type ConfigScreenStyles } from './styles';
 
 interface SectionProps {
   title: string;

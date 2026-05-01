@@ -1,7 +1,7 @@
 import type { Browser } from '@playwright/test';
-import { expect, Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-import { createPlayerContexts, MultiPlayerFixture } from '../fixtures/app.fixture';
+import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
 import { RoomPage } from '../pages/RoomPage';

@@ -2,7 +2,7 @@
  * Mock for @expo/vector-icons in Jest tests.
  * Renders a simple Text element with the icon name as content for easy assertion.
  */
-import React from 'react';
+import type React from 'react';
 import { Text } from 'react-native';
 
 function createIconMock(familyName: string) {

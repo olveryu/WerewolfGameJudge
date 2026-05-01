@@ -9,7 +9,7 @@
  * 4. layout reference changes ⇒ re-render
  */
 import { render } from '@testing-library/react-native';
-import React from 'react';
+import type React from 'react';
 
 import { BottomActionPanel } from '@/screens/RoomScreen/components/BottomActionPanel';
 import {

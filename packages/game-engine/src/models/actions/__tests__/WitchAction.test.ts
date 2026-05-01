@@ -11,7 +11,7 @@ import {
   makeWitchNone,
   makeWitchPoison,
   makeWitchSave,
-  WitchAction,
+  type WitchAction,
 } from '@werewolf/game-engine/models/actions/WitchAction';
 
 describe('WitchAction', () => {

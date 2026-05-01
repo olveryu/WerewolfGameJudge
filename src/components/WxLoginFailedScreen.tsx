@@ -4,7 +4,7 @@
  * 在 App 层渲染（替代 splash screen），提供"重新进入"按钮
  * 调用 wx.miniProgram.reLaunch 重走登录流程。
  */
-import React from 'react';
+import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';

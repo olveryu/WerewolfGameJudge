@@ -25,7 +25,8 @@ import {
   Skia,
   vec,
 } from '@shopify/react-native-skia';
-import React, { useEffect, useMemo } from 'react';
+import type React from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Easing,
   useDerivedValue,

@@ -13,7 +13,8 @@ import {
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
 } from '@werewolf/game-engine/models/Template';
-import React, { useCallback, useMemo, useState } from 'react';
+import type React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,

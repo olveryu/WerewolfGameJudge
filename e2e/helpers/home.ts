@@ -1,4 +1,4 @@
-import { expect, Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
 import { clickIfVisible, screenshotOnFail } from './ui';

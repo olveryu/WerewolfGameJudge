@@ -7,7 +7,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { API_BASE_URL } from '@/config/api';

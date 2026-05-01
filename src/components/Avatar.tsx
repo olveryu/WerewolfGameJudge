@@ -6,8 +6,9 @@
  * Memoized 以避免不必要的重渲染。不 import service，不含业务逻辑。
  */
 import { Image as ExpoImage } from 'expo-image';
-import React, { memo, useMemo } from 'react';
-import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
+import type React from 'react';
+import { memo, useMemo } from 'react';
+import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/theme';
 import { getBuiltinAvatarId, getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';

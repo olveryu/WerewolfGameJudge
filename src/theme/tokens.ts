@@ -15,7 +15,7 @@
  * 不包含业务逻辑，不引入 React 或 service。颜色值统一在 themes.ts 中定义，此处禁止硬编码颜色。
  */
 
-import { Dimensions, PixelRatio, Platform, TextStyle, ViewStyle } from 'react-native';
+import { Dimensions, PixelRatio, Platform, type TextStyle, type ViewStyle } from 'react-native';
 
 // ============================================================================
 // Responsive Scaling

@@ -1,6 +1,6 @@
-import { Browser, BrowserContext, Page, test as base } from '@playwright/test';
+import { type Browser, type BrowserContext, type Page, test as base } from '@playwright/test';
 
-import { DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
+import { type DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
 import { ensureAnonLogin, registerAutoDismissers, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
 

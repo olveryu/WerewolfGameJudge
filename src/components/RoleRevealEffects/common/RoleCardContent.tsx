@@ -15,8 +15,9 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useMemo } from 'react';
-import { Image, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import type React from 'react';
+import { useEffect, useMemo } from 'react';
+import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,

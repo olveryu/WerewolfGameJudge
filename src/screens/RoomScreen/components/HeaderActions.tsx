@@ -7,7 +7,8 @@
  * Memoized，接收 parent 预创建的 styles。不 import Service / showAlert。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo, useCallback, useState } from 'react';
+import type React from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';

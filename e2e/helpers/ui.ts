@@ -1,6 +1,6 @@
 import * as path from 'node:path';
 
-import { Locator, Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 
 /**
  * UI Helpers (通用原语层，纯工具)

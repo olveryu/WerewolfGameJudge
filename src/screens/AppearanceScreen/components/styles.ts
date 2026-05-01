@@ -4,7 +4,7 @@
  * Picker-specific styles extracted from SettingsScreenStyles.
  * Created once in parent Screen, passed to all sub-components via props.
  */
-import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { type ImageStyle, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import {
   borderRadius,
@@ -13,7 +13,7 @@ import {
   shadows,
   spacing,
   textStyles,
-  ThemeColors,
+  type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';

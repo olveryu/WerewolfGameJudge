@@ -16,7 +16,8 @@ import {
   Skia,
   vec,
 } from '@shopify/react-native-skia';
-import React, { useEffect } from 'react';
+import type React from 'react';
+import { useEffect } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import {
   Easing,

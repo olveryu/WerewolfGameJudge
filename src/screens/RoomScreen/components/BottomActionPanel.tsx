@@ -6,7 +6,8 @@
  * 纯展示组件，不 import service，不包含业务逻辑判断。
  */
 
-import React, { memo, useEffect, useMemo, useRef } from 'react';
+import type React from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, View } from 'react-native';
 
 import { Button } from '@/components/Button';

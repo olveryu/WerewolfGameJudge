@@ -24,7 +24,7 @@
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { GameStore } from '@werewolf/game-engine/engine/store';
+import { type GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
@@ -32,7 +32,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
-import { AudioService } from '@/services/infra/AudioService';
+import { type AudioService } from '@/services/infra/AudioService';
 import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';

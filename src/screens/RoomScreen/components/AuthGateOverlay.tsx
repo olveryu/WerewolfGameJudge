@@ -7,14 +7,15 @@
  * 不含游戏业务逻辑，不 import service 层。
  */
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useRef } from 'react';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type React from 'react';
+import { useEffect, useRef } from 'react';
 import { useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { createHomeScreenStyles } from '@/screens/HomeScreen/components';
 import { colors } from '@/theme';
 

@@ -16,7 +16,7 @@ import React from 'react';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
 
-import { RoomScreenTestHarness } from './RoomScreenTestHarness';
+import { type RoomScreenTestHarness } from './RoomScreenTestHarness';
 
 /** Build a default ConfirmStatus for confirm-trigger test chains. */
 function defaultConfirmStatus(role: RoleId): ConfirmStatus {

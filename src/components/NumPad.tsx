@@ -4,11 +4,12 @@
  * 用于房间号等 4 位数字输入，支持清除和退格。Memoized。
  * 渲染数字键盘并通过 onValueChange 上报输入。不 import service，不含业务逻辑。
  */
-import React, { memo, useMemo } from 'react';
+import type React from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, spacing, ThemeColors, typography } from '@/theme';
+import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */

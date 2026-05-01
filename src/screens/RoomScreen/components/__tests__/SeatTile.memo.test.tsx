@@ -10,13 +10,13 @@
  * 3. styles reference comparison in default memo ensures memo works correctly
  */
 import { render } from '@testing-library/react-native';
-import React from 'react';
+import type React from 'react';
 
 import {
   createSeatTileStyles,
   SeatTile,
-  SeatTileProps,
-  SeatTileStyles,
+  type SeatTileProps,
+  type SeatTileStyles,
 } from '@/screens/RoomScreen/components/SeatTile';
 import { colors } from '@/theme';
 

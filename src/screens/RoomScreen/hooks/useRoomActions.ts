@@ -13,7 +13,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import {
   doesRoleParticipateInWolfVote,
   isWolfRole,
-  RoleId,
+  type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';

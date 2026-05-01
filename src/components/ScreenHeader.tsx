@@ -5,7 +5,8 @@
  * 不受左右按钮宽度差异影响。左侧默认渲染返回按钮。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { colors } from '@/theme';

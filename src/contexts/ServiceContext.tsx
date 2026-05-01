@@ -5,7 +5,8 @@
  * 消除 getInstance() 单例模式的隐式依赖。提供 Context + Provider 和 useServices hook。
  * 不包含业务逻辑，不创建 service 实例（由 composition root 负责）。
  */
-import React, { createContext, use, useMemo } from 'react';
+import type React from 'react';
+import { createContext, use, useMemo } from 'react';
 
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { AudioService } from '@/services/infra/AudioService';

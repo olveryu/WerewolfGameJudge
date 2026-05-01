@@ -14,7 +14,8 @@ import {
   type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

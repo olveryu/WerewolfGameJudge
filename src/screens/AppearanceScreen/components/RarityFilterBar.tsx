@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';

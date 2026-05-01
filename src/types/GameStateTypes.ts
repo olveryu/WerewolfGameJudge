@@ -11,9 +11,9 @@
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { RoleId } from '@werewolf/game-engine/models/roles';
-import { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { type RoleId } from '@werewolf/game-engine/models/roles';
+import { type GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
 

@@ -8,7 +8,7 @@
  * Does not render JSX, does not import RN components, does not own styles.
  */
 
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';

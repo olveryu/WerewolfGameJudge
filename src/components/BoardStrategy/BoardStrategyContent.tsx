@@ -6,7 +6,8 @@
  * 通过 props 接收 boardName，从 BOARD_STRATEGY 查找数据。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useCallback, useMemo, useState } from 'react';
+import type React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   LayoutAnimation,
   Platform,

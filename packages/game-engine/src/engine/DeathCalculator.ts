@@ -19,7 +19,7 @@
 import {
   getWitchPoisonTarget,
   getWitchSaveTarget,
-  WitchAction,
+  type WitchAction,
 } from '../models/actions/WitchAction';
 
 // =============================================================================

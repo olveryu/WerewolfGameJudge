@@ -5,7 +5,8 @@
  * Failed 状态（自动重试耗尽）显示 "连接失败" + "点击重连" 按钮。
  * 社区标准做法：indeterminate progress bar（类似 Slack/Discord）表示持续重连中。
  */
-import React, { memo, useEffect, useState } from 'react';
+import type React from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,

@@ -10,7 +10,8 @@
  * Does not import services. Receives all data via props. Pure presentation.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Text, View } from 'react-native';
 
 import { STATUS_ICONS } from '@/config/iconTokens';

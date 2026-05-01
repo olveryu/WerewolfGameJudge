@@ -10,7 +10,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import {
   useActionerState,
-  UseActionerStateParams,
+  type UseActionerStateParams,
 } from '@/screens/RoomScreen/hooks/useActionerState';
 
 // =============================================================================

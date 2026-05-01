@@ -10,7 +10,10 @@
 // Use the re-export from models/Room for consistency
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-import { getSeatTapResult, SeatTapPolicyInput } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
+import {
+  getSeatTapResult,
+  type SeatTapPolicyInput,
+} from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
 describe('SeatTapPolicy', () => {
   // ==========================================================================

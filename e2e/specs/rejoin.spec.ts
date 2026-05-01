@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, TestInfo } from '@playwright/test';
+import { expect, test, type TestInfo } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { ensureAnonLogin, enterRoomCodeViaNumPad } from '../helpers/home';

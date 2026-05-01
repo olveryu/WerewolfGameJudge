@@ -14,7 +14,7 @@
  * 纯 UI 渲染，接收 theme colors。不 import service，不含业务逻辑。
  */
 
-import React from 'react';
+import type React from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, colors, spacing, type ThemeColors, typography, withAlpha } from '@/theme';

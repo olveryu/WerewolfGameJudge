@@ -24,7 +24,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import * as randomModule from '@werewolf/game-engine/utils/random';
 
-import { cleanupGame, createGame, GameContext } from './gameFactory';
+import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '灯影预言家';

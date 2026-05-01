@@ -7,7 +7,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import React, { useCallback, useState } from 'react';
+import type React from 'react';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 

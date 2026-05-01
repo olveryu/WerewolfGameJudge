@@ -5,7 +5,7 @@
  * 不 import service，不含业务逻辑。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
+import type React from 'react';
 import { type StyleProp, StyleSheet, Text, type TextStyle, View } from 'react-native';
 
 import { crossPlatformTextShadow } from '@/theme';

@@ -6,7 +6,7 @@
  * 纯展示 + 数据获取，不含游戏逻辑。
  */
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   getLevelProgress,
   getLevelTitle,
@@ -36,7 +36,7 @@ import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import type { UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';

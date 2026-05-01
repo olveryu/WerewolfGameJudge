@@ -5,7 +5,7 @@
  * boardName 为 null 时隐藏。被 RoomScreen / BoardPickerScreen / EncyclopediaScreen 共用。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React from 'react';
+import type React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';

@@ -10,7 +10,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { TESTIDS } from '@/testids';
 import { fixed, withAlpha } from '@/theme';
 
-import { ConfigScreenStyles } from './styles';
+import { type ConfigScreenStyles } from './styles';
 
 export interface FactionTabItem {
   key: string;

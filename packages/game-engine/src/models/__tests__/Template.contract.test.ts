@@ -15,7 +15,7 @@ import {
   getRoleSpec,
   isValidRoleId,
   isWolfRole,
-  RoleId,
+  type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import {
   createTemplateFromRoles,

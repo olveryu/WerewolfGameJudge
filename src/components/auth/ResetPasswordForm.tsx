@@ -7,7 +7,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useRef, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, type TextInput, TouchableOpacity, View } from 'react-native';
 
 import { FormTextField } from '@/components/FormTextField';
 import { colors, fixed } from '@/theme';

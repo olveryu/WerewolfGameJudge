@@ -1,4 +1,4 @@
-import { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { type GameTemplate } from '@werewolf/game-engine/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;

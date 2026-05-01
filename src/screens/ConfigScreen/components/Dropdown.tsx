@@ -27,7 +27,7 @@ import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { fixed, typography } from '@/theme';
 
-import { ConfigScreenStyles } from './styles';
+import { type ConfigScreenStyles } from './styles';
 
 /** Stable style to let ScrollView fill remaining space inside maxHeight parent */
 const scrollViewFlex = { flex: 1 } as const;

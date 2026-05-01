@@ -35,8 +35,8 @@
 import {
   calculateDeaths,
   calculateDeathsDetailed,
-  NightActions,
-  RoleSeatMap,
+  type NightActions,
+  type RoleSeatMap,
 } from '@werewolf/game-engine/engine/DeathCalculator';
 import { makeWitchPoison, makeWitchSave } from '@werewolf/game-engine/models/actions/WitchAction';
 

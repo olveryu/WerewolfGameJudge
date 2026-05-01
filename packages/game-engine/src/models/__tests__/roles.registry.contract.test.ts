@@ -14,7 +14,7 @@ import {
   getRoleSpec,
   isValidRoleId,
   ROLE_SPECS,
-  RoleId,
+  type RoleId,
 } from '@werewolf/game-engine/models/roles';
 
 describe('Role Registry Contract Tests', () => {

@@ -5,7 +5,8 @@
  * 避免全局 holder / 隐式依赖。提供 Context + Provider 和 useGameFacade hook。
  * 不包含业务逻辑，不直接调用 service，不创建 facade 实例。
  */
-import React, { createContext, use, useMemo } from 'react';
+import type React from 'react';
+import { createContext, use, useMemo } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 

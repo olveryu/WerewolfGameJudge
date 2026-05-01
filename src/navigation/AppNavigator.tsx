@@ -9,11 +9,11 @@
 import {
   getPathFromState as defaultGetPathFromState,
   getStateFromPath as defaultGetStateFromPath,
-  LinkingOptions,
+  type LinkingOptions,
   NavigationContainer,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
+import type React from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
@@ -38,7 +38,7 @@ import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 
 import { navigationRef } from './navigationRef';
-import { RootStackParamList } from './types';
+import { type RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 

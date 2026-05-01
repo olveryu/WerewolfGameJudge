@@ -9,7 +9,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Faction,
   getAllRoleIds,
@@ -18,7 +18,8 @@ import {
 } from '@werewolf/game-engine/models/roles';
 import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,7 +32,7 @@ import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { storage } from '@/lib/storage';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';

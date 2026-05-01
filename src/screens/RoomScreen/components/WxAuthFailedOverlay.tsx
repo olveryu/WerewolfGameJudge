@@ -4,7 +4,8 @@
  * 仅在 isMiniProgram() + needsAuth 时渲染。
  * 提供"重新进入"按钮，调用 wx.miniProgram.reLaunch 重走登录流程。
  */
-import React, { useMemo } from 'react';
+import type React from 'react';
+import { useMemo } from 'react';
 import { Text, useWindowDimensions, View } from 'react-native';
 
 import { Button } from '@/components/Button';

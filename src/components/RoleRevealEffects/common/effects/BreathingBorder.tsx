@@ -8,7 +8,8 @@
  * 不 import service，不含业务逻辑。
  */
 import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
-import React, { useEffect, useMemo } from 'react';
+import type React from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Easing,
   useDerivedValue,

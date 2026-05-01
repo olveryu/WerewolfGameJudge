@@ -6,7 +6,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import {
-  ConfigScreenStyles,
+  type ConfigScreenStyles,
   createConfigScreenStyles,
   Dropdown,
   RoleChip,

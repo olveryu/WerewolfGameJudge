@@ -4,7 +4,7 @@
  * Provides no-op stub components and factory functions for unit tests.
  * Skia Canvas renders nothing in JSDOM; this mock prevents import errors.
  */
-import React from 'react';
+import type React from 'react';
 import type { ViewProps } from 'react-native';
 import { View } from 'react-native';
 

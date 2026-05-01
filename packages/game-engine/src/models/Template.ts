@@ -4,7 +4,7 @@
  * 定义 GameTemplate 接口、模板校验、预设模板和模板工厂。
  * 导出类型定义、纯函数校验/工厂及预设常量，不包含 service 依赖、副作用或 IO。
  */
-import { isValidRoleId, RoleId } from './roles';
+import { isValidRoleId, type RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template categories (for grouped display in TemplatePicker)

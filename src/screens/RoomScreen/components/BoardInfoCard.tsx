@@ -5,7 +5,8 @@
  * 渲染 UI、处理折叠交互并通过回调上报 onRolePress intent，不 import service，不包含业务逻辑判断。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo, useEffect, useState } from 'react';
+import type React from 'react';
+import { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { FactionChip } from '@/components/FactionChip';

@@ -1,4 +1,4 @@
-import { RoleId } from '@werewolf/game-engine/models/roles';
+import { type RoleId } from '@werewolf/game-engine/models/roles';
 
 // Mock logger
 const mockAudioLogWarn = jest.fn();

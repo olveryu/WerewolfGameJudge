@@ -1,4 +1,4 @@
-import { Page, TestInfo } from '@playwright/test';
+import { type Page, type TestInfo } from '@playwright/test';
 
 /**
  * NightFlowPage Page Object

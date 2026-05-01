@@ -10,7 +10,8 @@
  * 兼容 web（DOM click bubble）和 native（responder system）。
  * 参考 RN 官方 Modal 文档示例。
  */
-import React, { useMemo } from 'react';
+import type React from 'react';
+import { useMemo } from 'react';
 import { Modal, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { borderRadius, colors, spacing, type ThemeColors } from '@/theme';

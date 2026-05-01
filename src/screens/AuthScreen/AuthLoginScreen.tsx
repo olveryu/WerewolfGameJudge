@@ -6,15 +6,16 @@
  * 不含游戏业务逻辑，不 import service 层。
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo } from 'react';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { LoginOptions } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSignInAnonymously } from '@/hooks/mutations/useAuthMutations';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';

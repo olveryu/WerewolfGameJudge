@@ -9,7 +9,8 @@
  * 不包含游戏业务逻辑，不直接操作游戏状态。
  */
 import * as Sentry from '@sentry/react-native';
-import React, { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import type { AuthUser } from '@/services/types/IAuthService';

@@ -3,7 +3,7 @@
  *
  * Created once in parent, passed to all sub-components to avoid redundant StyleSheet.create calls.
  */
-import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from 'react-native';
+import { type ImageStyle, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 
 import { createAuthBaseStyles } from '@/components/auth/authStyles';
 import {
@@ -13,7 +13,7 @@ import {
   fixed,
   spacing,
   textStyles,
-  ThemeColors,
+  type ThemeColors,
   typography,
   withAlpha,
 } from '@/theme';

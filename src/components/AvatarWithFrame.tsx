@@ -10,7 +10,8 @@
  * Memoized 以避免不必要重渲染。不 import service，不含业务逻辑。
  */
 import { LEGENDARY_FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
-import React, { memo, useMemo } from 'react';
+import type React from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';

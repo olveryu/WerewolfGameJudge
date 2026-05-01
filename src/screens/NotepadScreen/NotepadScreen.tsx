@@ -10,9 +10,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,7 +24,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useGameFacade } from '@/contexts';
 import { useNotepad } from '@/hooks/useNotepad';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';

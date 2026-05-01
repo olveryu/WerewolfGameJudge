@@ -3,7 +3,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { Image, ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { Image, type ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
 
 import { type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';

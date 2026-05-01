@@ -1,7 +1,7 @@
 import type { Browser, Page } from '@playwright/test';
 
 import { closeAll } from '../fixtures/app.fixture';
-import { ConfigPage } from '../pages/ConfigPage';
+import { type ConfigPage } from '../pages/ConfigPage';
 import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from './multi-player';
 
 /**

@@ -7,7 +7,8 @@
  *
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
-import React, { memo, useCallback } from 'react';
+import type React from 'react';
+import { memo, useCallback } from 'react';
 import { type AccessibilityState, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 

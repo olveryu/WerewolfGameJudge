@@ -8,7 +8,8 @@
  * Does not contain business logic. Renders UI and forwards press intent.
  */
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { memo, useMemo } from 'react';
+import type React from 'react';
+import { memo, useMemo } from 'react';
 import {
   ActivityIndicator,
   type StyleProp,

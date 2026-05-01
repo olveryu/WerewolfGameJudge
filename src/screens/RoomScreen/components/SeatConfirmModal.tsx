@@ -5,7 +5,8 @@
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
-import React, { memo } from 'react';
+import type React from 'react';
+import { memo } from 'react';
 import { Modal, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';

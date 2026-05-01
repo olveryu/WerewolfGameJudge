@@ -23,7 +23,7 @@ import { getSentryIntegrations } from '@/lib/sentryIntegrations';
 import { AppNavigator } from '@/navigation';
 import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
-import { AlertConfig, setAlertListener } from '@/utils/alert';
+import { type AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
 import { log } from '@/utils/logger';
 

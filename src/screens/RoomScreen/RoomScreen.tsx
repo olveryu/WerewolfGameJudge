@@ -9,10 +9,11 @@
  * services / policy / helpers.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -25,7 +26,7 @@ import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';

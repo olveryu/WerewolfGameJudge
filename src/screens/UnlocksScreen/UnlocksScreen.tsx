@@ -4,13 +4,14 @@
  * 顶部 tab 切换"头像"/"头像框"/"特效"/"名字"，summary card 显示当前 tab 进度。
  * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
  */
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useCallback, useMemo } from 'react';
+import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  ListRenderItemInfo,
+  type ListRenderItemInfo,
   Pressable,
   StyleSheet,
   Text,
@@ -20,7 +21,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 import { UnlockCell } from './UnlockCell';

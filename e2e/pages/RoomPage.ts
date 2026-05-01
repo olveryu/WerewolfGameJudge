@@ -1,4 +1,4 @@
-import { expect, Page, TestInfo } from '@playwright/test';
+import { expect, type Page, type TestInfo } from '@playwright/test';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
 import { extractRoomCode } from '../helpers/home';

@@ -6,7 +6,7 @@
  * 使用 FormTextField 统一样式。不含业务逻辑，不 import service 层。
  */
 import { memo, useCallback, useRef, useState } from 'react';
-import { Text, TextInput, View } from 'react-native';
+import { Text, type TextInput, View } from 'react-native';
 
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';

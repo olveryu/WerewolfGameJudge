@@ -6,7 +6,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
-import { Image, ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
+import { Image, type ImageSourcePropType, Text, TouchableOpacity, View } from 'react-native';
 
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';

@@ -5,7 +5,8 @@
  * 所有效果在动画中直接显示完整 RoleCardContent 样式。
  * 渲染动画并按 effectType 分发到对应效果组件。不 import service，不含业务逻辑。
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AccessibilityInfo, Modal, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

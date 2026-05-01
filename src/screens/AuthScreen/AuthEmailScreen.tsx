@@ -7,7 +7,7 @@
  * 不含游戏业务逻辑，不 import service 层（signOut 除外）。
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -18,7 +18,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useSignOut } from '@/hooks/mutations/useAuthMutations';
 import { useAuthForm } from '@/hooks/useAuthForm';
 import { storage } from '@/lib/storage';
-import { RootStackParamList } from '@/navigation/types';
+import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';

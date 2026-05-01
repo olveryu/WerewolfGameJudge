@@ -13,7 +13,7 @@ import { DEVELOPER_WECHAT_ID } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { colors, componentSizes, typography } from '@/theme';
 
-import { SettingsScreenStyles } from './styles';
+import { type SettingsScreenStyles } from './styles';
 
 interface AboutSectionProps {
   styles: SettingsScreenStyles;

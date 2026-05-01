@@ -8,7 +8,8 @@
  * 渲染 UI 并调用 usePWAInstall hook，不 import service，不包含业务逻辑判断。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo, useCallback, useState } from 'react';
+import type React from 'react';
+import { memo, useCallback, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/Button';

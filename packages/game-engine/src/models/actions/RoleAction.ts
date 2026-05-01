@@ -6,7 +6,7 @@
  * 导出类型定义和 type guard 纯函数，不依赖 service、不含副作用或业务逻辑。
  */
 
-import { WitchAction } from './WitchAction';
+import { type WitchAction } from './WitchAction';
 
 // =============================================================================
 // Types

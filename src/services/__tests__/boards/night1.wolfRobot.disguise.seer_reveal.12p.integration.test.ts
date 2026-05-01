@@ -24,7 +24,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
-import { cleanupGame, createGame, GameContext } from './gameFactory';
+import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 /**

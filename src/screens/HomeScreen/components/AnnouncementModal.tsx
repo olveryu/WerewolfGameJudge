@@ -5,7 +5,8 @@
  * 垂直滚动展示所有版本的更新内容（最新在上），版本间有分隔线。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { useCallback } from 'react';
+import type React from 'react';
+import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toast } from 'sonner-native';
 

@@ -6,7 +6,8 @@
  * 不 import service，不含业务逻辑判断。
  */
 import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
-import React, { memo, useMemo } from 'react';
+import type React from 'react';
+import { memo, useMemo } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';

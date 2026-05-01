@@ -6,7 +6,8 @@
  * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,

@@ -8,7 +8,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Faction, getRoleSpec, isWolfRole, type RoleId } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import { Modal, Pressable, SectionList, type SectionListData, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,7 +25,7 @@ import { RoleListItem } from './RoleListItem';
 import {
   FACTION_TABS,
   type RoleSection,
-  useEncyclopediaScreenState,
+  type useEncyclopediaScreenState,
 } from './useEncyclopediaScreenState';
 
 function getFactionColorForRole(roleId: RoleId, themeColors: ThemeColors): string {

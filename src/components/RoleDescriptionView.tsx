@@ -8,7 +8,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useMemo } from 'react';
+import type React from 'react';
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing, type ThemeColors, typography, withAlpha } from '@/theme';

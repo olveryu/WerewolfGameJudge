@@ -5,7 +5,7 @@
  * via FNV-1a hash on userId. The PNG is rendered with React Native `tintColor`.
  * 不引入 React、service，也不发起网络请求。
  */
-import { ImageSourcePropType } from 'react-native';
+import { type ImageSourcePropType } from 'react-native';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const WOLF_PAW_IMAGE: ImageSourcePropType = require('../../assets/avatars/seat/wolf-paw.png');

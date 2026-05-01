@@ -9,7 +9,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   FlatList,
   Image,

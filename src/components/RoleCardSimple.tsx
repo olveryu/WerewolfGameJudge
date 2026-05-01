@@ -8,7 +8,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
-import React, { useCallback, useMemo } from 'react';
+import type React from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Modal,
   Pressable,

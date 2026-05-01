@@ -5,7 +5,8 @@
  * Styles 创建一次后传入所有 SeatTile。
  * 渲染 UI 并通过回调上报 onSeatPress，不 import service / showAlert，不包含业务逻辑判断。
  */
-import React, { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   PixelRatio,

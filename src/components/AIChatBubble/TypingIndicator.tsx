@@ -5,7 +5,8 @@
  * 纯 UI 动画组件，不含业务逻辑。
  */
 
-import React, { useEffect, useRef } from 'react';
+import type React from 'react';
+import { useEffect, useRef } from 'react';
 import { Animated, Platform, StyleSheet, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';

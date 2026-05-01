@@ -5,7 +5,7 @@
  * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
  */
 import { memo, useCallback, useRef } from 'react';
-import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Text, type TextInput, TouchableOpacity, View } from 'react-native';
 
 import { FormTextField } from '@/components/FormTextField';
 import { fixed } from '@/theme';

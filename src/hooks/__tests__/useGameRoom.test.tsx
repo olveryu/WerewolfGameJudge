@@ -9,7 +9,7 @@
 
 import { act, renderHook } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import React from 'react';
+import type React from 'react';
 
 import { GameFacadeProvider } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
