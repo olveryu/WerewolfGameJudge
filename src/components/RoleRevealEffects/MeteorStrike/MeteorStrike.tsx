@@ -386,11 +386,11 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         trailFrameCountRef.current++;
         if (trailFrameCountRef.current % MS.trailUpdateInterval === 0) {
           const idx = trailIndexRef.current % MS.trailLength;
-          trailSV[idx].x.value = m.x;
-          trailSV[idx].y.value = m.y;
-          trailSV[idx].opacity.value = 1;
+          trailSV[idx]!.x.value = m.x;
+          trailSV[idx]!.y.value = m.y;
+          trailSV[idx]!.opacity.value = 1;
           // Fade out
-          trailSV[idx].opacity.value = withTiming(0, { duration: MS.trailFadeDuration });
+          trailSV[idx]!.opacity.value = withTiming(0, { duration: MS.trailFadeDuration });
           trailIndexRef.current++;
         }
 

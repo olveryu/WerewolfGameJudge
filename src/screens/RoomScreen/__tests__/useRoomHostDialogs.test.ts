@@ -227,8 +227,8 @@ describe('useRoomHostDialogs', () => {
       });
 
       // Get the confirm button callback
-      const alertCall = mockShowAlert.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
       const confirmBtn = buttons.find((b) => b.text === '确定');
       expect(confirmBtn).toBeDefined();
 
@@ -275,8 +275,8 @@ describe('useRoomHostDialogs', () => {
         result.current.showRestartDialog();
       });
 
-      const alertCall = mockShowAlert.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
       const confirmBtn = buttons.find((b) => b.text === '确定');
 
       // First press
@@ -321,8 +321,8 @@ describe('useRoomHostDialogs', () => {
         result.current.showStartGameDialog();
       });
 
-      const alertCall = mockShowAlert.mock.calls[0];
-      const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall = mockShowAlert.mock.calls[0]!;
+      const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
       const confirmBtn = buttons.find((b) => b.text === '确定');
 
       // First press via dialog confirm
@@ -336,8 +336,8 @@ describe('useRoomHostDialogs', () => {
       act(() => {
         result.current.showStartGameDialog();
       });
-      const alertCall2 = mockShowAlert.mock.calls[0];
-      const buttons2 = alertCall2[2] as Array<{ text: string; onPress?: () => void }>;
+      const alertCall2 = mockShowAlert.mock.calls[0]!;
+      const buttons2 = alertCall2[2]! as Array<{ text: string; onPress?: () => void }>;
       const confirmBtn2 = buttons2.find((b) => b.text === '确定');
 
       await act(async () => {

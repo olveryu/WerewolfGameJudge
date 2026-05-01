@@ -21,7 +21,7 @@ export type Rng = () => number;
 export function secureRng(): number {
   const array = new Uint32Array(1);
   globalThis.crypto.getRandomValues(array);
-  return array[0] / 0x100000000;
+  return array[0]! / 0x100000000;
 }
 
 /**
@@ -59,7 +59,7 @@ export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
   if (arr.length === 0) {
     throw new Error('randomPick: array must not be empty');
   }
-  return arr[Math.floor(rng() * arr.length)];
+  return arr[Math.floor(rng() * arr.length)]!;
 }
 
 /**

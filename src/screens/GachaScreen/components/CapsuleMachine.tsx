@@ -197,13 +197,13 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       const data = physics.ballData.value;
       for (let i = 0; i < NUM_BALLS; i++) {
         const base = i * STRIDE;
-        const flags = data[base + 5];
+        const flags = data[base + 5]!;
         if ((flags & F_ESCAPED) !== 0 || (flags & F_OPENED) !== 0) continue;
-        const bx = data[base];
-        const by = data[base + 1];
-        const r = data[base + 4];
+        const bx = data[base]!;
+        const by = data[base + 1]!;
+        const r = data[base + 4]!;
         // Top half (colored)
-        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]);
+        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]!);
         c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 180, 180, true, paint);
         // Bottom half (white)
         paint.setColor(SKIA_WHITE);
@@ -305,13 +305,13 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       // Escaped balls (in chute + on floor)
       for (let i = 0; i < NUM_BALLS; i++) {
         const base = i * STRIDE;
-        const flags = data[base + 5];
+        const flags = data[base + 5]!;
         if ((flags & F_ESCAPED) === 0 || (flags & F_OPENED) !== 0) continue;
-        const bx = data[base];
-        const by = data[base + 1];
-        const r = data[base + 4];
+        const bx = data[base]!;
+        const by = data[base + 1]!;
+        const r = data[base + 4]!;
         // Top half
-        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]);
+        paint.setColor(SKIA_BALL_COLORS[i % SKIA_BALL_COLORS.length]!);
         c.drawArc(Skia.XYWHRect(bx - r, by - r, r * 2, r * 2), 180, 180, true, paint);
         // Bottom half
         paint.setColor(SKIA_WHITE);
@@ -337,17 +337,17 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       const sp = physics.shellPieces.value;
       const SHELL_STRIDE = 9;
       for (let i = 0; i < sp.length; i += SHELL_STRIDE) {
-        const sx = sp[i];
-        const sy = sp[i + 1];
-        const sz = sp[i + 4];
-        const sAlpha = sp[i + 7];
-        const ci = sp[i + 8];
+        const sx = sp[i]!;
+        const sy = sp[i + 1]!;
+        const sz = sp[i + 4]!;
+        const sAlpha = sp[i + 7]!;
+        const ci = sp[i + 8]!;
         if (sAlpha <= 0) continue;
         paint.setAlphaf(sAlpha);
         if (ci < 0) {
           paint.setColor(SKIA_WHITE);
         } else {
-          paint.setColor(SKIA_BALL_COLORS[ci % SKIA_BALL_COLORS.length]);
+          paint.setColor(SKIA_BALL_COLORS[ci % SKIA_BALL_COLORS.length]!);
         }
         c.drawCircle(sx, sy, sz, paint);
       }
@@ -357,13 +357,13 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       const sk = physics.sparkles.value;
       const SPARK_STRIDE = 7;
       for (let i = 0; i < sk.length; i += SPARK_STRIDE) {
-        const sx = sk[i];
-        const sy = sk[i + 1];
-        const life = sk[i + 4];
-        const sz = sk[i + 5] * life;
-        const ri = sk[i + 6];
+        const sx = sk[i]!;
+        const sy = sk[i + 1]!;
+        const life = sk[i + 4]!;
+        const sz = sk[i + 5]! * life;
+        const ri = sk[i + 6]!;
         if (life <= 0) continue;
-        const sparkColor = RARITY_GLOW_COLORS[ri] ?? RARITY_GLOW_COLORS[0];
+        const sparkColor = RARITY_GLOW_COLORS[ri] ?? RARITY_GLOW_COLORS[0]!;
         paint.setColor(sparkColor);
         paint.setAlphaf(life);
         c.drawCircle(sx, sy, sz * 0.5, paint);

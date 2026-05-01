@@ -40,7 +40,7 @@ function checkForbiddenImports(filePath: string, forbiddenPatterns: RegExp[]): s
   const lines = content.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     // Match import statements
     if (/^\s*(import|export)\s/.test(line)) {
       for (const pattern of forbiddenPatterns) {

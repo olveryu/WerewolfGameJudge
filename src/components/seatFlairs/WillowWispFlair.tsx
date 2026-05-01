@@ -43,7 +43,7 @@ const WispParticle = memo<{ seed: WispSeed; size: number; progress: { value: num
   ({ seed, size, progress }) => {
     const cx = size / 2;
     const cy = size / 2;
-    const [cr, cg, cb] = COLORS[seed.ci];
+    const [cr, cg, cb] = COLORS[seed.ci]!;
 
     const haloProps = useAnimatedProps(() => {
       'worklet';

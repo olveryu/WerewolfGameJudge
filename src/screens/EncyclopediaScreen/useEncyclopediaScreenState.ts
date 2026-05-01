@@ -70,7 +70,7 @@ function matchesSearch(roleId: RoleId, query: string): boolean {
 function toPairs(ids: RoleId[]): [RoleId, RoleId | null][] {
   const pairs: [RoleId, RoleId | null][] = [];
   for (let i = 0; i < ids.length; i += 2) {
-    pairs.push([ids[i], ids[i + 1] ?? null]);
+    pairs.push([ids[i]!, ids[i + 1] ?? null]);
   }
   return pairs;
 }

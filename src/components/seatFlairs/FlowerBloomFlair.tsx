@@ -28,7 +28,7 @@ const COLORS = [
 
 const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { value: number } }>(
   ({ flowerIndex, size, progress }) => {
-    const [cr, cg, cb] = COLORS[flowerIndex];
+    const [cr, cg, cb] = COLORS[flowerIndex]!;
     const f = flowerIndex;
 
     const petal0Props = useAnimatedProps(() => {

@@ -40,7 +40,7 @@ interface FireTrailProps {
 }
 
 const FireTrailDot = memo<FireTrailProps>(({ index, trailIndex, size, progress }) => {
-  const [cr, cg, cb] = COLORS[index % COLORS.length];
+  const [cr, cg, cb] = COLORS[index % COLORS.length]!;
 
   const animatedProps = useAnimatedProps(() => {
     'worklet';

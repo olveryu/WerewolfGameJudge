@@ -103,12 +103,12 @@ function buildHexagramPath(cx: number, cy: number, radius: number): string {
       const angle = offset + (Math.PI * 2 * i) / 3 - Math.PI / 2;
       tri.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
     }
-    pts.push(...tri, tri[0]); // close the triangle
+    pts.push(...tri, tri[0]!); // close the triangle
   }
   // path: M p0 L p1 L p2 Z M p3 L p4 L p5 Z
   return (
-    `M ${pts[0][0]} ${pts[0][1]} L ${pts[1][0]} ${pts[1][1]} L ${pts[2][0]} ${pts[2][1]} Z ` +
-    `M ${pts[4][0]} ${pts[4][1]} L ${pts[5][0]} ${pts[5][1]} L ${pts[6][0]} ${pts[6][1]} Z`
+    `M ${pts[0]![0]} ${pts[0]![1]} L ${pts[1]![0]} ${pts[1]![1]} L ${pts[2]![0]} ${pts[2]![1]} Z ` +
+    `M ${pts[4]![0]} ${pts[4]![1]} L ${pts[5]![0]} ${pts[5]![1]} L ${pts[6]![0]} ${pts[6]![1]} Z`
   );
 }
 
@@ -425,7 +425,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       // Calculate selected card position in wheel
       const currentRotation = wheelRotation.value;
-      const cardAngle = wheelCards[cardIndex].angle;
+      const cardAngle = wheelCards[cardIndex]!.angle;
       const totalAngle = currentRotation * Math.PI * 2 + cardAngle - Math.PI / 2;
       const x = Math.cos(totalAngle) * wheelRadius;
       const y = Math.sin(totalAngle) * wheelRadius;

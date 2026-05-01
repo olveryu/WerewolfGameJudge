@@ -95,10 +95,10 @@ export function selectReward(
   const startIdx = RARITY_UPGRADE_ORDER.indexOf(targetRarity);
 
   for (let i = startIdx; i < RARITY_UPGRADE_ORDER.length; i++) {
-    const r = RARITY_UPGRADE_ORDER[i];
+    const r = RARITY_UPGRADE_ORDER[i]!;
     const pool = REWARD_POOL.filter((item) => item.rarity === r);
     if (pool.length > 0) {
-      const reward = pool[randomFn(pool.length)];
+      const reward = pool[randomFn(pool.length)]!;
       const isDuplicate = unlockedIds.has(reward.id);
       return {
         reward,
@@ -109,10 +109,10 @@ export function selectReward(
   }
 
   for (let i = startIdx - 1; i >= 0; i--) {
-    const r = RARITY_UPGRADE_ORDER[i];
+    const r = RARITY_UPGRADE_ORDER[i]!;
     const pool = REWARD_POOL.filter((item) => item.rarity === r);
     if (pool.length > 0) {
-      const reward = pool[randomFn(pool.length)];
+      const reward = pool[randomFn(pool.length)]!;
       const isDuplicate = unlockedIds.has(reward.id);
       return {
         reward,

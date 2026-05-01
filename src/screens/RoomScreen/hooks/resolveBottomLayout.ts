@@ -48,7 +48,7 @@ function classifySchemaButtons(buttons: readonly BottomButton[]): {
   if (buttons.length === 0) return { primary: [], secondary: [] };
 
   if (buttons.length === 1) {
-    const btn = buttons[0];
+    const btn = buttons[0]!;
     if (SECONDARY_KEYS.has(btn.key)) {
       return { primary: [], secondary: [btn] };
     }
@@ -57,7 +57,7 @@ function classifySchemaButtons(buttons: readonly BottomButton[]): {
 
   // Multiple buttons: first = primary, rest = secondary
   return {
-    primary: [buttons[0]],
+    primary: [buttons[0]!],
     secondary: buttons.slice(1),
   };
 }

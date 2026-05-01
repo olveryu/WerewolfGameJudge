@@ -266,7 +266,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       setPhase('picking');
       if (enableHaptics) void triggerHaptic('medium', true);
 
-      const pos = gridPositions[index];
+      const pos = gridPositions[index]!;
       // Set initial position to the card's grid position
       drawnCardX.value = pos.x;
       drawnCardY.value = pos.y;
@@ -328,7 +328,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       const shuffled = [...aliveIndices].sort(() => Math.random() - 0.5);
       const next = new Set(prev);
       for (let i = 0; i < toRemove; i++) {
-        next.add(shuffled[i]);
+        next.add(shuffled[i]!);
       }
       return next;
     });
@@ -379,7 +379,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       (i) => !removedIndices.has(i),
     );
     if (aliveIndices.length === 0) return;
-    const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
+    const randomIndex = aliveIndices[Math.floor(Math.random() * aliveIndices.length)]!;
     handleCardSelect(randomIndex);
   }, [initialCardCount, removedIndices, handleCardSelect]);
   const autoTimeoutWarning = useAutoTimeout(

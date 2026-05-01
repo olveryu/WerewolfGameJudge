@@ -410,10 +410,10 @@ export class CFAuthService implements IAuthService {
 
     const arr = new Uint32Array(2);
     crypto.getRandomValues(arr);
-    const idx1 = arr[0] % adjectives.length;
-    const idx2 = arr[1] % nouns.length;
+    const idx1 = arr[0]! % adjectives.length;
+    const idx2 = arr[1]! % nouns.length;
 
-    this.#generatedName = adjectives[idx1] + '的' + nouns[idx2];
+    this.#generatedName = adjectives[idx1]! + '的' + nouns[idx2]!;
     return this.#generatedName;
   }
 
@@ -480,7 +480,7 @@ export class CFAuthService implements IAuthService {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
-      const payload = JSON.parse(atob(parts[1])) as { sub?: string };
+      const payload = JSON.parse(atob(parts[1]!)) as { sub?: string };
       return payload.sub ?? null;
     } catch {
       return null;

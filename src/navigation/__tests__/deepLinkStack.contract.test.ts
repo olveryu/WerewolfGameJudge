@@ -26,7 +26,7 @@ describe('deep-link stack: Home is always at the bottom', () => {
 
     expect(state).toBeDefined();
     expect(state!.routes.length).toBeGreaterThanOrEqual(2);
-    expect(state!.routes[0].name).toBe('Home');
+    expect(state!.routes[0]!.name).toBe('Home');
   });
 
   it.each(entries)('%s — top route matches screen name', (name, config) => {
@@ -34,7 +34,7 @@ describe('deep-link stack: Home is always at the bottom', () => {
     const state = linking.getStateFromPath!(path, linking.config);
 
     expect(state).toBeDefined();
-    const topRoute = state!.routes[state!.routes.length - 1];
+    const topRoute = state!.routes[state!.routes.length - 1]!;
     expect(topRoute.name).toBe(name);
   });
 });

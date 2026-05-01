@@ -155,10 +155,10 @@ describe('gachaProbability', () => {
 
     it('should mark duplicate and award shards for already-owned items', () => {
       const epicItems = REWARD_POOL.filter((i) => i.rarity === 'epic');
-      const ownedIds = new Set([epicItems[0].id]);
+      const ownedIds = new Set([epicItems[0]!.id]);
       const result = selectReward('epic', ownedIds, deterministicRandom);
       expect(result).toBeDefined();
-      expect(result!.reward.id).toBe(epicItems[0].id);
+      expect(result!.reward.id).toBe(epicItems[0]!.id);
       expect(result!.isDuplicate).toBe(true);
       expect(result!.shardsAwarded).toBe(50); // SHARD_VALUES.epic
     });
@@ -178,7 +178,7 @@ describe('gachaProbability', () => {
       const lastPicker = (max: number) => max - 1;
       const result = selectReward('epic', new Set(), lastPicker);
       expect(result).toBeDefined();
-      expect(result!.reward.id).toBe(epicPool[epicPool.length - 1].id);
+      expect(result!.reward.id).toBe(epicPool[epicPool.length - 1]!.id);
     });
   });
 
@@ -204,33 +204,33 @@ describe('gachaProbability', () => {
       const byType: Record<string, Record<Rarity, number>> = {};
       for (const item of REWARD_POOL) {
         if (!byType[item.type]) byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0 };
-        byType[item.type][item.rarity]++;
+        byType[item.type]![item.rarity]++;
       }
       // Avatars: L10/E33/R50/C100 = 193
-      expect(byType['avatar'].legendary).toBe(10);
-      expect(byType['avatar'].epic).toBe(33);
-      expect(byType['avatar'].rare).toBe(50);
-      expect(byType['avatar'].common).toBe(100);
+      expect(byType['avatar']!.legendary).toBe(10);
+      expect(byType['avatar']!.epic).toBe(33);
+      expect(byType['avatar']!.rare).toBe(50);
+      expect(byType['avatar']!.common).toBe(100);
       // Frames: L11/E39/R50/C100 = 200
-      expect(byType['frame'].legendary).toBe(11);
-      expect(byType['frame'].epic).toBe(39);
-      expect(byType['frame'].rare).toBe(50);
-      expect(byType['frame'].common).toBe(100);
+      expect(byType['frame']!.legendary).toBe(11);
+      expect(byType['frame']!.epic).toBe(39);
+      expect(byType['frame']!.rare).toBe(50);
+      expect(byType['frame']!.common).toBe(100);
       // SeatFlairs: L7/E53/R50/C100 = 210
-      expect(byType['seatFlair'].legendary).toBe(7);
-      expect(byType['seatFlair'].epic).toBe(53);
-      expect(byType['seatFlair'].rare).toBe(50);
-      expect(byType['seatFlair'].common).toBe(100);
+      expect(byType['seatFlair']!.legendary).toBe(7);
+      expect(byType['seatFlair']!.epic).toBe(53);
+      expect(byType['seatFlair']!.rare).toBe(50);
+      expect(byType['seatFlair']!.common).toBe(100);
       // NameStyles: L4/E46/R50/C100 = 200
-      expect(byType['nameStyle'].legendary).toBe(4);
-      expect(byType['nameStyle'].epic).toBe(46);
-      expect(byType['nameStyle'].rare).toBe(50);
-      expect(byType['nameStyle'].common).toBe(100);
+      expect(byType['nameStyle']!.legendary).toBe(4);
+      expect(byType['nameStyle']!.epic).toBe(46);
+      expect(byType['nameStyle']!.rare).toBe(50);
+      expect(byType['nameStyle']!.common).toBe(100);
       // SeatAnimations: L10/E40/R50/C100 = 200
-      expect(byType['seatAnimation'].legendary).toBe(10);
-      expect(byType['seatAnimation'].epic).toBe(40);
-      expect(byType['seatAnimation'].rare).toBe(50);
-      expect(byType['seatAnimation'].common).toBe(100);
+      expect(byType['seatAnimation']!.legendary).toBe(10);
+      expect(byType['seatAnimation']!.epic).toBe(40);
+      expect(byType['seatAnimation']!.rare).toBe(50);
+      expect(byType['seatAnimation']!.common).toBe(100);
     });
   });
 });

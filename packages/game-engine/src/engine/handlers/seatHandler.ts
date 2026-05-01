@@ -71,7 +71,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   }
 
   // 验证：座位是否已被占用（被其他玩家）
-  const existingPlayer = state.players[seat];
+  const existingPlayer = state.players[seat]!;
   if (existingPlayer !== null && existingPlayer.userId !== userId) {
     return handlerError(REASON_SEAT_TAKEN);
   }

@@ -440,22 +440,22 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       // Update orbital particles
       const particles = particlesRef.current;
       for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
+        const p = particles[i]!;
         p.angle += (p.speed + spinVelRef.current) * 0.02;
         const pullD = Math.max(10, p.dist * (1 - intensity * 0.6));
         p.dist += (pullD - p.dist) * 0.05;
-        particleXSV[i].value = cx + Math.cos(p.angle + totalSpin * 0.3) * p.dist;
-        particleYSV[i].value = cy + Math.sin(p.angle + totalSpin * 0.3) * p.dist;
-        particleOpacitySV[i].value = p.alpha * (0.3 + intensity * 0.9);
+        particleXSV[i]!.value = cx + Math.cos(p.angle + totalSpin * 0.3) * p.dist;
+        particleYSV[i]!.value = cy + Math.sin(p.angle + totalSpin * 0.3) * p.dist;
+        particleOpacitySV[i]!.value = p.alpha * (0.3 + intensity * 0.9);
       }
 
       // Update debris
       const debris = debrisRef.current;
       for (let i = 0; i < debris.length; i++) {
-        const d = debris[i];
+        const d = debris[i]!;
         d.angle += (d.speed + spinVelRef.current * 0.5) * 0.015;
-        debrisXSV[i].value = cx + Math.cos(d.angle + totalSpin * 0.2) * d.dist;
-        debrisYSV[i].value = cy + Math.sin(d.angle + totalSpin * 0.2) * d.dist;
+        debrisXSV[i]!.value = cx + Math.cos(d.angle + totalSpin * 0.2) * d.dist;
+        debrisYSV[i]!.value = cy + Math.sin(d.angle + totalSpin * 0.2) * d.dist;
       }
 
       // Progress arc
@@ -646,10 +646,10 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
             {ORBITAL_PARTICLES.map((_, i) => (
               <Circle
                 key={`op-${i}`}
-                cx={particleXSV[i]}
-                cy={particleYSV[i]}
-                r={ORBITAL_PARTICLES[i].radius}
-                color={hslString(ORBITAL_PARTICLES[i].hue, 70, 60, 1)}
+                cx={particleXSV[i]!}
+                cy={particleYSV[i]!}
+                r={ORBITAL_PARTICLES[i]!.radius}
+                color={hslString(ORBITAL_PARTICLES[i]!.hue, 70, 60, 1)}
                 opacity={particleOpacitySV[i]}
               />
             ))}
@@ -659,9 +659,9 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
               <DebrisChunk
                 key={`deb-${i}`}
                 debris={d}
-                xSV={debrisXSV[i]}
-                ySV={debrisYSV[i]}
-                opacitySV={debrisOpacitySV[i]}
+                xSV={debrisXSV[i]!}
+                ySV={debrisYSV[i]!}
+                opacitySV={debrisOpacitySV[i]!}
               />
             ))}
 

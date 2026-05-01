@@ -27,7 +27,7 @@ function scanFileForNeedle(file: string, needle: string): Match[] {
   const lines = content.split(/\r?\n/);
   const matches: Match[] = [];
   for (let i = 0; i < lines.length; i += 1) {
-    const text = lines[i];
+    const text = lines[i]!;
     if (text.includes(needle)) {
       matches.push({ file, line: i + 1, text: text.trim() });
     }

@@ -88,9 +88,9 @@ describe('handleFillWithBots', () => {
 
       const success = expectSuccess(result);
       expect(success.actions).toHaveLength(1);
-      expect(success.actions[0].type).toBe('FILL_WITH_BOTS');
+      expect(success.actions[0]!.type).toBe('FILL_WITH_BOTS');
 
-      const action = success.actions[0] as {
+      const action = success.actions[0]! as {
         type: 'FILL_WITH_BOTS';
         payload: { bots: Record<number, Player> };
       };
@@ -125,7 +125,7 @@ describe('handleFillWithBots', () => {
 
       const success = expectSuccess(result);
 
-      const action = success.actions[0] as {
+      const action = success.actions[0]! as {
         type: 'FILL_WITH_BOTS';
         payload: { bots: Record<number, Player> };
       };
@@ -191,7 +191,7 @@ describe('handleMarkAllBotsViewed', () => {
 
       const success = expectSuccess(result);
       expect(success.actions).toHaveLength(1);
-      expect(success.actions[0].type).toBe('MARK_ALL_BOTS_VIEWED');
+      expect(success.actions[0]!.type).toBe('MARK_ALL_BOTS_VIEWED');
     });
   });
 

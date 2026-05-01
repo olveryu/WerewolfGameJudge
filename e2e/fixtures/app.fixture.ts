@@ -22,7 +22,7 @@ interface AppFixture {
  */
 export interface MultiPlayerFixture {
   /** All pages (index 0 = host). */
-  pages: Page[];
+  pages: [Page, ...Page[]];
   /** Diagnostic data per page. */
   diags: DiagnosticData[];
   /** Contexts for cleanup. */
@@ -72,7 +72,7 @@ export async function createPlayerContexts(
     diags.push(setupDiagnostics(page, label));
   }
 
-  return { pages, diags, contexts };
+  return { pages: pages as [Page, ...Page[]], diags, contexts };
 }
 
 /**

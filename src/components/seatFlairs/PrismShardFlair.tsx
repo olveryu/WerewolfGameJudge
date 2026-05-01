@@ -136,7 +136,7 @@ export const PrismShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
       <Svg width={size} height={size}>
         <LegendaryAura size={size} progress={slowProgress} r={200} g={180} b={255} />
         {seeds.map((s, i) => (
-          <PrismParticle key={i} seed={s} hue0={HUES[i]} size={size} progress={progress} />
+          <PrismParticle key={i} seed={s} hue0={HUES[i]!} size={size} progress={progress} />
         ))}
       </Svg>
     </View>

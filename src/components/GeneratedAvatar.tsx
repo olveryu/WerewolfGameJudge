@@ -75,7 +75,7 @@ function getBoolean(number: number, ntn: number): boolean {
 }
 
 function getRandomColor(number: number, colors: readonly string[], range: number): string {
-  return colors[number % range];
+  return colors[number % range]!;
 }
 
 function getContrast(hexcolor: string): string {
@@ -97,15 +97,15 @@ function generateRingColors(name: string, palette: readonly string[]): string[] 
   );
   // Map 5 shuffled colors → 9 ring segments (as per boring-avatars algorithm)
   return [
-    shuffled[0],
-    shuffled[1],
-    shuffled[1],
-    shuffled[2],
-    shuffled[2],
-    shuffled[3],
-    shuffled[3],
-    shuffled[0],
-    shuffled[4],
+    shuffled[0]!,
+    shuffled[1]!,
+    shuffled[1]!,
+    shuffled[2]!,
+    shuffled[2]!,
+    shuffled[3]!,
+    shuffled[3]!,
+    shuffled[0]!,
+    shuffled[4]!,
   ];
 }
 
@@ -160,7 +160,7 @@ function generateBeamData(name: string, palette: readonly string[]): BeamData {
 // ─── Palette Selection ──────────────────────────────────────────────────
 
 function selectPalette<T>(seed: string, palettes: readonly T[]): T {
-  return palettes[hashCode(seed) % palettes.length];
+  return palettes[hashCode(seed) % palettes.length]!;
 }
 
 // ─── Ring Component ─────────────────────────────────────────────────────

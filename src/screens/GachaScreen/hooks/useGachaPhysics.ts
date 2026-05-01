@@ -50,10 +50,10 @@ function hasFlag(flags: number, flag: number): boolean {
 function constrainToDome(data: number[], i: number, gateOpen: boolean, s: number): void {
   'worklet';
   const base = i * STRIDE;
-  const bx = data[base];
-  const by = data[base + 1];
-  const r = data[base + 4];
-  const flags = data[base + 5];
+  const bx = data[base]!;
+  const by = data[base + 1]!;
+  const r = data[base + 4]!;
+  const flags = data[base + 5]!;
   if (hasFlag(flags, F_ESCAPED)) return;
 
   const cx = DOME_CX * s;
@@ -71,7 +71,7 @@ function constrainToDome(data: number[], i: number, gateOpen: boolean, s: number
   // Gate check
   if (gateOpen && Math.abs(bx - holeCx) < holeHW && by + r > holeY - 6 * s) {
     if (by > holeY + r * 0.5) {
-      data[base + 5] |= F_ESCAPED;
+      data[base + 5] = data[base + 5]! | F_ESCAPED;
     }
     return;
   }
@@ -82,17 +82,17 @@ function constrainToDome(data: number[], i: number, gateOpen: boolean, s: number
     const ny = dy / dist;
     data[base] = cx + nx * maxR;
     data[base + 1] = cy + ny * maxR;
-    const dot = data[base + 2] * nx + data[base + 3] * ny;
+    const dot = data[base + 2]! * nx + data[base + 3]! * ny;
     if (dot > 0) {
-      data[base + 2] -= (1 + DAMPING) * dot * nx;
-      data[base + 3] -= (1 + DAMPING) * dot * ny;
+      data[base + 2] = data[base + 2]! - (1 + DAMPING) * dot * nx;
+      data[base + 3] = data[base + 3]! - (1 + DAMPING) * dot * ny;
     }
   }
 
   // Floor of dome (no gate)
   if (!gateOpen && by + r > holeY - 1 * s) {
     data[base + 1] = holeY - 1 * s - r;
-    if (data[base + 3] > 0) data[base + 3] = -data[base + 3] * DAMPING * 0.4;
+    if (data[base + 3]! > 0) data[base + 3] = -data[base + 3]! * DAMPING * 0.4;
   }
 }
 
@@ -100,29 +100,29 @@ function ballCollision(data: number[], a: number, b: number): void {
   'worklet';
   const ba = a * STRIDE;
   const bb = b * STRIDE;
-  const dx = data[bb] - data[ba];
-  const dy = data[bb + 1] - data[ba + 1];
+  const dx = data[bb]! - data[ba]!;
+  const dy = data[bb + 1]! - data[ba + 1]!;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  const minD = data[ba + 4] + data[bb + 4];
+  const minD = data[ba + 4]! + data[bb + 4]!;
   if (dist >= minD || dist < 0.01) return;
 
   const nx = dx / dist;
   const ny = dy / dist;
   const ov = minD - dist;
-  data[ba] -= nx * ov * 0.5;
-  data[ba + 1] -= ny * ov * 0.5;
-  data[bb] += nx * ov * 0.5;
-  data[bb + 1] += ny * ov * 0.5;
+  data[ba] = data[ba]! - nx * ov * 0.5;
+  data[ba + 1] = data[ba + 1]! - ny * ov * 0.5;
+  data[bb] = data[bb]! + nx * ov * 0.5;
+  data[bb + 1] = data[bb + 1]! + ny * ov * 0.5;
 
-  const rv = data[ba + 2] - data[bb + 2];
-  const rvy = data[ba + 3] - data[bb + 3];
+  const rv = data[ba + 2]! - data[bb + 2]!;
+  const rvy = data[ba + 3]! - data[bb + 3]!;
   const rd = rv * nx + rvy * ny;
   if (rd > 0) {
     const imp = rd * 0.5 * (1 + DAMPING);
-    data[ba + 2] -= imp * nx;
-    data[ba + 3] -= imp * ny;
-    data[bb + 2] += imp * nx;
-    data[bb + 3] += imp * ny;
+    data[ba + 2] = data[ba + 2]! - imp * nx;
+    data[ba + 3] = data[ba + 3]! - imp * ny;
+    data[bb + 2] = data[bb + 2]! + imp * nx;
+    data[bb + 3] = data[bb + 3]! + imp * ny;
   }
 }
 
@@ -147,13 +147,13 @@ function physicsTick(
   // Integrate
   for (let i = 0; i < n; i++) {
     const base = i * STRIDE;
-    const flags = data[base + 5];
+    const flags = data[base + 5]!;
     if (hasFlag(flags, F_ON_FLOOR)) continue;
-    if (applyGravity) data[base + 3] += gravity * dt;
-    data[base] += data[base + 2] * dt;
-    data[base + 1] += data[base + 3] * dt;
-    data[base + 2] *= FRICTION;
-    data[base + 3] *= FRICTION;
+    if (applyGravity) data[base + 3] = data[base + 3]! + gravity * dt;
+    data[base] = data[base]! + data[base + 2]! * dt;
+    data[base + 1] = data[base + 1]! + data[base + 3]! * dt;
+    data[base + 2] = data[base + 2]! * FRICTION;
+    data[base + 3] = data[base + 3]! * FRICTION;
   }
 
   // Collision (multi-pass)
@@ -167,7 +167,7 @@ function physicsTick(
 
   // Dome constraint
   for (let i = 0; i < n; i++) {
-    if (!hasFlag(data[i * STRIDE + 5], F_ESCAPED) && !hasFlag(data[i * STRIDE + 5], F_ON_FLOOR)) {
+    if (!hasFlag(data[i * STRIDE + 5]!, F_ESCAPED) && !hasFlag(data[i * STRIDE + 5]!, F_ON_FLOOR)) {
       constrainToDome(data, i, gateOpen, s);
     }
   }
@@ -175,21 +175,21 @@ function physicsTick(
   // Chute walls + floor
   for (let i = 0; i < n; i++) {
     const base = i * STRIDE;
-    const flags = data[base + 5];
+    const flags = data[base + 5]!;
     if (!hasFlag(flags, F_ESCAPED) || hasFlag(flags, F_ON_FLOOR)) continue;
-    const bx = data[base];
-    const by = data[base + 1];
-    const r = data[base + 4];
+    const bx = data[base]!;
+    const by = data[base + 1]!;
+    const r = data[base + 4]!;
 
     // Chute walls
     if (by < chuteBot + r && by > holeY) {
       if (bx < holeCx - chuteHW + r) {
         data[base] = holeCx - chuteHW + r;
-        data[base + 2] = Math.abs(data[base + 2]) * 0.3;
+        data[base + 2] = Math.abs(data[base + 2]!) * 0.3;
       }
       if (bx > holeCx + chuteHW - r) {
         data[base] = holeCx + chuteHW - r;
-        data[base + 2] = -Math.abs(data[base + 2]) * 0.3;
+        data[base + 2] = -Math.abs(data[base + 2]!) * 0.3;
       }
     }
 
@@ -197,24 +197,24 @@ function physicsTick(
     if (by >= chuteBot) {
       if (bx < r + 20 * s) {
         data[base] = r + 20 * s;
-        data[base + 2] = Math.abs(data[base + 2]) * 0.3;
+        data[base + 2] = Math.abs(data[base + 2]!) * 0.3;
       }
       if (bx > REF_W * s - r - 20 * s) {
         data[base] = REF_W * s - r - 20 * s;
-        data[base + 2] = -Math.abs(data[base + 2]) * 0.3;
+        data[base + 2] = -Math.abs(data[base + 2]!) * 0.3;
       }
     }
 
     // Floor bounce
     if (by + r > floorY) {
       data[base + 1] = floorY - r;
-      if (Math.abs(data[base + 3]) < 25 * s) {
+      if (Math.abs(data[base + 3]!) < 25 * s) {
         data[base + 3] = 0;
         data[base + 2] = 0;
-        data[base + 5] |= F_ON_FLOOR;
+        data[base + 5] = data[base + 5]! | F_ON_FLOOR;
       } else {
-        data[base + 3] = -data[base + 3] * 0.4;
-        data[base + 2] *= 0.7;
+        data[base + 3] = -data[base + 3]! * 0.4;
+        data[base + 2] = data[base + 2]! * 0.7;
       }
     }
   }
@@ -311,10 +311,10 @@ export function useGachaPhysics(scale: number) {
   function triggerOpen(data: number[], bi: number): void {
     'worklet';
     if (bi < 0) return;
-    const bx = data[bi * STRIDE];
-    const by = data[bi * STRIDE + 1];
-    const br = data[bi * STRIDE + 4];
-    data[bi * STRIDE + 5] |= F_OPENED;
+    const bx = data[bi * STRIDE]!;
+    const by = data[bi * STRIDE + 1]!;
+    const br = data[bi * STRIDE + 4]!;
+    data[bi * STRIDE + 5] = data[bi * STRIDE + 5]! | F_OPENED;
 
     // Flash + shake
     flashAlpha.value = multiMode.value === 1 ? 0.25 : 0.6;
@@ -324,7 +324,7 @@ export function useGachaPhysics(scale: number) {
     // Track opened position + rarity
     const ob = openedBalls.value;
     const rarIdx = ob.length / 3;
-    const rar = rarIdx < resultRarities.value.length ? resultRarities.value[rarIdx] : 0;
+    const rar = rarIdx < resultRarities.value.length ? resultRarities.value[rarIdx]! : 0;
     ob.push(bx, by, rar);
     openedBalls.value = ob;
 
@@ -379,29 +379,29 @@ export function useGachaPhysics(scale: number) {
       // Nudge bottom balls toward hole
       const sorted: number[] = [];
       for (let i = 0; i < NUM_BALLS; i++) {
-        if (!hasFlag(data[i * STRIDE + 5], F_ESCAPED)) sorted.push(i);
+        if (!hasFlag(data[i * STRIDE + 5]!, F_ESCAPED)) sorted.push(i);
       }
-      sorted.sort((a, b) => data[b * STRIDE + 1] - data[a * STRIDE + 1]);
+      sorted.sort((a, b) => data[b * STRIDE + 1]! - data[a * STRIDE + 1]!);
       const nudgeCount = Math.min(mc + 2, sorted.length);
       for (let i = 0; i < nudgeCount; i++) {
-        const base = sorted[i] * STRIDE;
-        data[base + 3] += (40 + Math.random() * 30) * s;
-        data[base] += (HOLE_CX * s - data[base]) * 0.3;
-        data[base + 2] += (Math.random() - 0.5) * 30 * s;
+        const base = sorted[i]! * STRIDE;
+        data[base + 3] = data[base + 3]! + (40 + Math.random() * 30) * s;
+        data[base] = data[base]! + (HOLE_CX * s - data[base]!) * 0.3;
+        data[base + 2] = data[base + 2]! + (Math.random() - 0.5) * 30 * s;
       }
     } else {
       phase.value = PHASE.GATE_OPEN;
       // Nudge bottom balls toward hole
       const sorted: number[] = [];
       for (let i = 0; i < NUM_BALLS; i++) {
-        if (!hasFlag(data[i * STRIDE + 5], F_ESCAPED)) sorted.push(i);
+        if (!hasFlag(data[i * STRIDE + 5]!, F_ESCAPED)) sorted.push(i);
       }
-      sorted.sort((a, b) => data[b * STRIDE + 1] - data[a * STRIDE + 1]);
+      sorted.sort((a, b) => data[b * STRIDE + 1]! - data[a * STRIDE + 1]!);
       const nudgeCount = Math.min(3, sorted.length);
       for (let i = 0; i < nudgeCount; i++) {
-        const base = sorted[i] * STRIDE;
-        data[base + 3] += 50 * s;
-        data[base] += (HOLE_CX * s - data[base]) * 0.4;
+        const base = sorted[i]! * STRIDE;
+        data[base + 3] = data[base + 3]! + 50 * s;
+        data[base] = data[base]! + (HOLE_CX * s - data[base]!) * 0.4;
       }
     }
   }
@@ -434,19 +434,23 @@ export function useGachaPhysics(scale: number) {
       const spinDir = Math.sin(time * 1.5) > 0 ? 1 : -1;
       for (let i = 0; i < NUM_BALLS; i++) {
         const base = i * STRIDE;
-        if (hasFlag(data[base + 5], F_ESCAPED)) continue;
-        const dx = data[base] - DOME_CX * s;
-        const dy = data[base + 1] - DOME_CY * s;
+        if (hasFlag(data[base + 5]!, F_ESCAPED)) continue;
+        const dx = data[base]! - DOME_CX * s;
+        const dy = data[base + 1]! - DOME_CY * s;
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
         const tx = (-dy / dist) * spinDir;
         const ty = (dx / dist) * spinDir;
-        data[base + 2] +=
-          tx * TUMBLE_FORCE * s * strength * dt + (Math.random() - 0.5) * 800 * s * strength * dt;
-        data[base + 3] +=
-          ty * TUMBLE_FORCE * s * strength * dt + (Math.random() - 0.5) * 800 * s * strength * dt;
+        data[base + 2] =
+          data[base + 2]! +
+          tx * TUMBLE_FORCE * s * strength * dt +
+          (Math.random() - 0.5) * 800 * s * strength * dt;
+        data[base + 3] =
+          data[base + 3]! +
+          ty * TUMBLE_FORCE * s * strength * dt +
+          (Math.random() - 0.5) * 800 * s * strength * dt;
         // Centripetal
-        data[base + 2] -= (dx / dist) * 150 * s * dt * strength;
-        data[base + 3] -= (dy / dist) * 150 * s * dt * strength;
+        data[base + 2] = data[base + 2]! - (dx / dist) * 150 * s * dt * strength;
+        data[base + 3] = data[base + 3]! - (dy / dist) * 150 * s * dt * strength;
       }
       dialAngle.value += 12 * dt * strength;
       shakeX.value += (Math.random() - 0.5) * 4 * strength;
@@ -462,9 +466,9 @@ export function useGachaPhysics(scale: number) {
     if (p === PHASE.SETTLING) {
       for (let i = 0; i < NUM_BALLS; i++) {
         const base = i * STRIDE;
-        if (!hasFlag(data[base + 5], F_ESCAPED)) {
-          data[base + 2] *= 0.95;
-          data[base + 3] *= 0.95;
+        if (!hasFlag(data[base + 5]!, F_ESCAPED)) {
+          data[base + 2] = data[base + 2]! * 0.95;
+          data[base + 3] = data[base + 3]! * 0.95;
         }
       }
       if (phaseTimer.value > SETTLE_DURATION) {
@@ -482,9 +486,9 @@ export function useGachaPhysics(scale: number) {
       // Gentle damping while waiting
       for (let i = 0; i < NUM_BALLS; i++) {
         const base = i * STRIDE;
-        if (!hasFlag(data[base + 5], F_ESCAPED)) {
-          data[base + 2] *= 0.98;
-          data[base + 3] *= 0.98;
+        if (!hasFlag(data[base + 5]!, F_ESCAPED)) {
+          data[base + 2] = data[base + 2]! * 0.98;
+          data[base + 3] = data[base + 3]! * 0.98;
         }
       }
       if (resultsReady.value === 1) {
@@ -497,7 +501,10 @@ export function useGachaPhysics(scale: number) {
       // Find first escaped ball
       let found = -1;
       for (let i = 0; i < NUM_BALLS; i++) {
-        if (hasFlag(data[i * STRIDE + 5], F_ESCAPED) && !hasFlag(data[i * STRIDE + 5], F_OPENED)) {
+        if (
+          hasFlag(data[i * STRIDE + 5]!, F_ESCAPED) &&
+          !hasFlag(data[i * STRIDE + 5]!, F_OPENED)
+        ) {
           found = i;
           break;
         }
@@ -514,15 +521,15 @@ export function useGachaPhysics(scale: number) {
         let lowY = -9999;
         for (let i = 0; i < NUM_BALLS; i++) {
           const base = i * STRIDE;
-          if (!hasFlag(data[base + 5], F_ESCAPED) && data[base + 1] > lowY) {
-            lowY = data[base + 1];
+          if (!hasFlag(data[base + 5]!, F_ESCAPED) && data[base + 1]! > lowY) {
+            lowY = data[base + 1]!;
             low = i;
           }
         }
         if (low >= 0) {
           data[low * STRIDE] = HOLE_CX * s;
           data[low * STRIDE + 3] = 120 * s;
-          data[low * STRIDE + 5] |= F_ESCAPED;
+          data[low * STRIDE + 5] = data[low * STRIDE + 5]! | F_ESCAPED;
           data[low * STRIDE + 4] = BALL_R_SINGLE * s;
           capsuleBallIndex.value = low;
           phase.value = PHASE.DROPPING;
@@ -534,7 +541,7 @@ export function useGachaPhysics(scale: number) {
     // ── Phase: Dropping (single) ──
     if (p === PHASE.DROPPING) {
       const ci = capsuleBallIndex.value;
-      if (ci >= 0 && hasFlag(data[ci * STRIDE + 5], F_ON_FLOOR)) {
+      if (ci >= 0 && hasFlag(data[ci * STRIDE + 5]!, F_ON_FLOOR)) {
         phase.value = PHASE.AUTO_OPEN_WAIT;
         phaseTimer.value = 0;
         autoOpenTimer.value = 0;
@@ -568,9 +575,9 @@ export function useGachaPhysics(scale: number) {
       let dc = droppedCount.value;
       const indices = droppedBallIndices.value;
       for (let i = 0; i < NUM_BALLS; i++) {
-        if (hasFlag(data[i * STRIDE + 5], F_ESCAPED) && !indices.includes(i) && dc < mc) {
+        if (hasFlag(data[i * STRIDE + 5]!, F_ESCAPED) && !indices.includes(i) && dc < mc) {
           data[i * STRIDE + 4] = BALL_R_MULTI * s;
-          data[i * STRIDE + 2] += (Math.random() - 0.5) * 200 * s;
+          data[i * STRIDE + 2] = data[i * STRIDE + 2]! + (Math.random() - 0.5) * 200 * s;
           indices.push(i);
           dc++;
         }
@@ -592,18 +599,18 @@ export function useGachaPhysics(scale: number) {
           for (let i = 0; i < NUM_BALLS; i++) {
             const base = i * STRIDE;
             if (
-              !hasFlag(data[base + 5], F_ESCAPED) &&
-              !hasFlag(data[base + 5], F_ON_FLOOR) &&
-              data[base + 1] > lowY
+              !hasFlag(data[base + 5]!, F_ESCAPED) &&
+              !hasFlag(data[base + 5]!, F_ON_FLOOR) &&
+              data[base + 1]! > lowY
             ) {
-              lowY = data[base + 1];
+              lowY = data[base + 1]!;
               low = i;
             }
           }
           if (low < 0) break;
           data[low * STRIDE] = HOLE_CX * s + (Math.random() - 0.5) * 20 * s;
           data[low * STRIDE + 3] = 120 * s;
-          data[low * STRIDE + 5] |= F_ESCAPED;
+          data[low * STRIDE + 5] = data[low * STRIDE + 5]! | F_ESCAPED;
           data[low * STRIDE + 4] = BALL_R_MULTI * s;
           data[low * STRIDE + 2] = (Math.random() - 0.5) * 200 * s;
           indices.push(low);
@@ -620,9 +627,9 @@ export function useGachaPhysics(scale: number) {
       if (phaseTimer.value > 0.5 && dc < mc) {
         for (let i = 0; i < NUM_BALLS; i++) {
           const base = i * STRIDE;
-          if (!hasFlag(data[base + 5], F_ESCAPED) && !hasFlag(data[base + 5], F_ON_FLOOR)) {
-            data[base] += (HOLE_CX * s - data[base]) * 0.02;
-            data[base + 3] += 10 * dt * 60;
+          if (!hasFlag(data[base + 5]!, F_ESCAPED) && !hasFlag(data[base + 5]!, F_ON_FLOOR)) {
+            data[base] = data[base]! + (HOLE_CX * s - data[base]!) * 0.02;
+            data[base + 3] = data[base + 3]! + 10 * dt * 60;
           }
         }
       }
@@ -633,8 +640,8 @@ export function useGachaPhysics(scale: number) {
       const indices = droppedBallIndices.value;
       let allLanded = true;
       for (let i = 0; i < indices.length; i++) {
-        const bi = indices[i];
-        const flags = data[bi * STRIDE + 5];
+        const bi = indices[i]!;
+        const flags = data[bi * STRIDE + 5]!;
         if (!hasFlag(flags, F_ON_FLOOR) && !hasFlag(flags, F_OPENED)) {
           allLanded = false;
           break;
@@ -653,8 +660,8 @@ export function useGachaPhysics(scale: number) {
       multiOpenTimer.value += dt;
       const indices = droppedBallIndices.value;
       if (multiOpenTimer.value > 0.25 && multiOpenIndex.value < indices.length) {
-        const bi = indices[multiOpenIndex.value];
-        if (!hasFlag(data[bi * STRIDE + 5], F_OPENED)) {
+        const bi = indices[multiOpenIndex.value]!;
+        if (!hasFlag(data[bi * STRIDE + 5]!, F_OPENED)) {
           triggerOpen(data, bi);
         }
         multiOpenIndex.value += 1;
@@ -679,12 +686,12 @@ export function useGachaPhysics(scale: number) {
       const SHELL_STRIDE = 9;
       let changed = false;
       for (let i = sp.length - SHELL_STRIDE; i >= 0; i -= SHELL_STRIDE) {
-        sp[i] += sp[i + 2] * dt; // x += vx * dt
-        sp[i + 1] += sp[i + 3] * dt; // y += vy * dt
-        sp[i + 3] += 300 * dt; // gravity
-        sp[i + 5] += sp[i + 6] * dt * 10; // rotation
-        sp[i + 7] -= 0.8 * dt; // alpha decay
-        if (sp[i + 7] <= 0) {
+        sp[i] = sp[i]! + sp[i + 2]! * dt; // x += vx * dt
+        sp[i + 1] = sp[i + 1]! + sp[i + 3]! * dt; // y += vy * dt
+        sp[i + 3] = sp[i + 3]! + 300 * dt; // gravity
+        sp[i + 5] = sp[i + 5]! + sp[i + 6]! * dt * 10; // rotation
+        sp[i + 7] = sp[i + 7]! - 0.8 * dt; // alpha decay
+        if (sp[i + 7]! <= 0) {
           sp.splice(i, SHELL_STRIDE);
           changed = true;
         }
@@ -698,12 +705,12 @@ export function useGachaPhysics(scale: number) {
       const SPARK_STRIDE = 7;
       let changed = false;
       for (let i = sk.length - SPARK_STRIDE; i >= 0; i -= SPARK_STRIDE) {
-        sk[i] += sk[i + 2] * dt; // x += vx * dt
-        sk[i + 1] += sk[i + 3] * dt; // y += vy * dt
-        sk[i + 2] *= 0.96; // drag
-        sk[i + 3] *= 0.96;
-        sk[i + 4] -= 1.2 * dt; // life decay
-        if (sk[i + 4] <= 0) {
+        sk[i] = sk[i]! + sk[i + 2]! * dt; // x += vx * dt
+        sk[i + 1] = sk[i + 1]! + sk[i + 3]! * dt; // y += vy * dt
+        sk[i + 2] = sk[i + 2]! * 0.96; // drag
+        sk[i + 3] = sk[i + 3]! * 0.96;
+        sk[i + 4] = sk[i + 4]! - 1.2 * dt; // life decay
+        if (sk[i + 4]! <= 0) {
           sk.splice(i, SPARK_STRIDE);
           changed = true;
         }

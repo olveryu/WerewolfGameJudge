@@ -474,7 +474,7 @@ export function buildSeatViewModels(
       disabledReason,
       showReadyBadge: readyBadge,
       wolfVoteBadge: hasWolfVoteBadge
-        ? formatWolfVoteBadge(wolfVotesBySeat[String(seat)])
+        ? formatWolfVoteBadge(wolfVotesBySeat[String(seat)]!)
         : undefined,
     };
   });

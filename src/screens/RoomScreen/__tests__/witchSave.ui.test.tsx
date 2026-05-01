@@ -163,7 +163,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-    const saveStep = witchSchema.steps[0];
+    const saveStep = witchSchema.steps[0]!;
     const expectedPrompt = saveStep.ui?.promptTemplate?.replace('{seat}', formatSeat(killedSeat));
 
     await waitFor(() => {
@@ -182,7 +182,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
-    const saveStep = witchSchema.steps[0];
+    const saveStep = witchSchema.steps[0]!;
     const expectedPrompt = saveStep.ui?.cannotSavePrompt;
 
     await waitFor(() => {

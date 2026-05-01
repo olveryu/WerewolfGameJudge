@@ -91,8 +91,8 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     } else if (alertButtons.length === 2) {
       const confirmed = window.confirm(
         message
-          ? `${title}\n\n${message}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}`
-          : `${title}\n\n点击"确定"选择: ${alertButtons[1].text}\n点击"取消"选择: ${alertButtons[0].text}`,
+          ? `${title}\n\n${message}\n\n点击"确定"选择: ${alertButtons[1]!.text}\n点击"取消"选择: ${alertButtons[0]!.text}`
+          : `${title}\n\n点击"确定"选择: ${alertButtons[1]!.text}\n点击"取消"选择: ${alertButtons[0]!.text}`,
       );
       if (confirmed) {
         alertButtons[1]?.onPress?.();

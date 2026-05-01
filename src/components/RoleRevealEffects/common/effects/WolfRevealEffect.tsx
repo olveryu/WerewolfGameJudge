@@ -400,7 +400,7 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
     'worklet';
     const c = fogRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
     for (let i = 0; i < FOG_CLOUDS.length; i++) {
-      const fog = FOG_CLOUDS[i];
+      const fog = FOG_CLOUDS[i]!;
       const r = fog.rRatio * cardWidth;
       const cx = fog.xRatio * cardWidth + Math.sin(fogDrift.value * Math.PI * 2 + i) * fog.driftX;
       const cy =
@@ -440,7 +440,7 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
     const timeMs = bloodCycle.value * 1000;
 
     for (let i = 0; i < BLOOD_DROPS.length; i++) {
-      const drop = BLOOD_DROPS[i];
+      const drop = BLOOD_DROPS[i]!;
       const cx = drop.xRatio * cardWidth;
       const streakW = drop.size * 0.6;
 
@@ -471,7 +471,7 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
       else dropOp = 0.9;
 
       if (dropOp > 0) {
-        const path = BLOOD_DROP_PATHS[i];
+        const path = BLOOD_DROP_PATHS[i]!;
         c.save();
         c.translate(cx, cy);
         bloodPaint.setColor(skColor);
@@ -489,7 +489,7 @@ export const WolfRevealEffect: React.FC<WolfRevealEffectProps> = ({
     'worklet';
     const c = sparkRecorder.beginRecording(Skia.XYWHRect(0, 0, cardWidth, cardHeight));
     for (let i = 0; i < SPARKS.length; i++) {
-      const s = SPARKS[i];
+      const s = SPARKS[i]!;
       const targetX = s.targetXRatio * cardWidth;
       const targetY = s.targetYRatio * cardWidth;
       const size = Math.max(1, s.sizeRatio * cardWidth);

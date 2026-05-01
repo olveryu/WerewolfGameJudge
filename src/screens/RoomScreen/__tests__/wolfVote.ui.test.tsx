@@ -238,7 +238,7 @@ describe('RoomScreen wolf vote UI', () => {
       expect.any(Array),
     );
 
-    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0]![2]! as Array<{
       text: string;
       onPress?: () => void;
     }>;
@@ -279,7 +279,7 @@ describe('RoomScreen wolf vote UI', () => {
       );
     });
 
-    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0]![2]! as Array<{
       text: string;
       onPress?: () => void;
     }>;
@@ -359,11 +359,11 @@ describe('RoomScreen wolf vote UI', () => {
     });
 
     // Verify immune warning is appended
-    const alertMsg = jest.mocked(showAlert).mock.calls[0][1] as string;
+    const alertMsg = jest.mocked(showAlert).mock.calls[0]![1]!;
     expect(alertMsg).toContain('免疫狼人袭击');
 
     // Confirm vote
-    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0]![2]! as Array<{
       text: string;
       onPress?: () => void;
     }>;

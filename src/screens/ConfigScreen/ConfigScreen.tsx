@@ -155,8 +155,8 @@ export const ConfigScreen: React.FC = () => {
           >
             {/* Card B — stepper + role sections */}
             <View style={styles.cardB}>
-              {activeGroup.sections.map((section, index) => {
-                const sectionFaction = section.faction ?? activeGroup.faction;
+              {activeGroup!.sections.map((section, index) => {
+                const sectionFaction = section.faction ?? activeGroup!.faction;
                 const sectionAccentColor = getFactionAccentColor(sectionFaction);
 
                 // Bulk slot → RoleStepper
@@ -176,7 +176,7 @@ export const ConfigScreen: React.FC = () => {
                         styles={styles}
                         accentColor={sectionAccentColor}
                       />
-                      {index < activeGroup.sections.length - 1 && (
+                      {index < activeGroup!.sections.length - 1 && (
                         <View style={styles.cardBDivider} />
                       )}
                     </React.Fragment>

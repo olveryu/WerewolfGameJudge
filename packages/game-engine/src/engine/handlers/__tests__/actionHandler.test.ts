@@ -80,7 +80,7 @@ describe('handleViewedRole', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    expect(success.actions[0]!.type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should succeed when non-host views own seat', () => {
@@ -95,7 +95,7 @@ describe('handleViewedRole', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('PLAYER_VIEWED_ROLE');
+    expect(success.actions[0]!.type).toBe('PLAYER_VIEWED_ROLE');
   });
 
   it('should fail when non-host views another seat (not_my_seat)', () => {

@@ -79,7 +79,7 @@ describe('handleJoinSeat', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('PLAYER_JOIN');
+    expect(success.actions[0]!.type).toBe('PLAYER_JOIN');
   });
 
   it('should fail when seat is taken', () => {
@@ -223,10 +223,10 @@ describe('handleJoinSeat', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(2);
-    expect(success.actions[0].type).toBe('PLAYER_LEAVE');
-    expect((success.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
-    expect(success.actions[1].type).toBe('PLAYER_JOIN');
-    expect((success.actions[1] as { payload: { seat: number } }).payload.seat).toBe(2);
+    expect(success.actions[0]!.type).toBe('PLAYER_LEAVE');
+    expect((success.actions[0]! as { payload: { seat: number } }).payload.seat).toBe(0);
+    expect(success.actions[1]!.type).toBe('PLAYER_JOIN');
+    expect((success.actions[1]! as { payload: { seat: number } }).payload.seat).toBe(2);
   });
 
   it('should allow player to re-sit on same seat without leaving', () => {
@@ -256,7 +256,7 @@ describe('handleJoinSeat', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1); // Only join, no leave
-    expect(success.actions[0].type).toBe('PLAYER_JOIN');
+    expect(success.actions[0]!.type).toBe('PLAYER_JOIN');
   });
 });
 
@@ -279,8 +279,8 @@ describe('handleLeaveMySeat', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0].type).toBe('PLAYER_LEAVE');
-    expect((success.actions[0] as { payload: { seat: number } }).payload.seat).toBe(0);
+    expect(success.actions[0]!.type).toBe('PLAYER_LEAVE');
+    expect((success.actions[0]! as { payload: { seat: number } }).payload.seat).toBe(0);
   });
 
   it('should fail with not_seated when mySeat is null', () => {
@@ -450,7 +450,7 @@ describe('handleUpdatePlayerProfile', () => {
 
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]).toEqual({
+    expect(success.actions[0]!).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
       payload: {
         userId: 'player-1',
@@ -477,7 +477,7 @@ describe('handleUpdatePlayerProfile', () => {
     const result = handleUpdatePlayerProfile(intent, context);
 
     const success = expectSuccess(result);
-    const action = success.actions[0];
+    const action = success.actions[0]!;
     expect(action.type).toBe('UPDATE_PLAYER_PROFILE');
     expect(action).toEqual({
       type: 'UPDATE_PLAYER_PROFILE',
@@ -556,7 +556,7 @@ describe('handleKickPlayer', () => {
     const result = handleKickPlayer(makeKickIntent(1), context);
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]).toEqual({
+    expect(success.actions[0]!).toEqual({
       type: 'PLAYER_LEAVE',
       payload: { seat: 1 },
     });

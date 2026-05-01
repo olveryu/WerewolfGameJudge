@@ -146,7 +146,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
 
-      const saveStep = witchSchema.steps[0];
+      const saveStep = witchSchema.steps[0]!;
       expect(saveStep.key).toBe('save');
       expect(saveStep.constraints).toContain(TargetConstraint.NotSelf);
     });

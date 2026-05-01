@@ -210,10 +210,10 @@ describe('chooseSeat Batch Handler Contract', () => {
         // 有 reveal 的 schema 会额外产生 ADD_REVEAL_ACK action
         const expectedLength = hasReveal ? 3 : 2;
         expect(success.actions).toHaveLength(expectedLength);
-        expect(success.actions[0].type).toBe('RECORD_ACTION');
-        expect(success.actions[1].type).toBe('APPLY_RESOLVER_RESULT');
+        expect(success.actions[0]!.type).toBe('RECORD_ACTION');
+        expect(success.actions[1]!.type).toBe('APPLY_RESOLVER_RESULT');
         if (hasReveal) {
-          expect(success.actions[2].type).toBe('ADD_REVEAL_ACK');
+          expect(success.actions[2]!.type).toBe('ADD_REVEAL_ACK');
         }
       },
     );

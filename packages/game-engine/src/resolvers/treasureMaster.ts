@@ -75,7 +75,7 @@ export const treasureMasterChooseResolver: ResolverFn = (context, input) => {
   }
 
   // Get the chosen role
-  const chosenRoleId = bottomCards[cardIndex];
+  const chosenRoleId = bottomCards[cardIndex]!;
 
   // Reject wolf-faction card selection
   const chosenSpec = ROLE_SPECS[chosenRoleId];

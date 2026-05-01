@@ -60,8 +60,8 @@ function processWriteSlot(
   target: number,
 ): ResolverResult {
   const effect = ability.effects[0];
-  if (effect.kind !== 'writeSlot') {
-    throw new Error(`[FAIL-FAST] Expected writeSlot effect, got ${effect.kind}`);
+  if (!effect || effect.kind !== 'writeSlot') {
+    throw new Error(`[FAIL-FAST] Expected writeSlot effect, got ${effect?.kind}`);
   }
 
   const slot = effect.slot;
@@ -125,7 +125,10 @@ function processCheck(
   _input: ActionInput,
   target: number,
 ): ResolverResult {
-  const effect = ability.effects[0] as CheckEffect;
+  const effect = ability.effects[0];
+  if (!effect || effect.kind !== 'check') {
+    throw new Error(`[FAIL-FAST] Expected check effect, got ${effect?.kind}`);
+  }
 
   if (effect.resultType === 'faction') {
     return processFactionCheck(effect, context, target);
@@ -190,8 +193,8 @@ function processBlock(
   target: number,
 ): ResolverResult {
   const effect = ability.effects[0];
-  if (effect.kind !== 'block') {
-    throw new Error(`[FAIL-FAST] Expected block effect, got ${effect.kind}`);
+  if (!effect || effect.kind !== 'block') {
+    throw new Error(`[FAIL-FAST] Expected block effect, got ${effect?.kind}`);
   }
 
   const updates: Record<string, unknown> = { blockedSeat: target };
@@ -227,8 +230,8 @@ function processLearn(
   target: number,
 ): ResolverResult {
   const effect = ability.effects[0];
-  if (effect.kind !== 'learn') {
-    throw new Error(`[FAIL-FAST] Expected learn effect, got ${effect.kind}`);
+  if (!effect || effect.kind !== 'learn') {
+    throw new Error(`[FAIL-FAST] Expected learn effect, got ${effect?.kind}`);
   }
 
   // Learn uses getRoleAfterSwap (magician swap only, no wolfRobot disguise)
@@ -311,7 +314,7 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
   }
 
   const activeAbility = ability;
-  const effectKind = activeAbility.effects.length > 0 ? activeAbility.effects[0].kind : null;
+  const effectKind = activeAbility.effects[0]?.kind ?? null;
 
   return (context: ResolverContext, input: ActionInput): ResolverResult => {
     // --- Handle skip ---

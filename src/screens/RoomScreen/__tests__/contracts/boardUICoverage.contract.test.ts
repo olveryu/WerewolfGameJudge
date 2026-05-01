@@ -208,7 +208,7 @@ function validateCoverageAssertion(
   const allAssertedTypes = new Set<string>();
 
   for (const match of assertCoverageMatches) {
-    const typesStr = match[1];
+    const typesStr = match[1]!;
     // Extract quoted strings
     const types = typesStr.match(/'[^']+'/g) || [];
     for (const t of types) {

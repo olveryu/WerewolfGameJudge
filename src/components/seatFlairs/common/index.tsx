@@ -88,7 +88,7 @@ export const COMMON_FLAIR_ENTRIES: Record<string, CommonFlairEntry> = {};
 
 for (const pattern of COMMON_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
-    const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
+    const id = `${pattern.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
     const colors = FLAIR_PALETTE[colorKey];
     COMMON_FLAIR_ENTRIES[id] = {
@@ -106,7 +106,7 @@ export const RARE_FLAIR_ENTRIES: Record<string, CommonFlairEntry> = {};
 
 for (const pattern of RARE_PATTERNS) {
   for (const colorKey of FLAIR_PALETTE_KEYS) {
-    const id = `${pattern.prefix}${colorKey[0].toUpperCase()}${colorKey.slice(1)}`;
+    const id = `${pattern.prefix}${colorKey[0]!.toUpperCase()}${colorKey.slice(1)}`;
     const name = `${CN_FLAIR_COLORS[colorKey]}${pattern.label}`;
     const colors = FLAIR_PALETTE[colorKey];
     RARE_FLAIR_ENTRIES[id] = {

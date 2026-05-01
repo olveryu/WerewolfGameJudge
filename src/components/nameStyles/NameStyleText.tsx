@@ -24,7 +24,7 @@ interface NameStyleTextProps extends TextProps {
 function buildNativeTextShadow(layers: TextShadowLayer[]): TextStyle {
   if (layers.length === 0) return {};
   // RN only supports a single textShadow — pick the most prominent one (first layer)
-  const l = layers[0];
+  const l = layers[0]!;
   return crossPlatformTextShadow(l.color, l.offsetX, l.offsetY, l.blur);
 }
 

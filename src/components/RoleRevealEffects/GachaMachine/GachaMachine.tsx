@@ -104,7 +104,7 @@ const ROTARY_LIGHTS = Array.from({ length: 8 }, (_, i) => {
       GACHA_COLORS.rotaryYellow,
       GACHA_COLORS.rotaryGreen,
       GACHA_COLORS.rotaryBlue,
-    ][i % 4],
+    ][i % 4]!,
     phase: (i * Math.PI) / 4,
   };
 });
@@ -114,7 +114,7 @@ const CONFETTI_STARS = Array.from({ length: 16 }, (_, i) => ({
   angle: (Math.PI * 2 * i) / 16 + (((i * 37) % 10) / 10) * 0.3,
   speed: 60 + ((i * 53) % 40),
   r: 2 + ((i * 23) % 3),
-  color: [GACHA_COLORS.confettiGold, GACHA_COLORS.confettiPink, GACHA_COLORS.confettiCyan][i % 3],
+  color: [GACHA_COLORS.confettiGold, GACHA_COLORS.confettiPink, GACHA_COLORS.confettiCyan][i % 3]!,
 }));
 
 // ─── Immediate-mode Skia resources (reused across frames) ──
@@ -227,7 +227,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     'worklet';
     const c = rotaryRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
     for (let i = 0; i < ROTARY_LIGHTS.length; i++) {
-      const light = ROTARY_LIGHTS[i];
+      const light = ROTARY_LIGHTS[i]!;
       const opacity = 0.3 + Math.sin(rotaryLightCycle.value + light.phase) * 0.3;
       rotaryPaint.setColor(Skia.Color(light.color));
       rotaryPaint.setAlphaf(opacity);
@@ -243,7 +243,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     const op = confettiOpacity.value;
     if (op > 0) {
       for (let i = 0; i < CONFETTI_STARS.length; i++) {
-        const star = CONFETTI_STARS[i];
+        const star = CONFETTI_STARS[i]!;
         const cx = SCREEN_W / 2 + Math.cos(star.angle) * star.speed * confettiProgress.value;
         const cy =
           SCREEN_H / 2 +
@@ -265,7 +265,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         id: i,
         angle: ((Math.PI * 2) / 12) * i + Math.random() * 0.5,
         distance: 25 + Math.random() * 35,
-        color: CAPSULE_COLORS[Math.floor(Math.random() * CAPSULE_COLORS.length)],
+        color: CAPSULE_COLORS[Math.floor(Math.random() * CAPSULE_COLORS.length)]!,
         size: 14 + Math.random() * 10,
       });
     }

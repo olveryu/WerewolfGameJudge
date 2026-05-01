@@ -122,7 +122,7 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
   if (!text) return null;
   const match = /(\d+)\/(\d+)/.exec(text);
   return match
-    ? { current: Number.parseInt(match[1], 10), total: Number.parseInt(match[2], 10) }
+    ? { current: Number.parseInt(match[1]!, 10), total: Number.parseInt(match[2]!, 10) }
     : null;
 }
 
@@ -496,7 +496,7 @@ async function maybeTakeAllScreenshots(
 ): Promise<void> {
   if (iter % interval !== 0) return;
   for (let i = 0; i < pages.length; i++) {
-    const shot = await pages[i].screenshot();
+    const shot = await pages[i]!.screenshot();
     await testInfo.attach(`night-iter-${iter}-page-${i}.png`, {
       body: shot,
       contentType: 'image/png',
@@ -513,7 +513,7 @@ async function tryAdvanceAnyPage(
     try {
       // Guard: 10s max per page to prevent indefinite hanging
       const advanced = await Promise.race([
-        tryAdvanceNight(pages[i], turnLog, state, `page-${i}`),
+        tryAdvanceNight(pages[i]!, turnLog, state, `page-${i}`),
         new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10_000)),
       ]);
       if (advanced) {
@@ -540,7 +540,7 @@ async function assertProgress(
   const currentMsg = msgs.join('|') || '';
   updateProgressTracking(advanced, currentMsg, state);
   if (state.noProgressIterations >= NO_PROGRESS_THRESHOLD) {
-    const diag = await captureDiagnostics(pages[0], state);
+    const diag = await captureDiagnostics(pages[0]!, state);
     throw new Error(
       `FAIL-FAST: No progress for ${state.noProgressIterations} iters. ${JSON.stringify(diag)}`,
     );
@@ -562,7 +562,7 @@ export async function runNightFlowLoop(
 ): Promise<NightFlowResult> {
   const { maxIterations = 50, screenshotInterval = 5 } = opts;
   const turnLog: string[] = [];
-  const primaryPage = pages[0];
+  const primaryPage = pages[0]!;
   const state = createInitialState();
 
   for (let iter = 1; iter <= maxIterations; iter++) {

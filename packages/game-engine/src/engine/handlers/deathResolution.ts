@@ -116,7 +116,7 @@ export function buildRoleSeatMap(
   // bondedLinkSeats is only active when isBonded=true AND exactly 2 candidates found
   const bondedLinkSeats: RoleSeatMap['bondedLinkSeats'] =
     isBonded && bondedLinkCandidates.length === 2
-      ? [bondedLinkCandidates[0], bondedLinkCandidates[1]]
+      ? [bondedLinkCandidates[0]!, bondedLinkCandidates[1]!]
       : null;
 
   // checkDeathTargetSeats = intersection of vulnerable seats AND actually-checked seats

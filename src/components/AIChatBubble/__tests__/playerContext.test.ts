@@ -73,8 +73,8 @@ describe('buildPlayerContext', () => {
     expect(ctx.boardRoleDetails).toBeDefined();
     expect(ctx.boardRoleDetails).toHaveLength(3);
     // seer should resolve to a known displayName
-    expect(ctx.boardRoleDetails![0].name).toBeTruthy();
-    expect(ctx.boardRoleDetails![0].description).toBeTruthy();
+    expect(ctx.boardRoleDetails![0]!.name).toBeTruthy();
+    expect(ctx.boardRoleDetails![0]!.description).toBeTruthy();
   });
 
   it('does not include boardRoleDetails when templateRoles is empty', () => {

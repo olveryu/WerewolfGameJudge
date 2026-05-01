@@ -35,7 +35,7 @@ interface TendrilSeed {
 
 const Tendril = memo<{ seed: TendrilSeed; size: number; progress: { value: number } }>(
   ({ seed, size, progress }) => {
-    const [cr, cg, cb] = GREENS[seed.ci];
+    const [cr, cg, cb] = GREENS[seed.ci]!;
 
     const pathProps = useAnimatedProps(() => {
       'worklet';

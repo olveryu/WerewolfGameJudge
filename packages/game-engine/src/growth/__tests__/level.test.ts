@@ -19,25 +19,25 @@ describe('level', () => {
 
     it('is strictly increasing', () => {
       for (let i = 1; i < LEVEL_THRESHOLDS.length; i++) {
-        expect(LEVEL_THRESHOLDS[i]).toBeGreaterThan(LEVEL_THRESHOLDS[i - 1]);
+        expect(LEVEL_THRESHOLDS[i]!).toBeGreaterThan(LEVEL_THRESHOLDS[i - 1]!);
       }
     });
 
     it('Lv.1–20 each +60', () => {
       for (let i = 1; i <= 20; i++) {
-        expect(LEVEL_THRESHOLDS[i] - LEVEL_THRESHOLDS[i - 1]).toBe(60);
+        expect(LEVEL_THRESHOLDS[i]! - LEVEL_THRESHOLDS[i - 1]!).toBe(60);
       }
     });
 
     it('Lv.21–40 each +90', () => {
       for (let i = 21; i <= 40; i++) {
-        expect(LEVEL_THRESHOLDS[i] - LEVEL_THRESHOLDS[i - 1]).toBe(90);
+        expect(LEVEL_THRESHOLDS[i]! - LEVEL_THRESHOLDS[i - 1]!).toBe(90);
       }
     });
 
     it('Lv.41–51 each +120', () => {
       for (let i = 41; i <= 51; i++) {
-        expect(LEVEL_THRESHOLDS[i] - LEVEL_THRESHOLDS[i - 1]).toBe(120);
+        expect(LEVEL_THRESHOLDS[i]! - LEVEL_THRESHOLDS[i - 1]!).toBe(120);
       }
     });
   });
@@ -82,7 +82,7 @@ describe('level', () => {
     });
 
     it('returns 1 at max level', () => {
-      expect(getLevelProgress(LEVEL_THRESHOLDS[51])).toBe(1);
+      expect(getLevelProgress(LEVEL_THRESHOLDS[51]!)).toBe(1);
       expect(getLevelProgress(999999)).toBe(1);
     });
   });

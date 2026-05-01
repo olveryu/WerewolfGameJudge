@@ -67,7 +67,7 @@ describe('handleBoardNominate', () => {
     const ctx = createContext(state);
     const result = expectSuccess(handleBoardNominate(intent, ctx));
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('SET_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('SET_BOARD_NOMINATION');
   });
 
   it('succeeds in Seated status', () => {
@@ -103,7 +103,7 @@ describe('handleBoardNominate', () => {
     const state = createMinimalState();
     const ctx = createContext(state);
     const result = expectSuccess(handleBoardNominate(intent, ctx));
-    const action = result.actions[0];
+    const action = result.actions[0]!;
     expect(action.type).toBe('SET_BOARD_NOMINATION');
     if (action.type === 'SET_BOARD_NOMINATION') {
       expect(action.payload.nomination.userId).toBe('player-1');
@@ -129,8 +129,8 @@ describe('handleBoardNominate', () => {
     const result = expectSuccess(handleBoardNominate(intent, ctx));
     expect(result.reason).toBe('DEDUPLICATED');
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
-    if (result.actions[0].type === 'UPVOTE_BOARD_NOMINATION') {
+    expect(result.actions[0]!.type).toBe('UPVOTE_BOARD_NOMINATION');
+    if (result.actions[0]!.type === 'UPVOTE_BOARD_NOMINATION') {
       expect(result.actions[0].payload.targetUserId).toBe('player-2');
       expect(result.actions[0].payload.voterUid).toBe('player-1');
     }
@@ -150,7 +150,7 @@ describe('handleBoardNominate', () => {
     const ctx = createContext(state);
     const result = expectSuccess(handleBoardNominate(intent, ctx));
     expect(result.reason).toBe('DEDUPLICATED');
-    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('UPVOTE_BOARD_NOMINATION');
   });
 
   it('allows same user to overwrite their own identical nomination', () => {
@@ -167,7 +167,7 @@ describe('handleBoardNominate', () => {
     const ctx = createContext(state);
     const result = expectSuccess(handleBoardNominate(intent, ctx));
     expect(result.reason).toBeUndefined();
-    expect(result.actions[0].type).toBe('SET_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('SET_BOARD_NOMINATION');
   });
 
   it('does not deduplicate when roles differ', () => {
@@ -184,7 +184,7 @@ describe('handleBoardNominate', () => {
     const ctx = createContext(state);
     const result = expectSuccess(handleBoardNominate(intent, ctx));
     expect(result.reason).toBeUndefined();
-    expect(result.actions[0].type).toBe('SET_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('SET_BOARD_NOMINATION');
   });
 });
 
@@ -212,7 +212,7 @@ describe('handleBoardUpvote', () => {
     const ctx = createContext(stateWithNomination, { myUserId: 'player-2' });
     const result = expectSuccess(handleBoardUpvote(intent, ctx));
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('UPVOTE_BOARD_NOMINATION');
   });
 
   it('allows self-upvote', () => {
@@ -223,7 +223,7 @@ describe('handleBoardUpvote', () => {
     const ctx = createContext(stateWithNomination);
     const result = expectSuccess(handleBoardUpvote(intent, ctx));
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('UPVOTE_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('UPVOTE_BOARD_NOMINATION');
   });
 
   it('rejects when target nomination does not exist', () => {
@@ -273,7 +273,7 @@ describe('handleBoardWithdraw', () => {
     const ctx = createContext(stateWithNomination);
     const result = expectSuccess(handleBoardWithdraw(intent, ctx));
     expect(result.actions).toHaveLength(1);
-    expect(result.actions[0].type).toBe('WITHDRAW_BOARD_NOMINATION');
+    expect(result.actions[0]!.type).toBe('WITHDRAW_BOARD_NOMINATION');
   });
 
   it('rejects when nomination does not exist', () => {
@@ -326,8 +326,8 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
       type: 'UPVOTE_BOARD_NOMINATION',
       payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
-    expect(result.boardNominations!['player-1'].upvoters).toEqual(['player-3']);
-    expect(result.boardNominations!['player-2'].upvoters).toEqual([]);
+    expect(result.boardNominations!['player-1']!.upvoters).toEqual(['player-3']);
+    expect(result.boardNominations!['player-2']!.upvoters).toEqual([]);
   });
 
   it('toggles off on second click', () => {
@@ -339,7 +339,7 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
       type: 'UPVOTE_BOARD_NOMINATION',
       payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
-    expect(toggled.boardNominations!['player-1'].upvoters).toEqual([]);
+    expect(toggled.boardNominations!['player-1']!.upvoters).toEqual([]);
   });
 
   it('auto-switches vote to new nomination', () => {
@@ -347,13 +347,13 @@ describe('handleUpvoteBoardNomination (reducer)', () => {
       type: 'UPVOTE_BOARD_NOMINATION',
       payload: { targetUserId: 'player-1', voterUid: 'player-3' },
     });
-    expect(votedA.boardNominations!['player-1'].upvoters).toEqual(['player-3']);
+    expect(votedA.boardNominations!['player-1']!.upvoters).toEqual(['player-3']);
 
     const votedB = handleUpvoteBoardNomination(votedA, {
       type: 'UPVOTE_BOARD_NOMINATION',
       payload: { targetUserId: 'player-2', voterUid: 'player-3' },
     });
-    expect(votedB.boardNominations!['player-1'].upvoters).toEqual([]);
-    expect(votedB.boardNominations!['player-2'].upvoters).toEqual(['player-3']);
+    expect(votedB.boardNominations!['player-1']!.upvoters).toEqual([]);
+    expect(votedB.boardNominations!['player-2']!.upvoters).toEqual(['player-3']);
   });
 });

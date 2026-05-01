@@ -33,7 +33,7 @@ interface BranchSeed {
 
 const CoralBranch = memo<{ seed: BranchSeed; size: number; progress: { value: number } }>(
   ({ seed, size, progress }) => {
-    const [cr, cg, cb] = COLORS[seed.ci];
+    const [cr, cg, cb] = COLORS[seed.ci]!;
 
     const trunkProps = useAnimatedProps(() => {
       'worklet';

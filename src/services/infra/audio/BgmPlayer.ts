@@ -165,7 +165,7 @@ export class BgmPlayer {
   #playCurrentTrack(): void {
     if (!this.#isPlaying) return;
 
-    const asset = this.#playlist[this.#currentIndex];
+    const asset = this.#playlist[this.#currentIndex]!;
     const loop = !this.#isPlaylist; // single-track = loop; playlist = no loop
 
     try {

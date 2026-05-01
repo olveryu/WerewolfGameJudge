@@ -41,7 +41,7 @@ const ButterflyParticle = memo<{
   size: number;
   progress: { value: number };
 }>(({ seed, colorIndex, size, progress }) => {
-  const [cr, cg, cb] = COLORS[colorIndex];
+  const [cr, cg, cb] = COLORS[colorIndex]!;
 
   const wing1Props = useAnimatedProps(() => {
     'worklet';

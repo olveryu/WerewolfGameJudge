@@ -268,12 +268,12 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0]![1]?.body as string) as {
       messages: Array<{ role: string; content: string }>;
     };
     // system + last 6 messages = 7 total
     expect(body.messages).toHaveLength(7);
-    expect(body.messages[0].role).toBe('system');
+    expect(body.messages[0]!.role).toBe('system');
   });
 
   it('includes boardRoleDetails in context prompt', async () => {
@@ -313,10 +313,10 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0]![1]?.body as string) as {
       messages: Array<{ role: string; content: string }>;
     };
-    const systemMsg = body.messages[0].content;
+    const systemMsg = body.messages[0]!.content;
     expect(systemMsg).toContain('角色配置');
     expect(systemMsg).toContain('狼人');
     expect(systemMsg).toContain('预言家');
@@ -348,10 +348,10 @@ describe('AIChatService - streamChatMessage', () => {
       // consume stream
     }
 
-    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0][1]?.body as string) as {
+    const body = JSON.parse(jest.mocked(global.fetch).mock.calls[0]![1]?.body as string) as {
       messages: Array<{ role: string; content: string }>;
     };
-    expect(body.messages[0].content).toContain('不在游戏房间中');
+    expect(body.messages[0]!.content).toContain('不在游戏房间中');
   });
 
   it('yields done when stream ends without [DONE] marker', async () => {

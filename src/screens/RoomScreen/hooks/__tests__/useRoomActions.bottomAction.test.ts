@@ -61,8 +61,8 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     // UI no longer forces skip - shows normal schema button
     const bottomAction = result.current.getBottomAction();
     expect(bottomAction.buttons).toHaveLength(1);
-    expect(bottomAction.buttons[0].key).toBe('skip');
-    expect(bottomAction.buttons[0].label).toBe('不查验');
+    expect(bottomAction.buttons[0]!.key).toBe('skip');
+    expect(bottomAction.buttons[0]!.label).toBe('不查验');
   });
 
   it('shows wolf empty-vote label from schema.ui.emptyVoteText', () => {
@@ -169,9 +169,9 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
     const bottomAction = result.current.getBottomAction();
     // UI no longer forces skip - normal wolfVote button
     expect(bottomAction.buttons).toHaveLength(1);
-    expect(bottomAction.buttons[0].intent.type).toBe('wolfVote');
-    expect(bottomAction.buttons[0].intent.targetSeat).toBe(-1);
-    expect(bottomAction.buttons[0].label).toBe('放弃袭击');
+    expect(bottomAction.buttons[0]!.intent.type).toBe('wolfVote');
+    expect(bottomAction.buttons[0]!.intent.targetSeat).toBe(-1);
+    expect(bottomAction.buttons[0]!.label).toBe('放弃袭击');
   });
 });
 

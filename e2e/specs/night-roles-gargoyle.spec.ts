@@ -84,7 +84,7 @@ async function waitForConvertRevealStep(
     for (const page of pages) {
       await tryClickAdvanceButton(page);
     }
-    await pages[0].waitForTimeout(300);
+    await pages[0]!.waitForTimeout(300);
   }
   return false;
 }
@@ -119,21 +119,21 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
         );
         expect(villagerEntries.length).toBe(2);
 
-        const killTargetSeat = villagerEntries[0][1].seat;
-        const convertTargetSeat = villagerEntries[1][1].seat;
+        const killTargetSeat = villagerEntries[0]![1].seat;
+        const convertTargetSeat = villagerEntries[1]![1].seat;
 
         // === Wolf (gargoyle) kills villager ===
         await test.step('gargoyle kills villager via wolf vote', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx], ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['袭击', '选择'], pages, 120);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [gargoyleIdx], killTargetSeat);
         });
 
         // === Gargoyle converts adjacent non-wolf villager ===
         await test.step('gargoyle converts villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx], ['转化'], pages, 120);
+          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['转化'], pages, 120);
           expect(gargoyleTurn, 'Gargoyle convert turn should be detected').toBe(true);
-          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx], convertTargetSeat);
+          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
           expect(confirmed, 'Gargoyle should have confirmed convert').toBe(true);
         });
 
@@ -146,7 +146,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveConvertRevealAck(pages[i]);
+            const msg = await driveConvertRevealAck(pages[i]!);
 
             if (role.seat === convertTargetSeat) {
               // Converted player sees conversion message
@@ -163,8 +163,8 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
           const ended = await waitForNightEnd(pages, 120);
           expect(ended, 'Night should have ended').toBe(true);
 
-          await viewLastNightInfo(pages[0]);
-          const hasDeath = await isTextVisible(pages[0], '死亡');
+          await viewLastNightInfo(pages[0]!);
+          const hasDeath = await isTextVisible(pages[0]!, '死亡');
           expect(hasDeath, 'Killed villager should have died').toBe(true);
         });
       },
@@ -198,7 +198,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
         );
         expect(villagerEntries.length).toBe(2);
 
-        const killTargetSeat = villagerEntries[0][1].seat;
+        const killTargetSeat = villagerEntries[0]![1].seat;
         // Pick the other villager for conversion — must be adjacent to wolf faction
         // With circular seating, in a 4-player game all seats are within 2 hops,
         // but AdjacentToWolfFaction requires direct adjacency. Pick a villager
@@ -221,7 +221,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Wolves kill villager ===
         await test.step('wolves kill villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           // Both wolf-faction players participate in wolf meeting
           await driveWolfVote(pages, [wolfIdx, gargoyleIdx], killTargetSeat);
@@ -229,9 +229,9 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
         // === Gargoyle converts ===
         await test.step('gargoyle converts adjacent villager', async () => {
-          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx], ['转化'], pages, 120);
+          const gargoyleTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['转化'], pages, 120);
           expect(gargoyleTurn).toBe(true);
-          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx], convertTargetSeat);
+          const confirmed = await clickSeatAndConfirm(pages[gargoyleIdx]!, convertTargetSeat);
           expect(confirmed).toBe(true);
         });
 
@@ -242,7 +242,7 @@ test.describe('Night Roles — Awakened Gargoyle (觉醒石像鬼)', () => {
 
           const messages: string[] = [];
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveConvertRevealAck(pages[i]);
+            const msg = await driveConvertRevealAck(pages[i]!);
             messages.push(msg);
 
             const role = roleMap.get(i);

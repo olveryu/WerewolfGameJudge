@@ -33,7 +33,7 @@ describe('shuffleArray', () => {
     // Fixed sequence: 0.1, 0.9, 0.5, 0.3, 0.7
     const values = [0.1, 0.9, 0.5, 0.3, 0.7];
     let idx = 0;
-    const fixedRng: Rng = () => values[idx++ % values.length];
+    const fixedRng: Rng = () => values[idx++ % values.length]!;
 
     const result1 = shuffleArray([1, 2, 3, 4, 5], fixedRng);
     idx = 0;

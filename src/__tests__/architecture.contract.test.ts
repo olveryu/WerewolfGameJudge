@@ -120,7 +120,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
       const symbolMatch = line.match(/import\s+\{([^}]+)\}/);
       if (!symbolMatch) continue;
 
-      const symbols = symbolMatch[1]
+      const symbols = symbolMatch[1]!
         .split(',')
         .map((s: string) => s.trim().replace(/\s+as\s+\w+/, ''));
       const disallowed = symbols.filter(

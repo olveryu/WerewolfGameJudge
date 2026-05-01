@@ -27,7 +27,7 @@ describe('buildNightPlan', () => {
     it('should build plan with single role', () => {
       const plan = buildNightPlan(['seer']);
       expect(plan.steps).toHaveLength(1);
-      expect(plan.steps[0].roleId).toBe('seer');
+      expect(plan.steps[0]!.roleId).toBe('seer');
     });
   });
 
@@ -40,7 +40,7 @@ describe('buildNightPlan', () => {
 
     it('should handle magician before seer when both present', () => {
       const plan = buildNightPlan(['seer', 'magician']);
-      expect(plan.steps[0].roleId).toBe('magician');
+      expect(plan.steps[0]!.roleId).toBe('magician');
     });
 
     it('should handle slacker after magician when both present', () => {
@@ -124,7 +124,7 @@ describe('buildNightPlan', () => {
 
     it('seer step should have correct properties', () => {
       const plan = buildNightPlan(['seer']);
-      const seerStep = plan.steps[0];
+      const seerStep = plan.steps[0]!;
       expect(seerStep.roleId).toBe('seer');
       expect(seerStep.stepId).toBe('seerCheck');
       expect(seerStep.order).toBe(0);

@@ -38,7 +38,7 @@ function hasLegacyImport(filePath: string): string[] {
   const matches: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+    const line = lines[i]!;
     if (LEGACY_IMPORT_PATTERNS.some((p) => p.test(line))) {
       matches.push(`L${i + 1}: ${line.trim()}`);
     }

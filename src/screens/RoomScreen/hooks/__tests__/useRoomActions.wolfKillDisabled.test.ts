@@ -70,8 +70,8 @@ describe('useRoomActions wolf vote (server-authoritative)', () => {
 
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
-      expect(bottomAction.buttons[0].key).toBe('wolfEmpty');
-      expect(bottomAction.buttons[0].label).toBe('放弃袭击');
+      expect(bottomAction.buttons[0]!.key).toBe('wolfEmpty');
+      expect(bottomAction.buttons[0]!.label).toBe('放弃袭击');
     });
   });
 

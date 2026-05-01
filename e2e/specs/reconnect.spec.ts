@@ -62,8 +62,8 @@ test.describe('Network reconnect during night', () => {
       // If guard is host (idx 0), the test still works but we disconnect the villager instead
       // to test reconnect. The key is disconnecting a non-host player.
       const disconnectIdx = guardIdx !== 0 ? guardIdx : villagerIdx !== -1 ? villagerIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx];
-      const disconnectPage = pages[disconnectIdx];
+      const disconnectContext = fixture.contexts[disconnectIdx]!;
+      const disconnectPage = pages[disconnectIdx]!;
 
       await test.step('screenshot: pre-disconnect state', async () => {
         await disconnectPage.screenshot().then((s) =>
@@ -153,17 +153,17 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after reconnect').toBe(true);
 
-        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
       });
 
       await test.step('wolf votes', async () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
@@ -238,7 +238,7 @@ test.describe('Network reconnect during night', () => {
       expect(wolfIdx).not.toBe(-1);
 
       // Host is always page index 0
-      const hostContext = fixture.contexts[0];
+      const hostContext = fixture.contexts[0]!;
       const hostPage = pages[0];
 
       await test.step('screenshot: pre-disconnect state', async () => {
@@ -320,17 +320,17 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after host reconnect').toBe(true);
 
-        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
       });
 
       await test.step('wolf votes', async () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
@@ -403,8 +403,8 @@ test.describe('Network reconnect during night', () => {
       // role turn, minimizing interference with the night flow.
       const disconnectIdx =
         villagerIdx !== -1 && villagerIdx !== 0 ? villagerIdx : guardIdx !== 0 ? guardIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx];
-      const disconnectPage = pages[disconnectIdx];
+      const disconnectContext = fixture.contexts[disconnectIdx]!;
+      const disconnectPage = pages[disconnectIdx]!;
 
       await test.step('screenshot: pre-disconnect state', async () => {
         await disconnectPage.screenshot().then((s) =>
@@ -478,17 +478,17 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after extended reconnect').toBe(true);
 
-        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
       });
 
       await test.step('wolf votes', async () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });
@@ -562,8 +562,8 @@ test.describe('Network reconnect during night', () => {
 
       // Disconnect a non-host player
       const disconnectIdx = guardIdx !== 0 ? guardIdx : villagerIdx !== -1 ? villagerIdx : 1;
-      const disconnectContext = fixture.contexts[disconnectIdx];
-      const disconnectPage = pages[disconnectIdx];
+      const disconnectContext = fixture.contexts[disconnectIdx]!;
+      const disconnectPage = pages[disconnectIdx]!;
 
       await test.step('screenshot: pre-flap state', async () => {
         await disconnectPage.screenshot().then((s) =>
@@ -620,17 +620,17 @@ test.describe('Network reconnect during night', () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(wolfIdx)!.seat;
 
-        const guardTurn = await waitForRoleTurn(pages[guardIdx], ['守护', '选择'], pages, 200);
+        const guardTurn = await waitForRoleTurn(pages[guardIdx]!, ['守护', '选择'], pages, 200);
         expect(guardTurn, 'Guard turn should be detected after flap recovery').toBe(true);
 
-        await clickSeatAndConfirm(pages[guardIdx], targetSeat);
+        await clickSeatAndConfirm(pages[guardIdx]!, targetSeat);
       });
 
       await test.step('wolf votes', async () => {
         const targetSeat =
           villagerIdx !== -1 ? roleMap.get(villagerIdx)!.seat : roleMap.get(guardIdx)!.seat;
 
-        const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 200);
+        const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 200);
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
       });

@@ -137,7 +137,7 @@ async function waitForCupidGroupConfirmStep(
         }
       }
     }
-    await pages[0].waitForTimeout(300);
+    await pages[0]!.waitForTimeout(300);
   }
   return false;
 }
@@ -178,22 +178,20 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
 
         // === Step 1: Thief's turn — pick a bottom card ===
         await test.step('thief picks a bottom card', async () => {
-          const thiefTurn = await waitForRoleTurn(pages[thiefIdx], ['选择', '底牌'], pages, 120);
+          const thiefTurn = await waitForRoleTurn(pages[thiefIdx]!, ['选择', '底牌'], pages, 120);
           expect(thiefTurn, 'Thief turn should be detected').toBe(true);
 
-          await dismissAlert(pages[thiefIdx]);
+          await dismissAlert(pages[thiefIdx]!);
 
           // Click "选择底牌" in bottom action panel
-          const chooseBtn = pages[thiefIdx]
-            .locator('[data-testid="bottom-action-panel"]')
+          const chooseBtn = pages[thiefIdx]!.locator('[data-testid="bottom-action-panel"]')
             .getByText('选择底牌', { exact: true })
             .first();
           await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
           await chooseBtn.click({ force: true });
 
           // Wait for the bottom card modal (subtitle contains "底牌" for thief)
-          await pages[thiefIdx]
-            .getByText(/底牌[含均]/)
+          await pages[thiefIdx]!.getByText(/底牌[含均]/)
             .first()
             .waitFor({ state: 'visible', timeout: 5000 });
 
@@ -202,10 +200,10 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           // Strategy: click each candidate, wait for the confirm alert; if it
           // doesn't appear the card was disabled, so try the next one.
           const CANDIDATE_NAMES = ['平民', '预言家', '狼人'];
-          const alertModal = pages[thiefIdx].locator('[data-testid="alert-modal"]');
+          const alertModal = pages[thiefIdx]!.locator('[data-testid="alert-modal"]');
           let picked = false;
           for (const name of CANDIDATE_NAMES) {
-            const card = pages[thiefIdx].getByText(name, { exact: true }).first();
+            const card = pages[thiefIdx]!.getByText(name, { exact: true }).first();
             if (!(await card.isVisible().catch(() => false))) continue;
 
             await card.click({ force: true });
@@ -229,15 +227,15 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
 
         // === Step 2: Cupid's turn — link 2 lovers ===
         await test.step('cupid links two lovers', async () => {
-          const cupidTurn = await waitForRoleTurn(pages[cupidIdx], ['选择', '情侣'], pages, 120);
+          const cupidTurn = await waitForRoleTurn(pages[cupidIdx]!, ['选择', '情侣'], pages, 120);
           expect(cupidTurn, 'Cupid turn should be detected').toBe(true);
 
           // Pick two non-cupid players as lovers
           const nonCupidEntries = [...roleMap.entries()].filter(([idx]) => idx !== cupidIdx);
-          const lover1Seat = nonCupidEntries[0][1].seat;
-          const lover2Seat = nonCupidEntries[1][1].seat;
+          const lover1Seat = nonCupidEntries[0]![1].seat;
+          const lover2Seat = nonCupidEntries[1]![1].seat;
 
-          const linked = await driveCupidChooseLovers(pages[cupidIdx], [lover1Seat, lover2Seat]);
+          const linked = await driveCupidChooseLovers(pages[cupidIdx]!, [lover1Seat, lover2Seat]);
           expect(linked, 'Cupid should have confirmed lover linking').toBe(true);
         });
 
@@ -247,15 +245,15 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           expect(groupReady, 'CupidLoversReveal step should become active').toBe(true);
 
           const nonCupidEntries = [...roleMap.entries()].filter(([idx]) => idx !== cupidIdx);
-          const lover1Seat = nonCupidEntries[0][1].seat;
-          const lover2Seat = nonCupidEntries[1][1].seat;
+          const lover1Seat = nonCupidEntries[0]![1].seat;
+          const lover2Seat = nonCupidEntries[1]![1].seat;
           const loverSeats = [lover1Seat, lover2Seat];
 
           for (let i = 0; i < pages.length; i++) {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveCupidGroupConfirmAck(pages[i]);
+            const msg = await driveCupidGroupConfirmAck(pages[i]!);
 
             if (loverSeats.includes(role.seat)) {
               expect(msg).toContain('情侣');
@@ -268,7 +266,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
         // === Step 4: Wolf's turn — kill a lover to trigger 殉情 ===
         await test.step('wolf kills a lover', async () => {
           const wolfTurn = await waitForRoleTurn(
-            pages[wolfIndices[0]],
+            pages[wolfIndices[0]!]!,
             ['袭击', '选择'],
             pages,
             120,
@@ -283,7 +281,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           const killCandidates = [...roleMap.entries()].filter(
             ([idx]) => idx !== cupidIdx && !wolfIdxSet.has(idx),
           );
-          const killTarget = killCandidates[0][1].seat;
+          const killTarget = killCandidates[0]![1].seat;
 
           await driveWolfVote(pages, effectiveWolfIndices, killTarget);
         });
@@ -292,16 +290,16 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
         if (seerIdx !== -1) {
           const expectedFaction = thiefPickedWolf ? '狼人' : '好人';
           await test.step(`seer checks thief → ${expectedFaction}`, async () => {
-            const seerTurn = await waitForRoleTurn(pages[seerIdx], ['查验', '选择'], pages, 120);
+            const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
             expect(seerTurn, 'Seer turn should be detected').toBe(true);
 
             const thiefSeat = roleMap.get(thiefIdx)!.seat;
-            await clickSeatAndConfirm(pages[seerIdx], thiefSeat);
+            await clickSeatAndConfirm(pages[seerIdx]!, thiefSeat);
 
-            const revealText = await readAlertText(pages[seerIdx]);
+            const revealText = await readAlertText(pages[seerIdx]!);
             expect(revealText).toContain(formatSeat(thiefSeat));
             expect(revealText).toContain(expectedFaction);
-            await dismissAlert(pages[seerIdx]);
+            await dismissAlert(pages[seerIdx]!);
           });
         }
 
@@ -310,8 +308,8 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           const ended = await waitForNightEnd(pages, 120);
           expect(ended, 'Night should complete').toBe(true);
 
-          await viewLastNightInfo(pages[0]);
-          const hasDeath = await isTextVisible(pages[0], '死亡');
+          await viewLastNightInfo(pages[0]!);
+          const hasDeath = await isTextVisible(pages[0]!, '死亡');
           expect(hasDeath, 'Someone should have died').toBe(true);
         });
       },

@@ -130,7 +130,7 @@ function findViolations(content: string): Violation[] {
   const lines = content.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
+    let line = lines[i]!;
 
     // Skip pure comment lines
     const trimmed = line.trimStart();
@@ -149,7 +149,7 @@ function findViolations(content: string): Violation[] {
         violations.push({
           line: i + 1,
           name: pattern.name,
-          text: lines[i].trim(),
+          text: lines[i]!.trim(),
         });
         // One violation per line is enough to flag it
         break;

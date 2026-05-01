@@ -143,7 +143,7 @@ async function waitForGroupConfirmStep(
         }
       }
     }
-    await pages[0].waitForTimeout(300);
+    await pages[0]!.waitForTimeout(300);
   }
   return false;
 }
@@ -179,7 +179,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
           expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
@@ -187,9 +187,9 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
         // === Piper hypnotizes wolf ===
         const wolfSeat = roleMap.get(wolfIdx)!.seat;
         await test.step('piper hypnotizes wolf', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx], ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
           expect(piperTurn, 'Piper turn should be detected').toBe(true);
-          const hypnotized = await drivePiperHypnotize(pages[piperIdx], [wolfSeat]);
+          const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [wolfSeat]);
           expect(hypnotized, 'Piper should have confirmed hypnotize').toBe(true);
         });
 
@@ -200,7 +200,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
           // Each player acks — check personal messages
           for (let i = 0; i < pages.length; i++) {
-            const page = pages[i];
+            const page = pages[i]!;
             const role = roleMap.get(i);
             if (!role) continue;
 
@@ -222,8 +222,8 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
           const ended = await waitForNightEnd(pages, 120);
           expect(ended, 'Night should have ended').toBe(true);
 
-          await viewLastNightInfo(pages[0]);
-          const hasDeath = await isTextVisible(pages[0], '死亡');
+          await viewLastNightInfo(pages[0]!);
+          const hasDeath = await isTextVisible(pages[0]!, '死亡');
           expect(hasDeath, 'Villager should have died').toBe(true);
         });
       },
@@ -253,8 +253,8 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // Find two non-piper targets to hypnotize
         const nonPiperEntries = [...roleMap.entries()].filter(([idx]) => idx !== piperIdx);
-        const target1Seat = nonPiperEntries[0][1].seat;
-        const target2Seat = nonPiperEntries[1][1].seat;
+        const target1Seat = nonPiperEntries[0]![1].seat;
+        const target2Seat = nonPiperEntries[1]![1].seat;
 
         // Pick a villager for wolf to kill
         const villagerEntry = [...roleMap.entries()].find(
@@ -264,16 +264,19 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], killTarget);
         });
 
         // === Piper hypnotizes 2 targets ===
         await test.step('piper hypnotizes 2 targets', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx], ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
           expect(piperTurn).toBe(true);
-          const hypnotized = await drivePiperHypnotize(pages[piperIdx], [target1Seat, target2Seat]);
+          const hypnotized = await drivePiperHypnotize(pages[piperIdx]!, [
+            target1Seat,
+            target2Seat,
+          ]);
           expect(hypnotized, 'Piper should have confirmed hypnotize 2 targets').toBe(true);
         });
 
@@ -288,7 +291,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
             const role = roleMap.get(i);
             if (!role) continue;
 
-            const msg = await driveGroupConfirmAck(pages[i]);
+            const msg = await driveGroupConfirmAck(pages[i]!);
 
             if (hypnotizedSeats.includes(role.seat)) {
               // Hypnotized player sees seat list
@@ -337,25 +340,25 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
         // === Wolf kills villager ===
         await test.step('wolf kills villager', async () => {
-          const wolfTurn = await waitForRoleTurn(pages[wolfIdx], ['袭击', '选择'], pages, 120);
+          const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
           expect(wolfTurn).toBe(true);
           await driveWolfVote(pages, [wolfIdx], villagerSeat);
         });
 
         // === Piper skips ===
         await test.step('piper skips with 不用技能', async () => {
-          const piperTurn = await waitForRoleTurn(pages[piperIdx], ['催眠', '选择'], pages, 120);
+          const piperTurn = await waitForRoleTurn(pages[piperIdx]!, ['催眠', '选择'], pages, 120);
           expect(piperTurn).toBe(true);
           // Dismiss action prompt alert first
-          await dismissAlert(pages[piperIdx]);
+          await dismissAlert(pages[piperIdx]!);
           // Click "不用技能" skip button
-          const skipped = await clickBottomButton(pages[piperIdx], '不用技能');
+          const skipped = await clickBottomButton(pages[piperIdx]!, '不用技能');
           expect(skipped, 'Should find 不用技能 button').toBe(true);
 
           // Confirm skip alert ("确认跳过" dialog with "确定" button)
-          const alertModal = pages[piperIdx].locator('[data-testid="alert-modal"]');
+          const alertModal = pages[piperIdx]!.locator('[data-testid="alert-modal"]');
           await alertModal.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-          await dismissAlert(pages[piperIdx]);
+          await dismissAlert(pages[piperIdx]!);
         });
 
         // === GroupConfirm: even when skipped, all ack (0 hypnotized) ===
@@ -364,7 +367,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
           expect(groupReady).toBe(true);
 
           for (let i = 0; i < pages.length; i++) {
-            const msg = await driveGroupConfirmAck(pages[i]);
+            const msg = await driveGroupConfirmAck(pages[i]!);
             // Everyone should see "未被催眠" since piper skipped
             expect(msg).toContain('未被催眠');
           }
@@ -375,8 +378,8 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
           const ended = await waitForNightEnd(pages, 120);
           expect(ended).toBe(true);
 
-          await viewLastNightInfo(pages[0]);
-          const hasDeath = await isTextVisible(pages[0], '死亡');
+          await viewLastNightInfo(pages[0]!);
+          const hasDeath = await isTextVisible(pages[0]!, '死亡');
           expect(hasDeath, 'Villager should have died').toBe(true);
         });
       },

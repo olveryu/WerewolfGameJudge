@@ -44,7 +44,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
       for (let s = 0; s <= SEGS; s++) {
         const frac = s / SEGS;
         const r = innerR + frac * (outerR - innerR);
-        const lateralOff = seed.offsets[s] * size;
+        const lateralOff = seed.offsets[s]! * size;
         pts.push({
           x: cx + cosA * r + perpX * lateralOff,
           y: cy + sinA * r + perpY * lateralOff,
@@ -63,7 +63,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
 
     const buildD = (pts: { x: number; y: number }[]) => {
       'worklet';
-      return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y} L ${pts[2].x} ${pts[2].y} L ${pts[3].x} ${pts[3].y} L ${pts[4].x} ${pts[4].y}`;
+      return `M ${pts[0]!.x} ${pts[0]!.y} L ${pts[1]!.x} ${pts[1]!.y} L ${pts[2]!.x} ${pts[2]!.y} L ${pts[3]!.x} ${pts[3]!.y} L ${pts[4]!.x} ${pts[4]!.y}`;
     };
 
     const layer1Props = useAnimatedProps(() => {
@@ -103,7 +103,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
       'worklet';
       const intensity = getIntensity(progress.value);
       const { pts } = computePts(intensity);
-      const tip = pts[SEGS];
+      const tip = pts[SEGS]!;
       return {
         cx: tip.x,
         cy: tip.y,

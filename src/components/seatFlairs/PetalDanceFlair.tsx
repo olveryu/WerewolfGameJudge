@@ -41,7 +41,7 @@ interface PetalSeed {
 
 const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } }>(
   ({ seed, size, progress }) => {
-    const [cr, cg, cb] = PINK_SHADES[seed.ci];
+    const [cr, cg, cb] = PINK_SHADES[seed.ci]!;
 
     const props = useAnimatedProps(() => {
       'worklet';

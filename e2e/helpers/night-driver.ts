@@ -180,7 +180,7 @@ async function pollUntil(
       await tryClickAdvanceButton(page);
     }
     // Poll cadence for retry loop
-    await pages[0].waitForTimeout(300);
+    await pages[0]!.waitForTimeout(300);
   }
 }
 
@@ -219,7 +219,7 @@ export async function waitForRoleTurn(
       if (keywords.some((kw) => alertText.includes(kw))) return true;
     }
 
-    if (await isNightEnded(allPages[0])) return false;
+    if (await isNightEnded(allPages[0]!)) return false;
 
     // Ensure all pages are connected before advancing
     await ensureConnected(allPages);
@@ -232,7 +232,7 @@ export async function waitForRoleTurn(
       await tryClickAdvanceButton(p, /* includeSkip */ true);
     }
     // Poll cadence for retry loop
-    await allPages[0].waitForTimeout(300);
+    await allPages[0]!.waitForTimeout(300);
   }
   return false;
 }
@@ -249,7 +249,7 @@ export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<bool
     },
     maxIter,
   );
-  return isNightEnded(pages[0]);
+  return isNightEnded(pages[0]!);
 }
 
 /**
@@ -307,7 +307,7 @@ export async function driveWolfVote(
   targetSeat: number,
 ): Promise<void> {
   for (const wIdx of wolfIndices) {
-    const wPage = pages[wIdx];
+    const wPage = pages[wIdx]!;
     await wPage
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 })
@@ -322,7 +322,7 @@ export async function driveWolfVote(
  */
 export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): Promise<void> {
   for (const wIdx of wolfIndices) {
-    const wPage = pages[wIdx];
+    const wPage = pages[wIdx]!;
     // Dismiss any existing alert (e.g. "夜间行动") before interacting
     await dismissAlert(wPage);
 

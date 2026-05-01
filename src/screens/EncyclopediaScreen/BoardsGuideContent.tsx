@@ -91,7 +91,7 @@ function matchesSearchQuery(template: PresetTemplate, query: string): boolean {
 
 function matchesTagFilter(template: PresetTemplate, tagFilter: string | null): boolean {
   if (tagFilter === null) return true;
-  return BOARD_STRATEGY[template.name].tags.includes(tagFilter);
+  return BOARD_STRATEGY[template.name]!.tags.includes(tagFilter);
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────

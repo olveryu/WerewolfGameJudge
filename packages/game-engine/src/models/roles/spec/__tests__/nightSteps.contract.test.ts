@@ -66,7 +66,7 @@ describe('NIGHT_STEPS contract', () => {
 
       for (const [roleId, steps] of stepsByRole) {
         // First step must have audioKey === roleId
-        expect(steps[0].audioKey).toBe(roleId);
+        expect(steps[0]!.audioKey).toBe(roleId);
         // Subsequent steps may have different audioKey (e.g. piperHypnotizedReveal)
       }
     });
@@ -132,13 +132,13 @@ describe('NIGHT_STEPS contract', () => {
     it('getStepsByRole should return steps for a role', () => {
       const wolfSteps = getStepsByRole('wolf');
       expect(wolfSteps).toHaveLength(1);
-      expect(wolfSteps[0].id).toBe('wolfKill');
+      expect(wolfSteps[0]!.id).toBe('wolfKill');
     });
 
     it('getStepsByRoleStrict should return steps for a role', () => {
       const wolfSteps = getStepsByRoleStrict('wolf');
       expect(wolfSteps).toHaveLength(1);
-      expect(wolfSteps[0].id).toBe('wolfKill');
+      expect(wolfSteps[0]!.id).toBe('wolfKill');
     });
 
     it('getAllStepIds should return all stepIds in order', () => {

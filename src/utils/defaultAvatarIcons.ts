@@ -60,6 +60,6 @@ export function getAvatarIcon(userId: string): AvatarIconInfo {
   const colorIndex = fnv1aHash(userId) % AVATAR_COLORS.length;
   return {
     image: WOLF_PAW_IMAGE,
-    color: AVATAR_COLORS[colorIndex],
+    color: AVATAR_COLORS[colorIndex]!,
   };
 }
