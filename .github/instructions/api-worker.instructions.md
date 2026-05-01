@@ -24,7 +24,10 @@ Cloudflare Worker（Durable Objects + D1 + R2）。Game API + Auth API。
 ## Zod Schema 文件
 
 - Schema 定义在 `src/schemas/`，按路由分模块（`auth.ts`、`game.ts`、`night.ts`、`room.ts`、`gemini.ts`、`shareImage.ts`）。
-- 项目使用 **zod 4**。用顶级格式校验器（`z.email()`、`z.url()` 等），不用已废弃的方法链（`z.string().email()`）。
+- 项目使用 **zod 4**（`^4.3`）。关键变化：
+  - 顶级格式校验器（`z.email()`、`z.url()` 等），不用已废弃的方法链（`z.string().email()`）。
+  - `z.input<typeof schema>` / `z.output<typeof schema>` 替代旧版 `z.infer<>`（`z.infer` 仍可用但 `z.output` 更精确）。
+  - Zod 4 实现 Standard Schema 接口，Hono 内置 `validator('json', zodSchema)` 可直接使用，但本项目使用自定义 `jsonBody(schema)` 中间件——因为需要统一错误响应格式（`{ success: false, reason: 'VALIDATION_ERROR', detail }`）和结构化日志，内置 validator 的错误格式不可控。
 - seat 数字用 `z.coerce.number().int().min(0)`。discriminated union 按 `action` / `type` 字段区分。
 - Schema 新增/修改时，必须同步更新对应 handler 的 `jsonBody` 调用和解构。
 

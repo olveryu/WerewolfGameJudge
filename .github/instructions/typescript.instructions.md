@@ -1,7 +1,7 @@
 ---
 name: 'TypeScript & Hooks'
 description: '类型安全、React Hooks 卫生、未使用变量处理规范'
-applyTo: 'src/**/*.ts,src/**/*.tsx'
+applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
 ---
 
 # TypeScript & React Hooks 规范
@@ -34,6 +34,15 @@ applyTo: 'src/**/*.ts,src/**/*.tsx'
 - 故意 fire-and-forget 的 Promise 用 `void` 前缀标记：`void someAsyncFn()`。
 - JSX `onPress` / `onChange` 等事件回调期望 `() => void`，async handler 需包 void wrapper：`onPress={() => void handlePress()}`。
 - 禁止 `require-await`（已 off；DO 接口等大量 false positive）。
+
+## React Compiler 状态
+
+- `babel-plugin-react-compiler@^1.0.0` 已安装但 **未在 `babel.config.js` 启用**。当前仍依赖手动 `useMemo` / `useCallback`。
+- `eslint-plugin-react-hooks@^7.0.1` 新增三个 Compiler 配套规则，均已显式 `off`：
+  - `react-hooks/static-components` — Compiler 自动处理，手动模式不需要。
+  - `react-hooks/set-state-in-effect` — 有效但误报多，暂关。
+  - `react-hooks/preserve-manual-memoization` — Compiler 未启用时无意义。
+- 启用 Compiler 后需重新评估 `useMemo` / `useCallback` 手动规则和上述三个 lint 规则。
 
 ## React Hooks 卫生
 

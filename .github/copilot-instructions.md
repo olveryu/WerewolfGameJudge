@@ -6,7 +6,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 ## Tech Stack
 
-- React Native 0.83 + React 19 + Expo SDK 55 | TypeScript ~5.9
+- React Native 0.83 + React 19 + Expo SDK 55 | TypeScript ~5.9（`strict: true` + `noUncheckedIndexedAccess: true`）
 - **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
 - `@werewolf/game-engine` — 纯游戏逻辑共享包，客户端与服务端共用
 - `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + DO SQLite + D1 + R2）
@@ -20,7 +20,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - `pnpm run e2e` — E2E 标准入口（`--reporter=list`）
 - `pnpm run e2e:core` / `pnpm run e2e:remote` — 调试入口
 - `pnpm exec tsc --noEmit` — 类型检查
-- `pnpm run quality` — typecheck + lint + format + test 一次全跑
+- `pnpm run quality` — typecheck + knip + lint + format + test 一次全跑
 - `npx knip --no-exit-code` — 死代码检测。注意甄别误报：`metro.config.js`、`react-dom` 等会被误报。
 - `pnpm run release` — bump 版本号 → CHANGELOG → commit → tag → push
 - `pnpm -F @werewolf/api-worker db:seed:local` — 本地 D1 seed：创建 dev 用户（`dev@test.local` / `dev123`）+ 全物品解锁
