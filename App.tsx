@@ -251,21 +251,24 @@ function AppContent() {
   }, []);
 
   // ── Boot progress & phase ─────────────────────────────────────────────
-  // useBootProgress tracks real init steps (fonts + auth) and consolidates
-  // the font loading that was previously a standalone fire-and-forget effect.
+  // useBootProgress tracks real init steps (fonts + auth + avatar prefetch)
+  // and consolidates the font loading that was previously a standalone effect.
   const { wechatLoginFailed } = useAuthContext();
   const bootProgress = useBootProgress();
   const [bootPhase, setBootPhase] = useState<BootPhase>('splash');
 
-  // Phase transitions
+  // Phase transitions: isReady → bootPhase='ready' (renders AppNavigator behind HTML splash).
+  // Splash dismiss is handled separately by handleNavReady below.
   useEffect(() => {
     if (bootPhase === 'ready') return;
 
     if (bootProgress.isReady) {
-      // Auth + fonts done → go directly to ready (fast or slow path)
-      void SplashScreen.hideAsync();
-      dismissWebSplash();
-      signalAppReady();
+      // Auth + fonts + avatar done → render app content.
+      // HTML splash (web) or native splash stays visible until handleNavReady.
+      if (Platform.OS !== 'web') {
+        // Native: dismiss static splash — no HTML overlay to coordinate
+        void SplashScreen.hideAsync();
+      }
       setBootPhase('ready');
       return;
     }
@@ -286,6 +289,16 @@ function AppContent() {
     // bootPhase === 'loading': wait for isReady (handled above)
     return undefined;
   }, [bootPhase, bootProgress.isReady]);
+
+  // Web: NavigationContainer onReady → first screen has laid out → dismiss HTML splash.
+  // At this point avatar is already prefetched (isReady guarantees it), so the image
+  // is in browser cache and will render immediately when the splash fades away.
+  const handleNavReady = useCallback(() => {
+    if (Platform.OS === 'web') {
+      dismissWebSplash();
+    }
+    signalAppReady();
+  }, []);
 
   // Web: sync HTML theme-color meta and body background with current theme.
   // Skip body background while splash is showing — dismissWebSplash handles the transition.
@@ -333,7 +346,7 @@ function AppContent() {
   return (
     <>
       <StatusBar style="dark" backgroundColor={colors.background} />
-      <AppNavigator />
+      <AppNavigator onReady={handleNavReady} />
       {alertConfig && (
         <AlertModal
           visible={true}

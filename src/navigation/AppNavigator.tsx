@@ -149,7 +149,12 @@ export const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
-export const AppNavigator: React.FC = () => {
+interface AppNavigatorProps {
+  /** Called when NavigationContainer finishes first layout (first screen rendered). */
+  onReady?: () => void;
+}
+
+export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
   if (__DEV__) {
     navLog.debug('render');
   }
@@ -160,6 +165,7 @@ export const AppNavigator: React.FC = () => {
       ref={navigationRef}
       onReady={() => {
         reactNavigationIntegration.registerNavigationContainer(navigationRef);
+        onReady?.();
       }}
     >
       <Stack.Navigator
