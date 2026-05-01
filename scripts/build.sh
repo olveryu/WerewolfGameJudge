@@ -53,6 +53,8 @@ npx expo export --platform web --clear --source-maps
 echo "📱 复制 PWA 文件..."
 mkdir -p dist/assets/pwa
 cp assets/pwa/*.png dist/assets/pwa/
+cp assets/pwa/*.webp dist/assets/pwa/ 2>/dev/null || true
+cp assets/pwa/*.jpg dist/assets/pwa/ 2>/dev/null || true
 cp web/manifest.json dist/
 
 # 字体路径修复：Expo 将字体放在 node_modules/ 路径下，部署平台不提供该路径

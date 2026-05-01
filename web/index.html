@@ -87,7 +87,7 @@
        * viewport-fit=cover 保留在 <meta viewport> 中，让浏览器暴露 inset 值给 JS 读取。
        */
 
-      /* 启动画面样式 - 使用 light 主题 primary 色 */
+      /* 启动画面样式 — 全屏背景图 + 底部加载信息 */
       #splash-screen {
         position: fixed;
         top: 0;
@@ -97,13 +97,14 @@
         height: calc(var(--vh, 1vh) * 100);
         height: -webkit-fill-available;
         height: 100dvh;
-        background-color: #f2f2f7;
+        background-color: #0a0a12;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
         z-index: 9999;
         transition: opacity 0.3s ease-out;
+        overflow: hidden;
       }
 
       #splash-screen.hidden {
@@ -111,39 +112,101 @@
         pointer-events: none;
       }
 
-      #splash-screen img {
+      /* 全屏背景图 */
+      #splash-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center top;
+      }
+
+      /* 底部渐变遮罩，让文字/进度条可读 */
+      #splash-screen::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 45%;
+        background: linear-gradient(
+          to bottom,
+          transparent,
+          rgba(8, 8, 16, 0.85) 70%,
+          rgba(8, 8, 16, 0.95)
+        );
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      /* 标题区域 */
+      #splash-title {
+        position: absolute;
+        top: 62%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      #splash-title .main-title {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif;
+        font-size: 40px;
+        font-weight: 900;
+        letter-spacing: 10px;
+        background: linear-gradient(180deg, #fff 0%, #c8d0e0 40%, #a0b0d0 60%, #e8e8f0 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.3);
+        filter: drop-shadow(0 0 20px rgba(140, 160, 255, 0.5))
+          drop-shadow(0 4px 12px rgba(0, 0, 0, 0.8));
+      }
+
+      #splash-title .divider {
         width: 120px;
-        height: 120px;
-        border-radius: 24px;
-        animation: pulse 2s ease-in-out infinite;
+        height: 1px;
+        margin: 10px 0;
+        background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5), transparent);
+      }
+
+      #splash-title .sub-title {
+        font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Noto Sans SC', sans-serif;
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 6px;
+        color: rgba(255, 255, 255, 0.6);
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+      }
+
+      /* 底部加载区域（在渐变遮罩之上） */
+      #splash-bottom {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 48px);
+        width: 100%;
       }
 
       #splash-screen .loading-text {
-        color: #52525b;
+        color: rgba(255, 255, 255, 0.75);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         font-size: 14px;
-        margin-top: 20px;
-        opacity: 0.7;
-      }
-
-      @keyframes pulse {
-        0%,
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
-        50% {
-          transform: scale(1.05);
-          opacity: 0.8;
-        }
       }
 
       #splash-resource {
-        color: #52525b;
+        color: rgba(255, 255, 255, 0.5);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
         font-size: 11px;
         margin-top: 12px;
-        opacity: 0.6;
         max-width: 80%;
         text-align: center;
         overflow: hidden;
@@ -158,16 +221,16 @@
         max-width: 240px;
         height: 3px;
         border-radius: 2px;
-        background-color: #dddde3;
+        background-color: rgba(255, 255, 255, 0.15);
         overflow: hidden;
-        margin-top: 20px;
+        margin-top: 16px;
       }
 
       #splash-screen .progress-bar {
         width: 0;
         height: 100%;
         border-radius: 2px;
-        background-color: #6366f1;
+        background-color: rgba(255, 255, 255, 0.7);
         transition: width 0.3s ease;
       }
 
@@ -177,7 +240,7 @@
         padding: 10px 28px;
         border: none;
         border-radius: 8px;
-        background-color: #6366f1;
+        background-color: rgba(255, 255, 255, 0.15);
         color: #fff;
         font-size: 14px;
         font-weight: 500;
@@ -286,12 +349,31 @@
 
     <!-- 启动画面 -->
     <div id="splash-screen">
-      <img src="/assets/pwa/icon-192.png" alt="狼人kill电子裁判" />
-      <div class="loading-text">加载中... <span id="splash-pct">0%</span></div>
-      <div class="progress-track"><div class="progress-bar"></div></div>
-      <div id="splash-resource"></div>
-      <button id="splash-refresh">刷新页面</button>
+      <img id="splash-bg" src="" alt="" />
+      <div id="splash-title">
+        <div class="main-title">狼 人 杀</div>
+        <div class="divider"></div>
+        <div class="sub-title">电 子 裁 判</div>
+      </div>
+      <div id="splash-bottom">
+        <div class="loading-text">加载中... <span id="splash-pct">0%</span></div>
+        <div class="progress-track"><div class="progress-bar"></div></div>
+        <div id="splash-resource"></div>
+        <button id="splash-refresh">刷新页面</button>
+      </div>
     </div>
+    <script>
+      // 随机选择 splash 背景图
+      (function () {
+        var imgs = [
+          '/assets/pwa/splash-wolf-blue.webp',
+          '/assets/pwa/splash-wolf-red.webp',
+          '/assets/pwa/splash-wolf-gold.webp',
+        ];
+        var bg = document.getElementById('splash-bg');
+        if (bg) bg.src = imgs[Math.floor(Math.random() * imgs.length)];
+      })();
+    </script>
 
     <div id="root"></div>
 
@@ -406,18 +488,11 @@
         }
         var theme = THEMES[themeKey];
 
-        // 应用背景色
+        // 应用背景色（splash 使用自身暗色背景，不随主题变）
         document.documentElement.style.backgroundColor = theme.background;
         document.body.style.backgroundColor = theme.background;
         document.documentElement.style.color = theme.text;
         document.documentElement.style.setProperty('--theme-primary', theme.primary);
-
-        var splash = document.getElementById('splash-screen');
-        if (splash) {
-          splash.style.backgroundColor = theme.background;
-          var text = splash.querySelector('.loading-text');
-          if (text) text.style.color = theme.text;
-        }
 
         // 更新 theme-color meta
         var themeMeta = document.querySelector('meta[name="theme-color"]');
@@ -559,10 +634,6 @@
           if (!splash || splash.classList.contains('hidden')) return;
           var btn = document.getElementById('splash-refresh');
           if (btn) {
-            // 继承当前主题色
-            var primary =
-              document.documentElement.style.getPropertyValue('--theme-primary') || '#6366f1';
-            btn.style.backgroundColor = primary;
             btn.style.display = 'inline-block';
           }
         }, 5000);
