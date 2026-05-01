@@ -283,13 +283,16 @@ function AppContent() {
     return undefined;
   }, [bootPhase, bootProgress.isReady]);
 
-  // Web: sync HTML theme-color meta and body background with current theme
+  // Web: sync HTML theme-color meta and body background with current theme.
+  // Skip body background while splash is showing — dismissWebSplash handles the transition.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', colors.surface);
-    document.body.style.backgroundColor = colors.background;
-    document.documentElement.style.backgroundColor = colors.background;
+    if (!document.getElementById('splash-screen')) {
+      document.body.style.backgroundColor = colors.background;
+      document.documentElement.style.backgroundColor = colors.background;
+    }
   }, []);
 
   const handleAlertClose = useCallback(() => {
