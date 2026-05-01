@@ -29,7 +29,9 @@ import { toast } from 'sonner-native';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
+import { queryClient } from '@/lib/queryClient';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
@@ -192,14 +194,20 @@ export function GachaScreen({ navigation }: Props) {
     <View style={styles.headerActions}>
       <Button
         variant="icon"
-        onPress={() => navigation.navigate('Appearance', undefined)}
+        onPress={() => {
+          void queryClient.prefetchQuery(userStatsOptions());
+          navigation.navigate('Appearance', undefined);
+        }}
         accessibilityLabel="装扮"
       >
         <Ionicons name="shirt-outline" size={componentSizes.icon.lg} color={colors.text} />
       </Button>
       <Button
         variant="icon"
-        onPress={() => navigation.navigate('Unlocks', undefined)}
+        onPress={() => {
+          void queryClient.prefetchQuery(userStatsOptions());
+          navigation.navigate('Unlocks', undefined);
+        }}
         accessibilityLabel="收藏"
       >
         <Ionicons name="grid-outline" size={componentSizes.icon.lg} color={colors.text} />
@@ -251,6 +259,7 @@ export function GachaScreen({ navigation }: Props) {
             onDismiss={handleDismissSingleResult}
             onGoEquip={() => {
               handleDismissSingleResult();
+              void queryClient.prefetchQuery(userStatsOptions());
               navigation.navigate('Appearance', undefined);
             }}
             reducedMotion={reducedMotion}
@@ -360,6 +369,7 @@ export function GachaScreen({ navigation }: Props) {
           onClose={handleCloseTenOverlay}
           onGoEquip={() => {
             handleCloseTenOverlay();
+            void queryClient.prefetchQuery(userStatsOptions());
             navigation.navigate('Appearance', undefined);
           }}
         />

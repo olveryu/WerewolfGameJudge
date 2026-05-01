@@ -35,7 +35,9 @@ import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import { userUnlocksOptions } from '@/hooks/queries/queryOptions';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
+import { queryClient } from '@/lib/queryClient';
 import { type RootStackParamList } from '@/navigation/types';
 import type { UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
@@ -326,6 +328,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
 
   const handleViewUnlocks = useCallback(() => {
     onClose();
+    void queryClient.prefetchQuery(userUnlocksOptions(targetUserId));
     navigation.navigate('Unlocks', {
       userId: targetUserId,
       displayName: profile?.displayName,

@@ -39,7 +39,9 @@ module.exports = {
     mount: jest.fn(),
     unmount: jest.fn(),
     getDefaultOptions: jest.fn().mockReturnValue({}),
+    prefetchQuery: jest.fn().mockResolvedValue(undefined),
   })),
+  MutationCache: jest.fn().mockImplementation(() => ({})),
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
   queryOptions: (opts: Record<string, unknown>) => opts,
 };
