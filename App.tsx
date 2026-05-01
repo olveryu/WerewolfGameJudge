@@ -271,10 +271,14 @@ function AppContent() {
     }
 
     if (bootPhase === 'splash') {
-      // Still in splash → wait threshold then show JS LoadingScreen
+      if (Platform.OS === 'web') {
+        // Web: HTML splash stays visible until isReady — no intermediate LoadingScreen.
+        // The HTML splash (z-index:9999) already has its own progress bar.
+        return;
+      }
+      // Native: after threshold, switch to React LoadingScreen for step progress
       const timer = setTimeout(() => {
         void SplashScreen.hideAsync();
-        dismissWebSplash();
         setBootPhase('loading');
       }, SPLASH_THRESHOLD_MS);
       return () => clearTimeout(timer);
