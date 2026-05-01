@@ -71,6 +71,8 @@ export class GameRoom extends DurableObject<Env> {
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
+    // Auto-reply pong to ping without waking the DO from hibernation
+    ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     void ctx.blockConcurrencyWhile(async () => {
       this.ctx.storage.sql.exec(`
         CREATE TABLE IF NOT EXISTS room_state (
