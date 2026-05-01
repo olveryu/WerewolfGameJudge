@@ -49,7 +49,7 @@ jest.mock('@/lib/storage', () => ({
 }));
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -135,7 +135,10 @@ describe('Room creation → navigation roomCode contract', () => {
     // CRITICAL CONTRACT: The roomCode passed to navigation MUST be the one
     // returned by createRoomMutation.mutateAsync (the confirmed DB record), not a
     // locally pre-generated code.
-    const navArgs = mockNavigate.mock.calls[0];
+    const navArgs = mockNavigate.mock.calls[0] as [
+      string,
+      { roomCode: string; isHost: boolean; template: unknown },
+    ];
     expect(navArgs[0]).toBe('Room');
     expect(navArgs[1].roomCode).toBe('7777');
     expect(navArgs[1].isHost).toBe(true);
@@ -164,7 +167,7 @@ describe('Room creation → navigation roomCode contract', () => {
   });
 
   it('should save confirmed roomCode to MMKV storage (not a pre-generated code)', async () => {
-    const { storage } = require('@/lib/storage');
+    const { storage } = require('@/lib/storage') as { storage: { set: jest.Mock } };
     const mockFacade = createMockFacade();
     const { getByText } = render(
       <GameFacadeProvider facade={mockFacade}>

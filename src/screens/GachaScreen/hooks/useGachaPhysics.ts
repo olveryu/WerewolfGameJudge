@@ -228,7 +228,7 @@ export function useGachaPhysics(scale: number) {
   // State
   const phase = useSharedValue<number>(PHASE.IDLE);
   const phaseTimer = useSharedValue(0);
-  const ballData = useSharedValue<number[]>(new Array(NUM_BALLS * STRIDE).fill(0));
+  const ballData = useSharedValue<number[]>(new Array<number>(NUM_BALLS * STRIDE).fill(0));
   const gateOpen = useSharedValue(0);
   const dialAngle = useSharedValue(0);
   const renderTick = useSharedValue(0);
@@ -271,7 +271,7 @@ export function useGachaPhysics(scale: number) {
 
   // Init balls in dome
   const initBalls = useCallback(() => {
-    const data = new Array(NUM_BALLS * STRIDE).fill(0);
+    const data = new Array<number>(NUM_BALLS * STRIDE).fill(0);
     for (let i = 0; i < NUM_BALLS; i++) {
       const angle = Math.random() * Math.PI * 2;
       const dist = Math.random() * (DOME_R * s - BALL_R * s - 10 * s);

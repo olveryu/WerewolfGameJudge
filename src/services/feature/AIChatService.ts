@@ -216,8 +216,11 @@ export async function* streamChatMessage(
     // Parse structured error code from server
     let errorCode: string | undefined;
     try {
-      const parsed = JSON.parse(errorText);
-      errorCode = parsed.error;
+      const parsed: unknown = JSON.parse(errorText);
+      if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
+        const { error } = parsed as { error: unknown };
+        if (typeof error === 'string') errorCode = error;
+      }
     } catch {
       // Not JSON — use raw text for logging
     }
@@ -271,8 +274,8 @@ export async function* streamChatMessage(
         }
 
         try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices?.[0]?.delta?.content;
+          const parsed: unknown = JSON.parse(data);
+          const delta = extractDelta(parsed);
           if (delta) {
             yield { type: 'delta', content: delta };
           }
@@ -286,4 +289,17 @@ export async function* streamChatMessage(
   }
 
   yield { type: 'done', content: '' };
+}
+
+/** Extract delta content from an OpenAI-compatible SSE chunk. */
+function extractDelta(parsed: unknown): string | undefined {
+  if (typeof parsed !== 'object' || parsed === null) return undefined;
+  const obj = parsed as Record<string, unknown>;
+  if (!Array.isArray(obj.choices)) return undefined;
+  const first: unknown = obj.choices[0];
+  if (typeof first !== 'object' || first === null) return undefined;
+  const choice = first as Record<string, unknown>;
+  if (typeof choice.delta !== 'object' || choice.delta === null) return undefined;
+  const delta = choice.delta as Record<string, unknown>;
+  return typeof delta.content === 'string' ? delta.content : undefined;
 }

@@ -15,7 +15,8 @@ import { AudioOrchestrator } from '../AudioOrchestrator';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockPostAudioAck = jest.fn().mockResolvedValue({ success: true });
+const mockPostAudioAck = jest.fn<Promise<{ success: boolean; reason?: string }>, unknown[]>();
+mockPostAudioAck.mockResolvedValue({ success: true });
 
 jest.mock('../gameActions', () => ({
   postAudioAck: (...args: unknown[]) => mockPostAudioAck(...args),
@@ -64,7 +65,7 @@ function createOrchestrator(overrides?: Partial<AudioOrchestratorDeps>): {
       playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
       playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
       stopBgm: jest.fn(),
-    } as any,
+    } as unknown as AudioOrchestratorDeps['audioService'],
     addStatusListener: jest.fn((fn) => {
       statusListeners.add(fn);
       return () => statusListeners.delete(fn);
@@ -199,11 +200,13 @@ describe('AudioOrchestrator reconnect', () => {
         await jest.advanceTimersByTimeAsync(20_000);
       }
 
-      const { facadeLog } = jest.requireMock('../../../utils/logger');
+      const { facadeLog } = jest.requireMock<{
+        facadeLog: { warn: jest.Mock };
+      }>('../../../utils/logger');
 
       // Should see exhaustion warning
-      const exhaustionLog = facadeLog.warn.mock.calls.find(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('exhausted'),
+      const exhaustionLog = (facadeLog.warn.mock.calls as unknown[][]).find(
+        (call) => typeof call[0] === 'string' && call[0].includes('exhausted'),
       );
       expect(exhaustionLog).toBeDefined();
 

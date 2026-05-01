@@ -1,13 +1,22 @@
-const React = require('react');
-const { View } = require('react-native');
+import React from 'react';
+import { View } from 'react-native';
 
-const Slider = React.forwardRef(function MockSlider(props: Record<string, unknown>, ref: unknown) {
-  return React.createElement(View, { ref, testID: 'awesome-slider', ...props });
+export const Slider = React.forwardRef(function MockSlider(
+  props: Record<string, unknown>,
+  ref: unknown,
+) {
+  return React.createElement(View, { ref, testID: 'awesome-slider', ...props } as Record<
+    string,
+    unknown
+  >);
 });
 
-module.exports = {
-  Slider,
-  Bubble: React.forwardRef(function MockBubble(props: Record<string, unknown>, ref: unknown) {
-    return React.createElement(View, { ref, testID: 'awesome-slider-bubble', ...props });
-  }),
-};
+export const Bubble = React.forwardRef(function MockBubble(
+  props: Record<string, unknown>,
+  ref: unknown,
+) {
+  return React.createElement(View, { ref, testID: 'awesome-slider-bubble', ...props } as Record<
+    string,
+    unknown
+  >);
+});

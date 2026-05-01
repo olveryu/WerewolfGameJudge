@@ -46,13 +46,17 @@ describe('Avatar', () => {
     });
 
     it('should render lucide icon when no avatarUrl', () => {
-      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons');
+      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons') as {
+        getAvatarIcon: jest.Mock;
+      };
       render(<Avatar value="test-user" size={50} />);
       expect(getAvatarIcon).toHaveBeenCalledWith('test-user');
     });
 
     it('should render lucide icon when avatarUrl is null', () => {
-      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons');
+      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons') as {
+        getAvatarIcon: jest.Mock;
+      };
       render(<Avatar value="test-user" size={50} avatarUrl={null} />);
       expect(getAvatarIcon).toHaveBeenCalledWith('test-user');
     });
@@ -72,7 +76,9 @@ describe('Avatar', () => {
 
   describe('Deterministic icon selection', () => {
     it('same userId always gets same icon', () => {
-      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons');
+      const { getAvatarIcon } = require('@/utils/defaultAvatarIcons') as {
+        getAvatarIcon: jest.Mock;
+      };
       render(<Avatar value="player-123" size={50} />);
       render(<Avatar value="player-123" size={50} />);
       // Both calls use same userId

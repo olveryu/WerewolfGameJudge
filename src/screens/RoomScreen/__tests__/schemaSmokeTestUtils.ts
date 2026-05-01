@@ -1,11 +1,15 @@
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getSchema, type SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
+import type React from 'react';
 
+import type { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { LocalPlayer } from '@/types/GameStateTypes';
 
-type RoleId = any;
-
-type UseGameRoomReturn = any;
+type RoomScreenProps = React.ComponentProps<typeof RoomScreen>;
 
 type MakeUseGameRoomArgs = {
   schemaId: SchemaId;
@@ -14,9 +18,9 @@ type MakeUseGameRoomArgs = {
   mySeat?: number;
   numberOfPlayers?: number;
   /** Optional per-test override for hook return */
-  overrides?: Partial<UseGameRoomReturn>;
+  overrides?: Record<string, unknown>;
   /** Optional override for gameState fields (merged into gameState) */
-  gameStateOverrides?: Record<string, any>;
+  gameStateOverrides?: Record<string, unknown>;
 };
 
 export const mockNavigation = {
@@ -24,7 +28,11 @@ export const mockNavigation = {
   replace: jest.fn(),
   goBack: jest.fn(),
   setOptions: jest.fn(),
-};
+} as unknown as RoomScreenProps['navigation'];
+
+export const mockRoomRoute = {
+  params: { roomCode: '1234', isHost: false },
+} as unknown as RoomScreenProps['route'];
 
 export function makeBaseUseGameRoomReturn({
   schemaId,
@@ -34,10 +42,8 @@ export function makeBaseUseGameRoomReturn({
   numberOfPlayers = 12,
   overrides,
   gameStateOverrides,
-}: MakeUseGameRoomArgs): UseGameRoomReturn {
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-
-  const players = new Map(
+}: MakeUseGameRoomArgs) {
+  const players = new Map<number, LocalPlayer>(
     Array.from({ length: numberOfPlayers }).map((_, i) => [
       i,
       {
@@ -45,7 +51,7 @@ export function makeBaseUseGameRoomReturn({
         seat: i,
         displayName: `P${i + 1}`,
         avatarUrl: undefined,
-        role: i === mySeat ? myRole : 'villager',
+        role: i === mySeat ? myRole : ('villager' as RoleId),
         hasViewedRole: true,
       },
     ]),
@@ -54,25 +60,27 @@ export function makeBaseUseGameRoomReturn({
   const gameState = {
     status: GameStatus.Ongoing,
     template: {
+      name: 'test',
       numberOfPlayers,
-      roles: Array.from({ length: numberOfPlayers }).map(() => 'villager'),
+      roles: Array.from({ length: numberOfPlayers }).map(() => 'villager' as RoleId),
       actionOrder: [currentActionRole],
     },
     players,
-    actions: new Map(),
-    wolfVotes: new Map(),
+    actions: new Map<RoleId, RoleAction>(),
+    wolfVotes: new Map<number, number>(),
     currentStepIndex: 0,
     isAudioPlaying: false,
-    lastNightDeaths: [],
-    nightmareBlockedSeat: null,
-    templateRoles: [],
+    lastNightDeaths: [] as number[],
+    nightmareBlockedSeat: undefined as number | undefined,
+    templateRoles: [] as RoleId[],
     hostUserId: 'host',
     roomCode: '1234',
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    cupidLoversRevealAcks: [],
+    pendingRevealAcks: [] as string[],
+    hypnotizedSeats: [] as number[],
+    piperRevealAcks: [] as number[],
+    conversionRevealAcks: [] as number[],
+    cupidLoversRevealAcks: [] as number[],
+    currentNightResults: {} as CurrentNightResults,
     ...(gameStateOverrides ?? {}),
   };
 
@@ -83,7 +91,7 @@ export function makeBaseUseGameRoomReturn({
     connectionStatus: ConnectionStatus.Live,
 
     isHost: false,
-    roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+    roomStatus: GameStatus.Ongoing,
 
     currentActionRole,
     currentSchema: getSchema(schemaId),

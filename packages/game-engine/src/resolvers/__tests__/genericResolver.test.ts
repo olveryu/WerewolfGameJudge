@@ -428,7 +428,7 @@ describe('genericResolver: block effect', () => {
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(2);
     expect(result.updates?.wolfKillOverride).toBeDefined();
-    expect((result.updates?.wolfKillOverride as any).source).toBe('nightmare');
+    expect(result.updates?.wolfKillOverride?.source).toBe('nightmare');
   });
 
   it('should allow skip', () => {

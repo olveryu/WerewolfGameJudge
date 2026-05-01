@@ -7,6 +7,7 @@
 import { renderHook } from '@testing-library/react-native';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import {
   useActionerState,
@@ -78,9 +79,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
-              'wolfKill',
-            ),
+            currentSchema: getSchema('wolfKill'),
             actorSeat: 1,
             wolfVotes: new Map(),
           }),
@@ -100,9 +99,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'wolf',
             currentActionRole: 'wolf',
-            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
-              'wolfKill',
-            ),
+            currentSchema: getSchema('wolfKill'),
             actorSeat: 1,
             wolfVotes,
           }),
@@ -120,9 +117,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'wolf',
-            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
-              'wolfKill',
-            ),
+            currentSchema: getSchema('wolfKill'),
             actorSeat: 2,
           }),
         ),
@@ -174,9 +169,7 @@ describe('useActionerState', () => {
           createParams({
             actorRole: 'nightmare',
             currentActionRole: 'nightmare',
-            currentSchema: require('@werewolf/game-engine/models/roles/spec/schemas').getSchema(
-              'nightmareBlock',
-            ),
+            currentSchema: getSchema('nightmareBlock'),
             actorSeat: 0,
           }),
         ),

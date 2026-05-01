@@ -11,10 +11,10 @@
  * Scan scope: all .tsx files in src, excluding tests.
  */
 
-describe('No custom React.memo comparator', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
+describe('No custom React.memo comparator', () => {
   function getAllComponentFiles(dir: string): string[] {
     const results: string[] = [];
     const entries = fs.readdirSync(dir, { withFileTypes: true });

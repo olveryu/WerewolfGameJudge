@@ -14,10 +14,12 @@ jest.mock('../../../../utils/logger', () => ({
 }));
 
 // Mock mobileDebug
-const mockToggle = jest.fn();
+const mockToggle = jest.fn<void, []>();
 jest.mock('../../../../utils/mobileDebug', () => ({
   mobileDebug: {
-    toggle: () => mockToggle(),
+    toggle: (): void => {
+      mockToggle();
+    },
     log: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),

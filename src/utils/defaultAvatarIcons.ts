@@ -7,8 +7,9 @@
  */
 import { type ImageSourcePropType } from 'react-native';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WOLF_PAW_IMAGE: ImageSourcePropType = require('../../assets/avatars/seat/wolf-paw.png');
+import wolfPawImage from '../../assets/avatars/seat/wolf-paw.png';
+
+const WOLF_PAW_IMAGE: ImageSourcePropType = wolfPawImage;
 
 /** Rich color palette for icon tint. 20 colors to minimize repeats in 12-player rooms. */
 const AVATAR_COLORS = [

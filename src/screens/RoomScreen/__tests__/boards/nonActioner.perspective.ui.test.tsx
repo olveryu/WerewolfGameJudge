@@ -14,6 +14,7 @@ import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
+  mockRoomRoute,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -26,7 +27,7 @@ import { showAlert } from '@/utils/alert';
 // =============================================================================
 
 jest.mock('../../../../utils/alert', () => ({
-  ...jest.requireActual('../../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../../utils/alert')>('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -81,7 +82,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
   });
 
   it('seer step: non-actioner villager sees no actionPrompt', async () => {
@@ -94,10 +95,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -116,10 +114,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -139,10 +134,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -162,10 +154,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -183,10 +172,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);

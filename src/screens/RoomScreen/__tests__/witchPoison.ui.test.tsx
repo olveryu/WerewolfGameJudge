@@ -1,11 +1,12 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import type React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -26,7 +27,7 @@ const mockSubmitAction = jest.fn();
 
 // Witch poison phase: seat tap should open poison confirm -> confirm submits submitAction(target, {poison:true})
 jest.mock('../../../hooks/useGameRoom', () => {
-  const { GameStatus } = require('@werewolf/game-engine');
+  const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
     useGameRoom: () => {
       const gameState = {
@@ -62,14 +63,19 @@ jest.mock('../../../hooks/useGameRoom', () => {
         facade: { getState: () => gameState },
         gameState,
 
-        connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
+        connectionStatus: (
+          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
+        ).ConnectionStatus.Live,
 
         isHost: false,
-        roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+        roomStatus: (
+          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+        ).GameStatus.Ongoing,
 
         currentActionRole: 'witch',
-        currentSchema: ((): any => {
-          const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
+        currentSchema: (() => {
+          const { getSchema } =
+            require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
           return getSchema('witchAction');
         })(),
 
@@ -134,8 +140,9 @@ jest.mock('../useRoomActionDialogs', () => ({
       onConfirm: () => void,
       onCancel?: () => void,
     ) => {
-      const { showAlert: mockShowAlert } = require('@/utils/alert');
-      mockShowAlert(title, message, [
+      const { showAlert: localShowAlert } =
+        require('@/utils/alert') as typeof import('@/utils/alert');
+      localShowAlert(title, message, [
         { text: '取消', style: 'cancel', onPress: onCancel },
         { text: '确定', onPress: onConfirm },
       ]);
@@ -145,9 +152,16 @@ jest.mock('../useRoomActionDialogs', () => ({
     showRevealDialog: jest.fn(),
     showRoleActionPrompt: jest.fn(),
     showMagicianFirstAlert: jest.fn(),
-    showWitchInfoPrompt: (ctx: any, schema: any, onDismiss: () => void) => {
-      const { showAlert: mockShowAlert } = require('@/utils/alert');
-      mockShowAlert('女巫信息', schema?.ui?.prompt || '', [{ text: '知道了', onPress: onDismiss }]);
+    showWitchInfoPrompt: (
+      _ctx: unknown,
+      schema: { ui?: { prompt?: string } } | null,
+      onDismiss: () => void,
+    ) => {
+      const { showAlert: localShowAlert } =
+        require('@/utils/alert') as typeof import('@/utils/alert');
+      localShowAlert('女巫信息', schema?.ui?.prompt || '', [
+        { text: '知道了', onPress: onDismiss },
+      ]);
     },
   }),
 }));
@@ -178,18 +192,18 @@ describe('RoomScreen witch poison UI (smoke)', () => {
   });
 
   it('tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
-    const props: any = {
-      navigation: mockNavigation,
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '梦魇守卫',
-        },
-      },
-    };
+    const route = {
+      params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
+    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
 
-    const { findByTestId } = render(<RoomScreen {...props} />);
+    const { findByTestId } = render(
+      <RoomScreen
+        navigation={
+          mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
+        }
+        route={route}
+      />,
+    );
 
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
     fireEvent.press(seatPressable);
@@ -198,10 +212,10 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
     });
 
-    const poisonCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    const poisonCall = jest.mocked(showAlert).mock.calls.find((c) => c[0] === '确认行动');
     expect(poisonCall).toBeDefined();
 
-    const buttons = poisonCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = poisonCall![2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {
@@ -215,18 +229,18 @@ describe('RoomScreen witch poison UI (smoke)', () => {
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
   // (phase field removed; seat taps always mean poison under new UX.)
   it('canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
-    const props: any = {
-      navigation: mockNavigation,
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '梦魇守卫',
-        },
-      },
-    };
+    const route = {
+      params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
+    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
 
-    const { findByTestId } = render(<RoomScreen {...props} />);
+    const { findByTestId } = render(
+      <RoomScreen
+        navigation={
+          mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
+        }
+        route={route}
+      />,
+    );
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
     fireEvent.press(seatPressable);
 
@@ -234,11 +248,11 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith('确认行动', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find((c) => c[0] === '确认行动');
+    const confirmCall = jest.mocked(showAlert).mock.calls.find((c) => c[0] === '确认行动');
     expect(confirmCall).toBeDefined();
 
-    const buttons = confirmCall[2];
-    const confirmBtn = (buttons as any[]).find((b: any) => b.text === '确定');
+    const buttons = confirmCall![2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmBtn = buttons.find((b) => b.text === '确定');
     await act(async () => {
       confirmBtn?.onPress?.();
     });

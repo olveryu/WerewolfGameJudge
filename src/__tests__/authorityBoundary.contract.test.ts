@@ -11,10 +11,10 @@
  * UI/hooks should only interact via GameFacade or transport layer.
  */
 
-describe('Server authority import boundary', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
+describe('Server authority import boundary', () => {
   /**
    * Recursively get all production files under a directory
    */

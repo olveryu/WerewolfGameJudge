@@ -293,7 +293,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       };
 
       const mockFacade = createMockFacade({
-        subscribe: jest.fn().mockImplementation((cb) => {
+        subscribe: jest.fn().mockImplementation((cb: () => void) => {
           onStoreChange = cb;
           return () => {};
         }),

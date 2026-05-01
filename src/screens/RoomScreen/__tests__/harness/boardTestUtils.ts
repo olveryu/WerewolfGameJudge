@@ -6,15 +6,20 @@
  */
 
 import { fireEvent, waitFor } from '@testing-library/react-native';
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
+import { getSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
 import React from 'react';
+import type { ReactTestInstance } from 'react-test-renderer';
 
+import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
+import type { LocalPlayer } from '@/types/GameStateTypes';
 
 import { type RoomScreenTestHarness } from './RoomScreenTestHarness';
 
@@ -31,12 +36,18 @@ function defaultConfirmStatus(role: RoleId): ConfirmStatus {
 // Mock Navigation
 // =============================================================================
 
+type RoomScreenProps = React.ComponentProps<typeof RoomScreen>;
+
 export const mockNavigation = {
   navigate: jest.fn(),
   replace: jest.fn(),
   goBack: jest.fn(),
   setOptions: jest.fn(),
-};
+} as unknown as RoomScreenProps['navigation'];
+
+export const mockRoomRoute = {
+  params: { roomCode: '1234', isHost: false },
+} as unknown as RoomScreenProps['route'];
 
 // =============================================================================
 // Game State Factory
@@ -66,7 +77,7 @@ interface GameStateMockOptions {
   /** Wolf kill disabled (single source of truth for UI) */
   wolfKillDisabled?: boolean;
   /** Current night results */
-  currentNightResults?: Record<string, any>;
+  currentNightResults?: Record<string, unknown>;
   /** Witch context */
   witchContext?: {
     killedSeat: number;
@@ -88,9 +99,9 @@ interface GameStateMockOptions {
   /** WolfRobot hunter status viewed flag */
   wolfRobotHunterStatusViewed?: boolean;
   /** Additional gameState overrides */
-  gameStateOverrides?: Record<string, any>;
+  gameStateOverrides?: Record<string, unknown>;
   /** Hook method overrides */
-  hookOverrides?: Record<string, any>;
+  hookOverrides?: Record<string, unknown>;
 }
 
 export function createGameRoomMock(options: GameStateMockOptions) {
@@ -118,9 +129,9 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   } = options;
 
   // Build players map
-  const players = new Map(
-    Array.from({ length: numberOfPlayers }).map((_, i) => {
-      const role = roleAssignments?.get(i) || (i === mySeat ? myRole : 'villager');
+  const players = new Map<number, LocalPlayer>(
+    Array.from({ length: numberOfPlayers }).map((_, i): [number, LocalPlayer] => {
+      const role = roleAssignments?.get(i) ?? (i === mySeat ? myRole : 'villager');
       return [
         i,
         {
@@ -136,7 +147,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   );
 
   // Get schema
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const currentSchema = getSchema(schemaId);
 
   const gameState = {
@@ -148,8 +158,8 @@ export function createGameRoomMock(options: GameStateMockOptions) {
       ),
     },
     players,
-    actions: new Map(),
-    wolfVotes: new Map(),
+    actions: new Map<RoleId, RoleAction>(),
+    wolfVotes: new Map<number, number>(),
     currentStepIndex: 0,
     isAudioPlaying,
     lastNightDeaths: [],
@@ -269,7 +279,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
 /**
  * Wait for RoomScreen to render
  */
-export async function waitForRoomScreen(getByTestId: (id: string) => any) {
+export async function waitForRoomScreen(getByTestId: (id: string) => ReactTestInstance) {
   await waitFor(() => {
     expect(getByTestId(TESTIDS.roomScreenRoot)).toBeTruthy();
   });
@@ -278,7 +288,7 @@ export async function waitForRoomScreen(getByTestId: (id: string) => any) {
 /**
  * Tap a seat
  */
-export function tapSeat(getByTestId: (id: string) => any, seat: number) {
+export function tapSeat(getByTestId: (id: string) => ReactTestInstance, seat: number) {
   const seatEl = getByTestId(TESTIDS.seatTilePressable(seat));
   fireEvent.press(seatEl);
 }
@@ -419,11 +429,6 @@ export function createReactiveGameRoomMock(initialOptions: GameStateMockOptions)
 //   });
 // =============================================================================
 
-/** Common RoomScreen route/navigation props for chain drivers */
-const _ROOM_PROPS = {
-  route: { params: { roomCode: '1234', isHost: false } } as any,
-};
-
 /**
  * Chain interaction: wolfVote confirm → submitAction called
  *
@@ -501,7 +506,6 @@ export async function chainSkipConfirm(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -555,7 +559,6 @@ export async function chainConfirmTrigger(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -613,7 +616,6 @@ export async function chainWolfRobotHunterStatus(
   await waitForRoomScreen(result.getByTestId);
   harness.clear();
 
-  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
   if (!gateButtonText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
@@ -717,7 +719,6 @@ export async function coverageChainSkipConfirm(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -766,7 +767,6 @@ export async function coverageChainConfirmTrigger(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const schema = getSchema(schemaId);
   const bottomActionText = schema.ui?.bottomActionText;
   if (!bottomActionText) {
@@ -823,7 +823,6 @@ export async function coverageChainWolfRobotHunterStatus(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const gateButtonText = SCHEMAS.wolfRobotLearn.ui?.hunterGateButtonText;
   if (!gateButtonText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfRobotLearn.ui.hunterGateButtonText');
@@ -998,9 +997,13 @@ export async function coverageChainNightmareBlocked(
   reactiveMock.connect((newMock) => {
     mockSetter(newMock);
     result.rerender(
-      React.createElement(require('@/screens/RoomScreen/RoomScreen').RoomScreen, {
-        route: { params: { roomCode: '1234', isHost: false } } as any,
-        navigation: mockNavigation as any,
+      React.createElement(RoomScreen, {
+        route: { params: { roomCode: '1234', isHost: false } } as React.ComponentProps<
+          typeof RoomScreen
+        >['route'],
+        navigation: mockNavigation as unknown as React.ComponentProps<
+          typeof RoomScreen
+        >['navigation'],
       }),
     );
   });
@@ -1099,7 +1102,6 @@ export async function coverageChainWolfVoteEmpty(
   const result = renderFn();
   await waitForRoomScreen(result.getByTestId);
 
-  const { SCHEMAS } = require('@werewolf/game-engine/models/roles/spec/schemas');
   const emptyVoteText = SCHEMAS.wolfKill.ui?.emptyVoteText;
   if (!emptyVoteText) {
     throw new Error('[TEST] Missing SCHEMAS.wolfKill.ui.emptyVoteText');

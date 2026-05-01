@@ -12,7 +12,7 @@ import { showAlert } from '@/utils/alert';
 
 // Mock showAlert
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -42,7 +42,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
     hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
     template: {
-      roles: new Array(playerCount).fill('villager' as RoleId),
+      roles: new Array<RoleId>(playerCount).fill('villager'),
       name: 'Test Template',
       numberOfPlayers: playerCount,
     },

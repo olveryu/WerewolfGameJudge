@@ -1,11 +1,13 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import type React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -26,7 +28,7 @@ jest.mock('@react-navigation/native', () => ({
 const mockSubmitAction = jest.fn();
 
 jest.mock('../../../hooks/useGameRoom', () => {
-  const { GameStatus } = require('@werewolf/game-engine');
+  const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
     useGameRoom: () => {
       const gameState = {
@@ -63,14 +65,19 @@ jest.mock('../../../hooks/useGameRoom', () => {
         facade: { getState: () => gameState },
         gameState,
 
-        connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
+        connectionStatus: (
+          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
+        ).ConnectionStatus.Live,
 
         isHost: false,
-        roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+        roomStatus: (
+          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+        ).GameStatus.Ongoing,
 
         currentActionRole: 'magician',
         currentSchema: (() => {
-          const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
+          const { getSchema } =
+            require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
           return getSchema('magicianSwap');
         })(),
 
@@ -130,12 +137,16 @@ jest.mock('../hooks/useActionerState', () => ({
 // Keep dialogs deterministic by mapping to showAlert
 jest.mock('../useRoomActionDialogs', () => ({
   useRoomActionDialogs: () => ({
-    showMagicianFirstAlert: (seat: number, schema: any) => {
-      const { showAlert: mockShowAlert } = require('@/utils/alert');
-      const { formatSeat: fmt } = require('@werewolf/game-engine/utils/formatSeat');
-      const title = schema.ui.firstTargetTitle;
-      const body = schema.ui.firstTargetPromptTemplate.replace('{seat}', fmt(seat));
-      mockShowAlert(title, body, [{ text: '好' }]);
+    showMagicianFirstAlert: (seat: number, schema: ActionSchema) => {
+      const { showAlert: localShowAlert } =
+        require('@/utils/alert') as typeof import('@/utils/alert');
+      const { formatSeat: fmt } =
+        require('@werewolf/game-engine/utils/formatSeat') as typeof import('@werewolf/game-engine/utils/formatSeat');
+      const title = (schema as { ui: { firstTargetTitle: string } }).ui.firstTargetTitle;
+      const body = (
+        schema as { ui: { firstTargetPromptTemplate: string } }
+      ).ui.firstTargetPromptTemplate.replace('{seat}', fmt(seat));
+      localShowAlert(title, body, [{ text: '好' }]);
     },
     showConfirmDialog: (
       title: string,
@@ -143,8 +154,9 @@ jest.mock('../useRoomActionDialogs', () => ({
       onConfirm: () => void,
       onCancel?: () => void,
     ) => {
-      const { showAlert: mockShowAlert } = require('@/utils/alert');
-      mockShowAlert(title, message, [
+      const { showAlert: localShowAlert } =
+        require('@/utils/alert') as typeof import('@/utils/alert');
+      localShowAlert(title, message, [
         { text: '取消', style: 'cancel', onPress: onCancel },
         { text: '确定', onPress: onConfirm },
       ]);
@@ -182,18 +194,18 @@ describe('RoomScreen magician swap UI (smoke)', () => {
   });
 
   it('tap 1st seat -> tap 2nd seat -> confirm swap -> submitAction(null, { targets: [seatA, seatB] })', async () => {
-    const props: any = {
-      navigation: mockNavigation,
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '梦魇守卫',
-        },
-      },
-    };
-
-    const { findByTestId } = render(<RoomScreen {...props} />);
+    const { findByTestId } = render(
+      <RoomScreen
+        navigation={
+          mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
+        }
+        route={
+          {
+            params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
+          } as unknown as React.ComponentProps<typeof RoomScreen>['route']
+        }
+      />,
+    );
 
     // first target: seat 3 (seat 2)
     const seat3 = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -215,10 +227,8 @@ describe('RoomScreen magician swap UI (smoke)', () => {
       expect(showAlert).toHaveBeenCalledWith('确认交换', expect.any(String), expect.any(Array));
     });
 
-    const confirmCall = (showAlert as jest.Mock).mock.calls.find(
-      (c: unknown[]) => c[0] === '确认交换',
-    );
-    const buttons = confirmCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const confirmCall = jest.mocked(showAlert).mock.calls.find((c) => c[0] === '确认交换');
+    const buttons = confirmCall![2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {

@@ -24,8 +24,7 @@ import Animated, {
 
 import { borderRadius, colors, componentSizes, shadows, spacing, typography } from '@/theme';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const appIcon = require('../../../assets/pwa/icon-192.png');
+import appIcon from '../../../assets/pwa/icon-192.png';
 
 export interface BootStep {
   readonly id: string;

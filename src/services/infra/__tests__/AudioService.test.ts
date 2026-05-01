@@ -4,7 +4,9 @@ import { type RoleId } from '@werewolf/game-engine/models/roles';
 const mockAudioLogWarn = jest.fn();
 jest.mock('../../../utils/logger', () => ({
   audioLog: {
-    warn: (msg: string, ...args: unknown[]) => mockAudioLogWarn(msg, ...args),
+    warn: (msg: string, ...args: unknown[]): void => {
+      mockAudioLogWarn(msg, ...args);
+    },
     info: jest.fn(),
     debug: jest.fn(),
     error: jest.fn(),
@@ -97,6 +99,7 @@ jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', {
 
 // Now import AudioService after mocks are set up
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 import {
   _AUDIO_END_ROLE_IDS,
@@ -126,8 +129,6 @@ describe('AudioService - Initialization', () => {
   });
 
   it('should initialize audio mode on construction', () => {
-    const { setAudioModeAsync } = require('expo-audio');
-
     new AudioService();
 
     expect(setAudioModeAsync).toHaveBeenCalledWith({
@@ -249,8 +250,6 @@ describe('AudioService - Play methods', () => {
   });
 
   it('playRoleBeginningAudio should call createAudioPlayer for valid role', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     await audioService.playRoleBeginningAudio('wolf');
 
     expect(createAudioPlayer).toHaveBeenCalled();
@@ -262,8 +261,6 @@ describe('AudioService - Play methods', () => {
   });
 
   it('playRoleEndingAudio should call createAudioPlayer for valid role', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     await audioService.playRoleEndingAudio('wolf');
 
     expect(createAudioPlayer).toHaveBeenCalled();
@@ -271,8 +268,6 @@ describe('AudioService - Play methods', () => {
   });
 
   it('playNightAudio should create audio player', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     await audioService.playNightAudio();
 
     expect(createAudioPlayer).toHaveBeenCalled();
@@ -280,8 +275,6 @@ describe('AudioService - Play methods', () => {
   });
 
   it('playNightBeginAudio should be alias for playNightAudio', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     await audioService.playNightBeginAudio();
 
     expect(createAudioPlayer).toHaveBeenCalled();
@@ -289,8 +282,6 @@ describe('AudioService - Play methods', () => {
   });
 
   it('playNightEndAudio should create audio player', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     await audioService.playNightEndAudio();
 
     expect(createAudioPlayer).toHaveBeenCalled();
@@ -319,8 +310,6 @@ describe('AudioService - Stop current player', () => {
   });
 
   it('should stop current player when playing new audio', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-
     // Start playing (won't complete due to mock setup)
     void audioService.playRoleBeginningAudio('wolf');
 
@@ -429,8 +418,7 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
   });
 
   it('should resolve (not reject) when createAudioPlayer throws', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-    createAudioPlayer.mockImplementationOnce(() => {
+    jest.mocked(createAudioPlayer).mockImplementationOnce(() => {
       throw new Error('Simulated player creation failure');
     });
 
@@ -446,8 +434,7 @@ describe('AudioService - Fallback: createAudioPlayer throws', () => {
   });
 
   it('should resolve (not reject) when createAudioPlayer throws for role audio', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-    createAudioPlayer.mockImplementationOnce(() => {
+    jest.mocked(createAudioPlayer).mockImplementationOnce(() => {
       throw new Error('Simulated player creation failure');
     });
 
@@ -532,7 +519,6 @@ describe('AudioService - BGM (native path)', () => {
   });
 
   it('startBgm should create player with loop and low volume', async () => {
-    const { createAudioPlayer } = require('expo-audio');
     const mockPlayer = {
       play: jest.fn(),
       pause: jest.fn(),
@@ -541,7 +527,7 @@ describe('AudioService - BGM (native path)', () => {
       loop: false,
       addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
     };
-    createAudioPlayer.mockReturnValueOnce(mockPlayer);
+    jest.mocked(createAudioPlayer).mockReturnValueOnce(mockPlayer as never);
 
     await audioService.startBgm(['test-asset']);
 
@@ -552,7 +538,6 @@ describe('AudioService - BGM (native path)', () => {
   });
 
   it('startBgm should be idempotent (skip if already playing)', async () => {
-    const { createAudioPlayer } = require('expo-audio');
     const mockPlayer = {
       play: jest.fn(),
       pause: jest.fn(),
@@ -561,10 +546,10 @@ describe('AudioService - BGM (native path)', () => {
       loop: false,
       addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
     };
-    createAudioPlayer.mockReturnValue(mockPlayer);
+    jest.mocked(createAudioPlayer).mockReturnValue(mockPlayer as never);
 
     await audioService.startBgm(['test-asset']);
-    createAudioPlayer.mockClear();
+    jest.mocked(createAudioPlayer).mockClear();
 
     // Second call should be no-op
     await audioService.startBgm(['test-asset']);
@@ -572,8 +557,7 @@ describe('AudioService - BGM (native path)', () => {
   });
 
   it('startBgm should swallow errors and not throw', async () => {
-    const { createAudioPlayer } = require('expo-audio');
-    createAudioPlayer.mockImplementationOnce(() => {
+    jest.mocked(createAudioPlayer).mockImplementationOnce(() => {
       throw new Error('player creation failed');
     });
 
@@ -581,7 +565,6 @@ describe('AudioService - BGM (native path)', () => {
   });
 
   it('stopBgm should pause and remove bgm player', async () => {
-    const { createAudioPlayer } = require('expo-audio');
     const mockPlayer = {
       play: jest.fn(),
       pause: mockPause,
@@ -590,7 +573,7 @@ describe('AudioService - BGM (native path)', () => {
       loop: false,
       addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
     };
-    createAudioPlayer.mockReturnValueOnce(mockPlayer);
+    jest.mocked(createAudioPlayer).mockReturnValueOnce(mockPlayer as never);
 
     await audioService.startBgm(['test-asset']);
     jest.clearAllMocks();
@@ -619,8 +602,6 @@ describe('AudioService - preloadForRoles (native)', () => {
   });
 
   it('should preload night + role begin/end for given roles', async () => {
-    const { createAudioPlayer: _createAudioPlayer } = require('expo-audio');
-
     // In Jest environment (isJest=true), preloadSingleFile skips native preload.
     // But we can verify the method runs without errors.
     await audioService.preloadForRoles(['wolf', 'seer']);

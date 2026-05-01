@@ -15,6 +15,7 @@ import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
+  mockRoomRoute,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -27,7 +28,7 @@ import { showAlert } from '@/utils/alert';
 // =============================================================================
 
 jest.mock('../../../../utils/alert', () => ({
-  ...jest.requireActual('../../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../../utils/alert')>('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -74,18 +75,12 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe('Cancel Paths (cross-board)', () => {
-  const renderRoom = () =>
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
   });
 
   // ===========================================================================

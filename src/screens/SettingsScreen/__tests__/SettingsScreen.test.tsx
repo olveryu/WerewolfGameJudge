@@ -28,7 +28,7 @@ jest.mock('../../../contexts/AuthContext', () => ({
 
 // Mock utils
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 

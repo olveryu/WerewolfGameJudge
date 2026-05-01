@@ -90,7 +90,10 @@ describe('Night-1 Role Coverage Contract', () => {
 
       // 调用 resolver 不应该 throw（可能返回 valid: false，但不应该抛异常）
       expect(() => {
-        resolver!(minimalContext as any, minimalInput);
+        resolver!(
+          minimalContext as unknown as import('@werewolf/game-engine/resolvers/types').ResolverContext,
+          minimalInput,
+        );
       }).not.toThrow();
     });
   });

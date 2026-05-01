@@ -17,10 +17,10 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -35,7 +35,7 @@ jest.mock('../hooks/useActionerState', () => ({
   }),
 }));
 
-const mockShowAlert = showAlert as jest.Mock;
+const mockShowAlert = jest.mocked(showAlert);
 const mockSubmitAction = jest.fn();
 
 const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
@@ -71,10 +71,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
   it('seat tapping does NOT submit save (save is confirmTarget, target comes from witchContext)', async () => {
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -88,12 +85,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   });
 
   it('shows witch info prompt using schema.ui.prompt on render', async () => {
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     // Some builds may not auto-prompt on first render (depending on RoomScreen prompt gating).
     // Keep this test focused on the contract: save is NOT seat-driven.
@@ -106,10 +98,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 2 });
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -127,10 +116,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
     const { getByTestId, getByText } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -153,10 +139,11 @@ describe('RoomScreen witch save UI (contract)', () => {
 
     // Find confirm button in the alert and press it
     const alertCall = mockShowAlert.mock.calls.find(
-      (c) => c[0] === '确认行动' || c[2]?.some((b: any) => b.text === '确定'),
+      (c) =>
+        c[0] === '确认行动' || (c[2] as Array<{ text: string }>)?.some((b) => b.text === '确定'),
     );
     expect(alertCall).toBeDefined();
-    const buttons = alertCall[2] as Array<{ text: string; onPress?: () => void }>;
+    const buttons = alertCall![2] as Array<{ text: string; onPress?: () => void }>;
     const confirmBtn = buttons.find((b) => b.text === '确定');
 
     await act(async () => {
@@ -173,12 +160,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     const killedSeat = 2;
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
     const saveStep = witchSchema.steps[0];
@@ -197,12 +179,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
     mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 0 });
 
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
     const saveStep = witchSchema.steps[0];

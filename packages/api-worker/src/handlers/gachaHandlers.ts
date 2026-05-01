@@ -247,7 +247,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     // 7. Return results
-    const rarities = results.map((r) => r.rarity);
+    const rarities: Rarity[] = results.map((r: DrawResult): Rarity => r.rarity);
     log.info('draw success', {
       userId,
       drawType,

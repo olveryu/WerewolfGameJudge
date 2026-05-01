@@ -1,15 +1,20 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
+import type { LocalPlayer } from '@/types/GameStateTypes';
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '@/utils/alert';
 
 import { createShowAlertMock, RoomScreenTestHarness } from './harness';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -26,28 +31,28 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
-const mockSubmitAction = jest.fn();
+const mockSubmitAction = jest.fn<void, [number]>();
 const mockRequestSnapshot = jest.fn();
 
-type UseGameRoomReturn = any;
+type UseGameRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
 let mockUseGameRoomImpl: () => UseGameRoomReturn;
 
-jest.mock('../../../hooks/useGameRoom', () => ({
+jest.mock<{ useGameRoom: () => UseGameRoomReturn }>('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomImpl(),
 }));
 
-function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseGameRoomReturn {
+function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
   const gameState = {
     status: GameStatus.Ongoing,
     template: {
       numberOfPlayers: 12,
-      roles: Array.from({ length: 12 }).map(() => 'villager'),
+      roles: Array.from({ length: 12 }).map(() => 'villager' as RoleId),
       // NOTE: RoomScreen's currentActionRole is provided by the hook,
       // but other helpers expect an actionOrder to exist on template.
       actionOrder: ['wolf'],
     },
-    players: new Map(
-      Array.from({ length: 12 }).map((_, i) => [
+    players: new Map<number, LocalPlayer>(
+      Array.from({ length: 12 }).map((_, i): [number, LocalPlayer] => [
         i,
         {
           userId: `p${i}`,
@@ -55,13 +60,13 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
           // Use a concrete wolf-faction RoleId so isWolfRole() is true.
-          role: i === 0 ? 'wolfQueen' : 'villager',
+          role: (i === 0 ? 'wolfQueen' : 'villager') as RoleId,
           hasViewedRole: true,
         },
       ]),
     ),
-    actions: new Map(),
-    wolfVotes: new Map(),
+    actions: new Map<RoleId, unknown>(),
+    wolfVotes: new Map<number, number>(),
     currentStepIndex: 0,
     isAudioPlaying: false,
     lastNightDeaths: [],
@@ -76,17 +81,14 @@ function makeBaseUseGameRoomReturn(overrides?: Partial<UseGameRoomReturn>): UseG
     gameState,
 
     // Connection
-    connectionStatus: require('@/services/types/IGameFacade').ConnectionStatus.Live,
+    connectionStatus: ConnectionStatus.Live,
 
     // Host/role/step info used by RoomScreen
     isHost: false,
-    roomStatus: require('@werewolf/game-engine/models/GameStatus').GameStatus.Ongoing,
+    roomStatus: GameStatus.Ongoing,
     // Make this client the current actioner so seat taps route to handleActionTap
-    currentActionRole: 'wolf',
-    currentSchema: (() => {
-      const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-      return getSchema('wolfKill');
-    })(),
+    currentActionRole: 'wolf' as RoleId,
+    currentSchema: getSchema('wolfKill'),
     isAudioPlaying: false,
 
     // Identity
@@ -178,22 +180,24 @@ jest.mock('../useRoomActionDialogs', () => ({
       targetSeat: number,
       onConfirm: () => void,
       messageOverride: string | undefined,
-      schema: any,
+      schema: ActionSchema,
     ) => {
-      const { showAlert: mockShowAlert } = require('@/utils/alert');
-      const { formatSeat: fmt } = require('@werewolf/game-engine/utils/formatSeat');
-      const title = schema.ui.confirmTitle;
+      const { showAlert: mockShowAlert } =
+        require('@/utils/alert') as typeof import('@/utils/alert');
+      const title = schema.ui!.confirmTitle;
       let msg: string;
       if (messageOverride) {
         msg = messageOverride;
       } else if (targetSeat === -1) {
-        msg = schema.ui.emptyVoteConfirmTemplate.replace('{wolf}', wolfName);
+        msg = schema.ui!.emptyVoteConfirmTemplate!.replace('{wolf}', wolfName);
       } else {
-        msg = schema.ui.voteConfirmTemplate
-          .replace('{wolf}', wolfName)
-          .replace('{seat}', fmt(targetSeat));
+        const { formatSeat: mockFormatSeat } =
+          require('@werewolf/game-engine/utils/formatSeat') as typeof import('@werewolf/game-engine/utils/formatSeat');
+        msg = schema
+          .ui!.voteConfirmTemplate!.replace('{wolf}', wolfName)
+          .replace('{seat}', mockFormatSeat(targetSeat));
       }
-      mockShowAlert(title, msg, [
+      mockShowAlert(title!, msg, [
         { text: '取消', style: 'cancel' },
         { text: '确定', onPress: onConfirm },
       ]);
@@ -216,7 +220,8 @@ describe('RoomScreen wolf vote UI', () => {
     // Regression guard for dialog copy + confirm wiring.
     // (This is stable and independent from RN press bubbling quirks in tests.)
 
-    const { useRoomActionDialogs } = require('@/screens/RoomScreen/useRoomActionDialogs');
+    const { useRoomActionDialogs } =
+      require('@/screens/RoomScreen/useRoomActionDialogs') as typeof import('@/screens/RoomScreen/useRoomActionDialogs');
     const dialogs = useRoomActionDialogs();
 
     dialogs.showWolfVoteDialog(
@@ -224,10 +229,7 @@ describe('RoomScreen wolf vote UI', () => {
       2,
       () => mockSubmitAction(2),
       undefined,
-      (() => {
-        const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-        return getSchema('wolfKill');
-      })(),
+      getSchema('wolfKill'),
     );
 
     expect(showAlert).toHaveBeenCalledWith(
@@ -236,7 +238,7 @@ describe('RoomScreen wolf vote UI', () => {
       expect.any(Array),
     );
 
-    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
       text: string;
       onPress?: () => void;
     }>;
@@ -247,15 +249,17 @@ describe('RoomScreen wolf vote UI', () => {
   });
 
   it('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
-    const props: any = {
-      navigation: mockNavigation,
+    const props = {
+      navigation: mockNavigation as unknown as React.ComponentProps<
+        typeof RoomScreen
+      >['navigation'],
       route: {
         params: {
           roomCode: '1234',
           isHost: false,
           template: '噩梦之影守卫',
         },
-      },
+      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
     };
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
@@ -275,7 +279,7 @@ describe('RoomScreen wolf vote UI', () => {
       );
     });
 
-    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
       text: string;
       onPress?: () => void;
     }>;
@@ -295,7 +299,7 @@ describe('RoomScreen wolf vote UI', () => {
     // Override just the players map: seat 3 (index 2) is spiritKnight (server will reject).
     mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
-      const players = new Map(base.gameState.players);
+      const players = new Map<number, LocalPlayer>(base.gameState.players);
       const target = players.get(2);
       players.set(2, {
         ...(target ?? {
@@ -303,10 +307,10 @@ describe('RoomScreen wolf vote UI', () => {
           seat: 2,
           displayName: 'P3',
           avatarUrl: undefined,
-          role: 'villager',
+          role: 'villager' as RoleId,
           hasViewedRole: true,
         }),
-        role: 'spiritKnight',
+        role: 'spiritKnight' as RoleId,
       });
       const submitAction = mockSubmitAction;
       submitActionMock = submitAction;
@@ -317,22 +321,21 @@ describe('RoomScreen wolf vote UI', () => {
           players,
         },
         submitAction,
-        currentSchema: (() => {
-          const { getSchema } = require('@werewolf/game-engine/models/roles/spec/schemas');
-          return getSchema('wolfKill');
-        })(),
+        currentSchema: getSchema('wolfKill'),
       });
     };
 
-    const props: any = {
-      navigation: mockNavigation,
+    const props = {
+      navigation: mockNavigation as unknown as React.ComponentProps<
+        typeof RoomScreen
+      >['navigation'],
       route: {
         params: {
           roomCode: '1234',
           isHost: false,
           template: '噩梦之影守卫',
         },
-      },
+      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
     };
 
     const rendered = render(<RoomScreen {...props} />);
@@ -340,7 +343,7 @@ describe('RoomScreen wolf vote UI', () => {
     await findByText(/请选择袭击目标/);
 
     // Ignore any alerts from initial render/auto intent.
-    (showAlert as jest.Mock).mockClear();
+    jest.mocked(showAlert).mockClear();
 
     // Tap seat 3 (index 2) -> spiritKnight (server will reject)
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));
@@ -356,11 +359,11 @@ describe('RoomScreen wolf vote UI', () => {
     });
 
     // Verify immune warning is appended
-    const alertMsg = (showAlert as jest.Mock).mock.calls[0][1] as string;
+    const alertMsg = jest.mocked(showAlert).mock.calls[0][1] as string;
     expect(alertMsg).toContain('免疫狼人袭击');
 
     // Confirm vote
-    const buttons = (showAlert as jest.Mock).mock.calls[0][2] as Array<{
+    const buttons = jest.mocked(showAlert).mock.calls[0][2] as Array<{
       text: string;
       onPress?: () => void;
     }>;
@@ -388,18 +391,20 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
   });
 
   it('tap seat → wolfVote dialog → press 确定 → submitAction called with correct target', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props: any = {
-      navigation: mockNavigation,
+    const props = {
+      navigation: mockNavigation as unknown as React.ComponentProps<
+        typeof RoomScreen
+      >['navigation'],
       route: {
         params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      },
+      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
     };
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
@@ -429,11 +434,13 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   it('tap seat → wolfVote dialog → press 取消 → submitAction NOT called', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props: any = {
-      navigation: mockNavigation,
+    const props = {
+      navigation: mockNavigation as unknown as React.ComponentProps<
+        typeof RoomScreen
+      >['navigation'],
       route: {
         params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      },
+      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
     };
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
@@ -459,11 +466,13 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   it('harness getLastEvent returns the wolfVote dialog with correct metadata', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props: any = {
-      navigation: mockNavigation,
+    const props = {
+      navigation: mockNavigation as unknown as React.ComponentProps<
+        typeof RoomScreen
+      >['navigation'],
       route: {
         params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      },
+      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
     };
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);

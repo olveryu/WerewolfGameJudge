@@ -169,7 +169,7 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    const state: GameState = JSON.parse(rows[0].game_state as string);
+    const state = JSON.parse(rows[0].game_state as string) as GameState;
     if (state.status !== GameStatus.Ended) {
       await this.ctx.storage.delete('settle_pending');
       return;
@@ -578,7 +578,7 @@ export class GameRoom extends DurableObject<Env> {
       .toArray();
     if (rows.length === 0) return null;
     return {
-      state: JSON.parse(rows[0].game_state as string),
+      state: JSON.parse(rows[0].game_state as string) as GameState,
       revision: rows[0].revision as number,
     };
   }
@@ -650,9 +650,14 @@ export class GameRoom extends DurableObject<Env> {
     const data = typeof message === 'string' ? message : new TextDecoder().decode(message);
 
     try {
-      const parsed = JSON.parse(data);
+      const parsed: unknown = JSON.parse(data);
 
-      if (parsed.type === 'ping') {
+      if (
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        'type' in parsed &&
+        (parsed as { type: string }).type === 'ping'
+      ) {
         ws.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
       }
     } catch {

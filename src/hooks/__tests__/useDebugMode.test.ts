@@ -8,28 +8,58 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useDebugMode } from '@/hooks/useDebugMode';
+import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
-function createMockFacade(overrides: Record<string, unknown> = {}) {
+type MockFacade = Pick<
+  IGameFacade,
+  | 'isHostPlayer'
+  | 'getMySeat'
+  | 'leaveSeat'
+  | 'fillWithBots'
+  | 'markAllBotsViewed'
+  | 'markAllBotsGroupConfirmed'
+>;
+
+function createMockFacade(overrides: Partial<{ [K in keyof MockFacade]: MockFacade[K] }> = {}) {
   return {
-    isHostPlayer: jest.fn(() => true),
-    getMySeat: jest.fn(() => 1),
-    leaveSeat: jest.fn().mockResolvedValue(undefined),
-    fillWithBots: jest.fn().mockResolvedValue({ success: true }),
-    markAllBotsViewed: jest.fn().mockResolvedValue({ success: true }),
-    markAllBotsGroupConfirmed: jest.fn().mockResolvedValue({ success: true }),
+    isHostPlayer: jest.fn<boolean, []>(() => true),
+    getMySeat: jest.fn<number | null, []>(() => 1),
+    leaveSeat: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
+    fillWithBots: jest
+      .fn<Promise<{ success: boolean; reason?: string }>, []>()
+      .mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest
+      .fn<Promise<{ success: boolean; reason?: string }>, []>()
+      .mockResolvedValue({ success: true }),
+    markAllBotsGroupConfirmed: jest
+      .fn<Promise<{ success: boolean; reason?: string }>, []>()
+      .mockResolvedValue({ success: true }),
     ...overrides,
-  } as any;
+  } as unknown as IGameFacade;
 }
 
-function makeGameState(overrides: Record<string, unknown> = {}) {
-  const players = new Map();
-  players.set(1, { role: 'wolf', seat: 1 });
-  players.set(2, { role: 'seer', seat: 2 });
+function makeGameState(
+  overrides: Partial<Pick<LocalGameState, 'players' | 'debugMode'>> = {},
+): LocalGameState {
+  const players = new Map<number, LocalPlayer | null>();
+  players.set(1, {
+    userId: 'u1',
+    seat: 1,
+    role: 'wolf',
+    hasViewedRole: false,
+  });
+  players.set(2, {
+    userId: 'u2',
+    seat: 2,
+    role: 'seer',
+    hasViewedRole: false,
+  });
   return {
     players,
     debugMode: { botsEnabled: false },
     ...overrides,
-  } as any;
+  } as unknown as LocalGameState;
 }
 
 describe('useDebugMode', () => {
@@ -94,10 +124,12 @@ describe('useDebugMode', () => {
   // --- fillWithBots ---
 
   it('fillWithBots leaves seat first if hosted is seated, then fills', async () => {
-    const facade = createMockFacade({ getMySeat: jest.fn(() => 1) });
+    const facade = createMockFacade({
+      getMySeat: jest.fn<number | null, []>(() => 1),
+    });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
@@ -108,7 +140,9 @@ describe('useDebugMode', () => {
   });
 
   it('fillWithBots skips leaveSeat when host is not seated', async () => {
-    const facade = createMockFacade({ getMySeat: jest.fn(() => null) });
+    const facade = createMockFacade({
+      getMySeat: jest.fn<number | null, []>(() => null),
+    });
     const { result } = renderHook(() => useDebugMode(facade, null, null));
 
     await act(async () => {
@@ -120,10 +154,12 @@ describe('useDebugMode', () => {
   });
 
   it('fillWithBots returns failure when not host', async () => {
-    const facade = createMockFacade({ isHostPlayer: jest.fn(() => false) });
+    const facade = createMockFacade({
+      isHostPlayer: jest.fn<boolean, []>(() => false),
+    });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
@@ -134,18 +170,18 @@ describe('useDebugMode', () => {
 
   it('fillWithBots handles leaveSeat failure', async () => {
     const facade = createMockFacade({
-      getMySeat: jest.fn(() => 1),
-      leaveSeat: jest.fn().mockRejectedValue(new Error('leave failed')),
+      getMySeat: jest.fn<number | null, []>(() => 1),
+      leaveSeat: jest.fn<Promise<boolean>, []>().mockRejectedValue(new Error('leave failed')),
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
 
-    expect(res.success).toBe(false);
-    expect(res.reason).toContain('failed_to_leave_seat');
+    expect(res!.success).toBe(false);
+    expect(res!.reason).toContain('failed_to_leave_seat');
   });
 
   // --- markAllBotsViewed ---
@@ -154,7 +190,7 @@ describe('useDebugMode', () => {
     const facade = createMockFacade();
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.markAllBotsViewed();
     });
@@ -164,10 +200,12 @@ describe('useDebugMode', () => {
   });
 
   it('markAllBotsViewed returns failure when not host', async () => {
-    const facade = createMockFacade({ isHostPlayer: jest.fn(() => false) });
+    const facade = createMockFacade({
+      isHostPlayer: jest.fn<boolean, []>(() => false),
+    });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: any;
+    let res: { success: boolean; reason?: string } | undefined;
     await act(async () => {
       res = await result.current.markAllBotsViewed();
     });

@@ -16,11 +16,13 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { toLocalState } from '@/hooks/adapters/toLocalState';
 import {
   createShowAlertMock,
   mockNavigation,
+  mockRoomRoute,
   RoomScreenTestHarness,
   waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
@@ -35,7 +37,7 @@ import { showAlert } from '@/utils/alert';
 // =============================================================================
 
 jest.mock('../../../../utils/alert', () => ({
-  ...jest.requireActual('../../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../../utils/alert')>('../../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -101,12 +103,12 @@ function createRoleAssignment(): Map<number, RoleId> {
  * 将 GameState (protocol 格式) 转换为 useGameRoom mock 中的 gameState 格式。
  * 使用真实的 toLocalState 适配器（与生产代码路径一致）。
  */
-function toMockGameState(state: any) {
+function toMockGameState(state: GameState) {
   return toLocalState(state);
 }
 
 let harness: RoomScreenTestHarness;
-let mockUseGameRoomReturn: any;
+let mockUseGameRoomReturn: Record<string, unknown>;
 
 jest.mock('../../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomReturn,
@@ -120,7 +122,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
-    (showAlert as jest.Mock).mockImplementation(createShowAlertMock(harness));
+    jest.mocked(showAlert).mockImplementation(createShowAlertMock(harness));
   });
 
   afterEach(() => {
@@ -217,10 +219,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
     // 4. Render and verify
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -330,10 +329,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     };
 
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);

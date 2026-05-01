@@ -71,13 +71,13 @@ describe('validateNightFlowPreconditions', () => {
   });
 
   it('should reject when wolfRobot learned a gate role but not viewed (Gate 4)', () => {
-    const gateTriggerRole = WOLF_ROBOT_GATE_ROLES[0]; // e.g. 'hunter'
+    const gateTriggerRole = WOLF_ROBOT_GATE_ROLES[0];
     const state = createMinimalState({
       currentStepId: 'wolfRobotLearn',
       wolfRobotReveal: {
         targetSeat: 3,
-        result: gateTriggerRole as any,
-        learnedRoleId: gateTriggerRole as any,
+        result: gateTriggerRole,
+        learnedRoleId: gateTriggerRole,
       },
       wolfRobotHunterStatusViewed: false,
     } as Partial<NonNullState>);
@@ -95,8 +95,8 @@ describe('validateNightFlowPreconditions', () => {
       currentStepId: 'wolfRobotLearn',
       wolfRobotReveal: {
         targetSeat: 3,
-        result: gateTriggerRole as any,
-        learnedRoleId: gateTriggerRole as any,
+        result: gateTriggerRole,
+        learnedRoleId: gateTriggerRole,
       },
       wolfRobotHunterStatusViewed: true,
     } as Partial<NonNullState>);
@@ -109,7 +109,7 @@ describe('validateNightFlowPreconditions', () => {
       currentStepId: 'wolfRobotLearn',
       wolfRobotReveal: {
         targetSeat: 3,
-        result: 'villager' as any,
+        result: 'villager',
         learnedRoleId: 'villager',
       },
       wolfRobotHunterStatusViewed: false,

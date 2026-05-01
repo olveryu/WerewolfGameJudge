@@ -16,9 +16,11 @@ import type {
   StartNightAction,
   StateAction,
   UpdatePlayerProfileAction,
+  UpdateTemplateAction,
 } from '@werewolf/game-engine/engine/reducer/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { Player } from '@werewolf/game-engine/protocol/types';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -1163,9 +1165,9 @@ describe('gameReducer', () => {
           2: null,
         },
       });
-      const action = {
-        type: 'UPDATE_TEMPLATE' as const,
-        payload: { templateRoles: ['wolf', 'wolf', 'seer', 'villager'] as any },
+      const action: UpdateTemplateAction = {
+        type: 'UPDATE_TEMPLATE',
+        payload: { templateRoles: ['wolf', 'wolf', 'seer', 'villager'] },
       };
 
       const newState = gameReducer(state, action);
@@ -1188,9 +1190,9 @@ describe('gameReducer', () => {
           1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seer' },
         },
       });
-      const action = {
-        type: 'UPDATE_TEMPLATE' as const,
-        payload: { templateRoles: ['wolf', 'seer'] as any },
+      const action: UpdateTemplateAction = {
+        type: 'UPDATE_TEMPLATE',
+        payload: { templateRoles: ['wolf', 'seer'] },
       };
 
       const newState = gameReducer(state, action);
@@ -1208,21 +1210,21 @@ describe('gameReducer', () => {
           2: null,
         },
       });
-      const bots = {
+      const bots: Record<number, Player> = {
         1: {
           userId: 'bot-1',
           seat: 1,
           hasViewedRole: false,
           role: null,
           isBot: true,
-        } as any,
+        },
         2: {
           userId: 'bot-2',
           seat: 2,
           hasViewedRole: false,
           role: null,
           isBot: true,
-        } as any,
+        },
       };
       const action = {
         type: 'FILL_WITH_BOTS' as const,
@@ -1251,21 +1253,21 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: false, role: 'wolf' } as any,
+          0: { userId: 'p0', seat: 0, hasViewedRole: false, role: 'wolf' },
           1: {
             userId: 'bot-1',
             seat: 1,
             hasViewedRole: false,
             role: 'seer',
             isBot: true,
-          } as any,
+          },
           2: {
             userId: 'bot-2',
             seat: 2,
             hasViewedRole: false,
             role: 'villager',
             isBot: true,
-          } as any,
+          },
         },
       });
       const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };
@@ -1285,14 +1287,14 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' } as any,
+          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
           1: {
             userId: 'bot-1',
             seat: 1,
             hasViewedRole: false,
             role: 'seer',
             isBot: true,
-          } as any,
+          },
         },
       });
       const action = { type: 'MARK_ALL_BOTS_VIEWED' as const };

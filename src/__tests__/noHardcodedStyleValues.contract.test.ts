@@ -24,8 +24,8 @@
  * is updated (can only decrease).
  */
 
-const fs = require('node:fs');
-const path = require('node:path');
+import fs from 'node:fs';
+import path from 'node:path';
 
 // ─── File walker ────────────────────────────────────────────────────────────
 

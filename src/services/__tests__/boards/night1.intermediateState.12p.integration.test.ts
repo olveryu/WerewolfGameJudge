@@ -93,7 +93,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     const afterWolfAction = ctx.getGameState();
     // Wolf action should be recorded in actions array
     expect(afterWolfAction.actions?.length).toBeGreaterThanOrEqual(1);
-    const wolfAction = afterWolfAction.actions?.find((a: any) => a.schemaId === 'wolfKill');
+    const wolfAction = afterWolfAction.actions?.find((a) => a.schemaId === 'wolfKill');
     expect(wolfAction).toBeDefined();
     expect(wolfAction?.targetSeat).toBe(0);
 
@@ -122,7 +122,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     );
 
     const afterWitch = ctx.getGameState();
-    const witchAction = afterWitch.actions?.find((a: any) => a.schemaId === 'witchAction');
+    const witchAction = afterWitch.actions?.find((a) => a.schemaId === 'witchAction');
     expect(witchAction).toBeDefined();
 
     ctx.advanceNightOrThrow('past witchAction');
@@ -142,7 +142,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     );
 
     const afterHunter = ctx.getGameState();
-    const hunterAction = afterHunter.actions?.find((a: any) => a.schemaId === 'hunterConfirm');
+    const hunterAction = afterHunter.actions?.find((a) => a.schemaId === 'hunterConfirm');
     expect(hunterAction).toBeDefined();
 
     ctx.advanceNightOrThrow('past hunterConfirm');
@@ -158,7 +158,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     );
 
     const afterSeer = ctx.getGameState();
-    const seerAction = afterSeer.actions?.find((a: any) => a.schemaId === 'seerCheck');
+    const seerAction = afterSeer.actions?.find((a) => a.schemaId === 'seerCheck');
     expect(seerAction).toBeDefined();
 
     // seerReveal should be populated

@@ -9,7 +9,7 @@ import { Alert, Platform } from 'react-native';
 
 import type { AlertInputConfig } from '@/components/AlertModal';
 
-interface AlertButton {
+export interface AlertButton {
   text: string;
   onPress?: (inputValue?: string) => void;
   style?: 'default' | 'cancel' | 'destructive';

@@ -395,9 +395,11 @@ export function useConfigScreenState({
 
   // ── Active faction tab ───────────────────────────────────────────────────
 
-  const [activeTab, setActiveTab] = useState<string>(FACTION_GROUPS[0]?.faction ?? '');
+  const [activeTab, setActiveTab] = useState<Faction>(
+    FACTION_GROUPS[0]?.faction ?? Faction.Villager,
+  );
 
-  const handleTabPress = useCallback((key: string) => {
+  const handleTabPress = useCallback((key: Faction) => {
     setActiveTab(key);
   }, []);
 

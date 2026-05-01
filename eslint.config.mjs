@@ -27,6 +27,7 @@ export default tseslint.config(
       'miniapp/',
       'scripts/',
       'functions/',
+      '**/worker-configuration.d.ts',
     ],
   },
 
@@ -59,7 +60,7 @@ export default tseslint.config(
         ...globals.node,
       },
       parserOptions: {
-        project: ['./tsconfig.json', './packages/*/tsconfig.json'],
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: { jsx: true },
       },
@@ -88,13 +89,13 @@ export default tseslint.config(
         { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false },
       ],
 
-      // TypeScript — type-checked: disable no-unsafe-* family (too noisy with third-party `any`)
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-enum-comparison': 'off',
+      // TypeScript — type-checked: no-unsafe-* family
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-enum-comparison': 'error',
       '@typescript-eslint/restrict-template-expressions': 'off',
 
       // Detect unused private class members
@@ -301,11 +302,6 @@ export default tseslint.config(
   // =========================================================================
   {
     files: ['packages/api-worker/**/*.ts'],
-    languageOptions: {
-      parserOptions: {
-        projectService: false,
-      },
-    },
     rules: {
       // Workers must use structured logger — only lib/logger.ts may call console directly
       'no-console': 'error',
@@ -316,6 +312,19 @@ export default tseslint.config(
       'react-native/no-single-element-style-arrays': 'off',
       'react-native/no-inline-styles': 'off',
       '@typescript-eslint/naming-convention': 'off',
+    },
+  },
+  // api-worker tests: use tsconfig.test.json so `cloudflare:test` types resolve.
+  // projectService doesn't discover non-standard tsconfig filenames;
+  // explicit `project` is required per typescript-eslint docs.
+  {
+    files: ['packages/api-worker/src/__tests__/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        projectService: false,
+        project: './packages/api-worker/tsconfig.test.json',
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
   },
   // Allow console.* only in the Worker logger abstraction

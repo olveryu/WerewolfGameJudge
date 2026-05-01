@@ -6,6 +6,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 import { buildPlayerContext } from '../playerContext';
@@ -65,7 +66,7 @@ describe('buildPlayerContext', () => {
 
   it('includes boardRoleDetails when templateRoles are present', () => {
     const state = makeState({
-      templateRoles: ['seer', 'wolf', 'villager'] as any[],
+      templateRoles: ['seer', 'wolf', 'villager'] as RoleId[],
     });
     const ctx = buildPlayerContext(state, null);
 
@@ -85,7 +86,7 @@ describe('buildPlayerContext', () => {
   it('includes mySeat and myRole when seat is provided and player has a role', () => {
     const state = makeState({
       players: {
-        2: makePlayer({ seat: 2, role: 'witch' as any }),
+        2: makePlayer({ seat: 2, role: 'witch' }),
       },
     });
     const ctx = buildPlayerContext(state, 2);
@@ -111,7 +112,7 @@ describe('buildPlayerContext', () => {
   it('handles mySeat=0 correctly (falsy but valid)', () => {
     const state = makeState({
       players: {
-        0: makePlayer({ seat: 0, role: 'guard' as any }),
+        0: makePlayer({ seat: 0, role: 'guard' }),
       },
     });
     const ctx = buildPlayerContext(state, 0);
@@ -123,8 +124,8 @@ describe('buildPlayerContext', () => {
   it('does not leak other players roles', () => {
     const state = makeState({
       players: {
-        0: makePlayer({ seat: 0, role: 'seer' as any }),
-        1: makePlayer({ seat: 1, role: 'wolf' as any }),
+        0: makePlayer({ seat: 0, role: 'seer' }),
+        1: makePlayer({ seat: 1, role: 'wolf' }),
       },
     });
     // Player at seat 0 — should only see own role

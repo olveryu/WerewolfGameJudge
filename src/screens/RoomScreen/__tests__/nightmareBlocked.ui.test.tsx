@@ -15,10 +15,10 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
-  ...jest.requireActual('../../../utils/alert'),
+  ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),
 }));
 
@@ -26,7 +26,7 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
 }));
 
-const mockShowAlert = showAlert as jest.Mock;
+const mockShowAlert = jest.mocked(showAlert);
 
 const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
   const base = makeBaseUseGameRoomReturn({
@@ -45,7 +45,8 @@ const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
   };
 };
 
-let mockUseGameRoomReturn: ReturnType<typeof makeBlockedPlayerMock>;
+type MockReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
+let mockUseGameRoomReturn: MockReturn;
 
 jest.mock('../../../hooks/useGameRoom', () => ({
   useGameRoom: () => mockUseGameRoomReturn,
@@ -59,10 +60,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
   it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
     const { getByTestId } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -98,14 +96,9 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
           rejectionId: 'test-rejection-1',
         },
       },
-    };
+    } as unknown as MockReturn;
 
-    render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
-    );
+    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
@@ -145,13 +138,10 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
           },
         },
       },
-    };
+    } as unknown as MockReturn;
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -183,10 +173,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     };
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -218,10 +205,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     };
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -264,13 +248,10 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
           },
         },
       },
-    };
+    } as unknown as MockReturn;
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen
-        route={{ params: { roomCode: '1234', isHost: false } } as any}
-        navigation={mockNavigation as any}
-      />,
+      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
