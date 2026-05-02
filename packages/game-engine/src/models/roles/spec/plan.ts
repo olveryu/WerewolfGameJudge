@@ -38,6 +38,9 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   'shadowChooseMimic',
   'avengerConfirm',
 
+  // === 蚀时狼妃放逐（所有好人行动之前）===
+  'eclipseWolfQueenShelter',
+
   // === 守护/查验类（袭击前）===
   'nightmareBlock',
   'dreamcatcherDream',

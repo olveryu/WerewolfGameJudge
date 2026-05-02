@@ -17,6 +17,7 @@ import cupidBegin from '../../../../assets/audio/cupid.mp3';
 import cupidLoversRevealBegin from '../../../../assets/audio/cupid_lovers_reveal.mp3';
 import darkWolfKingBegin from '../../../../assets/audio/dark_wolf_king.mp3';
 import dreamcatcherBegin from '../../../../assets/audio/dreamcatcher.mp3';
+import eclipseWolfQueenBegin from '../../../../assets/audio/eclipse_wolf_queen.mp3';
 import gargoyleBegin from '../../../../assets/audio/gargoyle.mp3';
 import guardBegin from '../../../../assets/audio/guard.mp3';
 import hunterBegin from '../../../../assets/audio/hunter.mp3';
@@ -52,6 +53,7 @@ import cupidEnd from '../../../../assets/audio_end/cupid.mp3';
 import cupidLoversRevealEnd from '../../../../assets/audio_end/cupid_lovers_reveal.mp3';
 import darkWolfKingEnd from '../../../../assets/audio_end/dark_wolf_king.mp3';
 import dreamcatcherEnd from '../../../../assets/audio_end/dreamcatcher.mp3';
+import eclipseWolfQueenEnd from '../../../../assets/audio_end/eclipse_wolf_queen.mp3';
 import gargoyleEnd from '../../../../assets/audio_end/gargoyle.mp3';
 import guardEnd from '../../../../assets/audio_end/guard.mp3';
 import hunterEnd from '../../../../assets/audio_end/hunter.mp3';
@@ -142,6 +144,10 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
   wolfQueen: {
     begin: wolfQueenBegin,
     end: wolfQueenEnd,
+  },
+  eclipseWolfQueen: {
+    begin: eclipseWolfQueenBegin,
+    end: eclipseWolfQueenEnd,
   },
   witch: {
     begin: witchBegin,

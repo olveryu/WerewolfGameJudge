@@ -43,6 +43,7 @@ export const EMOJI_MAP = {
   dancer: ['Woman dancing', 'woman_dancing', true],
   silenceElder: ['Shushing face', 'shushing_face', false],
   votebanElder: ['Prohibited', 'prohibited', false],
+  sequencePrince: ['Prince', 'prince', true],
 
   // Wolf faction
   wolf: ['Wolf', 'wolf', false],
@@ -58,6 +59,7 @@ export const EMOJI_MAP = {
   spiritKnight: ['Crossed swords', 'crossed_swords', false],
   masquerade: ['Performing arts', 'performing_arts', false],
   warden: ['Chains', 'chains', false],
+  eclipseWolfQueen: ['Waning crescent moon', 'waning_crescent_moon', false],
 
   // Third-party / Special
   slacker: ['Sleeping face', 'sleeping_face', false],

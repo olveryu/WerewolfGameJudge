@@ -18,6 +18,7 @@ import badge_dancer from '../../assets/badges/png/512/role_dancer.png';
 import badge_darkWolfKing from '../../assets/badges/png/512/role_darkWolfKing.png';
 import badge_dreamcatcher from '../../assets/badges/png/512/role_dreamcatcher.png';
 import badge_drunkSeer from '../../assets/badges/png/512/role_drunkSeer.png';
+import badge_eclipseWolfQueen from '../../assets/badges/png/512/role_eclipseWolfQueen.png';
 import badge_gargoyle from '../../assets/badges/png/512/role_gargoyle.png';
 import badge_graveyardKeeper from '../../assets/badges/png/512/role_graveyardKeeper.png';
 import badge_guard from '../../assets/badges/png/512/role_guard.png';
@@ -34,6 +35,7 @@ import badge_poisoner from '../../assets/badges/png/512/role_poisoner.png';
 import badge_psychic from '../../assets/badges/png/512/role_psychic.png';
 import badge_pureWhite from '../../assets/badges/png/512/role_pureWhite.png';
 import badge_seer from '../../assets/badges/png/512/role_seer.png';
+import badge_sequencePrince from '../../assets/badges/png/512/role_sequencePrince.png';
 import badge_shadow from '../../assets/badges/png/512/role_shadow.png';
 import badge_silenceElder from '../../assets/badges/png/512/role_silenceElder.png';
 import badge_slacker from '../../assets/badges/png/512/role_slacker.png';
@@ -76,6 +78,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   crow: badge_crow,
   maskedMan: badge_maskedMan,
   poisoner: badge_poisoner,
+  sequencePrince: badge_sequencePrince,
   // ── Wolf ──
   wolf: badge_wolf,
   wolfQueen: badge_wolfQueen,
@@ -90,6 +93,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   spiritKnight: badge_spiritKnight,
   masquerade: badge_masquerade,
   warden: badge_warden,
+  eclipseWolfQueen: badge_eclipseWolfQueen,
   // ── Special ──
   slacker: badge_slacker,
   wildChild: badge_wildChild,

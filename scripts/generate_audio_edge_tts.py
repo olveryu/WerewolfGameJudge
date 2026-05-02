@@ -87,6 +87,7 @@ BEGIN_TEXT: dict[str, str] = {
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
     "awakened_gargoyle_convert_reveal": "所有玩家请睁眼，请看手机确认转化信息。",
     "cupid_lovers_reveal": "所有玩家请睁眼，请看手机确认信息。",
+    "eclipse_wolf_queen": "蚀时狼妃请睁眼，请选择要放逐的玩家。",
 }
 
 END_TEXT: dict[str, str] = {
@@ -124,6 +125,7 @@ END_TEXT: dict[str, str] = {
     "piper_hypnotized_reveal": "所有玩家请闭眼。",
     "awakened_gargoyle_convert_reveal": "所有玩家请闭眼。",
     "cupid_lovers_reveal": "所有玩家请闭眼。",
+    "eclipse_wolf_queen": "蚀时狼妃请闭眼。",
 }
 
 

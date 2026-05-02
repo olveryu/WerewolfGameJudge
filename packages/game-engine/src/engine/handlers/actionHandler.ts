@@ -10,7 +10,7 @@
  * VIEWED_ROLE handling lives in viewedRoleHandler.ts.
  */
 
-import { type RoleId, type SchemaId, SCHEMAS } from '../../models';
+import { ROLE_SPECS, type RoleId, type SchemaId, SCHEMAS, Team } from '../../models';
 import type { ProtocolAction } from '../../protocol/types';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput, ResolverContext, ResolverResult } from '../../resolvers/types';
@@ -97,6 +97,48 @@ function getActionTimestamp(extra?: Record<string, unknown>): number {
 }
 
 /**
+ * 蚀时狼妃放逐重定向 — 神职对被放逐者的技能目标改为使用者自身
+ *
+ * 在 resolver 调用前统一重写 ActionInput 中所有 target 字段。
+ * 由于 buildSuccessResult 也使用同一个 effectiveTarget，
+ * ProtocolAction.targetSeat 与 resolver 结果保持一致。
+ */
+function applyShelterRedirect(
+  input: ActionInput,
+  actorSeat: number,
+  actorRoleId: RoleId,
+  shelteredSeat: number | undefined,
+): ActionInput {
+  if (shelteredSeat === undefined) return input;
+
+  const spec = ROLE_SPECS[actorRoleId];
+  if (spec.team !== Team.Good) return input;
+
+  const redirect = (seat: number | undefined): number | undefined =>
+    seat === shelteredSeat ? actorSeat : seat;
+
+  const redirectNullable = (seat: number | null): number | null =>
+    seat === shelteredSeat ? actorSeat : seat;
+
+  const redirected =
+    redirect(input.target) !== input.target ||
+    input.targets?.some((t) => t === shelteredSeat) ||
+    (input.stepResults && Object.values(input.stepResults).some((v) => v === shelteredSeat));
+
+  return {
+    ...input,
+    target: redirect(input.target),
+    targets: input.targets?.map((t) => (t === shelteredSeat ? actorSeat : t)),
+    stepResults: input.stepResults
+      ? Object.fromEntries(
+          Object.entries(input.stepResults).map(([k, v]) => [k, redirectNullable(v)]),
+        )
+      : undefined,
+    ...(redirected ? { shelterRedirected: true } : {}),
+  };
+}
+
+/**
  * 处理提交行动（PR4: SUBMIT_ACTION）
  *
  * Resolver-first：所有业务校验由 resolver 完成
@@ -116,11 +158,16 @@ export function handleSubmitAction(
   const { schemaId, state, schema } = validation;
 
   // 构建 ActionInput（先构建，用于 nightmare guard 和 resolver）
-  const actionInput = buildActionInput(
+  let actionInput = buildActionInput(
     schemaId,
     target,
     extra as Record<string, unknown> | undefined,
   );
+
+  // 蚀时狼妃放逐重定向（在 nightmare guard 和 resolver 之前）
+  const shelteredSeat = state.currentNightResults?.shelteredSeat;
+  actionInput = applyShelterRedirect(actionInput, seat, role, shelteredSeat);
+  const effectiveTarget = actionInput.target ?? null;
 
   // Nightmare block guard (single-point guard, schema-aware)
   const blockRejectReason = checkNightmareBlockGuard(
@@ -168,7 +215,7 @@ export function handleSubmitAction(
   const handlerResult = buildSuccessResult(
     schemaId,
     seat,
-    target,
+    effectiveTarget,
     role,
     result,
     extra as Record<string, unknown> | undefined,

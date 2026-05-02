@@ -624,4 +624,22 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'crow',
     ],
   },
+  {
+    name: '永序之轮',
+    category: TemplateCategory.Advanced,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'eclipseWolfQueen',
+      'seer',
+      'witch',
+      'guard',
+      'sequencePrince',
+    ],
+  },
 ];

@@ -237,7 +237,8 @@ export type TriggerCondition =
   | 'onDayExile'
   | 'onCheckedByNonWolf'
   | 'onPoisoned'
-  | 'onSelfDeath';
+  | 'onSelfDeath'
+  | 'afterFirstExileVote';
 
 export type TriggeredEffectKind =
   | 'shoot'
@@ -246,7 +247,8 @@ export type TriggeredEffectKind =
   | 'flipCard'
   | 'selfDestruct'
   | 'reflectDamage'
-  | 'stab';
+  | 'stab'
+  | 'reverseVote';
 
 export type Ability = ActiveAbility | PassiveAbility | TriggeredAbility;
 

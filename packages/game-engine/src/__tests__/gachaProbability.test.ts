@@ -186,7 +186,7 @@ describe('gachaProbability', () => {
 
   describe('REWARD_POOL rarity counts', () => {
     it('should have correct total count', () => {
-      expect(REWARD_POOL.length).toBe(1015);
+      expect(REWARD_POOL.length).toBe(1017);
     });
 
     it('should have correct rarity distribution', () => {
@@ -194,8 +194,8 @@ describe('gachaProbability', () => {
       for (const item of REWARD_POOL) {
         counts[item.rarity]++;
       }
-      expect(counts.legendary).toBe(48);
-      expect(counts.epic).toBe(217);
+      expect(counts.legendary).toBe(49);
+      expect(counts.epic).toBe(218);
       expect(counts.rare).toBe(250);
       expect(counts.common).toBe(500);
     });
@@ -206,9 +206,9 @@ describe('gachaProbability', () => {
         if (!byType[item.type]) byType[item.type] = { common: 0, rare: 0, epic: 0, legendary: 0 };
         byType[item.type]![item.rarity]++;
       }
-      // Avatars: L10/E33/R50/C100 = 193
-      expect(byType['avatar']!.legendary).toBe(10);
-      expect(byType['avatar']!.epic).toBe(33);
+      // Avatars: L11/E34/R50/C100 = 195
+      expect(byType['avatar']!.legendary).toBe(11);
+      expect(byType['avatar']!.epic).toBe(34);
       expect(byType['avatar']!.rare).toBe(50);
       expect(byType['avatar']!.common).toBe(100);
       // Frames: L11/E39/R50/C100 = 200

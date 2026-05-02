@@ -32,6 +32,7 @@ export const RESOLVERS: ResolverRegistry = {
   votebanElderBan: createGenericResolver('votebanElder'),
   crowCurse: createGenericResolver('crow'),
   wolfQueenCharm: createGenericResolver('wolfQueen'),
+  eclipseWolfQueenShelter: createGenericResolver('eclipseWolfQueen'),
   slackerChooseIdol: createGenericResolver('slacker'),
   wildChildChooseIdol: createGenericResolver('wildChild'),
   // P3: check (faction + identity)

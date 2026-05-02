@@ -200,6 +200,13 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     );
   }
 
+  // 2a. EclipseWolfQueen shelter
+  if (nr.shelteredSeat != null) {
+    lines.push(
+      `${getRoleEmoji('eclipseWolfQueen' as RoleId)} ${getRoleDisplayName('eclipseWolfQueen' as RoleId)}庇护了 ${formatSeat(nr.shelteredSeat)}`,
+    );
+  }
+
   // 3. Guard
   if (nr.guardedSeat != null) {
     lines.push(`${ACTION.GUARD} 守卫守护了 ${formatSeat(nr.guardedSeat)}`);

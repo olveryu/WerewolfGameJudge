@@ -17,6 +17,7 @@ import dancer from '../../assets/avatars/raw/dancer.png';
 import darkWolfKing from '../../assets/avatars/raw/darkWolfKing.png';
 import dreamcatcher from '../../assets/avatars/raw/dreamcatcher.png';
 import drunkSeer from '../../assets/avatars/raw/drunkSeer.png';
+import eclipseWolfQueen from '../../assets/avatars/raw/eclipseWolfQueen.png';
 import gargoyle from '../../assets/avatars/raw/gargoyle.png';
 import graveyardKeeper from '../../assets/avatars/raw/graveyardKeeper.png';
 import guard from '../../assets/avatars/raw/guard.png';
@@ -33,6 +34,7 @@ import poisoner from '../../assets/avatars/raw/poisoner.png';
 import psychic from '../../assets/avatars/raw/psychic.png';
 import pureWhite from '../../assets/avatars/raw/pureWhite.png';
 import seer from '../../assets/avatars/raw/seer.png';
+import sequencePrince from '../../assets/avatars/raw/sequencePrince.png';
 import shadow from '../../assets/avatars/raw/shadow.png';
 import silenceElder from '../../assets/avatars/raw/silenceElder.png';
 import slacker from '../../assets/avatars/raw/slacker.png';
@@ -61,6 +63,7 @@ import thumb_dancer from '../../assets/badges/png/512/role_dancer.png';
 import thumb_darkWolfKing from '../../assets/badges/png/512/role_darkWolfKing.png';
 import thumb_dreamcatcher from '../../assets/badges/png/512/role_dreamcatcher.png';
 import thumb_drunkSeer from '../../assets/badges/png/512/role_drunkSeer.png';
+import thumb_eclipseWolfQueen from '../../assets/badges/png/512/role_eclipseWolfQueen.png';
 import thumb_gargoyle from '../../assets/badges/png/512/role_gargoyle.png';
 import thumb_graveyardKeeper from '../../assets/badges/png/512/role_graveyardKeeper.png';
 import thumb_guard from '../../assets/badges/png/512/role_guard.png';
@@ -77,6 +80,7 @@ import thumb_poisoner from '../../assets/badges/png/512/role_poisoner.png';
 import thumb_psychic from '../../assets/badges/png/512/role_psychic.png';
 import thumb_pureWhite from '../../assets/badges/png/512/role_pureWhite.png';
 import thumb_seer from '../../assets/badges/png/512/role_seer.png';
+import thumb_sequencePrince from '../../assets/badges/png/512/role_sequencePrince.png';
 import thumb_shadow from '../../assets/badges/png/512/role_shadow.png';
 import thumb_silenceElder from '../../assets/badges/png/512/role_silenceElder.png';
 import thumb_slacker from '../../assets/badges/png/512/role_slacker.png';
@@ -107,6 +111,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   darkWolfKing,
   dreamcatcher,
   drunkSeer,
+  eclipseWolfQueen,
   gargoyle,
   graveyardKeeper,
   guard,
@@ -123,6 +128,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   psychic,
   pureWhite,
   seer,
+  sequencePrince,
   shadow,
   silenceElder,
   slacker,
@@ -154,6 +160,7 @@ export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   darkWolfKing: thumb_darkWolfKing,
   dreamcatcher: thumb_dreamcatcher,
   drunkSeer: thumb_drunkSeer,
+  eclipseWolfQueen: thumb_eclipseWolfQueen,
   gargoyle: thumb_gargoyle,
   graveyardKeeper: thumb_graveyardKeeper,
   guard: thumb_guard,
@@ -170,6 +177,7 @@ export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   psychic: thumb_psychic,
   pureWhite: thumb_pureWhite,
   seer: thumb_seer,
+  sequencePrince: thumb_sequencePrince,
   shadow: thumb_shadow,
   silenceElder: thumb_silenceElder,
   slacker: thumb_slacker,

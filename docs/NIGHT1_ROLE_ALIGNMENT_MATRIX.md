@@ -20,30 +20,31 @@
 | 6    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
 | 7    | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (同)                            |
 | 8    | `avengerConfirm`                | `avenger`          | `avenger`                       | (同)                            |
-| 9    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
-| 10   | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
-| 11   | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
-| 12   | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
-| 13   | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
-| 14   | `crowCurse`                     | `crow`             | `crow`                          | (同)                            |
-| 15   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
-| 16   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
-| 17   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
-| 18   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
-| 19   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
-| 20   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
-| 21   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
-| 22   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
-| 23   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
-| 24   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
-| 25   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
-| 26   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
-| 27   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
-| 28   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
-| 29   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
-| 30   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
-| 31   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 32   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 9    | `eclipseWolfQueenShelter`       | `eclipseWolfQueen` | `eclipseWolfQueen`              | (同)                            |
+| 10   | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
+| 11   | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
+| 12   | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
+| 13   | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
+| 14   | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
+| 15   | `crowCurse`                     | `crow`             | `crow`                          | (同)                            |
+| 16   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
+| 17   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
+| 18   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
+| 19   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
+| 20   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
+| 21   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
+| 22   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
+| 23   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
+| 24   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
+| 25   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
+| 26   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
+| 27   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
+| 28   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
+| 29   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
+| 30   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
+| 31   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
+| 32   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 33   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
 **合约保证**：
 
@@ -176,6 +177,21 @@
 | **nightmare 阻断**   | handler 层处理                        |                                |
 | **结果落点**         | 无状态变更                            | 纯查看，always valid           |
 | **bottomActionText** | `'查看阵营'`                          |                                |
+
+### 4.5. eclipseWolfQueenShelter (蚀时狼妃)
+
+| 属性               | 值                                                                            | 说明                                            |
+| ------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- |
+| **schemaId**       | `eclipseWolfQueenShelter`                                                     |                                                 |
+| **kind**           | `chooseSeat`                                                                  | 选择一名玩家放逐                                |
+| **constraints**    | 无                                                                            | 可选任何人（含自己）                            |
+| **canSkip**        | `true`                                                                        | 可不使用技能                                    |
+| **prompt**         | "请选择要放逐的玩家，如不使用请点击「不用技能」"                              |                                                 |
+| **revealKind**     | 无                                                                            |                                                 |
+| **nightmare 阻断** | ✅ 支持                                                                       | 阻断时允许 skip                                 |
+| **特殊规则**       | 当晚神职对被放逐者释放的技能 → 效果反弹至施法者自身（`applyShelterRedirect`） | 仅影响神职技能；狼阵营不受影响                  |
+| **结果落点**       | `{ shelteredSeat: number }`                                                   | writeSlot → `currentNightResults.shelteredSeat` |
+| **失败原因**       | `目标玩家不存在`                                                              |                                                 |
 
 ### 5. wolfRobotLearn (机器狼)
 

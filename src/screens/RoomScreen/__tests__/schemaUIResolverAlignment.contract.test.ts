@@ -289,6 +289,8 @@ describe('notSelf constraint completeness', () => {
       'crowCurse',
       // Swap (special)
       'magicianSwap',
+      // Without notSelf (wolf)
+      'eclipseWolfQueenShelter',
     ]);
 
     const untested = chooseSeatSchemas.filter(

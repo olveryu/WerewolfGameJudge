@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 23) {
+  if (boards.length !== 24) {
     throw new Error(
-      `Expected exactly 23 presets, but got ${boards.length}. ` +
+      `Expected exactly 24 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -131,6 +131,9 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // Piper: multiChooseSeat confirm + skip
   piper: ['actionConfirm', 'skipConfirm'],
+
+  // EclipseWolfQueen: chooseSeat confirm + skip
+  eclipseWolfQueen: ['actionConfirm', 'skipConfirm'],
 };
 
 /**
@@ -236,4 +239,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   盗宝大师: 'treasureMaster.12p.board.ui.test.tsx',
   盗贼丘比特: 'thiefCupid.12p.board.ui.test.tsx',
   咒狐乌鸦: 'cursedFox.12p.board.ui.test.tsx',
+  永序之轮: 'eclipseWolfQueen.12p.board.ui.test.tsx',
 };

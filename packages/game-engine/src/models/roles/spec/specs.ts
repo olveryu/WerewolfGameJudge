@@ -1,15 +1,17 @@
 /**
- * V2 Role Specs Registry — 全部 43 角色声明式定义
+ * V2 Role Specs Registry — 全部 45 角色声明式定义
  *
  * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
  * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
  *
- * 43 roles total:
+ * 45 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
- *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan (18)
+ *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan,
+ *   sequencePrince (19)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
- *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden (13)
+ *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden,
+ *   eclipseWolfQueen (14)
  * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
  * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
@@ -144,7 +146,7 @@ export const ROLE_SPECS = {
   },
 
   // ===================================================================
-  // GOD FACTION (17)
+  // GOD FACTION (19)
   // ===================================================================
 
   seer: {
@@ -858,8 +860,32 @@ export const ROLE_SPECS = {
     nightSteps: [],
   },
 
+  sequencePrince: {
+    id: 'sequencePrince',
+    displayName: '定序王子',
+    shortName: '序',
+    emoji: '⏮️',
+    faction: Faction.God,
+    team: Team.Good,
+    description:
+      '每个白天第一次放逐投票结束后可选择翻牌发动技能，若翻牌则逆转时空回到本次投票前重新投票；重新投票前可额外发言一次；当局限用一次',
+    structuredDescription: {
+      skill:
+        '每个白天第一次放逐投票结束后可选择翻牌发动技能，若翻牌则逆转时空回到本次投票前重新投票；重新投票前可额外发言一次',
+      restriction: '当局限用一次',
+    },
+    tags: ['control'],
+    abilities: [
+      {
+        type: 'triggered',
+        trigger: 'afterFirstExileVote',
+        effect: 'reverseVote',
+      },
+    ],
+  },
+
   // ===================================================================
-  // WOLF FACTION (13)
+  // WOLF FACTION (14)
   // ===================================================================
 
   wolf: {
@@ -1394,6 +1420,52 @@ export const ROLE_SPECS = {
     tags: ['kill', 'control'],
     recognition: { canSeeWolves: true, participatesInWolfVote: true },
     abilities: [],
+  },
+
+  eclipseWolfQueen: {
+    id: 'eclipseWolfQueen',
+    displayName: '蚀时狼妃',
+    shortName: '蚀',
+    emoji: '🌘🐺',
+    faction: Faction.Wolf,
+    team: Team.Wolf,
+    description:
+      '每晚率先睁眼选择一名玩家放逐到时间裂隙；当晚神职对被放逐者释放的技能反弹至施法者自身；不能连续两晚放逐同一人；技能成功触发后永久失去技能',
+    structuredDescription: {
+      skill: '每晚率先睁眼选择一名玩家放逐到时间裂隙',
+      trigger: '当晚神职对被放逐者释放的技能反弹至施法者自身',
+      restriction: '不能连续两晚放逐同一人；技能成功触发后永久失去技能',
+    },
+    tags: ['control'],
+    recognition: { canSeeWolves: true, participatesInWolfVote: true },
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'chooseSeat',
+        target: {
+          count: { min: 1, max: 1 },
+          constraints: [],
+        },
+        canSkip: true,
+        effects: [{ kind: 'writeSlot', slot: 'shelteredSeat' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'eclipseWolfQueenShelter',
+        displayName: '放逐',
+        audioKey: 'eclipseWolfQueen',
+        actionKind: 'chooseSeat',
+        ui: {
+          confirmTitle: '确认行动',
+          prompt: '请选择要放逐的玩家，如不使用请点击「不用技能」',
+          confirmText: '放逐此玩家？',
+          bottomActionText: '不用技能',
+        },
+      },
+    ],
   },
 
   // ===================================================================

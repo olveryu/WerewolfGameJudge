@@ -576,6 +576,7 @@ describe('NightReview.helpers', () => {
         [27, makePlayer(27, 'treasureMaster')],
         [28, makePlayer(28, 'thief')],
         [29, makePlayer(29, 'cupid')],
+        [30, makePlayer(30, 'eclipseWolfQueen')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
@@ -599,6 +600,7 @@ describe('NightReview.helpers', () => {
           convertedSeat: 11,
           shadowMimicTarget: 3,
           cursedSeat: 12,
+          shelteredSeat: 13,
         },
         lastNightDeaths: [8],
         players,

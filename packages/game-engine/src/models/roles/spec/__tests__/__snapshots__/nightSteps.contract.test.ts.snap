@@ -11,6 +11,7 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "wildChildChooseIdol",
   "shadowChooseMimic",
   "avengerConfirm",
+  "eclipseWolfQueenShelter",
   "nightmareBlock",
   "dreamcatcherDream",
   "guardProtect",

@@ -2,7 +2,7 @@
 
 > **权威来源**: [`packages/game-engine/src/models/Template.ts`](../packages/game-engine/src/models/Template.ts) — `PRESET_TEMPLATES`
 >
-> 当前共 **23 套**预设板子，全部为 12 人局（盗宝大师/盗贼丘比特/咒狐乌鸦 含底牌）。
+> 当前共 **24 套**预设板子，全部为 12 人局（盗宝大师/盗贼丘比特/咒狐乌鸦 含底牌）。
 
 ---
 
@@ -17,19 +17,20 @@
 | 狼王守卫   | ×4   | wolf ×3, darkWolfKing | seer, witch, hunter, guard |
 | 白狼王守卫 | ×4   | wolf ×3, wolfKing     | seer, witch, hunter, guard |
 
-## 进阶（Advanced）— 7 套
+## 进阶（Advanced）— 8 套
 
 含进阶角色，需一定游戏经验。
 
-| 板子名         | 村民 | 狼人                  | 神职                                 |
-| -------------- | ---- | --------------------- | ------------------------------------ |
-| 石像鬼守墓人   | ×4   | wolf ×3, gargoyle     | seer, witch, hunter, graveyardKeeper |
-| 噩梦之影守卫   | ×4   | wolf ×3, nightmare    | seer, witch, hunter, guard           |
-| 血月猎魔       | ×4   | wolf ×3, bloodMoon    | seer, witch, idiot, witcher          |
-| 狼王摄梦人     | ×4   | wolf ×3, darkWolfKing | seer, witch, hunter, dreamcatcher    |
-| 狼王魔术师     | ×4   | wolf ×3, darkWolfKing | seer, witch, hunter, magician        |
-| 机械狼人通灵师 | ×4   | wolf ×3, wolfRobot    | psychic, witch, hunter, guard        |
-| 恶灵骑士       | ×4   | wolf ×3, spiritKnight | seer, witch, hunter, guard           |
+| 板子名         | 村民 | 狼人                      | 神职                                 |
+| -------------- | ---- | ------------------------- | ------------------------------------ |
+| 石像鬼守墓人   | ×4   | wolf ×3, gargoyle         | seer, witch, hunter, graveyardKeeper |
+| 噩梦之影守卫   | ×4   | wolf ×3, nightmare        | seer, witch, hunter, guard           |
+| 血月猎魔       | ×4   | wolf ×3, bloodMoon        | seer, witch, idiot, witcher          |
+| 狼王摄梦人     | ×4   | wolf ×3, darkWolfKing     | seer, witch, hunter, dreamcatcher    |
+| 狼王魔术师     | ×4   | wolf ×3, darkWolfKing     | seer, witch, hunter, magician        |
+| 机械狼人通灵师 | ×4   | wolf ×3, wolfRobot        | psychic, witch, hunter, guard        |
+| 恶灵骑士       | ×4   | wolf ×3, spiritKnight     | seer, witch, hunter, guard           |
+| 永序之轮       | ×4   | wolf ×3, eclipseWolfQueen | seer, witch, guard, sequencePrince   |
 
 ## 特色（Special）— 5 套
 

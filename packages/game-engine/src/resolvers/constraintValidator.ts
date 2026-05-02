@@ -21,6 +21,8 @@ interface ConstraintValidationContext {
   swappedSeats?: readonly [number, number];
   /** Total number of seats (required for adjacency constraints) */
   totalSeats?: number;
+  /** True when the target was rewritten by shelter redirect — bypasses NotSelf */
+  shelterRedirected?: boolean;
 }
 
 interface ConstraintValidationResult {
@@ -44,7 +46,7 @@ export function validateConstraints(
   for (const constraint of constraints) {
     switch (constraint) {
       case TargetConstraint.NotSelf:
-        if (target === actorSeat) {
+        if (target === actorSeat && !context.shelterRedirected) {
           return { valid: false, rejectReason: '不能选择自己' };
         }
         break;

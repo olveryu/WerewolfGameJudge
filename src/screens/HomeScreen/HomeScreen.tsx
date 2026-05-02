@@ -267,7 +267,8 @@ export const HomeScreen: React.FC = () => {
       factionLabel = '第三方';
     }
     // Avatar image: AVATAR_KEYS matches RoleId names, use indexOf for exact match
-    const avatarKeyIdx = AVATAR_KEYS.indexOf(roleId);
+    // Widen to string[] — not all RoleIds are AvatarIds, fallback handles misses
+    const avatarKeyIdx = (AVATAR_KEYS as readonly string[]).indexOf(roleId);
     const avatarImage = avatarKeyIdx >= 0 ? AVATAR_IMAGES[avatarKeyIdx]! : AVATAR_IMAGES[0]!;
     return {
       roleId,

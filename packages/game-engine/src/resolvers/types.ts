@@ -63,6 +63,9 @@ export interface CurrentNightResults {
   /** Seat cursed by crow (extra vote during exile) */
   readonly cursedSeat?: number;
 
+  /** Seat sheltered by eclipseWolfQueen (good team skills targeting this seat redirect to caster) */
+  readonly shelteredSeat?: number;
+
   /** Seats newly hypnotized by piper this night (1-2 seats) */
   readonly hypnotizedSeats?: readonly number[];
 
@@ -133,6 +136,8 @@ export interface ActionInput {
   readonly stepResults?: Record<string, number | null>; // For compound
   readonly confirmed?: boolean; // For confirm
   readonly cardIndex?: number; // For chooseCard (treasureMaster bottom card index)
+  /** Set by shelter redirect — target was rewritten from shelteredSeat to actorSeat */
+  readonly shelterRedirected?: boolean;
 }
 
 /** Resolver result - role action outcome */
@@ -166,6 +171,7 @@ export interface ResolverResult {
     readonly hypnotizedTargets?: readonly number[]; // piper - newly hypnotized seats this night
     readonly convertTarget?: number; // awakenedGargoyle - converted seat
     readonly curseTarget?: number; // crow - cursed seat
+    readonly shelterTarget?: number; // eclipseWolfQueen - sheltered seat
   };
 }
 

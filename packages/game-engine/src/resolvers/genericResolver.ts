@@ -74,6 +74,7 @@ function processWriteSlot(
     votebannedSeat: 'votebanTarget',
     cursedSeat: 'curseTarget',
     poisonedSeat: 'poisonedTarget',
+    shelteredSeat: 'shelterTarget',
   };
 
   const resultKey = resultKeyMap[slot];
@@ -332,6 +333,9 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
     // --- Validate constraints ---
     if (activeAbility.target) {
       const constraintCtx = buildConstraintContext(activeAbility, context, target);
+      if (input.shelterRedirected) {
+        constraintCtx.shelterRedirected = true;
+      }
       const constraintResult = validateConstraints(
         activeAbility.target.constraints as TargetConstraint[],
         constraintCtx,
@@ -401,6 +405,7 @@ function buildConstraintContext(
   players?: ReadonlyMap<number, RoleId>;
   swappedSeats?: readonly [number, number];
   totalSeats?: number;
+  shelterRedirected?: boolean;
 } {
   const constraints = ability.target?.constraints ?? [];
   const needsPlayers = constraints.some(
@@ -415,6 +420,7 @@ function buildConstraintContext(
     players?: ReadonlyMap<number, RoleId>;
     swappedSeats?: readonly [number, number];
     totalSeats?: number;
+    shelterRedirected?: boolean;
   } = {
     actorSeat: context.actorSeat,
     target,

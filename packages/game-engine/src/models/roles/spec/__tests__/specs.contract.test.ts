@@ -22,7 +22,7 @@ import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 43 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(43);
+    expect(getAllRoleIds()).toHaveLength(45);
   });
 
   it('every role should have required fields', () => {
@@ -136,6 +136,7 @@ describe('ROLE_SPECS contract', () => {
       'dreamcatcher', // 1
       'gargoyle', // 1
       'awakenedGargoyle', // new
+      'eclipseWolfQueen', // before nightmare
       'nightmare', // 2
       'guard', // 3
       'silenceElder', // 3.5
@@ -181,6 +182,7 @@ describe('ROLE_SPECS contract', () => {
       'masquerade',
       'warden',
       'maskedMan',
+      'sequencePrince',
       'cursedFox',
     ];
 

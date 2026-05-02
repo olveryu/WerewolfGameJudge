@@ -183,9 +183,21 @@ describe('Night-1: <主题描述> (12p)', () => {
    ```
    snapshot 变更用 `pnpm exec jest --updateSnapshot`。
 
-### Phase 6 — 收尾
+### Phase 6 — E2E Test
+
+如果板子包含特殊角色组合或新角色，新增 Playwright E2E spec 覆盖首夜流程。
+
+1. 在 `e2e/specs/` 下新增或追加到合适的 `night-roles-*.spec.ts` 文件
+2. 使用 `withSetup` + `BoardPickerPage.selectPreset('板子名')` 选择新板子
+3. 覆盖至少一个核心场景（特殊角色行动 + 结果断言）
+4. 本地运行确认通过：`pnpm run e2e:core`
+
+> 如果板子仅含已有 E2E 覆盖的角色且无新交互，可跳过此步（在收尾中说明理由）。
+
+### Phase 7 — 收尾
 
 - 确认 `pnpm run quality` 全绿
+- **在 `src/components/BoardStrategy/boardStrategyData.ts` 的 `BOARD_STRATEGY` 中新增攻略条目**（key = `PresetTemplate.name`），包含 `difficulty`、`recommendLevel`、`tags`、`summary`、`goodStrategy`、`wolfStrategy`（如含第三方则加 `thirdStrategy`）、`firstNight`、`pitfalls`、`meta`
 - 更新 `README.md` 和 `README.en.md` 中的预设板子数量（如：「27 套预设板子」→「28 套预设板子」）
 - 更新 `docs/PRESET_BOARDS.md` 预设板子参考文档（在对应分类表格中追加新板子）
 - 总结变更文件清单

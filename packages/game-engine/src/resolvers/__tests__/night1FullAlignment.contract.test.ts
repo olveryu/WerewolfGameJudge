@@ -497,8 +497,8 @@ describe('canSkip behavior alignment', () => {
 // === 6. NIGHT_STEPS order stability ===
 
 describe('NIGHT_STEPS order stability', () => {
-  it('should have exactly 33 steps', () => {
-    expect(NIGHT_STEPS).toHaveLength(33);
+  it('should have exactly 34 steps', () => {
+    expect(NIGHT_STEPS).toHaveLength(34);
   });
 
   it('step order should match expected sequence', () => {
@@ -512,6 +512,7 @@ describe('NIGHT_STEPS order stability', () => {
       'wildChildChooseIdol',
       'shadowChooseMimic',
       'avengerConfirm',
+      'eclipseWolfQueenShelter',
       'nightmareBlock',
       'dreamcatcherDream',
       'guardProtect',
