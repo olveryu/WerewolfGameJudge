@@ -11,7 +11,6 @@ import { Toaster } from 'sonner-native';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
@@ -207,20 +206,6 @@ function dismissWebSplash() {
   });
 }
 
-/**
- * Boot phase state machine:
- *  'splash'  → native/HTML splash covers everything
- *  'loading' → JS LoadingScreen with step progress (slow auth path)
- *  'ready'   → content visible
- *
- * Fast path: auth completes within SPLASH_THRESHOLD → splash → ready (skip LoadingScreen)
- * Slow path: auth takes longer → splash → loading → ready
- */
-type BootPhase = 'splash' | 'loading' | 'ready';
-
-/** ms to wait before switching from splash to JS LoadingScreen */
-const SPLASH_THRESHOLD_MS = 300;
-
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
   const facade = useGameFacade();
@@ -250,52 +235,32 @@ function AppContent() {
     return () => setAlertListener(null);
   }, []);
 
-  // ── Boot progress & phase ─────────────────────────────────────────────
-  // useBootProgress tracks real init steps (fonts + auth + avatar prefetch)
-  // and consolidates the font loading that was previously a standalone effect.
+  // ── Boot readiness ────────────────────────────────────────────────────
+  // Expo standard pattern: keep splash visible, render nothing until ready.
+  // Web: HTML splash (z-index:9999) covers everything; native: expo-splash-screen.
   const { wechatLoginFailed } = useAuthContext();
   const bootProgress = useBootProgress();
-  const [bootPhase, setBootPhase] = useState<BootPhase>('splash');
 
-  // Phase transitions: isReady → bootPhase='ready' (renders AppNavigator behind HTML splash).
-  // Splash dismiss is handled separately by handleNavReady below.
+  // Native: dismiss static splash once ready (expo-splash-screen is no-op on web)
   useEffect(() => {
-    if (bootPhase === 'ready') return;
-
-    if (bootProgress.isReady) {
-      // Auth + fonts + avatar done → render app content.
-      // HTML splash (web) or native splash stays visible until handleNavReady.
-      if (Platform.OS !== 'web') {
-        // Native: dismiss static splash — no HTML overlay to coordinate
-        void SplashScreen.hideAsync();
-      }
-      setBootPhase('ready');
-      return;
+    if (bootProgress.isReady && Platform.OS !== 'web') {
+      void SplashScreen.hideAsync();
     }
+  }, [bootProgress.isReady]);
 
-    if (bootPhase === 'splash') {
-      if (Platform.OS === 'web') {
-        // Web: HTML splash stays visible until isReady — no intermediate LoadingScreen.
-        // The HTML splash (z-index:9999) already has its own progress bar.
-        return;
-      }
-      // Native: after threshold, switch to React LoadingScreen for step progress
-      const timer = setTimeout(() => {
-        void SplashScreen.hideAsync();
-        setBootPhase('loading');
-      }, SPLASH_THRESHOLD_MS);
-      return () => clearTimeout(timer);
-    }
-    // bootPhase === 'loading': wait for isReady (handled above)
-    return undefined;
-  }, [bootPhase, bootProgress.isReady]);
-
-  // Web: NavigationContainer onReady → first screen has laid out → dismiss HTML splash.
-  // At this point fonts are already rendered (isReady gates on document.fonts.ready)
-  // and avatar is already prefetched, so the first screen is visually complete.
+  // Web: NavigationContainer onReady → first screen has laid out.
+  // At this point Ionicons are in the DOM, so document.fonts.ready correctly
+  // waits for the icon font file to finish downloading & rendering.
+  // (document.fonts.ready only works when the font is actually used by DOM elements;
+  // calling it earlier — e.g. right after Font.loadAsync — would resolve immediately
+  // because the browser hasn't queued the font for loading yet.)
   const handleNavReady = useCallback(() => {
     if (Platform.OS === 'web') {
-      dismissWebSplash();
+      void document.fonts.ready.then(() => {
+        dismissWebSplash();
+        signalAppReady();
+      });
+      return;
     }
     signalAppReady();
   }, []);
@@ -326,21 +291,9 @@ function AppContent() {
     );
   }
 
-  // Splash phase: render nothing (native/HTML splash covers everything)
-  // Loading phase: show JS LoadingScreen with real step progress
-  if (bootPhase !== 'ready') {
-    return (
-      <>
-        <StatusBar style="dark" backgroundColor={colors.background} />
-        {bootPhase === 'loading' && (
-          <LoadingScreen
-            steps={bootProgress.steps}
-            error={bootProgress.error}
-            onRetry={bootProgress.retry}
-          />
-        )}
-      </>
-    );
+  // Not ready → render nothing; splash (HTML on web / native) stays visible.
+  if (!bootProgress.isReady) {
+    return null;
   }
 
   return (

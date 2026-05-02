@@ -1,22 +1,21 @@
 /**
- * useBootProgress — Tracks real app initialization steps during boot.
+ * useBootProgress — Tracks real app initialization during boot.
  *
- * Reports step states for font loading (web-only), auth, and avatar prefetch (web-only).
- * Consumed by LoadingScreen in step-based mode during app startup.
+ * Waits for auth + avatar prefetch (web-only) before signalling ready.
+ * Font.loadAsync registers the @font-face early, but actual font rendering
+ * is gated by document.fonts.ready in handleNavReady (App.tsx).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Font from 'expo-font';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
-import type { BootStep } from '@/components/LoadingScreen';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { getBuiltinAvatarId, getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
 import { log } from '@/utils/logger';
 
 interface BootProgress {
-  readonly steps: readonly BootStep[];
   readonly isReady: boolean;
   readonly error: string | null;
   readonly retry: () => void;
@@ -56,27 +55,20 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
 
 export function useBootProgress(): BootProgress {
   const { user, loading: authLoading, error: authError, retryInit } = useAuthContext();
-  const [fontsLoaded, setFontsLoaded] = useState(Platform.OS !== 'web');
   // Avatar prefetch: skip on native, mark done immediately when no avatar to prefetch
   const [avatarPrefetched, setAvatarPrefetched] = useState(Platform.OS !== 'web');
 
+  // Register icon font @font-face early (web only).
+  // This does NOT guarantee the font file is downloaded — that happens lazily
+  // when DOM elements reference the font family. document.fonts.ready in
+  // handleNavReady (App.tsx) gates splash dismiss on actual rendering.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     Font.loadAsync(Ionicons.font)
-      .then(() => {
-        // Font.loadAsync only registers the @font-face; on Safari it resolves
-        // before the font file is actually downloaded.  Wait for the browser to
-        // confirm all queued font faces are fully loaded & rendered.
-        return document.fonts.ready;
-      })
-      .then(() => {
-        bootLog.debug('Icon fonts loaded and rendered');
-        setFontsLoaded(true);
-      })
-      .catch((err: Error) => {
-        bootLog.warn('Icon font load failed (graceful degradation)', err.message);
-        setFontsLoaded(true);
-      });
+      .then(() => bootLog.debug('Icon font @font-face registered'))
+      .catch((err: Error) =>
+        bootLog.warn('Icon font registration failed (graceful degradation)', err.message),
+      );
   }, []);
 
   // Prefetch user avatar image after auth completes (web only)
@@ -104,18 +96,6 @@ export function useBootProgress(): BootProgress {
     img.src = url;
   }, [authLoading, user?.avatarUrl]);
 
-  const steps = useMemo<readonly BootStep[]>(() => {
-    const list: BootStep[] = [];
-    if (Platform.OS === 'web') {
-      list.push({ id: 'fonts', label: '加载资源', done: fontsLoaded });
-    }
-    list.push({ id: 'auth', label: '验证身份', done: !authLoading });
-    if (Platform.OS === 'web') {
-      list.push({ id: 'avatar', label: '加载头像', done: avatarPrefetched });
-    }
-    return list;
-  }, [fontsLoaded, authLoading, avatarPrefetched]);
-
-  const isReady = fontsLoaded && !authLoading && authError == null && avatarPrefetched;
-  return { steps, isReady, error: authError, retry: retryInit };
+  const isReady = !authLoading && authError == null && avatarPrefetched;
+  return { isReady, error: authError, retry: retryInit };
 }
