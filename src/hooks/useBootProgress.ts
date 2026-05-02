@@ -1,9 +1,9 @@
 /**
  * useBootProgress — Tracks real app initialization during boot.
  *
- * Waits for auth + avatar prefetch (web-only) before signalling ready.
- * Font.loadAsync registers the @font-face early, but actual font rendering
- * is gated by document.fonts.ready in handleNavReady (App.tsx).
+ * Waits for auth + avatar prefetch + icon font download (all web-only)
+ * before signalling ready. The font is actively downloaded via
+ * document.fonts.load() so icons render on the very first paint.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Font from 'expo-font';
@@ -53,22 +53,46 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
   return avatarUrl;
 }
 
+/** Font load timeout — don't block boot forever if CDN is unreachable. */
+const FONT_TIMEOUT_MS = 5_000;
+
 export function useBootProgress(): BootProgress {
   const { user, loading: authLoading, error: authError, retryInit } = useAuthContext();
   // Avatar prefetch: skip on native, mark done immediately when no avatar to prefetch
   const [avatarPrefetched, setAvatarPrefetched] = useState(Platform.OS !== 'web');
+  // Icon font: skip on native (expo-splash-screen handles it)
+  const [fontLoaded, setFontLoaded] = useState(Platform.OS !== 'web');
 
-  // Register icon font @font-face early (web only).
-  // This does NOT guarantee the font file is downloaded — that happens lazily
-  // when DOM elements reference the font family. document.fonts.ready in
-  // handleNavReady (App.tsx) gates splash dismiss on actual rendering.
+  // Register @font-face then actively trigger font download (web only).
+  // Font.loadAsync only injects the CSS rule; the browser won't fetch the .ttf
+  // until something references the font-family. document.fonts.load() forces
+  // the download so icons are ready before the first paint.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
+
+    const timer = setTimeout(() => {
+      bootLog.warn('Icon font load timed out — proceeding without icons');
+      setFontLoaded(true);
+    }, FONT_TIMEOUT_MS);
+
     Font.loadAsync(Ionicons.font)
-      .then(() => bootLog.debug('Icon font @font-face registered'))
-      .catch((err: Error) =>
-        bootLog.warn('Icon font registration failed (graceful degradation)', err.message),
-      );
+      .then(() => {
+        bootLog.debug('Icon font @font-face registered');
+        // Actively trigger download — CSS Font Loading API standard pattern (MDN).
+        return document.fonts.load('1em ionicons');
+      })
+      .then(() => {
+        bootLog.debug('Icon font loaded');
+        clearTimeout(timer);
+        setFontLoaded(true);
+      })
+      .catch((err: Error) => {
+        bootLog.warn('Icon font load failed (graceful degradation)', err.message);
+        clearTimeout(timer);
+        setFontLoaded(true);
+      });
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Prefetch user avatar image after auth completes (web only)
@@ -96,6 +120,6 @@ export function useBootProgress(): BootProgress {
     img.src = url;
   }, [authLoading, user?.avatarUrl]);
 
-  const isReady = !authLoading && authError == null && avatarPrefetched;
+  const isReady = !authLoading && authError == null && avatarPrefetched && fontLoaded;
   return { isReady, error: authError, retry: retryInit };
 }

@@ -249,18 +249,11 @@ function AppContent() {
   }, [bootProgress.isReady]);
 
   // Web: NavigationContainer onReady → first screen has laid out.
-  // At this point Ionicons are in the DOM, so document.fonts.ready correctly
-  // waits for the icon font file to finish downloading & rendering.
-  // (document.fonts.ready only works when the font is actually used by DOM elements;
-  // calling it earlier — e.g. right after Font.loadAsync — would resolve immediately
-  // because the browser hasn't queued the font for loading yet.)
+  // Icon font is already downloaded during boot (useBootProgress gates isReady
+  // on fontLoaded), so icons are available for the first paint.
   const handleNavReady = useCallback(() => {
     if (Platform.OS === 'web') {
-      void document.fonts.ready.then(() => {
-        dismissWebSplash();
-        signalAppReady();
-      });
-      return;
+      dismissWebSplash();
     }
     signalAppReady();
   }, []);

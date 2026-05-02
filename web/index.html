@@ -374,7 +374,9 @@
         var idx = parseInt(sessionStorage.getItem(key), 10);
         if (isNaN(idx) || idx < 0 || idx >= imgs.length) {
           idx = Math.floor(Math.random() * imgs.length);
-          try { sessionStorage.setItem(key, idx); } catch (e) {}
+          try {
+            sessionStorage.setItem(key, idx);
+          } catch (e) {}
         }
         var bg = document.getElementById('splash-bg');
         if (bg) bg.src = imgs[idx];
@@ -634,7 +636,7 @@
           }
         }, 5000);
 
-        // 5 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
+        // 8 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
         setTimeout(function () {
           var splash = document.getElementById('splash-screen');
           if (!splash || splash.classList.contains('hidden')) return;
@@ -642,7 +644,7 @@
           if (btn) {
             btn.style.display = 'inline-block';
           }
-        }, 5000);
+        }, 8000);
       });
 
       // 刷新按钮：强制 reload
