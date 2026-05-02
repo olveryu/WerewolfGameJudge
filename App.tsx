@@ -250,13 +250,13 @@ function AppContent() {
 
   // Web: NavigationContainer onReady → first screen has laid out.
   // At this point Ionicons are in the DOM, so document.fonts.ready correctly
-  // Actively load the icon font and wait for completion before dismissing splash.
-  // document.fonts.ready is passive — resolves immediately when no fonts are pending.
-  // document.fonts.load() actively triggers the download and only resolves once the
-  // font file is fully available for rendering (CSS Font Loading API standard).
+  // waits for the icon font file to finish downloading & rendering.
+  // (document.fonts.ready only works when the font is actually used by DOM elements;
+  // calling it earlier — e.g. right after Font.loadAsync — would resolve immediately
+  // because the browser hasn't queued the font for loading yet.)
   const handleNavReady = useCallback(() => {
     if (Platform.OS === 'web') {
-      void document.fonts.load('1em ionicons').then(() => {
+      void document.fonts.ready.then(() => {
         dismissWebSplash();
         signalAppReady();
       });
