@@ -26,7 +26,7 @@ import { borderRadius, colors, componentSizes, shadows, spacing, typography } fr
 
 import appIcon from '../../../assets/pwa/icon-192.png';
 
-export interface BootStep {
+interface BootStep {
   readonly id: string;
   readonly label: string;
   readonly done: boolean;
