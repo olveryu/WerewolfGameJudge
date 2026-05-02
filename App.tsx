@@ -290,16 +290,12 @@ function AppContent() {
     return undefined;
   }, [bootPhase, bootProgress.isReady]);
 
-  // Web: NavigationContainer onReady → first screen has laid out.
-  // Wait for document.fonts.ready so icon font glyphs are rendered before splash fades.
-  // Avatar is already prefetched (isReady guarantees it).
+  // Web: NavigationContainer onReady → first screen has laid out → dismiss HTML splash.
+  // At this point fonts are already rendered (isReady gates on document.fonts.ready)
+  // and avatar is already prefetched, so the first screen is visually complete.
   const handleNavReady = useCallback(() => {
     if (Platform.OS === 'web') {
-      void document.fonts.ready.then(() => {
-        dismissWebSplash();
-        signalAppReady();
-      });
-      return;
+      dismissWebSplash();
     }
     signalAppReady();
   }, []);

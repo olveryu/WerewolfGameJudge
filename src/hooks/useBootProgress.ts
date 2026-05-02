@@ -64,7 +64,13 @@ export function useBootProgress(): BootProgress {
     if (Platform.OS !== 'web') return;
     Font.loadAsync(Ionicons.font)
       .then(() => {
-        bootLog.debug('Icon fonts loaded');
+        // Font.loadAsync only registers the @font-face; on Safari it resolves
+        // before the font file is actually downloaded.  Wait for the browser to
+        // confirm all queued font faces are fully loaded & rendered.
+        return document.fonts.ready;
+      })
+      .then(() => {
+        bootLog.debug('Icon fonts loaded and rendered');
         setFontsLoaded(true);
       })
       .catch((err: Error) => {
