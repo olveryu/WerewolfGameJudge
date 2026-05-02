@@ -363,15 +363,21 @@
       </div>
     </div>
     <script>
-      // 随机选择 splash 背景图
+      // 随机选择 splash 背景图（同一 session 内固定，避免缓存恢复时闪烁）
       (function () {
         var imgs = [
           '/assets/pwa/web/splash-wolf-blue.webp',
           '/assets/pwa/web/splash-wolf-red.webp',
           '/assets/pwa/web/splash-wolf-gold.webp',
         ];
+        var key = '__splash_idx';
+        var idx = parseInt(sessionStorage.getItem(key), 10);
+        if (isNaN(idx) || idx < 0 || idx >= imgs.length) {
+          idx = Math.floor(Math.random() * imgs.length);
+          try { sessionStorage.setItem(key, idx); } catch (e) {}
+        }
         var bg = document.getElementById('splash-bg');
-        if (bg) bg.src = imgs[Math.floor(Math.random() * imgs.length)];
+        if (bg) bg.src = imgs[idx];
       })();
     </script>
 
