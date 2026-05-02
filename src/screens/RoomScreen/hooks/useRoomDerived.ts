@@ -31,11 +31,24 @@ interface UseRoomDerivedInput {
   secondSeat: number | null;
   multiSelectedSeats: readonly number[];
   getWolfStatusLine: () => string | null;
+  effectiveRole: RoleId | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
+
+const WOLF_HINT_KINDS = new Set(['wolf_unanimity_required', 'wolf_tie_random']);
+
+function getWolfHintLine(
+  hint: NonNullable<LocalGameState['ui']>['currentActorHint'],
+  effectiveRole: RoleId | null,
+): string | null {
+  if (!hint || !effectiveRole) return null;
+  if (!WOLF_HINT_KINDS.has(hint.kind)) return null;
+  if (!hint.targetRoleIds.includes(effectiveRole)) return null;
+  return `⚠️ ${hint.message}`;
+}
 
 export function useRoomDerived(input: UseRoomDerivedInput) {
   const {
@@ -50,6 +63,7 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
     secondSeat,
     multiSelectedSeats,
     getWolfStatusLine,
+    effectiveRole,
   } = input;
 
   // ── Schema constraints (consumed by seatViewModels) ──────────────────────
@@ -146,12 +160,11 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
       : currentSchema.ui.prompt;
 
     const wolfStatusLine = getWolfStatusLine();
-    if (wolfStatusLine) {
-      return `${baseMessage}\n${wolfStatusLine}`;
-    }
+    const hintLine = getWolfHintLine(gameState?.ui?.currentActorHint, effectiveRole);
 
-    return baseMessage;
-  }, [gameState, currentActionRole, currentSchema, getWolfStatusLine]);
+    const parts = [baseMessage, wolfStatusLine, hintLine].filter(Boolean);
+    return parts.join('\n');
+  }, [gameState, currentActionRole, currentSchema, getWolfStatusLine, effectiveRole]);
 
   return {
     seatViewModels,

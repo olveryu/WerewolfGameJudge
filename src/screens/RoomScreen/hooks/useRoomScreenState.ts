@@ -397,6 +397,7 @@ export function useRoomScreenState(
     secondSeat,
     multiSelectedSeats,
     getWolfStatusLine,
+    effectiveRole,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
