@@ -7,6 +7,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { getAllRoleIds } from '@werewolf/game-engine/models/roles';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -28,8 +30,8 @@ import { useEncyclopediaScreenState } from './useEncyclopediaScreenState';
 type GuideTab = 'roles' | 'boards';
 
 const GUIDE_SEGMENTS: readonly { key: GuideTab; label: string }[] = [
-  { key: 'roles', label: '角色' },
-  { key: 'boards', label: '板子' },
+  { key: 'roles', label: `角色 · ${getAllRoleIds().length}` },
+  { key: 'boards', label: `板子 · ${PRESET_TEMPLATES.length}` },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────

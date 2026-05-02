@@ -47,15 +47,26 @@ import { createBoardsGuideStyles } from './BoardsGuideContent.styles';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const CATEGORY_COUNTS: Record<TemplateCategory, number> = (() => {
+  const counts = {
+    [TemplateCategory.Classic]: 0,
+    [TemplateCategory.Advanced]: 0,
+    [TemplateCategory.Special]: 0,
+    [TemplateCategory.ThirdParty]: 0,
+  };
+  for (const t of PRESET_TEMPLATES) counts[t.category]++;
+  return counts;
+})();
+
 const CATEGORY_TABS: readonly { key: TemplateCategory; label: string }[] = [
-  { key: TemplateCategory.Classic, label: TEMPLATE_CATEGORY_LABELS[TemplateCategory.Classic] },
-  { key: TemplateCategory.Advanced, label: TEMPLATE_CATEGORY_LABELS[TemplateCategory.Advanced] },
-  { key: TemplateCategory.Special, label: TEMPLATE_CATEGORY_LABELS[TemplateCategory.Special] },
-  {
-    key: TemplateCategory.ThirdParty,
-    label: TEMPLATE_CATEGORY_LABELS[TemplateCategory.ThirdParty],
-  },
-];
+  TemplateCategory.Classic,
+  TemplateCategory.Advanced,
+  TemplateCategory.Special,
+  TemplateCategory.ThirdParty,
+].map((cat) => ({
+  key: cat,
+  label: `${TEMPLATE_CATEGORY_LABELS[cat]} · ${CATEGORY_COUNTS[cat]}`,
+}));
 
 /** All unique tags from BOARD_STRATEGY, sorted by frequency (desc) then alphabetical */
 const ALL_BOARD_TAGS: readonly { tag: string; count: number }[] = (() => {
