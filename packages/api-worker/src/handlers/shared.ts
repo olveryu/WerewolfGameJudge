@@ -28,11 +28,13 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
     const result = schema.safeParse(value);
     if (!result.success) {
       const issue = result.error.issues[0];
+      const detail = `${issue.path.join('.')}: ${issue.message}`;
       return c.json(
         {
           success: false,
+          error: detail,
           reason: 'VALIDATION_ERROR',
-          detail: `${issue.path.join('.')}: ${issue.message}`,
+          detail,
         },
         400,
       );

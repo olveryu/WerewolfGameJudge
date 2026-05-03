@@ -200,6 +200,7 @@ describe('POST /auth/signup', () => {
 
     const body = await res.json<AuthErrorResponse>();
     expect(body.reason).toBe('VALIDATION_ERROR');
+    expect(body.error).toContain('password');
   });
 });
 

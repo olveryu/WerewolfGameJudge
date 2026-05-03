@@ -23,6 +23,11 @@ export const queryClient = new QueryClient({
       if (isNetworkError(error) || isAbortError(error) || isExpectedAuthError(message)) {
         return;
       }
+      // 400 VALIDATION_ERROR = user-input error (Zod schema rejection) — skip Sentry
+      const reason = 'reason' in error ? (error as { reason: unknown }).reason : undefined;
+      if (reason === 'VALIDATION_ERROR') {
+        return;
+      }
       Sentry.captureException(error, {
         tags: { mutationKey: String(mutation.options.mutationKey ?? 'unknown') },
       });

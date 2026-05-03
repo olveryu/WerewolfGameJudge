@@ -244,12 +244,7 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
       reason: errBody.reason,
     });
     throw Object.assign(
-      new Error(
-        (errBody.error as string) ??
-          (errBody.detail as string) ??
-          (errBody.reason as string) ??
-          `HTTP ${res.status}`,
-      ),
+      new Error((errBody.error as string) ?? (errBody.reason as string) ?? `HTTP ${res.status}`),
       { status: res.status, reason: errBody.reason ?? 'SERVER_ERROR', body: errBody },
     );
   }

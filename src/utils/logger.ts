@@ -187,7 +187,6 @@ export function isExpectedAuthError(message: string): boolean {
     lower.includes('account has no password') ||
     lower.includes('oldpassword and newpassword required') ||
     lower.includes('email, code and newpassword required') ||
-    lower.includes('validation_error') ||
     lower.includes('invalid email')
   );
 }
