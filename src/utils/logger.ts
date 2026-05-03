@@ -131,6 +131,7 @@ export function mapAuthError(message: string): string {
   if (lower.includes('email not confirmed')) return '邮箱未验证，请查收验证邮件';
   if (lower.includes('password should be at least')) return '密码至少需要6个字符';
   if (lower.includes('unable to validate email address')) return '邮箱格式无效';
+  if (lower.includes('invalid email')) return '邮箱格式无效';
   if (lower.includes('anonymous sign-ins are disabled')) return '匿名登录已禁用';
   if (lower.includes('signups not allowed')) return '注册功能已关闭';
   if (lower.includes('email rate limit exceeded')) return '操作过于频繁，请稍后重试';
@@ -185,6 +186,8 @@ export function isExpectedAuthError(message: string): boolean {
     lower.includes('invalid or expired code') ||
     lower.includes('account has no password') ||
     lower.includes('oldpassword and newpassword required') ||
-    lower.includes('email, code and newpassword required')
+    lower.includes('email, code and newpassword required') ||
+    lower.includes('validation_error') ||
+    lower.includes('invalid email')
   );
 }

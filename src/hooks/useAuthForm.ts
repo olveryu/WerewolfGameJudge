@@ -21,6 +21,7 @@ import {
 } from '@/hooks/mutations/useAuthMutations';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getErrorMessage } from '@/utils/errorUtils';
+import { mapAuthError } from '@/utils/logger';
 
 /** Logger interface — matches react-native-logs extended logger */
 interface Logger {
@@ -109,7 +110,7 @@ export function useAuthForm({
       onSuccess();
       resetForm();
     } catch (e: unknown) {
-      const message = getErrorMessage(e);
+      const message = mapAuthError(getErrorMessage(e));
       logger.warn('Email auth failed:', message);
       showErrorAlert(isSignUp ? '注册失败' : '登录失败', message);
     }
