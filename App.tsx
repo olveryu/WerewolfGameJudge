@@ -40,6 +40,13 @@ Sentry.init({
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
   enableLogs: true,
+  beforeSendLog(log) {
+    // Drop debug-level logs to conserve Sentry Logs quota
+    if (log.level === 'debug') {
+      return null;
+    }
+    return log;
+  },
 });
 
 // Keep splash screen visible while app initializes
