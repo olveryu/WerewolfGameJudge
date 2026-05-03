@@ -2,7 +2,7 @@
   "pages": ["pages/index/index"],
   "window": {
     "navigationStyle": "default",
-    "navigationBarTitleText": "狼人kill电子裁判",
+    "navigationBarTitleText": "狼人面杀电子裁判助手",
     "navigationBarBackgroundColor": "#6366F1",
     "navigationBarTextStyle": "white"
   }

@@ -78,7 +78,7 @@ Earn XP + 2 normal draw tickets every valid game, plus 2 golden tickets on level
 
 ### 🌐 Cross-platform
 
-iOS · Android · Web · WeChat Mini Program. The web version works instantly with no install — add it to your home screen for a native-app feel. Search “狼人kill电子裁判” in WeChat to use the mini program.
+iOS · Android · Web · WeChat Mini Program. The web version works instantly with no install — add it to your home screen for a native-app feel. Search "狼人面杀电子裁判助手" in WeChat to use the mini program.
 
 ---
 
@@ -208,7 +208,7 @@ No. Just open the website to create or join a room. If you want to save custom t
 <details>
 <summary><b>What platforms are supported?</b></summary>
 
-iOS, Android, WeChat Mini Program, and any modern browser (Chrome, Safari, Firefox, Edge). The web version can be added to your home screen and used like a native app. Search “狼人kill电子裁判” in WeChat to use the mini program.
+iOS, Android, WeChat Mini Program, and any modern browser (Chrome, Safari, Firefox, Edge). The web version can be added to your home screen and used like a native app. Search "狼人面杀电子裁判助手" in WeChat to use the mini program.
 
 </details>
 

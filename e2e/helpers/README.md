@@ -172,7 +172,7 @@ Handles app entry stabilization: hydration, login, home screen readiness.
 
 |                       |                                        |
 | --------------------- | -------------------------------------- |
-| **Success condition** | `text=狼人kill电子裁判` visible        |
+| **Success condition** | `text=狼人面杀电子裁判助手` visible    |
 | **Recovery actions**  | None (passive wait)                    |
 | **Timeout behavior**  | Throws after `timeoutMs` (default 15s) |
 
