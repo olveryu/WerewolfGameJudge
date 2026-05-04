@@ -18,6 +18,7 @@ import {
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';
@@ -28,7 +29,11 @@ import { compareByRarity } from '@/config/rarityVisual';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 
-export const NUM_COLUMNS = 4;
+function getUnlocksNumColumns(screenWidth: number): number {
+  if (screenWidth >= 768) return 6;
+  if (screenWidth >= 600) return 5;
+  return 4;
+}
 
 export type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
 
@@ -196,11 +201,14 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
     [allTabItems, rarityFilter],
   );
 
+  const { width: screenWidth } = useWindowDimensions();
+  const numColumns = getUnlocksNumColumns(screenWidth);
+
   // Pad last row with invisible spacers so flex:1 cells don't stretch
   const paddedItems = useMemo(() => {
-    const remainder = currentItems.length % NUM_COLUMNS;
+    const remainder = currentItems.length % numColumns;
     if (remainder === 0) return currentItems;
-    const spacers: UnlockItem[] = Array.from({ length: NUM_COLUMNS - remainder }, (_, i) => ({
+    const spacers: UnlockItem[] = Array.from({ length: numColumns - remainder }, (_, i) => ({
       id: `__spacer_${i}`,
       type: activeTab,
       displayName: '',
@@ -208,7 +216,7 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
       rarity: 'common',
     }));
     return [...currentItems, ...spacers];
-  }, [currentItems, activeTab]);
+  }, [currentItems, activeTab, numColumns]);
 
   const unlockedCount = allTabItems.filter((i) => i.unlocked).length;
   const totalCount = allTabItems.length;
@@ -226,6 +234,7 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
     loading,
     isViewer,
     paddedItems,
+    numColumns,
     unlockedCount,
     totalCount,
     progressPercent,

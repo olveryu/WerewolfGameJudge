@@ -8,7 +8,16 @@
 import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
 import type React from 'react';
 import { memo, useMemo } from 'react';
-import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
@@ -33,7 +42,7 @@ interface ChooseBottomCardModalProps {
   onClose: () => void;
 }
 
-function createStyles(colors: ThemeColors) {
+function createStyles(colors: ThemeColors, screenHeight: number) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
@@ -46,7 +55,7 @@ function createStyles(colors: ThemeColors) {
       borderRadius: borderRadius.large,
       padding: spacing.large,
       width: '85%',
-      maxWidth: 360,
+      maxWidth: 400,
     },
     title: {
       ...textStyles.subtitle,
@@ -62,6 +71,9 @@ function createStyles(colors: ThemeColors) {
     },
     cardList: {
       gap: spacing.small,
+    },
+    cardListScroll: {
+      maxHeight: screenHeight * 0.45,
     },
     card: {
       flexDirection: 'row',
@@ -118,7 +130,8 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   onChoose,
   onClose,
 }) => {
-  const styles = useMemo(() => createStyles(colors), []);
+  const { height: screenHeight } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(colors, screenHeight), [screenHeight]);
 
   const cards: BottomCardItem[] = useMemo(
     () =>
@@ -141,7 +154,11 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
         <View style={styles.container}>
           <Text style={styles.title}>选择底牌</Text>
           <Text style={styles.teamSubtitle}>{subtitle}</Text>
-          <View style={styles.cardList}>
+          <ScrollView
+            style={styles.cardListScroll}
+            contentContainerStyle={styles.cardList}
+            showsVerticalScrollIndicator={false}
+          >
             {cards.map((card, index) => {
               const isDisabled = disabledIndices.includes(index);
               return (
@@ -164,7 +181,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
           <TouchableOpacity style={styles.cancelButton} onPress={onClose} activeOpacity={0.7}>
             <Text style={styles.cancelText}>取消</Text>
           </TouchableOpacity>

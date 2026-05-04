@@ -20,7 +20,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -53,9 +53,6 @@ import { colors } from '@/theme';
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#020010', '#0a0025', '#050015'] as const;
 
-const SCREEN_W = Dimensions.get('window').width;
-const SCREEN_H = Dimensions.get('window').height;
-
 const MS = CONFIG.meteorStrike;
 
 const COLORS = {
@@ -70,22 +67,32 @@ const COLORS = {
 
 // ─── Pre-computed static data ──────────────────────────────────────────
 
-/** Background stars — position seeded from index for stability */
-const STARS = Array.from({ length: MS.starCount }, (_, i) => {
-  const r1 = ((i * 73 + 17) % 1000) / 1000;
-  const r2 = ((i * 41 + 31) % 1000) / 1000;
-  const r3 = ((i * 59 + 7) % 1000) / 1000;
-  const r4 = ((i * 83 + 11) % 1000) / 1000;
-  const r5 = ((i * 97 + 53) % 1000) / 1000;
-  return {
-    x: r1 * SCREEN_W,
-    y: r2 * SCREEN_H,
-    radius: 0.3 + r3 * 1.5,
-    brightness: 0.3 + r4 * 0.7,
-    speed: 1 + r5 * 3,
-    phase: ((i * 67 + 23) % 628) / 100,
-  };
-});
+interface StarData {
+  x: number;
+  y: number;
+  radius: number;
+  brightness: number;
+  speed: number;
+  phase: number;
+}
+
+function createStars(screenW: number, screenH: number): StarData[] {
+  return Array.from({ length: MS.starCount }, (_, i) => {
+    const r1 = ((i * 73 + 17) % 1000) / 1000;
+    const r2 = ((i * 41 + 31) % 1000) / 1000;
+    const r3 = ((i * 59 + 7) % 1000) / 1000;
+    const r4 = ((i * 83 + 11) % 1000) / 1000;
+    const r5 = ((i * 97 + 53) % 1000) / 1000;
+    return {
+      x: r1 * screenW,
+      y: r2 * screenH,
+      radius: 0.3 + r3 * 1.5,
+      brightness: 0.3 + r4 * 0.7,
+      speed: 1 + r5 * 3,
+      phase: ((i * 67 + 23) % 628) / 100,
+    };
+  });
+}
 
 /** Impact explosion particles */
 const IMPACT_PARTICLES = Array.from({ length: MS.impactParticleCount }, (_, i) => {
@@ -193,7 +200,7 @@ const ShockwaveRing = React.memo(ShockwaveRingInner);
 
 /** Single twinkling star */
 interface StarCircleProps {
-  star: (typeof STARS)[number];
+  star: StarData;
   starCycle: SharedValue<number>;
 }
 
@@ -222,12 +229,15 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const stars = useMemo(() => createStars(screenW, screenH), [screenW, screenH]);
+
   const common = CONFIG.common;
-  const cardWidth = Math.min(SCREEN_W * common.cardWidthRatio, common.cardMaxWidth);
+  const cardWidth = Math.min(screenW * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
 
-  const impactCx = SCREEN_W / 2;
-  const impactCy = SCREEN_H * 0.5;
+  const impactCx = screenW / 2;
+  const impactCy = screenH * 0.5;
 
   const [phase, setPhase] = useState<Phase>('atmosphere');
   const { fireComplete } = useRevealLifecycle({
@@ -238,13 +248,13 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   // ── Meteor state (JS-side, driven by rAF) ──
   const meteorRef = useRef<MeteorState>({
     x: -80,
-    y: SCREEN_H * 0.18,
+    y: screenH * 0.18,
     active: false,
     caught: false,
     angle: 0.35,
   });
   const meteorXSV = useSharedValue(-80);
-  const meteorYSV = useSharedValue(SCREEN_H * 0.18);
+  const meteorYSV = useSharedValue(screenH * 0.18);
   const meteorOpacity = useSharedValue(0);
   const rafRef = useRef<number | null>(null);
   const lastFrameRef = useRef(0);
@@ -358,14 +368,14 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   const spawnMeteor = useCallback(() => {
     const m = meteorRef.current;
     m.x = -60;
-    m.y = SCREEN_H * (0.12 + Math.random() * 0.13);
+    m.y = screenH * (0.12 + Math.random() * 0.13);
     m.active = true;
     m.caught = false;
     m.angle = 0.25 + Math.random() * 0.2;
     meteorXSV.value = m.x;
     meteorYSV.value = m.y;
     meteorOpacity.value = withTiming(1, { duration: 200 });
-  }, [meteorXSV, meteorYSV, meteorOpacity]);
+  }, [meteorXSV, meteorYSV, meteorOpacity, screenH]);
 
   const updateMeteor = useCallback(
     (timestamp: number) => {
@@ -395,14 +405,14 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         }
 
         // Off screen → respawn
-        if (m.x > SCREEN_W + 100) {
+        if (m.x > screenW + 100) {
           spawnMeteor();
         }
       }
 
       rafRef.current = requestAnimationFrame(updateMeteor);
     },
-    [meteorXSV, meteorYSV, spawnMeteor, trailSV],
+    [meteorXSV, meteorYSV, spawnMeteor, trailSV, screenW],
   );
 
   // ── Init animation ──
@@ -439,13 +449,13 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   const autoTrigger = useCallback(() => {
     if (!meteorRef.current.caught) {
       // Move meteor to a visible spot then trigger
-      meteorRef.current.x = SCREEN_W * 0.6;
-      meteorRef.current.y = SCREEN_H * 0.3;
-      meteorXSV.value = SCREEN_W * 0.6;
-      meteorYSV.value = SCREEN_H * 0.3;
+      meteorRef.current.x = screenW * 0.6;
+      meteorRef.current.y = screenH * 0.3;
+      meteorXSV.value = screenW * 0.6;
+      meteorYSV.value = screenH * 0.3;
       triggerImpact();
     }
-  }, [meteorXSV, meteorYSV, triggerImpact]);
+  }, [meteorXSV, meteorYSV, triggerImpact, screenW, screenH]);
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoTrigger);
 
   // ── Tap handler ──
@@ -505,7 +515,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Stars ── */}
-            {STARS.map((star, i) => (
+            {stars.map((star, i) => (
               <StarCircle key={`star-${i}`} star={star} starCycle={starCycle} />
             ))}
 

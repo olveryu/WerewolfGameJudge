@@ -22,9 +22,8 @@ import {
 } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -101,25 +100,24 @@ const COLORS = {
 
 const SB = CONFIG.sealBreak;
 
-const SCREEN_W = Dimensions.get('window').width;
-const SCREEN_H = Dimensions.get('window').height;
+function createEmbers(screenW: number, screenH: number) {
+  return Array.from({ length: 14 }, (_, i) => ({
+    id: i,
+    startX: screenW * 0.3 + Math.random() * screenW * 0.4,
+    startY: screenH * 0.5 + Math.random() * screenH * 0.15,
+    drift: (Math.random() - 0.5) * 30,
+    size: 2 + Math.random() * 2.5,
+  }));
+}
 
-/** Fire embers — small particles rising from the seal */
-const EMBERS = Array.from({ length: 14 }, (_, i) => ({
-  id: i,
-  startX: SCREEN_W * 0.3 + Math.random() * SCREEN_W * 0.4,
-  startY: SCREEN_H * 0.5 + Math.random() * SCREEN_H * 0.15,
-  drift: (Math.random() - 0.5) * 30,
-  size: 2 + Math.random() * 2.5,
-}));
-
-/** Fog circles at bottom/edges for dark atmosphere */
-const FOG_CIRCLES = [
-  { x: 0, y: SCREEN_H * 0.65, r: 130 },
-  { x: SCREEN_W, y: SCREEN_H * 0.7, r: 110 },
-  { x: SCREEN_W * 0.3, y: SCREEN_H, r: 150 },
-  { x: SCREEN_W * 0.7, y: SCREEN_H * 0.95, r: 120 },
-];
+function createFogCircles(screenW: number, screenH: number) {
+  return [
+    { x: 0, y: screenH * 0.65, r: 130 },
+    { x: screenW, y: screenH * 0.7, r: 110 },
+    { x: screenW * 0.3, y: screenH, r: 150 },
+    { x: screenW * 0.7, y: screenH * 0.95, r: 120 },
+  ];
+}
 
 /** Energy beam angles — 8 radial beams from seal center */
 const ENERGY_BEAM_ANGLES = Array.from({ length: 8 }, (_, i) => ((Math.PI * 2) / 8) * i);
@@ -230,7 +228,7 @@ interface ShardParticleProps {
   progress: SharedValue<number>;
 }
 
-const ShardParticle: React.FC<ShardParticleProps> = ({ shard, cx, cy, progress }) => {
+const ShardParticle: FC<ShardParticleProps> = ({ shard, cx, cy, progress }) => {
   const endX = cx + Math.cos(shard.angle) * shard.distance;
   const endY = cy + Math.sin(shard.angle) * shard.distance;
 
@@ -255,7 +253,7 @@ interface EnergyParticleComponentProps {
   rotationOffset: SharedValue<number>;
 }
 
-const EnergyParticleComponent: React.FC<EnergyParticleComponentProps> = ({
+const EnergyParticleComponent: FC<EnergyParticleComponentProps> = ({
   particle,
   cx,
   cy,
@@ -292,7 +290,7 @@ interface ProgressSegmentProps {
   charge: SharedValue<number>;
 }
 
-const ProgressSegment: React.FC<ProgressSegmentProps> = ({ path, threshold, charge }) => {
+const ProgressSegment: FC<ProgressSegmentProps> = ({ path, threshold, charge }) => {
   const segEnd = useDerivedValue(() => (charge.value > threshold ? 1 : 0));
   const segOpacity = useDerivedValue(() =>
     charge.value > threshold
@@ -324,7 +322,7 @@ interface EmberParticleProps {
   chargeLevel: SharedValue<number>;
 }
 
-const EmberParticle: React.FC<EmberParticleProps> = ({
+const EmberParticle: FC<EmberParticleProps> = ({
   startX,
   startY,
   drift,
@@ -357,7 +355,7 @@ interface ChainSymbolProps {
   rattle: SharedValue<number>;
 }
 
-const ChainSymbol: React.FC<ChainSymbolProps> = ({ angle, cx, cy, radius, rattle }) => {
+const ChainSymbol: FC<ChainSymbolProps> = ({ angle, cx, cy, radius, rattle }) => {
   const style = useAnimatedStyle(() => ({
     left: cx + Math.cos(angle) * radius - 12,
     top: cy + Math.sin(angle) * radius - 12 + Math.sin(rattle.value * Math.PI * 6) * 3,
@@ -377,7 +375,7 @@ interface AncientTextSymbolProps {
   rotation: SharedValue<number>;
 }
 
-const AncientTextSymbol: React.FC<AncientTextSymbolProps> = ({
+const AncientTextSymbol: FC<AncientTextSymbolProps> = ({
   symbol,
   baseAngle,
   cx,
@@ -406,7 +404,7 @@ interface OuterRuneSymbolProps {
   runeRotation: SharedValue<number>;
 }
 
-const OuterRuneSymbol: React.FC<OuterRuneSymbolProps> = ({
+const OuterRuneSymbol: FC<OuterRuneSymbolProps> = ({
   symbol,
   baseAngle,
   cx,
@@ -428,7 +426,7 @@ const OuterRuneSymbol: React.FC<OuterRuneSymbolProps> = ({
 // ─── Main component ─────────────────────────────────────────────────────
 type Phase = 'appear' | 'idle' | 'charging' | 'shatter' | 'revealed';
 
-export const SealBreak: React.FC<RoleRevealEffectProps> = ({
+export const SealBreak: FC<RoleRevealEffectProps> = ({
   role,
   onComplete,
   reducedMotion = false,
@@ -439,6 +437,14 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
   const theme = alignmentThemes[role.alignment];
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const embers = useMemo(
+    () => createEmbers(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
+  const fogCircles = useMemo(
+    () => createFogCircles(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
@@ -822,7 +828,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
           <Animated.View style={[StyleSheet.absoluteFill, sealContainerStyle]}>
             <Canvas style={StyleSheet.absoluteFill}>
               {/* Dark fog at edges */}
-              {FOG_CIRCLES.map((fog, i) => (
+              {fogCircles.map((fog, i) => (
                 <Group key={`fog-${i}`} opacity={fogPulse}>
                   <Circle cx={fog.x} cy={fog.y} r={fog.r} color={COLORS.fogColor}>
                     <Blur blur={40} />
@@ -1006,7 +1012,7 @@ export const SealBreak: React.FC<RoleRevealEffectProps> = ({
               ))}
 
               {/* Fire embers (rising from seal, intensify with charge) */}
-              {EMBERS.map((ember) => (
+              {embers.map((ember) => (
                 <EmberParticle
                   key={`ember-${ember.id}`}
                   startX={ember.startX}

@@ -47,7 +47,9 @@ async function main() {
       require('@shopify/react-native-skia/lib/module/web') as typeof import('@shopify/react-native-skia/lib/module/web');
     await LoadSkiaWeb({
       locateFile: (file: string) =>
-        `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`,
+        useCompressedWasm
+          ? `https://cdn.npmmirror.com/packages/canvaskit-wasm/${version}/files/bin/full/${file}`
+          : `https://unpkg.com/canvaskit-wasm@${version}/bin/full/${file}`,
       ...(useCompressedWasm && {
         instantiateWasm(
           importObject: WebAssembly.Imports,

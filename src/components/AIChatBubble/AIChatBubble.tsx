@@ -50,9 +50,9 @@ interface AIChatBubbleProps {
 }
 
 export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false }) => {
-  const styles = createStyles(colors);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const styles = createStyles(colors, screenWidth);
   const flatListRef = useRef<FlatList>(null);
-  const { height: screenHeight } = useWindowDimensions();
   const chatHeight = getChatHeight(screenHeight);
 
   const chat = useAIChat();

@@ -22,7 +22,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -53,9 +53,6 @@ import { colors, crossPlatformTextShadow } from '@/theme';
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0906', '#0d0b08', '#0a0906'] as const;
 
-const SCREEN_W = Dimensions.get('window').width;
-const SCREEN_H = Dimensions.get('window').height;
-
 const FR = CONFIG.filmRewind;
 
 const COLORS = {
@@ -79,35 +76,38 @@ const SPROCKET_SPACING = FR.sprocketSpacing;
 const SPROCKET_HOLE_W = 10;
 const SPROCKET_HOLE_H = 14;
 
-/** Number of sprocket holes visible on screen + buffer */
-const SPROCKET_COUNT = Math.ceil(SCREEN_H / SPROCKET_SPACING) + 2;
+function getSprocketCount(screenH: number) {
+  return Math.ceil(screenH / SPROCKET_SPACING) + 2;
+}
 
-/** Vertical scratch X positions (stable) */
-const SCRATCHES = Array.from({ length: FR.scratchCount }, (_, i) => ({
-  x: SCREEN_W * (0.25 + ((i * 37 + 13) % 50) / 100),
-  drift: (((i * 71 + 29) % 100) / 100) * 5,
-}));
+function createScratches(screenW: number) {
+  return Array.from({ length: FR.scratchCount }, (_, i) => ({
+    x: screenW * (0.25 + ((i * 37 + 13) % 50) / 100),
+    drift: (((i * 71 + 29) % 100) / 100) * 5,
+  }));
+}
 
-/**
- * Grain noise field — 2× screen area so we can translate the Group
- * by grainCycle ∈ [0,1) × offset to simulate redrawn-per-frame noise
- * without re-allocating Skia nodes.
- */
-const GRAIN_FIELD_W = SCREEN_W * 2;
-const GRAIN_FIELD_H = SCREEN_H * 2;
-const GRAIN_PARTICLES = Array.from({ length: FR.grainCount * 2 }, (_, i) => ({
-  x: (((i * 73 + 17) % 2000) / 2000) * GRAIN_FIELD_W,
-  y: (((i * 41 + 31) % 2000) / 2000) * GRAIN_FIELD_H,
-  light: i % 2 === 0,
-}));
-const GRAIN_SHIFT_X = SCREEN_W * 0.73; // irrational-ish offset for variety
-const GRAIN_SHIFT_Y = SCREEN_H * 0.61;
+function createGrainParticles(screenW: number, screenH: number) {
+  const fieldW = screenW * 2;
+  const fieldH = screenH * 2;
+  return Array.from({ length: FR.grainCount * 2 }, (_, i) => ({
+    x: (((i * 73 + 17) % 2000) / 2000) * fieldW,
+    y: (((i * 41 + 31) % 2000) / 2000) * fieldH,
+    light: i % 2 === 0,
+  }));
+}
 
-/** Horizontal scratch lines (random flash driven by grainCycle) */
-const HORIZONTAL_SCRATCHES = Array.from({ length: 6 }, (_, i) => ({
-  y: SCREEN_H * (0.1 + ((i * 43 + 7) % 90) / 100),
-  phase: ((i * 67 + 13) % 100) / 100, // 0-1 phase offset for stagger
-}));
+interface HScratchData {
+  y: number;
+  phase: number;
+}
+
+function createHorizontalScratches(screenH: number): HScratchData[] {
+  return Array.from({ length: 6 }, (_, i) => ({
+    y: screenH * (0.1 + ((i * 43 + 7) % 90) / 100),
+    phase: ((i * 67 + 13) % 100) / 100,
+  }));
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────
 type Phase = 'atmosphere' | 'idle' | 'countdown' | 'revealed';
@@ -117,15 +117,17 @@ type Phase = 'atmosphere' | 'idle' | 'countdown' | 'revealed';
 interface SprocketHolePairProps {
   baseY: number;
   sprocketScroll: SharedValue<number>;
+  screenW: number;
+  sprocketCount: number;
 }
 
 const SprocketHolePair: React.FC<SprocketHolePairProps> = React.memo(
-  ({ baseY, sprocketScroll }) => {
+  ({ baseY, sprocketScroll, screenW, sprocketCount }) => {
     const leftCx = BORDER_W / 2;
-    const rightCx = SCREEN_W - BORDER_W / 2;
+    const rightCx = screenW - BORDER_W / 2;
     const yPos = useDerivedValue(() => {
       const scrolled = baseY + sprocketScroll.value;
-      return scrolled % (SPROCKET_COUNT * SPROCKET_SPACING);
+      return scrolled % (sprocketCount * SPROCKET_SPACING);
     });
     const outerLeftX = useDerivedValue(() => leftCx - SPROCKET_HOLE_W / 2);
     const outerLeftY = useDerivedValue(() => yPos.value - SPROCKET_HOLE_H / 2);
@@ -179,39 +181,47 @@ SprocketHolePair.displayName = 'SprocketHolePair';
 /** Grain noise field with animated translation for per-frame variety */
 interface GrainFieldProps {
   grainCycle: SharedValue<number>;
+  particles: { x: number; y: number; light: boolean }[];
+  screenW: number;
+  screenH: number;
 }
 
-const GrainField: React.FC<GrainFieldProps> = React.memo(({ grainCycle }) => {
-  const transform = useDerivedValue(() => [
-    { translateX: -grainCycle.value * GRAIN_SHIFT_X },
-    { translateY: -grainCycle.value * GRAIN_SHIFT_Y },
-  ]);
+const GrainField: React.FC<GrainFieldProps> = React.memo(
+  ({ grainCycle, particles, screenW, screenH }) => {
+    const shiftX = screenW * 0.73;
+    const shiftY = screenH * 0.61;
+    const transform = useDerivedValue(() => [
+      { translateX: -grainCycle.value * shiftX },
+      { translateY: -grainCycle.value * shiftY },
+    ]);
 
-  return (
-    <Group transform={transform} clip={{ x: 0, y: 0, width: SCREEN_W, height: SCREEN_H }}>
-      {GRAIN_PARTICLES.map((g, i) => (
-        <Rect
-          key={`grain-${i}`}
-          x={g.x}
-          y={g.y}
-          width={1}
-          height={1}
-          color={g.light ? COLORS.grainLight : COLORS.grainDark}
-        />
-      ))}
-    </Group>
-  );
-});
+    return (
+      <Group transform={transform} clip={{ x: 0, y: 0, width: screenW, height: screenH }}>
+        {particles.map((g, i) => (
+          <Rect
+            key={`grain-${i}`}
+            x={g.x}
+            y={g.y}
+            width={1}
+            height={1}
+            color={g.light ? COLORS.grainLight : COLORS.grainDark}
+          />
+        ))}
+      </Group>
+    );
+  },
+);
 GrainField.displayName = 'GrainField';
 
 /** Horizontal scratch that flashes based on grainCycle phase */
 interface HorizontalScratchLineProps {
-  scratch: (typeof HORIZONTAL_SCRATCHES)[number];
+  scratch: HScratchData;
   grainCycle: SharedValue<number>;
+  screenW: number;
 }
 
 const HorizontalScratchLine: React.FC<HorizontalScratchLineProps> = React.memo(
-  ({ scratch, grainCycle }) => {
+  ({ scratch, grainCycle, screenW }) => {
     const opacity = useDerivedValue(() => {
       const t = (grainCycle.value + scratch.phase) % 1;
       return t < 0.15 ? 0.08 : 0;
@@ -220,7 +230,7 @@ const HorizontalScratchLine: React.FC<HorizontalScratchLineProps> = React.memo(
     return (
       <Line
         p1={vec(0, scratch.y)}
-        p2={vec(SCREEN_W, scratch.y)}
+        p2={vec(screenW, scratch.y)}
         color={'rgba(200, 180, 140, 0.06)'}
         strokeWidth={1}
         style="stroke"
@@ -242,8 +252,14 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const sprocketCount = useMemo(() => getSprocketCount(screenH), [screenH]);
+  const scratches = useMemo(() => createScratches(screenW), [screenW]);
+  const grainParticles = useMemo(() => createGrainParticles(screenW, screenH), [screenW, screenH]);
+  const horizontalScratches = useMemo(() => createHorizontalScratches(screenH), [screenH]);
+
   const common = CONFIG.common;
-  const cardWidth = Math.min(SCREEN_W * common.cardWidthRatio, common.cardMaxWidth);
+  const cardWidth = Math.min(screenW * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
 
   const [phase, setPhase] = useState<Phase>('atmosphere');
@@ -399,8 +415,8 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 
   // ── Sprocket hole Y positions (driven by scroll) ──
   const sprocketYOffsets = useMemo(
-    () => Array.from({ length: SPROCKET_COUNT }, (_, i) => i * SPROCKET_SPACING),
-    [],
+    () => Array.from({ length: sprocketCount }, (_, i) => i * SPROCKET_SPACING),
+    [sprocketCount],
   );
 
   // ── Countdown arc path ──
@@ -425,22 +441,22 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Warm projector radial glow (matches HTML prototype) ── */}
-            <Rect x={0} y={0} width={SCREEN_W} height={SCREEN_H}>
+            <Rect x={0} y={0} width={screenW} height={screenH}>
               <RadialGradient
-                c={vec(SCREEN_W / 2, SCREEN_H / 2)}
-                r={SCREEN_H * 0.7}
+                c={vec(screenW / 2, screenH / 2)}
+                r={screenH * 0.7}
                 colors={['rgba(60, 50, 30, 0.25)', 'rgba(30, 25, 15, 0.10)', 'transparent']}
                 positions={[0, 0.5, 1]}
               />
             </Rect>
 
             {/* ── Film borders (left + right) ── */}
-            <Rect x={0} y={0} width={BORDER_W} height={SCREEN_H} color={COLORS.filmBorder} />
+            <Rect x={0} y={0} width={BORDER_W} height={screenH} color={COLORS.filmBorder} />
             <Rect
-              x={SCREEN_W - BORDER_W}
+              x={screenW - BORDER_W}
               y={0}
               width={BORDER_W}
-              height={SCREEN_H}
+              height={screenH}
               color={COLORS.filmBorder}
             />
 
@@ -450,15 +466,17 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
                 key={`sprocket-${i}`}
                 baseY={baseY}
                 sprocketScroll={sprocketScroll}
+                screenW={screenW}
+                sprocketCount={sprocketCount}
               />
             ))}
 
             {/* ── Vertical scratches ── */}
-            {SCRATCHES.map((s, i) => (
+            {scratches.map((s, i) => (
               <Line
                 key={`scratch-${i}`}
                 p1={vec(s.x, 0)}
-                p2={vec(s.x + s.drift, SCREEN_H)}
+                p2={vec(s.x + s.drift, screenH)}
                 color={COLORS.scratchLine}
                 strokeWidth={1}
                 style="stroke"
@@ -466,18 +484,28 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
             ))}
 
             {/* ── Film grain (animated offset = pseudo-random per-frame) ── */}
-            <GrainField grainCycle={grainCycle} />
+            <GrainField
+              grainCycle={grainCycle}
+              particles={grainParticles}
+              screenW={screenW}
+              screenH={screenH}
+            />
 
             {/* ── Horizontal scratch flashes ── */}
-            {HORIZONTAL_SCRATCHES.map((hs, i) => (
-              <HorizontalScratchLine key={`hscratch-${i}`} scratch={hs} grainCycle={grainCycle} />
+            {horizontalScratches.map((hs, i) => (
+              <HorizontalScratchLine
+                key={`hscratch-${i}`}
+                scratch={hs}
+                grainCycle={grainCycle}
+                screenW={screenW}
+              />
             ))}
 
             {/* ── Vignette (dark edges — radial gradient) ── */}
-            <Rect x={0} y={0} width={SCREEN_W} height={SCREEN_H}>
+            <Rect x={0} y={0} width={screenW} height={screenH}>
               <RadialGradient
-                c={vec(SCREEN_W / 2, SCREEN_H / 2)}
-                r={SCREEN_H * 0.7}
+                c={vec(screenW / 2, screenH / 2)}
+                r={screenH * 0.7}
                 colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
                 positions={[0, 0.7, 1]}
               />
@@ -568,8 +596,10 @@ const styles = StyleSheet.create({
   },
   countdownContainer: {
     position: 'absolute',
-    top: SCREEN_H / 2 - 80,
-    left: SCREEN_W / 2 - 80,
+    top: '50%',
+    left: '50%',
+    marginTop: -80,
+    marginLeft: -80,
     width: 160,
     height: 160,
     alignItems: 'center',

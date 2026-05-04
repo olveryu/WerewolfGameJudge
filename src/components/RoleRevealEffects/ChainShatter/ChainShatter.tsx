@@ -19,7 +19,7 @@ import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/rea
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -117,29 +117,29 @@ const SPARKS_PER_HIT = 10;
 /** Number of ambient dust particles */
 const DUST_COUNT = 10;
 
-const SCREEN_W = Dimensions.get('window').width;
-const SCREEN_H = Dimensions.get('window').height;
+function createTorchPositions(screenW: number, screenH: number) {
+  return [
+    { x: 20, y: screenH * 0.3, symbol: '🔥' },
+    { x: screenW - 50, y: screenH * 0.35, symbol: '🔥' },
+  ];
+}
 
-/** Torch positions at the sides */
-const TORCH_POSITIONS = [
-  { x: 20, y: SCREEN_H * 0.3, symbol: '🔥' },
-  { x: SCREEN_W - 50, y: SCREEN_H * 0.35, symbol: '🔥' },
-];
+function createStoneBlocks(screenW: number, screenH: number) {
+  return Array.from({ length: 6 }, (_, i) => ({
+    x: (i % 3) * (screenW / 3),
+    y: screenH * 0.3 + Math.floor(i / 3) * 80,
+    w: screenW / 3 - 4,
+    h: 70,
+  }));
+}
 
-/** Stone wall blocks in the background */
-const STONE_BLOCKS = Array.from({ length: 6 }, (_, i) => ({
-  x: (i % 3) * (SCREEN_W / 3),
-  y: SCREEN_H * 0.3 + Math.floor(i / 3) * 80,
-  w: SCREEN_W / 3 - 4,
-  h: 70,
-}));
-
-/** Ground debris particles */
-const DEBRIS_PARTICLES = Array.from({ length: 10 }, (_) => ({
-  x: SCREEN_W * 0.2 + Math.random() * SCREEN_W * 0.6,
-  y: SCREEN_H * 0.65 + Math.random() * SCREEN_H * 0.1,
-  size: 2 + Math.random() * 3,
-}));
+function createDebrisParticles(screenW: number, screenH: number) {
+  return Array.from({ length: 10 }, () => ({
+    x: screenW * 0.2 + Math.random() * screenW * 0.6,
+    y: screenH * 0.65 + Math.random() * screenH * 0.1,
+    size: 2 + Math.random() * 3,
+  }));
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────
 interface CrackData {
@@ -536,6 +536,18 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const theme = alignmentThemes[role.alignment];
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const torchPositions = useMemo(
+    () => createTorchPositions(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
+  const stoneBlocks = useMemo(
+    () => createStoneBlocks(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
+  const debrisParticles = useMemo(
+    () => createDebrisParticles(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
@@ -948,7 +960,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       {/* Stone wall blocks in background */}
       {!reducedMotion && (
         <View style={styles.absoluteFillNoEvents}>
-          {STONE_BLOCKS.map((block, i) => (
+          {stoneBlocks.map((block, i) => (
             <View
               key={`stone-${i}`}
               style={[
@@ -962,7 +974,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Wall torch brackets (bolt only — flame is rendered in Skia canvas) */}
       {!reducedMotion &&
-        TORCH_POSITIONS.map((torch, i) => (
+        torchPositions.map((torch, i) => (
           <View
             key={`torch-bracket-${i}`}
             style={[styles.torch, { left: torch.x + 8, top: torch.y + 30 }]}
@@ -978,7 +990,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
             <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
           ))}
           {/* Skia torch flames — warm glowing fire clusters */}
-          {TORCH_POSITIONS.map((torch, i) => (
+          {torchPositions.map((torch, i) => (
             <SkiaTorchFlame
               key={`skia-torch-${i}`}
               x={torch.x}
@@ -1143,7 +1155,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
               {/* Ground debris (accumulate after hits) */}
               <Group opacity={debrisVisible}>
-                {DEBRIS_PARTICLES.map((d, i) => (
+                {debrisParticles.map((d, i) => (
                   <Circle
                     key={`debris-${i}`}
                     cx={d.x}

@@ -7,7 +7,7 @@
  * 不 import service，不含业务逻辑。
  */
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -16,7 +16,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const BURST_COUNT = 16;
 const BURST_PARTICLES = Array.from({ length: BURST_COUNT }, (_, i) => {
@@ -80,10 +79,13 @@ interface RevealBurstProps {
 
 export const RevealBurst: React.FC<RevealBurstProps> = ({
   trigger,
-  centerX = SCREEN_W / 2,
-  centerY = SCREEN_H * 0.45,
+  centerX: centerXProp,
+  centerY: centerYProp,
   color = '#FFD700',
 }) => {
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const centerX = centerXProp ?? screenW / 2;
+  const centerY = centerYProp ?? screenH * 0.45;
   const progress = useSharedValue(0);
   const ringScale = useSharedValue(0);
   const ringOpacity = useSharedValue(0);
@@ -101,7 +103,7 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
     );
   }, [trigger, progress, ringScale, ringOpacity]);
 
-  const ringDiameter = SCREEN_W * 0.8;
+  const ringDiameter = screenW * 0.8;
   const ringStyle = useAnimatedStyle(() => ({
     position: 'absolute',
     left: centerX - ringDiameter / 2,

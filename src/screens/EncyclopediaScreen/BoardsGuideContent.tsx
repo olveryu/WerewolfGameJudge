@@ -358,7 +358,7 @@ const dropdownStyles = StyleSheet.create({
     marginBottom: spacing.small,
   },
   scroll: {
-    maxHeight: 300,
+    maxHeight: '50%',
   },
   item: {
     flexDirection: 'row',

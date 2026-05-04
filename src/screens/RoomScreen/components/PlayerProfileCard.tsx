@@ -63,7 +63,7 @@ interface PlayerProfileCardProps {
 }
 
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
-const CARD_WIDTH = 300;
+const CARD_MAX_WIDTH = 300;
 
 /** 等级称号对应的主题色 */
 function getTitleColor(level: number): string {
@@ -518,7 +518,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   card: {
-    width: CARD_WIDTH,
+    width: '100%',
+    maxWidth: CARD_MAX_WIDTH,
     minHeight: 240,
     alignItems: 'center',
     overflow: 'visible',
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: typography.weights.bold,
     color: colors.text,
-    maxWidth: CARD_WIDTH - 40,
+    maxWidth: '85%',
     marginTop: spacing.small,
     textAlign: 'center',
   },
@@ -677,7 +678,8 @@ const styles = StyleSheet.create({
 
   // Kick
   kickButton: {
-    width: CARD_WIDTH - spacing.large * 2,
+    alignSelf: 'stretch',
+    marginHorizontal: spacing.large,
     height: componentSizes.button.md,
     borderRadius: borderRadius.small,
     backgroundColor: withAlpha(colors.error, 0.06),
@@ -694,7 +696,8 @@ const styles = StyleSheet.create({
 
   // Leave seat (self-profile)
   leaveSeatButton: {
-    width: CARD_WIDTH - spacing.large * 2,
+    alignSelf: 'stretch',
+    marginHorizontal: spacing.large,
     height: componentSizes.button.md,
     borderRadius: borderRadius.small,
     backgroundColor: withAlpha(colors.warning, 0.08),

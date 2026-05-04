@@ -226,14 +226,11 @@ SeatAnimationThumb.displayName = 'SeatAnimationThumb';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
-const NUM_COLUMNS = 4;
-
 const styles = StyleSheet.create({
   cell: {
     flex: 1,
     alignItems: 'center',
     marginBottom: spacing.medium,
-    maxWidth: `${100 / NUM_COLUMNS}%`,
   },
   imageWrapper: {
     width: CELL_SIZE,

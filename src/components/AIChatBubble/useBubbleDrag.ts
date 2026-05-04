@@ -17,7 +17,7 @@ import {
   BUBBLE_HEIGHT,
   BUBBLE_MARGIN,
   BUBBLE_WIDTH,
-  DEFAULT_POSITION,
+  getDefaultPosition,
 } from './AIChatBubble.styles';
 
 const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
@@ -54,7 +54,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   const stableHeight = stableHeightRef.current;
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const [position, setPosition] = useState(() => getDefaultPosition(screenWidth, stableHeight));
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const isDraggingRef = useRef(false);
   const justHandledTouchRef = useRef(false);

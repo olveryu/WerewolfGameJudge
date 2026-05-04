@@ -18,7 +18,7 @@ import {
 } from '@shopify/react-native-skia';
 import type React from 'react';
 import { useEffect } from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import {
   Easing,
   useDerivedValue,
@@ -31,8 +31,6 @@ import {
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 const AE = CONFIG.alignmentEffects;
 const SK = CONFIG.skia;
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // Pre-compute burst particle data (radial scatter)
 const BURST_PARTICLES = Array.from({ length: SK.burstParticleCount }, (_, i) => {
@@ -71,6 +69,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
   centerY,
   delay = 200,
 }) => {
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const progress = useSharedValue(0);
 
   useEffect(() => {
@@ -85,7 +84,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
   }, [animate, progress, duration, delay]);
 
   // Radial shockwave
-  const waveR = useDerivedValue(() => progress.value * SCREEN_W);
+  const waveR = useDerivedValue(() => progress.value * screenW);
   const waveOpacity = useDerivedValue(() => {
     const p = progress.value;
     if (p < 0.15) return (p / 0.15) * peakOpacity;
@@ -96,7 +95,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
   // Replaces 20 BurstParticle components (80 useDerivedValue per frame) with 1.
   const burstPicture = useDerivedValue(() => {
     'worklet';
-    const c = burstRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const c = burstRecorder.beginRecording(Skia.XYWHRect(0, 0, screenW, screenH));
     const skColor = Skia.Color(color);
     const p = progress.value;
     for (let i = 0; i < BURST_PARTICLES.length; i++) {
@@ -119,7 +118,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
         <Circle cx={centerX} cy={centerY} r={waveR}>
           <RadialGradient
             c={vec(centerX, centerY)}
-            r={SCREEN_W}
+            r={screenW}
             colors={[color, `${color}80`, `${color}00`]}
           />
           <Blur blur={SK.flashBlur} />
@@ -143,11 +142,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
 
 const styles = StyleSheet.create({
   canvas: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     zIndex: 9999,
     pointerEvents: 'none',
   },

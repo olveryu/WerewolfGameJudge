@@ -23,7 +23,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
@@ -56,9 +56,6 @@ import { colors } from '@/theme';
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#030008', '#050012', '#030008'] as const;
 
-const SCREEN_W = Dimensions.get('window').width;
-const SCREEN_H = Dimensions.get('window').height;
-
 const VC = CONFIG.vortexCollapse;
 
 function hslString(h: number, s: number, l: number, a: number) {
@@ -67,19 +64,34 @@ function hslString(h: number, s: number, l: number, a: number) {
 
 // ─── Pre-computed static data ──────────────────────────────────────────
 
-/** Background stars */
-const BG_STARS = Array.from({ length: 60 }, (_, i) => ({
-  x: (Math.sin(i * 7.7) * 0.5 + 0.5) * SCREEN_W,
-  y: (Math.cos(i * 4.3) * 0.5 + 0.5) * SCREEN_H,
-  phase: i,
-}));
+interface BgStarData {
+  x: number;
+  y: number;
+  phase: number;
+}
 
-/** Nebula clouds (static positions) */
-const NEBULAE = [
-  { x: SCREEN_W * 0.3, y: SCREEN_H * 0.3, r: 200, hue: 260 },
-  { x: SCREEN_W * 0.7, y: SCREEN_H * 0.6, r: 180, hue: 300 },
-  { x: SCREEN_W * 0.5, y: SCREEN_H * 0.2, r: 150, hue: 230 },
-];
+function createBgStars(screenW: number, screenH: number): BgStarData[] {
+  return Array.from({ length: 60 }, (_, i) => ({
+    x: (Math.sin(i * 7.7) * 0.5 + 0.5) * screenW,
+    y: (Math.cos(i * 4.3) * 0.5 + 0.5) * screenH,
+    phase: i,
+  }));
+}
+
+interface NebulaData {
+  x: number;
+  y: number;
+  r: number;
+  hue: number;
+}
+
+function createNebulae(screenW: number, screenH: number): NebulaData[] {
+  return [
+    { x: screenW * 0.3, y: screenH * 0.3, r: 200, hue: 260 },
+    { x: screenW * 0.7, y: screenH * 0.6, r: 180, hue: 300 },
+    { x: screenW * 0.5, y: screenH * 0.2, r: 150, hue: 230 },
+  ];
+}
 
 /** Orbital particles */
 const ORBITAL_PARTICLES = Array.from({ length: VC.particleCount }, (_, i) => {
@@ -136,7 +148,7 @@ type Phase = 'atmosphere' | 'idle' | 'collapse' | 'revealed';
 
 /** Nebula glow cloud */
 interface NebulaCloudProps {
-  nebula: (typeof NEBULAE)[number];
+  nebula: NebulaData;
   time: SharedValue<number>;
 }
 
@@ -162,7 +174,7 @@ NebulaCloud.displayName = 'NebulaCloud';
 
 /** Background star with twinkle */
 interface BgStarProps {
-  star: (typeof BG_STARS)[number];
+  star: BgStarData;
   time: SharedValue<number>;
 }
 
@@ -257,12 +269,16 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
 
+  const { width: screenW, height: screenH } = useWindowDimensions();
+  const bgStars = useMemo(() => createBgStars(screenW, screenH), [screenW, screenH]);
+  const nebulae = useMemo(() => createNebulae(screenW, screenH), [screenW, screenH]);
+
   const common = CONFIG.common;
-  const cardWidth = Math.min(SCREEN_W * common.cardWidthRatio, common.cardMaxWidth);
+  const cardWidth = Math.min(screenW * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
 
-  const cx = SCREEN_W / 2;
-  const cy = SCREEN_H * 0.45;
+  const cx = screenW / 2;
+  const cy = screenH * 0.45;
 
   const [phase, setPhase] = useState<Phase>('atmosphere');
   const { fireComplete } = useRevealLifecycle({
@@ -602,12 +618,12 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Canvas style={styles.absoluteFillNoEvents}>
             {/* ── Nebula clouds ── */}
-            {NEBULAE.map((n, i) => (
+            {nebulae.map((n, i) => (
               <NebulaCloud key={`neb-${i}`} nebula={n} time={timeSV} />
             ))}
 
             {/* ── Background stars ── */}
-            {BG_STARS.map((s, i) => (
+            {bgStars.map((s, i) => (
               <BgStar key={`bstar-${i}`} star={s} time={timeSV} />
             ))}
 

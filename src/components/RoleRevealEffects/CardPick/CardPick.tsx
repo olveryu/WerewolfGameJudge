@@ -21,7 +21,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
@@ -50,8 +50,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors } from '@/theme';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TABLE_COLORS = {
@@ -82,16 +80,18 @@ const TABLE_COLORS = {
 };
 
 // ─── Pre-computed table chip positions ─────────────────────────────────
-const TABLE_CHIPS = [
-  { x: SCREEN_W * 0.08, y: SCREEN_H * 0.15, r: 8, color: TABLE_COLORS.chipRed },
-  { x: SCREEN_W * 0.92, y: SCREEN_H * 0.2, r: 7, color: TABLE_COLORS.chipBlue },
-  { x: SCREEN_W * 0.15, y: SCREEN_H * 0.82, r: 9, color: TABLE_COLORS.chipGold },
-  { x: SCREEN_W * 0.88, y: SCREEN_H * 0.78, r: 7, color: TABLE_COLORS.chipGreen },
-  { x: SCREEN_W * 0.05, y: SCREEN_H * 0.5, r: 6, color: TABLE_COLORS.chipRed },
-  { x: SCREEN_W * 0.95, y: SCREEN_H * 0.45, r: 8, color: TABLE_COLORS.chipBlue },
-  { x: SCREEN_W * 0.2, y: SCREEN_H * 0.12, r: 6, color: TABLE_COLORS.chipGold },
-  { x: SCREEN_W * 0.82, y: SCREEN_H * 0.88, r: 7, color: TABLE_COLORS.chipGreen },
-];
+function createTableChips(screenW: number, screenH: number) {
+  return [
+    { x: screenW * 0.08, y: screenH * 0.15, r: 8, color: TABLE_COLORS.chipRed },
+    { x: screenW * 0.92, y: screenH * 0.2, r: 7, color: TABLE_COLORS.chipBlue },
+    { x: screenW * 0.15, y: screenH * 0.82, r: 9, color: TABLE_COLORS.chipGold },
+    { x: screenW * 0.88, y: screenH * 0.78, r: 7, color: TABLE_COLORS.chipGreen },
+    { x: screenW * 0.05, y: screenH * 0.5, r: 6, color: TABLE_COLORS.chipRed },
+    { x: screenW * 0.95, y: screenH * 0.45, r: 8, color: TABLE_COLORS.chipBlue },
+    { x: screenW * 0.2, y: screenH * 0.12, r: 6, color: TABLE_COLORS.chipGold },
+    { x: screenW * 0.82, y: screenH * 0.88, r: 7, color: TABLE_COLORS.chipGreen },
+  ];
+}
 
 // ─── Extended props ─────────────────────────────────────────────────────
 interface CardPickProps extends RoleRevealEffectProps {
@@ -130,6 +130,10 @@ export const CardPick: React.FC<CardPickProps> = ({
   testIDPrefix = 'card-pick',
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const tableChips = useMemo(
+    () => createTableChips(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.cardPick;
@@ -411,7 +415,9 @@ export const CardPick: React.FC<CardPickProps> = ({
   const chargeR = useDerivedValue(() => 60 + chargeAuraPulse.value * 12);
   const chargeOp = useDerivedValue(() => chargeAuraOpacity.value);
   const lbOp = useDerivedValue(() => lightBarOpacity.value);
-  const lbX = useDerivedValue(() => -SCREEN_W * 0.3 + lightBarProgress.value * SCREEN_W * 0.6);
+  const lbX = useDerivedValue(
+    () => -screenWidth * 0.3 + lightBarProgress.value * screenWidth * 0.6,
+  );
   const lbX2 = useDerivedValue(() => lbX.value + 20);
 
   // ── Render ──
@@ -438,7 +444,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       {!reducedMotion && (
         <Canvas style={styles.fullScreen}>
           {/* Table chips — decorative scattered tokens */}
-          {TABLE_CHIPS.map((chip, i) => (
+          {tableChips.map((chip, i) => (
             <Group key={`chip-${i}`}>
               {/* Chip body */}
               <Circle cx={chip.x} cy={chip.y} r={chip.r} color={chip.color} opacity={0.5} />
@@ -458,9 +464,9 @@ export const CardPick: React.FC<CardPickProps> = ({
           ))}
 
           {/* Charge aura — pulsing ring before flip */}
-          <Circle cx={SCREEN_W / 2} cy={SCREEN_H / 2} r={chargeR} opacity={chargeOp}>
+          <Circle cx={screenWidth / 2} cy={screenHeight / 2} r={chargeR} opacity={chargeOp}>
             <RadialGradient
-              c={vec(SCREEN_W / 2, SCREEN_H / 2)}
+              c={vec(screenWidth / 2, screenHeight / 2)}
               r={72}
               colors={[`${TABLE_COLORS.chargeAura}60`, `${TABLE_COLORS.chargeAura}00`]}
             />
@@ -471,9 +477,9 @@ export const CardPick: React.FC<CardPickProps> = ({
           <Group opacity={lbOp} blendMode="screen">
             <RoundedRect
               x={lbX}
-              y={SCREEN_H * 0.25}
+              y={screenHeight * 0.25}
               width={4}
-              height={SCREEN_H * 0.5}
+              height={screenHeight * 0.5}
               r={2}
               color={TABLE_COLORS.lightBar}
               opacity={0.4}
@@ -482,9 +488,9 @@ export const CardPick: React.FC<CardPickProps> = ({
             </RoundedRect>
             <RoundedRect
               x={lbX2}
-              y={SCREEN_H * 0.3}
+              y={screenHeight * 0.3}
               width={2}
-              height={SCREEN_H * 0.4}
+              height={screenHeight * 0.4}
               r={1}
               color={TABLE_COLORS.lightBar}
               opacity={0.2}
@@ -685,11 +691,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   woodFrame: {

@@ -10,14 +10,7 @@ import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   cancelAnimation,
@@ -47,8 +40,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
@@ -158,7 +149,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   enableHaptics = true,
   testIDPrefix = 'scratch-reveal',
 }) => {
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const config = CONFIG.scratch;
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
@@ -186,14 +177,14 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   // ── Picture API: batch confetti dots (20→1 draw call) ──
   const confettiPicture = useDerivedValue(() => {
     'worklet';
-    const c = confettiRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const c = confettiRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
     const op = confettiOpacity.value;
     if (op > 0) {
       for (let i = 0; i < CONFETTI.length; i++) {
         const p = CONFETTI[i]!;
-        const cx = SCREEN_W / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
+        const cx = screenWidth / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
         const cy =
-          SCREEN_H / 2 +
+          screenHeight / 2 +
           Math.sin(p.angle) * p.speed * confettiProgress.value -
           30 * confettiProgress.value;
         confettiPaintRes.setColor(Skia.Color(p.color));
@@ -698,11 +689,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   milestoneFlash: {

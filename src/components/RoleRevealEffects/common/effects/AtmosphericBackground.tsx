@@ -8,7 +8,7 @@
  * 不 import service，不含业务逻辑。
  */
 import React, { useEffect } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
@@ -18,7 +18,6 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 const AMBIENT_COUNT = 12;
 const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
@@ -45,6 +44,8 @@ const AmbientParticle = React.memo(function AmbientParticle({
   phase,
   cycle,
   color,
+  screenW,
+  screenH,
 }: {
   xRatio: number;
   yRatio: number;
@@ -54,9 +55,11 @@ const AmbientParticle = React.memo(function AmbientParticle({
   phase: number;
   cycle: SharedValue<number>;
   color: string;
+  screenW: number;
+  screenH: number;
 }) {
-  const baseX = xRatio * SCREEN_W;
-  const baseY = yRatio * SCREEN_H;
+  const baseX = xRatio * screenW;
+  const baseY = yRatio * screenH;
 
   const style = useAnimatedStyle(() => {
     const c = cycle.value;
@@ -86,6 +89,7 @@ interface AtmosphericBackgroundProps {
 }
 
 export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ color, animate }) => {
+  const { width: screenW, height: screenH } = useWindowDimensions();
   const cycle = useSharedValue(0);
   const glowPulse = useSharedValue(0);
 
@@ -104,7 +108,7 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
     );
   }, [animate, cycle, glowPulse]);
 
-  const glowRadius = SCREEN_W * 0.6;
+  const glowRadius = screenW * 0.6;
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: 0.06 + glowPulse.value * 0.04,
@@ -119,8 +123,8 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
         style={[
           styles.glow,
           {
-            left: SCREEN_W / 2 - glowRadius,
-            top: SCREEN_H * 0.45 - glowRadius,
+            left: screenW / 2 - glowRadius,
+            top: screenH * 0.45 - glowRadius,
             width: glowRadius * 2,
             height: glowRadius * 2,
             borderRadius: glowRadius,
@@ -142,6 +146,8 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
           phase={p.phase}
           cycle={cycle}
           color={color}
+          screenW={screenW}
+          screenH={screenH}
         />
       ))}
     </View>

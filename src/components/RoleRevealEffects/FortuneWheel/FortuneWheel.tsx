@@ -25,7 +25,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dimensions, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -53,8 +53,6 @@ import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEff
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const BG_GRADIENT = ['#0a0a1e', '#12122a', '#0a0a1e'] as const;
@@ -87,11 +85,13 @@ const HINT_ALIGNED_COLOR = '#4ECDC4';
 const GEM_COLORS = ['#ff3366', '#33ccff', '#ffcc00', '#66ff66', '#cc66ff', '#ff6633'];
 
 // Pre-computed starfield
-const STARS = Array.from({ length: 25 }, (_, i) => ({
-  x: (((i * 73 + 17) % 100) / 100) * SCREEN_W,
-  y: (((i * 41 + 31) % 100) / 100) * SCREEN_H,
-  r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1,
-}));
+function createFortuneStars(screenW: number, screenH: number) {
+  return Array.from({ length: 25 }, (_, i) => ({
+    x: (((i * 73 + 17) % 100) / 100) * screenW,
+    y: (((i * 41 + 31) % 100) / 100) * screenH,
+    r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1,
+  }));
+}
 
 const FW = CONFIG.fortuneWheel;
 
@@ -99,27 +99,25 @@ const FW = CONFIG.fortuneWheel;
 const gemRecorder = Skia.PictureRecorder();
 const gemPaintRes = Skia.Paint();
 
-// ── Static starfield picture (computed once at module level) ──
+// ── Static starfield picture (rebuilt per screen dimensions) ──
 const starfieldRecorder = Skia.PictureRecorder();
 const starfieldPaint = Skia.Paint();
-function buildStarfieldPicture() {
-  const c = starfieldRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+function buildStarfieldPicture(screenW: number, screenH: number) {
+  const stars = createFortuneStars(screenW, screenH);
+  const c = starfieldRecorder.beginRecording(Skia.XYWHRect(0, 0, screenW, screenH));
   const starColor = Skia.Color('#ccccff');
   const glowColor = Skia.Color('#aaaaff');
-  for (let i = 0; i < STARS.length; i++) {
-    const { x, y, r } = STARS[i]!;
-    // Glow halo
+  for (let i = 0; i < stars.length; i++) {
+    const { x, y, r } = stars[i]!;
     starfieldPaint.setColor(glowColor);
     starfieldPaint.setAlphaf(0.3);
     c.drawCircle(x, y, r * 4, starfieldPaint);
-    // Center dot
     starfieldPaint.setColor(starColor);
     starfieldPaint.setAlphaf(0.8);
     c.drawCircle(x, y, r, starfieldPaint);
   }
   return starfieldRecorder.finishRecordingAsPicture();
 }
-const STARFIELD_PICTURE = buildStarfieldPicture();
 
 // ─── Layout ratios ──────────────────────────────────────────────────────
 const RIM_RATIO = 0.04;
@@ -176,6 +174,10 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const theme = alignmentThemes[role.alignment];
 
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const starfieldPicture = useMemo(
+    () => buildStarfieldPicture(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
@@ -259,7 +261,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     'worklet';
     // segmentData is a JS-thread array; access its values inside worklet via closure.
     // Since segmentData is computed from useMemo (stable per layout), this is safe.
-    const c = gemRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const c = gemRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
     for (let i = 0; i < segmentData.length; i++) {
       const seg = segmentData[i];
       const opacity = 0.5 + Math.sin(gemPulse.value + (i * Math.PI) / 3) * 0.3;
@@ -494,7 +496,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
               </Paint>
             }
           >
-            <Picture picture={STARFIELD_PICTURE} />
+            <Picture picture={starfieldPicture} />
           </Group>
         </Canvas>
       )}
@@ -730,11 +732,7 @@ const styles = StyleSheet.create({
   },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },

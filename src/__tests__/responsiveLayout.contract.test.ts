@@ -19,7 +19,7 @@ import path from 'node:path';
 
 const EXCLUDED_DIRS = new Set([
   'RoleRevealEffects',
-  'AIChatBubble',
+  'AIChatBubble', // flexGrow: 0 in chat.styles.ts is intentional (quick-question buttons)
   'avatarFrames',
   '__tests__',
   '__mocks__',

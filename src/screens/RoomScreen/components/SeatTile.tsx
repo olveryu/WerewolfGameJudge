@@ -583,8 +583,8 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
     },
     petWrapper: {
       position: 'absolute',
-      top: -8,
-      right: -8,
+      top: -Math.round(tileSize * 0.1),
+      right: -Math.round(tileSize * 0.1),
       pointerEvents: 'none',
     },
     wolfVoteBadge: {

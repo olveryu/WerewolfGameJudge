@@ -7,7 +7,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useCallback } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
@@ -21,6 +21,9 @@ interface AnnouncementModalProps {
 }
 
 export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, onClose }) => {
+  const { height: screenHeight } = useWindowDimensions();
+  const scrollMaxHeight = Math.min(400, Math.round(screenHeight * 0.45));
+
   const handleCopyWechat = useCallback(() => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       void navigator.clipboard.writeText(DEVELOPER_WECHAT_ID);
@@ -40,7 +43,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
         </View>
 
         {/* Scrollable version list */}
-        <ScrollView style={styles.scrollArea} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
+          showsVerticalScrollIndicator={false}
+        >
           {ANNOUNCEMENT_VERSIONS.map((version, i) => {
             const announcement = ANNOUNCEMENTS[version];
             if (!announcement) return null;
@@ -85,11 +91,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
   );
 };
 
-const SCROLL_MAX_HEIGHT = 320;
-
 const styles = StyleSheet.create({
   container: {
-    width: 300,
+    width: '100%',
+    maxWidth: 300,
     alignItems: 'stretch',
   },
   header: {
@@ -104,7 +109,6 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   scrollArea: {
-    maxHeight: SCROLL_MAX_HEIGHT,
     marginBottom: spacing.medium,
   },
   section: {

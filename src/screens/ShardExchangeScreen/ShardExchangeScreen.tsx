@@ -18,6 +18,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -72,13 +73,20 @@ const RARITY_FILTERS: readonly { key: RarityFilter; label: string }[] = [
   { key: 'common', label: '普通' },
 ];
 
-const NUM_COLUMNS = 3;
+function getNumColumns(screenWidth: number): number {
+  if (screenWidth >= 768) return 5;
+  if (screenWidth >= 600) return 4;
+  return 3;
+}
+
 const PREVIEW_SIZE = 56;
 
 // ── Component ───────────────────────────────────────────────────────────
 
 export function ShardExchangeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const numColumns = getNumColumns(screenWidth);
   const { data: gachaStatus, isLoading: gachaLoading } = useGachaStatusQuery();
   const { data: statsData, isLoading: statsLoading } = useUserStatsQuery();
   const { mutate: exchange, isPending: isExchanging } = useExchangeShardMutation();
@@ -112,9 +120,9 @@ export function ShardExchangeScreen({ navigation }: Props) {
 
   // Pad items to fill last row
   const paddedItems = useMemo(() => {
-    const remainder = items.length % NUM_COLUMNS;
+    const remainder = items.length % numColumns;
     if (remainder === 0) return items;
-    const spacers: ExchangeItem[] = Array.from({ length: NUM_COLUMNS - remainder }, (_, i) => ({
+    const spacers: ExchangeItem[] = Array.from({ length: numColumns - remainder }, (_, i) => ({
       type: activeTab,
       id: `__spacer_${i}`,
       rarity: 'common' as Rarity,
@@ -122,7 +130,7 @@ export function ShardExchangeScreen({ navigation }: Props) {
       isOwned: false,
     }));
     return [...items, ...spacers];
-  }, [items, activeTab]);
+  }, [items, activeTab, numColumns]);
 
   const handleExchange = useCallback(
     (item: ExchangeItem) => {
@@ -293,10 +301,11 @@ export function ShardExchangeScreen({ navigation }: Props) {
         </View>
       ) : (
         <FlatList
+          key={numColumns}
           data={paddedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          numColumns={NUM_COLUMNS}
+          numColumns={numColumns}
           contentContainerStyle={[
             styles.listContent,
             { paddingBottom: Math.max(insets.bottom, spacing.large) },

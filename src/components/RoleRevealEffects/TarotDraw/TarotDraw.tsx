@@ -23,7 +23,7 @@ import {
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -56,8 +56,6 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors, crossPlatformTextShadow } from '@/theme';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-
 // ─── Visual constants ──────────────────────────────────────────────────
 const TAROT_COLORS = {
   cardBack: ['#2a2a4e', '#3d3d64', '#2a2a4e'] as const,
@@ -76,13 +74,15 @@ const TAROT_COLORS = {
 };
 
 // ─── Pre-computed stars ────────────────────────────────────────────────
-const STARS = Array.from({ length: 30 }, (_, i) => ({
-  x: (((i * 73 + 17) % 100) / 100) * SCREEN_W,
-  y: (((i * 41 + 31) % 100) / 100) * SCREEN_H * 0.65,
-  r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1.2,
-  twinkle: i < 5, // first 5 twinkle
-  phase: ((i * 83 + 11) % 628) / 100,
-}));
+function createTarotStars(screenW: number, screenH: number) {
+  return Array.from({ length: 30 }, (_, i) => ({
+    x: (((i * 73 + 17) % 100) / 100) * screenW,
+    y: (((i * 41 + 31) % 100) / 100) * screenH * 0.65,
+    r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1.2,
+    twinkle: i < 5,
+    phase: ((i * 83 + 11) % 628) / 100,
+  }));
+}
 
 // ─── Fortune quotes per alignment ──────────────────────────────────────
 const FORTUNE_QUOTES: Record<string, string> = {
@@ -272,7 +272,11 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'tarot-draw',
 }) => {
   const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const tarotStars = useMemo(
+    () => createTarotStars(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
@@ -538,17 +542,17 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
   // Candle flame flicker
   const candleLeftFy = useDerivedValue(
-    () => SCREEN_H * 0.35 - 14 - Math.sin(candleFlicker.value) * 2,
+    () => screenHeight * 0.35 - 14 - Math.sin(candleFlicker.value) * 2,
   );
   const candleRightFy = useDerivedValue(
-    () => SCREEN_H * 0.35 - 14 - Math.sin(candleFlicker.value * 1.3 + 1) * 2,
+    () => screenHeight * 0.35 - 14 - Math.sin(candleFlicker.value * 1.3 + 1) * 2,
   );
   const candleLeftOp = useDerivedValue(() => 0.7 + Math.sin(candleFlicker.value * 2.1) * 0.2);
   const candleRightOp = useDerivedValue(() => 0.7 + Math.sin(candleFlicker.value * 1.7 + 2) * 0.2);
 
   // Magic circle path
   const mcCx = screenWidth / 2;
-  const mcCy = SCREEN_H / 2;
+  const mcCy = screenHeight / 2;
   const mcRadius = cardWidth * 0.55;
   const hexagramPath = useMemo(
     () => buildHexagramPath(mcCx, mcCy, mcRadius),
@@ -577,7 +581,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
         <Canvas style={styles.fullScreen}>
           {/* Star sky background — 30 dots */}
           <Group blendMode="screen">
-            {STARS.map((star, i) => {
+            {tarotStars.map((star, i) => {
               if (!star.twinkle) {
                 return (
                   <Circle
@@ -606,31 +610,31 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           {/* Crystal ball — top center */}
           <Group>
             {/* Outer glow */}
-            <Circle cx={SCREEN_W / 2} cy={SCREEN_H * 0.18} r={36}>
+            <Circle cx={screenWidth / 2} cy={screenHeight * 0.18} r={36}>
               <RadialGradient
-                c={vec(SCREEN_W / 2, SCREEN_H * 0.18)}
+                c={vec(screenWidth / 2, screenHeight * 0.18)}
                 r={36}
                 colors={[`${TAROT_COLORS.crystalBall}40`, `${TAROT_COLORS.crystalBall}00`]}
               />
               <Blur blur={12} />
             </Circle>
             {/* Ball body */}
-            <Circle cx={SCREEN_W / 2} cy={SCREEN_H * 0.18} r={22} color="#221144">
+            <Circle cx={screenWidth / 2} cy={screenHeight * 0.18} r={22} color="#221144">
               <RadialGradient
-                c={vec(SCREEN_W / 2 - 5, SCREEN_H * 0.18 - 5)}
+                c={vec(screenWidth / 2 - 5, screenHeight * 0.18 - 5)}
                 r={22}
                 colors={['#443388', '#1a0a2e']}
               />
             </Circle>
             {/* Inner fog glow */}
             <Circle
-              cx={SCREEN_W / 2}
-              cy={SCREEN_H * 0.18}
+              cx={screenWidth / 2}
+              cy={screenHeight * 0.18}
               r={crystalInnerR}
               opacity={crystalGlowOpacity}
             >
               <RadialGradient
-                c={vec(SCREEN_W / 2, SCREEN_H * 0.18)}
+                c={vec(screenWidth / 2, screenHeight * 0.18)}
                 r={30}
                 colors={[`${TAROT_COLORS.crystalBall}80`, `${TAROT_COLORS.crystalBall}00`]}
               />
@@ -638,8 +642,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
             </Circle>
             {/* Glass highlight */}
             <Circle
-              cx={SCREEN_W / 2 - 7}
-              cy={SCREEN_H * 0.18 - 7}
+              cx={screenWidth / 2 - 7}
+              cy={screenHeight * 0.18 - 7}
               r={5}
               color="#ffffff"
               opacity={0.25}
@@ -648,8 +652,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
             </Circle>
             {/* Base */}
             <Circle
-              cx={SCREEN_W / 2}
-              cy={SCREEN_H * 0.18 + 22}
+              cx={screenWidth / 2}
+              cy={screenHeight * 0.18 + 22}
               r={8}
               color="#332244"
               opacity={0.6}
@@ -659,21 +663,21 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           {/* Left candle */}
           <Group>
             {/* Candle body */}
-            <Circle cx={SCREEN_W * 0.12} cy={SCREEN_H * 0.35} r={5} color="#e8d8b8" />
-            <Circle cx={SCREEN_W * 0.12} cy={SCREEN_H * 0.35 + 8} r={5} color="#e0c8a0" />
+            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35} r={5} color="#e8d8b8" />
+            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35 + 8} r={5} color="#e0c8a0" />
             {/* Flame layers */}
-            <Circle cx={SCREEN_W * 0.12} cy={candleLeftFy} r={6} opacity={candleLeftOp}>
+            <Circle cx={screenWidth * 0.12} cy={candleLeftFy} r={6} opacity={candleLeftOp}>
               <RadialGradient
-                c={vec(SCREEN_W * 0.12, SCREEN_H * 0.35 - 14)}
+                c={vec(screenWidth * 0.12, screenHeight * 0.35 - 14)}
                 r={8}
                 colors={[TAROT_COLORS.candleYellow, TAROT_COLORS.candleOrange, '#ff440000']}
               />
               <Blur blur={4} />
             </Circle>
             {/* Flame glow */}
-            <Circle cx={SCREEN_W * 0.12} cy={SCREEN_H * 0.35 - 14} r={16} opacity={0.12}>
+            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35 - 14} r={16} opacity={0.12}>
               <RadialGradient
-                c={vec(SCREEN_W * 0.12, SCREEN_H * 0.35 - 14)}
+                c={vec(screenWidth * 0.12, screenHeight * 0.35 - 14)}
                 r={16}
                 colors={[TAROT_COLORS.candleYellow, '#00000000']}
               />
@@ -683,19 +687,19 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
           {/* Right candle */}
           <Group>
-            <Circle cx={SCREEN_W * 0.88} cy={SCREEN_H * 0.35} r={5} color="#e8d8b8" />
-            <Circle cx={SCREEN_W * 0.88} cy={SCREEN_H * 0.35 + 8} r={5} color="#e0c8a0" />
-            <Circle cx={SCREEN_W * 0.88} cy={candleRightFy} r={6} opacity={candleRightOp}>
+            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35} r={5} color="#e8d8b8" />
+            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35 + 8} r={5} color="#e0c8a0" />
+            <Circle cx={screenWidth * 0.88} cy={candleRightFy} r={6} opacity={candleRightOp}>
               <RadialGradient
-                c={vec(SCREEN_W * 0.88, SCREEN_H * 0.35 - 14)}
+                c={vec(screenWidth * 0.88, screenHeight * 0.35 - 14)}
                 r={8}
                 colors={[TAROT_COLORS.candleYellow, TAROT_COLORS.candleOrange, '#ff440000']}
               />
               <Blur blur={4} />
             </Circle>
-            <Circle cx={SCREEN_W * 0.88} cy={SCREEN_H * 0.35 - 14} r={16} opacity={0.12}>
+            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35 - 14} r={16} opacity={0.12}>
               <RadialGradient
-                c={vec(SCREEN_W * 0.88, SCREEN_H * 0.35 - 14)}
+                c={vec(screenWidth * 0.88, screenHeight * 0.35 - 14)}
                 r={16}
                 colors={[TAROT_COLORS.candleYellow, '#00000000']}
               />
@@ -752,8 +756,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           {/* Trail light arc — visible during drawing phase */}
           <Group opacity={trailOp} blendMode="screen">
             <SkiaLine
-              p1={vec(SCREEN_W / 2, SCREEN_H / 2 - wheelRadius)}
-              p2={vec(SCREEN_W / 2, SCREEN_H / 2)}
+              p1={vec(screenWidth / 2, screenHeight / 2 - wheelRadius)}
+              p2={vec(screenWidth / 2, screenHeight / 2)}
               color={TAROT_COLORS.goldGlow}
               strokeWidth={3}
               style="stroke"
@@ -766,7 +770,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Velvet table cloth — bottom 1/3 */}
       {!reducedMotion && (
-        <Animated.View style={[styles.velvetTable, velvetStyle]}>
+        <Animated.View style={[styles.velvetTable, { height: screenHeight * 0.35 }, velvetStyle]}>
           <LinearGradient
             colors={['#1a0a2e00', '#1a0a2e', '#12071e']}
             style={StyleSheet.absoluteFill}
@@ -911,11 +915,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#070012',
   },
   fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   wheel: {
@@ -965,7 +965,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: SCREEN_H * 0.35,
     pointerEvents: 'none',
   },
   velvetFringe: {

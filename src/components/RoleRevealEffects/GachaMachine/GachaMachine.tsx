@@ -10,7 +10,7 @@ import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -39,8 +39,6 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
-
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -94,20 +92,22 @@ const RARITY_LABEL: Record<string, { tier: string; color: string }> = {
 };
 
 // Rotary light positions around the machine body
-const ROTARY_LIGHTS = Array.from({ length: 8 }, (_, i) => {
-  const angle = (Math.PI * 2 * i) / 8;
-  return {
-    x: SCREEN_W / 2 + Math.cos(angle) * 100,
-    y: SCREEN_H * 0.42 + Math.sin(angle) * 70,
-    color: [
-      GACHA_COLORS.rotaryRed,
-      GACHA_COLORS.rotaryYellow,
-      GACHA_COLORS.rotaryGreen,
-      GACHA_COLORS.rotaryBlue,
-    ][i % 4]!,
-    phase: (i * Math.PI) / 4,
-  };
-});
+function createRotaryLights(screenW: number, screenH: number) {
+  return Array.from({ length: 8 }, (_, i) => {
+    const angle = (Math.PI * 2 * i) / 8;
+    return {
+      x: screenW / 2 + Math.cos(angle) * 100,
+      y: screenH * 0.42 + Math.sin(angle) * 70,
+      color: [
+        GACHA_COLORS.rotaryRed,
+        GACHA_COLORS.rotaryYellow,
+        GACHA_COLORS.rotaryGreen,
+        GACHA_COLORS.rotaryBlue,
+      ][i % 4]!,
+      phase: (i * Math.PI) / 4,
+    };
+  });
+}
 
 // Confetti star positions
 const CONFETTI_STARS = Array.from({ length: 16 }, (_, i) => ({
@@ -183,6 +183,11 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   testIDPrefix = 'gacha-machine',
 }) => {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const rotaryLights = useMemo(
+    () => createRotaryLights(screenWidth, screenHeight),
+    [screenWidth, screenHeight],
+  );
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.gachaMachine ?? { revealHoldDuration: 1500 };
@@ -195,7 +200,6 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     revealHoldDurationMs: config.revealHoldDuration,
   });
 
-  const { width: screenWidth } = Dimensions.get('window');
   const common = CONFIG.common;
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
@@ -225,9 +229,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   // ── Picture API: batch rotary lights (8→1 draw call) ──
   const rotaryPicture = useDerivedValue(() => {
     'worklet';
-    const c = rotaryRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
-    for (let i = 0; i < ROTARY_LIGHTS.length; i++) {
-      const light = ROTARY_LIGHTS[i]!;
+    const c = rotaryRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
+    for (let i = 0; i < rotaryLights.length; i++) {
+      const light = rotaryLights[i]!;
       const opacity = 0.3 + Math.sin(rotaryLightCycle.value + light.phase) * 0.3;
       rotaryPaint.setColor(Skia.Color(light.color));
       rotaryPaint.setAlphaf(opacity);
@@ -239,14 +243,14 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   // ── Picture API: batch confetti stars (16→1 draw call) ──
   const confettiPicture = useDerivedValue(() => {
     'worklet';
-    const c = confettiStarRecorder.beginRecording(Skia.XYWHRect(0, 0, SCREEN_W, SCREEN_H));
+    const c = confettiStarRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
     const op = confettiOpacity.value;
     if (op > 0) {
       for (let i = 0; i < CONFETTI_STARS.length; i++) {
         const star = CONFETTI_STARS[i]!;
-        const cx = SCREEN_W / 2 + Math.cos(star.angle) * star.speed * confettiProgress.value;
+        const cx = screenWidth / 2 + Math.cos(star.angle) * star.speed * confettiProgress.value;
         const cy =
-          SCREEN_H / 2 +
+          screenHeight / 2 +
           Math.sin(star.angle) * star.speed * confettiProgress.value -
           20 * confettiProgress.value;
         confettiStarPaint.setColor(Skia.Color(star.color));
@@ -640,11 +644,7 @@ const styles = StyleSheet.create({
   pointerEventsAuto: { pointerEvents: 'auto' as const },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: SCREEN_W,
-    height: SCREEN_H,
+    ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
   },
   machine: { alignItems: 'center' },

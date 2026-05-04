@@ -26,7 +26,6 @@ import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlp
 
 import { UnlockCell } from './UnlockCell';
 import {
-  NUM_COLUMNS,
   type RarityFilter,
   TABS,
   type UnlockItem,
@@ -52,6 +51,7 @@ export const UnlocksScreen: React.FC = () => {
     loading,
     isViewer,
     paddedItems,
+    numColumns,
     unlockedCount,
     totalCount,
     progressPercent,
@@ -163,10 +163,11 @@ export const UnlocksScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
+          key={numColumns}
           data={paddedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
-          numColumns={NUM_COLUMNS}
+          numColumns={numColumns}
           ListHeaderComponent={listHeader}
           contentContainerStyle={[
             styles.listContent,
@@ -208,7 +209,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     marginBottom: spacing.medium,
-    maxWidth: `${100 / NUM_COLUMNS}%`,
   },
 
   // Summary card

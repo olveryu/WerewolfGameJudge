@@ -6,8 +6,6 @@
  * Does not contain style definitions — those live in bubble/chat sub-files.
  */
 
-import { Dimensions } from 'react-native';
-
 import type { ThemeColors } from '@/theme';
 
 import { createBubbleStyles } from './bubble.styles';
@@ -15,9 +13,10 @@ import { createChatStyles } from './chat.styles';
 
 // ── Layout constants ─────────────────────────────────────
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const CHAT_WIDTH = Math.min(SCREEN_WIDTH - 32, 380);
+/** Compute chat window width from current screen width */
+function getChatWidth(screenWidth: number): number {
+  return Math.min(screenWidth - 32, 380);
+}
 
 /** Badge dimensions (vertical: icon + label) */
 export const BUBBLE_HEIGHT = 56;
@@ -29,11 +28,13 @@ export function getChatHeight(screenHeight: number): number {
   return Math.min(600, Math.max(320, Math.round(screenHeight * 0.55)));
 }
 
-/** 默认位置：右下角 */
-export const DEFAULT_POSITION = {
-  x: SCREEN_WIDTH - BUBBLE_WIDTH - BUBBLE_MARGIN,
-  y: SCREEN_HEIGHT - BUBBLE_HEIGHT - 60,
-};
+/** Compute default bubble position for given screen dimensions */
+export function getDefaultPosition(screenWidth: number, screenHeight: number) {
+  return {
+    x: screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN,
+    y: screenHeight - BUBBLE_HEIGHT - 60,
+  };
+}
 
 // ── DisplayMessage 类型 ─────────────────────────────────
 
@@ -46,7 +47,7 @@ export interface DisplayMessage {
 
 // ── Factory ──────────────────────────────────────────────
 
-export const createStyles = (colors: ThemeColors) => ({
+export const createStyles = (colors: ThemeColors, screenWidth: number) => ({
   ...createBubbleStyles(colors, BUBBLE_HEIGHT, BUBBLE_WIDTH),
-  ...createChatStyles(colors, CHAT_WIDTH),
+  ...createChatStyles(colors, getChatWidth(screenWidth)),
 });

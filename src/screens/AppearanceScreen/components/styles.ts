@@ -166,8 +166,9 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
       alignItems: 'center',
     },
     pickerPreviewImage: {
-      width: 200,
-      height: 200,
+      width: '50%',
+      maxWidth: 200,
+      aspectRatio: 1,
       borderRadius: borderRadius.medium,
     },
     pickerFooter: {
