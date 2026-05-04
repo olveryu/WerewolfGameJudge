@@ -707,7 +707,7 @@ export function useRoomScreenState(
         case GameStatus.Ongoing:
           return null;
         case GameStatus.Ended:
-          return '天亮了 → 可「重新开始」或修改配置再来一局';
+          return '天亮了 →「昨夜信息」查看结果，「详细信息」查看/分享战报';
         default:
           return null;
       }
@@ -730,8 +730,17 @@ export function useRoomScreenState(
       }
       case GameStatus.Ready:
         return '准备就绪，等待房主开始';
-      case GameStatus.Ended:
-        return '天亮了';
+      case GameStatus.Ended: {
+        let hostSeat: number | null = null;
+        for (const [seat, p] of players) {
+          if (p?.userId === gameState.hostUserId) {
+            hostSeat = seat;
+            break;
+          }
+        }
+        const hostLabel = hostSeat !== null ? `${hostSeat + 1}号玩家` : '房主';
+        return `天亮了 → 昨夜信息/详细信息由${hostLabel}操作`;
+      }
       default:
         return null;
     }
