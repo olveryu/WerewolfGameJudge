@@ -9,10 +9,8 @@
 
 import { ROLE_SPECS, type RoleId } from '../models';
 import { Faction } from '../models/roles/spec/types';
+import { THIEF_BOTTOM_CARD_COUNT } from '../models/Template';
 import type { ResolverFn } from './types';
-
-/** 底牌张数（thief 固定 2） */
-const THIEF_BOTTOM_CARD_COUNT = 2;
 
 /** 必须选择一张底牌 */
 const REJECT_MUST_CHOOSE = '必须选择一张底牌' as const;
