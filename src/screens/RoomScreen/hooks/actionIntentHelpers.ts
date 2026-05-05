@@ -26,17 +26,26 @@ interface WitchStepResultsExtra {
 /**
  * Read reveal data from GameState for a given RevealKind.
  *
- * GameState field naming convention: `${kind}Reveal` (e.g. seerReveal, psychicReveal).
+ * Uses a typed accessor map to avoid double-cast through unknown.
  */
+type RevealData = { targetSeat: number; result: string };
+
+const REVEAL_ACCESSORS: Record<RevealKind, (s: LocalGameState) => RevealData | undefined> = {
+  seer: (s) => s.seerReveal,
+  mirrorSeer: (s) => s.mirrorSeerReveal,
+  drunkSeer: (s) => s.drunkSeerReveal,
+  psychic: (s) => s.psychicReveal,
+  gargoyle: (s) => s.gargoyleReveal,
+  pureWhite: (s) => s.pureWhiteReveal,
+  wolfWitch: (s) => s.wolfWitchReveal,
+  wolfRobot: (s) => s.wolfRobotReveal as RevealData | undefined,
+};
+
 export function getRevealDataFromState(
   state: LocalGameState,
   kind: RevealKind,
-): { targetSeat: number; result: string } | undefined {
-  const key = `${kind}Reveal`;
-  // LocalGameState has no index signature — cast via unknown to access by dynamic key.
-  return (state as unknown as Record<string, unknown>)[key] as
-    | { targetSeat: number; result: string }
-    | undefined;
+): RevealData | undefined {
+  return REVEAL_ACCESSORS[kind](state);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

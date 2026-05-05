@@ -207,7 +207,7 @@ function deriveIntentFromSchema(ctx: IntentContext): ActionIntent | null {
       if (ctx.schemaId !== 'witchAction') return null;
 
       {
-        const compound = (SCHEMAS as Record<string, ActionSchema>)[ctx.schemaId];
+        const compound = SCHEMAS[ctx.schemaId];
         if (compound?.kind !== 'compound') return null;
         const poison = compound.steps?.find((s) => s.key === 'poison');
         if (!poison) {
