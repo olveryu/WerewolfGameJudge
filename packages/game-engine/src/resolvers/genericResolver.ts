@@ -24,7 +24,7 @@ import type { ActiveAbility, CheckEffect } from '../models/roles/spec/ability.ty
 import { TargetConstraint } from '../models/roles/spec/ability.types';
 import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
+import { getRoleSpec, isValidRoleId } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
 import { secureRng } from '../utils/random';
 import { validateConstraints } from './constraintValidator';
@@ -149,10 +149,7 @@ function processFactionCheck(
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
 
-  const targetSpec = ROLE_SPECS[effectiveRoleId] as RoleSpec | undefined;
-  if (!targetSpec) {
-    throw new Error(`[FAIL-FAST] Unknown role after resolve: ${effectiveRoleId}`);
-  }
+  const targetSpec = getRoleSpec(effectiveRoleId);
   const normalResult = getSeerCheckResultForTeam(targetSpec.team);
 
   let checkResult = normalResult;
@@ -204,7 +201,7 @@ function processBlock(
   if (effect.disablesWolfKillOnWolfTarget) {
     const targetRoleId = context.players.get(target);
     if (targetRoleId) {
-      const targetSpec = ROLE_SPECS[targetRoleId];
+      const targetSpec = getRoleSpec(targetRoleId);
       if (targetSpec.team === Team.Wolf) {
         updates.wolfKillOverride = {
           source: 'nightmare',
@@ -304,10 +301,11 @@ const EFFECT_PROCESSORS: Record<string, EffectProcessor> = {
  * @param abilityIndex - Which ability to use (default 0)
  */
 export function createGenericResolver(roleId: string, abilityIndex = 0): ResolverFn {
-  const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-  if (!spec) {
+  if (!isValidRoleId(roleId)) {
     throw new Error(`[FAIL-FAST] Role ${roleId} not found in ROLE_SPECS`);
   }
+
+  const spec: RoleSpec = getRoleSpec(roleId);
 
   const ability = spec.abilities[abilityIndex];
   if (!ability || ability.type !== 'active') {
