@@ -72,13 +72,10 @@ interface UseInteractionDispatcherParams {
   showRestartDialog: () => void;
 
   // ── Submission callbacks ──
-  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
   kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
 
   // ── Role card state setters (owned by RoomScreen) ──
-  setPendingRevealDialog: (v: boolean) => void;
   setRoleCardVisible: (v: boolean) => void;
   setShouldPlayRevealAnimation: (v: boolean) => void;
   setIsLoadingRole: (v: boolean) => void;
@@ -138,11 +135,8 @@ export function useInteractionDispatcher({
   showPrepareToFlipDialog,
   showStartGameDialog,
   showRestartDialog,
-  submitRevealAck,
-  sendWolfRobotHunterStatusViewed,
   setControlledSeat,
   kickPlayer,
-  setPendingRevealDialog,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
   setIsLoadingRole,
@@ -409,43 +403,6 @@ export function useInteractionDispatcher({
           }
           return;
 
-        case 'REVEAL_ACK':
-          roomScreenLog.debug('dispatchInteraction REVEAL_ACK', {
-            revealRole: result.revealRole,
-          });
-          void submitRevealAck().then((ackResult) => {
-            if (ackResult.success) {
-              setPendingRevealDialog(false);
-            } else {
-              roomScreenLog.warn('REVEAL_ACK failed via dispatcher', {
-                reason: ackResult.reason,
-              });
-            }
-          });
-          return;
-
-        case 'HUNTER_STATUS_VIEWED':
-          if (pendingHunterStatusViewed) {
-            roomScreenLog.debug(
-              'HUNTER_STATUS_VIEWED Skipping - pending submission (duplicate prevention)',
-            );
-            return;
-          }
-          if (effectiveSeat === null) {
-            roomScreenLog.warn(
-              'HUNTER_STATUS_VIEWED Cannot submit without seat (effectiveSeat is null)',
-            );
-          } else {
-            void sendWolfRobotHunterStatusViewed(effectiveSeat).catch((err) => {
-              handleError(err, {
-                label: 'HUNTER_STATUS_VIEWED',
-                logger: roomScreenLog,
-                alertTitle: false,
-              });
-            });
-          }
-          return;
-
         case 'TAKEOVER_BOT_SEAT':
           roomScreenLog.debug('dispatchInteraction TAKEOVER_BOT_SEAT', {
             seat: result.seat,
@@ -512,15 +469,11 @@ export function useInteractionDispatcher({
       showPrepareToFlipDialog,
       showStartGameDialog,
       showRestartDialog,
-      submitRevealAck,
-      sendWolfRobotHunterStatusViewed,
       setControlledSeat,
       kickPlayer,
       effectiveSeat,
-      pendingHunterStatusViewed,
       mySeat,
       gameState,
-      setPendingRevealDialog,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,
       setIsLoadingRole,

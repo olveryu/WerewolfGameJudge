@@ -15,7 +15,6 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind } from '@werewolf/game-engine/models/roles';
 
 import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
@@ -197,22 +196,6 @@ function handleLeaveRoom(): InteractionResult {
 }
 
 /**
- * Handle reveal ack event.
- * Simply returns the ack instruction to be executed by the orchestrator.
- */
-function handleRevealAck(event: { revealRole: RevealKind }): InteractionResult {
-  return { kind: 'REVEAL_ACK', revealRole: event.revealRole };
-}
-
-/**
- * Handle wolf robot hunter status viewed event.
- * Simply returns the instruction to be executed by the orchestrator.
- */
-function handleHunterStatusViewed(): InteractionResult {
-  return { kind: 'HUNTER_STATUS_VIEWED' };
-}
-
-/**
  * Handle takeover bot seat event (debug mode).
  * Validates debug mode and bot seat, then returns takeover/release instruction.
  */
@@ -300,10 +283,6 @@ export function getInteractionResult(
       return handleViewRole(ctx);
     case 'LEAVE_ROOM':
       return handleLeaveRoom();
-    case 'REVEAL_ACK':
-      return handleRevealAck(event);
-    case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED':
-      return handleHunterStatusViewed();
     case 'TAKEOVER_BOT_SEAT':
       return handleTakeoverBotSeat(ctx, event);
     default: {

@@ -130,8 +130,8 @@ export function makeBaseUseGameRoomReturn({
 
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
-    submitRevealAck: jest.fn(),
-    submitGroupConfirmAck: jest.fn(),
+    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
+    submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
 
     isBgmEnabled: true,
     isBgmPlaying: false,

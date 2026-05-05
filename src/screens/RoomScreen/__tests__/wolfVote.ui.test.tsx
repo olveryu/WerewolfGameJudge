@@ -124,7 +124,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
 
-    submitRevealAck: jest.fn(),
+    submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
 
     // BGM controls
     isBgmEnabled: true,

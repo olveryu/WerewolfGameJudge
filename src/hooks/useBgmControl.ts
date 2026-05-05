@@ -23,7 +23,7 @@ export interface BgmControlState {
   /** Whether BGM is currently playing (local UI state) */
   isBgmPlaying: boolean;
   toggleBgm: () => Promise<void>;
-  /** Start BGM if enabled — call when game starts */
+  /** Start BGM if enabled — call on rejoin (user gesture context) */
   startBgmIfEnabled: () => void;
   /** Start BGM unconditionally (respects track setting) — for manual user trigger */
   playBgm: () => void;
@@ -133,7 +133,7 @@ export function useBgmControl(
     }
   }, [gameStatus]);
 
-  // Start BGM if enabled (called by startGame)
+  // Start BGM if enabled (called by resumeAfterRejoin — user gesture context)
   const startBgmIfEnabled = useCallback(() => {
     const bgmEnabled = settingsRef.current.isBgmEnabled();
     if (bgmEnabled) {

@@ -212,35 +212,6 @@ describe('Delegation Seat Identity Contract', () => {
     });
   });
 
-  describe('HUNTER_STATUS_VIEWED case must use effectiveSeat', () => {
-    /**
-     * P0 Contract: RoomScreen HUNTER_STATUS_VIEWED case must pass effectiveSeat
-     * to sendWolfRobotHunterStatusViewed, NOT mySeat.
-     *
-     * Bug prevented: When Host takes over wolfRobot (controlledSeat=X, mySeat=null),
-     * using mySeat would send null and fail silently.
-     */
-    it('HUNTER_STATUS_VIEWED should pass effectiveSeat to sendWolfRobotHunterStatusViewed', () => {
-      const content = readFileContent(DISPATCHER_PATH);
-
-      // Find the HUNTER_STATUS_VIEWED case block
-      const regex = /case\s*['"]HUNTER_STATUS_VIEWED['"]:/g;
-      const match = regex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 700);
-
-        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
-        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
-        // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
-        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
-      }
-    });
-  });
-
   describe('wolfVote intent handler must not use findVotingWolfSeat as hard gate', () => {
     /**
      * P0 Contract: wolfVote branch should not use findVotingWolfSeat() for seat resolution
@@ -539,37 +510,7 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).toMatch(/setPendingHunterStatusViewed\(false\)/);
     });
 
-    /**
-     * P0 Contract: Dispatcher's HUNTER_STATUS_VIEWED case must:
-     * 1. Gate on pendingHunterStatusViewed (prevent duplicate submission)
-     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeat
-     */
-    it('dispatcher HUNTER_STATUS_VIEWED gates on pendingHunterStatusViewed + uses effectiveSeat', () => {
-      const content = readFileContent(DISPATCHER_PATH);
-
-      // Find the HUNTER_STATUS_VIEWED case block
-      const regex = /case\s*['"]HUNTER_STATUS_VIEWED['"]:/g;
-      const match = regex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        const block = content.substring(startIndex, startIndex + 700);
-
-        // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
-        expect(block).toMatch(/pendingHunterStatusViewed/);
-
-        // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
-        expect(block).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
-
-        // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
-        expect(block).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
-      }
-    });
-
-    /**
-     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param
+    /**\n     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param
      * (not derive it internally) — this is the API contract for debug takeover support.
      */
     it('IGameFacade.sendWolfRobotHunterStatusViewed takes seat parameter', () => {

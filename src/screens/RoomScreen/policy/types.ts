@@ -108,18 +108,6 @@ export interface LeaveRoomEvent {
   kind: 'LEAVE_ROOM';
 }
 
-/** Reveal ack - user acknowledged the reveal result (seer/psychic/gargoyle/wolfRobot) */
-export interface RevealAckEvent {
-  kind: 'REVEAL_ACK';
-  /** The role that revealed (determines which ack to send) */
-  revealRole: RevealKind;
-}
-
-/** WolfRobot hunter status viewed - user acknowledged the hunter status */
-export interface WolfRobotHunterStatusViewedEvent {
-  kind: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED';
-}
-
 /** Takeover bot seat - Host wants to control a bot seat (debug mode) */
 export interface TakeoverBotSeatEvent {
   kind: 'TAKEOVER_BOT_SEAT';
@@ -133,8 +121,6 @@ export type InteractionEvent =
   | HostControlEvent
   | ViewRoleEvent
   | LeaveRoomEvent
-  | RevealAckEvent
-  | WolfRobotHunterStatusViewedEvent
   | TakeoverBotSeatEvent;
 
 // =============================================================================
@@ -189,17 +175,6 @@ export interface InteractionResultHostControl {
   action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart';
 }
 
-/** Submit reveal ack (seer/psychic/gargoyle/wolfRobot) */
-export interface InteractionResultRevealAck {
-  kind: 'REVEAL_ACK';
-  revealRole: RevealKind;
-}
-
-/** Submit wolf robot hunter status viewed */
-export interface InteractionResultHunterStatusViewed {
-  kind: 'HUNTER_STATUS_VIEWED';
-}
-
 /** Takeover bot seat (debug mode) */
 export interface InteractionResultTakeoverBotSeat {
   kind: 'TAKEOVER_BOT_SEAT';
@@ -232,8 +207,6 @@ export type InteractionResult =
   | InteractionResultSeatingFlow
   | InteractionResultActionFlow
   | InteractionResultHostControl
-  | InteractionResultRevealAck
-  | InteractionResultHunterStatusViewed
   | InteractionResultTakeoverBotSeat
   | InteractionResultReleaseBotSeat
   | InteractionResultKickConfirm

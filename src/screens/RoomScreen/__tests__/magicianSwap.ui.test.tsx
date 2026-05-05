@@ -115,7 +115,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
 
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
-        submitRevealAck: jest.fn(),
+        submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
 
         isBgmEnabled: true,
         isBgmPlaying: false,
