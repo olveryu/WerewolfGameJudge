@@ -91,9 +91,12 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showMagicianFirstAlert = useCallback((seat: number, schema: ActionSchema) => {
-    const title = schema.ui!.firstTargetTitle!;
-    const body = schema.ui!.firstTargetPromptTemplate!.replace('{seat}', formatSeat(seat));
-    showDismissAlert(title, body);
+    const { firstTargetTitle, firstTargetPromptTemplate } = schema.ui ?? {};
+    if (!firstTargetTitle || !firstTargetPromptTemplate) {
+      throw new Error('[FAIL-FAST] magician schema missing required ui fields');
+    }
+    const body = firstTargetPromptTemplate.replace('{seat}', formatSeat(seat));
+    showDismissAlert(firstTargetTitle, body);
   }, []);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -135,19 +138,22 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
       messageOverride: string | undefined,
       schema: ActionSchema,
     ) => {
-      const title = schema.ui!.confirmTitle!;
+      const { confirmTitle, emptyVoteConfirmTemplate, voteConfirmTemplate } = schema.ui ?? {};
+      if (!confirmTitle || !emptyVoteConfirmTemplate || !voteConfirmTemplate) {
+        throw new Error('[FAIL-FAST] wolfVote schema missing required ui fields');
+      }
       let msg: string;
       if (messageOverride) {
         msg = messageOverride;
       } else if (targetSeat === -1) {
-        msg = schema.ui!.emptyVoteConfirmTemplate!.replace('{wolf}', wolfName);
+        msg = emptyVoteConfirmTemplate.replace('{wolf}', wolfName);
       } else {
-        msg = schema
-          .ui!.voteConfirmTemplate!.replace('{wolf}', wolfName)
+        msg = voteConfirmTemplate
+          .replace('{wolf}', wolfName)
           .replace('{seat}', formatSeat(targetSeat));
       }
 
-      showConfirmAlert(title, msg, onConfirm);
+      showConfirmAlert(confirmTitle, msg, onConfirm);
     },
     [],
   );
@@ -168,24 +174,38 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
           ? currentSchema.steps?.find((s) => s.key === 'poison')?.ui?.prompt
           : undefined;
 
-      const title = currentSchema.ui!.prompt!;
+      const prompt = currentSchema.ui?.prompt;
+      if (!prompt) {
+        throw new Error('[FAIL-FAST] witch schema missing ui.prompt');
+      }
 
       // Three scenarios (all schema-driven):
       // 1. killedSeat >= 0 && canSave=true  → promptTemplate: "{seat}号被狼人袭击，是否使用解药？"
       // 2. killedSeat >= 0 && canSave=false → cannotSavePrompt: "你被狼人袭击…"
       // 3. killedSeat < 0                   → poisonPrompt: "如要使用毒药，请点击座位。"
       if (ctx.killedSeat >= 0) {
+        const saveUi = saveStep?.ui;
         if (ctx.canSave) {
-          const msg = saveStep!.ui!.promptTemplate!.replace('{seat}', formatSeat(ctx.killedSeat));
-          showDismissAlert(title, msg, onDismiss);
+          if (!saveUi?.promptTemplate) {
+            throw new Error('[FAIL-FAST] witch save step missing ui.promptTemplate');
+          }
+          const msg = saveUi.promptTemplate.replace('{seat}', formatSeat(ctx.killedSeat));
+          showDismissAlert(prompt, msg, onDismiss);
         } else {
-          showDismissAlert(title, saveStep!.ui!.cannotSavePrompt!, onDismiss);
+          if (!saveUi?.cannotSavePrompt) {
+            throw new Error('[FAIL-FAST] witch save step missing ui.cannotSavePrompt');
+          }
+          showDismissAlert(prompt, saveUi.cannotSavePrompt, onDismiss);
         }
         return;
       }
 
       // Empty kill (killedSeat < 0)
-      showDismissAlert(currentSchema.ui!.emptyKillTitle!, poisonPrompt!, onDismiss);
+      const emptyKillTitle = currentSchema.ui?.emptyKillTitle;
+      if (!emptyKillTitle || !poisonPrompt) {
+        throw new Error('[FAIL-FAST] witch schema missing emptyKillTitle or poison prompt');
+      }
+      showDismissAlert(emptyKillTitle, poisonPrompt, onDismiss);
     },
     [],
   );

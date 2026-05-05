@@ -284,16 +284,16 @@ export class GameRoom extends DurableObject<Env> {
   // ── (B) Parameterized RPC methods ───────────────────────────────────────
 
   async seat(params: SeatActionParams): Promise<GameActionResult> {
-    const { action, userId } = params;
+    const { userId } = params;
     return this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, userId);
-        if (action === 'sit') {
+        if (params.action === 'sit') {
           return handleJoinSeat(
             {
               type: 'JOIN_SEAT',
               payload: {
-                seat: params.seat!,
+                seat: params.seat,
                 userId,
                 displayName: params.displayName ?? '',
                 avatarUrl: params.avatarUrl,
@@ -308,16 +308,16 @@ export class GameRoom extends DurableObject<Env> {
             ctx,
           );
         }
-        if (action === 'kick') {
+        if (params.action === 'kick') {
           return handleKickPlayer(
-            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat! } },
+            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat } },
             ctx,
           );
         }
         return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { userId } }, ctx);
       },
       undefined,
-      action === 'kick' ? 'KICK_PLAYER' : undefined,
+      params.action === 'kick' ? 'KICK_PLAYER' : undefined,
     );
   }
 

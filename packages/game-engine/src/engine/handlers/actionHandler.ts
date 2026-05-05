@@ -51,6 +51,8 @@ function buildResolverContext(
     throw new Error('[FAIL-FAST] currentNightResults missing in ongoing state');
   }
 
+  const bottomCardActorSeat = state.treasureMasterSeat ?? state.thiefSeat;
+
   return {
     actorSeat,
     actorRoleId,
@@ -62,13 +64,8 @@ function buildResolverContext(
       isNight1: true, // Night-1 only
       hypnotizedSeats: state.hypnotizedSeats ?? [],
     },
-    ...(state.bottomCards && (state.treasureMasterSeat != null || state.thiefSeat != null)
-      ? {
-          bottomCardContext: {
-            bottomCards: state.bottomCards,
-            actorSeat: state.treasureMasterSeat ?? state.thiefSeat!,
-          },
-        }
+    ...(state.bottomCards && bottomCardActorSeat != null
+      ? { bottomCardContext: { bottomCards: state.bottomCards, actorSeat: bottomCardActorSeat } }
       : {}),
   };
 }
@@ -153,7 +150,7 @@ export function handleSubmitAction(
   // 验证前置条件（完整 gate 链）
   const validation = validateActionPreconditions(context.state, seat, role);
   if (!validation.valid) {
-    return (validation as { valid: false; result: HandlerResult }).result;
+    return validation.result;
   }
   const { schemaId, state, schema } = validation;
 
@@ -184,12 +181,22 @@ export function handleSubmitAction(
   const resolver = RESOLVERS[schemaId]!;
 
   // Bottom card actor override: when acting on the chosen card's step,
-  // use the chosen card's role for the resolver context
+  // use the chosen card's role for the resolver context.
+  // Truthiness check narrows Optional<RoleId> → RoleId for the compiler;
+  // isBottomCardActorOverride additionally verifies the stepId matches.
   let resolverRole = role;
-  if (role === ('treasureMaster' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
-    resolverRole = state.treasureMasterChosenCard as RoleId;
-  } else if (role === ('thief' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
-    resolverRole = state.thiefChosenCard as RoleId;
+  if (
+    role === 'treasureMaster' &&
+    state.treasureMasterChosenCard &&
+    isBottomCardActorOverride(state, schemaId)
+  ) {
+    resolverRole = state.treasureMasterChosenCard;
+  } else if (
+    role === 'thief' &&
+    state.thiefChosenCard &&
+    isBottomCardActorOverride(state, schemaId)
+  ) {
+    resolverRole = state.thiefChosenCard;
   }
 
   // 构建上下文

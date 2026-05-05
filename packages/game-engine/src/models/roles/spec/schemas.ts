@@ -78,15 +78,19 @@ function buildSchema(
         ui,
       };
 
-    case 'wolfVote':
+    case 'wolfVote': {
+      if (!step.meeting) {
+        throw new Error(`[FAIL-FAST] wolfVote step '${step.stepId}' missing meeting config`);
+      }
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'wolfVote',
         constraints: ability?.target?.constraints ?? [],
-        meeting: step.meeting!,
+        meeting: step.meeting,
         ui,
       };
+    }
 
     case 'compound':
       return {
