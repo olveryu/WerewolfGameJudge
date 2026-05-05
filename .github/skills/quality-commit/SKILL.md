@@ -30,7 +30,7 @@ pnpm run quality
 
 **只做自动可修复的事情；无法自动修复的 bug 必须停下报告。**
 
-#### 2a. Lint / Format 错误
+#### 2a. Lint / Format 错误与警告
 
 ```bash
 # 先跑 lint --fix，再跑 prettier
@@ -38,31 +38,24 @@ pnpm exec eslint . --fix
 pnpm exec prettier --write .
 ```
 
-修复后**重跑** `pnpm run quality`，确认通过。
+`--fix` 处理不了的错误和警告（如 `no-explicit-any`、`no-unnecessary-act`），**直接用代码编辑工具修**，不报 BLOCKED。修完后重跑 `pnpm run quality` 确认清零。
 
-若 lint 报告的错误不是 auto-fixable（如 `no-explicit-any`、逻辑错误）：
-
-```
-STATUS: BLOCKED
-REASON: lint 存在无法自动修复的错误：<列出每条>
-ATTEMPTED: eslint --fix + prettier --write
-RECOMMENDATION: 手动修复上述错误后重新执行 skill
-```
+只有在改动量超出可验证范围（如同时涉及多个模块的类型重构）时才停下报告。
 
 #### 2b. TypeScript 类型错误
 
-TypeScript 错误**不能自动修复**，立即报告：
+先尝试用代码编辑工具修复。若修复会影响多个下游模块、或根因不明，立即报告：
 
 ```
 STATUS: BLOCKED
-REASON: TypeScript 类型错误：<列出每条>
-ATTEMPTED: pnpm run quality
-RECOMMENDATION: 手动修复类型错误后重新执行 skill
+REASON: TypeScript 类型错误无法安全自动修复：<列出每条>
+ATTEMPTED: 代码编辑修复
+RECOMMENDATION: 手动确认根因后重新执行 skill
 ```
 
 #### 2c. 测试失败
 
-测试失败**不能自动修复**，立即报告：
+测试失败不自动修改业务逻辑，立即报告：
 
 ```
 STATUS: BLOCKED
@@ -71,9 +64,9 @@ ATTEMPTED: pnpm run quality
 RECOMMENDATION: 手动修复测试后重新执行 skill
 ```
 
-#### 2d. knip 死代码警告
+#### 2d. knip 死代码
 
-knip 误报（`metro.config.js`, `react-dom` 等）忽略。真正的死代码报告给用户决策，不自动删除。
+knip 误报（`metro.config.js`, `react-dom` 等）忽略。其余死代码（未使用的导出、文件、依赖）**直接删除**，删完重跑 `pnpm run quality` 确认。
 
 ---
 
@@ -127,5 +120,4 @@ RECOMMENDATION: git pull --rebase 后重新执行 skill
 
 - **禁止 `--no-verify`。** 不绕过 git hooks。
 - **禁止强制推送。** 不用 `--force` / `--force-with-lease`。
-- **禁止自动修复逻辑错误。** 仅 lint/format 可自动修复，其余停下报告。
-- **禁止删除文件。** knip 死代码警告只报告，不自动删除。
+- **不改业务逻辑。** 修 lint/TS/test 时只改使问题消失所需的最小改动，不顺手重构。
