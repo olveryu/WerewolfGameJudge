@@ -8,7 +8,7 @@
  * No hooks, no side effects.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import type { BottomButton } from './bottomActionBuilder';
 import {
@@ -93,6 +93,7 @@ function materializeStaticButton(
   // Contextual overrides per button
   switch (id) {
     case 'waitForHost':
+    case 'audioWaiting':
       config.disabled = true;
       config.fireWhenDisabled = true;
       break;
@@ -180,11 +181,6 @@ export function resolveBottomLayout(
   ctx: LayoutContext,
   schemaButtons: readonly BottomButton[] = [],
 ): BottomLayout {
-  // Audio playing → hide panel entirely (except for groupConfirm-like passthrough)
-  if (ctx.isAudioPlaying && ctx.roomStatus === GameStatus.Ongoing) {
-    return EMPTY_LAYOUT;
-  }
-
   const role = getUserRole(ctx);
 
   // Find first matching rule

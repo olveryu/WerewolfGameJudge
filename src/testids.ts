@@ -55,6 +55,7 @@ export const TESTIDS = {
   prepareToFlipButton: 'prepare-to-flip-button',
   startGameButton: 'start-game-button',
   restartButton: 'restart-button',
+  audioWaitingButton: 'audio-waiting-button',
   lastNightInfoButton: 'last-night-info-button',
   bgmToggleButton: 'bgm-toggle-button',
   connectionStatusContainer: 'connection-status-container',

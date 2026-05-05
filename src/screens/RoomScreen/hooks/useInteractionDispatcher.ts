@@ -12,6 +12,7 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner-native';
 
 import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
@@ -192,6 +193,10 @@ export function useInteractionDispatcher({
   const lastSeatTapRef = useRef(0);
   const SEAT_TAP_DEBOUNCE_MS = 300;
 
+  /** Throttle guard for audio-gate toast — avoids spamming when user taps repeatedly */
+  const lastAudioToastRef = useRef(0);
+  const AUDIO_TOAST_THROTTLE_MS = 3000;
+
   const handleSeatingTap = useCallback(
     (seat: number) => {
       const now = Date.now();
@@ -291,6 +296,13 @@ export function useInteractionDispatcher({
             reason: result.reason,
             event: event.kind,
           });
+          if (result.reason === 'audio_playing') {
+            const now = Date.now();
+            if (now - lastAudioToastRef.current >= AUDIO_TOAST_THROTTLE_MS) {
+              lastAudioToastRef.current = now;
+              toast.info('语音播报中，请稍候');
+            }
+          }
           return;
 
         case 'ALERT':

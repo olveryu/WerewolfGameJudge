@@ -218,7 +218,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual([]);
     });
 
-    it('audio playing → empty', () => {
+    it('audio playing, non-actioner host → primary: viewRole, ghost: restart', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -227,9 +227,9 @@ describe('resolveBottomLayout', () => {
           isAudioPlaying: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['viewRole']);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['restart']);
     });
   });
 
@@ -496,7 +496,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('edge cases', () => {
-    it('audio playing during ongoing → empty', () => {
+    it('audio playing, host actioner → audioWaiting placeholder + viewRole/restart in ghost', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -506,9 +506,27 @@ describe('resolveBottomLayout', () => {
           imActioner: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual([]);
+      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
+      // Placeholder must be visibly disabled and non-firing (intent-less)
+      expect(layout.primary[0]!.disabled).toBe(true);
+      expect(layout.primary[0]!.fireWhenDisabled).toBe(true);
+    });
+
+    it('audio playing, player actioner → audioWaiting placeholder + viewRole in ghost', () => {
+      const layout = resolveBottomLayout(
+        makeCtx({
+          roomStatus: GameStatus.Ongoing,
+          isHost: false,
+          effectiveSeat: 1,
+          isAudioPlaying: true,
+          imActioner: true,
+        }),
+      );
+      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
+      expect(keys(layout, 'secondary')).toEqual([]);
+      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
     });
 
     it('variant correctness: ghost buttons get variant=ghost', () => {

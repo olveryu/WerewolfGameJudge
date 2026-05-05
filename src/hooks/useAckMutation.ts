@@ -16,7 +16,7 @@
 
 import { useMutation } from '@tanstack/react-query';
 
-export type AckName = 'reveal' | 'hunterStatus' | 'groupConfirm';
+type AckName = 'reveal' | 'hunterStatus' | 'groupConfirm';
 
 export function useAckMutation<TArgs, TData>(
   name: AckName,

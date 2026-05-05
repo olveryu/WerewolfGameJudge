@@ -29,14 +29,20 @@ import type { InteractionContext, InteractionEvent, InteractionResult } from './
  * Check audio gate - highest priority.
  * Returns NOOP if audio is playing during ongoing game.
  *
- * NOTE: Leave room is exempt from this gate (safety exit).
+ * Exempt events (always allowed during audio playback):
+ * - LEAVE_ROOM: safety exit
+ * - VIEW_ROLE: read-only inspection of own role, does not mutate game state
  */
+const AUDIO_GATE_EXEMPT: ReadonlySet<InteractionEvent['kind']> = new Set([
+  'LEAVE_ROOM',
+  'VIEW_ROLE',
+]);
+
 function checkAudioGate(
   ctx: InteractionContext,
   event: InteractionEvent,
 ): InteractionResult | null {
-  // Leave room is always allowed (safety exit)
-  if (event.kind === 'LEAVE_ROOM') return null;
+  if (AUDIO_GATE_EXEMPT.has(event.kind)) return null;
 
   if (ctx.roomStatus === GameStatus.Ongoing && ctx.isAudioPlaying) {
     return { kind: 'NOOP', reason: 'audio_playing' };

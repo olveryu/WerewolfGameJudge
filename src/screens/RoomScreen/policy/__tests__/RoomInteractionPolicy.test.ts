@@ -112,7 +112,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       expect(result).toHaveProperty('reason', 'audio_playing');
     });
 
-    test('audio_playing blocks view role', () => {
+    test('audio_playing does NOT block view role (read-only inspection)', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
         roomStatus: GameStatus.Ongoing,
@@ -121,8 +121,8 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
 
       const result = getInteractionResult(ctx, event);
 
-      expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'audio_playing');
+      expect(result.kind).toBe('SHOW_DIALOG');
+      expect(result).toHaveProperty('dialogType', 'roleCard');
     });
 
     test('audio_playing blocks host control during ongoing', () => {

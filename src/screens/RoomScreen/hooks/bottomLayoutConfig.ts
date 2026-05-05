@@ -51,6 +51,7 @@ export interface BottomLayout {
 export type StaticButtonId =
   | 'viewRole'
   | 'waitForHost'
+  | 'audioWaiting'
   | 'settings'
   | 'prepareToFlip'
   | 'startGame'
@@ -77,6 +78,10 @@ export const STATIC_BUTTONS: Record<StaticButtonId, StaticButtonDef> = {
   },
   waitForHost: {
     label: '等待房主开始',
+  },
+  audioWaiting: {
+    label: '语音播报中…',
+    testID: TESTIDS.audioWaitingButton,
   },
   settings: {
     label: '房间配置',
@@ -240,13 +245,47 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // spectator: no panel
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Ongoing — actioner (more specific rules first)
+  // Ongoing — actioner during audio playback (more specific rules first)
+  // Schema action buttons are replaced with a disabled "语音播报中" placeholder
+  // so the user knows the system is waiting on audio rather than seeing the
+  // panel collapse to viewRole-only.
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: {
       status: GameStatus.Ongoing,
       role: 'host',
-      when: (ctx) => ctx.imActioner && !ctx.isAudioPlaying,
+      when: (ctx) => ctx.imActioner && ctx.isAudioPlaying,
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'audioWaiting' }],
+      secondary: [],
+      ghost: [
+        { source: 'static', button: 'viewRole' },
+        { source: 'static', button: 'restart' },
+      ],
+    },
+  },
+  {
+    match: {
+      status: GameStatus.Ongoing,
+      role: 'player',
+      when: (ctx) => ctx.imActioner && ctx.isAudioPlaying,
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'audioWaiting' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'viewRole' }],
+    },
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Ongoing — actioner (audio idle)
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    match: {
+      status: GameStatus.Ongoing,
+      role: 'host',
+      when: (ctx) => ctx.imActioner,
     },
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
@@ -261,7 +300,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ongoing,
       role: 'player',
-      when: (ctx) => ctx.imActioner && !ctx.isAudioPlaying,
+      when: (ctx) => ctx.imActioner,
     },
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
@@ -271,7 +310,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   },
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Ongoing — non-actioner / audio playing
+  // Ongoing — non-actioner
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: { status: GameStatus.Ongoing, role: 'host' },
