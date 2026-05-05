@@ -73,6 +73,7 @@ assets/badges/report.json
 # Temporary SQL files (ad-hoc D1 queries)
 *.tmp.sql
 
-# Claude Code local state (per-user, runtime)
+# Claude Code local state — keep settings.json / skills/ / commands/ / agents/ / hooks/ committed
+# https://code.claude.com/docs/en/configuration.md
 .claude/settings.local.json
-.claude/scheduled_tasks.lock
+.claude/**/*.lock
