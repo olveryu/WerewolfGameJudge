@@ -168,14 +168,16 @@ describe('useGameActions - game control', () => {
     expect(mockShowAlert).not.toHaveBeenCalled();
   });
 
-  it('startGame should start BGM and call facade.startNight', async () => {
+  it('startGame should call facade.startNight (BGM driven by gameStatus effect)', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.startGame());
 
-    expect(deps.bgm.startBgmIfEnabled).toHaveBeenCalled();
     expect(deps.facade.startNight).toHaveBeenCalled();
+    // BGM is no longer started imperatively here — useBgmControl's reactive
+    // effect starts BGM when gameStatus transitions to Ongoing.
+    expect(deps.bgm.startBgmIfEnabled).not.toHaveBeenCalled();
   });
 
   it('restartGame should stop BGM, clear debug seat, and call facade', async () => {

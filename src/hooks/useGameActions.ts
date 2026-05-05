@@ -133,15 +133,14 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
     handleMutationResult(result, '分配角色', toastError);
   }, [facade]);
 
-  // Start game (host only) - uses startNight + BGM
+  // Start game (host only)
+  // BGM 由 useBgmControl 的 gameStatus→Ongoing reactive effect 驱动，不在此处命令式启动。
   const startGame = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
 
     const result = await facade.startNight();
-    // Start BGM only after successful startNight to avoid music playing on failure
-    if (result.success) bgm.startBgmIfEnabled();
     handleMutationResult(result, '开始游戏', toastError);
-  }, [facade, bgm]);
+  }, [facade]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {

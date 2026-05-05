@@ -76,9 +76,35 @@ export function useBgmControl(
     });
   }, []);
 
-  // 生命周期清理：游戏结束且所有音频播完后自动停 BGM。
-  // 注意：音频时序层面的 stopBgm（如"天亮了"语音前停 BGM）由 GameFacade._playPendingAudioEffects 负责，
-  // 这里仅作为最终生命周期兜底，确保 BGM 不会在 ended 状态残留。stopBgm() 幂等，重复调用无副作用。
+  // ── 状态驱动：gameStatus 转换到 Ongoing → 启动 BGM ──
+  // BGM 启动由 GameState 状态转换驱动（与停止对称），不绑定 HTTP 响应。
+  // Guard: prevStatus === null 排除 mount/rejoin（null→Ongoing），
+  // rejoin 场景由 resumeAfterRejoin 手动启动。
+  const prevStatusRef = useRef<GameStatus | null>(null);
+  useEffect(() => {
+    const prevStatus = prevStatusRef.current;
+    prevStatusRef.current = gameStatus;
+
+    if (!isHost) return;
+    if (
+      gameStatus === GameStatus.Ongoing &&
+      prevStatus !== null &&
+      prevStatus !== GameStatus.Ongoing
+    ) {
+      const bgmEnabled = settingsRef.current.isBgmEnabled();
+      if (bgmEnabled) {
+        const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
+        audioRef.current.startBgm(assets).catch((e) => {
+          bgmLog.warn('BGM start failed on state transition', e);
+        });
+        setIsBgmPlaying(true);
+      }
+    }
+  }, [isHost, gameStatus]);
+
+  // ── 状态驱动：gameStatus 转换到 Ended → 停止 BGM ──
+  // 音频时序层面的 stopBgm（如"天亮了"语音前停 BGM）由 AudioOrchestrator 负责，
+  // 这里作为生命周期收尾，确保 BGM 不会在 ended 状态残留。stopBgm() 幂等。
   useEffect(() => {
     if (!isHost) return;
     if (gameStatus === GameStatus.Ended && !isAudioPlaying) {
