@@ -43,6 +43,7 @@ import {
   wechatCodeSchema,
 } from '../schemas/auth';
 import { getWeChatAuthStub, jsonBody } from './shared';
+import { selectUserProfile, toUserMetadata } from './userProfile';
 
 const log = createLogger('auth');
 
@@ -211,7 +212,7 @@ authRoutes.post('/anonymous', async (c) => {
   return c.json(
     {
       ...tokens,
-      user: { id: userId, is_anonymous: true, email: null, user_metadata: {} },
+      user: { id: userId, is_anonymous: true, email: null, user_metadata: toUserMetadata(null) },
     },
     200,
   );
@@ -305,19 +306,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       }
 
       // Read back merged account profile
-      const merged = await db
-        .select({
-          displayName: users.displayName,
-          avatarUrl: users.avatarUrl,
-          customAvatarUrl: users.customAvatarUrl,
-          avatarFrame: users.avatarFrame,
-          equippedFlair: users.equippedFlair,
-          equippedNameStyle: users.equippedNameStyle,
-          equippedEffect: users.equippedEffect,
-        })
-        .from(users)
-        .where(eq(users.id, existing.id))
-        .get();
+      const mergedProfile = await selectUserProfile(db, existing.id);
 
       const mergedUser = await db
         .select({ tokenVersion: users.tokenVersion })
@@ -336,15 +325,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
             id: existing.id,
             email,
             is_anonymous: false,
-            user_metadata: {
-              display_name: merged?.displayName,
-              avatar_url: merged?.avatarUrl,
-              custom_avatar_url: merged?.customAvatarUrl,
-              avatar_frame: merged?.avatarFrame,
-              seat_flair: merged?.equippedFlair,
-              name_style: merged?.equippedNameStyle,
-              equipped_effect: merged?.equippedEffect,
-            },
+            user_metadata: toUserMetadata(mergedProfile),
           },
         },
         200,
@@ -368,9 +349,10 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
     // Welcome bonus for anonymous/WeChat → email upgrade
     await grantWelcomeBonus(db, existingUserId);
 
-    // Read back the actual display_name (may be the pre-existing one)
+    // Read back full profile (user may have cosmetics from anonymous/WeChat era)
+    const upgradedProfile = await selectUserProfile(db, existingUserId);
     const upgraded = await db
-      .select({ displayName: users.displayName, tokenVersion: users.tokenVersion })
+      .select({ tokenVersion: users.tokenVersion })
       .from(users)
       .where(eq(users.id, existingUserId))
       .get();
@@ -387,7 +369,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
           id: existingUserId,
           email,
           is_anonymous: false,
-          user_metadata: { display_name: upgraded?.displayName ?? displayName },
+          user_metadata: toUserMetadata(upgradedProfile),
         },
       },
       200,
@@ -430,7 +412,16 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         id: userId,
         email,
         is_anonymous: false,
-        user_metadata: { display_name: displayName },
+        user_metadata: toUserMetadata({
+          displayName,
+          avatarUrl: null,
+          customAvatarUrl: null,
+          avatarFrame: null,
+          equippedFlair: null,
+          equippedNameStyle: null,
+          equippedEffect: null,
+          equippedSeatAnimation: null,
+        }),
       },
     },
     200,
@@ -478,6 +469,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
+      equippedSeatAnimation: users.equippedSeatAnimation,
       tokenVersion: users.tokenVersion,
     })
     .from(users)
@@ -522,15 +514,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
         id: user.id,
         email,
         is_anonymous: false,
-        user_metadata: {
-          display_name: user.displayName,
-          avatar_url: user.avatarUrl,
-          custom_avatar_url: user.customAvatarUrl,
-          avatar_frame: user.avatarFrame,
-          seat_flair: user.equippedFlair,
-          name_style: user.equippedNameStyle,
-          equipped_effect: user.equippedEffect,
-        },
+        user_metadata: toUserMetadata(user),
       },
     },
     200,
@@ -590,16 +574,7 @@ authRoutes.get('/user', async (c) => {
           email: user.email,
           is_anonymous: user.isAnonymous === 1,
           has_wechat: !!user.wechatOpenid,
-          user_metadata: {
-            display_name: user.displayName,
-            avatar_url: user.avatarUrl,
-            custom_avatar_url: user.customAvatarUrl,
-            avatar_frame: user.avatarFrame,
-            seat_flair: user.equippedFlair,
-            name_style: user.equippedNameStyle,
-            equipped_effect: user.equippedEffect,
-            seat_animation: user.equippedSeatAnimation,
-          },
+          user_metadata: toUserMetadata(user),
         },
       },
     },
@@ -916,19 +891,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   const tokens = await issueTokenPair(token.userId, env, { email, ver: newVer });
 
   // Fetch user metadata for response
-  const user = await db
-    .select({
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      customAvatarUrl: users.customAvatarUrl,
-      avatarFrame: users.avatarFrame,
-      equippedFlair: users.equippedFlair,
-      equippedNameStyle: users.equippedNameStyle,
-      equippedEffect: users.equippedEffect,
-    })
-    .from(users)
-    .where(eq(users.id, token.userId))
-    .get();
+  const profile = await selectUserProfile(db, token.userId);
 
   return c.json(
     {
@@ -938,15 +901,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
         id: token.userId,
         email,
         is_anonymous: false,
-        user_metadata: {
-          display_name: user?.displayName,
-          avatar_url: user?.avatarUrl,
-          custom_avatar_url: user?.customAvatarUrl,
-          avatar_frame: user?.avatarFrame,
-          seat_flair: user?.equippedFlair,
-          name_style: user?.equippedNameStyle,
-          equipped_effect: user?.equippedEffect,
-        },
+        user_metadata: toUserMetadata(profile),
       },
     },
     200,
@@ -998,6 +953,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
       equippedFlair: users.equippedFlair,
       equippedNameStyle: users.equippedNameStyle,
       equippedEffect: users.equippedEffect,
+      equippedSeatAnimation: users.equippedSeatAnimation,
       tokenVersion: users.tokenVersion,
     })
     .from(users)
@@ -1025,15 +981,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
           id: existing.id,
           email: existing.email,
           is_anonymous: false,
-          user_metadata: {
-            display_name: existing.displayName,
-            avatar_url: existing.avatarUrl,
-            custom_avatar_url: existing.customAvatarUrl,
-            avatar_frame: existing.avatarFrame,
-            seat_flair: existing.equippedFlair,
-            name_style: existing.equippedNameStyle,
-            equipped_effect: existing.equippedEffect,
-          },
+          user_metadata: toUserMetadata(existing),
         },
       },
       200,
@@ -1065,7 +1013,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
         id: userId,
         email: null,
         is_anonymous: false,
-        user_metadata: {},
+        user_metadata: toUserMetadata(null),
       },
     },
     200,

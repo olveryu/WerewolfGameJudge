@@ -6,6 +6,21 @@
  */
 
 /**
+ * API 返回的 user_metadata 完整类型（snake_case wire format）。
+ * 与服务端 userProfile.ts 的 UserMetadata 保持一致。
+ */
+export interface UserMetadata {
+  display_name: string | null;
+  avatar_url: string | null;
+  custom_avatar_url: string | null;
+  avatar_frame: string | null;
+  seat_flair: string | null;
+  name_style: string | null;
+  equipped_effect: string | null;
+  seat_animation: string | null;
+}
+
+/**
  * 抽象用户类型。
  * 仅包含业务代码实际读取的字段。
  */
@@ -14,7 +29,7 @@ export interface AuthUser {
   email?: string | null;
   is_anonymous?: boolean;
   has_wechat?: boolean;
-  user_metadata?: Record<string, unknown>;
+  user_metadata?: UserMetadata;
 }
 
 /**

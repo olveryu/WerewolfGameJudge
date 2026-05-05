@@ -71,9 +71,9 @@ const userEquals = (a: User | null, b: User | null): boolean => {
   );
 };
 
-// Extract a string from unknown metadata value. Returns null for non-string, empty string, and nullish.
-function metaString(val: unknown): string | null {
-  return typeof val === 'string' && val !== '' ? val : null;
+/** Normalize empty string to null (server may send "" for unequipped fields). */
+function emptyToNull(val: string | null | undefined): string | null {
+  return val && val !== '' ? val : null;
 }
 
 // Convert auth user to our User type
@@ -83,14 +83,14 @@ const toUser = (authUser: AuthUser | null): User | null => {
   return {
     id: authUser.id,
     email: authUser.email ?? null,
-    displayName: metaString(meta?.display_name),
-    avatarUrl: metaString(meta?.avatar_url),
-    customAvatarUrl: metaString(meta?.custom_avatar_url),
-    avatarFrame: metaString(meta?.avatar_frame),
-    seatFlair: metaString(meta?.seat_flair),
-    nameStyle: metaString(meta?.name_style),
-    equippedEffect: metaString(meta?.equipped_effect),
-    seatAnimation: metaString(meta?.seat_animation),
+    displayName: emptyToNull(meta?.display_name),
+    avatarUrl: emptyToNull(meta?.avatar_url),
+    customAvatarUrl: emptyToNull(meta?.custom_avatar_url),
+    avatarFrame: emptyToNull(meta?.avatar_frame),
+    seatFlair: emptyToNull(meta?.seat_flair),
+    nameStyle: emptyToNull(meta?.name_style),
+    equippedEffect: emptyToNull(meta?.equipped_effect),
+    seatAnimation: emptyToNull(meta?.seat_animation),
     isAnonymous: authUser.is_anonymous ?? false,
   };
 };
