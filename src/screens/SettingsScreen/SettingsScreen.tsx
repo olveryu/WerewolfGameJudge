@@ -36,8 +36,13 @@ import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
-import { getErrorMessage, translateReasonCode } from '@/utils/errorUtils';
-import { isExpectedAuthError, mapAuthError, settingsLog } from '@/utils/logger';
+import {
+  getErrorMessage,
+  getUserFacingMessage,
+  isExpectedError,
+  translateReasonCode,
+} from '@/utils/errorUtils';
+import { settingsLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 import {
@@ -234,12 +239,11 @@ export const SettingsScreen: React.FC = () => {
           showSuccessOnLogin: true,
         });
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const message = mapAuthError(raw);
-        if (isExpectedAuthError(raw)) {
-          settingsLog.warn('Account switch expected error', { message: raw }, e);
+        const message = getUserFacingMessage(e);
+        if (isExpectedError(e)) {
+          settingsLog.warn('Account switch expected error', { error: e }, e);
         } else {
-          settingsLog.error('Account switch failed', { message: raw }, e);
+          settingsLog.error('Account switch failed', { error: e }, e);
           Sentry.captureException(e);
         }
         showErrorAlert('切换失败', message);

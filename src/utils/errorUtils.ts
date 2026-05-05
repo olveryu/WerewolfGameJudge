@@ -121,7 +121,44 @@ export function fireAndForget(
 
 /** 服务端 reason code → 中文友好文案 */
 const REASON_CODE_MAP: Record<string, string> = {
-  // Seat / lifecycle
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  EMAIL_ALREADY_REGISTERED: '该邮箱已注册',
+  INVALID_CREDENTIALS: '邮箱或密码错误',
+  ACCOUNT_MERGE_FAILED: '账号合并失败，请稍后重试',
+  TOO_MANY_ATTEMPTS: '登录尝试过于频繁，请稍后重试',
+  UNAUTHORIZED: '身份验证失败',
+  USER_NOT_FOUND: '用户不存在',
+  TOKEN_REVOKED: '登录已过期，请重新登录',
+  ITEM_NOT_UNLOCKED: '物品尚未解锁',
+  NO_PASSWORD: '该账户未设置密码',
+  INVALID_OLD_PASSWORD: '原密码错误',
+  EMAIL_SEND_FAILED: '邮件发送失败，请稍后重试',
+  INVALID_OR_EXPIRED_CODE: '验证码无效或已过期',
+  WECHAT_NOT_CONFIGURED: '微信登录未配置',
+  WECHAT_TIMEOUT: '微信服务超时，请重试',
+  WECHAT_AUTH_FAILED: '微信认证失败',
+  INVALID_REFRESH_TOKEN: '登录已过期，请重新登录',
+  WECHAT_ALREADY_BOUND: '该微信已绑定其他账号',
+  // ── Room / Avatar / Share ─────────────────────────────────────────────────
+  ROOM_CODE_CONFLICT: '房间号冲突，请重试',
+  STORAGE_NOT_CONFIGURED: '存储服务未配置',
+  FILE_REQUIRED: '请选择文件',
+  INVALID_FILE_TYPE: '文件类型无效，仅支持 JPEG/PNG/WebP',
+  FILE_TOO_LARGE: '文件过大（最大 5MB）',
+  INVALID_DATA: '数据格式无效',
+  NOT_FOUND: '资源不存在',
+  ANONYMOUS_NOT_SUPPORTED: '匿名用户不支持此操作',
+  // ── Gacha ─────────────────────────────────────────────────────────────────
+  NO_STATS: '请先完成一局游戏',
+  INSUFFICIENT_DRAWS: '抽奖券不足',
+  INSUFFICIENT_SHARDS: '碎片不足',
+  ALREADY_OWNED: '已拥有该物品',
+  INVALID_ITEM: '物品不存在',
+  CONFLICT: '请求冲突，请重试',
+  // ── AI ────────────────────────────────────────────────────────────────────
+  QUOTA_EXHAUSTED: 'AI 额度已用完',
+  AI_UNAVAILABLE: 'AI 服务暂不可用', // ── Validation ─────────────────────────────────────────────────────────────────
+  VALIDATION_ERROR: '输入信息格式有误', // ── Seat / lifecycle ──────────────────────────────────────────────────────
   game_in_progress: '游戏进行中，无法操作',
   not_authenticated: '身份验证失败',
   no_state: '房间不存在或已解散',
@@ -171,8 +208,7 @@ const REASON_CODE_MAP: Record<string, string> = {
 /**
  * Translate a server reason code to a user-friendly Chinese message.
  *
- * 遵循 mapAuthError 同款模式：已知 code 翻译，未知 code fallback。
- * 如果 reason 为 undefined/null 或不在映射表中，返回通用 fallback。
+ * 如果 reason 为 undefined/null 或不在映射表中，返回 fallback。
  */
 export function translateReasonCode(
   reason: string | undefined | null,
@@ -209,9 +245,50 @@ export function getUserFacingMessage(error: unknown, fallback = '操作失败，
     // Check if message itself is a known reason code
     const translated = REASON_CODE_MAP[message];
     if (translated) return translated;
+    // Network errors (native fetch/TypeError — not from our API)
+    if (isNetworkError(error)) return REASON_CODE_MAP['NETWORK_ERROR']!;
     // Chinese message — already user-friendly
     if (/[\u4e00-\u9fff]/.test(message)) return message;
   }
 
   return fallback;
+}
+
+/**
+ * Check if an error is expected (user input / rate-limit / known rejection)
+ * and should NOT be reported to Sentry.
+ *
+ * Accepts either a reason code string or an error object with `.reason`.
+ */
+const EXPECTED_ERROR_CODES = new Set([
+  'EMAIL_ALREADY_REGISTERED',
+  'INVALID_CREDENTIALS',
+  'TOO_MANY_ATTEMPTS',
+  'INVALID_OLD_PASSWORD',
+  'INVALID_OR_EXPIRED_CODE',
+  'NO_PASSWORD',
+  'WECHAT_ALREADY_BOUND',
+  'WECHAT_AUTH_FAILED',
+  'ITEM_NOT_UNLOCKED',
+  'VALIDATION_ERROR',
+  'INSUFFICIENT_DRAWS',
+  'INSUFFICIENT_SHARDS',
+  'ALREADY_OWNED',
+  'NO_STATS',
+]);
+
+export function isExpectedError(error: unknown): boolean {
+  if (typeof error === 'string') return EXPECTED_ERROR_CODES.has(error);
+  if (error instanceof Error) {
+    // error.message is the reason code after wire format unification
+    if (EXPECTED_ERROR_CODES.has(error.message)) return true;
+    // Also check .reason property (cfFetch attaches it)
+    const reason = (error as { reason?: string }).reason;
+    if (reason && EXPECTED_ERROR_CODES.has(reason)) return true;
+  }
+  if (error != null && typeof error === 'object' && 'reason' in error) {
+    const reason = (error as { reason: unknown }).reason;
+    if (typeof reason === 'string' && EXPECTED_ERROR_CODES.has(reason)) return true;
+  }
+  return false;
 }

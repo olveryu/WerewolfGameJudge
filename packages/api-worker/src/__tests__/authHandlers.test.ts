@@ -23,8 +23,8 @@ interface AuthSuccessResponse {
 }
 
 interface AuthErrorResponse {
-  error: string;
-  reason?: string;
+  success: false;
+  reason: string;
 }
 
 interface UserProfileResponse {
@@ -152,7 +152,7 @@ describe('POST /auth/signup', () => {
     expect(res.status).toBe(409);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('email already registered');
+    expect(body.reason).toBe('EMAIL_ALREADY_REGISTERED');
   });
 
   it('uses custom displayName when provided', async () => {
@@ -200,7 +200,6 @@ describe('POST /auth/signup', () => {
 
     const body = await res.json<AuthErrorResponse>();
     expect(body.reason).toBe('VALIDATION_ERROR');
-    expect(body.error).toContain('password');
   });
 });
 
@@ -233,7 +232,7 @@ describe('POST /auth/signin', () => {
     expect(res.status).toBe(401);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('invalid credentials');
+    expect(body.reason).toBe('INVALID_CREDENTIALS');
   });
 
   it('rejects non-existent email', async () => {
@@ -244,7 +243,7 @@ describe('POST /auth/signin', () => {
     expect(res.status).toBe(401);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('invalid credentials');
+    expect(body.reason).toBe('INVALID_CREDENTIALS');
   });
 
   it('rate limits after 10 failed attempts', async () => {
@@ -261,7 +260,7 @@ describe('POST /auth/signin', () => {
     expect(res.status).toBe(429);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('too many login attempts, try again later');
+    expect(body.reason).toBe('TOO_MANY_ATTEMPTS');
   });
 });
 
@@ -378,7 +377,7 @@ describe('PUT /auth/password', () => {
     expect(res.status).toBe(401);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('invalid old password');
+    expect(body.reason).toBe('INVALID_OLD_PASSWORD');
   });
 
   it('rejects anonymous user password change', async () => {
@@ -393,7 +392,7 @@ describe('PUT /auth/password', () => {
     expect(res.status).toBe(400);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('account has no password (anonymous user)');
+    expect(body.reason).toBe('NO_PASSWORD');
   });
 });
 
@@ -448,7 +447,7 @@ describe('password reset flow', () => {
     expect(res.status).toBe(400);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('invalid or expired code');
+    expect(body.reason).toBe('INVALID_OR_EXPIRED_CODE');
   });
 
   it('reset-password with valid token changes password and returns JWT', async () => {
@@ -547,6 +546,6 @@ describe('password reset flow', () => {
     expect(res.status).toBe(400);
 
     const body = await res.json<AuthErrorResponse>();
-    expect(body.error).toBe('invalid or expired code');
+    expect(body.reason).toBe('INVALID_OR_EXPIRED_CODE');
   });
 });

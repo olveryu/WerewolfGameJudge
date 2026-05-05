@@ -491,8 +491,6 @@ jest.mock('./src/utils/logger', () => {
     bgmLog: mockLogger,
     chatLog: mockLogger,
     connectionLog: mockLogger,
-    mapAuthError: jest.fn((msg: string) => msg),
-    isExpectedAuthError: jest.fn(() => false),
   };
 });
 

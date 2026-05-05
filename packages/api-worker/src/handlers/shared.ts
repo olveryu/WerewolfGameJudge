@@ -32,7 +32,6 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
       return c.json(
         {
           success: false,
-          error: detail,
           reason: 'VALIDATION_ERROR',
           detail,
         },

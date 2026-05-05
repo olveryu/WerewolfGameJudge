@@ -276,13 +276,13 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 
       if (!callerRow?.wechatOpenid || !existing.passwordHash) {
         // Anonymous user or target has no password — cannot merge, plain conflict
-        return c.json({ error: 'email already registered' }, 409);
+        return c.json({ success: false, reason: 'EMAIL_ALREADY_REGISTERED' }, 409);
       }
 
       // Password is required for merge verification
       const mergeResult = await verifyPassword(parsed.password, existing.passwordHash);
       if (!mergeResult.valid) {
-        return c.json({ error: 'invalid credentials' }, 401);
+        return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
       }
 
       // Migrate openid to the email account and delete the WeChat shell account.
@@ -302,7 +302,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       } catch (dbErr: unknown) {
         const msg = dbErr instanceof Error ? dbErr.message : String(dbErr);
         log.error('account merge DB error', { userId: existingUserId, msg });
-        return c.json({ error: 'account merge failed' }, 500);
+        return c.json({ success: false, reason: 'ACCOUNT_MERGE_FAILED' }, 500);
       }
 
       // Read back merged account profile
@@ -384,7 +384,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
     .get();
 
   if (existing) {
-    return c.json({ error: 'email already registered' }, 409);
+    return c.json({ success: false, reason: 'EMAIL_ALREADY_REGISTERED' }, 409);
   }
 
   const userId = crypto.randomUUID();
@@ -455,7 +455,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
     .get();
 
   if (recentAttempts && recentAttempts.count >= SIGN_IN_MAX_ATTEMPTS) {
-    return c.json({ error: 'too many login attempts, try again later' }, 429);
+    return c.json({ success: false, reason: 'TOO_MANY_ATTEMPTS' }, 429);
   }
 
   const user = await db
@@ -478,13 +478,13 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
 
   if (!user || !user.passwordHash) {
     await recordFailedLogin(env, emailHash);
-    return c.json({ error: 'invalid credentials' }, 401);
+    return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
   const result = await verifyPassword(parsed.password, user.passwordHash);
   if (!result.valid) {
     await recordFailedLogin(env, emailHash);
-    return c.json({ error: 'invalid credentials' }, 401);
+    return c.json({ success: false, reason: 'INVALID_CREDENTIALS' }, 401);
   }
 
   // Successful login — clear failed attempts for this email
@@ -529,12 +529,12 @@ authRoutes.get('/user', async (c) => {
   const db = createDb(env.DB);
   const token = extractBearerToken(c.req.raw);
   if (!token) {
-    return c.json({ error: 'unauthorized' }, 401);
+    return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
   }
 
   const payload = await verifyToken(token, env);
   if (!payload) {
-    return c.json({ error: 'unauthorized' }, 401);
+    return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
   }
 
   const user = await db
@@ -558,12 +558,12 @@ authRoutes.get('/user', async (c) => {
     .get();
 
   if (!user) {
-    return c.json({ error: 'user_not_found' }, 404);
+    return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
   }
 
   // Verify token version (revocation check)
   if (user.tokenVersion !== payload.ver) {
-    return c.json({ error: 'token_revoked' }, 401);
+    return c.json({ success: false, reason: 'TOKEN_REVOKED' }, 401);
   }
 
   return c.json(
@@ -615,25 +615,25 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
       : [];
 
     if (cosmeticFields.avatarFrame && !isFrameUnlocked(cosmeticFields.avatarFrame, unlockedIds)) {
-      return c.json({ error: 'item_not_unlocked', field: 'avatarFrame' }, 403);
+      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'avatarFrame' }, 403);
     }
     if (cosmeticFields.seatFlair && !isFlairUnlocked(cosmeticFields.seatFlair, unlockedIds)) {
-      return c.json({ error: 'item_not_unlocked', field: 'seatFlair' }, 403);
+      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'seatFlair' }, 403);
     }
     if (cosmeticFields.nameStyle && !isNameStyleUnlocked(cosmeticFields.nameStyle, unlockedIds)) {
-      return c.json({ error: 'item_not_unlocked', field: 'nameStyle' }, 403);
+      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'nameStyle' }, 403);
     }
     if (
       cosmeticFields.equippedEffect &&
       !isRoleRevealEffectUnlocked(cosmeticFields.equippedEffect, unlockedIds)
     ) {
-      return c.json({ error: 'item_not_unlocked', field: 'equippedEffect' }, 403);
+      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'equippedEffect' }, 403);
     }
     if (
       cosmeticFields.seatAnimation &&
       !isSeatAnimationUnlocked(cosmeticFields.seatAnimation, unlockedIds)
     ) {
-      return c.json({ error: 'item_not_unlocked', field: 'seatAnimation' }, 403);
+      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'seatAnimation' }, 403);
     }
   }
 
@@ -676,12 +676,12 @@ authRoutes.put('/password', requireAuth, jsonBody(changePasswordSchema), async (
     .get();
 
   if (!user || !user.passwordHash) {
-    return c.json({ error: 'account has no password (anonymous user)' }, 400);
+    return c.json({ success: false, reason: 'NO_PASSWORD' }, 400);
   }
 
   const result = await verifyPassword(parsed.oldPassword, user.passwordHash);
   if (!result.valid) {
-    return c.json({ error: 'invalid old password' }, 401);
+    return c.json({ success: false, reason: 'INVALID_OLD_PASSWORD' }, 401);
   }
 
   const newHash = await hashPassword(parsed.newPassword);
@@ -815,7 +815,7 @@ authRoutes.post('/forgot-password', jsonBody(forgotPasswordSchema), async (c) =>
     log.error('failed to send reset email', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return c.json({ error: 'failed to send email, try again later' }, 500);
+    return c.json({ success: false, reason: 'EMAIL_SEND_FAILED' }, 500);
   }
 
   return c.json({ success: true }, 200);
@@ -849,7 +849,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
     .get();
 
   if (!token || token.verifyAttempts >= RESET_VERIFY_ATTEMPT_LIMIT) {
-    return c.json({ error: 'invalid or expired code' }, 400);
+    return c.json({ success: false, reason: 'INVALID_OR_EXPIRED_CODE' }, 400);
   }
 
   // Increment verify attempts before checking hash to prevent brute force
@@ -868,7 +868,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
 
   // Verify hash
   if (tokenHash !== (await getTokenHash(token.id, env))) {
-    return c.json({ error: 'invalid or expired code' }, 400);
+    return c.json({ success: false, reason: 'INVALID_OR_EXPIRED_CODE' }, 400);
   }
 
   // Mark token as used
@@ -917,7 +917,7 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
   const parsed = c.req.valid('json');
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
-    return c.json({ error: 'WeChat login not configured' }, 500);
+    return c.json({ success: false, reason: 'WECHAT_NOT_CONFIGURED' }, 500);
   }
 
   // Exchange code for openid via WeChatAuthProxy DO (locationHint: "apac")
@@ -930,12 +930,11 @@ authRoutes.post('/wechat', jsonBody(wechatCodeSchema), async (c) => {
     log.warn('wechat code2Session timeout', {
       error: err instanceof Error ? err.message : String(err),
     });
-    return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
+    return c.json({ success: false, reason: 'WECHAT_TIMEOUT' }, 504);
   }
 
   if (!wxData.openid) {
-    const errMsg = wxData.errmsg || 'code2Session failed';
-    return c.json({ error: errMsg, errcode: wxData.errcode }, 401);
+    return c.json({ success: false, reason: 'WECHAT_AUTH_FAILED', errcode: wxData.errcode }, 401);
   }
 
   const openid = wxData.openid;
@@ -1029,7 +1028,7 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
   const parsed = c.req.valid('json');
 
   if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
-    return c.json({ error: 'WeChat login not configured' }, 500);
+    return c.json({ success: false, reason: 'WECHAT_NOT_CONFIGURED' }, 500);
   }
 
   // Exchange code for openid via WeChatAuthProxy DO (locationHint: "apac")
@@ -1042,12 +1041,11 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
       userId,
       error: err instanceof Error ? err.message : String(err),
     });
-    return c.json({ error: 'WeChat API timeout', errcode: -2 }, 504);
+    return c.json({ success: false, reason: 'WECHAT_TIMEOUT' }, 504);
   }
 
   if (!wxData.openid) {
-    const errMsg = wxData.errmsg || 'code2Session failed';
-    return c.json({ error: errMsg, errcode: wxData.errcode }, 401);
+    return c.json({ success: false, reason: 'WECHAT_AUTH_FAILED', errcode: wxData.errcode }, 401);
   }
 
   const openid = wxData.openid;
@@ -1076,7 +1074,7 @@ authRoutes.post('/bind-wechat', requireAuth, jsonBody(wechatCodeSchema), async (
       // Temporary WeChat account (no email, no password) — safe to delete and rebind
       await db.delete(users).where(eq(users.id, wxUser.id));
     } else {
-      return c.json({ error: 'wechat_already_bound' }, 409);
+      return c.json({ success: false, reason: 'WECHAT_ALREADY_BOUND' }, 409);
     }
   }
 
@@ -1098,7 +1096,7 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
 
   const result = await rotateRefreshToken(parsed.refresh_token, env);
   if (!result) {
-    return c.json({ error: 'invalid_refresh_token' }, 401);
+    return c.json({ success: false, reason: 'INVALID_REFRESH_TOKEN' }, 401);
   }
 
   return c.json(

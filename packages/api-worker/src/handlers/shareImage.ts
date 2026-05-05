@@ -25,7 +25,7 @@ export const shareRoutes = new Hono<AppEnv>();
 // POST /share/image — 上传分享图片
 shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ error: 'storage not configured' }, 503);
+  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const { base64 } = c.req.valid('json');
 
@@ -38,7 +38,7 @@ shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async 
       bytes[i] = binaryStr.charCodeAt(i);
     }
   } catch {
-    return c.json({ error: 'invalid base64 data' }, 400);
+    return c.json({ success: false, reason: 'INVALID_DATA' }, 400);
   }
 
   // Upload to R2 with share/ prefix
@@ -58,11 +58,11 @@ shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async 
 // GET /share/:key+ — 从 R2 提供图片
 shareRoutes.get('/:key{.+}', async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ error: 'storage not configured' }, 503);
+  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const key = `share/${c.req.param('key')}`;
   const object = await env.AVATARS.get(key);
-  if (!object) return c.json({ error: 'not found' }, 404);
+  if (!object) return c.json({ success: false, reason: 'NOT_FOUND' }, 404);
 
   return new Response(object.body, {
     headers: {

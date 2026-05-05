@@ -314,9 +314,9 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
     const errMsg = err instanceof Error ? err.message : String(err);
     const isNeuronsExhausted = /exceeded|neurons|rate limit|too many/i.test(errMsg);
     if (isNeuronsExhausted) {
-      return c.json({ error: 'quota_exhausted' }, 429);
+      return c.json({ success: false, reason: 'QUOTA_EXHAUSTED' }, 429);
     }
     log.error('Workers AI unexpected error', { error: errMsg });
-    return c.json({ error: 'ai_unavailable' }, 503);
+    return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
   }
 });

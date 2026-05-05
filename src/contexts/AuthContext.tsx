@@ -14,8 +14,13 @@ import { createContext, use, useCallback, useEffect, useMemo, useState } from 'r
 
 import { useServices } from '@/contexts/ServiceContext';
 import type { AuthUser } from '@/services/types/IAuthService';
-import { isAbortError, isNetworkError } from '@/utils/errorUtils';
-import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
+import {
+  getUserFacingMessage,
+  isAbortError,
+  isExpectedError,
+  isNetworkError,
+} from '@/utils/errorUtils';
+import { authLog } from '@/utils/logger';
 
 export interface User {
   id: string;
@@ -125,11 +130,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authLog.info('No stored user');
       }
     } catch (e: unknown) {
-      const raw = e instanceof Error ? e.message : String(e);
-      const friendly = mapAuthError(raw);
-      authLog.error('auth error', { label: 'Failed to load user' }, raw, e);
-      if (!isExpectedAuthError(raw) && !isAbortError(e) && !isNetworkError(e))
-        Sentry.captureException(e);
+      const friendly = getUserFacingMessage(e);
+      authLog.error('auth error', { label: 'Failed to load user' }, e);
+      if (!isExpectedError(e) && !isAbortError(e) && !isNetworkError(e)) Sentry.captureException(e);
       setError(friendly);
     } finally {
       setLoading(false);

@@ -29,7 +29,7 @@ export const avatarRoutes = new Hono<AppEnv>();
 // POST /avatar/upload — R2 头像上传
 avatarRoutes.post('/upload', requireAuth, async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ error: 'avatar storage not configured' }, 503);
+  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const userId = c.var.userId;
 
@@ -38,7 +38,7 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   const rawFile = formData.get('file');
 
   if (!rawFile || typeof rawFile === 'string') {
-    return c.json({ error: 'file required' }, 400);
+    return c.json({ success: false, reason: 'FILE_REQUIRED' }, 400);
   }
 
   // Workers runtime: non-string FormData entries are File objects
@@ -47,12 +47,12 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   // Validate file type — whitelist safe raster formats; reject SVG (XSS risk)
   const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return c.json({ error: 'invalid file type, only JPEG/PNG/WebP allowed' }, 400);
+    return c.json({ success: false, reason: 'INVALID_FILE_TYPE' }, 400);
   }
 
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
-    return c.json({ error: 'file too large (max 5MB)' }, 400);
+    return c.json({ success: false, reason: 'FILE_TOO_LARGE' }, 400);
   }
 
   // List and delete old avatars for this user
@@ -96,7 +96,7 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
 // GET /avatar/:userId/:filename — 从 R2 提供头像文件
 avatarRoutes.get('/:userId/:filename', async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ error: 'avatar storage not configured' }, 503);
+  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const key = `${c.req.param('userId')}/${c.req.param('filename')}`;
   const object = await env.AVATARS.get(key);

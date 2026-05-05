@@ -240,13 +240,13 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
     cfFetchLog.warn('HTTP error', {
       status: res.status,
       path,
-      error: errBody.error,
       reason: errBody.reason,
     });
-    throw Object.assign(
-      new Error((errBody.error as string) ?? (errBody.reason as string) ?? `HTTP ${res.status}`),
-      { status: res.status, reason: errBody.reason ?? 'SERVER_ERROR', body: errBody },
-    );
+    throw Object.assign(new Error((errBody.reason as string) ?? `HTTP ${res.status}`), {
+      status: res.status,
+      reason: (errBody.reason as string) ?? 'SERVER_ERROR',
+      body: errBody,
+    });
   }
 
   return data;

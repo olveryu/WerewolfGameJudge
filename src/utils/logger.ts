@@ -17,8 +17,6 @@
 import * as Sentry from '@sentry/react-native';
 import { consoleTransport, logger } from 'react-native-logs';
 
-import { NETWORK_ERROR } from '@/config/errorMessages';
-
 import { mobileDebugTransport } from './mobileDebug';
 
 /**
@@ -117,76 +115,3 @@ export const cfFetchLog = log.extend('cfFetch');
 export const statsLog = log.extend('Stats');
 export const shareLog = log.extend('Share');
 export const gachaLog = log.extend('Gacha');
-
-/**
- * Map auth error messages to user-friendly Chinese messages.
- *
- * 纯字符串映射，不包含副作用，不依赖外部状态。
- */
-export function mapAuthError(message: string): string {
-  const lower = message.toLowerCase();
-
-  if (lower.includes('invalid login credentials')) return '邮箱或密码错误';
-  if (lower.includes('user already registered')) return '该邮箱已注册';
-  if (lower.includes('email not confirmed')) return '邮箱未验证，请查收验证邮件';
-  if (lower.includes('password should be at least')) return '密码至少需要6个字符';
-  if (lower.includes('unable to validate email address')) return '邮箱格式无效';
-  if (lower.includes('invalid email')) return '邮箱格式无效';
-  if (lower.includes('anonymous sign-ins are disabled')) return '匿名登录已禁用';
-  if (lower.includes('signups not allowed')) return '注册功能已关闭';
-  if (lower.includes('email rate limit exceeded')) return '操作过于频繁，请稍后重试';
-  if (lower.includes('only request this once every')) return '请求过于频繁，请稍等后重试';
-  if (lower.includes('too many reset requests')) return '重置请求过于频繁，请稍后重试';
-  if (lower.includes('too many login attempts')) return '登录尝试过于频繁，请稍后重试';
-  if (lower.includes('email already registered')) return '该邮箱已注册';
-  if (lower.includes('email and password required')) return '请输入邮箱和密码';
-  if (lower.includes('email required')) return '请输入邮箱';
-  if (lower.includes('invalid credentials')) return '邮箱或密码错误';
-  if (lower.includes('invalid old password')) return '原密码错误';
-  if (lower.includes('invalid or expired code')) return '验证码无效或已过期';
-  if (lower.includes('failed to send email')) return '邮件发送失败，请稍后重试';
-  if (lower.includes('account has no password')) return '该账户未设置密码';
-  if (lower.includes('account merge failed')) return '账号合并失败，请稍后重试';
-  if (lower.includes('oldpassword and newpassword required')) return '请输入原密码和新密码';
-  if (lower.includes('email, code and newpassword required')) return '请填写完整信息';
-  if (lower.includes('network') || lower.includes('fetch')) return NETWORK_ERROR;
-
-  // 其他未匹配的英文错误信息，返回通用中文提示，避免用户看到原始英文
-  if (/[a-z]/i.test(message) && !/[一-鿿]/.test(message)) {
-    return '操作失败，请稍后重试';
-  }
-
-  return message;
-}
-
-/**
- * Check if an auth error is expected (user input / rate-limit) and should NOT be reported to Sentry.
- *
- * 用户输入错误（密码太短、邮箱格式、凭证错误等）和速率限制是可预期的，
- * 只需 `log.warn()` + UI 反馈，禁止上报 Sentry。
- */
-export function isExpectedAuthError(message: string): boolean {
-  const lower = message.toLowerCase();
-  return (
-    lower.includes('invalid login credentials') ||
-    lower.includes('user already registered') ||
-    lower.includes('email not confirmed') ||
-    lower.includes('password should be at least') ||
-    lower.includes('unable to validate email address') ||
-    lower.includes('email rate limit exceeded') ||
-    lower.includes('only request this once every') ||
-    lower.includes('signups not allowed') ||
-    lower.includes('too many reset requests') ||
-    lower.includes('too many login attempts') ||
-    lower.includes('email already registered') ||
-    lower.includes('email and password required') ||
-    lower.includes('email required') ||
-    lower.includes('invalid credentials') ||
-    lower.includes('invalid old password') ||
-    lower.includes('invalid or expired code') ||
-    lower.includes('account has no password') ||
-    lower.includes('oldpassword and newpassword required') ||
-    lower.includes('email, code and newpassword required') ||
-    lower.includes('invalid email')
-  );
-}

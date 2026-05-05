@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/react-native';
 import { MutationCache, QueryClient } from '@tanstack/react-query';
 
-import { isAbortError, isNetworkError } from '@/utils/errorUtils';
-import { isExpectedAuthError } from '@/utils/logger';
+import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,14 +17,8 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onError: (error, _variables, _onMutateResult, mutation) => {
       // 全局 mutation 错误日志（不含 UI 反馈，UI 在各 mutation 的 onError 里）
-      // 跳过可预期错误：网络错误（已重试过）、用户取消、auth 错误（401/403）
-      const message = error instanceof Error ? error.message : String(error);
-      if (isNetworkError(error) || isAbortError(error) || isExpectedAuthError(message)) {
-        return;
-      }
-      // 400 VALIDATION_ERROR = user-input error (Zod schema rejection) — skip Sentry
-      const reason = 'reason' in error ? (error as { reason: unknown }).reason : undefined;
-      if (reason === 'VALIDATION_ERROR') {
+      // 跳过可预期错误：网络错误（已重试过）、用户取消、auth/validation 错误
+      if (isNetworkError(error) || isAbortError(error) || isExpectedError(error)) {
         return;
       }
       Sentry.captureException(error, {

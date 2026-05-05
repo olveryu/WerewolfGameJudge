@@ -120,7 +120,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 ### 错误处理
 
 - 关键 catch 三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文提示)`。
-- 可预期错误（`401`/`403`/`429`、用户取消）只 `log.warn()` + UI 反馈，禁止报 Sentry。auth 错误用 `mapAuthError()` / `isExpectedAuthError()`。
+- 可预期错误（`401`/`403`/`429`、用户取消）只 `log.warn()` + UI 反馈，禁止报 Sentry。auth 错误用 `getUserFacingMessage()` / `isExpectedError()`（来自 `@/utils/errorUtils`）。
 - 面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），fallback `'请稍后重试'`。
 - Fail fast：纯函数/handler 严格校验，禁止防御性兜底。修正在调用方。
 

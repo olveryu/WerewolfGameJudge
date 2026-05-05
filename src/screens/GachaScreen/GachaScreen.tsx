@@ -35,6 +35,7 @@ import { queryClient } from '@/lib/queryClient';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { gachaLog } from '@/utils/logger';
 
 import type { RootStackParamList } from '../../navigation/types';
@@ -132,15 +133,18 @@ export function GachaScreen({ navigation }: Props) {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
             // 业务拒绝（券不足、已收集完）仅 warn；非预期错误报 Sentry
+            const reason = 'reason' in error ? (error as { reason: string }).reason : '';
             const isExpected =
-              error.message.includes('抽奖券不足') || error.message.includes('已收集全部物品');
+              reason === 'INSUFFICIENT_DRAWS' ||
+              reason === 'NO_STATS' ||
+              reason === 'ALREADY_OWNED';
             if (isExpected) {
-              gachaLog.warn('Draw rejected', { drawType, count, message: error.message });
+              gachaLog.warn('Draw rejected', { drawType, count, reason });
             } else {
               gachaLog.error('Draw failed', { drawType, count, error });
               Sentry.captureException(error);
             }
-            toast.error(error.message || '抽奖失败，请稍后重试');
+            toast.error(getUserFacingMessage(error, '抽奖失败，请稍后重试'));
           },
         },
       );

@@ -128,7 +128,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 
     if (!stats) {
       log.warn('no stats row', { userId });
-      return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
+      return c.json({ success: false, reason: 'NO_STATS' }, 400);
     }
 
     // 2. Check sufficient tickets
@@ -140,7 +140,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
         available: availableTickets,
         requested: count,
       });
-      return c.json({ error: 'insufficient_draws', message: '抽奖券不足' }, 400);
+      return c.json({ success: false, reason: 'INSUFFICIENT_DRAWS' }, 400);
     }
 
     // 3. Parse existing unlocked items
@@ -267,7 +267,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 
   // All retries exhausted — concurrent conflict persisted
   log.error('OCC retries exhausted', { userId, drawType, count });
-  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
+  return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });
 
 /** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 */
@@ -340,7 +340,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
     return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
   }
 
-  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
+  return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });
 
 /** POST /api/gacha/exchange — 碎片兑换指定物品 */
@@ -354,7 +354,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
   const rewardItem = REWARD_POOL_BY_ID.get(rewardId);
   if (!rewardItem) {
     log.warn('invalid reward id', { userId, rewardId });
-    return c.json({ error: 'invalid_item', message: '物品不存在' }, 400);
+    return c.json({ success: false, reason: 'INVALID_ITEM' }, 400);
   }
 
   const cost = SHARD_COSTS[rewardItem.rarity];
@@ -373,20 +373,20 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
 
     if (!stats) {
       log.warn('no stats row', { userId });
-      return c.json({ error: 'no_stats', message: '请先完成一局游戏' }, 400);
+      return c.json({ success: false, reason: 'NO_STATS' }, 400);
     }
 
     // 3. Check sufficient shards
     if (stats.shards < cost) {
       log.warn('insufficient shards', { userId, shards: stats.shards, cost });
-      return c.json({ error: 'insufficient_shards', message: '碎片不足' }, 400);
+      return c.json({ success: false, reason: 'INSUFFICIENT_SHARDS' }, 400);
     }
 
     // 4. Check not already owned
     const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
     if (unlockedIds.includes(rewardId)) {
       log.warn('already owned', { userId, rewardId });
-      return c.json({ error: 'already_owned', message: '已拥有该物品' }, 400);
+      return c.json({ success: false, reason: 'ALREADY_OWNED' }, 400);
     }
 
     // 5. OCC write: deduct shards, add to unlocked, bump version
@@ -418,5 +418,5 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
   }
 
   log.error('OCC retries exhausted', { userId, rewardId });
-  return c.json({ error: 'conflict', message: '请求冲突，请重试' }, 409);
+  return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });

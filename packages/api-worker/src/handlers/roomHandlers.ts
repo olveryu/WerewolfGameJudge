@@ -42,7 +42,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes('UNIQUE') || message.includes('constraint')) {
-      return c.json({ error: 'room_code_conflict' }, 409);
+      return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
     }
     log.error('create DB insert failed', { roomCode: parsed.roomCode, userId, error: message });
     throw err;
@@ -121,7 +121,7 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
     .returning({ id: rooms.id });
 
   if (result.length === 0) {
-    return c.json({ error: 'room not found or not authorized' }, 403);
+    return c.json({ success: false, reason: 'ROOM_NOT_FOUND' }, 403);
   }
 
   // Clean up DO storage (non-critical path, failure does not block)

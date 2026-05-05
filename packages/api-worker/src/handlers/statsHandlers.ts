@@ -50,7 +50,7 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
       .get(),
   ]);
 
-  if (!userRow) return c.json({ error: 'user not found' }, 404);
+  if (!userRow) return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
 
   const unlockedItems: string[] = statsRow?.unlockedItems
     ? (JSON.parse(statsRow.unlockedItems) as string[])
@@ -99,7 +99,7 @@ statsRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
 statsRoutes.get('/user/stats', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const payload = c.var.jwtPayload;
-  if (payload.anon) return c.json({ error: 'anonymous users not supported' }, 403);
+  if (payload.anon) return c.json({ success: false, reason: 'ANONYMOUS_NOT_SUPPORTED' }, 403);
 
   const userId = c.var.userId;
 

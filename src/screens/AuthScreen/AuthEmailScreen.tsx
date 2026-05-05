@@ -21,7 +21,8 @@ import { storage } from '@/lib/storage';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { authLog, isExpectedAuthError, mapAuthError } from '@/utils/logger';
+import { getUserFacingMessage, isExpectedError } from '@/utils/errorUtils';
+import { authLog } from '@/utils/logger';
 
 import { createAuthScreenStyles } from './AuthScreen.styles';
 
@@ -93,12 +94,11 @@ export const AuthEmailScreen: React.FC = () => {
         storage.remove(LAST_ROOM_CODE_KEY);
         await refreshUser();
       } catch (e: unknown) {
-        const raw = e instanceof Error ? e.message : String(e);
-        const message = mapAuthError(raw);
-        if (isExpectedAuthError(raw)) {
-          authLog.warn('Sign-out before switch expected error', { message: raw }, e);
+        const message = getUserFacingMessage(e);
+        if (isExpectedError(e)) {
+          authLog.warn('Sign-out before switch expected error', { error: e }, e);
         } else {
-          authLog.error('Sign-out before switch failed', { message: raw }, e);
+          authLog.error('Sign-out before switch failed', { error: e }, e);
           Sentry.captureException(e);
         }
         showErrorAlert('切换失败', message);

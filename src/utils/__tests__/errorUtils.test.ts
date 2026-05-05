@@ -1,8 +1,8 @@
 /**
- * errorUtils Unit Tests — translateReasonCode + getUserFacingMessage
+ * errorUtils Unit Tests — translateReasonCode + getUserFacingMessage + isExpectedError
  */
 
-import { getUserFacingMessage, translateReasonCode } from '../errorUtils';
+import { getUserFacingMessage, isExpectedError, translateReasonCode } from '../errorUtils';
 
 describe('translateReasonCode', () => {
   it('translates known reason codes to Chinese', () => {
@@ -75,5 +75,53 @@ describe('getUserFacingMessage', () => {
 
   it('ignores unknown reason codes in structured errors', () => {
     expect(getUserFacingMessage({ reason: 'some_unknown_code' })).toBe('操作失败，请稍后重试');
+  });
+
+  it('detects network errors from native fetch failures', () => {
+    expect(getUserFacingMessage(new TypeError('Failed to fetch'))).toBe(
+      '网络异常，请检查网络后重试',
+    );
+    expect(getUserFacingMessage(new TypeError('Network request failed'))).toBe(
+      '网络异常，请检查网络后重试',
+    );
+    expect(getUserFacingMessage(new TypeError('Load failed'))).toBe('网络异常，请检查网络后重试');
+  });
+});
+
+describe('isExpectedError', () => {
+  it('returns true for expected auth reason codes (string)', () => {
+    expect(isExpectedError('INVALID_CREDENTIALS')).toBe(true);
+    expect(isExpectedError('EMAIL_ALREADY_REGISTERED')).toBe(true);
+    expect(isExpectedError('TOO_MANY_ATTEMPTS')).toBe(true);
+    expect(isExpectedError('INVALID_OLD_PASSWORD')).toBe(true);
+    expect(isExpectedError('INVALID_OR_EXPIRED_CODE')).toBe(true);
+    expect(isExpectedError('NO_PASSWORD')).toBe(true);
+    expect(isExpectedError('WECHAT_ALREADY_BOUND')).toBe(true);
+    expect(isExpectedError('WECHAT_AUTH_FAILED')).toBe(true);
+    expect(isExpectedError('ITEM_NOT_UNLOCKED')).toBe(true);
+    expect(isExpectedError('VALIDATION_ERROR')).toBe(true);
+  });
+
+  it('returns true for Error objects with expected reason code as message', () => {
+    expect(isExpectedError(new Error('INVALID_CREDENTIALS'))).toBe(true);
+    expect(isExpectedError(new Error('TOO_MANY_ATTEMPTS'))).toBe(true);
+  });
+
+  it('returns true for Error objects with .reason property', () => {
+    const err = Object.assign(new Error('Something'), { reason: 'VALIDATION_ERROR' });
+    expect(isExpectedError(err)).toBe(true);
+  });
+
+  it('returns true for structured error objects with reason', () => {
+    expect(isExpectedError({ reason: 'INSUFFICIENT_DRAWS' })).toBe(true);
+    expect(isExpectedError({ reason: 'ALREADY_OWNED' })).toBe(true);
+  });
+
+  it('returns false for unexpected errors', () => {
+    expect(isExpectedError('network error')).toBe(false);
+    expect(isExpectedError('Something unexpected happened')).toBe(false);
+    expect(isExpectedError('INTERNAL_ERROR')).toBe(false);
+    expect(isExpectedError('SERVER_ERROR')).toBe(false);
+    expect(isExpectedError(new Error('INTERNAL_ERROR'))).toBe(false);
   });
 });
