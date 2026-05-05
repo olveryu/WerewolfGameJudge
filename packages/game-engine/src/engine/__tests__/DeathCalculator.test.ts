@@ -1030,4 +1030,64 @@ describe('calculateDeathsDetailed', () => {
     const detailed = calculateDeathsDetailed(actions, roleSeatMap);
     expect(deaths).toEqual(detailed.deaths);
   });
+
+  it('cross-link propagation: couple death triggers bonded death via re-scan', () => {
+    // Seat 3 in couple with seat 5, seat 5 in bonded with seat 8.
+    // Wolf kills seat 3 → couple link kills seat 5 → bonded link kills seat 8.
+    const actions: NightActions = { wolfKill: 3 };
+    const roleSeatMap: RoleSeatMap = {
+      ...NO_ROLES,
+      coupleLinkSeats: [3, 5],
+      bondedLinkSeats: [5, 8],
+    };
+
+    const result = calculateDeathsDetailed(actions, roleSeatMap);
+    expect(result.deaths).toEqual([3, 5, 8]);
+    expect(result.deathReasons).toEqual({
+      3: 'wolfKill',
+      5: 'coupleLink',
+      8: 'bondedLink',
+    });
+  });
+
+  it('cross-link propagation: bonded death triggers couple death via re-scan', () => {
+    // Seat 3 in bonded with seat 5, seat 5 in couple with seat 8.
+    // Wolf kills seat 3 → bonded link kills seat 5 → couple link kills seat 8.
+    const actions: NightActions = { wolfKill: 3 };
+    const roleSeatMap: RoleSeatMap = {
+      ...NO_ROLES,
+      bondedLinkSeats: [3, 5],
+      coupleLinkSeats: [5, 8],
+    };
+
+    const result = calculateDeathsDetailed(actions, roleSeatMap);
+    expect(result.deaths).toEqual([3, 5, 8]);
+    expect(result.deathReasons).toEqual({
+      3: 'wolfKill',
+      5: 'bondedLink',
+      8: 'coupleLink',
+    });
+  });
+
+  it('cross-link propagation: wolfQueen death triggers couple triggers bonded', () => {
+    // WolfQueen at seat 2 charmed seat 4, seat 4 in couple with seat 6,
+    // seat 6 in bonded with seat 9. Wolf kills seat 2 (queen) → charm kills 4
+    // → couple kills 6 → bonded kills 9.
+    const actions: NightActions = { wolfKill: 2, wolfQueenCharm: 4 };
+    const roleSeatMap: RoleSeatMap = {
+      ...NO_ROLES,
+      wolfQueenLinkSeat: 2,
+      coupleLinkSeats: [4, 6],
+      bondedLinkSeats: [6, 9],
+    };
+
+    const result = calculateDeathsDetailed(actions, roleSeatMap);
+    expect(result.deaths).toEqual([2, 4, 6, 9]);
+    expect(result.deathReasons).toEqual({
+      2: 'wolfKill',
+      4: 'wolfQueenLink',
+      6: 'coupleLink',
+      9: 'bondedLink',
+    });
+  });
 });

@@ -212,14 +212,16 @@ export function calculateDeathsDetailed(
   // 2. Process poison death (witch or poisoner, with immunity and nightmare block)
   processPoisonDeath(actions, roleSeatMap, deaths, reasons);
 
-  // 3. Process wolf queen link death
-  processWolfQueenLink(actions, roleSeatMap, deaths, reasons);
-
-  // 3.5. Process bonded link death (shadow ↔ avenger)
-  processBondedLink(roleSeatMap, deaths, reasons);
-
-  // 3.6. Process couple link death (cupid lovers 殉情)
-  processCoupleLink(roleSeatMap, deaths, reasons);
+  // 3. Process linked deaths (wolf queen, bonded, couple).
+  // Fixed-point loop: re-scan until no new deaths are produced,
+  // ensuring cross-link-type propagation (e.g. couple→bonded).
+  let prevSize: number;
+  do {
+    prevSize = deaths.size;
+    processWolfQueenLink(actions, roleSeatMap, deaths, reasons);
+    processBondedLink(roleSeatMap, deaths, reasons);
+    processCoupleLink(roleSeatMap, deaths, reasons);
+  } while (deaths.size > prevSize);
 
   // 4. Process dreamcatcher effect (protection + link death)
   processDreamcatcherEffect(actions, roleSeatMap, deaths, reasons);
