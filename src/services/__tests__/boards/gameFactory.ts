@@ -374,10 +374,10 @@ export function createGame(
       }
 
       case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED': {
-        const result = handleSetWolfRobotHunterStatusViewed(context, {
-          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: msg.seat,
-        });
+        const result = handleSetWolfRobotHunterStatusViewed(
+          { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: msg.seat },
+          context,
+        );
         return executeHandler(result);
       }
 

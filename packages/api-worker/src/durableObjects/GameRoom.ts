@@ -477,10 +477,10 @@ export class GameRoom extends DurableObject<Env> {
     return this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleSetWolfRobotHunterStatusViewed(ctx, {
-          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: seatNum,
-        });
+        return handleSetWolfRobotHunterStatusViewed(
+          { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: seatNum },
+          ctx,
+        );
       },
       { enabled: true },
     );

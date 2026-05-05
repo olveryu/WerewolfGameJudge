@@ -166,10 +166,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         mySeat: 0,
       };
 
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
+      const result = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 },
+        context,
+      );
 
       const err = expectError(result);
       expect(err.reason).toBe('no_state');
@@ -185,10 +185,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         mySeat: 0,
       };
 
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
+      const result = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 },
+        context,
+      );
 
       const err = expectError(result);
       expect(err.reason).toBe('invalid_step');
@@ -208,10 +208,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         mySeat: 0,
       };
 
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
+      const result = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 },
+        context,
+      );
 
       const err = expectError(result);
       expect(err.reason).toBe('not_learned_hunter');
@@ -225,10 +225,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         mySeat: 1,
       };
 
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 1, // hunter seat, not wolfRobot
-      });
+      const result = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 1 },
+        context,
+      );
 
       const err = expectError(result);
       expect(err.reason).toBe('invalid_seat');
@@ -244,10 +244,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
         mySeat: 0,
       };
 
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0, // wolfRobot seat
-      });
+      const result = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 },
+        context,
+      );
 
       const success = expectSuccess(result);
       expect(success.actions).toHaveLength(1);
@@ -276,10 +276,10 @@ describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
       expect(err.reason).toBe('wolfrobot_hunter_status_not_viewed');
 
       // Step 2: Call handler to set viewed
-      const handlerResult = handleSetWolfRobotHunterStatusViewed(ctx1, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
+      const handlerResult = handleSetWolfRobotHunterStatusViewed(
+        { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: 0 },
+        ctx1,
+      );
       expectSuccess(handlerResult);
 
       // Step 3: Simulate reducer applying the action
