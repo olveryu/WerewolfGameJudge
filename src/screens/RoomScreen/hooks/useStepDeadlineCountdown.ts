@@ -88,6 +88,7 @@ export function useStepDeadlineCountdown({
           tryProgression();
         } else {
           clearInterval(interval);
+          return;
         }
       }
       setCountdownTick((t) => t + 1);

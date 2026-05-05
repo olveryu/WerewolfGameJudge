@@ -220,12 +220,7 @@ function handleWolfTeamTurn(
  */
 export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
   const wolfVotes: Map<number, number> = (() => {
-    const raw =
-      gameState.currentNightResults?.wolfVotesBySeat ??
-      // legacy fallback
-      ((gameState as unknown as Record<string, unknown>).wolfVotes as
-        | Map<number, number>
-        | undefined);
+    const raw = gameState.currentNightResults?.wolfVotesBySeat;
     if (!raw) return new Map<number, number>();
     if (raw instanceof Map) return raw;
     const map = new Map<number, number>();
