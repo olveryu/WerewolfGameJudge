@@ -59,18 +59,23 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
 
   const buttonLabel = gcSchema!.ui!.confirmButtonText!;
 
-  const doAck = (): void => {
-    groupConfirmAckMutation.mutate(undefined, {
-      onSuccess: (result) => {
-        if (!result.success) {
-          roomScreenLog.warn('groupConfirmAck failed, re-showing dialog for retry', {
-            reason: result.reason,
-          });
-          actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
-        }
-      },
+  const doAck = (): Promise<void> =>
+    new Promise<void>((resolve, reject) => {
+      groupConfirmAckMutation.mutate(undefined, {
+        onSuccess: (result) => {
+          if (!result.success) {
+            roomScreenLog.warn('groupConfirmAck failed, re-showing dialog for retry', {
+              reason: result.reason,
+            });
+            // Reject so AlertModal stays open for retry
+            reject(new Error(result.reason ?? 'groupConfirmAck failed'));
+          } else {
+            resolve();
+          }
+        },
+        onError: (error) => reject(error),
+      });
     });
-  };
 
   actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
 };

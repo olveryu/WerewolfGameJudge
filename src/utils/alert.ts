@@ -11,7 +11,7 @@ import type { AlertInputConfig } from '@/components/AlertModal';
 
 export interface AlertButton {
   text: string;
-  onPress?: (inputValue?: string) => void;
+  onPress?: (inputValue?: string) => void | Promise<void>;
   style?: 'default' | 'cancel' | 'destructive';
   loading?: boolean;
   disabled?: boolean;
@@ -23,7 +23,7 @@ export const DISMISS_BUTTON: AlertButton = { text: '知道了', style: 'default'
 /** "取消" cancel button */
 export const CANCEL_BUTTON: AlertButton = { text: '取消', style: 'cancel' } as const;
 /** Create a "确定" confirm button with the given onPress handler */
-export const confirmButton = (onPress: () => void): AlertButton => ({
+export const confirmButton = (onPress: () => void | Promise<void>): AlertButton => ({
   text: '确定',
   onPress,
 });
@@ -87,7 +87,7 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
     // For web without custom modal, use prompt for multiple buttons
     if (alertButtons.length <= 1) {
       window.alert(message ? `${title}\n\n${message}` : title);
-      alertButtons[0]?.onPress?.();
+      void alertButtons[0]?.onPress?.();
     } else if (alertButtons.length === 2) {
       const confirmed = window.confirm(
         message
@@ -95,9 +95,9 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
           : `${title}\n\n点击"确定"选择: ${alertButtons[1]!.text}\n点击"取消"选择: ${alertButtons[0]!.text}`,
       );
       if (confirmed) {
-        alertButtons[1]?.onPress?.();
+        void alertButtons[1]?.onPress?.();
       } else {
-        alertButtons[0]?.onPress?.();
+        void alertButtons[0]?.onPress?.();
       }
     } else {
       const optionsText = alertButtons.map((b, i) => `${i + 1}. ${b.text}`).join('\n');
@@ -110,7 +110,7 @@ export const showAlert = (title: string, message?: string, buttons?: AlertButton
       if (result !== null) {
         const index = parseInt(result, 10) - 1;
         if (index >= 0 && index < alertButtons.length) {
-          alertButtons[index]?.onPress?.();
+          void alertButtons[index]?.onPress?.();
         }
       }
     }

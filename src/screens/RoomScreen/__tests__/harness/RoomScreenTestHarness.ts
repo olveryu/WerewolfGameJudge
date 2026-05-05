@@ -81,7 +81,7 @@ export interface DialogEvent {
    * Use harness.pressButton() to invoke; do NOT call directly.
    * @internal
    */
-  _callbacks: Map<string, (() => void) | undefined>;
+  _callbacks: Map<string, AlertButton['onPress']>;
 }
 
 // =============================================================================
@@ -471,7 +471,7 @@ export class RoomScreenTestHarness {
       );
     }
     // callback may be undefined (button exists but no onPress) — that's valid, just a no-op
-    callback?.();
+    void callback?.();
   }
 
   /**
@@ -492,7 +492,7 @@ export class RoomScreenTestHarness {
     const buttonTexts = btnArray.map((b) => b.text || '');
 
     // Build per-event callback map
-    const callbacks = new Map<string, (() => void) | undefined>();
+    const callbacks = new Map<string, AlertButton['onPress']>();
     for (const btn of btnArray) {
       if (btn.text) {
         callbacks.set(btn.text, btn.onPress);

@@ -430,15 +430,21 @@ export function useInteractionDispatcher({
           const player = gameState?.players.get(kickSeat);
           const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
           roomScreenLog.debug('dispatchInteraction KICK_CONFIRM', { seat: kickSeat });
-          showDestructiveAlert('移出座位', `确定要将 ${playerName} 移出座位吗？`, '移出', () => {
-            void kickPlayer(kickSeat).catch((err) => {
-              handleError(err, {
-                label: 'kickPlayer',
-                logger: roomScreenLog,
-                alertTitle: '移出失败',
+          showDestructiveAlert(
+            '移出座位',
+            `确定要将 ${playerName} 移出座位吗？`,
+            '移出',
+            async () => {
+              await kickPlayer(kickSeat).catch((err) => {
+                handleError(err, {
+                  label: 'kickPlayer',
+                  logger: roomScreenLog,
+                  alertTitle: '移出失败',
+                });
+                throw err;
               });
-            });
-          });
+            },
+          );
           return;
         }
 

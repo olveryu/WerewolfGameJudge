@@ -118,9 +118,7 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
     );
     return;
   }
-  actionDialogs.showRoleActionPrompt(
-    dialogTitle,
-    statusMessage,
-    () => void proceedWithAction(effectiveSeat, { confirmed: true }),
-  );
+  actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
+    await proceedWithAction(effectiveSeat, { confirmed: true });
+  });
 };

@@ -61,19 +61,23 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
     const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
     const revealTitle = `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`;
 
-    const attemptAck = (): void => {
-      revealAckMutation.mutate(undefined, {
-        onSuccess: (result) => {
-          if (!mountedRef.current) return;
-          if (!result.success) {
-            roomScreenLog.warn('revealAck failed, re-showing dialog for retry', {
-              reason: result.reason,
-            });
-            actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
-          }
-        },
+    const attemptAck = (): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        revealAckMutation.mutate(undefined, {
+          onSuccess: (result) => {
+            if (!mountedRef.current) return;
+            if (!result.success) {
+              roomScreenLog.warn('revealAck failed, re-showing dialog for retry', {
+                reason: result.reason,
+              });
+              reject(new Error(result.reason ?? 'revealAck failed'));
+            } else {
+              resolve();
+            }
+          },
+          onError: (error) => reject(error),
+        });
       });
-    };
 
     actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
   });

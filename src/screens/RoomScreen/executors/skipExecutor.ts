@@ -19,7 +19,9 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
     actionDialogs.showConfirmDialog(
       '跳过本次行动？',
       intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
-      () => void proceedWithAction(null, { confirmed: false }),
+      async () => {
+        await proceedWithAction(null, { confirmed: false });
+      },
     );
     return;
   }
@@ -42,9 +44,7 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
     throw new Error(`[FAIL-FAST] Missing confirmText for skip action: ${intent.stepKey}`);
   }
 
-  actionDialogs.showConfirmDialog(
-    '跳过本次行动？',
-    skipConfirmText,
-    () => void proceedWithAction(skipSeat, skipExtra),
-  );
+  actionDialogs.showConfirmDialog('跳过本次行动？', skipConfirmText, async () => {
+    await proceedWithAction(skipSeat, skipExtra);
+  });
 };

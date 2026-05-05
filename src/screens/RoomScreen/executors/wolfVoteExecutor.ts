@@ -43,8 +43,8 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
   actionDialogs.showWolfVoteDialog(
     `${formatSeat(seat)}狼人`,
     intent.targetSeat,
-    () => {
-      void proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
+    async () => {
+      await proceedWithAction(intent.targetSeat === -1 ? null : intent.targetSeat);
     },
     (() => {
       // Only override for immune targets — normal text comes from schema templates.

@@ -45,10 +45,8 @@ export const multiSelectConfirmExecutor: IntentExecutor = async (intent, ctx) =>
   const confirmCopy = currentSchema!.ui!.confirmText!;
   const targetLabels = targets.map((s) => formatSeat(s)).join('、');
 
-  actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, () => {
-    void (async () => {
-      const accepted = await proceedWithAction(null, { targets });
-      if (accepted) setMultiSelectedSeats([]);
-    })();
+  actionDialogs.showConfirmDialog(confirmCopy, `已选择: ${targetLabels}`, async () => {
+    const accepted = await proceedWithAction(null, { targets });
+    if (accepted) setMultiSelectedSeats([]);
   });
 };

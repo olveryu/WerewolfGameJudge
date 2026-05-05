@@ -39,13 +39,13 @@ export interface UseRoomActionDialogsResult {
   showMagicianFirstAlert: (seat: number, schema: ActionSchema) => void;
 
   /** Reveal dialog (seer/psychic) */
-  showRevealDialog: (title: string, message: string, onConfirm: () => void) => void;
+  showRevealDialog: (title: string, message: string, onConfirm: () => void | Promise<void>) => void;
 
   /** Generic confirm dialog */
   showConfirmDialog: (
     title: string,
     message: string,
-    onConfirm: () => void,
+    onConfirm: () => void | Promise<void>,
     onCancel?: () => void,
   ) => void;
 
@@ -53,7 +53,7 @@ export interface UseRoomActionDialogsResult {
   showWolfVoteDialog: (
     wolfName: string,
     targetSeat: number, // -1 = empty knife
-    onConfirm: () => void,
+    onConfirm: () => void | Promise<void>,
     messageOverride: string | undefined,
     schema: ActionSchema,
   ) => void;
@@ -65,14 +65,14 @@ export interface UseRoomActionDialogsResult {
   showWitchInfoPrompt: (
     ctx: WitchContext,
     currentSchema: ActionSchema,
-    onDismiss: () => void,
+    onDismiss: () => void | Promise<void>,
   ) => void;
 
   /** Generic role action prompt (e.g., "请预言家行动") */
   showRoleActionPrompt: (
     roleName: string,
     actionMessage: string,
-    onDismiss: () => void,
+    onDismiss: () => void | Promise<void>,
     buttonLabel?: string,
   ) => void;
 }
@@ -100,16 +100,24 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // Reveal dialog (seer/psychic)
   // ─────────────────────────────────────────────────────────────────────────
 
-  const showRevealDialog = useCallback((title: string, message: string, onConfirm: () => void) => {
-    showDismissAlert(title, message, onConfirm);
-  }, []);
+  const showRevealDialog = useCallback(
+    (title: string, message: string, onConfirm: () => void | Promise<void>) => {
+      showDismissAlert(title, message, onConfirm);
+    },
+    [],
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Generic confirm dialog
   // ─────────────────────────────────────────────────────────────────────────
 
   const showConfirmDialog = useCallback(
-    (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+    (
+      title: string,
+      message: string,
+      onConfirm: () => void | Promise<void>,
+      onCancel?: () => void,
+    ) => {
       showConfirmAlert(title, message, onConfirm, onCancel ? { onCancel } : undefined);
     },
     [],
@@ -123,7 +131,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
     (
       wolfName: string,
       targetSeat: number,
-      onConfirm: () => void,
+      onConfirm: () => void | Promise<void>,
       messageOverride: string | undefined,
       schema: ActionSchema,
     ) => {
@@ -149,7 +157,7 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showWitchInfoPrompt = useCallback(
-    (ctx: WitchContext, currentSchema: ActionSchema, onDismiss: () => void) => {
+    (ctx: WitchContext, currentSchema: ActionSchema, onDismiss: () => void | Promise<void>) => {
       // Schema-driven: all text comes from schema steps.
       const saveStep =
         currentSchema.kind === 'compound'
@@ -187,7 +195,12 @@ export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
 
   const showRoleActionPrompt = useCallback(
-    (title: string, actionMessage: string, onDismiss: () => void, buttonLabel?: string) => {
+    (
+      title: string,
+      actionMessage: string,
+      onDismiss: () => void | Promise<void>,
+      buttonLabel?: string,
+    ) => {
       showAlert(title, actionMessage, [
         { text: buttonLabel ?? '知道了', style: 'default', onPress: onDismiss },
       ]);

@@ -47,15 +47,19 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
       );
       return;
     }
-    hunterStatusAckMutation.mutate(effectiveSeat, {
-      onError: (error) => {
-        handleError(error, {
-          label: '机械狼确认猎人状态',
-          logger: roomScreenLog,
-          alertTitle: '确认失败',
-          alertMessage: '确认失败，请稍后重试',
-        });
-      },
+    return new Promise<void>((resolve, reject) => {
+      hunterStatusAckMutation.mutate(effectiveSeat, {
+        onSuccess: () => resolve(),
+        onError: (error) => {
+          handleError(error, {
+            label: '机械狼确认猎人状态',
+            logger: roomScreenLog,
+            alertTitle: '确认失败',
+            alertMessage: '确认失败，请稍后重试',
+          });
+          reject(error);
+        },
+      });
     });
   });
 };

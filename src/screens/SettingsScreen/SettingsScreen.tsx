@@ -247,9 +247,9 @@ export const SettingsScreen: React.FC = () => {
     };
 
     if (user?.isAnonymous) {
-      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', () => {
-        void doSwitch();
-      });
+      showDestructiveAlert('切换账号', '匿名数据将无法恢复，确定切换账号？', '切换', () =>
+        doSwitch(),
+      );
     } else {
       void doSwitch();
     }

@@ -204,45 +204,83 @@ jobs:
           else
             npm publish --access public --tag latest
             echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
+            # Wait for npm registry to propagate (eventual consistency)
+            echo "⏳ Waiting 10s for npm registry propagation..."
+            sleep 10
           fi
           echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Sync npmmirror and wait
+      - name: Sync npmmirror and verify CDN
         run: |
           PKG_VERSION="${{ steps.npm.outputs.version }}"
+          CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
+
           # Trigger sync and capture task ID
           SYNC_RESP=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
           SYNC_ID=$(echo "$SYNC_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
           echo "Sync triggered: $SYNC_ID"
+
           # Poll sync task status until success (up to 180s)
+          SYNC_OK=false
           for i in $(seq 1 36); do
             STATE=$(curl -s "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs/$SYNC_ID" \
               | python3 -c "import sys,json; print(json.load(sys.stdin).get('state','unknown'))")
             if [ "$STATE" = "success" ]; then
-              echo "✅ npmmirror sync complete: werewolf-judge-cdn@$PKG_VERSION"
-              exit 0
+              echo "✅ npmmirror sync task complete"
+              SYNC_OK=true
+              break
             elif [ "$STATE" = "fail" ]; then
-              echo "❌ npmmirror sync failed"
+              echo "❌ npmmirror sync task failed"
               break
             fi
             echo "⏳ Sync state: $STATE ($((i*5))s)"
             sleep 5
           done
-          echo "❌ npmmirror CDN sync timeout/failed — falling back to fastly.jsdelivr.net"
-          echo "CDN_FALLBACK=true" >> "$GITHUB_ENV"
 
-      # If npmmirror sync failed, rewrite HTML to use jsdelivr for initial script tags.
-      # Note: JS chunk URLs are already baked to npmmirror in the npm package.
-      # jsdelivr serves npm immediately, so initial scripts load; chunks will work
-      # once npmmirror finishes syncing (usually within minutes).
-      - name: Fallback - rewrite HTML to jsdelivr
-        if: env.CDN_FALLBACK == 'true'
-        run: |
-          PKG_VERSION="${{ steps.npm.outputs.version }}"
-          CDN_NPMMIRROR="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
-          CDN_JSDELIVR="https://fastly.jsdelivr.net/npm/werewolf-judge-cdn@${PKG_VERSION}"
-          sed -i "s|${CDN_NPMMIRROR}|${CDN_JSDELIVR}|g" dist/index.html
-          echo "⚠️ HTML initial scripts rewritten to fallback CDN: $CDN_JSDELIVR"
+          if [ "$SYNC_OK" != "true" ]; then
+            echo "❌ npmmirror sync did not succeed — aborting deploy"
+            exit 1
+          fi
+
+          # Verify the version actually exists on npmmirror registry
+          VERSION_CHECK=$(curl -s "https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}" \
+            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',''))")
+          if [ "$VERSION_CHECK" != "$PKG_VERSION" ]; then
+            echo "❌ Version $PKG_VERSION not found on npmmirror registry after sync (got: '$VERSION_CHECK')"
+            echo "   npm registry propagation was too slow — re-triggering sync..."
+            # Retry: trigger a second sync and wait
+            SYNC_RESP2=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
+            SYNC_ID2=$(echo "$SYNC_RESP2" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+            for j in $(seq 1 24); do
+              STATE2=$(curl -s "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs/$SYNC_ID2" \
+                | python3 -c "import sys,json; print(json.load(sys.stdin).get('state','unknown'))")
+              if [ "$STATE2" = "success" ]; then break; fi
+              sleep 5
+            done
+            # Final check
+            VERSION_CHECK2=$(curl -s "https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',''))")
+            if [ "$VERSION_CHECK2" != "$PKG_VERSION" ]; then
+              echo "❌ Version still missing after retry — aborting deploy"
+              exit 1
+            fi
+          fi
+          echo "✅ Version $PKG_VERSION confirmed on npmmirror registry"
+
+          # Verify CDN file is actually accessible (the real test)
+          CDN_URL="${CDN_BASE}/index.js"
+          for k in $(seq 1 12); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$CDN_URL")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ CDN file verified: $CDN_URL → 200"
+              exit 0
+            fi
+            echo "⏳ CDN file check: $CDN_URL → $HTTP_CODE ($((k*5))s)"
+            sleep 5
+          done
+          echo "❌ CDN file still not accessible after 60s — aborting deploy"
+          echo "   URL: $CDN_URL"
+          exit 1
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

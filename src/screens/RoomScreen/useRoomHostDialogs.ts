@@ -88,13 +88,15 @@ export const useRoomHostDialogs = ({
       return;
     }
 
-    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', () => {
+    showConfirmAlert('分配角色？', '所有座位已满，将洗牌并分配角色', async () => {
       if (submittingRef.current) return;
       markSubmitting(true);
       roomScreenLog.debug('Assigning roles');
-      void assignRoles().finally(() => {
+      try {
+        await assignRoles();
+      } finally {
         markSubmitting(false);
-      });
+      }
     });
   }, [gameState, assignRoles, markSubmitting]);
 
@@ -112,19 +114,19 @@ export const useRoomHostDialogs = ({
   }, [markSubmitting, setIsStartingGame, startGame]);
 
   const showStartGameDialog = useCallback(() => {
-    showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => {
-      void handleStartGame();
-    });
+    showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => handleStartGame());
   }, [handleStartGame]);
 
   const showRestartDialog = useCallback(() => {
-    showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', () => {
+    showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', async () => {
       if (submittingRef.current) return;
       markSubmitting(true);
       roomScreenLog.debug('Restarting game');
-      void restartGame().finally(() => {
+      try {
+        await restartGame();
+      } finally {
         markSubmitting(false);
-      });
+      }
     });
   }, [restartGame, markSubmitting]);
 

@@ -50,10 +50,10 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
       actionDialogs.showConfirmDialog(
         currentSchema!.ui!.confirmTitle!,
         intent.message ?? '',
-        () => {
+        async () => {
           setFirstSwapSeat(null);
           setSecondSeat(null);
-          void proceedWithAction(null, { targets: swapTargets });
+          await proceedWithAction(null, { targets: swapTargets });
         },
         () => {
           setFirstSwapSeat(null);
@@ -99,7 +99,9 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
     actionDialogs.showConfirmDialog(
       stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
       stepSchema?.ui?.confirmText ?? intent.message ?? '',
-      () => void proceedWithAction(targetToSubmit, extra),
+      async () => {
+        await proceedWithAction(targetToSubmit, extra);
+      },
     );
   }
 };

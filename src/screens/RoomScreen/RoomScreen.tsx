@@ -774,9 +774,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           disabledIndices={bottomCardDisabledIndices}
           disabledHint={bottomCardDisabledHint}
           subtitle={bottomCardSubtitle}
-          onChoose={(idx) => {
-            void handleChooseCard(idx);
-          }}
+          onChoose={(idx) => handleChooseCard(idx)}
           onClose={closeChooseCardModal}
         />
       )}

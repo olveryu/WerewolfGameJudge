@@ -6,7 +6,7 @@
  * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -32,8 +32,12 @@ import {
 
 export interface AlertButton {
   text: string;
-  /** Called when pressed. For prompt mode, receives the current input value. */
-  onPress?: (inputValue?: string) => void;
+  /** Called when pressed. For prompt mode, receives the current input value.
+   *  If the callback returns a Promise, the button enters loading state and
+   *  the modal stays open until the Promise resolves. On rejection the button
+   *  recovers so the user can retry.
+   */
+  onPress?: (inputValue?: string) => void | Promise<void>;
   style?: 'default' | 'cancel' | 'destructive';
   loading?: boolean;
   disabled?: boolean;
@@ -86,18 +90,50 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   );
 
   const [inputValue, setInputValue] = useState(input?.defaultValue ?? '');
+  const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
+  const mountedRef = useRef(true);
 
-  // Reset input value when modal opens with new config
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Reset input value and loading state when modal opens with new config
   useEffect(() => {
     if (visible) {
       setInputValue(input?.defaultValue ?? '');
+      setLoadingIndex(null);
     }
   }, [visible, input?.defaultValue]);
 
   const handleButtonPress = useCallback(
-    (button: AlertButton) => {
-      onClose();
-      button.onPress?.(input ? inputValue : undefined);
+    (button: AlertButton, index: number) => {
+      const result = button.onPress?.(input ? inputValue : undefined);
+
+      // Sync callback (or no callback): close immediately (existing behavior)
+      if (!result || typeof result.then !== 'function') {
+        onClose();
+        return;
+      }
+
+      // Async callback: keep modal open, show loading on pressed button
+      setLoadingIndex(index);
+      result.then(
+        () => {
+          if (mountedRef.current) {
+            setLoadingIndex(null);
+            onClose();
+          }
+        },
+        () => {
+          // On rejection: reset button so user can retry
+          if (mountedRef.current) {
+            setLoadingIndex(null);
+          }
+        },
+      );
     },
     [onClose, input, inputValue],
   );
@@ -128,37 +164,41 @@ export const AlertModal: React.FC<AlertModalProps> = ({
           ) : null}
 
           <View style={styles.buttonContainer}>
-            {orderedButtons.map((button, index) => (
-              <TouchableOpacity
-                key={`alert-btn-${button.text}-${index}`}
-                testID={TESTIDS.alertButton(index)}
-                style={[
-                  styles.button,
-                  button.style === 'cancel' && styles.cancelButton,
-                  button.style === 'destructive' && styles.destructiveButton,
-                  (button.loading || button.disabled) && styles.disabledButton,
-                ]}
-                onPress={() => handleButtonPress(button)}
-                disabled={button.loading || button.disabled}
-              >
-                {button.loading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={button.style === 'cancel' ? colors.textSecondary : colors.textInverse}
-                  />
-                ) : (
-                  <Text
-                    style={[
-                      styles.buttonText,
-                      button.style === 'cancel' && styles.cancelButtonText,
-                      button.style === 'destructive' && styles.destructiveButtonText,
-                    ]}
-                  >
-                    {button.text}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
+            {orderedButtons.map((button, index) => {
+              const isLoading = button.loading || loadingIndex === index;
+              const isDisabled = isLoading || button.disabled || loadingIndex !== null;
+              return (
+                <TouchableOpacity
+                  key={`alert-btn-${button.text}-${index}`}
+                  testID={TESTIDS.alertButton(index)}
+                  style={[
+                    styles.button,
+                    button.style === 'cancel' && styles.cancelButton,
+                    button.style === 'destructive' && styles.destructiveButton,
+                    isDisabled && styles.disabledButton,
+                  ]}
+                  onPress={() => handleButtonPress(button, index)}
+                  disabled={isDisabled}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={button.style === 'cancel' ? colors.textSecondary : colors.textInverse}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.buttonText,
+                        button.style === 'cancel' && styles.cancelButtonText,
+                        button.style === 'destructive' && styles.destructiveButtonText,
+                      ]}
+                    >
+                      {button.text}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </View>

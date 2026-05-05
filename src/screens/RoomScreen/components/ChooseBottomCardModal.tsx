@@ -38,7 +38,7 @@ interface ChooseBottomCardModalProps {
   disabledHint?: string;
   /** Full subtitle text displayed below the title. */
   subtitle: string;
-  onChoose: (cardIndex: number) => void;
+  onChoose: (cardIndex: number) => void | Promise<void>;
   onClose: () => void;
 }
 

@@ -15,7 +15,11 @@ export const showErrorAlert = (title: string, message?: string): boolean =>
   showAlert(title, message ?? '请稍后重试');
 
 /** Dismiss alert — single "知道了" button with optional callback. */
-export const showDismissAlert = (title: string, message: string, onDismiss?: () => void): boolean =>
+export const showDismissAlert = (
+  title: string,
+  message: string,
+  onDismiss?: () => void | Promise<void>,
+): boolean =>
   showAlert(title, message, [
     onDismiss ? { ...DISMISS_BUTTON, onPress: onDismiss } : DISMISS_BUTTON,
   ]);
@@ -24,7 +28,7 @@ export const showDismissAlert = (title: string, message: string, onDismiss?: () 
 export const showConfirmAlert = (
   title: string,
   message: string,
-  onConfirm: () => void,
+  onConfirm: () => void | Promise<void>,
   options?: { onCancel?: () => void; confirmText?: string },
 ): boolean =>
   showAlert(title, message, [
@@ -39,7 +43,7 @@ export const showDestructiveAlert = (
   title: string,
   message: string,
   actionText: string,
-  onConfirm: () => void,
+  onConfirm: () => void | Promise<void>,
 ): boolean =>
   showAlert(title, message, [
     CANCEL_BUTTON,

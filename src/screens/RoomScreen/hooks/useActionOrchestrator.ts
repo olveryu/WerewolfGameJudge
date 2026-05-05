@@ -195,12 +195,10 @@ export function useActionOrchestrator({
       const title = opts?.title ?? currentSchema?.ui?.confirmTitle ?? '确认操作';
       const message = opts?.message ?? currentSchema?.ui?.confirmText ?? '执行此操作？';
 
-      actionDialogs.showConfirmDialog(title, message, () => {
-        void (async () => {
-          const accepted = await proceedWithAction(targetSeat);
-          if (!accepted) return;
-          await onAccepted();
-        })();
+      actionDialogs.showConfirmDialog(title, message, async () => {
+        const accepted = await proceedWithAction(targetSeat);
+        if (!accepted) return;
+        await onAccepted();
       });
     },
     [actionDialogs, currentSchema, proceedWithAction],
