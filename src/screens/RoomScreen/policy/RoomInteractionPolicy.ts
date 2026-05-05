@@ -7,7 +7,8 @@
  * Priority order (contract - MUST be tested):
  * 1. Audio Gate (highest) - NOOP when audio is playing during ongoing game
  * 2. No Game State - NOOP when game state is missing
- * 3. Pending Gates - NOOP/ALERT when reveal ack or hunter gate is pending
+ * 3. Pending Server-Ack Gate - NOOP when any protocol ack is in-flight
+ *    (reveal / hunterStatus / groupConfirm); aggregated via usePendingAcks
  * 4. Event Routing - Route to appropriate handler based on event type
  *
  * Only imports types and SeatTapPolicy (pure). Does not import services,
@@ -21,7 +22,7 @@ import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
 
 // =============================================================================
-// Gate Checks (Priority 1-4)
+// Gate Checks (Priority 1-3)
 // =============================================================================
 
 /**
@@ -55,37 +56,23 @@ function checkGameStateGate(ctx: InteractionContext): InteractionResult | null {
 }
 
 /**
- * Check pending reveal ack gate.
- * Returns NOOP if reveal ack is pending (during ongoing phase only).
+ * Check pending server-ack gate.
+ *
+ * Blocks all non-LEAVE_ROOM interactions while any protocol ack is in-flight
+ * (reveal / hunterStatus / groupConfirm). Aggregated via usePendingAcks
+ * (useIsMutating with mutationKey prefix ['ack']).
+ *
+ * Covers the dialog-closed-but-ack-pending race window: visual blocking from
+ * inert/Modal only lasts while the dialog is visible; this gate extends the
+ * block through the HTTP roundtrip.
  */
-function checkPendingRevealGate(
+function checkPendingAckGate(
   ctx: InteractionContext,
   event: InteractionEvent,
 ): InteractionResult | null {
-  // Only block during ongoing phase
   if (ctx.roomStatus !== GameStatus.Ongoing) return null;
-
-  // Pending reveal ack blocks all interactions except leave room
-  if (ctx.pendingRevealAck && event.kind !== 'LEAVE_ROOM') {
-    return { kind: 'NOOP', reason: 'pending_reveal_ack' };
-  }
-  return null;
-}
-
-/**
- * Check pending hunter gate.
- * Returns NOOP if wolf robot hunter status viewing is pending.
- */
-function checkPendingHunterGate(
-  ctx: InteractionContext,
-  event: InteractionEvent,
-): InteractionResult | null {
-  // Only block during ongoing phase
-  if (ctx.roomStatus !== GameStatus.Ongoing) return null;
-
-  // Pending hunter gate blocks all interactions except leave room
-  if (ctx.pendingHunterGate && event.kind !== 'LEAVE_ROOM') {
-    return { kind: 'NOOP', reason: 'pending_hunter_gate' };
+  if (ctx.hasPendingAck && event.kind !== 'LEAVE_ROOM') {
+    return { kind: 'NOOP', reason: 'pending_ack' };
   }
   return null;
 }
@@ -258,19 +245,13 @@ export function getInteractionResult(
   if (gameStateGate) return gameStateGate;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Priority 3: Pending Reveal Ack Gate
+  // Priority 3: Pending Server-Ack Gate (reveal / hunterStatus / groupConfirm)
   // ─────────────────────────────────────────────────────────────────────────
-  const revealGate = checkPendingRevealGate(ctx, event);
-  if (revealGate) return revealGate;
+  const ackGate = checkPendingAckGate(ctx, event);
+  if (ackGate) return ackGate;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Priority 4: Pending Hunter Gate
-  // ─────────────────────────────────────────────────────────────────────────
-  const hunterGate = checkPendingHunterGate(ctx, event);
-  if (hunterGate) return hunterGate;
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Priority 5: Event Routing
+  // Priority 4: Event Routing
   // ─────────────────────────────────────────────────────────────────────────
   switch (event.kind) {
     case 'SEAT_TAP':

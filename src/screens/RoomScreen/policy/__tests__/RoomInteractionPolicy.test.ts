@@ -25,8 +25,7 @@ function createBaseContext(overrides: Partial<InteractionContext> = {}): Interac
     roomStatus: GameStatus.Ongoing,
     hasGameState: true,
     isAudioPlaying: false,
-    pendingRevealAck: false,
-    pendingHunterGate: false,
+    hasPendingAck: false,
     isHost: false,
     imActioner: true,
     // Real identity (for display)
@@ -185,10 +184,10 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     });
   });
 
-  describe('Priority 3: Pending Reveal Ack', () => {
-    test('pending_reveal_ack blocks seat tap during ongoing', () => {
+  describe('Priority 3: Pending Server-Ack', () => {
+    test('hasPendingAck blocks seat tap during ongoing', () => {
       const ctx = createBaseContext({
-        pendingRevealAck: true,
+        hasPendingAck: true,
         roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
@@ -196,12 +195,12 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'pending_reveal_ack');
+      expect(result).toHaveProperty('reason', 'pending_ack');
     });
 
-    test('pending_reveal_ack blocks bottom action during ongoing', () => {
+    test('hasPendingAck blocks bottom action during ongoing', () => {
       const ctx = createBaseContext({
-        pendingRevealAck: true,
+        hasPendingAck: true,
         roomStatus: GameStatus.Ongoing,
       });
       const event = createBottomActionEvent();
@@ -209,12 +208,12 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'pending_reveal_ack');
+      expect(result).toHaveProperty('reason', 'pending_ack');
     });
 
-    test('pending_reveal_ack does NOT block leave room', () => {
+    test('hasPendingAck does NOT block leave room', () => {
       const ctx = createBaseContext({
-        pendingRevealAck: true,
+        hasPendingAck: true,
         roomStatus: GameStatus.Ongoing,
       });
       const event = createLeaveRoomEvent();
@@ -225,9 +224,9 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       expect(result).toHaveProperty('dialogType', 'leaveRoom');
     });
 
-    test('pending_reveal_ack is ignored outside ongoing phase', () => {
+    test('hasPendingAck is ignored outside ongoing phase', () => {
       const ctx = createBaseContext({
-        pendingRevealAck: true,
+        hasPendingAck: true,
         roomStatus: GameStatus.Seated,
       });
       const event = createSeatTapEvent(1);
@@ -238,10 +237,10 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       expect(result.kind).toBe('SEATING_FLOW');
     });
 
-    test('audio gate beats pending_reveal_ack', () => {
+    test('audio gate beats hasPendingAck', () => {
       const ctx = createBaseContext({
         isAudioPlaying: true,
-        pendingRevealAck: true,
+        hasPendingAck: true,
         roomStatus: GameStatus.Ongoing,
       });
       const event = createSeatTapEvent(1);
@@ -249,47 +248,6 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
       const result = getInteractionResult(ctx, event);
 
       expect(result).toHaveProperty('reason', 'audio_playing');
-    });
-  });
-
-  describe('Priority 4: Pending Hunter Gate', () => {
-    test('pending_hunter_gate blocks seat tap during ongoing', () => {
-      const ctx = createBaseContext({
-        pendingHunterGate: true,
-        roomStatus: GameStatus.Ongoing,
-      });
-      const event = createSeatTapEvent(1);
-
-      const result = getInteractionResult(ctx, event);
-
-      expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'pending_hunter_gate');
-    });
-
-    test('pending_reveal_ack beats pending_hunter_gate', () => {
-      const ctx = createBaseContext({
-        pendingRevealAck: true,
-        pendingHunterGate: true,
-        roomStatus: GameStatus.Ongoing,
-      });
-      const event = createSeatTapEvent(1);
-
-      const result = getInteractionResult(ctx, event);
-
-      expect(result).toHaveProperty('reason', 'pending_reveal_ack');
-    });
-
-    test('pending_hunter_gate does NOT block leave room', () => {
-      const ctx = createBaseContext({
-        pendingHunterGate: true,
-        roomStatus: GameStatus.Ongoing,
-      });
-      const event = createLeaveRoomEvent();
-
-      const result = getInteractionResult(ctx, event);
-
-      expect(result.kind).toBe('SHOW_DIALOG');
-      expect(result).toHaveProperty('dialogType', 'leaveRoom');
     });
   });
 });
@@ -600,8 +558,7 @@ describe('RoomInteractionPolicy - Edge Cases', () => {
   test('all gates false routes to event handler', () => {
     const ctx = createBaseContext({
       isAudioPlaying: false,
-      pendingRevealAck: false,
-      pendingHunterGate: false,
+      hasPendingAck: false,
       hasGameState: true,
       roomStatus: GameStatus.Ongoing,
       imActioner: true,

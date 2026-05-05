@@ -1,8 +1,14 @@
 /**
  * revealExecutor — Handles 'reveal' ActionIntent
  *
- * Submits via confirmThenAct, polls gameStateRef for reveal data,
- * shows reveal dialog, then sends reveal ACK. Manages pendingRevealDialog state.
+ * Submits via confirmThenAct, polls gameStateRef for reveal data, shows the
+ * reveal dialog, and triggers revealAckMutation.mutate when the user
+ * dismisses. The mutation's isPending covers the dialog-closed-but-ack-pending
+ * window the previous pendingRevealDialog flag protected (gate logic in
+ * RoomInteractionPolicy via usePendingAcks).
+ *
+ * Soft failure (server returns success: false) re-shows the dialog with the
+ * same attemptAck closure for retry.
  */
 
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
@@ -14,9 +20,9 @@ import { roomScreenLog } from '@/utils/logger';
 import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
-export const revealExecutor: IntentExecutor = async (intent, ctx) => {
+export const revealExecutor: IntentExecutor = (intent, ctx) => {
   const { gameState, gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
-  const { submitRevealAck, setPendingRevealDialog, actionDialogs } = ctx;
+  const { revealAckMutation, actionDialogs } = ctx;
 
   if (!gameState) return;
   if (!intent.revealKind) {
@@ -27,8 +33,6 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
   const revealKind = intent.revealKind;
 
   confirmThenAct(intent.targetSeat, async () => {
-    setPendingRevealDialog(true);
-
     const maxRetries = 30;
     const retryInterval = 100;
     let reveal: { targetSeat: number; result: string } | undefined;
@@ -43,36 +47,34 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
 
     if (!mountedRef.current) return;
 
-    if (reveal) {
-      const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
-      const displayResult =
-        ui?.revealResultFormat === 'factionCheck'
-          ? reveal.result
-          : getRoleDisplayName(reveal.result);
-      const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
-      const revealTitle = `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`;
+    if (!reveal) {
+      roomScreenLog.warn(
+        `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
+      );
+      showErrorAlert('查看结果超时', '未收到服务端返回，请稍后重试');
+      return;
+    }
 
-      const attemptAck = (): void => {
-        void submitRevealAck().then((result) => {
+    const ui = currentSchema?.kind !== 'compound' ? currentSchema?.ui : undefined;
+    const displayResult =
+      ui?.revealResultFormat === 'factionCheck' ? reveal.result : getRoleDisplayName(reveal.result);
+    const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
+    const revealTitle = `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`;
+
+    const attemptAck = (): void => {
+      revealAckMutation.mutate(undefined, {
+        onSuccess: (result) => {
           if (!mountedRef.current) return;
-          if (result.success) {
-            setPendingRevealDialog(false);
-          } else {
+          if (!result.success) {
             roomScreenLog.warn('revealAck failed, re-showing dialog for retry', {
               reason: result.reason,
             });
             actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
           }
-        });
-      };
+        },
+      });
+    };
 
-      actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
-    } else {
-      roomScreenLog.warn(
-        `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,
-      );
-      showErrorAlert('查看结果超时', '未收到服务端返回，请稍后重试');
-      setPendingRevealDialog(false);
-    }
+    actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
   });
 };

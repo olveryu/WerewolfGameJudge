@@ -9,6 +9,7 @@
  * Does not import services directly.
  */
 
+import type { UseMutationResult } from '@tanstack/react-query';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type { MutableRefObject } from 'react';
@@ -16,6 +17,8 @@ import type { MutableRefObject } from 'react';
 import type { ActionIntent, ActionIntentType } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
+
+type AckResult = { success: boolean; reason?: string };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Executor context — bag of dependencies each executor receives
@@ -51,15 +54,13 @@ export interface ExecutorContext {
     opts?: { title?: string; message?: string },
   ) => void;
 
-  // ── Action callbacks ──
-  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
-
-  // ── Pending state ──
-  setPendingRevealDialog: (v: boolean) => void;
-  pendingHunterStatusViewed: boolean;
-  setPendingHunterStatusViewed: (v: boolean) => void;
+  // ── Server-ack mutations (TanStack — owns isPending lifecycle) ──
+  /** reveal-ack roundtrip; mutate() called after user dismisses reveal dialog */
+  revealAckMutation: UseMutationResult<AckResult, Error, void>;
+  /** wolfRobot hunter-status-viewed roundtrip; mutate(seat) after gate dialog */
+  hunterStatusAckMutation: UseMutationResult<void, Error, number>;
+  /** groupConfirm-ack roundtrip; mutate() after user confirms group reveal */
+  groupConfirmAckMutation: UseMutationResult<AckResult, Error, void>;
 
   // ── Choose card modal (treasureMaster) ──
   openChooseCardModal?: () => void;

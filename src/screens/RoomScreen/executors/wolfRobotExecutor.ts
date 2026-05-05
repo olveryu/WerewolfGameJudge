@@ -1,8 +1,14 @@
 /**
  * wolfRobotExecutor — Handles 'wolfRobotViewHunterStatus' ActionIntent
  *
- * Shows hunter shoot-status dialog for wolfRobot disguise phase,
- * then sends status-viewed acknowledgment via sendWolfRobotHunterStatusViewed.
+ * Shows hunter shoot-status dialog for wolfRobot disguise phase, then
+ * triggers hunterStatusAckMutation.mutate(seat) after the user dismisses.
+ *
+ * Re-entry across the in-flight HTTP window is guarded upstream:
+ * - Auto-trigger path: lastAutoIntentKeyRef in useActionOrchestrator dedupes
+ *   while currentStepIndex hasn't advanced.
+ * - User click path: RoomInteractionPolicy's hasPendingAck gate blocks new
+ *   events while the mutation is pending.
  */
 
 import { handleError } from '@/utils/errorPipeline';
@@ -11,22 +17,9 @@ import { roomScreenLog } from '@/utils/logger';
 import type { IntentExecutor } from './types';
 
 export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) => {
-  const {
-    gameState,
-    effectiveSeat,
-    currentSchema,
-    pendingHunterStatusViewed,
-    setPendingHunterStatusViewed,
-    sendWolfRobotHunterStatusViewed,
-    actionDialogs,
-  } = ctx;
+  const { gameState, effectiveSeat, currentSchema, hunterStatusAckMutation, actionDialogs } = ctx;
 
   if (!gameState?.wolfRobotReveal) return;
-
-  if (pendingHunterStatusViewed) {
-    roomScreenLog.debug('wolfRobotViewHunterStatus Skipping - pending submission');
-    return;
-  }
 
   if (currentSchema?.id !== 'wolfRobotLearn') {
     throw new Error(
@@ -48,26 +41,21 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
   const statusMessage = canShoot ? canShootText : cannotShootText;
 
   actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, () => {
-    void (async () => {
-      if (effectiveSeat === null) {
-        roomScreenLog.warn(
-          '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
-        );
-        return;
-      }
-      setPendingHunterStatusViewed(true);
-      try {
-        await sendWolfRobotHunterStatusViewed(effectiveSeat);
-      } catch (error) {
+    if (effectiveSeat === null) {
+      roomScreenLog.warn(
+        '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
+      );
+      return;
+    }
+    hunterStatusAckMutation.mutate(effectiveSeat, {
+      onError: (error) => {
         handleError(error, {
           label: '机械狼确认猎人状态',
           logger: roomScreenLog,
           alertTitle: '确认失败',
           alertMessage: '确认失败，请稍后重试',
         });
-      } finally {
-        setPendingHunterStatusViewed(false);
-      }
-    })();
+      },
+    });
   });
 };

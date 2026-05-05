@@ -12,7 +12,7 @@ import { roomScreenLog } from '@/utils/logger';
 import type { IntentExecutor } from './types';
 
 export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
-  const { gameState, currentSchema, actorSeatForUi, submitGroupConfirmAck, actionDialogs } = ctx;
+  const { gameState, currentSchema, actorSeatForUi, groupConfirmAckMutation, actionDialogs } = ctx;
 
   const mySeat = actorSeatForUi;
   const gcSchema = currentSchema?.kind === 'groupConfirm' ? currentSchema : null;
@@ -57,17 +57,20 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
 
   roomScreenLog.debug('groupConfirmAck', { schemaId, personalMessage });
 
+  const buttonLabel = gcSchema!.ui!.confirmButtonText!;
+
   const doAck = (): void => {
-    void submitGroupConfirmAck().then((result) => {
-      if (!result.success) {
-        roomScreenLog.warn('groupConfirmAck failed, re-showing dialog for retry', {
-          reason: result.reason,
-        });
-        actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
-      }
+    groupConfirmAckMutation.mutate(undefined, {
+      onSuccess: (result) => {
+        if (!result.success) {
+          roomScreenLog.warn('groupConfirmAck failed, re-showing dialog for retry', {
+            reason: result.reason,
+          });
+          actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
+        }
+      },
     });
   };
 
-  const buttonLabel = gcSchema!.ui!.confirmButtonText!;
   actionDialogs.showRoleActionPrompt(dialogTitle, personalMessage, doAck, buttonLabel);
 };

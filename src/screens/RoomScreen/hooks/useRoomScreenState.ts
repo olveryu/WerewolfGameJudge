@@ -433,33 +433,32 @@ export function useRoomScreenState(
   // Action Orchestrator
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const { handleActionIntent, pendingRevealDialog, pendingHunterStatusViewed, isActionSubmitting } =
-    useActionOrchestrator({
-      gameState,
-      roomStatus,
-      currentActionRole,
-      currentSchema,
-      effectiveSeat,
-      effectiveRole,
-      controlledSeat,
-      actorSeatForUi,
-      imActioner,
-      isAudioPlaying,
-      myUserId,
-      needsContinueOverlay,
-      firstSwapSeat,
-      setFirstSwapSeat,
-      setSecondSeat,
-      submitAction,
-      submitRevealAck,
-      sendWolfRobotHunterStatusViewed,
-      submitGroupConfirmAck,
-      multiSelectedSeats,
-      setMultiSelectedSeats,
-      getAutoTriggerIntent,
-      actionDialogs,
-      openChooseCardModal,
-    });
+  const { handleActionIntent, isActionSubmitting } = useActionOrchestrator({
+    gameState,
+    roomStatus,
+    currentActionRole,
+    currentSchema,
+    effectiveSeat,
+    effectiveRole,
+    controlledSeat,
+    actorSeatForUi,
+    imActioner,
+    isAudioPlaying,
+    myUserId,
+    needsContinueOverlay,
+    firstSwapSeat,
+    setFirstSwapSeat,
+    setSecondSeat,
+    submitAction,
+    submitRevealAck,
+    sendWolfRobotHunterStatusViewed,
+    submitGroupConfirmAck,
+    multiSelectedSeats,
+    setMultiSelectedSeats,
+    getAutoTriggerIntent,
+    actionDialogs,
+    openChooseCardModal,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Host Dialogs
@@ -604,8 +603,6 @@ export function useRoomScreenState(
     gameState,
     roomStatus,
     isAudioPlaying,
-    pendingRevealDialog,
-    pendingHunterStatusViewed,
     isHost,
     imActioner,
     mySeat,

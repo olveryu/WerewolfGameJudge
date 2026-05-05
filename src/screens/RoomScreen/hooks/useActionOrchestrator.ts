@@ -3,12 +3,17 @@
  *
  * Dispatches ActionIntent to the executor registry, manages action submission
  * helpers (proceedWithAction, confirmThenAct), runs auto-trigger effect
- * (idempotent intent auto-fire on step changes), surfaces Host ACTION_REJECTED
- * via alert, and owns pendingRevealDialog / pendingHunterStatusViewed gate state.
- * Does not import services directly (all actions come via params), does not contain policy /
- * interaction dispatch logic (that's useInteractionDispatcher), does not render UI or hold JSX,
- * does not own seat tap / interaction context / dispatchInteraction, and does not modify
- * GameState directly.
+ * (idempotent intent auto-fire on step changes), and surfaces Host
+ * ACTION_REJECTED via alert.
+ *
+ * Server-ack lifecycle (reveal / hunterStatus / groupConfirm) tracked via
+ * useAckMutation — RoomInteractionPolicy reads aggregate state via
+ * usePendingAcks. No local pending booleans here.
+ *
+ * Does not import services directly (all actions come via params), does not
+ * contain policy / interaction dispatch logic (that's useInteractionDispatcher),
+ * does not render UI or hold JSX, does not own seat tap / interaction context,
+ * and does not modify GameState directly.
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -16,6 +21,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { useAckMutation } from '@/hooks/useAckMutation';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -77,12 +83,6 @@ interface UseActionOrchestratorParams {
 interface UseActionOrchestratorResult {
   /** Process an ActionIntent (the big switch). Called by dispatchInteraction and auto-trigger. */
   handleActionIntent: (intent: ActionIntent) => Promise<void>;
-  /** Whether a reveal dialog is pending (gates night-end speak order dialog). */
-  pendingRevealDialog: boolean;
-  /** Setter for pendingRevealDialog (needed by interaction dispatcher for REVEAL_ACK). */
-  setPendingRevealDialog: (v: boolean) => void;
-  /** Whether wolfRobot hunter status viewed is pending submission. */
-  pendingHunterStatusViewed: boolean;
   /** Whether a night action is currently being submitted (disables seat taps). */
   isActionSubmitting: boolean;
 }
@@ -117,14 +117,20 @@ export function useActionOrchestrator({
   actionDialogs,
   openChooseCardModal,
 }: UseActionOrchestratorParams): UseActionOrchestratorResult {
-  // ─── Local state ─────────────────────────────────────────────────────────
-  // P0-FIX: 追踪"正在等待/显示查验结果弹窗"的状态
-  // 这样天亮弹窗（发言顺序）会等待查验结果弹窗关闭后再显示
-  const [pendingRevealDialog, setPendingRevealDialog] = useState(false);
-
-  // P1-FIX: 追踪"机械狼猎人状态确认正在提交"的状态
-  // 防止 sendWolfRobotHunterStatusViewed 在 state 更新前被重复触发
-  const [pendingHunterStatusViewed, setPendingHunterStatusViewed] = useState(false);
+  // ─── Server-ack mutations (TanStack — owns isPending lifecycle) ──────────
+  // mutationKey ['ack', name] aggregates into usePendingAcks for the policy gate.
+  // retry: 0 — UI controls re-show on failure (see executor onSuccess branches).
+  const revealAckMutation = useAckMutation<void, { success: boolean; reason?: string }>(
+    'reveal',
+    () => submitRevealAck(),
+  );
+  const hunterStatusAckMutation = useAckMutation<number, void>('hunterStatus', (seat) =>
+    sendWolfRobotHunterStatusViewed(seat),
+  );
+  const groupConfirmAckMutation = useAckMutation<void, { success: boolean; reason?: string }>(
+    'groupConfirm',
+    () => submitGroupConfirmAck(),
+  );
 
   // ─── Refs ────────────────────────────────────────────────────────────────
   const gameStateRef = useRef<LocalGameState | null>(null);
@@ -251,12 +257,9 @@ export function useActionOrchestrator({
         setMultiSelectedSeats,
         proceedWithAction,
         confirmThenAct,
-        submitRevealAck,
-        sendWolfRobotHunterStatusViewed,
-        submitGroupConfirmAck,
-        setPendingRevealDialog,
-        pendingHunterStatusViewed,
-        setPendingHunterStatusViewed,
+        revealAckMutation,
+        hunterStatusAckMutation,
+        groupConfirmAckMutation,
         openChooseCardModal,
         actionDialogs,
         mountedRef,
@@ -278,10 +281,9 @@ export function useActionOrchestrator({
       confirmThenAct,
       currentSchema,
       currentActionRole,
-      pendingHunterStatusViewed,
-      sendWolfRobotHunterStatusViewed,
-      submitRevealAck,
-      submitGroupConfirmAck,
+      revealAckMutation,
+      hunterStatusAckMutation,
+      groupConfirmAckMutation,
       actorSeatForUi,
       multiSelectedSeats,
       setMultiSelectedSeats,
@@ -351,9 +353,6 @@ export function useActionOrchestrator({
 
   return {
     handleActionIntent,
-    pendingRevealDialog,
-    setPendingRevealDialog,
-    pendingHunterStatusViewed,
     isActionSubmitting,
   };
 }

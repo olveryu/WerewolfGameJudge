@@ -486,28 +486,22 @@ describe('Delegation Seat Identity Contract', () => {
 
   describe('wolfRobot hunter gate with controlledSeat (debug takeover)', () => {
     /**
-     * P0 Contract: Orchestrator's wolfRobotViewHunterStatus case must:
-     * 1. Gate on pendingHunterStatusViewed (idempotent, prevent duplicate submission)
-     * 2. Call sendWolfRobotHunterStatusViewed(effectiveSeat) — not mySeat
+     * P0 Contract: Executor must call hunterStatusAckMutation.mutate with
+     * effectiveSeat (not mySeat) so debug takeover routes ack through the
+     * controlled seat. In-flight de-dup is delegated to the policy gate
+     * (usePendingAcks) and lastAutoIntentKeyRef — no executor-local guard.
      */
-    it('orchestrator wolfRobotViewHunterStatus uses pendingHunterStatusViewed gate + effectiveSeat', () => {
-      // wolfRobotViewHunterStatus logic now lives in wolfRobotExecutor.ts
+    it('orchestrator wolfRobotViewHunterStatus mutates with effectiveSeat', () => {
       const content = readFileContent(WOLF_ROBOT_EXECUTOR_PATH);
 
-      // Must gate on pendingHunterStatusViewed (prevent duplicate submission)
-      expect(content).toMatch(/pendingHunterStatusViewed/);
+      // Must use the ack mutation (the canonical pending tracker)
+      expect(content).toMatch(/hunterStatusAckMutation/);
 
-      // Must call sendWolfRobotHunterStatusViewed(effectiveSeat)
-      expect(content).toMatch(/sendWolfRobotHunterStatusViewed\(effectiveSeat\)/);
+      // Must call mutate(effectiveSeat) — debug takeover correctness
+      expect(content).toMatch(/hunterStatusAckMutation\.mutate\(effectiveSeat/);
 
-      // Must NOT call sendWolfRobotHunterStatusViewed(mySeat)
-      expect(content).not.toMatch(/sendWolfRobotHunterStatusViewed\(mySeat\)/);
-
-      // Must set pendingHunterStatusViewed(true) before the async call
-      expect(content).toMatch(/setPendingHunterStatusViewed\(true\)/);
-
-      // Must reset pendingHunterStatusViewed(false) in finally/catch
-      expect(content).toMatch(/setPendingHunterStatusViewed\(false\)/);
+      // Must NOT use mySeat (would break debug takeover)
+      expect(content).not.toMatch(/\.mutate\(mySeat/);
     });
 
     /**\n     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param

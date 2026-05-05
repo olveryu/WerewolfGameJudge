@@ -135,8 +135,7 @@ export interface InteractionResultNoop {
     | 'no_game_state'
     | 'not_actioner'
     | 'other_status'
-    | 'pending_reveal_ack'
-    | 'pending_hunter_gate'
+    | 'pending_ack'
     | 'host_only'
     | 'player_only'
     | 'no_role';
@@ -225,10 +224,11 @@ export interface InteractionContext {
   roomStatus: GameStatus | undefined;
   hasGameState: boolean;
 
-  // Gates (priority order: audio > pending reveal > pending hunter)
+  // Gates (priority order: audio > pending server-ack)
   isAudioPlaying: boolean;
-  pendingRevealAck: boolean;
-  pendingHunterGate: boolean;
+  /** Any in-flight protocol ack (reveal / hunterStatus / groupConfirm) — single
+   *  signal aggregated from useIsMutating({ mutationKey: ['ack'] }) > 0. */
+  hasPendingAck: boolean;
 
   // Player state (real identity - for display only)
   isHost: boolean;

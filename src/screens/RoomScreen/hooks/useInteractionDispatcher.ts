@@ -13,6 +13,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
   getInteractionResult,
   type InteractionContext,
@@ -35,10 +36,6 @@ interface UseInteractionDispatcherParams {
   isAudioPlaying: boolean;
   isHost: boolean;
   imActioner: boolean;
-
-  // ── Gate state (from useActionOrchestrator) ──
-  pendingRevealDialog: boolean;
-  pendingHunterStatusViewed: boolean;
 
   // ── Identity ──
   mySeat: number | null;
@@ -114,8 +111,6 @@ export function useInteractionDispatcher({
   isAudioPlaying,
   isHost,
   imActioner,
-  pendingRevealDialog,
-  pendingHunterStatusViewed,
   mySeat,
   myRole,
   actorSeatForUi,
@@ -230,13 +225,17 @@ export function useInteractionDispatcher({
 
   // ─── Interaction context ─────────────────────────────────────────────────
 
+  // ─── Server-ack pending state ────────────────────────────────────────────
+  // Single signal aggregated from useIsMutating({ mutationKey: ['ack'] }).
+  // Replaces the previous per-ack pendingRevealDialog / pendingHunterStatusViewed.
+  const hasPendingAck = usePendingAcks();
+
   const interactionContext: InteractionContext = useMemo(
     () => ({
       roomStatus,
       hasGameState: !!gameState,
       isAudioPlaying,
-      pendingRevealAck: pendingRevealDialog,
-      pendingHunterGate: pendingHunterStatusViewed,
+      hasPendingAck,
       isHost,
       imActioner,
       // Real identity (for display purposes only)
@@ -267,8 +266,7 @@ export function useInteractionDispatcher({
       roomStatus,
       gameState,
       isAudioPlaying,
-      pendingRevealDialog,
-      pendingHunterStatusViewed,
+      hasPendingAck,
       isHost,
       imActioner,
       mySeat,
