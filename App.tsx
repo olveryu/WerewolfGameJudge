@@ -37,6 +37,8 @@ Sentry.init({
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.5,
   integrations: getSentryIntegrations(),
+  // Allow Relay to infer browser.name / IP from User-Agent for Structured Logs
+  sendDefaultPii: true,
   // Enable session tracking for Release Health (unique users / sessions)
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
