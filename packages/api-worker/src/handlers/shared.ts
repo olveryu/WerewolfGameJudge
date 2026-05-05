@@ -15,6 +15,24 @@ import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
 
+/**
+ * Strip the `& Disposable` intersection that @cloudflare/workers-types adds
+ * to DO stub RPC return values. This restores proper discriminated union narrowing.
+ *
+ * Usage: cast the raw CF stub once at the creation site → all downstream call
+ * sites get clean types without per-call `as Promise<T>`.
+ */
+type StripDisposable<T> = T extends Disposable ? Omit<T, keyof Disposable> : T;
+
+type CleanRpcMethods<DO> = {
+  [K in keyof DO]: DO[K] extends (...args: infer A) => Promise<infer R>
+    ? (...args: A) => Promise<StripDisposable<R>>
+    : DO[K];
+};
+
+/** GameRoom stub with clean RPC return types (Disposable stripped). */
+type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoom>>;
+
 const log = createLogger('do');
 
 /**
@@ -69,18 +87,17 @@ const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
 /**
  * Get a typed DO stub for the given room code.
  *
+ * Returns a GameRoomStub with clean RPC types (Disposable stripped),
+ * eliminating the need for `as Promise<GameActionResult>` at every call site.
+ *
  * Optionally accepts the incoming Request to extract cf.continent
  * and pass a locationHint, co-locating the DO near the first requester.
  */
-export function getGameRoomStub(
-  env: Env,
-  roomCode: string,
-  req?: Request,
-): DurableObjectStub<GameRoom> {
+export function getGameRoomStub(env: Env, roomCode: string, req?: Request): GameRoomStub {
   const id = env.GAME_ROOM.idFromName(roomCode);
   const cf = (req as CfRequest | undefined)?.cf;
   const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
-  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
+  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined) as GameRoomStub;
 }
 
 /**
@@ -101,12 +118,6 @@ type CfRequest = Request & { cf?: IncomingRequestCfProperties };
  * 包装 DO RPC 调用，处理 DO 特有的错误属性。
  * 若 err.retryable === true，抛 503 HTTPException。
  * 若 err.overloaded === true，抛 429 HTTPException。
- *
- * NOTE: @cloudflare/workers-types 对 DO stub RPC 返回值做了
- * `T extends ... ? ... & Disposable : ...` 变换，导致 discriminated union
- * 无法正确 narrow。调用方需在 fn 内对 stub 方法返回值断言
- * `as Promise<GameActionResult>` 以恢复正确类型。
- * 待 CF 修复上游类型后可移除断言。
  */
 export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
   try {
