@@ -159,9 +159,8 @@ export function useInteractionDispatcher({
             setProfileCardVisible(false);
             void kickPlayer(seat).catch((err) => {
               handleError(err, {
-                label: 'kickPlayer',
+                label: '移出',
                 logger: roomScreenLog,
-                alertTitle: '移出失败',
               });
             });
           }
@@ -177,9 +176,8 @@ export function useInteractionDispatcher({
             setProfileCardVisible(false);
             void leaveSeat().catch((err) => {
               handleError(err, {
-                label: 'leaveSeat',
+                label: '离座',
                 logger: roomScreenLog,
-                alertTitle: '离座失败',
               });
             });
           }
@@ -221,7 +219,7 @@ export function useInteractionDispatcher({
       });
       if (intent) {
         void handleActionIntent(intent).catch((err) => {
-          handleError(err, { label: 'handleActionTap', logger: roomScreenLog, alertTitle: false });
+          handleError(err, { label: 'handleActionTap', logger: roomScreenLog, feedback: false });
         });
       }
     },
@@ -346,7 +344,7 @@ export function useInteractionDispatcher({
                       handleError(err, {
                         label: '查看角色',
                         logger: roomScreenLog,
-                        alertTitle: false,
+                        feedback: false,
                       });
                       setRoleCardVisible(false);
                       setIsLoadingRole(false);
@@ -383,7 +381,7 @@ export function useInteractionDispatcher({
           });
           if (result.intent) {
             void handleActionIntent(result.intent).catch((err) => {
-              handleError(err, { label: 'ACTION_FLOW', logger: roomScreenLog, alertTitle: false });
+              handleError(err, { label: 'ACTION_FLOW', logger: roomScreenLog, feedback: false });
             });
           } else if (result.seat !== undefined) {
             handleActionTap(result.seat);
@@ -439,7 +437,7 @@ export function useInteractionDispatcher({
                 handleError(err, {
                   label: 'kickPlayer',
                   logger: roomScreenLog,
-                  alertTitle: '移出失败',
+                  feedback: 'toast',
                 });
                 throw err;
               });

@@ -198,7 +198,7 @@ export class AudioOrchestrator {
       }
     } catch (e) {
       // Caller uses fire-and-forget `void` — catch here to prevent unhandled rejection
-      handleError(e, { label: 'resumeAfterRejoin', logger: facadeLog, alertTitle: false });
+      handleError(e, { label: 'resumeAfterRejoin', logger: facadeLog, feedback: false });
     }
   }
 

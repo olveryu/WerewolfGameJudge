@@ -74,29 +74,28 @@ describe('handleError', () => {
     expect(showAlert).toHaveBeenCalled();
   });
 
-  // ── alertTitle: false suppresses UI ──
+  // ── feedback: false suppresses UI ──
 
-  it('suppresses UI when alertTitle is false', () => {
+  it('suppresses UI when feedback is false', () => {
     const err = new Error('background fail');
 
-    handleError(err, { ...baseOpts, alertTitle: false });
+    handleError(err, { ...baseOpts, feedback: false });
 
     expect(Sentry.captureException).toHaveBeenCalled();
     expect(showAlert).not.toHaveBeenCalled();
   });
 
-  // ── Custom alert title / message ──
+  // ── Custom alertMessage ──
 
-  it('uses custom alertTitle and alertMessage', () => {
+  it('uses custom alertMessage in alert', () => {
     const err = new Error('oops');
 
     handleError(err, {
       ...baseOpts,
-      alertTitle: '自定义标题',
       alertMessage: '自定义消息',
     });
 
-    expect(showAlert).toHaveBeenCalledWith('自定义标题', '自定义消息');
+    expect(showAlert).toHaveBeenCalledWith('测试操作失败', '自定义消息');
   });
 
   // ── PostgrestError-like code string ──

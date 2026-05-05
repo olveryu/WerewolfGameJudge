@@ -11,6 +11,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 /**
@@ -94,6 +95,13 @@ export const useRoomHostDialogs = ({
       roomScreenLog.debug('Assigning roles');
       try {
         await assignRoles();
+      } catch (err) {
+        handleError(err, {
+          label: '分配角色',
+          logger: roomScreenLog,
+          feedback: 'toast',
+        });
+        throw err;
       } finally {
         markSubmitting(false);
       }
@@ -107,6 +115,13 @@ export const useRoomHostDialogs = ({
     try {
       setIsStartingGame(true);
       await startGame();
+    } catch (err) {
+      handleError(err, {
+        label: '开始游戏',
+        logger: roomScreenLog,
+        feedback: 'toast',
+      });
+      throw err;
     } finally {
       markSubmitting(false);
       setIsStartingGame(false);
@@ -124,6 +139,13 @@ export const useRoomHostDialogs = ({
       roomScreenLog.debug('Restarting game');
       try {
         await restartGame();
+      } catch (err) {
+        handleError(err, {
+          label: '重新开始',
+          logger: roomScreenLog,
+          feedback: 'toast',
+        });
+        throw err;
       } finally {
         markSubmitting(false);
       }

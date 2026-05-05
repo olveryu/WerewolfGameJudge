@@ -7,6 +7,7 @@
 
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
@@ -64,16 +65,21 @@ export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
       groupConfirmAckMutation.mutate(undefined, {
         onSuccess: (result) => {
           if (!result.success) {
-            roomScreenLog.warn('groupConfirmAck failed, re-showing dialog for retry', {
-              reason: result.reason,
-            });
-            // Reject so AlertModal stays open for retry
+            roomScreenLog.warn('groupConfirmAck failed', { reason: result.reason });
             reject(new Error(result.reason ?? 'groupConfirmAck failed'));
           } else {
             resolve();
           }
         },
-        onError: (error) => reject(error),
+        onError: (error) => {
+          handleError(error, {
+            label: '确认信息',
+            logger: roomScreenLog,
+            feedback: 'toast',
+            alertMessage: '请稍后重试',
+          });
+          reject(error);
+        },
       });
     });
 

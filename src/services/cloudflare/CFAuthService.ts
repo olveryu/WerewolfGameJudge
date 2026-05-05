@@ -94,7 +94,7 @@ export class CFAuthService implements IAuthService {
         authLog.info('Restored session', { userId: existingUserId });
       }
     } catch (error) {
-      handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, alertTitle: false });
+      handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, feedback: false });
     }
   }
 

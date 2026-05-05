@@ -12,6 +12,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import { showAlert } from '@/utils/alert';
@@ -36,13 +37,15 @@ interface HandleErrorOptions {
   expectedCodes?: number[];
 
   /**
-   * Alert title shown to user on error. Defaults to `'${label}失败'`.
-   * Set to `false` to suppress UI feedback entirely (background operations).
+   * UI feedback mode:
+   * - 'alert' (default): show modal alert via showAlert
+   * - 'toast': show toast.error (use when called from within an open AlertModal callback)
+   * - false: suppress UI feedback entirely (background operations)
    */
-  alertTitle?: string | false;
+  feedback?: 'alert' | 'toast' | false;
 
   /**
-   * Custom alert message. Defaults to `getErrorMessage(err)`.
+   * Custom alert/toast message. Defaults to `getErrorMessage(err)`.
    */
   alertMessage?: string;
 
@@ -82,7 +85,8 @@ function extractStatusCode(err: unknown): number | undefined {
  * ```
  */
 export function handleError(err: unknown, opts: HandleErrorOptions): void {
-  const { label, logger, expectedCodes, alertTitle, alertMessage, isExpected } = opts;
+  const { label, logger, expectedCodes, alertMessage, isExpected } = opts;
+  const feedbackMode: 'alert' | 'toast' | false = opts.feedback ?? 'alert';
 
   // ── Abort: log.warn only, no Sentry, no UI ──
   if (isAbortError(err)) {
@@ -93,8 +97,10 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
   // ── Network error: log.warn, no Sentry, show network-specific message ──
   if (isNetworkError(err)) {
     logger.warn(`[${label}] network error`, err);
-    if (alertTitle !== false) {
-      showAlert(alertTitle ?? `${label}失败`, NETWORK_ERROR);
+    if (feedbackMode === 'alert') {
+      showAlert(`${label}失败`, NETWORK_ERROR);
+    } else if (feedbackMode === 'toast') {
+      toast.error(NETWORK_ERROR);
     }
     return;
   }
@@ -117,9 +123,13 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
   }
 
   // ── UI feedback ──
-  if (alertTitle === false) return;
+  if (feedbackMode === false) return;
 
-  const title = alertTitle ?? `${label}失败`;
   const message = alertMessage ?? getErrorMessage(err);
-  showAlert(title, message);
+
+  if (feedbackMode === 'toast') {
+    toast.error(message);
+  } else {
+    showAlert(`${label}失败`, message);
+  }
 }

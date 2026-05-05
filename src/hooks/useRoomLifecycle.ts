@@ -124,7 +124,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         handleError(err, {
           label: '房间初始化',
           logger: gameRoomLog,
-          alertTitle: false,
+          feedback: false,
           isExpected: (e) =>
             e instanceof Error && e.message.includes('channel closed before subscribe'),
         });
@@ -191,7 +191,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         handleError(err, {
           label: '加入房间',
           logger: gameRoomLog,
-          alertTitle: false,
+          feedback: false,
           isExpected: (e) =>
             e instanceof Error && e.message.includes('channel closed before subscribe'),
         });
@@ -212,7 +212,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       await facade.leaveRoom();
       setRoomRecord(null);
     } catch (err) {
-      handleError(err, { label: '离开房间', logger: gameRoomLog, alertTitle: false });
+      handleError(err, { label: '离开房间', logger: gameRoomLog, feedback: false });
     }
   }, [facade, setRoomRecord]);
 
@@ -245,7 +245,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         handleError(err, {
           label: '入座',
           logger: gameRoomLog,
-          alertTitle: '入座失败',
         });
         return false;
       }
@@ -261,7 +260,6 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       handleError(err, {
         label: '离座',
         logger: gameRoomLog,
-        alertTitle: '离座失败',
       });
     }
   }, [facade]);
@@ -295,7 +293,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         return result;
       } catch (err) {
-        handleError(err, { label: '入座(ack)', logger: gameRoomLog, alertTitle: false });
+        handleError(err, { label: '入座(ack)', logger: gameRoomLog, feedback: false });
         return { success: false, reason: String(err) };
       }
     },
@@ -307,7 +305,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       return await facade.leaveSeatWithAck();
     } catch (err) {
-      handleError(err, { label: '离座(ack)', logger: gameRoomLog, alertTitle: false });
+      handleError(err, { label: '离座(ack)', logger: gameRoomLog, feedback: false });
       return { success: false, reason: String(err) };
     }
   }, [facade]);
@@ -318,7 +316,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
       try {
         return await facade.kickPlayer(targetSeat);
       } catch (err) {
-        handleError(err, { label: '移出座位', logger: gameRoomLog, alertTitle: '移出失败' });
+        handleError(err, { label: '移出', logger: gameRoomLog });
         return { success: false, reason: String(err) };
       }
     },
@@ -334,7 +332,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     try {
       return await facade.fetchStateFromDB();
     } catch (err) {
-      handleError(err, { label: '同步状态', logger: gameRoomLog, alertTitle: false });
+      handleError(err, { label: '同步状态', logger: gameRoomLog, feedback: false });
       return false;
     }
   }, [facade]);

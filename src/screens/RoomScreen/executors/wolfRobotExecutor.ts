@@ -54,7 +54,7 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
           handleError(error, {
             label: '机械狼确认猎人状态',
             logger: roomScreenLog,
-            alertTitle: '确认失败',
+            feedback: 'toast',
             alertMessage: '确认失败，请稍后重试',
           });
           reject(error);

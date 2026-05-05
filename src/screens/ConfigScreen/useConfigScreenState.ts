@@ -146,7 +146,7 @@ export function useConfigScreenState({
         }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
-        handleError(error, { label: '加载房间', logger: configLog, alertTitle: false });
+        handleError(error, { label: '加载房间', logger: configLog, feedback: false });
       } finally {
         setIsLoading(false);
       }

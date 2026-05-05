@@ -637,7 +637,7 @@ export class GameFacade implements IGameFacade {
       }
       return false;
     } catch (e) {
-      handleError(e, { label: 'fetchStateFromDB', logger: facadeLog, alertTitle: false });
+      handleError(e, { label: 'fetchStateFromDB', logger: facadeLog, feedback: false });
       return false;
     }
   }

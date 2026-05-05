@@ -15,6 +15,7 @@ import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
@@ -67,15 +68,21 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
           onSuccess: (result) => {
             if (!mountedRef.current) return;
             if (!result.success) {
-              roomScreenLog.warn('revealAck failed, re-showing dialog for retry', {
-                reason: result.reason,
-              });
+              roomScreenLog.warn('revealAck failed', { reason: result.reason });
               reject(new Error(result.reason ?? 'revealAck failed'));
             } else {
               resolve();
             }
           },
-          onError: (error) => reject(error),
+          onError: (error) => {
+            handleError(error, {
+              label: '确认查验结果',
+              logger: roomScreenLog,
+              feedback: 'toast',
+              alertMessage: '请稍后重试',
+            });
+            reject(error);
+          },
         });
       });
 

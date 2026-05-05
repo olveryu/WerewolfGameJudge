@@ -115,9 +115,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       })
       .catch((e) => {
         handleError(e, {
-          label: '分享房间',
+          label: '分享链接',
           logger: roomScreenLog,
-          alertTitle: '链接分享失败',
           alertMessage: '无法复制链接，请手动分享房间号',
         });
       });
@@ -129,7 +128,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         handleError(e, {
           label: '分享二维码',
           logger: roomScreenLog,
-          alertTitle: '二维码分享失败',
           alertMessage: '无法分享二维码图片',
         });
       });
@@ -519,7 +517,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 handleError(err, {
                   label: 'fillWithBots',
                   logger: roomScreenLog,
-                  alertTitle: false,
+                  feedback: false,
                 });
               })
             }
@@ -528,7 +526,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 handleError(err, {
                   label: 'markAllBotsViewed',
                   logger: roomScreenLog,
-                  alertTitle: false,
+                  feedback: false,
                 });
               })
             }
@@ -537,7 +535,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 handleError(err, {
                   label: 'markAllBotsGroupConfirmed',
                   logger: roomScreenLog,
-                  alertTitle: false,
+                  feedback: false,
                 });
               })
             }
@@ -546,7 +544,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 handleError(err, {
                   label: 'clearAllSeats',
                   logger: roomScreenLog,
-                  alertTitle: false,
+                  feedback: false,
                 });
               })
             }

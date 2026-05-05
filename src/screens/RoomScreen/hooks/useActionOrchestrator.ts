@@ -179,6 +179,14 @@ export function useActionOrchestrator({
         // Submission success/failure UX is handled by the state-driven
         // `gameState.actionRejected` effect below.
         return true;
+      } catch (err) {
+        handleError(err, {
+          label: '提交操作',
+          logger: roomScreenLog,
+          feedback: 'toast',
+          alertMessage: '请稍后重试',
+        });
+        throw err;
       } finally {
         markActionSubmitting(false);
       }
@@ -333,7 +341,7 @@ export function useActionOrchestrator({
     roomScreenLog.debug('Triggering auto-intent', { key, intent: autoIntent.type });
     lastAutoIntentKeyRef.current = key;
     void handleActionIntent(autoIntent).catch((err) => {
-      handleError(err, { label: 'auto-trigger', logger: roomScreenLog, alertTitle: false });
+      handleError(err, { label: 'auto-trigger', logger: roomScreenLog, feedback: false });
     });
   }, [
     imActioner,
