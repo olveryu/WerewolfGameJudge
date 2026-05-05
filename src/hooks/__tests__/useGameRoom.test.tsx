@@ -130,17 +130,16 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       expect(ackResult).toEqual({ success: true, reason: undefined });
-      expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(
-        1,
-        'TestPlayer',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
+      expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(1, {
+        displayName: 'TestPlayer',
+        avatarUrl: undefined,
+        avatarFrame: undefined,
+        seatFlair: undefined,
+        nameStyle: undefined,
+        level: undefined,
+        roleRevealEffect: undefined,
+        seatAnimation: undefined,
+      });
     });
 
     it('should pass through seat_taken reason from facade', async () => {

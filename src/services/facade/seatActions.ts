@@ -12,6 +12,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { facadeLog } from '@/utils/logger';
 
+import type { SeatProfile } from '../types/IGameFacade';
 import { type ApiResponse, callApiWithRetry } from './apiUtils';
 
 /**
@@ -56,27 +57,9 @@ async function callSeatApi(
 export async function takeSeat(
   ctx: SeatActionsContext,
   seat: number,
-  displayName?: string,
-  avatarUrl?: string,
-  avatarFrame?: string,
-  seatFlair?: string,
-  nameStyle?: string,
-  level?: number,
-  roleRevealEffect?: string,
-  seatAnimation?: string,
+  profile?: SeatProfile,
 ): Promise<boolean> {
-  const result = await takeSeatWithAck(
-    ctx,
-    seat,
-    displayName,
-    avatarUrl,
-    avatarFrame,
-    seatFlair,
-    nameStyle,
-    level,
-    roleRevealEffect,
-    seatAnimation,
-  );
+  const result = await takeSeatWithAck(ctx, seat, profile);
   return result.success;
 }
 
@@ -86,14 +69,7 @@ export async function takeSeat(
 export async function takeSeatWithAck(
   ctx: SeatActionsContext,
   seat: number,
-  displayName?: string,
-  avatarUrl?: string,
-  avatarFrame?: string,
-  seatFlair?: string,
-  nameStyle?: string,
-  level?: number,
-  roleRevealEffect?: string,
-  seatAnimation?: string,
+  profile?: SeatProfile,
 ): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
@@ -108,14 +84,14 @@ export async function takeSeatWithAck(
       action: 'sit',
       userId: ctx.myUserId,
       seat: seat,
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      roleRevealEffect,
-      seatAnimation,
-      level,
+      displayName: profile?.displayName,
+      avatarUrl: profile?.avatarUrl,
+      avatarFrame: profile?.avatarFrame,
+      seatFlair: profile?.seatFlair,
+      nameStyle: profile?.nameStyle,
+      roleRevealEffect: profile?.roleRevealEffect,
+      seatAnimation: profile?.seatAnimation,
+      level: profile?.level,
     },
     ctx.store,
   );

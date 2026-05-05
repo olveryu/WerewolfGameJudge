@@ -236,17 +236,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           .then((s) => s.level)
           .catch(() => undefined);
 
-        return await facade.takeSeat(
-          seat,
+        return await facade.takeSeat(seat, {
           displayName,
-          authUser?.avatarUrl ?? undefined,
-          authUser?.avatarFrame ?? undefined,
-          authUser?.seatFlair ?? undefined,
-          authUser?.nameStyle ?? undefined,
+          avatarUrl: authUser?.avatarUrl ?? undefined,
+          avatarFrame: authUser?.avatarFrame ?? undefined,
+          seatFlair: authUser?.seatFlair ?? undefined,
+          nameStyle: authUser?.nameStyle ?? undefined,
           level,
-          authUser?.equippedEffect ?? undefined,
-          authUser?.seatAnimation ?? undefined,
-        );
+          roleRevealEffect: authUser?.equippedEffect ?? undefined,
+          seatAnimation: authUser?.seatAnimation ?? undefined,
+        });
       } catch (err) {
         handleError(err, {
           label: '入座',
@@ -280,17 +279,16 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           .then((s) => s.level)
           .catch(() => undefined);
 
-        const result = await facade.takeSeatWithAck(
-          seat,
+        const result = await facade.takeSeatWithAck(seat, {
           displayName,
-          authUser?.avatarUrl ?? undefined,
-          authUser?.avatarFrame ?? undefined,
-          authUser?.seatFlair ?? undefined,
-          authUser?.nameStyle ?? undefined,
+          avatarUrl: authUser?.avatarUrl ?? undefined,
+          avatarFrame: authUser?.avatarFrame ?? undefined,
+          seatFlair: authUser?.seatFlair ?? undefined,
+          nameStyle: authUser?.nameStyle ?? undefined,
           level,
-          authUser?.equippedEffect ?? undefined,
-          authUser?.seatAnimation ?? undefined,
-        );
+          roleRevealEffect: authUser?.equippedEffect ?? undefined,
+          seatAnimation: authUser?.seatAnimation ?? undefined,
+        });
 
         // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)
         if (!result.success && result.reason === 'seat_taken') {

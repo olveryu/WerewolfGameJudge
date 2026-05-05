@@ -34,7 +34,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
 import { type AudioService } from '@/services/infra/AudioService';
-import type { FacadeStateListener, IGameFacade } from '@/services/types/IGameFacade';
+import type { FacadeStateListener, IGameFacade, SeatProfile } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import type { IRoomService } from '@/services/types/IRoomService';
@@ -368,54 +368,12 @@ export class GameFacade implements IGameFacade {
   // Seating (委托给 seatActions)
   // =========================================================================
 
-  async takeSeat(
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    level?: number,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<boolean> {
-    return seatActions.takeSeat(
-      this.#getSeatActionsContext(),
-      seat,
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      level,
-      roleRevealEffect,
-      seatAnimation,
-    );
+  async takeSeat(seat: number, profile?: SeatProfile): Promise<boolean> {
+    return seatActions.takeSeat(this.#getSeatActionsContext(), seat, profile);
   }
 
-  async takeSeatWithAck(
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    level?: number,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<ActionResult> {
-    return seatActions.takeSeatWithAck(
-      this.#getSeatActionsContext(),
-      seat,
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      level,
-      roleRevealEffect,
-      seatAnimation,
-    );
+  async takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult> {
+    return seatActions.takeSeatWithAck(this.#getSeatActionsContext(), seat, profile);
   }
 
   async leaveSeat(): Promise<boolean> {

@@ -219,7 +219,10 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const result = await facade.takeSeat(0, 'Host Player', 'avatar.png');
+      const result = await facade.takeSeat(0, {
+        displayName: 'Host Player',
+        avatarUrl: 'avatar.png',
+      });
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -319,7 +322,10 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const result = await facade.takeSeat(1, 'Player One', 'avatar.png');
+      const result = await facade.takeSeat(1, {
+        displayName: 'Player One',
+        avatarUrl: 'avatar.png',
+      });
 
       expect(result).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -338,7 +344,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
       });
 
-      const result = await facade.takeSeat(1, 'Player One');
+      const result = await facade.takeSeat(1, { displayName: 'Player One' });
 
       expect(result).toBe(false);
     });
@@ -374,7 +380,7 @@ describe('GameFacade', () => {
           }),
       });
 
-      await facade.takeSeat(1, 'Player One');
+      await facade.takeSeat(1, { displayName: 'Player One' });
 
       // 座位操作不做乐观更新，靠 HTTP 响应的 applySnapshot 渲染
       expect(facade.getMySeat()).toBe(1);
@@ -436,7 +442,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const result = await facade.takeSeatWithAck(1, 'Player One');
+      const result = await facade.takeSeatWithAck(1, { displayName: 'Player One' });
 
       expect(result).toEqual({ success: true });
     });
@@ -448,7 +454,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
       });
 
-      const result = await facade.takeSeatWithAck(1, 'Player One');
+      const result = await facade.takeSeatWithAck(1, { displayName: 'Player One' });
 
       expect(result).toEqual({ success: false, reason: 'seat_taken' });
     });
@@ -460,7 +466,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: false, reason: 'game_in_progress' }),
       });
 
-      const result = await facade.takeSeatWithAck(1, 'Player One');
+      const result = await facade.takeSeatWithAck(1, { displayName: 'Player One' });
 
       expect(result).toEqual({ success: false, reason: 'game_in_progress' });
     });
@@ -468,7 +474,7 @@ describe('GameFacade', () => {
     it('should return NETWORK_ERROR on fetch failure', async () => {
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
 
-      const result = await facade.takeSeatWithAck(1, 'Player One');
+      const result = await facade.takeSeatWithAck(1, { displayName: 'Player One' });
 
       expect(result).toEqual({ success: false, reason: 'NETWORK_ERROR' });
     });
@@ -549,7 +555,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: true }),
       });
 
-      const result = await facade.takeSeatWithAck(0, 'Host Player');
+      const result = await facade.takeSeatWithAck(0, { displayName: 'Host Player' });
 
       expect(result).toEqual({ success: true });
     });
@@ -561,7 +567,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve({ success: false, reason: 'invalid_seat' }),
       });
 
-      const result = await facade.takeSeatWithAck(999, 'Host Player');
+      const result = await facade.takeSeatWithAck(999, { displayName: 'Host Player' });
 
       expect(result).toEqual({ success: false, reason: 'invalid_seat' });
     });

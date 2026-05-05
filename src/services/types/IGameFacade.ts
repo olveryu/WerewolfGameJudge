@@ -12,6 +12,18 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
 
+/** 入座时携带的玩家 profile 信息 */
+export interface SeatProfile {
+  displayName?: string;
+  avatarUrl?: string;
+  avatarFrame?: string;
+  seatFlair?: string;
+  nameStyle?: string;
+  level?: number;
+  roleRevealEffect?: string;
+  seatAnimation?: string;
+}
+
 /** Connection status for UI display (re-exported from RealtimeService) */
 export enum ConnectionStatus {
   Connecting = 'Connecting',
@@ -107,34 +119,14 @@ export interface IGameFacade {
    * 入座
    * 统一 HTTP API，服务端处理
    */
-  takeSeat(
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    level?: number,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<boolean>;
+  takeSeat(seat: number, profile?: SeatProfile): Promise<boolean>;
 
   /**
    * 入座（带 ACK 等待）
    * 统一 HTTP API，等待服务端响应
    * @returns success + reason（透传服务端拒绝原因）
    */
-  takeSeatWithAck(
-    seat: number,
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    level?: number,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<ActionResult>;
+  takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult>;
   /**
    * 离座
    * 统一 HTTP API，服务端处理
