@@ -16,7 +16,7 @@ import type { IntentExecutor } from './types';
 
 export const revealExecutor: IntentExecutor = async (intent, ctx) => {
   const { gameState, gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
-  const { submitRevealAckSafe, setPendingRevealDialog, actionDialogs } = ctx;
+  const { submitRevealAck, setPendingRevealDialog, actionDialogs } = ctx;
 
   if (!gameState) return;
   if (!intent.revealKind) {
@@ -50,14 +50,23 @@ export const revealExecutor: IntentExecutor = async (intent, ctx) => {
           ? reveal.result
           : getRoleDisplayName(reveal.result);
       const titlePrefix = ui?.revealTitlePrefix ?? revealKind;
-      actionDialogs.showRevealDialog(
-        `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`,
-        '',
-        () => {
-          submitRevealAckSafe(revealKind);
-          setPendingRevealDialog(false);
-        },
-      );
+      const revealTitle = `${titlePrefix}：${formatSeat(reveal.targetSeat)}是${displayResult}`;
+
+      const attemptAck = (): void => {
+        void submitRevealAck().then((result) => {
+          if (!mountedRef.current) return;
+          if (result.success) {
+            setPendingRevealDialog(false);
+          } else {
+            roomScreenLog.warn('revealAck failed, re-showing dialog for retry', {
+              reason: result.reason,
+            });
+            actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
+          }
+        });
+      };
+
+      actionDialogs.showRevealDialog(revealTitle, '', attemptAck);
     } else {
       roomScreenLog.warn(
         `${revealKind}Reveal timeout - no reveal received after ${maxRetries * retryInterval}ms`,

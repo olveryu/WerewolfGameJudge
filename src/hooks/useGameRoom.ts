@@ -114,7 +114,7 @@ interface UseGameRoomResult {
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAck: () => Promise<void>;
+  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;

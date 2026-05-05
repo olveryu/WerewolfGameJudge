@@ -72,7 +72,7 @@ interface UseInteractionDispatcherParams {
   showRestartDialog: () => void;
 
   // ── Submission callbacks ──
-  submitRevealAckSafe: () => void;
+  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   setControlledSeat: (seat: number | null) => void;
   kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
@@ -138,7 +138,7 @@ export function useInteractionDispatcher({
   showPrepareToFlipDialog,
   showStartGameDialog,
   showRestartDialog,
-  submitRevealAckSafe,
+  submitRevealAck,
   sendWolfRobotHunterStatusViewed,
   setControlledSeat,
   kickPlayer,
@@ -413,8 +413,15 @@ export function useInteractionDispatcher({
           roomScreenLog.debug('dispatchInteraction REVEAL_ACK', {
             revealRole: result.revealRole,
           });
-          submitRevealAckSafe();
-          setPendingRevealDialog(false);
+          void submitRevealAck().then((ackResult) => {
+            if (ackResult.success) {
+              setPendingRevealDialog(false);
+            } else {
+              roomScreenLog.warn('REVEAL_ACK failed via dispatcher', {
+                reason: ackResult.reason,
+              });
+            }
+          });
           return;
 
         case 'HUNTER_STATUS_VIEWED':
@@ -505,7 +512,7 @@ export function useInteractionDispatcher({
       showPrepareToFlipDialog,
       showStartGameDialog,
       showRestartDialog,
-      submitRevealAckSafe,
+      submitRevealAck,
       sendWolfRobotHunterStatusViewed,
       setControlledSeat,
       kickPlayer,

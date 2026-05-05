@@ -12,7 +12,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -56,7 +56,7 @@ interface UseActionOrchestratorParams {
 
   // ── Submission callbacks ──
   submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAckSafe: (role: RevealKind) => void;
+  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   submitGroupConfirmAck: () => void;
 
@@ -108,7 +108,7 @@ export function useActionOrchestrator({
   setFirstSwapSeat,
   setSecondSeat,
   submitAction,
-  submitRevealAckSafe,
+  submitRevealAck,
   sendWolfRobotHunterStatusViewed,
   submitGroupConfirmAck,
   multiSelectedSeats,
@@ -251,7 +251,7 @@ export function useActionOrchestrator({
         setMultiSelectedSeats,
         proceedWithAction,
         confirmThenAct,
-        submitRevealAckSafe,
+        submitRevealAck,
         sendWolfRobotHunterStatusViewed,
         submitGroupConfirmAck,
         setPendingRevealDialog,
@@ -280,7 +280,7 @@ export function useActionOrchestrator({
       currentActionRole,
       pendingHunterStatusViewed,
       sendWolfRobotHunterStatusViewed,
-      submitRevealAckSafe,
+      submitRevealAck,
       submitGroupConfirmAck,
       actorSeatForUi,
       multiSelectedSeats,

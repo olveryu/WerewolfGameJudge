@@ -9,7 +9,7 @@
  * Does not import services directly.
  */
 
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type { MutableRefObject } from 'react';
 
@@ -52,7 +52,7 @@ export interface ExecutorContext {
   ) => void;
 
   // ── Action callbacks ──
-  submitRevealAckSafe: (role: RevealKind) => void;
+  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   submitGroupConfirmAck: () => void;
 

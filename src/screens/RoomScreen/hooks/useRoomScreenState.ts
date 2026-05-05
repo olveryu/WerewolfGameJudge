@@ -202,10 +202,6 @@ export function useRoomScreenState(
     return Array.from(gameState.players.values()).some((p) => p?.isBot);
   }, [gameState]);
 
-  const submitRevealAckSafe = useCallback(() => {
-    fireAndForget(submitRevealAck(), '[submitRevealAckSafe] Unhandled error', roomScreenLog);
-  }, [submitRevealAck]);
-
   const submitGroupConfirmAckSafe = useCallback(() => {
     fireAndForget(
       submitGroupConfirmAck(),
@@ -469,7 +465,7 @@ export function useRoomScreenState(
     setFirstSwapSeat,
     setSecondSeat,
     submitAction,
-    submitRevealAckSafe,
+    submitRevealAck,
     sendWolfRobotHunterStatusViewed,
     submitGroupConfirmAck: submitGroupConfirmAckSafe,
     multiSelectedSeats,
@@ -645,7 +641,7 @@ export function useRoomScreenState(
     setControlledSeat,
     setPendingRevealDialog,
     viewedRole,
-    submitRevealAckSafe,
+    submitRevealAck,
     sendWolfRobotHunterStatusViewed,
     handleLeaveRoom,
     handleSettingsPress,

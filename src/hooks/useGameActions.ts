@@ -80,7 +80,7 @@ interface GameActionsState {
   // Player night actions
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAck: () => Promise<void>;
+  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   submitGroupConfirmAck: () => Promise<void>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
@@ -212,9 +212,10 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(async (): Promise<void> => {
+  const submitRevealAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
     const result = await facade.submitRevealAck();
     handleMutationResult(result, '确认揭示', toastError);
+    return result;
   }, [facade]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
