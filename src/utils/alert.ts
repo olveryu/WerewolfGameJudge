@@ -64,12 +64,22 @@ export const setAlertListener = (listener: AlertListener | null) => {
 };
 
 /**
+ * Module-level generation counter. Increments synchronously on every showAlert() call.
+ * Used by AlertModal to detect that the current alert was replaced during an async
+ * button callback — the .then() microtask fires before React re-renders, so a
+ * useEffect-based approach cannot catch this in time.
+ */
+let alertGeneration = 0;
+export const getAlertGeneration = (): number => alertGeneration;
+
+/**
  * Cross-platform alert function that works on both native and web
  * Uses custom modal for consistent UI across all platforms
  */
 export const showAlert = (title: string, message?: string, buttons?: AlertButton[]): boolean => {
   if (alertBlocked) return false;
 
+  alertGeneration++;
   const alertButtons = buttons || [{ text: '确定' }];
 
   // Use custom modal if listener is set (preferred for consistent UI)

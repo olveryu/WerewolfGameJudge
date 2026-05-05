@@ -6,7 +6,7 @@
  * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
  */
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -29,6 +29,7 @@ import {
   type ThemeColors,
   typography,
 } from '@/theme';
+import { getAlertGeneration } from '@/utils/alert';
 
 export interface AlertButton {
   text: string;
@@ -91,22 +92,14 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   const [inputValue, setInputValue] = useState(input?.defaultValue ?? '');
   const [loadingIndex, setLoadingIndex] = useState<number | null>(null);
-  const mountedRef = useRef(true);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Reset input value and loading state when modal opens with new config
+  // Reset input value and loading state when modal opens or alert config changes
   useEffect(() => {
     if (visible) {
       setInputValue(input?.defaultValue ?? '');
       setLoadingIndex(null);
     }
-  }, [visible, input?.defaultValue]);
+  }, [visible, title, buttons, input?.defaultValue]);
 
   const handleButtonPress = useCallback(
     (button: AlertButton, index: number) => {
@@ -118,20 +111,22 @@ export const AlertModal: React.FC<AlertModalProps> = ({
         return;
       }
 
-      // Async callback: keep modal open, show loading on pressed button
+      // Async callback: keep modal open, show loading on pressed button.
+      // Capture alertGeneration synchronously — if showAlert() is called during
+      // the callback (replacing this alert with a new one), the generation will
+      // have incremented by the time .then() fires, preventing stale onClose().
       setLoadingIndex(index);
+      const gen = getAlertGeneration();
       result.then(
         () => {
-          if (mountedRef.current) {
-            setLoadingIndex(null);
-            onClose();
-          }
+          if (getAlertGeneration() !== gen) return;
+          setLoadingIndex(null);
+          onClose();
         },
         () => {
           // On rejection: reset button so user can retry
-          if (mountedRef.current) {
-            setLoadingIndex(null);
-          }
+          if (getAlertGeneration() !== gen) return;
+          setLoadingIndex(null);
         },
       );
     },
