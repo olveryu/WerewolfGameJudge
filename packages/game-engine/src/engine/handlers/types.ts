@@ -40,6 +40,15 @@ export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
+  /**
+   * 副作用列表。消费语义（DO GameRoom 层）：
+   * - `undefined`：默认 broadcast（`?.some() ?? true`）
+   * - `[]`：显式跳过 broadcast（`.some()` → false）
+   * - 非空数组：按列出的类型执行（`BROADCAST_STATE` 控制广播，`PLAY_AUDIO` 转换为音频 action）
+   *
+   * 注意：持久化（SQLite write）在 processAction 内无条件执行，不受此字段控制。
+   * `SAVE_STATE` 是声明性注解，便于意图可读性，不实际门控写入。
+   */
   readonly sideEffects?: readonly SideEffect[];
   /** 可选元信息（如 'DEDUPLICATED'），不影响 success 语义，供客户端 toast 使用 */
   readonly reason?: string;
@@ -49,6 +58,9 @@ export interface HandlerRejection {
   readonly kind: 'rejection';
   readonly reason: string;
   readonly actions: StateAction[];
+  /**
+   * 副作用列表。语义同 HandlerSuccess.sideEffects。
+   */
   readonly sideEffects?: readonly SideEffect[];
 }
 
