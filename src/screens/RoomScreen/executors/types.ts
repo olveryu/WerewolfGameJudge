@@ -54,7 +54,7 @@ export interface ExecutorContext {
   // ── Action callbacks ──
   submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  submitGroupConfirmAck: () => void;
+  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
 
   // ── Pending state ──
   setPendingRevealDialog: (v: boolean) => void;

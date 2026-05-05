@@ -81,7 +81,7 @@ interface GameActionsState {
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  submitGroupConfirmAck: () => Promise<void>;
+  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
@@ -220,11 +220,15 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
-  const submitGroupConfirmAck = useCallback(async (): Promise<void> => {
+  const submitGroupConfirmAck = useCallback(async (): Promise<{
+    success: boolean;
+    reason?: string;
+  }> => {
     const seat = debug.effectiveSeat;
-    if (seat === null) return;
+    if (seat === null) return { success: false, reason: 'NO_SEAT' };
     const result = await facade.submitGroupConfirmAck(seat);
     handleMutationResult(result, '确认催眠', toastError);
+    return result;
   }, [debug.effectiveSeat, facade]);
 
   // WolfRobot hunter status viewed gate

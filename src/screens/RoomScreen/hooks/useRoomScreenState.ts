@@ -31,7 +31,6 @@ import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { fireAndForget } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
@@ -201,14 +200,6 @@ export function useRoomScreenState(
     if (!gameState) return false;
     return Array.from(gameState.players.values()).some((p) => p?.isBot);
   }, [gameState]);
-
-  const submitGroupConfirmAckSafe = useCallback(() => {
-    fireAndForget(
-      submitGroupConfirmAck(),
-      '[submitGroupConfirmAckSafe] Unhandled error',
-      roomScreenLog,
-    );
-  }, [submitGroupConfirmAck]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Local UI state
@@ -467,7 +458,7 @@ export function useRoomScreenState(
     submitAction,
     submitRevealAck,
     sendWolfRobotHunterStatusViewed,
-    submitGroupConfirmAck: submitGroupConfirmAckSafe,
+    submitGroupConfirmAck,
     multiSelectedSeats,
     setMultiSelectedSeats,
     getAutoTriggerIntent,

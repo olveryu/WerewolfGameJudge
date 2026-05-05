@@ -115,7 +115,7 @@ interface UseGameRoomResult {
   viewedRole: () => Promise<{ success: boolean; reason?: string }>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  submitGroupConfirmAck: () => Promise<void>;
+  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;

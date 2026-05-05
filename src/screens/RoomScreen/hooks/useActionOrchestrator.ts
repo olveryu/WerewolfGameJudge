@@ -58,7 +58,7 @@ interface UseActionOrchestratorParams {
   submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
   submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  submitGroupConfirmAck: () => void;
+  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
 
   // ── Multi-select state (owned by RoomScreen, passed in + out) ──
   multiSelectedSeats: readonly number[];
