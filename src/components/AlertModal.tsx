@@ -103,20 +103,22 @@ export const AlertModal: React.FC<AlertModalProps> = ({
 
   const handleButtonPress = useCallback(
     (button: AlertButton, index: number) => {
+      // Capture generation BEFORE calling onPress — if onPress synchronously
+      // calls showAlert() (e.g. "详细信息" → "自己查看" → showConfirmAlert),
+      // generation will have incremented and we must NOT close the new alert.
+      const gen = getAlertGeneration();
       const result = button.onPress?.(input ? inputValue : undefined);
 
-      // Sync callback (or no callback): close immediately (existing behavior)
+      // Sync callback (or no callback): close only if no new alert was shown
       if (!result || typeof result.then !== 'function') {
-        onClose();
+        if (getAlertGeneration() === gen) {
+          onClose();
+        }
         return;
       }
 
       // Async callback: keep modal open, show loading on pressed button.
-      // Capture alertGeneration synchronously — if showAlert() is called during
-      // the callback (replacing this alert with a new one), the generation will
-      // have incremented by the time .then() fires, preventing stale onClose().
       setLoadingIndex(index);
-      const gen = getAlertGeneration();
       result.then(
         () => {
           if (getAlertGeneration() !== gen) return;
