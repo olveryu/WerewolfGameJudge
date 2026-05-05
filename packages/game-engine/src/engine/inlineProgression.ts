@@ -66,12 +66,17 @@ function isStepComplete(state: GameState): boolean {
   // groupConfirm steps: complete when all seated players have acked.
   const schema = SCHEMAS[stepId as SchemaId];
   if (schema?.kind === 'groupConfirm') {
-    const acks =
-      stepId === 'awakenedGargoyleConvertReveal'
-        ? (state.conversionRevealAcks ?? [])
-        : stepId === 'cupidLoversReveal'
-          ? (state.cupidLoversRevealAcks ?? [])
-          : (state.piperRevealAcks ?? []);
+    const GROUP_CONFIRM_ACK_MAP: Record<string, readonly number[] | undefined> = {
+      awakenedGargoyleConvertReveal: state.conversionRevealAcks,
+      cupidLoversReveal: state.cupidLoversRevealAcks,
+      piperHypnotizedReveal: state.piperRevealAcks,
+    };
+    const acks = GROUP_CONFIRM_ACK_MAP[stepId];
+    if (acks === undefined) {
+      // Fail fast: new groupConfirm step without registered ack list
+      log.error('No ack list mapping for groupConfirm step', { stepId });
+      return false;
+    }
     // All seated (non-null) players must ack
     const seatedCount = Object.values(state.players).filter((p) => p !== null).length;
     return acks.length >= seatedCount;
