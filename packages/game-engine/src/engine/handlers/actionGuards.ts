@@ -16,6 +16,7 @@ import {
 import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../../models/roles/spec';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput } from '../../resolvers/types';
+import { assertNever } from '../../utils/assertNever';
 import type { HandlerResult, NonNullState } from './types';
 import { handlerError } from './types';
 
@@ -206,10 +207,16 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
       // 选卡类型：cardIndex == null 视为 skip
       return actionInput.cardIndex === undefined || actionInput.cardIndex === null;
 
+    case 'skip':
+      // skip 类型：定义上就是 skip
+      return true;
+
+    case 'confirmTarget':
+      // confirmTarget 类型：confirmed !== true 视为 skip
+      return actionInput.confirmed !== true;
+
     default:
-      // 未知类型：安全策略 - 统一视为 non-skip
-      // 被 block 时宁可多 reject，避免漏过非法输入
-      return false;
+      return assertNever(schema);
   }
 }
 

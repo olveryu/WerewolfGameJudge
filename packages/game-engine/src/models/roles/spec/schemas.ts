@@ -5,6 +5,7 @@
  * 导出 buildSchemas 纯函数，不依赖 service、不含副作用或 IO。
  */
 
+import { assertNever } from '../../../utils/assertNever';
 import type { ActiveAbility, NightStepUi } from './ability.types';
 import type { NightStepDef, RoleSpec } from './roleSpec.types';
 import type { ActionSchema, InlineSubStepSchema, RevealKind, SchemaUi } from './schema.types';
@@ -153,6 +154,9 @@ function buildSchema(
         canSkip: ability?.canSkip ?? false,
         ui,
       };
+
+    default:
+      return assertNever(step.actionKind);
   }
 }
 
