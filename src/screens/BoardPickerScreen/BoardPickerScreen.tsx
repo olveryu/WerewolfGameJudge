@@ -12,7 +12,6 @@ import { TEMPLATE_CATEGORY_LABELS, TemplateCategory } from '@werewolf/game-engin
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import {
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -25,6 +24,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Modal } from '@/components/AppModal';
 import { BoardStrategyModal } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';

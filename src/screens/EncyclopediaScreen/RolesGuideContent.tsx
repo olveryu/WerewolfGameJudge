@@ -10,9 +10,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Faction, getRoleSpec, isWolfRole, type RoleId } from '@werewolf/game-engine/models/roles';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
-import { Modal, Pressable, SectionList, type SectionListData, Text, View } from 'react-native';
+import { Pressable, SectionList, type SectionListData, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { FormTextField } from '@/components/FormTextField';
 import { TESTIDS } from '@/testids';

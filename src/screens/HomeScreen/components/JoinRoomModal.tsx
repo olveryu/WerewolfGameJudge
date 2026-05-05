@@ -6,8 +6,9 @@
  */
 import type React from 'react';
 import { memo, useMemo } from 'react';
-import { Modal, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { NumPad } from '@/components/NumPad';
 

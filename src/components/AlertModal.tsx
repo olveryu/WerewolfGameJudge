@@ -9,7 +9,6 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import {
   View,
 } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,

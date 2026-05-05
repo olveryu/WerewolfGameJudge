@@ -21,8 +21,8 @@ import {
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import {

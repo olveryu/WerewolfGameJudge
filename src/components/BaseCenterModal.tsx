@@ -12,8 +12,9 @@
  */
 import type React from 'react';
 import { useMemo } from 'react';
-import { Modal, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { borderRadius, colors, spacing, type ThemeColors } from '@/theme';
 
 interface BaseCenterModalProps {

@@ -16,10 +16,11 @@ import {
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import { UI_ICONS } from '@/config/iconTokens';

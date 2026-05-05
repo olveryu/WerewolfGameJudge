@@ -513,13 +513,14 @@ export const PlayerProfileCard = memo(PlayerProfileCardComponent);
 
 const styles = StyleSheet.create({
   modalContent: {
+    width: CARD_MAX_WIDTH,
+    maxWidth: '90%',
     padding: 0,
     borderRadius: borderRadius.large,
     overflow: 'hidden',
   },
   card: {
     width: '100%',
-    maxWidth: CARD_MAX_WIDTH,
     minHeight: 240,
     alignItems: 'center',
     overflow: 'visible',

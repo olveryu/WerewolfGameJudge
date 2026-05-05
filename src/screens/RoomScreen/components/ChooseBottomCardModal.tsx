@@ -10,7 +10,6 @@ import type React from 'react';
 import { memo, useMemo } from 'react';
 import {
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ import {
   View,
 } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { getRoleBadge } from '@/utils/roleBadges';

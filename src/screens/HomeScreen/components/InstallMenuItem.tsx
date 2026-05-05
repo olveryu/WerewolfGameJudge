@@ -10,8 +10,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { memo, useCallback, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
+import { Text, TouchableOpacity, View, type ViewStyle } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { componentSizes, fixed, spacing, type ThemeColors } from '@/theme';

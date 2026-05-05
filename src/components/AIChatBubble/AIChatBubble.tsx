@@ -18,7 +18,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -29,6 +28,7 @@ import {
   View,
 } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { UI_ICONS } from '@/config/iconTokens';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 

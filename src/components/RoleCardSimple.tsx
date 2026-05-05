@@ -11,7 +11,6 @@ import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/mo
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import {
-  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -20,6 +19,7 @@ import {
   View,
 } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import {
   getFactionColor,

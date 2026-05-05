@@ -10,6 +10,7 @@ import { Toaster } from 'sonner-native';
 
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
+import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
@@ -323,7 +324,9 @@ export default function App() {
           <ServiceProvider services={services}>
             <AuthProvider>
               <GameFacadeProvider facade={facade}>
-                <AppContent />
+                <ModalStackProvider>
+                  <AppContent />
+                </ModalStackProvider>
               </GameFacadeProvider>
             </AuthProvider>
           </ServiceProvider>

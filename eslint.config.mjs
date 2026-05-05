@@ -121,6 +121,21 @@ export default tseslint.config(
       // Console — use project logger (src/utils/logger.ts) instead
       'no-console': 'error',
 
+      // Forbid raw <Modal> from 'react-native' — use AppModal for inert/a11y stack tracking
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['Modal'],
+              message:
+                "Use { Modal } from '@/components/AppModal' instead — required for inert background blocking and modal stack tracking.",
+            },
+          ],
+        },
+      ],
+
       // Deprecated identifiers — prevent regression after bulk renames
       'no-restricted-syntax': [
         'error',
@@ -164,6 +179,16 @@ export default tseslint.config(
         // Import: allow any (third-party naming out of our control)
         { selector: 'import', format: null },
       ],
+    },
+  },
+
+  // =========================================================================
+  // AppModal — only file allowed to import raw Modal from 'react-native'
+  // =========================================================================
+  {
+    files: ['src/components/AppModal/**'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
 

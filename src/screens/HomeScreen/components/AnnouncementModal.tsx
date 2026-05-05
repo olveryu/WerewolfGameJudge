@@ -34,7 +34,13 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
   if (ANNOUNCEMENT_VERSIONS.length === 0) return null;
 
   return (
-    <BaseCenterModal visible={visible} onClose={onClose} dismissOnOverlayPress animationType="fade">
+    <BaseCenterModal
+      visible={visible}
+      onClose={onClose}
+      dismissOnOverlayPress
+      animationType="fade"
+      contentStyle={styles.modalContent}
+    >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -92,9 +98,11 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
 };
 
 const styles = StyleSheet.create({
+  modalContent: {
+    width: 300,
+    maxWidth: '90%',
+  },
   container: {
-    width: '100%',
-    maxWidth: 300,
     alignItems: 'stretch',
   },
   header: {

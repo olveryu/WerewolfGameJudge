@@ -6,8 +6,9 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import {
   borderRadius,

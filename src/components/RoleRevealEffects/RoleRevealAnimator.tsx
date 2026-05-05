@@ -7,9 +7,10 @@
  */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, Modal, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Modal } from '@/components/AppModal';
 import { crossPlatformTextShadow } from '@/theme';
 import { log } from '@/utils/logger';
 

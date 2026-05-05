@@ -9,8 +9,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { memo, useCallback, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/Button';
 import { UserAvatar } from '@/components/UserAvatar';

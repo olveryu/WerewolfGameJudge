@@ -7,7 +7,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';

@@ -17,7 +17,6 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +26,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Modal } from '@/components/AppModal';
 import { BoardStrategyModal } from '@/components/BoardStrategy';
 import { BOARD_STRATEGY } from '@/components/BoardStrategy/boardStrategyData';
 import { Button } from '@/components/Button';
@@ -358,7 +358,7 @@ const dropdownStyles = StyleSheet.create({
     marginBottom: spacing.small,
   },
   scroll: {
-    maxHeight: '50%',
+    maxHeight: 300,
   },
   item: {
     flexDirection: 'row',

@@ -15,7 +15,6 @@ import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   type ListRenderItemInfo,
-  Modal,
   type NativeSyntheticEvent,
   Text,
   TextInput,
@@ -26,6 +25,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { Modal } from '@/components/AppModal';
 import type { NotepadState, RoleTagInfo } from '@/hooks/useNotepad';
 import { fixed } from '@/theme';
 

@@ -11,7 +11,7 @@
  */
 import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useEffect } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
