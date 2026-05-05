@@ -7,6 +7,8 @@
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles/spec/specs';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
@@ -16,13 +18,22 @@ import type { GameActionResult } from '../durableObjects/gameProcessor';
 import type { GameRoom } from '../durableObjects/GameRoom';
 import type { SeatActionParams } from '../schemas/game';
 
-function createTemplate(roles: string[]) {
+function createTemplate(roles: RoleId[]): GameTemplate {
   return { name: 'Test', numberOfPlayers: roles.length, roles };
 }
 
 function getStub(): DurableObjectStub<GameRoom> {
-  const id = env.GAME_ROOM.newUniqueId();
-  return env.GAME_ROOM.get(id);
+  const id = env.GAME_ROOM!.newUniqueId();
+  return env.GAME_ROOM!.get(id);
+}
+
+/** Narrows a GameActionResult to the success branch; throws if failed. */
+function assertSuccess(
+  result: GameActionResult,
+): asserts result is Extract<GameActionResult, { success: true }> {
+  if (!result.success) {
+    throw new Error(`Expected success but got failure: ${result.reason}`);
+  }
 }
 
 /** Shorthand: sit a player with displayName only (most common case). */
@@ -121,7 +132,7 @@ describe('GameRoom seat management', () => {
 
     const result = await sit(stub, 'p1', 0, 'Player1');
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.players[0]).toBeTruthy();
     expect(result.state!.players[0]!.userId).toBe('p1');
     expect(result.state!.roster['p1'].displayName).toBe('Player1');
@@ -134,7 +145,7 @@ describe('GameRoom seat management', () => {
 
     const result = await standup(stub, 'p1');
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.players[0]).toBeNull();
   });
 
@@ -147,7 +158,7 @@ describe('GameRoom seat management', () => {
 
     const result = await kick(stub, 'host-uid', 1);
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.players[1]).toBeNull();
   });
 });
@@ -157,7 +168,7 @@ describe('GameRoom seat management', () => {
 describe('GameRoom game flow', () => {
   async function initSeatedRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
-    const roles = ['villager', 'wolf', 'seer'];
+    const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
     await stub.init(buildInitialGameState('FLOW-ROOM', 'host-uid', template));
 
@@ -174,7 +185,7 @@ describe('GameRoom game flow', () => {
 
     const result = (await stub.assignRoles()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.status).toBe(GameStatus.Assigned);
     // All players should have roles assigned
     for (let i = 0; i < 3; i++) {
@@ -191,7 +202,7 @@ describe('GameRoom game flow', () => {
 
     const result = (await stub.fillWithBots()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // Remaining seats should be bots
     expect(result.state!.players[1]?.isBot).toBe(true);
     expect(result.state!.players[2]?.isBot).toBe(true);
@@ -203,7 +214,7 @@ describe('GameRoom game flow', () => {
 
     const result = (await stub.restartGame()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // Players are still seated → status is Seated, not Unseated
     expect(result.state?.status).toBe(GameStatus.Seated);
   });
@@ -215,7 +226,7 @@ describe('GameRoom game flow', () => {
 
     const result = (await stub.updateTemplate(['villager', 'wolf', 'witch'])) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.templateRoles).toEqual(['villager', 'wolf', 'witch']);
   });
 
@@ -292,7 +303,7 @@ describe('GameRoom night flow', () => {
   /** Create a 3-player room, assign roles, have all view, reach Ready status. */
   async function initReadyRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
-    const roles = ['villager', 'wolf', 'seer'];
+    const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
     await stub.init(buildInitialGameState('NIGHT-ROOM', 'host-uid', template));
 
@@ -321,7 +332,7 @@ describe('GameRoom night flow', () => {
 
     const result = (await stub.startNight()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.status).toBe(GameStatus.Ongoing);
     expect(result.state?.currentStepId).toBeDefined();
   });
@@ -353,7 +364,7 @@ describe('GameRoom night flow', () => {
 
     const result = (await stub.viewRole('p1', 1)) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.players[1]?.hasViewedRole).toBe(true);
   });
 });
@@ -370,7 +381,7 @@ describe('GameRoom clearAllSeats', () => {
 
     const result = (await stub.clearAllSeats()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // All seats should be null
     for (let i = 0; i < 3; i++) {
       expect(result.state!.players[i]).toBeNull();
@@ -414,7 +425,7 @@ describe('GameRoom board nomination', () => {
       'witch',
     ])) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     expect(result.state?.boardNominations).toBeTruthy();
     expect(result.state!.boardNominations!['p1']).toBeTruthy();
   });
@@ -425,7 +436,7 @@ describe('GameRoom board nomination', () => {
 
     const result = (await stub.boardUpvote('p2', 'p1')) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     const nomination = result.state!.boardNominations!['p1'];
     expect(nomination.upvoters).toContain('p2');
   });
@@ -436,7 +447,7 @@ describe('GameRoom board nomination', () => {
 
     const result = (await stub.boardWithdraw('p1')) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // After withdraw, the nomination should be removed
     const noms = result.state!.boardNominations ?? {};
     expect(noms['p1']).toBeUndefined();
@@ -461,7 +472,7 @@ describe('GameRoom board nomination', () => {
       'wolf',
     ])) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // p2's nomination should be an upvote on p1's, not a separate entry
     const p1Nom = result.state!.boardNominations!['p1'];
     expect(p1Nom.upvoters).toContain('p2');
@@ -489,7 +500,7 @@ describe('GameRoom markAllBotsViewed', () => {
 
     const result = (await stub.markAllBotsViewed()) as GameActionResult;
 
-    expect(result.success).toBe(true);
+    assertSuccess(result);
     // Bot seats (1, 2) should have viewed roles
     expect(result.state!.players[1]?.hasViewedRole).toBe(true);
     expect(result.state!.players[2]?.hasViewedRole).toBe(true);

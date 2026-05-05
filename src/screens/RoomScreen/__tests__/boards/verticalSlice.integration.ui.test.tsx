@@ -188,7 +188,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
 
       // Actions
       initializeRoom: jest.fn(),
-      joinRoom: jest.fn().mockResolvedValue(true),
+      joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
@@ -300,7 +300,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
       lastStateReceivedAt: Date.now(),
 
       initializeRoom: jest.fn(),
-      joinRoom: jest.fn().mockResolvedValue(true),
+      joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),

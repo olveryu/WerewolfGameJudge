@@ -14,6 +14,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback } from 'react';
 import { toast } from 'sonner-native';
@@ -46,7 +47,7 @@ function toastError(title: string, message: string): void {
 }
 
 function handleMutationResult(
-  result: { success: boolean; reason?: string },
+  result: ActionResult,
   actionLabel: string,
   onBusinessError?: BusinessErrorHandler,
 ): void {
@@ -75,13 +76,13 @@ interface GameActionsState {
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  setAudioPlaying: (isPlaying: boolean) => Promise<{ success: boolean; reason?: string }>;
+  setAudioPlaying: (isPlaying: boolean) => Promise<ActionResult>;
 
   // Player night actions
-  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
+  viewedRole: () => Promise<ActionResult>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck: () => Promise<ActionResult>;
+  submitGroupConfirmAck: () => Promise<ActionResult>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
   postProgression: () => Promise<boolean>;
@@ -172,7 +173,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
 
   // Set audio playing (host only) - PR7 音频时序控制
   const setAudioPlaying = useCallback(
-    async (isPlaying: boolean): Promise<{ success: boolean; reason?: string }> => {
+    async (isPlaying: boolean): Promise<ActionResult> => {
       if (!facade.isHostPlayer()) {
         return { success: false, reason: 'host_only' };
       }
@@ -188,7 +189,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   // Mark role as viewed (pessimistic — POST must succeed before UI shows card)
   // Debug mode: when delegating (controlledSeat !== null), mark the bot's seat as viewed
   // Normal mode: mark my own seat as viewed
-  const viewedRole = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+  const viewedRole = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.controlledSeat ?? mySeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
     const result = await facade.markViewedRole(seat);
@@ -211,7 +212,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
-  const submitRevealAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+  const submitRevealAck = useCallback(async (): Promise<ActionResult> => {
     const result = await facade.submitRevealAck();
     handleMutationResult(result, '确认揭示', toastError);
     return result;
@@ -219,10 +220,7 @@ export function useGameActions(deps: GameActionsDeps): GameActionsState {
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
-  const submitGroupConfirmAck = useCallback(async (): Promise<{
-    success: boolean;
-    reason?: string;
-  }> => {
+  const submitGroupConfirmAck = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.effectiveSeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
     const result = await facade.submitGroupConfirmAck(seat);

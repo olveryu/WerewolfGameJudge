@@ -15,6 +15,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useState } from 'react';
 
 import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
@@ -34,6 +35,9 @@ import { gameRoomLog } from '@/utils/logger';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Discriminated union: success guarantees no error field; failure guarantees error string. */
+export type RoomInitResult = { success: true } | { success: false; error: string };
+
 interface RoomLifecycleState {
   loading: boolean;
   error: string | null;
@@ -47,16 +51,16 @@ interface RoomLifecycleState {
   clearLastSeatError: () => void;
 
   // Room actions
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
-  joinRoom: (roomCode: string) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
 
   // Seat actions
   takeSeat: (seat: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;
-  takeSeatWithAck: (seat: number) => Promise<{ success: boolean; reason?: string }>;
-  leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
-  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
+  takeSeatWithAck: (seat: number) => Promise<ActionResult>;
+  leaveSeatWithAck: () => Promise<ActionResult>;
+  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
 
   // Sync
   requestSnapshot: () => Promise<boolean>;
@@ -93,7 +97,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   // Initialize room: facade only, no DB creation.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomCode.
   const initializeRoom = useCallback(
-    async (roomCode: string, template: GameTemplate): Promise<boolean> => {
+    async (roomCode: string, template: GameTemplate): Promise<RoomInitResult> => {
       setLoading(true);
       setError(null);
 
@@ -104,7 +108,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
           gameRoomLog.info('initializeRoom: No userId, requesting auth');
           setNeedsAuth(true);
-          return false;
+          return { success: false, error: 'needs_auth' };
         }
 
         // Set roomRecord for connection sync & leaveRoom cleanup
@@ -112,13 +116,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
         await facade.createRoom(roomCode, hostUserId, template);
 
-        return true;
+        return { success: true };
       } catch (err) {
         // Superseded = old connectAndWait cancelled by a newer call (retry).
         // The new call is already in progress — silently ignore.
         if (err instanceof SupersededError) {
           gameRoomLog.debug('initializeRoom: Superseded by retry, ignoring');
-          return false;
+          return { success: false, error: 'superseded' };
         }
         const message = getErrorMessage(err, '房间初始化失败，请重试');
         handleError(err, {
@@ -129,7 +133,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
             e instanceof Error && e.message.includes('channel closed before subscribe'),
         });
         setError(message);
-        return false;
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
@@ -139,7 +143,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Join an existing room as player
   const joinRoom = useCallback(
-    async (roomCode: string): Promise<boolean> => {
+    async (roomCode: string): Promise<RoomInitResult> => {
       setLoading(true);
       setError(null);
 
@@ -150,16 +154,17 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           // First-time user (no session) — show login modal instead of silent anonymous sign-in
           gameRoomLog.info('joinRoom: No userId, requesting auth');
           setNeedsAuth(true);
-          return false;
+          return { success: false, error: 'needs_auth' };
         }
 
         // Check if room exists
         const record = await joinRoomAsync(roomCode);
         if (!record) {
-          setError('房间不存在');
+          const msg = '房间不存在';
+          setError(msg);
           // 防御性清理：房间已不存在，清除过时的 lastRoomCode
           storage.remove(LAST_ROOM_CODE_KEY);
-          return false;
+          return { success: false, error: msg };
         }
         setRoomRecord(record);
 
@@ -168,24 +173,25 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           gameRoomLog.debug('Host rejoin detected, attempting recovery');
           const result = await facade.joinRoom(roomCode, playerUserId, true);
           if (!result.success) {
+            const msg = '房间状态已过期，请重新创建房间';
             gameRoomLog.error('Host rejoin failed', { reason: result.reason });
-            setError('房间状态已过期，请重新创建房间');
-            return false;
+            setError(msg);
+            return { success: false, error: msg };
           }
           gameRoomLog.debug('Host rejoin successful');
-          return true;
+          return { success: true };
         }
 
         // Player: isHost=false
         await facade.joinRoom(roomCode, playerUserId, false);
 
-        return true;
+        return { success: true };
       } catch (err) {
         // Superseded = old connectAndWait cancelled by a newer call (retry).
         // The new call is already in progress — silently ignore.
         if (err instanceof SupersededError) {
           gameRoomLog.debug('joinRoom: Superseded by retry, ignoring');
-          return false;
+          return { success: false, error: 'superseded' };
         }
         const message = getErrorMessage(err, '加入房间失败，请重试');
         handleError(err, {
@@ -196,7 +202,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
             e instanceof Error && e.message.includes('channel closed before subscribe'),
         });
         setError(message);
-        return false;
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
@@ -266,7 +272,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Take seat with ack (unified API)
   const takeSeatWithAck = useCallback(
-    async (seat: number): Promise<{ success: boolean; reason?: string }> => {
+    async (seat: number): Promise<ActionResult> => {
       try {
         const displayName = authUser?.displayName ?? authService.generateDisplayName();
         const level = await queryClient
@@ -301,7 +307,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   );
 
   // Leave seat with ack (unified API)
-  const leaveSeatWithAck = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+  const leaveSeatWithAck = useCallback(async (): Promise<ActionResult> => {
     try {
       return await facade.leaveSeatWithAck();
     } catch (err) {
@@ -312,7 +318,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
 
   // Kick player (Host-only)
   const kickPlayer = useCallback(
-    async (targetSeat: number): Promise<{ success: boolean; reason?: string }> => {
+    async (targetSeat: number): Promise<ActionResult> => {
       try {
         return await facade.kickPlayer(targetSeat);
       } catch (err) {

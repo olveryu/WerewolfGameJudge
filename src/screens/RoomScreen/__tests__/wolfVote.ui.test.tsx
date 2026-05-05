@@ -106,7 +106,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     setControlledSeat: jest.fn(),
 
     // Actions used by RoomScreen
-    joinRoom: jest.fn().mockResolvedValue(true),
+    joinRoom: jest.fn().mockResolvedValue({ success: true }),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),

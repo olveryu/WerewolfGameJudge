@@ -1,8 +1,9 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * Calls useGameRoom init APIs (initializeRoom, joinRoom, takeSeat), manages local
- * loading/retry UI state, and surfaces gameRoomError for error display.
+ * Calls useGameRoom init APIs (initializeRoom, joinRoom), manages local
+ * loading/retry UI state. Error messages come from RoomInitResult.error
+ * (synchronous return, not async state).
  * Does not control night phase or push game actions, does not import services
  * or business logic, does not access or modify GameState fields, does not
  * contain night flow / audio / policy logic, and does not create room record
@@ -12,6 +13,7 @@
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { RoomInitResult } from '@/hooks/useRoomLifecycle';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {
@@ -22,19 +24,17 @@ interface UseRoomInitParams {
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
   /** From useGameRoom: initialize room (facade only, no DB) */
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
   /** From useGameRoom: join existing room */
-  joinRoom: (roomCode: string) => Promise<boolean>;
+  joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   /** Check if we have received game state */
   hasGameState: boolean;
-  /** Error message from useGameRoom (shown when retry button is visible) */
-  gameRoomError?: string | null;
 }
 
 interface UseRoomInitResult {
   /** Whether initialization completed */
   isInitialized: boolean;
-  /** Current loading message to display (prefers gameRoomError when available + retrying) */
+  /** Current loading/error message to display */
   loadingMessage: string;
   /** Whether to show retry/back buttons */
   showRetryButton: boolean;
@@ -59,7 +59,6 @@ export function useRoomInit({
   initializeRoom,
   joinRoom,
   hasGameState,
-  gameRoomError,
 }: UseRoomInitParams): UseRoomInitResult {
   const [isInitialized, setIsInitialized] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('加载房间');
@@ -73,11 +72,6 @@ export function useRoomInit({
   useEffect(() => {
     if (hasGameState) hadGameStateRef.current = true;
   }, [hasGameState]);
-  // Ref for gameRoomError — read in log only, must NOT be a dep to avoid infinite re-trigger
-  const gameRoomErrorRef = useRef(gameRoomError);
-  useEffect(() => {
-    gameRoomErrorRef.current = gameRoomError;
-  }, [gameRoomError]);
 
   // Initialize room on mount (retryKey change forces re-trigger)
   useEffect(() => {
@@ -104,15 +98,15 @@ export function useRoomInit({
           playerCount: template.numberOfPlayers,
           totalRoles: template.roles.length,
         });
-        const success = await initializeRoom(roomCode, template);
+        const result = await initializeRoom(roomCode, template);
 
-        if (!success) {
+        if (!result.success) {
           initInProgressRef.current = false;
           roomScreenLog.warn('Host initializeRoom failed', {
             roomCode,
-            error: gameRoomErrorRef.current ?? 'unknown',
+            error: result.error,
           });
-          setLoadingMessage('创建失败');
+          setLoadingMessage(result.error);
           setShowRetryButton(true);
           return;
         }
@@ -124,9 +118,9 @@ export function useRoomInit({
         // Player joins existing room via RealtimeService
         setLoadingMessage('正在加入房间');
         roomScreenLog.debug('Player joining room', { roomCode });
-        const joined = await joinRoom(roomCode);
+        const result = await joinRoom(roomCode);
 
-        if (joined) {
+        if (result.success) {
           setIsInitialized(true);
           initInProgressRef.current = false;
           roomScreenLog.debug('Player join complete');
@@ -134,9 +128,9 @@ export function useRoomInit({
           initInProgressRef.current = false;
           roomScreenLog.warn('joinRoom failed', {
             roomCode,
-            error: gameRoomErrorRef.current ?? 'unknown',
+            error: result.error,
           });
-          setLoadingMessage('加入房间失败');
+          setLoadingMessage(result.error);
           setShowRetryButton(true);
         }
       }
@@ -144,17 +138,7 @@ export function useRoomInit({
 
     void initRoom();
     // retryKey 变化时也会触发重试
-  }, [
-    isInitialized,
-    retryKey,
-    isHostParam,
-    template,
-    roomCode,
-    initializeRoom,
-    joinRoom,
-    // NOTE: gameRoomError intentionally excluded — read via ref to avoid
-    // infinite loop (error → re-trigger → joinRoom → error → …)
-  ]);
+  }, [isInitialized, retryKey, isHostParam, template, roomCode, initializeRoom, joinRoom]);
 
   // Loading timeout — two-phase: soft hint at 8s, hard retry at 15s
   useEffect(() => {
@@ -213,12 +197,9 @@ export function useRoomInit({
     setRetryKey((prev) => prev + 1);
   }, []);
 
-  // Prefer specific gameRoomError over generic loading message when retry is visible
-  const displayMessage = showRetryButton && gameRoomError ? gameRoomError : loadingMessage;
-
   return {
     isInitialized,
-    loadingMessage: displayMessage,
+    loadingMessage,
     showRetryButton,
     handleRetry,
   };

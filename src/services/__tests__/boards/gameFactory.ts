@@ -34,6 +34,7 @@ import {
   getPlayerCount,
   PRESET_TEMPLATES,
 } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // Re-export types from gameContext.ts for backward compatibility
@@ -246,7 +247,7 @@ export function createGame(
     }
   };
 
-  const executeHandler = (result: HandlerResult): { success: boolean; reason?: string } => {
+  const executeHandler = (result: HandlerResult): ActionResult => {
     if (result.kind === 'error') {
       return { success: false, reason: result.reason };
     }
@@ -260,7 +261,7 @@ export function createGame(
     return { success: true };
   };
 
-  const advanceNight = (): { success: boolean; reason?: string } => {
+  const advanceNight = (): ActionResult => {
     const context = createContext(internal.state);
     const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
     return executeHandler(result);
@@ -320,7 +321,7 @@ export function createGame(
     };
   };
 
-  const sendPlayerMessage = (msg: PlayerMessage): { success: boolean; reason?: string } => {
+  const sendPlayerMessage = (msg: PlayerMessage): ActionResult => {
     // 捕获消息用于 wire protocol 合约测试
     internal.capturedMessages.push({
       stepId: internal.state.currentStepId ?? null,

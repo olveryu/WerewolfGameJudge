@@ -12,6 +12,7 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -29,11 +30,11 @@ export interface DebugModeState {
   /** Whether debug bot mode is active */
   isDebugMode: boolean;
   /** Fill all empty seats with bots */
-  fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
+  fillWithBots: () => Promise<ActionResult>;
   /** Mark all bot seats as having viewed their roles */
-  markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
+  markAllBotsViewed: () => Promise<ActionResult>;
   /** Mark all bot seats as having acked groupConfirm step */
-  markAllBotsGroupConfirmed: () => Promise<{ success: boolean; reason?: string }>;
+  markAllBotsGroupConfirmed: () => Promise<ActionResult>;
 }
 
 /**
@@ -60,7 +61,7 @@ export function useDebugMode(
   const isDebugMode = gameState?.debugMode?.botsEnabled === true;
 
   // Fill all empty seats with bots
-  const fillWithBots = useCallback(async (): Promise<{ success: boolean; reason?: string }> => {
+  const fillWithBots = useCallback(async (): Promise<ActionResult> => {
     if (!facade.isHostPlayer()) {
       return { success: false, reason: 'host_only' };
     }
@@ -77,10 +78,7 @@ export function useDebugMode(
   }, [facade]);
 
   // Mark all bot seats as having viewed their roles
-  const markAllBotsViewed = useCallback(async (): Promise<{
-    success: boolean;
-    reason?: string;
-  }> => {
+  const markAllBotsViewed = useCallback(async (): Promise<ActionResult> => {
     if (!facade.isHostPlayer()) {
       return { success: false, reason: 'host_only' };
     }
@@ -88,10 +86,7 @@ export function useDebugMode(
   }, [facade]);
 
   // Mark all bot seats as having acked groupConfirm step
-  const markAllBotsGroupConfirmed = useCallback(async (): Promise<{
-    success: boolean;
-    reason?: string;
-  }> => {
+  const markAllBotsGroupConfirmed = useCallback(async (): Promise<ActionResult> => {
     if (!facade.isHostPlayer()) {
       return { success: false, reason: 'host_only' };
     }

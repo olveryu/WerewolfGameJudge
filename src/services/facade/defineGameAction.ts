@@ -7,6 +7,7 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { facadeLog } from '@/utils/logger';
 
@@ -17,7 +18,7 @@ import type { GameActionsContext } from './gameActions';
 // Internal helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const NOT_CONNECTED = { success: false, reason: 'NOT_CONNECTED' } as const;
+const NOT_CONNECTED: ActionResult = { success: false, reason: 'NOT_CONNECTED' } as const;
 
 async function callGameControlApi(
   path: string,
@@ -44,9 +45,6 @@ function getRoomCodeOrFail(ctx: GameActionsContext): { roomCode: string } | null
 // ─────────────────────────────────────────────────────────────────────────────
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Standard return type for all game actions */
-type ActionResult = { success: boolean; reason?: string };
 
 /**
  * Configuration for a game action.

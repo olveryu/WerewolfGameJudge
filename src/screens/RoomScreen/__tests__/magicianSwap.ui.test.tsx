@@ -97,7 +97,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         markAllBotsGroupConfirmed: jest.fn(),
         setControlledSeat: jest.fn(),
 
-        joinRoom: jest.fn().mockResolvedValue(true),
+        joinRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
         assignRoles: jest.fn(),

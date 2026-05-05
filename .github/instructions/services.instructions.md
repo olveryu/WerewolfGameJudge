@@ -26,6 +26,7 @@ applyTo: 'src/services/**'
 - Resolver / calculator / validator 是纯函数，禁止 IO/UI。
 - 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Cloudflare Worker（Durable Objects）执行。
 - 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
+- Facade 方法返回 `Promise<ActionResult>`（从 `@werewolf/game-engine/protocol/ActionResult` 导入）。禁止返回裸 `boolean` 或 `{ success: boolean; reason?: string }` 松散类型。
 - Infra service 允许平台 API（MMKV / Platform / expo-audio 等）。
 - 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
 - 禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。

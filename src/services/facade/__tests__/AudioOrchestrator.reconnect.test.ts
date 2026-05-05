@@ -5,6 +5,7 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
@@ -15,7 +16,7 @@ import { AudioOrchestrator } from '../AudioOrchestrator';
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockPostAudioAck = jest.fn<Promise<{ success: boolean; reason?: string }>, unknown[]>();
+const mockPostAudioAck = jest.fn<Promise<ActionResult>, unknown[]>();
 mockPostAudioAck.mockResolvedValue({ success: true });
 
 jest.mock('../gameActions', () => ({

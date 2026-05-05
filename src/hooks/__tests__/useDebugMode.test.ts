@@ -6,6 +6,7 @@
  */
 
 import { act, renderHook } from '@testing-library/react-native';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { useDebugMode } from '@/hooks/useDebugMode';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -26,14 +27,10 @@ function createMockFacade(overrides: Partial<{ [K in keyof MockFacade]: MockFaca
     isHostPlayer: jest.fn<boolean, []>(() => true),
     getMySeat: jest.fn<number | null, []>(() => 1),
     leaveSeat: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
-    fillWithBots: jest
-      .fn<Promise<{ success: boolean; reason?: string }>, []>()
-      .mockResolvedValue({ success: true }),
-    markAllBotsViewed: jest
-      .fn<Promise<{ success: boolean; reason?: string }>, []>()
-      .mockResolvedValue({ success: true }),
+    fillWithBots: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
+    markAllBotsViewed: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsGroupConfirmed: jest
-      .fn<Promise<{ success: boolean; reason?: string }>, []>()
+      .fn<Promise<ActionResult>, []>()
       .mockResolvedValue({ success: true }),
     ...overrides,
   } as unknown as IGameFacade;
@@ -129,7 +126,7 @@ describe('useDebugMode', () => {
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
@@ -159,7 +156,7 @@ describe('useDebugMode', () => {
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
@@ -175,7 +172,7 @@ describe('useDebugMode', () => {
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.fillWithBots();
     });
@@ -190,7 +187,7 @@ describe('useDebugMode', () => {
     const facade = createMockFacade();
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.markAllBotsViewed();
     });
@@ -205,7 +202,7 @@ describe('useDebugMode', () => {
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.markAllBotsViewed();
     });

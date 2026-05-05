@@ -8,6 +8,7 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { facadeLog } from '@/utils/logger';
 
@@ -93,7 +94,7 @@ export async function takeSeatWithAck(
   level?: number,
   roleRevealEffect?: string,
   seatAnimation?: string,
-): Promise<{ success: boolean; reason?: string }> {
+): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
@@ -131,9 +132,7 @@ export async function leaveSeat(ctx: SeatActionsContext): Promise<boolean> {
 /**
  * 离座并返回完整结果（包含 reason）
  */
-export async function leaveSeatWithAck(
-  ctx: SeatActionsContext,
-): Promise<{ success: boolean; reason?: string }> {
+export async function leaveSeatWithAck(ctx: SeatActionsContext): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
@@ -159,7 +158,7 @@ export async function leaveSeatWithAck(
 export async function kickPlayer(
   ctx: SeatActionsContext,
   targetSeat: number,
-): Promise<{ success: boolean; reason?: string }> {
+): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };

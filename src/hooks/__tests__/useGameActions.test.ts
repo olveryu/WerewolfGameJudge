@@ -6,6 +6,7 @@
  */
 
 import { act, renderHook } from '@testing-library/react-native';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import type { BgmControlState } from '@/hooks/useBgmControl';
 import type { DebugModeState } from '@/hooks/useDebugMode';
@@ -25,7 +26,7 @@ import { toast } from 'sonner-native';
 
 // ---- Factory helpers ----
 
-type MutationResult = { success: boolean; reason?: string };
+type MutationResult = ActionResult;
 
 type MockFacade = {
   [K in keyof IGameFacade]: jest.Mock;
@@ -213,7 +214,7 @@ describe('useGameActions - game control', () => {
     const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
     const { result } = renderHook(() => useGameActions(deps));
 
-    let res: { success: boolean; reason?: string } | undefined;
+    let res: ActionResult | undefined;
     await act(async () => {
       res = await result.current.setAudioPlaying(true);
     });

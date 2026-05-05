@@ -62,13 +62,13 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 
 ## 共享工具（`handlers/shared.ts`）
 
-| 导出                      | 用途                                          |
-| ------------------------- | --------------------------------------------- |
-| `jsonBody<T>(schema)`     | `hono/validator` 中间件，JSON 解析 + zod 校验 |
-| `callDO<T>(fn)`           | DO RPC 调用 + HTTPException 错误处理          |
-| `getGameRoomStub(env, c)` | 获取 DO stub                                  |
-| `resultToStatus(result)`  | `{ success, reason }` → `200 \| 400 \| 500`   |
-| `isValidSeat(value)`      | seat number type guard                        |
+| 导出                      | 用途                                                                                                                                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `jsonBody<T>(schema)`     | `hono/validator` 中间件，JSON 解析 + zod 校验                                                                                                                                                          |
+| `callDO<T>(fn)`           | DO RPC 调用 + HTTPException 错误处理。**注意**：`@cloudflare/workers-types` 给 DO RPC 返回值注入 `& Disposable`，破坏 DU narrowing。call site 需 `as Promise<GameActionResult>` 断言（详见函数 JSDoc） |
+| `getGameRoomStub(env, c)` | 获取 DO stub                                                                                                                                                                                           |
+| `resultToStatus(result)`  | 入参 `{ success: boolean; reason?: string }`（结构子类型，兼容 `ActionResult` & `GameActionResult`）→ `200 \| 400 \| 500`                                                                              |
+| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                 |
 
 ## 扭蛋系统（Gacha）
 

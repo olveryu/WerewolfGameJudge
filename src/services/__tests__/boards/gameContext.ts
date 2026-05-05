@@ -9,6 +9,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
 
 // =============================================================================
@@ -39,9 +40,9 @@ export interface GameContext {
   /** 获取 NightPlan */
   getNightPlan: () => NightPlan;
   /** 发送 PlayerMessage（模拟 player→host intent） */
-  sendPlayerMessage: (msg: PlayerMessage) => { success: boolean; reason?: string };
+  sendPlayerMessage: (msg: PlayerMessage) => ActionResult;
   /** 推进到下一个夜晚步骤 */
-  advanceNight: () => { success: boolean; reason?: string };
+  advanceNight: () => ActionResult;
   /**
    * 推进到下一个夜晚步骤（fail-fast 版本）
    *

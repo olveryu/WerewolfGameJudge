@@ -17,13 +17,15 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 
 /** processAction 的最终返回值（与旧 GameActionResult 等价） */
-export interface GameActionResult {
-  success: boolean;
-  reason?: string;
-  state?: GameState;
-  revision?: number;
-  sideEffects?: readonly SideEffect[];
-}
+export type GameActionResult =
+  | {
+      success: true;
+      reason?: string;
+      state?: GameState;
+      revision?: number;
+      sideEffects?: readonly SideEffect[];
+    }
+  | { success: false; reason: string };
 
 interface InlineProgressionOptions {
   enabled: boolean;
@@ -117,12 +119,9 @@ export function processAction(
 
   // No-op guard
   if (totalActionsApplied === 0) {
-    return {
-      success: isSuccess,
-      reason: result.reason,
-      state,
-      revision,
-    };
+    return isSuccess
+      ? { success: true as const, reason: result.reason, state, revision }
+      : { success: false as const, reason: result.reason ?? 'REJECTED' };
   }
 
   newState = normalizeState(newState);
@@ -135,11 +134,13 @@ export function processAction(
     newRevision,
   );
 
-  return {
-    success: isSuccess,
-    reason: result.reason,
-    state: newState,
-    revision: newRevision,
-    sideEffects: result.sideEffects,
-  };
+  return isSuccess
+    ? {
+        success: true as const,
+        reason: result.reason,
+        state: newState,
+        revision: newRevision,
+        sideEffects: result.sideEffects,
+      }
+    : { success: false as const, reason: result.reason ?? 'REJECTED' };
 }

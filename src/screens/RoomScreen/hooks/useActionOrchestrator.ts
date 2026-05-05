@@ -19,6 +19,7 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAckMutation } from '@/hooks/useAckMutation';
@@ -62,9 +63,9 @@ interface UseActionOrchestratorParams {
 
   // ── Submission callbacks ──
   submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck: () => Promise<ActionResult>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
+  submitGroupConfirmAck: () => Promise<ActionResult>;
 
   // ── Multi-select state (owned by RoomScreen, passed in + out) ──
   multiSelectedSeats: readonly number[];
@@ -120,16 +121,12 @@ export function useActionOrchestrator({
   // ─── Server-ack mutations (TanStack — owns isPending lifecycle) ──────────
   // mutationKey ['ack', name] aggregates into usePendingAcks for the policy gate.
   // retry: 0 — UI controls re-show on failure (see executor onSuccess branches).
-  const revealAckMutation = useAckMutation<void, { success: boolean; reason?: string }>(
-    'reveal',
-    () => submitRevealAck(),
-  );
+  const revealAckMutation = useAckMutation<void, ActionResult>('reveal', () => submitRevealAck());
   const hunterStatusAckMutation = useAckMutation<number, void>('hunterStatus', (seat) =>
     sendWolfRobotHunterStatusViewed(seat),
   );
-  const groupConfirmAckMutation = useAckMutation<void, { success: boolean; reason?: string }>(
-    'groupConfirm',
-    () => submitGroupConfirmAck(),
+  const groupConfirmAckMutation = useAckMutation<void, ActionResult>('groupConfirm', () =>
+    submitGroupConfirmAck(),
   );
 
   // ─── Refs ────────────────────────────────────────────────────────────────

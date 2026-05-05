@@ -17,6 +17,7 @@ applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
   - 复合赋值（`+=`、`|=`）需展开：`data[x] = data[x]! + y`。
   - 禁止对已经是非 `undefined` 类型的表达式加 `!`（ESLint `no-unnecessary-type-assertion` 会报警告）。
 - Discriminated Union（`type` / `kind` 标签字段），禁止 optional 字段堆叠区分变体。
+- 操作结果统一用 `ActionResult`（`@werewolf/game-engine/protocol/ActionResult`）DU：`{ success: true; reason?: string } | { success: false; reason: string }`。禁止 `{ success: boolean; reason?: string }` 松散写法。
 - Exhaustive `switch`：`default` 用 `assertNever` 或 `const _: never`。
 - `satisfies` 用于"既检查类型又保留字面量推导"（`ROLE_SPECS`、`SCHEMAS`、config 对象等）。
 - 函数参数数组/对象优先 `readonly`，导出常量优先 `as const`。

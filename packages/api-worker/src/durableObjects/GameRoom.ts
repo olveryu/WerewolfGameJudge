@@ -94,7 +94,7 @@ export class GameRoom extends DurableObject<Env> {
     const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
 
     // 广播 — output gate 保证 write 持久化后才发送
-    if (result.state && result.revision != null) {
+    if (result.success && result.state && result.revision != null) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
         this.#broadcast(result.state, result.revision, lastAction);

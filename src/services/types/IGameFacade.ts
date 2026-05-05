@@ -7,6 +7,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
@@ -94,11 +95,7 @@ export interface IGameFacade {
    *
    * @returns success=false 仅在 Host rejoin 且无 DB 状态时
    */
-  joinRoom(
-    roomCode: string,
-    userId: string,
-    isHost: boolean,
-  ): Promise<{ success: boolean; reason?: string }>;
+  joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult>;
 
   /**
    * 离开房间
@@ -137,7 +134,7 @@ export interface IGameFacade {
     level?: number,
     roleRevealEffect?: string,
     seatAnimation?: string,
-  ): Promise<{ success: boolean; reason?: string }>;
+  ): Promise<ActionResult>;
   /**
    * 离座
    * 统一 HTTP API，服务端处理
@@ -149,57 +146,57 @@ export interface IGameFacade {
    * 统一 HTTP API，等待服务端响应
    * @returns success + reason（透传服务端拒绝原因）
    */
-  leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }>;
+  leaveSeatWithAck(): Promise<ActionResult>;
 
   /**
    * 将玩家移出座位（Host-only）
    * 仅在 Unseated/Seated 阶段可用
    */
-  kickPlayer(targetSeat: number): Promise<{ success: boolean; reason?: string }>;
+  kickPlayer(targetSeat: number): Promise<ActionResult>;
 
   // === Game Control (Host-only) ===
   /**
    * 分配角色
    */
-  assignRoles(): Promise<{ success: boolean; reason?: string }>;
+  assignRoles(): Promise<ActionResult>;
 
   /**
    * 更新模板（Host only，仅在 unseated 状态）
    */
-  updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }>;
+  updateTemplate(template: GameTemplate): Promise<ActionResult>;
 
   /**
    * 开始夜晚
    */
-  startNight(): Promise<{ success: boolean; reason?: string }>;
+  startNight(): Promise<ActionResult>;
 
   /**
    * 重新开始游戏
    */
-  restartGame(): Promise<{ success: boolean; reason?: string }>;
+  restartGame(): Promise<ActionResult>;
 
   // === Debug Mode ===
   /**
    * 填充机器人（Debug-only, Host-only）
    * 为所有空座位创建 bot player
    */
-  fillWithBots(): Promise<{ success: boolean; reason?: string }>;
+  fillWithBots(): Promise<ActionResult>;
 
   /**
    * 标记所有机器人已查看角色（Debug-only, Host-only）
    */
-  markAllBotsViewed(): Promise<{ success: boolean; reason?: string }>;
+  markAllBotsViewed(): Promise<ActionResult>;
 
   /**
    * 标记所有机器人已确认 groupConfirm 步骤（Debug-only, Host-only）
    */
-  markAllBotsGroupConfirmed(): Promise<{ success: boolean; reason?: string }>;
+  markAllBotsGroupConfirmed(): Promise<ActionResult>;
 
   /**
    * 全员起立（Host-only）
    * 清空所有座位，仅在 unseated/seated 状态可用
    */
-  clearAllSeats(): Promise<{ success: boolean; reason?: string }>;
+  clearAllSeats(): Promise<ActionResult>;
 
   /**
    * 同步玩家资料到 GameState（任何在座玩家）
@@ -214,37 +211,34 @@ export interface IGameFacade {
     nameStyle?: string,
     roleRevealEffect?: string,
     seatAnimation?: string,
-  ): Promise<{ success: boolean; reason?: string }>;
+  ): Promise<ActionResult>;
 
   /**
    * 分享「详细信息」给指定座位（Host-only, ended 阶段）
    */
-  shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }>;
+  shareNightReview(allowedSeats: number[]): Promise<ActionResult>;
 
   // === Board Nomination (任意已连接玩家) ===
   /**
    * 提交板子建议（每人最多一条，后覆盖前）
    */
-  boardNominate(
-    displayName: string,
-    roles: RoleId[],
-  ): Promise<{ success: boolean; reason?: string }>;
+  boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult>;
 
   /**
    * 点赞板子建议
    */
-  boardUpvote(targetUserId: string): Promise<{ success: boolean; reason?: string }>;
+  boardUpvote(targetUserId: string): Promise<ActionResult>;
 
   /**
    * 撤回板子建议（仅提交者本人）
    */
-  boardWithdraw(): Promise<{ success: boolean; reason?: string }>;
+  boardWithdraw(): Promise<ActionResult>;
 
   // === Player Actions ===
   /**
    * 玩家确认已查看角色
    */
-  markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }>;
+  markViewedRole(seat: number): Promise<ActionResult>;
 
   /**
    * 提交夜晚行动
@@ -254,35 +248,35 @@ export interface IGameFacade {
     role: RoleId,
     target: number | null,
     extra?: unknown,
-  ): Promise<{ success: boolean; reason?: string }>;
+  ): Promise<ActionResult>;
 
   /**
    * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
    */
-  submitRevealAck(): Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck(): Promise<ActionResult>;
 
   /**
    * 提交 groupConfirm ack（催眠确认 "我知道了"）
    * @param seat - 玩家座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  submitGroupConfirmAck(seat: number): Promise<{ success: boolean; reason?: string }>;
+  submitGroupConfirmAck(seat: number): Promise<ActionResult>;
 
   /**
    * 提交机械狼人查看猎人状态确认
    * @param seat - wolfRobot 的座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  sendWolfRobotHunterStatusViewed(seat: number): Promise<{ success: boolean; reason?: string }>;
+  sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult>;
 
   // === Night Flow (Host-only) ===
   /**
    * 设置音频播放状态
    */
-  setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }>;
+  setAudioPlaying(isPlaying: boolean): Promise<ActionResult>;
 
   /**
    * Host: wolf vote deadline 到期后触发服务端推进
    */
-  postProgression(): Promise<{ success: boolean; reason?: string }>;
+  postProgression(): Promise<ActionResult>;
 
   // === Sync ===
   /**

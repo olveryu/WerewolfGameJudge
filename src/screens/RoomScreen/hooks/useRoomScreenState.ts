@@ -234,7 +234,6 @@ export function useRoomScreenState(
     initializeRoom,
     joinRoom,
     hasGameState: !!gameState,
-    gameRoomError,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

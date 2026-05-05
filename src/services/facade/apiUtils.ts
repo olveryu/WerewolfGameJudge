@@ -13,12 +13,9 @@ import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
 import { facadeLog } from '@/utils/logger';
 
 /** 标准 API 响应（game control / seat 共用结构） */
-export interface ApiResponse {
-  success: boolean;
-  reason?: string;
-  state?: Record<string, unknown>;
-  revision?: number;
-}
+export type ApiResponse =
+  | { success: true; reason?: string; state?: Record<string, unknown>; revision?: number }
+  | { success: false; reason: string };
 
 /**
  * 执行单次 API POST 调用

@@ -19,6 +19,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
 import { useGameFacade } from '@/contexts';
@@ -37,7 +38,7 @@ import { useDebugMode } from './useDebugMode';
 import { useGameActions } from './useGameActions';
 import { useLastActionToast } from './useLastActionToast';
 import { useNightDerived } from './useNightDerived';
-import { useRoomLifecycle } from './useRoomLifecycle';
+import { type RoomInitResult, useRoomLifecycle } from './useRoomLifecycle';
 import { useSettleToast } from './useSettleToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,9 +67,9 @@ interface UseGameRoomResult {
   effectiveRole: RoleId | null;
   setControlledSeat: (seat: number | null) => void;
   isDebugMode: boolean;
-  fillWithBots: () => Promise<{ success: boolean; reason?: string }>;
-  markAllBotsViewed: () => Promise<{ success: boolean; reason?: string }>;
-  markAllBotsGroupConfirmed: () => Promise<{ success: boolean; reason?: string }>;
+  fillWithBots: () => Promise<ActionResult>;
+  markAllBotsViewed: () => Promise<ActionResult>;
+  markAllBotsGroupConfirmed: () => Promise<ActionResult>;
 
   // Night-derived (from useNightDerived)
   roomStatus: GameStatus;
@@ -92,14 +93,14 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<boolean>;
-  joinRoom: (roomCode: string) => Promise<boolean>;
+  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seat: number) => Promise<boolean>;
   leaveSeat: () => Promise<void>;
-  takeSeatWithAck: (seat: number) => Promise<{ success: boolean; reason?: string }>;
-  leaveSeatWithAck: () => Promise<{ success: boolean; reason?: string }>;
-  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
+  takeSeatWithAck: (seat: number) => Promise<ActionResult>;
+  leaveSeatWithAck: () => Promise<ActionResult>;
+  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
   requestSnapshot: () => Promise<boolean>;
   lastSeatError: { seat: number; reason: 'seat_taken' } | null;
   clearLastSeatError: () => void;
@@ -112,10 +113,10 @@ interface UseGameRoomResult {
   restartGame: () => Promise<void>;
   clearAllSeats: () => Promise<void>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
+  viewedRole: () => Promise<ActionResult>;
   submitAction: (target: number | null, extra?: unknown) => Promise<void>;
-  submitRevealAck: () => Promise<{ success: boolean; reason?: string }>;
-  submitGroupConfirmAck: () => Promise<{ success: boolean; reason?: string }>;
+  submitRevealAck: () => Promise<ActionResult>;
+  submitGroupConfirmAck: () => Promise<ActionResult>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;

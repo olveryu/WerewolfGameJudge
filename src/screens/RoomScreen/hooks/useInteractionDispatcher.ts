@@ -11,6 +11,7 @@
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
@@ -61,7 +62,7 @@ interface UseInteractionDispatcherParams {
 
   // ── Seat operations (raw API) ──
   leaveSeat: () => Promise<void>;
-  viewedRole: () => Promise<{ success: boolean; reason?: string }>;
+  viewedRole: () => Promise<ActionResult>;
 
   // ── Host dialogs ──
   handleSettingsPress: () => void;
@@ -71,7 +72,7 @@ interface UseInteractionDispatcherParams {
 
   // ── Submission callbacks ──
   setControlledSeat: (seat: number | null) => void;
-  kickPlayer: (targetSeat: number) => Promise<{ success: boolean; reason?: string }>;
+  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
 
   // ── Role card state setters (owned by RoomScreen) ──
   setRoleCardVisible: (v: boolean) => void;

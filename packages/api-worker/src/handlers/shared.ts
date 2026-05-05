@@ -102,6 +102,12 @@ type CfRequest = Request & { cf?: IncomingRequestCfProperties };
  * 包装 DO RPC 调用，处理 DO 特有的错误属性。
  * 若 err.retryable === true，抛 503 HTTPException。
  * 若 err.overloaded === true，抛 429 HTTPException。
+ *
+ * NOTE: @cloudflare/workers-types 对 DO stub RPC 返回值做了
+ * `T extends ... ? ... & Disposable : ...` 变换，导致 discriminated union
+ * 无法正确 narrow。调用方需在 fn 内对 stub 方法返回值断言
+ * `as Promise<GameActionResult>` 以恢复正确类型。
+ * 待 CF 修复上游类型后可移除断言。
  */
 export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
   try {

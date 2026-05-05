@@ -9,6 +9,7 @@
 
 import { act, renderHook } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type React from 'react';
 
 import { GameFacadeProvider } from '@/contexts';
@@ -123,7 +124,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.takeSeatWithAck(1);
       });
@@ -153,7 +154,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.takeSeatWithAck(1);
       });
@@ -174,7 +175,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.takeSeatWithAck(1);
       });
@@ -193,7 +194,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.takeSeatWithAck(999);
       });
@@ -214,7 +215,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.leaveSeatWithAck();
       });
@@ -235,7 +236,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.leaveSeatWithAck();
       });
@@ -254,7 +255,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
 
-      let ackResult: { success: boolean; reason?: string } | undefined;
+      let ackResult: ActionResult | undefined;
       await act(async () => {
         ackResult = await result.current.leaveSeatWithAck();
       });

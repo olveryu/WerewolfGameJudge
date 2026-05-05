@@ -12,13 +12,14 @@
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { MutableRefObject } from 'react';
 
 import type { ActionIntent, ActionIntentType } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
-type AckResult = { success: boolean; reason?: string };
+type AckResult = ActionResult;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Executor context — bag of dependencies each executor receives

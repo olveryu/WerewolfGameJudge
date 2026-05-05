@@ -28,6 +28,7 @@ import { type GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
@@ -269,11 +270,7 @@ export class GameFacade implements IGameFacade {
    *
    * @returns success=false 仅在 Host rejoin 且无 DB 状态时
    */
-  async joinRoom(
-    roomCode: string,
-    userId: string,
-    isHost: boolean,
-  ): Promise<{ success: boolean; reason?: string }> {
+  async joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult> {
     facadeLog.info('joinRoom', { roomCode, isHost });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
@@ -341,7 +338,7 @@ export class GameFacade implements IGameFacade {
    *
    * 客户端倒计时到期时调用，服务端执行 inline progression。
    */
-  async postProgression(): Promise<{ success: boolean; reason?: string }> {
+  async postProgression(): Promise<ActionResult> {
     facadeLog.debug('postProgression');
     return gameActions.postProgression(this.#getActionsContext());
   }
@@ -406,7 +403,7 @@ export class GameFacade implements IGameFacade {
     level?: number,
     roleRevealEffect?: string,
     seatAnimation?: string,
-  ): Promise<{ success: boolean; reason?: string }> {
+  ): Promise<ActionResult> {
     return seatActions.takeSeatWithAck(
       this.#getSeatActionsContext(),
       seat,
@@ -425,11 +422,11 @@ export class GameFacade implements IGameFacade {
     return seatActions.leaveSeat(this.#getSeatActionsContext());
   }
 
-  async leaveSeatWithAck(): Promise<{ success: boolean; reason?: string }> {
+  async leaveSeatWithAck(): Promise<ActionResult> {
     return seatActions.leaveSeatWithAck(this.#getSeatActionsContext());
   }
 
-  async kickPlayer(targetSeat: number): Promise<{ success: boolean; reason?: string }> {
+  async kickPlayer(targetSeat: number): Promise<ActionResult> {
     return seatActions.kickPlayer(this.#getSeatActionsContext(), targetSeat);
   }
 
@@ -437,20 +434,20 @@ export class GameFacade implements IGameFacade {
   // Game Control (委托给 gameActions)
   // =========================================================================
 
-  async assignRoles(): Promise<{ success: boolean; reason?: string }> {
+  async assignRoles(): Promise<ActionResult> {
     return gameActions.assignRoles(this.#getActionsContext());
   }
 
-  async updateTemplate(template: GameTemplate): Promise<{ success: boolean; reason?: string }> {
+  async updateTemplate(template: GameTemplate): Promise<ActionResult> {
     return gameActions.updateTemplate(this.#getActionsContext(), template);
   }
 
-  async markViewedRole(seat: number): Promise<{ success: boolean; reason?: string }> {
+  async markViewedRole(seat: number): Promise<ActionResult> {
     // Host 和 Player 统一走 HTTP API
     return gameActions.markViewedRole(this.#getActionsContext(), seat);
   }
 
-  async startNight(): Promise<{ success: boolean; reason?: string }> {
+  async startNight(): Promise<ActionResult> {
     return gameActions.startNight(this.#getActionsContext());
   }
 
@@ -459,7 +456,7 @@ export class GameFacade implements IGameFacade {
    *
    * 服务端重置 state → WS 广播推送新状态到所有客户端。
    */
-  async restartGame(): Promise<{ success: boolean; reason?: string }> {
+  async restartGame(): Promise<ActionResult> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
@@ -477,7 +474,7 @@ export class GameFacade implements IGameFacade {
    * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
    * 仅在 isHost && status === Unseated 时可用。
    */
-  async fillWithBots(): Promise<{ success: boolean; reason?: string }> {
+  async fillWithBots(): Promise<ActionResult> {
     return gameActions.fillWithBots(this.#getActionsContext());
   }
 
@@ -487,7 +484,7 @@ export class GameFacade implements IGameFacade {
    * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
    * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
    */
-  async markAllBotsViewed(): Promise<{ success: boolean; reason?: string }> {
+  async markAllBotsViewed(): Promise<ActionResult> {
     return gameActions.markAllBotsViewed(this.#getActionsContext());
   }
 
@@ -497,7 +494,7 @@ export class GameFacade implements IGameFacade {
    * 批量为所有 isBot 玩家提交 groupConfirm ack。
    * 仅在 debugMode.botsEnabled === true && status === Ongoing && 当前步骤为 groupConfirm 时可用。
    */
-  async markAllBotsGroupConfirmed(): Promise<{ success: boolean; reason?: string }> {
+  async markAllBotsGroupConfirmed(): Promise<ActionResult> {
     return gameActions.markAllBotsGroupConfirmed(this.#getActionsContext());
   }
 
@@ -506,7 +503,7 @@ export class GameFacade implements IGameFacade {
    *
    * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。
    */
-  async clearAllSeats(): Promise<{ success: boolean; reason?: string }> {
+  async clearAllSeats(): Promise<ActionResult> {
     return gameActions.clearAllSeats(this.#getActionsContext());
   }
 
@@ -524,7 +521,7 @@ export class GameFacade implements IGameFacade {
     nameStyle?: string,
     roleRevealEffect?: string,
     seatAnimation?: string,
-  ): Promise<{ success: boolean; reason?: string }> {
+  ): Promise<ActionResult> {
     return gameActions.updatePlayerProfile(
       this.#getActionsContext(),
       displayName,
@@ -542,7 +539,7 @@ export class GameFacade implements IGameFacade {
    *
    * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
    */
-  async shareNightReview(allowedSeats: number[]): Promise<{ success: boolean; reason?: string }> {
+  async shareNightReview(allowedSeats: number[]): Promise<ActionResult> {
     return gameActions.shareNightReview(this.#getActionsContext(), allowedSeats);
   }
 
@@ -550,18 +547,15 @@ export class GameFacade implements IGameFacade {
   // Board Nomination (委托给 gameActions)
   // =========================================================================
 
-  async boardNominate(
-    displayName: string,
-    roles: RoleId[],
-  ): Promise<{ success: boolean; reason?: string }> {
+  async boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult> {
     return gameActions.boardNominate(this.#getActionsContext(), displayName, roles);
   }
 
-  async boardUpvote(targetUserId: string): Promise<{ success: boolean; reason?: string }> {
+  async boardUpvote(targetUserId: string): Promise<ActionResult> {
     return gameActions.boardUpvote(this.#getActionsContext(), targetUserId);
   }
 
-  async boardWithdraw(): Promise<{ success: boolean; reason?: string }> {
+  async boardWithdraw(): Promise<ActionResult> {
     return gameActions.boardWithdraw(this.#getActionsContext());
   }
 
@@ -580,7 +574,7 @@ export class GameFacade implements IGameFacade {
     role: RoleId,
     target: number | null,
     extra?: unknown,
-  ): Promise<{ success: boolean; reason?: string }> {
+  ): Promise<ActionResult> {
     return gameActions.submitAction(this.#getActionsContext(), seat, role, target, extra);
   }
 
@@ -589,7 +583,7 @@ export class GameFacade implements IGameFacade {
    *
    * Host/Player 统一调用 HTTP API
    */
-  async submitRevealAck(): Promise<{ success: boolean; reason?: string }> {
+  async submitRevealAck(): Promise<ActionResult> {
     return gameActions.clearRevealAcks(this.#getActionsContext());
   }
 
@@ -598,7 +592,7 @@ export class GameFacade implements IGameFacade {
    *
    * 任意玩家调用。服务端收到所有玩家 ack 后自动推进步骤。
    */
-  async submitGroupConfirmAck(seat: number): Promise<{ success: boolean; reason?: string }> {
+  async submitGroupConfirmAck(seat: number): Promise<ActionResult> {
     return gameActions.submitGroupConfirmAck(this.#getActionsContext(), seat);
   }
 
@@ -613,9 +607,7 @@ export class GameFacade implements IGameFacade {
    *
    * @param seat - wolfRobot 的座位号（由调用方传入 effectiveSeat，以支持 debug bot 接管）
    */
-  async sendWolfRobotHunterStatusViewed(
-    seat: number,
-  ): Promise<{ success: boolean; reason?: string }> {
+  async sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult> {
     return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), seat);
   }
 
@@ -653,7 +645,7 @@ export class GameFacade implements IGameFacade {
    * - 当音频开始播放时，调用 setAudioPlaying(true)
    * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
    */
-  async setAudioPlaying(isPlaying: boolean): Promise<{ success: boolean; reason?: string }> {
+  async setAudioPlaying(isPlaying: boolean): Promise<ActionResult> {
     return gameActions.setAudioPlaying(this.#getActionsContext(), isPlaying);
   }
 
