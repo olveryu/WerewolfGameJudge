@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
+import { toast } from 'sonner-native';
 
 import { audioLog } from '@/utils/logger';
 
@@ -77,6 +78,7 @@ export class AudioService {
     } catch (error) {
       audioLog.error('Failed to initialize audio', error);
       Sentry.captureException(error);
+      toast.warning('音频初始化失败，游戏语音可能无法播放');
     }
   }
 
