@@ -25,7 +25,7 @@
 ## Prompts 与 Skills
 
 - [.github/prompts/](/.github/prompts/) — 可复用 prompt 模板（如 `delegate-task`）
-- [.github/skills/](/.github/skills/) — 项目专属 skill：`new-board`, `new-e2e-spec`, `new-role`, `query-prod-data`
+- [.github/skills/](/.github/skills/) — 项目专属 skill：`new-board`, `new-e2e-spec`, `new-role`, `query-prod-data`, `quality-commit`
 
 ## 维护说明
 
