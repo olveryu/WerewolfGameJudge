@@ -942,18 +942,19 @@ describe('getWolfVoteSummary', () => {
 });
 
 // =============================================================================
-// toGameRoomLike — legacy wolfVotes fallback
+// toGameRoomLike — wolfVotes passthrough
 // =============================================================================
 
-describe('toGameRoomLike — legacy wolfVotes fallback', () => {
-  it('should use currentNightResults.wolfVotesBySeat when present', () => {
+describe('toGameRoomLike — wolfVotes passthrough', () => {
+  it('should pass through wolfVotes Map directly from LocalGameState', () => {
+    const wolfVotes = new Map<number, number>([[0, 1]]);
     const state: LocalGameState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
       players: new Map(),
       actions: new Map(),
-      wolfVotes: new Map(),
+      wolfVotes,
       currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
@@ -967,38 +968,11 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
     };
 
     const result = toGameRoomLike(state);
+    expect(result.wolfVotes).toBe(wolfVotes);
     expect(result.wolfVotes.get(0)).toBe(1);
   });
 
-  it('should convert plain object wolfVotes (legacy) to Map', () => {
-    // Simulate legacy data where wolfVotes is a plain object instead of Map
-    const legacyState = {
-      roomCode: 'TEST',
-      hostUserId: 'host1',
-      template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
-      players: new Map(),
-      actions: new Map(),
-      // A legacy plain object that wasn't deserialized to Map
-      wolfVotes: { '0': 1, '2': 3 } as unknown as Map<number, number>,
-      currentStepIndex: 0,
-      isAudioPlaying: false,
-      lastNightDeaths: [],
-      currentNightResults: {},
-      pendingRevealAcks: [],
-      hypnotizedSeats: [],
-      piperRevealAcks: [],
-      conversionRevealAcks: [],
-      cupidLoversRevealAcks: [],
-      status: GameStatus.Ongoing,
-    } as LocalGameState;
-
-    const result = toGameRoomLike(legacyState);
-    expect(result.wolfVotes).toBeInstanceOf(Map);
-    expect(result.wolfVotes.get(0)).toBe(1);
-    expect(result.wolfVotes.get(2)).toBe(3);
-  });
-
-  it('should return empty Map when no wolfVotes sources exist', () => {
+  it('should return empty Map when wolfVotes is empty', () => {
     const state: LocalGameState = {
       roomCode: 'TEST',
       hostUserId: 'host1',

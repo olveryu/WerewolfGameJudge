@@ -60,6 +60,9 @@ const navLog = log.extend('AppNavigator');
 /** Params that are programmatic-only and should never appear in the URL. */
 const TRANSIENT_PARAMS = ['template'];
 
+/** Screens that are children of Room (opened via Room → navigate). */
+const ROOM_CHILD_SCREENS = new Set(['Notepad', 'MusicSettings', 'Settings', 'Encyclopedia']);
+
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [SITE_URL, 'https://werewolfgamejudge.pages.dev'],
@@ -106,7 +109,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
       // Screens that can be opened from Room: inject Home + Room when roomCode is present.
       // Without roomCode, they were opened from Home — just inject Home as base.
-      const ROOM_CHILD_SCREENS = new Set(['Notepad', 'MusicSettings', 'Settings', 'Encyclopedia']);
       if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
         const roomCode = (topRoute.params as { roomCode?: string })?.roomCode;
         if (roomCode) {

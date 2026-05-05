@@ -15,6 +15,7 @@
  */
 
 import type React from 'react';
+import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { borderRadius, colors, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
@@ -89,24 +90,29 @@ function renderInlineFormatting(
 
 export const SimpleMarkdown: React.FC<SimpleMarkdownProps> = ({ content, inverted = false }) => {
   const textColor = inverted ? colors.textInverse : colors.text;
-  const baseStyle = {
-    fontSize: typography.secondary,
-    color: textColor,
-    lineHeight: typography.lineHeights.secondary,
-  };
-  const boldStyle = { fontWeight: typography.weights.bold };
-  const codeStyle = {
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    backgroundColor: inverted ? withAlpha('#FFFFFF', 0.15) : withAlpha('#000000', 0.06),
-    borderRadius: borderRadius.none + 3,
-    paddingHorizontal: spacing.micro,
-    fontSize: typography.secondary - 1,
-  };
-  const bulletStyle = {
-    color: textColor,
-    fontSize: typography.secondary,
-    marginRight: spacing.tight,
-  };
+  const { baseStyle, boldStyle, codeStyle, bulletStyle } = useMemo(() => {
+    const _textColor = inverted ? colors.textInverse : colors.text;
+    return {
+      baseStyle: {
+        fontSize: typography.secondary,
+        color: _textColor,
+        lineHeight: typography.lineHeights.secondary,
+      },
+      boldStyle: { fontWeight: typography.weights.bold },
+      codeStyle: {
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        backgroundColor: inverted ? withAlpha('#FFFFFF', 0.15) : withAlpha('#000000', 0.06),
+        borderRadius: borderRadius.none + 3,
+        paddingHorizontal: spacing.micro,
+        fontSize: typography.secondary - 1,
+      },
+      bulletStyle: {
+        color: _textColor,
+        fontSize: typography.secondary,
+        marginRight: spacing.tight,
+      },
+    };
+  }, [inverted]);
 
   const lines = content.split('\n');
   const elements: React.ReactNode[] = [];
