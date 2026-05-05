@@ -241,7 +241,7 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
       { type: 'BROADCAST_STATE' },
       { type: 'SAVE_STATE' },
       // P0-1: 返回夜晚结束音频播放副作用
-      { type: 'PLAY_AUDIO', audioKey: 'night_end' },
+      { type: 'PLAY_AUDIO', audioKey: 'night_end', isEndAudio: false },
     ],
   );
 }
