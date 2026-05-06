@@ -505,7 +505,7 @@ jobs:
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git commit -m "chore: update report index (run #${{ github.run_number }})"
-            git push origin gh-pages
+            git push origin HEAD:gh-pages
           fi
 
           cd "$GITHUB_WORKSPACE"
