@@ -29,6 +29,8 @@ function detectBrowserName(): string | undefined {
   if (ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
   if (ua.includes('Chrome/') && !ua.includes('Edg/')) return 'Chrome';
   if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
+  // WKWebView in-app browsers (WeChat web-view, etc.) — no Safari/ token
+  if (ua.includes('AppleWebKit/') && ua.includes('Mobile/')) return 'Mobile Safari UI/WKWebView';
   return undefined;
 }
 
