@@ -160,10 +160,8 @@ test.describe('Night Roles — Check / Reveal', () => {
 
         const seerSeat = roleMap.get(seerIdx)!.seat;
 
-        // Drive wolf kill first (gargoyle participates in wolf vote)
-        const wolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), gargoyleIdx].filter(
-          (v, i, a) => a.indexOf(v) === i,
-        );
+        // Drive wolf kill (gargoyle does NOT participate in wolf vote)
+        const wolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
@@ -217,11 +215,8 @@ test.describe('Night Roles — Check / Reveal', () => {
         const villagerIdx = findRolePageIndex(roleMap, '平民');
         expect(wrIdx !== -1 || wolfIdx !== -1, 'Need wolf faction').toBe(true);
 
-        // All wolf faction indices (wolfRobot is also a wolf)
-        const allWolfIndices = [
-          ...findAllRolePageIndices(roleMap, '狼人'),
-          ...(wrIdx !== -1 ? [wrIdx] : []),
-        ].filter((v, i, a) => a.indexOf(v) === i);
+        // wolfRobot does NOT participate in wolf vote
+        const allWolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
         const killTarget = [...roleMap.entries()].find(([, info]) => info.displayName === '平民');
 
@@ -344,10 +339,8 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(magTurn).toBe(true);
         await driveMagicianSwap(pages[magIdx]!, wolfSeat, villagerSeat);
 
-        // Wolf kill — gargoyle is wolf faction, participates in wolf vote
-        const allWolfIndices = [...findAllRolePageIndices(roleMap, '狼人'), gargoyleIdx].filter(
-          (v, i, a) => a.indexOf(v) === i,
-        );
+        // Wolf kill — gargoyle does NOT participate in wolf vote
+        const allWolfIndices = findAllRolePageIndices(roleMap, '狼人');
 
         const wolfTurn = await waitForRoleTurn(
           pages[allWolfIndices[0]!]!,

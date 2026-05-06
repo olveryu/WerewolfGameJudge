@@ -13,6 +13,24 @@ import { ensureConnected } from './waits';
  */
 
 // ---------------------------------------------------------------------------
+// Action logger — prints every E2E action with timestamp for debugging
+// ---------------------------------------------------------------------------
+
+function pageId(page: Page, allPages?: Page[]): string {
+  if (allPages) {
+    const idx = allPages.indexOf(page);
+    if (idx !== -1) return `P${idx}`;
+  }
+  // Fallback: use last 4 chars of page URL hash
+  const url = page.url();
+  return `P(${url.slice(-20)})`;
+}
+
+/** Log an E2E action. Uses console.log (E2E tooling, not app code). */
+// eslint-disable-next-line no-console
+const log = (msg: string) => console.log(`[night-driver ${Date.now()}] ${msg}`);
+
+// ---------------------------------------------------------------------------
 // Role lookup
 // ---------------------------------------------------------------------------
 
@@ -74,12 +92,14 @@ export async function isTextVisible(page: Page, text: string, exact = false): Pr
 
 /** Click a seat tile and confirm via alert. Returns true if confirmed. */
 export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<boolean> {
+  log(`clickSeatAndConfirm seat=${seatIdx}`);
   // Dismiss any existing alert (e.g. "夜间行动" action prompt) before clicking
   await dismissAlert(page);
 
   const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
   await tile.waitFor({ state: 'visible', timeout: 5000 });
   await tile.click();
+  log(`clickSeatAndConfirm seat=${seatIdx} — tile clicked`);
 
   // Wait for confirmation alert
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -87,11 +107,15 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
     .waitFor({ state: 'visible', timeout: 3000 })
     .then(() => true)
     .catch(() => false);
-  if (!appeared) return false;
+  if (!appeared) {
+    log(`clickSeatAndConfirm seat=${seatIdx} — no confirm alert appeared`);
+    return false;
+  }
 
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
     await confirmBtn.click();
+    log(`clickSeatAndConfirm seat=${seatIdx} — confirmed`);
     // Wait for the confirm dialog content to be replaced by React.
     // Confirm dialogs have a "取消" button; subsequent alerts (reveal/info) don't.
     // Once "取消" disappears, the old dialog content has been processed.
@@ -101,6 +125,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
       .waitFor({ state: 'hidden', timeout: 5000 });
     return true;
   }
+  log(`clickSeatAndConfirm seat=${seatIdx} — confirm btn not visible`);
   return false;
 }
 
@@ -136,7 +161,12 @@ const SAFE_ADVANCE_BUTTONS = ADVANCE_BUTTONS.filter((b) => b !== '不用技能')
  * @param includeSkip If false, excludes "不用技能" to prevent
  *   prematurely skipping a role step. Defaults to true.
  */
-export async function tryClickAdvanceButton(page: Page, includeSkip = true): Promise<boolean> {
+export async function tryClickAdvanceButton(
+  page: Page,
+  includeSkip = true,
+  label?: string,
+): Promise<boolean> {
+  const tag = label ?? '';
   const buttons = includeSkip ? ADVANCE_BUTTONS : SAFE_ADVANCE_BUTTONS;
   // Check alert modal first
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -145,6 +175,7 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
         await btn.click();
+        log(`tryClickAdvanceButton${tag} — alert "${text}" clicked`);
         return true;
       }
     }
@@ -156,6 +187,7 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
     const btn = panel.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
+      log(`tryClickAdvanceButton${tag} — panel "${text}" clicked`);
       return true;
     }
   }
@@ -180,7 +212,8 @@ async function pollUntil(
     if (await condition()) return;
     await ensureConnected(pages);
     for (const page of pages) {
-      await tryClickAdvanceButton(page);
+      const pIdx = pages.indexOf(page);
+      await tryClickAdvanceButton(page, true, ` poll-P${pIdx}`);
     }
     // Poll cadence for retry loop
     await pages[0]!.waitForTimeout(300);
@@ -203,10 +236,14 @@ export async function waitForRoleTurn(
   allPages: Page[],
   maxIter = 120,
 ): Promise<boolean> {
+  log(`waitForRoleTurn keywords=[${keywords}] rolePage=${pageId(rolePage, allPages)}`);
   for (let i = 0; i < maxIter; i++) {
     // Check action-message text (bottom panel)
     const msg = await getActionMsg(rolePage);
-    if (keywords.some((kw) => msg.includes(kw))) return true;
+    if (keywords.some((kw) => msg.includes(kw))) {
+      log(`waitForRoleTurn — detected "${msg}" on iter ${i}`);
+      return true;
+    }
 
     // Also check alert-modal text (compound steps like witch show prompts as alerts)
     const alertVisible = await rolePage
@@ -219,10 +256,16 @@ export async function waitForRoleTurn(
           .locator('[data-testid="alert-modal"]')
           .textContent()
           .catch(() => '')) ?? '';
-      if (keywords.some((kw) => alertText.includes(kw))) return true;
+      if (keywords.some((kw) => alertText.includes(kw))) {
+        log(`waitForRoleTurn — detected in alert on iter ${i}`);
+        return true;
+      }
     }
 
-    if (await isNightEnded(allPages[0]!)) return false;
+    if (await isNightEnded(allPages[0]!)) {
+      log(`waitForRoleTurn — night ended on iter ${i}`);
+      return false;
+    }
 
     // Ensure all pages are connected before advancing
     await ensureConnected(allPages);
@@ -232,16 +275,19 @@ export async function waitForRoleTurn(
     // advance past intermediate roles (e.g. seer before gargoyle).
     for (const p of allPages) {
       if (p === rolePage) continue;
-      await tryClickAdvanceButton(p, /* includeSkip */ true);
+      const pIdx = allPages.indexOf(p);
+      await tryClickAdvanceButton(p, /* includeSkip */ true, ` P${pIdx}`);
     }
     // Poll cadence for retry loop
     await allPages[0]!.waitForTimeout(300);
   }
+  log(`waitForRoleTurn — exhausted ${maxIter} iterations`);
   return false;
 }
 
 /** Wait for night to end across all pages. */
 export async function waitForNightEnd(pages: Page[], maxIter = 80): Promise<boolean> {
+  log('waitForNightEnd — start');
   await pollUntil(
     pages,
     async () => {
@@ -309,16 +355,16 @@ export async function driveWolfVote(
   wolfIndices: number[],
   targetSeat: number,
 ): Promise<void> {
+  log(`driveWolfVote wolfIndices=[${wolfIndices}] targetSeat=${targetSeat}`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    // Ensure the page is connected before waiting for state-driven UI.
-    // Without this, a page that disconnected during waitForRoleTurn polling
-    // may never receive the wolf-step state update.
-    await ensureConnected([wPage]);
+    log(`driveWolfVote — P${wIdx} waiting for action-message`);
     await wPage
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
+    log(`driveWolfVote — P${wIdx} action-message visible, clicking seat`);
     await clickSeatAndConfirm(wPage, targetSeat);
+    log(`driveWolfVote — P${wIdx} vote done`);
   }
 }
 
@@ -327,11 +373,13 @@ export async function driveWolfVote(
  * Clicks the "放弃袭击" button in the bottom action panel for each wolf.
  */
 export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): Promise<void> {
+  log(`driveWolfEmptyVote wolfIndices=[${wolfIndices}]`);
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
     // Dismiss any existing alert (e.g. "夜间行动") before interacting
     await dismissAlert(wPage);
 
+    log(`driveWolfEmptyVote — P${wIdx} waiting for action-message`);
     await wPage
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
@@ -341,6 +389,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
     const emptyBtn = panel.getByText('放弃袭击', { exact: true }).first();
     await emptyBtn.waitFor({ state: 'visible', timeout: 5000 });
     await emptyBtn.click();
+    log(`driveWolfEmptyVote — P${wIdx} clicked 放弃袭击`);
 
     // Confirm the wolf vote alert
     const alertModal = wPage.locator('[data-testid="alert-modal"]');
@@ -352,6 +401,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
       const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
         await confirmBtn.click();
+        log(`driveWolfEmptyVote — P${wIdx} confirmed`);
       }
     }
   }
@@ -384,6 +434,7 @@ export async function dismissAlert(page: Page): Promise<void> {
     const btn = alertModal.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
+      log(`dismissAlert — clicked "${text}"`);
       return;
     }
   }
