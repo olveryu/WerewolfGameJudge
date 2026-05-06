@@ -19,6 +19,7 @@
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
+import { handleError } from '@/utils/errorPipeline';
 import { connectionLog } from '@/utils/logger';
 
 import { createInitialContext, transition } from './ConnectionFSM';
@@ -360,7 +361,11 @@ export class ConnectionManager {
         this.#dispatch({ type: 'FETCH_FAILURE', error: new Error('No state returned') });
       }
     } catch (e) {
-      connectionLog.warn('fetchState failed', { roomCode, error: e });
+      handleError(e, {
+        label: '状态恢复',
+        logger: connectionLog,
+        feedback: false,
+      });
       this.#dispatch({ type: 'FETCH_FAILURE', error: e });
     }
   }
@@ -421,7 +426,11 @@ export class ConnectionManager {
         this.#dispatch({ type: 'REVISION_DRIFT', dbRevision });
       }
     } catch (e) {
-      connectionLog.warn('Revision poll failed', { roomCode, error: e });
+      handleError(e, {
+        label: 'revision poll',
+        logger: connectionLog,
+        feedback: false,
+      });
     }
 
     // If generation changed during async check, this chain is cancelled
