@@ -35,6 +35,7 @@ export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
+import { feedbackRoutes } from './handlers/feedbackHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
 import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
@@ -136,6 +137,7 @@ app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
 app.route('/api', statsRoutes);
 app.route('/api', gachaRoutes);
+app.route('/api', feedbackRoutes);
 app.route('/telemetry', telemetryRoutes);
 
 // ── Worker entry ────────────────────────────────────────────────────────────

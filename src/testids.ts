@@ -114,6 +114,11 @@ export const TESTIDS = {
 
   // EncyclopediaScreen
   homeEncyclopediaButton: 'home-encyclopedia-button',
+
+  // Feedback (AnnouncementModal)
+  feedbackInput: 'feedback-input',
+  feedbackSubmitButton: 'feedback-submit-button',
+
   encyclopediaScreenRoot: 'encyclopedia-screen-root',
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,

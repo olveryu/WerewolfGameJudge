@@ -2,7 +2,7 @@
  * HomeScreen - 主页入口（登录、加入房间、创建房间）
  *
  * Apple HIG 风格布局：TopBar 品牌+头像 → Hero Card → Action Row →
- * RandomRoleCard → Changelog Card → Footer。
+ * RandomRoleCard → Announcement & Feedback Card → Footer。
  * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
  * 负责编排子组件、调用 service/navigation/showAlert。
  * 不使用硬编码样式值，不使用 console.*。
@@ -508,17 +508,21 @@ export const HomeScreen: React.FC = () => {
           colors={colors}
         />
 
-        {/* ── Changelog Card ────────────────────────── */}
+        {/* ── Announcement & Feedback Card ────────────────────────── */}
         {ANNOUNCEMENT_VERSIONS.length > 0 && (
           <PressableScale
             onPress={handleOpenAnnouncement}
             style={[styles.gachaCard, styles.gachaCardAccentBlue]}
             haptic
           >
-            <Ionicons name="sparkles" size={componentSizes.icon.md} color={colors.primary} />
+            <Ionicons
+              name="megaphone-outline"
+              size={componentSizes.icon.md}
+              color={colors.primary}
+            />
             <View style={styles.gachaCardText}>
-              <Text style={styles.gachaCardTitle}>更新日志</Text>
-              <Text style={styles.gachaCardSubtitle}>查看版本更新内容</Text>
+              <Text style={styles.gachaCardTitle}>公告与反馈</Text>
+              <Text style={styles.gachaCardSubtitle}>查看更新 · 提交建议</Text>
             </View>
             <Ionicons
               name="chevron-forward"

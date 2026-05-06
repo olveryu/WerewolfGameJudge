@@ -104,6 +104,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'fetchUserProfile',
     'fetchUserUnlocks',
     'uploadShareImage',
+    'submitFeedback',
   ];
 
   it.each(screensFiles)('%s runtime imports from services/ must be in allow-list', (filePath) => {

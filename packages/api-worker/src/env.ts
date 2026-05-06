@@ -40,6 +40,9 @@ export interface Env {
 
   /** Sentry DSN for error reporting */
   SENTRY_DSN: string;
+
+  /** GitHub PAT (fine-grained, Issues write) for user feedback → GitHub Issues */
+  GITHUB_TOKEN?: string;
 }
 
 /** Hono app environment type (Bindings = Worker Env) */
