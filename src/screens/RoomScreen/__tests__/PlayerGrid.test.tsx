@@ -1,6 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { PlayerGrid } from '@/screens/RoomScreen/components/PlayerGrid';
+import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { TESTIDS } from '@/testids';
 
 jest.mock('../../../components/Avatar', () => ({
@@ -23,7 +24,7 @@ describe('PlayerGrid', () => {
     it('calls onSeatPress even when disabled=true (audio gate visual state)', async () => {
       const onSeatPress = jest.fn();
 
-      const seats: any[] = [
+      const seats: SeatViewModel[] = [
         {
           seat: 0,
           role: 'villager',
@@ -49,7 +50,7 @@ describe('PlayerGrid', () => {
     it('calls onSeatPress with seat index and undefined disabledReason when disabled=false', async () => {
       const onSeatPress = jest.fn();
 
-      const seats: any[] = [
+      const seats: SeatViewModel[] = [
         {
           seat: 0,
           role: 'villager',
@@ -75,7 +76,7 @@ describe('PlayerGrid', () => {
     it('passes disabledReason when seat has constraint violation (disabled=false)', async () => {
       const onSeatPress = jest.fn();
 
-      const seats: any[] = [
+      const seats: SeatViewModel[] = [
         {
           seat: 0,
           role: 'villager',
@@ -100,7 +101,7 @@ describe('PlayerGrid', () => {
     it('passes disabledReason even when disabled=true (both conditions)', async () => {
       const onSeatPress = jest.fn();
 
-      const seats: any[] = [
+      const seats: SeatViewModel[] = [
         {
           seat: 0,
           role: 'villager',
