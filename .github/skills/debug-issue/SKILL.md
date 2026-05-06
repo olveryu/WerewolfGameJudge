@@ -1,5 +1,5 @@
 ---
-name: debug
+name: debug-issue
 description: '结构化调试工作流：诊断 bug/异常行为、定位根因、验证修复。Use when: debugging, 调试, bug, 排查问题, 定位问题, 异常, error, 报错, crash, 不工作, 不显示, timeout, 断连.'
 argument-hint: '症状描述（如：进入房间后座位不显示、WebSocket 频繁断连、E2E hunter spec timeout）'
 ---
