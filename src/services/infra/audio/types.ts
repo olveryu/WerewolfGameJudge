@@ -19,11 +19,14 @@ export function audioAssetToUrl(asset: AudioAsset): string {
 }
 
 /**
- * Maximum time to wait for audio playback completion before auto-resolving.
- * Prevents the night flow from getting stuck if audio fails or events never fire
- * (e.g., Web autoplay blocked, app backgrounded).
+ * Maximum time to wait for native audio playback completion before auto-resolving.
+ *
+ * Native-only safety net: expo-audio on buggy Android firmware may never fire
+ * `didJustFinish`. Web does not use this — WebAudioStrategy waits for
+ * `canplaythrough` then relies on `onended` (which is reliable once data is
+ * fully buffered).
  */
-export const AUDIO_TIMEOUT_MS = 15000;
+export const NATIVE_AUDIO_TIMEOUT_MS = 15000;
 
 /**
  * Platform-specific audio playback strategy.

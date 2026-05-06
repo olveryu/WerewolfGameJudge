@@ -2,36 +2,42 @@
  * WebAudioStrategy — HTML Audio playback for Web platform.
  *
  * Reuses a single `Audio` element (iOS Safari requires user-gesture-created
- * Audio for autoplay across multiple sources). Handles timeout fallback and
- * visibility-change pause/resume. Preloads via `audio.preload = 'auto'`.
+ * Audio for autoplay across multiple sources). Waits for `canplaythrough`
+ * before calling play() to guarantee complete buffering — eliminates the
+ * "streaming stall" problem where partially-buffered audio never fires
+ * `ended`. On `error` during loading, resets src to let the browser retry
+ * when network recovers (no artificial timeout).
+ *
  * No expo-audio dependency.
  */
 
 import { audioLog } from '@/utils/logger';
 
 import type { AudioAsset, AudioPlaybackStrategy } from './types';
-import { AUDIO_TIMEOUT_MS, audioAssetToUrl } from './types';
+import { audioAssetToUrl } from './types';
 import { getUnlockedAudioElement } from './webAudioUnlock';
+
+/**
+ * Delay before resetting audio.src after a load error.
+ * Gives the network a moment to recover before the browser re-fetches.
+ */
+const LOAD_RETRY_DELAY_MS = 2000;
 
 export class WebAudioStrategy implements AudioPlaybackStrategy {
   #audioElement: HTMLAudioElement | null = null;
   #isPlaying = false;
   #volume = 1.0;
   #resolve: (() => void) | null = null;
-  #timeoutId: ReturnType<typeof setTimeout> | null = null;
+  /** Whether playback was externally aborted via stop(). */
+  #aborted = false;
 
   #preloadedAudios: Map<string, HTMLAudioElement> = new Map();
 
   // ---------------------------------------------------------------------------
-  // Shared settle helper — clears timeout, flips flag, resolves promise.
-  // Replaces 6 duplicated cleanup blocks from the original monolith.
+  // Shared settle helper — flips flag, resolves promise.
   // ---------------------------------------------------------------------------
 
   #settle(): void {
-    if (this.#timeoutId) {
-      clearTimeout(this.#timeoutId);
-      this.#timeoutId = null;
-    }
     this.#isPlaying = false;
     if (this.#resolve) {
       this.#resolve();
@@ -46,90 +52,172 @@ export class WebAudioStrategy implements AudioPlaybackStrategy {
   async play(asset: AudioAsset, label: string): Promise<void> {
     audioLog.debug('WEB starting playback', { label });
 
+    // Settle any in-flight promise before starting new playback
+    this.#settle();
+
+    // Stop any current playback
+    if (this.#audioElement) {
+      this.#audioElement.pause();
+      this.#audioElement.onended = null;
+      this.#audioElement.onerror = null;
+      this.#audioElement.oncanplaythrough = null;
+    }
+
+    const audioUrl = audioAssetToUrl(asset);
+    audioLog.debug('WEB audioUrl resolved', { label, audioUrl });
+
+    // Reuse gesture-authorized Audio element from webAudioUnlock, or create new.
+    if (!this.#audioElement) {
+      this.#audioElement = getUnlockedAudioElement() ?? new Audio();
+      audioLog.debug('WEB audio element acquired', {
+        label,
+        fromUnlock: this.#audioElement === getUnlockedAudioElement(),
+      });
+    }
+
+    const audio = this.#audioElement;
+    this.#isPlaying = true;
+    this.#aborted = false;
+
+    audio.volume = this.#volume;
+    audio.src = audioUrl;
+
+    // Wait for data to be fully buffered, then play.
+    await this.#waitForCanPlayThrough(audio, audioUrl, label);
+
+    // If stop() was called while waiting for load, bail out.
+    if (this.#aborted) {
+      this.#settle();
+      return;
+    }
+
+    // Data is local — play() will not stall and onended will fire reliably.
+    await this.#playAndWaitForEnd(audio, label);
+  }
+
+  /**
+   * Wait until the audio element has enough data buffered to play through
+   * without interruption. If a network error occurs during loading, reset
+   * src after a delay to let the browser retry (the browser's internal
+   * fetch resumes automatically when network recovers for stalls, but
+   * fires `error` when the connection fully drops).
+   *
+   * Resolves when `canplaythrough` fires. Never rejects — waits indefinitely
+   * (correct behavior: audio must play before game can proceed).
+   */
+  #waitForCanPlayThrough(audio: HTMLAudioElement, audioUrl: string, label: string): Promise<void> {
+    // Already buffered enough (e.g. from preload or browser cache)
+    if (audio.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+      audioLog.debug('WEB already buffered', { label, readyState: audio.readyState });
+      return Promise.resolve();
+    }
+
     return new Promise<void>((resolve) => {
-      try {
-        // Settle any in-flight promise before overwriting (prevents orphaned promises)
-        this.#settle();
-
-        this.#resolve = resolve;
-
-        // Stop any current playback
-        if (this.#audioElement) {
-          this.#audioElement.pause();
-          this.#audioElement.onended = null;
-          this.#audioElement.onerror = null;
-        }
-        if (this.#timeoutId) {
-          clearTimeout(this.#timeoutId);
-          this.#timeoutId = null;
-        }
-
-        const audioUrl = audioAssetToUrl(asset);
-        audioLog.debug('WEB audioUrl resolved', { label, audioUrl });
-
-        // Reuse gesture-authorized Audio element from webAudioUnlock, or create new.
-        // The unlocked element was created inside a user gesture handler,
-        // so subsequent src swaps + play() don't require a fresh gesture.
-        if (!this.#audioElement) {
-          this.#audioElement = getUnlockedAudioElement() ?? new Audio();
-          audioLog.debug('WEB audio element acquired', {
-            label,
-            fromUnlock: this.#audioElement === getUnlockedAudioElement(),
-          });
-        }
-
-        const audio = this.#audioElement;
-        this.#isPlaying = true;
-
-        audio.onended = () => {
-          audioLog.debug('WEB onended fired', { label });
-          this.#settle();
-        };
-
-        audio.onerror = () => {
-          audioLog.warn('WEB Audio error', {
-            label,
-            errorCode: audio.error?.code,
-            errorMessage: audio.error?.message,
-          });
-          this.#settle();
-        };
-
-        // Timeout fallback
-        this.#timeoutId = setTimeout(() => {
-          audioLog.warn('WEB Playback timeout', { label });
-          audio.pause();
-          this.#settle();
-        }, AUDIO_TIMEOUT_MS);
-
-        audio.volume = this.#volume;
-        audio.src = audioUrl;
-        audioLog.debug('WEB calling audio.play()', { label });
-
-        audio
-          .play()
-          .then(() => {
-            audioLog.debug('WEB play() promise resolved', { label });
-          })
-          .catch((err) => {
-            audioLog.warn('WEB play() failed', { label }, err);
-            this.#settle();
-          });
-      } catch (error) {
-        audioLog.warn('WEB Audio playback failed', { label }, error);
-        this.#isPlaying = false;
+      const onReady = () => {
+        cleanup();
+        audioLog.debug('WEB canplaythrough fired', { label });
         resolve();
-      }
+      };
+
+      const onError = () => {
+        // Network error during loading. Reset src after a delay to trigger
+        // a fresh fetch attempt. The browser won't retry on its own after
+        // a hard error — we must re-assign src.
+        audioLog.warn('WEB load error, will retry', {
+          label,
+          errorCode: audio.error?.code,
+          errorMessage: audio.error?.message,
+        });
+
+        // If aborted externally, don't retry.
+        if (this.#aborted) {
+          cleanup();
+          resolve();
+          return;
+        }
+
+        setTimeout(() => {
+          if (this.#aborted) {
+            cleanup();
+            resolve();
+            return;
+          }
+          audioLog.debug('WEB resetting src for retry', { label });
+          audio.src = audioUrl;
+          audio.load();
+        }, LOAD_RETRY_DELAY_MS);
+      };
+
+      const cleanup = () => {
+        audio.oncanplaythrough = null;
+        audio.onerror = null;
+      };
+
+      audio.oncanplaythrough = onReady;
+      audio.onerror = onError;
+      audio.load();
+    });
+  }
+
+  /**
+   * Call play() and wait for `ended`. At this point data is fully buffered,
+   * so play() must succeed (gesture already authorized via webAudioUnlock)
+   * and `ended` will fire reliably.
+   *
+   * If play() rejects (autoplay policy), that means webAudioUnlock failed —
+   * throw to fail fast.
+   */
+  #playAndWaitForEnd(audio: HTMLAudioElement, label: string): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.#resolve = resolve;
+
+      audio.onended = () => {
+        audioLog.debug('WEB onended fired', { label });
+        audio.onended = null;
+        audio.onerror = null;
+        this.#settle();
+      };
+
+      audio.onerror = () => {
+        // Should not happen after canplaythrough — data is local.
+        // If it does, treat as a fatal bug in the audio subsystem.
+        const msg = `WEB playback error after canplaythrough: ${audio.error?.message ?? 'unknown'}`;
+        audioLog.error(msg, { label, errorCode: audio.error?.code });
+        audio.onended = null;
+        audio.onerror = null;
+        this.#settle();
+      };
+
+      audioLog.debug('WEB calling audio.play()', { label });
+
+      audio.play().then(
+        () => {
+          audioLog.debug('WEB play() promise resolved', { label });
+        },
+        (err: unknown) => {
+          // play() rejected = autoplay policy blocked.
+          // webAudioUnlock should have prevented this. Fail fast.
+          audio.onended = null;
+          audio.onerror = null;
+          this.#isPlaying = false;
+          this.#resolve = null;
+          throw new Error(
+            `WEB play() rejected (webAudioUnlock broken): ${err instanceof Error ? err.message : String(err)}`,
+          );
+        },
+      );
     });
   }
 
   stop(): void {
+    this.#aborted = true;
     if (this.#audioElement) {
       audioLog.debug('WebAudioStrategy.stop: pausing audio element (keeping for reuse)');
       try {
         this.#audioElement.pause();
         this.#audioElement.onended = null;
         this.#audioElement.onerror = null;
+        this.#audioElement.oncanplaythrough = null;
       } catch (e) {
         audioLog.warn('WebAudioStrategy.stop: error pausing', e);
       }

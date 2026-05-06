@@ -13,7 +13,7 @@ import { createAudioPlayer } from 'expo-audio';
 import { audioLog } from '@/utils/logger';
 
 import type { AudioAsset, AudioPlaybackStrategy } from './types';
-import { AUDIO_TIMEOUT_MS } from './types';
+import { NATIVE_AUDIO_TIMEOUT_MS } from './types';
 
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
@@ -94,7 +94,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
         this.#timeoutId = setTimeout(() => {
           audioLog.debug('TIMEOUT', {
             label,
-            timeoutMs: AUDIO_TIMEOUT_MS,
+            timeoutMs: NATIVE_AUDIO_TIMEOUT_MS,
             statusCount: this.#statusCount,
           });
           if (isJest) {
@@ -103,7 +103,7 @@ export class NativeAudioStrategy implements AudioPlaybackStrategy {
             audioLog.warn(' Playback timeout - proceeding without waiting for completion');
           }
           this.#settle();
-        }, AUDIO_TIMEOUT_MS);
+        }, NATIVE_AUDIO_TIMEOUT_MS);
 
         player.volume = this.#volume;
         audioLog.debug('calling player.play()', { label });
