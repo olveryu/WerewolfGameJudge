@@ -71,74 +71,73 @@ export async function settleGameResults(
   const registeredUserIds = new Set(registeredRows.map((r) => r.id));
   if (registeredUserIds.size === 0) return [];
 
-  // 3. 遍历注册玩家，结算 XP + 随机解锁
+  // 3. 遍历注册玩家，结算 XP + 券
   const results: PlayerSettleResult[] = [];
 
   for (const userId of registeredUserIds) {
     const xpEarned = rollXp();
 
-    // Idempotent upsert: WHERE clause ensures duplicate settleKey is a no-op (changes === 0)
-    await db
-      .insert(userStats)
-      .values({
-        userId: userId,
-        xp: xpEarned,
-        level: 0,
-        gamesPlayed: 1,
-        lastRoomCode: settleKey,
-        updatedAt: sql`datetime('now')`,
-      })
-      .onConflictDoUpdate({
-        target: userStats.userId,
-        set: {
-          xp: sql`${userStats.xp} + ${xpEarned}`,
-          gamesPlayed: sql`${userStats.gamesPlayed} + 1`,
-          lastRoomCode: settleKey,
-          updatedAt: sql`datetime('now')`,
-        },
-        setWhere: sql`${userStats.lastRoomCode} IS NULL OR ${userStats.lastRoomCode} != ${settleKey}`,
-      });
-
-    // Read back actual xp, level, unlocked_items
+    // Read current stats first to compute level transition
     const statsRow = await db
       .select({
         xp: userStats.xp,
         level: userStats.level,
-        unlockedItems: userStats.unlockedItems,
+        lastRoomCode: userStats.lastRoomCode,
       })
       .from(userStats)
       .where(eq(userStats.userId, userId))
       .get();
 
-    if (statsRow) {
-      const previousLevel = statsRow.level;
-      const newLevel = getLevel(statsRow.xp);
+    // Skip if already settled for this game (idempotency)
+    if (statsRow && statsRow.lastRoomCode === settleKey) continue;
 
-      const normalDrawsEarned = NORMAL_DRAWS_PER_GAME;
-      const goldenDrawsEarned = newLevel > previousLevel ? GOLDEN_DRAWS_ON_LEVEL_UP : 0;
+    const previousLevel = statsRow?.level ?? 0;
+    const previousXp = statsRow?.xp ?? 0;
+    const newXp = previousXp + xpEarned;
+    const newLevel = getLevel(newXp);
+    const normalDrawsEarned = NORMAL_DRAWS_PER_GAME;
+    const goldenDrawsEarned = newLevel > previousLevel ? GOLDEN_DRAWS_ON_LEVEL_UP : 0;
+    const now = new Date().toISOString();
 
-      // Write back level + increment draw tickets
-      if (newLevel > previousLevel || normalDrawsEarned > 0 || goldenDrawsEarned > 0) {
-        await db
-          .update(userStats)
-          .set({
-            level: newLevel,
-            normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
-            goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
-          })
-          .where(eq(userStats.userId, userId));
-      }
-
-      results.push({
+    // Single atomic upsert: XP + level + draws + settleKey + settledAt
+    // The setWhere guard ensures this is a no-op on duplicate (race between retries)
+    await db
+      .insert(userStats)
+      .values({
         userId,
-        xpEarned,
-        newXp: statsRow.xp,
-        newLevel,
-        previousLevel,
-        normalDrawsEarned,
-        goldenDrawsEarned,
+        xp: xpEarned,
+        level: newLevel,
+        gamesPlayed: 1,
+        normalDraws: normalDrawsEarned,
+        goldenDraws: goldenDrawsEarned,
+        lastRoomCode: settleKey,
+        settledAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: userStats.userId,
+        set: {
+          xp: sql`${userStats.xp} + ${xpEarned}`,
+          level: newLevel,
+          gamesPlayed: sql`${userStats.gamesPlayed} + 1`,
+          normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
+          goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
+          lastRoomCode: settleKey,
+          settledAt: now,
+          updatedAt: now,
+        },
+        setWhere: sql`${userStats.lastRoomCode} IS NULL OR ${userStats.lastRoomCode} != ${settleKey}`,
       });
-    }
+
+    results.push({
+      userId,
+      xpEarned,
+      newXp,
+      newLevel,
+      previousLevel,
+      normalDrawsEarned,
+      goldenDrawsEarned,
+    });
   }
 
   return results;

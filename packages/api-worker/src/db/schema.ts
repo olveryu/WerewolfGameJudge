@@ -103,6 +103,7 @@ export const userStats = sqliteTable('user_stats', {
   shards: integer('shards').notNull().default(0),
   version: integer('version').notNull().default(0),
   lastLoginRewardAt: text('last_login_reward_at'),
+  settledAt: text('settled_at'),
   updatedAt: text('updated_at').notNull(),
 });
 

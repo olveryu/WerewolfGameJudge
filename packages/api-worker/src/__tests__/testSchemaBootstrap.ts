@@ -57,6 +57,7 @@ const SCHEMA_STATEMENTS = [
     shards INTEGER NOT NULL DEFAULT 0,
     version INTEGER NOT NULL DEFAULT 0,
     last_login_reward_at TEXT,
+    settled_at TEXT,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );`,
 
@@ -92,6 +93,15 @@ const SCHEMA_STATEMENTS = [
     shards_awarded INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );`,
+
+  // ── idempotency_keys ──
+  `CREATE TABLE IF NOT EXISTS idempotency_keys (
+    key TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    response TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_idempotency_keys_created_at ON idempotency_keys(created_at);`,
 ] as const;
 
 /**
