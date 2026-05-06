@@ -56,6 +56,7 @@ import {
   type GameActionResult,
   processAction,
 } from './gameProcessor';
+import type { IGameRoomRPC } from './IGameRoomRPC';
 
 interface WebSocketAttachment {
   userId: string;
@@ -63,7 +64,7 @@ interface WebSocketAttachment {
   connectedAt: number;
 }
 
-export class GameRoom extends DurableObject<Env> {
+export class GameRoom extends DurableObject<Env> implements IGameRoomRPC {
   /** 结算最大重试次数 */
   static readonly SETTLE_MAX_RETRIES = 3;
   /** 重试间隔（毫秒） */
