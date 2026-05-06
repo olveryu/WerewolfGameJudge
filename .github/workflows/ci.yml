@@ -498,14 +498,14 @@ jobs:
           sed -i 's/^          //' index.html
 
           git add -A
-          if git diff --cached --quiet; then
-            echo "No index changes to commit"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: update report index (run #${{ github.run_number }})"
-            git push origin HEAD:gh-pages
-          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Squash all history into a single orphan commit to prevent git bloat
+          git checkout --orphan fresh-gh-pages
+          git add -A
+          git commit -m "chore: playwright reports (latest: run #${{ github.run_number }})"
+          git push --force origin HEAD:gh-pages
 
           cd "$GITHUB_WORKSPACE"
           git worktree remove gh-pages-branch
