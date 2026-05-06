@@ -245,36 +245,33 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // spectator: no panel
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Ongoing — actioner during audio playback (more specific rules first)
-  // Schema action buttons are replaced with a disabled "语音播报中" placeholder
-  // so the user knows the system is waiting on audio rather than seeing the
-  // panel collapse to viewRole-only.
+  // Ongoing — audio playback gate
+  // Host is the audio broadcaster for ALL night steps (not just their own role).
+  // While audio is playing, the panel is fully locked: only the disabled
+  // "语音播报中" placeholder is shown. No other buttons — everyone is "闭眼".
   // ═══════════════════════════════════════════════════════════════════════════
   {
     match: {
       status: GameStatus.Ongoing,
       role: 'host',
-      when: (ctx) => ctx.imActioner && ctx.isAudioPlaying,
+      when: (ctx) => ctx.isAudioPlaying,
     },
     layout: {
       primary: [{ source: 'static', button: 'audioWaiting' }],
       secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'restart' },
-      ],
+      ghost: [],
     },
   },
   {
     match: {
       status: GameStatus.Ongoing,
       role: 'player',
-      when: (ctx) => ctx.imActioner && ctx.isAudioPlaying,
+      when: (ctx) => ctx.isAudioPlaying,
     },
     layout: {
       primary: [{ source: 'static', button: 'audioWaiting' }],
       secondary: [],
-      ghost: [{ source: 'static', button: 'viewRole' }],
+      ghost: [],
     },
   },
 

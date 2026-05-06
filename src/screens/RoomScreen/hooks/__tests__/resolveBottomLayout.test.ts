@@ -218,7 +218,7 @@ describe('resolveBottomLayout', () => {
       expect(keys(layout, 'primary')).toEqual([]);
     });
 
-    it('audio playing, non-actioner host → primary: viewRole, ghost: restart', () => {
+    it('audio playing, non-actioner host → primary: audioWaiting, ghost: empty', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -227,9 +227,9 @@ describe('resolveBottomLayout', () => {
           isAudioPlaying: true,
         }),
       );
-      expect(keys(layout, 'primary')).toEqual(['viewRole']);
+      expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['restart']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
   });
 
@@ -496,7 +496,7 @@ describe('resolveBottomLayout', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   describe('edge cases', () => {
-    it('audio playing, host actioner → audioWaiting placeholder + viewRole/restart in ghost', () => {
+    it('audio playing, host actioner → audioWaiting placeholder, ghost empty', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -508,13 +508,13 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole', 'restart']);
+      expect(keys(layout, 'ghost')).toEqual([]);
       // Placeholder must be visibly disabled and non-firing (intent-less)
       expect(layout.primary[0]!.disabled).toBe(true);
       expect(layout.primary[0]!.fireWhenDisabled).toBe(true);
     });
 
-    it('audio playing, player actioner → audioWaiting placeholder + viewRole in ghost', () => {
+    it('audio playing, player actioner → audioWaiting placeholder, ghost empty', () => {
       const layout = resolveBottomLayout(
         makeCtx({
           roomStatus: GameStatus.Ongoing,
@@ -526,7 +526,7 @@ describe('resolveBottomLayout', () => {
       );
       expect(keys(layout, 'primary')).toEqual(['audioWaiting']);
       expect(keys(layout, 'secondary')).toEqual([]);
-      expect(keys(layout, 'ghost')).toEqual(['viewRole']);
+      expect(keys(layout, 'ghost')).toEqual([]);
     });
 
     it('variant correctness: ghost buttons get variant=ghost', () => {
