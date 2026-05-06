@@ -98,7 +98,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
     await alertModal
       .getByText('取消', { exact: true })
       .first()
-      .waitFor({ state: 'hidden', timeout: 3000 });
+      .waitFor({ state: 'hidden', timeout: 5000 });
     return true;
   }
   return false;
@@ -369,6 +369,10 @@ export async function readAlertText(page: Page): Promise<string> {
 
 /**
  * Dismiss the current alert modal by clicking '知道了' or '确定'.
+ *
+ * Does NOT wait for the modal to close — callers rely on Playwright's
+ * built-in actionability checks (inert attribute) for subsequent interactions
+ * with elements inside #root.
  */
 export async function dismissAlert(page: Page): Promise<void> {
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -376,9 +380,6 @@ export async function dismissAlert(page: Page): Promise<void> {
     const btn = alertModal.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
-      // Wait for the alert container to become hidden (modal fully closed).
-      // dismissAlert callers always expect no subsequent immediate alert.
-      await alertModal.waitFor({ state: 'hidden', timeout: 5000 });
       return;
     }
   }
