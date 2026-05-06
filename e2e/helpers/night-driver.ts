@@ -311,6 +311,10 @@ export async function driveWolfVote(
 ): Promise<void> {
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
+    // Ensure the page is connected before waiting for state-driven UI.
+    // Without this, a page that disconnected during waitForRoleTurn polling
+    // may never receive the wolf-step state update.
+    await ensureConnected([wPage]);
     await wPage
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
