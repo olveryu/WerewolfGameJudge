@@ -5,6 +5,138 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.3.0] - 2026-05-06
+
+- fix(ci): use HEAD:gh-pages refspec for worktree push
+- feat(announcements): add board showcase section and v2.3.0 changelog
+- refactor(logger): use ua-parser-js for browser.name detection
+- feat(skills): add debug skill
+- fix(logger): detect WKWebView in-app browser for browser.name attribute
+- fix(roomscreen): prevent duplicate actionPrompt after groupConfirm ack
+- ci(e2e): retain report history on gh-pages with per-run subdirectories
+- fix(ci): update package version format for CDN asset URLs
+- fix(home): update auto-dismiss button text for announcements
+- feat(feedback): add user feedback submission via github issues
+- fix(logger): explicitly attach browser.name to Sentry structured logs
+- refactor(ci): update test sharding to improve runtime distribution
+- refactor(hooks): remove ref-mirror pattern from useBgmControl
+- test: remove duplicate contract tests from wolfKillDisabled
+- refactor(styles): hoist static styles to module scope
+- fix(test): replace any[] with SeatViewModel[] in PlayerGrid test
+- fix(connection): route errors through handleError pipeline
+- refactor(api-worker): add IGameRoomRPC interface for compile-time sync
+- fix(hooks): log silenced level fetch errors in useRoomLifecycle
+- fix(api-worker): atomic settle with settled_at guard
+- feat(gacha): add idempotency key to draw and exchange endpoints
+- chore(docs): archive code-audit-2026-04-08.md
+- revert: undo 13 M-numbered audit commits above P0-P3 plan scope
+- perf(client): memoize style computations, hoist constants, simplify wolfVotes
+- refactor(game-engine): normalize handler API and add schema completeness check
+- refactor: eliminate non-null assertions with narrowing and fail-fast
+- refactor(client): replace type assertion bypasses with safe patterns
+- fix(client): remove dead wolfVotes fallback and fix countdown tick leak
+- refactor(game-engine): remove type assertion bypasses in resolvers
+- refactor(game-engine): replace ROLE_SPECS double-cast with getRoleSpec
+- refactor(game-engine): add assertNever exhaustiveness checks
+- docs(game-engine): document sideEffects [] vs undefined semantics
+- fix(audio): add user notification on init failure and handle resume rejections
+- fix(game-engine): replace groupConfirm ack ternary fallthrough with explicit map
+- fix(game-engine): fix cross-link-type chain death propagation in DeathCalculator
+- fix(game-engine): add explicit isEndAudio: false to night_end PLAY_AUDIO side effect
+- refactor(api-worker): centralize DO RPC type wrapper, eliminate 22 type casts
+- refactor(errors): unify API error wire format and consolidate error-to-message logic
+- refactor(facade): replace takeSeat positional params with SeatProfile object
+- refactor(api-worker): extract userProfile module to eliminate auth response shape drift
+- refactor: replace loose {success: boolean} with ActionResult discriminated union
+- feat(sentry): enable sending default PII for structured logs
+- fix(alert): capture generation before onPress to prevent closing replacement alert
+- style(alert): fix import sort order in AlertModal
+- refactor(error): replace alertTitle with feedback mode in handleError (alert/toast/false)
+- fix(alert): enforce strict void-returning callbacks and add async button support
+- docs(skills): remove confirmation step from quality-commit skill
+- refactor(roomscreen): add audioWaiting button and exempt VIEW_ROLE from audio gate
+- refactor(roomscreen): replace per-ack pending booleans with mutation lifecycle
+- feat(protocol): add useAckMutation + usePendingAcks for in-flight gating
+- docs(skills): update quality-commit skill constraints
+- chore(app-modal): remove useModalStack from barrel export
+- docs(skills): add quality-commit skill for run quality fix commit push workflow
+- refactor(.gitignore): clarify Claude Code local state comments and expand lock file patterns
+- test(e2e): add wolfRobot poisoned hunter gate assertion
+- refactor(roomscreen): remove dead REVEAL_ACK and HUNTER_STATUS_VIEWED policy chains
+- fix(bgm): drive BGM start by gameStatus transition instead of HTTP response
+- fix(group-confirm-ack): await server confirmation before dismissing dialog
+- fix(reveal-ack): await server confirmation before dismissing reveal dialog
+- fix(web): use unpkg for canvaskit WASM in local dev
+- fix(roomscreen): improve ended-phase guide messages
+- revert(sentry): remove beforeSendLog debug filter, quota is sufficient
+- refactor(branding): rename 狼人kill电子裁判 to 狼人面杀电子裁判助手
+- fix(auth): structural fix for VALIDATION_ERROR Sentry regression
+- fix(auth): resolve VALIDATION_ERROR Sentry regression (WEREWOLFJUDGE-1J)
+- fix(sentry): drop debug-level logs in beforeSendLog to conserve quota
+- docs(skills): add query-prod-data skill for D1/Analytics Engine lookups
+- fix(ci): skip npm publish when CDN version already exists
+- fix(boot): preload icon font during boot to prevent FOIT on web
+- Revert "fix(web): use document.fonts.load() instead of .ready for icon font"
+- fix(web): cache splash image choice in sessionStorage
+- feat(encyclopedia): show counts in guide tabs and board category chips
+- fix(web): use document.fonts.load() instead of .ready for icon font
+- fix(roomscreen): show wolf vote hint persistently in bottom panel
+- chore(assets): move pwa source images to raw/ subfolder
+- chore(assets): replace splash images, organize pwa/web/
+- refactor(web): simplify boot to Expo standard pattern
+- feat(roles): add eclipseWolfQueen + sequencePrince
+- refactor(splash): move document.fonts.ready into useBootProgress
+- fix(splash): wait for document.fonts.ready before dismissing splash
+- fix(connection,auth,home): wechat webview production audit fixes
+- fix(splash): wait for first screen render + avatar prefetch before dismiss
+- fix(splash): web uses single HTML splash until ready, skip LoadingScreen
+- fix(splash): defer body background switch until splash is dismissed
+- fix(splash): prevent background color flash between dark splash and light theme
+- feat(splash): fullscreen background art with random selection and styled title
+- chore(eslint): promote no-explicit-any from warn to error
+- docs(instructions): align with 2026 community conventions
+- docs(instructions): add noUncheckedIndexedAccess and no-unsafe-\* rules
+- chore(types): enable noUncheckedIndexedAccess
+- chore(types): enable noUncheckedIndexedAccess
+- Merge branch 'chore/eslint-no-unsafe'
+- chore(eslint): enable no-unsafe-\* rules as error, fix all violations
+- test(ai-chat): add unit tests for playerContext and rolePlayGuide
+- perf(query): prefetch queries before screen navigation
+- refactor: enforce consistent-type-imports via ESLint
+- fix(ci): add --tag latest for npm 11 prerelease publish
+- perf(api-worker): add WebSocket auto-response to GameRoom DO
+- fix(api-worker): remove CORS_ORIGIN fallback, explicit test env vars
+- feat(build): enable React Compiler via Expo experiments
+- feat(prompts): add prompt for delegating tasks to specialists
+- feat(docs): add CI/CD deployment instructions and E2E spec skill documentation
+- fix(api-worker): use D1 batch API for draw history insert
+- feat(favorites): add onAddToFavorites method for sharing functionality
+- feat(observability): enable traces for enhanced logging and monitoring
+- fix(room): lower strategy match threshold to 0.1 for custom boards
+- feat(game-engine): add wolf_tie_random UI hint on normal boards
+- revert(ci): restore ci.yml before React settings change
+- feat(eslint): add global React settings for automatic version detection
+- fix(lint): move eslint-disable-next-line to correct line for multi-line require
+- feat(observability): add structured logger + Sentry to Worker, enforce no-console
+- chore(logger): forward debug-level logs to Sentry structured logs
+- fix(ci): poll npmmirror sync task status instead of single file check
+- fix(game-engine): wolf vote tie randomly picks one target instead of no-kill
+- feat(announcements): add encyclopedia entry to v2.2.0 changelog
+- refactor(data): consolidate board tags to 9-tag controlled vocabulary
+- fix(data): correct 11 factual errors in boardStrategyData
+- feat(encyclopedia): unified guide screen with tag filter and DRY board card
+- feat(strategy): add board strategy modal with fuzzy matching
+- fix(chat): add option to skip message history when sending messages
+- fix(room-screen): update game status messages to use localized text
+- chore(ci): remove dead R2 purge step
+- perf(web): eliminate code splitting by replacing dynamic import() with require()
+- fix(ci): rewrite asset URLs before npm publish so CDN chunks resolve correctly
+- fix(api-worker): parse telemetry body as text for text/plain content-type
+- fix(telemetry): send beacon as text/plain to avoid CORS preflight
+- feat(telemetry): load timing beacon + splash friendly labels
+- ci: trigger deploy after token permission update
+- refactor(auth): dual-token auth with refresh rotation, WS JWT verification, token revocation
+
 ## [2.2.0] - 2026-04-29
 
 - fix(ci): cp wasm before gzip to avoid pnpm hardlink refusal
