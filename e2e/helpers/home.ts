@@ -10,9 +10,10 @@ import { clickIfVisible, screenshotOnFail } from './ui';
  * before every actionability check — no manual dismiss timing needed.
  */
 export async function registerAutoDismissers(page: Page): Promise<void> {
-  // Announcement / What's New modal — trigger on header title (always visible),
-  // dismiss via role-based button locator.
-  await page.addLocatorHandler(page.getByText('公告与反馈'), async () => {
+  // Announcement / What's New modal — trigger on the close button itself
+  // (only visible when modal is open, becomes hidden after click → no infinite loop).
+  // Using getByText('公告与反馈') as trigger would match the home page card too.
+  await page.addLocatorHandler(page.getByRole('button', { name: '关闭公告' }), async () => {
     await page.getByRole('button', { name: '关闭公告' }).click();
   });
 }
@@ -51,7 +52,6 @@ const BLOCKING_MODAL_PATTERNS = [
   '加载超时',
   '提示',
   '加入房间',
-  '公告与反馈',
 ];
 
 /** Error states that need recovery action */
@@ -268,13 +268,7 @@ async function dismissBlockingModals(page: Page): Promise<boolean> {
     (await clickIfVisible(page, '我知道了', { exact: true, timeout: 300 })) ||
     (await clickIfVisible(page, '取消', { exact: true, timeout: 300 })) ||
     (await clickIfVisible(page, '确定', { exact: true, timeout: 300 })) ||
-    (await clickIfVisible(page, '关闭', { exact: true, timeout: 300 })) ||
-    // Announcement modal uses an icon-only close button with accessibilityLabel
-    (await page
-      .getByLabel('关闭公告')
-      .click({ timeout: 300 })
-      .then(() => true)
-      .catch(() => false));
+    (await clickIfVisible(page, '关闭', { exact: true, timeout: 300 }));
 
   if (dismissed) {
     // Wait for blocking modal to actually disappear
@@ -387,8 +381,6 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     .then(() => true)
     .catch(() => false);
   if (hasEnterBtn) {
-    // Dismiss any blocking modal (e.g. announcement) before clicking
-    await dismissBlockingModals(page);
     await enterRoomBtn.click({ timeout: 2000 });
 
     // Wait for login modal to appear
