@@ -16,7 +16,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { createDb } from '../db';
 import { users, userStats } from '../db/schema';
 
-const MIN_PLAYERS = 9;
+const MIN_PLAYERS = 6;
 
 /** 每局获得的普通抽奖券 */
 const NORMAL_DRAWS_PER_GAME = 2;
