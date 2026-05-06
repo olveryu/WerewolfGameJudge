@@ -148,21 +148,9 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
         return true;
       }
     }
-    // Alert is visible but has no advance button we recognize.
-    // Try common dismiss texts as fallback to unblock the page.
-    for (const text of ['取消', '关闭', '返回']) {
-      const btn = alertModal.getByText(text, { exact: true }).first();
-      if (await btn.isVisible().catch(() => false)) {
-        await btn.click();
-        return true;
-      }
-    }
-    // Still can't dismiss — do NOT fall through to bottom panel.
-    // #root is inert while a modal is up, so click() would hang.
-    return false;
   }
 
-  // Check bottom action panel (only reachable when no modal is blocking)
+  // Check bottom action panel
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   for (const text of buttons) {
     const btn = panel.getByText(text, { exact: true }).first();
@@ -323,8 +311,6 @@ export async function driveWolfVote(
 ): Promise<void> {
   for (const wIdx of wolfIndices) {
     const wPage = pages[wIdx]!;
-    // Dismiss any blocking alert (e.g. "夜间行动" info) before interacting
-    await dismissAlert(wPage);
     await wPage
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
