@@ -119,7 +119,7 @@ jobs:
       - name: Rewrite asset URLs to use CDN
         id: cdn
         run: |
-          PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
+          PKG_VERSION="0.0.0-g${GITHUB_SHA::8}"
           CDN_BASE="https://cdn.npmmirror.com/packages/werewolf-judge-cdn/${PKG_VERSION}/files"
 
           # JS bundles: rewrite "/assets/ string literals to CDN (Metro chunk references)
@@ -140,7 +140,7 @@ jobs:
       - name: Publish assets to npm
         id: npm
         run: |
-          PKG_VERSION="0.0.0-${GITHUB_SHA::8}"
+          PKG_VERSION="0.0.0-g${GITHUB_SHA::8}"
           WORK=$(mktemp -d)
 
           # Copy already-rewritten assets/ tree (JS bundles have CDN URLs baked in)
