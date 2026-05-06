@@ -116,6 +116,7 @@ test.describe('Night Roles — TreasureMaster', () => {
         if (poisonerIdx !== -1) {
           const turn = await waitForRoleTurn(pages[poisonerIdx]!, ['毒杀', '选择'], pages, 60);
           if (turn) {
+            await dismissAlert(pages[poisonerIdx]!);
             await clickBottomButton(pages[poisonerIdx]!, '不用技能');
             await dismissAlert(pages[poisonerIdx]!);
           }
@@ -123,6 +124,7 @@ test.describe('Night Roles — TreasureMaster', () => {
         if (seerIdx !== -1) {
           const turn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 60);
           if (turn) {
+            await dismissAlert(pages[seerIdx]!);
             await clickBottomButton(pages[seerIdx]!, '不用技能');
             await dismissAlert(pages[seerIdx]!);
           }
