@@ -192,6 +192,60 @@ describe('determineActionerState', () => {
     });
   });
 
+  describe('groupConfirm ack filtering', () => {
+    const cupidLoversRevealSchema = SCHEMAS.cupidLoversReveal;
+
+    it('should return imActioner=true for groupConfirm when player has NOT acked', () => {
+      const result = determineActionerState(
+        'cupid',
+        'cupid',
+        cupidLoversRevealSchema,
+        3,
+        new Map(),
+        new Map(),
+        undefined,
+        undefined,
+        [0, 1], // other seats acked, not seat 3
+      );
+
+      expect(result.imActioner).toBe(true);
+      expect(result.showWolves).toBe(false);
+    });
+
+    it('should return imActioner=false for groupConfirm when player has already acked', () => {
+      const result = determineActionerState(
+        'cupid',
+        'cupid',
+        cupidLoversRevealSchema,
+        3,
+        new Map(),
+        new Map(),
+        undefined,
+        undefined,
+        [3, 0, 1], // seat 3 already acked
+      );
+
+      expect(result.imActioner).toBe(false);
+      expect(result.showWolves).toBe(false);
+    });
+
+    it('should return imActioner=true for groupConfirm with empty acks', () => {
+      const result = determineActionerState(
+        'villager',
+        'cupid',
+        cupidLoversRevealSchema,
+        5,
+        new Map(),
+        new Map(),
+        undefined,
+        undefined,
+        [],
+      );
+
+      expect(result.imActioner).toBe(true);
+    });
+  });
+
   it('should handle mixed board with special wolves', () => {
     const roles: RoleId[] = [
       'villager',

@@ -64,6 +64,9 @@ import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
 /** Stable empty Map to avoid new reference on every render when gameState is null */
 const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
 
+/** Stable empty array for groupConfirm acks when not in a groupConfirm step */
+const EMPTY_ACKS: readonly number[] = [];
+
 /** Errors that cannot be recovered by retrying — auto-redirect to Home */
 const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
 
@@ -281,6 +284,13 @@ export function useRoomScreenState(
   // Actioner state
   // ═══════════════════════════════════════════════════════════════════════════
 
+  const groupConfirmAcks = useMemo((): readonly number[] => {
+    if (currentSchema?.kind !== 'groupConfirm' || !gameState) return EMPTY_ACKS;
+    if (currentSchema.id === 'awakenedGargoyleConvertReveal') return gameState.conversionRevealAcks;
+    if (currentSchema.id === 'cupidLoversReveal') return gameState.cupidLoversRevealAcks;
+    return gameState.piperRevealAcks;
+  }, [currentSchema, gameState]);
+
   const { imActioner, showWolves } = useActionerState({
     actorRole: actorRoleForUi,
     currentActionRole,
@@ -290,6 +300,7 @@ export function useRoomScreenState(
     actions: gameState?.actions ?? EMPTY_ACTIONS,
     treasureMasterChosenCard: gameState?.treasureMasterChosenCard,
     thiefChosenCard: gameState?.thiefChosenCard,
+    groupConfirmAcks,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════

@@ -130,6 +130,7 @@ export interface SeatViewModel {
  * @param actions - Map of already submitted role actions
  * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
  * @param thiefChosenCard - The role thief chose from bottom cards (if any)
+ * @param groupConfirmAcks - Seats that have already acked the current groupConfirm step
  */
 export function determineActionerState(
   actorRole: RoleId | null,
@@ -140,14 +141,16 @@ export function determineActionerState(
   actions: Map<RoleId, RoleAction> = new Map(),
   treasureMasterChosenCard?: RoleId | null,
   thiefChosenCard?: RoleId | null,
+  groupConfirmAcks: readonly number[] = [],
 ): ActionerState {
   if (!currentActionRole || !actorRole) {
     return { imActioner: false, showWolves: false };
   }
 
-  // groupConfirm: ALL seated players are actioners (e.g. piperHypnotizedReveal)
+  // groupConfirm: ALL seated players are actioners, UNLESS they already acked
   if (currentSchema?.kind === 'groupConfirm' && actorSeat !== null) {
-    return { imActioner: true, showWolves: false };
+    const alreadyAcked = groupConfirmAcks.includes(actorSeat);
+    return { imActioner: !alreadyAcked, showWolves: false };
   }
 
   // Schema-driven: determine if this is a wolf meeting phase

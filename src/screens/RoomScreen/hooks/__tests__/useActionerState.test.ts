@@ -26,6 +26,7 @@ function createParams(overrides: Partial<UseActionerStateParams> = {}): UseActio
     actorSeat: null,
     wolfVotes: new Map(),
     actions: new Map(),
+    groupConfirmAcks: [],
     ...overrides,
   };
 }

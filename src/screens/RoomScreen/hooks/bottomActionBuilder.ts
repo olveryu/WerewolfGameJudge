@@ -258,16 +258,9 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   }
 
   // groupConfirm schema (piperHypnotizedReveal / awakenedGargoyleConvertReveal / cupidLoversReveal)
+  // Already-acked players have imActioner=false (handled by determineActionerState),
+  // so the EMPTY guard at line 85 filters them out before reaching here.
   if (currentSchema.kind === 'groupConfirm') {
-    const acks =
-      currentSchema.id === 'awakenedGargoyleConvertReveal'
-        ? gameState.conversionRevealAcks
-        : currentSchema.id === 'cupidLoversReveal'
-          ? gameState.cupidLoversRevealAcks
-          : gameState.piperRevealAcks;
-    if (actorSeat !== null && acks.includes(actorSeat)) {
-      return EMPTY;
-    }
     return {
       buttons: [
         {

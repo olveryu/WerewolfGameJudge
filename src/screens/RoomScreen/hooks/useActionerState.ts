@@ -33,6 +33,8 @@ export interface UseActionerStateParams {
   treasureMasterChosenCard?: RoleId | null;
   /** The role thief chose from bottom cards (if any) */
   thiefChosenCard?: RoleId | null;
+  /** Seats that have already acked the current groupConfirm step */
+  groupConfirmAcks: readonly number[];
 }
 
 /**
@@ -48,6 +50,7 @@ export function useActionerState({
   actions,
   treasureMasterChosenCard,
   thiefChosenCard,
+  groupConfirmAcks,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
     return determineActionerState(
@@ -59,6 +62,7 @@ export function useActionerState({
       actions,
       treasureMasterChosenCard,
       thiefChosenCard,
+      groupConfirmAcks,
     );
   }, [
     actorRole,
@@ -69,5 +73,6 @@ export function useActionerState({
     actions,
     treasureMasterChosenCard,
     thiefChosenCard,
+    groupConfirmAcks,
   ]);
 }
