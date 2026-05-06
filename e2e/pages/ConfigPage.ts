@@ -130,7 +130,7 @@ export class ConfigPage {
   async toggleRole(roleId: string) {
     const chip = this.page.locator(`[data-testid="config-role-chip-${roleId}"]`).first();
     await chip.waitFor({ state: 'attached', timeout: 2000 });
-    await chip.click({ force: true });
+    await chip.click();
   }
 
   /**

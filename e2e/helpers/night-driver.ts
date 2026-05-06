@@ -79,7 +79,7 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 
   const tile = page.locator(`[data-testid="seat-tile-pressable-${seatIdx}"]`);
   await tile.waitFor({ state: 'visible', timeout: 5000 });
-  await tile.click({ force: true });
+  await tile.click();
 
   // Wait for confirmation alert
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -91,8 +91,8 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
 
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
-    await confirmBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await confirmBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -138,8 +138,8 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
     for (const text of buttons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
-        await btn.click({ force: true });
-        await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+        await btn.click();
+        await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
         return true;
       }
     }
@@ -150,9 +150,9 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
   for (const text of buttons) {
     const btn = panel.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click({ force: true });
+      await btn.click();
       // Wait for the clicked button to disappear (step advanced)
-      await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+      await btn.waitFor({ state: 'hidden', timeout: 2000 });
       return true;
     }
   }
@@ -267,13 +267,13 @@ export async function viewLastNightInfo(hostPage: Page): Promise<void> {
     // Check if "昨夜信息" is visible now
     const infoBtn = hostPage.getByTestId('last-night-info-button');
     if (await infoBtn.isVisible().catch(() => false)) {
-      await infoBtn.click({ force: true });
+      await infoBtn.click();
       // Wait for confirmation dialog ("请在警长竞选结束后再查看，请勿作弊")
-      await alertModal.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+      await alertModal.waitFor({ state: 'visible', timeout: 3000 });
       // Click "确定查看" to proceed to the info alert
       const confirmBtn = alertModal.getByText('确定查看', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click({ force: true });
+        await confirmBtn.click();
         // Poll for actual night-result content instead of visibility toggle
         // (avoids TOCTOU race where the confirmation dialog hasn't closed yet)
         const RESULT_KEYWORDS = ['平安夜', '玩家死亡', '死亡', '号玩家'];
@@ -310,8 +310,7 @@ export async function driveWolfVote(
     const wPage = pages[wIdx]!;
     await wPage
       .locator('[data-testid="action-message"]')
-      .waitFor({ state: 'visible', timeout: 10_000 })
-      .catch(() => {});
+      .waitFor({ state: 'visible', timeout: 10_000 });
     await clickSeatAndConfirm(wPage, targetSeat);
   }
 }
@@ -328,14 +327,13 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
 
     await wPage
       .locator('[data-testid="action-message"]')
-      .waitFor({ state: 'visible', timeout: 10_000 })
-      .catch(() => {});
+      .waitFor({ state: 'visible', timeout: 10_000 });
 
     // Click 放弃袭击 button
     const panel = wPage.locator('[data-testid="bottom-action-panel"]');
     const emptyBtn = panel.getByText('放弃袭击', { exact: true }).first();
     await emptyBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await emptyBtn.click({ force: true });
+    await emptyBtn.click();
 
     // Confirm the wolf vote alert
     const alertModal = wPage.locator('[data-testid="alert-modal"]');
@@ -346,8 +344,8 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
     if (appeared) {
       const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
-        await confirmBtn.click({ force: true });
-        await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+        await confirmBtn.click();
+        await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
       }
     }
   }
@@ -375,8 +373,8 @@ export async function dismissAlert(page: Page): Promise<void> {
   for (const text of ['知道了', '确定']) {
     const btn = alertModal.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click({ force: true });
-      await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+      await btn.click();
+      await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
       return;
     }
   }
@@ -402,9 +400,9 @@ export async function clickBottomButton(
     if (attempt > 0) await dismissAlert(page);
     const btn = panel.getByText(label, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
-      await btn.click({ force: true });
+      await btn.click();
       // Wait for the button to disappear or alert to appear
-      await btn.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+      await btn.waitFor({ state: 'hidden', timeout: 2000 });
       return true;
     }
     await page.waitForTimeout(300);
@@ -431,7 +429,7 @@ export async function driveMagicianSwap(
   // Click first seat → triggers "已选择第一位玩家" info alert
   const tile1 = page.locator(`[data-testid="seat-tile-pressable-${seat1}"]`);
   await tile1.waitFor({ state: 'visible', timeout: 5000 });
-  await tile1.click({ force: true });
+  await tile1.click();
 
   // Dismiss "已选择第一位玩家" alert before clicking second seat
   await dismissAlert(page);
@@ -439,7 +437,7 @@ export async function driveMagicianSwap(
   // Click second seat → triggers "确认交换" confirm dialog
   const tile2 = page.locator(`[data-testid="seat-tile-pressable-${seat2}"]`);
   await tile2.waitFor({ state: 'visible', timeout: 5000 });
-  await tile2.click({ force: true });
+  await tile2.click();
 
   // Confirm swap alert ("交换这两名玩家？")
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -451,8 +449,8 @@ export async function driveMagicianSwap(
 
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
-    await confirmBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await confirmBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;

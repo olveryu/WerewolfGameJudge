@@ -359,7 +359,7 @@ test.describe('Night Roles — Block / Skip', () => {
           const panel = wPage.locator('[data-testid="bottom-action-panel"]');
           const blockedBtn = panel.getByText('放弃袭击').first();
           await blockedBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await blockedBtn.click({ force: true });
+          await blockedBtn.click();
 
           // Confirm the wolf vote alert if it appears
           const alertModal = wPage.locator('[data-testid="alert-modal"]');
@@ -469,7 +469,7 @@ test.describe('Night Roles — Block / Skip', () => {
           .getByText('跳过', { exact: false })
           .first();
         if (await skipBtn.isVisible().catch(() => false)) {
-          await skipBtn.click({ force: true });
+          await skipBtn.click();
         }
 
         // Wolf kill — nightmare is wolf faction

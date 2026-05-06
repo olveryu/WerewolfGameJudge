@@ -138,14 +138,14 @@ export async function waitForRoomScreenReady(
 
   // Host: dismiss auto-shown QR invite modal (if visible)
   if (role === 'host') {
-    const qrOverlay = page.locator(`[data-testid="${TESTIDS.qrCodeModal}"]`);
-    const visible = await qrOverlay
+    const qrModal = page.locator(`[data-testid="${TESTIDS.qrCodeModal}"]`);
+    const visible = await qrModal
       .waitFor({ state: 'visible', timeout: 2000 })
       .then(() => true)
       .catch(() => false);
     if (visible) {
-      await qrOverlay.click({ position: { x: 5, y: 5 }, force: true });
-      await qrOverlay.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+      await qrModal.getByText('关闭', { exact: true }).click();
+      await qrModal.waitFor({ state: 'hidden', timeout: 3000 });
     }
     return;
   }

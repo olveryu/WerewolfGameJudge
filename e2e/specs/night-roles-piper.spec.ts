@@ -50,7 +50,7 @@ async function drivePiperHypnotize(
   for (const seat of targetSeats) {
     const tile = page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
     await tile.waitFor({ state: 'visible', timeout: 5000 });
-    await tile.click({ force: true });
+    await tile.click();
     // Brief wait for selection state to update
     await page.waitForTimeout(200);
   }
@@ -60,7 +60,7 @@ async function drivePiperHypnotize(
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const confirmBtn = panel.getByText(confirmLabel, { exact: true }).first();
   await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await confirmBtn.click({ force: true });
+  await confirmBtn.click();
 
   // Wait for confirm alert ("催眠选中的玩家？")
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -72,8 +72,8 @@ async function drivePiperHypnotize(
 
   const okBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await okBtn.isVisible().catch(() => false)) {
-    await okBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await okBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -89,11 +89,12 @@ async function driveGroupConfirmAck(page: import('@playwright/test').Page): Prom
   // Dismiss any existing alert (e.g. piper's "夜间行动" actionPrompt)
   await dismissAlert(page);
 
-  // Click "催眠状态" button in bottom panel
+  // Click "催眠状态" button in bottom panel.
+  // No force:true — Playwright auto-waits for inert removal after alert dismiss.
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const statusBtn = panel.getByText('催眠状态', { exact: true }).first();
   await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click({ force: true });
+  await statusBtn.click();
 
   // Read the personal message alert
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -103,8 +104,8 @@ async function driveGroupConfirmAck(page: import('@playwright/test').Page): Prom
   // Click "知道了" to ack
   const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await ackBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;
@@ -136,8 +137,8 @@ async function waitForGroupConfirmStep(
         for (const text of ['知道了', '确定']) {
           const btn = alertModal.getByText(text, { exact: true }).first();
           if (await btn.isVisible().catch(() => false)) {
-            await btn.click({ force: true });
-            await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+            await btn.click();
+            await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
             break;
           }
         }
@@ -357,7 +358,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
 
           // Confirm skip alert ("确认跳过" dialog with "确定" button)
           const alertModal = pages[piperIdx]!.locator('[data-testid="alert-modal"]');
-          await alertModal.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+          await alertModal.waitFor({ state: 'visible', timeout: 5000 });
           await dismissAlert(pages[piperIdx]!);
         });
 

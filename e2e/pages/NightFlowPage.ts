@@ -249,7 +249,7 @@ async function executeAction(
   let clicked = false;
   for (const loc of [panelBtn, pageBtn]) {
     try {
-      await loc.click({ force: true, timeout: 2000 });
+      await loc.click({ timeout: 2000 });
       clicked = true;
       break;
     } catch {
@@ -282,7 +282,7 @@ async function tryConfirmSeatViaAlert(
   if (alertAppeared) {
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
     if (await confirmBtn.isVisible().catch(() => false)) {
-      await confirmBtn.click({ force: true });
+      await confirmBtn.click();
       await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
       return true;
@@ -298,7 +298,7 @@ async function tryConfirmSeatViaAlert(
 
   if (!visible) return false;
 
-  await fallbackBtn.click({ force: true });
+  await fallbackBtn.click();
   await fallbackBtn.waitFor({ state: 'hidden', timeout: 1000 }).catch(() => {});
   if (isWolfVote) state.wolfVotedPages.add(pageLabel);
   return true;
@@ -318,7 +318,7 @@ async function attemptSeatSelection(
       const tile = getSeatTileLocator(page, idx);
       if (!(await tile.isVisible().catch(() => false))) continue;
 
-      await tile.click({ force: true, timeout: 3000 });
+      await tile.click({ timeout: 3000 });
 
       const confirmed = await tryConfirmSeatViaAlert(page, pageLabel, idx, isWolfVote, state);
       if (confirmed) return true;
@@ -402,7 +402,7 @@ async function tryAdvanceNight(
     for (const text of UI_TEXT.advanceButtons) {
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
-        await btn.click({ force: true });
+        await btn.click();
         await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
         // Track wolf vote ONLY if this was the wolf vote confirm dialog ('狼人投票')
         if (isWolfVoteConfirm && text === '确定') {

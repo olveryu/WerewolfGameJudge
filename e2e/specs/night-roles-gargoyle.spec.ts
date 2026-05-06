@@ -38,14 +38,16 @@ test.setTimeout(180_000);
  * Returns the personal message text shown in the alert.
  */
 async function driveConvertRevealAck(page: import('@playwright/test').Page): Promise<string> {
-  // Dismiss any existing alert (e.g. action prompt)
+  // Dismiss the auto-prompt alert ("所有玩家请睁眼，请看手机确认转化信息")
   await dismissAlert(page);
 
-  // Click "转化状态" button in bottom panel
+  // Click "转化状态" button in bottom panel.
+  // Do NOT use force:true — Playwright's actionability check waits for
+  // ModalStack's inert attribute to be removed after alert dismissal.
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const statusBtn = panel.getByText('转化状态', { exact: true }).first();
   await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click({ force: true });
+  await statusBtn.click();
 
   // Read the personal message alert
   const alertModal = page.locator('[data-testid="alert-modal"]');
@@ -55,8 +57,8 @@ async function driveConvertRevealAck(page: import('@playwright/test').Page): Pro
   // Click "知道了" to ack
   const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await ackBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;

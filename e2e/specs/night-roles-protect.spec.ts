@@ -126,7 +126,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
 
         // Wait for the bottom action panel to render after alert dismissal
         const panel = pages[witchIdx]!.locator('[data-testid="bottom-action-panel"]');
-        await panel.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+        await panel.waitFor({ state: 'visible', timeout: 5000 });
 
         // Click the save button: "对{seat+1}号用解药"
         const saveLabel = `对${killTarget + 1}号用解药`;
@@ -134,19 +134,19 @@ test.describe('Night Roles — Protection / Immunity', () => {
         if (!saved) {
           // Fallback: try "用解药" partial match
           const saveBtn = panel.getByText('用解药').first();
-          await saveBtn.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
+          await saveBtn.waitFor({ state: 'visible', timeout: 3000 });
           if (await saveBtn.isVisible().catch(() => false)) {
-            await saveBtn.click({ force: true });
+            await saveBtn.click();
           }
         }
 
         // Confirm save — wait for confirmation dialog to appear, then dismiss
         const confirmModal = pages[witchIdx]!.locator('[data-testid="alert-modal"]');
-        await confirmModal.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+        await confirmModal.waitFor({ state: 'visible', timeout: 5000 });
         await dismissAlert(pages[witchIdx]!);
 
         // Wait for action submission to complete (alert-modal dismissed)
-        await confirmModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
+        await confirmModal.waitFor({ state: 'hidden', timeout: 5000 });
 
         // Night should end with 平安夜
         const ended = await waitForNightEnd(pages, 120);

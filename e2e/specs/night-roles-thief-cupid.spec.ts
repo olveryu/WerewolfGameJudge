@@ -55,14 +55,14 @@ async function driveCupidChooseLovers(
   for (const seat of targetSeats) {
     const tile = page.locator(`[data-testid="seat-tile-pressable-${seat}"]`);
     await tile.waitFor({ state: 'visible', timeout: 5000 });
-    await tile.click({ force: true });
+    await tile.click();
     await page.waitForTimeout(200);
   }
 
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const confirmBtn = panel.getByText('确认连接(2人)', { exact: true }).first();
   await confirmBtn.waitFor({ state: 'visible', timeout: 5000 });
-  await confirmBtn.click({ force: true });
+  await confirmBtn.click();
 
   const alertModal = page.locator('[data-testid="alert-modal"]');
   const appeared = await alertModal
@@ -73,8 +73,8 @@ async function driveCupidChooseLovers(
 
   const okBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await okBtn.isVisible().catch(() => false)) {
-    await okBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await okBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -89,10 +89,11 @@ async function driveCupidChooseLovers(
 async function driveCupidGroupConfirmAck(page: import('@playwright/test').Page): Promise<string> {
   await dismissAlert(page);
 
+  // No force:true — Playwright auto-waits for inert removal after alert dismiss.
   const panel = page.locator('[data-testid="bottom-action-panel"]');
   const statusBtn = panel.getByText('情侣状态', { exact: true }).first();
   await statusBtn.waitFor({ state: 'visible', timeout: 10_000 });
-  await statusBtn.click({ force: true });
+  await statusBtn.click();
 
   const alertModal = page.locator('[data-testid="alert-modal"]');
   await alertModal.waitFor({ state: 'visible', timeout: 5000 });
@@ -100,8 +101,8 @@ async function driveCupidGroupConfirmAck(page: import('@playwright/test').Page):
 
   const ackBtn = alertModal.getByText('我知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
-    await ackBtn.click({ force: true });
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+    await ackBtn.click();
+    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;
@@ -130,8 +131,8 @@ async function waitForCupidGroupConfirmStep(
         for (const text of ['知道了', '确定']) {
           const btn = alertModal.getByText(text, { exact: true }).first();
           if (await btn.isVisible().catch(() => false)) {
-            await btn.click({ force: true });
-            await alertModal.waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+            await btn.click();
+            await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
             break;
           }
         }
@@ -188,7 +189,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
             .getByText('选择底牌', { exact: true })
             .first();
           await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await chooseBtn.click({ force: true });
+          await chooseBtn.click();
 
           // Wait for the bottom card modal (subtitle contains "底牌" for thief)
           await pages[thiefIdx]!.getByText(/底牌[含均]/)
@@ -206,7 +207,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
             const card = pages[thiefIdx]!.getByText(name, { exact: true }).first();
             if (!(await card.isVisible().catch(() => false))) continue;
 
-            await card.click({ force: true });
+            await card.click();
 
             // If the card was enabled, a confirm alert ("确认选择") appears
             const appeared = await alertModal
@@ -215,8 +216,8 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
               .catch(() => false);
             if (appeared) {
               const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
-              await confirmBtn.click({ force: true });
-              await alertModal.waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+              await confirmBtn.click();
+              await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
               thiefPickedWolf = name === '狼人';
               picked = true;
               break;

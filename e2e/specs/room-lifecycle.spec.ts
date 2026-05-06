@@ -43,7 +43,7 @@ test.describe('Room Lifecycle', () => {
 
       // Dismiss alert
       const okBtn = alertModal.getByText('确定', { exact: true });
-      await okBtn.click({ force: true });
+      await okBtn.click();
       await expect(alertModal).toBeHidden({ timeout: 5_000 });
 
       // Verify redirect to Home via URL (web-first assertion polls URL until match)

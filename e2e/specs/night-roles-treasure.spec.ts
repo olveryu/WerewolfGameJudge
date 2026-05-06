@@ -68,7 +68,7 @@ test.describe('Night Roles — TreasureMaster', () => {
           .getByText('选择底牌', { exact: true })
           .first();
         await chooseBtn.waitFor({ state: 'visible', timeout: 5000 });
-        await chooseBtn.click({ force: true });
+        await chooseBtn.click();
 
         // Wait for the bottom card modal (subtitle "你的阵营：...")
         await pages[tmIdx]!.getByText('你的阵营', { exact: false })
@@ -82,7 +82,7 @@ test.describe('Night Roles — TreasureMaster', () => {
         for (const name of CANDIDATE_NAMES) {
           const card = pages[tmIdx]!.getByText(name, { exact: true }).first();
           if (await card.isVisible().catch(() => false)) {
-            await card.click({ force: true });
+            await card.click();
             clicked = true;
             break;
           }
@@ -108,7 +108,7 @@ test.describe('Night Roles — TreasureMaster', () => {
             .getByText('放弃袭击', { exact: false })
             .first();
           await emptyKillBtn.waitFor({ state: 'visible', timeout: 5000 });
-          await emptyKillBtn.click({ force: true });
+          await emptyKillBtn.click();
           await dismissAlert(pages[wIdx]!);
         }
 
