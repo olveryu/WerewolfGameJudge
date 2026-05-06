@@ -8,10 +8,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   deployments: write
-  pages: write
-  id-token: write
   pull-requests: write
 
 jobs:
@@ -425,29 +423,103 @@ jobs:
       - name: Upload merged report
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.run_number }}
           path: playwright-report/
-          retention-days: 7
+          retention-days: 30
 
-      - name: Upload report to Pages
-        uses: actions/upload-pages-artifact@v4
+      - name: Deploy report to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: playwright-report/
+          branch: gh-pages
+          folder: playwright-report
+          target-folder: run/${{ github.run_number }}
+          clean: false
+          single-commit: true
 
-  deploy-report:
-    runs-on: ubuntu-latest
-    if: always() && needs.merge-reports.result == 'success' && github.ref == 'refs/heads/main'
-    needs: merge-reports
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Update index and prune old reports
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git fetch origin gh-pages
+          git worktree add gh-pages-branch origin/gh-pages
+          cd gh-pages-branch
+
+          # Prune old reports — keep only the 20 most recent
+          MAX_REPORTS=20
+          if [ -d run ]; then
+            RUNS=$(ls -1d run/*/ 2>/dev/null | sed 's|run/||;s|/||' | sort -n)
+            COUNT=$(echo "$RUNS" | wc -l | tr -d ' ')
+            if [ "$COUNT" -gt "$MAX_REPORTS" ]; then
+              REMOVE_COUNT=$((COUNT - MAX_REPORTS))
+              echo "$RUNS" | head -n "$REMOVE_COUNT" | while read -r old; do
+                echo "Removing old report: run/$old"
+                git rm -rf "run/$old"
+              done
+            fi
+          fi
+
+          # Generate index.html listing all remaining reports
+          cat > index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Playwright Reports</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; color: #24292f; }
+              h1 { border-bottom: 1px solid #d0d7de; padding-bottom: 8px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #d0d7de; }
+              th { background: #f6f8fa; }
+              a { color: #0969da; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>Playwright Reports</h1>
+            <table>
+              <thead><tr><th>Run</th><th>Link</th></tr></thead>
+              <tbody>
+          EOF
+          sed -i 's/^          //' index.html
+
+          if [ -d run ]; then
+            ls -1d run/*/ 2>/dev/null | sed 's|run/||;s|/||' | sort -rn | while read -r r; do
+              echo "    <tr><td>#${r}</td><td><a href=\"run/${r}/\">View Report</a></td></tr>" >> index.html
+            done
+          fi
+
+          cat >> index.html << 'EOF'
+              </tbody>
+            </table>
+          </body>
+          </html>
+          EOF
+          sed -i 's/^          //' index.html
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No index changes to commit"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: update report index (run #${{ github.run_number }})"
+            git push origin gh-pages
+          fi
+
+          cd "$GITHUB_WORKSPACE"
+          git worktree remove gh-pages-branch
 
       - name: Add report link to summary
+        if: github.ref == 'refs/heads/main'
         run: |
+          OWNER=$(echo "${{ github.repository }}" | cut -d/ -f1)
+          REPO=$(echo "${{ github.repository }}" | cut -d/ -f2)
+          PAGES_URL="https://${OWNER}.github.io/${REPO}"
+          REPORT_URL="${PAGES_URL}/run/${{ github.run_number }}/"
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "👉 [${{ steps.deployment.outputs.page_url }}](${{ steps.deployment.outputs.page_url }})" >> $GITHUB_STEP_SUMMARY
+          echo "👉 [Run #${{ github.run_number }} Report](${REPORT_URL})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 [All Reports](${PAGES_URL})" >> $GITHUB_STEP_SUMMARY
