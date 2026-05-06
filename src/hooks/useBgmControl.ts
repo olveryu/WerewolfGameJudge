@@ -55,26 +55,20 @@ export function useBgmControl(
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);
   const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const { settingsService, audioService } = useServices();
-  const settingsRef = useRef(settingsService);
-  const audioRef = useRef(audioService);
-  useEffect(() => {
-    settingsRef.current = settingsService;
-    audioRef.current = audioService;
-  }, [settingsService, audioService]);
 
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
-      await settingsRef.current.load();
-      setIsBgmEnabled(settingsRef.current.isBgmEnabled());
+      await settingsService.load();
+      setIsBgmEnabled(settingsService.isBgmEnabled());
       // Apply persisted volume to audio service
-      audioRef.current.setBgmVolume(settingsRef.current.getBgmVolume());
-      audioRef.current.setRoleAudioVolume(settingsRef.current.getRoleAudioVolume());
+      audioService.setBgmVolume(settingsService.getBgmVolume());
+      audioService.setRoleAudioVolume(settingsService.getRoleAudioVolume());
     };
     loadSettings().catch((e) => {
       bgmLog.warn('Failed to load BGM settings', e);
     });
-  }, []);
+  }, [settingsService, audioService]);
 
   // ── 状态驱动：gameStatus 转换到 Ongoing → 启动 BGM ──
   // BGM 启动由 GameState 状态转换驱动（与停止对称），不绑定 HTTP 响应。
@@ -91,16 +85,16 @@ export function useBgmControl(
       prevStatus !== null &&
       prevStatus !== GameStatus.Ongoing
     ) {
-      const bgmEnabled = settingsRef.current.isBgmEnabled();
+      const bgmEnabled = settingsService.isBgmEnabled();
       if (bgmEnabled) {
-        const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
-        audioRef.current.startBgm(assets).catch((e) => {
+        const assets = resolveBgmAssets(settingsService.getBgmTrack());
+        audioService.startBgm(assets).catch((e) => {
           bgmLog.warn('BGM start failed on state transition', e);
         });
         setIsBgmPlaying(true);
       }
     }
-  }, [isHost, gameStatus]);
+  }, [isHost, gameStatus, settingsService, audioService]);
 
   // ── 状态驱动：gameStatus 转换到 Ended → 停止 BGM ──
   // 音频时序层面的 stopBgm（如"天亮了"语音前停 BGM）由 AudioOrchestrator 负责，
@@ -108,57 +102,57 @@ export function useBgmControl(
   useEffect(() => {
     if (!isHost) return;
     if (gameStatus === GameStatus.Ended && !isAudioPlaying) {
-      audioRef.current.stopBgm();
+      audioService.stopBgm();
       setIsBgmPlaying(false);
     }
-  }, [isHost, gameStatus, isAudioPlaying]);
+  }, [isHost, gameStatus, isAudioPlaying, audioService]);
 
   // Toggle BGM setting (host only)
   const toggleBgm = useCallback(async (): Promise<void> => {
-    const newValue = await settingsRef.current.toggleBgm();
+    const newValue = await settingsService.toggleBgm();
     setIsBgmEnabled(newValue);
     // If currently playing, stop/start based on new setting
     if (newValue) {
       // Only start if game is ongoing
       if (gameStatus === GameStatus.Ongoing) {
-        const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
-        audioRef.current.startBgm(assets).catch((e) => {
+        const assets = resolveBgmAssets(settingsService.getBgmTrack());
+        audioService.startBgm(assets).catch((e) => {
           bgmLog.warn('BGM start failed after toggle', e);
         });
         setIsBgmPlaying(true);
       }
     } else {
-      audioRef.current.stopBgm();
+      audioService.stopBgm();
       setIsBgmPlaying(false);
     }
-  }, [gameStatus]);
+  }, [gameStatus, settingsService, audioService]);
 
   // Start BGM if enabled (called by resumeAfterRejoin — user gesture context)
   const startBgmIfEnabled = useCallback(() => {
-    const bgmEnabled = settingsRef.current.isBgmEnabled();
+    const bgmEnabled = settingsService.isBgmEnabled();
     if (bgmEnabled) {
-      const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
-      audioRef.current.startBgm(assets).catch((e) => {
+      const assets = resolveBgmAssets(settingsService.getBgmTrack());
+      audioService.startBgm(assets).catch((e) => {
         bgmLog.warn('BGM start failed', e);
       });
       setIsBgmPlaying(true);
     }
-  }, []);
+  }, [settingsService, audioService]);
 
   // Start BGM unconditionally, respecting track setting (manual user trigger)
   const playBgm = useCallback(() => {
-    const assets = resolveBgmAssets(settingsRef.current.getBgmTrack());
-    audioRef.current.startBgm(assets).catch((e) => {
+    const assets = resolveBgmAssets(settingsService.getBgmTrack());
+    audioService.startBgm(assets).catch((e) => {
       bgmLog.warn('BGM manual play failed', e);
     });
     setIsBgmPlaying(true);
-  }, []);
+  }, [settingsService, audioService]);
 
   // Stop BGM (called by restartGame or manual user trigger)
   const stopBgm = useCallback(() => {
-    audioRef.current.stopBgm();
+    audioService.stopBgm();
     setIsBgmPlaying(false);
-  }, []);
+  }, [audioService]);
 
   return {
     isBgmEnabled,
