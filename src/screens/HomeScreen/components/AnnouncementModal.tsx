@@ -1,13 +1,15 @@
 /**
- * AnnouncementModal — 公告与反馈弹窗（两 tab 切换）
+ * AnnouncementModal — 公告与反馈弹窗（三 tab 切换）
  *
  * 受控组件：由父级传入 visible / onClose。
- * Tab 1「更新日志」：垂直滚动展示版本更新内容（最新在上）。
- * Tab 2「意见反馈」：多行输入 + 提交按钮，需登录。
+ * Tab 1「板子」：按版本分组展示全部预设板子，最新版在上。
+ * Tab 2「更新日志」：垂直滚动展示版本更新内容（最新在上）。
+ * Tab 3「意见反馈」：多行输入 + 提交按钮，需登录。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { PRESET_TEMPLATES, TEMPLATE_CATEGORY_LABELS } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -21,16 +23,32 @@ import {
 import { toast } from 'sonner-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS, NEWLY_ADDED_BOARDS } from '@/config/announcements';
+import {
+  ANNOUNCEMENT_VERSIONS,
+  ANNOUNCEMENTS,
+  BOARD_VERSION_MAP,
+  BOARD_VERSIONS_DESC,
+} from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { submitFeedback } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';
 import { homeLog } from '@/utils/logger';
 
-type Tab = 'changelog' | 'feedback';
+type Tab = 'boards' | 'changelog' | 'feedback';
+
+/** 分类对应的颜色 token key */
+const CATEGORY_COLOR: Record<string, string> = {
+  classic: colors.god,
+  advanced: colors.primary,
+  special: colors.warning,
+  thirdParty: colors.third,
+};
+
+/** 版本组内板子数 ≥ 此值时默认折叠 */
+const COLLAPSE_THRESHOLD = 6;
 
 interface AnnouncementModalProps {
   visible: boolean;
@@ -42,9 +60,18 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
   const scrollMaxHeight = Math.min(400, Math.round(screenHeight * 0.45));
 
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<Tab>('changelog');
+  const [activeTab, setActiveTab] = useState<Tab>('boards');
   const [feedbackText, setFeedbackText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
+
+  /** 按版本分组的板子列表（每组内保留 PRESET_TEMPLATES 原顺序） */
+  const boardsByVersion = useMemo(() => {
+    return BOARD_VERSIONS_DESC.map((version) => {
+      const boards = PRESET_TEMPLATES.filter((t) => BOARD_VERSION_MAP[t.name] === version);
+      return { version, boards };
+    });
+  }, []);
 
   const handleSubmitFeedback = useCallback(async () => {
     const trimmed = feedbackText.trim();
@@ -65,6 +92,8 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
       setIsSubmitting(false);
     }
   }, [feedbackText]);
+
+  const latestBoardVersion = BOARD_VERSIONS_DESC[0];
 
   return (
     <BaseCenterModal
@@ -95,8 +124,16 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
           </Pressable>
         </View>
 
-        {/* Tab bar */}
+        {/* Tab bar — 3 tabs */}
         <View style={styles.tabBar}>
+          <Pressable
+            style={[styles.tab, activeTab === 'boards' && styles.tabActive]}
+            onPress={() => setActiveTab('boards')}
+          >
+            <Text style={[styles.tabText, activeTab === 'boards' && styles.tabTextActive]}>
+              板子
+            </Text>
+          </Pressable>
           <Pressable
             style={[styles.tab, activeTab === 'changelog' && styles.tabActive]}
             onPress={() => setActiveTab('changelog')}
@@ -115,24 +152,103 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
           </Pressable>
         </View>
 
-        {/* Tab content */}
-        {activeTab === 'changelog' ? (
+        {/* ── Tab: 板子 ── */}
+        {activeTab === 'boards' && (
           <ScrollView
             style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
             showsVerticalScrollIndicator={false}
           >
-            {/* 已支持板子区块 */}
-            <View style={styles.section}>
-              <Text style={styles.versionTitle}>🎲 已支持板子</Text>
-              <View style={styles.boardTags}>
-                {NEWLY_ADDED_BOARDS.map((board) => (
-                  <View key={board} style={styles.boardTag}>
-                    <Text style={styles.boardTagText}>{board}</Text>
+            {boardsByVersion.map(({ version, boards }, groupIdx) => {
+              const isLatest = version === latestBoardVersion;
+              const shouldCollapse = boards.length >= COLLAPSE_THRESHOLD;
+              const isExpanded = expandedVersions.has(version);
+
+              return (
+                <View key={version}>
+                  {groupIdx > 0 && <View style={styles.separator} />}
+                  <View style={[styles.versionGroup, isLatest && styles.versionGroupLatest]}>
+                    {/* 版本标题行 */}
+                    <View style={styles.versionHeaderRow}>
+                      <View
+                        style={[
+                          styles.versionBar,
+                          { backgroundColor: isLatest ? colors.primary : colors.border },
+                        ]}
+                      />
+                      <Text style={styles.versionTitle}>
+                        {version === 'v1.0.0' ? 'v1.0.0 首发' : `${version} 新增`}
+                      </Text>
+                      {isLatest && (
+                        <View style={styles.newBadge}>
+                          <Text style={styles.newBadgeText}>NEW</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* 折叠态 */}
+                    {shouldCollapse && !isExpanded ? (
+                      <Pressable
+                        style={styles.expandButton}
+                        onPress={() => setExpandedVersions((prev) => new Set(prev).add(version))}
+                      >
+                        <Text style={styles.expandButtonText}>展开 {boards.length} 套板子</Text>
+                        <Ionicons
+                          name="chevron-down"
+                          size={componentSizes.icon.xs}
+                          color={colors.primary}
+                        />
+                      </Pressable>
+                    ) : (
+                      <View style={styles.boardChips}>
+                        {boards.map((board) => {
+                          const catColor = CATEGORY_COLOR[board.category] ?? colors.textMuted;
+                          return (
+                            <View key={board.name} style={styles.boardChipRow}>
+                              <View style={styles.boardChip}>
+                                <Text style={styles.boardChipText}>{board.name}</Text>
+                              </View>
+                              <Text style={[styles.categoryLabel, { color: catColor }]}>
+                                {TEMPLATE_CATEGORY_LABELS[board.category]}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+
+                    {/* 展开后可收起 */}
+                    {shouldCollapse && isExpanded && (
+                      <Pressable
+                        style={styles.expandButton}
+                        onPress={() =>
+                          setExpandedVersions((prev) => {
+                            const next = new Set(prev);
+                            next.delete(version);
+                            return next;
+                          })
+                        }
+                      >
+                        <Text style={styles.expandButtonText}>收起</Text>
+                        <Ionicons
+                          name="chevron-up"
+                          size={componentSizes.icon.xs}
+                          color={colors.primary}
+                        />
+                      </Pressable>
+                    )}
                   </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.separator} />
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {/* ── Tab: 更新日志 ── */}
+        {activeTab === 'changelog' && (
+          <ScrollView
+            style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
+            showsVerticalScrollIndicator={false}
+          >
             {ANNOUNCEMENT_VERSIONS.map((version, i) => {
               const announcement = ANNOUNCEMENTS[version];
               if (!announcement) return null;
@@ -140,7 +256,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
                 <View key={version}>
                   {i > 0 && <View style={styles.separator} />}
                   <View style={styles.section}>
-                    <Text style={styles.versionTitle}>{announcement.title}</Text>
+                    <Text style={styles.changelogTitle}>{announcement.title}</Text>
                     <View style={styles.itemList}>
                       {announcement.items.map((item) => (
                         <View key={item} style={styles.itemRow}>
@@ -154,7 +270,10 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
               );
             })}
           </ScrollView>
-        ) : (
+        )}
+
+        {/* ── Tab: 意见反馈 ── */}
+        {activeTab === 'feedback' && (
           <View style={[styles.feedbackArea, { maxHeight: scrollMaxHeight }]}>
             {user ? (
               <>
@@ -255,39 +374,98 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: typography.weights.semibold,
   },
-  // ── Changelog tab ──
+  // ── Shared ──
   scrollArea: {
     marginBottom: spacing.small,
-  },
-  section: {
-    gap: spacing.tight,
-  },
-  boardTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.tight,
-  },
-  boardTag: {
-    backgroundColor: colors.primaryLight,
-    borderRadius: borderRadius.small,
-    paddingHorizontal: spacing.small,
-    paddingVertical: spacing.micro,
-  },
-  boardTagText: {
-    fontSize: typography.caption,
-    color: colors.primary,
-    fontWeight: typography.weights.medium,
-  },
-  versionTitle: {
-    fontSize: typography.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.text,
-    marginBottom: spacing.tight,
   },
   separator: {
     height: 1,
     backgroundColor: colors.border,
     marginVertical: spacing.medium,
+  },
+  section: {
+    gap: spacing.tight,
+  },
+  // ── Boards tab ──
+  versionGroup: {
+    gap: spacing.small,
+  },
+  versionGroupLatest: {
+    backgroundColor: withAlpha(colors.primary, 0.04),
+    borderRadius: borderRadius.small,
+    padding: spacing.small,
+    marginHorizontal: -spacing.small,
+  },
+  versionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+  },
+  versionBar: {
+    width: 3,
+    height: 14,
+    borderRadius: borderRadius.full,
+  },
+  versionTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+  },
+  newBadge: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.tight,
+    paddingVertical: spacing.micro,
+  },
+  newBadgeText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.semibold,
+    color: colors.primaryDark,
+  },
+  boardChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.tight,
+  },
+  boardChipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+  },
+  boardChip: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.micro,
+  },
+  boardChipText: {
+    fontSize: typography.caption,
+    color: colors.text,
+    fontWeight: typography.weights.medium,
+  },
+  categoryLabel: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.medium,
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+    paddingVertical: spacing.tight,
+  },
+  expandButtonText: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
+  },
+  // ── Changelog tab ──
+  changelogTitle: {
+    fontSize: typography.body,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+    marginBottom: spacing.tight,
   },
   itemList: {
     gap: spacing.tight,
