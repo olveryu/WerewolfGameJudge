@@ -30,8 +30,7 @@ async function settleAfterRoomReady(page: import('@playwright/test').Page) {
   // Wait for room screen to be fully rendered
   await page
     .locator('[data-testid="room-screen-root"]')
-    .waitFor({ state: 'visible', timeout: 3000 })
-    .catch(() => {});
+    .waitFor({ state: 'visible', timeout: 3000 });
 }
 
 /**

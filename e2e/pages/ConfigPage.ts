@@ -156,7 +156,7 @@ export class ConfigPage {
     await confirmBtn.click();
     // Wait for modal to close
     const card = this.page.locator('[data-testid="role-card-modal"]').first();
-    await card.waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
+    await card.waitFor({ state: 'detached', timeout: 3000 });
   }
 
   /** Deselect multiple role chips. Silently skips missing chips. */

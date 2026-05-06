@@ -44,3 +44,21 @@ applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 - 禁止 `page.waitForTimeout(N)`（唯一例外：轮询循环内 ≤300ms cadence），用 `expect(locator).toBeVisible()` / `locator.waitFor()` 等事件驱动等待替代。
 - 禁止 `.isVisible({ timeout: N })`（Playwright 静默忽略 timeout 参数，瞬间返回）。需等待用 `locator.waitFor({ state: 'visible', timeout })`。
 - 每个 E2E spec 创建独立房间（test isolation），因此支持 `workers > 1` 并行。房间就绪用 `waitForRoomScreenReady()`。
+
+### Playwright click 与 actionability
+
+- **禁止 `force: true`。** Playwright 的 actionability check（visible、enabled、无 `inert`）是唯一可靠的"可交互"保证。`force: true` 跳过检查 → 点击被 `inert` 吞掉 → 导致 flaky。
+- 去掉 `force: true` 后，Playwright 会自动等待 ModalStack 的 `inert` 属性移除。这是修复 "dismiss alert → click bottom panel" 竞态的正确方式。
+- 唯一允许 `force: true` 的场景：测试"元素在 disabled/hidden 状态下被程序化触发"的异常路径（极少）。
+
+### `.catch(() => {})` 使用规则
+
+- **断言型 waitFor 禁止 `.catch(() => {})`。** 如果执行了一个动作（click 确定、dismiss alert），后续状态变更是预期的——失败应该 fail fast 暴露 bug，不能吞掉。
+- **允许 `.catch(() => false)` 的场景：** 条件探测（`isVisible().catch(() => false)`）、retry/polling 循环（下次迭代会重试）、teardown cleanup（`setOffline(false).catch()`、`close().catch()`）。
+- 判断标准：**这个 `.catch` 移除后，如果 await 抛错，是代表一个真实 bug 吗？** 是→移除。不是（只是探测/轮询/cleanup）→保留。
+
+### 调试方式
+
+- **首选 trace viewer**（`npx playwright show-trace`）。项目已配置 `trace: 'retain-on-failure'`，失败时自动生成。trace 包含每个 action 的 DOM snapshot、network、console、timing。
+- **禁止加 `console.log` 调试。** 用 `testInfo.attach('name', { body: data })` 附加诊断数据到 HTML report。
+- 如需临时诊断（`[DIAG]` 前缀），修复后必须清除。禁止 merge 含 `[DIAG]` 的代码。
