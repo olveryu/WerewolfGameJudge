@@ -307,7 +307,7 @@ function AppContent() {
         />
       )}
       <AIChatBubble triggerPulse={triggerPulse} />
-      <Toaster theme="light" richColors position="bottom-center" />
+      <Toaster theme="light" richColors position="top-center" />
     </>
   );
 }
