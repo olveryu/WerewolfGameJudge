@@ -427,6 +427,10 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+      - name: Configure git for large pushes
+        if: github.ref == 'refs/heads/main'
+        run: git config --global http.postBuffer 524288000
+
       - name: Deploy report to GitHub Pages
         if: github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
