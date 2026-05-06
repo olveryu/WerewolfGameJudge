@@ -234,7 +234,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const level = await queryClient
           .ensureQueryData(userStatsOptions())
           .then((s) => s.level)
-          .catch(() => undefined);
+          .catch((err: unknown) => {
+            gameRoomLog.warn('failed to fetch user level for takeSeat', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return undefined;
+          });
 
         return await facade.takeSeat(seat, {
           displayName,
@@ -277,7 +282,12 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         const level = await queryClient
           .ensureQueryData(userStatsOptions())
           .then((s) => s.level)
-          .catch(() => undefined);
+          .catch((err: unknown) => {
+            gameRoomLog.warn('failed to fetch user level for takeSeatWithAck', {
+              error: err instanceof Error ? err.message : String(err),
+            });
+            return undefined;
+          });
 
         const result = await facade.takeSeatWithAck(seat, {
           displayName,
