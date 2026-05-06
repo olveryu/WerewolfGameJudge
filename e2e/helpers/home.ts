@@ -14,7 +14,7 @@ export async function registerAutoDismissers(page: Page): Promise<void> {
   // dismiss via role-based button locator. .first() avoids strict-mode violation
   // when multiple version entries are visible in the scrollable list.
   await page.addLocatorHandler(page.getByText(/^v\d+\.\d+\.\d+ 更新内容$/).first(), async () => {
-    await page.getByRole('button', { name: '我知道了' }).click();
+    await page.getByRole('button', { name: '关闭公告' }).click();
   });
 }
 
