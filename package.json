@@ -93,7 +93,8 @@
     "react-native-svg": "15.15.3",
     "react-native-view-shot": "^4.0.3",
     "react-native-web": "^0.21.2",
-    "sonner-native": "^0.24.0"
+    "sonner-native": "^0.24.0",
+    "ua-parser-js": "^2.0.9"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",

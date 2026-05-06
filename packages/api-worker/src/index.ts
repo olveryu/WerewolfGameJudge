@@ -41,7 +41,7 @@ import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
 import { nightRoutes } from './handlers/night';
 import { roomRoutes } from './handlers/roomHandlers';
-import { getGameRoomStub } from './handlers/shared';
+import { callDO, getGameRoomStub } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
 import { statsRoutes } from './handlers/statsHandlers';
 import { telemetryRoutes } from './handlers/telemetryHandlers';
@@ -123,7 +123,7 @@ app.get('/ws', async (c) => {
   doUrl.pathname = '/websocket';
   // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
   doUrl.searchParams.set('userId', payload.sub);
-  return stub.fetch(new Request(doUrl.toString(), c.req.raw));
+  return await callDO(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
 });
 
 // ── Route groups ────────────────────────────────────────────────────────────

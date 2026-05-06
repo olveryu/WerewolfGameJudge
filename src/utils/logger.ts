@@ -17,21 +17,21 @@
 import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 import { consoleTransport, logger } from 'react-native-logs';
+import { UAParser } from 'ua-parser-js';
 
 import { mobileDebugTransport } from './mobileDebug';
 
-/** Extract browser name from User-Agent string (lightweight, no dependency). */
+/**
+ * Detect browser name via ua-parser-js.
+ *
+ * Workaround: Sentry SDK 10.37 stopped auto-attaching browser.name to Structured Logs
+ * after a server-side envelope format change (getsentry/sentry-javascript#20453).
+ * TODO: Remove once we upgrade to the SDK version that includes the fix.
+ */
 function detectBrowserName(): string | undefined {
   if (Platform.OS !== 'web') return undefined;
-  const ua = navigator.userAgent;
-  if (ua.includes('Firefox/')) return 'Firefox';
-  if (ua.includes('Edg/')) return 'Edge';
-  if (ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
-  if (ua.includes('Chrome/') && !ua.includes('Edg/')) return 'Chrome';
-  if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
-  // WKWebView in-app browsers (WeChat web-view, etc.) — no Safari/ token
-  if (ua.includes('AppleWebKit/') && ua.includes('Mobile/')) return 'Mobile Safari UI/WKWebView';
-  return undefined;
+  const { browser } = UAParser(navigator.userAgent);
+  return browser.name;
 }
 
 // Cache once at module load — UA doesn't change during a session
