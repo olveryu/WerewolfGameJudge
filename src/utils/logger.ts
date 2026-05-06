@@ -15,9 +15,25 @@
  */
 
 import * as Sentry from '@sentry/react-native';
+import { Platform } from 'react-native';
 import { consoleTransport, logger } from 'react-native-logs';
 
 import { mobileDebugTransport } from './mobileDebug';
+
+/** Extract browser name from User-Agent string (lightweight, no dependency). */
+function detectBrowserName(): string | undefined {
+  if (Platform.OS !== 'web') return undefined;
+  const ua = navigator.userAgent;
+  if (ua.includes('Firefox/')) return 'Firefox';
+  if (ua.includes('Edg/')) return 'Edge';
+  if (ua.includes('OPR/') || ua.includes('Opera/')) return 'Opera';
+  if (ua.includes('Chrome/') && !ua.includes('Edg/')) return 'Chrome';
+  if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
+  return undefined;
+}
+
+// Cache once at module load — UA doesn't change during a session
+const BROWSER_NAME = detectBrowserName();
 
 /**
  * Transport that forwards logs to Sentry Structured Logs (production only).
@@ -34,6 +50,9 @@ const sentryTransport: typeof consoleTransport = (props) => {
 
   // Build structured attributes from remaining args + extension tag
   const attrs: Record<string, unknown> = { module };
+  if (BROWSER_NAME) {
+    attrs['browser.name'] = BROWSER_NAME;
+  }
   if (Array.isArray(raw)) {
     for (let i = 1; i < raw.length; i++) {
       const arg = raw[i];
