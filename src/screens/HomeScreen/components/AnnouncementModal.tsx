@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
+import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS, NEWLY_ADDED_BOARDS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { submitFeedback } from '@/services/feature/FeedbackService';
@@ -121,6 +121,18 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
             style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
             showsVerticalScrollIndicator={false}
           >
+            {/* 已支持板子区块 */}
+            <View style={styles.section}>
+              <Text style={styles.versionTitle}>🎲 已支持板子</Text>
+              <View style={styles.boardTags}>
+                {NEWLY_ADDED_BOARDS.map((board) => (
+                  <View key={board} style={styles.boardTag}>
+                    <Text style={styles.boardTagText}>{board}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+            <View style={styles.separator} />
             {ANNOUNCEMENT_VERSIONS.map((version, i) => {
               const announcement = ANNOUNCEMENTS[version];
               if (!announcement) return null;
@@ -249,6 +261,22 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: spacing.tight,
+  },
+  boardTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.tight,
+  },
+  boardTag: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: borderRadius.small,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.micro,
+  },
+  boardTagText: {
+    fontSize: typography.caption,
+    color: colors.primary,
+    fontWeight: typography.weights.medium,
   },
   versionTitle: {
     fontSize: typography.body,
