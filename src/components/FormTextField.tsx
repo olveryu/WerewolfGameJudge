@@ -6,7 +6,7 @@
  * 使用 theme tokens 构建样式，不含业务逻辑。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type ComponentProps, type Ref, useMemo } from 'react';
+import { type ComponentProps, type Ref } from 'react';
 import {
   type StyleProp,
   StyleSheet,
@@ -18,15 +18,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import {
-  borderRadius,
-  colors,
-  componentSizes,
-  fixed,
-  spacing,
-  type ThemeColors,
-  typography,
-} from '@/theme';
+import { borderRadius, colors, componentSizes, fixed, spacing, typography } from '@/theme';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -47,49 +39,47 @@ interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
 
 // ── Styles ───────────────────────────────────────────────
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    // default variant
-    defaultInput: {
-      height: spacing.xxlarge,
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      paddingHorizontal: spacing.medium,
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.text,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      marginTop: -spacing.small,
-      marginBottom: spacing.small,
-    },
-    // search variant
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      gap: spacing.small,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.text,
-      padding: 0,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  // default variant
+  defaultInput: {
+    height: spacing.xxlarge,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.medium,
+    paddingHorizontal: spacing.medium,
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    color: colors.text,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    marginBottom: spacing.medium,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    marginTop: -spacing.small,
+    marginBottom: spacing.small,
+  },
+  // search variant
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    gap: spacing.small,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.text,
+    padding: 0,
+  },
+});
 
 // ── Component ────────────────────────────────────────────
 
@@ -103,8 +93,6 @@ export function FormTextField({
   ref,
   ...rest
 }: FormTextFieldProps) {
-  const styles = useMemo(() => createStyles(colors), []);
-
   if (variant === 'search') {
     return (
       <View style={[styles.searchBar, containerStyle]}>

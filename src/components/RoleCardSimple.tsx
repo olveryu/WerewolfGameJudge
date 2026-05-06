@@ -9,7 +9,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import type React from 'react';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -27,15 +27,7 @@ import {
 } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { UI_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  spacing,
-  type ThemeColors,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography, withAlpha } from '@/theme';
 
 interface RoleCardSimpleProps {
   visible: boolean;
@@ -81,7 +73,6 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = Math.min(screenWidth * 0.82, 360);
   const cardHeight = cardWidth * 1.5;
-  const styles = useMemo(() => createStyles(colors), []);
 
   const showAIButton = !!onAskAI;
   const displayRoleId = activeVariant ?? roleId;
@@ -170,64 +161,62 @@ export const RoleCardSimple: React.FC<RoleCardSimpleProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    cardWrapper: {
-      alignItems: 'center',
-      position: 'relative',
-      zIndex: 1,
-    },
-    confirmButton: {
-      marginTop: spacing.medium,
-      width: '100%',
-    },
-    aiPill: {
-      position: 'absolute',
-      right: spacing.small,
-      top: spacing.xlarge,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.tight,
-      paddingHorizontal: spacing.small,
-      paddingVertical: spacing.tight,
-      borderRadius: borderRadius.full,
-    },
-    aiPillText: {
-      fontSize: typography.caption,
-      fontWeight: typography.weights.semibold,
-    },
-    variantBar: {
-      flexDirection: 'row',
-      gap: spacing.small,
-      marginTop: spacing.medium,
-      marginBottom: spacing.small,
-    },
-    variantPill: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.small,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      backgroundColor: withAlpha(colors.surface, 0.9),
-    },
-    variantPillActive: {
-      backgroundColor: withAlpha(colors.surface, 0.95),
-      borderWidth: fixed.borderWidthThick,
-    },
-    variantPillText: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      fontWeight: typography.weights.medium,
-      color: colors.textSecondary,
-    },
-    variantPillTextActive: {
-      fontWeight: typography.weights.semibold,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardWrapper: {
+    alignItems: 'center',
+    position: 'relative',
+    zIndex: 1,
+  },
+  confirmButton: {
+    marginTop: spacing.medium,
+    width: '100%',
+  },
+  aiPill: {
+    position: 'absolute',
+    right: spacing.small,
+    top: spacing.xlarge,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.tight,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderRadius: borderRadius.full,
+  },
+  aiPillText: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.semibold,
+  },
+  variantBar: {
+    flexDirection: 'row',
+    gap: spacing.small,
+    marginTop: spacing.medium,
+    marginBottom: spacing.small,
+  },
+  variantPill: {
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    backgroundColor: withAlpha(colors.surface, 0.9),
+  },
+  variantPillActive: {
+    backgroundColor: withAlpha(colors.surface, 0.95),
+    borderWidth: fixed.borderWidthThick,
+  },
+  variantPillText: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    fontWeight: typography.weights.medium,
+    color: colors.textSecondary,
+  },
+  variantPillTextActive: {
+    fontWeight: typography.weights.semibold,
+  },
+});

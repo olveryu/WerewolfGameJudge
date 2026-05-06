@@ -11,11 +11,10 @@
  * 参考 RN 官方 Modal 文档示例。
  */
 import type React from 'react';
-import { useMemo } from 'react';
 import { Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
-import { borderRadius, colors, spacing, type ThemeColors } from '@/theme';
+import { borderRadius, colors, spacing } from '@/theme';
 
 interface BaseCenterModalProps {
   visible: boolean;
@@ -39,8 +38,6 @@ export const BaseCenterModal: React.FC<BaseCenterModalProps> = ({
   testID,
   children,
 }) => {
-  const styles = useMemo(() => createStyles(colors), []);
-
   return (
     <Modal visible={visible} transparent animationType={animationType} onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -54,18 +51,16 @@ export const BaseCenterModal: React.FC<BaseCenterModalProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    overlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    contentBox: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.large,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    padding: spacing.large,
+  },
+});

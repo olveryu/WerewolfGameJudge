@@ -5,11 +5,11 @@
  * 渲染数字键盘并通过 onValueChange 上报输入。不 import service，不含业务逻辑。
  */
 import type React from 'react';
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
+import { borderRadius, colors, fixed, spacing, typography } from '@/theme';
 
 interface NumPadProps {
   /** Current value (max 4 digits) */
@@ -44,43 +44,42 @@ const getAccessibilityLabel = (key: string): string => {
   return `数字${key}`;
 };
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      width: '100%',
-    },
-    row: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: spacing.small,
-      marginBottom: spacing.small,
-    },
-    button: {
-      width: spacing.xxlarge + spacing.xlarge + spacing.small, // ~72
-      height: spacing.xxlarge + spacing.medium + spacing.small, // ~56
-      backgroundColor: colors.background,
-      borderRadius: borderRadius.medium,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    buttonText: {
-      fontSize: typography.title,
-      lineHeight: typography.lineHeights.title,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-    },
-    specialButton: {
-      backgroundColor: colors.surfaceHover,
-    },
-    specialButtonText: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.textSecondary,
-    },
-    buttonDisabled: {
-      opacity: fixed.disabledOpacity,
-    },
-  });
+const styles = StyleSheet.create({
+  container: {
+    width: '100%',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.small,
+    marginBottom: spacing.small,
+  },
+  button: {
+    width: spacing.xxlarge + spacing.xlarge + spacing.small, // ~72
+    height: spacing.xxlarge + spacing.medium + spacing.small, // ~56
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonText: {
+    fontSize: typography.title,
+    lineHeight: typography.lineHeights.title,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+  },
+  specialButton: {
+    backgroundColor: colors.surfaceHover,
+  },
+  specialButtonText: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    color: colors.textSecondary,
+  },
+  buttonDisabled: {
+    opacity: fixed.disabledOpacity,
+  },
+});
 
 /**
  * 9-pad numeric keypad for entering room codes
@@ -91,8 +90,6 @@ const NumPadComponent: React.FC<NumPadProps> = ({
   maxLength = 4,
   disabled = false,
 }) => {
-  const styles = useMemo(() => createStyles(colors), []);
-
   const handlePress = (key: string) => {
     // NumPad is an input component - disabled means no input accepted
     if (disabled) return;

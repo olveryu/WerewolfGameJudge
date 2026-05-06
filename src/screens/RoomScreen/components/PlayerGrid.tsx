@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
-import { colors, spacing, type ThemeColors } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
 
@@ -69,7 +69,6 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const tileSize =
     Math.floor(((effectiveWidth - gridGap * (gridColumns - 1)) / gridColumns) * pixelRatio) /
     pixelRatio;
-  const styles = useMemo(() => createStyles(colors), []);
 
   // Create SeatTile styles once and pass to all tiles (performance optimization)
   // This avoids each SeatTile calling StyleSheet.create independently
@@ -147,13 +146,11 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
 // Memoize to prevent re-renders when parent updates but props haven't changed
 export const PlayerGrid = memo(PlayerGridComponent);
 
-function createStyles(_colors: ThemeColors) {
-  return StyleSheet.create({
-    gridContainer: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'flex-start',
-      gap: spacing.small + spacing.tight,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: spacing.small + spacing.tight,
+  },
+});

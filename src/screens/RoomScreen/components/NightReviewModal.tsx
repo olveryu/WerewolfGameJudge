@@ -13,7 +13,7 @@ import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { CloseButton } from '@/components/CloseButton';
 import { STATUS_ICONS } from '@/config/iconTokens';
 import { TESTIDS } from '@/testids';
-import { colors, fixed, spacing, textStyles, type ThemeColors, typography } from '@/theme';
+import { colors, fixed, spacing, textStyles, typography } from '@/theme';
 
 import type { NightReviewData } from '../NightReview.helpers';
 
@@ -25,7 +25,6 @@ interface NightReviewModalProps {
 
 export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, data, onClose }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors), []);
 
   const contentStyle = useMemo(
     () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.75 }),
@@ -78,41 +77,39 @@ export const NightReviewModal: React.FC<NightReviewModalProps> = ({ visible, dat
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    title: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-      marginBottom: spacing.medium,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    sectionTitle: {
-      ...textStyles.bodySemibold,
-      color: colors.primary,
-      marginBottom: spacing.small,
-    },
-    disclaimer: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginBottom: spacing.medium,
-    },
-    line: {
-      fontSize: typography.secondary,
-      color: colors.text,
-      lineHeight: typography.lineHeights.secondary,
-      paddingLeft: spacing.small,
-    },
-    divider: {
-      height: fixed.divider,
-      backgroundColor: colors.border,
-      marginVertical: spacing.medium,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  title: {
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.medium,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  sectionTitle: {
+    ...textStyles.bodySemibold,
+    color: colors.primary,
+    marginBottom: spacing.small,
+  },
+  disclaimer: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.medium,
+  },
+  line: {
+    fontSize: typography.secondary,
+    color: colors.text,
+    lineHeight: typography.lineHeights.secondary,
+    paddingLeft: spacing.small,
+  },
+  divider: {
+    height: fixed.divider,
+    backgroundColor: colors.border,
+    marginVertical: spacing.medium,
+  },
+});

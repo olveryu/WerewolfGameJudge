@@ -20,16 +20,7 @@ import {
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { TESTIDS } from '@/testids';
-import {
-  borderRadius,
-  colors,
-  fixed,
-  spacing,
-  textStyles,
-  type ThemeColors,
-  typography,
-  withAlpha,
-} from '@/theme';
+import { borderRadius, colors, fixed, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 interface SeatInfo {
   /** 0-based seat index */
@@ -54,7 +45,6 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
   onClose,
 }) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const styles = useMemo(() => createStyles(colors), []);
 
   const contentStyle = useMemo(
     () => ({ width: screenWidth * 0.88, maxHeight: screenHeight * 0.7 }),
@@ -163,93 +153,91 @@ export const ShareReviewModal: React.FC<ShareReviewModalProps> = ({
   );
 };
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    title: {
-      fontSize: typography.subtitle,
-      lineHeight: typography.lineHeights.subtitle,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-      textAlign: 'center',
-      marginBottom: spacing.tight,
-    },
-    subtitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      marginBottom: spacing.medium,
-    },
-    scrollView: {
-      flex: 1,
-      marginBottom: spacing.medium,
-    },
-    seatRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: spacing.small,
-      paddingHorizontal: spacing.medium,
-      borderRadius: borderRadius.medium,
-      marginBottom: spacing.tight,
-    },
-    seatRowSelected: {
-      backgroundColor: withAlpha(colors.primary, 0.125),
-    },
-    checkbox: {
-      width: spacing.large,
-      height: spacing.large,
-      borderRadius: borderRadius.small,
-      borderWidth: fixed.borderWidthThick,
-      borderColor: colors.border,
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: spacing.medium,
-    },
-    checkboxSelected: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    checkmark: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textInverse,
-      fontWeight: typography.weights.bold,
-    },
-    seatLabel: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.text,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      gap: spacing.medium,
-    },
-    cancelButton: {
-      flex: 1,
-      backgroundColor: colors.surfaceHover,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      paddingVertical: spacing.medium,
-      alignItems: 'center',
-    },
-    cancelButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.text,
-    },
-    confirmButton: {
-      flex: 1,
-      backgroundColor: colors.primary,
-      borderRadius: borderRadius.full,
-      paddingVertical: spacing.medium,
-      alignItems: 'center',
-    },
-    confirmButtonDisabled: {
-      opacity: fixed.disabledOpacity,
-    },
-    confirmButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.textInverse,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  title: {
+    fontSize: typography.subtitle,
+    lineHeight: typography.lineHeights.subtitle,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.tight,
+  },
+  subtitle: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.medium,
+  },
+  scrollView: {
+    flex: 1,
+    marginBottom: spacing.medium,
+  },
+  seatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.small,
+    paddingHorizontal: spacing.medium,
+    borderRadius: borderRadius.medium,
+    marginBottom: spacing.tight,
+  },
+  seatRowSelected: {
+    backgroundColor: withAlpha(colors.primary, 0.125),
+  },
+  checkbox: {
+    width: spacing.large,
+    height: spacing.large,
+    borderRadius: borderRadius.small,
+    borderWidth: fixed.borderWidthThick,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.medium,
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkmark: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.textInverse,
+    fontWeight: typography.weights.bold,
+  },
+  seatLabel: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    color: colors.text,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.medium,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: colors.surfaceHover,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    paddingVertical: spacing.medium,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    ...textStyles.bodySemibold,
+    color: colors.text,
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    paddingVertical: spacing.medium,
+    alignItems: 'center',
+  },
+  confirmButtonDisabled: {
+    opacity: fixed.disabledOpacity,
+  },
+  confirmButtonText: {
+    ...textStyles.bodySemibold,
+    color: colors.textInverse,
+  },
+});

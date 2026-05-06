@@ -8,7 +8,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
@@ -24,7 +24,6 @@ import {
   shadows,
   spacing,
   textStyles,
-  type ThemeColors,
   typography,
 } from '@/theme';
 import { log } from '@/utils/logger';
@@ -80,7 +79,6 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   onCopyLink,
   onClose,
 }) => {
-  const styles = useMemo(() => createStyles(colors), []);
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
   const preCapturedRef = useRef<string | null>(null);
@@ -217,96 +215,94 @@ export const QRCodeModal = memo(QRCodeModalComponent);
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
-function createStyles(colors: ThemeColors) {
-  return StyleSheet.create({
-    modalBox: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.xlarge,
-      padding: spacing.xlarge,
-      alignItems: 'center',
-      minWidth: 280,
-      ...shadows.md,
-    },
-    title: {
-      ...textStyles.titleBold,
-      color: colors.text,
-      marginBottom: spacing.medium,
-    },
-    shareCard: {
-      backgroundColor: colors.surface,
-      alignItems: 'center',
-      paddingHorizontal: spacing.large,
-      paddingTop: spacing.medium,
-      paddingBottom: spacing.small,
-    },
-    qrContainer: {
-      padding: spacing.medium,
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      marginBottom: spacing.medium,
-    },
-    qrWrapper: {
-      position: 'relative',
-      width: QR_SIZE,
-      height: QR_SIZE,
-    },
-    logoContainer: {
-      position: 'absolute',
-      top: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
-      left: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
-      width: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
-      height: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
-      backgroundColor: colors.surface,
-      justifyContent: 'center',
-      alignItems: 'center',
-      borderRadius: borderRadius.medium,
-    },
-    logoImage: {
-      width: QR_LOGO_SIZE,
-      height: QR_LOGO_SIZE,
-      borderRadius: borderRadius.medium,
-    },
-    roomCode: {
-      ...textStyles.subtitleSemibold,
-      color: colors.text,
-      marginBottom: spacing.tight,
-    },
-    hint: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-      marginBottom: spacing.large,
-    },
-    guideIcon: {
-      marginBottom: spacing.medium,
-    },
-    guideStep: {
-      fontSize: typography.body,
-      lineHeight: typography.lineHeights.body,
-      color: colors.textSecondary,
-      textAlign: 'center' as const,
-      marginBottom: spacing.tight,
-    },
-    buttonRow: {
-      gap: spacing.small,
-      alignSelf: 'stretch',
-    },
-    buttonDisabled: {
-      opacity: fixed.disabledOpacity,
-    },
-    closeButton: {
-      backgroundColor: colors.surfaceHover,
-      paddingVertical: spacing.medium,
-      borderRadius: borderRadius.full,
-      borderWidth: fixed.borderWidth,
-      borderColor: colors.border,
-      alignItems: 'center',
-    },
-    closeButtonText: {
-      ...textStyles.bodySemibold,
-      color: colors.text,
-    },
-  });
-}
+const styles = StyleSheet.create({
+  modalBox: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.xlarge,
+    padding: spacing.xlarge,
+    alignItems: 'center',
+    minWidth: 280,
+    ...shadows.md,
+  },
+  title: {
+    ...textStyles.titleBold,
+    color: colors.text,
+    marginBottom: spacing.medium,
+  },
+  shareCard: {
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    paddingHorizontal: spacing.large,
+    paddingTop: spacing.medium,
+    paddingBottom: spacing.small,
+  },
+  qrContainer: {
+    padding: spacing.medium,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    marginBottom: spacing.medium,
+  },
+  qrWrapper: {
+    position: 'relative',
+    width: QR_SIZE,
+    height: QR_SIZE,
+  },
+  logoContainer: {
+    position: 'absolute',
+    top: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
+    left: (QR_SIZE - QR_LOGO_SIZE - QR_LOGO_MARGIN * 2) / 2,
+    width: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
+    height: QR_LOGO_SIZE + QR_LOGO_MARGIN * 2,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: borderRadius.medium,
+  },
+  logoImage: {
+    width: QR_LOGO_SIZE,
+    height: QR_LOGO_SIZE,
+    borderRadius: borderRadius.medium,
+  },
+  roomCode: {
+    ...textStyles.subtitleSemibold,
+    color: colors.text,
+    marginBottom: spacing.tight,
+  },
+  hint: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.textSecondary,
+    marginBottom: spacing.large,
+  },
+  guideIcon: {
+    marginBottom: spacing.medium,
+  },
+  guideStep: {
+    fontSize: typography.body,
+    lineHeight: typography.lineHeights.body,
+    color: colors.textSecondary,
+    textAlign: 'center' as const,
+    marginBottom: spacing.tight,
+  },
+  buttonRow: {
+    gap: spacing.small,
+    alignSelf: 'stretch',
+  },
+  buttonDisabled: {
+    opacity: fixed.disabledOpacity,
+  },
+  closeButton: {
+    backgroundColor: colors.surfaceHover,
+    paddingVertical: spacing.medium,
+    borderRadius: borderRadius.full,
+    borderWidth: fixed.borderWidth,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    ...textStyles.bodySemibold,
+    color: colors.text,
+  },
+});
