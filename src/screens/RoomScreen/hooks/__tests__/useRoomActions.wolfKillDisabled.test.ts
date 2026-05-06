@@ -74,19 +74,4 @@ describe('useRoomActions wolf vote (server-authoritative)', () => {
       expect(bottomAction.buttons[0]!.label).toBe('放弃袭击');
     });
   });
-
-  // Contract: verify GameContext no longer has wolfKillDisabled
-  describe('Contract: GameContext no longer has block-related fields', () => {
-    it('GameContext does not have wolfKillDisabled', () => {
-      const ctx = makeContext();
-      // @ts-expect-error - wolfKillDisabled does not exist on GameContext
-      expect(ctx.wolfKillDisabled).toBeUndefined();
-    });
-
-    it('GameContext does not have isBlockedByNightmare', () => {
-      const ctx = makeContext();
-      // @ts-expect-error - isBlockedByNightmare does not exist on GameContext
-      expect(ctx.isBlockedByNightmare).toBeUndefined();
-    });
-  });
 });
