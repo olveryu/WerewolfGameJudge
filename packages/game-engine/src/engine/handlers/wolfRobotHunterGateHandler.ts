@@ -42,8 +42,8 @@ interface SetWolfRobotHunterStatusViewedIntent {
  * - success: false + reason
  */
 export function handleSetWolfRobotHunterStatusViewed(
-  intent: SetWolfRobotHunterStatusViewedIntent,
   ctx: HandlerContext,
+  intent: SetWolfRobotHunterStatusViewedIntent,
 ): HandlerResult {
   handlerLog.debug('handleSetWolfRobotHunterStatusViewed', {
     seat: intent.seat,

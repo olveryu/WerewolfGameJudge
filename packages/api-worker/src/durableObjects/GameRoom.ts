@@ -284,16 +284,16 @@ export class GameRoom extends DurableObject<Env> {
   // ── (B) Parameterized RPC methods ───────────────────────────────────────
 
   async seat(params: SeatActionParams): Promise<GameActionResult> {
-    const { userId } = params;
+    const { action, userId } = params;
     return this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, userId);
-        if (params.action === 'sit') {
+        if (action === 'sit') {
           return handleJoinSeat(
             {
               type: 'JOIN_SEAT',
               payload: {
-                seat: params.seat,
+                seat: params.seat!,
                 userId,
                 displayName: params.displayName ?? '',
                 avatarUrl: params.avatarUrl,
@@ -308,16 +308,16 @@ export class GameRoom extends DurableObject<Env> {
             ctx,
           );
         }
-        if (params.action === 'kick') {
+        if (action === 'kick') {
           return handleKickPlayer(
-            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat } },
+            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat! } },
             ctx,
           );
         }
         return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { userId } }, ctx);
       },
       undefined,
-      params.action === 'kick' ? 'KICK_PLAYER' : undefined,
+      action === 'kick' ? 'KICK_PLAYER' : undefined,
     );
   }
 
@@ -477,10 +477,10 @@ export class GameRoom extends DurableObject<Env> {
     return this.#processAction(
       (state) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleSetWolfRobotHunterStatusViewed(
-          { type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED', seat: seatNum },
-          ctx,
-        );
+        return handleSetWolfRobotHunterStatusViewed(ctx, {
+          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
+          seat: seatNum,
+        });
       },
       { enabled: true },
     );

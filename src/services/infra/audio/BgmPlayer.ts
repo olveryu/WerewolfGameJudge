@@ -144,9 +144,7 @@ export class BgmPlayer {
     if (!this.#isPlaying) return;
     if (this.#webElement) {
       if (this.#webAudioCtx?.state === 'suspended') {
-        this.#webAudioCtx.resume().catch((e) => {
-          audioLog.warn('AudioContext resume failed', e);
-        });
+        void this.#webAudioCtx.resume();
       }
       this.#webElement.play().catch((e) => {
         audioLog.warn('error resuming web bgm', e);
@@ -208,9 +206,7 @@ export class BgmPlayer {
     // Chrome auto-suspends idle AudioContexts. Resume before play so audio
     // actually routes through the GainNode → destination.
     if (this.#webAudioCtx.state === 'suspended') {
-      this.#webAudioCtx.resume().catch((e) => {
-        audioLog.warn('AudioContext resume failed', e);
-      });
+      void this.#webAudioCtx.resume();
     }
     const gain = this.#webGainNode!;
     gain.gain.value = this.#volume;

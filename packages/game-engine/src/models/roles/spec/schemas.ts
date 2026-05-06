@@ -5,9 +5,7 @@
  * 导出 buildSchemas 纯函数，不依赖 service、不含副作用或 IO。
  */
 
-import { assertNever } from '../../../utils/assertNever';
 import type { ActiveAbility, NightStepUi } from './ability.types';
-import { NIGHT_STEP_ORDER, type NightStepId } from './plan';
 import type { NightStepDef, RoleSpec } from './roleSpec.types';
 import type { ActionSchema, InlineSubStepSchema, RevealKind, SchemaUi } from './schema.types';
 import { ROLE_SPECS } from './specs';
@@ -79,19 +77,15 @@ function buildSchema(
         ui,
       };
 
-    case 'wolfVote': {
-      if (!step.meeting) {
-        throw new Error(`[FAIL-FAST] wolfVote step '${step.stepId}' missing meeting config`);
-      }
+    case 'wolfVote':
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'wolfVote',
         constraints: ability?.target?.constraints ?? [],
-        meeting: step.meeting,
+        meeting: step.meeting!,
         ui,
       };
-    }
 
     case 'compound':
       return {
@@ -159,9 +153,6 @@ function buildSchema(
         canSkip: ability?.canSkip ?? false,
         ui,
       };
-
-    default:
-      return assertNever(step.actionKind);
   }
 }
 
@@ -195,15 +186,10 @@ export function buildSchemas(): Record<string, ActionSchema> {
 // Cached Registry + Helpers
 // =============================================================================
 
+import type { NightStepId } from './plan';
+
 /** Build once at module init (deterministic, no side effects) */
 const _SCHEMAS: Record<string, ActionSchema> = buildSchemas();
-
-// Runtime completeness assertion: every NightStepId must have a corresponding schema
-for (const stepId of NIGHT_STEP_ORDER) {
-  if (!(stepId in _SCHEMAS)) {
-    throw new Error(`[FAIL-FAST] SCHEMAS registry missing entry for step '${stepId}'`);
-  }
-}
 
 /**
  * Complete action schema registry — derived from ROLE_SPECS.

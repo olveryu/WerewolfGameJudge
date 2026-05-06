@@ -11,6 +11,7 @@
  */
 
 import { SCHEMAS } from '../models';
+import type { MultiChooseSeatSchema } from '../models/roles/spec/schema.types';
 import { formatSeat } from '../utils/formatSeat';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
@@ -18,10 +19,7 @@ import type { ResolverContext, ResolverFn } from './types';
 export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players } = context;
   const targets = input.targets;
-  const schema = SCHEMAS.piperHypnotize;
-  if (schema.kind !== 'multiChooseSeat') {
-    throw new Error('[FAIL-FAST] piperHypnotize schema must be multiChooseSeat');
-  }
+  const schema: MultiChooseSeatSchema = SCHEMAS.piperHypnotize as MultiChooseSeatSchema;
 
   // Piper can skip (canSkip: true)
   if (!targets || targets.length === 0) {
