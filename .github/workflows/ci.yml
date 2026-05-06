@@ -435,7 +435,6 @@ jobs:
           folder: playwright-report
           target-folder: run/${{ github.run_number }}
           clean: false
-          single-commit: true
 
       - name: Update index and prune old reports
         if: github.ref == 'refs/heads/main'
