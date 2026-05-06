@@ -16,7 +16,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { drawHistory, userStats } from '../db/schema';
+import { drawHistory, idempotencyKeys, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
@@ -32,6 +32,46 @@ const DAILY_REWARD_COOLDOWN_HOURS = 20;
 
 /** 每日登录奖励的普通抽奖券数 */
 const NORMAL_DRAWS_PER_DAILY_LOGIN = 2;
+
+/**
+ * Check if an idempotency key has already been used.
+ * Returns the cached response if found, null otherwise.
+ */
+async function getIdempotentResponse<T>(
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  key: string,
+): Promise<T | null> {
+  const existing = await db
+    .select({ response: idempotencyKeys.response })
+    .from(idempotencyKeys)
+    .where(eq(idempotencyKeys.key, key))
+    .get();
+
+  if (!existing) return null;
+  return JSON.parse(existing.response) as T;
+}
+
+/**
+ * Store a successful response against an idempotency key.
+ * Silently ignores conflicts (race between parallel retries — first writer wins).
+ */
+async function storeIdempotentResponse(
+  db: ReturnType<typeof createDb>,
+  userId: string,
+  key: string,
+  response: unknown,
+): Promise<void> {
+  await db
+    .insert(idempotencyKeys)
+    .values({
+      key,
+      userId,
+      response: JSON.stringify(response),
+      createdAt: new Date().toISOString(),
+    })
+    .onConflictDoNothing();
+}
 
 /** GET /api/gacha/status */
 gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
@@ -101,6 +141,23 @@ interface DrawResult {
   shardsAwarded: number;
 }
 
+interface DrawResponse {
+  results: DrawResult[];
+  totalShardsAwarded: number;
+  remaining: {
+    normalDraws: number;
+    goldenDraws: number;
+  };
+}
+
+interface ExchangeResponse {
+  rewardId: string;
+  rewardType: RewardType;
+  rarity: Rarity;
+  cost: number;
+  remainingShards: number;
+}
+
 /** Max OCC retries for concurrent draw conflict */
 const MAX_DRAW_RETRIES = 3;
 
@@ -108,8 +165,15 @@ const MAX_DRAW_RETRIES = 3;
 gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
-  const { drawType, count } = c.req.valid('json');
+  const { drawType, count, idempotencyKey } = c.req.valid('json');
   log.info('draw request', { userId, drawType, count });
+
+  // Idempotency check: return cached response if key already used
+  const cached = await getIdempotentResponse<DrawResponse>(db, userId, idempotencyKey);
+  if (cached) {
+    log.info('draw idempotent hit', { userId, idempotencyKey });
+    return c.json(cached);
+  }
 
   for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
     // 1. Read current stats (including version for OCC)
@@ -255,14 +319,16 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       rarities,
       totalShardsAwarded,
     });
-    return c.json({
+    const response: DrawResponse = {
       results,
       totalShardsAwarded,
       remaining: {
         normalDraws: drawType === 'normal' ? availableTickets - actualCount : stats.normalDraws,
         goldenDraws: drawType === 'golden' ? availableTickets - actualCount : stats.goldenDraws,
       },
-    });
+    };
+    await storeIdempotentResponse(db, userId, idempotencyKey, response);
+    return c.json(response);
   }
 
   // All retries exhausted — concurrent conflict persisted
@@ -347,8 +413,15 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
 gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
-  const { rewardId } = c.req.valid('json');
+  const { rewardId, idempotencyKey } = c.req.valid('json');
   log.info('exchange request', { userId, rewardId });
+
+  // Idempotency check: return cached response if key already used
+  const cached = await getIdempotentResponse<ExchangeResponse>(db, userId, idempotencyKey);
+  if (cached) {
+    log.info('exchange idempotent hit', { userId, idempotencyKey });
+    return c.json(cached);
+  }
 
   // 1. Validate the item exists in the reward pool
   const rewardItem = REWARD_POOL_BY_ID.get(rewardId);
@@ -408,13 +481,15 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
     }
 
     log.info('exchange success', { userId, rewardId, cost, remainingShards: stats.shards - cost });
-    return c.json({
+    const response: ExchangeResponse = {
       rewardId,
       rewardType: rewardItem.type,
       rarity: rewardItem.rarity,
       cost,
       remainingShards: stats.shards - cost,
-    });
+    };
+    await storeIdempotentResponse(db, userId, idempotencyKey, response);
+    return c.json(response);
   }
 
   log.error('OCC retries exhausted', { userId, rewardId });

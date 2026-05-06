@@ -57,12 +57,13 @@ export async function fetchGachaStatus(): Promise<GachaStatus> {
   return cfGet<GachaStatus>('/api/gacha/status');
 }
 
-/** 执行抽奖（非幂等操作，禁用网络层自动重试） */
+/** 执行抽奖（幂等：同一 idempotencyKey 重试返回相同结果） */
 export async function performDraw(
   drawType: 'normal' | 'golden',
   count: number = 1,
 ): Promise<DrawResponse> {
-  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count }, { noRetry: true });
+  const idempotencyKey = crypto.randomUUID();
+  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count, idempotencyKey });
 }
 
 /** 领取每日登录奖励（2 次普通抽） */
@@ -70,7 +71,8 @@ export async function claimDailyReward(localDate: string): Promise<DailyRewardRe
   return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', { localDate });
 }
 
-/** 碎片兑换指定物品（非幂等操作，禁用网络层自动重试） */
+/** 碎片兑换指定物品（幂等：同一 idempotencyKey 重试返回相同结果） */
 export async function exchangeShard(rewardId: string): Promise<ExchangeResponse> {
-  return cfPost<ExchangeResponse>('/api/gacha/exchange', { rewardId }, { noRetry: true });
+  const idempotencyKey = crypto.randomUUID();
+  return cfPost<ExchangeResponse>('/api/gacha/exchange', { rewardId, idempotencyKey });
 }

@@ -6,6 +6,7 @@ import { z } from 'zod';
 export const gachaDrawSchema = z.object({
   drawType: z.enum(['normal', 'golden']),
   count: z.number().int().min(1).max(10).default(1),
+  idempotencyKey: z.string().uuid(),
 });
 
 /** POST /api/gacha/daily-reward — body */
@@ -16,4 +17,5 @@ export const dailyRewardSchema = z.object({
 /** POST /api/gacha/exchange — body */
 export const shardExchangeSchema = z.object({
   rewardId: z.string().min(1),
+  idempotencyKey: z.string().uuid(),
 });

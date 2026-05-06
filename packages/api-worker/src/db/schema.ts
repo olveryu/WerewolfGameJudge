@@ -123,3 +123,18 @@ export const drawHistory = sqliteTable('draw_history', {
   shardsAwarded: integer('shards_awarded').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
+
+// ── idempotency_keys ────────────────────────────────────────────────────────
+
+export const idempotencyKeys = sqliteTable(
+  'idempotency_keys',
+  {
+    key: text('key').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id),
+    response: text('response').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [index('idx_idempotency_keys_created_at').on(table.createdAt)],
+);

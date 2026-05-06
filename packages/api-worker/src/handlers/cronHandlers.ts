@@ -9,7 +9,7 @@
 import { sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
-import { loginAttempts, rooms, users } from '../db/schema';
+import { idempotencyKeys, loginAttempts, rooms, users } from '../db/schema';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
 
@@ -64,14 +64,32 @@ async function cleanupOldLoginAttempts(env: Env): Promise<{ deleted: number }> {
   return { deleted };
 }
 
+const IDEMPOTENCY_KEY_MAX_AGE_HOURS = 24;
+
+async function cleanupExpiredIdempotencyKeys(env: Env): Promise<{ deleted: number }> {
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(idempotencyKeys)
+    .where(
+      sql`${idempotencyKeys.createdAt} < datetime('now', ${`-${IDEMPOTENCY_KEY_MAX_AGE_HOURS}`} || ' hours')`,
+    )
+    .returning({ key: idempotencyKeys.key });
+
+  const deleted = result.length;
+  log.info('cleanupExpiredIdempotencyKeys', { deleted });
+  return { deleted };
+}
+
 /** Run all scheduled cleanup tasks. */
 export async function runScheduledCleanup(env: Env): Promise<void> {
   const rooms = await cleanupStaleRooms(env);
   const users = await cleanupAnonymousUsers(env);
   const logins = await cleanupOldLoginAttempts(env);
+  const idempotency = await cleanupExpiredIdempotencyKeys(env);
   log.info('cleanup complete', {
     rooms: rooms.deleted,
     anonymousUsers: users.deleted,
     loginAttempts: logins.deleted,
+    idempotencyKeys: idempotency.deleted,
   });
 }
