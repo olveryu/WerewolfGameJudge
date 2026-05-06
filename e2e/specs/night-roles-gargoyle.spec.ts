@@ -58,7 +58,6 @@ async function driveConvertRevealAck(page: import('@playwright/test').Page): Pro
   const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
     await ackBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;

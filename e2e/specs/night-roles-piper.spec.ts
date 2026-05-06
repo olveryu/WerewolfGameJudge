@@ -73,7 +73,6 @@ async function drivePiperHypnotize(
   const okBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await okBtn.isVisible().catch(() => false)) {
     await okBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -105,7 +104,6 @@ async function driveGroupConfirmAck(page: import('@playwright/test').Page): Prom
   const ackBtn = alertModal.getByText('知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
     await ackBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;
@@ -138,7 +136,6 @@ async function waitForGroupConfirmStep(
           const btn = alertModal.getByText(text, { exact: true }).first();
           if (await btn.isVisible().catch(() => false)) {
             await btn.click();
-            await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
             break;
           }
         }

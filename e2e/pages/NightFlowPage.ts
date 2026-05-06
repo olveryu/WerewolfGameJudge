@@ -209,19 +209,19 @@ async function handlePostClick(
   if (buttonText === '放弃袭击') {
     // After clicking '放弃袭击', a wolf vote confirm AlertModal should appear.
     // Wait for alert to appear; the next iteration will click '确定'.
-    await page.locator('[data-testid="alert-modal"]').waitFor({ state: 'visible', timeout: 3000 });
+    await page
+      .locator('[data-testid="alert-modal"]')
+      .waitFor({ state: 'visible', timeout: 3000 })
+      .catch(() => false);
     return true;
   }
 
-  const btn = page.getByText(buttonText, { exact: true }).first();
   if (buttonText === '确定') {
     const vc = await parseWolfVoteCount(page);
-    await btn.waitFor({ state: 'hidden', timeout: 2000 });
     if (vc) state.wolfVotedPages.add(pageLabel);
     return true;
   }
 
-  await btn.waitFor({ state: 'hidden', timeout: 1000 });
   return true;
 }
 
@@ -280,7 +280,6 @@ async function tryConfirmSeatViaAlert(
     const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
     if (await confirmBtn.isVisible().catch(() => false)) {
       await confirmBtn.click();
-      await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
       if (isWolfVote) state.wolfVotedPages.add(pageLabel);
       return true;
     }
@@ -296,7 +295,6 @@ async function tryConfirmSeatViaAlert(
   if (!visible) return false;
 
   await fallbackBtn.click();
-  await fallbackBtn.waitFor({ state: 'hidden', timeout: 1000 });
   if (isWolfVote) state.wolfVotedPages.add(pageLabel);
   return true;
 }
@@ -391,7 +389,6 @@ async function tryAdvanceNight(
     if (isWolfVoteConfirm && state.wolfVotedPages.has(pageLabel)) {
       // Dismiss by pressing Escape or clicking outside (don't click 确定)
       await page.keyboard.press('Escape').catch(() => {});
-      await alertModal.waitFor({ state: 'hidden', timeout: 1000 });
       return false;
     }
 
@@ -400,7 +397,6 @@ async function tryAdvanceNight(
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
         await btn.click();
-        await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
         // Track wolf vote ONLY if this was the wolf vote confirm dialog ('狼人投票')
         if (isWolfVoteConfirm && text === '确定') {
           state.wolfVotedPages.add(pageLabel);

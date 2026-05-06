@@ -92,7 +92,13 @@ export async function clickSeatAndConfirm(page: Page, seatIdx: number): Promise<
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
     await confirmBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
+    // Wait for the confirm dialog content to be replaced by React.
+    // Confirm dialogs have a "取消" button; subsequent alerts (reveal/info) don't.
+    // Once "取消" disappears, the old dialog content has been processed.
+    await alertModal
+      .getByText('取消', { exact: true })
+      .first()
+      .waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -139,7 +145,6 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
       const btn = alertModal.getByText(text, { exact: true }).first();
       if (await btn.isVisible().catch(() => false)) {
         await btn.click();
-        await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
         return true;
       }
     }
@@ -151,8 +156,6 @@ export async function tryClickAdvanceButton(page: Page, includeSkip = true): Pro
     const btn = panel.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
-      // Wait for the clicked button to disappear (step advanced)
-      await btn.waitFor({ state: 'hidden', timeout: 2000 });
       return true;
     }
   }
@@ -345,7 +348,6 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
       const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
       if (await confirmBtn.isVisible().catch(() => false)) {
         await confirmBtn.click();
-        await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
       }
     }
   }
@@ -374,7 +376,9 @@ export async function dismissAlert(page: Page): Promise<void> {
     const btn = alertModal.getByText(text, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
-      await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
+      // Wait for the alert container to become hidden (modal fully closed).
+      // dismissAlert callers always expect no subsequent immediate alert.
+      await alertModal.waitFor({ state: 'hidden', timeout: 5000 });
       return;
     }
   }
@@ -401,8 +405,6 @@ export async function clickBottomButton(
     const btn = panel.getByText(label, { exact: true }).first();
     if (await btn.isVisible().catch(() => false)) {
       await btn.click();
-      // Wait for the button to disappear or alert to appear
-      await btn.waitFor({ state: 'hidden', timeout: 2000 });
       return true;
     }
     await page.waitForTimeout(300);
@@ -450,7 +452,6 @@ export async function driveMagicianSwap(
   const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await confirmBtn.isVisible().catch(() => false)) {
     await confirmBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;

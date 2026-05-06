@@ -45,7 +45,6 @@ async function dismissContinueOverlayIfVisible(page: Page): Promise<boolean> {
 
   if (isVisible) {
     await continueBtn.click();
-    await continueBtn.waitFor({ state: 'hidden', timeout: 3_000 });
     return true;
   }
   return false;

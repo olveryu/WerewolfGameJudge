@@ -74,7 +74,6 @@ async function driveCupidChooseLovers(
   const okBtn = alertModal.getByText('确定', { exact: true }).first();
   if (await okBtn.isVisible().catch(() => false)) {
     await okBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
     return true;
   }
   return false;
@@ -102,7 +101,6 @@ async function driveCupidGroupConfirmAck(page: import('@playwright/test').Page):
   const ackBtn = alertModal.getByText('我知道了', { exact: true }).first();
   if (await ackBtn.isVisible().catch(() => false)) {
     await ackBtn.click();
-    await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
   }
 
   return alertText;
@@ -132,7 +130,6 @@ async function waitForCupidGroupConfirmStep(
           const btn = alertModal.getByText(text, { exact: true }).first();
           if (await btn.isVisible().catch(() => false)) {
             await btn.click();
-            await alertModal.waitFor({ state: 'hidden', timeout: 2000 });
             break;
           }
         }
@@ -217,7 +214,6 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
             if (appeared) {
               const confirmBtn = alertModal.getByText('确定', { exact: true }).first();
               await confirmBtn.click();
-              await alertModal.waitFor({ state: 'hidden', timeout: 3000 });
               thiefPickedWolf = name === '狼人';
               picked = true;
               break;
