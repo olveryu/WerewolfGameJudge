@@ -69,14 +69,15 @@
     </style>
 
     <style>
-      /* 全屏样式 — 初始暗色匹配 splash，dismissWebSplash 后切换到主题色 */
+      /* 全屏样式 — --theme-bg 由下方 theme detection 脚本设置，
+         splash 全屏覆盖期间底层颜色不可见，淡出时 #root 已是主题色 */
       html,
       body,
       #root {
         width: 100%;
         margin: 0;
         padding: 0;
-        background-color: #0a0a12;
+        background-color: var(--theme-bg, #0a0a12);
         /* 防止双击缩放延迟，替代 user-scalable=no（保留无障碍缩放能力） */
         touch-action: manipulation;
       }

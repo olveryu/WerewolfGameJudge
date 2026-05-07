@@ -137,7 +137,10 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
       dismissOnOverlayPress
       testID={TESTIDS.recentRoomsModal}
     >
-      <Text style={styles.title}>最近房间</Text>
+      <View style={styles.headerRow}>
+        <Ionicons name="time-outline" size={componentSizes.icon.md} color={colors.primary} />
+        <Text style={styles.title}>最近房间</Text>
+      </View>
       <Text style={styles.subtitle}>按最近进入顺序排列，点击即可进入</Text>
 
       <View style={styles.list}>
@@ -151,33 +154,63 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
               key={entry.roomCode}
               onPress={() => handleJoin(entry.roomCode)}
               disabled={!isOnline}
-              style={[styles.card, !isOnline && styles.cardDisabled]}
+              style={[
+                styles.card,
+                isOnline && styles.cardOnline,
+                isError && styles.cardError,
+                isChecking && styles.cardChecking,
+              ]}
               testID={TESTIDS.recentRoomJoin(entry.roomCode)}
               haptic
             >
-              <View style={styles.statusIndicator}>
+              <View
+                style={[
+                  styles.statusIcon,
+                  isOnline && styles.statusIconOnline,
+                  isError && styles.statusIconError,
+                ]}
+              >
                 {isChecking && <ActivityIndicator size="small" color={colors.textMuted} />}
-                {isOnline && <Ionicons name="ellipse" size={12} color={colors.success} />}
+                {isOnline && (
+                  <Ionicons
+                    name="game-controller"
+                    size={componentSizes.icon.sm}
+                    color={colors.success}
+                  />
+                )}
                 {isError && (
                   <Ionicons
                     name="alert-circle"
-                    size={componentSizes.icon.md}
+                    size={componentSizes.icon.sm}
                     color={colors.warning}
                   />
                 )}
               </View>
-              <Text style={[styles.roomCode, !isOnline && styles.roomCodeDisabled]}>
-                {formatRoomCode(entry.roomCode)}
-              </Text>
+              <View style={styles.cardContent}>
+                <Text style={[styles.roomCode, !isOnline && styles.roomCodeDisabled]}>
+                  {formatRoomCode(entry.roomCode)}
+                </Text>
+                <Text
+                  style={[
+                    styles.statusLabel,
+                    isOnline && styles.statusLabelOnline,
+                    isError && styles.statusLabelError,
+                  ]}
+                >
+                  {isChecking && '检查中...'}
+                  {isOnline && '房间在线'}
+                  {isError && '网络异常'}
+                </Text>
+              </View>
               {entry.status === 'online' && (
-                <>
+                <View style={styles.cardRight}>
                   <Text style={styles.createdAt}>{formatRelativeTime(entry.createdAt)}</Text>
                   <Ionicons
                     name="chevron-forward"
                     size={componentSizes.icon.md}
                     color={colors.textMuted}
                   />
-                </>
+                </View>
               )}
             </PressableScale>
           );
@@ -188,6 +221,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
           <View style={styles.emptyState}>
             <Ionicons name="home-outline" size={48} color={colors.textMuted} />
             <Text style={styles.emptyText}>暂无可用房间</Text>
+            <Text style={styles.emptySubtext}>之前的房间已关闭</Text>
           </View>
         )}
 
@@ -204,10 +238,15 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.small,
+  },
   title: {
     ...textStyles.titleBold,
     color: colors.text,
-    textAlign: 'center',
   },
   subtitle: {
     ...textStyles.caption,
@@ -220,6 +259,7 @@ const styles = StyleSheet.create({
     gap: spacing.small,
     minHeight: 80,
   },
+  // ── Card base ──────────────────────────────────────────────
   card: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,36 +269,71 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.medium,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    gap: spacing.small,
     ...shadows.sm,
   },
-  cardDisabled: {
-    backgroundColor: withAlpha(colors.surface, 0.6),
-    borderColor: colors.borderLight,
+  cardOnline: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
   },
-  statusIndicator: {
-    width: componentSizes.icon.lg,
-    height: componentSizes.icon.lg,
+  cardError: {
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
+  },
+  cardChecking: {
+    backgroundColor: withAlpha(colors.surface, 0.6),
+  },
+  // ── Status icon (circle bg) ────────────────────────────────
+  statusIcon: {
+    width: componentSizes.icon.xl,
+    height: componentSizes.icon.xl,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  roomCode: {
+  statusIconOnline: {
+    backgroundColor: withAlpha(colors.success, 0.1),
+  },
+  statusIconError: {
+    backgroundColor: withAlpha(colors.warning, 0.1),
+  },
+  // ── Card content (two-row) ─────────────────────────────────
+  cardContent: {
     flex: 1,
+    gap: spacing.micro,
+  },
+  roomCode: {
     fontSize: typography.heading,
     lineHeight: typography.lineHeights.heading,
     fontWeight: typography.weights.semibold,
     color: colors.text,
     fontVariant: ['tabular-nums'],
     letterSpacing: typography.letterSpacing.wide,
-    textAlign: 'center',
   },
   roomCodeDisabled: {
     color: colors.textMuted,
   },
+  statusLabel: {
+    ...textStyles.caption,
+    color: colors.textMuted,
+  },
+  statusLabelOnline: {
+    color: colors.success,
+  },
+  statusLabelError: {
+    color: colors.warning,
+  },
+  // ── Card right (time + chevron) ────────────────────────────
+  cardRight: {
+    alignItems: 'flex-end',
+    gap: spacing.micro,
+  },
   createdAt: {
     ...textStyles.caption,
     color: colors.textMuted,
-    marginRight: spacing.tight,
   },
+  // ── Empty / error states ───────────────────────────────────
   emptyState: {
     alignItems: 'center',
     gap: spacing.small,
@@ -266,6 +341,11 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...textStyles.body,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  emptySubtext: {
+    ...textStyles.caption,
     color: colors.textMuted,
     textAlign: 'center',
   },
