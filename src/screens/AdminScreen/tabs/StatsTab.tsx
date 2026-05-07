@@ -43,7 +43,7 @@ export const StatsTab: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <TimeRangeSelector onRangeChange={(r) => void handleRangeChange(r)} />
+      <TimeRangeSelector onRangeChange={handleRangeChange} />
 
       {loading || error || !data ? (
         <AdminEmptyState loading={loading} error={error} empty={!data && !loading && !error} />

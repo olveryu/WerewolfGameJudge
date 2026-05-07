@@ -25,7 +25,7 @@ const PRESET_LABELS: Record<TimePreset, string> = {
 const PRESETS: readonly TimePreset[] = ['today', '7d', '30d', 'custom'] as const;
 
 interface TimeRangeSelectorProps {
-  onRangeChange: (range: { from: string; to: string }) => void;
+  onRangeChange: (range: { from: string; to: string }) => void | Promise<void>;
 }
 
 const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeChange }) => {
@@ -35,7 +35,7 @@ const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeC
 
   useEffect(() => {
     if (preset !== 'custom') {
-      onRangeChange(getTimeRange(preset));
+      void onRangeChange(getTimeRange(preset));
     }
   }, [preset, onRangeChange]);
 
@@ -45,7 +45,7 @@ const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeC
 
   const handleCustomSearch = useCallback(() => {
     if (customFrom && customTo) {
-      onRangeChange({
+      void onRangeChange({
         from: `${customFrom}T00:00:00Z`,
         to: `${customTo}T23:59:59Z`,
       });
