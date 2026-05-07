@@ -247,7 +247,8 @@ export class RoomPage {
     await expect(this.page.getByText('重新开始游戏？', { exact: true })).toBeVisible({
       timeout: 3000,
     });
-    await this.page.getByText('确定', { exact: true }).click();
+    // After first night, dialog offers "分享战报" / "直接开始" / "取消"
+    await this.page.getByText('直接开始', { exact: true }).click();
     // Wait for restart broadcast — "分配角色" reappears when status resets
     await expect(this.page.getByTestId('prepare-to-flip-button')).toBeVisible({ timeout: 15_000 });
   }
