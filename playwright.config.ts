@@ -106,6 +106,8 @@ export default defineConfig({
       stderr: 'pipe',
       env: {
         EXPO_PUBLIC_CF_API_URL: LOCAL_CF_API_URL,
+        // Disable Sentry in E2E builds — test errors must not pollute production
+        EXPO_PUBLIC_SENTRY_DSN: '',
       },
     },
   ],
