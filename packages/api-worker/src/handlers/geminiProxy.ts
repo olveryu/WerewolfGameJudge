@@ -213,6 +213,19 @@ function toWorkersAIMessages(messages: Message[]): Message[] {
 geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   const env = c.env;
   const parsed = c.req.valid('json');
+  const startTime = Date.now();
+  const userId = c.var.userId;
+  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  const country = (cf?.country as string) ?? 'unknown';
+
+  /** Fire-and-forget: write one data point to AI_USAGE Analytics Engine. */
+  const writeUsage = (model: string, provider: 'gemini' | 'workers-ai', status: 'ok' | 'error') => {
+    env.AI_USAGE.writeDataPoint({
+      indexes: [userId],
+      blobs: [userId, model, provider, country, status],
+      doubles: [Date.now() - startTime],
+    });
+  };
 
   const messages = parsed.messages;
   const stream = parsed.stream ?? false;
@@ -245,6 +258,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         });
 
         if (geminiResponse.ok) {
+          writeUsage(model, 'gemini', 'ok');
           if (stream) {
             return new Response(geminiResponse.body, {
               headers: {
@@ -301,6 +315,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
       max_tokens: maxTokens,
     });
 
+    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
     if (stream) {
       return new Response(toOpenAIStream(aiResponse as unknown as ReadableStream), {
         headers: {
@@ -314,9 +329,11 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
     const errMsg = err instanceof Error ? err.message : String(err);
     const isNeuronsExhausted = /exceeded|neurons|rate limit|too many/i.test(errMsg);
     if (isNeuronsExhausted) {
+      writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'error');
       return c.json({ success: false, reason: 'QUOTA_EXHAUSTED' }, 429);
     }
     log.error('Workers AI unexpected error', { error: errMsg });
+    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'error');
     return c.json({ success: false, reason: 'AI_UNAVAILABLE' }, 503);
   }
 });

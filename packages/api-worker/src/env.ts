@@ -19,6 +19,8 @@ export interface Env {
   AI: Ai;
   // ── Analytics Engine (load timing telemetry) ────────────────────────
   LOAD_TIMING: AnalyticsEngineDataset;
+  // ── Analytics Engine (AI chat usage telemetry) ─────────────────────
+  AI_USAGE: AnalyticsEngineDataset;
   // ── Environment Variables ──────────────────────────────────────
   ENVIRONMENT: string;
   CORS_ORIGIN: string;

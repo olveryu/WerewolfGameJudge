@@ -6,7 +6,7 @@
  * 不走 JWT auth 体系，完全独立。
  */
 
-import { and, count, desc, eq, like, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -435,4 +435,136 @@ interface AnalyticsRow {
   cnt: string;
   avg_load_ms: string;
   avg_ttfb_ms: string;
+}
+
+// ── GET /admin/ai-usage ─────────────────────────────────────────────────────
+
+adminRoutes.get('/ai-usage', async (c) => {
+  const from = c.req.query('from');
+  const to = c.req.query('to');
+  if (!from || !to) {
+    throw new HTTPException(400, { message: 'MISSING_TIME_RANGE' });
+  }
+
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
+  }
+
+  const apiToken = c.env.CF_API_TOKEN;
+  if (!apiToken) {
+    throw new HTTPException(503, { message: 'CF_API_TOKEN_NOT_CONFIGURED' });
+  }
+
+  const aeFrom = fromDate.toISOString().slice(0, 19);
+  const aeTo = toDate.toISOString().slice(0, 19);
+
+  // blob1=userId, blob2=model, blob3=provider, blob4=country, blob5=status
+  // double1=ttfrMs
+  const sqlQuery = `
+    SELECT
+      blob1 as userId,
+      blob2 as model,
+      blob3 as provider,
+      blob4 as country,
+      blob5 as status,
+      count() as cnt,
+      avg(double1) as avgTtfrMs
+    FROM ai_usage
+    WHERE timestamp >= toDateTime('${aeFrom}') AND timestamp < toDateTime('${aeTo}')
+    GROUP BY userId, model, provider, country, status
+    ORDER BY cnt DESC
+  `;
+
+  const resp = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/analytics_engine/sql`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'text/plain',
+      },
+      body: sqlQuery,
+    },
+  );
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    log.error('AI usage query failed', { status: resp.status, body: text });
+    throw new HTTPException(502, { message: 'AI_USAGE_QUERY_FAILED' });
+  }
+
+  const result: { data: AIUsageRow[] } = await resp.json();
+  const rows = result.data ?? [];
+
+  // Aggregate into dimensions
+  let totalRequests = 0;
+  let totalErrors = 0;
+  let totalTtfrMs = 0;
+  const providerMap = new Map<string, number>();
+  const modelMap = new Map<string, number>();
+  const countryMap = new Map<string, number>();
+  const statusMap = new Map<string, number>();
+  const userMap = new Map<string, number>();
+
+  for (const row of rows) {
+    const cnt = Number(row.cnt);
+    totalRequests += cnt;
+    totalTtfrMs += Number(row.avgTtfrMs) * cnt;
+    if (row.status === 'error') totalErrors += cnt;
+
+    providerMap.set(row.provider, (providerMap.get(row.provider) ?? 0) + cnt);
+    modelMap.set(row.model, (modelMap.get(row.model) ?? 0) + cnt);
+    countryMap.set(row.country, (countryMap.get(row.country) ?? 0) + cnt);
+    statusMap.set(row.status, (statusMap.get(row.status) ?? 0) + cnt);
+    userMap.set(row.userId, (userMap.get(row.userId) ?? 0) + cnt);
+  }
+
+  const avgTtfrMs = totalRequests > 0 ? Math.round(totalTtfrMs / totalRequests) : 0;
+  const errorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
+
+  // Top users — resolve displayName from D1
+  const topUserEntries = [...userMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const topUserIds = topUserEntries.map(([id]) => id);
+
+  let displayNameMap = new Map<string, string | null>();
+  if (topUserIds.length > 0) {
+    const db = createDb(c.env.DB);
+    const nameRows = await db
+      .select({ id: users.id, displayName: users.displayName })
+      .from(users)
+      .where(inArray(users.id, topUserIds));
+    displayNameMap = new Map(nameRows.map((r) => [r.id, r.displayName]));
+  }
+
+  const toSorted = (map: Map<string, number>) =>
+    [...map.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
+  return c.json({
+    totalRequests,
+    avgTtfrMs,
+    errorRate: Math.round(errorRate * 10000) / 100, // percent, 2 decimals
+    providers: toSorted(providerMap),
+    models: toSorted(modelMap),
+    countries: toSorted(countryMap),
+    statuses: toSorted(statusMap),
+    topUsers: topUserEntries.map(([userId, count]) => ({
+      userId,
+      displayName: displayNameMap.get(userId) ?? null,
+      count,
+    })),
+  });
+});
+
+interface AIUsageRow {
+  userId: string;
+  model: string;
+  provider: string;
+  country: string;
+  status: string;
+  cnt: string;
+  avgTtfrMs: string;
 }

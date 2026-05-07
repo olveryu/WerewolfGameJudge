@@ -1,7 +1,7 @@
 /**
  * AdminScreen — Admin portal 管理面板
  *
- * 密码验证 → 4-tab 仪表盘（用户/房间/统计/性能）。
+ * 密码验证 → 5-tab 仪表盘（用户/房间/统计/性能/AI）。
  * 密码缓存在 MMKV，下次进入自动校验。
  * 不走 JWT auth，使用独立 X-Admin-Token 鉴权。
  */
@@ -19,18 +19,20 @@ import { storage } from '@/lib/storage';
 import { borderRadius, colors, componentSizes, spacing, typography } from '@/theme';
 
 import { verifyAdminPassword } from './adminApi';
+import { AITab } from './tabs/AITab';
 import { AnalyticsTab } from './tabs/AnalyticsTab';
 import { RoomsTab } from './tabs/RoomsTab';
 import { StatsTab } from './tabs/StatsTab';
 import { UsersTab } from './tabs/UsersTab';
 
-type TabId = 'users' | 'rooms' | 'stats' | 'analytics';
+type TabId = 'users' | 'rooms' | 'stats' | 'analytics' | 'ai';
 
 const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { id: 'users', label: '用户', icon: 'people-outline' },
   { id: 'rooms', label: '房间', icon: 'home-outline' },
   { id: 'stats', label: '统计', icon: 'bar-chart-outline' },
   { id: 'analytics', label: '性能', icon: 'speedometer-outline' },
+  { id: 'ai', label: 'AI', icon: 'sparkles-outline' },
 ];
 
 export const AdminScreen: React.FC = () => {
@@ -144,6 +146,7 @@ export const AdminScreen: React.FC = () => {
         {activeTab === 'rooms' && <RoomsTab />}
         {activeTab === 'stats' && <StatsTab />}
         {activeTab === 'analytics' && <AnalyticsTab />}
+        {activeTab === 'ai' && <AITab />}
       </View>
     </SafeAreaView>
   );

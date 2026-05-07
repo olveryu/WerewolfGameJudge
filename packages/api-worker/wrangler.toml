@@ -54,6 +54,11 @@ binding = "AI"
 binding = "LOAD_TIMING"
 dataset = "load_timing"
 
+# ── Analytics Engine (AI chat usage telemetry) ───────────────────────────────
+[[analytics_engine_datasets]]
+binding = "AI_USAGE"
+dataset = "ai_usage"
+
 # ── Custom Domain (workers.dev 在中国大陆不可达) ────────────────────────────────
 [[routes]]
 pattern = "api.werewolfjudge.eu.org"

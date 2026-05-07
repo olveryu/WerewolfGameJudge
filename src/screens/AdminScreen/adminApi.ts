@@ -100,6 +100,17 @@ export interface AdminAnalytics {
   isps: Array<{ isp: string; count: number }>;
 }
 
+export interface AdminAIUsage {
+  totalRequests: number;
+  avgTtfrMs: number;
+  errorRate: number;
+  providers: Array<{ label: string; count: number }>;
+  models: Array<{ label: string; count: number }>;
+  countries: Array<{ label: string; count: number }>;
+  statuses: Array<{ label: string; count: number }>;
+  topUsers: Array<{ userId: string; displayName: string | null; count: number }>;
+}
+
 // ── Time range utilities ────────────────────────────────────────────────────
 
 export type TimePreset = 'today' | '7d' | '30d' | 'custom';
@@ -166,6 +177,10 @@ export function fetchStats(from: string, to: string) {
 
 export function fetchAnalytics(from: string, to: string) {
   return adminFetch<AdminAnalytics>('/admin/analytics', { from, to });
+}
+
+export function fetchAIUsage(from: string, to: string) {
+  return adminFetch<AdminAIUsage>('/admin/ai-usage', { from, to });
 }
 
 /**
