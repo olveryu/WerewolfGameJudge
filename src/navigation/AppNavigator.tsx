@@ -18,6 +18,7 @@ import type React from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
+import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
 import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
 import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
@@ -229,6 +230,11 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           name="ShardExchange"
           component={ShardExchangeScreen}
           options={{ title: '碎片兑换' }}
+        />
+        <Stack.Screen
+          name="Admin"
+          component={AdminScreen}
+          options={{ title: 'Admin', headerShown: false }}
         />
         {/* Auth modal screens — transparent overlay with centered card */}
         <Stack.Group

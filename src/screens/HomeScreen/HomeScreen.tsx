@@ -20,7 +20,14 @@ import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -334,6 +341,23 @@ export const HomeScreen: React.FC = () => {
     }
   }, []);
 
+  // Admin portal entry: 5 consecutive title taps within 3 seconds
+  const adminTapRef = useRef<{ count: number; lastTap: number }>({ count: 0, lastTap: 0 });
+  const handleTitlePress = useCallback(() => {
+    const now = Date.now();
+    const tap = adminTapRef.current;
+    if (now - tap.lastTap > 3000) {
+      tap.count = 1;
+    } else {
+      tap.count += 1;
+    }
+    tap.lastTap = now;
+    if (tap.count >= 5) {
+      tap.count = 0;
+      navigation.navigate('Admin');
+    }
+  }, [navigation]);
+
   return (
     <SafeAreaView
       style={styles.container}
@@ -351,7 +375,9 @@ export const HomeScreen: React.FC = () => {
         {/* ── Top Bar ─────────────────────────────────── */}
         <View style={[styles.topBar, { paddingTop: insets.top + layout.headerPaddingV }]}>
           <View style={styles.topBarBrand}>
-            <Text style={styles.topBarTitle}>狼人面杀电子裁判助手</Text>
+            <Pressable onPress={handleTitlePress}>
+              <Text style={styles.topBarTitle}>狼人面杀电子裁判助手</Text>
+            </Pressable>
           </View>
           <View style={styles.topBarActions}>
             <Button

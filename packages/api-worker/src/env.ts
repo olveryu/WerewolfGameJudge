@@ -43,6 +43,12 @@ export interface Env {
 
   /** GitHub PAT (fine-grained, Issues write) for user feedback → GitHub Issues */
   GITHUB_TOKEN?: string;
+
+  /** Admin portal password — set via `wrangler secret put ADMIN_PASSWORD` */
+  ADMIN_PASSWORD: string;
+
+  /** Cloudflare API token for Analytics Engine reads — set via `wrangler secret put CF_API_TOKEN` */
+  CF_API_TOKEN?: string;
 }
 
 /** Hono app environment type (Bindings = Worker Env) */

@@ -2,6 +2,7 @@ import { type GameTemplate } from '@werewolf/game-engine/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
+  Admin: undefined;
   BoardPicker:
     | {
         existingRoomCode?: string;

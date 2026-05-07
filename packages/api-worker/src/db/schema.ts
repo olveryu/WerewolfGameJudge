@@ -5,7 +5,14 @@
  * 表名、列名使用 snake_case，与 D1 中的物理列一致。
  */
 
-import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core';
 
 // ── users ───────────────────────────────────────────────────────────────────
 
@@ -124,6 +131,26 @@ export const drawHistory = sqliteTable('draw_history', {
   shardsAwarded: integer('shards_awarded').notNull().default(0),
   createdAt: text('created_at').notNull(),
 });
+
+// ── room_participants ────────────────────────────────────────────────────────
+
+export const roomParticipants = sqliteTable(
+  'room_participants',
+  {
+    roomCode: text('room_code')
+      .notNull()
+      .references(() => rooms.code, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    joinedAt: text('joined_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roomCode, table.userId] }),
+    index('idx_room_participants_room_code').on(table.roomCode),
+    index('idx_room_participants_user_id').on(table.userId),
+  ],
+);
 
 // ── idempotency_keys ────────────────────────────────────────────────────────
 

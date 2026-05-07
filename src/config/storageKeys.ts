@@ -10,3 +10,6 @@ export const RECENT_ROOM_CODES_KEY = 'recentRoomCodes';
 
 /** 用户已看过的最新公告版本号（What's New 弹窗） */
 export const LAST_SEEN_VERSION_KEY = '@werewolf_last_seen_version';
+
+/** Admin portal 密码缓存 */
+export const ADMIN_PASSWORD_KEY = 'admin_password';

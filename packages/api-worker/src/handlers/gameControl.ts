@@ -8,6 +8,8 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { Hono } from 'hono';
 
+import { createDb } from '../db';
+import { roomParticipants } from '../db/schema';
 import type { AppEnv } from '../env';
 import {
   boardNominateSchema,
@@ -67,6 +69,23 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
     const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
     return stub.seat(params);
   });
+
+  // Record participant in D1 on successful join (fire-and-forget, idempotent)
+  if (result.success && params.action === 'sit') {
+    const db = createDb(c.env.DB);
+    c.executionCtx.waitUntil(
+      db
+        .insert(roomParticipants)
+        .values({
+          roomCode,
+          userId: params.userId,
+          joinedAt: new Date().toISOString(),
+        })
+        .onConflictDoNothing()
+        .execute(),
+    );
+  }
+
   return c.json(result, resultToStatus(result));
 });
 

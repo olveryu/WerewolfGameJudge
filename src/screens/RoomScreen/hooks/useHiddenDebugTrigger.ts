@@ -2,13 +2,17 @@
  * useHiddenDebugTrigger.ts - Hidden debug panel trigger (5-tap title)
  *
  * Tracks consecutive tap count on a hidden trigger area, toggles mobileDebug
- * panel after threshold taps, and resets counter after timeout. Does not import
- * services directly, does not contain game logic / policy logic, does not render
- * UI or hold JSX, and does not access any game state.
+ * panel after threshold taps with admin password gate.
+ * Does not import services directly, does not contain game logic / policy logic,
+ * does not render UI or hold JSX, and does not access any game state.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
 
+import { ADMIN_PASSWORD_KEY } from '@/config/storageKeys';
+import { storage } from '@/lib/storage';
+import { verifyAdminPassword } from '@/screens/AdminScreen/adminApi';
+import { showPrompt } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 import { mobileDebug } from '@/utils/mobileDebug';
 
@@ -28,6 +32,39 @@ const TAP_TIMEOUT_MS = 2000;
 interface UseHiddenDebugTriggerResult {
   /** Callback to attach to the hidden trigger area (e.g., header title) */
   handleDebugTitleTap: () => void;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Verify cached admin password, toggle debug panel if valid. */
+async function verifyAndToggle(cached: string): Promise<void> {
+  const valid = await verifyAdminPassword(cached);
+  if (valid) {
+    mobileDebug.toggle();
+  } else {
+    storage.remove(ADMIN_PASSWORD_KEY);
+    roomScreenLog.warn('Cached admin password invalid, cleared');
+  }
+}
+
+/** Prompt user for admin password, verify, cache on success, toggle panel. */
+function promptAdminPassword(): void {
+  showPrompt('Admin 密码', {
+    placeholder: '请输入管理员密码',
+    onConfirm: (value: string) => {
+      if (!value.trim()) return;
+      void verifyAdminPassword(value).then((valid) => {
+        if (valid) {
+          storage.set(ADMIN_PASSWORD_KEY, value);
+          mobileDebug.toggle();
+        } else {
+          roomScreenLog.warn('Admin password rejected');
+        }
+      });
+    },
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,8 +93,14 @@ export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
 
     if (tapCountRef.current >= TAP_THRESHOLD) {
       tapCountRef.current = 0;
-      roomScreenLog.debug('Toggling mobile debug panel');
-      mobileDebug.toggle();
+      roomScreenLog.debug('Debug trigger activated, verifying admin');
+
+      const cached = storage.getString(ADMIN_PASSWORD_KEY);
+      if (cached) {
+        void verifyAndToggle(cached);
+      } else {
+        promptAdminPassword();
+      }
     } else {
       tapTimeoutRef.current = setTimeout(() => {
         tapCountRef.current = 0;

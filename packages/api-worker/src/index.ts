@@ -32,6 +32,7 @@ export { GameRoom } from './durableObjects/GameRoom';
 export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 
 // Route groups
+import { adminRoutes } from './handlers/adminHandlers';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
@@ -128,6 +129,7 @@ app.get('/ws', async (c) => {
 
 // ── Route groups ────────────────────────────────────────────────────────────
 
+app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
 app.route('/room', roomRoutes);
 app.route('/game/night', nightRoutes);
