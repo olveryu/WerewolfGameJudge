@@ -2,7 +2,7 @@
  * DrawButton — 材质感抽奖按钮
  *
  * 普通：靛紫渐变 + 流光扫过。黄金：金色渐变 + 更快流光 + 金色边框。
- * ×10 按钮更宽，附带 sparkle 图标。
+ * 附带 sparkle 图标 + "仅剩 N 抽" 提示。
  * Press 反馈：Reanimated spring scale 0.95。
  * Disabled 态：去饱和 + 降低 opacity。
  * reducedMotion 时跳过流光动画。
@@ -35,13 +35,9 @@ interface DrawButtonProps {
   disabled: boolean;
   onPress: () => void;
   golden?: boolean;
-  /** Multi-pull button. When set, shows sparkle icon and wider layout. */
-  multiPull?: boolean;
-  /** Actual draw count for multi-pull button (e.g. 6 when only 6 tickets remain). */
+  /** Actual draw count (e.g. 6 when only 6 tickets remain). Shows "仅剩 N 抽" hint. */
   multiPullCount?: number;
   reducedMotion?: boolean | null;
-  /** Visual variant. 'primary' = gradient fill + shimmer (default). 'secondary' = ghost outline. */
-  variant?: 'primary' | 'secondary';
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -51,21 +47,18 @@ export function DrawButton({
   disabled,
   onPress,
   golden,
-  multiPull,
   multiPullCount,
   reducedMotion,
-  variant = 'primary',
 }: DrawButtonProps) {
-  const isSecondary = variant === 'secondary';
   const pressScale = useSharedValue(1);
   const shimmerX = useSharedValue(-1);
 
-  // Shimmer loop — continuous translateX sweep (primary only)
+  // Shimmer loop — continuous translateX sweep
   useEffect(() => {
-    if (isSecondary || reducedMotion || disabled) return;
+    if (reducedMotion || disabled) return;
     shimmerX.value = -1;
     shimmerX.value = withRepeat(withTiming(2, { duration: golden ? 2200 : 3000 }), -1, false);
-  }, [shimmerX, reducedMotion, disabled, golden, isSecondary]);
+  }, [shimmerX, reducedMotion, disabled, golden]);
 
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pressScale.value }],
@@ -86,36 +79,8 @@ export function DrawButton({
 
   const gradientColors = golden ? GOLDEN_GRADIENT : NORMAL_GRADIENT;
 
-  // ── Secondary (ghost) variant ──
-  if (isSecondary) {
-    return (
-      <Animated.View style={[styles.wrapper, disabled && styles.wrapperDisabled, pressStyle]}>
-        <Pressable
-          onPress={onPress}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          disabled={disabled}
-          style={[styles.pressable, styles.secondaryBody]}
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          accessibilityState={{ disabled }}
-        >
-          <Text style={[styles.label, styles.secondaryLabel]}>{label}</Text>
-        </Pressable>
-      </Animated.View>
-    );
-  }
-
-  // ── Primary (gradient) variant ──
   return (
-    <Animated.View
-      style={[
-        styles.wrapper,
-        multiPull && styles.wrapperTen,
-        disabled && styles.wrapperDisabled,
-        pressStyle,
-      ]}
-    >
+    <Animated.View style={[styles.wrapper, disabled && styles.wrapperDisabled, pressStyle]}>
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -140,21 +105,15 @@ export function DrawButton({
 
           {/* Content */}
           <View style={styles.content}>
-            {multiPull && (
-              <Ionicons
-                name={golden ? 'star' : 'sparkles'}
-                size={14}
-                color={withAlpha(colors.surface, disabled ? 0.4 : 0.9)}
-              />
-            )}
-            <Text
-              style={[styles.label, multiPull && styles.labelTen, disabled && styles.labelDisabled]}
-            >
-              {label}
-            </Text>
+            <Ionicons
+              name={golden ? 'star' : 'sparkles'}
+              size={14}
+              color={withAlpha(colors.surface, disabled ? 0.4 : 0.9)}
+            />
+            <Text style={[styles.label, disabled && styles.labelDisabled]}>{label}</Text>
           </View>
-          {multiPull && disabled && <Text style={styles.subLabel}>券不足</Text>}
-          {multiPull && !disabled && multiPullCount != null && multiPullCount < 10 && (
+          {disabled && <Text style={styles.subLabel}>券不足</Text>}
+          {!disabled && multiPullCount != null && multiPullCount < 10 && (
             <Text style={styles.subLabelPartial}>仅剩 {multiPullCount} 抽</Text>
           )}
         </LinearGradient>
@@ -167,12 +126,8 @@ export function DrawButton({
 
 const styles = StyleSheet.create({
   wrapper: {
-    flex: 1,
     borderRadius: borderRadius.medium,
     overflow: 'hidden',
-  },
-  wrapperTen: {
-    flex: 1.4,
   },
   wrapperDisabled: {
     opacity: 0.35,
@@ -181,7 +136,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradient: {
-    flex: 1,
     borderRadius: borderRadius.medium,
     paddingVertical: spacing.medium,
     alignItems: 'center',
@@ -216,12 +170,9 @@ const styles = StyleSheet.create({
     gap: spacing.tight,
   },
   label: {
-    fontSize: typography.secondary,
+    fontSize: typography.body,
     fontWeight: typography.weights.bold,
     color: colors.textInverse,
-  },
-  labelTen: {
-    fontSize: typography.body,
   },
   labelDisabled: {
     color: withAlpha(colors.textInverse, 0.5),
@@ -235,19 +186,5 @@ const styles = StyleSheet.create({
     fontSize: typography.captionSmall,
     color: withAlpha(colors.textInverse, 0.7),
     marginTop: spacing.micro,
-  },
-
-  // ── Secondary (ghost) variant ──
-  secondaryBody: {
-    borderRadius: borderRadius.medium + 2,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.medium,
-  },
-  secondaryLabel: {
-    color: colors.textSecondary,
   },
 });

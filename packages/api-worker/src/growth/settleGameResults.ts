@@ -5,11 +5,15 @@
  * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
  * XP 仅写入注册用户。匿名玩家仅计入有效局人数。
  * 幂等：user_stats.last_room_code 保证不重复写入。
- * 每局获得 2 张普通抽奖券；升级额外获得 2 张黄金抽奖券。
+ * 每局获得 1–5 张普通抽奖券（加权随机）；升级额外获得 1–5 张黄金抽奖券（加权随机）。
  */
 
-import { getLevel } from '@werewolf/game-engine/growth/level';
-import { rollXp } from '@werewolf/game-engine/growth/level';
+import {
+  getLevel,
+  rollGoldenDraws,
+  rollNormalDraws,
+  rollXp,
+} from '@werewolf/game-engine/growth/level';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
@@ -17,11 +21,6 @@ import { createDb } from '../db';
 import { users, userStats } from '../db/schema';
 
 const MIN_PLAYERS = 6;
-
-/** 每局获得的普通抽奖券 */
-const NORMAL_DRAWS_PER_GAME = 2;
-/** 升级额外获得的黄金抽奖券 */
-const GOLDEN_DRAWS_ON_LEVEL_UP = 2;
 
 interface SettlementEnv {
   DB: D1Database;
@@ -75,8 +74,6 @@ export async function settleGameResults(
   const results: PlayerSettleResult[] = [];
 
   for (const userId of registeredUserIds) {
-    const xpEarned = rollXp();
-
     // Read current stats first to compute level transition
     const statsRow = await db
       .select({
@@ -93,10 +90,11 @@ export async function settleGameResults(
 
     const previousLevel = statsRow?.level ?? 0;
     const previousXp = statsRow?.xp ?? 0;
+    const xpEarned = rollXp(previousLevel);
     const newXp = previousXp + xpEarned;
     const newLevel = getLevel(newXp);
-    const normalDrawsEarned = NORMAL_DRAWS_PER_GAME;
-    const goldenDrawsEarned = newLevel > previousLevel ? GOLDEN_DRAWS_ON_LEVEL_UP : 0;
+    const normalDrawsEarned = rollNormalDraws();
+    const goldenDrawsEarned = newLevel > previousLevel ? rollGoldenDraws() : 0;
     const now = new Date().toISOString();
 
     // Single atomic upsert: XP + level + draws + settleKey + settledAt

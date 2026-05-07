@@ -334,30 +334,19 @@ export function GachaScreen({ navigation }: Props) {
             </View>
           </Pressable>
 
-          {/* Draw buttons — vertical stack: ×10 primary + ×1 secondary */}
-          <View style={styles.buttonStack}>
-            <DrawButton
-              label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
-              disabled={!isAnon && (activeDraws < 2 || busy)}
-              onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
-              golden={isGoldenTab}
-              multiPull
-              multiPullCount={isAnon ? undefined : activeDraws}
-              reducedMotion={reducedMotion}
-            />
-            <DrawButton
-              label="抽 ×1"
-              disabled={!isAnon && (activeDraws < 1 || busy)}
-              onPress={() => handleDraw(activeDrawType, 1)}
-              golden={isGoldenTab}
-              variant="secondary"
-              reducedMotion={reducedMotion}
-            />
-          </View>
+          {/* Draw button */}
+          <DrawButton
+            label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
+            disabled={!isAnon && (activeDraws < 1 || busy)}
+            onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
+            golden={isGoldenTab}
+            multiPullCount={isAnon ? undefined : activeDraws}
+            reducedMotion={reducedMotion}
+          />
 
           {/* Hint + rate disclosure */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaHint}>每局+2普通 · 每日+2普通 · 升级+2黄金</Text>
+            <Text style={styles.metaHint}>每局+1~5普通 · 每日+2普通 · 升级+1~5黄金</Text>
             <Text style={styles.rateLink} onPress={() => setShowRates(true)}>
               概率公示
             </Text>
@@ -468,11 +457,6 @@ const styles = StyleSheet.create({
   pityLabel: {
     fontSize: typography.captionSmall,
     color: colors.textMuted,
-  },
-
-  // ── Draw buttons ──
-  buttonStack: {
-    gap: spacing.small,
   },
 
   // ── Header / Meta ──

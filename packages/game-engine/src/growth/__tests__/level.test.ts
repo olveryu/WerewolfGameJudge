@@ -4,7 +4,7 @@ import {
   LEVEL_THRESHOLDS,
   rollXp,
   XP_BASE,
-  XP_RANDOM_MAX,
+  XP_RANDOM_BASE,
 } from '../level';
 
 describe('level', () => {
@@ -88,11 +88,20 @@ describe('level', () => {
   });
 
   describe('rollXp', () => {
-    it('returns a value in [50, 70]', () => {
+    it('returns a value in [XP_BASE, XP_BASE + XP_RANDOM_BASE + level] for level 0', () => {
       for (let i = 0; i < 100; i++) {
-        const xp = rollXp();
+        const xp = rollXp(0);
         expect(xp).toBeGreaterThanOrEqual(XP_BASE);
-        expect(xp).toBeLessThanOrEqual(XP_BASE + XP_RANDOM_MAX);
+        expect(xp).toBeLessThanOrEqual(XP_BASE + XP_RANDOM_BASE);
+      }
+    });
+
+    it('scales random range with level', () => {
+      const level = 30;
+      for (let i = 0; i < 100; i++) {
+        const xp = rollXp(level);
+        expect(xp).toBeGreaterThanOrEqual(XP_BASE);
+        expect(xp).toBeLessThanOrEqual(XP_BASE + XP_RANDOM_BASE + level);
       }
     });
   });

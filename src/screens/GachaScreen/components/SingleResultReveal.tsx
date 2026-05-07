@@ -40,13 +40,6 @@ const PREVIEW_SIZES: Record<Rarity, number> = {
   legendary: 140,
 };
 
-const OVERLAY_OPACITY: Record<Rarity, number> = {
-  common: 0.4,
-  rare: 0.5,
-  epic: 0.65,
-  legendary: 0.75,
-};
-
 const BORDER_WIDTHS: Record<Rarity, number> = {
   common: 1,
   rare: 2,
@@ -85,7 +78,6 @@ export function SingleResultReveal({
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
   const typeLabel = REWARD_TYPE_LABELS[item.rewardType];
   const previewSize = PREVIEW_SIZES[rarity];
-  const overlayOpacity = OVERLAY_OPACITY[rarity];
   const borderWidth = BORDER_WIDTHS[rarity];
 
   // ── Animation values ──
@@ -183,12 +175,10 @@ export function SingleResultReveal({
 
   // ── Overlay background color ──
   const isEpicOrLegendary = rarity === 'epic' || rarity === 'legendary';
-  const overlayBg = `rgba(26, 26, 46, ${overlayOpacity})`;
 
   return (
     <Modal visible transparent animationType="none" onRequestClose={onDismiss}>
-      <Pressable style={[styles.overlay, { backgroundColor: overlayBg }]} onPress={onDismiss}>
-        <CloseButton onPress={onDismiss} variant="onOverlay" style={styles.closeButton} />
+      <Pressable style={styles.overlay} onPress={onDismiss}>
         {/* Radial glow for rare+ */}
         {rarity !== 'common' && (
           <Animated.View
@@ -219,6 +209,7 @@ export function SingleResultReveal({
             cardAnimStyle,
           ]}
         >
+          <CloseButton onPress={onDismiss} variant="onSurface" style={styles.closeButton} />
           {/* Rarity badge */}
           <View
             style={[
@@ -255,15 +246,13 @@ export function SingleResultReveal({
           ) : (
             item.isNew && <Text style={styles.newTag}>NEW</Text>
           )}
-        </Animated.View>
 
-        {onGoEquip && (
-          <View style={styles.bottomActions}>
+          {onGoEquip && (
             <Pressable style={styles.equipButton} onPress={onGoEquip}>
               <Text style={styles.equipButtonText}>去装扮</Text>
             </Pressable>
-          </View>
-        )}
+          )}
+        </Animated.View>
       </Pressable>
     </Modal>
   );
@@ -274,9 +263,9 @@ export function SingleResultReveal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.medium,
   },
   radialGlow: {
     position: 'absolute',
@@ -296,6 +285,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
     padding: spacing.large,
+    paddingTop: spacing.xlarge,
     alignItems: 'center',
     gap: spacing.small,
     minWidth: 220,
@@ -350,16 +340,9 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.warning,
   },
-  bottomActions: {
-    position: 'absolute',
-    bottom: spacing.xlarge,
-    left: spacing.screenH,
-    right: spacing.screenH,
-    alignItems: 'center',
-    gap: spacing.medium,
-  },
   equipButton: {
     width: '100%',
+    marginTop: spacing.medium,
     paddingVertical: spacing.medium,
     borderRadius: borderRadius.full,
     backgroundColor: colors.primary,
@@ -370,7 +353,7 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   closeButton: {
-    top: spacing.xlarge,
-    right: spacing.screenH,
+    top: spacing.small,
+    right: spacing.small,
   },
 });

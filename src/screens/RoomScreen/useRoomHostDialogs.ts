@@ -10,6 +10,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
+import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -37,6 +38,8 @@ interface UseRoomHostDialogsParams {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
+  /** Share night review report. Returns true on success, false on failure. */
+  shareNightReviewReport: () => Promise<boolean>;
 
   setIsStartingGame: React.Dispatch<React.SetStateAction<boolean>>;
 
@@ -58,6 +61,7 @@ export const useRoomHostDialogs = ({
   assignRoles,
   startGame,
   restartGame,
+  shareNightReviewReport,
   setIsStartingGame,
   navigation,
   roomCode,
@@ -132,25 +136,47 @@ export const useRoomHostDialogs = ({
     showConfirmAlert('开始游戏？', '请将手机音量调到最大', () => handleStartGame());
   }, [handleStartGame]);
 
-  const showRestartDialog = useCallback(() => {
-    showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', async () => {
-      if (submittingRef.current) return;
-      markSubmitting(true);
-      roomScreenLog.debug('Restarting game');
-      try {
-        await restartGame();
-      } catch (err) {
-        handleError(err, {
-          label: '重新开始',
-          logger: roomScreenLog,
-          feedback: 'toast',
-        });
-        throw err;
-      } finally {
-        markSubmitting(false);
-      }
-    });
+  const handleRestart = useCallback(async () => {
+    if (submittingRef.current) return;
+    markSubmitting(true);
+    roomScreenLog.debug('Restarting game');
+    try {
+      await restartGame();
+    } catch (err) {
+      handleError(err, {
+        label: '重新开始',
+        logger: roomScreenLog,
+        feedback: 'toast',
+      });
+      throw err;
+    } finally {
+      markSubmitting(false);
+    }
   }, [restartGame, markSubmitting]);
+
+  const showRestartDialog = useCallback(() => {
+    if (!gameState?.currentNightResults) {
+      // No night data (e.g. game hasn't completed night phase) — plain restart
+      showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', handleRestart);
+      return;
+    }
+
+    showAlert('重新开始游戏？', '重新开始后本局详情将无法查看，是否先分享战报？', [
+      CANCEL_BUTTON,
+      {
+        text: '分享战报',
+        onPress: async () => {
+          const shared = await shareNightReviewReport();
+          if (!shared) return; // Share failed — don't restart, user can retry
+          await handleRestart();
+        },
+      },
+      {
+        text: '直接开始',
+        onPress: handleRestart,
+      },
+    ]);
+  }, [gameState?.currentNightResults, shareNightReviewReport, handleRestart]);
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Config', { existingRoomCode: roomCode });

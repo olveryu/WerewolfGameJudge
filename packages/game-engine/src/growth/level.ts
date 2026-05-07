@@ -9,8 +9,8 @@
 /** XP 基础值 */
 export const XP_BASE = 50;
 
-/** XP 随机范围上限（含） */
-export const XP_RANDOM_MAX = 20;
+/** XP 随机基础范围上限（含），实际范围 = XP_RANDOM_BASE + level */
+export const XP_RANDOM_BASE = 20;
 
 /**
  * 累计 XP 阈值表。index = 等级。
@@ -63,9 +63,74 @@ export function getLevelTitle(level: number): string {
   return '传奇';
 }
 
-/** 掷一次经验值（服务端调用）。50 + random(0~20)。 */
-export function rollXp(): number {
+/** 掷一次经验值（服务端调用）。50 + random(0 ~ 20 + level)。 */
+export function rollXp(level: number): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
-  return XP_BASE + (array[0]! % (XP_RANDOM_MAX + 1));
+  const range = XP_RANDOM_BASE + level;
+  return XP_BASE + (array[0]! % (range + 1));
+}
+
+// ─── Per-game normal draw reward ────────────────────────────────────────
+
+/**
+ * 每局普通券随机分布（加权）。E[X] = 2.25。
+ *
+ * | 张数 | 概率 | 累积权重 |
+ * |------|------|----------|
+ * | 1    | 30%  | 30       |
+ * | 2    | 35%  | 65       |
+ * | 3    | 20%  | 85       |
+ * | 4    | 10%  | 95       |
+ * | 5    | 5%   | 100      |
+ */
+const NORMAL_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[] = [
+  { draws: 1, cumulativeWeight: 30 },
+  { draws: 2, cumulativeWeight: 65 },
+  { draws: 3, cumulativeWeight: 85 },
+  { draws: 4, cumulativeWeight: 95 },
+  { draws: 5, cumulativeWeight: 100 },
+];
+
+/** 掷一次每局普通券数量（服务端调用）。1–5 张，加权随机。 */
+export function rollNormalDraws(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  const roll = array[0]! % 100; // 0–99
+  for (const { draws, cumulativeWeight } of NORMAL_DRAW_WEIGHTS) {
+    if (roll < cumulativeWeight) return draws;
+  }
+  return 1; // unreachable — satisfies TypeScript
+}
+
+// ─── Level-up golden draw reward ───────────────────────────────────────
+
+/**
+ * 升级黄金券随机分布（加权）。E[X] = 2.11。
+ *
+ * | 张数 | 概率 | 累积权重 |
+ * |------|------|----------|
+ * | 1    | 35%  | 35       |
+ * | 2    | 35%  | 70       |
+ * | 3    | 18%  | 88       |
+ * | 4    | 8%   | 96       |
+ * | 5    | 4%   | 100      |
+ */
+const GOLDEN_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[] = [
+  { draws: 1, cumulativeWeight: 35 },
+  { draws: 2, cumulativeWeight: 70 },
+  { draws: 3, cumulativeWeight: 88 },
+  { draws: 4, cumulativeWeight: 96 },
+  { draws: 5, cumulativeWeight: 100 },
+];
+
+/** 掷一次升级黄金券数量（服务端调用）。1–5 张，加权随机。 */
+export function rollGoldenDraws(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  const roll = array[0]! % 100; // 0–99
+  for (const { draws, cumulativeWeight } of GOLDEN_DRAW_WEIGHTS) {
+    if (roll < cumulativeWeight) return draws;
+  }
+  return 1; // unreachable — satisfies TypeScript
 }

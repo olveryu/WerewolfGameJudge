@@ -79,6 +79,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -103,6 +104,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -125,7 +127,7 @@ describe('useRoomHostDialogs', () => {
   });
 
   describe('showRestartDialog', () => {
-    it('should show restart confirmation dialog', () => {
+    it('should show share-before-restart dialog when night results exist', () => {
       const gameState = createMockGameState(8);
 
       const { result } = renderHook(() =>
@@ -134,6 +136,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -146,9 +149,10 @@ describe('useRoomHostDialogs', () => {
 
       expect(mockShowAlert).toHaveBeenCalledWith(
         '重新开始游戏？',
-        '使用相同配置开始新一局',
+        '重新开始后本局详情将无法查看，是否先分享战报？',
         expect.arrayContaining([
-          expect.objectContaining({ text: '确定' }),
+          expect.objectContaining({ text: '分享战报' }),
+          expect.objectContaining({ text: '直接开始' }),
           expect.objectContaining({ text: '取消', style: 'cancel' }),
         ]),
       );
@@ -165,6 +169,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '5678',
@@ -193,6 +198,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -215,6 +221,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: mockAssignRoles,
           startGame: jest.fn(),
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -265,6 +272,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: jest.fn(),
           restartGame: mockRestartGame,
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',
@@ -277,17 +285,17 @@ describe('useRoomHostDialogs', () => {
 
       const alertCall = mockShowAlert.mock.calls[0]!;
       const buttons = alertCall[2]! as Array<{ text: string; onPress?: () => void }>;
-      const confirmBtn = buttons.find((b) => b.text === '确定');
+      const confirmBtn = buttons.find((b) => b.text === '直接开始');
 
       // First press
-      act(() => {
+      await act(async () => {
         confirmBtn?.onPress?.();
       });
       expect(mockRestartGame).toHaveBeenCalledTimes(1);
       expect(result.current.isHostActionSubmitting).toBe(true);
 
       // Second press rejected
-      act(() => {
+      await act(async () => {
         confirmBtn?.onPress?.();
       });
       expect(mockRestartGame).toHaveBeenCalledTimes(1);
@@ -310,6 +318,7 @@ describe('useRoomHostDialogs', () => {
           assignRoles: jest.fn(),
           startGame: mockStartGame,
           restartGame: jest.fn(),
+          shareNightReviewReport: jest.fn().mockResolvedValue(false),
           setIsStartingGame: jest.fn(),
           navigation: mockNavigation,
           roomCode: '1234',

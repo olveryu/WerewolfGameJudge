@@ -24,8 +24,8 @@ interface UseRoomModalsDeps {
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   /** 开始后台截图战报，返回 base64（成功）或 null（失败） */
   beginReportCapture: () => Promise<string | null>;
-  /** 直接分享战报（系统分享/复制） */
-  shareNightReviewReport: () => Promise<void>;
+  /** 直接分享战报（系统分享/复制）。返回值可选，调用方不使用。 */
+  shareNightReviewReport: () => Promise<unknown>;
 }
 
 /** useRoomModals 返回值 */

@@ -474,22 +474,6 @@ export function useRoomScreenState(
   // Host Dialogs
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const {
-    showPrepareToFlipDialog,
-    showStartGameDialog,
-    showRestartDialog,
-    handleSettingsPress,
-    isHostActionSubmitting,
-  } = useRoomHostDialogs({
-    gameState,
-    assignRoles,
-    startGame,
-    restartGame,
-    setIsStartingGame,
-    navigation,
-    roomCode,
-  });
-
   const nightReviewData = useMemo(() => {
     if (!gameState?.currentNightResults) return null;
     if (gameState.status !== GameStatus.Ended) return null;
@@ -516,10 +500,10 @@ export function useRoomScreenState(
     }
   }, []);
 
-  const shareNightReviewReportDirectly = useCallback(async () => {
+  const shareNightReviewReportDirectly = useCallback(async (): Promise<boolean> => {
     if (!nightReviewData) {
       showErrorAlert('分享失败', '当前暂无可分享的战报');
-      return;
+      return false;
     }
 
     // Use base64 pre-captured by beginReportCapture (triggered when "详细信息" alert opened)
@@ -531,32 +515,53 @@ export function useRoomScreenState(
         const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
         const url = await uploadShareImage(canvasBase64);
         await wxPreviewImage(url);
+        return true;
       } catch (err) {
         roomScreenLog.error('Mini program share failed', err);
         showErrorAlert('分享失败', '无法分享战报，请稍后重试');
+        return false;
       }
-      return;
     }
 
     if (base64) {
       const result = await shareNightReviewReportImage(() => Promise.resolve(base64), roomCode);
       if (result === 'failed') {
         showErrorAlert('分享失败', '无法分享战报，请稍后重试');
+        return false;
       }
-      return;
+      return true;
     }
 
     // Fallback: on-demand capture (Chrome may download instead of share due to activation expiry)
     const freshBase64 = await beginReportCapture();
     if (!freshBase64) {
       showErrorAlert('分享失败', '无法生成战报截图，请稍后重试');
-      return;
+      return false;
     }
     const result = await shareNightReviewReportImage(() => Promise.resolve(freshBase64), roomCode);
     if (result === 'failed') {
       showErrorAlert('分享失败', '无法分享战报，请稍后重试');
+      return false;
     }
+    return true;
   }, [nightReviewData, roomCode, beginReportCapture]);
+
+  const {
+    showPrepareToFlipDialog,
+    showStartGameDialog,
+    showRestartDialog,
+    handleSettingsPress,
+    isHostActionSubmitting,
+  } = useRoomHostDialogs({
+    gameState,
+    assignRoles,
+    startGame,
+    restartGame,
+    shareNightReviewReport: shareNightReviewReportDirectly,
+    setIsStartingGame,
+    navigation,
+    roomCode,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)

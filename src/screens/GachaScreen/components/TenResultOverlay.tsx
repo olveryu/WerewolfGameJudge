@@ -166,67 +166,69 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <CloseButton onPress={onClose} variant="onOverlay" style={styles.closeButton} />
-        <View style={styles.titleRow}>
-          <Ionicons
-            name={drawType === 'golden' ? 'star' : 'sparkles'}
-            size={20}
-            color={drawType === 'golden' ? '#FFD700' : colors.primary}
-          />
-          <Text style={styles.title}>
-            {drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}
-          </Text>
-        </View>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.gridContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {groups.map((group) => {
-            const visual = RARITY_VISUAL[group.rarity];
-            const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
-            return (
-              <View key={group.rarity}>
-                <View style={styles.groupHeader}>
-                  <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
-                  <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
-                  <View
-                    style={[
-                      styles.groupCountBadge,
-                      { backgroundColor: withAlpha(visual.color, 0.15) },
-                    ]}
-                  >
-                    <Text style={[styles.groupCountText, { color: visual.color }]}>
-                      ×{group.items.length}
-                    </Text>
+        <View style={styles.card}>
+          <CloseButton onPress={onClose} variant="onSurface" style={styles.closeButton} />
+          <View style={styles.titleRow}>
+            <Ionicons
+              name={drawType === 'golden' ? 'star' : 'sparkles'}
+              size={20}
+              color={drawType === 'golden' ? '#FFD700' : colors.primary}
+            />
+            <Text style={styles.title}>
+              {drawType === 'golden' ? '黄金10连抽结果' : '10连抽结果'}
+            </Text>
+          </View>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.gridContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {groups.map((group) => {
+              const visual = RARITY_VISUAL[group.rarity];
+              const isHighGroup = group.rarity === 'legendary' || group.rarity === 'epic';
+              return (
+                <View key={group.rarity}>
+                  <View style={styles.groupHeader}>
+                    <View style={[styles.groupDot, { backgroundColor: visual.color }]} />
+                    <Text style={[styles.groupLabel, { color: visual.color }]}>{visual.label}</Text>
+                    <View
+                      style={[
+                        styles.groupCountBadge,
+                        { backgroundColor: withAlpha(visual.color, 0.15) },
+                      ]}
+                    >
+                      <Text style={[styles.groupCountText, { color: visual.color }]}>
+                        ×{group.items.length}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.grid}>
+                    {group.items.map((item, i) => (
+                      <ResultCell
+                        key={`${item.rewardId}-${group.startIndex + i}`}
+                        item={item}
+                        index={group.startIndex + i}
+                        isHighRarity={isHighGroup}
+                      />
+                    ))}
                   </View>
                 </View>
-                <View style={styles.grid}>
-                  {group.items.map((item, i) => (
-                    <ResultCell
-                      key={`${item.rewardId}-${group.startIndex + i}`}
-                      item={item}
-                      index={group.startIndex + i}
-                      isHighRarity={isHighGroup}
-                    />
-                  ))}
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-        {totalShards > 0 && (
-          <View style={styles.shardSummary}>
-            <Text style={styles.shardSummaryText}>本次获得 ✦ {totalShards} 碎片</Text>
-          </View>
-        )}
-        {onGoEquip && (
-          <View style={styles.bottomActions}>
-            <Pressable style={styles.equipButton} onPress={onGoEquip}>
-              <Text style={styles.equipButtonText}>去装扮</Text>
-            </Pressable>
-          </View>
-        )}
+              );
+            })}
+          </ScrollView>
+          {totalShards > 0 && (
+            <View style={styles.shardSummary}>
+              <Text style={styles.shardSummaryText}>本次获得 ✦ {totalShards} 碎片</Text>
+            </View>
+          )}
+          {onGoEquip && (
+            <View style={styles.bottomActions}>
+              <Pressable style={styles.equipButton} onPress={onGoEquip}>
+                <Text style={styles.equipButtonText}>去装扮</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
       </View>
     </Modal>
   );
@@ -238,23 +240,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    paddingTop: spacing.xlarge,
+    paddingBottom: spacing.large,
+    paddingHorizontal: spacing.medium,
+    width: '90%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    alignItems: 'center',
     gap: spacing.medium,
+    ...shadows.lg,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.small,
-    paddingTop: spacing.large,
   },
   title: {
     fontSize: typography.title,
     fontWeight: typography.weights.bold,
-    color: colors.surface,
+    color: colors.text,
   },
   scrollView: {
-    maxHeight: '70%',
-    width: '90%',
-    maxWidth: 380,
+    width: '100%',
   },
   grid: {
     flexDirection: 'row',
@@ -332,11 +343,9 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
   bottomActions: {
-    width: '90%',
-    maxWidth: 380,
+    width: '100%',
     alignItems: 'center',
     gap: spacing.small,
-    marginBottom: spacing.large,
   },
   shardSummary: {
     backgroundColor: withAlpha(colors.warning, 0.12),
@@ -363,7 +372,7 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   closeButton: {
-    top: spacing.xlarge,
-    right: spacing.screenH,
+    top: spacing.small,
+    right: spacing.small,
   },
 });

@@ -32,9 +32,11 @@ export {
   getLevelProgress,
   getLevelTitle,
   LEVEL_THRESHOLDS,
+  rollGoldenDraws,
+  rollNormalDraws,
   rollXp,
   XP_BASE,
-  XP_RANDOM_MAX,
+  XP_RANDOM_BASE,
 } from './level';
 export {
   AVATAR_IDS,
