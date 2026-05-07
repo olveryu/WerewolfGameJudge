@@ -31,21 +31,20 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
 
   const now = sql`datetime('now')`;
 
-  try {
-    await db.insert(rooms).values({
+  const inserted = await db
+    .insert(rooms)
+    .values({
       id: crypto.randomUUID(),
       code: parsed.roomCode,
       hostUserId: userId,
       createdAt: now,
       updatedAt: now,
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('UNIQUE') || message.includes('constraint')) {
-      return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
-    }
-    log.error('create DB insert failed', { roomCode: parsed.roomCode, userId, error: message });
-    throw err;
+    })
+    .onConflictDoNothing({ target: rooms.code })
+    .returning({ id: rooms.id });
+
+  if (inserted.length === 0) {
+    return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
   }
 
   // Initialize DO state (if initialState provided)
