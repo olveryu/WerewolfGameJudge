@@ -23,7 +23,9 @@ const WEB_PORT = (process.env.WEB_PORT as string | undefined) || '8081';
  * ENVIRONMENT:
  *   Two webServers launched in parallel (Playwright native):
  *   1. API — wrangler dev --local on :8787 (with D1 migration + .dev.vars setup)
- *   2. Web — Expo Metro on :8081 (reads EXPO_PUBLIC_CF_API_URL via env injection)
+ *   2. Web — production build served statically on :8081
+ *      CI: `expo export` → `serve dist/` (deterministic, no compilation flakiness)
+ *      Local: reuses existing dev server (reuseExistingServer)
  *
  *   Playwright waits for BOTH servers to be ready before running tests.
  *
@@ -94,10 +96,12 @@ export default defineConfig({
     },
     {
       name: 'Web',
-      command: `npx expo start --web --port ${WEB_PORT}`,
+      command: process.env.CI
+        ? `EXPO_PUBLIC_CF_API_URL=${LOCAL_CF_API_URL} npx expo export --platform web && npx serve dist -l ${WEB_PORT} -s`
+        : `npx expo start --web --port ${WEB_PORT}`,
       url: E2E_BASE_URL,
       reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
+      timeout: 180 * 1000, // expo export can take ~60s on CI
       stdout: 'pipe',
       stderr: 'pipe',
       env: {

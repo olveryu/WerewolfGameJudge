@@ -16,7 +16,8 @@
         "html2canvas",
         "jest-environment-jsdom",
         "babel-plugin-transform-define",
-        "babel-plugin-react-compiler"
+        "babel-plugin-react-compiler",
+        "serve"
       ]
     },
     "packages/game-engine": {

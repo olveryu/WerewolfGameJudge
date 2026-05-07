@@ -49,23 +49,21 @@ type HealthProbeResult = {
 /**
  * Probe server readiness using Playwright's request API (same network stack as page.goto).
  *
- * IMPORTANT: We probe /favicon.ico (static asset) instead of / (root) because:
- * - Root may trigger heavy first-compile or redirects on Expo web cold start
- * - favicon.ico is a small static file, fast to respond if server is up
- * - TODO: Replace with /health endpoint when app provides one
+ * Probes `/` (the actual navigation target) to verify the server can serve the app.
+ * With static file serve on CI, this responds instantly if up.
+ * With Metro dev server locally, this triggers bundle compilation — ensuring
+ * the probe only reports "ready" when page.goto will also succeed.
  *
  * @param page - Playwright Page (uses page.request for consistent network stack)
  * @param baseURL - Base URL to probe
- * @param timeoutMs - Timeout for the probe (default 10s, Expo cold start can be slow)
+ * @param timeoutMs - Timeout for the probe (60s to cover Metro first-compile locally)
  */
 async function probeServerHealth(
   page: Page,
   baseURL: string,
-  timeoutMs: number = 10000,
+  timeoutMs: number = 60000,
 ): Promise<HealthProbeResult> {
-  // Probe favicon.ico - small static file, fast if server is up
-  // TODO: Replace with /health endpoint when app provides one
-  const probeURL = `${baseURL}/favicon.ico`;
+  const probeURL = `${baseURL}/`;
 
   try {
     const response = await page.request.get(probeURL, { timeout: timeoutMs });
@@ -102,18 +100,19 @@ async function collectNavigationFailureEvidence(page: Page): Promise<void> {
 /**
  * Navigate to a URL with automatic retry on connection errors.
  *
- * TRUE MITIGATION: Before each navigation attempt, we verify the server is
- * actually responding to HTTP requests (not just port-reachable) using
- * Playwright's request API (same network stack as page.goto).
+ * Before each navigation attempt, verifies the server is responding to HTTP
+ * requests using Playwright's request API (same network stack as page.goto).
+ * Probes GET `/` — the actual navigation target — so a successful probe
+ * guarantees page.goto will also succeed (no false-positive from static assets).
  *
  * Handles net::ERR_CONNECTION_REFUSED by:
- * 1. Probing server with HTTP GET to /favicon.ico until it responds
+ * 1. Probing server with HTTP GET to / until it responds
  * 2. Only then attempting page.goto()
  * 3. Using exponential backoff for retries
  *
  * EVIDENCE ON FAILURE (grep-friendly categories):
  * - `REFUSED`: Connection refused - server not listening
- * - `TIMEOUT`: Server slow to respond (cold start/compile)
+ * - `TIMEOUT`: Server slow to respond
  * - `DNS`: DNS resolution failed
  * - `UNKNOWN`: Other network error
  * - Screenshot: saved to test-results/fail-goto-refused-*.png
@@ -133,12 +132,7 @@ export async function gotoWithRetry(
     probeTimeoutMs?: number;
   } = {},
 ): Promise<void> {
-  const {
-    maxRetries = 5,
-    retryDelayMs = 2000,
-    timeoutMs = 30000,
-    probeTimeoutMs = 10000, // 10s for cold start scenarios
-  } = opts;
+  const { maxRetries = 5, retryDelayMs = 2000, timeoutMs = 60000, probeTimeoutMs = 60000 } = opts;
   let lastError: Error | undefined;
   let lastProbeResult: HealthProbeResult | undefined;
   const baseURL = getBaseURL();

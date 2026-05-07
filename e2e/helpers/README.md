@@ -136,9 +136,7 @@ Low-level utilities with no app-specific knowledge.
 **TRUE MITIGATION:** Before each navigation attempt, probes server readiness using
 Playwright's `page.request.get()` (same network stack as `page.goto()`).
 
-**Probe target:** `/favicon.ico` (static asset, fast response)
-
-> TODO: Replace with `/health` endpoint when app provides one.
+**Probe target:** `/` (the actual navigation target — guarantees no false-positive)
 
 |                       |                                                      |
 | --------------------- | ---------------------------------------------------- |
