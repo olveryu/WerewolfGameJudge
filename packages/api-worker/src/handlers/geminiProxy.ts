@@ -3,7 +3,7 @@
  *
  * 主力：Gemini API（OpenAI 兼容层），质量更高。
  * 降级：Gemini 地理限制（400 "User location is not supported"）或
- *       rate limit（429）时 fallback 到 Workers AI（@cf/google/gemma-3-12b-it）。
+ *       rate limit（429）时 fallback 到 Workers AI（@cf/google/gemma-4-26b-a4b-it）。
  * Workers AI 无地理限制，10K Neurons/天预算主要服务受限地区用户。
  */
 
@@ -20,7 +20,7 @@ const log = createLogger('ai-chat');
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_OPENAI_BASE = `${GEMINI_API_BASE}/openai`;
 const MAX_TOKENS_CAP = 10240;
-const WORKERS_AI_MODEL = '@cf/google/gemma-3-12b-it';
+const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const MODEL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const EXCLUDE_PATTERN = /tts|image|audio|customtools|embed|vision|video|veo|gemma|live|latest/i;
 
@@ -309,7 +309,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         },
       });
     }
-    return Response.json(aiResponse as Record<string, unknown>);
+    return Response.json(aiResponse);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     const isNeuronsExhausted = /exceeded|neurons|rate limit|too many/i.test(errMsg);

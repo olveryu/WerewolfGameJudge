@@ -1,7 +1,7 @@
 /**
- * AI Chat Service — Workers AI (primary) + Gemini (fallback) via Cloudflare Workers
+ * AI Chat Service — Gemini (primary) + Workers AI (fallback) via Cloudflare Workers
  *
- * 服务端使用 Workers AI (@cf/google/gemma-3-12b-it) 为主力，Neurons 超限时 fallback Gemini。
+ * 服务端使用 Gemini API 为主力，地理限制/rate limit 时 fallback Workers AI (@cf/google/gemma-4-26b-a4b-it)。
  * 客户端只负责消息组织、流式解析 SSE 响应。模型选择在服务端。
  * 不直接访问第三方 API，不存储 API key，不操作游戏状态。
  */
