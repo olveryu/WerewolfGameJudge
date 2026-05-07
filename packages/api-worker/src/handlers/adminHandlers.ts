@@ -324,7 +324,7 @@ adminRoutes.get('/analytics', async (c) => {
       avg(double1) as avg_load_ms,
       avg(double7) as avg_ttfb_ms
     FROM load_timing
-    WHERE timestamp >= '${from}' AND timestamp < '${to}'
+    WHERE timestamp >= toDateTime('${from}') AND timestamp < toDateTime('${to}')
     GROUP BY country, colo, isp
     ORDER BY cnt DESC
   `;

@@ -43,7 +43,10 @@ export const AnalyticsTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const range = preset === 'custom' ? { from: customFrom, to: customTo } : getTimeRange(preset);
+      const range =
+        preset === 'custom'
+          ? { from: `${customFrom}T00:00:00Z`, to: `${customTo}T23:59:59Z` }
+          : getTimeRange(preset);
       const result = await fetchAnalytics(range.from, range.to);
       setData(result);
     } catch (e) {
@@ -92,7 +95,7 @@ export const AnalyticsTab: React.FC = () => {
         <View style={styles.customRow}>
           <TextInput
             style={styles.customInput}
-            placeholder="从 (ISO)"
+            placeholder="开始日期 (YYYY-MM-DD)"
             placeholderTextColor={colors.textMuted}
             value={customFrom}
             onChangeText={setCustomFrom}
@@ -100,7 +103,7 @@ export const AnalyticsTab: React.FC = () => {
           <Text style={styles.customSep}>~</Text>
           <TextInput
             style={styles.customInput}
-            placeholder="到 (ISO)"
+            placeholder="结束日期 (YYYY-MM-DD)"
             placeholderTextColor={colors.textMuted}
             value={customTo}
             onChangeText={setCustomTo}
