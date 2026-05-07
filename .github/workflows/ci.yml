@@ -430,17 +430,17 @@ jobs:
           RUN_NUM="${{ github.run_number }}"
           MAX_REPORTS=20
 
-          git config --global http.postBuffer 524288000
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone gh-pages (single orphan commit — shallow is fine)
+          # Clone gh-pages — incremental commits keep push payload small
           if git clone --depth 1 --branch gh-pages "$REPO_URL" gh-pages-dir 2>/dev/null; then
             cd gh-pages-dir
           else
             mkdir gh-pages-dir && cd gh-pages-dir
-            git init
+            git init -b gh-pages
             git remote add origin "$REPO_URL"
+            git commit --allow-empty -m "init gh-pages"
           fi
 
           # Add new report
@@ -497,24 +497,10 @@ jobs:
           HEREDOC
           sed -i 's/^          //' index.html
 
-          # Orphan commit (no history bloat)
-          git checkout --orphan deploy
+          # Incremental commit — only new/changed files are pushed (small delta)
           git add -A
-          git commit -m "chore: playwright reports (latest: run #${RUN_NUM})"
-
-          # Push with retry (GitHub sometimes returns HTTP 500)
-          for attempt in 1 2 3; do
-            if git push --force origin HEAD:gh-pages; then
-              echo "Push succeeded on attempt $attempt"
-              break
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "Push failed after 3 attempts"
-              exit 1
-            fi
-            echo "Push failed (attempt $attempt), retrying in 10s..."
-            sleep 10
-          done
+          git commit -m "report: run #${RUN_NUM}" || echo "No changes to commit"
+          git push origin HEAD:gh-pages
 
       - name: Add report link to summary
         if: github.ref == 'refs/heads/main'
