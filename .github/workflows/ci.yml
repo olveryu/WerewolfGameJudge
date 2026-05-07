@@ -428,7 +428,7 @@ jobs:
           set -euo pipefail
           REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           RUN_NUM="${{ github.run_number }}"
-          MAX_REPORTS=20
+          MAX_REPORTS=5
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
