@@ -2,22 +2,35 @@
  * RecentRoomsModal — 最近房间列表弹窗
  *
  * 打开时并行检查所有 recent room codes 是否在线。
- * 在线的显示绿色圆点 + "进入"按钮；检查中显示 spinner。
- * 全部失效显示空状态。已关闭的房间从列表和 storage 中移除。
+ * - online → 绿色圆点 + micro-card 可点击进入
+ * - offline → 从列表和 storage 中移除，不渲染
+ * - error（网络异常）→ 橙色感叹号，不清除 storage
+ * - checking → spinner，不可点
+ *
+ * 整张卡片用 PressableScale 实现按压反馈。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import { Button } from '@/components/Button';
+import { PressableScale } from '@/components/PressableScale';
 import { useServices } from '@/contexts/ServiceContext';
 import { removeRecentRoom } from '@/lib/recentRooms';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, spacing, textStyles, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  shadows,
+  spacing,
+  textStyles,
+  typography,
+  withAlpha,
+} from '@/theme';
 
-type RoomStatus = 'checking' | 'online' | 'offline';
+type RoomStatus = 'checking' | 'online' | 'offline' | 'error';
 
 interface RoomEntry {
   roomCode: string;
@@ -29,6 +42,11 @@ interface RecentRoomsModalProps {
   roomCodes: string[];
   onClose: () => void;
   onJoin: (roomCode: string) => void;
+}
+
+/** Format room code with spaced digits for readability: "1234" → "1 2 3 4" */
+function formatRoomCode(code: string): string {
+  return code.split('').join(' ');
 }
 
 export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
@@ -48,16 +66,24 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
     setEntries(initial);
 
     for (const roomCode of roomCodes) {
-      void roomService.roomExists(roomCode).then((exists) => {
-        if (!exists) {
-          removeRecentRoom(roomCode);
-        }
-        setEntries((prev) =>
-          prev.map((e) =>
-            e.roomCode === roomCode ? { ...e, status: exists ? 'online' : 'offline' } : e,
-          ),
-        );
-      });
+      roomService.roomExists(roomCode).then(
+        (exists) => {
+          if (!exists) {
+            removeRecentRoom(roomCode);
+          }
+          setEntries((prev) =>
+            prev.map((e) =>
+              e.roomCode === roomCode ? { ...e, status: exists ? 'online' : 'offline' } : e,
+            ),
+          );
+        },
+        () => {
+          // Network error — do NOT remove from storage
+          setEntries((prev) =>
+            prev.map((e) => (e.roomCode === roomCode ? { ...e, status: 'error' } : e)),
+          );
+        },
+      );
     }
   }, [visible, roomCodes, roomService]);
 
@@ -69,52 +95,77 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
     [onClose, onJoin],
   );
 
-  const onlineEntries = entries.filter((e) => e.status === 'online');
-  const checkingEntries = entries.filter((e) => e.status === 'checking');
-  const allChecked = checkingEntries.length === 0;
-  const hasOnline = onlineEntries.length > 0;
+  const visibleEntries = entries.filter((e) => e.status !== 'offline');
+  const allChecked = entries.every((e) => e.status !== 'checking');
+  const hasOnline = entries.some((e) => e.status === 'online');
+  const allError = allChecked && visibleEntries.every((e) => e.status === 'error');
 
   return (
     <BaseCenterModal
       visible={visible}
       onClose={onClose}
       dismissOnOverlayPress
-      testID="recent-rooms-modal"
+      testID={TESTIDS.recentRoomsModal}
     >
       <Text style={styles.title}>最近房间</Text>
+      <Text style={styles.subtitle}>点击房间号即可进入</Text>
 
       <View style={styles.list}>
-        {entries.map((entry) => {
-          if (entry.status === 'offline') return null;
+        {visibleEntries.map((entry) => {
+          const isOnline = entry.status === 'online';
+          const isError = entry.status === 'error';
+          const isChecking = entry.status === 'checking';
+
           return (
-            <View key={entry.roomCode} style={styles.row}>
-              <View style={styles.rowLeft}>
-                {entry.status === 'checking' ? (
-                  <ActivityIndicator size="small" color={colors.textMuted} />
-                ) : (
-                  <Ionicons name="ellipse" size={10} color={colors.success} />
+            <PressableScale
+              key={entry.roomCode}
+              onPress={() => handleJoin(entry.roomCode)}
+              disabled={!isOnline}
+              style={[styles.card, !isOnline && styles.cardDisabled]}
+              testID={TESTIDS.recentRoomJoin(entry.roomCode)}
+              haptic
+            >
+              <View style={styles.statusIndicator}>
+                {isChecking && <ActivityIndicator size="small" color={colors.textMuted} />}
+                {isOnline && <Ionicons name="ellipse" size={12} color={colors.success} />}
+                {isError && (
+                  <Ionicons
+                    name="alert-circle"
+                    size={componentSizes.icon.md}
+                    color={colors.warning}
+                  />
                 )}
-                <Text style={styles.roomCode}>{entry.roomCode}</Text>
               </View>
-              {entry.status === 'online' && (
-                <Pressable
-                  onPress={() => handleJoin(entry.roomCode)}
-                  style={styles.joinButton}
-                  testID={TESTIDS.recentRoomJoin(entry.roomCode)}
-                >
-                  <Text style={styles.joinButtonText}>进入</Text>
-                </Pressable>
+              <Text style={[styles.roomCode, !isOnline && styles.roomCodeDisabled]}>
+                {formatRoomCode(entry.roomCode)}
+              </Text>
+              {isOnline && (
+                <Ionicons
+                  name="chevron-forward"
+                  size={componentSizes.icon.md}
+                  color={colors.textMuted}
+                />
               )}
-            </View>
+            </PressableScale>
           );
         })}
 
-        {allChecked && !hasOnline && <Text style={styles.emptyText}>暂无可用房间</Text>}
-      </View>
+        {/* Empty state: all rooms offline */}
+        {allChecked && !hasOnline && !allError && (
+          <View style={styles.emptyState}>
+            <Ionicons name="home-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyText}>暂无可用房间</Text>
+          </View>
+        )}
 
-      <Button variant="secondary" onPress={onClose} style={styles.closeButton}>
-        关闭
-      </Button>
+        {/* Error state: all rooms failed network check */}
+        {allError && (
+          <View style={styles.emptyState}>
+            <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyText}>网络异常，请稍后重试</Text>
+          </View>
+        )}
+      </View>
     </BaseCenterModal>
   );
 };
@@ -124,51 +175,60 @@ const styles = StyleSheet.create({
     ...textStyles.titleBold,
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.medium,
+  },
+  subtitle: {
+    ...textStyles.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: spacing.tight,
+    marginBottom: spacing.large,
   },
   list: {
     gap: spacing.small,
     minHeight: 80,
-    marginBottom: spacing.medium,
   },
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.small,
+    paddingVertical: spacing.medium,
     paddingHorizontal: spacing.medium,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.medium,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    ...shadows.sm,
   },
-  rowLeft: {
-    flexDirection: 'row',
+  cardDisabled: {
+    backgroundColor: withAlpha(colors.surface, 0.6),
+    borderColor: colors.borderLight,
+  },
+  statusIndicator: {
+    width: componentSizes.icon.lg,
+    height: componentSizes.icon.lg,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.small,
   },
   roomCode: {
-    fontSize: typography.subtitle,
+    flex: 1,
+    fontSize: typography.heading,
+    lineHeight: typography.lineHeights.heading,
     fontWeight: typography.weights.semibold,
     color: colors.text,
     fontVariant: ['tabular-nums'],
+    letterSpacing: typography.letterSpacing.wide,
+    textAlign: 'center',
   },
-  joinButton: {
-    paddingHorizontal: spacing.medium,
-    paddingVertical: spacing.tight,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.medium,
+  roomCodeDisabled: {
+    color: colors.textMuted,
   },
-  joinButtonText: {
-    fontSize: typography.secondary,
-    fontWeight: typography.weights.semibold,
-    color: colors.textInverse,
+  emptyState: {
+    alignItems: 'center',
+    gap: spacing.small,
+    paddingVertical: spacing.xlarge,
   },
   emptyText: {
     ...textStyles.body,
     color: colors.textMuted,
     textAlign: 'center',
-    paddingVertical: spacing.large,
-  },
-  closeButton: {
-    width: '100%',
   },
 });
