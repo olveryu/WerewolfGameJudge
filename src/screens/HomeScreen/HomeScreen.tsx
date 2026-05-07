@@ -486,13 +486,9 @@ export const HomeScreen: React.FC = () => {
             testID={TESTIDS.homeReturnLastGameButton}
           >
             <View style={styles.actionCardIcon}>
-              <Ionicons
-                name="arrow-undo-outline"
-                size={componentSizes.icon.lg}
-                color={colors.primary}
-              />
+              <Ionicons name="time-outline" size={componentSizes.icon.lg} color={colors.primary} />
             </View>
-            <Text style={styles.actionCardTitle}>返回上局</Text>
+            <Text style={styles.actionCardTitle}>最近房间</Text>
             <Text style={styles.actionCardSubtitle}>
               {recentRoomCodes.length > 0 ? `${recentRoomCodes.length} 个房间` : '无记录'}
             </Text>

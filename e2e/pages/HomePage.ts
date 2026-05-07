@@ -37,7 +37,7 @@ export class HomePage {
   async expectNavigationTilesVisible() {
     await expect(this.page.getByText('进入房间')).toBeVisible({ timeout: 10000 });
     await expect(this.page.getByText('创建房间')).toBeVisible();
-    await expect(this.page.getByText('返回上局')).toBeVisible();
+    await expect(this.page.getByText('最近房间')).toBeVisible();
     await expect(this.settingsButton).toBeVisible();
   }
 

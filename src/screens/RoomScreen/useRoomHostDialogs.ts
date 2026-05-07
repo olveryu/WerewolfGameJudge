@@ -165,10 +165,8 @@ export const useRoomHostDialogs = ({
       CANCEL_BUTTON,
       {
         text: '分享战报',
-        onPress: async () => {
-          const shared = await shareNightReviewReport();
-          if (!shared) return; // Share failed — don't restart, user can retry
-          await handleRestart();
+        onPress: () => {
+          void shareNightReviewReport();
         },
       },
       {

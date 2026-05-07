@@ -30,12 +30,11 @@ import {
   withAlpha,
 } from '@/theme';
 
-type RoomStatus = 'checking' | 'online' | 'offline' | 'error';
-
-interface RoomEntry {
-  roomCode: string;
-  status: RoomStatus;
-}
+type RoomEntry =
+  | { roomCode: string; status: 'checking' }
+  | { roomCode: string; status: 'online'; createdAt: Date }
+  | { roomCode: string; status: 'offline' }
+  | { roomCode: string; status: 'error' };
 
 interface RecentRoomsModalProps {
   visible: boolean;
@@ -47,6 +46,30 @@ interface RecentRoomsModalProps {
 /** Format room code with spaced digits for readability: "1234" → "1 2 3 4" */
 function formatRoomCode(code: string): string {
   return code.split('').join(' ');
+}
+
+/** Format date as relative time: 今天 14:32 / 昨天 20:15 / 05/07 09:30 */
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const hhmm = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (isToday) return `今天 ${hhmm}`;
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+  if (isYesterday) return `昨天 ${hhmm}`;
+
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${mm}/${dd} ${hhmm}`;
 }
 
 export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
@@ -66,21 +89,28 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
     setEntries(initial);
 
     for (const roomCode of roomCodes) {
-      roomService.roomExists(roomCode).then(
-        (exists) => {
-          if (!exists) {
+      roomService.getRoom(roomCode).then(
+        (room) => {
+          if (!room) {
             removeRecentRoom(roomCode);
           }
           setEntries((prev) =>
-            prev.map((e) =>
-              e.roomCode === roomCode ? { ...e, status: exists ? 'online' : 'offline' } : e,
+            prev.map(
+              (e): RoomEntry =>
+                e.roomCode === roomCode
+                  ? room
+                    ? { roomCode, status: 'online', createdAt: room.createdAt }
+                    : { roomCode, status: 'offline' }
+                  : e,
             ),
           );
         },
         () => {
           // Network error — do NOT remove from storage
           setEntries((prev) =>
-            prev.map((e) => (e.roomCode === roomCode ? { ...e, status: 'error' } : e)),
+            prev.map(
+              (e): RoomEntry => (e.roomCode === roomCode ? { roomCode, status: 'error' } : e),
+            ),
           );
         },
       );
@@ -108,7 +138,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
       testID={TESTIDS.recentRoomsModal}
     >
       <Text style={styles.title}>最近房间</Text>
-      <Text style={styles.subtitle}>点击房间号即可进入</Text>
+      <Text style={styles.subtitle}>按最近进入顺序排列，点击即可进入</Text>
 
       <View style={styles.list}>
         {visibleEntries.map((entry) => {
@@ -139,12 +169,15 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
               <Text style={[styles.roomCode, !isOnline && styles.roomCodeDisabled]}>
                 {formatRoomCode(entry.roomCode)}
               </Text>
-              {isOnline && (
-                <Ionicons
-                  name="chevron-forward"
-                  size={componentSizes.icon.md}
-                  color={colors.textMuted}
-                />
+              {entry.status === 'online' && (
+                <>
+                  <Text style={styles.createdAt}>{formatRelativeTime(entry.createdAt)}</Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={componentSizes.icon.md}
+                    color={colors.textMuted}
+                  />
+                </>
               )}
             </PressableScale>
           );
@@ -220,6 +253,11 @@ const styles = StyleSheet.create({
   },
   roomCodeDisabled: {
     color: colors.textMuted,
+  },
+  createdAt: {
+    ...textStyles.caption,
+    color: colors.textMuted,
+    marginRight: spacing.tight,
   },
   emptyState: {
     alignItems: 'center',

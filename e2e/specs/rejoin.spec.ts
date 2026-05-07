@@ -16,7 +16,7 @@ import { RoomPage } from '../pages/RoomPage';
  * 1. Rejoin an ongoing game after page reload (simulates browser close/reopen)
  * 2. Continue and complete the first night after rejoin
  *
- * Host rejoin path:  reload → home → "返回上局" → RoomScreen → (ContinueGameOverlay) → night completes
+ * Host rejoin path:  reload → home → "最近房间" → RoomScreen → (ContinueGameOverlay) → night completes
  * Player rejoin path: reload → home → "进入房间" → enter code → RoomScreen → night completes
  *
  * Strategy:
@@ -75,7 +75,7 @@ async function advanceNightPartially(pages: Page[], testInfo: TestInfo): Promise
 // ---------------------------------------------------------------------------
 
 test.describe('Rejoin during ongoing game', () => {
-  test('host rejoin: reload mid-night → 返回上局 → complete night', async ({
+  test('host rejoin: reload mid-night → 最近房间 → complete night', async ({
     browser,
   }, testInfo) => {
     // Step 1: Setup 2-player game and start night
@@ -98,7 +98,7 @@ test.describe('Rejoin during ongoing game', () => {
       await gotoWithRetry(hostPage, '/');
       await ensureAnonLogin(hostPage);
 
-      // Step 4: Click "返回上局" to open recent rooms modal, then click the room
+      // Step 4: Click "最近房间" to open recent rooms modal, then click the room
       const returnBtn = hostPage.locator('[data-testid="home-return-last-game-button"]');
       await expect(returnBtn).toBeVisible({ timeout: 5_000 });
       await returnBtn.click();
