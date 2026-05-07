@@ -8,5 +8,6 @@ export { AnnouncementModal } from './AnnouncementModal';
 export { InstallMenuItem } from './InstallMenuItem';
 export { JoinRoomModal } from './JoinRoomModal';
 export { RandomRoleCard } from './RandomRoleCard';
+export { RecentRoomsModal } from './RecentRoomsModal';
 export type { HomeScreenStyles } from './styles';
 export { createHomeScreenStyles } from './styles';

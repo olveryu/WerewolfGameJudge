@@ -4,17 +4,20 @@
  * 表格展示普通抽 / 黄金抽各稀有度概率，底部保底规则说明。
  * 数据直接读 game-engine 导出的 NORMAL_RATES / GOLDEN_RATES，无 hardcode。
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   GOLDEN_RATES,
   NORMAL_RATES,
   PITY_THRESHOLD,
 } from '@werewolf/game-engine/growth/gachaProbability';
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import { SHARD_VALUES } from '@werewolf/game-engine/growth/rewardCatalog';
 import React, { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import { GACHA_ICONS, UI_ICONS } from '@/config/iconTokens';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 
@@ -24,6 +27,15 @@ interface Props {
 }
 
 const COLUMNS: readonly Rarity[] = ['legendary', 'epic', 'rare', 'common'];
+
+/** Draw count columns for reward source table */
+const DRAW_COUNTS = [1, 2, 3, 4, 5] as const;
+
+/** Per-game normal / daily login probabilities (%) — matches rollNormalDraws weights */
+const NORMAL_DRAW_PROBS = [30, 35, 20, 10, 5] as const;
+
+/** Level-up golden probabilities (%) — matches rollGoldenDraws weights */
+const GOLDEN_DRAW_PROBS = [35, 35, 18, 8, 4] as const;
 
 export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
   const styles = useMemo(() => createStyles(), []);
@@ -54,7 +66,10 @@ export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
         {/* Normal row */}
         <View style={[styles.row, styles.dataRow]}>
           <View style={styles.labelCell}>
-            <Text style={styles.labelText}>✨ 普通</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name={GACHA_ICONS.NORMAL_DRAW} size={14} color={colors.textSecondary} />
+              <Text style={styles.labelText}>普通</Text>
+            </View>
           </View>
           {COLUMNS.map((r) => (
             <View key={r} style={styles.dataCell}>
@@ -66,7 +81,10 @@ export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
         {/* Golden row */}
         <View style={[styles.row, styles.dataRow, styles.goldenRow]}>
           <View style={styles.labelCell}>
-            <Text style={styles.labelText}>⭐ 黄金</Text>
+            <View style={styles.labelRow}>
+              <Ionicons name={GACHA_ICONS.GOLDEN_DRAW} size={14} color={colors.warning} />
+              <Text style={styles.labelText}>黄金</Text>
+            </View>
           </View>
           {COLUMNS.map((r) => (
             <View key={r} style={styles.dataCell}>
@@ -76,12 +94,84 @@ export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
         </View>
       </View>
 
+      {/* Shard conversion table */}
+      <Text style={styles.sectionTitle}>重复碎片转化</Text>
+      <View style={styles.table}>
+        <View style={styles.row}>
+          <View style={styles.labelCell} />
+          {COLUMNS.map((r) => (
+            <View key={r} style={styles.headerCell}>
+              <Text style={[styles.headerText, { color: RARITY_VISUAL[r].color }]}>
+                {RARITY_VISUAL[r].label}
+              </Text>
+            </View>
+          ))}
+        </View>
+        <View style={[styles.row, styles.dataRow]}>
+          <View style={styles.labelCell}>
+            <Text style={styles.labelText}>碎片</Text>
+          </View>
+          {COLUMNS.map((r) => (
+            <View key={r} style={styles.dataCell}>
+              <Text style={styles.dataText}>{SHARD_VALUES[r]}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Reward source probability table */}
+      <Text style={styles.sectionTitle}>券获取概率</Text>
+      <View style={styles.table}>
+        {/* Header: draw counts 1–5 */}
+        <View style={styles.row}>
+          <View style={styles.labelCell} />
+          {DRAW_COUNTS.map((n) => (
+            <View key={n} style={styles.headerCell}>
+              <Text style={styles.headerText}>{n}张</Text>
+            </View>
+          ))}
+        </View>
+        {/* Normal draws (per-game + daily share same distribution) */}
+        <View style={[styles.row, styles.dataRow]}>
+          <View style={styles.labelCell}>
+            <View style={styles.labelRow}>
+              <Ionicons name={GACHA_ICONS.NORMAL_DRAW} size={14} color={colors.textSecondary} />
+              <Text style={styles.labelText}>普通</Text>
+            </View>
+            <Text style={styles.labelSub}>每局/每日</Text>
+          </View>
+          {NORMAL_DRAW_PROBS.map((p, i) => (
+            <View key={i} style={styles.dataCell}>
+              <Text style={styles.dataText}>{p}%</Text>
+            </View>
+          ))}
+        </View>
+        {/* Level-up golden */}
+        <View style={[styles.row, styles.dataRow, styles.goldenRow]}>
+          <View style={styles.labelCell}>
+            <View style={styles.labelRow}>
+              <Ionicons name={GACHA_ICONS.GOLDEN_DRAW} size={14} color={colors.warning} />
+              <Text style={styles.labelText}>黄金</Text>
+            </View>
+            <Text style={styles.labelSub}>升级获得</Text>
+          </View>
+          {GOLDEN_DRAW_PROBS.map((p, i) => (
+            <View key={i} style={styles.dataCell}>
+              <Text style={styles.dataText}>{p}%</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
       {/* Rules */}
+      <Text style={styles.sectionTitle}>规则</Text>
       <View style={styles.rulesSection}>
-        <Text style={styles.ruleText}>
-          · {PITY_THRESHOLD} 次保底：普通抽保底稀有，黄金抽保底史诗
-        </Text>
-        <Text style={styles.ruleText}>· 已拥有物品不会重复，池清空后自动升级</Text>
+        <View style={styles.ruleRow}>
+          <Ionicons name={UI_ICONS.INFO} size={14} color={colors.textMuted} />
+          <Text style={styles.ruleText}>
+            {PITY_THRESHOLD} 次保底：普通抽保底稀有，黄金抽保底史诗
+          </Text>
+        </View>
       </View>
 
       <Button variant="secondary" onPress={onClose} style={styles.closeButton}>
@@ -105,6 +195,11 @@ function createStyles() {
       fontWeight: typography.weights.semibold,
       color: colors.text,
       textAlign: 'center',
+    },
+    sectionTitle: {
+      fontSize: typography.caption,
+      fontWeight: typography.weights.medium,
+      color: colors.textSecondary,
     },
 
     // ── Table ──
@@ -130,6 +225,11 @@ function createStyles() {
       paddingHorizontal: spacing.small,
       justifyContent: 'center',
     },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
     headerCell: {
       flex: 1,
       paddingVertical: spacing.small,
@@ -151,6 +251,11 @@ function createStyles() {
       fontWeight: typography.weights.medium,
       color: colors.text,
     },
+    labelSub: {
+      fontSize: typography.captionSmall,
+      color: colors.textMuted,
+      marginTop: spacing.micro,
+    },
     dataText: {
       fontSize: typography.caption,
       color: colors.textSecondary,
@@ -161,10 +266,16 @@ function createStyles() {
     rulesSection: {
       gap: spacing.tight,
     },
+    ruleRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 6,
+    },
     ruleText: {
       fontSize: typography.captionSmall,
       color: colors.textMuted,
       lineHeight: typography.captionSmall * 1.5,
+      flex: 1,
     },
 
     // ── Close ──

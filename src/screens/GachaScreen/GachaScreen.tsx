@@ -325,7 +325,7 @@ export function GachaScreen({ navigation }: Props) {
           >
             <View style={styles.shardInfo}>
               <Ionicons name="diamond-outline" size={14} color={colors.warning} />
-              <Text style={styles.shardCount}>✦ {shards.toLocaleString()}</Text>
+              <Text style={styles.shardCount}>{shards.toLocaleString()}</Text>
               <Text style={styles.shardLabel}>碎片</Text>
             </View>
             <View style={styles.shardExchangeHint}>
@@ -336,7 +336,7 @@ export function GachaScreen({ navigation }: Props) {
 
           {/* Draw button */}
           <DrawButton
-            label={`${isGoldenTab ? '⭐ ' : '✨ '}抽 ×${isAnon ? 10 : multiCount}`}
+            label={`抽 ×${isAnon ? 10 : multiCount}`}
             disabled={!isAnon && (activeDraws < 1 || busy)}
             onPress={() => handleDraw(activeDrawType, isAnon ? 10 : multiCount)}
             golden={isGoldenTab}
@@ -346,7 +346,7 @@ export function GachaScreen({ navigation }: Props) {
 
           {/* Hint + rate disclosure */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaHint}>每局+1~5普通 · 每日+2普通 · 升级+1~5黄金</Text>
+            <Text style={styles.metaHint}>每局+1~5普通 · 每日+1~5普通 · 升级+1~5黄金</Text>
             <Text style={styles.rateLink} onPress={() => setShowRates(true)}>
               概率公示
             </Text>

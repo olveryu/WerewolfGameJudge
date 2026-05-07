@@ -19,7 +19,6 @@ import { toast } from 'sonner-native';
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import {
@@ -30,7 +29,7 @@ import {
 } from '@/hooks/mutations/useAuthMutations';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { storage } from '@/lib/storage';
+import { clearRecentRooms } from '@/lib/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
@@ -140,7 +139,7 @@ export const SettingsScreen: React.FC = () => {
     try {
       wasAuthenticatedRef.current = false;
       await signOut();
-      storage.remove(LAST_ROOM_CODE_KEY);
+      clearRecentRooms();
       await refreshUser();
     } catch (e: unknown) {
       const message = getErrorMessage(e);

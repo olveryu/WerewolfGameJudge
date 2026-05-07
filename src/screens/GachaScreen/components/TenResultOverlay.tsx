@@ -130,7 +130,7 @@ function ResultCell({
       </Text>
       <Text style={[styles.cellRarity, { color: visual.color }]}>{visual.label}</Text>
       {item.isDuplicate ? (
-        <Text style={styles.cellShard}>✦ +{item.shardsAwarded}</Text>
+        <Text style={styles.cellShard}>◆ +{item.shardsAwarded}</Text>
       ) : (
         item.isNew && <Text style={styles.cellNew}>NEW</Text>
       )}
@@ -218,7 +218,7 @@ export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenR
           </ScrollView>
           {totalShards > 0 && (
             <View style={styles.shardSummary}>
-              <Text style={styles.shardSummaryText}>本次获得 ✦ {totalShards} 碎片</Text>
+              <Text style={styles.shardSummaryText}>本次获得 ◆ {totalShards} 碎片</Text>
             </View>
           )}
           {onGoEquip && (

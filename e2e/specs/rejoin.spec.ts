@@ -98,10 +98,15 @@ test.describe('Rejoin during ongoing game', () => {
       await gotoWithRetry(hostPage, '/');
       await ensureAnonLogin(hostPage);
 
-      // Step 4: Click "返回上局" to rejoin
+      // Step 4: Click "返回上局" to open recent rooms modal, then click the room
       const returnBtn = hostPage.locator('[data-testid="home-return-last-game-button"]');
       await expect(returnBtn).toBeVisible({ timeout: 5_000 });
       await returnBtn.click();
+
+      // Wait for recent rooms modal and click the room's join button
+      const joinBtn = hostPage.locator(`[data-testid="recent-room-join-${roomCode}"]`);
+      await expect(joinBtn).toBeVisible({ timeout: 10_000 });
+      await joinBtn.click();
       await waitForRoomScreenReady(hostPage, { role: 'host' });
 
       await hostPage

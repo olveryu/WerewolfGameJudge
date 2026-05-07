@@ -18,11 +18,10 @@ import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useState } from 'react';
 
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import type { User } from '@/contexts/AuthContext';
 import { useJoinRoom } from '@/hooks/mutations/useRoomMutations';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
-import { storage } from '@/lib/storage';
+import { addRecentRoom, removeRecentRoom } from '@/lib/recentRooms';
 import { SupersededError } from '@/services/connection/types';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -115,7 +114,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setRoomRecord({ roomCode, hostUserId, createdAt: new Date() });
 
         await facade.createRoom(roomCode, hostUserId, template);
-        storage.set(LAST_ROOM_CODE_KEY, roomCode);
+        addRecentRoom(roomCode);
 
         return { success: true };
       } catch (err) {
@@ -163,8 +162,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         if (!record) {
           const msg = '房间不存在';
           setError(msg);
-          // 防御性清理：房间已不存在，清除过时的 lastRoomCode
-          storage.remove(LAST_ROOM_CODE_KEY);
+          removeRecentRoom(roomCode);
           return { success: false, error: msg };
         }
         setRoomRecord(record);
@@ -180,13 +178,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
             return { success: false, error: msg };
           }
           gameRoomLog.debug('Host rejoin successful');
-          storage.set(LAST_ROOM_CODE_KEY, roomCode);
+          addRecentRoom(roomCode);
           return { success: true };
         }
 
         // Player: isHost=false
         await facade.joinRoom(roomCode, playerUserId, false);
-        storage.set(LAST_ROOM_CODE_KEY, roomCode);
+        addRecentRoom(roomCode);
 
         return { success: true };
       } catch (err) {

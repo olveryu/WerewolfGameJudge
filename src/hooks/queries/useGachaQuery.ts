@@ -97,7 +97,9 @@ export function useAutoClaimDailyReward() {
     claimDailyReward(undefined, {
       onSuccess: (data) => {
         if (data.claimed) {
-          toast.success('每日登录奖励', { description: '获得 2 次普通抽！' });
+          toast.success('每日登录奖励', {
+            description: `获得 ${data.normalDrawsAdded ?? 1} 次普通抽！`,
+          });
         }
       },
       onError: (err) => {

@@ -66,7 +66,7 @@ export async function performDraw(
   return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count, idempotencyKey });
 }
 
-/** 领取每日登录奖励（2 次普通抽） */
+/** 领取每日登录奖励（1–5 次普通抽，加权随机） */
 export async function claimDailyReward(localDate: string): Promise<DailyRewardResponse> {
   return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', { localDate });
 }

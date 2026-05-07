@@ -241,7 +241,7 @@ export function SingleResultReveal({
           {item.isDuplicate ? (
             <View style={styles.duplicateRow}>
               <Text style={styles.duplicateTag}>已拥有</Text>
-              <Text style={styles.shardAward}>✦ +{item.shardsAwarded}</Text>
+              <Text style={styles.shardAward}>◆ +{item.shardsAwarded}</Text>
             </View>
           ) : (
             item.isNew && <Text style={styles.newTag}>NEW</Text>

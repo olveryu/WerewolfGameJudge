@@ -41,4 +41,12 @@ export const UI_ICONS = {
   RECORD: 'clipboard-outline',
   ROLE_PLACEHOLDER: 'help-circle-outline',
   AI_ASSISTANT: 'sparkles-outline',
+  INFO: 'information-circle-outline',
+} as const satisfies Record<string, IoniconsName>;
+
+// ── Gacha icons ──────────────────────────────────────────────
+
+export const GACHA_ICONS = {
+  NORMAL_DRAW: 'sparkles-outline',
+  GOLDEN_DRAW: 'star',
 } as const satisfies Record<string, IoniconsName>;

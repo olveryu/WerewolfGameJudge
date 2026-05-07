@@ -13,11 +13,10 @@ import React, { useCallback, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
 import { EmailForm } from '@/components/auth';
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useSignOut } from '@/hooks/mutations/useAuthMutations';
 import { useAuthForm } from '@/hooks/useAuthForm';
-import { storage } from '@/lib/storage';
+import { clearRecentRooms } from '@/lib/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -91,7 +90,7 @@ export const AuthEmailScreen: React.FC = () => {
     if (signOutFirst) {
       try {
         await signOut();
-        storage.remove(LAST_ROOM_CODE_KEY);
+        clearRecentRooms();
         await refreshUser();
       } catch (e: unknown) {
         const message = getUserFacingMessage(e);

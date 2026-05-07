@@ -69,18 +69,19 @@ describe('POST /api/gacha/daily-reward', () => {
     await cleanStats();
   });
 
-  it('grants 2 normal draws on first claim (no user_stats row)', async () => {
+  it('grants 1–5 normal draws on first claim (no user_stats row)', async () => {
     const token = await mintToken();
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.claimed).toBe(true);
-    expect(body.normalDrawsAdded).toBe(2);
+    expect(body.normalDrawsAdded).toBeGreaterThanOrEqual(1);
+    expect(body.normalDrawsAdded).toBeLessThanOrEqual(5);
 
     // Verify via GET /api/gacha/status
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
-    expect(status.normalDraws).toBe(2);
+    expect(status.normalDraws).toBe(body.normalDrawsAdded);
     expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
@@ -109,11 +110,13 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.claimed).toBe(true);
-    expect(body.normalDrawsAdded).toBe(2);
+    expect(body.normalDrawsAdded).toBeGreaterThanOrEqual(1);
+    expect(body.normalDrawsAdded).toBeLessThanOrEqual(5);
 
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
-    expect(status.normalDraws).toBe(5);
+    // 3 (pre-seeded) + random draws added
+    expect(status.normalDraws).toBe(3 + body.normalDrawsAdded);
   });
 
   it('rejects claim within 20h cooldown', async () => {

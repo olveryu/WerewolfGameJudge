@@ -119,6 +119,10 @@ export const TESTIDS = {
   feedbackInput: 'feedback-input',
   feedbackSubmitButton: 'feedback-submit-button',
 
+  // RecentRoomsModal
+  recentRoomsModal: 'recent-rooms-modal',
+  recentRoomJoin: (roomCode: string) => `recent-room-join-${roomCode}`,
+
   encyclopediaScreenRoot: 'encyclopedia-screen-root',
   encyclopediaRoleItem: (id: string) => `encyclopedia-role-${id}`,
   encyclopediaFactionTab: (key: string) => `encyclopedia-faction-tab-${key}`,

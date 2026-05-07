@@ -20,10 +20,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
-import { storage } from '@/lib/storage';
+import { addRecentRoom } from '@/lib/recentRooms';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IAuthService } from '@/services/types/IAuthService';
@@ -296,7 +295,7 @@ export function useConfigScreenState({
           buildInitialState: (roomCode) => buildInitialGameState(roomCode, hostUserId, template),
         });
         const roomCode = record.roomCode;
-        storage.set(LAST_ROOM_CODE_KEY, roomCode);
+        addRecentRoom(roomCode);
         navigation.navigate('Room', {
           roomCode,
           isHost: true,

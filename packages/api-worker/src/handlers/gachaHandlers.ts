@@ -10,6 +10,7 @@
 
 import type { DrawType, Rarity } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
+import { rollNormalDraws } from '@werewolf/game-engine/growth/level';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { REWARD_POOL_BY_ID, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { and, eq, sql } from 'drizzle-orm';
@@ -29,9 +30,6 @@ export const gachaRoutes = new Hono<AppEnv>();
 
 /** Minimum hours between daily reward claims (server-side cooldown guard) */
 const DAILY_REWARD_COOLDOWN_HOURS = 20;
-
-/** 每日登录奖励的普通抽奖券数 */
-const NORMAL_DRAWS_PER_DAILY_LOGIN = 2;
 
 /**
  * Check if an idempotency key has already been used.
@@ -355,26 +353,27 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
 
     // ── No stats row yet → create one with the daily reward ──
     if (!stats) {
+      const dailyDraws = rollNormalDraws();
       const claimedAt = new Date().toISOString();
       await db
         .insert(userStats)
         .values({
           userId,
-          normalDraws: NORMAL_DRAWS_PER_DAILY_LOGIN,
+          normalDraws: dailyDraws,
           lastLoginRewardAt: claimedAt,
           updatedAt: claimedAt,
         })
         .onConflictDoUpdate({
           target: userStats.userId,
           set: {
-            normalDraws: sql`${userStats.normalDraws} + ${NORMAL_DRAWS_PER_DAILY_LOGIN}`,
+            normalDraws: sql`${userStats.normalDraws} + ${dailyDraws}`,
             lastLoginRewardAt: claimedAt,
             version: sql`${userStats.version} + 1`,
             updatedAt: sql`datetime('now')`,
           },
         });
 
-      return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
+      return c.json({ claimed: true, normalDrawsAdded: dailyDraws });
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
@@ -387,11 +386,12 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       }
     }
 
-    // ── OCC update: +1 normalDraws, set lastLoginRewardAt, bump version ──
+    // ── OCC update: +N normalDraws, set lastLoginRewardAt, bump version ──
+    const dailyDraws = rollNormalDraws();
     const updated = await db
       .update(userStats)
       .set({
-        normalDraws: sql`${userStats.normalDraws} + ${NORMAL_DRAWS_PER_DAILY_LOGIN}`,
+        normalDraws: sql`${userStats.normalDraws} + ${dailyDraws}`,
         lastLoginRewardAt: new Date().toISOString(),
         version: sql`${userStats.version} + 1`,
         updatedAt: sql`datetime('now')`,
@@ -403,7 +403,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       continue;
     }
 
-    return c.json({ claimed: true, normalDrawsAdded: NORMAL_DRAWS_PER_DAILY_LOGIN });
+    return c.json({ claimed: true, normalDrawsAdded: dailyDraws });
   }
 
   return c.json({ success: false, reason: 'CONFLICT' }, 409);

@@ -27,16 +27,15 @@ import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
-import { LAST_ROOM_CODE_KEY, LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
+import { LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useServices } from '@/contexts/ServiceContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
+import { getRecentRooms } from '@/lib/recentRooms';
 import { storage } from '@/lib/storage';
 import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
 import { homeLog } from '@/utils/logger';
 import { isMiniProgram, wxReLaunch } from '@/utils/miniProgram';
@@ -47,6 +46,7 @@ import {
   InstallMenuItem,
   JoinRoomModal,
   RandomRoleCard,
+  RecentRoomsModal,
 } from './components';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -59,10 +59,10 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading, error: authError } = useAuth();
-  const { roomService } = useServices();
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showRecentRooms, setShowRecentRooms] = useState(false);
   const [roomCode, setRoomCode] = useState('');
-  const [lastRoomCode, setLastRoomNumber] = useState<string | null>(null);
+  const [recentRoomCodes, setRecentRoomCodes] = useState<string[]>([]);
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -83,7 +83,6 @@ export const HomeScreen: React.FC = () => {
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isReturning, setIsReturning] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
 
   const pendingActionRef = useRef<(() => void) | null>(null);
@@ -101,7 +100,6 @@ export const HomeScreen: React.FC = () => {
     const unsubscribe = navigation.addListener('focus', () => {
       setIsCreating(false);
       setIsJoining(false);
-      setIsReturning(false);
       if (!user) {
         pendingActionRef.current = null;
       }
@@ -120,16 +118,15 @@ export const HomeScreen: React.FC = () => {
     prevUserRef.current = user;
   }, [user]);
 
-  // Load last room number on mount and when returning to screen
-  // (room-not-found clears MMKV, need to re-read on focus)
+  // Load recent room codes on mount and when returning to screen
   useEffect(() => {
-    const readLastRoom = () => {
-      setLastRoomNumber(storage.getString(LAST_ROOM_CODE_KEY) ?? null);
+    const readRecent = () => {
+      setRecentRoomCodes(getRecentRooms());
     };
-    readLastRoom();
-    const unsubscribeFocus = navigation.addListener('focus', readLastRoom);
+    readRecent();
+    const unsubscribeFocus = navigation.addListener('focus', readRecent);
     return unsubscribeFocus;
-  }, [user, navigation]);
+  }, [navigation]);
 
   // Get user display name
   const userName = useMemo(() => {
@@ -176,30 +173,24 @@ export const HomeScreen: React.FC = () => {
     }
   }, [roomCode, navigation]);
 
-  const handleReturnToLastGame = useCallback(async () => {
-    if (!lastRoomCode) {
-      showErrorAlert('无记录', '没有上局游戏记录');
-      return;
-    }
-    setIsReturning(true);
-    try {
-      const exists = await roomService.roomExists(lastRoomCode);
-      if (!exists) {
-        homeLog.info('Last room no longer exists', { roomCode: lastRoomCode });
-        storage.remove(LAST_ROOM_CODE_KEY);
-        setLastRoomNumber(null);
-        showErrorAlert('房间已失效', '上局房间已不存在，请创建或加入新房间');
-        return;
-      }
-      homeLog.info('Return to last game', { roomCode: lastRoomCode });
-      navigation.navigate('Room', { roomCode: lastRoomCode, isHost: false });
-    } catch (e) {
-      homeLog.warn('roomExists check failed', { roomCode: lastRoomCode, error: e });
-      showErrorAlert('网络异常', '无法检查房间状态，请稍后重试');
-    } finally {
-      setIsReturning(false);
-    }
-  }, [lastRoomCode, navigation, roomService]);
+  const handleShowRecentRooms = useCallback(() => {
+    setRecentRoomCodes(getRecentRooms());
+    setShowRecentRooms(true);
+  }, []);
+
+  const handleCloseRecentRooms = useCallback(() => {
+    setShowRecentRooms(false);
+    // Refresh list (offline rooms were removed during check)
+    setRecentRoomCodes(getRecentRooms());
+  }, []);
+
+  const handleJoinFromRecent = useCallback(
+    (code: string) => {
+      homeLog.info('Join from recent rooms', { roomCode: code });
+      navigation.navigate('Room', { roomCode: code, isHost: false });
+    },
+    [navigation],
+  );
 
   const handleCancelJoin = useCallback(() => {
     setShowJoinModal(false);
@@ -314,11 +305,11 @@ export const HomeScreen: React.FC = () => {
   }, []);
 
   const handleReturnLastGamePressRef = useRef(() => {
-    requireAuth(() => void handleReturnToLastGame());
+    requireAuth(handleShowRecentRooms);
   });
   useLayoutEffect(() => {
     handleReturnLastGamePressRef.current = () => {
-      requireAuth(() => void handleReturnToLastGame());
+      requireAuth(handleShowRecentRooms);
     };
   });
   const handleReturnLastGamePress = useCallback(() => {
@@ -461,8 +452,11 @@ export const HomeScreen: React.FC = () => {
           </PressableScale>
           <PressableScale
             onPress={handleReturnLastGamePress}
-            disabled={authLoading || isReturning}
-            style={[styles.actionCard, (authLoading || isReturning) && styles.actionCardDisabled]}
+            disabled={authLoading || recentRoomCodes.length === 0}
+            style={[
+              styles.actionCard,
+              (authLoading || recentRoomCodes.length === 0) && styles.actionCardDisabled,
+            ]}
             testID={TESTIDS.homeReturnLastGameButton}
           >
             <View style={styles.actionCardIcon}>
@@ -472,9 +466,9 @@ export const HomeScreen: React.FC = () => {
                 color={colors.primary}
               />
             </View>
-            <Text style={styles.actionCardTitle}>{isReturning ? '检查中' : '返回上局'}</Text>
+            <Text style={styles.actionCardTitle}>返回上局</Text>
             <Text style={styles.actionCardSubtitle}>
-              {lastRoomCode ? `房间 ${lastRoomCode}` : '无记录'}
+              {recentRoomCodes.length > 0 ? `${recentRoomCodes.length} 个房间` : '无记录'}
             </Text>
           </PressableScale>
         </View>
@@ -550,6 +544,14 @@ export const HomeScreen: React.FC = () => {
         }}
         onCancel={handleCancelJoin}
         styles={styles}
+      />
+
+      {/* Recent Rooms Modal */}
+      <RecentRoomsModal
+        visible={showRecentRooms}
+        roomCodes={recentRoomCodes}
+        onClose={handleCloseRecentRooms}
+        onJoin={handleJoinFromRecent}
       />
 
       {/* What's New announcement modal */}

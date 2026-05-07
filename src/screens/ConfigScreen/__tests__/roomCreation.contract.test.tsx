@@ -8,7 +8,7 @@
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
-import { LAST_ROOM_CODE_KEY } from '@/config/storageKeys';
+import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
 import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
@@ -167,7 +167,10 @@ describe('Room creation → navigation roomCode contract', () => {
   });
 
   it('should save confirmed roomCode to MMKV storage (not a pre-generated code)', async () => {
-    const { storage } = require('@/lib/storage') as { storage: { set: jest.Mock } };
+    const { storage } = require('@/lib/storage') as {
+      storage: { set: jest.Mock; getString: jest.Mock };
+    };
+    storage.getString.mockReturnValue(undefined);
     const mockFacade = createMockFacade();
     const { getByText } = render(
       <GameFacadeProvider facade={mockFacade}>
@@ -182,7 +185,10 @@ describe('Room creation → navigation roomCode contract', () => {
       expect(mockNavigate).toHaveBeenCalled();
     });
 
-    // lastRoomCode stored must match the confirmed DB code
-    expect(storage.set).toHaveBeenCalledWith(LAST_ROOM_CODE_KEY, '7777');
+    // recentRoomCodes stored must contain the confirmed DB code
+    expect(storage.set).toHaveBeenCalledWith(
+      RECENT_ROOM_CODES_KEY,
+      expect.stringContaining('7777'),
+    );
   });
 });
