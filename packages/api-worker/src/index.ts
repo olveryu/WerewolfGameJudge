@@ -60,7 +60,7 @@ app.use(
   cors({
     origin: (_, c) => (c.env as Env).CORS_ORIGIN,
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id', 'x-admin-token'],
     maxAge: 3600,
   }),
 );
