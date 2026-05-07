@@ -165,7 +165,6 @@ export const HomeScreen: React.FC = () => {
     homeLog.info('Join room', { roomCode });
 
     try {
-      storage.set(LAST_ROOM_CODE_KEY, roomCode);
       setShowJoinModal(false);
       navigation.navigate('Room', { roomCode: roomCode, isHost: false });
       setRoomCode('');

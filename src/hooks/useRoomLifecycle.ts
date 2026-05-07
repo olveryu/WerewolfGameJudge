@@ -115,6 +115,7 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
         setRoomRecord({ roomCode, hostUserId, createdAt: new Date() });
 
         await facade.createRoom(roomCode, hostUserId, template);
+        storage.set(LAST_ROOM_CODE_KEY, roomCode);
 
         return { success: true };
       } catch (err) {
@@ -179,11 +180,13 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
             return { success: false, error: msg };
           }
           gameRoomLog.debug('Host rejoin successful');
+          storage.set(LAST_ROOM_CODE_KEY, roomCode);
           return { success: true };
         }
 
         // Player: isHost=false
         await facade.joinRoom(roomCode, playerUserId, false);
+        storage.set(LAST_ROOM_CODE_KEY, roomCode);
 
         return { success: true };
       } catch (err) {
