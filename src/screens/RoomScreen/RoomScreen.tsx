@@ -21,6 +21,7 @@ import { toast } from 'sonner-native';
 import { AlertModal } from '@/components/AlertModal';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
+import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
@@ -779,6 +780,9 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Board Strategy Modal — 攻略详情 */}
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
+
+      {/* Debug Console — store-driven modal, toggled via useHiddenDebugTrigger */}
+      <DebugPanel />
     </SafeAreaView>
   );
 };

@@ -100,6 +100,25 @@ export interface AdminAnalytics {
   isps: Array<{ isp: string; count: number }>;
 }
 
+// ── Time range utilities ────────────────────────────────────────────────────
+
+export type TimePreset = 'today' | '7d' | '30d' | 'custom';
+
+export function getTimeRange(preset: Exclude<TimePreset, 'custom'>): { from: string; to: string } {
+  const now = new Date();
+  const to = now.toISOString();
+  if (preset === 'today') {
+    const start = new Date(now);
+    start.setUTCHours(0, 0, 0, 0);
+    return { from: start.toISOString(), to };
+  }
+  if (preset === '7d') {
+    return { from: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), to };
+  }
+  // 30d
+  return { from: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString(), to };
+}
+
 // ── API calls ───────────────────────────────────────────────────────────────
 
 interface FetchUsersParams {

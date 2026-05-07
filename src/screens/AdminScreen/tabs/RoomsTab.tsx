@@ -1,17 +1,18 @@
 /**
  * RoomsTab — Admin 房间列表
  *
- * 分页房间卡片，点击展开参与者列表。
+ * 分页房间卡片，点击展开参与者列表。使用 Pagination + AdminEmptyState 共享组件。
  */
 
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 
 import { type AdminRoom, type AdminRoomPlayer, fetchRoomPlayers, fetchRooms } from '../adminApi';
+import { AdminEmptyState, Pagination } from '../components';
 
 export const RoomsTab: React.FC = () => {
   const [rooms, setRooms] = useState<AdminRoom[]>([]);
@@ -63,7 +64,6 @@ export const RoomsTab: React.FC = () => {
   );
 
   const totalPages = Math.ceil(total / 50);
-  const styles = useMemo(() => createStyles(), []);
 
   const renderRoom = useCallback(
     ({ item }: { item: AdminRoom }) => {
@@ -103,120 +103,78 @@ export const RoomsTab: React.FC = () => {
         </View>
       );
     },
-    [expandedRoom, players, playersLoading, styles, handleRoomPress],
+    [expandedRoom, players, playersLoading, handleRoomPress],
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.summary}>总房间: {total}</Text>
 
-      {error && <Text style={styles.error}>{error}</Text>}
-
-      {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+      {loading || error ? (
+        <AdminEmptyState loading={loading} error={error} empty={false} />
       ) : (
         <FlatList
           data={rooms}
           keyExtractor={(item) => item.id}
           renderItem={renderRoom}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>无数据</Text>}
+          ListEmptyComponent={<AdminEmptyState loading={false} error={null} empty />}
         />
       )}
 
-      {totalPages > 1 && (
-        <View style={styles.pagination}>
-          <PressableScale
-            style={[styles.pageBtn, page <= 1 && styles.pageBtnDisabled]}
-            onPress={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1}
-          >
-            <Text style={styles.pageBtnText}>←</Text>
-          </PressableScale>
-          <Text style={styles.pageInfo}>
-            {page} / {totalPages}
-          </Text>
-          <PressableScale
-            style={[styles.pageBtn, page >= totalPages && styles.pageBtnDisabled]}
-            onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages}
-          >
-            <Text style={styles.pageBtnText}>→</Text>
-          </PressableScale>
-        </View>
-      )}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </View>
   );
 };
 
-function createStyles() {
-  return StyleSheet.create({
-    container: { flex: 1, paddingHorizontal: spacing.medium },
-    summary: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      marginBottom: spacing.tight,
-      marginTop: spacing.small,
-    },
-    error: { color: colors.error, fontSize: typography.caption, marginBottom: spacing.tight },
-    loader: { marginTop: spacing.xlarge },
-    list: { paddingBottom: spacing.medium },
-    card: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.large,
-      padding: spacing.medium,
-      marginBottom: spacing.tight,
-      ...shadows.sm,
-    },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    cardCode: {
-      fontSize: typography.body,
-      fontWeight: typography.weights.bold,
-      color: colors.text,
-    },
-    cardCount: { fontSize: typography.caption, color: colors.textSecondary },
-    cardDetail: {
-      fontSize: typography.caption,
-      color: colors.textSecondary,
-      marginTop: spacing.micro,
-    },
-    cardMeta: { fontSize: typography.caption, color: colors.textMuted, marginTop: spacing.micro },
-    playersContainer: {
-      marginLeft: spacing.medium,
-      marginBottom: spacing.small,
-      paddingLeft: spacing.small,
-      borderLeftWidth: 2,
-      borderLeftColor: colors.border,
-    },
-    playerCard: {
-      backgroundColor: colors.surface,
-      borderRadius: borderRadius.medium,
-      padding: spacing.small,
-      marginBottom: spacing.tight,
-    },
-    playerName: {
-      fontSize: typography.caption,
-      fontWeight: typography.weights.semibold,
-      color: colors.text,
-    },
-    playerDetail: { fontSize: typography.captionSmall, color: colors.textSecondary, marginTop: 1 },
-    playerMeta: { fontSize: typography.captionSmall, color: colors.textMuted, marginTop: 1 },
-    empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xlarge },
-    pagination: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: spacing.medium,
-      paddingVertical: spacing.small,
-    },
-    pageBtn: {
-      paddingHorizontal: spacing.medium,
-      paddingVertical: spacing.tight,
-      borderRadius: borderRadius.medium,
-      backgroundColor: colors.surface,
-    },
-    pageBtnDisabled: { opacity: 0.3 },
-    pageBtnText: { fontSize: typography.body, color: colors.text },
-    pageInfo: { fontSize: typography.caption, color: colors.textSecondary },
-  });
-}
+const styles = StyleSheet.create({
+  container: { flex: 1, paddingHorizontal: spacing.medium },
+  summary: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.tight,
+    marginTop: spacing.small,
+  },
+  list: { paddingBottom: spacing.medium },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    padding: spacing.medium,
+    marginBottom: spacing.tight,
+    ...shadows.sm,
+  },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardCode: {
+    fontSize: typography.body,
+    fontWeight: typography.weights.bold,
+    color: colors.text,
+  },
+  cardCount: { fontSize: typography.caption, color: colors.textSecondary },
+  cardDetail: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginTop: spacing.micro,
+  },
+  cardMeta: { fontSize: typography.caption, color: colors.textMuted, marginTop: spacing.micro },
+  playersContainer: {
+    marginLeft: spacing.medium,
+    marginBottom: spacing.small,
+    paddingLeft: spacing.small,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.border,
+  },
+  playerCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.medium,
+    padding: spacing.small,
+    marginBottom: spacing.tight,
+  },
+  playerName: {
+    fontSize: typography.caption,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+  },
+  playerDetail: { fontSize: typography.captionSmall, color: colors.textSecondary, marginTop: 1 },
+  playerMeta: { fontSize: typography.captionSmall, color: colors.textMuted, marginTop: 1 },
+  empty: { textAlign: 'center', color: colors.textMuted, marginTop: spacing.xlarge },
+});

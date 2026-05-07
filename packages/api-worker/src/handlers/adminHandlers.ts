@@ -310,10 +310,20 @@ adminRoutes.get('/analytics', async (c) => {
     throw new HTTPException(400, { message: 'MISSING_TIME_RANGE' });
   }
 
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+    throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
+  }
+
   const apiToken = c.env.CF_API_TOKEN;
   if (!apiToken) {
     throw new HTTPException(503, { message: 'CF_API_TOKEN_NOT_CONFIGURED' });
   }
+
+  // Analytics Engine toDateTime() accepts 'YYYY-MM-DDTHH:MM:SS' only (no Z, no ms)
+  const aeFrom = fromDate.toISOString().slice(0, 19);
+  const aeTo = toDate.toISOString().slice(0, 19);
 
   const sqlQuery = `
     SELECT
@@ -324,7 +334,7 @@ adminRoutes.get('/analytics', async (c) => {
       avg(double1) as avg_load_ms,
       avg(double7) as avg_ttfb_ms
     FROM load_timing
-    WHERE timestamp >= toDateTime('${from}') AND timestamp < toDateTime('${to}')
+    WHERE timestamp >= toDateTime('${aeFrom}') AND timestamp < toDateTime('${aeTo}')
     GROUP BY country, colo, isp
     ORDER BY cnt DESC
   `;
