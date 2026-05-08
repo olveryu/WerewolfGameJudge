@@ -143,7 +143,7 @@ echo "✅ 已复制 _headers + _redirects + _routes.json"
 # ── 4. Sentry Source Maps ───────────────────────
 
 if [ -n "$SENTRY_AUTH_TOKEN" ]; then
-  VERSION="werewolfjudge@v$(node -p "require('./package.json').version")"
+  VERSION="werewolfjudge@$(node -p "require('./package.json').version")"
   echo "📡 上传 source maps → Sentry release: $VERSION"
   npx sentry-cli sourcemaps inject dist/assets/js/
   npx sentry-cli sourcemaps upload dist/assets/js/ \
