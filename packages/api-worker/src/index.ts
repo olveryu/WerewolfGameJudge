@@ -147,6 +147,7 @@ app.route('/telemetry', telemetryRoutes);
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
+    release: env.CF_VERSION_METADATA?.id,
     tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
     environment: env.ENVIRONMENT,
   }),

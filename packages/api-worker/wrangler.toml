@@ -64,6 +64,10 @@ dataset = "ai_usage"
 pattern = "api.werewolfjudge.eu.org"
 custom_domain = true
 
+# ── Version Metadata (Sentry release auto-detection) ────────────────────────────
+[version_metadata]
+binding = "CF_VERSION_METADATA"
+
 # ── Environment Variables ────────────────────────────────────────────────────
 [vars]
 ENVIRONMENT = "production"

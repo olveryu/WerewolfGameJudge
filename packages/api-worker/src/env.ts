@@ -43,6 +43,9 @@ export interface Env {
   /** Sentry DSN for error reporting */
   SENTRY_DSN: string;
 
+  /** Cloudflare version metadata — auto-injected, used for Sentry release */
+  CF_VERSION_METADATA: { id: string; tag: string };
+
   /** GitHub PAT (fine-grained, Issues write) for user feedback → GitHub Issues */
   GITHUB_TOKEN?: string;
 
