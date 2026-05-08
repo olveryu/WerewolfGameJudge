@@ -35,7 +35,7 @@ Sentry.init({
   // Disable in development to avoid noise
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
-  tracesSampleRate: 0.5,
+  tracesSampleRate: 0.2,
   integrations: getSentryIntegrations(),
   // Allow Relay to infer browser.name / IP from User-Agent for Structured Logs
   sendDefaultPii: true,
@@ -43,6 +43,26 @@ Sentry.init({
   enableAutoSessionTracking: true,
   // Enable structured logging (Sentry Logs beta)
   enableLogs: true,
+  // ── Noise filtering ─────────────────────────────────────────────────────
+  ignoreErrors: [
+    // Browser/WebView non-actionable
+    'ResizeObserver loop',
+    'ResizeObserver loop completed with undelivered notifications',
+    /Loading chunk [\d]+ failed/,
+    /Failed to fetch dynamically imported module/,
+    'Non-Error promise rejection captured',
+    // WebKit internals injected by iOS WebView
+    "Can't find variable: __gCrWeb",
+    // Minified third-party noise
+    /^undefined$/,
+  ],
+  denyUrls: [
+    // Browser extensions — not our code
+    /extensions\//i,
+    /^chrome:\/\//i,
+    /^chrome-extension:\/\//i,
+    /^moz-extension:\/\//i,
+  ],
 });
 
 // Keep splash screen visible while app initializes
