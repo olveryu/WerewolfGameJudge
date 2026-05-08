@@ -212,7 +212,7 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
         });
         break;
       } catch (error) {
-        log.error('Gemini request error', {
+        log.warn('Gemini request error, falling back to Workers AI', {
           model: GEMINI_MODEL,
           error: error instanceof Error ? error.message : String(error),
         });
