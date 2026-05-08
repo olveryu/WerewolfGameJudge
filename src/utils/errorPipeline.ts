@@ -119,7 +119,12 @@ export function handleError(err: unknown, opts: HandleErrorOptions): void {
     logger.warn(`[${label}] expected error`, err);
   } else {
     logger.error(`[${label}] unexpected error`, err);
-    Sentry.captureException(err);
+    Sentry.withScope((scope) => {
+      scope.setTag('handler', label);
+      if (statusCode !== undefined) scope.setTag('http.status_code', statusCode);
+      scope.setFingerprint([label, getErrorMessage(err)]);
+      Sentry.captureException(err);
+    });
   }
 
   // ── UI feedback ──
