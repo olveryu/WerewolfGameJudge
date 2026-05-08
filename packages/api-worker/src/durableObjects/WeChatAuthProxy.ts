@@ -9,6 +9,7 @@
  * 无状态 DO — 不使用 storage，纯 RPC 代理。
  */
 
+import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
@@ -24,7 +25,7 @@ interface WxCode2SessionResult {
 /** code2Session 超时（APAC→中国，同区域给 15s 安全网） */
 const WX_API_TIMEOUT_MS = 15_000;
 
-export class WeChatAuthProxy extends DurableObject<Env> {
+class WeChatAuthProxyBase extends DurableObject<Env> {
   /**
    * 调用微信 code2Session API 换取 openid。
    *
@@ -52,3 +53,13 @@ export class WeChatAuthProxy extends DurableObject<Env> {
     return data;
   }
 }
+
+export const WeChatAuthProxy = Sentry.instrumentDurableObjectWithSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
+    environment: env.ENVIRONMENT,
+  }),
+  WeChatAuthProxyBase,
+);
+export type WeChatAuthProxy = InstanceType<typeof WeChatAuthProxy>;

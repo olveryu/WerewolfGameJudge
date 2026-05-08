@@ -10,6 +10,7 @@
  * WebSocket upgrade 仍走 fetch() handler（RPC 与 fetch 共存）。
  */
 
+import * as Sentry from '@sentry/cloudflare';
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
   handleAssignRoles,
@@ -64,7 +65,7 @@ interface WebSocketAttachment {
   connectedAt: number;
 }
 
-export class GameRoom extends DurableObject<Env> implements IGameRoomRPC {
+class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   /** 结算最大重试次数 */
   static readonly SETTLE_MAX_RETRIES = 3;
   /** 重试间隔（毫秒） */
@@ -679,3 +680,13 @@ export class GameRoom extends DurableObject<Env> implements IGameRoomRPC {
     ws.close();
   }
 }
+
+export const GameRoom = Sentry.instrumentDurableObjectWithSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN,
+    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
+    environment: env.ENVIRONMENT,
+  }),
+  GameRoomBase,
+);
+export type GameRoom = InstanceType<typeof GameRoom>;
