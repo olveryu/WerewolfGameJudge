@@ -154,6 +154,8 @@ export default Sentry.withSentry(
     release: env.CF_VERSION_METADATA?.id,
     tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
     environment: env.ENVIRONMENT,
+    sendDefaultPii: true,
+    enableLogs: true,
   }),
   {
     fetch: app.fetch,
