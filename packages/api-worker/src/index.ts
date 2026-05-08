@@ -90,7 +90,11 @@ app.onError((err, c) => {
   if (err instanceof SyntaxError) {
     return c.json({ success: false, reason: 'INVALID_JSON' }, 400);
   }
-  log.error('unhandled error', { error: err instanceof Error ? err.message : String(err) });
+  log.warn('unhandled error', { error: err instanceof Error ? err.message : String(err) });
+  // Capture the original Error object to preserve stack trace in Sentry
+  Sentry.captureException(err, {
+    tags: { path: c.req.path, method: c.req.method },
+  });
   return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
 });
 
