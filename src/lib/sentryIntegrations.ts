@@ -4,6 +4,7 @@
  * Extracted to avoid circular dependency (App → AppNavigator → App).
  * On web, browserTracingIntegration creates pageload/navigation transactions so that
  * fetch spans and custom spans have a root transaction to attach to.
+ * browserReplayIntegration captures session replays for error reproduction.
  * reactNavigationIntegration tracks screen transitions on all platforms.
  */
 import { browserTracingIntegration } from '@sentry/browser';
@@ -22,6 +23,19 @@ export function getSentryIntegrations() {
   if (Platform.OS === 'web') {
     integrations.push(
       browserTracingIntegration() as ReturnType<typeof Sentry.reactNavigationIntegration>,
+    );
+    integrations.push(
+      Sentry.browserReplayIntegration({
+        maskAllText: true,
+        maskAllInputs: true,
+      }) as unknown as ReturnType<typeof Sentry.reactNavigationIntegration>,
+    );
+  } else {
+    integrations.push(
+      Sentry.mobileReplayIntegration({
+        maskAllText: true,
+        maskAllImages: true,
+      }) as unknown as ReturnType<typeof Sentry.reactNavigationIntegration>,
     );
   }
   return integrations;

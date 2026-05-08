@@ -36,6 +36,9 @@ Sentry.init({
   enabled: !__DEV__,
   environment: __DEV__ ? 'development' : (process.env.EXPO_PUBLIC_DEPLOY_ENV ?? 'production'),
   tracesSampleRate: 0.2,
+  // Session Replay — always capture on error, sample 10% of normal sessions
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
   integrations: getSentryIntegrations(),
   // Allow Relay to infer browser.name / IP from User-Agent for Structured Logs
   sendDefaultPii: true,
