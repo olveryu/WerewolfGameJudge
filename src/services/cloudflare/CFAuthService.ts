@@ -13,7 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import { clearWxCode, isMiniProgram, readWxCode } from '@/utils/miniProgram';
+import { clearWxCode, isMiniProgram, readWxCode, wxReLaunch } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import {
@@ -94,9 +94,16 @@ export class CFAuthService implements IAuthService {
         authLog.info('Restored session', { userId: existingUserId });
       } else if (isMiniProgram()) {
         // 小程序内但无 wxcode 且无已有 session —
-        // 安全确认页（国际版 WeChat 对 pages.dev 域名）可能吞掉了 query params。
-        // 显示错误页让用户点"重新进入"重走 wx.login 流程。
-        authLog.warn('Mini-program detected but no wxcode and no session');
+        // 安全确认页可能吞掉了 query params。自动 reLaunch 重试一次。
+        const RETRY_KEY = 'wx_relaunch_retry';
+        if (sessionStorage.getItem(RETRY_KEY) !== '1') {
+          sessionStorage.setItem(RETRY_KEY, '1');
+          authLog.warn('Mini-program: no wxcode, auto reLaunch to retry');
+          wxReLaunch();
+          return;
+        }
+        sessionStorage.removeItem(RETRY_KEY);
+        authLog.warn('Mini-program: no wxcode after retry, showing error');
         this.#wechatLoginFailed = true;
       }
     } catch (error) {
