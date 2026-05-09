@@ -1,5 +1,6 @@
 /** Zod schemas for /auth/* endpoints */
 
+import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { z } from 'zod';
 
 export const signUpSchema = z.object({
@@ -20,7 +21,7 @@ export const updateProfileSchema = z.object({
   avatarFrame: z.string().max(100).optional(),
   seatFlair: z.string().max(100).optional(),
   nameStyle: z.string().max(100).optional(),
-  equippedEffect: z.string().max(100).optional(),
+  equippedEffect: z.enum(['', 'random', ...ROLE_REVEAL_EFFECT_IDS]).optional(),
   seatAnimation: z.string().max(100).optional(),
 });
 

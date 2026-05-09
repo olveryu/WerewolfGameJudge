@@ -199,14 +199,15 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   const prevIsSelectedRef = useRef(isSelected);
 
   // Custom seat entrance animation (from equipped seatAnimation cosmetic)
-  const [isPlayingEntrance, setIsPlayingEntrance] = useState(false);
-  // Tracks whether the animation is actively playing (vs in the loop gap)
-  const [isAnimActive, setIsAnimActive] = useState(false);
   const animConfig = useMemo(
     () => getSeatAnimationById(playerSeatAnimation),
     [playerSeatAnimation],
   );
   const AnimComponent = animConfig?.Component;
+  // Derived: entrance animation renders whenever player is seated AND has an equipped animation
+  const isPlayingEntrance = hasPlayer && AnimComponent != null;
+  // Tracks whether the animation is actively playing (vs in the loop gap)
+  const [isAnimActive, setIsAnimActive] = useState(false);
   const handleAnimActiveChange = useCallback((active: boolean) => {
     setIsAnimActive(active);
   }, []);
@@ -220,9 +221,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
       isLeavingRef.current = false;
       if (AnimComponent) {
         // Use custom entrance animation — skip default RN Animated.
-        // Triggers on fresh join (wasEmpty) AND on mount with existing player
-        // (reconnect / navigation back) so the looping animation resumes.
-        setIsPlayingEntrance(true);
+        // isPlayingEntrance is derived, no setState needed.
         slideAnim.setValue(0);
         scaleAnim.setValue(1);
         opacityAnim.setValue(1);
@@ -255,7 +254,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     } else if (prevHasPlayerRef.current === true && !hasPlayer) {
       // Player just left
       isLeavingRef.current = true;
-      setIsPlayingEntrance(false);
       setIsAnimActive(false);
     }
     prevHasPlayerRef.current = hasPlayer;
@@ -418,13 +416,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           ) : null}
 
-          {/* Seat flair animation layer — hidden only while entrance animation is actively playing */}
-          {hasPlayer && !isAnimActive && FlairComponent && (
+          {/* Seat flair animation layer — hidden while entrance animation is actively playing */}
+          {hasPlayer && !(isPlayingEntrance && isAnimActive) && FlairComponent && (
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
           )}
 
-          {/* Seat pet — hidden only while entrance animation is actively playing */}
-          {hasPlayer && !isAnimActive && PetComponent && (
+          {/* Seat pet — hidden while entrance animation is actively playing */}
+          {hasPlayer && !(isPlayingEntrance && isAnimActive) && PetComponent && (
             <View style={styles.petWrapper}>
               <PetComponent size={petSize} />
             </View>

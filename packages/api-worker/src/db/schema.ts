@@ -97,7 +97,7 @@ export const loginAttempts = sqliteTable('login_attempts', {
 export const userStats = sqliteTable('user_stats', {
   userId: text('user_id')
     .primaryKey()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   xp: integer('xp').notNull().default(0),
   level: integer('level').notNull().default(0),
   gamesPlayed: integer('games_played').notNull().default(0),
@@ -120,7 +120,7 @@ export const drawHistory = sqliteTable('draw_history', {
   id: text('id').primaryKey(),
   userId: text('user_id')
     .notNull()
-    .references(() => users.id),
+    .references(() => users.id, { onDelete: 'cascade' }),
   drawType: text('draw_type').notNull(),
   rarity: text('rarity').notNull(),
   rewardType: text('reward_type').notNull(),
@@ -160,7 +160,7 @@ export const idempotencyKeys = sqliteTable(
     key: text('key').primaryKey(),
     userId: text('user_id')
       .notNull()
-      .references(() => users.id),
+      .references(() => users.id, { onDelete: 'cascade' }),
     response: text('response').notNull(),
     createdAt: text('created_at').notNull(),
   },

@@ -13,7 +13,7 @@ import {
   isSeatAnimationUnlocked,
 } from '@werewolf/game-engine/growth/frameUnlock';
 import { getLevel } from '@werewolf/game-engine/growth/level';
-import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -625,6 +625,7 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
     }
     if (
       cosmeticFields.equippedEffect &&
+      (ROLE_REVEAL_EFFECT_IDS as readonly string[]).includes(cosmeticFields.equippedEffect) &&
       !isRoleRevealEffectUnlocked(cosmeticFields.equippedEffect, unlockedIds)
     ) {
       return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'equippedEffect' }, 403);
