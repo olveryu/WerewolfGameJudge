@@ -92,6 +92,12 @@ export class CFAuthService implements IAuthService {
         }
       } else if (existingUserId) {
         authLog.info('Restored session', { userId: existingUserId });
+      } else if (isMiniProgram()) {
+        // 小程序内但无 wxcode 且无已有 session —
+        // 安全确认页（国际版 WeChat 对 pages.dev 域名）可能吞掉了 query params。
+        // 显示错误页让用户点"重新进入"重走 wx.login 流程。
+        authLog.warn('Mini-program detected but no wxcode and no session');
+        this.#wechatLoginFailed = true;
       }
     } catch (error) {
       handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, feedback: false });
