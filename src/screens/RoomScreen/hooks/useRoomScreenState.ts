@@ -614,6 +614,7 @@ export function useRoomScreenState(
     getActionIntent,
     showEnterSeatDialog,
     showLeaveSeatDialog,
+    seatModalVisible,
     leaveSeat,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,

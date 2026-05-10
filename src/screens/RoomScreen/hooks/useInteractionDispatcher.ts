@@ -60,6 +60,9 @@ interface UseInteractionDispatcherParams {
   showLeaveSeatDialog: (seat: number) => void;
   handleLeaveRoom: () => void;
 
+  // ── Modal state (guard against duplicate opens) ──
+  seatModalVisible: boolean;
+
   // ── Seat operations (raw API) ──
   leaveSeat: () => Promise<void>;
   viewedRole: () => Promise<ActionResult>;
@@ -126,6 +129,7 @@ export function useInteractionDispatcher({
   showEnterSeatDialog,
   showLeaveSeatDialog,
   handleLeaveRoom,
+  seatModalVisible,
   leaveSeat,
   viewedRole,
   handleSettingsPress,
@@ -188,19 +192,13 @@ export function useInteractionDispatcher({
 
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
-  /** Debounce guard: prevent rapid seat taps from opening multiple dialogs */
-  const lastSeatTapRef = useRef(0);
-  const SEAT_TAP_DEBOUNCE_MS = 300;
-
   /** Throttle guard for audio-gate toast — avoids spamming when user taps repeatedly */
   const lastAudioToastRef = useRef(0);
   const AUDIO_TOAST_THROTTLE_MS = 3000;
 
   const handleSeatingTap = useCallback(
     (seat: number) => {
-      const now = Date.now();
-      if (now - lastSeatTapRef.current < SEAT_TAP_DEBOUNCE_MS) return;
-      lastSeatTapRef.current = now;
+      if (seatModalVisible) return;
 
       if (mySeat !== null && seat === mySeat) {
         showLeaveSeatDialog(seat);
@@ -208,7 +206,7 @@ export function useInteractionDispatcher({
         showEnterSeatDialog(seat);
       }
     },
-    [mySeat, showLeaveSeatDialog, showEnterSeatDialog],
+    [seatModalVisible, mySeat, showLeaveSeatDialog, showEnterSeatDialog],
   );
 
   const handleActionTap = useCallback(
