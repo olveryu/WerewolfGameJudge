@@ -30,6 +30,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { resolveRandomAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
@@ -369,11 +370,19 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   async takeSeat(seat: number, profile?: SeatProfile): Promise<boolean> {
-    return seatActions.takeSeat(this.#getSeatActionsContext(), seat, profile);
+    return seatActions.takeSeat(
+      this.#getSeatActionsContext(),
+      seat,
+      profile && this.#resolveProfileEffect(profile),
+    );
   }
 
   async takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult> {
-    return seatActions.takeSeatWithAck(this.#getSeatActionsContext(), seat, profile);
+    return seatActions.takeSeatWithAck(
+      this.#getSeatActionsContext(),
+      seat,
+      profile && this.#resolveProfileEffect(profile),
+    );
   }
 
   async leaveSeat(): Promise<boolean> {
@@ -487,7 +496,7 @@ export class GameFacade implements IGameFacade {
       avatarFrame,
       seatFlair,
       nameStyle,
-      roleRevealEffect,
+      this.#resolveEffect(roleRevealEffect),
       seatAnimation,
     );
   }
@@ -626,5 +635,20 @@ export class GameFacade implements IGameFacade {
       getRoomCode: () => this.#store.getState()?.roomCode ?? null,
       store: this.#store,
     };
+  }
+
+  /**
+   * Resolve 'random' equippedEffect to a concrete animation ID.
+   * Uses roomCode + userId as seed for deterministic per-room selection.
+   */
+  #resolveEffect(effect: string | undefined): string | undefined {
+    if (effect !== 'random') return effect;
+    const roomCode = this.#store.getState()?.roomCode ?? '';
+    return resolveRandomAnimation(roomCode + this.#myUserId);
+  }
+
+  #resolveProfileEffect(profile: SeatProfile): SeatProfile {
+    if (profile.roleRevealEffect !== 'random') return profile;
+    return { ...profile, roleRevealEffect: this.#resolveEffect('random') };
   }
 }

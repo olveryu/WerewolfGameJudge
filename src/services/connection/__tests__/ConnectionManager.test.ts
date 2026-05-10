@@ -407,4 +407,122 @@ describe('ConnectionManager', () => {
       manager.dispose();
     });
   });
+
+  describe('prefetch', () => {
+    it('fires prefetch on OPEN_WS and uses result in FETCH_STATE', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 3 });
+      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait('ROOM1', 'USER1');
+
+      // OPEN_WS triggers prefetch + transport.connect
+      // At this point, fetchStateFromDB should already be called (prefetch)
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // WS opens → Syncing → FETCH_STATE consumes prefetch
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+
+      // fetchStateFromDB called once total (prefetch reused, not called again)
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 3);
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+
+      manager.dispose();
+    });
+
+    it('falls back to normal fetch when prefetch returns null', async () => {
+      let callCount = 0;
+      const fetchMock = jest.fn().mockImplementation(() => {
+        callCount++;
+        // First call (prefetch) returns null, second call (fallback) returns state
+        if (callCount === 1) return Promise.resolve(null);
+        return Promise.resolve({ state: MOCK_STATE, revision: 2 });
+      });
+      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait('ROOM1', 'USER1');
+
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+
+      // Prefetch returned null → fallback fetch called
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 2);
+
+      manager.dispose();
+    });
+
+    it('falls back to normal fetch when prefetch rejects', async () => {
+      let callCount = 0;
+      const fetchMock = jest.fn().mockImplementation(() => {
+        callCount++;
+        // First call (prefetch) rejects, second call (fallback) succeeds
+        if (callCount === 1) return Promise.reject(new Error('network error'));
+        return Promise.resolve({ state: MOCK_STATE, revision: 4 });
+      });
+      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait('ROOM1', 'USER1');
+
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await promise;
+
+      // Prefetch error caught → returned null → fallback fetch called
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 4);
+
+      manager.dispose();
+    });
+
+    it('cancels prefetch on disconnect before WS opens', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 1 });
+      const { deps } = createDeps({ fetchStateFromDB: fetchMock });
+      const manager = new ConnectionManager(deps);
+
+      const promise = manager.connectAndWait('ROOM1', 'USER1');
+
+      // Prefetch started
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Disconnect before WS opens — should cancel prefetch
+      manager.disconnect();
+
+      await expect(promise).rejects.toThrow('disconnected');
+
+      manager.dispose();
+    });
+
+    it('new OPEN_WS cancels previous prefetch', async () => {
+      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 1 });
+      const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
+      const manager = new ConnectionManager(deps);
+
+      // First connect → prefetch #1
+      const p1 = manager.connectAndWait('ROOM1', 'USER1');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      // Second connect supersedes → prefetch #2 (cancels #1)
+      const p2 = manager.connectAndWait('ROOM2', 'USER1');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+
+      await expect(p1).rejects.toBeInstanceOf(SupersededError);
+
+      // WS opens for second connection
+      transport.handlers.onOpen();
+      await jest.advanceTimersByTimeAsync(0);
+      await p2;
+
+      // Only the second prefetch result is consumed
+      expect(manager.getState()).toBe(ConnectionState.Connected);
+
+      manager.dispose();
+    });
+  });
 });

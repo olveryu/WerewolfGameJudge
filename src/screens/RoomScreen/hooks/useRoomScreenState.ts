@@ -7,7 +7,6 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getUnlockedRoleRevealEffects } from '@werewolf/game-engine/growth';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -15,15 +14,10 @@ import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import {
-  RANDOMIZABLE_ANIMATIONS,
-  resolveRandomAnimation,
-} from '@werewolf/game-engine/types/RoleRevealAnimation';
+import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
@@ -168,32 +162,20 @@ export function useRoomScreenState(
   } = useGameRoom();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Personal role reveal animation (from user profile, not GameState)
+  // Personal role reveal animation (from GameState roster, already resolved)
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const { user } = useAuthContext();
-  const { data: statsData } = useUserStatsQuery();
-
   const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation = useMemo(() => {
-    const effect = user?.equippedEffect;
+    if (mySeat === null || !gameState) return 'none';
+    const effect = gameState.players.get(mySeat)?.roleRevealEffect;
     if (!effect) return 'none';
-    if (effect === 'none') return 'none';
-    if (effect === 'random') {
-      const unlocked = getUnlockedRoleRevealEffects(statsData?.unlockedItems ?? []);
-      if (unlocked.size === 0) return 'none';
-      const candidates = [...unlocked];
-      const picked = resolveRandomAnimation(roomCode);
-      return candidates.includes(picked)
-        ? (picked as ResolvedRoleRevealAnimation)
-        : (candidates[0] as ResolvedRoleRevealAnimation);
-    }
-    // Validate against known animation IDs — DB may contain stale values
+    // Validate against known animation IDs — roster may contain stale values
     if (!(RANDOMIZABLE_ANIMATIONS as readonly string[]).includes(effect)) {
-      roomScreenLog.warn('Unknown equippedEffect from profile, falling back to none', { effect });
+      roomScreenLog.warn('Unknown roleRevealEffect in roster, falling back to none', { effect });
       return 'none';
     }
     return effect as ResolvedRoleRevealAnimation;
-  }, [user?.equippedEffect, statsData?.unlockedItems, roomCode]);
+  }, [mySeat, gameState]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Derived primitives

@@ -232,15 +232,17 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     async (seat: number): Promise<boolean> => {
       try {
         const displayName = authUser?.displayName ?? authService.generateDisplayName();
-        const level = await queryClient
-          .ensureQueryData(userStatsOptions())
-          .then((s) => s.level)
-          .catch((err: unknown) => {
-            gameRoomLog.warn('failed to fetch user level for takeSeat', {
-              error: err instanceof Error ? err.message : String(err),
-            });
-            return undefined;
-          });
+        const level = authUser?.isAnonymous
+          ? undefined
+          : await queryClient
+              .ensureQueryData(userStatsOptions())
+              .then((s) => s.level)
+              .catch((err: unknown) => {
+                gameRoomLog.warn('failed to fetch user level for takeSeat', {
+                  error: err instanceof Error ? err.message : String(err),
+                });
+                return undefined;
+              });
 
         return await facade.takeSeat(seat, {
           displayName,
@@ -280,15 +282,17 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
     async (seat: number): Promise<ActionResult> => {
       try {
         const displayName = authUser?.displayName ?? authService.generateDisplayName();
-        const level = await queryClient
-          .ensureQueryData(userStatsOptions())
-          .then((s) => s.level)
-          .catch((err: unknown) => {
-            gameRoomLog.warn('failed to fetch user level for takeSeatWithAck', {
-              error: err instanceof Error ? err.message : String(err),
-            });
-            return undefined;
-          });
+        const level = authUser?.isAnonymous
+          ? undefined
+          : await queryClient
+              .ensureQueryData(userStatsOptions())
+              .then((s) => s.level)
+              .catch((err: unknown) => {
+                gameRoomLog.warn('failed to fetch user level for takeSeatWithAck', {
+                  error: err instanceof Error ? err.message : String(err),
+                });
+                return undefined;
+              });
 
         const result = await facade.takeSeatWithAck(seat, {
           displayName,

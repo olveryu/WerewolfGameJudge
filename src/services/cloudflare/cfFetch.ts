@@ -180,14 +180,15 @@ export async function cfPost<T = Record<string, unknown>>(
  */
 export async function cfGet<T = Record<string, unknown>>(
   path: string,
-  options?: { skipAuthIntercept?: boolean },
+  options?: { skipAuthIntercept?: boolean; noRetry?: boolean; timeoutMs?: number },
 ): Promise<T> {
   cfFetchLog.debug('GET', { path });
   return executeRequest<T>({
     method: 'GET',
     path,
     headers: {},
-    timeoutMs: API_TIMEOUT_MS,
+    timeoutMs: options?.timeoutMs ?? API_TIMEOUT_MS,
+    noRetry: options?.noRetry,
     skipAuthIntercept: options?.skipAuthIntercept,
   });
 }

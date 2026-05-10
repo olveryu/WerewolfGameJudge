@@ -3,6 +3,7 @@
  *
  * 持有 ConnectionFSM，驱动所有状态转换。通过 IRealtimeTransport 接口
  * 操作 WebSocket（不直接创建 WS）。管理：
+ * - Prefetch：OPEN_WS 时并行发起 HTTP fetch（唤醒 DO + 预取状态）
  * - Ping/pong keepalive + timeout 检测
  * - Retry timer（指数退避 + jitter）
  * - Revision poll（5s 轮询 DB revision 检测丢广播）
@@ -83,6 +84,11 @@ export class ConnectionManager {
   #connectWaitResolve: (() => void) | null = null;
   #connectWaitReject: ((err: Error) => void) | null = null;
   #connectWaitTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  // Prefetch: fire HTTP fetch in parallel with WS handshake to avoid serial bottleneck.
+  // The HTTP call also wakes the DO, so subsequent WS handshake hits a warm DO.
+  #prefetchPromise: Promise<{ state: GameState; revision: number } | null> | null = null;
+  #prefetchGeneration = 0;
 
   constructor(deps: ConnectionManagerDeps) {
     this.#deps = deps;
@@ -184,6 +190,7 @@ export class ConnectionManager {
   /** Disconnect — clean up connection, return to Idle. Can reconnect later. */
   disconnect(): void {
     connectionLog.info('disconnect');
+    this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disconnected'));
     this.#dispatch({ type: 'DISCONNECT' });
   }
@@ -191,6 +198,7 @@ export class ConnectionManager {
   /** Dispose — clean up all resources, stop all timers, ignore all future events */
   dispose(): void {
     connectionLog.info('dispose');
+    this.#cancelPrefetch();
     this.#settleConnectWait(new Error('Connection disposed'));
     this.#dispatch({ type: 'DISPOSE' });
     this.#unregisterPlatformListeners();
@@ -246,9 +254,11 @@ export class ConnectionManager {
   #executeSideEffect(effect: SideEffect): void {
     switch (effect.type) {
       case 'OPEN_WS':
+        this.#startPrefetch(effect.roomCode);
         this.#deps.transport.connect(effect.roomCode, effect.userId);
         break;
       case 'CLOSE_WS':
+        this.#cancelPrefetch();
         this.#deps.transport.disconnect();
         break;
       case 'FETCH_STATE':
@@ -349,11 +359,37 @@ export class ConnectionManager {
     }
   }
 
+  // ─── Prefetch (parallel with WS handshake) ────────────────────────────────
+
+  #startPrefetch(roomCode: string): void {
+    this.#cancelPrefetch();
+    const generation = ++this.#prefetchGeneration;
+    connectionLog.debug('Starting prefetch', { roomCode });
+    this.#prefetchPromise = this.#deps.fetchStateFromDB(roomCode).catch((e: unknown) => {
+      // Prefetch failure is non-fatal — #fetchState will retry via normal path
+      if (generation === this.#prefetchGeneration) {
+        connectionLog.debug('Prefetch failed (will retry in FETCH_STATE)', { error: e });
+      }
+      return null;
+    });
+  }
+
+  #cancelPrefetch(): void {
+    this.#prefetchGeneration++;
+    this.#prefetchPromise = null;
+  }
+
   // ─── Fetch State ──────────────────────────────────────────────────────────
 
   async #fetchState(roomCode: string): Promise<void> {
     try {
-      const result = await this.#deps.fetchStateFromDB(roomCode);
+      // Consume prefetch result if available (same generation = not cancelled)
+      const prefetch = this.#prefetchPromise;
+      this.#prefetchPromise = null;
+      const result = prefetch
+        ? ((await prefetch) ?? (await this.#deps.fetchStateFromDB(roomCode)))
+        : await this.#deps.fetchStateFromDB(roomCode);
+
       if (result) {
         this.#deps.onFetchedState(result.state, result.revision);
         this.#dispatch({ type: 'FETCH_SUCCESS', revision: result.revision });

@@ -199,7 +199,7 @@ export function GachaScreen({ navigation }: Props) {
       <Button
         variant="icon"
         onPress={() => {
-          void queryClient.prefetchQuery(userStatsOptions());
+          if (!isAnon) void queryClient.prefetchQuery(userStatsOptions());
           navigation.navigate('Appearance', undefined);
         }}
         accessibilityLabel="装扮"
@@ -209,7 +209,7 @@ export function GachaScreen({ navigation }: Props) {
       <Button
         variant="icon"
         onPress={() => {
-          void queryClient.prefetchQuery(userStatsOptions());
+          if (!isAnon) void queryClient.prefetchQuery(userStatsOptions());
           navigation.navigate('Unlocks', undefined);
         }}
         accessibilityLabel="收藏"
@@ -263,7 +263,7 @@ export function GachaScreen({ navigation }: Props) {
             onDismiss={handleDismissSingleResult}
             onGoEquip={() => {
               handleDismissSingleResult();
-              void queryClient.prefetchQuery(userStatsOptions());
+              if (!isAnon) void queryClient.prefetchQuery(userStatsOptions());
               navigation.navigate('Appearance', undefined);
             }}
             reducedMotion={reducedMotion}
@@ -362,7 +362,7 @@ export function GachaScreen({ navigation }: Props) {
           onClose={handleCloseTenOverlay}
           onGoEquip={() => {
             handleCloseTenOverlay();
-            void queryClient.prefetchQuery(userStatsOptions());
+            if (!isAnon) void queryClient.prefetchQuery(userStatsOptions());
             navigation.navigate('Appearance', undefined);
           }}
         />

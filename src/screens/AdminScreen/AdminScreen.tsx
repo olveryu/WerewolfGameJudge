@@ -50,28 +50,39 @@ export const AdminScreen: React.FC = () => {
       setVerifying(false);
       return;
     }
-    void verifyAdminPassword(cached).then((valid) => {
-      if (valid) {
-        setAuthenticated(true);
-      } else {
+    void verifyAdminPassword(cached)
+      .then((valid) => {
+        if (valid) {
+          setAuthenticated(true);
+        } else {
+          storage.remove(ADMIN_PASSWORD_KEY);
+        }
+      })
+      .catch(() => {
         storage.remove(ADMIN_PASSWORD_KEY);
-      }
-      setVerifying(false);
-    });
+      })
+      .finally(() => {
+        setVerifying(false);
+      });
   }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!password.trim()) return;
     setError(null);
     setVerifying(true);
-    const valid = await verifyAdminPassword(password.trim());
-    if (valid) {
-      storage.set(ADMIN_PASSWORD_KEY, password.trim());
-      setAuthenticated(true);
-    } else {
-      setError('密码错误');
+    try {
+      const valid = await verifyAdminPassword(password.trim());
+      if (valid) {
+        storage.set(ADMIN_PASSWORD_KEY, password.trim());
+        setAuthenticated(true);
+      } else {
+        setError('密码错误');
+      }
+    } catch {
+      setError('网络错误，请重试');
+    } finally {
+      setVerifying(false);
     }
-    setVerifying(false);
   }, [password]);
 
   if (verifying) {

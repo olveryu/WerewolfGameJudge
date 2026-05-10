@@ -90,11 +90,12 @@ export class CFAuthService implements IAuthService {
             }
           }
         }
-      } else if (existingUserId) {
+      } else if (existingUserId && (!isMiniProgram() || !this.#isAnonymous)) {
         authLog.info('Restored session', { userId: existingUserId });
       } else if (isMiniProgram()) {
-        // 小程序内但无 wxcode 且无已有 session —
-        // 安全确认页可能吞掉了 query params。自动 reLaunch 重试一次。
+        // 小程序内无 wxcode 且（无 session 或 匿名 session）—
+        // 匿名 session 在小程序里无意义（stats/gacha 全 403），尝试 reLaunch 升级为微信账号。
+        // 安全确认页可能吞掉了 query params，reLaunch 重试一次。
         const RETRY_KEY = 'wx_relaunch_retry';
         if (sessionStorage.getItem(RETRY_KEY) !== '1') {
           sessionStorage.setItem(RETRY_KEY, '1');
@@ -112,7 +113,7 @@ export class CFAuthService implements IAuthService {
   }
 
   async waitForInit(): Promise<void> {
-    await withTimeout(this.#initPromise, 25000, () => new Error('登录超时，请重试'));
+    await withTimeout(this.#initPromise, 25000, 'autoSignIn');
   }
 
   async ensureAuthenticated(): Promise<string> {
@@ -281,7 +282,10 @@ export class CFAuthService implements IAuthService {
     }
 
     try {
-      const resp = await cfGet<GetCurrentUserResponse>('/auth/user', { skipAuthIntercept: true });
+      const resp = await cfGet<GetCurrentUserResponse>('/auth/user', {
+        skipAuthIntercept: true,
+        noRetry: true,
+      });
       this.#currentUserId = resp.data.user!.id;
       this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
       this.#hasWechat = resp.data.user!.has_wechat ?? false;
@@ -514,6 +518,7 @@ export class CFAuthService implements IAuthService {
     try {
       const resp = await cfGet<GetCurrentUserResponse>('/auth/user', {
         skipAuthIntercept: true,
+        noRetry: true,
       });
       this.#currentUserId = resp.data.user!.id;
       this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
