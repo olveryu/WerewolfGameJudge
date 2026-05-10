@@ -118,6 +118,12 @@ export const TESTIDS = {
   // Feedback (AnnouncementModal)
   feedbackInput: 'feedback-input',
   feedbackSubmitButton: 'feedback-submit-button',
+  feedbackHistoryList: 'feedback-history-list',
+  feedbackHistoryItem: (id: string) => `feedback-history-item-${id}`,
+  feedbackNewButton: 'feedback-new-button',
+  feedbackBackButton: 'feedback-back-button',
+  feedbackReplyInput: 'feedback-reply-input',
+  feedbackReplySendButton: 'feedback-reply-send-button',
 
   // RecentRoomsModal
   recentRoomsModal: 'recent-rooms-modal',

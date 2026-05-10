@@ -49,6 +49,9 @@ export interface Env {
   /** GitHub PAT (fine-grained, Issues write) for user feedback → GitHub Issues */
   GITHUB_TOKEN?: string;
 
+  /** GitHub Webhook secret for issue_comment event signature verification */
+  GITHUB_WEBHOOK_SECRET?: string;
+
   /** Admin portal password — set via `wrangler secret put ADMIN_PASSWORD` */
   ADMIN_PASSWORD: string;
 

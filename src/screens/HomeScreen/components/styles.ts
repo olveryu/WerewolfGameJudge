@@ -119,6 +119,7 @@ export interface HomeScreenStyles {
   gachaCardText: ViewStyle;
   gachaCardTitle: TextStyle;
   gachaCardSubtitle: TextStyle;
+  feedbackDot: ViewStyle;
   // Footer
   footer: ViewStyle;
   footerText: TextStyle;
@@ -373,6 +374,12 @@ export function createHomeScreenStyles(colors: ThemeColors, screenWidth: number)
     gachaCardSubtitle: {
       ...textStyles.caption,
       color: colors.textSecondary,
+    },
+    feedbackDot: {
+      width: 8,
+      height: 8,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.error,
     },
     // ── Modal ────────────────────────────────────────────────
     modalOverlay: {

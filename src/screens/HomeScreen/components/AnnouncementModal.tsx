@@ -4,23 +4,13 @@
  * 受控组件：由父级传入 visible / onClose。
  * Tab 1「板子」：按版本分组展示全部预设板子，最新版在上。
  * Tab 2「更新日志」：垂直滚动展示版本更新内容（最新在上）。
- * Tab 3「意见反馈」：多行输入 + 提交按钮，需登录。
+ * Tab 3「意见反馈」：双向对话系统（FeedbackTab 组件）。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PRESET_TEMPLATES, TEMPLATE_CATEGORY_LABELS } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
-import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import { toast } from 'sonner-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import {
@@ -29,13 +19,10 @@ import {
   BOARD_VERSION_MAP,
   BOARD_VERSIONS_DESC,
 } from '@/config/announcements';
-import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { submitFeedback } from '@/services/feature/FeedbackService';
-import { TESTIDS } from '@/testids';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
-import { handleError } from '@/utils/errorPipeline';
-import { homeLog } from '@/utils/logger';
+
+import { FeedbackTab } from './FeedbackTab';
 
 type Tab = 'boards' | 'changelog' | 'feedback';
 
@@ -53,16 +40,21 @@ const COLLAPSE_THRESHOLD = 6;
 interface AnnouncementModalProps {
   visible: boolean;
   onClose: () => void;
+  hasUnreadFeedback: boolean;
+  onUnreadFeedbackChange: (count: number) => void;
 }
 
-export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, onClose }) => {
+export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
+  visible,
+  onClose,
+  hasUnreadFeedback,
+  onUnreadFeedbackChange,
+}) => {
   const { height: screenHeight } = useWindowDimensions();
   const scrollMaxHeight = Math.min(400, Math.round(screenHeight * 0.45));
 
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('boards');
-  const [feedbackText, setFeedbackText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
 
   /** 按版本分组的板子列表（每组内保留 PRESET_TEMPLATES 原顺序） */
@@ -72,26 +64,6 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
       return { version, boards };
     });
   }, []);
-
-  const handleSubmitFeedback = useCallback(async () => {
-    const trimmed = feedbackText.trim();
-    if (trimmed.length === 0) return;
-
-    setIsSubmitting(true);
-    try {
-      await submitFeedback(trimmed, APP_VERSION);
-      toast.success('感谢反馈！');
-      setFeedbackText('');
-    } catch (err) {
-      handleError(err, {
-        label: '提交反馈',
-        logger: homeLog,
-        feedback: 'toast',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [feedbackText]);
 
   const latestBoardVersion = BOARD_VERSIONS_DESC[0];
 
@@ -146,9 +118,12 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
             style={[styles.tab, activeTab === 'feedback' && styles.tabActive]}
             onPress={() => setActiveTab('feedback')}
           >
-            <Text style={[styles.tabText, activeTab === 'feedback' && styles.tabTextActive]}>
-              意见反馈
-            </Text>
+            <View style={styles.tabWithBadge}>
+              <Text style={[styles.tabText, activeTab === 'feedback' && styles.tabTextActive]}>
+                意见反馈
+              </Text>
+              {hasUnreadFeedback && <View style={styles.tabDot} />}
+            </View>
           </Pressable>
         </View>
 
@@ -274,50 +249,11 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ visible, o
 
         {/* ── Tab: 意见反馈 ── */}
         {activeTab === 'feedback' && (
-          <View style={[styles.feedbackArea, { maxHeight: scrollMaxHeight }]}>
-            {user ? (
-              <>
-                <TextInput
-                  style={styles.feedbackInput}
-                  value={feedbackText}
-                  onChangeText={setFeedbackText}
-                  placeholder="说说你的建议或遇到的问题…"
-                  placeholderTextColor={colors.textMuted}
-                  multiline
-                  textAlignVertical="top"
-                  maxLength={500}
-                  editable={!isSubmitting}
-                  testID={TESTIDS.feedbackInput}
-                />
-                <Text style={styles.charCount}>{feedbackText.length}/500</Text>
-                <Pressable
-                  style={[
-                    styles.submitButton,
-                    (feedbackText.trim().length === 0 || isSubmitting) &&
-                      styles.submitButtonDisabled,
-                  ]}
-                  onPress={() => void handleSubmitFeedback()}
-                  disabled={feedbackText.trim().length === 0 || isSubmitting}
-                  testID={TESTIDS.feedbackSubmitButton}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color={colors.textInverse} />
-                  ) : (
-                    <Text style={styles.submitButtonText}>提交反馈</Text>
-                  )}
-                </Pressable>
-              </>
-            ) : (
-              <View style={styles.loginHint}>
-                <Ionicons
-                  name="lock-closed-outline"
-                  size={componentSizes.icon.lg}
-                  color={colors.textMuted}
-                />
-                <Text style={styles.loginHintText}>登录后可提交建议</Text>
-              </View>
-            )}
-          </View>
+          <FeedbackTab
+            scrollMaxHeight={scrollMaxHeight}
+            isLoggedIn={!!user}
+            onUnreadChange={onUnreadFeedbackChange}
+          />
         )}
       </View>
     </BaseCenterModal>
@@ -373,6 +309,17 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: colors.primary,
     fontWeight: typography.weights.semibold,
+  },
+  tabWithBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+  },
+  tabDot: {
+    width: 6,
+    height: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.error,
   },
   // ── Shared ──
   scrollArea: {
@@ -485,52 +432,5 @@ const styles = StyleSheet.create({
     fontSize: typography.body,
     color: colors.text,
     lineHeight: typography.body * 1.5,
-  },
-  // ── Feedback tab ──
-  feedbackArea: {
-    marginBottom: spacing.small,
-  },
-  feedbackInput: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.medium,
-    padding: spacing.small,
-    fontSize: typography.body,
-    color: colors.text,
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  charCount: {
-    fontSize: typography.captionSmall,
-    color: colors.textMuted,
-    textAlign: 'right',
-    marginTop: spacing.tight,
-    marginBottom: spacing.small,
-  },
-  submitButton: {
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.medium,
-    paddingVertical: spacing.small,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 40,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    fontSize: typography.body,
-    fontWeight: typography.weights.semibold,
-    color: colors.textInverse,
-  },
-  loginHint: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.small,
-    paddingVertical: spacing.xlarge,
-  },
-  loginHintText: {
-    fontSize: typography.body,
-    color: colors.textMuted,
   },
 });

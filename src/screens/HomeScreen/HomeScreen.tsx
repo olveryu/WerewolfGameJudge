@@ -41,6 +41,7 @@ import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/us
 import { getRecentRooms } from '@/lib/recentRooms';
 import { storage } from '@/lib/storage';
 import { type RootStackParamList } from '@/navigation/types';
+import { getUnreadFeedbackCount } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 import { AVATAR_IMAGES, AVATAR_KEYS } from '@/utils/avatar';
@@ -73,6 +74,7 @@ export const HomeScreen: React.FC = () => {
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
+  const [unreadFeedbackCount, setUnreadFeedbackCount] = useState(0);
 
   // Show announcement after auth loading settles (avoid flashing modal over loading state)
   useEffect(() => {
@@ -86,6 +88,22 @@ export const HomeScreen: React.FC = () => {
     // No announcement for this version — silently mark as seen
     storage.set(LAST_SEEN_VERSION_KEY, APP_VERSION);
   }, [authLoading]);
+
+  // Fetch unread feedback count when user is logged in
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getUnreadFeedbackCount()
+      .then((count) => {
+        if (!cancelled) setUnreadFeedbackCount(count);
+      })
+      .catch(() => {
+        // Non-critical — silently ignore
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Loading states for actions
   const [isJoining, setIsJoining] = useState(false);
@@ -537,8 +555,13 @@ export const HomeScreen: React.FC = () => {
             />
             <View style={styles.gachaCardText}>
               <Text style={styles.gachaCardTitle}>公告与反馈</Text>
-              <Text style={styles.gachaCardSubtitle}>查看更新 · 提交建议</Text>
+              <Text style={styles.gachaCardSubtitle}>
+                {unreadFeedbackCount > 0
+                  ? `${unreadFeedbackCount} 条新回复`
+                  : '查看更新 · 提交建议'}
+              </Text>
             </View>
+            {unreadFeedbackCount > 0 && <View style={styles.feedbackDot} />}
             <Ionicons
               name="chevron-forward"
               size={componentSizes.icon.sm}
@@ -577,7 +600,12 @@ export const HomeScreen: React.FC = () => {
       />
 
       {/* What's New announcement modal */}
-      <AnnouncementModal visible={showAnnouncement} onClose={handleCloseAnnouncement} />
+      <AnnouncementModal
+        visible={showAnnouncement}
+        onClose={handleCloseAnnouncement}
+        hasUnreadFeedback={unreadFeedbackCount > 0}
+        onUnreadFeedbackChange={setUnreadFeedbackCount}
+      />
     </SafeAreaView>
   );
 };

@@ -1,8 +1,9 @@
 import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
 import { makeActionTarget } from '@werewolf/game-engine/models/actions/RoleAction';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
@@ -624,6 +625,45 @@ describe('NightReview.helpers', () => {
       // Every NIGHT_STEPS role must appear in output by its canonical displayName
       for (const step of NIGHT_STEPS) {
         const displayName = getRoleDisplayName(step.roleId);
+        expect(joined).toContain(displayName);
+      }
+    });
+  });
+
+  describe('contract: skipped actions — every canSkip role still produces a line', () => {
+    /**
+     * Derive all roles that have canSkip: true from ROLE_SPECS.
+     * When a role skips its action, its displayName must still appear in the review.
+     */
+    it('buildActionLines covers all canSkip roles when they skip', () => {
+      // Collect all roles with canSkip: true
+      const canSkipRoleIds: RoleId[] = [];
+      for (const [roleId, spec] of Object.entries(ROLE_SPECS)) {
+        const abilities = (spec as RoleSpec).abilities;
+        if (abilities?.some((a) => a.type === 'active' && a.canSkip)) {
+          canSkipRoleIds.push(roleId as RoleId);
+        }
+      }
+      // Sanity: we expect a meaningful number of canSkip roles
+      expect(canSkipRoleIds.length).toBeGreaterThanOrEqual(15);
+
+      // Build players map with all canSkip roles, each on a separate seat
+      const players = new Map<number, LocalPlayer | null>();
+      canSkipRoleIds.forEach((roleId, idx) => {
+        players.set(idx, makePlayer(idx, roleId));
+      });
+
+      // Empty night results + empty actions = all roles skipped
+      const gs = makeGameState({
+        players,
+        currentNightResults: {},
+      });
+
+      const lines = buildActionLines(gs);
+      const joined = lines.join('\n');
+
+      for (const roleId of canSkipRoleIds) {
+        const displayName = getRoleDisplayName(roleId);
         expect(joined).toContain(displayName);
       }
     });

@@ -198,6 +198,13 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('nightmare' as RoleId)} ${getRoleDisplayName('nightmare' as RoleId)}封锁了 ${formatSeat(nr.blockedSeat)}${roleSuffix}`,
     );
+  } else {
+    const nightmareSeat = findSeatByRole(gameState.players, 'nightmare' as RoleId);
+    if (nightmareSeat !== undefined) {
+      lines.push(
+        `${getRoleEmoji('nightmare' as RoleId)} ${getRoleDisplayName('nightmare' as RoleId)}未封锁`,
+      );
+    }
   }
 
   // 2a. EclipseWolfQueen shelter
@@ -205,6 +212,13 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('eclipseWolfQueen' as RoleId)} ${getRoleDisplayName('eclipseWolfQueen' as RoleId)}庇护了 ${formatSeat(nr.shelteredSeat)}`,
     );
+  } else {
+    const eqSeat = findSeatByRole(gameState.players, 'eclipseWolfQueen' as RoleId);
+    if (eqSeat !== undefined && nr.blockedSeat !== eqSeat) {
+      lines.push(
+        `${getRoleEmoji('eclipseWolfQueen' as RoleId)} ${getRoleDisplayName('eclipseWolfQueen' as RoleId)}未庇护`,
+      );
+    }
   }
 
   // 3. Guard
@@ -222,6 +236,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('silenceElder' as RoleId)} 禁言长老禁言了 ${formatSeat(nr.silencedSeat)}`,
     );
+  } else {
+    const seSeat = findSeatByRole(gameState.players, 'silenceElder' as RoleId);
+    if (seSeat !== undefined && nr.blockedSeat !== seSeat) {
+      lines.push(`${getRoleEmoji('silenceElder' as RoleId)} 禁言长老未禁言`);
+    }
   }
 
   // 3b. VotebanElder
@@ -229,6 +248,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('votebanElder' as RoleId)} 禁票长老禁票了 ${formatSeat(nr.votebannedSeat)}`,
     );
+  } else {
+    const veSeat = findSeatByRole(gameState.players, 'votebanElder' as RoleId);
+    if (veSeat !== undefined && nr.blockedSeat !== veSeat) {
+      lines.push(`${getRoleEmoji('votebanElder' as RoleId)} 禁票长老未禁票`);
+    }
   }
 
   // 4. Witch / Poisoner
@@ -268,6 +292,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   // 4a. Crow curse
   if (nr.cursedSeat != null) {
     lines.push(`${getRoleEmoji('crow' as RoleId)} 乌鸦诅咒了 ${formatSeat(nr.cursedSeat)}`);
+  } else {
+    const crowSeat = findSeatByRole(gameState.players, 'crow' as RoleId);
+    if (crowSeat !== undefined && nr.blockedSeat !== crowSeat) {
+      lines.push(`${getRoleEmoji('crow' as RoleId)} 乌鸦未诅咒`);
+    }
   }
 
   // 5. Dreamcatcher
@@ -275,6 +304,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人摄梦了 ${formatSeat(nr.dreamingSeat)}`,
     );
+  } else {
+    const dcSeat = findSeatByRole(gameState.players, 'dreamcatcher' as RoleId);
+    if (dcSeat !== undefined && nr.blockedSeat !== dcSeat) {
+      lines.push(`${getRoleEmoji('dreamcatcher' as RoleId)} 摄梦人未摄梦`);
+    }
   }
 
   // 6. Magician swap
@@ -282,6 +316,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${getRoleEmoji('magician' as RoleId)} 魔术师交换了 ${formatSeat(nr.swappedSeats[0])} 和 ${formatSeat(nr.swappedSeats[1])}`,
     );
+  } else {
+    const magicianSeat = findSeatByRole(gameState.players, 'magician' as RoleId);
+    if (magicianSeat !== undefined && nr.blockedSeat !== magicianSeat) {
+      lines.push(`${getRoleEmoji('magician' as RoleId)} 魔术师未交换`);
+    }
   }
 
   // 6a. Slacker idol (from actions Map)
@@ -319,6 +358,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   const wolfQueenAction = gameState.actions.get('wolfQueen' as RoleId);
   if (wolfQueenAction && wolfQueenAction.kind === 'target') {
     lines.push(`${ACTION.CHARM} 狼美人魅惑了 ${formatSeat(wolfQueenAction.targetSeat)}`);
+  } else {
+    const wqSeat = findSeatByRole(gameState.players, 'wolfQueen' as RoleId);
+    if (wqSeat !== undefined && nr.blockedSeat !== wqSeat) {
+      lines.push(`${ACTION.CHARM} 狼美人未魅惑`);
+    }
   }
 
   // 6d. AwakenedGargoyle convert
@@ -332,6 +376,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
   if (nr.hypnotizedSeats && nr.hypnotizedSeats.length > 0) {
     const hypnotizedList = nr.hypnotizedSeats.map((seat) => formatSeat(seat)).join('、');
     lines.push(`${getRoleEmoji('piper' as RoleId)} 吹笛者催眠了 ${hypnotizedList}`);
+  } else {
+    const piperSeat = findSeatByRole(gameState.players, 'piper' as RoleId);
+    if (piperSeat !== undefined && nr.blockedSeat !== piperSeat) {
+      lines.push(`${getRoleEmoji('piper' as RoleId)} 吹笛者未催眠`);
+    }
   }
 
   // 7. Check reveals (seer family + others)
@@ -345,10 +394,29 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     { key: 'wolfWitchReveal' as const, label: '狼巫' },
   ] as const;
 
+  // Map reveal key → roleId for "did nothing" annotations
+  const revealRoleMap: Record<string, RoleId> = {
+    seerReveal: 'seer' as RoleId,
+    mirrorSeerReveal: 'mirrorSeer' as RoleId,
+    drunkSeerReveal: 'drunkSeer' as RoleId,
+    psychicReveal: 'psychic' as RoleId,
+    gargoyleReveal: 'gargoyle' as RoleId,
+    pureWhiteReveal: 'pureWhite' as RoleId,
+    wolfWitchReveal: 'wolfWitch' as RoleId,
+  };
+
   for (const { key, label } of revealFields) {
     const reveal = gameState[key];
     if (reveal) {
       lines.push(`${ACTION.CHECK} ${label}查验 ${formatSeat(reveal.targetSeat)}：${reveal.result}`);
+    } else {
+      const roleId = revealRoleMap[key];
+      if (roleId) {
+        const seat = findSeatByRole(gameState.players, roleId);
+        if (seat !== undefined && nr.blockedSeat !== seat) {
+          lines.push(`${ACTION.CHECK} ${label}未查验`);
+        }
+      }
     }
   }
 
@@ -358,6 +426,11 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     lines.push(
       `${ACTION.LEARN} ${getRoleDisplayName('wolfRobot' as RoleId)}学习了 ${formatSeat(wr.targetSeat)}（${getRoleDisplayName(wr.learnedRoleId)}）`,
     );
+  } else {
+    const wrSeat = findSeatByRole(gameState.players, 'wolfRobot' as RoleId);
+    if (wrSeat !== undefined && nr.blockedSeat !== wrSeat) {
+      lines.push(`${ACTION.LEARN} ${getRoleDisplayName('wolfRobot' as RoleId)}未学习`);
+    }
   }
 
   // 9. Hunter / DarkWolfKing canShoot status
