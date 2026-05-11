@@ -30,7 +30,7 @@ applyTo: 'src/services/**'
 - Infra service 允许平台 API（MMKV / Platform / expo-audio 等）。
 - 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
 - 禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
-- SRP ~400 行拆分信号。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
+- SRP ~400 行拆分信号（详见 `screens.instructions.md`）。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
 - Wire protocol（`PlayerMessage` / `GameState`）必须保持兼容。
 
 ## Resolver 规范
@@ -43,7 +43,7 @@ applyTo: 'src/services/**'
 ## 状态管理 & Anti-drift
 
 - `GameState` 是唯一真相。禁止 `HostOnlyState` 或不广播字段。Host/Player state shape 完全一致。
-- 新增字段必须同步 `normalizeState`（`packages/game-engine/src/engine/state/normalize.ts`），遗漏会被静默丢弃。
+- 新增字段必须同步 `normalizeState`（详见 `game-engine.instructions.md` Handler 规则）。
 - 派生字段从同一份 state 计算或只写入一次，禁止双写/drift。
 
 ## 夜晚流程

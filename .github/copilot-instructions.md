@@ -2,17 +2,15 @@
 
 ## Project Overview
 
-React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durable Objects（游戏状态）+ D1（房间/用户元数据）负责 API、持久化、realtime 传输。**Web 为主要平台**，同时支持 iOS / Android / 微信小程序（web-view 壳，本质也是 Web）。做技术选型和兼容性决策时，Web 优先。内含扭蛋收集 + XP/等级成长系统（`packages/game-engine/src/growth/`）：每局获得 XP + 普通券，升级获得黄金券，每日登录送 2 张普通券。在 GachaScreen 扭蛋机消耗券抽取头像、头像框、座位装饰、名字样式（563 件，4 级稀有度 + 10 次保底）。
+React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + DO + D1 负责 API/持久化/realtime。**Web 优先**，兼容 iOS / Android / 微信小程序（web-view 壳）。含扭蛋收集 + XP/等级成长系统（`packages/game-engine/src/growth/`）。
 
 ## Tech Stack
 
-- React Native 0.83 + React 19 + Expo SDK 55 | TypeScript ~5.9（`strict: true` + `noUncheckedIndexedAccess: true`）
 - **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
-- `@werewolf/game-engine` — 纯游戏逻辑共享包，客户端与服务端共用
-- `@werewolf/api-worker` — Game API + Auth API（Cloudflare Worker + DO SQLite + D1 + R2）
-- `miniapp/` — 微信小程序 web-view 壳（AppID `wx7f0c3bea5873908c`，miniprogram-ci 上传）
-- Sentry (production only) | Jest 29 | Playwright (E2E) | ESLint 9 | Prettier
+- React Native + React 19 + Expo SDK 55 | TypeScript（`strict: true` + `noUncheckedIndexedAccess: true`）
+- Cloudflare Worker (Hono) + DO SQLite + D1 + R2 | Sentry | Jest 29 | Playwright | ESLint 9
 - Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
+- 版本号以 `package.json` / 锁文件为唯一权威来源，禁止 hardcode
 
 ## 质量命令
 
@@ -27,26 +25,128 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 ### Dev 环境启动
 
-- `npm run dev` 通过 concurrently 启动 worker + web，子进程是 non-interactive 的
-- Wrangler OAuth token 大约每 24h 过期。过期症状：`Failed to fetch auth token: 400 Bad Request`
-- 修复：`cd packages/api-worker && npx wrangler login`（交互式浏览器授权）
-- 首次启动或拉取新 migration 后需要：`pnpm -F @werewolf/api-worker db:migrate:local`
+- `npm run dev` 通过 concurrently 启动 worker + web
+- Wrangler OAuth token ~24h 过期 → `cd packages/api-worker && npx wrangler login`
+- 首次或新 migration → `pnpm -F @werewolf/api-worker db:migrate:local`
 
 ---
 
-## ⚠️ 第一原则：社区惯例优先
+## ⚠️ 核心原则 Checklist
 
-> **写任何代码之前，必须先查阅并遵循社区通行做法。此规则优先级最高。**
->
-> - 新增依赖/模式/架构决策，优先采用成熟方案。发现现有代码不符合社区惯例时主动指出。
-> - **禁止依赖训练数据中的 API 签名、版本行为、配置格式。** 涉及第三方库/框架时，必须用 context7 MCP 或 web 搜索查阅当前文档后再写代码。训练数据可能过时，查了才算数。
-> - 不确定就先查文档/搜索，不要凭记忆臆断。
-> - **版本号与命令以可执行配置为唯一权威来源。** `package.json`/锁文件 > instruction/README。
-> - **禁止 hardcode 魔法值。** 枚举用引用、常量用命名常量、配置用配置项。仅允许语义自明的单次字面量（`timeout: 3000`）或类型系统保证安全的场景。
-> - **禁止臆造事实。** 不确定的 API/库行为/项目结构必须用工具验证。说错不如说"我不确定，需要确认"。
-> - **禁止走捷径。** 不得用 `?.` 绕过 required 字段、`as any` 消除类型错误、防御性兜底掩盖 mock 不完整。追求正确且健壮，而非最省力。
+> **此 checklist 优先级最高。本项目的 fail fast / 结构修复规则覆盖系统默认的 implementationDiscipline。**
+> **每次修改代码后，逐条过 🔍 自检问题。任一未通过则修正后再提交。**
 
-- **禁止 band-aid 修复。** 不得用条件判断、guard clause、标志位等手段绕过结构性问题的症状。发现 bug 的表层修复会掩盖根因时，必须追溯到结构层面修正。
+### 原则 1: 结构修复，不打补丁
+
+❌ 错误：
+
+```typescript
+// bug: onClick fires twice → band-aid: add timestamp debounce
+const lastClick = useRef(0);
+const handleClick = () => {
+  if (Date.now() - lastClick.current < 300) return; // band-aid
+  lastClick.current = Date.now();
+  doAction();
+};
+```
+
+✅ 正确：
+
+```typescript
+// 根因: modal dismiss 后事件穿透
+// 修复: 用 modal state guard 代替时间戳
+const handleClick = () => {
+  if (modalStack.length > 0) return; // 结构性 guard: modal 开启时不响应
+  doAction();
+};
+```
+
+🔍 **自检：这个修改解决了"为什么发生"（根因），还是只处理了"发生后怎么办"（症状）？移除这个修改，触发条件是否仍在？**
+
+### 原则 2: 查文档，不凭记忆
+
+❌ 错误：
+
+```typescript
+// 凭训练数据写 API — 可能已过时
+const schema = z.object({ email: z.string().email() });
+// 或自创架构模式，不查社区是否有成熟方案
+```
+
+✅ 正确：
+
+```typescript
+// 先用 context7 MCP 或 web 搜索确认当前版本用法
+const schema = z.object({ email: z.email() }); // 确认后的正确写法
+// 新增依赖/模式/架构决策前，先查社区通行做法
+```
+
+🔍 **自检：涉及第三方库 API 吗？是否用 context7 或 web 搜索确认过当前版本用法？新增依赖/模式/架构决策时，是否查了社区是否有成熟方案？**
+
+### 原则 3: 类型诚实，不绕过
+
+❌ 错误：
+
+```typescript
+const name = data?.user?.displayName ?? 'Unknown'; // data.user 是 required
+const result = response as any; // 类型不匹配 → as any 消音
+```
+
+✅ 正确：
+
+```typescript
+const name = data.user.displayName; // required → 信任类型系统
+const result: GameActionResult = response; // 修正类型定义或数据来源
+```
+
+🔍 **自检：每处 `?.` 对应的类型是否允许 `undefined`？如果 required，`?.` 在掩盖 bug。每处 `as` 是否仅限 `as const` / 测试 mock？**
+
+### 原则 4: Fail fast，不吞错误
+
+❌ 错误：
+
+```typescript
+try {
+  await submitAction();
+} catch {
+  /* ignore */
+}
+callback?.(); // callback 是 required prop
+```
+
+✅ 正确：
+
+```typescript
+const result = await submitAction();
+if (!result.success) {
+  showAlert('提交失败', result.reason);
+  return;
+}
+```
+
+🔍 **自检：每个 catch 是否有明确处理（log + UI 反馈）？有无 `?.` 用在 required 字段上？**
+
+### 原则 5: 完整贯穿，不留半成品
+
+❌ 错误：
+
+```typescript
+// 新增 RewardType 枚举值，只做了渲染层，"Phase 2 再做后端" → 死代码
+```
+
+✅ 正确：
+
+```typescript
+// 新增类型 → DB migration + API + game-engine + 客户端 + UI 全部到位
+// 或明确声明"当前不做"并不提交代码
+```
+
+🔍 **自检：新增的类型/字段/枚举，在 DB → API → engine → client → UI 全管道都有消费者？没有 = 死代码。**
+
+### 补充原则
+
+- **禁止 hardcode 魔法值。** 枚举用引用、常量用命名常量。仅允许语义自明的单次字面量。
+- **禁止臆造事实。** 不确定的 API/库行为/项目结构必须用工具验证。
 
 ---
 
@@ -69,6 +169,10 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 静态分析首选。无法确定根因时加 `[DIAG]` 前缀诊断日志（项目 logger），修复后清除。
 
+### 核心原则自检（每次修改代码后）
+
+写完代码后，逐条过核心原则 checklist 的 🔍 自检问题。任一自检未通过则修正后再提交。
+
 ### 验证流水线
 
 - pre-commit：eslint --fix + prettier --write（husky + lint-staged 自动执行）
@@ -85,7 +189,6 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 - **仅 Night-1 范围。** 禁止跨夜状态/规则。
 - **`GameState` 是单一真相。** 公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift。
 - **信任模型：默认不作弊。** 面对面 party game，不引入额外防作弊架构。
-- **DRY + SRP ~400 行拆分信号。**
 
 不清楚就先问。不要臆造仓库事实。
 
@@ -107,15 +210,14 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + Durab
 
 - **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
 - **Worker（D1）** — 房间元数据、auth、rate limit。
-- **Cloudflare Pages** — 前端静态资源。
-- **CDN（npmmirror）** — JS bundles 通过 CI npm publish `werewolf-judge-cdn@0.0.0-<sha8>` → npmmirror 自动同步 → HTML 改写为 `cdn.npmmirror.com` 绝对 URL。CanvasKit WASM 同样走 npmmirror。npm token 90 天有效，过期后 CI deploy-frontend 失败，需续签并更新 GitHub secret `NPM_TOKEN`。
-- **微信小程序** — web-view 壳，加载 Cloudflare Pages 托管的 Web 版。小程序原生代码在 `miniapp/`，不含游戏逻辑。
+- **Cloudflare Pages** — 前端静态资源。CDN 详见 `ci-deploy.instructions.md`。
+- **微信小程序** — web-view 壳，加载 Pages 托管的 Web 版。详见 `ci-deploy.instructions.md`。
 - **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
 - 禁止 P2P 消息。断线恢复统一读 DO（`/room/state` → `stub.getState()`）。
 
 ### 日志
 
-统一用 `src/utils/logger.ts` 命名 logger。禁止业务代码和测试代码 `console.*`（`scripts/**`、`jest.setup.ts` 例外，ESLint `no-console: 'error'` 已强制）。
+统一用 `src/utils/logger.ts` 命名 logger。禁止 `console.*`（ESLint `no-console: 'error'` 已强制；`scripts/**`、`jest.setup.ts` 例外）。
 
 ### 错误处理
 

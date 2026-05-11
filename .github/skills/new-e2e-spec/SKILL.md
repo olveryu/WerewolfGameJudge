@@ -124,6 +124,16 @@ configure: async (c) =>
   });
 ```
 
+### Phase 3.5 — 核心原则自检
+
+对本次所有修改逐条过核心原则 🔍 自检：
+
+1. 是否有 band-aid 修复？（原则 1）
+2. 涉及第三方 API 是否查了文档？（原则 2）
+3. 是否有 `as any` / 不必要的 `?.`？（原则 3）
+4. 是否有吞错误的 catch / 无反馈的失败路径？（原则 4）
+5. 新增的类型/字段是否全管道贯穿？（原则 5）
+
 ### Phase 4 — 验证
 
 1. 运行单个 spec：`pnpm exec playwright test e2e/specs/<file> --reporter=list`

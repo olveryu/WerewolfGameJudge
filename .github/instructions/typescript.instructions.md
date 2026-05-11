@@ -9,8 +9,7 @@ applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
 ## 类型安全
 
 - 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。api-worker handler body 校验用 `jsonBody(schema)` 中间件 + `c.req.valid('json')`，禁止 `as` cast。
-- `unknown` + 类型收窄替代 `any`（第三方库类型缺失需附注释 suppress）。
-- ESLint `@typescript-eslint/no-unsafe-*` 六条规则（`no-unsafe-argument`、`no-unsafe-assignment`、`no-unsafe-call`、`no-unsafe-member-access`、`no-unsafe-return`、`no-unsafe-enum-comparison`）均为 `error`，禁止 `any` 泄漏到类型安全代码中。
+- `unknown` + 类型收窄替代 `any`（第三方库类型缺失需附注释 suppress）。ESLint `@typescript-eslint/no-unsafe-*` 六条规则均为 `error`，自动拦截 `any` 泄漏。
 - `noUncheckedIndexedAccess` 已启用。数组/字典索引访问返回 `T | undefined`，必须处理：
   - 已有 length / boundary 守卫证明安全：用 `!` non-null assertion（`arr[i]!`）。
   - 无法证明安全：用 narrowing guard 或 optional chaining 处理 `undefined`。

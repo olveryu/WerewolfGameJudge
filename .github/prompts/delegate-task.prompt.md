@@ -66,8 +66,7 @@ agent: 'agent'
 4. **验证闭环** — 每个 prompt 结尾要求 `pnpm run quality` 全绿。
 
 5. **项目级约束必须包含：**
-   - 禁止 `as any`、不必要的 `?.` 绕过 required 字段
-   - 禁止 band-aid 修复（条件判断绕过结构性问题症状）
+   - 遵守 `copilot-instructions.md` 核心原则 Checklist（5 条，带 🔍 自检）
    - 每个受影响符号用 grep 或 list_code_usages 验证所有消费者
    - 改参数/schema 时双向追踪
    - 面向用户文本一律中文
