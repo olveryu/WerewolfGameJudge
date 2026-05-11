@@ -204,10 +204,23 @@ jobs:
           else
             npm publish --access public --tag latest
             echo "✅ Published werewolf-judge-cdn@$PKG_VERSION"
-            # Wait for npm registry to propagate (eventual consistency)
-            echo "⏳ Waiting 10s for npm registry propagation..."
-            sleep 10
           fi
+
+          # Gate: confirm version is visible on npm registry before proceeding.
+          # npm registry is eventually consistent — poll until the version resolves.
+          echo "⏳ Waiting for npm registry to confirm $PKG_VERSION..."
+          for i in $(seq 1 24); do
+            if npm view "werewolf-judge-cdn@$PKG_VERSION" version >/dev/null 2>&1; then
+              echo "✅ npm registry confirms $PKG_VERSION (after $((i*5))s)"
+              break
+            fi
+            if [ "$i" -eq 24 ]; then
+              echo "❌ npm registry did not propagate $PKG_VERSION within 120s — aborting"
+              exit 1
+            fi
+            sleep 5
+          done
+
           echo "version=$PKG_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Sync npmmirror and verify CDN
@@ -246,8 +259,7 @@ jobs:
           VERSION_CHECK=$(curl -s "https://registry.npmmirror.com/werewolf-judge-cdn/${PKG_VERSION}" \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('version',''))")
           if [ "$VERSION_CHECK" != "$PKG_VERSION" ]; then
-            echo "❌ Version $PKG_VERSION not found on npmmirror registry after sync (got: '$VERSION_CHECK')"
-            echo "   npm registry propagation was too slow — re-triggering sync..."
+            echo "⚠️ Version $PKG_VERSION not on npmmirror registry after sync — re-triggering..."
             # Retry: trigger a second sync and wait
             SYNC_RESP2=$(curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs")
             SYNC_ID2=$(echo "$SYNC_RESP2" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
