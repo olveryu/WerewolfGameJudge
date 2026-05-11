@@ -5,6 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.4.0] - 2026-05-11
+
+- docs(announcements): add v2.4.0 What's New entry
+- fix(admin): add fetch timeout and fix unhandled rejections in admin api
+- Merge pull request #49 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-0b0ca7d3fa
+- perf(animations): migrate runOnJS to scheduleOnRN and pause off-screen animations
+- docs(instructions): replace declarative rules with 5-point self-check checklist
+- chore(deps): bump hono in the npm_and_yarn group across 1 directory
+- Merge pull request #47 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-03cc7c73db
+- fix(roomscreen): replace timestamp debounce with modal state guard for seat taps
+- fix(night-review): add skip annotations for all canSkip roles and contract test
+- fix(services): prefetch state parallel to WS handshake, guard anon users from stats queries
+- fix(CFAuthService): add auto reLaunch for WeChat mini-program login retry
+- Revert "fix(miniapp): route intl WeChat users to custom domain to avoid security page query param stripping"
+- fix(roomscreen): derive isPlayingEntrance from props instead of state
+- fix(miniapp): route intl WeChat users to custom domain to avoid security page query param stripping
+- fix(CFAuthService): handle mini-program login failure without wxcode or session
+- feat(sentry): report query failures to Sentry via QueryCache.onError
+- feat(sentry): enable structured logs + sendDefaultPii on Worker
+- feat(sentry): enable Session Replay for error reproduction
+- fix(sentry): enrich handleError with tags + fingerprint + complete mock
+- fix(sentry): preserve original error stack in Worker onError handler
+- fix(sentry): add release to Worker via CF_VERSION_METADATA binding
+- fix(sentry): instrument Durable Objects with Sentry tracing
+- fix(sentry): add ignoreErrors + denyUrls to filter non-actionable noise
+- fix(sentry): align source map release format with SDK init
+- fix(geminiProxy): change error logging from error to warning for fallback to Workers AI
+- perf(api-worker): replace dynamic model cascade with fixed gemini-3.1-flash-lite
+- fix(api-worker): use onConflictDoNothing for room code collision detection
+- refactor(docs): streamline instruction audit template by removing outdated content
+- feat(admin): add AI usage tracking with Analytics Engine telemetry
+- fix(admin): stabilize onRangeChange ref to prevent infinite re-render loop
+- style(homescreen): redesign RecentRoomsModal with accent bars and two-row cards
+- refactor(admin,debug): extract shared components, migrate debug panel to RN
+- feat(homescreen): show createdAt in RecentRoomsModal, rename card to 最近房间
+- fix(admin): use toDateTime() in Analytics Engine SQL, simplify custom date input to YYYY-MM-DD
+- fix(api-worker): add x-admin-token to CORS allowHeaders
+- feat(admin): add admin portal with user/room/stats/analytics tabs
+- refactor(homescreen): redesign RecentRoomsModal with micro-card UI and proper error state
+- refactor(ci): switch to artifact-based GitHub Pages deploy (no gh-pages branch)
+- chore(ci): keep only 5 most recent playwright reports
+- fix(ci): use incremental commits for gh-pages (orphan push caused HTTP 500)
+- fix(room): update restart dialog action to select "直接开始" option
+- feat(api-worker): upgrade fallback model to gemma-4-26b-a4b-it
+- feat(gacha): add rate disclosure detail rows, recent rooms modal, and fix daily reward test
+- fix(e2e): suppress Sentry DSN in E2E builds to prevent log pollution
+- feat(gacha): randomize per-game and level-up draw rewards, remove single-pull button
+- chore(deps): bump hono in the npm_and_yarn group across 1 directory
+- fix(room): write lastRoomCode only after confirmed join/create in useRoomLifecycle
+- fix(e2e): use production build + static serve on CI to eliminate flaky navigation
+- fix(e2e): dismiss role alert before clickBottomButton in treasure test
+- fix(e2e): correct wolf vote indices and add night-driver debug logging
+- perf(ci): speed up merge-reports — drop full install, combine deploy steps, add retry
+- fix(e2e): ensureConnected in driveWolfVote before waiting for state
+- Revert "fix(e2e): prevent tryClickAdvanceButton from hanging on inert #root"
+- fix(e2e): prevent tryClickAdvanceButton from hanging on inert #root
+- fix(e2e): dismissAlert should not wait for modal hidden
+- fix(e2e): replace waitFor hidden with structural content markers
+- fix(ci): set http.postBuffer 500MB to avoid GitHub 500 on large pushes
+- fix(e2e): remove remaining defensive .catch from pages/specs
+- fix(e2e): remove force:true and defensive .catch from E2E clicks
+- fix(roomscreen): lock bottom panel during audio playback for all roles
+- fix(e2e): use close button as announcement auto-dismisser trigger
+- fix(e2e): update announcement modal auto-dismiss trigger for new default tab
+- feat(home): redesign announcement modal with 3-tab layout (boards/changelog/feedback)
+- fix(game): update minimum player requirement from 9 to 6
+- fix(audio): wait for canplaythrough before play on web, remove timeout
+- feat(debug): add structured debugging workflow documentation
+- fix(ci): squash gh-pages history on every deploy (orphan commit)
+- fix(ci): remove single-commit (incompatible with target-folder accumulation)
+- fix(ui): reposition Toaster component to top-center
+
 ## [2.3.0] - 2026-05-06
 
 - fix(ci): use HEAD:gh-pages refspec for worktree push
