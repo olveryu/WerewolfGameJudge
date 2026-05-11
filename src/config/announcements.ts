@@ -13,6 +13,16 @@ interface Announcement {
 
 /** 按版本号索引的公告内容。key 格式与 APP_VERSION 一致：`v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.4.0': {
+    title: 'v2.4.0 更新内容',
+    items: [
+      '公告弹窗改版，新增板子推荐和反馈入口',
+      '扭蛋奖励随机化，新增概率公示',
+      '最近房间卡片 UI 焕新',
+      '修复座位点击误触和音频播放稳定性',
+      '动画流畅度优化',
+    ],
+  },
   'v2.3.0': {
     title: 'v2.3.0 更新内容',
     items: [
