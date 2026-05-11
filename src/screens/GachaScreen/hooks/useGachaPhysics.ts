@@ -6,7 +6,8 @@
  * 从 gacha-capsule-v5.html 原型 1:1 移植物理参数。
  */
 import { useCallback, useEffect } from 'react';
-import { useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import {
   BALL_COLORS,
@@ -407,8 +408,10 @@ export function useGachaPhysics(scale: number) {
   }
 
   // ── Frame callback: physics loop ──────────────────────────────────────
+  // autostart=false: activated by startAnimation, deactivated on DONE/cancel.
+  // Avoids per-frame worklet dispatch cost while idle on GachaScreen.
 
-  useFrameCallback((fi) => {
+  const frameCallback = useFrameCallback((fi) => {
     'worklet';
     const p = phase.value;
     if (p === PHASE.IDLE || p === PHASE.DONE || cancelled.value === 1) return;
@@ -720,7 +723,22 @@ export function useGachaPhysics(scale: number) {
 
     ballData.value = data;
     renderTick.value += 1;
-  });
+  }, false);
+
+  // Deactivate frame callback when physics is done (DONE or cancelled → IDLE)
+  const deactivateFrameCallback = useCallback(() => {
+    frameCallback.setActive(false);
+  }, [frameCallback]);
+
+  useAnimatedReaction(
+    () => phase.value,
+    (current, previous) => {
+      'worklet';
+      if (current !== previous && (current === PHASE.DONE || current === PHASE.IDLE)) {
+        scheduleOnRN(deactivateFrameCallback);
+      }
+    },
+  );
 
   // ── JS-callable controls ──────────────────────────────────────────────
 
@@ -749,6 +767,7 @@ export function useGachaPhysics(scale: number) {
       cancelled.value = 0;
       phase.value = PHASE.TUMBLING;
       phaseTimer.value = 0;
+      frameCallback.setActive(true);
     },
     [
       preSettle,
@@ -774,6 +793,7 @@ export function useGachaPhysics(scale: number) {
       cancelled,
       phase,
       phaseTimer,
+      frameCallback,
     ],
   );
 
@@ -790,7 +810,8 @@ export function useGachaPhysics(scale: number) {
   const cancelAnimation = useCallback(() => {
     cancelled.value = 1;
     phase.value = PHASE.IDLE;
-  }, [cancelled, phase]);
+    frameCallback.setActive(false);
+  }, [cancelled, phase, frameCallback]);
 
   return {
     // Shared values for rendering

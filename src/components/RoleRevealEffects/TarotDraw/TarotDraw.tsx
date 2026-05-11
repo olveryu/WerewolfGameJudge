@@ -3,7 +3,7 @@
  *
  * 动画流程：星空+水晶球+蜡烛的占卜场景 → 牌从桌面转盘旋转 →
  * 玩家点选 → 金色光丝拖尾飞向中央 → 六角魔法阵浮现 → 翻转揭示 → 命运之语。
- * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段，无 `setTimeout`。
+ * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段，无 `setTimeout`。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import {
@@ -28,7 +28,6 @@ import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  runOnJS,
   type SharedValue,
   useAnimatedStyle,
   useDerivedValue,
@@ -39,6 +38,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -354,7 +354,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       { duration: config.flipDuration ?? 800, easing: Easing.inOut(Easing.cubic) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(enterRevealed)();
+        if (finished) scheduleOnRN(enterRevealed);
       },
     );
   }, [
@@ -374,7 +374,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       300,
       withTiming(0, { duration: 1 }, (finished) => {
         'worklet';
-        if (finished) runOnJS(startFlipping)();
+        if (finished) scheduleOnRN(startFlipping);
       }),
     );
   }, [drawnCardScale, flipProgress, startFlipping]);
@@ -404,7 +404,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       { duration: 500, easing: Easing.out(Easing.cubic) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(beginFlipAfterDelay)();
+        if (finished) scheduleOnRN(beginFlipAfterDelay);
       },
     );
   }, [

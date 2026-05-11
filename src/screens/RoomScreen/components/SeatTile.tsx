@@ -126,6 +126,8 @@ export interface SeatTileProps {
   playerLevel?: number;
   /** Whether to show the level label below the player name (lobby phases only). */
   showLevel: boolean;
+  /** Whether the app is in the foreground (visible). When false, flair/pet animations are unmounted to save CPU/GPU. */
+  isAppVisible: boolean;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
   onPress: (seat: number, disabledReason?: string) => void;
@@ -158,6 +160,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   wolfVoteBadge,
   playerLevel,
   showLevel,
+  isAppVisible,
   styles,
   onPress,
   onLongPress,
@@ -416,13 +419,13 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           ) : null}
 
-          {/* Seat flair animation layer — hidden while entrance animation is actively playing */}
-          {hasPlayer && !(isPlayingEntrance && isAnimActive) && FlairComponent && (
+          {/* Seat flair animation layer — hidden while entrance animation is actively playing or app is in background */}
+          {hasPlayer && isAppVisible && !(isPlayingEntrance && isAnimActive) && FlairComponent && (
             <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
           )}
 
-          {/* Seat pet — hidden while entrance animation is actively playing */}
-          {hasPlayer && !(isPlayingEntrance && isAnimActive) && PetComponent && (
+          {/* Seat pet — hidden while entrance animation is actively playing or app is in background */}
+          {hasPlayer && isAppVisible && !(isPlayingEntrance && isAnimActive) && PetComponent && (
             <View style={styles.petWrapper}>
               <PetComponent size={petSize} />
             </View>

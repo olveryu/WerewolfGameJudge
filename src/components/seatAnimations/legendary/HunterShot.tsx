@@ -8,7 +8,6 @@ import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { LEGENDARY_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -48,7 +48,7 @@ export const HunterShot = memo<SeatAnimationProps>(
       childOpacity.value = withDelay(
         LEGENDARY_DURATION * 0.53,
         withTiming(1, { duration: LEGENDARY_DURATION * 0.47 }, (f) => {
-          if (f) runOnJS(onComplete)();
+          if (f) scheduleOnRN(onComplete);
         }),
       );
     }, [aim, flash, wave, childOpacity, onComplete]);

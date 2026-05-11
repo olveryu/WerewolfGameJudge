@@ -7,7 +7,6 @@
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -15,6 +14,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -35,7 +35,7 @@ export const BounceEnter = memo<ColoredAnimationProps>(
       opacity.value = withTiming(1, { duration: COMMON_DURATION * 0.15 });
       translateY.value = withSpring(0, { damping: 8, stiffness: 180 });
       ringProgress.value = withTiming(1, { duration: COMMON_DURATION }, (finished) => {
-        if (finished) runOnJS(onComplete)();
+        if (finished) scheduleOnRN(onComplete);
       });
     }, [translateY, opacity, ringProgress, onComplete]);
 

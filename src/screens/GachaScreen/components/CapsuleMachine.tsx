@@ -9,11 +9,11 @@ import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
-  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import {
   BALL_COLORS,
@@ -131,7 +131,7 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       () => physics.phase.value,
       (current, previous) => {
         if (current !== previous && onPhaseChange) {
-          runOnJS(onPhaseChange)(current);
+          scheduleOnRN(onPhaseChange, current);
         }
       },
     );

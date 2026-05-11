@@ -26,7 +26,6 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -35,6 +34,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -308,7 +308,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(enterRevealed)();
+          if (finished) scheduleOnRN(enterRevealed);
         },
       ),
     );

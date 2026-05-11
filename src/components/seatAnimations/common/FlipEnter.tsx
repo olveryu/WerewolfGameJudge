@@ -8,13 +8,13 @@ import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -34,7 +34,7 @@ export const FlipEnter = memo<ColoredAnimationProps>(
         1,
         { duration: COMMON_DURATION, easing: Easing.out(Easing.cubic) },
         (finished) => {
-          if (finished) runOnJS(onComplete)();
+          if (finished) scheduleOnRN(onComplete);
         },
       );
     }, [progress, onComplete]);

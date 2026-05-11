@@ -8,12 +8,12 @@ import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -35,7 +35,7 @@ export const FadeEnter = memo<ColoredAnimationProps>(
         easing: Easing.out(Easing.cubic),
       });
       glowOpacity.value = withTiming(0, { duration: COMMON_DURATION }, (finished) => {
-        if (finished) runOnJS(onComplete)();
+        if (finished) scheduleOnRN(onComplete);
       });
     }, [opacity, glowOpacity, onComplete]);
 

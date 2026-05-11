@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+import { useAppVisibility } from '@/hooks/useAppVisibility';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { colors, spacing } from '@/theme';
 
@@ -53,6 +54,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
   const pixelRatio = PixelRatio.get();
+  const isAppVisible = useAppVisibility();
 
   // Use onLayout to measure real container width (immune to scrollbar width on Web).
   // Fall back to screenWidth minus parent padding so the first render isn't empty.
@@ -134,6 +136,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           wolfVoteBadge={seat.wolfVoteBadge}
           playerLevel={seat.player?.level}
           showLevel={showLevels}
+          isAppVisible={isAppVisible}
           styles={seatTileStyles}
           onPress={handleSeatPress}
           onLongPress={handleSeatLongPress}

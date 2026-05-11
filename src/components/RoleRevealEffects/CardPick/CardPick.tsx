@@ -25,7 +25,6 @@ import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   interpolate,
-  runOnJS,
   type SharedValue,
   useAnimatedStyle,
   useDerivedValue,
@@ -35,6 +34,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -229,7 +229,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       { duration: config.flipDuration, easing: Easing.inOut(Easing.cubic) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(enterRevealed)();
+        if (finished) scheduleOnRN(enterRevealed);
       },
     );
   }, [
@@ -258,7 +258,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       200,
       withTiming(0, { duration: 1 }, (finished) => {
         'worklet';
-        if (finished) runOnJS(startFlipping)();
+        if (finished) scheduleOnRN(startFlipping);
       }),
     );
   }, [flipProgress, startFlipping, chargeAuraOpacity, chargeAuraPulse]);
@@ -295,7 +295,7 @@ export const CardPick: React.FC<CardPickProps> = ({
         { duration: config.flyToCenterDuration, easing: Easing.out(Easing.cubic) },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(startFlipAfterDelay)();
+          if (finished) scheduleOnRN(startFlipAfterDelay);
         },
       );
     },
@@ -357,7 +357,7 @@ export const CardPick: React.FC<CardPickProps> = ({
       { duration: config.spreadDuration, easing: Easing.out(Easing.cubic) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('waiting');
+        if (finished) scheduleOnRN(setPhase, 'waiting');
       },
     );
 

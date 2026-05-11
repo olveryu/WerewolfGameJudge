@@ -8,7 +8,6 @@ import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -117,7 +117,7 @@ export const RisingElementEnter = memo<SeatAnimationProps & { config: RisingElem
           1,
           { duration: EPIC_DURATION * 0.5, easing: Easing.out(Easing.cubic) },
           (finished) => {
-            if (finished) runOnJS(onComplete)();
+            if (finished) scheduleOnRN(onComplete);
           },
         ),
       );

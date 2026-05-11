@@ -8,7 +8,6 @@ import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +15,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { LEGENDARY_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -95,7 +95,7 @@ export const GuardShield = memo<SeatAnimationProps>(
           1,
           { duration: LEGENDARY_DURATION * 0.37, easing: Easing.out(Easing.cubic) },
           (f) => {
-            if (f) runOnJS(onComplete)();
+            if (f) scheduleOnRN(onComplete);
           },
         ),
       );

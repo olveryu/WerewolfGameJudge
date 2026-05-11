@@ -25,7 +25,6 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   makeMutable,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -34,6 +33,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -339,7 +339,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
           },
           (finished) => {
             'worklet';
-            if (finished) runOnJS(enterRevealed)();
+            if (finished) scheduleOnRN(enterRevealed);
           },
         ),
       );

@@ -16,7 +16,6 @@ import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -25,6 +24,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -277,7 +277,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     // Reveal animation
     revealAnim.value = withTiming(1, { duration: config.revealDuration }, (finished) => {
       'worklet';
-      if (finished) runOnJS(setShowGlow)(true);
+      if (finished) scheduleOnRN(setShowGlow, true);
     });
 
     // Confetti burst
@@ -391,12 +391,12 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
         .onBegin((e) => {
           'worklet';
           if (isRevealedRef.current) return;
-          runOnJS(addScratchPointRef.current)(e.x, e.y);
+          scheduleOnRN(addScratchPointRef.current, e.x, e.y);
         })
         .onUpdate((e) => {
           'worklet';
           if (isRevealedRef.current) return;
-          runOnJS(addScratchPointRef.current)(e.x, e.y);
+          scheduleOnRN(addScratchPointRef.current, e.x, e.y);
         }),
     [reducedMotion],
   );

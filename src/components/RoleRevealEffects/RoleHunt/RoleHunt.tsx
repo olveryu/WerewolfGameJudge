@@ -37,7 +37,6 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -46,6 +45,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -917,7 +917,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       { duration: 400, easing: Easing.out(Easing.back(1.5)) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('revealed');
+        if (finished) scheduleOnRN(setPhase, 'revealed');
       },
     );
   }, [cardScale, cardOpacity, atmosphereOpacity, createCelebrations, enableHaptics]);
@@ -1032,7 +1032,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         })
         .onEnd((e) => {
           'worklet';
-          runOnJS(handleShootRef.current)(e.absoluteX, e.absoluteY);
+          scheduleOnRN(handleShootRef.current, e.absoluteX, e.absoluteY);
         }),
     [reducedMotion],
   );
@@ -1048,7 +1048,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
         })
         .onEnd((e) => {
           'worklet';
-          runOnJS(handleShootRef.current)(e.absoluteX, e.absoluteY);
+          scheduleOnRN(handleShootRef.current, e.absoluteX, e.absoluteY);
         }),
     [reducedMotion],
   );

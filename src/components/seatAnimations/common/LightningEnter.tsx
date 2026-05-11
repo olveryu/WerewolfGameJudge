@@ -8,7 +8,6 @@ import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { RARE_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -55,7 +55,7 @@ export const LightningEnter = memo<ColoredAnimationProps>(
           1,
           { duration: SETTLE_DURATION, easing: Easing.out(Easing.cubic) },
           (finished) => {
-            if (finished) runOnJS(onComplete)();
+            if (finished) scheduleOnRN(onComplete);
           },
         ),
       );

@@ -28,7 +28,6 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -37,6 +36,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -533,7 +533,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
         },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(enterRevealed)();
+          if (finished) scheduleOnRN(enterRevealed);
         },
       ),
     );
@@ -616,7 +616,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
       },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('idle');
+        if (finished) scheduleOnRN(setPhase, 'idle');
       },
     );
 

@@ -8,7 +8,6 @@ import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +16,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { LEGENDARY_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -49,7 +49,7 @@ export const WolfKingEntry = memo<SeatAnimationProps>(
       childOpacity.value = withDelay(
         PHASE1 + PHASE2 * 0.5,
         withTiming(1, { duration: PHASE3, easing: Easing.out(Easing.cubic) }, (f) => {
-          if (f) runOnJS(onComplete)();
+          if (f) scheduleOnRN(onComplete);
         }),
       );
     }, [eyeGlow, slashProgress, waveProgress, childOpacity, onComplete]);

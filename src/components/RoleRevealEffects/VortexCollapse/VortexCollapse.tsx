@@ -29,7 +29,6 @@ import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
   makeMutable,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -38,6 +37,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -370,7 +370,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
         },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(enterRevealed)();
+          if (finished) scheduleOnRN(enterRevealed);
         },
       ),
     );
@@ -543,7 +543,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
   }, [spinSV, doCollapse]);
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoTrigger);
 
-  // ── Pan gesture callbacks (named for runOnJS) ──
+  // ── Pan gesture callbacks (named for ) ──
   const handlePanUpdate = useCallback(
     (angle: number) => {
       if (phase !== 'idle') return;
@@ -580,11 +580,11 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
           const dx = e.x - cx;
           const dy = e.y - cy;
           const currentAngle = Math.atan2(dy, dx);
-          runOnJS(handlePanUpdate)(currentAngle);
+          scheduleOnRN(handlePanUpdate, currentAngle);
         })
         .onEnd(() => {
           'worklet';
-          runOnJS(handlePanEnd)();
+          scheduleOnRN(handlePanEnd);
         })
         .enabled(phase === 'idle'),
     [cx, cy, phase, handlePanUpdate, handlePanEnd],

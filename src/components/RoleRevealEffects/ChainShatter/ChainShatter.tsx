@@ -23,7 +23,6 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import type { SharedValue } from 'react-native-reanimated';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -32,6 +31,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -697,7 +697,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       { duration: CS.chainAppearDuration, easing: Easing.out(Easing.back(1.15)) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('idle');
+        if (finished) scheduleOnRN(setPhase, 'idle');
       },
     );
   }, [
@@ -752,7 +752,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         { duration: CS.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(enterRevealed)();
+          if (finished) scheduleOnRN(enterRevealed);
         },
       ),
     );

@@ -29,7 +29,6 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -38,6 +37,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -289,7 +289,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
         { duration: FW.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
         (finished) => {
           'worklet';
-          if (finished) runOnJS(enterRevealed)();
+          if (finished) scheduleOnRN(enterRevealed);
         },
       ),
     );
@@ -345,7 +345,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       { duration: FW.appearDuration, easing: Easing.out(Easing.back(1.15)) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('idle');
+        if (finished) scheduleOnRN(setPhase, 'idle');
       },
     );
   }, [
@@ -375,7 +375,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       { duration, easing: Easing.out(Easing.cubic) },
       (finished) => {
         'worklet';
-        if (finished) runOnJS(setPhase)('stopped');
+        if (finished) scheduleOnRN(setPhase, 'stopped');
       },
     );
 
@@ -436,7 +436,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
           const angularV = tangentialV / Math.max(dist, 1);
           if (Math.abs(angularV) > 0.5) {
             rotation.value = rotation.value + angularV * 0.3;
-            runOnJS(startDeceleratingToTarget)();
+            scheduleOnRN(startDeceleratingToTarget);
           }
         })
         .enabled(phase === 'idle'),

@@ -3,7 +3,7 @@
  *
  * 动画流程：旋转灯 + 投币口 → 金币滑入 → 旋转手柄 → 球体翻滚 →
  * 扭蛋从出口滑出 → 裂纹显现 → 打开 → 星星纷飞 + 稀有度标签。
- * 使用 `useSharedValue` 驱动所有动画，`runOnJS` 切换阶段。
+ * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
@@ -14,7 +14,6 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import Animated, {
   cancelAnimation,
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
@@ -24,6 +23,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -341,7 +341,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       200,
       withTiming(1, { duration: 250, easing: Easing.out(Easing.back(1.2)) }, (finished) => {
         'worklet';
-        if (finished) runOnJS(enterRevealed)();
+        if (finished) scheduleOnRN(enterRevealed);
       }),
     );
     cardOpacity.value = withDelay(200, withTiming(1, { duration: 250 }));
@@ -381,12 +381,12 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         if (!finished) return;
 
         // Phase: dropping
-        runOnJS(setPhase)('dropping');
+        scheduleOnRN(setPhase, 'dropping');
         capsuleOpacity.value = 1;
 
         capsuleY.value = withTiming(200, { duration: 800, easing: Easing.bounce }, (fin2) => {
           'worklet';
-          if (fin2) runOnJS(enterWaiting)();
+          if (fin2) scheduleOnRN(enterWaiting);
         });
         capsuleRotate.value = withTiming(540, { duration: 800 });
       },
