@@ -55,14 +55,19 @@ function promptAdminPassword(): void {
     placeholder: '请输入管理员密码',
     onConfirm: (value: string) => {
       if (!value.trim()) return;
-      void verifyAdminPassword(value).then((valid) => {
-        if (valid) {
-          storage.set(ADMIN_PASSWORD_KEY, value);
-          mobileDebug.toggle();
-        } else {
-          roomScreenLog.warn('Admin password rejected');
+      void (async () => {
+        try {
+          const valid = await verifyAdminPassword(value);
+          if (valid) {
+            storage.set(ADMIN_PASSWORD_KEY, value);
+            mobileDebug.toggle();
+          } else {
+            roomScreenLog.warn('Admin password rejected');
+          }
+        } catch (e) {
+          roomScreenLog.warn('Admin password verify failed', e);
         }
-      });
+      })();
     },
   });
 }

@@ -5,7 +5,7 @@
  * 返回 typed JSON 或抛出错误。
  */
 
-import { API_BASE_URL } from '@/config/api';
+import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
 import { ADMIN_PASSWORD_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';
 
@@ -25,6 +25,7 @@ async function adminFetch<T>(path: string, query?: Record<string, string>): Prom
 
   const resp = await fetch(url.toString(), {
     headers: { 'X-Admin-Token': getAdminToken() },
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   if (!resp.ok) {
@@ -195,6 +196,7 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 
   const resp = await fetch(url.toString(), {
     headers: { 'X-Admin-Token': password },
+    signal: AbortSignal.timeout(API_TIMEOUT_MS),
   });
 
   return resp.ok;

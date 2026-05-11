@@ -197,7 +197,7 @@ function reportLoadTiming() {
         body: payload,
         keepalive: true,
         headers: { 'Content-Type': 'application/json' },
-      });
+      }).catch(() => {});
     }
   } catch {
     // telemetry is best-effort — never block app
