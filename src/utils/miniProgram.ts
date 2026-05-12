@@ -48,35 +48,59 @@ export function isMiniProgram(): boolean {
 
 /**
  * 从 URL hash fragment 中读取小程序传入的 wxcode（不删除）。
+ * 兼容旧版小程序的 query param 传参（?wxcode=）。
  * 登录成功后应调用 clearWxCode() 清除。
  * 仅 web 平台有效；无 wxcode 时返回 null。
  */
 export function readWxCode(): string | null {
   if (Platform.OS !== 'web') return null;
   try {
+    // 新版：hash fragment
     const hash = window.location.hash;
-    if (!hash) return null;
-    const params = new URLSearchParams(hash.slice(1));
-    return params.get('wxcode');
+    if (hash) {
+      const code = new URLSearchParams(hash.slice(1)).get('wxcode');
+      if (code) return code;
+    }
+    // 旧版 fallback：query param
+    return new URLSearchParams(window.location.search).get('wxcode');
   } catch (e) {
     log.warn('Failed to read wxcode', e);
     return null;
   }
 }
 
-/** 从 URL hash 中移除 wxcode 参数，防止刷新时重复使用过期 code。 */
+/** 从 URL 中移除 wxcode 参数（hash + query 都清），防止刷新时重复使用过期 code。 */
 export function clearWxCode(): void {
   if (Platform.OS !== 'web') return;
   try {
-    const hash = window.location.hash;
-    if (!hash) return;
-    const params = new URLSearchParams(hash.slice(1));
-    if (!params.has('wxcode')) return;
-    params.delete('wxcode');
-    const remaining = params.toString();
-    const newUrl =
-      window.location.pathname + window.location.search + (remaining ? '#' + remaining : '');
-    window.history.replaceState(null, '', newUrl);
+    let changed = false;
+    let newHash = window.location.hash;
+    let newSearch = window.location.search;
+
+    // 清 hash 中的 wxcode
+    if (newHash) {
+      const hp = new URLSearchParams(newHash.slice(1));
+      if (hp.has('wxcode')) {
+        hp.delete('wxcode');
+        const remaining = hp.toString();
+        newHash = remaining ? '#' + remaining : '';
+        changed = true;
+      }
+    }
+    // 清 query 中的 wxcode（旧版兼容）
+    if (newSearch) {
+      const qp = new URLSearchParams(newSearch);
+      if (qp.has('wxcode')) {
+        qp.delete('wxcode');
+        const remaining = qp.toString();
+        newSearch = remaining ? '?' + remaining : '';
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      window.history.replaceState(null, '', window.location.pathname + newSearch + newHash);
+    }
   } catch (e) {
     log.warn('Failed to clear wxcode', e);
   }
