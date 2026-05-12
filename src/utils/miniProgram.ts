@@ -32,6 +32,33 @@ declare global {
 
 let cached: boolean | null = null;
 
+// ── Path-based wxcode extraction (runs at module load, before React Navigation) ──
+// 新版小程序把 wxcode 放在 path segment: /wx-auth/<code>/<original-path>
+// 模块加载时立即提取并 rewrite URL，防止 React Navigation 路由到不存在的 screen。
+let _extractedWxCode: string | null = null;
+
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  try {
+    const WX_AUTH_PREFIX = '/wx-auth/';
+    const pathname = window.location.pathname;
+    if (pathname.startsWith(WX_AUTH_PREFIX)) {
+      const rest = pathname.slice(WX_AUTH_PREFIX.length);
+      const slashIdx = rest.indexOf('/');
+      if (slashIdx !== -1) {
+        _extractedWxCode = decodeURIComponent(rest.slice(0, slashIdx));
+        const realPath = rest.slice(slashIdx) || '/';
+        window.history.replaceState(
+          null,
+          '',
+          realPath + window.location.search + window.location.hash,
+        );
+      }
+    }
+  } catch {
+    // readWxCode() will fall back to hash/query
+  }
+}
+
 /** 当前页面是否在微信小程序 web-view 内运行 */
 export function isMiniProgram(): boolean {
   if (Platform.OS !== 'web') return false;
@@ -47,21 +74,15 @@ export function isMiniProgram(): boolean {
 }
 
 /**
- * 从 URL hash fragment 中读取小程序传入的 wxcode（不删除）。
- * 兼容旧版小程序的 query param 传参（?wxcode=）。
+ * 读取小程序传入的 wxcode。
+ * 优先返回 path segment 提取值（模块加载时已提取），
+ * 兼容旧版 query param。
  * 登录成功后应调用 clearWxCode() 清除。
- * 仅 web 平台有效；无 wxcode 时返回 null。
  */
 export function readWxCode(): string | null {
   if (Platform.OS !== 'web') return null;
+  if (_extractedWxCode) return _extractedWxCode;
   try {
-    // 新版：hash fragment
-    const hash = window.location.hash;
-    if (hash) {
-      const code = new URLSearchParams(hash.slice(1)).get('wxcode');
-      if (code) return code;
-    }
-    // 旧版 fallback：query param
     return new URLSearchParams(window.location.search).get('wxcode');
   } catch (e) {
     log.warn('Failed to read wxcode', e);
@@ -69,38 +90,17 @@ export function readWxCode(): string | null {
   }
 }
 
-/** 从 URL 中移除 wxcode 参数（hash + query 都清），防止刷新时重复使用过期 code。 */
+/** 清除 wxcode（path 缓存 + URL query），防止刷新时重复使用过期 code。 */
 export function clearWxCode(): void {
   if (Platform.OS !== 'web') return;
+  _extractedWxCode = null;
   try {
-    let changed = false;
-    let newHash = window.location.hash;
-    let newSearch = window.location.search;
-
-    // 清 hash 中的 wxcode
-    if (newHash) {
-      const hp = new URLSearchParams(newHash.slice(1));
-      if (hp.has('wxcode')) {
-        hp.delete('wxcode');
-        const remaining = hp.toString();
-        newHash = remaining ? '#' + remaining : '';
-        changed = true;
-      }
-    }
-    // 清 query 中的 wxcode（旧版兼容）
-    if (newSearch) {
-      const qp = new URLSearchParams(newSearch);
-      if (qp.has('wxcode')) {
-        qp.delete('wxcode');
-        const remaining = qp.toString();
-        newSearch = remaining ? '?' + remaining : '';
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      window.history.replaceState(null, '', window.location.pathname + newSearch + newHash);
-    }
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('wxcode')) return;
+    params.delete('wxcode');
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    window.history.replaceState(null, '', newUrl);
   } catch (e) {
     log.warn('Failed to clear wxcode', e);
   }

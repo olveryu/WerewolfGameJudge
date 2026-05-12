@@ -13,13 +13,16 @@ Page({
     // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
     var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
 
-    // 2) wx.login 获取 code，拼入 URL 让 web 端自动登录
+    // 2) wx.login 获取 code，放入 path segment 让 web 端自动登录
+    //    安全确认页会 strip query params 和 hash，但必须保留 path
     wx.login({
       success: function (res) {
         if (res.code) {
-          // hash fragment 不会被安全确认页 strip（query params 会被吞）
-          var hashPart = '#wxcode=' + res.code
-          self.setData({ url: targetUrl + hashPart })
+          var originEnd = targetUrl.indexOf('/', targetUrl.indexOf('//') + 2)
+          if (originEnd === -1) originEnd = targetUrl.length
+          var origin = targetUrl.substring(0, originEnd)
+          var path = targetUrl.substring(originEnd) || '/'
+          self.setData({ url: origin + '/wx-auth/' + res.code + path })
         } else {
           console.warn('wx.login failed:', res.errMsg)
           self.setData({ url: targetUrl })
