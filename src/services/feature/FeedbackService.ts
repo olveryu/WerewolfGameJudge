@@ -19,19 +19,26 @@ export interface FeedbackReply {
   createdAt: string;
 }
 
-/** 单条反馈（含回复列表） */
+/** Single feedback item with replies */
 export interface FeedbackItem {
   id: string;
   content: string;
   appVersion: string;
   githubIssueNumber: number;
+  status: 'open' | 'resolved';
   createdAt: string;
   replies: FeedbackReply[];
+}
+
+interface SubmitFeedbackResult {
+  feedbackId: string;
+  githubIssueNumber: number;
 }
 
 interface SubmitFeedbackResponse {
   success: boolean;
   feedbackId: string;
+  githubIssueNumber: number;
 }
 
 interface FeedbackHistoryResponse {
@@ -42,9 +49,12 @@ interface UnreadCountResponse {
   count: number;
 }
 
-export async function submitFeedback(content: string, appVersion: string): Promise<string> {
+export async function submitFeedback(
+  content: string,
+  appVersion: string,
+): Promise<SubmitFeedbackResult> {
   const res = await cfPost<SubmitFeedbackResponse>('/api/feedback', { content, appVersion });
-  return res.feedbackId;
+  return { feedbackId: res.feedbackId, githubIssueNumber: res.githubIssueNumber };
 }
 
 export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
@@ -63,4 +73,11 @@ export async function getUnreadFeedbackCount(): Promise<number> {
 
 export async function markFeedbackRead(feedbackId: string): Promise<void> {
   await cfPost('/api/feedback/mark-read', { feedbackId });
+}
+
+export async function resolveFeedback(
+  feedbackId: string,
+  action: 'resolve' | 'reopen',
+): Promise<void> {
+  await cfPost(`/api/feedback/${feedbackId}/resolve`, { action });
 }

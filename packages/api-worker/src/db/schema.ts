@@ -180,6 +180,7 @@ export const feedbacks = sqliteTable(
     githubIssueNumber: integer('github_issue_number').notNull(),
     content: text('content').notNull(),
     appVersion: text('app_version').notNull(),
+    status: text('status').notNull().default('open'),
     createdAt: text('created_at').notNull(),
   },
   (table) => [

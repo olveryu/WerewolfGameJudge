@@ -52,6 +52,9 @@ export interface Env {
   /** GitHub Webhook secret for issue_comment event signature verification */
   GITHUB_WEBHOOK_SECRET?: string;
 
+  /** GitHub repo owner login — used to identify admin comments in webhook */
+  GITHUB_REPO_OWNER?: string;
+
   /** Admin portal password — set via `wrangler secret put ADMIN_PASSWORD` */
   ADMIN_PASSWORD: string;
 

@@ -109,6 +109,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'getUnreadFeedbackCount',
     'markFeedbackRead',
     'replyToFeedback',
+    'resolveFeedback',
   ];
 
   it.each(screensFiles)('%s runtime imports from services/ must be in allow-list', (filePath) => {

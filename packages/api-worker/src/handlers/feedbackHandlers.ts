@@ -17,7 +17,14 @@ import { feedbackReplies, feedbacks } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
-import { feedbackMarkReadSchema, feedbackReplySchema, feedbackSchema } from '../schemas/feedback';
+import {
+  feedbackMarkReadSchema,
+  feedbackReplySchema,
+  feedbackResolveSchema,
+  feedbackSchema,
+  githubIssueCommentPayloadSchema,
+  githubIssuesPayloadSchema,
+} from '../schemas/feedback';
 import { jsonBody } from './shared';
 
 const log = createLogger('feedback');
@@ -91,7 +98,7 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
     feedbackId,
   });
 
-  return c.json({ success: true, feedbackId }, 201);
+  return c.json({ success: true, feedbackId, githubIssueNumber: issueData.number }, 201);
 });
 
 // ── GET /feedback/history — user's feedback + replies ───────────────────────
@@ -106,6 +113,7 @@ feedbackRoutes.get('/feedback/history', requireAuth, async (c) => {
       content: feedbacks.content,
       appVersion: feedbacks.appVersion,
       githubIssueNumber: feedbacks.githubIssueNumber,
+      status: feedbacks.status,
       createdAt: feedbacks.createdAt,
     })
     .from(feedbacks)
@@ -183,6 +191,7 @@ feedbackRoutes.post(
       .select({
         id: feedbacks.id,
         githubIssueNumber: feedbacks.githubIssueNumber,
+        status: feedbacks.status,
       })
       .from(feedbacks)
       .where(and(eq(feedbacks.id, feedbackId), eq(feedbacks.userId, userId)))
@@ -241,7 +250,88 @@ feedbackRoutes.post(
       issueNumber: feedback.githubIssueNumber,
     });
 
+    // Auto-reopen if resolved — user follow-up means the issue is active again
+    if (feedback.status === 'resolved') {
+      await db.update(feedbacks).set({ status: 'open' }).where(eq(feedbacks.id, feedbackId));
+
+      // Reopen GitHub Issue
+      await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'WerewolfGameJudge-Worker',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ state: 'open' }),
+        },
+      );
+
+      log.info('auto-reopened resolved feedback on user reply', { feedbackId });
+    }
+
     return c.json({ success: true, replyId }, 201);
+  },
+);
+
+// ── POST /feedback/:feedbackId/resolve — resolve or reopen feedback ─────────
+
+feedbackRoutes.post(
+  '/feedback/:feedbackId/resolve',
+  requireAuth,
+  jsonBody(feedbackResolveSchema),
+  async (c) => {
+    const userId = c.var.userId;
+    const feedbackId = c.req.param('feedbackId');
+    const { action } = c.req.valid('json');
+
+    const db = createDb(c.env.DB);
+
+    // Verify ownership
+    const feedback = await db
+      .select({
+        id: feedbacks.id,
+        githubIssueNumber: feedbacks.githubIssueNumber,
+        status: feedbacks.status,
+      })
+      .from(feedbacks)
+      .where(and(eq(feedbacks.id, feedbackId), eq(feedbacks.userId, userId)))
+      .get();
+
+    if (!feedback) {
+      return c.json({ success: false, reason: 'NOT_FOUND' }, 404);
+    }
+
+    const newStatus = action === 'resolve' ? 'resolved' : 'open';
+    if (feedback.status === newStatus) {
+      return c.json({ success: true }); // Already in desired state
+    }
+
+    await db.update(feedbacks).set({ status: newStatus }).where(eq(feedbacks.id, feedbackId));
+
+    // Sync GitHub Issue state
+    const token = c.env.GITHUB_TOKEN;
+    if (token) {
+      const githubState = action === 'resolve' ? 'closed' : 'open';
+      await fetch(
+        `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'WerewolfGameJudge-Worker',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ state: githubState }),
+        },
+      );
+    }
+
+    log.info('feedback status changed', { feedbackId, from: feedback.status, to: newStatus });
+    return c.json({ success: true });
   },
 );
 
@@ -356,21 +446,9 @@ function hexToBytes(hex: string): Uint8Array | null {
   return bytes;
 }
 
-/** GitHub webhook payload types (subset needed for issue_comment) */
-interface GitHubIssueCommentPayload {
-  action: string;
-  issue: {
-    number: number;
-    labels: Array<{ name: string }>;
-  };
-  comment: {
-    id: number;
-    body: string;
-    user: {
-      login: string;
-      type: string;
-    };
-  };
+/** Resolve the admin login: prefer GITHUB_REPO_OWNER env var, fallback to repo owner from constant */
+function getAdminLogin(env: { GITHUB_REPO_OWNER?: string }): string {
+  return env.GITHUB_REPO_OWNER ?? GITHUB_REPO.split('/')[0];
 }
 
 feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
@@ -380,11 +458,7 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
     return c.body(null, 503);
   }
 
-  // Verify event type
   const event = c.req.header('x-github-event');
-  if (event !== 'issue_comment') {
-    return c.body(null, 204);
-  }
 
   // Verify signature
   const signature = c.req.header('x-hub-signature-256');
@@ -400,7 +474,32 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
     return c.body(null, 401);
   }
 
-  const payload = JSON.parse(new TextDecoder().decode(rawBody)) as GitHubIssueCommentPayload;
+  const rawPayload: unknown = JSON.parse(new TextDecoder().decode(rawBody));
+
+  if (event === 'issue_comment') {
+    return handleIssueCommentEvent(c, rawPayload);
+  }
+
+  if (event === 'issues') {
+    return handleIssuesEvent(c, rawPayload);
+  }
+
+  // Unhandled event type
+  return c.body(null, 204);
+});
+
+// ── Webhook: issue_comment event ────────────────────────────────────────────
+
+async function handleIssueCommentEvent(
+  c: import('hono').Context<AppEnv>,
+  rawPayload: unknown,
+): Promise<Response> {
+  const parsed = githubIssueCommentPayloadSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    log.warn('webhook payload validation failed', { error: parsed.error.message });
+    return c.body(null, 400);
+  }
+  const payload = parsed.data;
 
   // Only process newly created comments
   if (payload.action !== 'created') {
@@ -413,8 +512,14 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
     return c.body(null, 204);
   }
 
-  // Ignore bot comments
+  // Ignore bot comments and non-admin comments
   if (payload.comment.user.type === 'Bot') {
+    return c.body(null, 204);
+  }
+
+  const adminLogin = getAdminLogin(c.env);
+  if (payload.comment.user.login !== adminLogin) {
+    log.info('webhook ignored non-admin comment', { login: payload.comment.user.login });
     return c.body(null, 204);
   }
 
@@ -422,7 +527,7 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
 
   // Find matching feedback by issue number
   const feedback = await db
-    .select({ id: feedbacks.id })
+    .select({ id: feedbacks.id, status: feedbacks.status })
     .from(feedbacks)
     .where(eq(feedbacks.githubIssueNumber, payload.issue.number))
     .get();
@@ -453,6 +558,12 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
     throw err;
   }
 
+  // Admin reply auto-reopens resolved feedback
+  if (feedback.status === 'resolved') {
+    await db.update(feedbacks).set({ status: 'open' }).where(eq(feedbacks.id, feedback.id));
+    log.info('auto-reopened resolved feedback on admin reply', { feedbackId: feedback.id });
+  }
+
   log.info('admin reply recorded from webhook', {
     feedbackId: feedback.id,
     commentId: payload.comment.id,
@@ -460,4 +571,48 @@ feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
   });
 
   return c.body(null, 204);
-});
+}
+
+// ── Webhook: issues event (state sync) ──────────────────────────────────────
+
+async function handleIssuesEvent(
+  c: import('hono').Context<AppEnv>,
+  rawPayload: unknown,
+): Promise<Response> {
+  const parsed = githubIssuesPayloadSchema.safeParse(rawPayload);
+  if (!parsed.success) {
+    log.warn('webhook issues payload validation failed', { error: parsed.error.message });
+    return c.body(null, 400);
+  }
+  const payload = parsed.data;
+
+  // Only sync close/reopen state changes
+  if (payload.action !== 'closed' && payload.action !== 'reopened') {
+    return c.body(null, 204);
+  }
+
+  // Filter: only issues with user-feedback label
+  const hasLabel = payload.issue.labels.some((l) => l.name === 'user-feedback');
+  if (!hasLabel) {
+    return c.body(null, 204);
+  }
+
+  const db = createDb(c.env.DB);
+  const newStatus = payload.action === 'closed' ? 'resolved' : 'open';
+
+  const updated = await db
+    .update(feedbacks)
+    .set({ status: newStatus })
+    .where(eq(feedbacks.githubIssueNumber, payload.issue.number))
+    .returning({ id: feedbacks.id });
+
+  if (updated.length > 0) {
+    log.info('feedback status synced from GitHub', {
+      issueNumber: payload.issue.number,
+      newStatus,
+      feedbackId: updated[0].id,
+    });
+  }
+
+  return c.body(null, 204);
+}

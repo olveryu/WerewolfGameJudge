@@ -24,6 +24,7 @@ import {
   getFeedbackHistory,
   markFeedbackRead,
   replyToFeedback,
+  resolveFeedback,
   submitFeedback,
 } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
@@ -32,6 +33,7 @@ import { handleError } from '@/utils/errorPipeline';
 import { homeLog } from '@/utils/logger';
 
 type FeedbackView = 'list' | 'compose' | 'detail';
+type FeedbackFilter = 'open' | 'all';
 
 interface FeedbackTabProps {
   scrollMaxHeight: number;
@@ -52,6 +54,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
   const [feedbackText, setFeedbackText] = useState('');
   const [replyText, setReplyText] = useState('');
   const [selectedFeedbackId, setSelectedFeedbackId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FeedbackFilter>('open');
   const scrollRef = useRef<ScrollView>(null);
 
   const selectedFeedback = selectedFeedbackId
@@ -90,7 +93,7 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
 
     setIsSubmitting(true);
     try {
-      const feedbackId = await submitFeedback(trimmed, APP_VERSION);
+      const { feedbackId, githubIssueNumber } = await submitFeedback(trimmed, APP_VERSION);
       toast.success('感谢反馈！');
       setFeedbackText('');
       // Add to local list immediately
@@ -99,7 +102,8 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
           id: feedbackId,
           content: trimmed,
           appVersion: APP_VERSION,
-          githubIssueNumber: 0, // Not needed for UI display
+          githubIssueNumber,
+          status: 'open',
           createdAt: new Date().toISOString(),
           replies: [],
         },
@@ -168,12 +172,13 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
     try {
       await replyToFeedback(selectedFeedbackId, trimmed);
       setReplyText('');
-      // Add to local state
+      // Add to local state + auto-reopen if resolved
       setFeedbackItems((prev) =>
         prev.map((f) =>
           f.id === selectedFeedbackId
             ? {
                 ...f,
+                status: 'open' as const,
                 replies: [
                   ...f.replies,
                   {
@@ -196,6 +201,21 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
       setIsSubmitting(false);
     }
   }, [replyText, selectedFeedbackId]);
+
+  // ── Resolve / Reopen ──────────────────────────────────────────────────────
+
+  const handleResolve = useCallback(async (feedbackId: string, action: 'resolve' | 'reopen') => {
+    try {
+      await resolveFeedback(feedbackId, action);
+      const newStatus = action === 'resolve' ? 'resolved' : 'open';
+      setFeedbackItems((prev) =>
+        prev.map((f) => (f.id === feedbackId ? { ...f, status: newStatus } : f)),
+      );
+      toast.success(action === 'resolve' ? '已标记解决' : '已重新打开');
+    } catch (err) {
+      handleError(err, { label: '更新状态', logger: homeLog, feedback: 'toast' });
+    }
+  }, []);
 
   // ── Not logged in ─────────────────────────────────────────────────────────
 
@@ -282,6 +302,45 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
           <Text style={styles.backText}>返回列表</Text>
         </Pressable>
 
+        {/* Status chip — tappable to toggle */}
+        <Pressable
+          style={[
+            styles.statusChipTappable,
+            selectedFeedback.status === 'resolved'
+              ? styles.statusChipResolved
+              : styles.statusChipOpen,
+          ]}
+          onPress={() =>
+            void handleResolve(
+              selectedFeedback.id,
+              selectedFeedback.status === 'resolved' ? 'reopen' : 'resolve',
+            )
+          }
+          testID={TESTIDS.feedbackResolveButton}
+        >
+          <Ionicons
+            name={
+              selectedFeedback.status === 'resolved'
+                ? 'checkmark-circle'
+                : 'ellipsis-horizontal-circle'
+            }
+            size={componentSizes.icon.xs}
+            color={selectedFeedback.status === 'resolved' ? colors.success : colors.primary}
+          />
+          <Text
+            style={[
+              styles.statusChipText,
+              {
+                color: selectedFeedback.status === 'resolved' ? colors.success : colors.primary,
+              },
+            ]}
+          >
+            {selectedFeedback.status === 'resolved'
+              ? '已解决 · 点击重新打开'
+              : '进行中 · 点击标记解决'}
+          </Text>
+        </Pressable>
+
         <ScrollView ref={scrollRef} style={styles.chatScroll} showsVerticalScrollIndicator={false}>
           {/* Original feedback message */}
           <View style={styles.bubbleRowRight}>
@@ -317,6 +376,30 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
               </View>
             ),
           )}
+
+          {/* Inline resolve prompt — show when last reply is from admin and status is open */}
+          {(() => {
+            const lastReply = selectedFeedback.replies[selectedFeedback.replies.length - 1];
+            return (
+              selectedFeedback.status === 'open' &&
+              lastReply?.isAdmin === 1 && (
+                <Pressable
+                  style={styles.resolvePrompt}
+                  onPress={() => void handleResolve(selectedFeedback.id, 'resolve')}
+                >
+                  <Text style={styles.resolvePromptText}>问题解决了？</Text>
+                  <View style={styles.resolvePromptButton}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={componentSizes.icon.xs}
+                      color={colors.success}
+                    />
+                    <Text style={styles.resolvePromptButtonText}>是的</Text>
+                  </View>
+                </Pressable>
+              )
+            );
+          })()}
         </ScrollView>
 
         {/* Reply input */}
@@ -353,29 +436,53 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
 
   // ── List view (default) ───────────────────────────────────────────────────
 
+  const filteredItems =
+    filter === 'all' ? feedbackItems : feedbackItems.filter((f) => f.status === 'open');
+
   return (
     <View
       style={[styles.feedbackArea, { maxHeight: scrollMaxHeight }]}
       testID={TESTIDS.feedbackHistoryList}
     >
-      {feedbackItems.length === 0 ? (
+      {/* Filter toggle */}
+      <View style={styles.filterRow} testID={TESTIDS.feedbackFilterToggle}>
+        <Pressable
+          style={[styles.filterPill, filter === 'open' && styles.filterPillActive]}
+          onPress={() => setFilter('open')}
+        >
+          <Text style={[styles.filterPillText, filter === 'open' && styles.filterPillTextActive]}>
+            进行中
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.filterPill, filter === 'all' && styles.filterPillActive]}
+          onPress={() => setFilter('all')}
+        >
+          <Text style={[styles.filterPillText, filter === 'all' && styles.filterPillTextActive]}>
+            全部
+          </Text>
+        </Pressable>
+      </View>
+
+      {filteredItems.length === 0 ? (
         <View style={styles.centerContainer}>
           <Ionicons
             name="chatbubble-ellipses-outline"
             size={componentSizes.icon.xl}
             color={colors.textMuted}
           />
-          <Text style={styles.emptyText}>还没有反馈记录</Text>
+          <Text style={styles.emptyText}>
+            {filter === 'open' ? '没有进行中的反馈' : '还没有反馈记录'}
+          </Text>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          {feedbackItems.map((item) => {
+          {filteredItems.map((item) => {
             const unreadCount = item.replies.filter(
               (r) => r.isAdmin === 1 && r.isRead === 0,
             ).length;
             const lastReply =
               item.replies.length > 0 ? item.replies[item.replies.length - 1] : undefined;
-            const hasReplies = item.replies.some((r) => r.isAdmin === 1);
 
             return (
               <Pressable
@@ -399,10 +506,18 @@ export const FeedbackTab: React.FC<FeedbackTabProps> = ({
                   <Text
                     style={[
                       styles.historyItemStatus,
-                      hasReplies ? styles.statusReplied : styles.statusPending,
+                      item.status === 'resolved'
+                        ? styles.statusResolved
+                        : item.replies.some((r) => r.isAdmin === 1)
+                          ? styles.statusReplied
+                          : styles.statusPending,
                     ]}
                   >
-                    {hasReplies ? '已回复' : '待回复'}
+                    {item.status === 'resolved'
+                      ? '✅ 已解决'
+                      : item.replies.some((r) => r.isAdmin === 1)
+                        ? '已回复'
+                        : '待回复'}
                   </Text>
                 </View>
                 {lastReply && (
@@ -577,6 +692,9 @@ const styles = StyleSheet.create({
   statusPending: {
     color: colors.textMuted,
   },
+  statusResolved: {
+    color: colors.success,
+  },
   historyItemPreview: {
     fontSize: typography.caption,
     color: colors.textMuted,
@@ -597,6 +715,82 @@ const styles = StyleSheet.create({
   newFeedbackButtonText: {
     fontSize: typography.body,
     color: colors.primary,
+    fontWeight: typography.weights.medium,
+  },
+  // ── Filter pills ──
+  filterRow: {
+    flexDirection: 'row',
+    gap: spacing.small,
+    marginBottom: spacing.small,
+  },
+  filterPill: {
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterPillActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  filterPillText: {
+    fontSize: typography.caption,
+    color: colors.textMuted,
+    fontWeight: typography.weights.medium,
+  },
+  filterPillTextActive: {
+    color: colors.textInverse,
+  },
+  // ── Status chip (detail header) ──
+  statusChipTappable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.micro,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderRadius: borderRadius.full,
+    marginBottom: spacing.small,
+  },
+  statusChipOpen: {
+    backgroundColor: withAlpha(colors.primary, 0.1),
+  },
+  statusChipResolved: {
+    backgroundColor: withAlpha(colors.success, 0.1),
+  },
+  statusChipText: {
+    fontSize: typography.captionSmall,
+    fontWeight: typography.weights.medium,
+  },
+  // ── Resolve prompt (inline in chat) ──
+  resolvePrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.small,
+    paddingVertical: spacing.small,
+    marginVertical: spacing.small,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  resolvePromptText: {
+    fontSize: typography.caption,
+    color: colors.textMuted,
+  },
+  resolvePromptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.micro,
+    paddingHorizontal: spacing.small,
+    paddingVertical: spacing.tight,
+    borderRadius: borderRadius.full,
+    backgroundColor: withAlpha(colors.success, 0.1),
+  },
+  resolvePromptButtonText: {
+    fontSize: typography.caption,
+    color: colors.success,
     fontWeight: typography.weights.medium,
   },
   // ── Chat bubbles ──

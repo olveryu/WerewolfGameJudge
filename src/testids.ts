@@ -124,6 +124,8 @@ export const TESTIDS = {
   feedbackBackButton: 'feedback-back-button',
   feedbackReplyInput: 'feedback-reply-input',
   feedbackReplySendButton: 'feedback-reply-send-button',
+  feedbackResolveButton: 'feedback-resolve-button',
+  feedbackFilterToggle: 'feedback-filter-toggle',
 
   // RecentRoomsModal
   recentRoomsModal: 'recent-rooms-modal',
