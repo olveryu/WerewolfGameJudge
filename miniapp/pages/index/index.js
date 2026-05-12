@@ -17,8 +17,9 @@ Page({
     wx.login({
       success: function (res) {
         if (res.code) {
-          var sep = targetUrl.indexOf('?') === -1 ? '?' : '&'
-          self.setData({ url: targetUrl + sep + 'wxcode=' + res.code })
+          // hash fragment 不会被安全确认页 strip（query params 会被吞）
+          var hashPart = '#wxcode=' + res.code
+          self.setData({ url: targetUrl + hashPart })
         } else {
           console.warn('wx.login failed:', res.errMsg)
           self.setData({ url: targetUrl })
