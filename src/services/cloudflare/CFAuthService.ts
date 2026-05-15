@@ -93,7 +93,9 @@ export class CFAuthService implements IAuthService {
       } else if (existingUserId && (!isMiniProgram() || !this.#isAnonymous)) {
         authLog.info('Restored session', { userId: existingUserId });
       } else if (isMiniProgram()) {
-        // 小程序内无 wxcode 且（无 session 或 匿名 session）— 直接报错
+        // 小程序内无 wxcode 且（无 session 或 匿名 session）—
+        // 国际版微信安全确认页在同一进程内始终 strip URL path。
+        // reLaunch 无法修复（不跨进程），只能报错引导用户重启小程序。
         authLog.warn('Mini-program: no wxcode, showing error');
         this.#wechatLoginFailed = true;
       }

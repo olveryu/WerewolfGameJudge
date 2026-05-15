@@ -1,8 +1,9 @@
 /**
  * WxLoginFailedScreen — 小程序微信登录失败全屏错误页
  *
- * 在 App 层渲染（替代 splash screen），提供"重新进入"按钮
- * 调用 wx.miniProgram.reLaunch 重走登录流程。
+ * 在 App 层渲染（替代 splash screen）。
+ * 提供 reLaunch 重试（解决网络卡/code 过期），
+ * 加兜底文案引导用户重启小程序（解决国际版安全页 strip URL）。
  */
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -19,10 +20,10 @@ export const WxLoginFailedScreen: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.emoji}>😿</Text>
       <Text style={styles.title}>登录失败</Text>
-      <Text style={styles.subtitle}>网络异常，请重新进入小程序</Text>
       <Button variant="primary" onPress={handleRelaunch}>
         重新进入
       </Button>
+      <Text style={styles.hint}>如仍无法登录，请关闭小程序后重新打开</Text>
     </View>
   );
 };
@@ -44,10 +45,10 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.text,
   },
-  subtitle: {
-    fontSize: typography.body,
+  hint: {
+    fontSize: typography.caption,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.medium,
+    marginTop: spacing.small,
   },
 });

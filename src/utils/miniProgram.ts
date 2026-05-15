@@ -75,35 +75,18 @@ export function isMiniProgram(): boolean {
 
 /**
  * 读取小程序传入的 wxcode。
- * 优先返回 path segment 提取值（模块加载时已提取），
- * 兼容旧版 query param。
+ * 从 path segment 提取（模块加载时已提取）。
  * 登录成功后应调用 clearWxCode() 清除。
  */
 export function readWxCode(): string | null {
   if (Platform.OS !== 'web') return null;
-  if (_extractedWxCode) return _extractedWxCode;
-  try {
-    return new URLSearchParams(window.location.search).get('wxcode');
-  } catch (e) {
-    log.warn('Failed to read wxcode', e);
-    return null;
-  }
+  return _extractedWxCode;
 }
 
-/** 清除 wxcode（path 缓存 + URL query），防止刷新时重复使用过期 code。 */
+/** 清除 wxcode path 缓存，防止刷新时重复使用过期 code。 */
 export function clearWxCode(): void {
   if (Platform.OS !== 'web') return;
   _extractedWxCode = null;
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('wxcode')) return;
-    params.delete('wxcode');
-    const qs = params.toString();
-    const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
-    window.history.replaceState(null, '', newUrl);
-  } catch (e) {
-    log.warn('Failed to clear wxcode', e);
-  }
 }
 
 /**
