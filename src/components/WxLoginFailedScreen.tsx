@@ -6,6 +6,7 @@
  * 底部显示错误信息 + reLaunch 按钮 + 重启提示。
  * 仅在小程序 web-view 内渲染（web-only）。
  */
+import { randomPick } from '@werewolf/game-engine/utils/random';
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -27,7 +28,7 @@ const SPLASH_IMAGES = [
   '/assets/pwa/web/splash-wolf-gold.webp',
 ] as const;
 
-const bgImage = SPLASH_IMAGES[Math.floor(Math.random() * SPLASH_IMAGES.length)]!;
+const bgImage = randomPick(SPLASH_IMAGES);
 
 export const WxLoginFailedScreen: React.FC = () => {
   const handleRelaunch = () => {
