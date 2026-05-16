@@ -20,7 +20,7 @@ export type Rng = () => number;
  */
 export function secureRng(): number {
   const array = new Uint32Array(1);
-  globalThis.crypto.getRandomValues(array);
+  crypto.getRandomValues(array);
   return array[0]! / 0x100000000;
 }
 

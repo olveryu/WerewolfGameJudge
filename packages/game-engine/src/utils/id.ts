@@ -12,7 +12,7 @@
  */
 export function randomHex(length: number): string {
   const bytes = new Uint8Array(Math.ceil(length / 2));
-  globalThis.crypto.getRandomValues(bytes);
+  crypto.getRandomValues(bytes);
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
@@ -23,8 +23,8 @@ export function randomHex(length: number): string {
  * 生成唯一 Request ID（用于 RPC/ACK 关联）
  */
 export function newRequestId(): string {
-  if (typeof globalThis.crypto?.randomUUID === 'function') {
-    return globalThis.crypto.randomUUID();
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
   return `${Date.now()}-${randomHex(12)}`;
 }

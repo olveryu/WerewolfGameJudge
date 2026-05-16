@@ -8,10 +8,10 @@
  * 事务性：draw/exchange 操作使用 OCC，保证原子性。
  */
 
-import type { DrawType, Rarity } from '@werewolf/game-engine/growth/gachaProbability';
+import type { DrawType } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
 import { rollNormalDraws } from '@werewolf/game-engine/growth/level';
-import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { REWARD_POOL_BY_ID, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
