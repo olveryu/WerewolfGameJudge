@@ -939,7 +939,7 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/wechat-claim — 小程序原生侧预备登录（code + nonce → 存 token 待 claim）
+// POST /auth/wechat-claim — 小程序原生侧预备登录（code + nonce → 存 openid 待 claim）
 // ─────────────────────────────────────────────────────────────────────────────
 
 authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
@@ -968,9 +968,58 @@ authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
 
   const openid = wxData.openid;
   const db = createDb(env.DB);
+
+  // Store openid by nonce (upsert: if same nonce retried, overwrite)
+  await db
+    .insert(wxClaims)
+    .values({
+      nonce,
+      openid,
+      createdAt: sql`datetime('now')`,
+    })
+    .onConflictDoUpdate({
+      target: wxClaims.nonce,
+      set: {
+        openid,
+        createdAt: sql`datetime('now')`,
+      },
+    });
+
+  log.info('wechat-claim prepared', { nonce: nonce.slice(0, 8) });
+  return c.json({ success: true }, 200);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/claim — web-view 用 nonce 领取 openid → 登录/注册
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CLAIM_TTL_MS = 120_000; // 2 minutes
+
+authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
+  const env = c.env;
+  const { nonce } = c.req.valid('json');
+  const db = createDb(env.DB);
+
+  const claim = await db.select().from(wxClaims).where(eq(wxClaims.nonce, nonce)).get();
+
+  if (!claim) {
+    return c.json({ success: false, reason: 'CLAIM_NOT_FOUND' }, 404);
+  }
+
+  // Check TTL
+  const createdAt = new Date(claim.createdAt + 'Z').getTime();
+  if (Date.now() - createdAt > CLAIM_TTL_MS) {
+    await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
+    return c.json({ success: false, reason: 'CLAIM_EXPIRED' }, 410);
+  }
+
+  // Delete claim (one-time use)
+  await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
+
+  const { openid } = claim;
   const geo = requestGeo(c);
 
-  // Find or create user by openid (same logic as /auth/wechat)
+  // Find or create user by openid
   let userId: string;
   const existing = await db
     .select({ id: users.id, tokenVersion: users.tokenVersion })
@@ -997,43 +1046,43 @@ authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
     await grantWelcomeBonus(db, userId);
   }
 
-  // Issue token pair
+  // Issue tokens
   const tokenVersion = existing?.tokenVersion ?? 0;
   const tokens = await issueTokenPair(userId, env, { ver: tokenVersion });
 
-  // Store claim (upsert: if same nonce retried, overwrite)
-  await db
-    .insert(wxClaims)
-    .values({
-      nonce,
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      userId,
-      createdAt: sql`datetime('now')`,
-    })
-    .onConflictDoUpdate({
-      target: wxClaims.nonce,
-      set: {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        userId,
-        createdAt: sql`datetime('now')`,
-      },
-    });
+  // Fetch user for response
+  const user = await db
+    .select({ id: users.id, email: users.email, isAnonymous: users.isAnonymous })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+  const profile = await selectUserProfile(db, userId);
 
-  log.info('wechat-claim prepared', { userId, nonce: nonce.slice(0, 8) });
-  return c.json({ success: true }, 200);
+  log.info('claim redeemed', { userId, nonce: nonce.slice(0, 8) });
+  return c.json(
+    {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      user: {
+        id: userId,
+        email: user?.email ?? null,
+        is_anonymous: !!user?.isAnonymous,
+        has_wechat: true,
+        user_metadata: toUserMetadata(profile),
+      },
+    },
+    200,
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/claim — web-view 用 nonce 领取预备的 token
+// POST /auth/claim-bind — web-view 用 nonce 绑定 openid 到已有用户
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CLAIM_TTL_MS = 120_000; // 2 minutes
-
-authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
+authRoutes.post('/claim-bind', requireAuth, jsonBody(claimNonceSchema), async (c) => {
   const env = c.env;
   const { nonce } = c.req.valid('json');
+  const userId = c.var.userId;
   const db = createDb(env.DB);
 
   const claim = await db.select().from(wxClaims).where(eq(wxClaims.nonce, nonce)).get();
@@ -1052,26 +1101,25 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
   // Delete claim (one-time use)
   await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
 
-  // Fetch user for response
-  const user = await db
-    .select({ id: users.id, email: users.email, isAnonymous: users.isAnonymous })
-    .from(users)
-    .where(eq(users.id, claim.userId))
-    .get();
-  const profile = await selectUserProfile(db, claim.userId);
+  const { openid } = claim;
 
-  log.info('claim redeemed', { userId: claim.userId, nonce: nonce.slice(0, 8) });
-  return c.json(
-    {
-      access_token: claim.accessToken,
-      refresh_token: claim.refreshToken,
-      user: {
-        id: claim.userId,
-        email: user?.email ?? null,
-        is_anonymous: !!user?.isAnonymous,
-        user_metadata: toUserMetadata(profile),
-      },
-    },
-    200,
-  );
+  // Check if openid is already bound to another user
+  const existingOwner = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.wechatOpenid, openid))
+    .get();
+
+  if (existingOwner && existingOwner.id !== userId) {
+    return c.json({ success: false, reason: 'OPENID_ALREADY_BOUND' }, 409);
+  }
+
+  // Bind openid to authenticated user
+  await db
+    .update(users)
+    .set({ wechatOpenid: openid, updatedAt: sql`datetime('now')` })
+    .where(eq(users.id, userId));
+
+  log.info('claim-bind succeeded', { userId, nonce: nonce.slice(0, 8) });
+  return c.json({ success: true }, 200);
 });

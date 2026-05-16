@@ -214,10 +214,6 @@ export const feedbackReplies = sqliteTable(
 
 export const wxClaims = sqliteTable('wx_claims', {
   nonce: text('nonce').primaryKey(),
-  accessToken: text('access_token').notNull(),
-  refreshToken: text('refresh_token').notNull(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+  openid: text('openid').notNull(),
   createdAt: text('created_at').notNull(),
 });
