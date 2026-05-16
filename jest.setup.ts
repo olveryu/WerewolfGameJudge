@@ -397,8 +397,7 @@ jest.mock('./src/contexts/ServiceContext', () => {
       getCurrentUser: jest.fn().mockResolvedValue({ data: { user: null } }),
       autoSignIn: jest.fn().mockResolvedValue(undefined),
       signInAnonymously: jest.fn().mockResolvedValue({ data: null, error: null }),
-      signInWithWechat: jest.fn().mockResolvedValue('test-uid'),
-      bindWechat: jest.fn().mockResolvedValue(undefined),
+
       signOut: jest.fn().mockResolvedValue(undefined),
       updateProfile: jest.fn().mockResolvedValue({ data: null, error: null }),
       onAuthStateChange: jest

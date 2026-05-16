@@ -14,7 +14,7 @@ Page({
     // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
     var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
 
-    // 2) 如果有 nonce（claim 流程） → wx.login + wx.request 预备 token，然后加载裸 URL
+    // nonce claim 流程：wx.login + wx.request 预备 token，然后加载裸 URL
     if (options.nonce) {
       wx.login({
         success: function (res) {
@@ -30,7 +30,6 @@ Page({
                 } else {
                   console.warn('wechat-claim failed:', resp.statusCode, resp.data)
                 }
-                // 无论成功失败都加载裸 URL，web 端会尝试 claim 或显示重试
                 self.setData({ url: targetUrl })
               },
               fail: function (err) {
@@ -47,28 +46,10 @@ Page({
           self.setData({ url: targetUrl })
         }
       })
-      return
+    } else {
+      // 无 nonce（首次打开 / 分享链接）→ 直接加载，web 端显示登录按钮
+      self.setData({ url: targetUrl })
     }
-
-    // 3) 默认流程：wx.login 获取 code，放入 path segment 让 web 端自动登录
-    //    （兼容旧版 web 端 + 安全页不 strip 的用户）
-    wx.login({
-      success: function (res) {
-        if (res.code) {
-          var originEnd = targetUrl.indexOf('/', targetUrl.indexOf('//') + 2)
-          if (originEnd === -1) originEnd = targetUrl.length
-          var origin = targetUrl.substring(0, originEnd)
-          var path = targetUrl.substring(originEnd) || '/'
-          self.setData({ url: origin + '/wx-auth/' + res.code + path })
-        } else {
-          console.warn('wx.login failed:', res.errMsg)
-          self.setData({ url: targetUrl })
-        }
-      },
-      fail: function () {
-        self.setData({ url: targetUrl })
-      }
-    })
   },
 
   onMessage(_e) {

@@ -32,33 +32,6 @@ declare global {
 
 let cached: boolean | null = null;
 
-// ── Path-based wxcode extraction (runs at module load, before React Navigation) ──
-// 新版小程序把 wxcode 放在 path segment: /wx-auth/<code>/<original-path>
-// 模块加载时立即提取并 rewrite URL，防止 React Navigation 路由到不存在的 screen。
-let _extractedWxCode: string | null = null;
-
-if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  try {
-    const WX_AUTH_PREFIX = '/wx-auth/';
-    const pathname = window.location.pathname;
-    if (pathname.startsWith(WX_AUTH_PREFIX)) {
-      const rest = pathname.slice(WX_AUTH_PREFIX.length);
-      const slashIdx = rest.indexOf('/');
-      if (slashIdx !== -1) {
-        _extractedWxCode = decodeURIComponent(rest.slice(0, slashIdx));
-        const realPath = rest.slice(slashIdx) || '/';
-        window.history.replaceState(
-          null,
-          '',
-          realPath + window.location.search + window.location.hash,
-        );
-      }
-    }
-  } catch {
-    // readWxCode() will fall back to hash/query
-  }
-}
-
 /** 当前页面是否在微信小程序 web-view 内运行 */
 export function isMiniProgram(): boolean {
   if (Platform.OS !== 'web') return false;
@@ -71,22 +44,6 @@ export function isMiniProgram(): boolean {
     /miniProgram/i.test(navigator.userAgent) ||
     (typeof window !== 'undefined' && window.__wxjs_environment === 'miniprogram');
   return cached;
-}
-
-/**
- * 读取小程序传入的 wxcode。
- * 从 path segment 提取（模块加载时已提取）。
- * 登录成功后应调用 clearWxCode() 清除。
- */
-export function readWxCode(): string | null {
-  if (Platform.OS !== 'web') return null;
-  return _extractedWxCode;
-}
-
-/** 清除 wxcode path 缓存，防止刷新时重复使用过期 code。 */
-export function clearWxCode(): void {
-  if (Platform.OS !== 'web') return;
-  _extractedWxCode = null;
 }
 
 /**

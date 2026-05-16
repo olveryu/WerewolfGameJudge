@@ -13,13 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import {
-  clearClaimNonce,
-  clearWxCode,
-  isMiniProgram,
-  readClaimNonce,
-  readWxCode,
-} from '@/utils/miniProgram';
+import { clearClaimNonce, isMiniProgram, readClaimNonce } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import {
@@ -39,7 +33,6 @@ export class CFAuthService implements IAuthService {
   #cachedAccessToken: string | null = null;
   #cachedRefreshToken: string | null = null;
   #isAnonymous = false;
-  #hasWechat = false;
   #generatedName: string | null = null;
   #needsWechatLogin = false;
   readonly #initPromise: Promise<void>;
@@ -61,37 +54,9 @@ export class CFAuthService implements IAuthService {
 
   async #autoSignIn(): Promise<void> {
     try {
-      const wxCode = readWxCode();
       const existingUserId = await this.initAuth();
 
-      if (wxCode) {
-        if (existingUserId && !this.#isAnonymous) {
-          if (this.#hasWechat) {
-            clearWxCode();
-            authLog.debug('WeChat already bound, skipping bind');
-          } else {
-            authLog.info('Binding WeChat to existing session');
-            try {
-              await this.bindWechat(wxCode);
-              this.#hasWechat = true;
-              clearWxCode();
-              authLog.info('WeChat bind succeeded');
-            } catch (e) {
-              authLog.warn('WeChat bind failed (non-fatal)', e);
-            }
-          }
-        } else {
-          try {
-            await this.signInWithWechat(wxCode);
-            clearWxCode();
-            authLog.info('WeChat sign-in succeeded', { userId: this.#currentUserId });
-          } catch (e) {
-            clearWxCode();
-            authLog.warn('WeChat sign-in failed, falling back to anonymous', e);
-            await this.signInAnonymously();
-          }
-        }
-      } else if (existingUserId && (!isMiniProgram() || !this.#isAnonymous)) {
+      if (existingUserId && (!isMiniProgram() || !this.#isAnonymous)) {
         authLog.info('Restored session', { userId: existingUserId });
       } else if (isMiniProgram() && existingUserId && this.#isAnonymous) {
         // 已有匿名 session → 尝试 claim 升级，失败则正常使用匿名 session
@@ -248,21 +213,6 @@ export class CFAuthService implements IAuthService {
     return data.user.id;
   }
 
-  async signInWithWechat(code: string): Promise<string> {
-    const WECHAT_AUTH_TIMEOUT_MS = 20000;
-    const data = await cfPost<{
-      access_token: string;
-      refresh_token: string;
-      user: { id: string };
-    }>('/auth/wechat', { code }, { timeoutMs: WECHAT_AUTH_TIMEOUT_MS, skipAuthIntercept: true });
-
-    this.#saveTokens(data.access_token, data.refresh_token);
-    this.#currentUserId = data.user.id;
-    this.#isAnonymous = false;
-    Sentry.setUser({ id: data.user.id });
-    return data.user.id;
-  }
-
   /**
    * 尝试用 nonce 领取小程序原生侧预备的 token。
    * 成功返回 true 并设置 session，失败返回 false。
@@ -278,7 +228,6 @@ export class CFAuthService implements IAuthService {
       this.#saveTokens(data.access_token, data.refresh_token);
       this.#currentUserId = data.user.id;
       this.#isAnonymous = data.user.is_anonymous;
-      this.#hasWechat = true;
       clearClaimNonce();
       Sentry.setUser({ id: data.user.id });
       return true;
@@ -286,10 +235,6 @@ export class CFAuthService implements IAuthService {
       clearClaimNonce();
       return false;
     }
-  }
-
-  async bindWechat(code: string): Promise<void> {
-    await cfPost('/auth/bind-wechat', { code });
   }
 
   /**
@@ -329,7 +274,6 @@ export class CFAuthService implements IAuthService {
       });
       this.#currentUserId = resp.data.user!.id;
       this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
-      this.#hasWechat = resp.data.user!.has_wechat ?? false;
       Sentry.setUser({ id: resp.data.user!.id });
       return this.#currentUserId;
     } catch (error: unknown) {
@@ -563,7 +507,6 @@ export class CFAuthService implements IAuthService {
       });
       this.#currentUserId = resp.data.user!.id;
       this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
-      this.#hasWechat = resp.data.user!.has_wechat ?? false;
       Sentry.setUser({ id: resp.data.user!.id });
       return this.#currentUserId;
     } catch {
