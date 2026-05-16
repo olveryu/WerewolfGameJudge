@@ -81,23 +81,16 @@ export class CFAuthService implements IAuthService {
             authLog.info('WeChat sign-in succeeded', { userId: this.#currentUserId });
           } catch (e) {
             clearWxCode();
-            authLog.warn('WeChat sign-in failed', e);
-            if (!isMiniProgram()) {
-              authLog.warn('WeChat sign-in failed outside miniprogram, falling back to anonymous');
-              await this.signInAnonymously();
-            } else {
-              this.#wechatLoginFailed = true;
-            }
+            authLog.warn('WeChat sign-in failed, falling back to anonymous', e);
+            await this.signInAnonymously();
           }
         }
       } else if (existingUserId && (!isMiniProgram() || !this.#isAnonymous)) {
         authLog.info('Restored session', { userId: existingUserId });
       } else if (isMiniProgram()) {
-        // 小程序内无 wxcode 且（无 session 或 匿名 session）—
-        // 国际版微信安全确认页在同一进程内始终 strip URL path。
-        // reLaunch 无法修复（不跨进程），只能报错引导用户重启小程序。
-        authLog.warn('Mini-program: no wxcode, showing error');
-        this.#wechatLoginFailed = true;
+        // 小程序内无 wxcode（安全确认页 strip 了 URL）→ 匿名登录兜底
+        authLog.warn('Mini-program: no wxcode, falling back to anonymous');
+        await this.signInAnonymously();
       }
     } catch (error) {
       handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, feedback: false });
