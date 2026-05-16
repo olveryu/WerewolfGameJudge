@@ -13,13 +13,7 @@ import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';
-import {
-  clearClaimNonce,
-  getOrCreateClaimNonce,
-  isMiniProgram,
-  readClaimNonce,
-  wxReLaunchWithNonce,
-} from '@/utils/miniProgram';
+import { clearClaimNonce, isMiniProgram, readClaimNonce } from '@/utils/miniProgram';
 import { withTimeout } from '@/utils/withTimeout';
 
 import {
@@ -64,55 +58,41 @@ export class CFAuthService implements IAuthService {
       const existingUserId = await this.initAuth();
 
       if (existingUserId && !isMiniProgram()) {
-        // 非小程序环境：直接恢复 session
         authLog.info('Restored session', { userId: existingUserId });
-      } else if (existingUserId && isMiniProgram() && !this.#isAnonymous && this.#hasWechat) {
-        // 小程序 + 邮箱用户 + 已绑微信：正常恢复
-        authLog.info('Restored session (mini-program, wechat bound)', { userId: existingUserId });
-      } else if (existingUserId && isMiniProgram() && !this.#isAnonymous && !this.#hasWechat) {
-        // 小程序 + 邮箱用户 + 未绑微信：自动触发绑定
+        return;
+      }
+
+      if (existingUserId && isMiniProgram()) {
+        // 有 session：顺带尝试 nonce claim（bind/upgrade），不自动 reLaunch
         const claimNonce = readClaimNonce();
-        if (claimNonce) {
-          await this.#tryClaimBind(claimNonce);
-        } else {
-          authLog.info('Mini-program: email user without wechat, triggering bind');
-          const nonce = getOrCreateClaimNonce();
-          wxReLaunchWithNonce(nonce);
-          return;
-        }
-      } else if (isMiniProgram() && existingUserId && this.#isAnonymous) {
-        // 小程序 + 匿名 session：自动升级为微信用户
-        const claimNonce = readClaimNonce();
-        if (claimNonce) {
+        if (claimNonce && this.#isAnonymous) {
           const claimed = await this.#tryClaimToken(claimNonce);
           if (claimed) {
             authLog.info('Claim upgrade from anonymous succeeded', { userId: this.#currentUserId });
           } else {
             authLog.warn('Claim upgrade failed, keeping anonymous session');
           }
-        } else {
-          authLog.info('Mini-program: anonymous user, triggering claim');
-          const nonce = getOrCreateClaimNonce();
-          wxReLaunchWithNonce(nonce);
-          return;
+        } else if (claimNonce && !this.#hasWechat) {
+          await this.#tryClaimBind(claimNonce);
         }
-      } else if (isMiniProgram()) {
-        // 小程序内无 session — 尝试 claim 或显示登录入口
+        authLog.info('Restored session', { userId: existingUserId });
+        return;
+      }
+
+      if (isMiniProgram()) {
+        // 无 session — 尝试 claim 或显示登录入口
         const claimNonce = readClaimNonce();
         if (claimNonce) {
           const claimed = await this.#tryClaimToken(claimNonce);
           if (claimed) {
             authLog.info('Claim flow succeeded', { userId: this.#currentUserId });
-          } else {
-            // Claim 失败（过期等）→ 显示登录按钮让用户重试
-            authLog.warn('Claim flow failed, showing login button');
-            this.#needsWechatLogin = true;
+            return;
           }
+          authLog.warn('Claim flow failed, showing login button');
         } else {
-          // 首次进入：无 session + 无 nonce → 显示微信登录按钮
           authLog.info('Mini-program: first visit, showing login button');
-          this.#needsWechatLogin = true;
         }
+        this.#needsWechatLogin = true;
       }
     } catch (error) {
       handleError(error, { label: 'CFAuth.autoSignIn', logger: authLog, feedback: false });
@@ -242,26 +222,43 @@ export class CFAuthService implements IAuthService {
   /**
    * 尝试用 nonce 领取小程序原生侧预备的 token。
    * 成功返回 true 并设置 session，失败返回 false。
+   *
+   * CLAIM_NOT_FOUND 时重试：小程序 web-view 与 wechat-claim 存在竞态，
+   * web 端可能先于原生侧写入 D1 完成。等 2s 重试让 wechat-claim 跑完。
+   * TODO: 小程序发版 `data.url=''` 后移除重试逻辑。
    */
   async #tryClaimToken(nonce: string): Promise<boolean> {
-    try {
-      const data = await cfPost<{
-        access_token: string;
-        refresh_token: string;
-        user: { id: string; is_anonymous: boolean };
-      }>('/auth/claim', { nonce }, { skipAuthIntercept: true });
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 2000;
 
-      this.#saveTokens(data.access_token, data.refresh_token);
-      this.#currentUserId = data.user.id;
-      this.#isAnonymous = data.user.is_anonymous;
-      this.#hasWechat = true;
-      clearClaimNonce();
-      Sentry.setUser({ id: data.user.id });
-      return true;
-    } catch {
-      clearClaimNonce();
-      return false;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const data = await cfPost<{
+          access_token: string;
+          refresh_token: string;
+          user: { id: string; is_anonymous: boolean };
+        }>('/auth/claim', { nonce }, { skipAuthIntercept: true });
+
+        this.#saveTokens(data.access_token, data.refresh_token);
+        this.#currentUserId = data.user.id;
+        this.#isAnonymous = data.user.is_anonymous;
+        this.#hasWechat = true;
+        clearClaimNonce();
+        Sentry.setUser({ id: data.user.id });
+        return true;
+      } catch (error) {
+        const reason = (error as { reason?: string }).reason;
+        if (reason === 'CLAIM_NOT_FOUND' && attempt < MAX_ATTEMPTS) {
+          authLog.debug('Claim not found, waiting for wechat-claim', { attempt });
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+          continue;
+        }
+        clearClaimNonce();
+        return false;
+      }
     }
+    clearClaimNonce();
+    return false;
   }
 
   /**

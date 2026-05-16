@@ -3,7 +3,7 @@ var API_URL = 'https://api.werewolfjudge.eu.org'
 
 Page({
   data: {
-    url: BASE_URL
+    url: '' // 不预加载 — onLoad 所有分支都会显式 setData
   },
 
   onLoad(options) {
