@@ -96,9 +96,51 @@ export function clearWxCode(): void {
 export function wxReLaunch(): void {
   if (Platform.OS !== 'web') return;
   try {
-    window.wx?.miniProgram?.reLaunch({ url: '/pages/index/index' });
+    window.wx!.miniProgram!.reLaunch({ url: '/pages/index/index' });
   } catch (e) {
     log.warn('Failed to call wx.miniProgram.reLaunch', e);
+  }
+}
+
+// ── Claim-based auth flow ───────────────────────────────────────────────────
+
+const WX_CLAIM_NONCE_KEY = 'wx_claim_nonce';
+
+/**
+ * 生成或读取 claim nonce。
+ * 首次调用生成 UUID 存入 localStorage，后续调用直接读取。
+ */
+export function getOrCreateClaimNonce(): string {
+  if (Platform.OS !== 'web') return '';
+  const existing = localStorage.getItem(WX_CLAIM_NONCE_KEY);
+  if (existing) return existing;
+  const nonce = crypto.randomUUID();
+  localStorage.setItem(WX_CLAIM_NONCE_KEY, nonce);
+  return nonce;
+}
+
+/** 读取已有的 claim nonce（不创建新的）。 */
+export function readClaimNonce(): string | null {
+  if (Platform.OS !== 'web') return null;
+  return localStorage.getItem(WX_CLAIM_NONCE_KEY);
+}
+
+/** 清除 claim nonce（claim 成功后调用）。 */
+export function clearClaimNonce(): void {
+  if (Platform.OS !== 'web') return;
+  localStorage.removeItem(WX_CLAIM_NONCE_KEY);
+}
+
+/**
+ * 调用 wx.miniProgram.reLaunch 并携带 nonce，让小程序原生侧完成登录。
+ * 小程序 onLoad 收到 nonce 后用 wx.login + wx.request 调用 /auth/wechat-claim。
+ */
+export function wxReLaunchWithNonce(nonce: string): void {
+  if (Platform.OS !== 'web') return;
+  try {
+    window.wx!.miniProgram!.reLaunch({ url: '/pages/index/index?nonce=' + nonce });
+  } catch (e) {
+    log.warn('Failed to call wx.miniProgram.reLaunch with nonce', e);
   }
 }
 

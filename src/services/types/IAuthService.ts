@@ -43,8 +43,8 @@ export interface IAuthService {
   /** 等待初始化完成（session 恢复 / 自动登录） */
   waitForInit(): Promise<void>;
 
-  /** 小程序微信登录是否失败（仅 miniprogram 内有意义） */
-  readonly wechatLoginFailed: boolean;
+  /** 小程序内是否需要用户手动触发微信登录（仅 miniprogram web-view 内有意义） */
+  readonly needsWechatLogin: boolean;
 
   /**
    * 确保已认证：优先恢复 session，fallback 匿名登录。

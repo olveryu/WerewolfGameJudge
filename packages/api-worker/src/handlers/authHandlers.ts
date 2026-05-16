@@ -18,7 +18,14 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { drawHistory, loginAttempts, passwordResetTokens, users, userStats } from '../db/schema';
+import {
+  drawHistory,
+  loginAttempts,
+  passwordResetTokens,
+  users,
+  userStats,
+  wxClaims,
+} from '../db/schema';
 import type { AppEnv, Env } from '../env';
 import {
   bumpTokenVersion,
@@ -34,12 +41,14 @@ import { createLogger } from '../lib/logger';
 import { hashPassword, verifyPassword } from '../lib/password';
 import {
   changePasswordSchema,
+  claimNonceSchema,
   forgotPasswordSchema,
   refreshTokenSchema,
   resetPasswordSchema,
   signInSchema,
   signUpSchema,
   updateProfileSchema,
+  wechatClaimSchema,
   wechatCodeSchema,
 } from '../schemas/auth';
 import { getWeChatAuthStub, jsonBody } from './shared';
@@ -1104,6 +1113,144 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
     {
       access_token: result.accessToken,
       refresh_token: result.refreshToken,
+    },
+    200,
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/wechat-claim — 小程序原生侧预备登录（code + nonce → 存 token 待 claim）
+// ─────────────────────────────────────────────────────────────────────────────
+
+authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
+  const env = c.env;
+  const { code, nonce } = c.req.valid('json');
+
+  if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
+    return c.json({ success: false, reason: 'WECHAT_NOT_CONFIGURED' }, 500);
+  }
+
+  // Exchange code for openid via WeChatAuthProxy DO
+  const wxStub = getWeChatAuthStub(env);
+  let wxData: { openid?: string; errcode?: number; errmsg?: string };
+  try {
+    wxData = await wxStub.code2Session(code, env.WECHAT_APP_ID, env.WECHAT_APP_SECRET);
+  } catch (err) {
+    log.warn('wechat-claim code2Session timeout', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return c.json({ success: false, reason: 'WECHAT_TIMEOUT' }, 504);
+  }
+
+  if (!wxData.openid) {
+    return c.json({ success: false, reason: 'WECHAT_AUTH_FAILED', errcode: wxData.errcode }, 401);
+  }
+
+  const openid = wxData.openid;
+  const db = createDb(env.DB);
+  const geo = requestGeo(c);
+
+  // Find or create user by openid (same logic as /auth/wechat)
+  let userId: string;
+  const existing = await db
+    .select({ id: users.id, tokenVersion: users.tokenVersion })
+    .from(users)
+    .where(eq(users.wechatOpenid, openid))
+    .get();
+
+  if (existing) {
+    userId = existing.id;
+    await db
+      .update(users)
+      .set({ ...geo, updatedAt: sql`datetime('now')` })
+      .where(eq(users.id, userId));
+  } else {
+    userId = crypto.randomUUID();
+    await db.insert(users).values({
+      id: userId,
+      wechatOpenid: openid,
+      isAnonymous: 0,
+      ...geo,
+      createdAt: sql`datetime('now')`,
+      updatedAt: sql`datetime('now')`,
+    });
+    await grantWelcomeBonus(db, userId);
+  }
+
+  // Issue token pair
+  const tokenVersion = existing?.tokenVersion ?? 0;
+  const tokens = await issueTokenPair(userId, env, { ver: tokenVersion });
+
+  // Store claim (upsert: if same nonce retried, overwrite)
+  await db
+    .insert(wxClaims)
+    .values({
+      nonce,
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      userId,
+      createdAt: sql`datetime('now')`,
+    })
+    .onConflictDoUpdate({
+      target: wxClaims.nonce,
+      set: {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        userId,
+        createdAt: sql`datetime('now')`,
+      },
+    });
+
+  log.info('wechat-claim prepared', { userId, nonce: nonce.slice(0, 8) });
+  return c.json({ success: true }, 200);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /auth/claim — web-view 用 nonce 领取预备的 token
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CLAIM_TTL_MS = 120_000; // 2 minutes
+
+authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
+  const env = c.env;
+  const { nonce } = c.req.valid('json');
+  const db = createDb(env.DB);
+
+  const claim = await db.select().from(wxClaims).where(eq(wxClaims.nonce, nonce)).get();
+
+  if (!claim) {
+    return c.json({ success: false, reason: 'CLAIM_NOT_FOUND' }, 404);
+  }
+
+  // Check TTL
+  const createdAt = new Date(claim.createdAt + 'Z').getTime();
+  if (Date.now() - createdAt > CLAIM_TTL_MS) {
+    await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
+    return c.json({ success: false, reason: 'CLAIM_EXPIRED' }, 410);
+  }
+
+  // Delete claim (one-time use)
+  await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
+
+  // Fetch user for response
+  const user = await db
+    .select({ id: users.id, email: users.email, isAnonymous: users.isAnonymous })
+    .from(users)
+    .where(eq(users.id, claim.userId))
+    .get();
+  const profile = await selectUserProfile(db, claim.userId);
+
+  log.info('claim redeemed', { userId: claim.userId, nonce: nonce.slice(0, 8) });
+  return c.json(
+    {
+      access_token: claim.accessToken,
+      refresh_token: claim.refreshToken,
+      user: {
+        id: claim.userId,
+        email: user?.email ?? null,
+        is_anonymous: !!user?.isAnonymous,
+        user_metadata: toUserMetadata(profile),
+      },
     },
     200,
   );

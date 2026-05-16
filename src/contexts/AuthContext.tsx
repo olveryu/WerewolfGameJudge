@@ -47,8 +47,8 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  /** 小程序微信登录是否失败（App 层根据此值渲染全屏错误页） */
-  wechatLoginFailed: boolean;
+  /** 小程序内需要用户手动微信登录（App 层根据此值渲染登录入口页） */
+  needsWechatLogin: boolean;
   /** Re-fetch current user from service and update local state. */
   refreshUser: () => Promise<void>;
   /** Re-run initial auth (waitForInit + getCurrentUser). Used by boot error retry. */
@@ -168,11 +168,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       error,
       isAuthenticated: !!user,
-      wechatLoginFailed: authService.wechatLoginFailed,
+      needsWechatLogin: authService.needsWechatLogin,
       refreshUser,
       retryInit,
     }),
-    [user, loading, error, authService.wechatLoginFailed, refreshUser, retryInit],
+    [user, loading, error, authService.needsWechatLogin, refreshUser, retryInit],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;

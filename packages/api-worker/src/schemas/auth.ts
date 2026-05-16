@@ -47,3 +47,12 @@ export const wechatCodeSchema = z.object({
 export const refreshTokenSchema = z.object({
   refresh_token: z.string().min(1).max(128),
 });
+
+export const wechatClaimSchema = z.object({
+  code: z.string().min(1).max(200),
+  nonce: z.string().min(1).max(64),
+});
+
+export const claimNonceSchema = z.object({
+  nonce: z.string().min(1).max(64),
+});

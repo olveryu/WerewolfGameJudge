@@ -1,9 +1,9 @@
 /**
- * WxLoginFailedScreen — 小程序微信登录失败全屏错误页
+ * WxLoginFailedScreen — 小程序微信登录入口页
  *
- * 在 App 层渲染（替代 splash screen）。
+ * 在 App 层渲染（替代 splash screen）。当 claim 流程需要用户操作时显示。
  * 视觉上复用 splash screen 的狼人背景图 + 标题布局。
- * 底部显示错误信息 + reLaunch 按钮 + 重启提示。
+ * 底部显示微信登录按钮 — 点击后触发 nonce claim 流程。
  * 仅在小程序 web-view 内渲染（web-only）。
  */
 import { randomPick } from '@werewolf/game-engine/utils/random';
@@ -12,6 +12,7 @@ import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '@/components/Button';
+import { getOrCreateClaimNonce, wxReLaunchWithNonce } from '@/utils/miniProgram';
 
 // Splash screen 专用色值（匹配 web/index.html 中的 splash CSS）
 const SPLASH_BG = '#0a0a12';
@@ -19,7 +20,6 @@ const TEXT_WHITE = '#ffffff';
 const TEXT_SHADOW = 'rgba(0, 0, 0, 0.8)';
 const DIVIDER_COLOR = 'rgba(255, 255, 255, 0.3)';
 const TEXT_DIM = 'rgba(255, 255, 255, 0.6)';
-const TEXT_BRIGHT = 'rgba(255, 255, 255, 0.85)';
 const TEXT_MUTED = 'rgba(255, 255, 255, 0.5)';
 
 const SPLASH_IMAGES = [
@@ -31,8 +31,9 @@ const SPLASH_IMAGES = [
 const bgImage = randomPick(SPLASH_IMAGES);
 
 export const WxLoginFailedScreen: React.FC = () => {
-  const handleRelaunch = () => {
-    window.wx!.miniProgram!.reLaunch({ url: '/pages/index/index' });
+  const handleWechatLogin = () => {
+    const nonce = getOrCreateClaimNonce();
+    wxReLaunchWithNonce(nonce);
   };
 
   return (
@@ -45,11 +46,10 @@ export const WxLoginFailedScreen: React.FC = () => {
         <Text style={styles.subTitle}>电 子 裁 判</Text>
       </View>
       <View style={styles.bottom}>
-        <Text style={styles.errorText}>登录失败</Text>
-        <Button variant="primary" onPress={handleRelaunch}>
-          重新进入
+        <Button variant="primary" onPress={handleWechatLogin}>
+          微信登录
         </Button>
-        <Text style={styles.hint}>如仍无法登录，请关闭小程序后重新打开</Text>
+        <Text style={styles.hint}>点击后将通过微信授权登录</Text>
       </View>
     </View>
   );
@@ -113,11 +113,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     gap: 16,
     zIndex: 2,
-  },
-  errorText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: TEXT_BRIGHT,
   },
   hint: {
     fontSize: 12,

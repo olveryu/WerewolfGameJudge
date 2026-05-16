@@ -209,3 +209,15 @@ export const feedbackReplies = sqliteTable(
     unique('idx_feedback_replies_github_comment_id').on(table.githubCommentId),
   ],
 );
+
+// ── wx_claims ───────────────────────────────────────────────────────────────
+
+export const wxClaims = sqliteTable('wx_claims', {
+  nonce: text('nonce').primaryKey(),
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at').notNull(),
+});

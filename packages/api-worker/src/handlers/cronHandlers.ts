@@ -9,7 +9,7 @@
 import { sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
-import { idempotencyKeys, loginAttempts, rooms, users } from '../db/schema';
+import { idempotencyKeys, loginAttempts, rooms, users, wxClaims } from '../db/schema';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
 
@@ -80,16 +80,34 @@ async function cleanupExpiredIdempotencyKeys(env: Env): Promise<{ deleted: numbe
   return { deleted };
 }
 
+const WX_CLAIM_MAX_AGE_MINUTES = 5;
+
+async function cleanupExpiredWxClaims(env: Env): Promise<{ deleted: number }> {
+  const db = createDb(env.DB);
+  const result = await db
+    .delete(wxClaims)
+    .where(
+      sql`${wxClaims.createdAt} < datetime('now', ${`-${WX_CLAIM_MAX_AGE_MINUTES}`} || ' minutes')`,
+    )
+    .returning({ nonce: wxClaims.nonce });
+
+  const deleted = result.length;
+  if (deleted > 0) log.info('cleanupExpiredWxClaims', { deleted });
+  return { deleted };
+}
+
 /** Run all scheduled cleanup tasks. */
 export async function runScheduledCleanup(env: Env): Promise<void> {
   const rooms = await cleanupStaleRooms(env);
   const users = await cleanupAnonymousUsers(env);
   const logins = await cleanupOldLoginAttempts(env);
   const idempotency = await cleanupExpiredIdempotencyKeys(env);
+  const wxClaimsResult = await cleanupExpiredWxClaims(env);
   log.info('cleanup complete', {
     rooms: rooms.deleted,
     anonymousUsers: users.deleted,
     loginAttempts: logins.deleted,
     idempotencyKeys: idempotency.deleted,
+    wxClaims: wxClaimsResult.deleted,
   });
 }

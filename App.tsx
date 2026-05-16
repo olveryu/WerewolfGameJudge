@@ -264,7 +264,7 @@ function AppContent() {
   // ── Boot readiness ────────────────────────────────────────────────────
   // Expo standard pattern: keep splash visible, render nothing until ready.
   // Web: HTML splash (z-index:9999) covers everything; native: expo-splash-screen.
-  const { wechatLoginFailed } = useAuthContext();
+  const { needsWechatLogin } = useAuthContext();
   const bootProgress = useBootProgress();
 
   // Native: dismiss static splash once ready (expo-splash-screen is no-op on web)
@@ -300,8 +300,8 @@ function AppContent() {
     setAlertConfig(null);
   }, []);
 
-  // 小程序微信登录失败 → 全屏错误页（替代正常 UI）
-  if (wechatLoginFailed) {
+  // 小程序需要微信登录 → 显示登录入口页（替代正常 UI）
+  if (needsWechatLogin) {
     return (
       <>
         <StatusBar style="dark" backgroundColor={colors.background} />
