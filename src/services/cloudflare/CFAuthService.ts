@@ -222,43 +222,26 @@ export class CFAuthService implements IAuthService {
   /**
    * 尝试用 nonce 领取小程序原生侧预备的 token。
    * 成功返回 true 并设置 session，失败返回 false。
-   *
-   * CLAIM_NOT_FOUND 时重试：小程序 web-view 与 wechat-claim 存在竞态，
-   * web 端可能先于原生侧写入 D1 完成。等 2s 重试让 wechat-claim 跑完。
-   * TODO: 小程序发版 `data.url=''` 后移除重试逻辑。
    */
   async #tryClaimToken(nonce: string): Promise<boolean> {
-    const MAX_ATTEMPTS = 3;
-    const RETRY_DELAY_MS = 2000;
+    try {
+      const data = await cfPost<{
+        access_token: string;
+        refresh_token: string;
+        user: { id: string; is_anonymous: boolean };
+      }>('/auth/claim', { nonce }, { skipAuthIntercept: true });
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      try {
-        const data = await cfPost<{
-          access_token: string;
-          refresh_token: string;
-          user: { id: string; is_anonymous: boolean };
-        }>('/auth/claim', { nonce }, { skipAuthIntercept: true });
-
-        this.#saveTokens(data.access_token, data.refresh_token);
-        this.#currentUserId = data.user.id;
-        this.#isAnonymous = data.user.is_anonymous;
-        this.#hasWechat = true;
-        clearClaimNonce();
-        Sentry.setUser({ id: data.user.id });
-        return true;
-      } catch (error) {
-        const reason = (error as { reason?: string }).reason;
-        if (reason === 'CLAIM_NOT_FOUND' && attempt < MAX_ATTEMPTS) {
-          authLog.debug('Claim not found, waiting for wechat-claim', { attempt });
-          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-          continue;
-        }
-        clearClaimNonce();
-        return false;
-      }
+      this.#saveTokens(data.access_token, data.refresh_token);
+      this.#currentUserId = data.user.id;
+      this.#isAnonymous = data.user.is_anonymous;
+      this.#hasWechat = true;
+      clearClaimNonce();
+      Sentry.setUser({ id: data.user.id });
+      return true;
+    } catch {
+      clearClaimNonce();
+      return false;
     }
-    clearClaimNonce();
-    return false;
   }
 
   /**
