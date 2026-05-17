@@ -1,9 +1,9 @@
 /**
- * WxLoginFailedScreen — 小程序微信登录入口页
+ * WxLoginFailedScreen — 小程序登录入口页
  *
  * 在 App 层渲染（替代 splash screen）。当 claim 流程需要用户操作时显示。
  * 视觉上复用 splash screen 的狼人背景图 + 标题布局。
- * 底部显示微信登录按钮 — 点击后触发 nonce claim 流程。
+ * 底部显示"进入游戏"按钮 — 点击后触发 nonce claim 流程。
  * 仅在小程序 web-view 内渲染（web-only）。
  */
 import { randomPick } from '@werewolf/game-engine/utils/random';
@@ -47,9 +47,9 @@ export const WxLoginFailedScreen: React.FC = () => {
       </View>
       <View style={styles.bottom}>
         <Button variant="primary" onPress={handleWechatLogin}>
-          微信登录
+          进入游戏
         </Button>
-        <Text style={styles.hint}>点击后将通过微信授权登录</Text>
+        <Text style={styles.hint}>首次使用需要初始化，请稍等</Text>
       </View>
     </View>
   );
