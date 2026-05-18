@@ -34,9 +34,12 @@ export interface AuthUser {
 
 /**
  * getCurrentUser() 返回值。
+ *
+ * 契约：server `/auth/user` 仅在 200 时返回此结构；缺失 user / token 失效 → 401/404，
+ * 由 cfFetch 抛出，不会走到这里。所以 `user` 不为 null。
  */
 export interface GetCurrentUserResponse {
-  data: { user: AuthUser | null };
+  data: { user: AuthUser };
 }
 
 export interface IAuthService {

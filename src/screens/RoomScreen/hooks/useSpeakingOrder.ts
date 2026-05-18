@@ -40,6 +40,11 @@ export function useSpeakingOrder({
     gameStateRef.current = gameState;
   }, [gameState]);
 
+  // Use availability (boolean) — not the object — so the effect re-runs when
+  // gameState first arrives (e.g. status flipped to Ended before snapshot landed)
+  // without re-running on every broadcast.
+  const hasGameState = gameState != null;
+
   useEffect(() => {
     // Reset when leaving ended status (e.g. restart)
     if (roomStatus !== GameStatus.Ended) {
@@ -60,7 +65,7 @@ export function useSpeakingOrder({
 
     const timer = setTimeout(() => setSpeakingOrderText(undefined), 60_000);
     return () => clearTimeout(timer);
-  }, [roomStatus, isAudioPlaying]);
+  }, [roomStatus, isAudioPlaying, hasGameState]);
 
   return speakingOrderText;
 }

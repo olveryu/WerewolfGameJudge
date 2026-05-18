@@ -238,7 +238,14 @@ export class CFAuthService implements IAuthService {
       clearClaimNonce();
       Sentry.setUser({ id: data.user.id });
       return true;
-    } catch {
+    } catch (error: unknown) {
+      // Expected when nonce has been claimed already / expired. Log unexpected to Sentry.
+      handleError(error, {
+        label: 'tryClaimToken',
+        logger: authLog,
+        expectedCodes: [400, 401, 404, 410],
+        feedback: false,
+      });
       clearClaimNonce();
       return false;
     }
@@ -302,10 +309,11 @@ export class CFAuthService implements IAuthService {
         skipAuthIntercept: true,
         noRetry: true,
       });
-      this.#currentUserId = resp.data.user!.id;
-      this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
-      this.#hasWechat = resp.data.user!.has_wechat ?? false;
-      Sentry.setUser({ id: resp.data.user!.id });
+      const { user } = resp.data;
+      this.#currentUserId = user.id;
+      this.#isAnonymous = user.is_anonymous ?? false;
+      this.#hasWechat = user.has_wechat ?? false;
+      Sentry.setUser({ id: user.id });
       return this.#currentUserId;
     } catch (error: unknown) {
       const status = (error as { status?: number }).status;
@@ -536,13 +544,19 @@ export class CFAuthService implements IAuthService {
         skipAuthIntercept: true,
         noRetry: true,
       });
-      this.#currentUserId = resp.data.user!.id;
-      this.#isAnonymous = resp.data.user!.is_anonymous ?? false;
-      this.#hasWechat = resp.data.user!.has_wechat ?? false;
-      Sentry.setUser({ id: resp.data.user!.id });
+      const { user } = resp.data;
+      this.#currentUserId = user.id;
+      this.#isAnonymous = user.is_anonymous ?? false;
+      this.#hasWechat = user.has_wechat ?? false;
+      Sentry.setUser({ id: user.id });
       return this.#currentUserId;
-    } catch {
-      // Refreshed but still fails — clear everything
+    } catch (error: unknown) {
+      handleError(error, {
+        label: 'fetchAndCacheUser',
+        logger: authLog,
+        expectedCodes: [401, 403],
+        feedback: false,
+      });
       this.#clearTokens();
       return null;
     }
