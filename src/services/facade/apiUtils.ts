@@ -10,6 +10,7 @@ import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
 import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
+import { createTimeoutSignal } from '@/utils/abortSignal';
 import { facadeLog } from '@/utils/logger';
 
 /** 标准 API 响应（game control / seat 共用结构） */
@@ -20,7 +21,7 @@ export type ApiResponse =
 /**
  * 执行单次 API POST 调用
  *
- * - fetchWithRetry 网络层自动重试 + AbortSignal.timeout 超时
+ * - fetchWithRetry 网络层自动重试 + createTimeoutSignal 超时
  * - 处理 non-JSON 错误页（502/503）
  * - 成功时 applySnapshot
  * - 网络错误自动 warn
@@ -49,7 +50,7 @@ async function callApiOnce(
         'x-region': API_REGION,
         'x-request-id': requestId,
       },
-      signal: AbortSignal.timeout(API_TIMEOUT_MS),
+      signal: createTimeoutSignal(API_TIMEOUT_MS),
       body: JSON.stringify(body),
     });
 

@@ -13,6 +13,7 @@ import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import { getCurrentToken } from '@/services/cloudflare/cfFetch';
+import { combineSignals, createTimeoutSignal } from '@/utils/abortSignal';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
@@ -182,8 +183,8 @@ export async function* streamChatMessage(
   }
 
   // Combine caller abort signal with a 30s TTFB timeout so long inputs don't hang forever
-  const timeoutSignal = AbortSignal.timeout(30_000);
-  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+  const timeoutSignal = createTimeoutSignal(30_000);
+  const combinedSignal = signal ? combineSignals([signal, timeoutSignal]) : timeoutSignal;
 
   let response: Response;
   try {

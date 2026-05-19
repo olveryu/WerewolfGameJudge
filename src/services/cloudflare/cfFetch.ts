@@ -9,6 +9,7 @@
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
+import { createTimeoutSignal } from '@/utils/abortSignal';
 import { cfFetchLog } from '@/utils/logger';
 
 // ── Token 管理 ──────────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
       method: opts.method,
       headers,
       body: opts.body,
-      signal: AbortSignal.timeout(opts.timeoutMs),
+      signal: createTimeoutSignal(opts.timeoutMs),
     });
 
   // 第一次请求
