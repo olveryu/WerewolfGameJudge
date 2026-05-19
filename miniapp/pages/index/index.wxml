@@ -1,1 +1,5 @@
-<web-view src="{{url}}" bindmessage="onMessage" binderror="onError" />
+<view wx:if="{{!url}}" class="splash">
+  <image class="splash-bg" src="{{splashBg}}" mode="aspectFill" />
+  <text class="splash-text">正在进入...</text>
+</view>
+<web-view wx:if="{{url}}" src="{{url}}" bindmessage="onMessage" binderror="onError" />

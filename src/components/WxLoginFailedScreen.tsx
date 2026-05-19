@@ -6,7 +6,6 @@
  * 底部显示"进入游戏"按钮 — 点击后触发 nonce claim 流程。
  * 仅在小程序 web-view 内渲染（web-only）。
  */
-import { randomPick } from '@werewolf/game-engine/utils/random';
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -22,13 +21,7 @@ const DIVIDER_COLOR = 'rgba(255, 255, 255, 0.3)';
 const TEXT_DIM = 'rgba(255, 255, 255, 0.6)';
 const TEXT_MUTED = 'rgba(255, 255, 255, 0.5)';
 
-const SPLASH_IMAGES = [
-  '/assets/pwa/web/splash-wolf-blue.webp',
-  '/assets/pwa/web/splash-wolf-red.webp',
-  '/assets/pwa/web/splash-wolf-gold.webp',
-] as const;
-
-const bgImage = randomPick(SPLASH_IMAGES);
+const SPLASH_BG_IMAGE = '/assets/pwa/web/splash-wolf-blue.webp';
 
 export const WxLoginFailedScreen: React.FC = () => {
   const handleWechatLogin = () => {
@@ -38,7 +31,7 @@ export const WxLoginFailedScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ExpoImage source={bgImage} style={styles.bg} contentFit="cover" />
+      <ExpoImage source={SPLASH_BG_IMAGE} style={styles.bg} contentFit="cover" />
       <View style={styles.gradient} />
       <View style={styles.titleArea}>
         <Text style={styles.mainTitle}>狼 人 杀</Text>

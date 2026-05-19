@@ -3,7 +3,8 @@ var API_URL = 'https://api.werewolfjudge.eu.org'
 
 Page({
   data: {
-    url: '' // 不预加载 — onLoad 所有分支都会显式 setData
+    url: '',
+    splashBg: '/images/splash-bg.webp'
   },
 
   onLoad(options) {
