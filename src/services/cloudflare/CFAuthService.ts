@@ -239,11 +239,12 @@ export class CFAuthService implements IAuthService {
       Sentry.setUser({ id: data.user.id });
       return true;
     } catch (error: unknown) {
-      // Expected when nonce has been claimed already / expired. Log unexpected to Sentry.
+      // Per /auth/claim contract: 404 CLAIM_NOT_FOUND, 410 CLAIM_EXPIRED 是用户层正常流。
+      // 400 (validation) / 500 / network 走 Sentry。
       handleError(error, {
         label: 'tryClaimToken',
         logger: authLog,
-        expectedCodes: [400, 401, 404, 410],
+        expectedCodes: [404, 410],
         feedback: false,
       });
       clearClaimNonce();
@@ -551,10 +552,12 @@ export class CFAuthService implements IAuthService {
       Sentry.setUser({ id: user.id });
       return this.#currentUserId;
     } catch (error: unknown) {
+      // Per /auth/user contract: 401 (revoked/invalid 即使刚 refresh 也可能 race)、404 (USER_NOT_FOUND)
+      // 是已知终态。500 / network 走 Sentry。
       handleError(error, {
         label: 'fetchAndCacheUser',
         logger: authLog,
-        expectedCodes: [401, 403],
+        expectedCodes: [401, 404],
         feedback: false,
       });
       this.#clearTokens();
