@@ -15,11 +15,11 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import BreathingBorder from '@/components/RoleRevealEffects/common/effects/BreathingBorderCanvas';
-import { GodRevealEffect } from '@/components/RoleRevealEffects/common/effects/GodRevealEffect';
+import GodRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/GodRevealEffectCanvas';
 import ScreenFlash from '@/components/RoleRevealEffects/common/effects/ScreenFlashCanvas';
-import { ThirdRevealEffect } from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffect';
-import { VillagerRevealEffect } from '@/components/RoleRevealEffects/common/effects/VillagerRevealEffect';
-import { WolfRevealEffect } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
+import ThirdRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffectCanvas';
+import VillagerRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/VillagerRevealEffectCanvas';
+import WolfRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/WolfRevealEffectCanvas';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { AlignmentTheme, RoleAlignment } from '@/components/RoleRevealEffects/types';
 const { alignmentEffects: AE } = CONFIG;
@@ -88,10 +88,10 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
       />
 
       {/* Alignment-specific visual effects */}
-      {alignment === 'wolf' && <WolfRevealEffect {...effectProps} />}
-      {alignment === 'god' && <GodRevealEffect {...effectProps} />}
-      {alignment === 'third' && <ThirdRevealEffect {...effectProps} />}
-      {alignment === 'villager' && <VillagerRevealEffect {...effectProps} />}
+      {alignment === 'wolf' && <WolfRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
+      {alignment === 'god' && <GodRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
+      {alignment === 'third' && <ThirdRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
+      {alignment === 'villager' && <VillagerRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
 
       {/* Enhanced breathing border */}
       <BreathingBorder
