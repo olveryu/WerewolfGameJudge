@@ -29,7 +29,7 @@ import Animated, {
 
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import { getFactionName } from '@/components/roleDisplayUtils';
-import { WolfCrackBackground } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
+import WolfCrackBackgroundCanvas from '@/components/RoleRevealEffects/common/effects/WolfCrackBackgroundCanvas';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 import { getRoleBadge } from '@/utils/roleBadges';
@@ -304,7 +304,8 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 
       {/* Wolf crack layer — between gradient bg and role image for depth */}
       {revealMode && isWolf && animateEntrance && (
-        <WolfCrackBackground
+        <WolfCrackBackgroundCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
           cardWidth={width}
           cardHeight={height}
           animate

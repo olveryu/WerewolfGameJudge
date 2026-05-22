@@ -323,6 +323,16 @@ export default tseslint.config(
   },
 
   // =========================================================================
+  // DOM Components ('use dom') — plain HTML canvas, not React Native views
+  // =========================================================================
+  {
+    files: ['src/**/*Canvas.tsx'],
+    rules: {
+      'react-native/no-inline-styles': 'off',
+    },
+  },
+
+  // =========================================================================
   // Cloudflare Workers (api-worker) — Workers runtime, no React
   // =========================================================================
   {

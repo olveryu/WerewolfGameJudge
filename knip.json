@@ -8,7 +8,6 @@
       "ignoreDependencies": [
         "@expo/vector-icons",
         "@sentry/browser",
-        "canvaskit-wasm",
         "expo-modules-core",
         "expo-updates",
         "expo-system-ui",

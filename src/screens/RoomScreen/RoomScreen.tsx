@@ -24,7 +24,6 @@ import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { type RootStackParamList } from '@/navigation/types';
@@ -73,10 +72,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), []);
-
-  // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
-  // Moved here from App.tsx — Skia is now lazy-loaded, so warmup runs when Skia is ready.
-  useSkiaShaderWarmup();
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {

@@ -14,12 +14,12 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { BreathingBorder } from '@/components/RoleRevealEffects/common/effects/BreathingBorder';
-import { GodRevealEffect } from '@/components/RoleRevealEffects/common/effects/GodRevealEffect';
-import { ScreenFlash } from '@/components/RoleRevealEffects/common/effects/ScreenFlash';
-import { ThirdRevealEffect } from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffect';
-import { VillagerRevealEffect } from '@/components/RoleRevealEffects/common/effects/VillagerRevealEffect';
-import { WolfRevealEffect } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
+import BreathingBorder from '@/components/RoleRevealEffects/common/effects/BreathingBorderCanvas';
+import GodRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/GodRevealEffectCanvas';
+import ScreenFlash from '@/components/RoleRevealEffects/common/effects/ScreenFlashCanvas';
+import ThirdRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffectCanvas';
+import VillagerRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/VillagerRevealEffectCanvas';
+import WolfRevealEffectCanvas from '@/components/RoleRevealEffects/common/effects/WolfRevealEffectCanvas';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import type { AlignmentTheme, RoleAlignment } from '@/components/RoleRevealEffects/types';
 const { alignmentEffects: AE } = CONFIG;
@@ -74,23 +74,50 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
     <View style={styles.effectContainer}>
       {/* Full-screen radial flash — neutral color to prevent leaking alignment */}
       <ScreenFlash
+        dom={{
+          style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 },
+        }}
         color={AE.screenFlashColor}
         peakOpacity={AE.screenFlashOpacity}
         duration={AE.screenFlashDuration}
         animate={animate}
         centerX={cardWidth / 2}
         centerY={cardHeight * 0.42}
+        width={cardWidth}
+        height={cardHeight}
         delay={250}
+        effectStartDelay={AE.effectStartDelay}
       />
 
       {/* Alignment-specific visual effects */}
-      {alignment === 'wolf' && <WolfRevealEffect {...effectProps} />}
-      {alignment === 'god' && <GodRevealEffect {...effectProps} />}
-      {alignment === 'third' && <ThirdRevealEffect {...effectProps} />}
-      {alignment === 'villager' && <VillagerRevealEffect {...effectProps} />}
+      {alignment === 'wolf' && (
+        <WolfRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'god' && (
+        <GodRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'third' && (
+        <ThirdRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'villager' && (
+        <VillagerRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
 
       {/* Enhanced breathing border */}
       <BreathingBorder
+        dom={{ style: { position: 'absolute', top: -8, left: -8, pointerEvents: 'none' } }}
         color={theme.primaryColor}
         glowColor={theme.glowColor}
         cardWidth={cardWidth}
@@ -98,6 +125,7 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
         animate={animate}
         breathingDuration={breathingDuration}
         onComplete={onComplete}
+        effectDisplayDuration={AE.effectDisplayDuration}
       />
     </View>
   );

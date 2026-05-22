@@ -43,11 +43,7 @@ const EXCLUDED_DIRS = new Set([
 ]);
 
 /** Files excluded entirely from scanning */
-const EXCLUDED_FILES = new Set([
-  'ErrorBoundary.tsx',
-  'SkiaShaderWarmup.tsx',
-  'WxLoginFailedScreen.tsx',
-]);
+const EXCLUDED_FILES = new Set(['ErrorBoundary.tsx', 'WxLoginFailedScreen.tsx']);
 
 function getProductionFiles(dir: string): string[] {
   const results: string[] = [];
@@ -196,8 +192,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // GachaScreen: golden count color constant
   'src/screens/GachaScreen/GachaScreen.tsx': 1,
 
-  // CapsuleMachine: Skia color constants (domain-specific rendering), badge font
-  'src/screens/GachaScreen/components/CapsuleMachine.tsx': 17,
+  // CapsuleMachineCanvas: DOM component — canvas rendering colors (ball palette + machine palette)
+  'src/screens/GachaScreen/components/CapsuleMachineCanvas.tsx': 62,
 
   // RewardPreview: inline font styles for reward display
   'src/screens/GachaScreen/components/RewardPreview.tsx': 2,
@@ -217,8 +213,8 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   // TicketTabBar: tab tint colors (normal indigo + golden)
   'src/screens/GachaScreen/components/TicketTabBar.tsx': 3,
 
-  // gachaConstants: ball color palette + decorative rendering constants
-  'src/screens/GachaScreen/gachaConstants.ts': 49,
+  // gachaConstants: PHASE enum only (rendering constants moved to CapsuleMachineCanvas)
+  'src/screens/GachaScreen/gachaConstants.ts': 0,
 };
 
 // ─── Test ───────────────────────────────────────────────────────────────────

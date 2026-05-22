@@ -6,7 +6,6 @@
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,7 +16,6 @@ import Animated, {
   Easing,
   interpolate,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -41,35 +39,16 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
+import ScratchConfettiCanvas from './ScratchConfettiCanvas';
+
 // ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
   metalBase: '#C0C0C0',
   metalLight: '#E8E8E8',
   metalDark: '#909090',
   shavingColors: ['#D4D4D4', '#B8B8B8', '#A0A0A0', '#888888'],
-  confettiGold: '#ffd700',
-  confettiPink: '#ff69b4',
-  confettiCyan: '#00e5ff',
-  confettiGreen: '#66ff66',
   milestoneFlash: '#ffffff',
 };
-
-// Confetti particles for reveal burst
-const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
-  angle: (Math.PI * 2 * i) / 20 + (((i * 37) % 10) / 10) * 0.2,
-  speed: 50 + ((i * 53) % 50),
-  r: 2 + ((i * 23) % 3),
-  color: [
-    SCRATCH_COLORS.confettiGold,
-    SCRATCH_COLORS.confettiPink,
-    SCRATCH_COLORS.confettiCyan,
-    SCRATCH_COLORS.confettiGreen,
-  ][i % 4]!,
-}));
-
-// ── Immediate-mode Skia resources (reused across frames) ──
-const confettiRecorder = Skia.PictureRecorder();
-const confettiPaintRes = Skia.Paint();
 
 // Random serial number (stable per mount)
 function generateSerial(): string {
@@ -169,31 +148,8 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
   // Scene elements
   const milestoneFlash = useSharedValue(0);
-  const confettiProgress = useSharedValue(0);
-  const confettiOpacity = useSharedValue(0);
   const prizeStampOpacity = useSharedValue(0);
   const prizeStampScale = useSharedValue(0.5);
-
-  // ── Picture API: batch confetti dots (20→1 draw call) ──
-  const confettiPicture = useDerivedValue(() => {
-    'worklet';
-    const c = confettiRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
-    const op = confettiOpacity.value;
-    if (op > 0) {
-      for (let i = 0; i < CONFETTI.length; i++) {
-        const p = CONFETTI[i]!;
-        const cx = screenWidth / 2 + Math.cos(p.angle) * p.speed * confettiProgress.value;
-        const cy =
-          screenHeight / 2 +
-          Math.sin(p.angle) * p.speed * confettiProgress.value -
-          30 * confettiProgress.value;
-        confettiPaintRes.setColor(Skia.Color(p.color));
-        confettiPaintRes.setAlphaf(op);
-        c.drawCircle(cx, cy, p.r, confettiPaintRes);
-      }
-    }
-    return confettiRecorder.finishRecordingAsPicture();
-  });
 
   // Stable serial number
   const [serialNumber] = useState(() => generateSerial());
@@ -280,12 +236,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       if (finished) scheduleOnRN(setShowGlow, true);
     });
 
-    // Confetti burst
-    confettiOpacity.value = withSequence(
-      withTiming(1, { duration: 100 }),
-      withDelay(600, withTiming(0, { duration: 300 })),
-    );
-    confettiProgress.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+    // Confetti burst is handled by ScratchConfettiCanvas (trigger=isRevealed)
 
     // Prize stamp pop-in
     prizeStampOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
@@ -303,8 +254,6 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     burstOpacity,
     config.revealDuration,
     enableHaptics,
-    confettiOpacity,
-    confettiProgress,
     prizeStampOpacity,
     prizeStampScale,
   ]);
@@ -443,19 +392,23 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     >
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Confetti burst — Picture API batch with group-level blur */}
+      {/* Confetti burst — Canvas 2D DOM component */}
       {isRevealed && !reducedMotion && (
-        <Canvas style={styles.fullScreen}>
-          <Group
-            layer={
-              <Paint>
-                <Blur blur={1} />
-              </Paint>
-            }
-          >
-            <Picture picture={confettiPicture} />
-          </Group>
-        </Canvas>
+        <ScratchConfettiCanvas
+          dom={{
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: screenWidth,
+              height: screenHeight,
+              pointerEvents: 'none',
+            },
+          }}
+          width={screenWidth}
+          height={screenHeight}
+          trigger
+        />
       )}
 
       {/* Milestone flash overlay */}
@@ -687,10 +640,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  fullScreen: {
-    ...StyleSheet.absoluteFillObject,
-    pointerEvents: 'none',
   },
   milestoneFlash: {
     ...StyleSheet.absoluteFillObject,
