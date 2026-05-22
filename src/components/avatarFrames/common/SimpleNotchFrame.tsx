@@ -2,11 +2,12 @@
  * SimpleNotchFrame — 缺角
  *
  * 四角各有三角形缺口。Common 级头像框模板。
+ * SVG string → data URL → Image 渲染，不依赖 react-native-svg。
  */
-import { memo, useId } from 'react';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import { memo, useMemo } from 'react';
 
 import type { FrameProps } from '../FrameProps';
+import { SvgFrame } from '../SvgFrame';
 import type { FrameColorSet } from './palette';
 
 interface ColoredFrameProps extends FrameProps {
@@ -29,25 +30,22 @@ function notchPath(n: number): string {
 }
 
 export const SimpleNotchFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const userId = useId();
-  const gradId = `notchGrad${userId}`;
-  const notch = Math.min(rx * 0.6, 15);
-  return (
-    <Svg width={size} height={size} viewBox="-8 -8 116 116">
-      <Defs>
-        <LinearGradient id={gradId} x1="0.5" y1="0" x2="0.5" y2="1">
-          <Stop offset="0" stopColor={colors.light} stopOpacity={0.45} />
-          <Stop offset="1" stopColor={colors.primary} stopOpacity={0.7} />
-        </LinearGradient>
-      </Defs>
-      <Path
-        d={notchPath(notch)}
-        fill="none"
-        stroke={`url(#${gradId})`}
-        strokeWidth={2}
-        strokeLinejoin="round"
-      />
-    </Svg>
+  const buildSvg = useMemo(
+    () => (rxVal: number) => {
+      const notch = Math.min(rxVal * 0.6, 15);
+      return (
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 116 116">` +
+        `<defs><linearGradient id="a" x1="0.5" y1="0" x2="0.5" y2="1">` +
+        `<stop offset="0" stop-color="${colors.light}" stop-opacity="0.45"/>` +
+        `<stop offset="1" stop-color="${colors.primary}" stop-opacity="0.7"/>` +
+        `</linearGradient></defs>` +
+        `<path d="${notchPath(notch)}" fill="none" stroke="url(#a)" stroke-width="2" stroke-linejoin="round"/>` +
+        `</svg>`
+      );
+    },
+    [colors.primary, colors.light],
   );
+
+  return <SvgFrame size={size} rx={rx} buildSvg={buildSvg} />;
 });
 SimpleNotchFrame.displayName = 'SimpleNotchFrame';

@@ -2,11 +2,12 @@
  * SimpleDoubleFrame — 双线
  *
  * 双层同色边框。Common 级头像框模板。
+ * SVG string → data URL → Image 渲染，不依赖 react-native-svg。
  */
-import { memo, useId } from 'react';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { memo, useMemo } from 'react';
 
 import type { FrameProps } from '../FrameProps';
+import { SvgFrame } from '../SvgFrame';
 import type { FrameColorSet } from './palette';
 
 interface ColoredFrameProps extends FrameProps {
@@ -14,41 +15,25 @@ interface ColoredFrameProps extends FrameProps {
 }
 
 export const SimpleDoubleFrame = memo<ColoredFrameProps>(({ size, rx, colors }) => {
-  const userId = useId();
-  const gradId = `dblGrad${userId}`;
-  const innerRx = Math.max(rx - 6, 2);
-  return (
-    <Svg width={size} height={size} viewBox="-8 -8 116 116">
-      <Defs>
-        <LinearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.primary} stopOpacity={0.9} />
-          <Stop offset="1" stopColor={colors.dark} stopOpacity={0.8} />
-        </LinearGradient>
-      </Defs>
-      {/* Outer border */}
-      <Rect
-        x={0}
-        y={0}
-        width={100}
-        height={100}
-        rx={rx}
-        fill="none"
-        stroke={`url(#${gradId})`}
-        strokeWidth={1.5}
-      />
-      {/* Inner border */}
-      <Rect
-        x={6}
-        y={6}
-        width={88}
-        height={88}
-        rx={innerRx}
-        fill="none"
-        stroke={colors.primary}
-        strokeWidth={1}
-        opacity={0.45}
-      />
-    </Svg>
+  const buildSvg = useMemo(
+    () => (rxVal: number) => {
+      const innerRx = Math.max(rxVal - 6, 2);
+      return (
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 -8 116 116">` +
+        `<defs>` +
+        `<linearGradient id="a" x1="0" y1="0" x2="0" y2="1">` +
+        `<stop offset="0" stop-color="${colors.primary}" stop-opacity="0.9"/>` +
+        `<stop offset="1" stop-color="${colors.dark}" stop-opacity="0.8"/>` +
+        `</linearGradient>` +
+        `</defs>` +
+        `<rect x="0" y="0" width="100" height="100" rx="${rxVal}" fill="none" stroke="url(#a)" stroke-width="1.5"/>` +
+        `<rect x="6" y="6" width="88" height="88" rx="${innerRx}" fill="none" stroke="${colors.primary}" stroke-width="1" opacity="0.45"/>` +
+        `</svg>`
+      );
+    },
+    [colors.primary, colors.dark],
   );
+
+  return <SvgFrame size={size} rx={rx} buildSvg={buildSvg} />;
 });
 SimpleDoubleFrame.displayName = 'SimpleDoubleFrame';
