@@ -1,36 +1,20 @@
 /**
- * TarotDraw - 塔罗牌占卜揭示效果（Reanimated 4 + Skia）
+ * TarotDraw - 塔罗牌占卜揭示效果（Canvas 2D + Reanimated 4）
  *
  * 动画流程：星空+水晶球+蜡烛的占卜场景 → 牌从桌面转盘旋转 →
  * 玩家点选 → 金色光丝拖尾飞向中央 → 六角魔法阵浮现 → 翻转揭示 → 命运之语。
- * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段，无 `setTimeout`。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * 使用 `useSharedValue` 驱动所有动画，Canvas DOM Component 负责场景渲染。
+ * 不 import service，不含业务逻辑。
  */
-import {
-  Blur,
-  Canvas,
-  Circle,
-  Group,
-  Image as SkiaImage,
-  Line as SkiaLine,
-  LinearGradient as SkiaLinearGradient,
-  Path as SkiaPath,
-  RadialGradient,
-  RoundedRect,
-  useTexture,
-  vec,
-} from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
   interpolate,
-  type SharedValue,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -43,7 +27,6 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
-import { SkiaSparkle } from '@/components/RoleRevealEffects/common/effects/SkiaSparkle';
 import { HintWithWarning } from '@/components/RoleRevealEffects/common/HintWithWarning';
 import { RoleCardContent } from '@/components/RoleRevealEffects/common/RoleCardContent';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
@@ -56,33 +39,15 @@ import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { borderRadius, colors, crossPlatformTextShadow } from '@/theme';
 
+import { CardBackView } from './CardBackView';
+import TarotSceneCanvas from './TarotSceneCanvas';
+
 // ─── Visual constants ──────────────────────────────────────────────────
 const TAROT_COLORS = {
-  cardBack: ['#2a2a4e', '#3d3d64', '#2a2a4e'] as const,
   gold: '#d4af37',
   goldGlow: '#ffd700',
-  cardFrontGradient: ['#f5f5f5', '#ffffff', '#f5f5f5'] as const,
-  starfield: '#c8c8ff',
-  candleYellow: '#ffe066',
-  candleOrange: '#ff9933',
-  candleRed: '#ff4400',
-  velvet: '#1a0a2e',
   velvetFringe: '#c9a84c',
-  crystalBall: '#6644aa',
-  crystalHighlight: '#ffffff',
-  magicCircle: '#c9a84c',
 };
-
-// ─── Pre-computed stars ────────────────────────────────────────────────
-function createTarotStars(screenW: number, screenH: number) {
-  return Array.from({ length: 30 }, (_, i) => ({
-    x: (((i * 73 + 17) % 100) / 100) * screenW,
-    y: (((i * 41 + 31) % 100) / 100) * screenH * 0.65,
-    r: 0.5 + (((i * 59 + 7) % 100) / 100) * 1.2,
-    twinkle: i < 5,
-    phase: ((i * 83 + 11) % 628) / 100,
-  }));
-}
 
 // ─── Fortune quotes per alignment ──────────────────────────────────────
 const FORTUNE_QUOTES: Record<string, string> = {
@@ -92,176 +57,10 @@ const FORTUNE_QUOTES: Record<string, string> = {
   third: '迷雾深处，命运未知…',
 };
 
-// ─── Magic circle hexagram path (centered at 0,0, radius 1) ───────────
-function buildHexagramPath(cx: number, cy: number, radius: number): string {
-  const pts: [number, number][] = [];
-  // Two overlapping triangles
-  for (let t = 0; t < 2; t++) {
-    const offset = t * (Math.PI / 6);
-    const tri: [number, number][] = [];
-    for (let i = 0; i < 3; i++) {
-      const angle = offset + (Math.PI * 2 * i) / 3 - Math.PI / 2;
-      tri.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
-    }
-    pts.push(...tri, tri[0]!); // close the triangle
-  }
-  // path: M p0 L p1 L p2 Z M p3 L p4 L p5 Z
-  return (
-    `M ${pts[0]![0]} ${pts[0]![1]} L ${pts[1]![0]} ${pts[1]![1]} L ${pts[2]![0]} ${pts[2]![1]} Z ` +
-    `M ${pts[4]![0]} ${pts[4]![1]} L ${pts[5]![0]} ${pts[5]![1]} L ${pts[6]![0]} ${pts[6]![1]} Z`
-  );
-}
-
 interface WheelCard {
   id: number;
   angle: number;
 }
-
-// ─── Card back content (pure Skia elements for useTexture) ─────────────
-const CARD_BACK_PADDING = 6;
-const CARD_BACK_BORDER_WIDTH = 2;
-const CARD_BACK_MOON_R = 10;
-const CARD_BACK_STAR_SPACING = 24;
-const CARD_BACK_STAR_LEN = 6;
-const CARD_BACK_DIAG_LEN = 4;
-
-/**
- * Pure Skia element tree for card back face.
- * Used as input to `useTexture` — cannot contain RN Views.
- * Renders: gradient background + gold border + crescent moon + 3 sparkle stars + vine decorations.
- */
-function CardBackSkiaContent({ width, height }: { width: number; height: number }) {
-  const outerR = borderRadius.medium;
-  const cx = width / 2;
-  const moonY = height * 0.32;
-  const starY = height * 0.48;
-  const vineY = height * 0.62;
-  const innerX = CARD_BACK_PADDING;
-  const innerY = CARD_BACK_PADDING;
-  const innerW = width - CARD_BACK_PADDING * 2;
-  const innerH = height - CARD_BACK_PADDING * 2;
-  const innerR = borderRadius.small;
-
-  return (
-    <Group>
-      {/* Gradient background */}
-      <RoundedRect x={0} y={0} width={width} height={height} r={outerR}>
-        <SkiaLinearGradient
-          start={vec(0, 0)}
-          end={vec(width, height)}
-          colors={[...TAROT_COLORS.cardBack]}
-        />
-      </RoundedRect>
-      {/* Gold border (inset) */}
-      <RoundedRect
-        x={innerX}
-        y={innerY}
-        width={innerW}
-        height={innerH}
-        r={innerR}
-        style="stroke"
-        strokeWidth={CARD_BACK_BORDER_WIDTH}
-        color={TAROT_COLORS.gold}
-      />
-      {/* Crescent moon — glow BEHIND body so cutout stays visible */}
-      <Circle cx={cx} cy={moonY} r={CARD_BACK_MOON_R + 3} color={TAROT_COLORS.goldGlow}>
-        <Blur blur={1} />
-      </Circle>
-      <Circle cx={cx} cy={moonY} r={CARD_BACK_MOON_R} color={TAROT_COLORS.gold} />
-      <Circle
-        cx={cx + 4}
-        cy={moonY - 2}
-        r={CARD_BACK_MOON_R - 2}
-        color={TAROT_COLORS.cardBack[0]}
-      />
-      {/* Three cross-sparkle stars */}
-      {[-1, 0, 1].map((offset) => {
-        const sx = cx + offset * CARD_BACK_STAR_SPACING;
-        return (
-          <React.Fragment key={`star-${offset}`}>
-            <SkiaLine
-              p1={vec(sx, starY - CARD_BACK_STAR_LEN)}
-              p2={vec(sx, starY + CARD_BACK_STAR_LEN)}
-              color={TAROT_COLORS.gold}
-              style="stroke"
-              strokeWidth={1.2}
-              strokeCap="round"
-            />
-            <SkiaLine
-              p1={vec(sx - CARD_BACK_STAR_LEN, starY)}
-              p2={vec(sx + CARD_BACK_STAR_LEN, starY)}
-              color={TAROT_COLORS.gold}
-              style="stroke"
-              strokeWidth={1.2}
-              strokeCap="round"
-            />
-            <SkiaLine
-              p1={vec(sx - CARD_BACK_DIAG_LEN, starY - CARD_BACK_DIAG_LEN)}
-              p2={vec(sx + CARD_BACK_DIAG_LEN, starY + CARD_BACK_DIAG_LEN)}
-              color={TAROT_COLORS.gold}
-              style="stroke"
-              strokeWidth={0.7}
-              strokeCap="round"
-            />
-            <SkiaLine
-              p1={vec(sx + CARD_BACK_DIAG_LEN, starY - CARD_BACK_DIAG_LEN)}
-              p2={vec(sx - CARD_BACK_DIAG_LEN, starY + CARD_BACK_DIAG_LEN)}
-              color={TAROT_COLORS.gold}
-              style="stroke"
-              strokeWidth={0.7}
-              strokeCap="round"
-            />
-            <Circle cx={sx} cy={starY} r={1.5} color={TAROT_COLORS.gold} />
-          </React.Fragment>
-        );
-      })}
-      {/* Vine/flourish decorations */}
-      <Circle cx={cx - 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
-      <SkiaLine
-        p1={vec(cx - 12, vineY)}
-        p2={vec(cx + 12, vineY)}
-        color={TAROT_COLORS.gold}
-        style="stroke"
-        strokeWidth={0.8}
-        strokeCap="round"
-        opacity={0.4}
-      />
-      <Circle cx={cx + 20} cy={vineY} r={3} color={TAROT_COLORS.gold} opacity={0.5} />
-      {/* Central diamond accent */}
-      <SkiaPath
-        path={`M ${cx} ${vineY - 5} L ${cx + 4} ${vineY} L ${cx} ${vineY + 5} L ${cx - 4} ${vineY} Z`}
-        color={TAROT_COLORS.gold}
-        opacity={0.6}
-      />
-    </Group>
-  );
-}
-
-// ─── Twinkling star (Skia sparkle cross, driven by shared cycle) ───────
-const TwinklingStar: React.FC<{
-  x: number;
-  y: number;
-  r: number;
-  phase: number;
-  cycle: SharedValue<number>;
-}> = React.memo(({ x, y, r, phase, cycle }) => {
-  const opacity = useDerivedValue(() => 0.3 + Math.sin(cycle.value + phase) * 0.3);
-  const isBright = r > 1.0;
-
-  return (
-    <Group opacity={opacity}>
-      <SkiaSparkle
-        x={x}
-        y={y}
-        r={r}
-        color={TAROT_COLORS.starfield}
-        bright={isBright}
-        glowBlur={isBright ? 5 : 3}
-      />
-    </Group>
-  );
-});
-TwinklingStar.displayName = 'TwinklingStar';
 
 // ─── Main component ─────────────────────────────────────────────────────
 export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
@@ -273,16 +72,14 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const tarotStars = useMemo(
-    () => createTarotStars(screenWidth, screenHeight),
-    [screenWidth, screenHeight],
-  );
   const alignmentThemes = useMemo(() => createAlignmentThemes(colors), []);
   const theme = alignmentThemes[role.alignment];
   const config = CONFIG.tarot ?? { flipDuration: 800, revealHoldDuration: 1500 };
 
   const [phase, setPhase] = useState<'waiting' | 'drawing' | 'flipping' | 'revealed'>('waiting');
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [flipStartTime, setFlipStartTime] = useState(0);
+  const [drawStartTime, setDrawStartTime] = useState(0);
   const { fireComplete } = useRevealLifecycle({
     onComplete,
     revealHoldDurationMs: config.revealHoldDuration,
@@ -292,6 +89,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
   const wheelRadius = Math.min(screenWidth * 0.32, 130);
+  const mcRadius = cardWidth * 0.55;
 
   const wheelCards: WheelCard[] = useMemo(() => {
     const count = 8;
@@ -301,30 +99,15 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     }));
   }, []);
 
-  // ── Card back texture (pre-rasterized on UI thread via useTexture) ──
-  const cardBackTexture = useTexture(
-    <CardBackSkiaContent width={cardWidth} height={cardHeight} />,
-    { width: cardWidth, height: cardHeight },
-  );
-
   // ── Shared values ──
-  const wheelRotation = useSharedValue(0); // 0→1 = one full turn
+  const wheelRotation = useSharedValue(0);
   const wheelOpacity = useSharedValue(1);
   const wheelScale = useSharedValue(1);
   const drawnCardX = useSharedValue(0);
   const drawnCardY = useSharedValue(-wheelRadius);
   const drawnCardScale = useSharedValue(1);
   const drawnCardOpacity = useSharedValue(0);
-  const flipProgress = useSharedValue(0); // 0 = back, 1 = front
-
-  // Scene element shared values
-  const starCycle = useSharedValue(0);
-  const candleFlicker = useSharedValue(0);
-  const crystalPulse = useSharedValue(0);
-  const magicCircleRotation = useSharedValue(0);
-  const magicCircleOpacity = useSharedValue(0);
-  const trailOpacity = useSharedValue(0);
-  const trailOp = useDerivedValue(() => trailOpacity.value);
+  const flipProgress = useSharedValue(0);
   const fortuneOpacity = useSharedValue(0);
   const velvetOpacity = useSharedValue(0);
 
@@ -332,22 +115,13 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
     if (enableHaptics) void triggerHaptic('heavy', true);
-    // Fortune quote fades in
     fortuneOpacity.value = withDelay(400, withTiming(1, { duration: 800 }));
-    // Magic circle fades out
-    magicCircleOpacity.value = withDelay(500, withTiming(0, { duration: 600 }));
-  }, [enableHaptics, fortuneOpacity, magicCircleOpacity]);
+  }, [enableHaptics, fortuneOpacity]);
 
   const startFlipping = useCallback(() => {
     setPhase('flipping');
+    setFlipStartTime(performance.now());
     if (enableHaptics) void triggerHaptic('medium', true);
-
-    // Magic circle appears and spins
-    magicCircleOpacity.value = withTiming(0.5, { duration: 300 });
-    magicCircleRotation.value = withRepeat(
-      withTiming(Math.PI * 2, { duration: 5000, easing: Easing.linear }),
-      -1,
-    );
 
     flipProgress.value = withTiming(
       1,
@@ -357,19 +131,10 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
         if (finished) scheduleOnRN(enterRevealed);
       },
     );
-  }, [
-    flipProgress,
-    config.flipDuration,
-    enableHaptics,
-    enterRevealed,
-    magicCircleOpacity,
-    magicCircleRotation,
-  ]);
+  }, [flipProgress, config.flipDuration, enableHaptics, enterRevealed]);
 
   const beginFlipAfterDelay = useCallback(() => {
-    // Small pause before flip
     drawnCardScale.value = withDelay(300, withTiming(1, { duration: 1 }));
-    // Use a dummy animation to trigger the callback after 300ms
     flipProgress.value = withDelay(
       300,
       withTiming(0, { duration: 1 }, (finished) => {
@@ -381,14 +146,10 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
   const startDrawing = useCallback(() => {
     setPhase('drawing');
+    setDrawStartTime(performance.now());
     if (enableHaptics) void triggerHaptic('medium', true);
 
     drawnCardOpacity.value = 1;
-    // Trail light shows during flight
-    trailOpacity.value = withSequence(
-      withTiming(0.7, { duration: 100 }),
-      withDelay(400, withTiming(0, { duration: 300 })),
-    );
 
     // Fade out wheel
     wheelScale.value = withTiming(0.5, { duration: 400 });
@@ -411,15 +172,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     drawnCardX,
     drawnCardY,
     drawnCardOpacity,
-    trailOpacity,
     wheelScale,
     wheelOpacity,
     enableHaptics,
     beginFlipAfterDelay,
   ]);
 
-  // Current wheel rotation value (tracked via a ref updated in onUpdate callback-free way,
-  // but since Reanimated shared values can be read on JS thread, we use .value directly)
   const handleCardSelect = useCallback(
     (cardIndex: number) => {
       if (phase !== 'waiting') return;
@@ -463,25 +221,8 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       return;
     }
 
-    // Slow spin: 4 seconds per revolution, infinite loop
+    // Slow spin: 4 seconds per revolution
     wheelRotation.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-
-    // Scene animations
-    starCycle.value = withRepeat(
-      withTiming(Math.PI * 2, { duration: 6000, easing: Easing.linear }),
-      -1,
-    );
-    candleFlicker.value = withRepeat(
-      withTiming(Math.PI * 2, { duration: 800, easing: Easing.linear }),
-      -1,
-    );
-    crystalPulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
     // Velvet table fades in
     velvetOpacity.value = withTiming(1, { duration: 800 });
   }, [
@@ -491,9 +232,6 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     drawnCardOpacity,
     drawnCardScale,
     wheelRotation,
-    starCycle,
-    candleFlicker,
-    crystalPulse,
     velvetOpacity,
     fireComplete,
   ]);
@@ -536,236 +274,34 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     transform: [{ scaleX: -1 }],
   }));
 
-  // ── Skia derived values ──
-  const crystalGlowOpacity = useDerivedValue(() => 0.2 + crystalPulse.value * 0.15);
-  const crystalInnerR = useDerivedValue(() => 28 + crystalPulse.value * 4);
-
-  // Candle flame flicker
-  const candleLeftFy = useDerivedValue(
-    () => screenHeight * 0.35 - 14 - Math.sin(candleFlicker.value) * 2,
-  );
-  const candleRightFy = useDerivedValue(
-    () => screenHeight * 0.35 - 14 - Math.sin(candleFlicker.value * 1.3 + 1) * 2,
-  );
-  const candleLeftOp = useDerivedValue(() => 0.7 + Math.sin(candleFlicker.value * 2.1) * 0.2);
-  const candleRightOp = useDerivedValue(() => 0.7 + Math.sin(candleFlicker.value * 1.7 + 2) * 0.2);
-
-  // Magic circle path
-  const mcCx = screenWidth / 2;
-  const mcCy = screenHeight / 2;
-  const mcRadius = cardWidth * 0.55;
-  const hexagramPath = useMemo(
-    () => buildHexagramPath(mcCx, mcCy, mcRadius),
-    [mcCx, mcCy, mcRadius],
-  );
-  const mcRotation = useDerivedValue(() => [{ rotate: magicCircleRotation.value }]);
-  const mcOp = useDerivedValue(() => magicCircleOpacity.value);
-
-  // Velvet table animated style
   const velvetStyle = useAnimatedStyle(() => ({
     opacity: velvetOpacity.value,
   }));
 
-  // Fortune text animated style
   const fortuneStyle = useAnimatedStyle(() => ({
     opacity: fortuneOpacity.value,
   }));
 
-  // ── Render ──
+  // Canvas scene phase
+  const scenePhase = reducedMotion ? 'hidden' : phase;
+
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* ── Skia Scene Layer (stars, crystal ball, candles, magic circle, trail) ── */}
+      {/* Canvas scene layer (stars, crystal ball, candles, magic circle, trail) */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen}>
-          {/* Star sky background — 30 dots */}
-          <Group blendMode="screen">
-            {tarotStars.map((star, i) => {
-              if (!star.twinkle) {
-                return (
-                  <Circle
-                    key={`star-${i}`}
-                    cx={star.x}
-                    cy={star.y}
-                    r={star.r}
-                    color={TAROT_COLORS.starfield}
-                    opacity={0.35}
-                  />
-                );
-              }
-              return (
-                <TwinklingStar
-                  key={`star-${i}`}
-                  x={star.x}
-                  y={star.y}
-                  r={star.r}
-                  phase={star.phase}
-                  cycle={starCycle}
-                />
-              );
-            })}
-          </Group>
-
-          {/* Crystal ball — top center */}
-          <Group>
-            {/* Outer glow */}
-            <Circle cx={screenWidth / 2} cy={screenHeight * 0.18} r={36}>
-              <RadialGradient
-                c={vec(screenWidth / 2, screenHeight * 0.18)}
-                r={36}
-                colors={[`${TAROT_COLORS.crystalBall}40`, `${TAROT_COLORS.crystalBall}00`]}
-              />
-              <Blur blur={12} />
-            </Circle>
-            {/* Ball body */}
-            <Circle cx={screenWidth / 2} cy={screenHeight * 0.18} r={22} color="#221144">
-              <RadialGradient
-                c={vec(screenWidth / 2 - 5, screenHeight * 0.18 - 5)}
-                r={22}
-                colors={['#443388', '#1a0a2e']}
-              />
-            </Circle>
-            {/* Inner fog glow */}
-            <Circle
-              cx={screenWidth / 2}
-              cy={screenHeight * 0.18}
-              r={crystalInnerR}
-              opacity={crystalGlowOpacity}
-            >
-              <RadialGradient
-                c={vec(screenWidth / 2, screenHeight * 0.18)}
-                r={30}
-                colors={[`${TAROT_COLORS.crystalBall}80`, `${TAROT_COLORS.crystalBall}00`]}
-              />
-              <Blur blur={6} />
-            </Circle>
-            {/* Glass highlight */}
-            <Circle
-              cx={screenWidth / 2 - 7}
-              cy={screenHeight * 0.18 - 7}
-              r={5}
-              color="#ffffff"
-              opacity={0.25}
-            >
-              <Blur blur={2} />
-            </Circle>
-            {/* Base */}
-            <Circle
-              cx={screenWidth / 2}
-              cy={screenHeight * 0.18 + 22}
-              r={8}
-              color="#332244"
-              opacity={0.6}
-            />
-          </Group>
-
-          {/* Left candle */}
-          <Group>
-            {/* Candle body */}
-            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35} r={5} color="#e8d8b8" />
-            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35 + 8} r={5} color="#e0c8a0" />
-            {/* Flame layers */}
-            <Circle cx={screenWidth * 0.12} cy={candleLeftFy} r={6} opacity={candleLeftOp}>
-              <RadialGradient
-                c={vec(screenWidth * 0.12, screenHeight * 0.35 - 14)}
-                r={8}
-                colors={[TAROT_COLORS.candleYellow, TAROT_COLORS.candleOrange, '#ff440000']}
-              />
-              <Blur blur={4} />
-            </Circle>
-            {/* Flame glow */}
-            <Circle cx={screenWidth * 0.12} cy={screenHeight * 0.35 - 14} r={16} opacity={0.12}>
-              <RadialGradient
-                c={vec(screenWidth * 0.12, screenHeight * 0.35 - 14)}
-                r={16}
-                colors={[TAROT_COLORS.candleYellow, '#00000000']}
-              />
-              <Blur blur={8} />
-            </Circle>
-          </Group>
-
-          {/* Right candle */}
-          <Group>
-            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35} r={5} color="#e8d8b8" />
-            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35 + 8} r={5} color="#e0c8a0" />
-            <Circle cx={screenWidth * 0.88} cy={candleRightFy} r={6} opacity={candleRightOp}>
-              <RadialGradient
-                c={vec(screenWidth * 0.88, screenHeight * 0.35 - 14)}
-                r={8}
-                colors={[TAROT_COLORS.candleYellow, TAROT_COLORS.candleOrange, '#ff440000']}
-              />
-              <Blur blur={4} />
-            </Circle>
-            <Circle cx={screenWidth * 0.88} cy={screenHeight * 0.35 - 14} r={16} opacity={0.12}>
-              <RadialGradient
-                c={vec(screenWidth * 0.88, screenHeight * 0.35 - 14)}
-                r={16}
-                colors={[TAROT_COLORS.candleYellow, '#00000000']}
-              />
-              <Blur blur={8} />
-            </Circle>
-          </Group>
-
-          {/* Magic circle — appears during flip */}
-          <Group opacity={mcOp} transform={mcRotation} origin={vec(mcCx, mcCy)}>
-            {/* Outer ring */}
-            <Circle
-              cx={mcCx}
-              cy={mcCy}
-              r={mcRadius}
-              color={TAROT_COLORS.magicCircle}
-              style="stroke"
-              strokeWidth={1}
-            >
-              <Blur blur={2} />
-            </Circle>
-            {/* Inner ring */}
-            <Circle
-              cx={mcCx}
-              cy={mcCy}
-              r={mcRadius * 0.7}
-              color={TAROT_COLORS.magicCircle}
-              style="stroke"
-              strokeWidth={0.8}
-            >
-              <Blur blur={1} />
-            </Circle>
-            {/* Hexagram */}
-            <SkiaPath
-              path={hexagramPath}
-              color={TAROT_COLORS.magicCircle}
-              style="stroke"
-              strokeWidth={1}
-            >
-              <Blur blur={1.5} />
-            </SkiaPath>
-            {/* 6 arc-segment decorations */}
-            {[0, 1, 2, 3, 4, 5].map((i) => {
-              const angle = (Math.PI * 2 * i) / 6;
-              const px = mcCx + Math.cos(angle) * mcRadius * 0.85;
-              const py = mcCy + Math.sin(angle) * mcRadius * 0.85;
-              return (
-                <Circle key={`mc-dot-${i}`} cx={px} cy={py} r={2} color={TAROT_COLORS.gold}>
-                  <Blur blur={2} />
-                </Circle>
-              );
-            })}
-          </Group>
-
-          {/* Trail light arc — visible during drawing phase */}
-          <Group opacity={trailOp} blendMode="screen">
-            <SkiaLine
-              p1={vec(screenWidth / 2, screenHeight / 2 - wheelRadius)}
-              p2={vec(screenWidth / 2, screenHeight / 2)}
-              color={TAROT_COLORS.goldGlow}
-              strokeWidth={3}
-              style="stroke"
-            >
-              <Blur blur={6} />
-            </SkiaLine>
-          </Group>
-        </Canvas>
+        <TarotSceneCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight } }}
+          width={screenWidth}
+          height={screenHeight}
+          phase={scenePhase}
+          flipStartTime={flipStartTime}
+          drawStartTime={drawStartTime}
+          magicCircleCx={screenWidth / 2}
+          magicCircleCy={screenHeight / 2}
+          magicCircleRadius={mcRadius}
+        />
       )}
 
       {/* Velvet table cloth — bottom 1/3 */}
@@ -819,16 +355,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
                   disabled={phase !== 'waiting'}
                   style={styles.pressableFill}
                 >
-                  <Canvas style={styles.pressableFill}>
-                    <SkiaImage
-                      image={cardBackTexture}
-                      x={0}
-                      y={0}
-                      width={cardWidth * 0.32}
-                      height={cardHeight * 0.32}
-                      fit="fill"
-                    />
-                  </Canvas>
+                  <CardBackView width={cardWidth * 0.32} height={cardHeight * 0.32} />
                 </Pressable>
               </View>
             );
@@ -848,16 +375,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       >
         {/* Card back */}
         <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
-          <Canvas style={styles.pressableFill}>
-            <SkiaImage
-              image={cardBackTexture}
-              x={0}
-              y={0}
-              width={cardWidth}
-              height={cardHeight}
-              fit="fill"
-            />
-          </Canvas>
+          <CardBackView width={cardWidth} height={cardHeight} />
         </Animated.View>
 
         {/* Card front */}
@@ -914,10 +432,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#070012',
   },
-  fullScreen: {
-    ...StyleSheet.absoluteFillObject,
-    pointerEvents: 'none',
-  },
   wheel: {
     position: 'absolute',
     justifyContent: 'center',
@@ -948,11 +462,6 @@ const styles = StyleSheet.create({
   },
   cardFrontZ: {
     zIndex: 1,
-  },
-  glowBorder: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
   },
   hidden: {
     opacity: 0,
