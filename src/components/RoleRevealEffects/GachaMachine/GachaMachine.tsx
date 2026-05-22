@@ -6,7 +6,7 @@
  * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
+
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -15,7 +15,6 @@ import Animated, {
   cancelAnimation,
   Easing,
   useAnimatedStyle,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -39,6 +38,8 @@ import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { colors, crossPlatformTextShadow } from '@/theme';
+
+import GachaMachineCanvas from './GachaMachineCanvas';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -117,11 +118,7 @@ const CONFETTI_STARS = Array.from({ length: 16 }, (_, i) => ({
   color: [GACHA_COLORS.confettiGold, GACHA_COLORS.confettiPink, GACHA_COLORS.confettiCyan][i % 3]!,
 }));
 
-// ─── Immediate-mode Skia resources (reused across frames) ──
-const rotaryRecorder = Skia.PictureRecorder();
-const rotaryPaint = Skia.Paint();
-const confettiStarRecorder = Skia.PictureRecorder();
-const confettiStarPaint = Skia.Paint();
+
 
 // ─── Tiny capsule inside dome ───────────────────────────────────────────
 const TinyCapsule: React.FC<{
@@ -217,49 +214,14 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const bobble = useSharedValue(0);
 
   // Scene element shared values
-  const rotaryLightCycle = useSharedValue(0);
   const coinSlideY = useSharedValue(-40);
   const coinOpacity = useSharedValue(0);
   const crackOpacity = useSharedValue(0);
-  const confettiProgress = useSharedValue(0);
-  const confettiOpacity = useSharedValue(0);
   const rarityOpacity = useSharedValue(0);
   const rarityScale = useSharedValue(0.5);
 
-  // ── Picture API: batch rotary lights (8→1 draw call) ──
-  const rotaryPicture = useDerivedValue(() => {
-    'worklet';
-    const c = rotaryRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
-    for (let i = 0; i < rotaryLights.length; i++) {
-      const light = rotaryLights[i]!;
-      const opacity = 0.3 + Math.sin(rotaryLightCycle.value + light.phase) * 0.3;
-      rotaryPaint.setColor(Skia.Color(light.color));
-      rotaryPaint.setAlphaf(opacity);
-      c.drawCircle(light.x, light.y, 6, rotaryPaint);
-    }
-    return rotaryRecorder.finishRecordingAsPicture();
-  });
-
-  // ── Picture API: batch confetti stars (16→1 draw call) ──
-  const confettiPicture = useDerivedValue(() => {
-    'worklet';
-    const c = confettiStarRecorder.beginRecording(Skia.XYWHRect(0, 0, screenWidth, screenHeight));
-    const op = confettiOpacity.value;
-    if (op > 0) {
-      for (let i = 0; i < CONFETTI_STARS.length; i++) {
-        const star = CONFETTI_STARS[i]!;
-        const cx = screenWidth / 2 + Math.cos(star.angle) * star.speed * confettiProgress.value;
-        const cy =
-          screenHeight / 2 +
-          Math.sin(star.angle) * star.speed * confettiProgress.value -
-          20 * confettiProgress.value;
-        confettiStarPaint.setColor(Skia.Color(star.color));
-        confettiStarPaint.setAlphaf(op);
-        c.drawCircle(cx, cy, star.r, confettiStarPaint);
-      }
-    }
-    return confettiStarRecorder.finishRecordingAsPicture();
-  });
+  // Track confetti start time for canvas component
+  const [confettiStartTime, setConfettiStartTime] = useState(0);
 
   // Random tiny capsules (stable across re-renders)
   const [tinyCapsules] = useState(() => {
@@ -288,29 +250,19 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       -1,
     );
 
-    // Rotary lights cycle
-    rotaryLightCycle.value = withRepeat(
-      withTiming(Math.PI * 2, { duration: 3000, easing: Easing.linear }),
-      -1,
-    );
-
     return () => {
       cancelAnimation(bobble);
       bobble.value = 0;
     };
-  }, [phase, reducedMotion, bobble, rotaryLightCycle]);
+  }, [phase, reducedMotion, bobble]);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
     machineOpacityAnim.value = withTiming(0, { duration: 300 });
 
-    // Confetti burst
-    confettiOpacity.value = withSequence(
-      withTiming(1, { duration: 100 }),
-      withDelay(800, withTiming(0, { duration: 400 })),
-    );
-    confettiProgress.value = withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) });
+    // Confetti burst (tracked via timestamp for canvas)
+    setConfettiStartTime(performance.now());
 
     // Rarity label pop-in
     rarityOpacity.value = withDelay(300, withTiming(1, { duration: 300 }));
@@ -318,7 +270,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       300,
       withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
     );
-  }, [machineOpacityAnim, confettiOpacity, confettiProgress, rarityOpacity, rarityScale]);
+  }, [machineOpacityAnim, rarityOpacity, rarityScale]);
 
   // Open capsule → reveal card
   const openCapsule = useCallback(() => {
@@ -469,33 +421,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       />
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
-      {/* Skia scene layer: rotary lights + confetti */}
+      {/* Canvas scene layer: rotary lights + confetti */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen}>
-          {/* Rotary lights — Picture API batch with group-level blur */}
-          <Group
-            layer={
-              <Paint>
-                <Blur blur={4} />
-              </Paint>
-            }
-          >
-            <Picture picture={rotaryPicture} />
-          </Group>
-
-          {/* Confetti stars burst on reveal — Picture API batch with blur */}
-          {phase === 'revealed' && (
-            <Group
-              layer={
-                <Paint>
-                  <Blur blur={1} />
-                </Paint>
-              }
-            >
-              <Picture picture={confettiPicture} />
-            </Group>
-          )}
-        </Canvas>
+        <GachaMachineCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight } }}
+          width={screenWidth}
+          height={screenHeight}
+          rotaryLights={rotaryLights}
+          confettiStars={CONFETTI_STARS}
+          phase={phase === 'revealed' ? 'revealed' : 'active'}
+          confettiStartTime={confettiStartTime}
+          confettiDuration={1000}
+        />
       )}
 
       {/* Machine - fades out on reveal */}
