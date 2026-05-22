@@ -211,6 +211,7 @@ export default function WolfCrackBackgroundCanvas({
       canvas,
       width: cardWidth,
       height: cardHeight,
+      duration: EFFECT_START_DELAY + 2000,
       draw(ctx, elapsed) {
         const t = elapsed - EFFECT_START_DELAY;
         if (t < 0) return;

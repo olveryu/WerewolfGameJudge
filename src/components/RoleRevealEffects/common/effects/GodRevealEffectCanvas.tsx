@@ -107,6 +107,7 @@ export default function GodRevealEffectCanvas({
       canvas,
       width: cardWidth,
       height: cardHeight,
+      duration: EFFECT_START_DELAY + PARTICLE_START_DELAY + PARTICLE_LIFETIME,
       draw(ctx, elapsed) {
         const t = elapsed - EFFECT_START_DELAY;
         if (t < 0) return;

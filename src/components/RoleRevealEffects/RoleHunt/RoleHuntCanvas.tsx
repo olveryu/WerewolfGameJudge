@@ -488,7 +488,9 @@ export default function RoleHuntCanvas({
       }
 
       ctx!.globalAlpha = 1;
-      rafRef.current = requestAnimationFrame(draw);
+      if (showScope || burstActive) {
+        rafRef.current = requestAnimationFrame(draw);
+      }
     }
 
     rafRef.current = requestAnimationFrame(draw);

@@ -90,7 +90,7 @@ export default function ScreenFlash({
           progress = 1;
         }
 
-        if (progress >= 1) return;
+        if (progress >= 1) return false;
 
         // ── Radial shockwave ──
         const waveR = progress * width;

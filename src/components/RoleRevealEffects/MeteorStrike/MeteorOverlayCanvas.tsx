@@ -308,7 +308,9 @@ export default function MeteorOverlayCanvas({
         ctx!.globalAlpha = 1;
       }
 
-      rafRef.current = requestAnimationFrame(draw);
+      if (internalPhase !== 'hidden') {
+        rafRef.current = requestAnimationFrame(draw);
+      }
     }
 
     rafRef.current = requestAnimationFrame(draw);

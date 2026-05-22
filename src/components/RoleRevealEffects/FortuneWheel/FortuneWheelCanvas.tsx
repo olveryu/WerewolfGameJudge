@@ -296,7 +296,6 @@ export default function FortuneWheelCanvas({
       const scale = internalPhase === 'appear' ? scaleRef.current : 1;
       const opacity = internalPhase === 'appear' ? opacityRef.current : 1;
       if (internalPhase === 'hidden') {
-        rafRef.current = requestAnimationFrame(draw);
         return;
       }
 

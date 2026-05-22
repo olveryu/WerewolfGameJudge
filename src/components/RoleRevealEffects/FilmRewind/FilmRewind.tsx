@@ -237,7 +237,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
             }}
             width={screenW}
             height={screenH}
-            animate={!reducedMotion}
+            animate={!reducedMotion && phase !== 'revealed'}
           />
 
           {/* Flicker overlay */}

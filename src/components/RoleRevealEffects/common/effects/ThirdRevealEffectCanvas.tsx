@@ -139,6 +139,7 @@ export default function ThirdRevealEffectCanvas({
       canvas,
       width: cardWidth,
       height: cardHeight,
+      duration: EFFECT_START_DELAY + MAIN_DURATION + 500,
       draw(ctx, elapsed) {
         const t = elapsed - EFFECT_START_DELAY;
         if (t < 0) return;

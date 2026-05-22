@@ -74,6 +74,7 @@ export default function BreathingBorder({
       canvas,
       width: canvasW,
       height: canvasH,
+      duration: effectDisplayDuration,
       draw(ctx, elapsed) {
         // Breathing oscillation (0→1→0 cycle)
         const breathPhase = (elapsed % breathingDuration) / breathingDuration;
@@ -115,7 +116,7 @@ export default function BreathingBorder({
     });
 
     return cleanup;
-  }, [animate, cardWidth, cardHeight, color, glowColor, breathingDuration]);
+  }, [animate, cardWidth, cardHeight, color, glowColor, breathingDuration, effectDisplayDuration]);
 
   const canvasW = cardWidth + GLOW_PADDING * 3;
   const canvasH = cardHeight + GLOW_PADDING * 3;
