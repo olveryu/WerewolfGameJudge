@@ -39,11 +39,7 @@ interface FilmOverlayCanvasProps {
   animate: boolean;
 }
 
-export default function FilmOverlayCanvas({
-  width,
-  height,
-  animate,
-}: FilmOverlayCanvasProps) {
+export default function FilmOverlayCanvas({ width, height, animate }: FilmOverlayCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -81,8 +77,12 @@ export default function FilmOverlayCanvas({
       draw(ctx, elapsed) {
         // ── Warm projector glow ──
         const grad = ctx.createRadialGradient(
-          width / 2, height / 2, 0,
-          width / 2, height / 2, height * 0.7,
+          width / 2,
+          height / 2,
+          0,
+          width / 2,
+          height / 2,
+          height * 0.7,
         );
         grad.addColorStop(0, 'rgba(60, 50, 30, 0.25)');
         grad.addColorStop(0.5, 'rgba(30, 25, 15, 0.10)');
@@ -96,7 +96,8 @@ export default function FilmOverlayCanvas({
         ctx.fillRect(width - BORDER_W, 0, BORDER_W, height);
 
         // ── Sprocket holes (scrolling) ──
-        const scrollOffset = (elapsed % SPROCKET_SCROLL_PERIOD) / SPROCKET_SCROLL_PERIOD * SPROCKET_SPACING;
+        const scrollOffset =
+          ((elapsed % SPROCKET_SCROLL_PERIOD) / SPROCKET_SCROLL_PERIOD) * SPROCKET_SPACING;
         const leftCx = BORDER_W / 2;
         const rightCx = width - BORDER_W / 2;
 
@@ -105,7 +106,14 @@ export default function FilmOverlayCanvas({
           const y = (baseY + scrollOffset) % (sprocketCount * SPROCKET_SPACING);
 
           // Left outer
-          roundRect(ctx, leftCx - SPROCKET_HOLE_W / 2, y - SPROCKET_HOLE_H / 2, SPROCKET_HOLE_W, SPROCKET_HOLE_H, 2);
+          roundRect(
+            ctx,
+            leftCx - SPROCKET_HOLE_W / 2,
+            y - SPROCKET_HOLE_H / 2,
+            SPROCKET_HOLE_W,
+            SPROCKET_HOLE_H,
+            2,
+          );
           ctx.fillStyle = COLORS.sprocketOuter;
           ctx.fill();
           // Left inner
@@ -113,7 +121,14 @@ export default function FilmOverlayCanvas({
           ctx.fillStyle = COLORS.sprocketInner;
           ctx.fill();
           // Right outer
-          roundRect(ctx, rightCx - SPROCKET_HOLE_W / 2, y - SPROCKET_HOLE_H / 2, SPROCKET_HOLE_W, SPROCKET_HOLE_H, 2);
+          roundRect(
+            ctx,
+            rightCx - SPROCKET_HOLE_W / 2,
+            y - SPROCKET_HOLE_H / 2,
+            SPROCKET_HOLE_W,
+            SPROCKET_HOLE_H,
+            2,
+          );
           ctx.fillStyle = COLORS.sprocketOuter;
           ctx.fill();
           // Right inner
@@ -170,8 +185,12 @@ export default function FilmOverlayCanvas({
 
         // ── Vignette ──
         const vGrad = ctx.createRadialGradient(
-          width / 2, height / 2, 0,
-          width / 2, height / 2, height * 0.7,
+          width / 2,
+          height / 2,
+          0,
+          width / 2,
+          height / 2,
+          height * 0.7,
         );
         vGrad.addColorStop(0, 'transparent');
         vGrad.addColorStop(0.7, 'rgba(0,0,0,0.3)');

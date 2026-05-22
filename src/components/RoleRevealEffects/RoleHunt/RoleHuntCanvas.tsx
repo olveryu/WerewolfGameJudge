@@ -55,12 +55,12 @@ interface FireflyData {
 
 function generateFireflies(w: number, h: number): FireflyData[] {
   return Array.from({ length: 10 }, (_, i) => ({
-    cx: ((i * 73 + 17) % 100) / 100 * w,
-    cy: h * 0.3 + ((i * 41 + 31) % 100) / 100 * h * 0.5,
+    cx: (((i * 73 + 17) % 100) / 100) * w,
+    cy: h * 0.3 + (((i * 41 + 31) % 100) / 100) * h * 0.5,
     radius: 1 + ((i * 59) % 15) / 10,
     color: FIREFLY_COLORS[i % 5]!,
     driftRadius: 15 + ((i * 83 + 11) % 25),
-    driftPhase: ((i * 97 + 53) % 100) / 100 * Math.PI * 2,
+    driftPhase: (((i * 97 + 53) % 100) / 100) * Math.PI * 2,
     driftSpeed: 0.3 + ((i * 37 + 7) % 30) / 100,
     flickerSpeed: 1.5 + ((i * 43 + 19) % 60) / 100,
     baseOpacity: 0.3 + ((i * 67 + 23) % 50) / 100,
@@ -94,8 +94,8 @@ function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number) {
 
   // Stars
   for (let i = 0; i < 60; i++) {
-    const sx = ((i * 73 + 17) % 1000) / 1000 * w;
-    const sy = ((i * 41 + 31) % 1000) / 1000 * h * 0.45;
+    const sx = (((i * 73 + 17) % 1000) / 1000) * w;
+    const sy = (((i * 41 + 31) % 1000) / 1000) * h * 0.45;
     const sr = 0.5 + ((i * 59 + 7) % 20) / 10;
     const alpha = 0.3 + ((i * 83 + 11) % 70) / 100;
     ctx.globalAlpha = alpha;
@@ -161,8 +161,8 @@ function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.lineWidth = 1.5;
   ctx.lineCap = 'round';
   for (let i = 0; i < 80; i++) {
-    const gx = ((i * 73 + 17) % 1000) / 1000 * w;
-    const gy = groundY + ((i * 41 + 31) % 100) / 100 * (h - groundY) * 0.3;
+    const gx = (((i * 73 + 17) % 1000) / 1000) * w;
+    const gy = groundY + (((i * 41 + 31) % 100) / 100) * (h - groundY) * 0.3;
     const gh = 8 + ((i * 59 + 7) % 14);
     const dx = (((i * 83 + 11) % 100) / 100 - 0.5) * 10;
     ctx.beginPath();
@@ -182,7 +182,7 @@ function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number) {
 
   // Low fog
   for (let i = 0; i < 6; i++) {
-    const fx = ((i * 73 + 17) % 100) / 100 * w;
+    const fx = (((i * 73 + 17) % 100) / 100) * w;
     const fy = groundY - 10 + ((i * 41 + 31) % 40);
     const fr = 80 + ((i * 59 + 7) % 120);
     const fogGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr);
@@ -206,8 +206,14 @@ function drawForest(ctx: CanvasRenderingContext2D, w: number, h: number) {
 }
 
 function drawTreeLine(
-  ctx: CanvasRenderingContext2D, w: number, h: number,
-  baseY: number, density: number, color: string, minH: number, maxH: number,
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  baseY: number,
+  density: number,
+  color: string,
+  minH: number,
+  maxH: number,
 ) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = color;
@@ -228,7 +234,13 @@ function drawTreeLine(
   ctx.fill();
 }
 
-function drawSilhouetteTree(ctx: CanvasRenderingContext2D, h: number, x: number, topY: number, dir: number) {
+function drawSilhouetteTree(
+  ctx: CanvasRenderingContext2D,
+  h: number,
+  x: number,
+  topY: number,
+  dir: number,
+) {
   ctx.globalAlpha = 1;
   ctx.fillStyle = '#040d08';
   ctx.fillRect(x + 20 * dir, topY + 40, 18, h - topY - 40);
@@ -295,7 +307,7 @@ export default function RoleHuntCanvas({
     if (!offCtx) return;
     offCtx.scale(dpr, dpr);
     drawForest(offCtx, width, height);
-    createImageBitmap(offscreen).then((bmp) => {
+    void createImageBitmap(offscreen).then((bmp) => {
       bgRef.current = bmp;
     });
   }, [width, height]);
@@ -314,13 +326,16 @@ export default function RoleHuntCanvas({
     scopeRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }, []);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    onShoot?.(x, y);
-  }, [onShoot]);
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      onShoot?.(x, y);
+    },
+    [onShoot],
+  );
 
   // Main draw loop
   useEffect(() => {

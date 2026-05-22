@@ -105,9 +105,7 @@ export default function TarotSceneCanvas({
       // ── Stars ──
       const starCycle = (t / 6) * Math.PI * 2;
       for (const star of starsRef.current) {
-        const op = star.twinkle
-          ? 0.3 + Math.sin(starCycle + star.phase) * 0.3
-          : 0.35;
+        const op = star.twinkle ? 0.3 + Math.sin(starCycle + star.phase) * 0.3 : 0.35;
         ctx!.globalAlpha = op;
         ctx!.fillStyle = TAROT_COLORS.starfield;
         ctx!.beginPath();
@@ -243,7 +241,7 @@ export default function TarotSceneCanvas({
         }
 
         if (mcOp > 0) {
-          const rotation = elapsed * (Math.PI * 2) / 5; // 5s per revolution
+          const rotation = (elapsed * (Math.PI * 2)) / 5; // 5s per revolution
           ctx!.globalAlpha = mcOp;
           ctx!.save();
           ctx!.translate(magicCircleCx, magicCircleCy);
@@ -319,7 +317,16 @@ export default function TarotSceneCanvas({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [width, height, phase, flipStartTime, drawStartTime, magicCircleCx, magicCircleCy, magicCircleRadius]);
+  }, [
+    width,
+    height,
+    phase,
+    flipStartTime,
+    drawStartTime,
+    magicCircleCx,
+    magicCircleCy,
+    magicCircleRadius,
+  ]);
 
   return (
     <canvas

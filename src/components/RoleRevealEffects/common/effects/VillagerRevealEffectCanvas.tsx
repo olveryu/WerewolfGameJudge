@@ -147,7 +147,14 @@ export default function VillagerRevealEffectCanvas({
           ctx.save();
           ctx.globalAlpha = flashOpacity;
           ctx.filter = 'blur(20px)';
-          const fGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, cardWidth * 0.6);
+          const fGrad = ctx.createRadialGradient(
+            centerX,
+            centerY,
+            0,
+            centerX,
+            centerY,
+            cardWidth * 0.6,
+          );
           fGrad.addColorStop(0, hexWithAlpha(primaryColor, 0.5));
           fGrad.addColorStop(1, hexWithAlpha(primaryColor, 0));
           ctx.fillStyle = fGrad;
@@ -203,7 +210,7 @@ export default function VillagerRevealEffectCanvas({
 
         // ── 5. Floating fireflies ──
         if (appear > 0) {
-          const cycleVal = (t % FIREFLY_CYCLE_MS) / FIREFLY_CYCLE_MS * 360;
+          const cycleVal = ((t % FIREFLY_CYCLE_MS) / FIREFLY_CYCLE_MS) * 360;
           ctx.save();
           ctx.globalCompositeOperation = 'screen';
           ctx.filter = `blur(${PARTICLE_BLUR}px)`;
@@ -236,17 +243,13 @@ export default function VillagerRevealEffectCanvas({
     return cleanup;
   }, [animate, cardWidth, cardHeight, primaryColor, glowColor, particleColor]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: cardWidth,
-        height: cardHeight,
-        display: 'block',
-        pointerEvents: 'none',
-      }}
-    />
-  );
+  const canvasStyle = {
+    width: cardWidth,
+    height: cardHeight,
+    display: 'block' as const,
+    pointerEvents: 'none' as const,
+  };
+  return <canvas ref={canvasRef} style={canvasStyle} />;
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────

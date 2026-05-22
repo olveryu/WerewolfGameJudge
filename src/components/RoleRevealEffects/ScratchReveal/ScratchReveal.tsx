@@ -16,7 +16,6 @@ import Animated, {
   Easing,
   interpolate,
   useAnimatedStyle,
-
   useSharedValue,
   withDelay,
   withRepeat,
@@ -396,7 +395,16 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       {/* Confetti burst — Canvas 2D DOM component */}
       {isRevealed && !reducedMotion && (
         <ScratchConfettiCanvas
-          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight, pointerEvents: 'none' } }}
+          dom={{
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: screenWidth,
+              height: screenHeight,
+              pointerEvents: 'none',
+            },
+          }}
           width={screenWidth}
           height={screenHeight}
           trigger

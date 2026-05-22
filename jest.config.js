@@ -37,6 +37,8 @@ module.exports = {
     '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
     '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.tsx',
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',
+    '^react-native-webview$': '<rootDir>/__mocks__/react-native-webview.tsx',
+    '^expo/dom/internal$': '<rootDir>/__mocks__/expo-dom-internal.tsx',
     '\\.m4a$': '<rootDir>/__mocks__/audioFileMock.js',
   },
 };

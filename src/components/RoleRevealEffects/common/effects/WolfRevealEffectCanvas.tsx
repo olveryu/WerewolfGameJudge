@@ -157,8 +157,11 @@ export default function WolfRevealEffectCanvas({
           const fog = FOG_CLOUDS[i]!;
           const r = fog.rRatio * cardWidth;
           const cx = fog.xRatio * cardWidth + Math.sin(fogDrift * Math.PI * 2 + i) * fog.driftX;
-          const cy = fog.yRatio * cardHeight + Math.cos(fogDrift * Math.PI * 2 * 0.7 + i * 1.3) * fog.driftYAmp;
-          const opacity = fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift * Math.PI * 2 * 0.5 + i * 2));
+          const cy =
+            fog.yRatio * cardHeight +
+            Math.cos(fogDrift * Math.PI * 2 * 0.7 + i * 1.3) * fog.driftYAmp;
+          const opacity =
+            fog.alphaRatio * (0.8 + 0.2 * Math.sin(fogDrift * Math.PI * 2 * 0.5 + i * 2));
           const fGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
           fGrad.addColorStop(0, hexWithAlpha(primaryColor, 0.56));
           fGrad.addColorStop(0.5, hexWithAlpha(primaryColor, 0.25));
@@ -172,11 +175,11 @@ export default function WolfRevealEffectCanvas({
         ctx.restore();
 
         // ── 3. Blood drops ──
-        const bloodTimeMs = (t % BLOOD_CYCLE_DURATION);
+        const bloodTimeMs = t % BLOOD_CYCLE_DURATION;
         ctx.save();
         for (const drop of BLOOD_DROPS) {
           const dropElapsed = Math.max(0, bloodTimeMs - drop.delay);
-          const p = (dropElapsed % drop.speed) / drop.speed;
+          const _p = (dropElapsed % drop.speed) / drop.speed;
           // Real-time: p based on actual elapsed time in continuous cycle
           const actualP = ((t - drop.delay) % drop.speed) / drop.speed;
           const cx = drop.xRatio * cardWidth;
@@ -219,8 +222,12 @@ export default function WolfRevealEffectCanvas({
           ctx.globalAlpha = eyeOpacity;
           // Left eye
           const eyeGrad1 = ctx.createRadialGradient(
-            centerX - cardWidth * 0.12, cardHeight * 0.3, 0,
-            centerX - cardWidth * 0.12, cardHeight * 0.3, 12,
+            centerX - cardWidth * 0.12,
+            cardHeight * 0.3,
+            0,
+            centerX - cardWidth * 0.12,
+            cardHeight * 0.3,
+            12,
           );
           eyeGrad1.addColorStop(0, primaryColor);
           eyeGrad1.addColorStop(1, hexWithAlpha(primaryColor, 0));
@@ -230,8 +237,12 @@ export default function WolfRevealEffectCanvas({
           ctx.fill();
           // Right eye
           const eyeGrad2 = ctx.createRadialGradient(
-            centerX + cardWidth * 0.12, cardHeight * 0.3, 0,
-            centerX + cardWidth * 0.12, cardHeight * 0.3, 12,
+            centerX + cardWidth * 0.12,
+            cardHeight * 0.3,
+            0,
+            centerX + cardWidth * 0.12,
+            cardHeight * 0.3,
+            12,
           );
           eyeGrad2.addColorStop(0, primaryColor);
           eyeGrad2.addColorStop(1, hexWithAlpha(primaryColor, 0));
@@ -299,17 +310,13 @@ export default function WolfRevealEffectCanvas({
     return cleanup;
   }, [animate, cardWidth, cardHeight, primaryColor, glowColor]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: cardWidth,
-        height: cardHeight,
-        display: 'block',
-        pointerEvents: 'none',
-      }}
-    />
-  );
+  const canvasStyle = {
+    width: cardWidth,
+    height: cardHeight,
+    display: 'block' as const,
+    pointerEvents: 'none' as const,
+  };
+  return <canvas ref={canvasRef} style={canvasStyle} />;
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────

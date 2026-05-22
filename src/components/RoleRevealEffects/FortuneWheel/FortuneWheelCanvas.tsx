@@ -12,9 +12,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // ─── Constants ────────────────────────────────────────────────────────
 
 const SEGMENT_FILLS = [
-  '#4B3F9E', '#2E8B7A', '#C0392B', '#2471A3',
-  '#7D3C98', '#D4AC0D', '#1E8449', '#BA4A00',
-  '#5B4FBE', '#3CB371', '#E74C3C', '#3498DB',
+  '#4B3F9E',
+  '#2E8B7A',
+  '#C0392B',
+  '#2471A3',
+  '#7D3C98',
+  '#D4AC0D',
+  '#1E8449',
+  '#BA4A00',
+  '#5B4FBE',
+  '#3CB371',
+  '#E74C3C',
+  '#3498DB',
 ];
 
 const GEM_COLORS = ['#ff3366', '#33ccff', '#ffcc00', '#66ff66', '#cc66ff', '#ff6633'];
@@ -247,8 +256,7 @@ export default function FortuneWheelCanvas({
         const t = Math.min(1, elapsed / spinDurationRef.current);
         const eased = easeOutCubic(t);
         rotationRef.current =
-          spinStartRotRef.current +
-          (targetRotationRef.current - spinStartRotRef.current) * eased;
+          spinStartRotRef.current + (targetRotationRef.current - spinStartRotRef.current) * eased;
 
         // Pointer tick glow
         pointerGlowRef.current = Math.abs(Math.sin(elapsed * 0.04)) * (1 - t);
@@ -376,15 +384,14 @@ export default function FortuneWheelCanvas({
         const dist = wheelR * 0.62;
         const lx = dist * Math.cos(midAngle);
         const ly = dist * Math.sin(midAngle);
-        const label = segments[i]!.name.length > 4
-          ? segments[i]!.name.slice(0, 4)
-          : segments[i]!.name;
+        const label =
+          segments[i]!.name.length > 4 ? segments[i]!.name.slice(0, 4) : segments[i]!.name;
 
         ctx!.save();
         ctx!.translate(lx, ly);
         // Make label readable (not upside down)
         const labelAngle = midAngle + Math.PI / 2;
-        const normalizedDeg = (((labelAngle * 180) / Math.PI) % 360 + 360) % 360;
+        const normalizedDeg = ((((labelAngle * 180) / Math.PI) % 360) + 360) % 360;
         const flipLabel = normalizedDeg > 90 && normalizedDeg < 270;
         ctx!.rotate(flipLabel ? labelAngle + Math.PI : labelAngle);
         ctx!.fillText(label, 0, 0);
@@ -492,8 +499,8 @@ export default function FortuneWheelCanvas({
         const v = victoryRef.current;
         const elapsed = now - spinStartTimeRef.current - spinDurationRef.current;
         if (elapsed > 400) {
-          v.opacity = Math.min(0.8, (elapsed - 400) / 500 * 0.8);
-          v.scale = 0.8 + Math.min(0.2, (elapsed - 400) / 600 * 0.2);
+          v.opacity = Math.min(0.8, ((elapsed - 400) / 500) * 0.8);
+          v.scale = 0.8 + Math.min(0.2, ((elapsed - 400) / 600) * 0.2);
         }
         if (v.opacity > 0.01) {
           ctx!.save();
@@ -535,7 +542,20 @@ export default function FortuneWheelCanvas({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [width, height, cx, cy, wheelR, innerR, centerR, segmentCount, segmentAngle, segments, internalPhase, onSpinComplete]);
+  }, [
+    width,
+    height,
+    cx,
+    cy,
+    wheelR,
+    innerR,
+    centerR,
+    segmentCount,
+    segmentAngle,
+    segments,
+    internalPhase,
+    onSpinComplete,
+  ]);
 
   return (
     <canvas

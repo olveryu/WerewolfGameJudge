@@ -134,7 +134,12 @@ export default function GodRevealEffectCanvas({
 
         // ── 2. Light pillar ──
         const pillarP = Math.min(t / MAIN_DURATION, 1);
-        const pillarOpacity = pillarP < 0.05 ? pillarP / 0.05 : pillarP < 0.3 ? 1 : Math.max(0.15, 1 - (pillarP - 0.3) / 0.7);
+        const pillarOpacity =
+          pillarP < 0.05
+            ? pillarP / 0.05
+            : pillarP < 0.3
+              ? 1
+              : Math.max(0.15, 1 - (pillarP - 0.3) / 0.7);
         const pillarHeight = Math.min(1, pillarP / 0.15) * cardHeight * 0.8;
 
         ctx.save();
@@ -221,7 +226,14 @@ export default function GodRevealEffectCanvas({
         ctx.globalAlpha = groundOpacity;
         ctx.filter = 'blur(20px)';
         const groundR = cardWidth * 0.6;
-        const gGrad = ctx.createRadialGradient(centerX, cardHeight, 0, centerX, cardHeight, groundR);
+        const gGrad = ctx.createRadialGradient(
+          centerX,
+          cardHeight,
+          0,
+          centerX,
+          cardHeight,
+          groundR,
+        );
         gGrad.addColorStop(0, hexWithAlpha(primaryColor, 0.25));
         gGrad.addColorStop(1, hexWithAlpha(primaryColor, 0));
         ctx.fillStyle = gGrad;

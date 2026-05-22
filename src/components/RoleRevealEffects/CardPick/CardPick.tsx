@@ -20,7 +20,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -155,9 +154,7 @@ export const CardPick: React.FC<CardPickProps> = ({
   const flipProgress = useSharedValue(0); // 0 = back, 1 = front
 
   // Canvas overlay phase (chips + charge aura + light bars)
-  const [canvasPhase, setCanvasPhase] = useState<'idle' | 'charging' | 'flipping' | 'done'>(
-    'idle',
-  );
+  const [canvasPhase, setCanvasPhase] = useState<'idle' | 'charging' | 'flipping' | 'done'>('idle');
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {

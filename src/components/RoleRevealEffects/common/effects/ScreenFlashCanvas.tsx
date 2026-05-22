@@ -140,7 +140,18 @@ export default function ScreenFlash({
 
     cleanupRef.current = cleanup;
     return cleanup;
-  }, [animate, color, peakOpacity, duration, centerX, centerY, width, height, delay, effectStartDelay]);
+  }, [
+    animate,
+    color,
+    peakOpacity,
+    duration,
+    centerX,
+    centerY,
+    width,
+    height,
+    delay,
+    effectStartDelay,
+  ]);
 
   return (
     <canvas

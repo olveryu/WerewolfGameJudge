@@ -109,6 +109,7 @@ export default function MeteorOverlayCanvas({
     if (phase === 'idle' && !caughtRef.current) {
       spawnMeteor();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   const spawnMeteor = useCallback(() => {
@@ -259,7 +260,7 @@ export default function MeteorOverlayCanvas({
         // Shockwaves
         for (let i = 0; i < SHOCKWAVE_COUNT; i++) {
           const delay = i * 0.12;
-          const p = Math.max(0, (impactElapsed / SHOCKWAVE_DURATION) - delay);
+          const p = Math.max(0, impactElapsed / SHOCKWAVE_DURATION - delay);
           if (p <= 0 || p > 1) continue;
           const r = p * 200;
           const alpha = Math.max(0, 0.7 - p * 0.8);

@@ -143,7 +143,7 @@ export default function ThirdRevealEffectCanvas({
         const t = elapsed - EFFECT_START_DELAY;
         if (t < 0) return;
 
-        const progress = Math.min(1, easeOutQuad(Math.min(t / MAIN_DURATION, 1)));
+        const _progress = Math.min(1, easeOutQuad(Math.min(t / MAIN_DURATION, 1)));
         const appear = computeAppear(t);
         const glowI = computeGlowIntensity(t);
         const corePulse = computeCorePulse(t);
@@ -192,8 +192,10 @@ export default function ThirdRevealEffectCanvas({
 
         // ── 3. Rune rings (dashed arcs) ──
         if (appear > 0) {
-          const outerAngle = ((t % OUTER_ROTATION_DURATION) / OUTER_ROTATION_DURATION) * Math.PI * 2;
-          const innerAngle = -((t % INNER_ROTATION_DURATION) / INNER_ROTATION_DURATION) * Math.PI * 2;
+          const outerAngle =
+            ((t % OUTER_ROTATION_DURATION) / OUTER_ROTATION_DURATION) * Math.PI * 2;
+          const innerAngle =
+            -((t % INNER_ROTATION_DURATION) / INNER_ROTATION_DURATION) * Math.PI * 2;
 
           ctx.save();
           ctx.globalAlpha = appear * 0.7;
@@ -245,7 +247,7 @@ export default function ThirdRevealEffectCanvas({
 
         // ── 5. Orbit particles ──
         if (appear > 0) {
-          const orbitAngle = (t % ORBIT_DURATION) / ORBIT_DURATION * 360;
+          const orbitAngle = ((t % ORBIT_DURATION) / ORBIT_DURATION) * 360;
           const twinkleVal = ((t % TWINKLE_CYCLE) / TWINKLE_CYCLE) * Math.PI * 2;
 
           ctx.save();
@@ -276,17 +278,13 @@ export default function ThirdRevealEffectCanvas({
     return cleanup;
   }, [animate, cardWidth, cardHeight, primaryColor, glowColor, particleColor]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: cardWidth,
-        height: cardHeight,
-        display: 'block',
-        pointerEvents: 'none',
-      }}
-    />
-  );
+  const canvasStyle = {
+    width: cardWidth,
+    height: cardHeight,
+    display: 'block' as const,
+    pointerEvents: 'none' as const,
+  };
+  return <canvas ref={canvasRef} style={canvasStyle} />;
 }
 
 // ─── Utility ──────────────────────────────────────────────────────────

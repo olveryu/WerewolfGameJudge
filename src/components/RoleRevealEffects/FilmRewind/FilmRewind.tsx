@@ -12,7 +12,8 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -175,13 +176,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
       clearTimeout(timer);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [
-    reducedMotion,
-    flickerOpacity,
-    cardScale,
-    cardOpacity,
-    canvasOpacity,
-  ]);
+  }, [reducedMotion, flickerOpacity, cardScale, cardOpacity, canvasOpacity]);
 
   // ── Auto-timeout ──
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', startCountdown);
@@ -230,7 +225,16 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
       >
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <FilmOverlayCanvas
-            dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenW, height: screenH, pointerEvents: 'none' } }}
+            dom={{
+              style: {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: screenW,
+                height: screenH,
+                pointerEvents: 'none',
+              },
+            }}
             width={screenW}
             height={screenH}
             animate={!reducedMotion}

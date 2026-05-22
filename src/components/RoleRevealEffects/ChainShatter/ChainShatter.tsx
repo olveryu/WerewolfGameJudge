@@ -17,7 +17,8 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -377,8 +378,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const hitsRemaining = Math.max(0, CS.requiredHits - hitCountDisplay);
 
   // Canvas phase mapping (hide after shatter fades)
-  const canvasPhase =
-    phase === 'revealed' ? 'hidden' : phase === 'shatter' ? 'shatter' : phase;
+  const canvasPhase = phase === 'revealed' ? 'hidden' : phase === 'shatter' ? 'shatter' : phase;
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>

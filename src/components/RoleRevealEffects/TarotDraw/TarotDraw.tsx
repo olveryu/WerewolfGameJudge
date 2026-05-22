@@ -8,7 +8,8 @@
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -18,7 +19,6 @@ import Animated, {
   useSharedValue,
   withDelay,
   withRepeat,
-  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -292,7 +292,15 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
       {/* Canvas scene layer (stars, crystal ball, candles, magic circle, trail) */}
       {!reducedMotion && (
         <TarotSceneCanvas
-          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight } }}
+          dom={{
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: screenWidth,
+              height: screenHeight,
+            },
+          }}
           width={screenWidth}
           height={screenHeight}
           phase={scenePhase}

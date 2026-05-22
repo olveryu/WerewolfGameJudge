@@ -48,7 +48,20 @@ const ANCIENT_SYMBOLS = ['𐤀', '𐤁', '𐤂', '𐤃', '𐤄', '𐤅', '𐤆',
 const INNER_RUNES = ['\u263D', '\u2726', '\u269D', '\u25C8', '\u2727', '\u263F'];
 
 // Outer rune symbols
-const OUTER_RUNES = ['\u16A0', '\u16A2', '\u16A6', '\u16A8', '\u16B1', '\u16B2', '\u16B7', '\u16B9', '\u16BA', '\u16BE', '\u16C1', '\u16C3'];
+const OUTER_RUNES = [
+  '\u16A0',
+  '\u16A2',
+  '\u16A6',
+  '\u16A8',
+  '\u16B1',
+  '\u16B2',
+  '\u16B7',
+  '\u16B9',
+  '\u16BA',
+  '\u16BE',
+  '\u16C1',
+  '\u16C3',
+];
 
 // Wax drips
 const WAX_DRIPS = Array.from({ length: 5 }, (_, i) => {
@@ -74,8 +87,8 @@ const ENERGY_PARTICLES = Array.from({ length: 12 }, (_, i) => ({
 // Fire embers
 function createEmbers(w: number, h: number) {
   return Array.from({ length: 14 }, (_, i) => ({
-    startX: w * 0.3 + ((i * 73 + 17) % 100) / 100 * w * 0.4,
-    startY: h * 0.5 + ((i * 41 + 31) % 100) / 100 * h * 0.15,
+    startX: w * 0.3 + (((i * 73 + 17) % 100) / 100) * w * 0.4,
+    startY: h * 0.5 + (((i * 41 + 31) % 100) / 100) * h * 0.15,
     drift: (((i * 59 + 7) % 100) / 100 - 0.5) * 30,
     size: 2 + ((i * 83 + 11) % 25) / 10,
   }));
@@ -99,7 +112,7 @@ function buildCracks(cx: number, cy: number, radius: number, count: number) {
     for (let s = 1; s <= 4; s++) {
       const frac = s / 4;
       const driftSeed = (i * 73 + s * 37 + 5) % 100;
-      const drift = ((driftSeed / 100) - 0.5) * radius * 0.15;
+      const drift = (driftSeed / 100 - 0.5) * radius * 0.15;
       segments.push({
         x: cx + Math.cos(baseAngle) * radius * frac + Math.cos(baseAngle + Math.PI / 2) * drift,
         y: cy + Math.sin(baseAngle) * radius * frac + Math.sin(baseAngle + Math.PI / 2) * drift,
@@ -177,12 +190,15 @@ export default function SealBreakCanvas({
   }, [phase]);
 
   // Notify parent of charge changes (throttled)
-  const reportCharge = useCallback((now: number, charge: number) => {
-    if (now - lastChargeReportRef.current > 50) {
-      lastChargeReportRef.current = now;
-      onChargeUpdate?.(Math.floor(charge * 100));
-    }
-  }, [onChargeUpdate]);
+  const reportCharge = useCallback(
+    (now: number, charge: number) => {
+      if (now - lastChargeReportRef.current > 50) {
+        lastChargeReportRef.current = now;
+        onChargeUpdate?.(Math.floor(charge * 100));
+      }
+    },
+    [onChargeUpdate],
+  );
 
   // Main draw loop
   useEffect(() => {
@@ -260,7 +276,11 @@ export default function SealBreakCanvas({
       // ── Seal disc ──
       ctx!.globalAlpha = 1;
       const sealGrad = ctx!.createLinearGradient(
-        cx - sealRadius, cy - sealRadius, cx + sealRadius, cy + sealRadius);
+        cx - sealRadius,
+        cy - sealRadius,
+        cx + sealRadius,
+        cy + sealRadius,
+      );
       sealGrad.addColorStop(0, COLORS.waxLight);
       sealGrad.addColorStop(1, COLORS.waxDark);
       ctx!.fillStyle = sealGrad;
@@ -393,7 +413,7 @@ export default function SealBreakCanvas({
 
         // Active segment
         if (charge > threshold) {
-          const intensity = Math.min(1, (charge - threshold) / 0.05 * 0.5 + 0.5);
+          const intensity = Math.min(1, ((charge - threshold) / 0.05) * 0.5 + 0.5);
           ctx!.globalAlpha = intensity;
           ctx!.strokeStyle = COLORS.progressRing;
           ctx!.lineWidth = 4;
@@ -460,7 +480,8 @@ export default function SealBreakCanvas({
         ctx!.fillStyle = COLORS.energyParticle;
         for (const p of ENERGY_PARTICLES) {
           const angle = p.startAngle + energyAngle * p.speed;
-          const dist = sealRadius * (1.4 + p.radiusOffset) - charge * sealRadius * (0.5 + p.radiusOffset);
+          const dist =
+            sealRadius * (1.4 + p.radiusOffset) - charge * sealRadius * (0.5 + p.radiusOffset);
           const px = cx + Math.cos(angle) * dist;
           const py = cy + Math.sin(angle) * dist;
           ctx!.globalAlpha = Math.min(0.9, charge * 1.5);
@@ -525,7 +546,19 @@ export default function SealBreakCanvas({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [width, height, cx, cy, sealRadius, internalPhase, chargeRate, decayRate, shatterDuration, reportCharge, onShatter]);
+  }, [
+    width,
+    height,
+    cx,
+    cy,
+    sealRadius,
+    internalPhase,
+    chargeRate,
+    decayRate,
+    shatterDuration,
+    reportCharge,
+    onShatter,
+  ]);
 
   return (
     <canvas

@@ -7,7 +7,7 @@
  * 碎裂后碎片 + 径向爆发。
  * 不含交互（Pressable 在父组件），仅接收状态渲染。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 // ─── Constants ────────────────────────────────────────────────────────
 
@@ -68,8 +68,8 @@ interface ShardData {
 // Pre-computed dust
 function createDust(w: number, h: number) {
   return Array.from({ length: 10 }, (_, i) => ({
-    x: ((i * 73 + 17) % 100) / 100 * w,
-    y: ((i * 41 + 31) % 100) / 100 * h,
+    x: (((i * 73 + 17) % 100) / 100) * w,
+    y: (((i * 41 + 31) % 100) / 100) * h,
     driftX: 15 + ((i * 59 + 7) % 25),
     driftY: 8 + ((i * 83 + 11) % 15),
     radius: 1.5 + ((i * 37 + 13) % 25) / 10,
@@ -79,8 +79,8 @@ function createDust(w: number, h: number) {
 // Debris positions
 function createDebris(w: number, h: number) {
   return Array.from({ length: 10 }, (_, i) => ({
-    x: w * 0.2 + ((i * 73 + 17) % 100) / 100 * w * 0.6,
-    y: h * 0.65 + ((i * 41 + 31) % 100) / 100 * h * 0.1,
+    x: w * 0.2 + (((i * 73 + 17) % 100) / 100) * w * 0.6,
+    y: h * 0.65 + (((i * 41 + 31) % 100) / 100) * h * 0.1,
     size: 2 + ((i * 59 + 7) % 30) / 10,
   }));
 }
@@ -111,7 +111,7 @@ function buildChainLinks(cx: number, cy: number, lockW: number, linksPerSide: nu
 }
 
 // Shards for final explosion
-function generateShards(count: number, screenH: number): ShardData[] {
+function generateShards(count: number, _screenH: number): ShardData[] {
   return Array.from({ length: count }, (_, i) => {
     const angle = (i / count) * Math.PI * 2 + (((i * 37 + 5) % 10) / 10 - 0.5) * 0.3;
     const speed = 100 + ((i * 53 + 7) % 80);
@@ -402,7 +402,8 @@ export default function ChainShatterCanvas({
         // ── Lightning (above 3 hits) ──
         if (hitCount >= 3) {
           // Brief flash on recent hit
-          const lastBurstTime = sparkBursts.length > 0 ? sparkBursts[sparkBursts.length - 1]!.time : 0;
+          const lastBurstTime =
+            sparkBursts.length > 0 ? sparkBursts[sparkBursts.length - 1]!.time : 0;
           const sinceLast = now - lastBurstTime;
           if (sinceLast < 250) {
             const lOp = Math.max(0, 1 - sinceLast / 250);
@@ -506,7 +507,22 @@ export default function ChainShatterCanvas({
 
     rafRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [width, height, cx, cy, lockW, lockH, gravity, phase, cracks, sparkBursts, hitCount, requiredHits, shatterStartTime, shatterDuration]);
+  }, [
+    width,
+    height,
+    cx,
+    cy,
+    lockW,
+    lockH,
+    gravity,
+    phase,
+    cracks,
+    sparkBursts,
+    hitCount,
+    requiredHits,
+    shatterStartTime,
+    shatterDuration,
+  ]);
 
   return (
     <canvas

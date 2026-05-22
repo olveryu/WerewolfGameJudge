@@ -73,7 +73,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), []);
 
-
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
     navigation.navigate('Notepad', { roomCode: route.params.roomCode });

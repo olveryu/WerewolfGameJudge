@@ -4,7 +4,7 @@
  * 物理+渲染全部在 CapsuleMachineCanvas（DOM 组件）内完成。
  * 本组件保持 forwardRef/useImperativeHandle 接口兼容。
  */
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { REF_H, REF_W } from '../gachaConstants';
@@ -38,7 +38,9 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
     const [results, setResults] = useState<string | null>(null);
     const [cancelTrigger, setCancelTrigger] = useState(0);
     const drawTypeRef = useRef(drawType);
-    drawTypeRef.current = drawType;
+    useEffect(() => {
+      drawTypeRef.current = drawType;
+    }, [drawType]);
 
     useImperativeHandle(
       ref,

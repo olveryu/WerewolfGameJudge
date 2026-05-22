@@ -1,6 +1,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -181,9 +182,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
       </Animated.View>
 
       {/* Flash overlay */}
-      <Animated.View
-        style={[styles.flash, flashStyle, { backgroundColor: COLORS.impactOrange }]}
-      />
+      <Animated.View style={[styles.flash, flashStyle, { backgroundColor: COLORS.impactOrange }]} />
 
       {/* Hint */}
       <HintWithWarning

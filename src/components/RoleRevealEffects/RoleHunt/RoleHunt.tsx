@@ -63,7 +63,22 @@ const HUNT_COLORS = {
 };
 
 const HUNT_ANIMAL_EMOJIS = [
-  '🐰', '🦌', '🐻', '🦊', '🐗', '🦝', '🐿️', '🦉', '🦔', '🐇', '🦡', '🐑', '🦢', '🕊️', '🐈‍⬛', '🐒',
+  '🐰',
+  '🦌',
+  '🐻',
+  '🦊',
+  '🐗',
+  '🦝',
+  '🐿️',
+  '🦉',
+  '🦔',
+  '🐇',
+  '🦡',
+  '🐑',
+  '🦢',
+  '🕊️',
+  '🐈‍⬛',
+  '🐒',
 ] as const;
 
 function roleIdToAnimalEmoji(roleId: string): string {
@@ -290,9 +305,15 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   const animalsRef = useRef(animals);
   const animalStatesRef = useRef(animalStates);
 
-  useEffect(() => { phaseRef.current = phase; }, [phase]);
-  useEffect(() => { animalsRef.current = animals; }, [animals]);
-  useEffect(() => { animalStatesRef.current = animalStates; }, [animalStates]);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+  useEffect(() => {
+    animalsRef.current = animals;
+  }, [animals]);
+  useEffect(() => {
+    animalStatesRef.current = animalStates;
+  }, [animalStates]);
 
   const spawnRoles = useMemo(() => {
     const roles = allRoles ?? [role];
@@ -490,7 +511,15 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       {/* Canvas layer: forest + fireflies + scope + burst */}
       {!reducedMotion && (
         <RoleHuntCanvas
-          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight } }}
+          dom={{
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: screenWidth,
+              height: screenHeight,
+            },
+          }}
           width={screenWidth}
           height={screenHeight}
           showScope={phase === 'hunting'}

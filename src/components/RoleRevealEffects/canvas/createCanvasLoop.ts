@@ -6,7 +6,7 @@
  * 纯 Web API，不依赖 React Native。
  */
 
-export interface CanvasLoopOptions {
+interface CanvasLoopOptions {
   /** Canvas element to draw on */
   canvas: HTMLCanvasElement;
   /** Logical width (CSS pixels) */
@@ -42,15 +42,4 @@ export function createCanvasLoop({ canvas, width, height, draw }: CanvasLoopOpti
 
   rafId = requestAnimationFrame(frame);
   return () => cancelAnimationFrame(rafId);
-}
-
-/**
- * Resizes canvas accounting for DPI. Call when dimensions change.
- */
-export function resizeCanvas(canvas: HTMLCanvasElement, width: number, height: number): void {
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  const ctx = canvas.getContext('2d');
-  if (ctx) ctx.scale(dpr, dpr);
 }

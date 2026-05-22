@@ -74,7 +74,9 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
     <View style={styles.effectContainer}>
       {/* Full-screen radial flash — neutral color to prevent leaking alignment */}
       <ScreenFlash
-        dom={{ style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 } }}
+        dom={{
+          style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 },
+        }}
         color={AE.screenFlashColor}
         peakOpacity={AE.screenFlashOpacity}
         duration={AE.screenFlashDuration}
@@ -88,10 +90,30 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
       />
 
       {/* Alignment-specific visual effects */}
-      {alignment === 'wolf' && <WolfRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
-      {alignment === 'god' && <GodRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
-      {alignment === 'third' && <ThirdRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
-      {alignment === 'villager' && <VillagerRevealEffectCanvas dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }} {...effectProps} />}
+      {alignment === 'wolf' && (
+        <WolfRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'god' && (
+        <GodRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'third' && (
+        <ThirdRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
+      {alignment === 'villager' && (
+        <VillagerRevealEffectCanvas
+          dom={{ style: { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' } }}
+          {...effectProps}
+        />
+      )}
 
       {/* Enhanced breathing border */}
       <BreathingBorder

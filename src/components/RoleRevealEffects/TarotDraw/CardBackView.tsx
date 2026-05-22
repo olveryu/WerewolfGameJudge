@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 /**
  * CardBackView — 塔罗牌背面纯 RN View 实现
  *

@@ -118,8 +118,6 @@ const CONFETTI_STARS = Array.from({ length: 16 }, (_, i) => ({
   color: [GACHA_COLORS.confettiGold, GACHA_COLORS.confettiPink, GACHA_COLORS.confettiCyan][i % 3]!,
 }));
 
-
-
 // ─── Tiny capsule inside dome ───────────────────────────────────────────
 const TinyCapsule: React.FC<{
   angle: number;
@@ -424,7 +422,15 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       {/* Canvas scene layer: rotary lights + confetti */}
       {!reducedMotion && (
         <GachaMachineCanvas
-          dom={{ style: { position: 'absolute', top: 0, left: 0, width: screenWidth, height: screenHeight } }}
+          dom={{
+            style: {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: screenWidth,
+              height: screenHeight,
+            },
+          }}
           width={screenWidth}
           height={screenHeight}
           rotaryLights={rotaryLights}
