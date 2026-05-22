@@ -64,6 +64,7 @@ interface FortuneWheelCanvasProps {
   phase: 'appear' | 'idle' | 'spinning' | 'stopped' | 'hidden';
   onSpinStart?: () => void;
   onSpinComplete?: () => void;
+  onReady?: () => void;
 }
 
 export default function FortuneWheelCanvas({
@@ -74,6 +75,7 @@ export default function FortuneWheelCanvas({
   phase,
   onSpinStart,
   onSpinComplete,
+  onReady,
 }: FortuneWheelCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -82,25 +84,25 @@ export default function FortuneWheelCanvas({
 
   // Rotation state
   const rotationRef = useRef(0);
-  const velocityRef = useRef(0);
   const targetRotationRef = useRef<number | null>(null);
   const spinStartTimeRef = useRef(0);
   const spinDurationRef = useRef(0);
   const spinStartRotRef = useRef(0);
 
-  // Gesture state
+  // Gesture state — velocity ring buffer (like RNGH/UIKit)
+  const SAMPLE_SIZE = 10;
+  const samplesRef = useRef<{ angle: number; time: number }[]>([]);
   const dragRef = useRef({
     active: false,
     startAngle: 0,
     startRotation: 0,
-    lastAngle: 0,
-    lastTime: 0,
   });
 
   // Appear animation
   const scaleRef = useRef(0);
   const opacityRef = useRef(0);
   const appearStartRef = useRef(0);
+  const readyFiredRef = useRef(false);
 
   // Gem pulse
   const gemPhaseRef = useRef(0);
@@ -118,16 +120,6 @@ export default function FortuneWheelCanvas({
   const centerR = wheelR * 0.18;
   const segmentCount = segments.length;
   const segmentAngle = (Math.PI * 2) / segmentCount;
-
-  // Sync phase from parent
-  useEffect(() => {
-    if (phase === 'appear') {
-      appearStartRef.current = performance.now();
-      scaleRef.current = 0;
-      opacityRef.current = 0;
-    }
-    setInternalPhase(phase);
-  }, [phase]);
 
   // Compute target rotation for spin landing
   const computeTargetRotation = useCallback(
@@ -151,44 +143,79 @@ export default function FortuneWheelCanvas({
     spinStartTimeRef.current = performance.now();
     spinDurationRef.current = 2500 + Math.random() * 1000;
     spinStartRotRef.current = rotationRef.current;
-    velocityRef.current = 0;
   }, [computeTargetRotation, onSpinStart]);
 
-  // ── Touch handlers ──
+  // Sync phase from parent
+  useEffect(() => {
+    if (phase === 'appear') {
+      appearStartRef.current = performance.now();
+      scaleRef.current = 0;
+      opacityRef.current = 0;
+    }
+    // Auto-spin: parent sets phase='spinning' directly (e.g. timeout)
+    if (phase === 'spinning' && internalPhase !== 'spinning') {
+      startDeceleration();
+      return; // startDeceleration sets internalPhase internally
+    }
+    setInternalPhase(phase);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, startDeceleration]);
+
+  // ── Touch handlers (velocity ring buffer) ──
+  const getAngle = useCallback(
+    (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const rect = canvasRef.current!.getBoundingClientRect();
+      return Math.atan2(e.clientY - rect.top - cy, e.clientX - rect.left - cx);
+    },
+    [cx, cy],
+  );
+
+  const computeVelocity = useCallback(() => {
+    const s = samplesRef.current;
+    if (s.length < 2) return 0;
+    const latest = s[s.length - 1]!;
+    // Find sample ≥60ms ago
+    let old = s[0]!;
+    for (let i = s.length - 2; i >= 0; i--) {
+      if (latest.time - s[i]!.time >= 60) {
+        old = s[i]!;
+        break;
+      }
+    }
+    const dt = (latest.time - old.time) / 1000;
+    if (dt < 0.01) return 0;
+    let diff = latest.angle - old.angle;
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+    return diff / dt;
+  }, []);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (internalPhase !== 'idle') return;
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      const angle = Math.atan2(py - cy, px - cx);
-      dragRef.current = {
-        active: true,
-        startAngle: angle,
-        startRotation: rotationRef.current,
-        lastAngle: angle,
-        lastTime: performance.now(),
-      };
+      const angle = getAngle(e);
+      dragRef.current = { active: true, startAngle: angle, startRotation: rotationRef.current };
+      samplesRef.current = [{ angle, time: performance.now() }];
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
     },
-    [internalPhase, cx, cy],
+    [internalPhase, getAngle],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
       if (!dragRef.current.active) return;
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      const angle = Math.atan2(py - cy, px - cx);
-      const delta = angle - dragRef.current.startAngle;
+      const angle = getAngle(e);
+      // Unwrap delta to handle ±π crossing
+      let delta = angle - dragRef.current.startAngle;
+      if (delta > Math.PI) delta -= Math.PI * 2;
+      if (delta < -Math.PI) delta += Math.PI * 2;
       rotationRef.current = dragRef.current.startRotation + delta;
-      dragRef.current.lastAngle = angle;
-      dragRef.current.lastTime = performance.now();
+      // Record sample
+      const s = samplesRef.current;
+      s.push({ angle, time: performance.now() });
+      if (s.length > SAMPLE_SIZE) s.shift();
     },
-    [cx, cy],
+    [getAngle],
   );
 
   const handlePointerUp = useCallback(
@@ -196,24 +223,15 @@ export default function FortuneWheelCanvas({
       if (!dragRef.current.active) return;
       dragRef.current.active = false;
       (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-
-      // Calculate angular velocity from last move
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const px = e.clientX - rect.left;
-      const py = e.clientY - rect.top;
-      const finalAngle = Math.atan2(py - cy, px - cx);
-      const dt = performance.now() - dragRef.current.lastTime;
-      if (dt > 0 && dt < 200) {
-        const angularV = (finalAngle - dragRef.current.lastAngle) / (dt / 1000);
-        if (Math.abs(angularV) > 1.5) {
-          // Apply momentum then decelerate to target
-          rotationRef.current += angularV * 0.05;
-          startDeceleration();
-        }
+      // Final sample + velocity
+      samplesRef.current.push({ angle: getAngle(e), time: performance.now() });
+      const velocity = computeVelocity();
+      if (Math.abs(velocity) > 1.5) {
+        rotationRef.current += velocity * 0.15;
+        startDeceleration();
       }
     },
-    [cx, cy, startDeceleration],
+    [getAngle, computeVelocity, startDeceleration],
   );
 
   // ── Main draw loop ──
@@ -246,7 +264,11 @@ export default function FortuneWheelCanvas({
         scaleRef.current = eased;
         opacityRef.current = Math.min(1, t * 2);
         if (t >= 1) {
-          setInternalPhase('idle');
+          if (!readyFiredRef.current) {
+            readyFiredRef.current = true;
+            setInternalPhase('idle');
+            onReady?.();
+          }
         }
       }
 
@@ -555,6 +577,7 @@ export default function FortuneWheelCanvas({
     segments,
     internalPhase,
     onSpinComplete,
+    onReady,
   ]);
 
   return (

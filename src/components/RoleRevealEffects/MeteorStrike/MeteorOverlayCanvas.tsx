@@ -167,13 +167,14 @@ export default function MeteorOverlayCanvas({
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
     startTimeRef.current = performance.now();
-
-    let frameCount = 0;
+    let lastFrameTime = startTimeRef.current;
+    let trailAccum = 0;
 
     function draw(now: number) {
       const elapsed = now - startTimeRef.current;
+      const dt = Math.min((now - lastFrameTime) / 1000, 0.033); // seconds, capped at 33ms
+      lastFrameTime = now;
       ctx!.clearRect(0, 0, width, height);
-      frameCount++;
 
       // ── Stars ──
       const starT = (elapsed / 6000) * Math.PI * 2;
@@ -191,12 +192,15 @@ export default function MeteorOverlayCanvas({
       // ── Meteor (idle phase) ──
       const m = meteorRef.current;
       if (internalPhase === 'idle' && m.active) {
-        // Update position
-        m.x += METEOR_SPEED;
-        m.y += METEOR_SPEED * Math.tan(m.angle);
+        // Update position (time-based: METEOR_SPEED is px/frame at 60fps → convert to px/s)
+        const pxPerSec = METEOR_SPEED * 60;
+        m.x += pxPerSec * dt;
+        m.y += pxPerSec * Math.tan(m.angle) * dt;
 
-        // Trail
-        if (frameCount % 3 === 0) {
+        // Trail (emit every ~50ms regardless of frame rate)
+        trailAccum += dt;
+        if (trailAccum >= 0.05) {
+          trailAccum = 0;
           trailRef.current.push({ x: m.x, y: m.y, age: 0 });
           if (trailRef.current.length > TRAIL_LENGTH) {
             trailRef.current.shift();
@@ -205,7 +209,7 @@ export default function MeteorOverlayCanvas({
 
         // Draw trail
         for (const pt of trailRef.current) {
-          pt.age++;
+          pt.age += dt * 60; // normalize age to 60fps equivalent
           const alpha = Math.max(0, 1 - pt.age / 20);
           ctx!.globalAlpha = alpha * 0.6;
           ctx!.filter = 'blur(3px)';

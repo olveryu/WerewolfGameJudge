@@ -13,8 +13,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const PARTICLE_COUNT = 80;
 const DEBRIS_COUNT = 20;
-const BURST_PARTICLE_COUNT = 40;
-const COLLAPSE_THRESHOLD = 3;
+const BURST_PARTICLE_COUNT = 80;
+const COLLAPSE_THRESHOLD = 1.0;
 const BURST_DURATION = 1000;
 
 function hsl(h: number, s: number, l: number, a = 1) {
@@ -184,7 +184,11 @@ export default function VortexCollapseCanvas({
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
 
+    let lastFrameTime = 0;
+
     function draw(now: number) {
+      const dt = lastFrameTime > 0 ? Math.min((now - lastFrameTime) / 1000, 0.033) : 1 / 60;
+      lastFrameTime = now;
       ctx!.clearRect(0, 0, width, height);
       const t = (now - t0Ref.current) / 1000;
 
@@ -213,7 +217,8 @@ export default function VortexCollapseCanvas({
 
       // ── Vortex visuals (only in idle/collapse) ──
       if (internalPhase === 'idle' || internalPhase === 'collapse') {
-        spinVelRef.current *= 0.985;
+        // Decay normalized to 60fps: 0.985^60 per second
+        spinVelRef.current *= Math.pow(0.985, dt * 60);
         const totalSpin = t * 0.5 + spinVelRef.current * 40;
         const intensity = Math.min(1, spinRef.current / COLLAPSE_THRESHOLD);
 
@@ -267,9 +272,9 @@ export default function VortexCollapseCanvas({
         for (let i = 0; i < particles.length; i++) {
           const p = particles[i]!;
           if (internalPhase === 'idle') {
-            p.angle += (p.speed + spinVelRef.current) * 0.02;
+            p.angle += (p.speed + spinVelRef.current) * 0.02 * (dt * 60);
             const pullD = Math.max(10, p.dist * (1 - intensity * 0.6));
-            p.dist += (pullD - p.dist) * 0.05;
+            p.dist += (pullD - p.dist) * 0.05 * (dt * 60);
           }
           const px = cx + Math.cos(p.angle + totalSpin * 0.3) * p.dist;
           const py = cy + Math.sin(p.angle + totalSpin * 0.3) * p.dist;
@@ -285,7 +290,7 @@ export default function VortexCollapseCanvas({
         for (let i = 0; i < debris.length; i++) {
           const d = debris[i]!;
           if (internalPhase === 'idle') {
-            d.angle += (d.speed + spinVelRef.current * 0.5) * 0.015;
+            d.angle += (d.speed + spinVelRef.current * 0.5) * 0.015 * (dt * 60);
           }
           const dx = cx + Math.cos(d.angle + totalSpin * 0.2) * d.dist;
           const dy = cy + Math.sin(d.angle + totalSpin * 0.2) * d.dist;

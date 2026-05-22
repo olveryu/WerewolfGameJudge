@@ -212,13 +212,16 @@ export default function SealBreakCanvas({
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
 
+    let lastDrawTime = 0;
+
     function draw(now: number) {
+      const dt = lastDrawTime > 0 ? Math.min(now - lastDrawTime, 33) : 16;
+      lastDrawTime = now;
       ctx!.clearRect(0, 0, width, height);
       const t = (now - t0Ref.current) / 1000;
 
       // ── Update charge ──
       if ((internalPhase === 'idle' || internalPhase === 'charging') && !shatteredRef.current) {
-        const dt = 16; // approximate frame time
         if (isPressedRef.current) {
           chargeRef.current = Math.min(1, chargeRef.current + chargeRate * dt);
         } else {
@@ -522,7 +525,9 @@ export default function SealBreakCanvas({
       // ── Shatter shards ──
       if (internalPhase === 'shatter') {
         const elapsed = now - shatterStartRef.current;
-        const sp = Math.min(1, elapsed / shatterDuration);
+        const rawSp = Math.min(1, elapsed / shatterDuration);
+        // Ease out cubic for natural deceleration
+        const sp = 1 - Math.pow(1 - rawSp, 3);
         for (const shard of SHARDS) {
           const sx = cx + Math.cos(shard.angle) * shard.distance * sp - shard.size / 2;
           const sy = cy + Math.sin(shard.angle) * shard.distance * sp - shard.size / 2;

@@ -90,9 +90,9 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }, [segments, role.id]);
 
   const [phase, setPhase] = useState<Phase>('appear');
+  const [canvasHidden, setCanvasHidden] = useState(false);
   const { fireComplete } = useRevealLifecycle({ onComplete });
 
-  const canvasOpacity = useSharedValue(1);
   const cardScaleVal = useSharedValue(0);
   const cardOpacity = useSharedValue(0);
   const flashOpacity = useSharedValue(0);
@@ -106,7 +106,8 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       withTiming(0.6, { duration: 100 }),
       withTiming(0, { duration: 400 }),
     );
-    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 300 }));
+    // Hide canvas after flash peaks (canvas disappears behind the flash)
+    setTimeout(() => setCanvasHidden(true), 200);
     cardScaleVal.value = withDelay(
       300,
       withTiming(
@@ -119,17 +120,17 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       ),
     );
     cardOpacity.value = withDelay(300, withTiming(1, { duration: FW.cardRevealDuration }));
-  }, [canvasOpacity, cardScaleVal, cardOpacity, flashOpacity, enableHaptics, enterRevealed]);
+  }, [cardScaleVal, cardOpacity, flashOpacity, enableHaptics, enterRevealed]);
 
   // Init
   useEffect(() => {
     if (reducedMotion) {
       cardScaleVal.value = 1;
       cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCanvasHidden(true);
       setPhase('revealed');
     }
-  }, [reducedMotion, cardScaleVal, cardOpacity, canvasOpacity]);
+  }, [reducedMotion, cardScaleVal, cardOpacity]);
 
   // When canvas reports spin complete → trigger card reveal after short pause
   const handleSpinComplete = useCallback(() => {
@@ -142,6 +143,11 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     if (enableHaptics) void triggerHaptic('medium', true);
   }, [enableHaptics]);
 
+  // Canvas appear animation done → transition to idle
+  const handleReady = useCallback(() => {
+    setPhase('idle');
+  }, []);
+
   // Auto-spin timeout
   const autoSpin = useCallback(() => {
     // Canvas handles the auto-spin internally when phase is set
@@ -150,10 +156,6 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoSpin);
 
   // ─── Animated styles ──────────────────────────────────────────────────
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
-
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ scale: cardScaleVal.value }],
     opacity: cardOpacity.value,
@@ -187,18 +189,29 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       </View>
 
       {/* Canvas wheel + interaction */}
-      <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-        <FortuneWheelCanvas
-          dom={{ style: { flex: 1 } }}
-          width={screenWidth}
-          height={screenHeight}
-          segments={canvasSegments}
-          targetIndex={targetIndex}
-          phase={phase === 'revealed' ? 'hidden' : phase}
-          onSpinStart={handleSpinStart}
-          onSpinComplete={handleSpinComplete}
-        />
-      </Animated.View>
+      {!canvasHidden && (
+        <View style={StyleSheet.absoluteFill}>
+          <FortuneWheelCanvas
+            dom={{
+              style: {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: screenWidth,
+                height: screenHeight,
+              },
+            }}
+            width={screenWidth}
+            height={screenHeight}
+            segments={canvasSegments}
+            targetIndex={targetIndex}
+            phase={phase === 'revealed' ? 'hidden' : phase}
+            onSpinStart={handleSpinStart}
+            onSpinComplete={handleSpinComplete}
+            onReady={handleReady}
+          />
+        </View>
+      )}
 
       {/* Flash overlay */}
       <Animated.View style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]} />

@@ -576,29 +576,31 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
       {/* Revealed card */}
       {(phase === 'revealing' || phase === 'revealed') && (
-        <Animated.View
-          style={[styles.cardContainer, { width: cardWidth, height: cardHeight }, cardAnimStyle]}
-        >
-          <RoleCardContent
-            roleId={role.id as RoleId}
-            width={cardWidth}
-            height={cardHeight}
-            revealMode
-            revealGradient={theme.revealGradient}
-            animateEntrance={phase === 'revealed'}
-          />
-          <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
-          {phase === 'revealed' && (
-            <AlignmentRevealOverlay
-              alignment={role.alignment}
-              theme={theme}
-              cardWidth={cardWidth}
-              cardHeight={cardHeight}
-              animate={!reducedMotion}
-              onComplete={fireComplete}
+        <View style={styles.cardContainer}>
+          <Animated.View
+            style={[styles.cardInner, { width: cardWidth, height: cardHeight }, cardAnimStyle]}
+          >
+            <RoleCardContent
+              roleId={role.id as RoleId}
+              width={cardWidth}
+              height={cardHeight}
+              revealMode
+              revealGradient={theme.revealGradient}
+              animateEntrance={phase === 'revealed'}
             />
-          )}
-        </Animated.View>
+            <RevealBurst trigger={phase === 'revealed'} color={theme.glowColor} />
+            {phase === 'revealed' && (
+              <AlignmentRevealOverlay
+                alignment={role.alignment}
+                theme={theme}
+                cardWidth={cardWidth}
+                cardHeight={cardHeight}
+                animate={!reducedMotion}
+                onComplete={fireComplete}
+              />
+            )}
+          </Animated.View>
+        </View>
       )}
     </View>
   );
@@ -658,7 +660,13 @@ const styles = StyleSheet.create({
     fontSize: 26,
   },
   cardContainer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 20,
+    pointerEvents: 'none',
+  },
+  cardInner: {
     overflow: 'visible',
   },
 });
