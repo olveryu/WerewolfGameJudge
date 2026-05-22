@@ -16,7 +16,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { BreathingBorder } from '@/components/RoleRevealEffects/common/effects/BreathingBorder';
 import { GodRevealEffect } from '@/components/RoleRevealEffects/common/effects/GodRevealEffect';
-import { ScreenFlash } from '@/components/RoleRevealEffects/common/effects/ScreenFlash';
+import ScreenFlash from '@/components/RoleRevealEffects/common/effects/ScreenFlashCanvas';
 import { ThirdRevealEffect } from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffect';
 import { VillagerRevealEffect } from '@/components/RoleRevealEffects/common/effects/VillagerRevealEffect';
 import { WolfRevealEffect } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
@@ -74,13 +74,17 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
     <View style={styles.effectContainer}>
       {/* Full-screen radial flash — neutral color to prevent leaking alignment */}
       <ScreenFlash
+        dom={{ style: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 } }}
         color={AE.screenFlashColor}
         peakOpacity={AE.screenFlashOpacity}
         duration={AE.screenFlashDuration}
         animate={animate}
         centerX={cardWidth / 2}
         centerY={cardHeight * 0.42}
+        width={cardWidth}
+        height={cardHeight}
         delay={250}
+        effectStartDelay={AE.effectStartDelay}
       />
 
       {/* Alignment-specific visual effects */}
