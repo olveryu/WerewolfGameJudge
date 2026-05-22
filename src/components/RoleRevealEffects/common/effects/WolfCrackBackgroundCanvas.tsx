@@ -230,10 +230,10 @@ function drawPartialPath(
   const partialFraction = segmentsToShow - fullSegments;
 
   ctx.beginPath();
-  ctx.moveTo(points[0][0] * w, points[0][1] * h);
+  ctx.moveTo(points[0]![0] * w, points[0]![1] * h);
 
   for (let i = 0; i < fullSegments && i < totalSegments; i++) {
-    ctx.lineTo(points[i + 1][0] * w, points[i + 1][1] * h);
+    ctx.lineTo(points[i + 1]![0] * w, points[i + 1]![1] * h);
   }
 
   // Partial last segment
