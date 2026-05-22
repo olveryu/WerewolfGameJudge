@@ -14,7 +14,7 @@ import type React from 'react';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { BreathingBorder } from '@/components/RoleRevealEffects/common/effects/BreathingBorder';
+import BreathingBorder from '@/components/RoleRevealEffects/common/effects/BreathingBorderCanvas';
 import { GodRevealEffect } from '@/components/RoleRevealEffects/common/effects/GodRevealEffect';
 import ScreenFlash from '@/components/RoleRevealEffects/common/effects/ScreenFlashCanvas';
 import { ThirdRevealEffect } from '@/components/RoleRevealEffects/common/effects/ThirdRevealEffect';
@@ -95,6 +95,7 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
 
       {/* Enhanced breathing border */}
       <BreathingBorder
+        dom={{ style: { position: 'absolute', top: -8, left: -8, pointerEvents: 'none' } }}
         color={theme.primaryColor}
         glowColor={theme.glowColor}
         cardWidth={cardWidth}
@@ -102,6 +103,7 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
         animate={animate}
         breathingDuration={breathingDuration}
         onComplete={onComplete}
+        effectDisplayDuration={AE.effectDisplayDuration}
       />
     </View>
   );
