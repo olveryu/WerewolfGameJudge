@@ -1,9 +1,7 @@
 /**
  * BlurEnter — 模糊渐清入场
  *
- * Children go from blurred/low-opacity to sharp/full-opacity. On web, we use
- * a scale+opacity approximation since RN does not support blur on Animated.View natively.
- * A colored soft circle pulses behind to sell the "focus" feel.
+ * Children go from blurred/low-opacity to sharp/full-opacity with a soft glow.
  * Common-tier entrance animation template.
  */
 import { memo, useEffect } from 'react';
@@ -14,12 +12,11 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import AnimationOverlay from '../AnimationOverlay';
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredAnimationProps extends SeatAnimationProps {
@@ -45,23 +42,15 @@ export const BlurEnter = memo<ColoredAnimationProps>(
       transform: [{ scale: 1.15 - progress.value * 0.15 }],
     }));
 
-    const glowStyle = useAnimatedStyle(() => ({
-      opacity: (1 - progress.value) * 0.4,
-    }));
-
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Animated.View style={glowStyle}>
-          <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-            <AnimatedCircle
-              cx={size / 2}
-              cy={size / 2}
-              r={size * 0.4}
-              fill={colors.rgbLight}
-              opacity={0.5}
-            />
-          </Svg>
-        </Animated.View>
+        <AnimationOverlay
+          dom={{ matchContents: true }}
+          size={size}
+          duration={COMMON_DURATION}
+          effectId="staticGlow"
+          color={colors.rgbLight}
+        />
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >

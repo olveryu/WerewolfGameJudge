@@ -1,135 +1,72 @@
 /**
- * SlashRevealEnter — 爪痕揭示
+ * SlashRevealEnter — 斩击揭幕
  *
- * Diagonal slash lines sweep across the tile, revealing child behind.
- * Epic-tier archetype. Parameterized by slash count, angle, color, and speed.
+ * Diagonal slashes cut across the tile, then child appears.
+ * Epic-tier archetype.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import AnimationOverlay from '../AnimationOverlay';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle, AnimatedPath } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
+import { EPIC_FLASH_STYLE, useEpicFlash } from './useEpicEnhancers';
 
 export interface SlashRevealConfig {
-  /** Slash line color */
   color: string;
-  /** Accent glow color */
   accentColor: string;
-  /** Number of slash lines (2-5) */
   slashCount: number;
-  /** Base angle in degrees (0 = horizontal, 45 = diagonal) */
   baseAngle: number;
 }
 
-const SlashLine = memo<{
-  index: number;
-  total: number;
-  size: number;
-  progress: { value: number };
-  config: SlashRevealConfig;
-}>(({ index, total, size, progress, config }) => {
-  const offset = (index / total) * size * 0.6 - size * 0.3;
-  const rad = (config.baseAngle * Math.PI) / 180;
-
-  const props = useAnimatedProps(() => {
-    'worklet';
-    const t = Math.min(progress.value * (1 + index * 0.15), 1);
-    const len = t * size * 1.5;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-    const x1 = size / 2 - cos * size * 0.75 + sin * offset;
-    const y1 = size / 2 - sin * size * 0.75 - cos * offset;
-    const x2 = x1 + cos * len;
-    const y2 = y1 + sin * len;
-    return {
-      d: `M ${x1} ${y1} L ${x2} ${y2}`,
-      opacity: t > 0.1 ? (1 - t) * 0.7 : 0,
-    } as Record<string, string | number>;
-  });
-
-  return (
-    <AnimatedPath
-      animatedProps={props}
-      fill="none"
-      stroke={index % 2 === 0 ? config.color : config.accentColor}
-      strokeWidth={3}
-      strokeLinecap="round"
-    />
-  );
-});
-SlashLine.displayName = 'SlashLine';
-
 export const SlashRevealEnter = memo<SeatAnimationProps & { config: SlashRevealConfig }>(
   ({ size, borderRadius, onComplete, children, config }) => {
-    const slashProgress = useSharedValue(0);
     const childOpacity = useSharedValue(0);
-    const childScale = useSharedValue(0.85);
-    const { flashStyle, glowProps } = useEpicEnhancers(size);
+    const childScale = useSharedValue(0.8);
+    const flashStyle = useEpicFlash();
 
     useEffect(() => {
-      slashProgress.value = withTiming(1, {
-        duration: EPIC_DURATION * 0.6,
-        easing: Easing.out(Easing.quad),
-      });
       childOpacity.value = withDelay(
-        EPIC_DURATION * 0.3,
+        EPIC_DURATION * 0.35,
         withTiming(
           1,
-          { duration: EPIC_DURATION * 0.5, easing: Easing.out(Easing.cubic) },
+          { duration: EPIC_DURATION * 0.45, easing: Easing.out(Easing.cubic) },
           (finished) => {
             if (finished) scheduleOnRN(onComplete);
           },
         ),
       );
       childScale.value = withDelay(
-        EPIC_DURATION * 0.3,
-        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
+        EPIC_DURATION * 0.35,
+        withSpring(1, { dampingRatio: 0.7, duration: 500 }),
       );
-    }, [slashProgress, childOpacity, childScale, onComplete]);
+    }, [childOpacity, childScale, onComplete]);
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,
       transform: [{ scale: childScale.value }],
     }));
 
-    const slashes = useMemo(
-      () => Array.from({ length: config.slashCount }, (_, i) => i),
-      [config.slashCount],
-    );
-
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.color}
-          />
-          {slashes.map((i) => (
-            <SlashLine
-              key={i}
-              index={i}
-              total={config.slashCount}
-              size={size}
-              progress={slashProgress}
-              config={config}
-            />
-          ))}
-        </Svg>
+        <AnimationOverlay
+          dom={{ matchContents: true }}
+          size={size}
+          duration={EPIC_DURATION}
+          effectId="slashLines"
+          color={config.color}
+          params={JSON.stringify({ slashCount: config.slashCount, baseAngle: config.baseAngle })}
+          easing="linear"
+        />
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >

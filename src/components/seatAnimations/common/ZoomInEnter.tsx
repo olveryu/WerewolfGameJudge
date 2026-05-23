@@ -1,24 +1,22 @@
 /**
  * ZoomInEnter — 放大弹入
  *
- * Children scale up from a small point to full size with a colored ring burst.
+ * Children scale up from a small point with an imploding ring burst.
  * Common-tier entrance animation template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import AnimationOverlay from '../AnimationOverlay';
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredAnimationProps extends SeatAnimationProps {
@@ -41,29 +39,18 @@ export const ZoomInEnter = memo<ColoredAnimationProps>(
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: Math.min(progress.value * 2, 1),
-      transform: [{ scale: 0.3 + progress.value * 0.7 }],
+      transform: [{ scale: progress.value }],
     }));
-
-    const ringProps = useAnimatedProps(() => {
-      'worklet';
-      return {
-        r: size * 0.2 + progress.value * size * 0.3,
-        opacity: (1 - progress.value) * 0.4,
-      } as Record<string, number>;
-    });
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={ringProps}
-            fill="none"
-            stroke={colors.rgb}
-            strokeWidth={2}
-          />
-        </Svg>
+        <AnimationOverlay
+          dom={{ matchContents: true }}
+          size={size}
+          duration={COMMON_DURATION}
+          effectId="implodingRing"
+          color={colors.rgb}
+        />
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >

@@ -1,125 +1,62 @@
 /**
  * PhaseShiftEnter — 相位偏移
  *
- * Child appears with a ghostly shimmer/phase effect — multiple translucent copies offset.
- * Epic-tier archetype. Parameterized by phase count, color tint, and shift pattern.
+ * Ghost copies shift in/out with a glow behind, then child solidifies.
+ * Epic-tier archetype.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import AnimationOverlay from '../AnimationOverlay';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedCircle } from '../svgAnimatedPrimitives';
-import { EPIC_FLASH_STYLE, useEpicEnhancers } from './useEpicEnhancers';
+import { EPIC_FLASH_STYLE, useEpicFlash } from './useEpicEnhancers';
 
 export interface PhaseShiftConfig {
-  /** Shimmer/ghost color */
   color: string;
-  /** Glow accent color */
   accentColor: string;
-  /** Shift pattern: 'horizontal' | 'vertical' | 'radial' */
-  pattern: 'horizontal' | 'vertical' | 'radial';
+  pattern?: 'horizontal' | 'vertical' | 'radial';
 }
 
 export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftConfig }>(
   ({ size, borderRadius, onComplete, children, config }) => {
-    const progress = useSharedValue(0);
-    const childScale = useSharedValue(0.85);
-    const { flashStyle, glowProps: epicGlowProps } = useEpicEnhancers(size);
+    const childOpacity = useSharedValue(0);
+    const flashStyle = useEpicFlash();
 
     useEffect(() => {
-      progress.value = withTiming(
-        1,
-        {
-          duration: EPIC_DURATION,
-          easing: Easing.out(Easing.cubic),
-        },
-        (finished) => {
-          if (finished) scheduleOnRN(onComplete);
-        },
+      childOpacity.value = withDelay(
+        EPIC_DURATION * 0.5,
+        withTiming(
+          1,
+          { duration: EPIC_DURATION * 0.4, easing: Easing.out(Easing.cubic) },
+          (finished) => {
+            if (finished) scheduleOnRN(onComplete);
+          },
+        ),
       );
-      childScale.value = withDelay(
-        EPIC_DURATION * 0.2,
-        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
-      );
-    }, [progress, childScale, onComplete]);
-
-    // Ghost copy offset
-    const ghostStyle = useAnimatedStyle(() => {
-      const t = progress.value;
-      const offset = (1 - t) * size * 0.12;
-      const tx = config.pattern === 'horizontal' ? offset : 0;
-      const ty = config.pattern === 'vertical' ? offset : 0;
-      const sc = config.pattern === 'radial' ? 1.1 - t * 0.1 : 1;
-      return {
-        opacity: (1 - t) * 0.4,
-        transform: [{ translateX: tx }, { translateY: ty }, { scale: sc }],
-      };
-    });
-
-    // Second ghost in opposite direction
-    const ghost2Style = useAnimatedStyle(() => {
-      const t = progress.value;
-      const offset = (1 - t) * size * 0.12;
-      const tx = config.pattern === 'horizontal' ? -offset : 0;
-      const ty = config.pattern === 'vertical' ? -offset : 0;
-      const sc = config.pattern === 'radial' ? 0.9 + t * 0.1 : 1;
-      return {
-        opacity: (1 - t) * 0.3,
-        transform: [{ translateX: tx }, { translateY: ty }, { scale: sc }],
-      };
-    });
+    }, [childOpacity, onComplete]);
 
     const childStyle = useAnimatedStyle(() => ({
-      opacity: progress.value,
-      transform: [{ scale: childScale.value }],
+      opacity: childOpacity.value,
     }));
-
-    const glowProps = useAnimatedProps(() => {
-      'worklet';
-      return {
-        r: size * 0.4,
-        opacity: (1 - progress.value) * 0.25,
-      } as Record<string, number>;
-    });
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={epicGlowProps}
-            fill={config.color}
-          />
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            animatedProps={glowProps}
-            fill={config.accentColor}
-          />
-        </Svg>
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, ghostStyle]}
-        >
-          {children}
-        </Animated.View>
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, ghost2Style]}
-        >
-          {children}
-        </Animated.View>
+        <AnimationOverlay
+          dom={{ matchContents: true }}
+          size={size}
+          duration={EPIC_DURATION}
+          effectId="phaseGlow"
+          color={config.color}
+        />
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >

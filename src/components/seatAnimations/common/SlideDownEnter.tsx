@@ -1,24 +1,22 @@
 /**
  * SlideDownEnter — 从上方滑入
  *
- * Children slide down from above the tile with a subtle colored trail line.
+ * Children slide down from above with a subtle colored trail line.
  * Common-tier entrance animation template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import AnimationOverlay from '../AnimationOverlay';
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { AnimatedLine } from '../svgAnimatedPrimitives';
 import type { FlairColorSet } from './palette';
 
 interface ColoredAnimationProps extends SeatAnimationProps {
@@ -41,29 +39,19 @@ export const SlideDownEnter = memo<ColoredAnimationProps>(
 
     const childStyle = useAnimatedStyle(() => ({
       opacity: progress.value,
-      transform: [{ translateY: (progress.value - 1) * size * 0.4 }],
+      transform: [{ translateY: (1 - progress.value) * size * -0.4 }],
     }));
-
-    const lineProps = useAnimatedProps(() => {
-      'worklet';
-      return {
-        y1: 0,
-        y2: size * (1 - progress.value) * 0.5,
-        opacity: (1 - progress.value) * 0.5,
-      } as Record<string, number>;
-    });
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-          <AnimatedLine
-            x1={size / 2}
-            x2={size / 2}
-            animatedProps={lineProps}
-            stroke={colors.rgb}
-            strokeWidth={2}
-          />
-        </Svg>
+        <AnimationOverlay
+          dom={{ matchContents: true }}
+          size={size}
+          duration={COMMON_DURATION}
+          effectId="trailLine"
+          color={colors.rgb}
+          params={JSON.stringify({ direction: 'down' })}
+        />
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >
