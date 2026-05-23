@@ -6,20 +6,13 @@
  * Common/rare 先入场，epic/legendary 延迟亮起（建设期待）。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ViewStyle } from 'react-native';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import {
@@ -34,6 +27,9 @@ import {
 } from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
+
+// Register breathing glow for legendary cells
+registerKeyframes('tenResultLegendaryPulse', '0%{opacity:1}50%{opacity:0.6}100%{opacity:1}');
 
 interface TenResultOverlayProps {
   results: DrawResultItem[];
@@ -60,53 +56,40 @@ function ResultCell({
   index: number;
   isHighRarity: boolean;
 }) {
-  const scale = useSharedValue(isHighRarity ? 0.5 : 0.7);
-  const opacity = useSharedValue(0);
-  const glowPulse = useSharedValue(1);
-
+  const [visible, setVisible] = useState(false);
   const baseDelay = isHighRarity ? HIGH_RARITY_DELAY : LOW_RARITY_BASE_DELAY + index * 100;
 
   useEffect(() => {
-    if (isHighRarity) {
-      // High rarity: bigger entrance + overshoot
-      scale.value = withDelay(
-        baseDelay,
-        withSequence(
-          withTiming(item.rarity === 'legendary' ? 1.1 : 1.05, {
-            duration: 350,
-            easing: Easing.out(Easing.back(1.6)),
-          }),
-          withTiming(item.rarity === 'legendary' ? 1.06 : 1.03, { duration: 150 }),
-        ),
-      );
-      opacity.value = withDelay(baseDelay, withTiming(1, { duration: 300 }));
+    const id = setTimeout(() => setVisible(true), baseDelay);
+    return () => clearTimeout(id);
+  }, [baseDelay]);
 
-      // Breathing glow for legendary
-      if (item.rarity === 'legendary') {
-        glowPulse.value = withDelay(
-          baseDelay + 400,
-          withRepeat(withTiming(0.6, { duration: 1200 }), -1, true),
-        );
-      }
-    } else {
-      scale.value = withDelay(
-        baseDelay,
-        withTiming(1, { duration: 300, easing: Easing.out(Easing.back(1.4)) }),
-      );
-      opacity.value = withDelay(baseDelay, withTiming(1, { duration: 250 }));
-    }
-  }, [index, scale, opacity, glowPulse, isHighRarity, baseDelay, item.rarity]);
+  const targetScale = isHighRarity ? (item.rarity === 'legendary' ? 1.06 : 1.03) : 1;
 
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
+  const animStyle: ViewStyle = {
+    opacity: visible ? 1 : 0,
+    transform: [{ scale: visible ? targetScale : isHighRarity ? 0.5 : 0.7 }],
+    ...({
+      transitionProperty: 'opacity, transform',
+      transitionDuration: isHighRarity ? '350ms' : '300ms',
+      transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    } as unknown as ViewStyle),
+    ...(visible && item.rarity === 'legendary'
+      ? ({
+          animationName: 'tenResultLegendaryPulse',
+          animationDuration: '2.4s',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'ease-in-out',
+          animationDelay: `${baseDelay + 400}ms`,
+        } as unknown as ViewStyle)
+      : {}),
+  };
 
   const visual = RARITY_VISUAL[item.rarity];
   const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
 
   return (
-    <Animated.View
+    <View
       style={[
         styles.cell,
         isHighRarity && {
@@ -134,7 +117,7 @@ function ResultCell({
       ) : (
         item.isNew && <Text style={styles.cellNew}>NEW</Text>
       )}
-    </Animated.View>
+    </View>
   );
 }
 

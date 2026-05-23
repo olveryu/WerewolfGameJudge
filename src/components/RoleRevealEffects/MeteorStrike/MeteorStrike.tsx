@@ -3,15 +3,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -67,11 +58,18 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   });
 
   // ── Card reveal animation values ──
-  const canvasOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
+  const [canvasOpacity, setCanvasOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
   const caughtRef = useRef(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
@@ -79,35 +77,20 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   const triggerCardReveal = useCallback(() => {
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    // Flash
-    flashOpacity.value = withSequence(
-      withTiming(0.8, { duration: 80 }),
-      withTiming(0, { duration: 400 }),
-    );
+    // Flash sequence: 0 → 0.8 → 0
+    setFlashOpacity(0.8);
+    schedule(() => setFlashOpacity(0), 80);
 
     // Fade out canvas overlay
-    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 300 }));
+    schedule(() => setCanvasOpacity(0), 200);
 
     // Card reveal
-    cardScale.value = withDelay(
-      MS.cardRevealDelay,
-      withTiming(
-        1,
-        {
-          duration: MS.cardRevealDuration,
-          easing: Easing.out(Easing.back(1.15)),
-        },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(
-      MS.cardRevealDelay,
-      withTiming(1, { duration: MS.cardRevealDuration }),
-    );
-  }, [enableHaptics, flashOpacity, canvasOpacity, cardScale, cardOpacity, enterRevealed]);
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, MS.cardRevealDuration);
+    }, MS.cardRevealDelay);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   // ── Meteor caught handler (called from DOM component) ──
   const handleMeteorCaught = useCallback(() => {
@@ -122,9 +105,9 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   // ── Init animation ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setCanvasOpacity(0);
       setPhase('revealed');
       return;
     }
@@ -134,8 +117,12 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
       setPhase('idle');
     }, MS.atmosphereDuration);
 
-    return () => clearTimeout(atmosphereTimer);
-  }, [reducedMotion, cardScale, cardOpacity, canvasOpacity]);
+    const timers = timersRef.current;
+    return () => {
+      clearTimeout(atmosphereTimer);
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion]);
 
   // ── Auto-timeout ──
   const autoTrigger = useCallback(() => {
@@ -145,19 +132,28 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
   }, [handleMeteorCaught]);
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoTrigger);
 
-  // ── Animated styles ──
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
+  // ── Computed styles with CSS transitions ──
+  const canvasContainerStyle = {
+    opacity: canvasOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
+  const cardStyle = {
+    transform: [{ scale: cardScale }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${MS.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyle = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '80ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
@@ -171,7 +167,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
       <AtmosphericBackground color={theme.primaryColor} animate={!reducedMotion} />
 
       {/* Canvas overlay: stars + meteor + trail + impact effects */}
-      <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+      <View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
         <MeteorOverlayCanvas
           dom={{ style: { flex: 1 } }}
           width={screenW}
@@ -179,10 +175,10 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
           phase={phase === 'revealed' ? 'hidden' : phase}
           onMeteorCaught={handleMeteorCaught}
         />
-      </Animated.View>
+      </View>
 
       {/* Flash overlay */}
-      <Animated.View style={[styles.flash, flashStyle, { backgroundColor: COLORS.impactOrange }]} />
+      <View style={[styles.flash, flashStyle, { backgroundColor: COLORS.impactOrange }]} />
 
       {/* Hint */}
       <HintWithWarning
@@ -200,7 +196,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
 
       {/* Revealed card */}
       {(phase === 'impact' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -222,7 +218,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

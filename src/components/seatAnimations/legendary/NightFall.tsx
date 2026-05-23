@@ -3,41 +3,28 @@
  *
  * Stars twinkle, moon glows, darkness envelops then child appears.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { LEGENDARY_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 
+const CHILD_DELAY = LEGENDARY_DURATION * 0.55;
+const CHILD_DURATION = LEGENDARY_DURATION * 0.35;
+
 export const NightFall = memo<SeatAnimationProps>(
   ({ size, borderRadius, onComplete, children }) => {
-    const childOpacity = useSharedValue(0);
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      childOpacity.value = withDelay(
-        LEGENDARY_DURATION * 0.55,
-        withTiming(
-          1,
-          { duration: LEGENDARY_DURATION * 0.35, easing: Easing.out(Easing.cubic) },
-          (f) => {
-            if (f) scheduleOnRN(onComplete);
-          },
-        ),
-      );
-    }, [childOpacity, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: childOpacity.value,
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), CHILD_DELAY + CHILD_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -49,11 +36,20 @@ export const NightFall = memo<SeatAnimationProps>(
           color="rgb(200,200,255)"
           easing="linear"
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildAnimationStyle({
+              name: 'seatRevealFade',
+              duration: CHILD_DURATION,
+              delay: CHILD_DELAY,
+              easing: EASE_OUT_CUBIC,
+            }) as never,
+          ]}
         >
           {children}
-        </Animated.View>
+        </View>
       </View>
     );
   },
@@ -62,5 +58,5 @@ NightFall.displayName = 'NightFall';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
 });

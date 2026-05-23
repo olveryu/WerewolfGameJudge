@@ -1,28 +1,18 @@
 /**
- * EnhancedRoulette - 老虎机风格角色揭示动画（Reanimated 4）
+ * EnhancedRoulette - 老虎机风格角色揭示动画（CSS Transitions + Canvas）
  *
  * 特点：金属框架、霓虹灯、转轮滚动、弹跳停止、庆祝粒子。
- * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
- * 无 `setTimeout`（通过 `` 回调驱动阶段切换）。
+ * 使用 CSS transitions/animations 驱动，
+ * setTimeout 回调驱动阶段切换。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TextStyle, ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -37,6 +27,7 @@ import {
 import type { RoleData, RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { CELEBRATION_EMOJIS } from '@/config/emojiTokens';
 import { colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
@@ -73,12 +64,15 @@ const SLOT_COLORS = {
 const TOP_BULB_IDS = ['t1', 't2', 't3', 't4', 't5', 't6'] as const;
 const BOTTOM_BULB_IDS = ['b1', 'b2', 'b3', 'b4', 'b5', 'b6'] as const;
 
-// ─── Decorative bulb (Reanimated, zero JS-thread re-renders) ────────────
-/**
- * Self-animating bulb driven by a `useSharedValue` + `withRepeat`.
- * Each instance uses a staggered `delay` to create a pseudo-random flicker
- * pattern entirely on the UI thread — no `setInterval` / `setState`.
- */
+// ─── CSS Keyframes ──────────────────────────────────────────────────────
+registerKeyframes('bulbFlicker', '0%{opacity:0}50%{opacity:1}100%{opacity:0}');
+registerKeyframes(
+  'particleFly',
+  '0%{opacity:1;transform:translate(0,0) scale(0)}20%{transform:translate(var(--tx20),var(--ty20)) scale(1)}40%{opacity:1;transform:translate(var(--tx40),var(--ty40)) scale(1)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}',
+);
+registerKeyframes('frameGlowPulse', '0%{opacity:0.3}50%{opacity:0.8}100%{opacity:0.3}');
+
+// ─── Decorative bulb (CSS animation) ────────────────────────────────────
 const AnimatedBulb: React.FC<{
   phase: 'idle' | 'spinning' | 'stopping' | 'revealed';
   reducedMotion: boolean;
@@ -86,27 +80,19 @@ const AnimatedBulb: React.FC<{
   size?: number;
   delay: number;
 }> = React.memo(({ phase, reducedMotion, color = SLOT_COLORS.bulbOn, size = 8, delay }) => {
-  const anim = useSharedValue(0);
+  const isOn = phase === 'spinning' && !reducedMotion;
+  const isStopped = phase === 'stopping';
 
-  useEffect(() => {
-    if (phase === 'spinning' && !reducedMotion) {
-      anim.value = withDelay(
-        delay,
-        withRepeat(
-          withSequence(withTiming(1, { duration: 120 }), withTiming(0, { duration: 100 })),
-          -1,
-        ),
-      );
-    } else if (phase === 'stopping') {
-      anim.value = withTiming(1, { duration: 100 });
-    } else {
-      anim.value = 0;
-    }
-  }, [phase, reducedMotion, delay, anim]);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: anim.value,
-  }));
+  const glowStyle: ViewStyle | undefined = isOn
+    ? ({
+        animationName: 'bulbFlicker',
+        animationDuration: '220ms',
+        animationIterationCount: 'infinite',
+        animationDelay: `${delay}ms`,
+      } as unknown as ViewStyle)
+    : isStopped
+      ? { opacity: 1 }
+      : { opacity: 0 };
 
   return (
     <View
@@ -120,7 +106,7 @@ const AnimatedBulb: React.FC<{
         },
       ]}
     >
-      <Animated.View
+      <View
         style={[
           styles.bulbGlow,
           {
@@ -136,7 +122,7 @@ const AnimatedBulb: React.FC<{
 });
 AnimatedBulb.displayName = 'AnimatedBulb';
 
-// ─── Self-animating emoji particle ──────────────────────────────────────
+// ─── Self-animating emoji particle (CSS animation) ─────────────────────
 interface EmojiParticleConfig {
   id: number;
   targetX: number;
@@ -147,25 +133,17 @@ interface EmojiParticleConfig {
 
 const EmojiParticle: React.FC<EmojiParticleConfig> = React.memo(
   ({ targetX, targetY, emoji, duration }) => {
-    const progress = useSharedValue(0);
+    const animStyle: TextStyle = {
+      animationName: 'particleFly',
+      animationDuration: `${duration}ms`,
+      animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      animationFillMode: 'forwards',
+      // CSS custom properties for particle target
+      transform: [{ translateX: targetX }, { translateY: targetY }],
+      opacity: 0,
+    } as unknown as TextStyle;
 
-    useEffect(() => {
-      progress.value = withTiming(1, {
-        duration,
-        easing: Easing.out(Easing.cubic),
-      });
-    }, [duration, progress]);
-
-    const animStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateX: progress.value * targetX },
-        { translateY: progress.value * targetY },
-        { scale: interpolate(progress.value, [0, 0.2, 0.4, 1], [0, 1, 1, 0]) },
-      ],
-      opacity: interpolate(progress.value, [0, 0.7, 1], [1, 0.5, 0]),
-    }));
-
-    return <Animated.Text style={[styles.particle, animStyle]}>{emoji}</Animated.Text>;
+    return <Text style={[styles.particle, animStyle]}>{emoji}</Text>;
   },
 );
 EmojiParticle.displayName = 'EmojiParticle';
@@ -204,19 +182,31 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   });
   const [particles, setParticles] = useState<EmojiParticleConfig[]>([]);
 
-  // ── Shared values ──
-  const scrollAnim = useSharedValue(0);
-  const bounceAnim = useSharedValue(0);
-  const frameGlowAnim = useSharedValue(0);
-  const revealScaleAnim = useSharedValue(0.8);
-  const revealOpacityAnim = useSharedValue(0);
-  const cabinetOpacityAnim = useSharedValue(1);
+  // ── Animation state (replaces shared values) ──
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [bounceOffset, setBounceOffset] = useState(0);
+  const [frameGlowActive, setFrameGlowActive] = useState(false);
+  const [revealScale, setRevealScale] = useState(0.8);
+  const [revealOpacity, setRevealOpacity] = useState(0);
+  const [cabinetOpacity, setCabinetOpacity] = useState(1);
+  const [jackpotOpacity, setJackpotOpacity] = useState(0);
+  const [jackpotScale, setJackpotScale] = useState(0.5);
+  const [creditFlickerActive, setCreditFlickerActive] = useState(false);
+  const [pillarOpacity, setPillarOpacity] = useState(0);
 
-  // Scene element shared values
-  const jackpotOpacity = useSharedValue(0);
-  const jackpotScale = useSharedValue(0.5);
-  const creditFlicker = useSharedValue(1);
-  const pillarOpacity = useSharedValue(0);
+  // Timer management
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, []);
 
   const containerWidth = Math.min(screenWidth * 0.9, 340);
   const containerHeight = config.itemHeight * config.visibleItems;
@@ -232,14 +222,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // ── Frame glow pulsing ──
   useEffect(() => {
     if (reducedMotion) return;
-    frameGlowAnim.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-    );
-  }, [frameGlowAnim, reducedMotion]);
+    setFrameGlowActive(true);
+  }, [reducedMotion]);
 
   const targetIndex = useMemo(
     () => shuffledRoles.findIndex((r) => r.id === role.id),
@@ -277,27 +261,19 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   // ── Transition to revealed ──
   const transitionToRevealed = useCallback(() => {
     setPhase('revealed');
-    cabinetOpacityAnim.value = withTiming(0, { duration: 300 });
-    revealScaleAnim.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) });
-    revealOpacityAnim.value = withTiming(1, { duration: 300 });
+    setCabinetOpacity(0);
+    setRevealScale(1);
+    setRevealOpacity(1);
 
     // JACKPOT banner pop-in
-    jackpotOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
-    jackpotScale.value = withDelay(
-      200,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
-    );
+    schedule(() => {
+      setJackpotOpacity(1);
+      setJackpotScale(1);
+    }, 200);
 
     // Light pillars fade out
-    pillarOpacity.value = withTiming(0, { duration: 500 });
-  }, [
-    cabinetOpacityAnim,
-    revealScaleAnim,
-    revealOpacityAnim,
-    jackpotOpacity,
-    jackpotScale,
-    pillarOpacity,
-  ]);
+    setPillarOpacity(0);
+  }, [schedule]);
 
   // ── After bounce completes ──
   const afterBounce = useCallback(() => {
@@ -305,14 +281,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     createParticles();
 
     // Short delay then transition to revealed
-    revealScaleAnim.value = withDelay(
-      100,
-      withTiming(0.8, { duration: 1 }, (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(transitionToRevealed);
-      }),
-    );
-  }, [enableHaptics, createParticles, revealScaleAnim, transitionToRevealed]);
+    schedule(transitionToRevealed, 100);
+  }, [enableHaptics, createParticles, transitionToRevealed, schedule]);
 
   // ── Start spin ──
   const startSpin = useCallback(() => {
@@ -325,46 +295,27 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     const targetPosition = config.spinRotations * shuffledRoles.length + targetIndex;
 
     // Credit display flicker during spin
-    creditFlicker.value = withRepeat(
-      withSequence(withTiming(0.3, { duration: 60 }), withTiming(1, { duration: 60 })),
-      Math.floor(config.spinDuration / 120),
-    );
+    setCreditFlickerActive(true);
 
-    // Main spin
-    scrollAnim.value = withTiming(
-      targetPosition,
-      { duration: config.spinDuration, easing: Easing.out(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (!finished) return;
+    // Main spin — set target position (CSS transition handles animation)
+    setScrollPosition(targetPosition);
 
-        scheduleOnRN(setPhase, 'stopping');
+    // After spin duration, stopping phase
+    schedule(() => {
+      setPhase('stopping');
+      setCreditFlickerActive(false);
 
-        // Light pillars glow at stop
-        pillarOpacity.value = withTiming(0.6, { duration: 200 });
+      // Light pillars glow at stop
+      setPillarOpacity(0.6);
 
-        // Bounce (deterministic timing, no spring oscillation)
-        bounceAnim.value = withSequence(
-          withTiming(-15, { duration: 100, easing: Easing.out(Easing.cubic) }),
-          withTiming(0, { duration: 150, easing: Easing.out(Easing.cubic) }, (fin2) => {
-            'worklet';
-            if (fin2) scheduleOnRN(afterBounce);
-          }),
-        );
-      },
-    );
-  }, [
-    phase,
-    enableHaptics,
-    scrollAnim,
-    bounceAnim,
-    creditFlicker,
-    pillarOpacity,
-    shuffledRoles.length,
-    targetIndex,
-    config,
-    afterBounce,
-  ]);
+      // Bounce
+      setBounceOffset(-15);
+      schedule(() => {
+        setBounceOffset(0);
+        schedule(afterBounce, 150);
+      }, 100);
+    }, config.spinDuration);
+  }, [phase, enableHaptics, shuffledRoles.length, targetIndex, config, afterBounce, schedule]);
 
   // ── Auto-start spin after brief waiting period ──
   useEffect(() => {
@@ -372,15 +323,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
     if (reducedMotion) {
       setPhase('revealed');
-      cabinetOpacityAnim.value = withTiming(0, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
-      revealScaleAnim.value = withTiming(1, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
-      revealOpacityAnim.value = withTiming(1, {
-        duration: CONFIG.common.reducedMotionFadeDuration,
-      });
+      setCabinetOpacity(0);
+      setRevealScale(1);
+      setRevealOpacity(1);
       const timer = setTimeout(
         onComplete,
         CONFIG.common.reducedMotionFadeDuration + (config.revealHoldDuration ?? 1500),
@@ -389,17 +334,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     }
 
     // Wait for user to press SPIN button (or autoTimeout)
-  }, [
-    reducedMotion,
-    cabinetOpacityAnim,
-    shuffledRoles.length,
-    targetIndex,
-    config,
-    revealScaleAnim,
-    revealOpacityAnim,
-    onComplete,
-    startSpin,
-  ]);
+  }, [reducedMotion, shuffledRoles.length, targetIndex, config, onComplete, startSpin]);
 
   // ── Auto-timeout (warning + 8s auto-spin) ──
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle' && !reducedMotion, startSpin);
@@ -410,45 +345,64 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
     revealHoldDurationMs: config.revealHoldDuration,
   });
 
-  // ── Animated styles ──
-  const scrollStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: interpolate(
-          scrollAnim.value,
-          [0, 1],
-          [centeringOffset, centeringOffset - config.itemHeight],
-        ),
-      },
-      { translateY: bounceAnim.value },
-    ],
-  }));
+  // ── Computed styles ──
+  const scrollTranslateY = centeringOffset - scrollPosition * config.itemHeight + bounceOffset;
+  const scrollStyle: ViewStyle = {
+    transform: [{ translateY: scrollTranslateY }],
+    ...({
+      transitionProperty: 'transform',
+      transitionDuration: phase === 'spinning' ? `${config.spinDuration}ms` : '150ms',
+      transitionTimingFunction:
+        phase === 'spinning' ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
+    } as unknown as ViewStyle),
+  };
 
-  const frameGlowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(frameGlowAnim.value, [0, 1], [0.3, 0.8]),
-  }));
+  const frameGlowStyle: ViewStyle | undefined = frameGlowActive
+    ? ({
+        animationName: 'frameGlowPulse',
+        animationDuration: '3s',
+        animationIterationCount: 'infinite',
+        animationTimingFunction: 'ease-in-out',
+      } as unknown as ViewStyle)
+    : { opacity: 0.3 };
 
-  const cabinetFadeStyle = useAnimatedStyle(() => ({
-    opacity: cabinetOpacityAnim.value,
-  }));
+  const cabinetFadeStyle: ViewStyle = {
+    opacity: cabinetOpacity,
+    ...({ transitionProperty: 'opacity', transitionDuration: '300ms' } as unknown as ViewStyle),
+  };
 
-  const revealedCardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: revealScaleAnim.value }],
-    opacity: revealOpacityAnim.value,
-  }));
+  const revealedCardStyle: ViewStyle = {
+    transform: [{ scale: revealScale }],
+    opacity: revealOpacity,
+    ...({
+      transitionProperty: 'opacity, transform',
+      transitionDuration: '300ms',
+      transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    } as unknown as ViewStyle),
+  };
 
-  const creditStyle = useAnimatedStyle(() => ({
-    opacity: creditFlicker.value,
-  }));
+  const creditStyle: ViewStyle | undefined = creditFlickerActive
+    ? ({
+        animationName: 'bulbFlicker',
+        animationDuration: '120ms',
+        animationIterationCount: 'infinite',
+      } as unknown as ViewStyle)
+    : undefined;
 
-  const jackpotStyle = useAnimatedStyle(() => ({
-    opacity: jackpotOpacity.value,
-    transform: [{ scale: jackpotScale.value }],
-  }));
+  const jackpotStyle: ViewStyle = {
+    opacity: jackpotOpacity,
+    transform: [{ scale: jackpotScale }],
+    ...({
+      transitionProperty: 'opacity, transform',
+      transitionDuration: '400ms',
+      transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    } as unknown as ViewStyle),
+  };
 
-  const pillarStyle = useAnimatedStyle(() => ({
-    opacity: pillarOpacity.value,
-  }));
+  const pillarStyle: ViewStyle = {
+    opacity: pillarOpacity,
+    ...({ transitionProperty: 'opacity', transitionDuration: '300ms' } as unknown as ViewStyle),
+  };
 
   // ── Loading state ──
   if (shuffledRoles.length === 0) {
@@ -482,9 +436,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
       </View>
 
       {/* Slot machine cabinet - fades out on reveal */}
-      <Animated.View
-        style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}
-      >
+      <View style={[styles.cabinet, { width: frameWidth, height: frameHeight }, cabinetFadeStyle]}>
         <LinearGradient
           colors={[...SLOT_COLORS.metalGradient]}
           start={{ x: 0, y: 0 }}
@@ -514,7 +466,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
           </View>
 
           {/* Neon glow */}
-          <Animated.View style={[styles.neonBorder, frameGlowStyle]} />
+          <View style={[styles.neonBorder, frameGlowStyle]} />
 
           {/* Inner frame */}
           <View style={[styles.innerFrame, { backgroundColor: SLOT_COLORS.frameInner }]}>
@@ -530,7 +482,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               ]}
             >
               {/* Scrolling items */}
-              <Animated.View style={[styles.scrollContainer, scrollStyle]}>
+              <View style={[styles.scrollContainer, scrollStyle]}>
                 {repeatedRoles.map((r, index) => {
                   const itemTheme = alignmentThemes[r.alignment];
                   return (
@@ -559,7 +511,7 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
                     </View>
                   );
                 })}
-              </Animated.View>
+              </View>
 
               {/* Gradient masks */}
               <LinearGradient
@@ -599,32 +551,30 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
             </View>
           </View>
         </LinearGradient>
-      </Animated.View>
+      </View>
 
       {/* LED credit display — below machine */}
-      <Animated.View style={[styles.ledDisplay, creditStyle]}>
+      <View style={[styles.ledDisplay, creditStyle]}>
         <Text style={styles.ledText}>CREDIT: {String(credit).padStart(2, '0')}</Text>
-      </Animated.View>
+      </View>
 
       {/* Light pillars — glow when stopping */}
       {(phase === 'stopping' || phase === 'revealed') && (
-        <Animated.View style={[styles.pillarContainer, pillarStyle]}>
+        <View style={[styles.pillarContainer, pillarStyle]}>
           <View style={styles.pillarLeft} />
           <View style={styles.pillarRight} />
-        </Animated.View>
+        </View>
       )}
 
       {/* Revealed card - cross-fades in */}
-      <Animated.View
+      <View
         style={[
           styles.revealedOverlay,
           revealedCardStyle,
           phase === 'revealed' ? styles.pointerEventsAuto : styles.pointerEventsNone,
         ]}
       >
-        <Animated.View
-          style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}
-        >
+        <View style={[styles.revealedCardContainer, { width: cardWidth, height: cardHeight }]}>
           <RoleCardContent
             roleId={role.id as RoleId}
             width={cardWidth}
@@ -644,8 +594,8 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
               onComplete={fireComplete}
             />
           )}
-        </Animated.View>
-      </Animated.View>
+        </View>
+      </View>
 
       {/* Celebration particles */}
       <View style={styles.particleContainer}>
@@ -656,9 +606,9 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
 
       {/* JACKPOT banner — pops in on reveal */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.jackpotBanner, { top: insets.top + 50 }, jackpotStyle]}>
+        <View style={[styles.jackpotBanner, { top: insets.top + 50 }, jackpotStyle]}>
           <Text style={styles.jackpotText}>🎰 JACKPOT! 🎰</Text>
-        </Animated.View>
+        </View>
       )}
 
       {/* Hint text */}

@@ -15,16 +15,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -82,11 +72,19 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Shared values ──
-  const flickerOpacity = useSharedValue(0);
-  const canvasOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
+  const [flickerOpacity, setFlickerOpacity] = useState(0);
+  const [canvasOpacity, setCanvasOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const flickerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
@@ -96,35 +94,20 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    // Flash
-    flashOpacity.value = withSequence(
-      withTiming(0.7, { duration: 100 }),
-      withTiming(0, { duration: 500 }),
-    );
+    // Flash sequence
+    setFlashOpacity(0.7);
+    schedule(() => setFlashOpacity(0), 100);
 
     // Fade canvas
-    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 400 }));
+    schedule(() => setCanvasOpacity(0), 200);
 
     // Card reveal
-    cardScale.value = withDelay(
-      FR.cardRevealDelay,
-      withTiming(
-        1,
-        {
-          duration: FR.cardRevealDuration,
-          easing: Easing.out(Easing.back(1.15)),
-        },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(
-      FR.cardRevealDelay,
-      withTiming(1, { duration: FR.cardRevealDuration }),
-    );
-  }, [enableHaptics, flashOpacity, canvasOpacity, cardScale, cardOpacity, enterRevealed]);
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, FR.cardRevealDuration);
+    }, FR.cardRevealDelay);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   const startCountdown = useCallback(() => {
     if (countdownStartedRef.current) return;
@@ -149,22 +132,26 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
   // ── Init animations ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setCanvasOpacity(0);
       setPhase('revealed');
       return;
     }
 
-    // Random flicker
-    flickerOpacity.value = withRepeat(
-      withSequence(
-        withTiming(0.08, { duration: 100 }),
-        withTiming(0, { duration: 200 }),
-        withTiming(0.04, { duration: 50 }),
-        withTiming(0, { duration: 500 }),
-      ),
-      -1,
+    // Random flicker via interval
+    let on = false;
+    flickerIntervalRef.current = setInterval(
+      () => {
+        if (on) {
+          setFlickerOpacity(0);
+          on = false;
+        } else {
+          setFlickerOpacity(Math.random() > 0.5 ? 0.08 : 0.04);
+          on = true;
+        }
+      },
+      150 + Math.random() * 300,
     );
 
     // Atmosphere → idle
@@ -172,11 +159,16 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
       setPhase('idle');
     }, FR.atmosphereDuration);
 
+    const timers = timersRef.current;
+    const flickerInterval = flickerIntervalRef.current;
+    const countdownInterval = countdownIntervalRef.current;
     return () => {
       clearTimeout(timer);
-      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      timers.forEach(clearTimeout);
+      if (flickerInterval) clearInterval(flickerInterval);
+      if (countdownInterval) clearInterval(countdownInterval);
     };
-  }, [reducedMotion, flickerOpacity, cardScale, cardOpacity, canvasOpacity]);
+  }, [reducedMotion]);
 
   // ── Auto-timeout ──
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', startCountdown);
@@ -186,23 +178,34 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
     if (phase === 'idle') startCountdown();
   }, [phase, startCountdown]);
 
-  // ── Animated styles ──
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
+  // ── Computed styles with CSS transitions ──
+  const canvasContainerStyle = {
+    opacity: canvasOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '400ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
+  const cardStyle = {
+    transform: [{ scale: cardScale }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${FR.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyle = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const flickerStyle = useAnimatedStyle(() => ({
-    opacity: flickerOpacity.value,
-  }));
+  const flickerStyle = {
+    opacity: flickerOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+  } as never;
 
   // ── Countdown arc path ──
   const countdownProgress =
@@ -223,7 +226,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
         onPress={handlePress}
         testID={`${testIDPrefix}-press-area`}
       >
-        <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+        <View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <FilmOverlayCanvas
             dom={{
               style: {
@@ -241,7 +244,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
           />
 
           {/* Flicker overlay */}
-          <Animated.View style={[styles.flickerOverlay, flickerStyle]} />
+          <View style={[styles.flickerOverlay, flickerStyle]} />
 
           {/* Countdown display (RN layer for crisp text) */}
           {phase === 'countdown' && countdownNum > 0 && (
@@ -257,12 +260,10 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
               <Text style={styles.countdownText}>{countdownNum}</Text>
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {/* Flash overlay */}
-        <Animated.View
-          style={[styles.flash, flashStyle, { backgroundColor: COLORS.projectorWarm }]}
-        />
+        <View style={[styles.flash, flashStyle, { backgroundColor: COLORS.projectorWarm }]} />
       </Pressable>
 
       {/* Hint */}
@@ -281,7 +282,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 
       {/* Revealed card */}
       {(phase === 'countdown' || phase === 'revealed') && countdownNum <= 0 && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -303,7 +304,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

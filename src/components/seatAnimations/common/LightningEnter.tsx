@@ -4,21 +4,18 @@
  * A lightning bolt strikes down, then children appear with a flash.
  * Rare-tier entrance animation template.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { RARE_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import type { FlairColorSet } from './palette';
+
+const FLASH_DELAY = RARE_DURATION * 0.35;
+const CHILD_DELAY = RARE_DURATION * 0.4;
+const CHILD_DURATION = RARE_DURATION * 0.5;
 
 interface ColoredAnimationProps extends SeatAnimationProps {
   colors: FlairColorSet;
@@ -26,39 +23,15 @@ interface ColoredAnimationProps extends SeatAnimationProps {
 
 export const LightningEnter = memo<ColoredAnimationProps>(
   ({ size, borderRadius, onComplete, children, colors }) => {
-    const childOpacity = useSharedValue(0);
-    const flashOpacity = useSharedValue(0);
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      // Flash at bolt strike moment
-      flashOpacity.value = withDelay(
-        RARE_DURATION * 0.35,
-        withTiming(0.6, { duration: 50 }, () => {
-          'worklet';
-          flashOpacity.value = withTiming(0, { duration: 200 });
-        }),
-      );
-      // Children appear after bolt
-      childOpacity.value = withDelay(
-        RARE_DURATION * 0.4,
-        withTiming(
-          1,
-          { duration: RARE_DURATION * 0.5, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) scheduleOnRN(onComplete);
-          },
-        ),
-      );
-    }, [childOpacity, flashOpacity, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: childOpacity.value,
-      transform: [{ scale: 0.9 + childOpacity.value * 0.1 }],
-    }));
-
-    const flashStyle = useAnimatedStyle(() => ({
-      opacity: flashOpacity.value,
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), CHILD_DELAY + CHILD_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -70,12 +43,33 @@ export const LightningEnter = memo<ColoredAnimationProps>(
           color={colors.rgb}
           easing="linear"
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildAnimationStyle({
+              name: 'seatLightning',
+              duration: CHILD_DURATION,
+              delay: CHILD_DELAY,
+              easing: EASE_OUT_CUBIC,
+            }) as never,
+          ]}
         >
           {children}
-        </Animated.View>
-        <Animated.View pointerEvents="none" style={[styles.flash, { borderRadius }, flashStyle]} />
+        </View>
+        <View
+          pointerEvents="none"
+          style={[
+            styles.flash,
+            { borderRadius },
+            buildAnimationStyle({
+              name: 'seatLightningFlash',
+              duration: 250,
+              delay: FLASH_DELAY,
+              easing: 'linear',
+            }) as never,
+          ]}
+        />
       </View>
     );
   },
@@ -84,7 +78,7 @@ LightningEnter.displayName = 'LightningEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
   // eslint-disable-next-line react-native/no-color-literals
-  flash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'white' },
+  flash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'white', opacity: 0 },
 });

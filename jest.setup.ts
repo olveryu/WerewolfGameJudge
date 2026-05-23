@@ -3,9 +3,6 @@
  * Mocks external dependencies that are not available in test environment
  */
 
-// Reanimated jest mock (must be before any component imports)
-(require('react-native-reanimated') as { setUpTests: () => void }).setUpTests();
-
 // Safe area context — global mock via __mocks__/react-native-safe-area-context.tsx
 // (resolved by moduleNameMapper in jest.config.js)
 

@@ -4,22 +4,14 @@
  * Particles spiral inward like a vortex, then child appears.
  * Epic-tier archetype.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildMultiAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { EPIC_FLASH_STYLE, useEpicFlash } from './useEpicEnhancers';
+import { EPIC_FLASH_ANIM_STYLE, EPIC_FLASH_STYLE } from './useEpicEnhancers';
 
 export interface VortexSwirlConfig {
   color: string;
@@ -29,33 +21,20 @@ export interface VortexSwirlConfig {
   rotations?: number;
 }
 
+const CHILD_DELAY = EPIC_DURATION * 0.4;
+const CHILD_DURATION = EPIC_DURATION * 0.4;
+
 export const VortexSwirlEnter = memo<SeatAnimationProps & { config: VortexSwirlConfig }>(
   ({ size, borderRadius, onComplete, children, config }) => {
-    const childOpacity = useSharedValue(0);
-    const childScale = useSharedValue(0.7);
-    const flashStyle = useEpicFlash();
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      childOpacity.value = withDelay(
-        EPIC_DURATION * 0.4,
-        withTiming(
-          1,
-          { duration: EPIC_DURATION * 0.4, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) scheduleOnRN(onComplete);
-          },
-        ),
-      );
-      childScale.value = withDelay(
-        EPIC_DURATION * 0.4,
-        withSpring(1, { dampingRatio: 0.7, duration: 500 }),
-      );
-    }, [childOpacity, childScale, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: childOpacity.value,
-      transform: [{ scale: childScale.value }],
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), CHILD_DELAY + CHILD_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -69,14 +48,26 @@ export const VortexSwirlEnter = memo<SeatAnimationProps & { config: VortexSwirlC
           params={JSON.stringify({ particleCount: config.particleCount })}
           easing="linear"
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildMultiAnimationStyle([
+              {
+                name: 'seatRevealFade',
+                duration: CHILD_DURATION,
+                delay: CHILD_DELAY,
+                easing: EASE_OUT_CUBIC,
+              },
+              { name: 'seatRevealSpring07', duration: 500, delay: CHILD_DELAY, easing: 'linear' },
+            ]) as never,
+          ]}
         >
           {children}
-        </Animated.View>
-        <Animated.View
+        </View>
+        <View
           pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+          style={[EPIC_FLASH_STYLE, { borderRadius }, EPIC_FLASH_ANIM_STYLE]}
         />
       </View>
     );
@@ -86,5 +77,5 @@ VortexSwirlEnter.displayName = 'VortexSwirlEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
 });

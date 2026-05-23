@@ -3,20 +3,13 @@
  *
  * 进入主页时自动播放翻转：背面（"猜猜是谁"）→ 正面（随机角色）。
  * 点击"换一个"翻回背面再翻到正面，展示新角色。
- * 使用 react-native-reanimated withTiming + backfaceVisibility 标准双面翻转。
+ * 使用 CSS transition + backfaceVisibility 标准双面翻转。
  * 纯展示组件，不 import service，不包含业务逻辑。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RoleId } from '@werewolf/game-engine/models/roles';
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import { Image, Text, View } from 'react-native';
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { PressableScale } from '@/components/PressableScale';
 import { colors, componentSizes, type ThemeColors, withAlpha } from '@/theme';
@@ -50,65 +43,63 @@ export const RandomRoleCard = memo<RandomRoleCardProps>(
     onDetail,
     styles,
   }) => {
-    const rotation = useSharedValue(0);
+    const [flipped, setFlipped] = useState(false);
     const isFlipping = useRef(false);
 
     // Auto-flip on mount
-    useEffect(() => {
-      rotation.value = withDelay(AUTO_FLIP_DELAY, withTiming(180, { duration: FLIP_DURATION }));
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: rotation.value is a Reanimated SharedValue (stable ref)
-    }, []);
+    useState(() => {
+      setTimeout(() => setFlipped(true), AUTO_FLIP_DELAY);
+    });
 
     const handleRefresh = useCallback(() => {
       if (isFlipping.current) return;
       isFlipping.current = true;
 
       // Flip to back
-      rotation.value = withTiming(0, { duration: FLIP_DURATION / 2 }, () => {
-        // Parent swaps role via onRefresh; after state update, flip to front
-      });
+      setFlipped(false);
 
-      // Call parent to swap role, then flip to front after a short delay
+      // Call parent to swap role, then flip to front after half-duration
       setTimeout(() => {
         onRefresh();
         setTimeout(() => {
-          rotation.value = withTiming(180, { duration: FLIP_DURATION / 2 }, () => {
-            isFlipping.current = false;
-          });
+          setFlipped(true);
+          isFlipping.current = false;
         }, 50);
       }, FLIP_DURATION / 2);
-    }, [onRefresh, rotation]);
+    }, [onRefresh]);
 
-    // Front face (role info) — visible when rotation is 180°
-    const frontStyle = useAnimatedStyle(() => ({
-      transform: [
-        { perspective: 800 },
-        { rotateY: `${interpolate(rotation.value, [0, 180], [180, 360])}deg` },
-      ],
-      backfaceVisibility: 'hidden',
-    }));
+    const cardTransition = {
+      transitionProperty: 'transform',
+      transitionDuration: `${FLIP_DURATION}ms`,
+      transitionTimingFunction: 'ease',
+    };
 
-    // Back face (mystery) — visible when rotation is 0°
-    const backStyle = useAnimatedStyle(() => ({
-      transform: [
-        { perspective: 800 },
-        { rotateY: `${interpolate(rotation.value, [0, 180], [0, 180])}deg` },
-      ],
-      backfaceVisibility: 'hidden',
-    }));
+    // Front face (role info) — visible when flipped
+    const frontStyle = {
+      transform: [{ perspective: 800 }, { rotateY: flipped ? '360deg' : '180deg' }],
+      backfaceVisibility: 'hidden' as const,
+      ...cardTransition,
+    } as never;
+
+    // Back face (mystery) — visible when not flipped
+    const backStyle = {
+      transform: [{ perspective: 800 }, { rotateY: flipped ? '180deg' : '0deg' }],
+      backfaceVisibility: 'hidden' as const,
+      ...cardTransition,
+    } as never;
 
     return (
       <View style={styles.randomRoleWrapper}>
         {/* Back face */}
-        <Animated.View style={[styles.randomRoleCard, styles.randomRoleCardAbsolute, backStyle]}>
+        <View style={[styles.randomRoleCard, styles.randomRoleCardAbsolute, backStyle]}>
           <View style={styles.randomRoleBackContent}>
             <Text style={styles.randomRoleBackEmoji}>🐺</Text>
             <Text style={styles.randomRoleBackText}>猜猜今天是谁？</Text>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Front face */}
-        <Animated.View style={[styles.randomRoleCard, frontStyle]}>
+        <View style={[styles.randomRoleCard, frontStyle]}>
           <View style={styles.randomRoleFrontRow}>
             <Image source={avatarImage} style={styles.randomRoleAvatar} resizeMode="cover" />
             <View style={styles.randomRoleFrontInfo}>
@@ -146,7 +137,7 @@ export const RandomRoleCard = memo<RandomRoleCardProps>(
               />
             </PressableScale>
           </View>
-        </Animated.View>
+        </View>
       </View>
     );
   },

@@ -12,17 +12,6 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -119,29 +108,29 @@ interface CelebrationParticleConfig {
 
 const CelebrationParticle: React.FC<CelebrationParticleConfig> = React.memo(
   ({ targetX, targetY, emoji, duration }) => {
-    const progress = useSharedValue(0);
+    const [fired, setFired] = useState(false);
 
     useEffect(() => {
-      progress.value = withTiming(1, {
-        duration,
-        easing: Easing.out(Easing.cubic),
-      });
-    }, [duration, progress]);
+      requestAnimationFrame(() => setFired(true));
+    }, []);
 
-    const animStyle = useAnimatedStyle(() => ({
+    const style = {
       transform: [
-        { translateX: progress.value * targetX },
-        { translateY: progress.value * targetY },
-        { scale: interpolate(progress.value, [0, 0.2, 0.4, 1], [0, 1.4, 1.1, 0]) },
-        { rotate: `${progress.value * 180}deg` },
+        { translateX: fired ? targetX : 0 },
+        { translateY: fired ? targetY : 0 },
+        { scale: fired ? 0 : 1.2 },
+        { rotate: fired ? '180deg' : '0deg' },
       ],
-      opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0.7, 0]),
-    }));
+      opacity: fired ? 0 : 1,
+      transitionProperty: 'opacity, transform',
+      transitionDuration: `${duration}ms`,
+      transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+    } as never;
 
     return (
-      <Animated.View style={[styles.celebrationParticle, animStyle]}>
+      <View style={[styles.celebrationParticle, style]}>
         <Text style={styles.celebrationEmoji}>{emoji}</Text>
-      </Animated.View>
+      </View>
     );
   },
 );
@@ -156,77 +145,68 @@ interface AnimatedAnimalProps {
 
 const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
   ({ animal, screenWidth, state }) => {
-    const xPos = useSharedValue(animal.startX);
-    const bobValue = useSharedValue(0);
-    const hitScale = useSharedValue(1);
-    const hitOpacity = useSharedValue(1);
+    const [xTarget, setXTarget] = useState(animal.startX);
+    const [hitScale, setHitScale] = useState(1);
+    const [hitOpacity, setHitOpacity] = useState(1);
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+    const travelDistance = screenWidth + ANIMAL_SIZE * 4;
+    const duration = (travelDistance / Math.abs(animal.speed)) * 1000;
+    const endX = animal.speed > 0 ? screenWidth + ANIMAL_SIZE * 2 : -ANIMAL_SIZE * 2;
 
     useEffect(() => {
-      const travelDistance = screenWidth + ANIMAL_SIZE * 4;
-      const duration = (travelDistance / Math.abs(animal.speed)) * 1000;
-      const endX = animal.speed > 0 ? screenWidth + ANIMAL_SIZE * 2 : -ANIMAL_SIZE * 2;
-
-      xPos.value = animal.startX;
-      xPos.value = withTiming(endX, { duration, easing: Easing.linear });
-    }, [xPos, animal.startX, animal.speed, screenWidth]);
-
-    useEffect(() => {
-      bobValue.value = withRepeat(
-        withSequence(
-          withTiming(1, {
-            duration: 600 + (animal.id % 10) * 50,
-            easing: Easing.inOut(Easing.sin),
-          }),
-          withTiming(0, {
-            duration: 600 + (animal.id % 10) * 50,
-            easing: Easing.inOut(Easing.sin),
-          }),
-        ),
-        -1,
-      );
-    }, [bobValue, animal.id]);
+      requestAnimationFrame(() => setXTarget(endX));
+      const timers = timersRef.current;
+      return () => {
+        timers.forEach(clearTimeout);
+      };
+    }, [endX]);
 
     useEffect(() => {
       if (state === 'hit-miss') {
-        hitScale.value = withSequence(
-          withTiming(1.5, { duration: 150 }),
-          withTiming(0.3, { duration: 300, easing: Easing.out(Easing.cubic) }),
-        );
-        hitOpacity.value = withDelay(
-          100,
-          withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) }),
-        );
+        setHitScale(1.5);
+        const t1 = setTimeout(() => setHitScale(0.3), 150);
+        const t2 = setTimeout(() => setHitOpacity(0), 100);
+        timersRef.current.push(t1, t2);
       } else if (state === 'hit-target') {
-        hitScale.value = withSequence(
-          withTiming(1.8, { duration: 200, easing: Easing.out(Easing.back(2)) }),
-          withTiming(0, { duration: 300, easing: Easing.in(Easing.cubic) }),
-        );
-        hitOpacity.value = withDelay(150, withTiming(0, { duration: 250 }));
+        setHitScale(1.8);
+        const t1 = setTimeout(() => setHitScale(0), 200);
+        const t2 = setTimeout(() => setHitOpacity(0), 150);
+        timersRef.current.push(t1, t2);
       }
-    }, [state, hitScale, hitOpacity]);
-
-    const animStyle = useAnimatedStyle(() => {
-      const bob = interpolate(bobValue.value, [0, 1], [0, -5]);
-      return {
-        transform: [
-          { translateX: xPos.value - ANIMAL_SIZE / 2 },
-          { translateY: animal.y + bob - ANIMAL_SIZE / 2 },
-          { scale: animal.scale * hitScale.value },
-          { scaleX: animal.facingLeft ? -1 : 1 },
-        ],
-        opacity: hitOpacity.value,
-      };
-    });
+    }, [state]);
 
     if (state === 'dead') return null;
 
+    // Outer: linear horizontal movement
+    const movementStyle = {
+      transform: [
+        { translateX: xTarget - ANIMAL_SIZE / 2 },
+        { translateY: animal.y - ANIMAL_SIZE / 2 },
+      ],
+      transitionProperty: 'transform',
+      transitionDuration: `${duration}ms`,
+      transitionTimingFunction: 'linear',
+    } as never;
+
+    // Inner: scale/opacity for hit reactions
+    const hitStyle = {
+      transform: [{ scale: animal.scale * hitScale }, { scaleX: animal.facingLeft ? -1 : 1 }],
+      opacity: hitOpacity,
+      transitionProperty: 'opacity, transform',
+      transitionDuration: '200ms',
+      transitionTimingFunction: 'ease-out',
+    } as never;
+
     return (
-      <Animated.View style={[styles.animalLabel, animStyle]}>
-        <Text style={styles.animalEmoji}>{animal.emoji}</Text>
-        <View style={[styles.animalNameBg, animal.facingLeft && { transform: [{ scaleX: -1 }] }]}>
-          <Text style={styles.animalName}>{animal.role.name}</Text>
+      <View style={[styles.animalLabel, movementStyle]}>
+        <View style={hitStyle}>
+          <Text style={styles.animalEmoji}>{animal.emoji}</Text>
+          <View style={[styles.animalNameBg, animal.facingLeft && { transform: [{ scaleX: -1 }] }]}>
+            <Text style={styles.animalName}>{animal.role.name}</Text>
+          </View>
         </View>
-      </Animated.View>
+      </View>
     );
   },
 );
@@ -322,9 +302,16 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
   }, [allRoles, role]);
 
   // ── Shared values ──
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const hitFlashOpacity = useSharedValue(0);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [hitFlashOpacity, setHitFlashOpacity] = useState(0);
+  const mainTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    mainTimersRef.current.push(id);
+    return id;
+  }, []);
 
   const cardWidth = Math.min(screenWidth * common.cardWidthRatio, common.cardMaxWidth);
   const cardHeight = cardWidth * common.cardAspectRatio;
@@ -404,16 +391,10 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
     if (targetSpawnTimerRef.current) clearInterval(targetSpawnTimerRef.current);
 
-    cardOpacity.value = withTiming(1, { duration: 300 });
-    cardScale.value = withTiming(
-      1,
-      { duration: 400, easing: Easing.out(Easing.back(1.5)) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(setPhase, 'revealed');
-      },
-    );
-  }, [cardScale, cardOpacity, createCelebrations, enableHaptics]);
+    setCardOpacity(1);
+    setCardScale(1);
+    schedule(() => setPhase('revealed'), 400);
+  }, [createCelebrations, enableHaptics, schedule]);
 
   // Auto-timeout
   const autoTimeoutWarning = useAutoTimeout(phase === 'hunting' && !reducedMotion, startReveal);
@@ -426,10 +407,8 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       if (enableHaptics) void triggerHaptic('medium', true);
 
       // Subtle flash
-      hitFlashOpacity.value = withSequence(
-        withTiming(0.3, { duration: 50 }),
-        withTiming(0, { duration: 200 }),
-      );
+      setHitFlashOpacity(0.3);
+      schedule(() => setHitFlashOpacity(0), 50);
 
       // Hit detection
       const now = Date.now();
@@ -467,44 +446,45 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 
           setHitBurstPos({ x: sx, y: sy });
 
-          hitFlashOpacity.value = withSequence(
-            withTiming(0.5, { duration: 80 }),
-            withTiming(0, { duration: 400 }),
-          );
+          setHitFlashOpacity(0.5);
+          schedule(() => setHitFlashOpacity(0), 80);
 
           const timer = setTimeout(() => startReveal(), config.hitRevealDelay);
           hitRevealTimerRef.current = timer;
         } else {
           setAnimalStates((prev) => ({ ...prev, [animal.id]: 'hit-miss' }));
           if (enableHaptics) void triggerHaptic('light', true);
-          hitFlashOpacity.value = withSequence(
-            withTiming(0.15, { duration: 50 }),
-            withTiming(0, { duration: 200 }),
-          );
+          setHitFlashOpacity(0.15);
+          schedule(() => setHitFlashOpacity(0), 50);
         }
       }
     },
-    [screenWidth, enableHaptics, config.hitRevealDelay, startReveal, hitFlashOpacity],
+    [screenWidth, enableHaptics, config.hitRevealDelay, startReveal, schedule],
   );
 
   // ── Reduced motion: skip to reveal ──
   useEffect(() => {
     if (!reducedMotion) return;
-    cardOpacity.value = 1;
-    cardScale.value = 1;
+    setCardOpacity(1);
+    setCardScale(1);
     setPhase('revealed');
     fireComplete();
-  }, [reducedMotion, cardOpacity, cardScale, fireComplete]);
+  }, [reducedMotion, fireComplete]);
 
-  // ── Animated styles ──
-  const cardAnimStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-    transform: [{ scale: cardScale.value }],
-  }));
+  // ── Computed styles with CSS transitions ──
+  const cardAnimStyle = {
+    opacity: cardOpacity,
+    transform: [{ scale: cardScale }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '400ms',
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  } as never;
 
-  const hitFlashStyle = useAnimatedStyle(() => ({
-    opacity: hitFlashOpacity.value,
-  }));
+  const hitFlashStyle = {
+    opacity: hitFlashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '50ms',
+  } as never;
 
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>
@@ -539,9 +519,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       )}
 
       {/* Hit flash overlay */}
-      <Animated.View
-        style={[styles.flash, hitFlashStyle, { backgroundColor: HUNT_COLORS.hitFlash }]}
-      />
+      <View style={[styles.flash, hitFlashStyle, { backgroundColor: HUNT_COLORS.hitFlash }]} />
 
       {/* Animals */}
       {!reducedMotion && (
@@ -577,9 +555,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
       {/* Revealed card */}
       {(phase === 'revealing' || phase === 'revealed') && (
         <View style={styles.cardContainer}>
-          <Animated.View
-            style={[styles.cardInner, { width: cardWidth, height: cardHeight }, cardAnimStyle]}
-          >
+          <View style={[styles.cardInner, { width: cardWidth, height: cardHeight }, cardAnimStyle]}>
             <RoleCardContent
               roleId={role.id as RoleId}
               width={cardWidth}
@@ -599,7 +575,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
                 onComplete={fireComplete}
               />
             )}
-          </Animated.View>
+          </View>
         </View>
       )}
     </View>

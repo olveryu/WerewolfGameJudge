@@ -20,15 +20,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -154,19 +145,26 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   const { fireComplete } = useRevealLifecycle({ onComplete });
 
   // ── Shared values (view animations only) ──
-  const chainOpacity = useSharedValue(0);
-  const chainScale = useSharedValue(0);
-  const hitFlashOpacity = useSharedValue(0);
-  const canvasOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
-  const shakeX = useSharedValue(0);
-  const shakeY = useSharedValue(0);
-  const comboOpacity = useSharedValue(0);
-  const comboScale = useSharedValue(1);
-  const lightPillarOpacity = useSharedValue(0);
-  const lightPillarScale = useSharedValue(0);
+  const [chainOpacity, setChainOpacity] = useState(0);
+  const [chainScale, setChainScale] = useState(0);
+  const [hitFlashOpacity, setHitFlashOpacity] = useState(0);
+  const [canvasOpacity, setCanvasOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
+  const [shakeX, setShakeX] = useState(0);
+  const [shakeY, setShakeY] = useState(0);
+  const [comboOpacity, setComboOpacity] = useState(0);
+  const [comboScale, setComboScale] = useState(1);
+  const [lightPillarOpacity, setLightPillarOpacity] = useState(0);
+  const [lightPillarScale, setLightPillarScale] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
@@ -174,23 +172,22 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
   // ── Appear animation ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setCanvasOpacity(0);
       setPhase('revealed');
       return;
     }
 
-    chainOpacity.value = withTiming(1, { duration: CS.chainAppearDuration / 2 });
-    chainScale.value = withTiming(
-      1,
-      { duration: CS.chainAppearDuration, easing: Easing.out(Easing.back(1.15)) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(setPhase, 'idle');
-      },
-    );
-  }, [reducedMotion, chainOpacity, chainScale, cardScale, cardOpacity, canvasOpacity]);
+    setChainOpacity(1);
+    setChainScale(1);
+    schedule(() => setPhase('idle'), CS.chainAppearDuration);
+
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion, schedule]);
 
   // ── Trigger final shatter ──
   const triggerShatter = useCallback(() => {
@@ -202,47 +199,26 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     if (enableHaptics) void triggerHaptic('heavy', true);
 
     // Screen flash
-    flashOpacity.value = withSequence(
-      withTiming(0.7, { duration: 80 }),
-      withTiming(0, { duration: 500 }),
-    );
+    setFlashOpacity(0.7);
+    schedule(() => setFlashOpacity(0), 80);
 
     // Fade canvas
-    canvasOpacity.value = withDelay(400, withTiming(0, { duration: 400 }));
+    schedule(() => setCanvasOpacity(0), 400);
 
     // Card reveal
-    cardScale.value = withDelay(
-      500,
-      withTiming(
-        1,
-        { duration: CS.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(500, withTiming(1, { duration: CS.cardRevealDuration }));
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, CS.cardRevealDuration);
+    }, 500);
 
     // Freedom light pillar
-    lightPillarScale.value = withDelay(
-      300,
-      withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }),
-    );
-    lightPillarOpacity.value = withDelay(
-      300,
-      withSequence(withTiming(0.8, { duration: 300 }), withTiming(0, { duration: 800 })),
-    );
-  }, [
-    enableHaptics,
-    flashOpacity,
-    canvasOpacity,
-    cardScale,
-    cardOpacity,
-    enterRevealed,
-    lightPillarScale,
-    lightPillarOpacity,
-  ]);
+    schedule(() => {
+      setLightPillarScale(1);
+      setLightPillarOpacity(0.8);
+      schedule(() => setLightPillarOpacity(0), 300);
+    }, 300);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   // ── Auto-timeout (warning + 8s auto-shatter) ──
   const autoTimeoutWarning = useAutoTimeout(
@@ -289,91 +265,87 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     ]);
 
     // Combo indicator pop
-    comboScale.value = withSequence(
-      withTiming(1.4, { duration: 80 }),
-      withTiming(1, { duration: 150 }),
-    );
-    comboOpacity.value = withSequence(
-      withTiming(0.8, { duration: 50 }),
-      withTiming(0, { duration: CS.comboTimeout }),
-    );
+    setComboScale(1.4);
+    setComboOpacity(0.8);
+    schedule(() => setComboScale(1), 80);
+    schedule(() => setComboOpacity(0), CS.comboTimeout);
 
     // Hit flash
-    hitFlashOpacity.value = withSequence(
-      withTiming(0.35, { duration: 40 }),
-      withTiming(0, { duration: 120 }),
-    );
+    setHitFlashOpacity(0.35);
+    schedule(() => setHitFlashOpacity(0), 40);
 
     // Shake (X + Y for more dynamic feel)
     const intensity = Math.min(current / CS.requiredHits, 1);
     const amp = 6 + intensity * 8;
-    shakeX.value = withSequence(
-      withTiming(-amp, { duration: 25 }),
-      withTiming(amp, { duration: 25 }),
-      withTiming(-amp * 0.5, { duration: 25 }),
-      withTiming(0, { duration: 25 }),
-    );
-    shakeY.value = withSequence(
-      withTiming(-amp * 0.5, { duration: 30 }),
-      withTiming(amp * 0.3, { duration: 30 }),
-      withTiming(0, { duration: 30 }),
-    );
+    setShakeX(-amp);
+    setShakeY(-amp * 0.5);
+    schedule(() => {
+      setShakeX(amp);
+      setShakeY(amp * 0.3);
+    }, 25);
+    schedule(() => {
+      setShakeX(-amp * 0.5);
+      setShakeY(0);
+    }, 50);
+    schedule(() => setShakeX(0), 75);
 
     // All hits done → shatter
     if (current >= CS.requiredHits) {
-      setTimeout(() => triggerShatter(), 200);
+      schedule(triggerShatter, 200);
     }
-  }, [
-    phase,
-    enableHaptics,
-    cx,
-    cy,
-    lockW,
-    lockH,
-    comboOpacity,
-    comboScale,
-    hitFlashOpacity,
-    shakeX,
-    shakeY,
-    triggerShatter,
-  ]);
+  }, [phase, enableHaptics, cx, cy, lockW, lockH, triggerShatter, schedule]);
 
-  // ── Animated styles ──
-  const chainContainerStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: chainScale.value },
-      { translateX: shakeX.value },
-      { translateY: shakeY.value },
-    ],
-    opacity: chainOpacity.value,
-  }));
+  // ── Computed styles with CSS transitions ──
+  const chainContainerStyle = {
+    transform: [{ scale: chainScale }, { translateX: shakeX }, { translateY: shakeY }],
+    opacity: chainOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${CS.chainAppearDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
+  const canvasContainerStyle = {
+    opacity: canvasOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '400ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
+  const cardStyle = {
+    transform: [{ scale: cardScale }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${CS.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyle = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '80ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const hitFlashStyle = useAnimatedStyle(() => ({
-    opacity: hitFlashOpacity.value,
-  }));
+  const hitFlashStyle = {
+    opacity: hitFlashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '40ms',
+  } as never;
 
-  const comboStyle = useAnimatedStyle(() => ({
-    opacity: comboOpacity.value,
-    transform: [{ scale: comboScale.value }],
-  }));
+  const comboStyle = {
+    opacity: comboOpacity,
+    transform: [{ scale: comboScale }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '80ms',
+  } as never;
 
-  const lightPillarStyle = useAnimatedStyle(() => ({
-    opacity: lightPillarOpacity.value,
-    transform: [{ scaleY: lightPillarScale.value }],
-  }));
+  const lightPillarStyle = {
+    opacity: lightPillarOpacity,
+    transform: [{ scaleY: lightPillarScale }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '500ms',
+    transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+  } as never;
 
   const hitsRemaining = Math.max(0, CS.requiredHits - hitCountDisplay);
 
@@ -423,8 +395,8 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         onPress={handlePress}
         testID={`${testIDPrefix}-tap-area`}
       >
-        <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
-          <Animated.View style={[StyleSheet.absoluteFill, chainContainerStyle]}>
+        <View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+          <View style={[StyleSheet.absoluteFill, chainContainerStyle]}>
             {/* Canvas 2D: lock + chains + cracks + sparks + dust + torches + shards */}
             <ChainShatterCanvas
               dom={{ style: { flex: 1 } }}
@@ -451,7 +423,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
             {/* Combo indicator (× N above lock, pops + fades) */}
             {phase === 'hitting' && hitCountDisplay > 0 && (
-              <Animated.View
+              <View
                 style={[
                   styles.centeredOverlay,
                   comboStyle,
@@ -459,18 +431,16 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                 ]}
               >
                 <Text style={styles.comboText}>× {hitCountDisplay}</Text>
-              </Animated.View>
+              </View>
             )}
-          </Animated.View>
-        </Animated.View>
+          </View>
+        </View>
 
         {/* Hit flash overlay */}
-        <Animated.View
-          style={[styles.flash, hitFlashStyle, { backgroundColor: COLORS.breakFlash }]}
-        />
+        <View style={[styles.flash, hitFlashStyle, { backgroundColor: COLORS.breakFlash }]} />
 
         {/* Screen flash */}
-        <Animated.View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
+        <View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
       </Pressable>
 
       {/* Hint text */}
@@ -496,12 +466,12 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Freedom light pillar (on shatter/reveal) */}
       {(phase === 'shatter' || phase === 'revealed') && (
-        <Animated.View style={[styles.lightPillar, lightPillarStyle]} />
+        <View style={[styles.lightPillar, lightPillarStyle]} />
       )}
 
       {/* Revealed card */}
       {(phase === 'shatter' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -523,7 +493,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

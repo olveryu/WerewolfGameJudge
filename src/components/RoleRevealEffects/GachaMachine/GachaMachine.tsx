@@ -1,28 +1,18 @@
 /**
- * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4 + Skia）
+ * GachaMachine - 复古日式扭蛋机揭示效果（CSS Transitions + Canvas）
  *
  * 动画流程：旋转灯 + 投币口 → 金币滑入 → 旋转手柄 → 球体翻滚 →
  * 扭蛋从出口滑出 → 裂纹显现 → 打开 → 星星纷飞 + 稀有度标签。
- * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
+ * 使用 CSS transitions/animations 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -37,9 +27,16 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { colors, crossPlatformTextShadow } from '@/theme';
 
 import GachaMachineCanvas from './GachaMachineCanvas';
+
+// Register keyframes for bobble animation
+registerKeyframes(
+  'gachaBobble',
+  '0%{transform:translateY(3px)}50%{transform:translateY(-3px)}100%{transform:translateY(3px)}',
+);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const CAPSULE_COLORS = [
@@ -200,23 +197,37 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
   const cardHeight = cardWidth * common.cardAspectRatio;
 
   // ── Shared values ──
-  const dialRotation = useSharedValue(0);
-  const capsuleY = useSharedValue(-30);
-  const capsuleOpacity = useSharedValue(0);
-  const capsuleRotate = useSharedValue(0);
-  const shellScale = useSharedValue(1);
-  const shellOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const machineOpacityAnim = useSharedValue(1);
-  const bobble = useSharedValue(0);
+  const [dialRotation, setDialRotation] = useState(0);
+  const [capsuleY, setCapsuleY] = useState(-30);
+  const [capsuleOpacity, setCapsuleOpacity] = useState(0);
+  const [capsuleRotate, setCapsuleRotate] = useState(0);
+  const [shellScale, setShellScale] = useState(1);
+  const [shellOpacity, setShellOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [machineOpacity, setMachineOpacity] = useState(1);
+  const [bobbleActive, setBobbleActive] = useState(false);
 
-  // Scene element shared values
-  const coinSlideY = useSharedValue(-40);
-  const coinOpacity = useSharedValue(0);
-  const crackOpacity = useSharedValue(0);
-  const rarityOpacity = useSharedValue(0);
-  const rarityScale = useSharedValue(0.5);
+  // Scene element states
+  const [coinSlideY, setCoinSlideY] = useState(-40);
+  const [coinOpacity, setCoinOpacity] = useState(0);
+  const [crackOpacity, setCrackOpacity] = useState(0);
+  const [rarityOpacity, setRarityOpacity] = useState(0);
+  const [rarityScale, setRarityScale] = useState(0.5);
+
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
+
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, []);
 
   // Track confetti start time for canvas component
   const [confettiStartTime, setConfettiStartTime] = useState(0);
@@ -238,37 +249,27 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
   // ── Bobble animation for dome + rotary lights ──
   useEffect(() => {
-    if (phase !== 'ready' || reducedMotion) return;
-
-    bobble.value = withRepeat(
-      withSequence(
-        withTiming(3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
-        withTiming(-3, { duration: 800, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-    );
-
-    return () => {
-      cancelAnimation(bobble);
-      bobble.value = 0;
-    };
-  }, [phase, reducedMotion, bobble]);
+    if (phase !== 'ready' || reducedMotion) {
+      setBobbleActive(false);
+      return;
+    }
+    setBobbleActive(true);
+  }, [phase, reducedMotion]);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
-    machineOpacityAnim.value = withTiming(0, { duration: 300 });
+    setMachineOpacity(0);
 
     // Confetti burst (tracked via timestamp for canvas)
     setConfettiStartTime(performance.now());
 
     // Rarity label pop-in
-    rarityOpacity.value = withDelay(300, withTiming(1, { duration: 300 }));
-    rarityScale.value = withDelay(
-      300,
-      withTiming(1, { duration: 400, easing: Easing.out(Easing.back(1.5)) }),
-    );
-  }, [machineOpacityAnim, rarityOpacity, rarityScale]);
+    schedule(() => {
+      setRarityOpacity(1);
+      setRarityScale(1);
+    }, 300);
+  }, [schedule]);
 
   // Open capsule → reveal card
   const openCapsule = useCallback(() => {
@@ -276,35 +277,21 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     setPhase('opening');
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    // Crack lines appear before shell bursts
-    crackOpacity.value = withSequence(
-      withTiming(1, { duration: 150 }),
-      withDelay(100, withTiming(0, { duration: 200 })),
-    );
+    // Crack lines appear then fade
+    setCrackOpacity(1);
+    schedule(() => setCrackOpacity(0), 250);
 
     // Shell explodes outward
-    shellScale.value = withTiming(1.3, { duration: 250 });
-    shellOpacity.value = withTiming(0, { duration: 250 });
+    setShellScale(1.3);
+    setShellOpacity(0);
 
-    // Card scales in after 200ms delay (deterministic timing, no spring oscillation)
-    cardScale.value = withDelay(
-      200,
-      withTiming(1, { duration: 250, easing: Easing.out(Easing.back(1.2)) }, (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(enterRevealed);
-      }),
-    );
-    cardOpacity.value = withDelay(200, withTiming(1, { duration: 250 }));
-  }, [
-    phase,
-    shellScale,
-    shellOpacity,
-    cardScale,
-    cardOpacity,
-    crackOpacity,
-    enableHaptics,
-    enterRevealed,
-  ]);
+    // Card scales in after 200ms delay
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+    }, 200);
+    schedule(enterRevealed, 450);
+  }, [phase, enableHaptics, enterRevealed, schedule]);
 
   const enterWaiting = useCallback(() => {
     setPhase('waiting');
@@ -317,98 +304,82 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
     if (enableHaptics) void triggerHaptic('medium', true);
 
     // Coin insert animation
-    coinOpacity.value = withSequence(
-      withTiming(1, { duration: 100 }),
-      withDelay(300, withTiming(0, { duration: 200 })),
-    );
-    coinSlideY.value = withTiming(10, { duration: 300, easing: Easing.in(Easing.cubic) });
+    setCoinOpacity(1);
+    setCoinSlideY(10);
+    schedule(() => setCoinOpacity(0), 400);
 
-    dialRotation.value = withTiming(
-      360,
-      { duration: 600, easing: Easing.out(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (!finished) return;
+    // Dial rotation
+    setDialRotation(360);
 
-        // Phase: dropping
-        scheduleOnRN(setPhase, 'dropping');
-        capsuleOpacity.value = 1;
+    // After dial spin, drop capsule
+    schedule(() => {
+      setPhase('dropping');
+      setCapsuleOpacity(1);
+      setCapsuleY(200);
+      setCapsuleRotate(540);
+    }, 600);
 
-        capsuleY.value = withTiming(200, { duration: 800, easing: Easing.bounce }, (fin2) => {
-          'worklet';
-          if (fin2) scheduleOnRN(enterWaiting);
-        });
-        capsuleRotate.value = withTiming(540, { duration: 800 });
-      },
-    );
-  }, [
-    phase,
-    dialRotation,
-    capsuleY,
-    capsuleOpacity,
-    capsuleRotate,
-    coinOpacity,
-    coinSlideY,
-    enableHaptics,
-    enterWaiting,
-  ]);
+    // Capsule lands → waiting
+    schedule(enterWaiting, 1400);
+  }, [phase, enableHaptics, enterWaiting, schedule]);
 
   // ── Reduced motion ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      shellOpacity.value = 0;
-      machineOpacityAnim.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setShellOpacity(0);
+      setMachineOpacity(0);
       setPhase('revealed');
       fireComplete();
     }
-  }, [reducedMotion, cardScale, cardOpacity, shellOpacity, machineOpacityAnim, fireComplete]);
+  }, [reducedMotion, fireComplete]);
 
   // ── Auto-timeout for ready and waiting phases ──
   const readyWarning = useAutoTimeout(phase === 'ready' && !reducedMotion, spinDial);
   const waitingWarning = useAutoTimeout(phase === 'waiting' && !reducedMotion, openCapsule);
 
-  // ── Animated styles ──
-  const bobbleStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: bobble.value }],
-  }));
+  // ── Computed styles (CSS transitions applied via transitionProperty/Duration in StyleSheet) ──
+  const bobbleStyle = bobbleActive
+    ? ({
+        animationName: 'gachaBobble',
+        animationDuration: '1.2s',
+        animationIterationCount: 'infinite' as const,
+        animationTimingFunction: 'ease-in-out',
+      } as unknown as ViewStyle)
+    : undefined;
 
-  const dialStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${dialRotation.value}deg` }],
-  }));
+  const dialStyle = {
+    transform: [{ rotate: `${dialRotation}deg` }],
+  };
 
-  const capsuleStyle = useAnimatedStyle(() => ({
-    opacity: capsuleOpacity.value * shellOpacity.value,
-    transform: [
-      { translateY: capsuleY.value },
-      { scale: shellScale.value },
-      { rotate: `${capsuleRotate.value}deg` },
-    ],
-  }));
+  const capsuleStyle = {
+    opacity: capsuleOpacity * shellOpacity,
+    transform: [{ translateY: capsuleY }, { scale: shellScale }, { rotate: `${capsuleRotate}deg` }],
+  };
 
-  const machineOpacityStyle = useAnimatedStyle(() => ({
-    opacity: machineOpacityAnim.value,
-  }));
+  const machineOpacityStyle = {
+    opacity: machineOpacity,
+  };
 
-  const cardStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-    transform: [{ scale: cardScale.value }],
-  }));
+  const cardStyle = {
+    opacity: cardOpacity,
+    transform: [{ scale: cardScale }],
+  };
 
-  const rarityStyle = useAnimatedStyle(() => ({
-    opacity: rarityOpacity.value,
-    transform: [{ scale: rarityScale.value }],
-  }));
+  const rarityStyle = {
+    opacity: rarityOpacity,
+    transform: [{ scale: rarityScale }],
+  };
 
-  const coinStyle = useAnimatedStyle(() => ({
-    opacity: coinOpacity.value,
-    transform: [{ translateY: coinSlideY.value }],
-  }));
+  const coinStyle = {
+    opacity: coinOpacity,
+    transform: [{ translateY: coinSlideY }],
+  };
 
-  const crackStyle = useAnimatedStyle(() => ({
-    opacity: crackOpacity.value,
-  }));
+  const crackStyle = {
+    opacity: crackOpacity,
+  };
 
   // ── Render ──
   return (
@@ -442,7 +413,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
       )}
 
       {/* Machine - fades out on reveal */}
-      <Animated.View
+      <View
         style={[
           styles.machine,
           machineOpacityStyle,
@@ -450,7 +421,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
         ]}
       >
         {/* Dome */}
-        <Animated.View style={[styles.dome, bobbleStyle]}>
+        <View style={[styles.dome, bobbleStyle]}>
           <LinearGradient
             colors={['rgba(255,255,255,0.9)', 'rgba(200,220,255,0.6)', 'rgba(255,255,255,0.8)']}
             style={styles.domeGradient}
@@ -465,7 +436,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
             />
           ))}
           <View style={styles.domeHighlight} />
-        </Animated.View>
+        </View>
 
         {/* Body */}
         <View style={styles.body}>
@@ -473,9 +444,9 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
           <View style={styles.coinSlot}>
             <View style={styles.coinSlotInner} />
             {/* Animated coin insert */}
-            <Animated.View style={[styles.coin, coinStyle]}>
+            <View style={[styles.coin, coinStyle]}>
               <Text style={styles.coinSymbol}>¥</Text>
-            </Animated.View>
+            </View>
           </View>
           <View style={styles.label}>
             <Text style={styles.labelText}>GACHA</Text>
@@ -489,18 +460,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
         {/* Dial */}
         <Pressable onPress={spinDial} style={styles.dialContainer}>
-          <Animated.View style={[styles.dial, dialStyle]}>
+          <View style={[styles.dial, dialStyle]}>
             <View style={styles.dialCenter} />
             <View style={styles.dialArm} />
             <View style={styles.dialKnob} />
-          </Animated.View>
+          </View>
         </Pressable>
 
         {/* Base */}
         <View style={styles.base}>
           <LinearGradient colors={[...GACHA_COLORS.baseGradient]} style={StyleSheet.absoluteFill} />
         </View>
-      </Animated.View>
+      </View>
 
       {/* Hints */}
       <HintWithWarning
@@ -518,7 +489,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Falling capsule */}
       {(phase === 'dropping' || phase === 'waiting' || phase === 'opening') && (
-        <Animated.View style={[styles.capsule, capsuleStyle]}>
+        <View style={[styles.capsule, capsuleStyle]}>
           <Pressable onPress={openCapsule} style={styles.capsuleTouch}>
             <View style={styles.capsuleTop}>
               <View style={styles.capsuleTopShine} />
@@ -531,18 +502,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
             </View>
             <View style={styles.capsuleRing} />
             {/* Crack lines — appear before opening */}
-            <Animated.View style={[styles.crackOverlay, crackStyle]}>
+            <View style={[styles.crackOverlay, crackStyle]}>
               <Text style={styles.crackLine}>╲</Text>
               <Text style={styles.crackLine}>╱</Text>
               <Text style={styles.crackLine}>│</Text>
-            </Animated.View>
+            </View>
           </Pressable>
-        </Animated.View>
+        </View>
       )}
 
       {/* Revealed card */}
       {(phase === 'opening' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -564,18 +535,18 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
 
       {/* Rarity label — pops in after reveal */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.rarityContainer, { top: insets.top + 60 }, rarityStyle]}>
+        <View style={[styles.rarityContainer, { top: insets.top + 60 }, rarityStyle]}>
           <Text
             style={[styles.rarityText, { color: RARITY_LABEL[role.alignment]?.color ?? '#66bbff' }]}
           >
             {RARITY_LABEL[role.alignment]?.tier ?? 'SR'}
           </Text>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

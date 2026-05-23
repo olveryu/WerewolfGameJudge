@@ -2,7 +2,7 @@ module.exports = {
   preset: 'jest-expo',
   testTimeout: 10_000,
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-reanimated|react-native-gesture-handler)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-gesture-handler)',
   ],
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
@@ -21,7 +21,6 @@ module.exports = {
     '^@werewolf/game-engine/(.*)$': '<rootDir>/packages/game-engine/src/$1',
     '^@werewolf/game-engine$': '<rootDir>/packages/game-engine/src/index.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^react-native-worklets$': '<rootDir>/__mocks__/react-native-worklets.ts',
     '^expo-audio$': '<rootDir>/__mocks__/expo-audio.ts',
     '^expo-haptics$': '<rootDir>/__mocks__/expo-haptics.ts',
     '^expo-image$': '<rootDir>/__mocks__/expo-image.tsx',

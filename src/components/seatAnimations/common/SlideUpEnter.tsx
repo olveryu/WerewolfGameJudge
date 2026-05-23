@@ -4,17 +4,11 @@
  * Children slide up from below with a subtle colored trail line.
  * Common-tier entrance animation template.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { COMMON_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import type { FlairColorSet } from './palette';
@@ -25,22 +19,15 @@ interface ColoredAnimationProps extends SeatAnimationProps {
 
 export const SlideUpEnter = memo<ColoredAnimationProps>(
   ({ size, borderRadius, onComplete, children, colors }) => {
-    const progress = useSharedValue(0);
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      progress.value = withTiming(
-        1,
-        { duration: COMMON_DURATION, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          if (finished) scheduleOnRN(onComplete);
-        },
-      );
-    }, [progress, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: progress.value,
-      transform: [{ translateY: (1 - progress.value) * size * 0.4 }],
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), COMMON_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -52,11 +39,19 @@ export const SlideUpEnter = memo<ColoredAnimationProps>(
           color={colors.rgb}
           params={JSON.stringify({ direction: 'up' })}
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildAnimationStyle({
+              name: 'seatSlideUp',
+              duration: COMMON_DURATION,
+              easing: EASE_OUT_CUBIC,
+            }) as never,
+          ]}
         >
           {children}
-        </Animated.View>
+        </View>
       </View>
     );
   },
@@ -65,5 +60,5 @@ SlideUpEnter.displayName = 'SlideUpEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
 });

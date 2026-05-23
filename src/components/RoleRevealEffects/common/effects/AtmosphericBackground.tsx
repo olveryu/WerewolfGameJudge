@@ -2,22 +2,15 @@
  * AtmosphericBackground — 环境粒子氛围层
  *
  * 在各揭示动画交互阶段提供低调的背景粒子/光晕运动感，
- * 增强沉浸感但不喧宾夺主。使用 Reanimated Animated.View 实现
- * （替代原 Skia Canvas + Picture API，减少同屏 Canvas 数量）。
+ * 增强沉浸感但不喧宾夺主。使用 CSS keyframe 动画实现
+ * （替代原 Reanimated Animated.View，减少 JS 线程开销）。
  * 接受阵营主色，自动生成环境粒子。
  * 不 import service，不含业务逻辑。
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import type { SharedValue } from 'react-native-reanimated';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 
 const AMBIENT_COUNT = 12;
 const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
@@ -34,26 +27,38 @@ const AMBIENT_PARTICLES = Array.from({ length: AMBIENT_COUNT }, (_, i) => {
   };
 });
 
-/** Single ambient particle — Animated.View circle */
+// Register per-particle float keyframes (approximates sin-based parametric motion)
+AMBIENT_PARTICLES.forEach((p, i) => {
+  const dx = p.driftX;
+  const dy = p.driftY;
+  registerKeyframes(
+    `ambientFloat${i}`,
+    `0%,100%{transform:translate(0px,0px);opacity:0.15}` +
+      `25%{transform:translate(${(dx * 0.7).toFixed(1)}px,${(dy * 0.4).toFixed(1)}px);opacity:0.25}` +
+      `50%{transform:translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px);opacity:0.3}` +
+      `75%{transform:translate(${(dx * 0.3).toFixed(1)}px,${(dy * 0.8).toFixed(1)}px);opacity:0.2}`,
+  );
+});
+
+// Glow pulse: opacity 0.06 → 0.10 → 0.06
+registerKeyframes('ambientGlowPulse', '0%,100%{opacity:0.06}50%{opacity:0.10}');
+
+/** Single ambient particle — plain View with CSS animation */
 const AmbientParticle = React.memo(function AmbientParticle({
+  index,
   xRatio,
   yRatio,
   size,
-  driftX,
-  driftY,
   phase,
-  cycle,
   color,
   screenW,
   screenH,
 }: {
+  index: number;
   xRatio: number;
   yRatio: number;
   size: number;
-  driftX: number;
-  driftY: number;
   phase: number;
-  cycle: SharedValue<number>;
   color: string;
   screenW: number;
   screenH: number;
@@ -61,24 +66,23 @@ const AmbientParticle = React.memo(function AmbientParticle({
   const baseX = xRatio * screenW;
   const baseY = yRatio * screenH;
 
-  const style = useAnimatedStyle(() => {
-    const c = cycle.value;
-    const cx = baseX + driftX * Math.sin(c + phase);
-    const cy = baseY + driftY * Math.sin(c * 0.7 + phase);
-    const opacity = 0.15 + 0.15 * Math.sin(c * 1.3 + phase);
-    return {
-      position: 'absolute',
-      left: cx - size,
-      top: cy - size,
-      width: size * 2,
-      height: size * 2,
-      borderRadius: size,
-      backgroundColor: color,
-      opacity,
-    };
-  });
+  const style = {
+    position: 'absolute' as const,
+    left: baseX - size,
+    top: baseY - size,
+    width: size * 2,
+    height: size * 2,
+    borderRadius: size,
+    backgroundColor: color,
+    opacity: 0.15,
+    animationName: `ambientFloat${index}`,
+    animationDuration: `${7000 + index * 600}ms`,
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+    animationDelay: `${(-phase * 1200).toFixed(0)}ms`,
+  } as never;
 
-  return <Animated.View style={style} />;
+  return <View style={style} />;
 });
 
 interface AtmosphericBackgroundProps {
@@ -90,61 +94,40 @@ interface AtmosphericBackgroundProps {
 
 export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ color, animate }) => {
   const { width: screenW, height: screenH } = useWindowDimensions();
-  const cycle = useSharedValue(0);
-  const glowPulse = useSharedValue(0);
-
-  useEffect(() => {
-    if (!animate) return;
-    cycle.value = withRepeat(
-      withTiming(Math.PI * 2, { duration: 8000, easing: Easing.linear }),
-      -1,
-    );
-    glowPulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
-        withTiming(0, { duration: 3000, easing: Easing.inOut(Easing.quad) }),
-      ),
-      -1,
-    );
-  }, [animate, cycle, glowPulse]);
-
-  const glowRadius = screenW * 0.6;
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: 0.06 + glowPulse.value * 0.04,
-  }));
 
   if (!animate) return null;
 
+  const glowRadius = screenW * 0.6;
+
+  const glowStyle = {
+    position: 'absolute' as const,
+    left: screenW / 2 - glowRadius,
+    top: screenH * 0.45 - glowRadius,
+    width: glowRadius * 2,
+    height: glowRadius * 2,
+    borderRadius: glowRadius,
+    backgroundColor: color,
+    opacity: 0.06,
+    animationName: 'ambientGlowPulse',
+    animationDuration: '6000ms',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+  } as never;
+
   return (
     <View style={styles.fullScreen}>
-      {/* Subtle center radial glow — approximated with large blurred circle */}
-      <Animated.View
-        style={[
-          styles.glow,
-          {
-            left: screenW / 2 - glowRadius,
-            top: screenH * 0.45 - glowRadius,
-            width: glowRadius * 2,
-            height: glowRadius * 2,
-            borderRadius: glowRadius,
-            backgroundColor: color,
-          },
-          glowStyle,
-        ]}
-      />
+      {/* Subtle center radial glow */}
+      <View style={glowStyle} />
 
       {/* Floating ambient particles */}
       {AMBIENT_PARTICLES.map((p, i) => (
         <AmbientParticle
           key={i}
+          index={i}
           xRatio={p.xRatio}
           yRatio={p.yRatio}
           size={p.size}
-          driftX={p.driftX}
-          driftY={p.driftY}
           phase={p.phase}
-          cycle={cycle}
           color={color}
           screenW={screenW}
           screenH={screenH}
@@ -158,8 +141,5 @@ const styles = StyleSheet.create({
   fullScreen: {
     ...StyleSheet.absoluteFillObject,
     pointerEvents: 'none',
-  },
-  glow: {
-    position: 'absolute',
   },
 });

@@ -4,17 +4,11 @@
  * Colored petals bloom outward from center, revealing children inside.
  * Rare-tier entrance animation template.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { RARE_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
 import type { FlairColorSet } from './palette';
@@ -25,22 +19,15 @@ interface ColoredAnimationProps extends SeatAnimationProps {
 
 export const BloomEnter = memo<ColoredAnimationProps>(
   ({ size, borderRadius, onComplete, children, colors }) => {
-    const progress = useSharedValue(0);
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      progress.value = withTiming(
-        1,
-        { duration: RARE_DURATION, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          if (finished) scheduleOnRN(onComplete);
-        },
-      );
-    }, [progress, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: Math.min(progress.value * 2, 1),
-      transform: [{ scale: 0.5 + progress.value * 0.5 }],
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), RARE_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -52,11 +39,19 @@ export const BloomEnter = memo<ColoredAnimationProps>(
           color={colors.rgb}
           accentColor={colors.rgbLight}
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildAnimationStyle({
+              name: 'seatBloom',
+              duration: RARE_DURATION,
+              easing: EASE_OUT_CUBIC,
+            }) as never,
+          ]}
         >
           {children}
-        </Animated.View>
+        </View>
       </View>
     );
   },
@@ -65,5 +60,5 @@ BloomEnter.displayName = 'BloomEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
 });

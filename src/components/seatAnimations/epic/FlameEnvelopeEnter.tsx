@@ -4,22 +4,14 @@
  * Flame-like particles envelope the tile from edges, then recede to reveal child.
  * Epic-tier archetype. Parameterized by flame color, intensity, direction.
  */
-import { memo, useEffect } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import AnimationOverlay from '../AnimationOverlay';
+import { buildMultiAnimationStyle, EASE_OUT_CUBIC } from '../cssAnimations';
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
-import { EPIC_FLASH_STYLE, useEpicFlash } from './useEpicEnhancers';
+import { EPIC_FLASH_ANIM_STYLE, EPIC_FLASH_STYLE } from './useEpicEnhancers';
 
 export interface FlameEnvelopeConfig {
   color: string;
@@ -28,33 +20,20 @@ export interface FlameEnvelopeConfig {
   direction: 'inward' | 'outward';
 }
 
+const CHILD_DELAY = EPIC_DURATION * 0.3;
+const CHILD_DURATION = EPIC_DURATION * 0.5;
+
 export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvelopeConfig }>(
   ({ size, borderRadius, onComplete, children, config }) => {
-    const childOpacity = useSharedValue(0);
-    const childScale = useSharedValue(0.8);
-    const flashStyle = useEpicFlash();
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+      onCompleteRef.current = onComplete;
+    });
 
     useEffect(() => {
-      childOpacity.value = withDelay(
-        EPIC_DURATION * 0.3,
-        withTiming(
-          1,
-          { duration: EPIC_DURATION * 0.5, easing: Easing.out(Easing.cubic) },
-          (finished) => {
-            if (finished) scheduleOnRN(onComplete);
-          },
-        ),
-      );
-      childScale.value = withDelay(
-        EPIC_DURATION * 0.3,
-        withSpring(1, { dampingRatio: 0.6, duration: 600 }),
-      );
-    }, [childOpacity, childScale, onComplete]);
-
-    const childStyle = useAnimatedStyle(() => ({
-      opacity: childOpacity.value,
-      transform: [{ scale: childScale.value }],
-    }));
+      const id = setTimeout(() => onCompleteRef.current(), CHILD_DELAY + CHILD_DURATION);
+      return () => clearTimeout(id);
+    }, []);
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
@@ -68,14 +47,26 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
           params={JSON.stringify({ flameCount: config.flameCount, direction: config.direction })}
           easing="linear"
         />
-        <Animated.View
-          style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
+        <View
+          style={[
+            styles.childWrapper,
+            { width: size, height: size, borderRadius },
+            buildMultiAnimationStyle([
+              {
+                name: 'seatRevealFade',
+                duration: CHILD_DURATION,
+                delay: CHILD_DELAY,
+                easing: EASE_OUT_CUBIC,
+              },
+              { name: 'seatRevealSpring08', duration: 600, delay: CHILD_DELAY, easing: 'linear' },
+            ]) as never,
+          ]}
         >
           {children}
-        </Animated.View>
-        <Animated.View
+        </View>
+        <View
           pointerEvents="none"
-          style={[EPIC_FLASH_STYLE, { borderRadius }, flashStyle]}
+          style={[EPIC_FLASH_STYLE, { borderRadius }, EPIC_FLASH_ANIM_STYLE]}
         />
       </View>
     );
@@ -85,5 +76,5 @@ FlameEnvelopeEnter.displayName = 'FlameEnvelopeEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', opacity: 0 },
 });

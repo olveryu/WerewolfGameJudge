@@ -12,15 +12,6 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -72,11 +63,18 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
   const [isPressed, setIsPressed] = useState(false);
 
   // ── Shared values ──
-  const canvasOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
-  const chargeGlowOpacity = useSharedValue(0);
+  const [canvasOpacity, setCanvasOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
+  const [chargeGlowOpacity, setChargeGlowOpacity] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
@@ -87,47 +85,39 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
     setPhase('shatter');
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    // Flash
-    flashOpacity.value = withSequence(
-      withTiming(0.7, { duration: 100 }),
-      withTiming(0, { duration: 400 }),
-    );
+    // Flash sequence
+    setFlashOpacity(0.7);
+    schedule(() => setFlashOpacity(0), 100);
 
     // Fade canvas
-    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 300 }));
+    schedule(() => setCanvasOpacity(0), 200);
 
     // Card reveal
-    cardScale.value = withDelay(
-      300,
-      withTiming(
-        1,
-        {
-          duration: SB.cardRevealDuration,
-          easing: Easing.out(Easing.back(1.15)),
-        },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(300, withTiming(1, { duration: SB.cardRevealDuration }));
-  }, [enableHaptics, flashOpacity, canvasOpacity, cardScale, cardOpacity, enterRevealed]);
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, SB.cardRevealDuration);
+    }, 300);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   // ── Appear animation ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setCanvasOpacity(0);
       setPhase('revealed');
       return;
     }
 
     // Brief appear phase then idle
     const timer = setTimeout(() => setPhase('idle'), SB.sealAppearDuration);
-    return () => clearTimeout(timer);
-  }, [reducedMotion, cardScale, cardOpacity, canvasOpacity]);
+    const timers = timersRef.current;
+    return () => {
+      clearTimeout(timer);
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion]);
 
   // ── Auto-shatter timeout ──
   const autoShatter = useCallback(() => {
@@ -155,31 +145,39 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
     triggerShatter();
   }, [triggerShatter]);
 
-  const handleChargeUpdate = useCallback(
-    (percent: number) => {
-      setChargePercent(percent);
-      chargeGlowOpacity.value = (percent / 100) * 0.8;
-    },
-    [chargeGlowOpacity],
-  );
+  const handleChargeUpdate = useCallback((percent: number) => {
+    setChargePercent(percent);
+    setChargeGlowOpacity((percent / 100) * 0.8);
+  }, []);
 
-  // ── Animated styles ──
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
+  // ── Computed styles with CSS transitions ──
+  const canvasContainerStyle = {
+    opacity: canvasOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
+  const cardStyle = {
+    transform: [{ scale: cardScale }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${SB.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyle = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const chargeGlowStyle = useAnimatedStyle(() => ({
-    opacity: chargeGlowOpacity.value,
-  }));
+  const chargeGlowStyle = {
+    opacity: chargeGlowOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+  } as never;
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
@@ -200,7 +198,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
         testID={`${testIDPrefix}-press-area`}
       >
         {/* Canvas layer */}
-        <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+        <View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <SealBreakCanvas
             dom={{ style: { flex: 1 } }}
             width={screenWidth}
@@ -214,13 +212,13 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
             onShatter={handleCanvasShatter}
             onChargeUpdate={handleChargeUpdate}
           />
-        </Animated.View>
+        </View>
 
         {/* Charge glow overlay */}
-        <Animated.View style={[styles.chargeGlow, chargeGlowStyle]} />
+        <View style={[styles.chargeGlow, chargeGlowStyle]} />
 
         {/* Flash overlay */}
-        <Animated.View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
+        <View style={[styles.flash, flashStyle, { backgroundColor: theme.glowColor }]} />
       </Pressable>
 
       {/* Charge percentage */}
@@ -248,7 +246,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
 
       {/* Revealed card */}
       {(phase === 'shatter' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -270,7 +268,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

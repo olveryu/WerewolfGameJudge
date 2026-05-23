@@ -3,25 +3,15 @@
  *
  * 按压时 scale(0.97) + opacity(0.9) 弹簧动画，松开回弹。
  * 可选触觉反馈（via triggerHaptic）。兼容 ActionButton 的 meta 回调模式。
- * 使用 react-native-reanimated 实现跨平台动画。
+ * 使用 CSS transition 实现 Web 端动画。
  *
  * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
  */
 import type React from 'react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { type AccessibilityState, Pressable, type StyleProp, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
-/** 弹簧配置：快速响应、轻微回弹 */
-const SPRING_CONFIG = {
-  damping: 15,
-  stiffness: 300,
-  mass: 0.8,
-} as const;
 
 interface PressableScaleProps {
   /** 按压回调。兼容 ActionButton meta 模式和普通 () => void */
@@ -55,22 +45,23 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   accessibilityRole = 'button',
   accessibilityState,
 }) => {
-  const scale = useSharedValue(1);
+  const [pressed, setPressed] = useState(false);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: scale.value < 1 ? 0.9 : 1,
-  }));
+  const animatedStyle = {
+    transform: [{ scale: pressed ? activeScale : 1 }],
+    opacity: pressed ? 0.9 : 1,
+    transitionProperty: 'transform, opacity',
+    transitionDuration: '150ms',
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  } as never;
 
   const handlePressIn = useCallback(() => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated SharedValue.value is mutable by design
-    scale.value = withSpring(activeScale, SPRING_CONFIG);
-  }, [activeScale, scale]);
+    setPressed(true);
+  }, []);
 
   const handlePressOut = useCallback(() => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated SharedValue.value is mutable by design
-    scale.value = withSpring(1, SPRING_CONFIG);
-  }, [scale]);
+    setPressed(false);
+  }, []);
 
   const handlePress = useCallback(() => {
     if (disabled && !fireWhenDisabled) return;
@@ -82,7 +73,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   }, [haptic, onPress, disabled, fireWhenDisabled]);
 
   return (
-    <AnimatedPressable
+    <Pressable
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
@@ -93,7 +84,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
       accessibilityState={accessibilityState ?? { disabled }}
     >
       {children}
-    </AnimatedPressable>
+    </Pressable>
   );
 };
 

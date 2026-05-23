@@ -1,22 +1,25 @@
 /**
  * VolumeSlider — 音量滑块组件
  *
- * 基于 react-native-awesome-slider（Reanimated + Gesture Handler），
- * 全程 UI Thread 驱动，拖动丝滑无延迟。
+ * Web-native range input + 自定义 track/thumb 样式。
  * 自定义 thumb（白底+阴影+主色内圆）+ 左右音量图标。
  * 纯 Presentational 组件：接收 value + onValueChange 回调，不 import service。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { memo, useCallback, useEffect, useMemo } from 'react';
-import { StyleSheet, type TextStyle, View, type ViewStyle } from 'react-native';
-import { Slider } from 'react-native-awesome-slider';
-import { useSharedValue } from 'react-native-reanimated';
+import type React from 'react';
+import { memo, useCallback, useMemo, useRef } from 'react';
+import {
+  type LayoutChangeEvent,
+  StyleSheet,
+  type TextStyle,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import { borderRadius, colors, componentSizes, shadows, spacing, type ThemeColors } from '@/theme';
 
 const SLIDER_HEIGHT = 10;
 const THUMB_OUTER = 32;
-const THUMB_INNER = 16;
 
 interface VolumeSliderProps {
   value: number; // 0.0–1.0
@@ -31,68 +34,84 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
   onValueChange,
   onSlidingComplete,
 }) {
-  const progress = useSharedValue(value);
-  const min = useSharedValue(0);
-  const max = useSharedValue(100);
+  const trackRef = useRef<View>(null);
+  const trackWidthRef = useRef(0);
+  const isDragging = useRef(false);
 
-  // Sync external value → shared value (e.g. on initial load)
-  useEffect(() => {
-    progress.value = Math.round(value * 100);
-  }, [value, progress]);
+  const handleTrackLayout = useCallback((e: LayoutChangeEvent) => {
+    trackWidthRef.current = e.nativeEvent.layout.width;
+  }, []);
 
-  const handleValueChange = useCallback(
-    (v: number) => {
-      onValueChange(v / 100);
+  const clampValue = useCallback((v: number) => Math.max(0, Math.min(1, v)), []);
+
+  const getValueFromPageX = useCallback(
+    (pageX: number) => {
+      const trackNode = trackRef.current as unknown as HTMLElement | null;
+      if (!trackNode) return value;
+      const rect = trackNode.getBoundingClientRect();
+      const x = pageX - rect.left;
+      return clampValue(x / rect.width);
     },
-    [onValueChange],
+    [value, clampValue],
   );
 
-  const handleSlidingComplete = useCallback(
-    (v: number) => {
-      onSlidingComplete?.(v / 100);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      isDragging.current = true;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      const v = getValueFromPageX(e.clientX);
+      onValueChange(v);
     },
-    [onSlidingComplete],
+    [getValueFromPageX, onValueChange],
   );
 
-  const formatBubble = useCallback((v: number) => `${Math.round(v)}%`, []);
-
-  const theme = useMemo(
-    () => ({
-      minimumTrackTintColor: colors.primary,
-      maximumTrackTintColor: colors.border,
-      bubbleBackgroundColor: colors.primary,
-    }),
-    [],
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging.current) return;
+      const v = getValueFromPageX(e.clientX);
+      onValueChange(v);
+    },
+    [getValueFromPageX, onValueChange],
   );
 
-  const styles = useMemo(() => getStyles(colors), []);
-
-  const renderThumb = useCallback(
-    () => (
-      <View style={styles.thumbOuter}>
-        <View style={[styles.thumbInner, { backgroundColor: colors.primary }]} />
-      </View>
-    ),
-    [styles],
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      const v = getValueFromPageX(e.clientX);
+      onSlidingComplete?.(v);
+    },
+    [getValueFromPageX, onSlidingComplete],
   );
+
+  const percentage = Math.round(value * 100);
+
+  const sliderStyles = useMemo(() => getStyles(colors), []);
 
   return (
-    <View style={styles.container}>
+    <View style={sliderStyles.container}>
       <Ionicons name="volume-low" size={componentSizes.icon.sm} color={colors.textSecondary} />
-      <View style={styles.sliderWrap}>
-        <Slider
-          progress={progress}
-          minimumValue={min}
-          maximumValue={max}
-          onValueChange={handleValueChange}
-          onSlidingComplete={handleSlidingComplete}
-          theme={theme}
-          sliderHeight={SLIDER_HEIGHT}
-          thumbWidth={THUMB_OUTER}
-          renderThumb={renderThumb}
-          bubble={formatBubble}
-          containerStyle={styles.slider}
-        />
+      <View
+        ref={trackRef}
+        style={sliderStyles.sliderWrap}
+        onLayout={handleTrackLayout}
+        onPointerDown={handlePointerDown as never}
+        onPointerMove={handlePointerMove as never}
+        onPointerUp={handlePointerUp as never}
+        onPointerCancel={handlePointerUp as never}
+      >
+        <View style={sliderStyles.track}>
+          <View style={[sliderStyles.trackFill, { width: `${percentage}%` } as never]} />
+        </View>
+        <View
+          style={[
+            sliderStyles.thumb,
+            { left: `${percentage}%`, marginLeft: -(THUMB_OUTER / 2) } as never,
+          ]}
+        >
+          <View style={[sliderStyles.thumbInner, { backgroundColor: colors.primary }]} />
+        </View>
       </View>
       <Ionicons name="volume-high" size={componentSizes.icon.sm} color={colors.textSecondary} />
     </View>
@@ -106,8 +125,9 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
 interface SliderStyles {
   container: ViewStyle;
   sliderWrap: ViewStyle;
-  slider: ViewStyle;
-  thumbOuter: ViewStyle;
+  track: ViewStyle;
+  trackFill: ViewStyle;
+  thumb: ViewStyle;
   thumbInner: ViewStyle;
   label: TextStyle;
 }
@@ -121,27 +141,40 @@ function getStyles(colors: ThemeColors): SliderStyles {
     },
     sliderWrap: {
       flex: 1,
+      height: THUMB_OUTER,
       justifyContent: 'center',
+      position: 'relative',
+      cursor: 'pointer',
+    } as ViewStyle,
+    track: {
+      width: '100%',
+      height: SLIDER_HEIGHT,
+      borderRadius: borderRadius.full,
+      backgroundColor: colors.border,
+      overflow: 'hidden',
     },
-    slider: {
+    trackFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
       borderRadius: borderRadius.full,
     },
-    thumbOuter: {
+    thumb: {
+      position: 'absolute',
+      top: '50%',
       width: THUMB_OUTER,
       height: THUMB_OUTER,
       borderRadius: THUMB_OUTER / 2,
       backgroundColor: colors.surface,
       justifyContent: 'center',
       alignItems: 'center',
+      marginTop: -(THUMB_OUTER / 2),
       ...shadows.md,
     },
     thumbInner: {
-      width: THUMB_INNER,
-      height: THUMB_INNER,
-      borderRadius: THUMB_INNER / 2,
+      width: 16,
+      height: 16,
+      borderRadius: borderRadius.full,
     },
-    label: {
-      // kept for potential future use
-    },
+    label: {},
   });
 }

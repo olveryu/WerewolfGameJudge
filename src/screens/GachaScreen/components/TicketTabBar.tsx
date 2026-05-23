@@ -5,9 +5,8 @@
  * Animated sliding indicator 跟随 active tab 滑动。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect } from 'react';
+import type { ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 
@@ -38,28 +37,23 @@ export function TicketTabBar({
   onSwitch,
   reducedMotion,
 }: TicketTabBarProps) {
-  const sliderX = useSharedValue(activeTab === 'golden' ? 1 : 0);
-
-  useEffect(() => {
-    const target = activeTab === 'golden' ? 1 : 0;
-    if (reducedMotion) {
-      sliderX.value = target;
-    } else {
-      sliderX.value = withTiming(target, { duration: SLIDER_EASING_DURATION });
-    }
-  }, [activeTab, reducedMotion, sliderX]);
-
-  const sliderStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: sliderX.value * sliderWidthOffset }],
-    backgroundColor:
-      sliderX.value > 0.5 ? withAlpha(GOLDEN_TINT, 0.1) : withAlpha(NORMAL_TINT, 0.12),
-  }));
+  const isGolden = activeTab === 'golden';
+  const sliderStyle: ViewStyle = {
+    transform: [{ translateX: isGolden ? sliderWidthOffset : 0 }],
+    backgroundColor: isGolden ? withAlpha(GOLDEN_TINT, 0.1) : withAlpha(NORMAL_TINT, 0.12),
+    ...(reducedMotion
+      ? {}
+      : ({
+          transitionProperty: 'transform, background-color',
+          transitionDuration: `${SLIDER_EASING_DURATION}ms`,
+        } as unknown as ViewStyle)),
+  };
 
   const isNormal = activeTab === 'normal';
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.slider, sliderStyle]} />
+      <View style={[styles.slider, sliderStyle]} />
 
       {/* Normal tab */}
       <Pressable

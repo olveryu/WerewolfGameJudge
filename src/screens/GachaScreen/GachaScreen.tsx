@@ -12,8 +12,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
 import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   type LayoutChangeEvent,
   Pressable,
@@ -22,7 +23,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
 
@@ -53,7 +53,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
-  const reducedMotion = useReducedMotion();
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReducedMotion);
+    void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);
+    return () => sub.remove();
+  }, []);
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
   const { data: status, isLoading } = useGachaStatusQuery();

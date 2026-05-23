@@ -9,20 +9,9 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -37,10 +26,14 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, crossPlatformTextShadow } from '@/theme';
 
 import { CardBackView } from './CardBackView';
 import TarotSceneCanvas from './TarotSceneCanvas';
+
+// Register keyframe for wheel spin
+registerKeyframes('tarotWheelSpin', 'from{transform:rotate(0deg)}to{transform:rotate(360deg)}');
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TAROT_COLORS = {
@@ -100,141 +93,111 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
   }, []);
 
   // ── Shared values ──
-  const wheelRotation = useSharedValue(0);
-  const wheelOpacity = useSharedValue(1);
-  const wheelScale = useSharedValue(1);
-  const drawnCardX = useSharedValue(0);
-  const drawnCardY = useSharedValue(-wheelRadius);
-  const drawnCardScale = useSharedValue(1);
-  const drawnCardOpacity = useSharedValue(0);
-  const flipProgress = useSharedValue(0);
-  const fortuneOpacity = useSharedValue(0);
-  const velvetOpacity = useSharedValue(0);
+  const [wheelOpacity, setWheelOpacity] = useState(1);
+  const [wheelScale, setWheelScale] = useState(1);
+  const [wheelStopped, setWheelStopped] = useState(false);
+  const [drawnCardX, setDrawnCardX] = useState(0);
+  const [drawnCardY, setDrawnCardY] = useState(-wheelRadius);
+  const [drawnCardScale, setDrawnCardScale] = useState(1);
+  const [drawnCardOpacity, setDrawnCardOpacity] = useState(0);
+  const [flipProgress, setFlipProgress] = useState(0);
+  const [fortuneOpacity, setFortuneOpacity] = useState(0);
+  const [velvetOpacity, setVelvetOpacity] = useState(0);
+  const wheelStartTimeRef = useRef(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => {
     setPhase('revealed');
     if (enableHaptics) void triggerHaptic('heavy', true);
-    fortuneOpacity.value = withDelay(400, withTiming(1, { duration: 800 }));
-  }, [enableHaptics, fortuneOpacity]);
+    schedule(() => setFortuneOpacity(1), 400);
+  }, [enableHaptics, schedule]);
 
   const startFlipping = useCallback(() => {
     setPhase('flipping');
     setFlipStartTime(performance.now());
     if (enableHaptics) void triggerHaptic('medium', true);
 
-    flipProgress.value = withTiming(
-      1,
-      { duration: config.flipDuration ?? 800, easing: Easing.inOut(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(enterRevealed);
-      },
-    );
-  }, [flipProgress, config.flipDuration, enableHaptics, enterRevealed]);
+    setFlipProgress(1);
+    schedule(enterRevealed, config.flipDuration ?? 800);
+  }, [config.flipDuration, enableHaptics, enterRevealed, schedule]);
 
   const beginFlipAfterDelay = useCallback(() => {
-    drawnCardScale.value = withDelay(300, withTiming(1, { duration: 1 }));
-    flipProgress.value = withDelay(
-      300,
-      withTiming(0, { duration: 1 }, (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(startFlipping);
-      }),
-    );
-  }, [drawnCardScale, flipProgress, startFlipping]);
+    schedule(() => {
+      setDrawnCardScale(1);
+      startFlipping();
+    }, 300);
+  }, [startFlipping, schedule]);
 
   const startDrawing = useCallback(() => {
     setPhase('drawing');
     setDrawStartTime(performance.now());
     if (enableHaptics) void triggerHaptic('medium', true);
 
-    drawnCardOpacity.value = 1;
+    setDrawnCardOpacity(1);
 
     // Fade out wheel
-    wheelScale.value = withTiming(0.5, { duration: 400 });
-    wheelOpacity.value = withTiming(0, { duration: 400 });
+    setWheelScale(0.5);
+    setWheelOpacity(0);
 
     // Move drawn card to center
-    drawnCardX.value = withTiming(0, {
-      duration: 500,
-      easing: Easing.out(Easing.cubic),
-    });
-    drawnCardY.value = withTiming(
-      0,
-      { duration: 500, easing: Easing.out(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(beginFlipAfterDelay);
-      },
-    );
-  }, [
-    drawnCardX,
-    drawnCardY,
-    drawnCardOpacity,
-    wheelScale,
-    wheelOpacity,
-    enableHaptics,
-    beginFlipAfterDelay,
-  ]);
+    setDrawnCardX(0);
+    setDrawnCardY(0);
+
+    schedule(beginFlipAfterDelay, 500);
+  }, [enableHaptics, beginFlipAfterDelay, schedule]);
 
   const handleCardSelect = useCallback(
     (cardIndex: number) => {
       if (phase !== 'waiting') return;
       setSelectedCardIndex(cardIndex);
-      cancelAnimation(wheelRotation);
+      setWheelStopped(true);
       if (enableHaptics) void triggerHaptic('medium', true);
 
-      // Calculate selected card position in wheel
-      const currentRotation = wheelRotation.value;
+      // Calculate selected card position from elapsed time
+      const elapsed = performance.now() - wheelStartTimeRef.current;
+      const currentRotation = (elapsed / 4000) % 1;
       const cardAngle = wheelCards[cardIndex]!.angle;
       const totalAngle = currentRotation * Math.PI * 2 + cardAngle - Math.PI / 2;
       const x = Math.cos(totalAngle) * wheelRadius;
       const y = Math.sin(totalAngle) * wheelRadius;
 
-      drawnCardX.value = x;
-      drawnCardY.value = y;
+      setDrawnCardX(x);
+      setDrawnCardY(y);
 
       startDrawing();
     },
-    [
-      phase,
-      wheelCards,
-      wheelRadius,
-      wheelRotation,
-      drawnCardX,
-      drawnCardY,
-      enableHaptics,
-      startDrawing,
-    ],
+    [phase, wheelCards, wheelRadius, enableHaptics, startDrawing],
   );
 
   // ── Kick-off ──
   useEffect(() => {
     if (reducedMotion) {
-      flipProgress.value = 1;
-      wheelOpacity.value = 0;
-      drawnCardOpacity.value = 1;
-      drawnCardScale.value = 1;
+      setFlipProgress(1);
+      setWheelOpacity(0);
+      setDrawnCardOpacity(1);
+      setDrawnCardScale(1);
       setPhase('revealed');
       fireComplete();
       return;
     }
 
-    // Slow spin: 4 seconds per revolution
-    wheelRotation.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
+    // Start wheel spin
+    wheelStartTimeRef.current = performance.now();
     // Velvet table fades in
-    velvetOpacity.value = withTiming(1, { duration: 800 });
-  }, [
-    reducedMotion,
-    flipProgress,
-    wheelOpacity,
-    drawnCardOpacity,
-    drawnCardScale,
-    wheelRotation,
-    velvetOpacity,
-    fireComplete,
-  ]);
+    setVelvetOpacity(1);
+
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion, fireComplete]);
 
   // ── Auto-select if user doesn't tap (unified 8s timeout) ──
   const autoSelectRandom = useCallback(() => {
@@ -246,41 +209,61 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     autoSelectRandom,
   );
 
-  // ── Animated styles ──
-  const wheelStyle = useAnimatedStyle(() => ({
-    opacity: wheelOpacity.value,
-    transform: [{ scale: wheelScale.value }, { rotate: `${wheelRotation.value * 360}deg` }],
-  }));
+  // ── Computed styles with CSS transitions ──
+  const wheelStyle = {
+    opacity: wheelOpacity,
+    transform: [{ scale: wheelScale }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '400ms',
+    transitionTimingFunction: 'ease-out',
+    ...(wheelStopped
+      ? {}
+      : {
+          animationName: 'tarotWheelSpin',
+          animationDuration: '4s',
+          animationTimingFunction: 'linear',
+          animationIterationCount: 'infinite',
+        }),
+  } as never;
 
-  const drawnCardStyle = useAnimatedStyle(() => ({
-    opacity: drawnCardOpacity.value,
+  const drawnCardStyle = {
+    opacity: drawnCardOpacity,
     transform: [
-      { translateX: drawnCardX.value },
-      { translateY: drawnCardY.value },
-      { scale: drawnCardScale.value },
+      { translateX: drawnCardX },
+      { translateY: drawnCardY },
+      { scale: drawnCardScale },
       { perspective: 1200 },
-      {
-        rotateY: `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg`,
-      },
+      { rotateY: `${flipProgress * 180}deg` },
     ],
-  }));
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${config.flipDuration ?? 800}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.65, 0, 0.35, 1)',
+  } as never;
 
-  const backOpacityStyle = useAnimatedStyle(() => ({
-    opacity: flipProgress.value < 0.5 ? 1 : 0,
-  }));
+  const backOpacityStyle = {
+    opacity: flipProgress < 0.5 ? 1 : 0,
+    transitionProperty: 'opacity',
+    transitionDuration: '50ms',
+  } as never;
 
-  const frontOpacityStyle = useAnimatedStyle(() => ({
-    opacity: flipProgress.value >= 0.5 ? 1 : 0,
+  const frontOpacityStyle = {
+    opacity: flipProgress >= 0.5 ? 1 : 0,
     transform: [{ scaleX: -1 }],
-  }));
+    transitionProperty: 'opacity',
+    transitionDuration: '50ms',
+  } as never;
 
-  const velvetStyle = useAnimatedStyle(() => ({
-    opacity: velvetOpacity.value,
-  }));
+  const velvetStyle = {
+    opacity: velvetOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '800ms',
+  } as never;
 
-  const fortuneStyle = useAnimatedStyle(() => ({
-    opacity: fortuneOpacity.value,
-  }));
+  const fortuneStyle = {
+    opacity: fortuneOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '800ms',
+  } as never;
 
   // Canvas scene phase
   const scenePhase = reducedMotion ? 'hidden' : phase;
@@ -314,7 +297,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
 
       {/* Velvet table cloth — bottom 1/3 */}
       {!reducedMotion && (
-        <Animated.View style={[styles.velvetTable, { height: screenHeight * 0.35 }, velvetStyle]}>
+        <View style={[styles.velvetTable, { height: screenHeight * 0.35 }, velvetStyle]}>
           <LinearGradient
             colors={['#1a0a2e00', '#1a0a2e', '#12071e']}
             style={StyleSheet.absoluteFill}
@@ -323,12 +306,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           />
           {/* Gold fringe line */}
           <View style={styles.velvetFringe} />
-        </Animated.View>
+        </View>
       )}
 
       {/* Wheel of cards */}
       {phase !== 'revealed' && (
-        <Animated.View
+        <View
           testID={`${testIDPrefix}-wheel`}
           style={[
             styles.wheel,
@@ -368,11 +351,11 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
               </View>
             );
           })}
-        </Animated.View>
+        </View>
       )}
 
       {/* Drawn card (fly to center → flip) */}
-      <Animated.View
+      <View
         testID={`${testIDPrefix}-drawn-card`}
         style={[
           styles.drawnCard,
@@ -382,12 +365,12 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
         ]}
       >
         {/* Card back */}
-        <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
+        <View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
           <CardBackView width={cardWidth} height={cardHeight} />
-        </Animated.View>
+        </View>
 
         {/* Card front */}
-        <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
+        <View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
           <RoleCardContent
             roleId={role.id as RoleId}
             width={cardWidth}
@@ -408,16 +391,16 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
               onComplete={fireComplete}
             />
           )}
-        </Animated.View>
-      </Animated.View>
+        </View>
+      </View>
 
       {/* Fortune quote — appears after reveal */}
       {phase === 'revealed' && (
-        <Animated.View style={[styles.fortuneContainer, { top: insets.top + 60 }, fortuneStyle]}>
-          <Animated.Text style={styles.fortuneText}>
+        <View style={[styles.fortuneContainer, { top: insets.top + 60 }, fortuneStyle]}>
+          <Text style={styles.fortuneText}>
             {FORTUNE_QUOTES[role.alignment] ?? FORTUNE_QUOTES.villager}
-          </Animated.Text>
-        </Animated.View>
+          </Text>
+        </View>
       )}
 
       <HintWithWarning

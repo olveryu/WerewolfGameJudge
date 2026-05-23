@@ -14,14 +14,8 @@ import {
 } from '@werewolf/game-engine/growth/level';
 import { getItemRarity, type Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import { memo, useCallback, useEffect, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSpring,
-} from 'react-native-reanimated';
 
 import { Avatar } from '@/components/Avatar';
 import { type FrameId, getFrameById } from '@/components/avatarFrames';
@@ -79,20 +73,24 @@ function getTitleColor(level: number): string {
 // Animated XP progress bar
 // ---------------------------------------------------------------------------
 const XpProgressBar: React.FC<{ progress: number }> = memo(({ progress }) => {
-  const width = useSharedValue(0);
+  const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    width.value = 0;
-    width.value = withDelay(300, withSpring(progress, { damping: 18, stiffness: 90 }));
-  }, [progress, width]);
+    setWidth(0);
+    const timer = setTimeout(() => setWidth(progress), 300);
+    return () => clearTimeout(timer);
+  }, [progress]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    width: `${Math.round(width.value * 100)}%`,
-  }));
+  const fillStyle = {
+    width: `${Math.round(width * 100)}%`,
+    transitionProperty: 'width',
+    transitionDuration: '600ms',
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  } as never;
 
   return (
     <View style={styles.progressBar}>
-      <Animated.View style={[styles.progressFill, animatedStyle]} />
+      <View style={[styles.progressFill, fillStyle]} />
     </View>
   );
 });

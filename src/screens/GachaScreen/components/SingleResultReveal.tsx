@@ -10,26 +10,23 @@
  * reducedMotion 时所有动画退化为简单 fade-in。
  */
 import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
+
+// ─── CSS Keyframes ──────────────────────────────────────────────────────
+
+registerKeyframes('gachaGlowPulseEpic', '0%{opacity:0.7}50%{opacity:0.42}100%{opacity:0.7}');
+
+registerKeyframes('gachaGlowPulseLegendary', '0%{opacity:0.8}50%{opacity:0.4}100%{opacity:0.8}');
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -80,98 +77,117 @@ export function SingleResultReveal({
   const previewSize = PREVIEW_SIZES[rarity];
   const borderWidth = BORDER_WIDTHS[rarity];
 
-  // ── Animation values ──
-  const cardScale = useSharedValue(reducedMotion ? 1 : 0);
-  const cardOpacity = useSharedValue(reducedMotion ? 1 : 0);
-  const cardTranslateY = useSharedValue(0);
-  const glowOpacity = useSharedValue(0);
-  const glowScale = useSharedValue(0);
-  const cardGlowPulse = useSharedValue(1);
+  // ── Animation state ──
+  const [cardScale, setCardScale] = useState(reducedMotion ? 1 : 0);
+  const [cardOpacity, setCardOpacity] = useState(reducedMotion ? 1 : 0);
+  const [cardTranslateY, setCardTranslateY] = useState(0);
+  const [glowOpacity, setGlowOpacity] = useState(0);
+  const [glowScale, setGlowScale] = useState(0);
+  const [glowPulsing, setGlowPulsing] = useState(false);
+
+  // ── Timer management ──
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+  }, []);
+  useEffect(
+    () => () => {
+      timersRef.current.forEach(clearTimeout);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
+      setCardScale(1);
+      setCardOpacity(1);
       return;
     }
 
     switch (rarity) {
       case 'common':
-        cardScale.value = withTiming(1, {
-          duration: 200,
-          easing: Easing.out(Easing.quad),
-        });
-        cardOpacity.value = withTiming(1, { duration: 200 });
+        schedule(() => {
+          setCardScale(1);
+          setCardOpacity(1);
+        }, 16);
         break;
 
       case 'rare':
-        cardScale.value = withTiming(1, {
-          duration: 300,
-          easing: Easing.out(Easing.back(1.4)),
-        });
-        cardOpacity.value = withTiming(1, { duration: 250 });
-        glowOpacity.value = withTiming(0.6, { duration: 400 });
-        glowScale.value = withTiming(1, { duration: 400 });
+        schedule(() => {
+          setCardScale(1);
+          setCardOpacity(1);
+          setGlowOpacity(0.6);
+          setGlowScale(1);
+        }, 16);
         break;
 
       case 'epic':
-        cardTranslateY.value = 40;
-        cardScale.value = withSequence(
-          withTiming(1.05, { duration: 300, easing: Easing.out(Easing.back(1.4)) }),
-          withTiming(1, { duration: 100 }),
-        );
-        cardTranslateY.value = withSpring(0, { damping: 12, stiffness: 200 });
-        cardOpacity.value = withTiming(1, { duration: 300 });
-        glowOpacity.value = withTiming(0.7, { duration: 500 });
-        glowScale.value = withTiming(1, { duration: 500 });
-        // Pulse glow
-        cardGlowPulse.value = withDelay(
-          500,
-          withRepeat(withTiming(0.6, { duration: 1000 }), -1, true),
-        );
+        setCardTranslateY(40);
+        schedule(() => {
+          setCardOpacity(1);
+          setCardScale(1.05);
+          setCardTranslateY(0);
+          setGlowOpacity(0.7);
+          setGlowScale(1);
+        }, 16);
+        schedule(() => {
+          setCardScale(1);
+        }, 320);
+        schedule(() => {
+          setGlowPulsing(true);
+        }, 500);
         break;
 
       case 'legendary':
-        cardTranslateY.value = -80;
-        cardOpacity.value = withDelay(200, withTiming(1, { duration: 400 }));
-        cardScale.value = withDelay(
-          200,
-          withSequence(
-            withTiming(1.02, { duration: 400, easing: Easing.out(Easing.cubic) }),
-            withTiming(1, { duration: 200 }),
-          ),
-        );
-        cardTranslateY.value = withDelay(200, withSpring(0, { damping: 14, stiffness: 150 }));
-        // Glow burst
-        glowScale.value = withDelay(100, withTiming(1, { duration: 600 }));
-        glowOpacity.value = withDelay(100, withTiming(0.8, { duration: 400 }));
-        // Breathing glow
-        cardGlowPulse.value = withDelay(
-          700,
-          withRepeat(withTiming(0.5, { duration: 1200 }), -1, true),
-        );
+        setCardTranslateY(-80);
+        schedule(() => {
+          setGlowScale(1);
+          setGlowOpacity(0.8);
+        }, 100);
+        schedule(() => {
+          setCardOpacity(1);
+          setCardScale(1.02);
+          setCardTranslateY(0);
+        }, 200);
+        schedule(() => {
+          setCardScale(1);
+        }, 600);
+        schedule(() => {
+          setGlowPulsing(true);
+        }, 700);
         break;
     }
-  }, [
-    rarity,
-    reducedMotion,
-    cardScale,
-    cardOpacity,
-    cardTranslateY,
-    glowOpacity,
-    glowScale,
-    cardGlowPulse,
-  ]);
+  }, [rarity, reducedMotion, schedule]);
 
-  const cardAnimStyle = useAnimatedStyle(() => ({
-    opacity: cardOpacity.value,
-    transform: [{ scale: cardScale.value }, { translateY: cardTranslateY.value }],
-  }));
+  // ── Computed styles ──
+  const cardAnimStyle: ViewStyle = {
+    opacity: cardOpacity,
+    transform: [{ scale: cardScale }, { translateY: cardTranslateY }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: rarity === 'common' ? '200ms' : rarity === 'rare' ? '300ms' : '350ms',
+    transitionTimingFunction:
+      rarity === 'legendary'
+        ? 'cubic-bezier(0.22, 1, 0.36, 1)'
+        : 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  } as unknown as ViewStyle;
 
-  const glowAnimStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value * cardGlowPulse.value,
-    transform: [{ scale: glowScale.value }],
-  }));
+  const glowBaseOpacity = glowOpacity;
+  const glowAnimStyle: ViewStyle = glowPulsing
+    ? ({
+        transform: [{ scale: glowScale }],
+        animationName: rarity === 'legendary' ? 'gachaGlowPulseLegendary' : 'gachaGlowPulseEpic',
+        animationDuration: rarity === 'legendary' ? '2400ms' : '2000ms',
+        animationIterationCount: 'infinite',
+        animationTimingFunction: 'ease-in-out',
+      } as unknown as ViewStyle)
+    : ({
+        opacity: glowBaseOpacity,
+        transform: [{ scale: glowScale }],
+        transitionProperty: 'opacity, transform',
+        transitionDuration: '500ms',
+        transitionTimingFunction: 'ease-out',
+      } as unknown as ViewStyle);
 
   // ── Overlay background color ──
   const isEpicOrLegendary = rarity === 'epic' || rarity === 'legendary';
@@ -181,7 +197,7 @@ export function SingleResultReveal({
       <Pressable style={styles.overlay} onPress={onDismiss}>
         {/* Radial glow for rare+ */}
         {rarity !== 'common' && (
-          <Animated.View
+          <View
             style={[
               styles.radialGlow,
               { backgroundColor: withAlpha(visual.color, 0.15) },
@@ -191,10 +207,10 @@ export function SingleResultReveal({
         )}
 
         {/* Light pillar for legendary */}
-        {rarity === 'legendary' && <Animated.View style={[styles.lightPillar, glowAnimStyle]} />}
+        {rarity === 'legendary' && <View style={[styles.lightPillar, glowAnimStyle]} />}
 
         {/* Card */}
-        <Animated.View
+        <View
           style={[
             styles.card,
             {
@@ -252,7 +268,7 @@ export function SingleResultReveal({
               <Text style={styles.equipButtonText}>去装扮</Text>
             </Pressable>
           )}
-        </Animated.View>
+        </View>
       </Pressable>
     </Modal>
   );

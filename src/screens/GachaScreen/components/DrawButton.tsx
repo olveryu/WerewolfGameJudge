@@ -9,17 +9,18 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect } from 'react';
+import { useState } from 'react';
+import type { ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
 
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+
+// Register shimmer sweep keyframes
+registerKeyframes(
+  'drawButtonShimmer',
+  '0%{transform:translateX(-200px) skewX(-20deg)}100%{transform:translateX(400px) skewX(-20deg)}',
+);
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -50,37 +51,34 @@ export function DrawButton({
   multiPullCount,
   reducedMotion,
 }: DrawButtonProps) {
-  const pressScale = useSharedValue(1);
-  const shimmerX = useSharedValue(-1);
+  const [pressed, setPressed] = useState(false);
 
-  // Shimmer loop — continuous translateX sweep
-  useEffect(() => {
-    if (reducedMotion || disabled) return;
-    shimmerX.value = -1;
-    shimmerX.value = withRepeat(withTiming(2, { duration: golden ? 2200 : 3000 }), -1, false);
-  }, [shimmerX, reducedMotion, disabled, golden]);
-
-  const pressStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pressScale.value }],
-  }));
-
-  const shimmerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shimmerX.value * 200 }, { skewX: '-20deg' }],
-  }));
-
-  const handlePressIn = () => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value
-    pressScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
+  const wrapperStyle: ViewStyle = {
+    transform: [{ scale: pressed ? 0.95 : 1 }],
+    ...({
+      transitionProperty: 'transform',
+      transitionDuration: '150ms',
+      transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    } as unknown as ViewStyle),
   };
-  const handlePressOut = () => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value
-    pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
-  };
+
+  const shimmerStyle: ViewStyle | undefined =
+    !reducedMotion && !disabled
+      ? ({
+          animationName: 'drawButtonShimmer',
+          animationDuration: golden ? '2.2s' : '3s',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'linear',
+        } as unknown as ViewStyle)
+      : undefined;
+
+  const handlePressIn = () => setPressed(true);
+  const handlePressOut = () => setPressed(false);
 
   const gradientColors = golden ? GOLDEN_GRADIENT : NORMAL_GRADIENT;
 
   return (
-    <Animated.View style={[styles.wrapper, disabled && styles.wrapperDisabled, pressStyle]}>
+    <View style={[styles.wrapper, disabled && styles.wrapperDisabled, wrapperStyle]}>
       <Pressable
         onPress={onPress}
         onPressIn={handlePressIn}
@@ -98,7 +96,7 @@ export function DrawButton({
           style={[styles.gradient, golden && styles.goldenBorder]}
         >
           {/* Shimmer overlay */}
-          {!disabled && <Animated.View style={[styles.shimmer, shimmerStyle]} />}
+          {!disabled && <View style={[styles.shimmer, shimmerStyle]} />}
 
           {/* Inner highlight */}
           <View style={styles.innerHighlight} />
@@ -118,7 +116,7 @@ export function DrawButton({
           )}
         </LinearGradient>
       </Pressable>
-    </Animated.View>
+    </View>
   );
 }
 

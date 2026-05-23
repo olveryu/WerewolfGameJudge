@@ -11,17 +11,8 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -93,44 +84,50 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   const [canvasHidden, setCanvasHidden] = useState(false);
   const { fireComplete } = useRevealLifecycle({ onComplete });
 
-  const cardScaleVal = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
+  const [cardScaleVal, setCardScaleVal] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
 
   const triggerCardReveal = useCallback(() => {
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    flashOpacity.value = withSequence(
-      withTiming(0.6, { duration: 100 }),
-      withTiming(0, { duration: 400 }),
-    );
-    // Hide canvas after flash peaks (canvas disappears behind the flash)
-    setTimeout(() => setCanvasHidden(true), 200);
-    cardScaleVal.value = withDelay(
-      300,
-      withTiming(
-        1,
-        { duration: FW.cardRevealDuration, easing: Easing.out(Easing.back(1.15)) },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(300, withTiming(1, { duration: FW.cardRevealDuration }));
-  }, [cardScaleVal, cardOpacity, flashOpacity, enableHaptics, enterRevealed]);
+    // Flash sequence
+    setFlashOpacity(0.6);
+    schedule(() => setFlashOpacity(0), 100);
+
+    // Hide canvas after flash peaks
+    schedule(() => setCanvasHidden(true), 200);
+
+    // Card reveal after 300ms
+    schedule(() => {
+      setCardScaleVal(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, FW.cardRevealDuration);
+    }, 300);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   // Init
   useEffect(() => {
     if (reducedMotion) {
-      cardScaleVal.value = 1;
-      cardOpacity.value = 1;
+      setCardScaleVal(1);
+      setCardOpacity(1);
       setCanvasHidden(true);
       setPhase('revealed');
     }
-  }, [reducedMotion, cardScaleVal, cardOpacity]);
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion]);
 
   // When canvas reports spin complete → trigger card reveal after short pause
   const handleSpinComplete = useCallback(() => {
@@ -155,15 +152,21 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
   }, []);
   const autoTimeoutWarning = useAutoTimeout(phase === 'idle', autoSpin);
 
-  // ─── Animated styles ──────────────────────────────────────────────────
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScaleVal.value }],
-    opacity: cardOpacity.value,
-  }));
+  // ─── Computed styles with CSS transitions ──────────────────────────────
+  const cardStyle = {
+    transform: [{ scale: cardScaleVal }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${FW.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyleAnim = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyleAnim = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
   // Segments for canvas (serializable)
   const canvasSegments = useMemo(
@@ -214,7 +217,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
       )}
 
       {/* Flash overlay */}
-      <Animated.View style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]} />
+      <View style={[styles.flash, flashStyleAnim, { backgroundColor: theme.glowColor }]} />
 
       {/* Phase hints */}
       <HintWithWarning
@@ -235,7 +238,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 
       {/* Card reveal */}
       {(phase === 'stopped' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -257,7 +260,7 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

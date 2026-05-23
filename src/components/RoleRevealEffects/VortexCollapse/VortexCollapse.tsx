@@ -1,5 +1,5 @@
 /**
- * VortexCollapse - 虚空坍缩揭示动画（Canvas 2D + Reanimated 4）
+ * VortexCollapse - 虚空坍缩揭示动画（Canvas 2D + CSS Transitions）
  *
  * 视觉设计：星际穿越 / 黑洞风格 — 深空背景 + 星云 + 旋涡中心 + 事件视界 +
  * 螺旋臂 + 轨道粒子 + 碎片 + 进度环 + 坍缩爆炸粒子。
@@ -11,17 +11,8 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { RevealBurst } from '@/components/RoleRevealEffects/common/effects/RevealBurst';
@@ -69,11 +60,18 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
     revealHoldDurationMs: VC.revealHoldDuration,
   });
 
-  // ── Animation shared values ──
-  const canvasOpacity = useSharedValue(1);
-  const cardScale = useSharedValue(0);
-  const cardOpacity = useSharedValue(0);
-  const flashOpacity = useSharedValue(0);
+  // ── Animation state ──
+  const [canvasOpacity, setCanvasOpacity] = useState(1);
+  const [cardScale, setCardScale] = useState(0);
+  const [cardOpacity, setCardOpacity] = useState(0);
+  const [flashOpacity, setFlashOpacity] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // ── Phase transitions ──
   const enterRevealed = useCallback(() => setPhase('revealed'), []);
@@ -82,50 +80,39 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
     setPhase('collapse');
     if (enableHaptics) void triggerHaptic('heavy', true);
 
-    // Flash
-    flashOpacity.value = withSequence(
-      withTiming(0.8, { duration: 100 }),
-      withTiming(0, { duration: 500 }),
-    );
+    // Flash sequence: 0 → 0.8 → 0
+    setFlashOpacity(0.8);
+    schedule(() => setFlashOpacity(0), 100);
 
-    // Fade canvas
-    canvasOpacity.value = withDelay(200, withTiming(0, { duration: 400 }));
+    // Fade canvas after 200ms
+    schedule(() => setCanvasOpacity(0), 200);
 
-    // Card reveal
-    cardScale.value = withDelay(
-      VC.cardRevealDelay,
-      withTiming(
-        1,
-        {
-          duration: VC.cardRevealDuration,
-          easing: Easing.out(Easing.back(1.15)),
-        },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(enterRevealed);
-        },
-      ),
-    );
-    cardOpacity.value = withDelay(
-      VC.cardRevealDelay,
-      withTiming(1, { duration: VC.cardRevealDuration }),
-    );
-  }, [enableHaptics, flashOpacity, canvasOpacity, cardScale, cardOpacity, enterRevealed]);
+    // Card reveal after delay
+    schedule(() => {
+      setCardScale(1);
+      setCardOpacity(1);
+      schedule(enterRevealed, VC.cardRevealDuration);
+    }, VC.cardRevealDelay);
+  }, [enableHaptics, enterRevealed, schedule]);
 
   // ── Init ──
   useEffect(() => {
     if (reducedMotion) {
-      cardScale.value = 1;
-      cardOpacity.value = 1;
-      canvasOpacity.value = 0;
+      setCardScale(1);
+      setCardOpacity(1);
+      setCanvasOpacity(0);
       setPhase('revealed');
       return;
     }
 
     // Atmosphere → idle
     const timer = setTimeout(() => setPhase('idle'), VC.atmosphereDuration);
-    return () => clearTimeout(timer);
-  }, [reducedMotion, cardScale, cardOpacity, canvasOpacity]);
+    const timers = timersRef.current;
+    return () => {
+      clearTimeout(timer);
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion]);
 
   // ── Auto-timeout ──
   const autoTrigger = useCallback(() => {
@@ -138,19 +125,28 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
     doCollapse();
   }, [doCollapse]);
 
-  // ── Animated styles ──
-  const canvasContainerStyle = useAnimatedStyle(() => ({
-    opacity: canvasOpacity.value,
-  }));
+  // ── Computed styles with CSS transitions ──
+  const canvasContainerStyle = {
+    opacity: canvasOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '400ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: cardScale.value }],
-    opacity: cardOpacity.value,
-  }));
+  const cardStyle = {
+    transform: [{ scale: cardScale }],
+    opacity: cardOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${VC.cardRevealDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-  }));
+  const flashStyle = {
+    opacity: flashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: '100ms',
+    transitionTimingFunction: 'ease-out',
+  } as never;
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>
@@ -163,7 +159,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       />
 
       {/* Canvas overlay: vortex + interaction */}
-      <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
+      <View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
         <VortexCollapseCanvas
           dom={{ style: { flex: 1 } }}
           width={screenW}
@@ -171,10 +167,10 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
           phase={phase === 'revealed' ? 'hidden' : phase}
           onCollapse={handleCanvasCollapse}
         />
-      </Animated.View>
+      </View>
 
       {/* Flash overlay */}
-      <Animated.View style={[styles.flash, flashStyle]} />
+      <View style={[styles.flash, flashStyle]} />
 
       {/* Hint */}
       <HintWithWarning
@@ -192,7 +188,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 
       {/* Revealed card */}
       {(phase === 'collapse' || phase === 'revealed') && (
-        <Animated.View style={[styles.cardWrapper, cardStyle]}>
+        <View style={[styles.cardWrapper, cardStyle]}>
           <View style={styles.cardInner}>
             <RoleCardContent
               roleId={role.id as RoleId}
@@ -214,7 +210,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
               />
             )}
           </View>
-        </Animated.View>
+        </View>
       )}
     </View>
   );

@@ -1,9 +1,9 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2 + Skia）
+ * ScratchReveal - 刮刮卡风格揭示动画（CSS Transitions + Gesture Handler 2）
  *
  * 特点：金属银刮层 + 菱形底纹 + 序列号 + 规则文字，刮痕纹理，金属碎片粒子，
  * 进度里程碑闪光，触觉反馈，"PRIZE"印章，彩纸礼花绽放。
- * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
+ * 使用 `Gesture.Pan()` 驱动刮卡交互，CSS transitions/animations 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -11,18 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -37,9 +25,16 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
 import ScratchConfettiCanvas from './ScratchConfettiCanvas';
+
+// Register keyframe for sheen animation
+registerKeyframes(
+  'scratchSheen',
+  'from{transform:translateX(-300px)}to{transform:translateX(300px)}',
+);
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const SCRATCH_COLORS = {
@@ -80,30 +75,28 @@ interface ShavingConfig {
 
 const MetalShaving: React.FC<ShavingConfig> = React.memo(
   ({ startX, startY, targetX, targetY, color, size }) => {
-    const progress = useSharedValue(0);
+    const [fired, setFired] = useState(false);
+    const [rotation] = useState(() => Math.random() * 360 - 180);
 
     useEffect(() => {
-      progress.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) });
-    }, [progress]);
+      requestAnimationFrame(() => setFired(true));
+    }, []);
 
-    const animStyle = useAnimatedStyle(() => ({
+    const style = {
       transform: [
-        {
-          translateX: interpolate(progress.value, [0, 1], [startX, targetX]),
-        },
-        {
-          translateY: interpolate(progress.value, [0, 1], [startY, targetY]),
-        },
-        { scale: interpolate(progress.value, [0, 1], [1, 0.3]) },
-        {
-          rotate: `${interpolate(progress.value, [0, 1], [0, Math.random() * 360 - 180])}deg`,
-        },
+        { translateX: fired ? targetX : startX },
+        { translateY: fired ? targetY : startY },
+        { scale: fired ? 0.3 : 1 },
+        { rotate: fired ? `${rotation}deg` : '0deg' },
       ],
-      opacity: interpolate(progress.value, [0, 0.7, 1], [1, 0.6, 0]),
-    }));
+      opacity: fired ? 0 : 1,
+      transitionProperty: 'opacity, transform',
+      transitionDuration: '400ms',
+      transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+    } as never;
 
     return (
-      <Animated.View
+      <View
         style={[
           styles.shaving,
           {
@@ -112,7 +105,7 @@ const MetalShaving: React.FC<ShavingConfig> = React.memo(
             borderRadius: size * 0.15,
             backgroundColor: color,
           },
-          animStyle,
+          style,
         ]}
       />
     );
@@ -140,16 +133,20 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
   const [showGlow, setShowGlow] = useState(false);
 
   // ── Shared values ──
-  const revealAnim = useSharedValue(0);
-  const burstScale = useSharedValue(0);
-  const burstOpacity = useSharedValue(0);
-  const sheenPosition = useSharedValue(0);
-  const progressWidth = useSharedValue(0);
+  const [burstScale, setBurstScale] = useState(0);
+  const [burstOpacity, setBurstOpacity] = useState(0);
+  const [progressWidthPct, setProgressWidthPct] = useState(0);
+  const [milestoneFlashOpacity, setMilestoneFlashOpacity] = useState(0);
+  const [prizeStampOpacity, setPrizeStampOpacity] = useState(0);
+  const [prizeStampScale, setPrizeStampScale] = useState(0.5);
+  const [sheenActive, setSheenActive] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  // Scene elements
-  const milestoneFlash = useSharedValue(0);
-  const prizeStampOpacity = useSharedValue(0);
-  const prizeStampScale = useSharedValue(0.5);
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // Stable serial number
   const [serialNumber] = useState(() => generateSerial());
@@ -173,18 +170,17 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
   // ── Metallic sheen animation ──
   useEffect(() => {
-    if (reducedMotion || isRevealed) return;
+    if (reducedMotion || isRevealed) {
+      setSheenActive(false);
+      return;
+    }
+    setSheenActive(true);
 
-    sheenPosition.value = withRepeat(
-      withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-
+    const timers = timersRef.current;
     return () => {
-      cancelAnimation(sheenPosition);
+      timers.forEach(clearTimeout);
     };
-  }, [sheenPosition, reducedMotion, isRevealed]);
+  }, [reducedMotion, isRevealed]);
 
   // ── Progress calculation ──
   const calculateProgress = useCallback(() => {
@@ -221,42 +217,20 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     if (enableHaptics) void triggerHaptic('success', true);
 
     // Light burst
-    burstOpacity.value = withSequence(
-      withTiming(0.8, { duration: 100 }),
-      withTiming(0, { duration: 300 }),
-    );
-    burstScale.value = withTiming(2, {
-      duration: 400,
-      easing: Easing.out(Easing.cubic),
-    });
+    setBurstOpacity(0.8);
+    setBurstScale(2);
+    schedule(() => setBurstOpacity(0), 100);
 
-    // Reveal animation
-    revealAnim.value = withTiming(1, { duration: config.revealDuration }, (finished) => {
-      'worklet';
-      if (finished) scheduleOnRN(setShowGlow, true);
-    });
-
-    // Confetti burst is handled by ScratchConfettiCanvas (trigger=isRevealed)
+    // Show glow after reveal duration
+    schedule(() => setShowGlow(true), config.revealDuration);
 
     // Prize stamp pop-in
-    prizeStampOpacity.value = withDelay(200, withTiming(1, { duration: 300 }));
-    prizeStampScale.value = withDelay(
-      200,
-      withSequence(
-        withTiming(1.2, { duration: 200, easing: Easing.out(Easing.back(2)) }),
-        withTiming(1, { duration: 150 }),
-      ),
-    );
-  }, [
-    isRevealed,
-    revealAnim,
-    burstScale,
-    burstOpacity,
-    config.revealDuration,
-    enableHaptics,
-    prizeStampOpacity,
-    prizeStampScale,
-  ]);
+    schedule(() => {
+      setPrizeStampOpacity(1);
+      setPrizeStampScale(1.2);
+      schedule(() => setPrizeStampScale(1), 200);
+    }, 200);
+  }, [isRevealed, config.revealDuration, enableHaptics, schedule]);
 
   // ── Auto-timeout (8s auto-reveal if user doesn't scratch) ──
   const autoTimeoutWarning = useAutoTimeout(!isRevealed && !reducedMotion, triggerReveal);
@@ -271,7 +245,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
       const progress = calculateProgress();
       setScratchProgress(progress);
-      progressWidth.value = withTiming(progress, { duration: 100 });
+      setProgressWidthPct(progress);
 
       // Create shaving particle occasionally
       if (Math.random() > 0.7) {
@@ -294,17 +268,13 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       // Milestone flash at 50% and 75%
       if (progress >= 0.5 && !milestone50Triggered.current) {
         milestone50Triggered.current = true;
-        milestoneFlash.value = withSequence(
-          withTiming(0.5, { duration: 80 }),
-          withTiming(0, { duration: 300 }),
-        );
+        setMilestoneFlashOpacity(0.5);
+        schedule(() => setMilestoneFlashOpacity(0), 80);
         if (enableHaptics) void triggerHaptic('medium', true);
       } else if (progress >= 0.75 && !milestone75Triggered.current) {
         milestone75Triggered.current = true;
-        milestoneFlash.value = withSequence(
-          withTiming(0.7, { duration: 80 }),
-          withTiming(0, { duration: 300 }),
-        );
+        setMilestoneFlashOpacity(0.7);
+        schedule(() => setMilestoneFlashOpacity(0), 80);
         if (enableHaptics) void triggerHaptic('medium', true);
       }
     },
@@ -315,8 +285,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       triggerReveal,
       createShaving,
       enableHaptics,
-      progressWidth,
-      milestoneFlash,
+      schedule,
     ],
   );
 
@@ -338,14 +307,12 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       Gesture.Pan()
         .enabled(!reducedMotion)
         .onBegin((e) => {
-          'worklet';
           if (isRevealedRef.current) return;
-          scheduleOnRN(addScratchPointRef.current, e.x, e.y);
+          addScratchPointRef.current(e.x, e.y);
         })
         .onUpdate((e) => {
-          'worklet';
           if (isRevealedRef.current) return;
-          scheduleOnRN(addScratchPointRef.current, e.x, e.y);
+          addScratchPointRef.current(e.x, e.y);
         }),
     [reducedMotion],
   );
@@ -357,32 +324,42 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     }
   }, [reducedMotion, isRevealed, triggerReveal]);
 
-  // ── Animated styles ──
-  const sheenStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX: interpolate(sheenPosition.value, [0, 1], [-cardWidth, cardWidth]),
-      },
-    ],
-  }));
+  // ── Computed styles ──
+  const sheenStyle = {
+    animationName: sheenActive ? 'scratchSheen' : 'none',
+    animationDuration: '2000ms',
+    animationTimingFunction: 'ease-in-out',
+    animationIterationCount: 'infinite',
+    animationDirection: 'alternate',
+  } as never;
 
-  const burstStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: burstScale.value }],
-    opacity: burstOpacity.value,
-  }));
+  const burstStyle = {
+    transform: [{ scale: burstScale }],
+    opacity: burstOpacity,
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '300ms',
+    transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+  } as never;
 
-  const progressBarStyle = useAnimatedStyle(() => ({
-    width: `${progressWidth.value * 100}%`,
-  }));
+  const progressBarStyle = {
+    width: `${progressWidthPct * 100}%`,
+    transitionProperty: 'width',
+    transitionDuration: '100ms',
+  } as never;
 
-  const milestoneStyle = useAnimatedStyle(() => ({
-    opacity: milestoneFlash.value,
-  }));
+  const milestoneStyle = {
+    opacity: milestoneFlashOpacity,
+    transitionProperty: 'opacity',
+    transitionDuration: milestoneFlashOpacity > 0 ? '80ms' : '300ms',
+  } as never;
 
-  const prizeStampStyle = useAnimatedStyle(() => ({
-    opacity: prizeStampOpacity.value,
-    transform: [{ scale: prizeStampScale.value }, { rotate: '-15deg' }],
-  }));
+  const prizeStampStyle = {
+    opacity: prizeStampOpacity,
+    transform: [{ scale: prizeStampScale }, { rotate: '-15deg' }],
+    transitionProperty: 'opacity, transform',
+    transitionDuration: '200ms',
+    transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
+  } as never;
 
   // ── Render ──
   return (
@@ -412,10 +389,10 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       )}
 
       {/* Milestone flash overlay */}
-      <Animated.View style={[styles.milestoneFlash, milestoneStyle]} />
+      <View style={[styles.milestoneFlash, milestoneStyle]} />
 
       {/* Light burst */}
-      <Animated.View
+      <View
         style={[
           styles.lightBurst,
           {
@@ -490,14 +467,14 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
               </View>
 
               {/* Animated sheen */}
-              <Animated.View style={[styles.sheen, sheenStyle]}>
+              <View style={[styles.sheen, sheenStyle]}>
                 <LinearGradient
                   colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0.5 }}
                   style={StyleSheet.absoluteFill}
                 />
-              </Animated.View>
+              </View>
 
               {/* Scratch holes */}
               {scratchPoints.map((point) => (
@@ -572,9 +549,9 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
         {/* Prize stamp — pops in after reveal */}
         {isRevealed && (
-          <Animated.View style={[styles.prizeStamp, prizeStampStyle]}>
+          <View style={[styles.prizeStamp, prizeStampStyle]}>
             <Text style={[styles.prizeStampText, { color: theme.primaryColor }]}>PRIZE</Text>
-          </Animated.View>
+          </View>
         )}
 
         {showGlow && (
@@ -593,7 +570,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
       {!isRevealed && (
         <View style={styles.progressContainer}>
           <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-            <Animated.View
+            <View
               style={[
                 styles.progressFill,
                 { backgroundColor: theme.primaryColor },

@@ -16,25 +16,45 @@ import {
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 
 import { RoleDescriptionView } from '@/components/RoleDescriptionView';
 import { getFactionName } from '@/components/roleDisplayUtils';
 import WolfCrackBackgroundCanvas from '@/components/RoleRevealEffects/common/effects/WolfCrackBackgroundCanvas';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
 import { getRoleBadge } from '@/utils/roleBadges';
 
 const AE = CONFIG.alignmentEffects;
+
+// ── CSS keyframes for card content entrance animations ──
+registerKeyframes(
+  'emojiPop',
+  '0%{transform:scale(0.3);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}',
+);
+registerKeyframes(
+  'emojiPopWolf',
+  '0%{transform:scale(0.2) rotate(-10deg);opacity:0}' +
+    '50%{transform:scale(1.3) rotate(3deg);opacity:1}' +
+    '70%{transform:scale(0.95) rotate(-1deg)}' +
+    '100%{transform:scale(1) rotate(0deg);opacity:1}',
+);
+registerKeyframes(
+  'nameSlideUp',
+  '0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0px)}',
+);
+registerKeyframes(
+  'wolfCardShake',
+  '0%{transform:translateX(0px) rotate(0deg)}' +
+    '17%{transform:translateX(-4px) rotate(-1deg)}' +
+    '33%{transform:translateX(4px) rotate(1deg)}' +
+    '50%{transform:translateX(-3px) rotate(-0.5deg)}' +
+    '67%{transform:translateX(2px) rotate(0.5deg)}' +
+    '83%{transform:translateX(-1px) rotate(0deg)}' +
+    '100%{transform:translateX(0px) rotate(0deg)}',
+);
 
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
@@ -148,136 +168,61 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   // When animateEntrance is a boolean (false or true), content starts hidden
   // to prevent the flash where content is visible before the animation fires.
   const willAnimate = animateEntrance != null; // boolean → hide initially
-  const emojiScale = useSharedValue(willAnimate ? 0 : 1);
-  const emojiRotate = useSharedValue(0);
-  const nameOpacity = useSharedValue(willAnimate ? 0 : 1);
-  const nameTranslateY = useSharedValue(willAnimate ? 10 : 0);
-  const descOpacity = useSharedValue(willAnimate ? 0 : 1);
-  const descTranslateY = useSharedValue(willAnimate ? 10 : 0);
-  const shakeTranslateX = useSharedValue(0);
-  const shakeRotate = useSharedValue(0);
+  const shouldPlay = animateEntrance === true;
 
-  useEffect(() => {
-    if (!animateEntrance) return;
+  // CSS animation styles for each animated element
+  const emojiAnimStyle = willAnimate
+    ? shouldPlay
+      ? ({
+          opacity: 0,
+          animationName: isWolf ? 'emojiPopWolf' : 'emojiPop',
+          animationDuration: `${AE.emojiPopDuration}ms`,
+          animationDelay: `${AE.emojiPopDelay}ms`,
+          animationTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+          animationFillMode: 'both',
+        } as never)
+      : ({ opacity: 0, transform: [{ scale: 0 }] } as never)
+    : undefined;
 
-    // Values already start hidden (scale=0, opacity=0, translateY=10),
-    // so no snap needed — just kick off the animation.
+  const nameAnimStyle = willAnimate
+    ? shouldPlay
+      ? ({
+          opacity: 0,
+          animationName: 'nameSlideUp',
+          animationDuration: `${AE.nameSlideDuration}ms`,
+          animationDelay: `${AE.nameSlideDelay}ms`,
+          animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          animationFillMode: 'both',
+        } as never)
+      : ({ opacity: 0, transform: [{ translateY: 10 }] } as never)
+    : undefined;
 
-    // Emoji pop — wolf uses emojiPopWolf (with rotation), others use emojiPop
-    const popEasing = Easing.bezier(0.34, 1.56, 0.64, 1);
-    if (isWolf) {
-      // HTML: scale 0.2+rotate(-10) → 1.3+rotate(3) → 0.95+rotate(-1) → 1+rotate(0)
-      emojiScale.value = 0.2;
-      emojiRotate.value = -10;
-      emojiScale.value = withDelay(
-        AE.emojiPopDelay,
-        withSequence(
-          withTiming(1.3, { duration: AE.emojiPopDuration * 0.5, easing: popEasing }),
-          withTiming(0.95, {
-            duration: AE.emojiPopDuration * 0.2,
-            easing: Easing.out(Easing.quad),
-          }),
-          withTiming(1, { duration: AE.emojiPopDuration * 0.3, easing: Easing.out(Easing.quad) }),
-        ),
-      );
-      emojiRotate.value = withDelay(
-        AE.emojiPopDelay,
-        withSequence(
-          withTiming(3, { duration: AE.emojiPopDuration * 0.5, easing: popEasing }),
-          withTiming(-1, { duration: AE.emojiPopDuration * 0.2 }),
-          withTiming(0, { duration: AE.emojiPopDuration * 0.3 }),
-        ),
-      );
-    } else {
-      // HTML: scale 0.3 → 1.2 → 1
-      emojiScale.value = 0.3;
-      emojiScale.value = withDelay(
-        AE.emojiPopDelay,
-        withSequence(
-          withTiming(1.2, { duration: AE.emojiPopDuration * 0.6, easing: popEasing }),
-          withTiming(1, { duration: AE.emojiPopDuration * 0.4, easing: Easing.out(Easing.quad) }),
-        ),
-      );
-    }
+  const descAnimStyle = willAnimate
+    ? shouldPlay
+      ? ({
+          opacity: 0,
+          animationName: 'nameSlideUp',
+          animationDuration: `${AE.descSlideDuration}ms`,
+          animationDelay: `${AE.descSlideDelay}ms`,
+          animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+          animationFillMode: 'both',
+        } as never)
+      : ({ opacity: 0, transform: [{ translateY: 10 }] } as never)
+    : undefined;
 
-    // Name slide-up (matches HTML @keyframes nameSlideUp delay 0.5s)
-    nameOpacity.value = withDelay(
-      AE.nameSlideDelay,
-      withTiming(1, { duration: AE.nameSlideDuration, easing: Easing.out(Easing.quad) }),
-    );
-    nameTranslateY.value = withDelay(
-      AE.nameSlideDelay,
-      withTiming(0, { duration: AE.nameSlideDuration, easing: Easing.out(Easing.quad) }),
-    );
-
-    // Description slide-up (matches HTML delay 0.6s)
-    descOpacity.value = withDelay(
-      AE.descSlideDelay,
-      withTiming(1, { duration: AE.descSlideDuration, easing: Easing.out(Easing.quad) }),
-    );
-    descTranslateY.value = withDelay(
-      AE.descSlideDelay,
-      withTiming(0, { duration: AE.descSlideDuration, easing: Easing.out(Easing.quad) }),
-    );
-
-    // Wolf shake (matches HTML @keyframes wolfShake ±4px + ±1° rotation)
-    if (isWolf) {
-      const shakeDur = AE.wolfShakeDuration / 6;
-      shakeTranslateX.value = withDelay(
-        AE.wolfShakeDelay,
-        withSequence(
-          withTiming(-4, { duration: shakeDur }),
-          withTiming(4, { duration: shakeDur }),
-          withTiming(-3, { duration: shakeDur }),
-          withTiming(2, { duration: shakeDur }),
-          withTiming(-1, { duration: shakeDur }),
-          withTiming(0, { duration: shakeDur }),
-        ),
-      );
-      shakeRotate.value = withDelay(
-        AE.wolfShakeDelay,
-        withSequence(
-          withTiming(-1, { duration: shakeDur }),
-          withTiming(1, { duration: shakeDur }),
-          withTiming(-0.5, { duration: shakeDur }),
-          withTiming(0.5, { duration: shakeDur }),
-          withTiming(0, { duration: shakeDur * 2 }),
-        ),
-      );
-    }
-  }, [
-    animateEntrance,
-    isWolf,
-    emojiScale,
-    emojiRotate,
-    nameOpacity,
-    nameTranslateY,
-    descOpacity,
-    descTranslateY,
-    shakeTranslateX,
-    shakeRotate,
-  ]);
-
-  const emojiAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: emojiScale.value }, { rotate: `${emojiRotate.value}deg` }],
-  }));
-
-  const nameAnimStyle = useAnimatedStyle(() => ({
-    opacity: nameOpacity.value,
-    transform: [{ translateY: nameTranslateY.value }],
-  }));
-
-  const descAnimStyle = useAnimatedStyle(() => ({
-    opacity: descOpacity.value,
-    transform: [{ translateY: descTranslateY.value }],
-  }));
-
-  const cardShakeStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: shakeTranslateX.value }, { rotate: `${shakeRotate.value}deg` }],
-  }));
+  const cardShakeStyle =
+    revealMode && isWolf && shouldPlay
+      ? ({
+          animationName: 'wolfCardShake',
+          animationDuration: `${AE.wolfShakeDuration}ms`,
+          animationDelay: `${AE.wolfShakeDelay}ms`,
+          animationTimingFunction: 'ease-out',
+          animationFillMode: 'both',
+        } as never)
+      : undefined;
 
   return (
-    <Animated.View
+    <View
       testID={testID}
       style={[
         styles.card,
@@ -321,7 +266,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
       )}
 
       {revealMode ? (
-        <Animated.Image
+        <Image
           source={badgeSource}
           resizeMode="contain"
           style={[styles.roleIconImage, styles.roleIconRevealImage, emojiAnimStyle]}
@@ -336,20 +281,18 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
       )}
 
       {revealMode ? (
-        <Animated.Text
+        <Text
           style={[styles.roleName, styles.roleNameReveal, { color: factionColor }, nameAnimStyle]}
         >
           {roleName}
-        </Animated.Text>
+        </Text>
       ) : (
         <Text style={[styles.roleName, { color: factionColor }]}>{roleName}</Text>
       )}
 
       {/* English subtitle — only in reveal mode (matches HTML .role-sub) */}
       {revealMode ? (
-        <Animated.Text style={[styles.roleSub, { color: factionColor }, descAnimStyle]}>
-          {roleSub}
-        </Animated.Text>
+        <Text style={[styles.roleSub, { color: factionColor }, descAnimStyle]}>{roleSub}</Text>
       ) : (
         /* Normal mode: divider + skill description */
         <>
@@ -362,7 +305,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
         </>
       )}
       {children && <View style={styles.childrenSlot}>{children}</View>}
-    </Animated.View>
+    </View>
   );
 };
 

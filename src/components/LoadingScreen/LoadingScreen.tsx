@@ -8,23 +8,31 @@
  * 带有 logo 脉冲动画，与 PWA 启动画面保持一致。
  * 渲染加载状态 UI 与脉冲动画。不 import service，不含业务逻辑。
  */
-import { useEffect, useState } from 'react';
-import { Image, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  FadeIn,
-  interpolate,
-  ReduceMotion,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
+import { useMemo, useState } from 'react';
+import {
+  Image,
+  type LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, componentSizes, shadows, spacing, typography } from '@/theme';
 
 import appIcon from '../../../assets/pwa/icon-192.png';
+
+// Register keyframes at module load
+registerKeyframes(
+  'loadingPulse',
+  'from{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:0.8}to{transform:scale(1);opacity:1}',
+);
+registerKeyframes(
+  'indeterminateSlide',
+  'from{transform:translateX(-100%)}to{transform:translateX(333%)}',
+);
 
 interface BootStep {
   readonly id: string;
@@ -57,9 +65,11 @@ export function LoadingScreen({
   error,
   onRetry,
 }: LoadingScreenProps) {
-  const reducedMotion = useReducedMotion();
-  const pulseProgress = useSharedValue(1);
-  const progressValue = useSharedValue(0);
+  const [reducedMotion] = useState(() =>
+    Platform.OS === 'web' && typeof window !== 'undefined'
+      ? (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false)
+      : false,
+  );
   const [trackWidth, setTrackWidth] = useState(0);
 
   const handleTrackLayout = (e: LayoutChangeEvent) => setTrackWidth(e.nativeEvent.layout.width);
@@ -68,34 +78,33 @@ export function LoadingScreen({
 
   const isStepMode = steps != null && steps.length > 0;
 
-  // ── Pulse animation (skip for reduced motion) ──
-  useEffect(() => {
-    if (reducedMotion) return;
-    pulseProgress.value = withRepeat(
-      withSequence(withTiming(1.05, { duration: 1000 }), withTiming(1, { duration: 1000 })),
-      -1,
-    );
-  }, [pulseProgress, reducedMotion]);
+  const pulseStyle = useMemo(
+    () =>
+      reducedMotion
+        ? {}
+        : ({
+            animationName: 'loadingPulse',
+            animationDuration: '2000ms',
+            animationTimingFunction: 'ease-in-out',
+            animationIterationCount: 'infinite',
+          } as never),
+    [reducedMotion],
+  );
 
-  // ── Indeterminate progress bar (only in message mode, skip for reduced motion) ──
-  useEffect(() => {
-    if (reducedMotion || isStepMode || trackWidth === 0) return;
-    progressValue.value = 0;
-    progressValue.value = withRepeat(withTiming(1, { duration: PROGRESS_DURATION_MS }), -1);
-  }, [reducedMotion, isStepMode, progressValue, trackWidth]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseProgress.value }],
-    opacity: interpolate(pulseProgress.value, [1, 1.05], [1, 0.8]),
-  }));
-
-  const progressBarStyle = useAnimatedStyle(() => ({
-    width: barPixelWidth,
-    backgroundColor: colors.primary,
-    transform: [
-      { translateX: interpolate(progressValue.value, [0, 1], [-barPixelWidth, trackWidth]) },
-    ],
-  }));
+  const progressBarStyle = useMemo(
+    () =>
+      reducedMotion || isStepMode || trackWidth === 0
+        ? { width: barPixelWidth, backgroundColor: colors.primary }
+        : ({
+            width: barPixelWidth,
+            backgroundColor: colors.primary,
+            animationName: 'indeterminateSlide',
+            animationDuration: `${PROGRESS_DURATION_MS}ms`,
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+          } as never),
+    [reducedMotion, isStepMode, trackWidth, barPixelWidth],
+  );
 
   // Step mode: find the first incomplete step as current active
   const currentStepLabel = isStepMode ? (steps.find((s) => !s.done)?.label ?? '准备就绪') : null;
@@ -108,9 +117,9 @@ export function LoadingScreen({
         !fullScreen && styles.inlineContainer,
       ]}
     >
-      <Animated.View style={[styles.iconContainer, pulseStyle]}>
+      <View style={[styles.iconContainer, pulseStyle]}>
         <Image source={appIcon} style={styles.icon} resizeMode="contain" />
-      </Animated.View>
+      </View>
 
       {error ? (
         <View style={styles.errorContainer}>
@@ -140,7 +149,7 @@ export function LoadingScreen({
             style={[styles.progressTrack, { backgroundColor: colors.border }]}
             onLayout={handleTrackLayout}
           >
-            <Animated.View style={[styles.progressBar, progressBarStyle]} />
+            <View style={[styles.progressBar, progressBarStyle]} />
           </View>
         </>
       )}
@@ -152,10 +161,7 @@ export function LoadingScreen({
 
 function StepRow({ step, isActive }: { readonly step: BootStep; readonly isActive: boolean }) {
   return (
-    <Animated.View
-      entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
-      style={styles.stepRow}
-    >
+    <View style={styles.stepRow}>
       <Text
         style={[styles.stepIndicator, { color: step.done ? colors.success : colors.textMuted }]}
       >
@@ -173,7 +179,7 @@ function StepRow({ step, isActive }: { readonly step: BootStep; readonly isActiv
         {step.label}
         {isActive && !step.done ? '...' : ''}
       </Text>
-    </Animated.View>
+    </View>
   );
 }
 

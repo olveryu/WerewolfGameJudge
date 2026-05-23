@@ -12,17 +12,7 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  interpolate,
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -75,7 +65,7 @@ const MiniCardBack: React.FC<{ width: number; height: number }> = React.memo(
       >
         <View style={styles.miniCardInner}>
           <View style={[styles.miniCardBorder, { borderColor: TABLE_COLORS.accentLight }]}>
-            <Animated.Text style={styles.miniCardSymbol}>{TABLE_COLORS.symbol}</Animated.Text>
+            <Text style={styles.miniCardSymbol}>{TABLE_COLORS.symbol}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -146,12 +136,19 @@ export const CardPick: React.FC<CardPickProps> = ({
   }, [initialCardCount, cols, rows, miniCardWidth, miniCardHeight, config.cardGap]);
 
   // ── Shared values ──
-  const spreadProgress = useSharedValue(0); // 0 → 1: cards appear on table
-  const otherCardsOpacity = useSharedValue(1); // fade out non-selected cards
-  const drawnCardX = useSharedValue(0);
-  const drawnCardY = useSharedValue(0);
-  const drawnCardOpacity = useSharedValue(0);
-  const flipProgress = useSharedValue(0); // 0 = back, 1 = front
+  const [spreadStarted, setSpreadStarted] = useState(false);
+  const [otherCardsOpacity, setOtherCardsOpacity] = useState(1);
+  const [drawnCardX, setDrawnCardX] = useState(0);
+  const [drawnCardY, setDrawnCardY] = useState(0);
+  const [drawnCardOpacity, setDrawnCardOpacity] = useState(0);
+  const [flipProgress, setFlipProgress] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const schedule = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   // Canvas overlay phase (chips + charge aura + light bars)
   const [canvasPhase, setCanvasPhase] = useState<'idle' | 'charging' | 'flipping' | 'done'>('idle');
@@ -168,29 +165,15 @@ export const CardPick: React.FC<CardPickProps> = ({
     setCanvasPhase('flipping');
     if (enableHaptics) void triggerHaptic('medium', true);
 
-    flipProgress.value = withTiming(
-      1,
-      { duration: config.flipDuration, easing: Easing.inOut(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(enterRevealed);
-      },
-    );
-  }, [flipProgress, config.flipDuration, enableHaptics, enterRevealed]);
+    setFlipProgress(1);
+    schedule(enterRevealed, config.flipDuration);
+  }, [config.flipDuration, enableHaptics, enterRevealed, schedule]);
 
   const startFlipAfterDelay = useCallback(() => {
     // Show charge aura pulse before flip
     setCanvasPhase('charging');
-
-    // Short pause before flip
-    flipProgress.value = withDelay(
-      200,
-      withTiming(0, { duration: 1 }, (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(startFlipping);
-      }),
-    );
-  }, [flipProgress, startFlipping]);
+    schedule(startFlipping, 200);
+  }, [startFlipping, schedule]);
 
   const handleCardSelect = useCallback(
     (index: number) => {
@@ -201,38 +184,29 @@ export const CardPick: React.FC<CardPickProps> = ({
 
       const pos = gridPositions[index]!;
       // Set initial position to the card's grid position
-      drawnCardX.value = pos.x;
-      drawnCardY.value = pos.y;
-      drawnCardOpacity.value = 1;
+      setDrawnCardX(pos.x);
+      setDrawnCardY(pos.y);
+      setDrawnCardOpacity(1);
 
       // Fade out other cards
-      otherCardsOpacity.value = withTiming(0, { duration: config.fadeOutDuration });
+      setOtherCardsOpacity(0);
 
-      // Fly to center
-      drawnCardX.value = withTiming(0, {
-        duration: config.flyToCenterDuration,
-        easing: Easing.out(Easing.cubic),
+      // Fly to center (CSS transition handles the movement)
+      // Use a microtask to ensure initial position is rendered first
+      requestAnimationFrame(() => {
+        setDrawnCardX(0);
+        setDrawnCardY(0);
       });
-      drawnCardY.value = withTiming(
-        0,
-        { duration: config.flyToCenterDuration, easing: Easing.out(Easing.cubic) },
-        (finished) => {
-          'worklet';
-          if (finished) scheduleOnRN(startFlipAfterDelay);
-        },
-      );
+
+      schedule(startFlipAfterDelay, config.flyToCenterDuration);
     },
     [
       phase,
       gridPositions,
-      drawnCardX,
-      drawnCardY,
-      drawnCardOpacity,
-      otherCardsOpacity,
-      config.fadeOutDuration,
       config.flyToCenterDuration,
       enableHaptics,
       startFlipAfterDelay,
+      schedule,
     ],
   );
 
@@ -265,32 +239,23 @@ export const CardPick: React.FC<CardPickProps> = ({
   // ── Kick-off: spread cards onto table ──
   useEffect(() => {
     if (reducedMotion) {
-      flipProgress.value = 1;
-      spreadProgress.value = 1;
-      otherCardsOpacity.value = 0;
-      drawnCardOpacity.value = 1;
+      setFlipProgress(1);
+      setSpreadStarted(true);
+      setOtherCardsOpacity(0);
+      setDrawnCardOpacity(1);
       setPhase('revealed');
       fireComplete();
       return;
     }
 
-    spreadProgress.value = withTiming(
-      1,
-      { duration: config.spreadDuration, easing: Easing.out(Easing.cubic) },
-      (finished) => {
-        'worklet';
-        if (finished) scheduleOnRN(setPhase, 'waiting');
-      },
-    );
-  }, [
-    reducedMotion,
-    spreadProgress,
-    flipProgress,
-    otherCardsOpacity,
-    drawnCardOpacity,
-    fireComplete,
-    config.spreadDuration,
-  ]);
+    setSpreadStarted(true);
+    schedule(() => setPhase('waiting'), config.spreadDuration);
+
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach(clearTimeout);
+    };
+  }, [reducedMotion, fireComplete, config.spreadDuration, schedule]);
 
   // ── Auto-select after timeout if user doesn't tap ──
   const autoSelectRandom = useCallback(() => {
@@ -306,25 +271,32 @@ export const CardPick: React.FC<CardPickProps> = ({
     autoSelectRandom,
   );
 
-  // ── Animated styles for drawn card (fly-to-center + flip) ──
-  const drawnCardStyle = useAnimatedStyle(() => ({
-    opacity: drawnCardOpacity.value,
+  // ── Computed styles for drawn card (fly-to-center + flip) ──
+  const drawnCardStyle = {
+    opacity: drawnCardOpacity,
     transform: [
-      { translateX: drawnCardX.value },
-      { translateY: drawnCardY.value },
+      { translateX: drawnCardX },
+      { translateY: drawnCardY },
       { perspective: 1200 },
-      { rotateY: `${interpolate(flipProgress.value, [0, 1], [0, 180])}deg` },
+      { rotateY: `${flipProgress * 180}deg` },
     ],
-  }));
+    transitionProperty: 'opacity, transform',
+    transitionDuration: `${config.flyToCenterDuration}ms`,
+    transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+  } as never;
 
-  const backOpacityStyle = useAnimatedStyle(() => ({
-    opacity: flipProgress.value < 0.5 ? 1 : 0,
-  }));
+  const backOpacityStyle = {
+    opacity: flipProgress < 0.5 ? 1 : 0,
+    transitionProperty: 'opacity',
+    transitionDuration: '50ms',
+  } as never;
 
-  const frontOpacityStyle = useAnimatedStyle(() => ({
-    opacity: flipProgress.value >= 0.5 ? 1 : 0,
+  const frontOpacityStyle = {
+    opacity: flipProgress >= 0.5 ? 1 : 0,
     transform: [{ scaleX: -1 }],
-  }));
+    transitionProperty: 'opacity',
+    transitionDuration: '50ms',
+  } as never;
 
   // ── Render ──
   return (
@@ -390,11 +362,12 @@ export const CardPick: React.FC<CardPickProps> = ({
                 y={pos.y}
                 width={miniCardWidth}
                 height={miniCardHeight}
-                spreadProgress={spreadProgress}
+                visible={spreadStarted}
                 otherCardsOpacity={otherCardsOpacity}
                 isSelected={isSelected}
                 removed={removedIndices.has(index)}
                 staggerDelay={index * config.spreadStagger}
+                spreadDuration={config.spreadDuration}
                 onPress={handleCardSelect}
                 disabled={phase !== 'waiting' || removedIndices.has(index)}
                 testIDPrefix={testIDPrefix}
@@ -406,7 +379,7 @@ export const CardPick: React.FC<CardPickProps> = ({
 
       {/* Drawn card (fly to center → flip) — only mount after selection */}
       {selectedIndex !== null && (
-        <Animated.View
+        <View
           testID={`${testIDPrefix}-drawn-card`}
           style={[
             styles.drawnCard,
@@ -415,12 +388,12 @@ export const CardPick: React.FC<CardPickProps> = ({
           ]}
         >
           {/* Card back */}
-          <Animated.View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
+          <View style={[styles.cardFace, styles.cardBackZ, backOpacityStyle]}>
             <MiniCardBack width={revealCardWidth} height={revealCardHeight} />
-          </Animated.View>
+          </View>
 
           {/* Card front */}
-          <Animated.View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
+          <View style={[styles.cardFace, styles.cardFrontZ, frontOpacityStyle]}>
             <RoleCardContent
               roleId={role.id as RoleId}
               width={revealCardWidth}
@@ -441,8 +414,8 @@ export const CardPick: React.FC<CardPickProps> = ({
                 onComplete={fireComplete}
               />
             )}
-          </Animated.View>
-        </Animated.View>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -455,12 +428,13 @@ interface AnimatedMiniCardProps {
   y: number;
   width: number;
   height: number;
-  spreadProgress: SharedValue<number>;
-  otherCardsOpacity: SharedValue<number>;
+  visible: boolean;
+  otherCardsOpacity: number;
   isSelected: boolean;
   /** Whether this card was removed by another player viewing their role */
   removed: boolean;
   staggerDelay: number;
+  spreadDuration: number;
   onPress: (index: number) => void;
   disabled: boolean;
   testIDPrefix: string;
@@ -473,11 +447,12 @@ const AnimatedMiniCard: React.FC<AnimatedMiniCardProps> = React.memo(
     y,
     width,
     height,
-    spreadProgress,
+    visible,
     otherCardsOpacity,
     isSelected,
     removed,
     staggerDelay,
+    spreadDuration,
     onPress,
     disabled,
     testIDPrefix,
@@ -487,41 +462,24 @@ const AnimatedMiniCard: React.FC<AnimatedMiniCardProps> = React.memo(
     }, [onPress, index]);
 
     const cfg = CONFIG.cardPick;
-    const totalDuration = cfg.spreadDuration + cfg.spreadStagger * 15; // max card count
 
-    // Exit animation when another player takes a card
-    const exitProgress = useSharedValue(1); // 1 = alive, 0 = gone
-    useEffect(() => {
-      if (removed) {
-        exitProgress.value = withTiming(0, {
-          duration: cfg.cardRemoveExitDuration,
-          easing: Easing.in(Easing.cubic),
-        });
-      }
-    }, [removed, exitProgress, cfg.cardRemoveExitDuration]);
+    const alive = removed ? 0 : 1;
+    const shown = visible ? 1 : 0;
+    const opacity = (isSelected ? 1 : otherCardsOpacity) * shown * alive;
+    const scale = (visible ? 1 : 0.3) * (0.6 + 0.4 * alive);
+    const rotateZ = (1 - alive) * 8;
 
-    // Each card fades in with stagger, fades out when removed
-    const animStyle = useAnimatedStyle(() => {
-      const staggerFraction = staggerDelay / totalDuration;
-      const localProgress = Math.max(
-        0,
-        Math.min(1, (spreadProgress.value - staggerFraction) / (1 - staggerFraction)),
-      );
-      const alive = exitProgress.value;
-
-      return {
-        opacity: (isSelected ? 1 : otherCardsOpacity.value) * localProgress * alive,
-        transform: [
-          { translateX: x },
-          { translateY: y },
-          { scale: interpolate(localProgress, [0, 1], [0.3, 1]) * (0.6 + 0.4 * alive) },
-          { rotateZ: `${interpolate(alive, [0, 1], [8, 0])}deg` },
-        ],
-      };
-    });
+    const animStyle = {
+      opacity,
+      transform: [{ translateX: x }, { translateY: y }, { scale }, { rotateZ: `${rotateZ}deg` }],
+      transitionProperty: 'opacity, transform',
+      transitionDuration: `${removed ? cfg.cardRemoveExitDuration : spreadDuration}ms`,
+      transitionDelay: `${visible && !removed ? staggerDelay : 0}ms`,
+      transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
+    } as never;
 
     return (
-      <Animated.View
+      <View
         testID={`${testIDPrefix}-card-${index}`}
         style={[styles.miniCardWrapper, { width, height }, animStyle]}
       >
@@ -534,7 +492,7 @@ const AnimatedMiniCard: React.FC<AnimatedMiniCardProps> = React.memo(
         >
           <MiniCardBack width={width} height={height} />
         </Pressable>
-      </Animated.View>
+      </View>
     );
   },
 );

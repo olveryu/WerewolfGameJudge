@@ -5,15 +5,10 @@
  * ≥80% 阈值时触发脉冲动画 + 颜色加深提示。
  * golden 模式使用金色渐变。
  */
-import { useEffect } from 'react';
+import type { ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 
+import { registerKeyframes } from '@/components/seatAnimations/cssAnimations';
 import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 
 // ─── Constants ──────────────────────────────────────────────────────────
@@ -21,6 +16,9 @@ import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
 const NEAR_PITY_RATIO = 0.8;
 const GOLDEN_COLOR = '#DAA520';
 const GOLDEN_GLOW = '#FFD700';
+
+// Register pulse animation
+registerKeyframes('pityPulse', '0%{opacity:1}50%{opacity:0.7}100%{opacity:1}');
 
 // ─── Props ──────────────────────────────────────────────────────────────
 
@@ -38,19 +36,15 @@ export function PityProgressBar({ pity, threshold, golden, reducedMotion }: Pity
   const isNearPity = ratio >= NEAR_PITY_RATIO;
   const fillPercent = Math.min(ratio * 100, 100);
 
-  const pulseOpacity = useSharedValue(1);
-
-  useEffect(() => {
-    if (isNearPity && !reducedMotion) {
-      pulseOpacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true);
-    } else {
-      pulseOpacity.value = 1;
-    }
-  }, [isNearPity, reducedMotion, pulseOpacity]);
-
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: pulseOpacity.value,
-  }));
+  const pulseStyle: ViewStyle | undefined =
+    isNearPity && !reducedMotion
+      ? ({
+          animationName: 'pityPulse',
+          animationDuration: '1.6s',
+          animationIterationCount: 'infinite',
+          animationTimingFunction: 'ease-in-out',
+        } as unknown as ViewStyle)
+      : undefined;
 
   const fillColor = golden
     ? isNearPity
@@ -63,7 +57,7 @@ export function PityProgressBar({ pity, threshold, golden, reducedMotion }: Pity
   return (
     <View style={styles.container}>
       <View style={styles.track}>
-        <Animated.View
+        <View
           style={[
             styles.fill,
             { width: `${fillPercent}%`, backgroundColor: fillColor },
@@ -73,7 +67,7 @@ export function PityProgressBar({ pity, threshold, golden, reducedMotion }: Pity
           {isNearPity && (
             <View style={[styles.glowTip, { backgroundColor: withAlpha(fillColor, 0.5) }]} />
           )}
-        </Animated.View>
+        </View>
       </View>
       <Text style={[styles.text, isNearPity && (golden ? styles.textNearGolden : styles.textNear)]}>
         {pity}/{threshold}
