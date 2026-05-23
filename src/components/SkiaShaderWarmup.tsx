@@ -65,6 +65,48 @@ function warmupShaders() {
   canvas.drawCircle(2, 2, 2, paint);
   paint.setImageFilter(null);
 
+  // ── 7. PictureRecorder → Picture → drawPicture — flair/animation worklet 模式 ──
+  const rec = Skia.PictureRecorder();
+  const pc = rec.beginRecording(Skia.XYWHRect(0, 0, SIZE, SIZE));
+  pc.drawCircle(2, 2, 1, paint);
+  const pic = rec.finishRecordingAsPicture();
+  canvas.drawPicture(pic);
+
+  // ── 8. Path quadTo + close — FlameEnvelope 火舌 bezier ──
+  path.reset();
+  path.moveTo(0, 0);
+  path.quadTo(2, 0, SIZE, SIZE);
+  path.close();
+  canvas.drawPath(path, paint);
+
+  // ── 9. Dynamic Skia.Color() 构造 — flair 中 hue cycling 用 ──
+  paint.setColor(Skia.Color('rgb(128,128,128)'));
+  canvas.drawCircle(2, 2, 1, paint);
+
+  // ── 10. drawLine — ShadowClaw/ThunderBolt 线段 ──
+  paint.setStrokeCap(1); // Round cap
+  paint.setStyle(1);
+  paint.setStrokeWidth(2);
+  canvas.drawLine(0, 0, SIZE, SIZE, paint);
+  paint.setStrokeCap(0);
+  paint.setStyle(0);
+
+  // ── 11. drawRRect fill — LegendaryShimmer 圆角矩形 ──
+  paint.setColor(Skia.Color('#FFD700'));
+  canvas.drawRRect(rrect, paint);
+
+  // ── 12. RadialGradient shader — WolfReveal fog 雾气 ──
+  const shader = Skia.Shader.MakeRadialGradient(
+    { x: 2, y: 2 },
+    2,
+    [Skia.Color('#ff000090'), Skia.Color('#ff000000')],
+    [0, 1],
+    0,
+  );
+  paint.setShader(shader);
+  canvas.drawCircle(2, 2, 2, paint);
+  paint.setShader(null);
+
   // Flush GPU pipeline
   surface.flush();
 }

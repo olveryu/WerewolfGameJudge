@@ -230,9 +230,21 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       strokePaint.setColor(SKIA_DOME_STROKE);
       strokePaint.setStrokeWidth(3);
       c.drawCircle(domeCx, domeCy, domeR, strokePaint);
-      // Glass fill
+      // Glass fill with soft edge (MaskFilter simulates refraction blur)
+      const glassMask = Skia.MaskFilter.MakeBlur(0, 1.5 * s, true);
       paint.setColor(SKIA_DOME_FILL);
+      paint.setMaskFilter(glassMask);
       c.drawCircle(domeCx, domeCy, domeR, paint);
+      paint.setMaskFilter(null);
+      // Inner shadow — dark ring at dome perimeter for glass depth
+      strokePaint.setColor(SKIA_DOME_STROKE);
+      strokePaint.setStrokeWidth(6 * s);
+      strokePaint.setAlphaf(0.08);
+      const innerShadowMask = Skia.MaskFilter.MakeBlur(0, 4 * s, true);
+      strokePaint.setMaskFilter(innerShadowMask);
+      c.drawCircle(domeCx, domeCy, domeR - 3 * s, strokePaint);
+      strokePaint.setMaskFilter(null);
+      strokePaint.setAlphaf(1);
       // Left arc highlight
       paint.setColor(SKIA_DOME_HIGHLIGHT_L);
       c.drawOval(Skia.XYWHRect(domeCx - 71 * s, domeCy - 87 * s, 32 * s, 144 * s), paint);
@@ -242,6 +254,11 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
       // Bottom reflection arc
       paint.setColor(SKIA_DOME_BOTTOM_ARC);
       c.drawOval(Skia.XYWHRect(domeCx - 60 * s, domeCy + 50 * s, 120 * s, 50 * s), paint);
+      // Specular highlight — top-center bright spot for glass convexity
+      paint.setColor(SKIA_WHITE);
+      paint.setAlphaf(0.12);
+      c.drawCircle(domeCx - 10 * s, domeCy - 65 * s, 8 * s, paint);
+      paint.setAlphaf(1);
 
       // Gate indicator
       if (physics.gateOpen.value === 1) {

@@ -62,10 +62,15 @@ const noopCanvas = {
   drawPath: () => {},
   drawColor: () => {},
   drawLine: () => {},
+  drawOval: () => {},
+  drawArc: () => {},
+  drawPicture: () => {},
   save: () => {},
   restore: () => {},
   translate: () => {},
   scale: () => {},
+  clipPath: () => {},
+  saveLayer: () => {},
 };
 
 const noopPaint = {
@@ -74,8 +79,10 @@ const noopPaint = {
   setStyle: () => {},
   setStrokeWidth: () => {},
   setStrokeCap: () => {},
+  setStrokeJoin: () => {},
   setShader: () => {},
   setImageFilter: () => {},
+  setMaskFilter: () => {},
   setBlendMode: () => {},
   copy: () => noopPaint,
 };
@@ -111,6 +118,9 @@ export const Skia = {
     }),
   },
   ImageFilter: {
+    MakeBlur: () => ({}),
+  },
+  MaskFilter: {
     MakeBlur: () => ({}),
   },
   Shader: {
