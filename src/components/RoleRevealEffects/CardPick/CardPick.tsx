@@ -283,20 +283,20 @@ export const CardPick: React.FC<CardPickProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${config.flyToCenterDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-  } as never;
+  };
 
   const backOpacityStyle = {
     opacity: flipProgress < 0.5 ? 1 : 0,
     transitionProperty: 'opacity',
     transitionDuration: '50ms',
-  } as never;
+  };
 
   const frontOpacityStyle = {
     opacity: flipProgress >= 0.5 ? 1 : 0,
     transform: [{ scaleX: -1 }],
     transitionProperty: 'opacity',
     transitionDuration: '50ms',
-  } as never;
+  };
 
   // ── Render ──
   return (
@@ -476,7 +476,7 @@ const AnimatedMiniCard: React.FC<AnimatedMiniCardProps> = React.memo(
       transitionDuration: `${removed ? cfg.cardRemoveExitDuration : spreadDuration}ms`,
       transitionDelay: `${visible && !removed ? staggerDelay : 0}ms`,
       transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-    } as never;
+    };
 
     return (
       <View

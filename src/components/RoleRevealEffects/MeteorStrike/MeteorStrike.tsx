@@ -138,7 +138,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity',
     transitionDuration: '300ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const cardStyle = {
     transform: [{ scale: cardScale }],
@@ -146,14 +146,14 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${MS.cardRevealDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const flashStyle = {
     opacity: flashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '80ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>

@@ -159,14 +159,14 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${FW.cardRevealDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const flashStyleAnim = {
     opacity: flashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '100ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   // Segments for canvas (serializable)
   const canvasSegments = useMemo(

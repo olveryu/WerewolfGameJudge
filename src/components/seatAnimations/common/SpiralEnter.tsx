@@ -46,7 +46,7 @@ export const SpiralEnter = memo<ColoredAnimationProps>(
               name: 'seatSpiral',
               duration: RARE_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

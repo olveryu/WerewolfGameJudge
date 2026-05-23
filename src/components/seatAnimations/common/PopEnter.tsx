@@ -48,7 +48,7 @@ export const PopEnter = memo<ColoredAnimationProps>(
             buildMultiAnimationStyle([
               { name: 'seatQuickFade', duration: COMMON_DURATION * 0.1, easing: 'linear' },
               { name: 'seatPopScale', duration: SPRING_DURATION, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

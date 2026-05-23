@@ -96,19 +96,16 @@ export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
         ref={trackRef}
         style={sliderStyles.sliderWrap}
         onLayout={handleTrackLayout}
-        onPointerDown={handlePointerDown as never}
-        onPointerMove={handlePointerMove as never}
-        onPointerUp={handlePointerUp as never}
-        onPointerCancel={handlePointerUp as never}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
       >
         <View style={sliderStyles.track}>
-          <View style={[sliderStyles.trackFill, { width: `${percentage}%` } as never]} />
+          <View style={[sliderStyles.trackFill, { width: `${percentage}%` }]} />
         </View>
         <View
-          style={[
-            sliderStyles.thumb,
-            { left: `${percentage}%`, marginLeft: -(THUMB_OUTER / 2) } as never,
-          ]}
+          style={[sliderStyles.thumb, { left: `${percentage}%`, marginLeft: -(THUMB_OUTER / 2) }]}
         >
           <View style={[sliderStyles.thumbInner, { backgroundColor: colors.primary }]} />
         </View>

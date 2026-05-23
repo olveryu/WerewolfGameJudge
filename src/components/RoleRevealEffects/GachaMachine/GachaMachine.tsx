@@ -10,7 +10,6 @@
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -341,12 +340,12 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
   // ── Computed styles (CSS transitions applied via transitionProperty/Duration in StyleSheet) ──
   const bobbleStyle = bobbleActive
-    ? ({
+    ? {
         animationName: 'gachaBobble',
         animationDuration: '1.2s',
         animationIterationCount: 'infinite' as const,
         animationTimingFunction: 'ease-in-out',
-      } as unknown as ViewStyle)
+      }
     : undefined;
 
   const dialStyle = {

@@ -59,7 +59,7 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
                 easing: EASE_OUT_CUBIC,
               },
               { name: 'seatRevealSpring08', duration: 600, delay: CHILD_DELAY, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

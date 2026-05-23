@@ -59,7 +59,7 @@ export const CreatureSwarmEnter = memo<SeatAnimationProps & { config: CreatureSw
                 easing: EASE_OUT_CUBIC,
               },
               { name: 'seatRevealSpring07', duration: 500, delay: CHILD_DELAY, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

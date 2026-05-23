@@ -84,12 +84,12 @@ const AnimatedBulb: React.FC<{
   const isStopped = phase === 'stopping';
 
   const glowStyle: ViewStyle | undefined = isOn
-    ? ({
+    ? {
         animationName: 'bulbFlicker',
         animationDuration: '220ms',
         animationIterationCount: 'infinite',
         animationDelay: `${delay}ms`,
-      } as unknown as ViewStyle)
+      }
     : isStopped
       ? { opacity: 1 }
       : { opacity: 0 };
@@ -141,7 +141,7 @@ const EmojiParticle: React.FC<EmojiParticleConfig> = React.memo(
       // CSS custom properties for particle target
       transform: [{ translateX: targetX }, { translateY: targetY }],
       opacity: 0,
-    } as unknown as TextStyle;
+    };
 
     return <Text style={[styles.particle, animStyle]}>{emoji}</Text>;
   },
@@ -349,59 +349,59 @@ export const EnhancedRoulette: React.FC<EnhancedRouletteProps> = ({
   const scrollTranslateY = centeringOffset - scrollPosition * config.itemHeight + bounceOffset;
   const scrollStyle: ViewStyle = {
     transform: [{ translateY: scrollTranslateY }],
-    ...({
+    ...{
       transitionProperty: 'transform',
       transitionDuration: phase === 'spinning' ? `${config.spinDuration}ms` : '150ms',
       transitionTimingFunction:
         phase === 'spinning' ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-out',
-    } as unknown as ViewStyle),
+    },
   };
 
   const frameGlowStyle: ViewStyle | undefined = frameGlowActive
-    ? ({
+    ? {
         animationName: 'frameGlowPulse',
         animationDuration: '3s',
         animationIterationCount: 'infinite',
         animationTimingFunction: 'ease-in-out',
-      } as unknown as ViewStyle)
+      }
     : { opacity: 0.3 };
 
   const cabinetFadeStyle: ViewStyle = {
     opacity: cabinetOpacity,
-    ...({ transitionProperty: 'opacity', transitionDuration: '300ms' } as unknown as ViewStyle),
+    ...{ transitionProperty: 'opacity', transitionDuration: '300ms' },
   };
 
   const revealedCardStyle: ViewStyle = {
     transform: [{ scale: revealScale }],
     opacity: revealOpacity,
-    ...({
+    ...{
       transitionProperty: 'opacity, transform',
       transitionDuration: '300ms',
       transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
-    } as unknown as ViewStyle),
+    },
   };
 
   const creditStyle: ViewStyle | undefined = creditFlickerActive
-    ? ({
+    ? {
         animationName: 'bulbFlicker',
         animationDuration: '120ms',
         animationIterationCount: 'infinite',
-      } as unknown as ViewStyle)
+      }
     : undefined;
 
   const jackpotStyle: ViewStyle = {
     opacity: jackpotOpacity,
     transform: [{ scale: jackpotScale }],
-    ...({
+    ...{
       transitionProperty: 'opacity, transform',
       transitionDuration: '400ms',
       transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-    } as unknown as ViewStyle),
+    },
   };
 
   const pillarStyle: ViewStyle = {
     opacity: pillarOpacity,
-    ...({ transitionProperty: 'opacity', transitionDuration: '300ms' } as unknown as ViewStyle),
+    ...{ transitionProperty: 'opacity', transitionDuration: '300ms' },
   };
 
   // ── Loading state ──

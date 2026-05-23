@@ -43,10 +43,10 @@ export function TicketTabBar({
     backgroundColor: isGolden ? withAlpha(GOLDEN_TINT, 0.1) : withAlpha(NORMAL_TINT, 0.12),
     ...(reducedMotion
       ? {}
-      : ({
+      : {
           transitionProperty: 'transform, background-color',
           transitionDuration: `${SLIDER_EASING_DURATION}ms`,
-        } as unknown as ViewStyle)),
+        }),
   };
 
   const isNormal = activeTab === 'normal';

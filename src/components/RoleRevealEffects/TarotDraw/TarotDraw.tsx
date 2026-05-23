@@ -224,7 +224,7 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
           animationTimingFunction: 'linear',
           animationIterationCount: 'infinite',
         }),
-  } as never;
+  };
 
   const drawnCardStyle = {
     opacity: drawnCardOpacity,
@@ -238,32 +238,32 @@ export const TarotDraw: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${config.flipDuration ?? 800}ms`,
     transitionTimingFunction: 'cubic-bezier(0.65, 0, 0.35, 1)',
-  } as never;
+  };
 
   const backOpacityStyle = {
     opacity: flipProgress < 0.5 ? 1 : 0,
     transitionProperty: 'opacity',
     transitionDuration: '50ms',
-  } as never;
+  };
 
   const frontOpacityStyle = {
     opacity: flipProgress >= 0.5 ? 1 : 0,
     transform: [{ scaleX: -1 }],
     transitionProperty: 'opacity',
     transitionDuration: '50ms',
-  } as never;
+  };
 
   const velvetStyle = {
     opacity: velvetOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '800ms',
-  } as never;
+  };
 
   const fortuneStyle = {
     opacity: fortuneOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '800ms',
-  } as never;
+  };
 
   // Canvas scene phase
   const scenePhase = reducedMotion ? 'hidden' : phase;

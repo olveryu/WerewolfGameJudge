@@ -51,7 +51,7 @@ export const ShatterEnter = memo<ColoredAnimationProps>(
               duration: FADE_IN_DURATION,
               delay: FADE_IN_DELAY,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

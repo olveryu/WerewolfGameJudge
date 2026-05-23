@@ -82,12 +82,12 @@ export function LoadingScreen({
     () =>
       reducedMotion
         ? {}
-        : ({
+        : {
             animationName: 'loadingPulse',
             animationDuration: '2000ms',
             animationTimingFunction: 'ease-in-out',
             animationIterationCount: 'infinite',
-          } as never),
+          },
     [reducedMotion],
   );
 
@@ -95,14 +95,14 @@ export function LoadingScreen({
     () =>
       reducedMotion || isStepMode || trackWidth === 0
         ? { width: barPixelWidth, backgroundColor: colors.primary }
-        : ({
+        : {
             width: barPixelWidth,
             backgroundColor: colors.primary,
             animationName: 'indeterminateSlide',
             animationDuration: `${PROGRESS_DURATION_MS}ms`,
             animationTimingFunction: 'linear',
             animationIterationCount: 'infinite',
-          } as never),
+          },
     [reducedMotion, isStepMode, trackWidth, barPixelWidth],
   );
 

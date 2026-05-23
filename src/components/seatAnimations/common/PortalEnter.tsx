@@ -46,7 +46,7 @@ export const PortalEnter = memo<ColoredAnimationProps>(
               name: 'seatPortal',
               duration: RARE_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

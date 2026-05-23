@@ -1,16 +1,22 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画（CSS Transitions + Gesture Handler 2）
+ * ScratchReveal - 刮刮卡风格揭示动画（CSS Transitions + Pointer Events）
  *
  * 特点：金属银刮层 + 菱形底纹 + 序列号 + 规则文字，刮痕纹理，金属碎片粒子，
  * 进度里程碑闪光，触觉反馈，"PRIZE"印章，彩纸礼花绽放。
- * 使用 `Gesture.Pan()` 驱动刮卡交互，CSS transitions/animations 驱动所有动画。
+ * 使用 pointer events 驱动刮卡交互，CSS transitions/animations 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from 'react-native';
 
 import { AlignmentRevealOverlay } from '@/components/RoleRevealEffects/common/AlignmentRevealOverlay';
 import { AtmosphericBackground } from '@/components/RoleRevealEffects/common/effects/AtmosphericBackground';
@@ -93,7 +99,7 @@ const MetalShaving: React.FC<ShavingConfig> = React.memo(
       transitionProperty: 'opacity, transform',
       transitionDuration: '400ms',
       transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-    } as never;
+    };
 
     return (
       <View
@@ -289,33 +295,39 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     ],
   );
 
-  // ── Gesture Handler (replaces PanResponder) ──
-  // Refs to avoid stale closures in gesture callbacks
-  const isRevealedRef = useRef(isRevealed);
-  const addScratchPointRef = useRef(addScratchPoint);
+  // ── Pointer-based scratch interaction ──
+  const scratchLayerRef = useRef<View>(null);
+  const isPanningRef = useRef(false);
 
-  useEffect(() => {
-    isRevealedRef.current = isRevealed;
-  }, [isRevealed]);
+  const getLocalCoords = useCallback((e: { clientX: number; clientY: number }) => {
+    const el = scratchLayerRef.current as unknown as HTMLElement | null;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }, []);
 
-  useEffect(() => {
-    addScratchPointRef.current = addScratchPoint;
-  }, [addScratchPoint]);
-
-  const panGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .enabled(!reducedMotion)
-        .onBegin((e) => {
-          if (isRevealedRef.current) return;
-          addScratchPointRef.current(e.x, e.y);
-        })
-        .onUpdate((e) => {
-          if (isRevealedRef.current) return;
-          addScratchPointRef.current(e.x, e.y);
-        }),
-    [reducedMotion],
+  const handlePointerDown = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      if (reducedMotion || isRevealed) return;
+      isPanningRef.current = true;
+      const pt = getLocalCoords(e);
+      if (pt) addScratchPoint(pt.x, pt.y);
+    },
+    [reducedMotion, isRevealed, getLocalCoords, addScratchPoint],
   );
+
+  const handlePointerMove = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      if (!isPanningRef.current || isRevealed) return;
+      const pt = getLocalCoords(e);
+      if (pt) addScratchPoint(pt.x, pt.y);
+    },
+    [isRevealed, getLocalCoords, addScratchPoint],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    isPanningRef.current = false;
+  }, []);
 
   // ── Reduced motion: tap to reveal ──
   const handleTapReveal = useCallback(() => {
@@ -331,7 +343,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     animationTimingFunction: 'ease-in-out',
     animationIterationCount: 'infinite',
     animationDirection: 'alternate',
-  } as never;
+  };
 
   const burstStyle = {
     transform: [{ scale: burstScale }],
@@ -339,19 +351,19 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: '300ms',
     transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-  } as never;
+  };
 
-  const progressBarStyle = {
+  const progressBarStyle: ViewStyle = {
     width: `${progressWidthPct * 100}%`,
     transitionProperty: 'width',
     transitionDuration: '100ms',
-  } as never;
+  };
 
   const milestoneStyle = {
     opacity: milestoneFlashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: milestoneFlashOpacity > 0 ? '80ms' : '300ms',
-  } as never;
+  };
 
   const prizeStampStyle = {
     opacity: prizeStampOpacity,
@@ -359,7 +371,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: '200ms',
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   // ── Render ──
   return (
@@ -430,113 +442,116 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
         {/* Scratch overlay */}
         {!isRevealed && (
-          <GestureDetector gesture={panGesture}>
-            <View
-              style={[
-                styles.scratchLayer,
-                {
-                  width: cardWidth,
-                  height: cardHeight,
-                  borderRadius: borderRadius.medium,
-                },
+          <View
+            ref={scratchLayerRef}
+            style={[
+              styles.scratchLayer,
+              {
+                width: cardWidth,
+                height: cardHeight,
+                borderRadius: borderRadius.medium,
+              },
+            ]}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+          >
+            {/* Metallic base */}
+            <LinearGradient
+              colors={[
+                SCRATCH_COLORS.metalLight,
+                SCRATCH_COLORS.metalBase,
+                SCRATCH_COLORS.metalDark,
               ]}
-            >
-              {/* Metallic base */}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+
+            {/* Diamond pattern texture on metal */}
+            <View style={styles.diamondPattern}>
+              {Array.from({ length: 5 }, (_, row) => (
+                <View key={`dp-row-${row}`} style={styles.diamondRow}>
+                  {Array.from({ length: 7 }, (_, col) => (
+                    <Text key={`dp-${row}-${col}`} style={styles.diamondChar}>
+                      ◇
+                    </Text>
+                  ))}
+                </View>
+              ))}
+            </View>
+
+            {/* Animated sheen */}
+            <View style={[styles.sheen, sheenStyle]}>
               <LinearGradient
-                colors={[
-                  SCRATCH_COLORS.metalLight,
-                  SCRATCH_COLORS.metalBase,
-                  SCRATCH_COLORS.metalDark,
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
                 style={StyleSheet.absoluteFill}
               />
+            </View>
 
-              {/* Diamond pattern texture on metal */}
-              <View style={styles.diamondPattern}>
-                {Array.from({ length: 5 }, (_, row) => (
-                  <View key={`dp-row-${row}`} style={styles.diamondRow}>
-                    {Array.from({ length: 7 }, (_, col) => (
-                      <Text key={`dp-${row}-${col}`} style={styles.diamondChar}>
-                        ◇
-                      </Text>
-                    ))}
-                  </View>
-                ))}
-              </View>
-
-              {/* Animated sheen */}
-              <View style={[styles.sheen, sheenStyle]}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.4)', 'rgba(255,255,255,0)']}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={StyleSheet.absoluteFill}
-                />
-              </View>
-
-              {/* Scratch holes */}
-              {scratchPoints.map((point) => (
+            {/* Scratch holes */}
+            {scratchPoints.map((point) => (
+              <View
+                key={point.id}
+                style={[
+                  styles.scratchHole,
+                  {
+                    left: point.x - brushRadius,
+                    top: point.y - brushRadius,
+                    width: brushRadius * 2,
+                    height: brushRadius * 2,
+                    borderRadius: brushRadius,
+                  },
+                ]}
+              >
                 <View
-                  key={point.id}
                   style={[
-                    styles.scratchHole,
+                    styles.scratchHoleContent,
                     {
-                      left: point.x - brushRadius,
-                      top: point.y - brushRadius,
-                      width: brushRadius * 2,
-                      height: brushRadius * 2,
-                      borderRadius: brushRadius,
+                      width: cardWidth,
+                      height: cardHeight,
+                      left: -(point.x - brushRadius),
+                      top: -(point.y - brushRadius),
                     },
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.scratchHoleContent,
-                      {
-                        width: cardWidth,
-                        height: cardHeight,
-                        left: -(point.x - brushRadius),
-                        top: -(point.y - brushRadius),
-                      },
-                    ]}
-                  >
-                    <RoleCardContent
-                      roleId={role.id as RoleId}
-                      width={cardWidth}
-                      height={cardHeight}
-                      revealMode
-                      revealGradient={theme.revealGradient}
-                    />
-                  </View>
-                </View>
-              ))}
-
-              {/* Scratch texture */}
-              <View style={styles.textureOverlay}>
-                {scratchPoints.slice(-50).map((point, index) => (
-                  <View
-                    key={`texture-${point.id}`}
-                    style={[
-                      styles.scratchMark,
-                      {
-                        left: point.x - 2,
-                        top: point.y - 2,
-                        opacity: 0.3 + (index / 50) * 0.4,
-                      },
-                    ]}
+                  <RoleCardContent
+                    roleId={role.id as RoleId}
+                    width={cardWidth}
+                    height={cardHeight}
+                    revealMode
+                    revealGradient={theme.revealGradient}
                   />
-                ))}
+                </View>
               </View>
+            ))}
 
-              {/* Hint text */}
-              <View style={styles.hintContainer}>
-                <Text style={styles.hintText}>🧤 滑动手指刮开银层</Text>
-                <Text style={styles.hintIcon}>👆</Text>
-              </View>
+            {/* Scratch texture */}
+            <View style={styles.textureOverlay}>
+              {scratchPoints.slice(-50).map((point, index) => (
+                <View
+                  key={`texture-${point.id}`}
+                  style={[
+                    styles.scratchMark,
+                    {
+                      left: point.x - 2,
+                      top: point.y - 2,
+                      opacity: 0.3 + (index / 50) * 0.4,
+                    },
+                  ]}
+                />
+              ))}
             </View>
-          </GestureDetector>
+
+            {/* Hint text */}
+            <View style={styles.hintContainer}>
+              <Text style={styles.hintText}>🧤 滑动手指刮开银层</Text>
+              <Text style={styles.hintIcon}>👆</Text>
+            </View>
+          </View>
         )}
 
         {/* Metal shavings */}

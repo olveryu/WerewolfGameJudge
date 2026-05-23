@@ -5,7 +5,7 @@
  * Each animation component applies animationName/animationDuration/etc via inline style.
  * onComplete timing uses setTimeout — semantically identical to Reanimated's withTiming callback.
  */
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
 // ── Easing constants ────────────────────────────────────────────────────────
 
@@ -52,9 +52,9 @@ interface AnimationStyleOptions {
 
 /**
  * Build a web-compatible inline style object for a CSS animation.
- * Returns an object with camelCase CSS animation properties.
+ * Returns a ViewStyle-compatible object with CSS animation properties.
  */
-export function buildAnimationStyle(opts: AnimationStyleOptions): Record<string, string> {
+export function buildAnimationStyle(opts: AnimationStyleOptions): ViewStyle {
   return {
     animationName: opts.name,
     animationDuration: `${opts.duration}ms`,
@@ -67,9 +67,7 @@ export function buildAnimationStyle(opts: AnimationStyleOptions): Record<string,
 /**
  * Build style for multiple simultaneous animations on one element.
  */
-export function buildMultiAnimationStyle(
-  animations: AnimationStyleOptions[],
-): Record<string, string> {
+export function buildMultiAnimationStyle(animations: AnimationStyleOptions[]): ViewStyle {
   return {
     animationName: animations.map((a) => a.name).join(', '),
     animationDuration: animations.map((a) => `${a.duration}ms`).join(', '),

@@ -48,7 +48,7 @@ export const BounceEnter = memo<ColoredAnimationProps>(
             buildMultiAnimationStyle([
               { name: 'seatQuickFade', duration: COMMON_DURATION * 0.15, easing: 'linear' },
               { name: 'seatBounceY', duration: SPRING_DURATION, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

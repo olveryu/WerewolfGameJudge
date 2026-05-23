@@ -52,7 +52,7 @@ export const LightningEnter = memo<ColoredAnimationProps>(
               duration: CHILD_DURATION,
               delay: CHILD_DELAY,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}
@@ -67,7 +67,7 @@ export const LightningEnter = memo<ColoredAnimationProps>(
               duration: 250,
               delay: FLASH_DELAY,
               easing: 'linear',
-            }) as never,
+            }),
           ]}
         />
       </View>

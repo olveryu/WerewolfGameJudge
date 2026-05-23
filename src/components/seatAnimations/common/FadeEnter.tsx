@@ -48,7 +48,7 @@ export const FadeEnter = memo<ColoredAnimationProps>(
               name: 'seatFadeIn',
               duration: FADE_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

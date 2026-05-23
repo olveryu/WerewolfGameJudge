@@ -55,21 +55,21 @@ export function DrawButton({
 
   const wrapperStyle: ViewStyle = {
     transform: [{ scale: pressed ? 0.95 : 1 }],
-    ...({
+    ...{
       transitionProperty: 'transform',
       transitionDuration: '150ms',
       transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-    } as unknown as ViewStyle),
+    },
   };
 
   const shimmerStyle: ViewStyle | undefined =
     !reducedMotion && !disabled
-      ? ({
+      ? {
           animationName: 'drawButtonShimmer',
           animationDuration: golden ? '2.2s' : '3s',
           animationIterationCount: 'infinite',
           animationTimingFunction: 'linear',
-        } as unknown as ViewStyle)
+        }
       : undefined;
 
   const handlePressIn = () => setPressed(true);

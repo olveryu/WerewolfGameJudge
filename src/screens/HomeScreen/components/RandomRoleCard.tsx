@@ -79,14 +79,14 @@ export const RandomRoleCard = memo<RandomRoleCardProps>(
       transform: [{ perspective: 800 }, { rotateY: flipped ? '360deg' : '180deg' }],
       backfaceVisibility: 'hidden' as const,
       ...cardTransition,
-    } as never;
+    };
 
     // Back face (mystery) — visible when not flipped
     const backStyle = {
       transform: [{ perspective: 800 }, { rotateY: flipped ? '180deg' : '0deg' }],
       backfaceVisibility: 'hidden' as const,
       ...cardTransition,
-    } as never;
+    };
 
     return (
       <View style={styles.randomRoleWrapper}>

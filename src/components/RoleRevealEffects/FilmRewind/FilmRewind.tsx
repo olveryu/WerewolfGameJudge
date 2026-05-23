@@ -184,7 +184,7 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity',
     transitionDuration: '400ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const cardStyle = {
     transform: [{ scale: cardScale }],
@@ -192,20 +192,20 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${FR.cardRevealDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const flashStyle = {
     opacity: flashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '100ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const flickerStyle = {
     opacity: flickerOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '100ms',
-  } as never;
+  };
 
   // ── Countdown arc path ──
   const countdownProgress =

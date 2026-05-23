@@ -156,7 +156,7 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity',
     transitionDuration: '300ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const cardStyle = {
     transform: [{ scale: cardScale }],
@@ -164,20 +164,20 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${SB.cardRevealDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const flashStyle = {
     opacity: flashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '100ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const chargeGlowStyle = {
     opacity: chargeGlowOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '100ms',
-  } as never;
+  };
 
   return (
     <View style={styles.container} testID={`${testIDPrefix}-container`}>

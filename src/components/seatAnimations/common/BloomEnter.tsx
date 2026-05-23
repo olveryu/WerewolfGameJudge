@@ -47,7 +47,7 @@ export const BloomEnter = memo<ColoredAnimationProps>(
               name: 'seatBloom',
               duration: RARE_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

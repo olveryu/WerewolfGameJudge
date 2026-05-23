@@ -125,7 +125,7 @@ const CelebrationParticle: React.FC<CelebrationParticleConfig> = React.memo(
       transitionProperty: 'opacity, transform',
       transitionDuration: `${duration}ms`,
       transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-    } as never;
+    };
 
     return (
       <View style={[styles.celebrationParticle, style]}>
@@ -187,7 +187,7 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
       transitionProperty: 'transform',
       transitionDuration: `${duration}ms`,
       transitionTimingFunction: 'linear',
-    } as never;
+    };
 
     // Inner: scale/opacity for hit reactions
     const hitStyle = {
@@ -196,7 +196,7 @@ const AnimatedAnimal: React.FC<AnimatedAnimalProps> = React.memo(
       transitionProperty: 'opacity, transform',
       transitionDuration: '200ms',
       transitionTimingFunction: 'ease-out',
-    } as never;
+    };
 
     return (
       <View style={[styles.animalLabel, movementStyle]}>
@@ -478,13 +478,13 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: '400ms',
     transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  } as never;
+  };
 
   const hitFlashStyle = {
     opacity: hitFlashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '50ms',
-  } as never;
+  };
 
   return (
     <View testID={`${testIDPrefix}-container`} style={styles.container}>

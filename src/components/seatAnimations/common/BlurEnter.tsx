@@ -46,7 +46,7 @@ export const BlurEnter = memo<ColoredAnimationProps>(
               name: 'seatBlur',
               duration: COMMON_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

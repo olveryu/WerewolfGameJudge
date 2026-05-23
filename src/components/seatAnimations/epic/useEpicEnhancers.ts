@@ -22,4 +22,4 @@ export const EPIC_FLASH_ANIM_STYLE = buildAnimationStyle({
   name: 'seatEpicFlash',
   duration: 250,
   easing: 'linear',
-}) as never;
+});

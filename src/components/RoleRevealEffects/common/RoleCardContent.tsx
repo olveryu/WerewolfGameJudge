@@ -173,52 +173,52 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   // CSS animation styles for each animated element
   const emojiAnimStyle = willAnimate
     ? shouldPlay
-      ? ({
+      ? {
           opacity: 0,
           animationName: isWolf ? 'emojiPopWolf' : 'emojiPop',
           animationDuration: `${AE.emojiPopDuration}ms`,
           animationDelay: `${AE.emojiPopDelay}ms`,
           animationTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
           animationFillMode: 'both',
-        } as never)
-      : ({ opacity: 0, transform: [{ scale: 0 }] } as never)
+        }
+      : { opacity: 0, transform: [{ scale: 0 }] }
     : undefined;
 
   const nameAnimStyle = willAnimate
     ? shouldPlay
-      ? ({
+      ? {
           opacity: 0,
           animationName: 'nameSlideUp',
           animationDuration: `${AE.nameSlideDuration}ms`,
           animationDelay: `${AE.nameSlideDelay}ms`,
           animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           animationFillMode: 'both',
-        } as never)
-      : ({ opacity: 0, transform: [{ translateY: 10 }] } as never)
+        }
+      : { opacity: 0, transform: [{ translateY: 10 }] }
     : undefined;
 
   const descAnimStyle = willAnimate
     ? shouldPlay
-      ? ({
+      ? {
           opacity: 0,
           animationName: 'nameSlideUp',
           animationDuration: `${AE.descSlideDuration}ms`,
           animationDelay: `${AE.descSlideDelay}ms`,
           animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           animationFillMode: 'both',
-        } as never)
-      : ({ opacity: 0, transform: [{ translateY: 10 }] } as never)
+        }
+      : { opacity: 0, transform: [{ translateY: 10 }] }
     : undefined;
 
   const cardShakeStyle =
     revealMode && isWolf && shouldPlay
-      ? ({
+      ? {
           animationName: 'wolfCardShake',
           animationDuration: `${AE.wolfShakeDuration}ms`,
           animationDelay: `${AE.wolfShakeDelay}ms`,
           animationTimingFunction: 'ease-out',
           animationFillMode: 'both',
-        } as never)
+        }
       : undefined;
 
   return (

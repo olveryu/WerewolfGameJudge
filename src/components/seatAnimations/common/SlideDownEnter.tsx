@@ -47,7 +47,7 @@ export const SlideDownEnter = memo<ColoredAnimationProps>(
               name: 'seatSlideDown',
               duration: COMMON_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

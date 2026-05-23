@@ -38,12 +38,12 @@ export function PityProgressBar({ pity, threshold, golden, reducedMotion }: Pity
 
   const pulseStyle: ViewStyle | undefined =
     isNearPity && !reducedMotion
-      ? ({
+      ? {
           animationName: 'pityPulse',
           animationDuration: '1.6s',
           animationIterationCount: 'infinite',
           animationTimingFunction: 'ease-in-out',
-        } as unknown as ViewStyle)
+        }
       : undefined;
 
   const fillColor = golden

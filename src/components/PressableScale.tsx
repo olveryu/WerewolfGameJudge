@@ -53,7 +53,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
     transitionProperty: 'transform, opacity',
     transitionDuration: '150ms',
     transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  } as never;
+  };
 
   const handlePressIn = useCallback(() => {
     setPressed(true);

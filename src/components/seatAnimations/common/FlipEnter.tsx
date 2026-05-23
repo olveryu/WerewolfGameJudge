@@ -46,7 +46,7 @@ export const FlipEnter = memo<ColoredAnimationProps>(
               name: 'seatFlip',
               duration: COMMON_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

@@ -67,7 +67,7 @@ const BurstParticle = React.memo(function BurstParticle({
     animationDuration: '600ms',
     animationTimingFunction: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
     animationFillMode: 'forwards',
-  } as never;
+  };
 
   return <View style={style} />;
 });
@@ -110,7 +110,7 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
     animationDuration: '500ms',
     animationTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
     animationFillMode: 'forwards',
-  } as never;
+  };
 
   return (
     <View style={styles.fullScreen}>

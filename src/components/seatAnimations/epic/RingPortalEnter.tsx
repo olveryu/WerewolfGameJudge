@@ -59,7 +59,7 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
                 easing: EASE_OUT_CUBIC,
               },
               { name: 'seatRevealSpring06', duration: 500, delay: CHILD_DELAY, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

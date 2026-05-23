@@ -69,19 +69,19 @@ function ResultCell({
   const animStyle: ViewStyle = {
     opacity: visible ? 1 : 0,
     transform: [{ scale: visible ? targetScale : isHighRarity ? 0.5 : 0.7 }],
-    ...({
+    ...{
       transitionProperty: 'opacity, transform',
       transitionDuration: isHighRarity ? '350ms' : '300ms',
       transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-    } as unknown as ViewStyle),
+    },
     ...(visible && item.rarity === 'legendary'
-      ? ({
+      ? {
           animationName: 'tenResultLegendaryPulse',
           animationDuration: '2.4s',
           animationIterationCount: 'infinite',
           animationTimingFunction: 'ease-in-out',
           animationDelay: `${baseDelay + 400}ms`,
-        } as unknown as ViewStyle)
+        }
       : {}),
   };
 

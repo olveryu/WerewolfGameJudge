@@ -170,24 +170,24 @@ export function SingleResultReveal({
       rarity === 'legendary'
         ? 'cubic-bezier(0.22, 1, 0.36, 1)'
         : 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  } as unknown as ViewStyle;
+  };
 
   const glowBaseOpacity = glowOpacity;
   const glowAnimStyle: ViewStyle = glowPulsing
-    ? ({
+    ? {
         transform: [{ scale: glowScale }],
         animationName: rarity === 'legendary' ? 'gachaGlowPulseLegendary' : 'gachaGlowPulseEpic',
         animationDuration: rarity === 'legendary' ? '2400ms' : '2000ms',
         animationIterationCount: 'infinite',
         animationTimingFunction: 'ease-in-out',
-      } as unknown as ViewStyle)
-    : ({
+      }
+    : {
         opacity: glowBaseOpacity,
         transform: [{ scale: glowScale }],
         transitionProperty: 'opacity, transform',
         transitionDuration: '500ms',
         transitionTimingFunction: 'ease-out',
-      } as unknown as ViewStyle);
+      };
 
   // ── Overlay background color ──
   const isEpicOrLegendary = rarity === 'epic' || rarity === 'legendary';

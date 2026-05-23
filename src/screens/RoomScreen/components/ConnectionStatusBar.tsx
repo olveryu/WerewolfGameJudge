@@ -56,13 +56,13 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
 
   const progressBarStyle =
     containerWidth > 0 && isDisconnected && !isFailed
-      ? ({
+      ? {
           width: barPixelWidth,
           animationName: 'indeterminateSlide',
           animationDuration: `${ANIMATION_DURATION_MS}ms`,
           animationTimingFunction: 'linear',
           animationIterationCount: 'infinite',
-        } as never)
+        }
       : { width: barPixelWidth };
 
   if (!isDisconnected) return null;

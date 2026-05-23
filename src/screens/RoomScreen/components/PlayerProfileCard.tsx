@@ -15,7 +15,7 @@ import {
 import { getItemRarity, type Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { type FrameId, getFrameById } from '@/components/avatarFrames';
@@ -81,12 +81,12 @@ const XpProgressBar: React.FC<{ progress: number }> = memo(({ progress }) => {
     return () => clearTimeout(timer);
   }, [progress]);
 
-  const fillStyle = {
+  const fillStyle: ViewStyle = {
     width: `${Math.round(width * 100)}%`,
     transitionProperty: 'width',
     transitionDuration: '600ms',
     transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  } as never;
+  };
 
   return (
     <View style={styles.progressBar}>

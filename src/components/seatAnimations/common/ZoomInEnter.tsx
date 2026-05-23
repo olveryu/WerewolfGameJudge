@@ -46,7 +46,7 @@ export const ZoomInEnter = memo<ColoredAnimationProps>(
               name: 'seatZoomIn',
               duration: COMMON_DURATION,
               easing: EASE_OUT_BACK,
-            }) as never,
+            }),
           ]}
         >
           {children}

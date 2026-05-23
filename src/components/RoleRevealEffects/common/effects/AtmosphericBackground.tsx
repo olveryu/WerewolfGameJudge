@@ -80,7 +80,7 @@ const AmbientParticle = React.memo(function AmbientParticle({
     animationTimingFunction: 'ease-in-out',
     animationIterationCount: 'infinite',
     animationDelay: `${(-phase * 1200).toFixed(0)}ms`,
-  } as never;
+  };
 
   return <View style={style} />;
 });
@@ -112,7 +112,7 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
     animationDuration: '6000ms',
     animationTimingFunction: 'ease-in-out',
     animationIterationCount: 'infinite',
-  } as never;
+  };
 
   return (
     <View style={styles.fullScreen}>

@@ -302,14 +302,14 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${CS.chainAppearDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const canvasContainerStyle = {
     opacity: canvasOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '400ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const cardStyle = {
     transform: [{ scale: cardScale }],
@@ -317,27 +317,27 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: `${CS.cardRevealDuration}ms`,
     transitionTimingFunction: 'cubic-bezier(0.34, 1.3, 0.64, 1)',
-  } as never;
+  };
 
   const flashStyle = {
     opacity: flashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '80ms',
     transitionTimingFunction: 'ease-out',
-  } as never;
+  };
 
   const hitFlashStyle = {
     opacity: hitFlashOpacity,
     transitionProperty: 'opacity',
     transitionDuration: '40ms',
-  } as never;
+  };
 
   const comboStyle = {
     opacity: comboOpacity,
     transform: [{ scale: comboScale }],
     transitionProperty: 'opacity, transform',
     transitionDuration: '80ms',
-  } as never;
+  };
 
   const lightPillarStyle = {
     opacity: lightPillarOpacity,
@@ -345,7 +345,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     transitionProperty: 'opacity, transform',
     transitionDuration: '500ms',
     transitionTimingFunction: 'cubic-bezier(0.33, 1, 0.68, 1)',
-  } as never;
+  };
 
   const hitsRemaining = Math.max(0, CS.requiredHits - hitCountDisplay);
 

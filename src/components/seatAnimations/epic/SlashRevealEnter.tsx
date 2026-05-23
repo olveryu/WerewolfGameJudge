@@ -58,7 +58,7 @@ export const SlashRevealEnter = memo<SeatAnimationProps & { config: SlashRevealC
                 easing: EASE_OUT_CUBIC,
               },
               { name: 'seatRevealSpring08', duration: 500, delay: CHILD_DELAY, easing: 'linear' },
-            ]) as never,
+            ]),
           ]}
         >
           {children}

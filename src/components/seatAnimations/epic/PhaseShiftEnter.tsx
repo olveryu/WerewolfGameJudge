@@ -52,7 +52,7 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
               duration: CHILD_DURATION,
               delay: CHILD_DELAY,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}

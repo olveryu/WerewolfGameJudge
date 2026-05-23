@@ -47,7 +47,7 @@ export const SlideUpEnter = memo<ColoredAnimationProps>(
               name: 'seatSlideUp',
               duration: COMMON_DURATION,
               easing: EASE_OUT_CUBIC,
-            }) as never,
+            }),
           ]}
         >
           {children}
