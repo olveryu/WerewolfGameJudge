@@ -1,5 +1,5 @@
 /**
- * Re-export animated SVG primitives from seatFlairs for seat entrance animations.
+ * Re-export animated SVG primitives from shared for seat entrance animations.
  * Avoids duplicate `createAnimatedComponent` calls.
  */
 export {
@@ -7,4 +7,4 @@ export {
   AnimatedEllipse,
   AnimatedLine,
   AnimatedPath,
-} from '../seatFlairs/svgAnimatedPrimitives';
+} from '../shared/svgAnimatedPrimitives';

@@ -1,7 +1,7 @@
 /**
  * Animated SVG primitives for seat pets.
  *
- * Re-exports from seatFlairs to avoid duplicate createAnimatedComponent calls.
+ * Re-exports from shared to avoid duplicate createAnimatedComponent calls.
  */
 export {
   AnimatedCircle,
@@ -9,4 +9,4 @@ export {
   AnimatedG,
   AnimatedLine,
   AnimatedPath,
-} from '../seatFlairs/svgAnimatedPrimitives';
+} from '../shared/svgAnimatedPrimitives';

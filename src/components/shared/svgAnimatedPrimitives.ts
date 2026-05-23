@@ -1,5 +1,5 @@
 /**
- * Animated SVG primitives for seat flairs.
+ * Animated SVG primitives shared by seatPets + seatAnimations.
  *
  * Wraps react-native-svg primitives with Reanimated `createAnimatedComponent`
  * so that `useAnimatedProps` can drive cx/cy/opacity/stroke etc. on the UI thread.
