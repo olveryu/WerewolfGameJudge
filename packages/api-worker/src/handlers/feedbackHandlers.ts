@@ -13,7 +13,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { feedbackReplies, feedbacks } from '../db/schema';
+import { feedbackReplies, feedbacks, users } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
@@ -48,6 +48,25 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
 
   const titlePreview = content.length > 20 ? `${content.slice(0, 20)}…` : content;
 
+  // Fetch user profile for richer issue context
+  const db = createDb(c.env.DB);
+  const user = await db
+    .select({
+      displayName: users.displayName,
+      lastCountry: users.lastCountry,
+      lastColo: users.lastColo,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .get();
+
+  const metaLines = [
+    `**用户 ID：** \`${userId}\``,
+    `**昵称：** ${user?.displayName || '（未设置）'}`,
+    `**地区：** ${user?.lastCountry || '未知'} / ${user?.lastColo || '未知'}`,
+    `**版本：** ${appVersion}`,
+  ];
+
   const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
     method: 'POST',
     headers: {
@@ -58,14 +77,7 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
     },
     body: JSON.stringify({
       title: `[反馈] ${titlePreview}`,
-      body: [
-        `**用户 ID：** \`${userId}\``,
-        `**版本：** ${appVersion}`,
-        '',
-        '---',
-        '',
-        content,
-      ].join('\n'),
+      body: [...metaLines, '', '---', '', content].join('\n'),
       labels: ['user-feedback'],
     }),
   });
@@ -79,7 +91,6 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
   const issueData: { number: number } = await resp.json();
 
   // Store in D1
-  const db = createDb(c.env.DB);
   const feedbackId = crypto.randomUUID();
   await db.insert(feedbacks).values({
     id: feedbackId,
