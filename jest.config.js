@@ -2,7 +2,7 @@ module.exports = {
   preset: 'jest-expo',
   testTimeout: 10_000,
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated|react-native-gesture-handler)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-reanimated|react-native-gesture-handler)',
   ],
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/__tests__/**/*.test.tsx'],
@@ -33,7 +33,6 @@ module.exports = {
     '^sonner-native$': '<rootDir>/__mocks__/sonner-native.ts',
     '^expo-file-system$': '<rootDir>/__mocks__/expo-file-system.ts',
     '^expo-sharing$': '<rootDir>/__mocks__/expo-sharing.ts',
-    '^react-native-qrcode-svg$': '<rootDir>/__mocks__/react-native-qrcode-svg.tsx',
     '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.ts',
     '^react-native-safe-area-context$': '<rootDir>/__mocks__/react-native-safe-area-context.tsx',
     '^react-native-mmkv$': '<rootDir>/__mocks__/react-native-mmkv.ts',

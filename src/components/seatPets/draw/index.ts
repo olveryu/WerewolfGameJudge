@@ -18,8 +18,6 @@ import {
 } from './petDraws';
 import type { PetDrawConfig } from './types';
 
-export type { PetDrawConfig } from './types';
-
 export const PET_DRAW_MAP: Record<string, PetDrawConfig> = {
   roulette: drawDice,
   roleHunt: drawHound,

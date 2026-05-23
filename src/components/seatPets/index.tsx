@@ -15,7 +15,7 @@ import { memo } from 'react';
 import PetCanvas from './PetCanvas';
 
 /** Props for all seat pet animation components */
-export interface PetProps {
+interface PetProps {
   size: number;
 }
 

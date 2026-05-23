@@ -181,7 +181,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/components/nameStyles/nameStyleConfigs.ts': 50,
 
   // GeneratedAvatar: procedural avatar color palettes (domain-specific rendering)
-  'src/components/GeneratedAvatar.tsx': 23,
+  'src/components/GeneratedAvatar.tsx': 21,
 
   // DebugPanel: dark terminal theme (intentionally separate from app theme — dev-only debug console)
   'src/components/DebugPanel.tsx': 28,

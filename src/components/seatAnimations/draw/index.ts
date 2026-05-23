@@ -34,8 +34,6 @@ import {
 } from './overlayDraws';
 import type { OverlayDrawFn } from './types';
 
-export type { OverlayDrawFn } from './types';
-
 export const OVERLAY_DRAW_MAP: Record<string, OverlayDrawFn> = {
   // Common
   burstRing,

@@ -7,10 +7,10 @@
  * 纯展示组件：不 import service，不含业务逻辑判断。
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import QRCodeLib from 'qrcode';
 import type React from 'react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { captureRef } from 'react-native-view-shot';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
@@ -68,6 +68,28 @@ const QR_LOGO_SIZE = 44;
 /** QR 中心 logo 外边距（白色背景区域） */
 const QR_LOGO_MARGIN = 4;
 
+/**
+ * Render QR module data as a compact SVG string.
+ * Each dark module is drawn as a 1×1 path segment (crispEdges).
+ */
+function renderQrSvg(
+  modules: { size: number; data: Uint8Array },
+  size: number,
+  darkColor: string,
+  lightColor: string,
+): string {
+  const n = modules.size;
+  let darkPath = '';
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (modules.data[y * n + x]) {
+        darkPath += `M${x} ${y}h1v1h-1z`;
+      }
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n} ${n}" width="${size}" height="${size}" shape-rendering="crispEdges"><rect width="${n}" height="${n}" fill="${lightColor}"/><path fill="${darkColor}" d="${darkPath}"/></svg>`;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset
 const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
 
@@ -83,6 +105,14 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   const [isSharing, setIsSharing] = useState(false);
   const preCapturedRef = useRef<string | null>(null);
   const [isPreCaptureReady, setIsPreCaptureReady] = useState(Platform.OS !== 'web');
+
+  const qrDataUrl = useMemo(() => {
+    if (!roomUrl) return '';
+    // qrcode.toString is async but we need sync — use the underlying create() + render
+    const segments = QRCodeLib.create(roomUrl, { errorCorrectionLevel: 'H' });
+    const svgStr = renderQrSvg(segments.modules, QR_SIZE, colors.primary, colors.surface);
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`;
+  }, [roomUrl]);
 
   // Pre-capture the share card on web so navigator.share() can be called
   // within the user-activation window (avoids NotAllowedError).
@@ -174,13 +204,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
           <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
             <View style={styles.qrContainer}>
               <View style={styles.qrWrapper}>
-                <QRCode
-                  value={roomUrl}
-                  size={QR_SIZE}
-                  color={colors.primary}
-                  backgroundColor={colors.surface}
-                  ecl="H"
-                />
+                <Image source={{ uri: qrDataUrl }} style={styles.qrImage} />
                 <View style={styles.logoContainer}>
                   <Image source={appLogo} style={styles.logoImage} />
                 </View>
@@ -246,6 +270,10 @@ const styles = StyleSheet.create({
   },
   qrWrapper: {
     position: 'relative',
+    width: QR_SIZE,
+    height: QR_SIZE,
+  },
+  qrImage: {
     width: QR_SIZE,
     height: QR_SIZE,
   },

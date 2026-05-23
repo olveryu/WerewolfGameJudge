@@ -2,7 +2,7 @@
  * GeneratedAvatar — 程序化 SVG 头像组件
  *
  * 从 boring-avatars (MIT) fork 两种变体的核心算法，
- * 适配 react-native-svg 渲染。
+ * 生成 SVG 字符串 → data URL → Image 渲染。不依赖 react-native-svg。
  *
  * - Common (`genC*`): **ring** — 多色同心环
  * - Rare (`genR*`): **beam** — 卡通圆脸 + 五官
@@ -10,7 +10,7 @@
  * @see https://github.com/boringdesigners/boring-avatars
  */
 import { memo, useMemo } from 'react';
-import Svg, { Circle, G, Mask, Path, Rect } from 'react-native-svg';
+import { Image } from 'react-native';
 
 // ─── Constants ──────────────────────────────────────────────────────────
 
@@ -163,128 +163,32 @@ function selectPalette<T>(seed: string, palettes: readonly T[]): T {
   return palettes[hashCode(seed) % palettes.length]!;
 }
 
-// ─── Ring Component ─────────────────────────────────────────────────────
+// ─── Ring SVG Builder ────────────────────────────────────────────────────
 
-interface RingAvatarProps {
-  seed: string;
-  size: number;
+function buildRingSvg(seed: string): string {
+  const palette = selectPalette(seed, RING_PALETTES);
+  const c = generateRingColors(seed, palette);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${RING_SIZE} ${RING_SIZE}"><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${RING_SIZE}" height="${RING_SIZE}"><rect width="${RING_SIZE}" height="${RING_SIZE}" rx="${RING_SIZE * 2}" fill="#FFF"/></mask><g mask="url(#m)"><path d="M0 0h90v45H0z" fill="${c[0]}"/><path d="M0 45h90v45H0z" fill="${c[1]}"/><path d="M83 45a38 38 0 00-76 0h76z" fill="${c[2]}"/><path d="M83 45a38 38 0 01-76 0h76z" fill="${c[3]}"/><path d="M77 45a32 32 0 10-64 0h64z" fill="${c[4]}"/><path d="M77 45a32 32 0 11-64 0h64z" fill="${c[5]}"/><path d="M71 45a26 26 0 00-52 0h52z" fill="${c[6]}"/><path d="M71 45a26 26 0 01-52 0h52z" fill="${c[7]}"/><circle cx="45" cy="45" r="23" fill="${c[8]}"/></g></svg>`;
 }
 
-const RingAvatar = memo<RingAvatarProps>(({ seed, size }) => {
-  const ringColors = useMemo(() => {
-    const palette = selectPalette(seed, RING_PALETTES);
-    return generateRingColors(seed, palette);
-  }, [seed]);
+// ─── Beam SVG Builder ────────────────────────────────────────────────────
 
-  return (
-    <Svg viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} width={size} height={size}>
-      <Mask
-        id="ringMask"
-        maskUnits="userSpaceOnUse"
-        x={0}
-        y={0}
-        width={RING_SIZE}
-        height={RING_SIZE}
-      >
-        <Rect width={RING_SIZE} height={RING_SIZE} rx={RING_SIZE * 2} fill="#FFFFFF" />
-      </Mask>
-      <G mask="url(#ringMask)">
-        <Path d="M0 0h90v45H0z" fill={ringColors[0]} />
-        <Path d="M0 45h90v45H0z" fill={ringColors[1]} />
-        <Path d="M83 45a38 38 0 00-76 0h76z" fill={ringColors[2]} />
-        <Path d="M83 45a38 38 0 01-76 0h76z" fill={ringColors[3]} />
-        <Path d="M77 45a32 32 0 10-64 0h64z" fill={ringColors[4]} />
-        <Path d="M77 45a32 32 0 11-64 0h64z" fill={ringColors[5]} />
-        <Path d="M71 45a26 26 0 00-52 0h52z" fill={ringColors[6]} />
-        <Path d="M71 45a26 26 0 01-52 0h52z" fill={ringColors[7]} />
-        <Circle cx={45} cy={45} r={23} fill={ringColors[8]} />
-      </G>
-    </Svg>
-  );
-});
-
-RingAvatar.displayName = 'RingAvatar';
-
-// ─── Beam Component ─────────────────────────────────────────────────────
-
-interface BeamAvatarProps {
-  seed: string;
-  size: number;
-}
-
-const BeamAvatar = memo<BeamAvatarProps>(({ seed, size }) => {
-  const data = useMemo(() => {
-    const palette = selectPalette(seed, BEAM_PALETTES);
-    return generateBeamData(seed, palette);
-  }, [seed]);
-
+function buildBeamSvg(seed: string): string {
+  const palette = selectPalette(seed, BEAM_PALETTES);
+  const d = generateBeamData(seed, palette);
   const S = BEAM_SIZE;
   const half = S / 2;
+  const bodyRx = d.isCircle ? S : S / 6;
 
-  return (
-    <Svg viewBox={`0 0 ${S} ${S}`} width={size} height={size}>
-      <Mask id="beamMask" maskUnits="userSpaceOnUse" x={0} y={0} width={S} height={S}>
-        <Rect width={S} height={S} rx={S * 2} fill="#FFFFFF" />
-      </Mask>
-      <G mask="url(#beamMask)">
-        {/* Background */}
-        <Rect width={S} height={S} fill={data.backgroundColor} />
+  let mouth: string;
+  if (d.isMouthOpen) {
+    mouth = `<path d="M15 ${19 + d.mouthSpread}c2 1 4 1 6 0" stroke="${d.faceColor}" fill="none" stroke-linecap="round"/>`;
+  } else {
+    mouth = `<path d="M13,${19 + d.mouthSpread} a1,0.75 0 0,0 10,0" fill="${d.faceColor}"/>`;
+  }
 
-        {/* Body shape */}
-        <Rect
-          x={0}
-          y={0}
-          width={S}
-          height={S}
-          transform={`translate(${data.wrapperTranslateX} ${data.wrapperTranslateY}) rotate(${data.wrapperRotate} ${half} ${half}) scale(${data.wrapperScale})`}
-          fill={data.wrapperColor}
-          rx={data.isCircle ? S : S / 6}
-        />
-
-        {/* Face */}
-        <G
-          transform={`translate(${data.faceTranslateX} ${data.faceTranslateY}) rotate(${data.faceRotate} ${half} ${half})`}
-        >
-          {/* Mouth */}
-          {data.isMouthOpen ? (
-            <Path
-              d={`M15 ${19 + data.mouthSpread}c2 1 4 1 6 0`}
-              stroke={data.faceColor}
-              fill="none"
-              strokeLinecap="round"
-            />
-          ) : (
-            <Path d={`M13,${19 + data.mouthSpread} a1,0.75 0 0,0 10,0`} fill={data.faceColor} />
-          )}
-
-          {/* Left eye */}
-          <Rect
-            x={14 - data.eyeSpread}
-            y={14}
-            width={1.5}
-            height={2}
-            rx={1}
-            stroke="none"
-            fill={data.faceColor}
-          />
-
-          {/* Right eye */}
-          <Rect
-            x={20 + data.eyeSpread}
-            y={14}
-            width={1.5}
-            height={2}
-            rx={1}
-            stroke="none"
-            fill={data.faceColor}
-          />
-        </G>
-      </G>
-    </Svg>
-  );
-});
-
-BeamAvatar.displayName = 'BeamAvatar';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}"><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="${S}" height="${S}"><rect width="${S}" height="${S}" rx="${S * 2}" fill="#FFF"/></mask><g mask="url(#m)"><rect width="${S}" height="${S}" fill="${d.backgroundColor}"/><rect x="0" y="0" width="${S}" height="${S}" transform="translate(${d.wrapperTranslateX} ${d.wrapperTranslateY}) rotate(${d.wrapperRotate} ${half} ${half}) scale(${d.wrapperScale})" fill="${d.wrapperColor}" rx="${bodyRx}"/><g transform="translate(${d.faceTranslateX} ${d.faceTranslateY}) rotate(${d.faceRotate} ${half} ${half})">${mouth}<rect x="${14 - d.eyeSpread}" y="14" width="1.5" height="2" rx="1" fill="${d.faceColor}"/><rect x="${20 + d.eyeSpread}" y="14" width="1.5" height="2" rx="1" fill="${d.faceColor}"/></g></g></svg>`;
+}
 
 // ─── Public API ─────────────────────────────────────────────────────────
 
@@ -303,14 +207,16 @@ interface GeneratedAvatarProps {
 
 /**
  * Renders a procedurally generated SVG avatar.
- * Dispatches to RingAvatar (Common) or BeamAvatar (Rare) based on seed prefix.
+ * Dispatches to ring (Common) or beam (Rare) SVG builder based on seed prefix.
  */
 export const GeneratedAvatar = memo<GeneratedAvatarProps>(({ seed, size }) => {
-  const variant = getGeneratedVariant(seed);
-  if (variant === 'beam') {
-    return <BeamAvatar seed={seed} size={size} />;
-  }
-  return <RingAvatar seed={seed} size={size} />;
+  const uri = useMemo(() => {
+    const variant = getGeneratedVariant(seed);
+    const svg = variant === 'beam' ? buildBeamSvg(seed) : buildRingSvg(seed);
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }, [seed]);
+
+  return <Image source={{ uri }} style={{ width: size, height: size }} />;
 });
 
 GeneratedAvatar.displayName = 'GeneratedAvatar';

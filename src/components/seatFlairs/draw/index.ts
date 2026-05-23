@@ -86,8 +86,6 @@ import {
 } from './rootFlairs';
 import type { FlairDrawConfig } from './types';
 
-export type { FlairColors, FlairDrawConfig } from './types';
-
 // ── Common/Rare parametric entries ──────────────────────────────────────────
 
 const COMMON_TEMPLATES = {
