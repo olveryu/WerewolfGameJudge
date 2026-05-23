@@ -334,7 +334,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
   return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });
 
-/** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 */
+/** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 + 1 黄金抽 */
 gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
@@ -360,6 +360,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
         .values({
           userId,
           normalDraws: dailyDraws,
+          goldenDraws: 1,
           lastLoginRewardAt: claimedAt,
           updatedAt: claimedAt,
         })
@@ -367,13 +368,14 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
           target: userStats.userId,
           set: {
             normalDraws: sql`${userStats.normalDraws} + ${dailyDraws}`,
+            goldenDraws: sql`${userStats.goldenDraws} + 1`,
             lastLoginRewardAt: claimedAt,
             version: sql`${userStats.version} + 1`,
             updatedAt: sql`datetime('now')`,
           },
         });
 
-      return c.json({ claimed: true, normalDrawsAdded: dailyDraws });
+      return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
@@ -386,12 +388,13 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       }
     }
 
-    // ── OCC update: +N normalDraws, set lastLoginRewardAt, bump version ──
+    // ── OCC update: +N normalDraws + 1 goldenDraw, set lastLoginRewardAt, bump version ──
     const dailyDraws = rollNormalDraws();
     const updated = await db
       .update(userStats)
       .set({
         normalDraws: sql`${userStats.normalDraws} + ${dailyDraws}`,
+        goldenDraws: sql`${userStats.goldenDraws} + 1`,
         lastLoginRewardAt: new Date().toISOString(),
         version: sql`${userStats.version} + 1`,
         updatedAt: sql`datetime('now')`,
@@ -403,7 +406,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       continue;
     }
 
-    return c.json({ claimed: true, normalDrawsAdded: dailyDraws });
+    return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
   }
 
   return c.json({ success: false, reason: 'CONFLICT' }, 409);

@@ -69,7 +69,7 @@ describe('POST /api/gacha/daily-reward', () => {
     await cleanStats();
   });
 
-  it('grants 1–5 normal draws on first claim (no user_stats row)', async () => {
+  it('grants 1–5 normal draws + 1 golden draw on first claim (no user_stats row)', async () => {
     const token = await mintToken();
     const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
     expect(res.status).toBe(200);
@@ -77,11 +77,13 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(body.claimed).toBe(true);
     expect(body.normalDrawsAdded).toBeGreaterThanOrEqual(1);
     expect(body.normalDrawsAdded).toBeLessThanOrEqual(5);
+    expect(body.goldenDrawsAdded).toBe(1);
 
     // Verify via GET /api/gacha/status
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
     expect(status.normalDraws).toBe(body.normalDrawsAdded);
+    expect(status.goldenDraws).toBe(1);
     expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
@@ -100,8 +102,8 @@ describe('POST /api/gacha/daily-reward', () => {
     // Simulate a claim 21 hours ago (past the 20h cooldown)
     const twentyOneHoursAgo = new Date(Date.now() - 21 * 60 * 60 * 1000).toISOString();
     await env.DB.prepare(
-      `INSERT INTO user_stats (user_id, normal_draws, version, last_login_reward_at, updated_at)
-       VALUES (?, 3, 1, ?, datetime('now'))`,
+      `INSERT INTO user_stats (user_id, normal_draws, golden_draws, version, last_login_reward_at, updated_at)
+       VALUES (?, 3, 2, 1, ?, datetime('now'))`,
     )
       .bind(TEST_USER_ID, twentyOneHoursAgo)
       .run();
@@ -112,11 +114,14 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(body.claimed).toBe(true);
     expect(body.normalDrawsAdded).toBeGreaterThanOrEqual(1);
     expect(body.normalDrawsAdded).toBeLessThanOrEqual(5);
+    expect(body.goldenDrawsAdded).toBe(1);
 
     const statusRes = await getJson('/api/gacha/status', token);
     const status = await statusRes.json();
     // 3 (pre-seeded) + random draws added
     expect(status.normalDraws).toBe(3 + body.normalDrawsAdded);
+    // 2 (pre-seeded) + 1 golden draw
+    expect(status.goldenDraws).toBe(3);
   });
 
   it('rejects claim within 20h cooldown', async () => {

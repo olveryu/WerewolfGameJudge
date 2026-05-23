@@ -98,7 +98,7 @@ export function useAutoClaimDailyReward() {
       onSuccess: (data) => {
         if (data.claimed) {
           toast.success('每日登录奖励', {
-            description: `获得 ${data.normalDrawsAdded ?? 1} 次普通抽！`,
+            description: `获得 ${data.normalDrawsAdded ?? 1} 次普通抽 + ${data.goldenDrawsAdded ?? 1} 次黄金抽！`,
           });
         }
       },
