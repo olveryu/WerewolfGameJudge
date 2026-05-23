@@ -30,6 +30,7 @@ import {
   type FSMContext,
   PING_INTERVAL_MS,
   PONG_TIMEOUT_MS,
+  PREFETCH_GRACE_MS,
   REVISION_POLL_BASE_MS,
   REVISION_POLL_MAX_MS,
   type SideEffect,
@@ -383,12 +384,27 @@ export class ConnectionManager {
 
   async #fetchState(roomCode: string): Promise<void> {
     try {
-      // Consume prefetch result if available (same generation = not cancelled)
+      // Consume prefetch result if available (same generation = not cancelled).
+      // Race against a grace timer: if prefetch hasn't settled within PREFETCH_GRACE_MS
+      // after WS opens, abandon it and fetch fresh (DO is warm from WS upgrade).
       const prefetch = this.#prefetchPromise;
       this.#prefetchPromise = null;
-      const result = prefetch
-        ? ((await prefetch) ?? (await this.#deps.fetchStateFromDB(roomCode)))
-        : await this.#deps.fetchStateFromDB(roomCode);
+
+      let result: { state: GameState; revision: number } | null = null;
+
+      if (prefetch) {
+        result = await Promise.race([
+          prefetch,
+          new Promise<null>((r) => setTimeout(r, PREFETCH_GRACE_MS)),
+        ]);
+        if (!result) {
+          connectionLog.debug('Prefetch did not settle within grace window, fetching fresh');
+        }
+      }
+
+      if (!result) {
+        result = await this.#deps.fetchStateFromDB(roomCode);
+      }
 
       if (result) {
         this.#deps.onFetchedState(result.state, result.revision);

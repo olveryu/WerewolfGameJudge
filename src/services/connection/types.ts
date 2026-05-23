@@ -127,3 +127,10 @@ export const REVISION_POLL_BASE_MS = 5_000;
 
 /** Revision poll maximum interval in milliseconds (cap for backoff) */
 export const REVISION_POLL_MAX_MS = 60_000;
+
+/**
+ * Max time (ms) to wait for the prefetch promise in #fetchState after WS opens.
+ * If prefetch hasn't settled within this window, abandon it and issue a fresh fetch
+ * (DO is already warm from WS upgrade, so fresh fetch will be fast).
+ */
+export const PREFETCH_GRACE_MS = 3_000;

@@ -49,6 +49,7 @@ export function useDrawMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    mutationKey: ['gacha', 'draw'],
     mutationFn: ({ drawType, count }: { drawType: 'normal' | 'golden'; count?: number }) => {
       gachaLog.debug('Draw requested', { drawType, count });
       return performDraw(drawType, count);

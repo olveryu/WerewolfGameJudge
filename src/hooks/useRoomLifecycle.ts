@@ -130,7 +130,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           logger: gameRoomLog,
           feedback: false,
           isExpected: (e) =>
-            e instanceof Error && e.message.includes('channel closed before subscribe'),
+            e instanceof Error &&
+            (e.message.includes('channel closed before subscribe') ||
+              e.message.includes('connectAndWait timeout')),
         });
         setError(message);
         return { success: false, error: message };
@@ -200,7 +202,9 @@ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
           logger: gameRoomLog,
           feedback: false,
           isExpected: (e) =>
-            e instanceof Error && e.message.includes('channel closed before subscribe'),
+            e instanceof Error &&
+            (e.message.includes('channel closed before subscribe') ||
+              e.message.includes('connectAndWait timeout')),
         });
         setError(message);
         return { success: false, error: message };

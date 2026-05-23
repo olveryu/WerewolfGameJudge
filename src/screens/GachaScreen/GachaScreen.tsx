@@ -9,7 +9,6 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
@@ -132,7 +131,7 @@ export function GachaScreen({ navigation }: Props) {
           onError: (error: Error) => {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
-            // 业务拒绝（券不足、已收集完）仅 warn；非预期错误报 Sentry
+            // 业务拒绝（券不足、已收集完）仅 warn；其余错误由 MutationCache.onError 统一报 Sentry
             const reason = 'reason' in error ? (error as { reason: string }).reason : '';
             const isExpected =
               reason === 'INSUFFICIENT_DRAWS' ||
@@ -142,7 +141,6 @@ export function GachaScreen({ navigation }: Props) {
               gachaLog.warn('Draw rejected', { drawType, count, reason });
             } else {
               gachaLog.error('Draw failed', { drawType, count, error });
-              Sentry.captureException(error);
             }
             toast.error(getUserFacingMessage(error, '抽奖失败，请稍后重试'));
           },
