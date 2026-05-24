@@ -9,7 +9,7 @@
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制，
  * 替代 9 个 SVG AnimatedComponent。Web + Native 行为一致。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import {
   Easing,
@@ -19,6 +19,8 @@ import {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { StaticCanvas, useFlairStatic } from '@/components/seatFlairs/FlairStaticContext';
 
 // ── Pre-allocated Skia resources ──
 const recorder = Skia.PictureRecorder();
@@ -67,11 +69,13 @@ interface LegendaryShimmerProps {
 }
 
 export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
+  const isStatic = useFlairStatic();
   const orbit = useSharedValue(0);
   const glow = useSharedValue(0);
   const sparkle = useSharedValue(0);
 
   useEffect(() => {
+    if (isStatic) return;
     orbit.value = withRepeat(
       withTiming(1, { duration: ORBIT_DURATION, easing: Easing.linear }),
       -1,
@@ -93,7 +97,7 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
       undefined,
       ReduceMotion.Never,
     );
-  }, [orbit, glow, sparkle]);
+  }, [orbit, glow, sparkle, isStatic]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
   // ViewBox maps 116×116 logical units → size pixels
@@ -173,9 +177,9 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
   });
 
   return (
-    <Canvas style={canvasStyle}>
+    <StaticCanvas style={canvasStyle}>
       <Picture picture={shimmerPicture} />
-    </Canvas>
+    </StaticCanvas>
   );
 });
 LegendaryShimmer.displayName = 'LegendaryShimmer';

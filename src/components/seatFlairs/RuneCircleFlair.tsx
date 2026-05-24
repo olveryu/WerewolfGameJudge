@@ -5,7 +5,7 @@
  * 光晕层 + 符文路径层 + 中心点，波浪脉冲流转。
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -17,7 +17,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { useFlairStatic } from './FlairStaticContext';
+import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
 
 const N = 8;
 const ORBIT = 0.42;
@@ -172,9 +172,9 @@ export const RuneCircleFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
+      <StaticCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </Canvas>
+      </StaticCanvas>
     </View>
   );
 });

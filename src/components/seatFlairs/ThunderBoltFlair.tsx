@@ -4,7 +4,7 @@
  * 6 条短锯齿闪电从头像边缘向外劈出，轮流闪亮（flash→afterglow→fade）。
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -16,7 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { useFlairStatic } from './FlairStaticContext';
+import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
 
 const BOLT_COUNT = 6;
 const SEGS = 4;
@@ -124,9 +124,9 @@ export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) =
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
+      <StaticCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </Canvas>
+      </StaticCanvas>
     </View>
   );
 });

@@ -19,6 +19,7 @@ import { toast } from 'sonner-native';
 import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { FlairStaticContext } from '@/components/seatFlairs/FlairStaticContext';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
 import {
@@ -571,27 +572,29 @@ export const SettingsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <ScreenHeader title="设置" onBack={handleGoBack} topInset={insets.top} />
+    <FlairStaticContext.Provider value={true}>
+      <SafeAreaView style={styles.container} edges={['left', 'right']}>
+        <ScreenHeader title="设置" onBack={handleGoBack} topInset={insets.top} />
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          insets.bottom > 0 && { paddingBottom: insets.bottom },
-        ]}
-      >
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>
-            <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
-          </Text>
-          {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
-          {renderAuthSection()}
-        </View>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            insets.bottom > 0 && { paddingBottom: insets.bottom },
+          ]}
+        >
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>
+              <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
+            </Text>
+            {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
+            {renderAuthSection()}
+          </View>
 
-        <AboutSection styles={styles} />
-      </ScrollView>
-    </SafeAreaView>
+          <AboutSection styles={styles} />
+        </ScrollView>
+      </SafeAreaView>
+    </FlairStaticContext.Provider>
   );
 };

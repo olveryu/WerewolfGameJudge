@@ -4,7 +4,7 @@
  * 6 块彩色三角碎片在外围旋转漂浮，颜色随时间偏移，带顶部高光点。
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -16,7 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { useFlairStatic } from './FlairStaticContext';
+import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
 
 const N = 6;
 const HUES = [0, 60, 120, 180, 240, 300];
@@ -144,9 +144,9 @@ export const PrismShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
+      <StaticCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </Canvas>
+      </StaticCanvas>
     </View>
   );
 });

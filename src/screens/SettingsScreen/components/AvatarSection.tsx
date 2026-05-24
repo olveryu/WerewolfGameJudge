@@ -19,7 +19,6 @@ import {
 import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { getFlairById } from '@/components/seatFlairs';
-import { FlairStaticContext } from '@/components/seatFlairs/FlairStaticContext';
 import { UI_ICONS } from '@/config/iconTokens';
 import { colors, componentSizes, fixed, type ThemeColors } from '@/theme';
 import { AVATAR_IMAGES, getAvatarThumbByIndex } from '@/utils/avatar';
@@ -142,9 +141,7 @@ export const AvatarSection = memo<AvatarSectionProps>(
         <View>
           {avatarContent}
           {FlairComp && (
-            <FlairStaticContext.Provider value={true}>
-              <FlairComp size={avatarSize} borderRadius={styles.avatar.borderRadius as number} />
-            </FlairStaticContext.Provider>
+            <FlairComp size={avatarSize} borderRadius={styles.avatar.borderRadius as number} />
           )}
           <View style={styles.avatarEditBadge}>
             <Ionicons

@@ -4,7 +4,7 @@
  * 3 颗彗星在外围环绕，每颗带 8 节渐隐拖尾。
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -16,7 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { useFlairStatic } from './FlairStaticContext';
+import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
 
 const COMET_COUNT = 3;
 const TRAIL_LEN = 8;
@@ -117,9 +117,9 @@ export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
+      <StaticCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </Canvas>
+      </StaticCanvas>
     </View>
   );
 });

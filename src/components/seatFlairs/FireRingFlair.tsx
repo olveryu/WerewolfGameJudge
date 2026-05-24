@@ -6,7 +6,7 @@
  * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制，
  * 单一 Canvas 节点替代原先 34 个 SVG AnimatedCircle。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
@@ -18,7 +18,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { useFlairStatic } from './FlairStaticContext';
+import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
 
 const N = 8;
 const TRAIL = 3;
@@ -113,9 +113,9 @@ export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
+      <StaticCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </Canvas>
+      </StaticCanvas>
     </View>
   );
 });
