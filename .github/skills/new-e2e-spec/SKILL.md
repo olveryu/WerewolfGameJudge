@@ -103,14 +103,79 @@ test('描述', async ({ app: { page, diag } }) => {
 | ------------------------------------------- | --------------------- |
 | `findRolePageIndex(map, name)`              | 按角色名找 page index |
 | `findAllRolePageIndices(map, name)`         | 找某角色所有 pages    |
-| `waitForRoleTurn(page)`                     | 等待该角色行动轮      |
+| `waitForRoleTurn(page, keywords, allPages)` | 等待该角色行动轮      |
 | `clickSeatAndConfirm(page, seat)`           | 点击座位 + 确认       |
-| `driveWolfVote(pages, roleMap, targetSeat)` | 狼人投票              |
-| `waitForNightEnd(page)`                     | 等待天亮              |
+| `driveWolfVote(pages, wolfIndices, seat)`   | 狼人投票              |
+| `waitForNightEnd(pages)`                    | 等待天亮              |
 | `readAlertText(page)`                       | 读取弹窗文本          |
 | `dismissAlert(page)`                        | 关闭弹窗              |
 | `viewLastNightInfo(page)`                   | 查看昨夜信息          |
 | `clickBottomButton(page, text)`             | 点底部按钮            |
+
+#### ⚠️ 夜间步骤顺序（NIGHT_STEPS）
+
+**必须按 `packages/game-engine/src/models/roles/spec/plan.ts` 中 NIGHT_STEPS 的顺序驱动角色。**
+`waitForRoleTurn` 会 `tryClickAdvanceButton(includeSkip=true)` 推进 OTHER 页面，如果顺序错误会导致目标角色被自动跳过。
+
+查看顺序：`grep -n '' packages/game-engine/src/models/roles/spec/plan.ts`
+
+常见顺序参考（position）：
+
+- `crowCurse` (15) → `wolfKill` (16) → `hiddenWolfReveal` (18) → `seerCheck` (24)
+- `guardProtect` (14) → `wolfKill` (16) → `witchSave/witchPoison` (20/21)
+
+#### ⚠️ actionKind 驱动模式（关键！）
+
+不同 `actionKind` 的步骤在 UI 上有不同流程。必须按对应模式驱动：
+
+**`chooseSeat` 步骤**（seer、crow、wolf 等选目标）：
+
+```typescript
+// 1. waitForRoleTurn 检测到关键词
+const turn = await waitForRoleTurn(page, ['查验', '选择'], allPages, 120);
+// 2. clickSeatAndConfirm 内部会 dismissAlert 再点座位
+await clickSeatAndConfirm(page, targetSeat);
+// 3. 读取结果弹窗（如有）
+const reveal = await readAlertText(page);
+await dismissAlert(page);
+```
+
+参考：`night-roles-check.spec.ts`
+
+**`chooseSeat` + skip（不用技能）**：
+
+```typescript
+const turn = await waitForRoleTurn(page, ['诅咒', '选择'], allPages, 120);
+// 必须先 dismiss 初始 prompt alert！
+await dismissAlert(page);
+await clickBottomButton(page, '不用技能');
+// 有些角色 skip 后会弹确认
+await dismissAlert(page);
+```
+
+参考：`night-roles-block.spec.ts` seer/guard skip 测试
+
+**`confirm` 步骤**（hiddenWolf 查看同伴、avenger 查看阵营等）：
+
+```typescript
+const turn = await waitForRoleTurn(page, ['查看', '同伴'], allPages, 120);
+// 1. dismiss 初始 prompt alert（promptExecutor 的 showRoleActionPrompt）
+await dismissAlert(page);
+// 2. 点底部按钮触发实际动作
+await clickBottomButton(page, '查看同伴');
+// 3. 读取结果弹窗
+const reveal = await readAlertText(page);
+await dismissAlert(page);
+```
+
+参考：`night-roles-hidden-wolf-crow.spec.ts`、`night-roles-kill.spec.ts` (avenger)
+
+**wolf kill**（专用 helper）：
+
+```typescript
+const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], allPages, 120);
+await driveWolfVote(pages, wolfIndices, targetSeat);
+```
 
 #### ConfigPage 模板配置
 
@@ -118,9 +183,10 @@ test('描述', async ({ app: { page, diag } }) => {
 configure: async (c) =>
   c.configureCustomTemplate({
     wolves: 1,
-    gods: ['seer', 'witch'],
+    goodRoles: ['seer', 'witch'],
     villagers: 2,
-    // 可选: thirdParty: ['cupid']
+    // wolfRoles: ['hiddenWolf']      // 狼阵营特殊角色
+    // specialRoles: ['thief']        // 第三方角色
   });
 ```
 
@@ -143,6 +209,70 @@ configure: async (c) =>
 ## 命名规范
 
 - Night-role spec 文件名：`night-roles-<category>.spec.ts`
-  - 类别：check / kill / protect / block / treasure / thief-cupid / piper / gargoyle
+  - 类别：check / kill / protect / block / treasure / thief-cupid / piper / gargoyle / eclipse-wolf-queen / hidden-wolf-crow
 - 非 night spec：`<feature>.spec.ts`（如 `seating.spec.ts`、`reconnect.spec.ts`）
 - Test describe/test 名用英文，描述具体场景和预期结果
+
+## ⚠️ 常见踩坑（必读）
+
+### 1. 步骤顺序导致角色被自动跳过
+
+`waitForRoleTurn` 对 OTHER pages 调用 `tryClickAdvanceButton(includeSkip=true)`，会点击"不用技能"。如果你先驱动后面的角色，前面的角色会在等待过程中被自动跳过。
+
+❌ 错误（crow 在 wolf 之前行动，先驱动 wolf 会导致 crow 被跳过）：
+
+```typescript
+await waitForRoleTurn(wolfPage, ['袭击'], pages);
+await driveWolfVote(...);
+await waitForRoleTurn(crowPage, ['诅咒'], pages); // 永远检测不到：已被自动跳过
+```
+
+✅ 正确：
+
+```typescript
+await waitForRoleTurn(crowPage, ['诅咒'], pages);
+await clickSeatAndConfirm(crowPage, target);
+await waitForRoleTurn(wolfPage, ['袭击'], pages);
+await driveWolfVote(...);
+```
+
+### 2. chooseSeat/confirm 步骤的初始 alert
+
+所有 `chooseSeat` 和 `confirm` 步骤在进入时都会弹一个 prompt alert（"知道了"按钮）。
+
+- `clickSeatAndConfirm` 内部已处理（自动 dismissAlert）。
+- `clickBottomButton` **不会** 自动 dismiss（仅在 retry 时才 dismiss）。
+- 因此在 `clickBottomButton` 前必须手动 `await dismissAlert(page)`。
+
+### 3. 座位号格式
+
+- `roleMap.get(idx)!.seat` — 0-based 座位索引
+- seer 等角色的 reveal dialog 使用 1-indexed display（`formatSeat(seat)` = `${seat+1}号`）
+- 断言 reveal 文本时用 `${seat + 1}号`
+- `clickSeatAndConfirm(page, seat)` 的 seat 参数是 0-based
+
+### 4. waitForRoleTurn 的 keywords
+
+keywords 匹配 `action-message` 文本 OR `alert-modal` 文本。选择的关键词应来自该步骤的 schema `prompt` 字段。常用：
+
+- 狼人：`['袭击', '选择']`
+- 预言家：`['查验', '选择']`
+- 女巫：`['是否', '解药']`（save）/ `['是否', '毒药']`（poison）
+- 守卫：`['守护', '选择']`
+- 乌鸦：`['诅咒', '选择']`
+- 隐狼 confirm：`['查看', '同伴']`
+- 复仇者 confirm：`['阵营']`
+
+查看具体角色的 prompt：`grep -A5 "stepId.*'<stepId>'" packages/game-engine/src/models/roles/spec/specs.ts`
+
+### 5. 参考测试文件索引
+
+| 模式                | 参考文件                               | 关键行 |
+| ------------------- | -------------------------------------- | ------ |
+| chooseSeat + reveal | `night-roles-check.spec.ts`            | seer   |
+| chooseSeat + skip   | `night-roles-block.spec.ts`            | L413   |
+| confirm step        | `night-roles-hidden-wolf-crow.spec.ts` | L70    |
+| confirm + gate      | `night-roles-check.spec.ts`            | L656   |
+| wolf empty vote     | `night-roles-kill.spec.ts`             | —      |
+| magician swap       | `night-roles-check.spec.ts`            | —      |
+| death verify        | `night-verify.spec.ts`                 | —      |

@@ -96,11 +96,11 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
   let statusMessage: string;
 
   if (statusUi.kind === 'wolfTeammates') {
-    // HiddenWolf: show wolf teammates seat numbers
+    // HiddenWolf: show wolf teammates seat numbers (convert 0-based → 1-based display)
     const wolfTeammates = confirmStatus?.role === 'hiddenWolf' ? confirmStatus.wolfTeammates : [];
     statusMessage = statusUi.messageTemplate.replace(
       '{seats}',
-      wolfTeammates.length > 0 ? wolfTeammates.join('、') : '无',
+      wolfTeammates.length > 0 ? wolfTeammates.map((s) => s + 1).join('、') : '无',
     );
   } else if (statusUi.kind === 'faction') {
     // Avenger: 3-way faction display
