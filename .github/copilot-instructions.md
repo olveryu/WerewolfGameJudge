@@ -25,7 +25,7 @@ React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + DO + 
 
 ### Dev 环境启动
 
-- `npm run dev` 通过 concurrently 启动 worker + web
+- `pnpm run dev` 通过 concurrently 启动 worker + web
 - Wrangler OAuth token ~24h 过期 → `cd packages/api-worker && npx wrangler login`
 - 首次或新 migration → `pnpm -F @werewolf/api-worker db:migrate:local`
 

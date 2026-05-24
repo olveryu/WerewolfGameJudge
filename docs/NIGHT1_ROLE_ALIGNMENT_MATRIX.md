@@ -1,6 +1,6 @@
 # Night-1 角色对齐矩阵
 
-> 更新日期: 2026-04-09
+> 更新日期: 2026-05-24
 > 版本: Handler→Facade→UI 架构
 
 ## 概述
@@ -29,22 +29,23 @@
 | 15   | `crowCurse`                     | `crow`             | `crow`                          | (同)                            |
 | 16   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
 | 17   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
-| 18   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
-| 19   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
-| 20   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
-| 21   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
-| 22   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
-| 23   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
-| 24   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
-| 25   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
-| 26   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
-| 27   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
-| 28   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
-| 29   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
-| 30   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
-| 31   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
-| 32   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 33   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| 18   | `hiddenWolfReveal`              | `hiddenWolf`       | `hiddenWolf`                    | (同)                            |
+| 19   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
+| 20   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
+| 21   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
+| 22   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
+| 23   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
+| 24   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
+| 25   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
+| 26   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
+| 27   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
+| 28   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
+| 29   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
+| 30   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
+| 31   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
+| 32   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
+| 33   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 34   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
 **合约保证**：
 
@@ -322,6 +323,23 @@
 | **结果落点**       | `result.charmTarget` (无 updates) |      |
 | **UI 目标限制**    | 排除自己                          |      |
 | **失败原因**       | `不能选择自己` / `目标玩家不存在` |      |
+
+### 11b. hiddenWolfReveal (隐狼)
+
+| 属性                 | 值                                              | 说明                                                                  |
+| -------------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| **schemaId**         | `hiddenWolfReveal`                              |                                                                       |
+| **kind**             | `confirm`                                       | 查看狼同伴信息                                                        |
+| **constraints**      | 无                                              |                                                                       |
+| **canSkip**          | `true`                                          | 可跳过不看                                                            |
+| **prompt**           | "请点击下方按钮查看你的狼同伴"                  |                                                                       |
+| **bottomActionText** | `'查看同伴'`                                    |                                                                       |
+| **revealKind**       | 无（通过 `confirmStatusUi` 展示狼同伴）         | 显示狼同伴座位号                                                      |
+| **nightmare 阻断**   | ❌ 不适用                                       | confirm 类型无需检查                                                  |
+| **结果落点**         | `confirmStatus: { kind: 'wolfTeammates', ... }` | 纯查看，always valid                                                  |
+| **特殊规则**         | team=Good（预言家查验为好人）；不参与狼人投票   | `recognition: { canSeeWolves: false, participatesInWolfVote: false }` |
+| **UI 行为**          | 点击按钮查看狼同伴座位列表                      |                                                                       |
+| **失败原因**         | 无                                              | 始终 valid                                                            |
 
 ### 12. witchAction (女巫)
 

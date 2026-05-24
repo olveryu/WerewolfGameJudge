@@ -1129,3 +1129,15 @@ TanStack Query 提供三种 `networkMode`：`online`（默认）、`offlineFirst
 | 服务端 idempotency key                    | P1     | `x-idempotency-key: <uuid>`，D1 存 key+result，5min 窗口去重。参考 CF 官方文档 _Idempotent requests_ 模式                                               |
 | `handleSubmitAction` per-seat 去重        | P2     | handler 层加 `actions.some(a => a.schemaId === schemaId && a.actorSeat === seat)` 检查                                                                  |
 | ~~`withTimeout` 加 AbortController 选项~~ | ~~P2~~ | **已在本次改造中解决**：所有 fetch 调用统一迁移到 `AbortSignal.timeout()`，超时即 abort。`withTimeout` 仅保留给非 fetch 的 Promise（如 DO RPC timeout） |
+
+---
+
+## 实施记录
+
+### Prefetch Race Fix（2026-05-24）
+
+**根因**：`#fetchState` 无条件 await prefetch promise。慢网络 + 冷 DO 时 prefetch 12s 未 settle → 阻塞 fetchState 发出新请求 → 15s connectAndWait envelope 超时。
+
+**修复**：`Promise.race(prefetch, graceTimer)` — WS open 后给 prefetch 3s grace 窗口（`PREFETCH_GRACE_MS = 3000`）。超时未 settle 则 abandon prefetch、fetch fresh（DO 已因 WS upgrade 而 warm，新请求 2-3s 完成）。
+
+**附带**：`connectAndWait` timeout 标记为 expected error（网络条件，非代码缺陷）。

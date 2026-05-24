@@ -66,7 +66,7 @@
 
 ### 🎭 46 种角色 · 25 套预设板子
 
-覆盖经典和扩展角色——预言家、女巫、猎人、守卫等神职，狼美人、白狼王、血月使徒等特殊狼人，以及丘比特、盗贼、吹笛者等第三方。24 套预设模板覆盖 6-18 人局，也支持自定义板子。
+覆盖经典和扩展角色——预言家、女巫、猎人、守卫等神职，狼美人、白狼王、血月使徒等特殊狼人，以及丘比特、盗贼、吹笛者等第三方。25 套预设模板覆盖 12 人局，也支持自定义板子。
 
 ### 🤖 AI 助手
 
@@ -163,7 +163,7 @@ src/
   screens/            React Native 页面
   services/           facade / transport (WebSocket) / infra / feature
   contexts/           Auth · GameFacade · Service
-  theme/              Design tokens + 8 套主题
+  theme/              Design tokens + 主题色
 ```
 
 ### 技术栈
@@ -225,7 +225,7 @@ iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Fire
 <details>
 <summary><b>可以自定义板子吗？</b></summary>
 
-可以。除了 24 套预设模板，你可以自由组合角色创建自定义模板，保存后下次直接使用。
+可以。除了 25 套预设模板，你可以自由组合角色创建自定义模板，保存后下次直接使用。
 
 </details>
 
@@ -233,12 +233,15 @@ iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Fire
 
 ## 文档
 
+- [部署指南](docs/DEPLOYMENT.md)
+- [设计系统](docs/DESIGN.md)
+- [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
+- [预设板子参考](docs/PRESET_BOARDS.md)
+- [RoomScreen 状态机](docs/roomscreen-state-machine.md)
+- [网络韧性设计](docs/network-resilience-design.md)
 - [扭蛋系统设计](docs/gacha-system-design.md)
 - [等级成长系统](docs/growth-system-design.md)
 - [线下玩法 SOP](docs/offline-sop.md)
-- [部署指南](docs/DEPLOYMENT.md)
-- [角色技能对照表](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
-- [预设板子参考](docs/PRESET_BOARDS.md)
 
 ## 贡献
 

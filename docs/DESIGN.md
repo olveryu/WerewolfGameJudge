@@ -5,7 +5,7 @@
 - **What this is:** 狼人杀裁判辅助 app — 管理发牌、夜间行动、揭示身份、计时
 - **Who it's for:** 面对面桌游玩家（Host + 远程玩家）
 - **Platform:** iOS / Android / Web (React Native + Expo)
-- **Theme count:** 8 套（4 浅色 + 4 深色）
+- **Theme count:** 当前实现 1 套（月白 / light）；多主题为规划中（设计稿 8 套：4 浅色 + 4 深色）
 
 ## Aesthetic Direction
 

@@ -1,3 +1,5 @@
+> ⚠️ 历史文档 — 迁移已完成，仅供参考
+
 # DO Migration Plan: Game State → Durable Objects
 
 > 将 game/night 的 D1 读-算-写 迁移到 Durable Object 内部执行，消除 optimistic locking。

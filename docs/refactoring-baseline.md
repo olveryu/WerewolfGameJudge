@@ -1,3 +1,5 @@
+> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+
 # Refactoring Baseline Metrics
 
 > Snapshot date: 2026-03-07

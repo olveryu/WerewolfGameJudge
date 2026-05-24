@@ -66,7 +66,7 @@ Game state is persisted in Cloudflare Durable Objects (edge SQLite). Reconnectin
 
 ### 🎭 46 Roles · 25 Preset Boards
 
-Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 25 preset templates for 6–18 players, plus custom board creation.
+Full coverage of classic and expansion roles — Seer, Witch, Hunter, Guard and more gods; Wolf Queen, White Wolf King, Blood Moon and more special wolves; plus Cupid, Thief, Piper and more third-party roles. 25 preset templates for 12 players, plus custom board creation.
 
 ### 🤖 AI Assistant
 
@@ -167,7 +167,7 @@ src/
   screens/            React Native screens
   services/           facade / transport (WebSocket) / infra / feature
   contexts/           Auth · GameFacade · Service
-  theme/              Design tokens + 8 themes
+  theme/              Design tokens + theme colors
 ```
 
 ### Tech Stack
@@ -229,7 +229,7 @@ Yes, the app automates Night-1 — identity reveals, skill actions, and dawn res
 <details>
 <summary><b>Can I create custom boards?</b></summary>
 
-Absolutely. Beyond the 24 preset templates, you can freely combine roles to create custom templates and save them for future use.
+Absolutely. Beyond the 25 preset templates, you can freely combine roles to create custom templates and save them for future use.
 
 </details>
 
@@ -237,12 +237,15 @@ Absolutely. Beyond the 24 preset templates, you can freely combine roles to crea
 
 ## Docs
 
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Design System](docs/DESIGN.md)
+- [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
+- [Preset Boards Reference](docs/PRESET_BOARDS.md)
+- [RoomScreen State Machine](docs/roomscreen-state-machine.md)
+- [Network Resilience Design](docs/network-resilience-design.md)
 - [Gacha System Design](docs/gacha-system-design.md)
 - [Growth System Design](docs/growth-system-design.md)
 - [Offline Game Guide](docs/offline-sop.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Role Alignment Matrix](docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md)
-- [Preset Boards Reference](docs/PRESET_BOARDS.md)
 
 ## Contributing
 
