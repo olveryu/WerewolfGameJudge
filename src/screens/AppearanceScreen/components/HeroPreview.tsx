@@ -6,6 +6,7 @@ import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { Button } from '@/components/Button';
 import { NameStyleText } from '@/components/nameStyles';
 import { getFlairById } from '@/components/seatFlairs';
+import { FlairStaticContext } from '@/components/seatFlairs/FlairStaticContext';
 import { UI_ICONS } from '@/config/iconTokens';
 import { colors, componentSizes } from '@/theme';
 
@@ -52,7 +53,11 @@ export const HeroPreview: React.FC<HeroPreviewProps> = ({
             avatarUrl={previewAvatarUrl}
             frameId={effectiveFrame}
           />
-          {FlairComp && <FlairComp size={HERO_PREVIEW_SIZE} borderRadius={HERO_PREVIEW_SIZE / 2} />}
+          {FlairComp && (
+            <FlairStaticContext.Provider value={true}>
+              <FlairComp size={HERO_PREVIEW_SIZE} borderRadius={HERO_PREVIEW_SIZE / 2} />
+            </FlairStaticContext.Provider>
+          )}
         </View>
         <NameStyleText styleId={effectiveNameStyle} style={styles.nameStyleHeroName}>
           {displayName}

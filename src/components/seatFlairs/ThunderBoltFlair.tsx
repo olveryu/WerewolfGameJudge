@@ -16,6 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
+import { useFlairStatic } from './FlairStaticContext';
 
 const BOLT_COUNT = 6;
 const SEGS = 4;
@@ -43,11 +44,13 @@ const BOLT_SEEDS = Array.from({ length: BOLT_COUNT }, (_, i) => ({
 }));
 
 export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
+  const isStatic = useFlairStatic();
   const progress = useSharedValue(0);
 
   useEffect(() => {
+    if (isStatic) return;
     progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  }, [progress, isStatic]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
 
@@ -121,7 +124,7 @@ export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) =
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle}>
+      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
         <Picture picture={flairPicture} />
       </Canvas>
     </View>

@@ -16,6 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
+import { useFlairStatic } from './FlairStaticContext';
 
 // ── Pre-allocated Skia resources ──
 const recorder = Skia.PictureRecorder();
@@ -37,13 +38,15 @@ const CLAWS = [
 ];
 
 export const ShadowClawFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
+  const isStatic = useFlairStatic();
   const progress = useSharedValue(0);
   const slowProgress = useSharedValue(0);
 
   useEffect(() => {
+    if (isStatic) return;
     progress.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.linear }), -1);
     slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress, slowProgress]);
+  }, [progress, slowProgress, isStatic]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
 
@@ -120,7 +123,7 @@ export const ShadowClawFlair = memo<FlairProps>(({ size, borderRadius: _br }) =>
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle}>
+      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
         <Picture picture={flairPicture} />
       </Canvas>
     </View>

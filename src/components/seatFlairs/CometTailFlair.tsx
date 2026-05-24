@@ -16,6 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
+import { useFlairStatic } from './FlairStaticContext';
 
 const COMET_COUNT = 3;
 const TRAIL_LEN = 8;
@@ -39,13 +40,15 @@ const SEEDS = Array.from({ length: COMET_COUNT }, (_, i) => ({
 }));
 
 export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
+  const isStatic = useFlairStatic();
   const progress = useSharedValue(0);
   const slowProgress = useSharedValue(0);
 
   useEffect(() => {
+    if (isStatic) return;
     progress.value = withRepeat(withTiming(1, { duration: 5000, easing: Easing.linear }), -1);
     slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress, slowProgress]);
+  }, [progress, slowProgress, isStatic]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
 
@@ -114,7 +117,7 @@ export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <Canvas style={canvasStyle}>
+      <Canvas style={canvasStyle} __destroyWebGLContextAfterRender={isStatic}>
         <Picture picture={flairPicture} />
       </Canvas>
     </View>
