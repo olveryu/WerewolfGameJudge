@@ -30,8 +30,14 @@ export interface FactionConfirmStatus {
   readonly faction: Team;
 }
 
+/** 隐狼：获知狼同伴座位 */
+export interface WolfTeammatesConfirmStatus {
+  readonly role: 'hiddenWolf';
+  readonly wolfTeammates: readonly number[];
+}
+
 /** Discriminated union (discriminant: role). */
-export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus;
+export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus | WolfTeammatesConfirmStatus;
 
 // =============================================================================
 // 协议动作记录（ProtocolAction）— 线安全、稳定

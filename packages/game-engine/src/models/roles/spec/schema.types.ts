@@ -26,8 +26,15 @@ export interface FactionConfirmUi {
   readonly bondedText: string;
 }
 
+/** 隐狼：显示狼同伴座位 */
+export interface WolfTeammatesConfirmUi {
+  readonly kind: 'wolfTeammates';
+  readonly statusDialogTitle: string;
+  readonly messageTemplate: string;
+}
+
 /** Confirm status dialog UI (discriminant: kind). */
-export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi;
+export type ConfirmStatusUi = ShootConfirmUi | FactionConfirmUi | WolfTeammatesConfirmUi;
 
 /**
  * Default UI text for nightmare-blocked actions.

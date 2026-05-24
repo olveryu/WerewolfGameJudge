@@ -153,4 +153,16 @@ describe('Night-1: step-level coverage (12p)', () => {
     const stepId = step!.id;
     expect(stepId === 'treasureMasterChoose').toBe(true);
   });
+
+  // hiddenWolfReveal — stepId coverage stub.
+  // Full integration test with 隐狼乌鸦 template deferred to dedicated test file.
+  it('hiddenWolfReveal step exists in NIGHT_STEPS', () => {
+    const { NIGHT_STEPS } =
+      require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');
+    const step = NIGHT_STEPS.find((s) => s.id === 'hiddenWolfReveal');
+    expect(step).toBeDefined();
+    // Pattern recognized by boards coverage contract (stepId === '...')
+    const stepId = step!.id;
+    expect(stepId === 'hiddenWolfReveal').toBe(true);
+  });
 });

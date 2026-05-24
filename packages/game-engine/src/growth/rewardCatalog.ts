@@ -43,6 +43,7 @@ const HAND_DRAWN_AVATAR_IDS = [
   'gargoyle',
   'graveyardKeeper',
   'guard',
+  'hiddenWolf',
   'hunter',
   'idiot',
   'knight',
@@ -588,6 +589,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   wildChild: 'epic',
   wolf: 'epic',
   wolfRobot: 'epic',
+  hiddenWolf: 'epic',
   // Rare (50) — generated beam variant
   ...Object.fromEntries(GENERATED_RARE_IDS.map((id) => [id, 'rare' as Rarity])),
   // Common (100) — generated pixel variant (fallback default)

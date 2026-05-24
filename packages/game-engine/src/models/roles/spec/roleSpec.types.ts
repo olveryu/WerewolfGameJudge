@@ -33,6 +33,7 @@ export type RoleAbilityTag =
   | 'transform' // 变身 — 可改变自身或他人的阵营、身份
   | 'survive' // 免死 — 可触发保命机制避免出局
   | 'follow' // 跟随 — 依附其他玩家阵营共同胜负
+  | 'confirm' // 确认 — 夜间确认信息（无目标选择）
   | 'none'; // 无能力 — 无特殊技能，纯推理投票
 
 /**

@@ -221,6 +221,14 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     }
   }
 
+  // 2b. HiddenWolf reveal (confirm-only — just show presence)
+  const hiddenWolfSeat = findSeatByRole(gameState.players, 'hiddenWolf' as RoleId);
+  if (hiddenWolfSeat !== undefined) {
+    lines.push(
+      `${getRoleEmoji('hiddenWolf' as RoleId)} ${getRoleDisplayName('hiddenWolf' as RoleId)}已确认狼同伴`,
+    );
+  }
+
   // 3. Guard
   if (nr.guardedSeat != null) {
     lines.push(`${ACTION.GUARD} 守卫守护了 ${formatSeat(nr.guardedSeat)}`);

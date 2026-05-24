@@ -21,6 +21,7 @@ import eclipseWolfQueen from '../../assets/avatars/raw/eclipseWolfQueen.png';
 import gargoyle from '../../assets/avatars/raw/gargoyle.png';
 import graveyardKeeper from '../../assets/avatars/raw/graveyardKeeper.png';
 import guard from '../../assets/avatars/raw/guard.png';
+import hiddenWolf from '../../assets/avatars/raw/hiddenWolf.png';
 import hunter from '../../assets/avatars/raw/hunter.png';
 import idiot from '../../assets/avatars/raw/idiot.png';
 import knight from '../../assets/avatars/raw/knight.png';
@@ -67,6 +68,7 @@ import thumb_eclipseWolfQueen from '../../assets/badges/png/512/role_eclipseWolf
 import thumb_gargoyle from '../../assets/badges/png/512/role_gargoyle.png';
 import thumb_graveyardKeeper from '../../assets/badges/png/512/role_graveyardKeeper.png';
 import thumb_guard from '../../assets/badges/png/512/role_guard.png';
+import thumb_hiddenWolf from '../../assets/badges/png/512/role_hiddenWolf.png';
 import thumb_hunter from '../../assets/badges/png/512/role_hunter.png';
 import thumb_idiot from '../../assets/badges/png/512/role_idiot.png';
 import thumb_knight from '../../assets/badges/png/512/role_knight.png';
@@ -115,6 +117,7 @@ export const AVATAR_IMAGE_MAP: Record<HandDrawnAvatarId, number> = {
   gargoyle,
   graveyardKeeper,
   guard,
+  hiddenWolf,
   hunter,
   idiot,
   knight,
@@ -164,6 +167,7 @@ export const AVATAR_THUMB_MAP: Record<HandDrawnAvatarId, number> = {
   gargoyle: thumb_gargoyle,
   graveyardKeeper: thumb_graveyardKeeper,
   guard: thumb_guard,
+  hiddenWolf: thumb_hiddenWolf,
   hunter: thumb_hunter,
   idiot: thumb_idiot,
   knight: thumb_knight,

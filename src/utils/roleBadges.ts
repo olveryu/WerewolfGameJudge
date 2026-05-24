@@ -22,6 +22,7 @@ import badge_eclipseWolfQueen from '../../assets/badges/png/512/role_eclipseWolf
 import badge_gargoyle from '../../assets/badges/png/512/role_gargoyle.png';
 import badge_graveyardKeeper from '../../assets/badges/png/512/role_graveyardKeeper.png';
 import badge_guard from '../../assets/badges/png/512/role_guard.png';
+import badge_hiddenWolf from '../../assets/badges/png/512/role_hiddenWolf.png';
 import badge_hunter from '../../assets/badges/png/512/role_hunter.png';
 import badge_idiot from '../../assets/badges/png/512/role_idiot.png';
 import badge_knight from '../../assets/badges/png/512/role_knight.png';
@@ -94,6 +95,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   masquerade: badge_masquerade,
   warden: badge_warden,
   eclipseWolfQueen: badge_eclipseWolfQueen,
+  hiddenWolf: badge_hiddenWolf,
   // ── Special ──
   slacker: badge_slacker,
   wildChild: badge_wildChild,

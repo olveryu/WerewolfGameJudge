@@ -642,4 +642,22 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
       'sequencePrince',
     ],
   },
+  {
+    name: '隐狼乌鸦',
+    category: TemplateCategory.Advanced,
+    roles: [
+      'villager',
+      'villager',
+      'villager',
+      'villager',
+      'wolf',
+      'wolf',
+      'wolf',
+      'hiddenWolf',
+      'seer',
+      'witch',
+      'hunter',
+      'crow',
+    ],
+  },
 ];

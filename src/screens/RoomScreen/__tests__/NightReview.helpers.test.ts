@@ -578,6 +578,7 @@ describe('NightReview.helpers', () => {
         [28, makePlayer(28, 'thief')],
         [29, makePlayer(29, 'cupid')],
         [30, makePlayer(30, 'eclipseWolfQueen')],
+        [31, makePlayer(31, 'hiddenWolf')],
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([

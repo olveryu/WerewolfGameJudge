@@ -22,7 +22,7 @@ import { Faction, Team } from '@werewolf/game-engine/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 43 roles', () => {
-    expect(getAllRoleIds()).toHaveLength(45);
+    expect(getAllRoleIds()).toHaveLength(46);
   });
 
   it('every role should have required fields', () => {
@@ -144,6 +144,7 @@ describe('ROLE_SPECS contract', () => {
       'crow', // 4
       'wolf', // 5
       'wolfQueen', // 6
+      'hiddenWolf', // confirm (after wolfQueenCharm)
       'witch', // 10
       'poisoner', // 11
       'wolfWitch', // 14
@@ -237,10 +238,15 @@ describe('ROLE_SPECS contract', () => {
   });
 
   describe('seer check rule (team field)', () => {
-    it('all wolf-faction roles should have team=Team.Wolf', () => {
+    it('all wolf-faction roles should have team=Team.Wolf (except hiddenWolf)', () => {
       const wolfRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.Wolf);
       for (const roleId of wolfRoles) {
-        expect(ROLE_SPECS[roleId].team).toBe(Team.Wolf);
+        if (roleId === 'hiddenWolf') {
+          // 隐狼查验为好人 — 设计意图
+          expect(ROLE_SPECS[roleId].team).toBe(Team.Good);
+        } else {
+          expect(ROLE_SPECS[roleId].team).toBe(Team.Wolf);
+        }
       }
     });
 

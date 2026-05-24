@@ -28,6 +28,9 @@ function defaultConfirmStatus(role: RoleId): ConfirmStatus {
   if (role === 'avenger') {
     return { role: 'avenger', faction: Team.Good };
   }
+  if (role === 'hiddenWolf') {
+    return { role: 'hiddenWolf', wolfTeammates: [1, 2, 3] };
+  }
   // All other confirm roles (hunter, darkWolfKing) are shoot-type
   return { role: role as 'hunter' | 'darkWolfKing', canShoot: true };
 }

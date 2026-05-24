@@ -1,17 +1,17 @@
 /**
- * V2 Role Specs Registry — 全部 45 角色声明式定义
+ * V2 Role Specs Registry — 全部 46 角色声明式定义
  *
  * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
  * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
  *
- * 45 roles total:
+ * 46 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
  * - God faction: seer, witch, poisoner, hunter, guard, idiot, knight, magician, witcher, psychic,
  *   dreamcatcher, graveyardKeeper, pureWhite, dancer, silenceElder, votebanElder, crow, maskedMan,
  *   sequencePrince (19)
  * - Wolf faction: wolf, wolfQueen, wolfKing, darkWolfKing, nightmare, gargoyle,
  *   awakenedGargoyle, bloodMoon, wolfRobot, wolfWitch, spiritKnight, masquerade, warden,
- *   eclipseWolfQueen (14)
+ *   eclipseWolfQueen, hiddenWolf (15)
  * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
  * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
@@ -885,7 +885,7 @@ export const ROLE_SPECS = {
   },
 
   // ===================================================================
-  // WOLF FACTION (14)
+  // WOLF FACTION (15)
   // ===================================================================
 
   wolf: {
@@ -1463,6 +1463,54 @@ export const ROLE_SPECS = {
           prompt: '请选择要放逐的玩家，如不使用请点击「不用技能」',
           confirmText: '放逐此玩家？',
           bottomActionText: '不用技能',
+        },
+      },
+    ],
+  },
+
+  hiddenWolf: {
+    id: 'hiddenWolf',
+    displayName: '隐狼',
+    shortName: '隐',
+    emoji: '👤🐺',
+    faction: Faction.Wolf,
+    team: Team.Good,
+    description:
+      '与其他狼人互不相认；首夜可获知狼同伴身份；预言家查验为好人；其他狼人全部出局后可主导袭击；不能自爆',
+    structuredDescription: {
+      passive: '与其他狼人互不相认；预言家查验为好人',
+      skill: '首夜可获知狼同伴身份',
+      special: '其他狼人全部出局后可主导袭击',
+      restriction: '不能自爆',
+    },
+    tags: ['confirm'] satisfies RoleAbilityTag[],
+    recognition: { canSeeWolves: false, participatesInWolfVote: false },
+    abilities: [
+      {
+        type: 'active',
+        timing: 'night',
+        actionKind: 'confirm',
+        canSkip: true,
+        effects: [{ kind: 'confirm', confirmType: 'wolfTeammates' }],
+        activeOnNight1: true,
+      },
+    ],
+    nightSteps: [
+      {
+        stepId: 'hiddenWolfReveal',
+        displayName: '狼同伴确认',
+        audioKey: 'hiddenWolf',
+        actionKind: 'confirm',
+        ui: {
+          confirmTitle: '确认行动',
+          prompt: '请点击下方按钮查看你的狼同伴',
+          confirmText: '查看狼同伴？',
+          bottomActionText: '查看同伴',
+          confirmStatusUi: {
+            kind: 'wolfTeammates',
+            statusDialogTitle: '狼同伴信息',
+            messageTemplate: '你的狼同伴为：{seats}号',
+          },
         },
       },
     ],

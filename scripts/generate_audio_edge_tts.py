@@ -87,8 +87,7 @@ BEGIN_TEXT: dict[str, str] = {
     "piper_hypnotized_reveal": "所有玩家请睁眼，请看手机确认信息。",
     "awakened_gargoyle_convert_reveal": "所有玩家请睁眼，请看手机确认转化信息。",
     "cupid_lovers_reveal": "所有玩家请睁眼，请看手机确认信息。",
-    "eclipse_wolf_queen": "蚀时狼妃请睁眼，请选择要放逐的玩家。",
-}
+    "eclipse_wolf_queen": "蚀时狼妃请睁眼，请选择要放逐的玩家。",    "hidden_wolf": "隐狼请睁眼，请查看你的狼同伴信息。",}
 
 END_TEXT: dict[str, str] = {
     "wolf": "狼人请闭眼。",
@@ -125,8 +124,7 @@ END_TEXT: dict[str, str] = {
     "piper_hypnotized_reveal": "所有玩家请闭眼。",
     "awakened_gargoyle_convert_reveal": "所有玩家请闭眼。",
     "cupid_lovers_reveal": "所有玩家请闭眼。",
-    "eclipse_wolf_queen": "蚀时狼妃请闭眼。",
-}
+    "eclipse_wolf_queen": "蚀时狼妃请闭眼。",    "hidden_wolf": "隐狼请闭眼。",}
 
 
 def parse_args() -> argparse.Namespace:

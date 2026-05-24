@@ -20,6 +20,7 @@ import dreamcatcherBegin from '../../../../assets/audio/dreamcatcher.mp3';
 import eclipseWolfQueenBegin from '../../../../assets/audio/eclipse_wolf_queen.mp3';
 import gargoyleBegin from '../../../../assets/audio/gargoyle.mp3';
 import guardBegin from '../../../../assets/audio/guard.mp3';
+import hiddenWolfBegin from '../../../../assets/audio/hidden_wolf.mp3';
 import hunterBegin from '../../../../assets/audio/hunter.mp3';
 import magicianBegin from '../../../../assets/audio/magician.mp3';
 import nightBegin from '../../../../assets/audio/night.mp3';
@@ -56,6 +57,7 @@ import dreamcatcherEnd from '../../../../assets/audio_end/dreamcatcher.mp3';
 import eclipseWolfQueenEnd from '../../../../assets/audio_end/eclipse_wolf_queen.mp3';
 import gargoyleEnd from '../../../../assets/audio_end/gargoyle.mp3';
 import guardEnd from '../../../../assets/audio_end/guard.mp3';
+import hiddenWolfEnd from '../../../../assets/audio_end/hidden_wolf.mp3';
 import hunterEnd from '../../../../assets/audio_end/hunter.mp3';
 import magicianEnd from '../../../../assets/audio_end/magician.mp3';
 import nightmareEnd from '../../../../assets/audio_end/nightmare.mp3';
@@ -208,6 +210,10 @@ export const AUDIO_REGISTRY: Partial<Record<RoleId, RoleAudioEntry>> = {
   crow: {
     begin: crowBegin,
     end: crowEnd,
+  },
+  hiddenWolf: {
+    begin: hiddenWolfBegin,
+    end: hiddenWolfEnd,
   },
   poisoner: {
     begin: poisonerBegin,

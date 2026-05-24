@@ -102,6 +102,7 @@ const schemaToRole: Record<string, RoleId> = {
   wolfRobotLearn: 'wolfRobot',
   darkWolfKingConfirm: 'darkWolfKing',
   eclipseWolfQueenShelter: 'eclipseWolfQueen',
+  hiddenWolfReveal: 'hiddenWolf',
 
   // third party
   slackerChooseIdol: 'slacker',

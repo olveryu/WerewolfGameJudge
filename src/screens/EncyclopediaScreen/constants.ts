@@ -20,6 +20,7 @@ export const TAG_LABELS: Record<RoleAbilityTag, string> = {
   transform: '变身',
   survive: '免死',
   follow: '跟随',
+  confirm: '确认',
   none: '无能力',
 };
 
@@ -34,6 +35,7 @@ export const TAG_COLOR_KEY: Record<RoleAbilityTag, keyof ThemeColors> = {
   transform: 'third',
   survive: 'primaryLight',
   follow: 'textSecondary',
+  confirm: 'info',
   none: 'textMuted',
 };
 

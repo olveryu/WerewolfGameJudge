@@ -570,3 +570,79 @@ describe('computeCanShootForSeat', () => {
     expect(computeCanShootForSeat(6, state)).toBe(true);
   });
 });
+
+// =============================================================================
+// hiddenWolf — wolfTeammates 确认
+// =============================================================================
+
+describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {
+  it('隐狼获取狼同伴座位号', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'wolf',
+        'wolf',
+        'wolf',
+        'hiddenWolf',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'hunter',
+        'crow',
+      ],
+      players: {
+        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
+        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
+        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'wolf' },
+        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'hiddenWolf' },
+        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'villager' },
+        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'villager' },
+        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'villager' },
+        8: { userId: 'p8', seat: 8, hasViewedRole: true, role: 'seer' },
+        9: { userId: 'p9', seat: 9, hasViewedRole: true, role: 'witch' },
+        10: { userId: 'p10', seat: 10, hasViewedRole: true, role: 'hunter' },
+        11: { userId: 'p11', seat: 11, hasViewedRole: true, role: 'crow' },
+      },
+      currentStepId: 'hiddenWolfReveal',
+    });
+    const action = maybeCreateConfirmStatusAction('hiddenWolfReveal', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hiddenWolf', wolfTeammates: [0, 1, 2] },
+    });
+  });
+
+  it('无其他狼人 → wolfTeammates 为空数组', () => {
+    const state = createOngoingState({
+      templateRoles: [
+        'hiddenWolf',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
+        'seer',
+        'witch',
+        'hunter',
+      ],
+      players: {
+        0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'hiddenWolf' },
+        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'villager' },
+        2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
+        3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
+        4: { userId: 'p4', seat: 4, hasViewedRole: true, role: 'villager' },
+        5: { userId: 'p5', seat: 5, hasViewedRole: true, role: 'seer' },
+        6: { userId: 'p6', seat: 6, hasViewedRole: true, role: 'witch' },
+        7: { userId: 'p7', seat: 7, hasViewedRole: true, role: 'hunter' },
+      },
+      currentStepId: 'hiddenWolfReveal',
+    });
+    const action = maybeCreateConfirmStatusAction('hiddenWolfReveal', state);
+    expect(action).toEqual({
+      type: 'SET_CONFIRM_STATUS',
+      payload: { role: 'hiddenWolf', wolfTeammates: [] },
+    });
+  });
+});

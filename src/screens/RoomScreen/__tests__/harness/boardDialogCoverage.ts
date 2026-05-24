@@ -33,9 +33,9 @@ export function getAll12PBoards(): BoardConfig[] {
   }));
 
   // Fail-fast: avoid silently picking up unexpected presets.
-  if (boards.length !== 24) {
+  if (boards.length !== 25) {
     throw new Error(
-      `Expected exactly 24 presets, but got ${boards.length}. ` +
+      `Expected exactly 25 presets, but got ${boards.length}. ` +
         `Update board UI coverage mapping/tests if presets changed.`,
     );
   }
@@ -134,6 +134,9 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
 
   // EclipseWolfQueen: chooseSeat confirm + skip
   eclipseWolfQueen: ['actionConfirm', 'skipConfirm'],
+
+  // HiddenWolf: confirm trigger (displays wolf teammates)
+  hiddenWolf: ['confirmTrigger'],
 };
 
 /**
@@ -240,4 +243,5 @@ export const BOARD_TEST_FILE_MAP: Record<string, string> = {
   盗贼丘比特: 'thiefCupid.12p.board.ui.test.tsx',
   咒狐乌鸦: 'cursedFox.12p.board.ui.test.tsx',
   永序之轮: 'eclipseWolfQueen.12p.board.ui.test.tsx',
+  隐狼乌鸦: 'hiddenWolf.12p.board.ui.test.tsx',
 };

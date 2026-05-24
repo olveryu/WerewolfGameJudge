@@ -14,7 +14,6 @@ import {
   Faction,
   getRoleSpec,
   isValidRoleId,
-  isWolfRole,
   type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import {
@@ -32,7 +31,8 @@ function getActionOrderFromRoles(roles: RoleId[]): RoleId[] {
 }
 
 // Helper functions extracted to avoid nesting depth issues
-const countWolves = (roles: RoleId[]): number => roles.filter((r) => isWolfRole(r)).length;
+const countWolves = (roles: RoleId[]): number =>
+  roles.filter((r) => getRoleSpec(r).faction === Faction.Wolf).length;
 const countVillagers = (roles: RoleId[]): number =>
   roles.filter((r) => getRoleSpec(r).faction === Faction.Villager).length;
 const countGods = (roles: RoleId[]): number =>
@@ -158,6 +158,7 @@ describe('PRESET_TEMPLATES - 模板列表完整性', () => {
     '盗贼丘比特',
     '咒狐乌鸦',
     '永序之轮',
+    '隐狼乌鸦',
   ];
 
   it('应该包含所有预期的模板', () => {

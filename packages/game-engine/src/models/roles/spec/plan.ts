@@ -52,6 +52,7 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   // === 狼人会议阶段 ===
   'wolfKill',
   'wolfQueenCharm',
+  'hiddenWolfReveal',
 
   // === 女巫 / 毒师 ===
   'witchAction',

@@ -21,13 +21,13 @@
 import { type SchemaId } from '../../models/roles/spec';
 import type { RoleSpec } from '../../models/roles/spec/roleSpec.types';
 import { ROLE_SPECS } from '../../models/roles/spec/specs';
-import { Team } from '../../models/roles/spec/types';
-import type { ConfirmStatus } from '../../protocol/types';
+import { Faction, Team } from '../../models/roles/spec/types';
+import type { ConfirmStatus, WolfTeammatesConfirmStatus } from '../../protocol/types';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetConfirmStatusAction } from '../reducer/types';
 import type { NonNullState } from './types';
 
-type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger';
+type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf';
 
 /**
  * Derive the confirm-step → role mapping from ROLE_SPECS.
@@ -78,6 +78,9 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
   if (role === 'avenger') {
     return computeAvengerConfirmStatus(state);
   }
+  if (role === 'hiddenWolf') {
+    return computeHiddenWolfConfirmStatus(state);
+  }
 
   // Hunter / DarkWolfKing
   const roleSeat = findSeatByRole(state.players, role);
@@ -101,6 +104,23 @@ function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
     role: 'avenger',
     faction: state.currentNightResults?.avengerFaction ?? Team.Good,
   };
+}
+
+/**
+ * 计算隐狼确认状态
+ *
+ * 遍历所有座位，找到 faction === Faction.Wolf 且不是隐狼自身的座位。
+ */
+function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfirmStatus {
+  const wolfTeammates: number[] = [];
+  for (const [seatStr, player] of Object.entries(state.players)) {
+    if (!player?.role) continue;
+    const spec = ROLE_SPECS[player.role];
+    if (spec.faction === Faction.Wolf && player.role !== 'hiddenWolf') {
+      wolfTeammates.push(Number.parseInt(seatStr, 10));
+    }
+  }
+  return { role: 'hiddenWolf', wolfTeammates };
 }
 
 // =============================================================================

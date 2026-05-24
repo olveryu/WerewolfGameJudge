@@ -20,6 +20,7 @@ exports[`NIGHT_STEPS contract uniqueness array order should be stable (snapshot)
   "crowCurse",
   "wolfKill",
   "wolfQueenCharm",
+  "hiddenWolfReveal",
   "witchAction",
   "poisonerPoison",
   "hunterConfirm",

@@ -134,11 +134,11 @@ export interface ChooseLoversEffect {
 
 /**
  * Confirm effect — 确认类（查看状态）
- * hunter / darkWolfKing / avenger confirm
+ * hunter / darkWolfKing / avenger / hiddenWolf confirm
  */
 export interface ConfirmEffect {
   readonly kind: 'confirm';
-  readonly confirmType: 'shoot' | 'faction';
+  readonly confirmType: 'shoot' | 'faction' | 'wolfTeammates';
 }
 
 /** All possible effects (discriminated by `kind`) */

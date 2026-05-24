@@ -49,6 +49,7 @@ export const RESOLVERS: ResolverRegistry = {
   hunterConfirm: createGenericResolver('hunter'),
   darkWolfKingConfirm: createGenericResolver('darkWolfKing'),
   avengerConfirm: createGenericResolver('avenger'),
+  hiddenWolfReveal: createGenericResolver('hiddenWolf'),
   poisonerPoison: createGenericResolver('poisoner'),
 
   // --- Custom resolvers (complex logic not expressible declaratively) ---

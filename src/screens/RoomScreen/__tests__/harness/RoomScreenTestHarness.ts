@@ -159,13 +159,14 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   // Magician
   { type: 'magicianFirst', match: (t) => t.includes('已选择第一位') },
 
-  // Confirm trigger (hunter/darkWolfKing/avenger status): schema-driven confirmStatusUi.
+  // Confirm trigger (hunter/darkWolfKing/avenger/hiddenWolf status): schema-driven confirmStatusUi.
   {
     type: 'confirmTrigger',
     match: (t, m) => {
       const hunterUi = SCHEMAS.hunterConfirm.ui?.confirmStatusUi;
       const darkUi = SCHEMAS.darkWolfKingConfirm.ui?.confirmStatusUi;
       const avengerUi = SCHEMAS.avengerConfirm.ui?.confirmStatusUi;
+      const hiddenWolfUi = SCHEMAS.hiddenWolfReveal.ui?.confirmStatusUi;
 
       const isHunterConfirm =
         hunterUi?.kind === 'shoot' &&
@@ -179,8 +180,10 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
         avengerUi?.kind === 'faction' &&
         t === avengerUi.statusDialogTitle &&
         (m === avengerUi.goodText || m === avengerUi.wolfText || m === avengerUi.bondedText);
+      const isHiddenWolfConfirm =
+        hiddenWolfUi?.kind === 'wolfTeammates' && t === hiddenWolfUi.statusDialogTitle;
 
-      return isHunterConfirm || isDarkWolfKingConfirm || isAvengerConfirm;
+      return isHunterConfirm || isDarkWolfKingConfirm || isAvengerConfirm || isHiddenWolfConfirm;
     },
   },
 

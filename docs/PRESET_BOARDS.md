@@ -2,7 +2,7 @@
 
 > **权威来源**: [`packages/game-engine/src/models/Template.ts`](../packages/game-engine/src/models/Template.ts) — `PRESET_TEMPLATES`
 >
-> 当前共 **24 套**预设板子，全部为 12 人局（盗宝大师/盗贼丘比特/咒狐乌鸦 含底牌）。
+> 当前共 **25 套**预设板子，全部为 12 人局（盗宝大师/盗贼丘比特/咒狐乌鸦 含底牌）。
 
 ---
 
@@ -17,7 +17,7 @@
 | 狼王守卫   | ×4   | wolf ×3, darkWolfKing | seer, witch, hunter, guard |
 | 白狼王守卫 | ×4   | wolf ×3, wolfKing     | seer, witch, hunter, guard |
 
-## 进阶（Advanced）— 8 套
+## 进阶（Advanced）— 9 套
 
 含进阶角色，需一定游戏经验。
 
@@ -31,6 +31,7 @@
 | 机械狼人通灵师 | ×4   | wolf ×3, wolfRobot        | psychic, witch, hunter, guard        |
 | 恶灵骑士       | ×4   | wolf ×3, spiritKnight     | seer, witch, hunter, guard           |
 | 永序之轮       | ×4   | wolf ×3, eclipseWolfQueen | seer, witch, guard, sequencePrince   |
+| 隐狼乌鸦       | ×4   | wolf ×3, hiddenWolf       | seer, witch, hunter, crow            |
 
 ## 特色（Special）— 5 套
 

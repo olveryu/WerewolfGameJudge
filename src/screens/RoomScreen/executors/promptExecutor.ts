@@ -3,7 +3,8 @@
  *
  * 'actionPrompt': Shows role action prompt dialog with schema-driven text,
  * including witch compound info, confirm kind prompts, and UI hint overrides.
- * 'confirmTrigger': Shows hunter/darkWolfKing shoot-status dialog, then submits
+ * 'confirmTrigger': Shows hunter/darkWolfKing shoot-status dialog, avenger
+ * faction display, or hiddenWolf wolf-teammates reveal, then submits
  * confirmed action via proceedWithAction.
  */
 
@@ -94,7 +95,14 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
   const dialogTitle = statusUi.statusDialogTitle;
   let statusMessage: string;
 
-  if (statusUi.kind === 'faction') {
+  if (statusUi.kind === 'wolfTeammates') {
+    // HiddenWolf: show wolf teammates seat numbers
+    const wolfTeammates = confirmStatus?.role === 'hiddenWolf' ? confirmStatus.wolfTeammates : [];
+    statusMessage = statusUi.messageTemplate.replace(
+      '{seats}',
+      wolfTeammates.length > 0 ? wolfTeammates.join('、') : '无',
+    );
+  } else if (statusUi.kind === 'faction') {
     // Avenger: 3-way faction display
     const faction = confirmStatus?.role === 'avenger' ? confirmStatus.faction : Team.Good;
     statusMessage =
@@ -106,7 +114,12 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
   } else {
     // Hunter / DarkWolfKing: 2-way shoot status
     let canShoot = true;
-    if (confirmStatus && confirmStatus.role !== 'avenger' && confirmStatus.role === effectiveRole) {
+    if (
+      confirmStatus &&
+      confirmStatus.role !== 'avenger' &&
+      confirmStatus.role !== 'hiddenWolf' &&
+      confirmStatus.role === effectiveRole
+    ) {
       canShoot = confirmStatus.canShoot;
     }
     statusMessage = canShoot ? statusUi.canText : statusUi.cannotText;

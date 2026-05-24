@@ -60,6 +60,7 @@ export const EMOJI_MAP = {
   masquerade: ['Performing arts', 'performing_arts', false],
   warden: ['Chains', 'chains', false],
   eclipseWolfQueen: ['Waning crescent moon', 'waning_crescent_moon', false],
+  hiddenWolf: ['Ninja', 'ninja', true],
 
   // Third-party / Special
   slacker: ['Sleeping face', 'sleeping_face', false],

@@ -17,7 +17,7 @@ const allIds = Object.keys(ROLE_SPECS).sort() as RoleId[];
 
 describe('ROLE_SPECS registry', () => {
   it('should have exactly 43 roles', () => {
-    expect(allIds).toHaveLength(45);
+    expect(allIds).toHaveLength(46);
   });
 });
 
@@ -182,11 +182,15 @@ describe('V2 immunities contract', () => {
 });
 
 describe('V2 faction/team consistency', () => {
-  it('all wolf-faction roles should have team=Wolf', () => {
+  it('all wolf-faction roles should have team=Wolf (except hiddenWolf)', () => {
     const wolfRoles = allIds.filter((id) => (ROLE_SPECS[id] as RoleSpec).faction === Faction.Wolf);
     for (const roleId of wolfRoles) {
       const spec = ROLE_SPECS[roleId] as RoleSpec;
-      expect(spec.team).toBe(Team.Wolf);
+      if (roleId === 'hiddenWolf') {
+        expect(spec.team).toBe(Team.Good);
+      } else {
+        expect(spec.team).toBe(Team.Wolf);
+      }
     }
   });
 
