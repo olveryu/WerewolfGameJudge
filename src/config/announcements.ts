@@ -13,6 +13,17 @@ interface Announcement {
 
 /** 按版本号索引的公告内容。key 格式与 APP_VERSION 一致：`v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.5.0': {
+    title: 'v2.5.0 更新内容',
+    items: [
+      '新增隐狼角色及隐狼乌鸦板子',
+      '每日登录赠送 1 次金色扭蛋机会',
+      '微信小程序登录体验全面优化',
+      '修复头像框玩家座位高亮不显示',
+      '弱网环境连接稳定性提升',
+      '座位动画流畅度大幅优化',
+    ],
+  },
   'v2.4.0': {
     title: 'v2.4.0 更新内容',
     items: [
@@ -99,10 +110,19 @@ export const BOARD_VERSION_MAP: Record<string, string> = {
   孤注一掷: 'v2.1.0',
   // v2.2.0
   永序之轮: 'v2.2.0',
+  // v2.5.0
+  隐狼乌鸦: 'v2.5.0',
 };
 
 /** 板子版本降序排列（最新在前），用于分组展示 */
-export const BOARD_VERSIONS_DESC = ['v2.2.0', 'v2.1.0', 'v2.0.0', 'v1.2.0', 'v1.0.0'] as const;
+export const BOARD_VERSIONS_DESC = [
+  'v2.5.0',
+  'v2.2.0',
+  'v2.1.0',
+  'v2.0.0',
+  'v1.2.0',
+  'v1.0.0',
+] as const;
 
 /** 开发者微信号，在公告底部固定展示 */
 export const DEVELOPER_WECHAT_ID = 'olveryu';
