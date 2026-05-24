@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.5.0] - 2026-05-24
+
+- fix(seatFlairs): fix lint errors in ResilientCanvas hook ordering
+- docs(announcements): add v2.5.0 What's New entry
+- feat(hiddenWolf): add board strategy, fix seat display, E2E spec + skill docs
+- fix(skia): structural StaticCanvas wrapper to prevent WebGL context-loss crash
+- feat(hiddenWolf): add hidden wolf role end-to-end with preset board
+- fix(seatFlairs): use StaticWebGLRenderer for preview contexts to prevent WeChat crash
+- fix(connection): race prefetch with grace timer to prevent timeout on slow networks
+- perf(rendering): convert SVG+Reanimated animations to Skia Picture worklets
+- fix(roomscreen): seat highlight invisible on framed tiles
+- feat(feedback): include user profile in GitHub issue body
+- feat(gacha): grant 1 golden draw with daily login reward
+- Merge pull request #50 from olveryu/dependabot/npm_and_yarn/npm_and_yarn-b468f437e1
+- refactor(miniapp): unify splash screen to single fixed blue background
+- refactor(auth): tighten expectedCodes to actual server contract
+- feat(compat): polyfill AbortSignal.timeout/any for legacy WebViews
+- chore(deps): bump the npm_and_yarn group across 1 directory with 2 updates
+- fix(auth): add error handling to tryClaimToken/fetchAndCacheUser, tighten types
+- refactor(auth): remove tryClaimToken retry now that miniapp race is fixed
+- fix(miniapp): remove wechat/auth wording from login screen for review compliance
+- fix(auth): eliminate infinite login loop in miniapp claim flow
+- refactor(auth): defer user creation to claim-time, add claim-bind for email users
+- fix(auth): make rotateRefreshToken atomic with DELETE RETURNING
+- refactor(auth): remove legacy code-in-URL wechat auth flow
+- feat(auth): implement nonce-based claim flow for WeChat mini-program web-view
+- fix(auth): fallback to anonymous login when wx code missing or failed
+- fix(WxLoginFailedScreen): replace Math.random with randomPick, exclude from style contract
+- style(WxLoginFailedScreen): match splash screen visual style
+- fix(miniapp): improve wx login error UX and remove dead query param fallback
+- fix(miniapp): transmit wxcode via path segment to survive security page
+- fix(miniProgram): add query param fallback for backward compat with old miniapp
+- fix(miniapp): transmit wxcode via hash fragment instead of query param
+- feat(feedback): add status/resolve lifecycle and fix structural bugs
+- fix(ci): replace sleep with npm registry polling before npmmirror sync
+
 ## [2.4.0] - 2026-05-11
 
 - docs(announcements): add v2.4.0 What's New entry
