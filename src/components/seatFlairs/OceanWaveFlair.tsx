@@ -16,7 +16,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
+import { ResilientCanvas } from './ResilientCanvas';
 
 const WAVE_COUNT = 3;
 const STEPS = 8;
@@ -39,13 +39,11 @@ const SEEDS = Array.from({ length: WAVE_COUNT }, (_, i) => ({
 }));
 
 export const OceanWaveFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const isStatic = useFlairStatic();
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (isStatic) return;
     progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress, isStatic]);
+  }, [progress]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
 
@@ -103,9 +101,9 @@ export const OceanWaveFlair = memo<FlairProps>(({ size, borderRadius: _br }) => 
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <StaticCanvas style={canvasStyle}>
+      <ResilientCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </StaticCanvas>
+      </ResilientCanvas>
     </View>
   );
 });

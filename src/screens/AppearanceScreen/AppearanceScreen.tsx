@@ -25,7 +25,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { RoleRevealAnimator } from '@/components/RoleRevealEffects';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { FlairStaticContext } from '@/components/seatFlairs/FlairStaticContext';
 import { colors, componentSizes } from '@/theme';
 import { getHandDrawnImage } from '@/utils/avatar';
 
@@ -238,184 +237,182 @@ export const AppearanceScreen: React.FC = () => {
   // ── Render ──
 
   return (
-    <FlairStaticContext.Provider value={true}>
-      <SafeAreaView style={styles.container} edges={['left', 'right']}>
-        <ScreenHeader title="选择形象" onBack={state.handleGoBack} topInset={insets.top} />
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <ScreenHeader title="选择形象" onBack={state.handleGoBack} topInset={insets.top} />
 
-        {state.activeTab !== 'effect' ? (
-          <HeroPreview
-            userId={state.user?.id ?? 'anonymous'}
-            displayName={state.user?.displayName ?? '玩家'}
-            previewAvatarUrl={state.previewAvatarUrl}
-            effectiveFrame={state.effectiveFrame}
-            frameLabel={state.frameLabel}
-            effectiveFlair={state.effectiveFlair}
-            effectiveNameStyle={state.effectiveNameStyle}
-            readOnly={state.readOnly}
-            hasCustomAvatar={!!state.user?.customAvatarUrl}
-            onUpload={() => {
-              void state.handleUpload();
-            }}
-            styles={styles}
-          />
-        ) : (
-          <EffectHeroPreview
-            heroEffectId={state.heroEffectId}
-            heroEffectIcon={state.heroEffectOption?.icon ?? 'help-outline'}
-            heroEffectLabel={state.heroEffectOption?.label ?? '无'}
-            heroEffectDesc={state.heroEffectOption?.shortDesc ?? '跳过动画，直接显示身份'}
-            heroEffectRarity={state.heroEffectRarity}
-            heroEffectUnlocked={state.heroEffectUnlocked}
-            heroEffectIsEquipped={state.heroEffectIsEquipped}
-            saving={state.saving}
-            onPreviewEffect={state.handlePreviewEffect}
-            onEquipEffect={() => {
-              void state.handleEquipEffect();
-            }}
-            styles={styles}
-          />
-        )}
-
-        <PickerTabBar
-          activeTab={state.activeTab}
-          onTabChange={state.handleTabChange}
+      {state.activeTab !== 'effect' ? (
+        <HeroPreview
+          userId={state.user?.id ?? 'anonymous'}
+          displayName={state.user?.displayName ?? '玩家'}
+          previewAvatarUrl={state.previewAvatarUrl}
+          effectiveFrame={state.effectiveFrame}
+          frameLabel={state.frameLabel}
+          effectiveFlair={state.effectiveFlair}
+          effectiveNameStyle={state.effectiveNameStyle}
+          readOnly={state.readOnly}
+          hasCustomAvatar={!!state.user?.customAvatarUrl}
+          onUpload={() => {
+            void state.handleUpload();
+          }}
           styles={styles}
         />
-
-        <RarityFilterBar
-          rarityFilter={state.rarityFilter}
-          onFilterChange={state.setRarityFilter}
+      ) : (
+        <EffectHeroPreview
+          heroEffectId={state.heroEffectId}
+          heroEffectIcon={state.heroEffectOption?.icon ?? 'help-outline'}
+          heroEffectLabel={state.heroEffectOption?.label ?? '无'}
+          heroEffectDesc={state.heroEffectOption?.shortDesc ?? '跳过动画，直接显示身份'}
+          heroEffectRarity={state.heroEffectRarity}
+          heroEffectUnlocked={state.heroEffectUnlocked}
+          heroEffectIsEquipped={state.heroEffectIsEquipped}
+          saving={state.saving}
+          onPreviewEffect={state.handlePreviewEffect}
+          onEquipEffect={() => {
+            void state.handleEquipEffect();
+          }}
           styles={styles}
         />
+      )}
 
-        <View style={styles.content}>
-          {state.activeTab === 'avatar' ? (
-            <FlatList
-              key="avatar"
-              data={state.filteredAvatarData}
-              renderItem={renderItem}
-              keyExtractor={keyExtractor}
-              numColumns={NUM_COLUMNS}
-              contentContainerStyle={styles.pickerGrid}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={20}
-              maxToRenderPerBatch={16}
-              windowSize={5}
-            />
-          ) : state.activeTab === 'frame' ? (
-            <FlatList
-              key="frame"
-              data={state.filteredFrameData}
-              renderItem={renderFrameItem}
-              keyExtractor={frameKeyExtractor}
-              numColumns={FRAME_NUM_COLUMNS}
-              columnWrapperStyle={styles.frameColumnWrapper}
-              contentContainerStyle={styles.frameGridContent}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-            />
-          ) : state.activeTab === 'flair' ? (
-            <FlatList
-              key="flair"
-              data={state.filteredFlairData}
-              renderItem={renderFlairItem}
-              keyExtractor={flairKeyExtractor}
-              numColumns={FRAME_NUM_COLUMNS}
-              columnWrapperStyle={styles.frameColumnWrapper}
-              contentContainerStyle={styles.frameGridContent}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-            />
-          ) : state.activeTab === 'nameStyle' ? (
-            <FlatList
-              key="nameStyle"
-              data={state.filteredNameStyleData}
-              renderItem={renderNameStyleItem}
-              keyExtractor={nameStyleKeyExtractor}
-              numColumns={FRAME_NUM_COLUMNS}
-              columnWrapperStyle={styles.frameColumnWrapper}
-              contentContainerStyle={styles.frameGridContent}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-            />
-          ) : state.activeTab === 'effect' ? (
-            <FlatList
-              key="effect"
-              data={state.filteredEffectData}
-              renderItem={renderEffectItem}
-              keyExtractor={effectKeyExtractor}
-              numColumns={FRAME_NUM_COLUMNS}
-              columnWrapperStyle={styles.frameColumnWrapper}
-              contentContainerStyle={styles.frameGridContent}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-            />
-          ) : state.activeTab === 'seatAnimation' ? (
-            <FlatList
-              key="seatAnimation"
-              data={state.filteredSeatAnimationData}
-              renderItem={renderSeatAnimationItem}
-              keyExtractor={seatAnimationKeyExtractor}
-              numColumns={FRAME_NUM_COLUMNS}
-              columnWrapperStyle={styles.frameColumnWrapper}
-              contentContainerStyle={styles.frameGridContent}
-              showsVerticalScrollIndicator={false}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={5}
-            />
-          ) : null}
-        </View>
+      <PickerTabBar
+        activeTab={state.activeTab}
+        onTabChange={state.handleTabChange}
+        styles={styles}
+      />
 
-        <View style={[styles.pickerFooter, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
-          <AppearanceFooter
-            readOnly={state.readOnly}
-            hasSelection={state.hasSelection}
-            saving={state.saving}
-            hasUser={!!state.user}
-            onConfirm={() => {
-              void state.handleConfirm();
-            }}
-            onUpgrade={state.handleUpgrade}
-            styles={styles}
+      <RarityFilterBar
+        rarityFilter={state.rarityFilter}
+        onFilterChange={state.setRarityFilter}
+        styles={styles}
+      />
+
+      <View style={styles.content}>
+        {state.activeTab === 'avatar' ? (
+          <FlatList
+            key="avatar"
+            data={state.filteredAvatarData}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            numColumns={NUM_COLUMNS}
+            contentContainerStyle={styles.pickerGrid}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={20}
+            maxToRenderPerBatch={16}
+            windowSize={5}
           />
-        </View>
-
-        {state.previewAvatarId !== null && (
-          <Pressable style={styles.pickerPreviewOverlay} onPress={state.handleClosePreview}>
-            {isGeneratedAvatar(state.previewAvatarId) ? (
-              <View style={styles.pickerPreviewImage}>
-                <GeneratedAvatar seed={state.previewAvatarId} size={200} />
-              </View>
-            ) : (
-              <Image
-                source={getHandDrawnImage(state.previewAvatarId) as ImageSourcePropType}
-                style={styles.pickerPreviewImage}
-                resizeMode="cover"
-              />
-            )}
-          </Pressable>
-        )}
-
-        {state.previewEffectType && (
-          <RoleRevealAnimator
-            visible
-            effectType={state.previewEffectType}
-            role={PREVIEW_ROLE}
-            allRoles={PREVIEW_ALL_ROLES}
-            onComplete={() => state.setPreviewEffectType(null)}
-            enableHaptics={false}
+        ) : state.activeTab === 'frame' ? (
+          <FlatList
+            key="frame"
+            data={state.filteredFrameData}
+            renderItem={renderFrameItem}
+            keyExtractor={frameKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
           />
-        )}
-      </SafeAreaView>
-    </FlairStaticContext.Provider>
+        ) : state.activeTab === 'flair' ? (
+          <FlatList
+            key="flair"
+            data={state.filteredFlairData}
+            renderItem={renderFlairItem}
+            keyExtractor={flairKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : state.activeTab === 'nameStyle' ? (
+          <FlatList
+            key="nameStyle"
+            data={state.filteredNameStyleData}
+            renderItem={renderNameStyleItem}
+            keyExtractor={nameStyleKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : state.activeTab === 'effect' ? (
+          <FlatList
+            key="effect"
+            data={state.filteredEffectData}
+            renderItem={renderEffectItem}
+            keyExtractor={effectKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : state.activeTab === 'seatAnimation' ? (
+          <FlatList
+            key="seatAnimation"
+            data={state.filteredSeatAnimationData}
+            renderItem={renderSeatAnimationItem}
+            keyExtractor={seatAnimationKeyExtractor}
+            numColumns={FRAME_NUM_COLUMNS}
+            columnWrapperStyle={styles.frameColumnWrapper}
+            contentContainerStyle={styles.frameGridContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={9}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+          />
+        ) : null}
+      </View>
+
+      <View style={[styles.pickerFooter, insets.bottom > 0 && { paddingBottom: insets.bottom }]}>
+        <AppearanceFooter
+          readOnly={state.readOnly}
+          hasSelection={state.hasSelection}
+          saving={state.saving}
+          hasUser={!!state.user}
+          onConfirm={() => {
+            void state.handleConfirm();
+          }}
+          onUpgrade={state.handleUpgrade}
+          styles={styles}
+        />
+      </View>
+
+      {state.previewAvatarId !== null && (
+        <Pressable style={styles.pickerPreviewOverlay} onPress={state.handleClosePreview}>
+          {isGeneratedAvatar(state.previewAvatarId) ? (
+            <View style={styles.pickerPreviewImage}>
+              <GeneratedAvatar seed={state.previewAvatarId} size={200} />
+            </View>
+          ) : (
+            <Image
+              source={getHandDrawnImage(state.previewAvatarId) as ImageSourcePropType}
+              style={styles.pickerPreviewImage}
+              resizeMode="cover"
+            />
+          )}
+        </Pressable>
+      )}
+
+      {state.previewEffectType && (
+        <RoleRevealAnimator
+          visible
+          effectType={state.previewEffectType}
+          role={PREVIEW_ROLE}
+          allRoles={PREVIEW_ALL_ROLES}
+          onComplete={() => state.setPreviewEffectType(null)}
+          enableHaptics={false}
+        />
+      )}
+    </SafeAreaView>
   );
 };

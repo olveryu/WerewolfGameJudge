@@ -18,7 +18,7 @@ import {
 } from 'react-native-reanimated';
 
 import type { FlairProps } from './FlairProps';
-import { StaticCanvas, useFlairStatic } from './FlairStaticContext';
+import { ResilientCanvas } from './ResilientCanvas';
 
 const N = 8;
 const TRAIL = 3;
@@ -46,15 +46,13 @@ const AURA_G = 80;
 const AURA_B = 0;
 
 export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const isStatic = useFlairStatic();
   const progress = useSharedValue(0);
   const slowProgress = useSharedValue(0);
 
   useEffect(() => {
-    if (isStatic) return;
     progress.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
     slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress, slowProgress, isStatic]);
+  }, [progress, slowProgress]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
 
@@ -113,9 +111,9 @@ export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
 
   return (
     <View style={[styles.wrapper, canvasStyle]}>
-      <StaticCanvas style={canvasStyle}>
+      <ResilientCanvas style={canvasStyle}>
         <Picture picture={flairPicture} />
-      </StaticCanvas>
+      </ResilientCanvas>
     </View>
   );
 });

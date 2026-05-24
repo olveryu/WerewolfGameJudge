@@ -20,7 +20,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 
-import { StaticCanvas, useFlairStatic } from '@/components/seatFlairs/FlairStaticContext';
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 
 // ── Pre-allocated Skia resources ──
 const recorder = Skia.PictureRecorder();
@@ -69,13 +69,11 @@ interface LegendaryShimmerProps {
 }
 
 export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
-  const isStatic = useFlairStatic();
   const orbit = useSharedValue(0);
   const glow = useSharedValue(0);
   const sparkle = useSharedValue(0);
 
   useEffect(() => {
-    if (isStatic) return;
     orbit.value = withRepeat(
       withTiming(1, { duration: ORBIT_DURATION, easing: Easing.linear }),
       -1,
@@ -97,7 +95,7 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
       undefined,
       ReduceMotion.Never,
     );
-  }, [orbit, glow, sparkle, isStatic]);
+  }, [orbit, glow, sparkle]);
 
   const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
   // ViewBox maps 116×116 logical units → size pixels
@@ -177,9 +175,9 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
   });
 
   return (
-    <StaticCanvas style={canvasStyle}>
+    <ResilientCanvas style={canvasStyle}>
       <Picture picture={shimmerPicture} />
-    </StaticCanvas>
+    </ResilientCanvas>
   );
 });
 LegendaryShimmer.displayName = 'LegendaryShimmer';
