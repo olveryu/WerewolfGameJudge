@@ -74,7 +74,7 @@ Unsure about a rule? Tap the AI bubble on any role card for instant skill detail
 
 ### 🎰 Gacha Collection & Progression
 
-Earn XP + 2 normal draw tickets every valid game, plus 2 golden tickets on level-up. Daily login also grants 2 free normal tickets. Spend tickets at the capsule machine to collect avatars, avatar frames, seat flairs, and name styles — single or 10-pull, 4 rarity tiers (Common / Rare / Epic / Legendary) with a 10-draw pity guarantee. 563 collectible items across 52 levels. Skia physics capsule machine animation + rarity-tiered reveal effects.
+Earn XP + 2 normal draw tickets every valid game, plus 2 golden tickets on level-up. Daily login also grants 2 free normal tickets. Spend tickets at the capsule machine to collect avatars, avatar frames, seat flairs, and name styles — single or 10-pull, 4 rarity tiers (Common / Rare / Epic / Legendary) with a 10-draw pity guarantee. 1018 collectible items across 52 levels. Skia physics capsule machine animation + rarity-tiered reveal effects.
 
 ### 🌐 Cross-platform
 
@@ -188,7 +188,8 @@ src/
 
 ```bash
 pnpm run release            # patch (default) — bump → CHANGELOG → tag → push
-pnpm run release -- major   # major release
+pnpm run release minor      # minor release
+pnpm run release major      # major release
 # git push triggers Cloudflare Pages + Workers deploy automatically
 ```
 

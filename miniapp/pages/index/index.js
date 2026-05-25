@@ -71,21 +71,21 @@ Page({
       }
     }
     return {
-      title: '狼人杀自助电子法官',
+      title: '狼人面杀电子裁判助手',
       path: '/pages/index/index'
     }
   },
 
   onShareTimeline() {
     return {
-      title: '狼人杀自助电子法官',
+      title: '狼人面杀电子裁判助手',
       query: ''
     }
   },
 
   onAddToFavorites() {
     return {
-      title: '狼人杀自助电子法官',
+      title: '狼人面杀电子裁判助手',
       query: ''
     }
   }

@@ -74,7 +74,7 @@
 
 ### 🎰 扭蛋收集 · 等级成长
 
-每局有效游戏获得 XP + 2 张普通抽奖券，升级额外获得 2 张黄金券。每日登录也送 2 张普通券。在扭蛋机页面消耗券抽取头像、头像框、座位装饰和名字样式——支持单抽和 10 连，4 级稀有度（Common / Rare / Epic / Legendary）+ 10 次保底机制。563 件可收集物品，52 级满级。Skia 物理动画扭蛋机 + 稀有度揭示特效。
+每局有效游戏获得 XP + 2 张普通抽奖券，升级额外获得 2 张黄金券。每日登录也送 2 张普通券。在扭蛋机页面消耗券抽取头像、头像框、座位装饰和名字样式——支持单抽和 10 连，4 级稀有度（Common / Rare / Epic / Legendary）+ 10 次保底机制。1018 件可收集物品，52 级满级。Skia 物理动画扭蛋机 + 稀有度揭示特效。
 
 ### 🌐 跨平台
 
@@ -150,6 +150,10 @@ pnpm install          # 安装依赖
 pnpm run dev          # Worker + Expo Web 同时启动 (localhost:8787 + :8081)
 pnpm run quality      # typecheck + lint + format + test:all
 pnpm run e2e          # Playwright E2E
+
+# 本地 D1 seed — dev 用户 (dev@test.local / dev123) + 全物品解锁
+pnpm -F @werewolf/api-worker db:migrate:local
+pnpm -F @werewolf/api-worker db:seed:local
 ```
 
 ### 项目结构
@@ -184,7 +188,8 @@ src/
 
 ```bash
 pnpm run release            # patch（默认）— bump → CHANGELOG → tag → push
-pnpm run release -- major   # major 发版
+pnpm run release minor      # minor 发版
+pnpm run release major      # major 发版
 # git push 自动触发 Cloudflare Pages + Workers 部署
 ```
 
@@ -204,7 +209,7 @@ pnpm run release -- major   # major 发版
 <details>
 <summary><b>支持哪些平台？</b></summary>
 
-iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Firefox、Edge）。Web 版可以添加到手机主屏幕像原生 App 一样使用。微信搜索「狼人杀自助电子法官」可直接使用。
+iOS、Android、微信小程序和任何现代浏览器（Chrome、Safari、Firefox、Edge）。Web 版可以添加到手机主屏幕像原生 App 一样使用。微信搜索「狼人面杀电子裁判助手」即可使用。
 
 </details>
 
