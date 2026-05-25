@@ -24,6 +24,7 @@ function randomHex(bytes: number): string {
   return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** 头像上传路由。 */
 export const avatarRoutes = new Hono<AppEnv>();
 
 // POST /avatar/upload — R2 头像上传

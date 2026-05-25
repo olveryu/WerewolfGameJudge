@@ -1,5 +1,5 @@
 /**
- * GameFacade - UI Facade 实现
+ * GameFacade — UI Facade 实现。
  *
  * 职责：
  * - 组合 gameActions / seatActions 子模块
@@ -8,19 +8,15 @@
  * - 委托音频编排给 AudioOrchestrator
  * - 委托连接生命周期给 ConnectionManager
  *
- * 实例化方式：
- * - 由 composition root（App.tsx）通过 `new GameFacade(deps)` 创建
+ * 不负责：
+ * - 业务逻辑/校验规则（全部在 handler）
+ * - 直接修改 state（全部在 reducer）
+ * - 全局单例（已移除 getInstance/resetInstance）
+ *
+ * 边界约束：
+ * - 由 composition root（App.tsx）通过 constructor DI 创建
  * - 通过 GameFacadeContext 注入到组件树
- * - 通过 constructor DI 注入依赖（测试/组合根）
- *
- * 不包含业务逻辑/校验规则（全部在 handler），不直接修改 state（全部在 reducer），
- * 不使用全局单例（已移除 getInstance/resetInstance）。
- *
- * 子模块划分：
- * - gameActions.ts: Host-only 业务编排（assignRoles/startNight/submitAction）
- * - seatActions.ts: 座位操作编排（takeSeat/leaveSeat + player ACK 等待逻辑）
- * - AudioOrchestrator.ts: Host 音频编排 + ack 重试
- * - ConnectionManager: FSM 驱动的连接生命周期（重连/ping/pong/revision poll）
+ * - 子模块划分：gameActions / seatActions / AudioOrchestrator / ConnectionManager
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
@@ -85,6 +81,14 @@ function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
   }
 }
 
+/**
+ * GameFacade — UI 层唯一入口，编排房间生命周期、连接、状态、音频。
+ *
+ * 职责：协调 ConnectionManager + GameStore + AudioService，
+ * 暗露 subscribe/getState API 供 hook 消费。
+ *
+ * 不包含游戏规则逻辑。
+ */
 export class GameFacade implements IGameFacade {
   readonly #store: GameStore;
   readonly #connectionManager: ConnectionManager;

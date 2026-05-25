@@ -42,6 +42,7 @@ import { useConfigScreenState } from './useConfigScreenState';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
 type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
+/** 角色配置屏幕。 */
 export const ConfigScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createConfigScreenStyles(colors), []);

@@ -11,6 +11,11 @@ import type { PlayerViewedRoleAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
+/**
+ * 处理玩家查看角色意图。
+ *
+ * 校验座位所有权、状态合法性，返回 PLAYER_VIEWED_ROLE action。
+ */
 export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
   const { state, mySeat } = context;

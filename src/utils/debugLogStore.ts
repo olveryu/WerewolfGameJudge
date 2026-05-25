@@ -39,43 +39,43 @@ function emitChange(): void {
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
+/** Debug 日志外部 store，兼容 useSyncExternalStore 的 subscribe/getSnapshot API。 */ export const debugLogStore =
+  {
+    /** useSyncExternalStore subscribe */
+    subscribe(listener: () => void): () => void {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
 
-export const debugLogStore = {
-  /** useSyncExternalStore subscribe */
-  subscribe(listener: () => void): () => void {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
+    /** useSyncExternalStore getSnapshot */
+    getSnapshot(): DebugLogSnapshot {
+      return snapshot;
+    },
 
-  /** useSyncExternalStore getSnapshot */
-  getSnapshot(): DebugLogSnapshot {
-    return snapshot;
-  },
+    addLog(message: string, level: DebugLogEntry['level']): void {
+      const entry: DebugLogEntry = {
+        timestamp: new Date(),
+        message,
+        level,
+      };
 
-  addLog(message: string, level: DebugLogEntry['level']): void {
-    const entry: DebugLogEntry = {
-      timestamp: new Date(),
-      message,
-      level,
-    };
+      const next = [...logs, entry];
+      logs = next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
+      emitChange();
+    },
 
-    const next = [...logs, entry];
-    logs = next.length > MAX_LOGS ? next.slice(-MAX_LOGS) : next;
-    emitChange();
-  },
+    clear(): void {
+      logs = [];
+      emitChange();
+    },
 
-  clear(): void {
-    logs = [];
-    emitChange();
-  },
+    setVisible(v: boolean): void {
+      if (visible === v) return;
+      visible = v;
+      emitChange();
+    },
 
-  setVisible(v: boolean): void {
-    if (visible === v) return;
-    visible = v;
-    emitChange();
-  },
-
-  getVisible(): boolean {
-    return visible;
-  },
-} as const;
+    getVisible(): boolean {
+      return visible;
+    },
+  } as const;

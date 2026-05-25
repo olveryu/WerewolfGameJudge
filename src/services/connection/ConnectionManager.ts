@@ -1,8 +1,8 @@
 /**
- * ConnectionManager — 连接生命周期管理（imperative shell）
+ * ConnectionManager — 连接生命周期管理（imperative shell）。
  *
- * 持有 ConnectionFSM，驱动所有状态转换。通过 IRealtimeTransport 接口
- * 操作 WebSocket（不直接创建 WS）。管理：
+ * 职责：
+ * - 持有 ConnectionFSM，驱动所有状态转换
  * - Prefetch：OPEN_WS 时并行发起 HTTP fetch（唤醒 DO + 预取状态）
  * - Ping/pong keepalive + timeout 检测
  * - Retry timer（指数退避 + jitter）
@@ -10,11 +10,15 @@
  * - 平台事件监听（online/offline、visibilitychange）
  * - connectAndWait()：带 Promise 语义的初始连接
  *
- * 遵循 functional core / imperative shell 模式：
+ * 不负责：
+ * - 游戏逻辑
+ * - 状态持久化
+ * - 直接创建 WebSocket（通过 IRealtimeTransport 接口操作）
+ *
+ * 边界约束：
+ * - 遵循 functional core / imperative shell 模式
  * - ConnectionFSM（functional core）是纯函数
  * - ConnectionManager（imperative shell）执行 side effects
- *
- * 不包含游戏逻辑，不持久化状态。
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
@@ -43,6 +47,7 @@ import {
 
 type ConnectionStateListener = (state: ConnectionState) => void;
 
+/** ConnectionManager 依赖注入接口。 */
 export interface ConnectionManagerDeps {
   /** WebSocket 传输层（IRealtimeTransport） */
   transport: IRealtimeTransport;
@@ -62,6 +67,12 @@ export interface ConnectionManagerDeps {
 // Manager
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * ConnectionManager — 连接生命周期管理（imperative shell）。
+ *
+ * 驱动 ConnectionFSM 状态转换并执行所有 side effects：
+ * WS 打开/关闭、ping/pong、retry timer、revision poll、平台事件监听。
+ */
 export class ConnectionManager {
   #ctx: FSMContext;
   readonly #deps: ConnectionManagerDeps;

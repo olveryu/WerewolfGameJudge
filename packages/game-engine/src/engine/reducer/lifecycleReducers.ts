@@ -23,6 +23,7 @@ import type {
   WithdrawBoardNominationAction,
 } from './types';
 
+/** 初始化游戏状态（设置房间号、模板、座位数）。 */
 export function handleInitializeGame(state: GameState, action: InitializeGameAction): GameState {
   const { roomCode, hostUserId, templateRoles, totalSeats } = action.payload;
   const players: Record<number, null> = {};
@@ -41,6 +42,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
   };
 }
 
+/** 重启游戏（保留玩家，清除角色分配，回到 Seated）。 */
 export function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
   // PR9: 对齐 v1 行为 - 保留玩家但清除角色
   // v1: 保持 players 不变，仅清除 role/hasViewedRole
@@ -133,6 +135,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
   } satisfies Complete<GameState>;
 }
 
+/** 更新游戏模板（调整座位数、保留已入座玩家）。 */
 export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAction): GameState {
   const newTemplateRoles = action.payload.templateRoles;
   const newCount = getPlayerCount(newTemplateRoles);
@@ -168,6 +171,7 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
   };
 }
 
+/** 玩家入座。 */
 export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
   const { seat, player, rosterEntry } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
@@ -182,6 +186,7 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
   };
 }
 
+/** 玩家离座。 */
 export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameState {
   const { seat } = action.payload;
   const leavingPlayer = state.players[seat];
@@ -197,6 +202,7 @@ export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): 
   };
 }
 
+/** 玩家离座。 */
 export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
@@ -232,6 +238,7 @@ export function handleUpdatePlayerProfile(
   };
 }
 
+/** 分配角色（将 assignments 写入 players，状态转 Assigned）。 */
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
   const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat } =
     action.payload;
@@ -257,6 +264,7 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
   };
 }
 
+/** 标记玩家已查看角色（全部查看后状态转 Ready）。 */
 export function handlePlayerViewedRole(
   state: GameState,
   action: PlayerViewedRoleAction,
@@ -287,6 +295,7 @@ export function handlePlayerViewedRole(
   };
 }
 
+/** 用 bot 填充空座位。 */
 export function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
   const { bots, botRoster } = action.payload;
 
@@ -309,6 +318,7 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
   };
 }
 
+/** 标记所有 bot 已查看角色。 */
 export function handleMarkAllBotsViewed(state: GameState): GameState {
   const newPlayers = { ...state.players };
 
@@ -338,6 +348,7 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
 // 板子建议 Reducers
 // =============================================================================
 
+/** 设置板子建议。 */
 export function handleSetBoardNomination(
   state: GameState,
   action: SetBoardNominationAction,
@@ -352,6 +363,7 @@ export function handleSetBoardNomination(
   };
 }
 
+/** 对板子建议投票（toggle，单选）。 */
 export function handleUpvoteBoardNomination(
   state: GameState,
   action: UpvoteBoardNominationAction,
@@ -389,6 +401,7 @@ export function handleUpvoteBoardNomination(
   };
 }
 
+/** 撤回板子建议。 */
 export function handleWithdrawBoardNomination(
   state: GameState,
   action: WithdrawBoardNominationAction,

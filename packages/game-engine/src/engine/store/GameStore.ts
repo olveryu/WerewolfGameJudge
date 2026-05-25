@@ -1,5 +1,5 @@
 /**
- * GameStore - 游戏状态持有者
+ * GameStore — 游戏状态持有者。
  *
  * 职责：
  * - 持有 normalized GameState
@@ -8,9 +8,13 @@
  * - 玩家端：applySnapshot（版本号检查）
  * - 主机端：setState / updateState
  *
- * Store 是 parse boundary：input 接收 GameState，
- * 内部 normalizeState() 后存储为 GameState（tight）。
- * 不包含业务逻辑（校验/结算/流程推进），不包含 IO（网络/音频/Alert）。
+ * 不负责：
+ * - 业务逻辑（校验/结算/流程推进）
+ * - IO（网络/音频/Alert）
+ *
+ * 边界约束：
+ * - Store 是 parse boundary：input 接收 GameState，内部 normalizeState() 后存储
+ * - applySnapshot 仅当 incoming revision > local revision 时应用
  */
 
 import { getEngineLogger } from '../../utils/logger';

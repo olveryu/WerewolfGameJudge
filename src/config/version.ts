@@ -8,4 +8,5 @@
 
 import packageJson from '../../package.json';
 
+/** 当前应用版本号（带 `v` 前缀，如 `v2.5.0`），从 package.json 读取。 */
 export const APP_VERSION = `v${packageJson.version}`;

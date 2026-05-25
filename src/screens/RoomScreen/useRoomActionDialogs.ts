@@ -77,6 +77,7 @@ export interface UseRoomActionDialogsResult {
   ) => void;
 }
 
+/** 行动拒绝/确认弹窗 hook。 */
 export function useRoomActionDialogs(): UseRoomActionDialogsResult {
   // ─────────────────────────────────────────────────────────────────────────
   // Action rejected alert (unified UX for server rejections)

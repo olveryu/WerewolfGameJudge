@@ -44,6 +44,7 @@ const AdminEmptyStateComponent: React.FC<AdminEmptyStateProps> = ({ loading, err
   return null;
 };
 
+/** 管理页加载/错误/空状态占位。 */
 export const AdminEmptyState = memo(AdminEmptyStateComponent);
 
 const styles = StyleSheet.create({

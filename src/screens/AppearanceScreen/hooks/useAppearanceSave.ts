@@ -39,6 +39,7 @@ interface UseAppearanceSaveParams {
   goBack: () => void;
 }
 
+/** 外观保存/上传 hook。 */
 export function useAppearanceSave(params: UseAppearanceSaveParams) {
   const [saving, setSaving] = useState(false);
   const ref = useRef(params);

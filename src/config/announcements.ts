@@ -6,8 +6,11 @@
  * 新版本发布时在此添加条目即可。只写用户能感知到的变化。
  */
 
+/** What's New 弹窗单条公告结构。 */
 interface Announcement {
+  /** 弹窗标题（如 "v2.5.0 更新内容"） */
   title: string;
+  /** 更新条目列表，每条一句话描述用户可感知的变化 */
   items: string[];
 }
 

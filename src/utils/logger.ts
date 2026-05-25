@@ -115,24 +115,43 @@ const config = {
   },
 };
 
+/** 全局根 logger 实例，所有命名 logger 通过 `log.extend('Module')` 派生。 */
 export const log = logger.createLogger(config);
 
 // Pre-configured extensions for common modules
+/** Realtime/WebSocket 层日志 */
 export const realtimeLog = log.extend('Realtime');
+/** 音频播放日志 */
 export const audioLog = log.extend('Audio');
+/** 认证流程日志 */
 export const authLog = log.extend('Auth');
+/** 房间管理日志 */
 export const roomLog = log.extend('Room');
+/** GameRoom hook 日志 */
 export const gameRoomLog = log.extend('GameRoom');
+/** WebSocket 连接生命周期日志 */
 export const connectionLog = log.extend('Connection');
+/** 配置加载日志 */
 export const configLog = log.extend('Config');
+/** RoomScreen 日志 */
 export const roomScreenLog = log.extend('RoomScreen');
+/** HomeScreen 日志 */
 export const homeLog = log.extend('Home');
+/** GameFacade 日志 */
 export const facadeLog = log.extend('Facade');
+/** 设置页面日志 */
 export const settingsLog = log.extend('Settings');
+/** SettingsService 日志 */
 export const settingsServiceLog = log.extend('SettingsService');
+/** BGM 播放日志 */
 export const bgmLog = log.extend('BGM');
+/** AI Chat 日志 */
 export const chatLog = log.extend('Chat');
+/** cfFetch 网络层日志 */
 export const cfFetchLog = log.extend('cfFetch');
+/** 统计/个人数据日志 */
 export const statsLog = log.extend('Stats');
+/** 分享功能日志 */
 export const shareLog = log.extend('Share');
+/** 扭蛋系统日志 */
 export const gachaLog = log.extend('Gacha');

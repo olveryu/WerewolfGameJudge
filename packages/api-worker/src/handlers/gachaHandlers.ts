@@ -26,6 +26,7 @@ import { jsonBody } from './shared';
 
 const log = createLogger('gacha');
 
+/** 扭蛋系统路由（抽奖/每日奖励/解锁）。 */
 export const gachaRoutes = new Hono<AppEnv>();
 
 /** Minimum hours between daily reward claims (server-side cooldown guard) */

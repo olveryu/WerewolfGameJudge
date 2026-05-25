@@ -36,6 +36,7 @@ const GUIDE_SEGMENTS: readonly { key: GuideTab; label: string }[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+/** 角色百科/板子指南屏幕。 */
 export const EncyclopediaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();

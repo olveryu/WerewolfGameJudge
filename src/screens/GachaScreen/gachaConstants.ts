@@ -6,8 +6,7 @@
  */
 
 // ─── Phase state machine ────────────────────────────────────────────────
-
-export const PHASE = {
+/** 动画阶段枚举。 */ export const PHASE = {
   IDLE: 0,
   TUMBLING: 1,
   SETTLING: 2,

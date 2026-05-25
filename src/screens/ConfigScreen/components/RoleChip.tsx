@@ -12,6 +12,7 @@ import { fixed } from '@/theme';
 
 import { type ConfigScreenStyles } from './styles';
 
+/** 阵营色系 key。 */
 export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'third';
 
 interface RoleChipProps {
@@ -37,6 +38,7 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
   third: 'chipSelectedThird',
 };
 
+/** 角色芯片组件。 */
 export const RoleChip = memo<RoleChipProps>(
   ({
     id,

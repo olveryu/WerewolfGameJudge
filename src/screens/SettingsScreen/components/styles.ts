@@ -18,6 +18,7 @@ import {
   withAlpha,
 } from '@/theme';
 
+/** 设置屏幕样式类型。 */
 export interface SettingsScreenStyles {
   container: ViewStyle;
   scrollView: ViewStyle;
@@ -122,6 +123,7 @@ export interface SettingsScreenStyles {
   growthXpValue: TextStyle;
 }
 
+/** 创建设置屏幕样式。 */
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
   StyleSheet.create<SettingsScreenStyles>({
     container: {

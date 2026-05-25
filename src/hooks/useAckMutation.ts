@@ -18,6 +18,15 @@ import { useMutation } from '@tanstack/react-query';
 
 type AckName = 'reveal' | 'hunterStatus' | 'groupConfirm';
 
+/**
+ * TanStack Query mutation 封装，用于服务端 ack 往返。
+ *
+ * 零重试、统一 mutationKey 以便 usePendingAcks 聚合状态。
+ *
+ * @param name - ack 类型名称
+ * @param mutationFn - 执行 ack 请求的异步函数
+ * @param options - 可选 onSuccess/onError 回调
+ */
 export function useAckMutation<TArgs, TData>(
   name: AckName,
   mutationFn: (args: TArgs) => Promise<TData>,

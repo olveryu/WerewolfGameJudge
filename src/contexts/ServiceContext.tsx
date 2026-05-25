@@ -14,6 +14,7 @@ import type { IAuthService } from '@/services/types/IAuthService';
 import type { IRoomService } from '@/services/types/IRoomService';
 import type { IStorageService } from '@/services/types/IStorageService';
 
+/** DI 容器提供的服务实例集合。 */
 export interface ServiceContextValue {
   authService: IAuthService;
   roomService: IRoomService;
@@ -29,11 +30,17 @@ interface ServiceProviderProps {
   services: ServiceContextValue;
 }
 
+/** 服务注入 Provider，在 App.tsx composition root 中包裹整个组件树。 */
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children, services }) => {
   const value = useMemo(() => services, [services]);
   return <ServiceContext value={value}>{children}</ServiceContext>;
 };
 
+/**
+ * 获取全局服务实例。
+ *
+ * 必须在 ServiceProvider 子树内调用，否则抛出。
+ */
 export const useServices = (): ServiceContextValue => {
   const ctx = use(ServiceContext);
   if (!ctx) {

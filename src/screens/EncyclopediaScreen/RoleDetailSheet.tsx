@@ -73,6 +73,7 @@ interface RoleDetailSheetProps {
 
 const HERO_BADGE_SIZE = componentSizes.avatar.xl;
 
+/** 角色详情底部弹窗。 */
 export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleId, onClose }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, insets.bottom), [insets.bottom]);

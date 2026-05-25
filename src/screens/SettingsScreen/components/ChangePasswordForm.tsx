@@ -23,6 +23,7 @@ interface ChangePasswordFormProps {
   colors: ThemeColors;
 }
 
+/** 修改密码表单。 */
 export const ChangePasswordForm = memo<ChangePasswordFormProps>(
   ({ onSubmit, onCancel, styles, colors }) => {
     const [oldPassword, setOldPassword] = useState('');

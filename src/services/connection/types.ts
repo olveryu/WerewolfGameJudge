@@ -33,6 +33,7 @@ export enum ConnectionState {
 // Events
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** FSM 事件类型（输入）— 触发状态转换。 */
 export type ConnectionEvent =
   | { type: 'CONNECT'; roomCode: string; userId: string }
   | { type: 'WS_OPEN' }
@@ -56,6 +57,7 @@ export type ConnectionEvent =
 // Side Effects
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** FSM 副作用类型（输出）— 由 ConnectionManager 执行。 */
 export type SideEffect =
   | { type: 'OPEN_WS'; roomCode: string; userId: string }
   | { type: 'CLOSE_WS' }
@@ -77,6 +79,7 @@ export type SideEffect =
 // FSM Context
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** FSM 上下文— 状态机的全部可变数据。 */
 export interface FSMContext {
   readonly state: ConnectionState;
   readonly roomCode: string | null;
@@ -99,8 +102,10 @@ export interface TransitionResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Thrown when a pending connectAndWait() is cancelled by a newer call.
- * Catch with `instanceof SupersededError` — not a real failure, just cancellation.
+ * SupersededError — connectAndWait() 被更新调用取消时抛出。
+ *
+ * 何时抛出：当新的 connectAndWait() 调用取代尚未 resolve 的旧调用。
+ * 如何 catch：`instanceof SupersededError` —— 不是真实失败，仅为取消信号。
  */
 export class SupersededError extends Error {
   constructor() {

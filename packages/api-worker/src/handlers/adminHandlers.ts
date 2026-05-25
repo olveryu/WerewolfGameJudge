@@ -51,8 +51,7 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 });
 
 // ── Routes ──────────────────────────────────────────────────────────────────
-
-export const adminRoutes = new Hono<AppEnv>();
+/** 管理后台路由（需 admin 权限）。 */ export const adminRoutes = new Hono<AppEnv>();
 
 adminRoutes.use('*', requireAdmin);
 

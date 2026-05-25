@@ -16,6 +16,7 @@ import { users, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 
+/** 用户统计/资料路由。 */
 export const statsRoutes = new Hono<AppEnv>();
 
 /** GET /api/user/:userId/profile — 查看其他玩家公开资料 */

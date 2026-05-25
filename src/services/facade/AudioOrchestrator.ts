@@ -1,12 +1,18 @@
 /**
- * AudioOrchestrator — Host 音频编排 + ack 重试
+ * AudioOrchestrator — Host 音频编排 + ack 重试。
  *
- * 从 GameFacade 提取，职责：
- * 1. Reactive 监听 store 中 pendingAudioEffects → 播放 → postAudioAck
- * 2. Host rejoin 时 resumeAfterRejoin（重播当前步骤音频）
- * 3. Audio-ack 断线重试（L2 status listener + L3a online retry）
+ * 职责：
+ * - Reactive 监听 store 中 pendingAudioEffects → 播放 → postAudioAck
+ * - Host rejoin 时 resumeAfterRejoin（重播当前步骤音频）
+ * - Audio-ack 断线重试（L2 status listener + L3a online retry）
  *
- * 不负责房间生命周期或通用断线恢复（由 ConnectionRecoveryManager 处理）。
+ * 不负责：
+ * - 房间生命周期或通用断线恢复（由 ConnectionRecoveryManager 处理）
+ * - 平台特定音频播放（由 AudioService 处理）
+ *
+ * 边界约束：
+ * - 仅 Host 角色活跃（isHost() === true 时才播放/重试）
+ * - dispose() 后不可重用，必须重新创建实例
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -38,6 +44,12 @@ export interface AudioOrchestratorDeps {
   isAborted: () => boolean;
 }
 
+/**
+ * AudioOrchestrator — 夜间音频编排器。
+ *
+ * 职责：将 pendingAudioEffects 按顺序播放，含 skip/abort 逻辑。
+ * 不决定“何时播什么”，只负责执行。
+ */
 export class AudioOrchestrator {
   readonly #deps: AudioOrchestratorDeps;
 

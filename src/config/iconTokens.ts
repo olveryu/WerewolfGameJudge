@@ -12,8 +12,7 @@ import type { ComponentProps } from 'react';
 type IoniconsName = ComponentProps<typeof Ionicons>['name'];
 
 // ── Game / system status ─────────────────────────────────────
-
-export const STATUS_ICONS = {
+/** 游戏/系统状态图标映射，用于座位状态指示等场景。 */ export const STATUS_ICONS = {
   READY: 'checkmark-circle',
   WARNING: 'warning-outline',
   ERROR: 'alert-circle',
@@ -23,8 +22,7 @@ export const STATUS_ICONS = {
 } as const satisfies Record<string, IoniconsName>;
 
 // ── Generic UI icons ─────────────────────────────────────────
-
-export const UI_ICONS = {
+/** 通用 UI 图标映射，用于按钮 / 导航 / 占位等场景。 */ export const UI_ICONS = {
   CLOSE: 'close',
   HINT: 'bulb-outline',
   EDIT: 'create-outline',
@@ -45,8 +43,7 @@ export const UI_ICONS = {
 } as const satisfies Record<string, IoniconsName>;
 
 // ── Gacha icons ──────────────────────────────────────────────
-
-export const GACHA_ICONS = {
+/** 扭蛋系统专用图标映射。 */ export const GACHA_ICONS = {
   NORMAL_DRAW: 'sparkles-outline',
   GOLDEN_DRAW: 'star',
 } as const satisfies Record<string, IoniconsName>;

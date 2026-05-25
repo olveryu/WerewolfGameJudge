@@ -49,6 +49,7 @@ import { PHASE } from './gachaConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 
+/** 扭蛋抽奖主屏幕。 */
 export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();

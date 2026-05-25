@@ -90,8 +90,7 @@ const SKIA_FLASH = Skia.Color('#FFFFFF');
 const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
 
 // ─── Types ──────────────────────────────────────────────────────────────
-
-export interface CapsuleMachineRef {
+/** 扭蛋机组件命令式接口。 */ export interface CapsuleMachineRef {
   startAnimation: (drawType: 'normal' | 'golden', count: number) => void;
   setResults: (rarities: string[]) => void;
   cancelAnimation: () => void;

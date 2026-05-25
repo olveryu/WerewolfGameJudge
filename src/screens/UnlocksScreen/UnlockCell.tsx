@@ -33,6 +33,7 @@ const EFFECT_PREVIEW_SIZE = CELL_SIZE - spacing.small * 2;
 
 // ── Main cell ───────────────────────────────────────────────────────────────
 
+/** 单个解锁物品网格单元格。 */
 export const UnlockCell = React.memo<{ item: UnlockItem }>(({ item }) => {
   const thumb =
     item.type === 'avatar' ? (

@@ -1,5 +1,5 @@
 /**
- * RoomScreenTestHarness - RoomScreen UI 测试基础设施
+ * RoomScreenTestHarness — RoomScreen UI 测试基础设施。
  *
  * 职责：
  * - 拦截并记录所有 showAlert 调用
@@ -7,7 +7,12 @@
  * - Dialog 类型分类的单一真相（centralized classification）
  * - 支持循环检测和覆盖率验证
  *
- * 提供拦截 dialog、断言、覆盖率检查能力，不自动清除 gate 或跳过断言。
+ * 不负责：
+ * - 自动清除 gate 或跳过断言
+ * - 实际游戏逻辑执行
+ *
+ * 边界约束：
+ * - 仅用于 Jest 测试环境，不可在生产代码中引用
  */
 
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';

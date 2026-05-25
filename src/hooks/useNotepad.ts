@@ -77,8 +77,11 @@ export function getNotepadStorageKey(roomCode: string | null): string | null {
 // ══════════════════════════════════════════════════════════
 // Hook
 // ══════════════════════════════════════════════════════════
-
-export function useNotepad(facade: IGameFacade): UseNotepadReturn {
+/**
+ * 管理玩家笔记状态（身份标记/文本备注），带 AsyncStorage 持久化。
+ *
+ * @param facade - GameFacade 实例，用于读取当前游戏状态
+ */ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const [state, setState] = useState<NotepadState>(emptyState);
 
   // Subscribe to facade state via useSyncExternalStore (reactive to gameState changes)

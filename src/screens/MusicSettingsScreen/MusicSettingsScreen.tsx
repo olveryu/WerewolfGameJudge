@@ -29,6 +29,7 @@ import { createMusicSettingsStyles } from './MusicSettingsScreen.styles';
 
 const musicSettingsLog = log.extend('MusicSettingsScreen');
 
+/** 音乐设置屏幕。 */
 export const MusicSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createMusicSettingsStyles(colors), []);

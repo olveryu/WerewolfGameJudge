@@ -7,6 +7,7 @@
 
 import type { IntentExecutor } from './types';
 
+/** 打开底牌选择弹窗。 */
 export const chooseCardExecutor: IntentExecutor = (_intent, ctx) => {
   ctx.openChooseCardModal?.();
 };

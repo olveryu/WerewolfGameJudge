@@ -48,6 +48,7 @@ interface DropdownProps {
   testID?: string;
 }
 
+/** 下拉选择器。 */
 export const Dropdown = memo<DropdownProps>(
   ({ label, value, options, onSelect, styles, testID }) => {
     const [visible, setVisible] = useState(false);

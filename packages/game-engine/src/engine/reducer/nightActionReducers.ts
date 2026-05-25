@@ -22,6 +22,7 @@ import type {
   StartNightAction,
 } from './types';
 
+/** 开始夜晚（设置初始 stepIndex，清空 actions/results）。 */
 export function handleStartNight(state: GameState, action: StartNightAction): GameState {
   const { currentStepIndex, currentStepId } = action.payload;
   return {
@@ -36,6 +37,7 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
   };
 }
 
+/** 推进到下一个夜间步骤。 */
 export function handleAdvanceToNextAction(
   state: GameState,
   action: AdvanceToNextActionAction,
@@ -58,6 +60,7 @@ export function handleAdvanceToNextAction(
   };
 }
 
+/** 结束夜晚（写入死亡结果，状态转 Ended）。 */
 export function handleEndNight(state: GameState, action: EndNightAction): GameState {
   const { deaths, deathReasons } = action.payload;
   return {
@@ -74,6 +77,7 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
   };
 }
 
+/** 记录一次夜间行动。 */
 export function handleRecordAction(state: GameState, action: RecordActionAction): GameState {
   const { action: newAction } = action.payload;
   const existingActions = state.actions;
@@ -83,6 +87,7 @@ export function handleRecordAction(state: GameState, action: RecordActionAction)
   };
 }
 
+/** 应用 resolver 计算结果到 state（reveal、状态同步）。 */
 export function handleApplyResolverResult(
   state: GameState,
   action: ApplyResolverResultAction,
@@ -172,6 +177,7 @@ export function handleApplyResolverResult(
   };
 }
 
+/** 设置女巫上下文（毒药水状态）。 */
 export function handleSetWitchContext(state: GameState, action: SetWitchContextAction): GameState {
   return {
     ...state,
@@ -179,6 +185,7 @@ export function handleSetWitchContext(state: GameState, action: SetWitchContextA
   };
 }
 
+/** 设置确认状态（查验结果待确认）。 */
 export function handleSetConfirmStatus(
   state: GameState,
   action: SetConfirmStatusAction,
@@ -189,6 +196,7 @@ export function handleSetConfirmStatus(
   };
 }
 
+/** 覆写狼人击杀目标（噩梦影封堵后）。 */
 export function handleSetWolfKillOverride(
   state: GameState,
   action: SetWolfKillOverrideAction,
@@ -206,6 +214,7 @@ export function handleSetWolfKillOverride(
   };
 }
 
+/** 标记机械狼人已查看猎人状态。 */
 export function handleSetWolfRobotHunterStatusViewed(
   state: GameState,
   action: SetWolfRobotHunterStatusViewedAction,
@@ -216,6 +225,7 @@ export function handleSetWolfRobotHunterStatusViewed(
   };
 }
 
+/** 设置音频播放状态。 */
 export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingAction): GameState {
   return {
     ...state,
@@ -223,6 +233,7 @@ export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingA
   };
 }
 
+/** 记录行动被拒绝（用于 UI 弹窗反馈）。 */
 export function handleActionRejected(state: GameState, action: ActionRejectedAction): GameState {
   return {
     ...state,
@@ -230,6 +241,7 @@ export function handleActionRejected(state: GameState, action: ActionRejectedAct
   };
 }
 
+/** 添加 reveal ack（幂等）。 */
 export function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameState {
   const { ackKey } = action.payload;
   const existing = state.pendingRevealAcks;

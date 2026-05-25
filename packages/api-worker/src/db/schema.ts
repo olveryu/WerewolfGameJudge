@@ -17,6 +17,7 @@ import {
 
 // ── users ───────────────────────────────────────────────────────────────────
 
+/** 用户表。 */
 export const users = sqliteTable(
   'users',
   {
@@ -44,6 +45,7 @@ export const users = sqliteTable(
 
 // ── rooms ───────────────────────────────────────────────────────────────────
 
+/** 房间表。 */
 export const rooms = sqliteTable('rooms', {
   id: text('id').primaryKey(),
   code: text('code').notNull().unique(),
@@ -54,6 +56,7 @@ export const rooms = sqliteTable('rooms', {
 
 // ── password_reset_tokens ───────────────────────────────────────────────────
 
+/** 密码重置令牌表。 */
 export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   id: text('id').primaryKey(),
   userId: text('user_id')
@@ -68,6 +71,7 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
 
 // ── refresh_tokens ──────────────────────────────────────────────────────────
 
+/** Refresh token 表。 */
 export const refreshTokens = sqliteTable(
   'refresh_tokens',
   {
@@ -87,6 +91,7 @@ export const refreshTokens = sqliteTable(
 
 // ── login_attempts ──────────────────────────────────────────────────────────
 
+/** 登录尝试记录（限流用）。 */
 export const loginAttempts = sqliteTable('login_attempts', {
   id: text('id').primaryKey(),
   emailHash: text('email_hash').notNull(),
@@ -95,6 +100,7 @@ export const loginAttempts = sqliteTable('login_attempts', {
 
 // ── user_stats ──────────────────────────────────────────────────────────────
 
+/** 用户统计（XP / 等级 / 扭蛋）。 */
 export const userStats = sqliteTable('user_stats', {
   userId: text('user_id')
     .primaryKey()
@@ -117,6 +123,7 @@ export const userStats = sqliteTable('user_stats', {
 
 // ── draw_history ────────────────────────────────────────────────────────────
 
+/** 扭蛋抽取历史。 */
 export const drawHistory = sqliteTable('draw_history', {
   id: text('id').primaryKey(),
   userId: text('user_id')
@@ -135,6 +142,7 @@ export const drawHistory = sqliteTable('draw_history', {
 
 // ── room_participants ────────────────────────────────────────────────────────
 
+/** 房间参与者关联表。 */
 export const roomParticipants = sqliteTable(
   'room_participants',
   {
@@ -155,6 +163,7 @@ export const roomParticipants = sqliteTable(
 
 // ── idempotency_keys ────────────────────────────────────────────────────────
 
+/** 幂等键表（防重放）。 */
 export const idempotencyKeys = sqliteTable(
   'idempotency_keys',
   {
@@ -170,6 +179,7 @@ export const idempotencyKeys = sqliteTable(
 
 // ── feedbacks ───────────────────────────────────────────────────────────────
 
+/** 用户反馈表。 */
 export const feedbacks = sqliteTable(
   'feedbacks',
   {
@@ -191,6 +201,7 @@ export const feedbacks = sqliteTable(
 
 // ── feedback_replies ────────────────────────────────────────────────────────
 
+/** 反馈回复表。 */
 export const feedbackReplies = sqliteTable(
   'feedback_replies',
   {
@@ -212,6 +223,7 @@ export const feedbackReplies = sqliteTable(
 
 // ── wx_claims ───────────────────────────────────────────────────────────────
 
+/** 微信 claim nonce 表。 */
 export const wxClaims = sqliteTable('wx_claims', {
   nonce: text('nonce').primaryKey(),
   openid: text('openid').notNull(),

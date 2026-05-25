@@ -19,6 +19,7 @@ interface AboutSectionProps {
   styles: SettingsScreenStyles;
 }
 
+/** 关于区域。 */
 export const AboutSection = memo<AboutSectionProps>(({ styles }) => {
   const handleCopyWechat = useCallback(() => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {

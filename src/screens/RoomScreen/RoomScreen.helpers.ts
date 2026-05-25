@@ -58,6 +58,7 @@ interface GameRoomLike {
   treasureMasterChosenCard?: RoleId | null;
 }
 
+/** 当前玩家是否为行动者及是否显示狼人队友。 */
 export interface ActionerState {
   imActioner: boolean;
   showWolves: boolean;

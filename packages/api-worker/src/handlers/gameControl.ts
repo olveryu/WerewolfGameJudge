@@ -24,6 +24,7 @@ import {
 } from '../schemas/game';
 import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
 
+/** 游戏控制路由（分配/重启/bot 等）。 */
 export const gameRoutes = new Hono<AppEnv>();
 
 // ── Simple no-arg handlers (roomCode only) ──────────────────────────────────

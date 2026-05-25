@@ -10,6 +10,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { loadTimingSchema } from '../schemas/telemetry';
 
+/** Telemetry 数据上报路由。 */
 export const telemetryRoutes = new Hono<AppEnv>();
 
 telemetryRoutes.post('/load-timing', async (c) => {

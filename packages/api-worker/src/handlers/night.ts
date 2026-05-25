@@ -18,6 +18,7 @@ import {
 } from '../schemas/night';
 import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
 
+/** 夜间行动路由。 */
 export const nightRoutes = new Hono<AppEnv>();
 
 // ── Night handlers ──────────────────────────────────────────────────────────

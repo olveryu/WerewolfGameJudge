@@ -14,6 +14,7 @@ export interface RoomRecord {
   createdAt: Date;
 }
 
+/** 房间 CRUD + game_state 读写接口。 */
 export interface IRoomService {
   /**
    * 创建房间（乐观插入 + 冲突重试）。

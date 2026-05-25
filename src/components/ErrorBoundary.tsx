@@ -1,12 +1,18 @@
 /**
- * ErrorBoundary - 全局错误边界
+ * ErrorBoundary — 全局错误边界。
  *
- * 捕获子组件树中未处理的 JS 错误，显示降级 UI 并提供重试。
- * 防止整个 app 因单一渲染错误白屏崩溃。
- * 渲染降级 UI 并记录错误日志。不 import service，不含业务逻辑。
+ * 职责：
+ * - 捕获子组件树中未处理的 JS 错误
+ * - 显示降级 UI 并提供重试按钮
+ * - 记录错误日志 + 上报 Sentry
  *
- * 样式例外：使用硬编码颜色/间距，因为 ErrorBoundary 是 class component，
- * 处于组件树最顶层，必须自包含 fallback 样式。
+ * 不负责：
+ * - 业务逻辑或 service 调用
+ * - 异步错误捕获（仅捕获渲染期错误）
+ *
+ * 边界约束：
+ * - 使用硬编码样式（class component，位于组件树最顶层，必须自包含 fallback 样式）
+ * - 不 import service，不含业务逻辑
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Sentry from '@sentry/react-native';

@@ -26,6 +26,7 @@ import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthLogin'>;
 
+/** 登录屏幕。 */
 export const AuthLoginScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

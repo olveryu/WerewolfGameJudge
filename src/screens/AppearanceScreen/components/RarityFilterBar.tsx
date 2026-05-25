@@ -18,6 +18,7 @@ interface RarityFilterBarProps {
   styles: AppearanceScreenStyles;
 }
 
+/** 稀有度筛选栏。 */
 export const RarityFilterBar: React.FC<RarityFilterBarProps> = ({
   rarityFilter,
   onFilterChange,

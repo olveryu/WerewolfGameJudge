@@ -56,8 +56,7 @@ const CATEGORY_TABS: TemplateCategory[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Screen
 // ─────────────────────────────────────────────────────────────────────────────
-
-export const BoardPickerScreen: React.FC = () => {
+/** 板子选择屏幕。 */ export const BoardPickerScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();

@@ -109,8 +109,11 @@ interface GameActionsDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
-
-export function useGameActions(deps: GameActionsDeps): GameActionsState {
+/**
+ * 游戏操作 hook — 封装开始游戏、夜间行动、重启等全部交互。
+ *
+ * 通过 facade 发起 HTTP 请求，不直接操作本地状态。
+ */ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const { facade, bgm, debug, mySeat, gameState } = deps;
 
   // =========================================================================

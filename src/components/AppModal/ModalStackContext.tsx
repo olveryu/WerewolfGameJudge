@@ -23,6 +23,7 @@ const ModalStackContext = createContext<ModalStackContextValue>(NOOP_VALUE);
 
 const ROOT_ID = 'root';
 
+/** Modal \u6808\u63d0\u4f9b\u8005\uff08web \u7aef\u7ef4\u62a4 inert \u6808\uff0cnative \u7aef\u7a7a\u5b9e\u73b0\uff09\u3002 */
 export function ModalStackProvider({ children }: { children: ReactNode }) {
   const stackRef = useRef<Set<string>>(new Set());
   const [size, setSize] = useState(0);

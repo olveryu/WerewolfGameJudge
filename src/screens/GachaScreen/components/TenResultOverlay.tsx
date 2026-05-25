@@ -146,6 +146,7 @@ interface RarityGroup {
   startIndex: number;
 }
 
+/** 十连抽结果展示覆盖层。 */
 export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenResultOverlayProps) {
   const groups = useMemo((): RarityGroup[] => {
     const withItems = RARITY_ORDER.map((rarity) => ({

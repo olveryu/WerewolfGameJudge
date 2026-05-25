@@ -8,6 +8,8 @@ let resolve: () => void;
 void new Promise<void>((r) => {
   resolve = r;
 });
+
+/** 标记 App 初始化完成（SplashScreen 隐藏后调用）。 */
 export function signalAppReady(): void {
   resolve();
 }

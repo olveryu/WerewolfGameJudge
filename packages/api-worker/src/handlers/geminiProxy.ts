@@ -75,6 +75,7 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
   );
 }
 
+/** Gemini AI 代理路由。 */
 export const geminiRoutes = new Hono<AppEnv>();
 
 type Message = { role: string; content: string };

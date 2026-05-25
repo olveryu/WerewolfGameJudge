@@ -29,6 +29,7 @@ interface SeatAnimationCellProps {
   styles: AppearanceScreenStyles;
 }
 
+/** 入座动画网格单元格。 */
 export const SeatAnimationCell = memo<SeatAnimationCellProps>(
   ({ item, selectedSeatAnimation, previewAvatarUrl, userId, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);

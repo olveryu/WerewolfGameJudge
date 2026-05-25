@@ -15,6 +15,7 @@ interface AuthScreenStyles extends AuthStyles {
   modalContent: ViewStyle;
 }
 
+/** 创建认证屏幕样式。 */
 export function createAuthScreenStyles(colors: ThemeColors, screenWidth: number): AuthScreenStyles {
   const base = createAuthBaseStyles(colors);
   return {

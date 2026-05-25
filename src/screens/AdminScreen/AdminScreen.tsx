@@ -35,6 +35,7 @@ const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphM
   { id: 'ai', label: 'AI', icon: 'sparkles-outline' },
 ];
 
+/** 管理后台屏幕。 */
 export const AdminScreen: React.FC = () => {
   const navigation = useNavigation();
   const [authenticated, setAuthenticated] = useState(false);

@@ -25,6 +25,7 @@ interface EffectHeroPreviewProps {
   styles: AppearanceScreenStyles;
 }
 
+/** 特效预览区。 */
 export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
   heroEffectId,
   heroEffectIcon,

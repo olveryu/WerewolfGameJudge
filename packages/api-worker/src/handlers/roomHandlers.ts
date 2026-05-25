@@ -20,6 +20,7 @@ import { getGameRoomStub, jsonBody } from './shared';
 
 const log = createLogger('room');
 
+/** 房间管理路由（创建/加入/状态）。 */
 export const roomRoutes = new Hono<AppEnv>();
 
 // ── POST /room/create ───────────────────────────────────────────────────────

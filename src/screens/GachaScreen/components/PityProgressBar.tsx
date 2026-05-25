@@ -32,8 +32,12 @@ interface PityProgressBarProps {
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
-
-export function PityProgressBar({ pity, threshold, golden, reducedMotion }: PityProgressBarProps) {
+/** 保底进度条。 */ export function PityProgressBar({
+  pity,
+  threshold,
+  golden,
+  reducedMotion,
+}: PityProgressBarProps) {
   const ratio = threshold > 0 ? pity / threshold : 0;
   const isNearPity = ratio >= NEAR_PITY_RATIO;
   const fillPercent = Math.min(ratio * 100, 100);

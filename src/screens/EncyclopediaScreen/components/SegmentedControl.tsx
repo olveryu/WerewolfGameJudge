@@ -19,6 +19,7 @@ interface SegmentedControlProps<T extends string> {
   onChangeKey: (key: T) => void;
 }
 
+/** 通用分段控制器。 */
 export function SegmentedControl<T extends string>({
   segments,
   activeKey,

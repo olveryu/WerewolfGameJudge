@@ -56,6 +56,11 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
 /** Font load timeout — don't block boot forever if CDN is unreachable. */
 const FONT_TIMEOUT_MS = 5_000;
 
+/**
+ * 跟踪应用启动进度（auth + 头像预加载 + 字体加载）。
+ *
+ * 全部完成后 ready=true，允许隐藏 SplashScreen。
+ */
 export function useBootProgress(): BootProgress {
   const { user, loading: authLoading, error: authError, retryInit } = useAuthContext();
   // Avatar prefetch: skip on native, mark done immediately when no avatar to prefetch

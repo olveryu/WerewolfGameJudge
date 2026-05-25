@@ -1,26 +1,23 @@
 /**
- * BgmPlayer — background music lifecycle manager.
+ * BgmPlayer — 背景音乐生命周期管理器。
  *
- * Supports two modes:
- * - **Single track**: loop one track (when user selects a specific BGM).
- * - **Playlist**: shuffle all tracks, play sequentially, re-shuffle on cycle end.
+ * 职责：
+ * - 单曲循环模式（用户选定 BGM）
+ * - 播放列表模式（shuffle 全曲目，顺序播放，循环时重新洗牌）
+ * - 跨平台后端：Web 用 AudioContext + GainNode，Native 用 expo-audio
+ * - 页面可见性变化时 pause/resume
  *
- * Platform-specific backends: Web Audio API GainNode on Web, expo-audio on Native.
- * Supports pause/resume for visibility changes. Independent of TTS playback —
- * AudioService composes both.
+ * 不负责：
+ * - TTS 语音播放（由 AudioPlaybackStrategy 处理）
+ * - 决定何时播放（由 AudioOrchestrator 编排）
  *
- * Web uses AudioContext + GainNode instead of HTMLAudioElement.volume because
- * iOS Safari ignores HTMLAudioElement.volume (always 1.0, hardware-only control).
- *
- * AudioContext, GainNode, MediaElementAudioSourceNode AND the HTMLAudioElement
- * itself are all reused across playlist tracks. Creating new Audio() or
- * AudioContext outside a user-gesture callback is silently blocked in WeChat
- * web-view. Reusing the element created on first start() preserves autoplay
- * permission for subsequent tracks.
- *
- * WeChat web-view (especially 鸿蒙 ArkWeb) may silently swallow the
- * HTMLAudioElement `ended` event and the native `loop` behaviour.
- * A `timeupdate` poll detects track end as a fallback.
+ * 边界约束：
+ * - Web 用 GainNode 控制音量（iOS Safari 忽略 HTMLAudioElement.volume）
+ * - AudioContext / GainNode / MediaElementAudioSourceNode / HTMLAudioElement
+ *   全部跨曲目复用——微信 web-view 中非用户手势创建 new Audio() 或
+ *   AudioContext 会被静默阻止
+ * - 微信 web-view（鸿蒙 ArkWeb）可能吞掉 `ended` 事件和原生 `loop`，
+ *   用 `timeupdate` 轮询兜底检测曲目结束
  */
 
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
@@ -37,6 +34,11 @@ import { getUnlockedAudioContext, getUnlockedBgmElement } from './webAudioUnlock
 
 const isWeb = Platform.OS === 'web';
 
+/**
+ * BgmPlayer — BGM 播放器（单曲/播放列表/随机）。
+ *
+ * Web 使用 HTMLAudioElement，Native 使用 expo-audio。
+ */
 export class BgmPlayer {
   // ── Shared state ──
   #isPlaying = false;

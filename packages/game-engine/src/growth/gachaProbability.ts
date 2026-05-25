@@ -9,6 +9,7 @@
 import type { Rarity, RewardItem } from './rewardCatalog';
 import { REWARD_POOL, SHARD_VALUES } from './rewardCatalog';
 
+/** 抽奖类型：普通 / 金色。 */
 export type DrawType = 'normal' | 'golden';
 
 /** 连续多少次未触发高稀有度后强制保底 */

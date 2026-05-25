@@ -22,6 +22,7 @@ import {
 } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
+/** 客户端用户信息（从 AuthUser metadata 映射而来）。 */
 export interface User {
   id: string;
   email: string | null;
@@ -100,6 +101,11 @@ const toUser = (authUser: AuthUser | null): User | null => {
   };
 };
 
+/**
+ * 全局认证状态 Provider。
+ *
+ * 在 App 层级维护单一 auth 订阅，避免屏幕切换时状态重置闪烁。
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,6 +184,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return <AuthContext value={value}>{children}</AuthContext>;
 };
 
+/**
+ * 获取全局认证状态。
+ *
+ * 必须在 AuthProvider 子树内调用，否则抛出。
+ */
 export const useAuthContext = (): AuthContextValue => {
   const context = use(AuthContext);
   if (!context) {

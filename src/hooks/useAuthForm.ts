@@ -56,6 +56,11 @@ interface AuthFormResult {
   isSubmitting: boolean;
 }
 
+/**
+ * 登录/注册表单的共享状态与 handler。
+ *
+ * 封装 email/password 表单、匹名登录、游客登录等操作。
+ */
 export function useAuthForm({
   onSuccess,
   logger,

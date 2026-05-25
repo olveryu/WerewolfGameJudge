@@ -25,6 +25,7 @@ type RouteProp = import('@react-navigation/native').RouteProp<
   'AuthForgotPassword'
 >;
 
+/** 忘记密码屏幕。 */
 export const AuthForgotPasswordScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

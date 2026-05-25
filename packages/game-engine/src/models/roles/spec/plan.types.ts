@@ -46,7 +46,12 @@ export interface NightPlan {
   readonly length: number;
 }
 
-/** Error thrown when buildNightPlan encounters invalid input */
+/**
+ * NightPlanBuildError — buildNightPlan 遇到无效输入时抛出。
+ *
+ * 何时抛出：模板中包含未注册的 roleId 或无效配置。
+ * 如何 catch：`instanceof NightPlanBuildError` —— 读取 .invalidRoleIds 展示具体问题角色。
+ */
 export class NightPlanBuildError extends Error {
   constructor(
     message: string,

@@ -22,6 +22,7 @@ interface NameSectionProps {
   styles: SettingsScreenStyles;
 }
 
+/** 名称显示区域。 */
 export const NameSection = memo<NameSectionProps>(
   ({ isAnonymous, displayName, nameStyle, onStartEdit, styles }) => {
     if (isAnonymous) {

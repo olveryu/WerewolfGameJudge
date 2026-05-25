@@ -55,6 +55,7 @@ import { selectUserProfile, toUserMetadata } from './userProfile';
 
 const log = createLogger('auth');
 
+/** 认证相关路由（注册/登录/刷新/密码重置）。 */
 export const authRoutes = new Hono<AppEnv>();
 
 /** Extract Cloudflare edge geo from incoming request. */

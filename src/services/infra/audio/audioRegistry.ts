@@ -243,6 +243,7 @@ export const SEER_LABEL_AUDIO: Record<string, AudioAsset> = {
   seer_2: seer2Begin,
 };
 
+/** 多预言家场景的开眼结束音频映射。 */
 export const SEER_LABEL_AUDIO_END: Record<string, AudioAsset> = {
   seer_1: seer1End,
   seer_2: seer2End,
@@ -275,7 +276,9 @@ export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
 // Night flow audio
 // ---------------------------------------------------------------------------
 
+/** “天黑请闭眼” 音频。 */
 export const NIGHT_AUDIO: AudioAsset = nightBegin;
+/** “天亮请睁眼” 音频。 */
 export const NIGHT_END_AUDIO: AudioAsset = nightEndBegin;
 
 // ---------------------------------------------------------------------------

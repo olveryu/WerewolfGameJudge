@@ -20,6 +20,7 @@ function randomHex(bytes: number): string {
   return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** 分享图片上传路由。 */
 export const shareRoutes = new Hono<AppEnv>();
 
 // POST /share/image — 上传分享图片

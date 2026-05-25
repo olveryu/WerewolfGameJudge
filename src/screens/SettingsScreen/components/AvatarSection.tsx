@@ -51,6 +51,7 @@ interface AvatarSectionProps {
   colors: ThemeColors;
 }
 
+/** 头像显示区域。 */
 export const AvatarSection = memo<AvatarSectionProps>(
   ({
     isAnonymous,

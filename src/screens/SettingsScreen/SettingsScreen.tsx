@@ -53,6 +53,7 @@ import {
   NameSection,
 } from './components';
 
+/** 设置屏幕。 */
 export const SettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   // Create styles once and pass to all sub-components

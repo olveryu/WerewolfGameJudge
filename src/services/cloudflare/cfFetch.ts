@@ -23,14 +23,17 @@ let refreshHandler: (() => Promise<boolean>) | null = null;
 /** 当 refresh 也失败（token 彻底过期）时的回调（由 CFAuthService 注入） */
 let onAuthExpired: (() => void) | null = null;
 
+/** 注入 access token 读取回调（由 CFAuthService 调用）。 */
 export function setTokenProvider(provider: () => string | null): void {
   tokenProvider = provider;
 }
 
+/** 注入 refresh token 执行回调（由 CFAuthService 调用）。 */
 export function setRefreshHandler(handler: () => Promise<boolean>): void {
   refreshHandler = handler;
 }
 
+/** 注入 token 彻底过期时的回调（用于触发重新登录流程）。 */
 export function setOnAuthExpired(handler: () => void): void {
   onAuthExpired = handler;
 }

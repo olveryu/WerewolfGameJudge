@@ -126,6 +126,7 @@ const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策
 - 适当使用 **加粗** 突出关键词、- 列表分条说明、emoji 🐺 增加可读性
 - 本App只处理第一夜，白天在线下进行`;
 
+/** AI 聊天消息结构（与 OpenAI Chat API 对齐）。 */
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;

@@ -31,6 +31,7 @@ interface TicketTabBarProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
+/** 普通/金色票切换栏。 */
 export function TicketTabBar({
   activeTab,
   normalCount,

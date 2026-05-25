@@ -36,6 +36,7 @@ interface NowPlayingBarProps {
   colors: ThemeColors;
 }
 
+/** 当前播放曲目栏。 */
 export const NowPlayingBar = memo<NowPlayingBarProps>(function NowPlayingBar({
   trackLabel,
   onStop,

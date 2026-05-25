@@ -37,6 +37,7 @@ interface RoleListItemProps {
 
 const BADGE_SIZE = componentSizes.avatar.md;
 
+/** 角色列表行。 */
 export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem({
   roleId,
   factionColor,

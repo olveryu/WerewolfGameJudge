@@ -26,6 +26,7 @@ type RouteProp = import('@react-navigation/native').RouteProp<
   'AuthResetPassword'
 >;
 
+/** 重置密码屏幕。 */
 export const AuthResetPasswordScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

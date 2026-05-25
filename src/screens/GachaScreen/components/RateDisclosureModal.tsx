@@ -37,6 +37,7 @@ const NORMAL_DRAW_PROBS = [30, 35, 20, 10, 5] as const;
 /** Level-up golden probabilities (%) — matches rollGoldenDraws weights */
 const GOLDEN_DRAW_PROBS = [35, 35, 18, 8, 4] as const;
 
+/** 概率披露弹窗。 */
 export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
   const styles = useMemo(() => createStyles(), []);
 

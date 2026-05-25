@@ -47,6 +47,12 @@ export const mobileDebugTransport = (props: {
   debugLogStore.addLog(message, level);
 };
 
+/**
+ * Web 端屏幕调试面板控制器。
+ *
+ * 提供 log/warn/error/debug/show/hide/toggle/clear API。
+ * Native 上所有方法为 no-op。
+ */
 export const mobileDebug = {
   log: (message: string) => {
     if (Platform.OS !== 'web') return;

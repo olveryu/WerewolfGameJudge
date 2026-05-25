@@ -21,6 +21,7 @@ import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)
 // =============================================================================
 
+/** 行动意图类型枚举。 */
 export type ActionIntentType =
   // Reveal (ANTI-CHEAT: RoomScreen only waits for private reveal + sends ack)
   | 'reveal'
@@ -52,6 +53,7 @@ export type ActionIntentType =
   // ChooseCard (treasureMaster bottom card selection)
   | 'chooseCard'; // Open bottom card selection modal
 
+/** 行动意图（可序列化，不含回调）。 */
 export interface ActionIntent {
   type: ActionIntentType;
   targetSeat: number;
@@ -114,7 +116,7 @@ export interface TakeoverBotSeatEvent {
   seat: number;
 }
 
-/** Union of all possible interaction events */
+/** 所有交互事件的联合类型。 */
 export type InteractionEvent =
   | SeatTapEvent
   | BottomActionEvent
@@ -198,7 +200,7 @@ export interface InteractionResultViewProfile {
   targetUserId: string;
 }
 
-/** Union of all possible interaction results */
+/** 所有交互结果的联合类型。 */
 export type InteractionResult =
   | InteractionResultNoop
   | InteractionResultAlert

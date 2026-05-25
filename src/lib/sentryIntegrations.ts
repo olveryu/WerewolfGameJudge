@@ -11,11 +11,19 @@ import { browserTracingIntegration } from '@sentry/browser';
 import * as Sentry from '@sentry/react-native';
 import { Platform } from 'react-native';
 
+/** React Navigation 屏幕跳转追踪集成（含 Time-To-Initial-Display）。 */
 export const reactNavigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: true,
 });
 
-/** Platform-specific integrations for Sentry.init() */
+/**
+ * 返回平台特定的 Sentry integration 列表，用于 Sentry.init()。
+ *
+ * Web: browserTracingIntegration + browserReplayIntegration
+ * Native: mobileReplayIntegration
+ *
+ * @returns Sentry integration 实例数组
+ */
 export function getSentryIntegrations() {
   const integrations: ReturnType<typeof Sentry.reactNavigationIntegration>[] = [
     reactNavigationIntegration,

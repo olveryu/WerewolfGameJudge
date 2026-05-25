@@ -63,6 +63,7 @@ const isWeb = Platform.OS === 'web';
 const subscribe = isWeb ? subscribeWeb : subscribeNative;
 const getSnapshot = isWeb ? getSnapshotWeb : getSnapshotNative;
 
+/** 返回 app 是否在前台可见（web: document.visibilityState / native: AppState）。 */
 export function useAppVisibility(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

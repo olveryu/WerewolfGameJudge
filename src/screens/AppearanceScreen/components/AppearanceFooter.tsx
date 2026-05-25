@@ -15,6 +15,7 @@ interface AppearanceFooterProps {
   styles: AppearanceScreenStyles;
 }
 
+/** 外观屏幕底部操作栏。 */
 export const AppearanceFooter: React.FC<AppearanceFooterProps> = ({
   readOnly,
   hasSelection,

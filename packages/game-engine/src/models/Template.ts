@@ -21,6 +21,7 @@ export enum TemplateCategory {
   ThirdParty = 'thirdParty',
 }
 
+/** 模板分类中文标签映射。 */
 export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
   [TemplateCategory.Classic]: '经典',
   [TemplateCategory.Advanced]: '进阶',
@@ -28,6 +29,7 @@ export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
   [TemplateCategory.ThirdParty]: '第三方',
 };
 
+/** 预设板子结构（名称 + 角色列表 + 分类）。 */
 export interface PresetTemplate {
   name: string;
   roles: RoleId[];
@@ -114,7 +116,7 @@ export function getPlayerCount(roles: readonly RoleId[]): number {
   return roles.length - getBottomCardCount(roles);
 }
 
-// Create custom template (roles are NOT shuffled here - shuffling happens at "分配角色")
+/** 从角色列表创建自定义模板（不 shuffle，分配角色时再洗牌）。 */
 export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',
@@ -123,7 +125,7 @@ export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   };
 };
 
-// Create template from existing roles (for loading from database)
+/** 从已有角色列表重建模板（用于数据库加载）。 */
 export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
   name: '',
   numberOfPlayers: getPlayerCount(roles),
@@ -203,7 +205,7 @@ const multisetIntersectionSize = (a: Map<string, number>, b: Map<string, number>
   return count;
 };
 
-// Predefined templates matching Flutter app
+/** 全部预设板子注册表。 */
 export const PRESET_TEMPLATES: PresetTemplate[] = [
   {
     name: '预女猎白',

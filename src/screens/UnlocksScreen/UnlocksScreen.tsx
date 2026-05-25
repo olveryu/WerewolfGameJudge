@@ -37,6 +37,7 @@ const RARITY_TABS: readonly { key: RarityFilter; label: string }[] = [
   ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
 ] as const;
 
+/** 解锁物品展示屏幕。 */
 export const UnlocksScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Unlocks'>>();

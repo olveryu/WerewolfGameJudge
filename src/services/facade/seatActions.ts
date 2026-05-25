@@ -20,6 +20,7 @@ import { type ApiResponse, callApiWithRetry } from './apiUtils';
  *
  * 迁移后只需 roomCode + userId 信息，不再需要 store / realtimeService 等
  */
+/** Seat Actions 依赖的上下文接口。 */
 export interface SeatActionsContext {
   myUserId: string | null;
   getRoomCode: () => string | null;

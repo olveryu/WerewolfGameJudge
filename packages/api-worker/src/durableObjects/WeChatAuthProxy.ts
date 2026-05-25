@@ -1,12 +1,18 @@
 /**
- * WeChatAuthProxy — 微信 API 代理 Durable Object
+ * WeChatAuthProxyBase — 微信 API 代理 Durable Object。
  *
- * 利用 locationHint: "apac" 将 DO 放置在亚太区域（HKG/SIN/NRT），
- * 使出站 fetch 到 api.weixin.qq.com（中国服务器）走亚太内部网络而非跨洲骨干网。
- * CN 用户的 Anycast 路由不经过 APAC（落在 AMS/LAX），Worker 也在 US/EU，
- * 导致微信 code2Session 调用需跨洲往返，延迟高且不稳定。
+ * 职责：
+ * - 利用 locationHint: "apac" 将 DO 放置在亚太区域（HKG/SIN/NRT）
+ * - 代理出站 fetch 到 api.weixin.qq.com（亚太内部网络，避免跨洲往返）
+ * - 提供 code2Session RPC 方法
  *
- * 无状态 DO — 不使用 storage，纯 RPC 代理。
+ * 不负责：
+ * - Token 管理或用户状态持久化
+ * - 游戏逻辑
+ *
+ * 边界约束：
+ * - 无状态 DO——不使用 storage，纯 RPC 代理
+ * - CN 用户 Anycast 路由不经过 APAC（落在 AMS/LAX），因此需要此 DO 缩短微信 API 延迟
  */
 
 import * as Sentry from '@sentry/cloudflare';

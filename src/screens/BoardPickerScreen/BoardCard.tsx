@@ -38,6 +38,7 @@ interface BoardCardProps {
   showSelectButton?: boolean;
 }
 
+/** 板子卡片组件。 */
 export const BoardCard = React.memo<BoardCardProps>(
   ({
     template,

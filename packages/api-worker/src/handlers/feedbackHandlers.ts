@@ -29,6 +29,7 @@ import { jsonBody } from './shared';
 
 const log = createLogger('feedback');
 
+/** 反馈路由（提交/列表/回复）。 */
 export const feedbackRoutes = new Hono<AppEnv>();
 
 /** GitHub repo receiving feedback issues */
@@ -406,8 +407,7 @@ feedbackRoutes.post(
 );
 
 // ── Webhook routes (no requireAuth, separate mount) ─────────────────────────
-
-export const feedbackWebhookRoutes = new Hono<AppEnv>();
+/** GitHub webhook 回调路由（无认证）。 */ export const feedbackWebhookRoutes = new Hono<AppEnv>();
 
 /**
  * Verify GitHub webhook signature using HMAC-SHA256 (timing-safe).

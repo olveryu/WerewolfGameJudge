@@ -1,9 +1,20 @@
 /**
- * CFAuthService — Cloudflare Workers JWT 认证服务
+ * CFAuthService — Cloudflare Workers JWT 认证服务。
  *
- * 实现 IAuthService 接口，通过 HTTP 调用 Workers /auth/* 端点。
- * 管理 access token（短期 JWT, 1h）+ refresh token（90d, rotation）。
- * Token 持久化在 MMKV，401 自动 refresh 由 cfFetch 拦截器驱动。
+ * 职责：
+ * - 实现 IAuthService 接口
+ * - 通过 HTTP 调用 Workers /auth/* 端点
+ * - 管理 access token（短期 JWT, 1h）+ refresh token（90d, rotation）
+ * - Token 持久化在 MMKV
+ * - 401 自动 refresh 由 cfFetch 拦截器驱动
+ *
+ * 不负责：
+ * - 游戏逻辑或房间管理
+ * - 微信授权流程细节（由 WeChatAuthProxy DO 处理 code2Session）
+ *
+ * 边界约束：
+ * - 构造时同步注册 tokenProvider / refreshHandler / onAuthExpired
+ * - initReady() 必须 await 后才可使用其他方法
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -28,6 +39,11 @@ import {
 const ACCESS_TOKEN_KEY = 'cf_auth_token';
 const REFRESH_TOKEN_KEY = 'cf_refresh_token';
 
+/**
+ * CFAuthService — Cloudflare Workers 认证服务实现。
+ *
+ * 职责：JWT token 管理、匹名/邮箱登录、微信 claim 流程、自动 refresh。
+ */
 export class CFAuthService implements IAuthService {
   #currentUserId: string | null = null;
   #cachedAccessToken: string | null = null;

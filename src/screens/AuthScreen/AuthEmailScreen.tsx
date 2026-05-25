@@ -27,6 +27,7 @@ import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthEmail'>;
 
+/** 邮箱认证屏幕。 */
 export const AuthEmailScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

@@ -24,6 +24,7 @@ interface EqualizerBarsProps {
   colors: ThemeColors;
 }
 
+/** 均衡器动画条。 */
 export const EqualizerBars = memo<EqualizerBarsProps>(function EqualizerBars({ active, colors }) {
   // useState (not useRef) because Animated.Values are consumed during render
   const [anims] = useState(createAnimValues);

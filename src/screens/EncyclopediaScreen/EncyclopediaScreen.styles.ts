@@ -13,6 +13,7 @@ import {
   withAlpha,
 } from '@/theme';
 
+/** 创建百科屏幕样式。 */
 export function createEncyclopediaStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {

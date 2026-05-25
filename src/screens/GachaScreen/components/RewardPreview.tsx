@@ -63,6 +63,7 @@ interface RewardPreviewProps {
   size: number;
 }
 
+/** 奖励预览图（按类型渲染头像/框/德誉等）。 */
 export const RewardPreview = React.memo<RewardPreviewProps>(({ rewardType, rewardId, size }) => {
   switch (rewardType) {
     case 'avatar':

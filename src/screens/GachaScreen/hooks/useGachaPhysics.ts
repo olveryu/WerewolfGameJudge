@@ -222,8 +222,9 @@ function physicsTick(
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────
-
-export function useGachaPhysics(scale: number) {
+/** 扭蛋机物理动画 hook（管理球体位置、请求帧循环）。 */ export function useGachaPhysics(
+  scale: number,
+) {
   const s = scale;
 
   // State

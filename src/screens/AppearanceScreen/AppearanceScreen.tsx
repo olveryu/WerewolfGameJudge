@@ -51,6 +51,7 @@ import type {
 } from './types';
 import { FRAME_NUM_COLUMNS, NUM_COLUMNS, PREVIEW_ALL_ROLES, PREVIEW_ROLE } from './types';
 
+/** 外观自定义屏幕。 */
 export const AppearanceScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAppearanceScreenStyles(colors), []);

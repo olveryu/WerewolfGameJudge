@@ -1,14 +1,20 @@
 /**
- * CFRealtimeService — Cloudflare Durable Objects WebSocket 传输层
+ * CFRealtimeService — Cloudflare DO WebSocket 传输层。
  *
- * 实现 IRealtimeTransport 接口。职责：
- * - URL 构建（roomCode + userId → ws:// URL）
+ * 职责：
+ * - 实现 IRealtimeTransport 接口
+ * - URL 构建（roomCode + token → ws:// URL）
  * - WebSocket 创建 + 8s 连接超时
- * - 消息解析（STATE_UPDATE / pong）
+ * - 消息解析（STATE_UPDATE / pong / settle_result）
  * - 向上触发类型化事件（onOpen / onClose / onError / onStateUpdate / onPong）
  *
- * 不包含：重连逻辑、ping timer、状态管理、平台事件监听。
- * 这些由 ConnectionManager 统一管理。
+ * 不负责：
+ * - 重连逻辑、ping timer、状态管理、平台事件监听
+ * - 以上由 ConnectionManager 统一管理
+ *
+ * 边界约束：
+ * - generation counter 防止 disconnect/reconnect 后旧 WS 事件泄漏
+ * - 连接超时由 WS_CONNECT_TIMEOUT_MS (8s) 控制
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
@@ -25,6 +31,12 @@ import { getCurrentToken } from './cfFetch';
 /** WebSocket 连接超时（ms） */
 const WS_CONNECT_TIMEOUT_MS = 8_000;
 
+/**
+ * CFRealtimeService — WebSocket 传输层实现。
+ *
+ * 职责：URL 构建、WS 创建/销毁、消息解析、连接超时。
+ * 不含重连/退避逻辑。
+ */
 export class CFRealtimeService implements IRealtimeTransport {
   #ws: WebSocket | null = null;
   #handlers: TransportEventHandlers | null = null;

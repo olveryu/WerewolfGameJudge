@@ -41,6 +41,7 @@ interface TrackRowProps {
   colors: ThemeColors;
 }
 
+/** 曲目行。 */
 export const TrackRow = memo<TrackRowProps>(function TrackRow({
   track,
   isSelected,

@@ -59,6 +59,7 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
+/** 主屏幕。 */
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();

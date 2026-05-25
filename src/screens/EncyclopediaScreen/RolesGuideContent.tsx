@@ -45,6 +45,7 @@ interface RolesGuideContentProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+/** 角色指南内容区。 */
 export const RolesGuideContent: React.FC<RolesGuideContentProps> = ({ state }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createEncyclopediaStyles(colors), []);

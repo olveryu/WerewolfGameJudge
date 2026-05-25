@@ -37,6 +37,12 @@ async function adminFetch<T>(path: string, query?: Record<string, string>): Prom
   return resp.json() as Promise<T>;
 }
 
+/**
+ * AdminApiError — Admin API 请求失败时抛出。
+ *
+ * 何时抛出：当 Admin API 返回非 2xx 状态码。
+ * 如何 catch：`instanceof AdminApiError` —— 读取 .status 和 .reason 展示给用户。
+ */
 class AdminApiError extends Error {
   constructor(
     public readonly status: number,

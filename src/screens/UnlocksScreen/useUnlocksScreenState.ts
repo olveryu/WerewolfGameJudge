@@ -35,8 +35,10 @@ function getUnlocksNumColumns(screenWidth: number): number {
   return 4;
 }
 
+/** 解锁物品页签类型。 */
 export type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
 
+/** 页签配置列表。 */
 export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'avatar', label: '头像' },
   { key: 'frame', label: '框' },
@@ -46,8 +48,10 @@ export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'seatAnimation', label: '入座' },
 ] as const;
 
+/** 稀有度筛选。 */
 export type RarityFilter = 'all' | Rarity;
 
+/** 单个解锁物品视图模型。 */
 export interface UnlockItem {
   id: string;
   type: TabKey;
@@ -60,6 +64,7 @@ interface Params {
   viewingUserId: string | undefined;
 }
 
+/** 解锁屏幕状态 hook。 */
 export function useUnlocksScreenState({ viewingUserId }: Params) {
   const isViewer = !!viewingUserId;
 

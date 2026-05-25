@@ -27,6 +27,7 @@ interface FactionTab {
   label: string;
 }
 
+/** 阵营筛选页签配置。 */
 export const FACTION_TABS: readonly FactionTab[] = [
   { key: 'god', label: '神职' },
   { key: 'wolf', label: '狼人' },
@@ -41,6 +42,7 @@ const FACTION_KEY_MAP: Record<Exclude<FactionFilterKey, 'all'>, Faction> = {
   third: Faction.Special,
 };
 
+/** 角色分组（SectionList 数据源）。 */
 export interface RoleSection {
   title: string;
   colorKey: string;
@@ -111,6 +113,7 @@ function buildSections(
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
+/** 百科屏幕状态 hook。 */
 export function useEncyclopediaScreenState() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();

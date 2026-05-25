@@ -12,8 +12,7 @@
  */
 
 // ── Night action prefixes ────────────────────────────────────
-
-export const ACTION = {
+/** 夜间行动前缀 emoji，用于密集文本行锚点。 */ export const ACTION = {
   CHECK: '🔍',
   KILL: '💀',
   SAVE: '💊',
@@ -28,6 +27,7 @@ export const ACTION = {
 
 // ── Game / system status（仅保留纯字符串模板中使用的条目）─────
 
+/** 游戏/系统状态 emoji，仅用于纯字符串模板（NightReview / useSpeakingOrder）。 */
 export const STATUS = {
   PEACEFUL_NIGHT: '🌙',
   DEATH: '💀',
@@ -36,4 +36,5 @@ export const STATUS = {
 
 // ── Visual effects (shared across role reveal animations) ────
 
+/** 庆祝粒子特效用 emoji 集合（Text 渲染，非 Ionicons）。 */
 export const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟', '🏆'] as const;

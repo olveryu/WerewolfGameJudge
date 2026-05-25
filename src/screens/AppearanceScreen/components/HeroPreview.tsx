@@ -26,6 +26,7 @@ interface HeroPreviewProps {
   styles: AppearanceScreenStyles;
 }
 
+/** 主预览区（头像+框+德誉）。 */
 export const HeroPreview: React.FC<HeroPreviewProps> = ({
   userId,
   displayName,

@@ -1,3 +1,9 @@
+/**
+ * AudioService — 音频播放引擎（composition root）。
+ *
+ * 委托平台特定 TTS 播放给 AudioPlaybackStrategy，
+ * 委托 BGM 生命周期给 BgmPlayer，统一 public API。
+ */
 import * as Sentry from '@sentry/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { setAudioModeAsync } from 'expo-audio';
@@ -22,13 +28,21 @@ import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 const isWeb = Platform.OS === 'web';
 
 /**
- * AudioService — audio playback engine (composition root).
+ * AudioService — 音频播放引擎（composition root）。
  *
- * Delegates platform-specific TTS playback to `AudioPlaybackStrategy`
- * (WebAudioStrategy / NativeAudioStrategy) and BGM lifecycle to `BgmPlayer`.
- * Provides the same public API surface consumed by GameFacade / gameActions.
- * Does not decide "when to play what" — that's declared by Handlers and
- * orchestrated by Facade.
+ * 职责：
+ * - 委托平台特定 TTS 播放给 AudioPlaybackStrategy
+ * - 委托 BGM 生命周期给 BgmPlayer
+ * - 提供统一 public API 供 GameFacade / gameActions 消费
+ * - 管理 Web 可见性变化时的 pause/resume
+ *
+ * 不负责：
+ * - 决定“何时播放什么”（由 Handler 声明，Facade 编排）
+ * - 游戏逻辑或状态管理
+ *
+ * 边界约束：
+ * - 构造时同步注册 Web gesture unlock listener，禁止放在 await 之后
+ * - Web 端依赖 setupWebAudioUnlock() 已在构造函数内同步调用
  */
 export class AudioService {
   readonly #strategy: AudioPlaybackStrategy;

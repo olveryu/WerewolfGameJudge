@@ -72,6 +72,11 @@ function detectIOSBrowser(): IOSBrowser {
   return 'other';
 }
 
+/**
+ * 管理 PWA 安装提示状态（Chromium beforeinstallprompt / iOS 引导）。
+ *
+ * @returns 安装模式、iOS 浏览器类型、触发安装和关闭回调
+ */
 export function usePWAInstall(): PWAInstallResult {
   const [mode, setMode] = useState<PWAInstallMode>('hidden');
   const [iosBrowser, setIOSBrowser] = useState<IOSBrowser | null>(null);

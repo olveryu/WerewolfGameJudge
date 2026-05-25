@@ -22,6 +22,7 @@ import { colors } from '@/theme';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'BoardPicker'>;
 type BoardPickerRouteProp = RouteProp<RootStackParamList, 'BoardPicker'>;
 
+/** 板子选择屏幕状态 hook。 */
 export function useBoardPickerScreenState() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();

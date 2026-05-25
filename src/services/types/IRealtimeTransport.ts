@@ -15,6 +15,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 // Event Handlers (transport → ConnectionManager)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 游戏结算结果单播消息。 */
 export interface SettleResultMessage {
   xpEarned: number;
   newXp: number;
@@ -24,6 +25,7 @@ export interface SettleResultMessage {
   goldenDrawsEarned: number;
 }
 
+/** Transport 层事件回调（transport → ConnectionManager）。 */
 export interface TransportEventHandlers {
   onOpen(): void;
   onClose(code: number, reason: string): void;
@@ -37,6 +39,7 @@ export interface TransportEventHandlers {
 // Interface
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** WebSocket 传输层接口 — 原子操作契约，不含重连逻辑。 */
 export interface IRealtimeTransport {
   /**
    * 建立 WebSocket 连接。

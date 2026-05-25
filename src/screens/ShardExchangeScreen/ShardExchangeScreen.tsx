@@ -82,8 +82,7 @@ function getNumColumns(screenWidth: number): number {
 const PREVIEW_SIZE = 56;
 
 // ── Component ───────────────────────────────────────────────────────────
-
-export function ShardExchangeScreen({ navigation }: Props) {
+/** 碎片兑换屏幕。 */ export function ShardExchangeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const numColumns = getNumColumns(screenWidth);

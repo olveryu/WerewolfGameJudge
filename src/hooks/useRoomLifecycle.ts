@@ -75,8 +75,11 @@ interface RoomLifecycleDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
-
-export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
+/**
+ * 房间生命周期 hook — 创建/加入/离开/入座等操作。
+ *
+ * 通过 facade 管理 WS 连接和房间状态，暴露 loading/error/needsAuth。
+ */ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const { facade, authService, user: authUser, setRoomRecord } = deps;
   const queryClient = useQueryClient();
   const { mutateAsync: joinRoomAsync } = useJoinRoom();

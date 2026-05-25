@@ -33,8 +33,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
 // ── Component ────────────────────────────────────────────
-
-export const NotepadScreen: React.FC = () => {
+/** 记事本屏幕。 */ export const NotepadScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createNotepadScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();

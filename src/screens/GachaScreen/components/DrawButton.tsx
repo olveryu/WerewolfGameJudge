@@ -42,6 +42,7 @@ interface DrawButtonProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
+/** 抽奖按钮（普通/金色）。 */
 export function DrawButton({
   label,
   disabled,

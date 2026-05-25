@@ -119,6 +119,7 @@ interface BoardsGuideContentProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+/** 板子指南内容区。 */
 export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
   searchVisible,
   searchQuery,

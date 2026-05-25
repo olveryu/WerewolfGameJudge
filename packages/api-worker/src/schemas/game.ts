@@ -57,6 +57,7 @@ const seatKickSchema = z.object({
   level: z.coerce.number().int().min(0).optional(),
 });
 
+/** 座位操作统一 schema（入座/离座/踢人）。 */
 export const seatActionSchema = z.discriminatedUnion('action', [
   seatSitSchema,
   seatStandupSchema,

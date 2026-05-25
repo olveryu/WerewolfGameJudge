@@ -67,6 +67,7 @@ interface SingleResultRevealProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
+/** 单抽结果揭晓动画。 */
 export function SingleResultReveal({
   item,
   onDismiss,

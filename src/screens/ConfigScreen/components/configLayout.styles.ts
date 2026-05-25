@@ -18,6 +18,7 @@ import {
   typography,
 } from '@/theme';
 
+/** 创建配置屏幕布局样式。 */
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,

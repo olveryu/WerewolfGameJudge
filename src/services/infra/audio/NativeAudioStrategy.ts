@@ -1,10 +1,19 @@
 /**
- * NativeAudioStrategy — expo-audio playback for iOS / Android.
+ * NativeAudioStrategy — iOS/Android 平台音频播放策略。
  *
- * Creates a new `AudioPlayer` per playback (iOS requires fresh players for
- * reliable event delivery). Tracks stale players for deferred `remove()` to
- * prevent native resource leaks. Preloads by creating players that keep decoded
- * audio in memory. No HTML Audio dependency.
+ * 职责：
+ * - 实现 AudioPlaybackStrategy 接口（expo-audio 后端）
+ * - 每次播放创建新 AudioPlayer（iOS 要求新实例才能可靠触发事件）
+ * - 追踪旧 player 延迟 remove()，防止 native 资源泄漏
+ * - 预加载：创建 player 保持解码音频在内存
+ *
+ * 不负责：
+ * - Web 平台播放（由 WebAudioStrategy 处理）
+ * - 播放顺序/编排逻辑
+ *
+ * 边界约束：
+ * - 无 HTML Audio 依赖
+ * - 播放超时由 NATIVE_AUDIO_TIMEOUT_MS 控制
  */
 
 import type { AudioPlayer, AudioStatus } from 'expo-audio';
@@ -17,6 +26,11 @@ import { NATIVE_AUDIO_TIMEOUT_MS } from './types';
 
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 
+/**
+ * NativeAudioStrategy — expo-audio AudioPlayer 实现。
+ *
+ * 用于 iOS / Android 上的 TTS 音频播放。
+ */
 export class NativeAudioStrategy implements AudioPlaybackStrategy {
   #player: AudioPlayer | null = null;
   #subscription: ReturnType<AudioPlayer['addListener']> | null = null;

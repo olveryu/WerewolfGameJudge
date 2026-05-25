@@ -42,6 +42,7 @@ export interface GetCurrentUserResponse {
   data: { user: AuthUser };
 }
 
+/** 认证服务接口 — 覆盖匹名登录、邮箱认证、用户资料管理。 */
 export interface IAuthService {
   /** 等待初始化完成（session 恢复 / 自动登录） */
   waitForInit(): Promise<void>;

@@ -16,6 +16,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
 
+/** 机械狼人查看猎人状态执行器。 */
 export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) => {
   const { gameState, effectiveSeat, currentSchema, hunterStatusAckMutation, actionDialogs } = ctx;
 

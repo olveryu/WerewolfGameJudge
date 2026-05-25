@@ -1,8 +1,15 @@
+/**
+ * queryClient — TanStack Query 全局实例配置。
+ *
+ * 统一 staleTime / retry / 全局错误上报策略。
+ * Query/Mutation 重试耗尽后自动报 Sentry（跳过网络/abort/预期错误）。
+ */
 import * as Sentry from '@sentry/react-native';
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
 
+/** 全局 QueryClient 实例，由 App.tsx QueryClientProvider 注入。 */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

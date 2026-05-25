@@ -33,8 +33,10 @@ export enum ConnectionStatus {
   Failed = 'Failed',
 }
 
+/** 状态变化监听器类型。 */
 export type FacadeStateListener = (state: GameState | null) => void;
 
+/** GameFacade 公共接口 — UI 层与游戏状态交互的唯一契约。 */
 export interface IGameFacade {
   // === Lifecycle ===
   /**

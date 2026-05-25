@@ -28,6 +28,7 @@ interface GrowthSectionProps {
   onPressUnlocks?: () => void;
 }
 
+/** 等级/经验值区域。 */
 export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressUnlocks }) => {
   const progress = getLevelProgress(stats.xp);
   const nextThreshold =

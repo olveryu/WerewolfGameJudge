@@ -46,6 +46,12 @@ function showSettleToast(result: SettleResultMessage): void {
   }
 }
 
+/**
+ * 监听结算结果，弹出 XP/升级 toast 并刷新扭蛋/统计查询缓存。
+ *
+ * @param params.facade - GameFacade 实例
+ * @param params.isFocused - 当前屏幕是否 focused（避免后台弹 toast）
+ */
 export function useSettleToast({ facade, isFocused }: UseSettleToastParams): void {
   const queryClient = useQueryClient();
 

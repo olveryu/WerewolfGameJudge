@@ -76,6 +76,7 @@ function promptAdminPassword(): void {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 隐藏 debug 面板触发 hook（连续点击标题）。 */
 export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
   const tapCountRef = useRef(0);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

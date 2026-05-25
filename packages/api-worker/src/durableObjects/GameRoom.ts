@@ -1,13 +1,20 @@
 /**
- * GameRoom Durable Object — 游戏状态权威 + WebSocket 广播
+ * GameRoomBase — 游戏状态权威 + WebSocket 广播。
  *
- * 每个房间对应一个 DO 实例，负责：
- * 1. SQLite 持久化 game_state + revision（单线程序列化，零竞争）
- * 2. Typed RPC 方法供 Worker handler 调用（替代旧 D1 optimistic lock）
- * 3. WebSocket Hibernation API 管理实时连接 + 广播
+ * 职责：
+ * - 每个房间对应一个 DO 实例
+ * - SQLite 持久化 game_state + revision（单线程序列化，零竞争）
+ * - Typed RPC 方法供 Worker handler 调用
+ * - WebSocket Hibernation API 管理实时连接 + 广播
  *
- * Worker handler 通过 RPC 直接调用 DO 方法，DO 内部完成读-算-写-广播。
- * WebSocket upgrade 仍走 fetch() handler（RPC 与 fetch 共存）。
+ * 不负责：
+ * - HTTP 路由/认证（由 Worker handler 处理）
+ * - D1 房间元数据（由 Worker D1 层处理）
+ *
+ * 边界约束：
+ * - Worker handler 通过 RPC 直接调用 DO 方法，DO 内部完成读-算-写-广播
+ * - WebSocket upgrade 仍走 fetch() handler（RPC 与 fetch 共存）
+ * - 自动 pong：ctx.setWebSocketAutoResponse('ping' → 'pong')
  */
 
 import * as Sentry from '@sentry/cloudflare';

@@ -6,6 +6,7 @@
  * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
  */
 
+/** 可解锁物品类型。 */
 export type RewardType =
   | 'avatar'
   | 'frame'
@@ -14,8 +15,10 @@ export type RewardType =
   | 'roleRevealEffect'
   | 'seatAnimation';
 
+/** 稀有度等级。 */
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
+/** 单个可解锁物品条目。 */
 export interface RewardItem {
   readonly type: RewardType;
   readonly id: string;
@@ -102,6 +105,7 @@ const GENERATED_RARE_IDS = [
   'genR041', 'genR042', 'genR043', 'genR044', 'genR045', 'genR046', 'genR047', 'genR048', 'genR049', 'genR050',
 ] as const;
 
+/** 全部头像 ID（手绘 + 生成），顺序稳定。 */
 export const AVATAR_IDS = [
   ...HAND_DRAWN_AVATAR_IDS,
   ...GENERATED_COMMON_IDS,

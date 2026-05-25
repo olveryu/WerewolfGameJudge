@@ -22,6 +22,7 @@ interface GameFacadeProviderProps {
   facade: IGameFacade;
 }
 
+/** GameFacade 注入 Provider，由 composition root 创建 facade 并注入。 */
 export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children, facade }) => {
   const value = useMemo(
     () => ({
@@ -33,6 +34,11 @@ export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children
   return <GameFacadeContext value={value}>{children}</GameFacadeContext>;
 };
 
+/**
+ * 获取 GameFacade 实例。
+ *
+ * 必须在 GameFacadeProvider 子树内调用，否则抛出。
+ */
 export const useGameFacade = (): IGameFacade => {
   const ctx = use(GameFacadeContext);
   if (!ctx) {

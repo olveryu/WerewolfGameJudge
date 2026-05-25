@@ -18,11 +18,11 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-
-export interface BottomActionVM {
+/** 底部操作栏视图模型。 */ export interface BottomActionVM {
   buttons: BottomButton[];
 }
 
+/** 单个底部按钮。 */
 export interface BottomButton {
   /** Stable key (align to schema step keys when possible). */
   key: string; // 'save' | 'skip' | 'wolfEmpty' ...

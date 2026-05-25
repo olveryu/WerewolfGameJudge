@@ -22,6 +22,11 @@ import {
 // Initial Context
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * 创建 FSM 初始上下文。
+ *
+ * @param overrides - 可覆盖 maxAttempts
+ */
 export function createInitialContext(
   overrides?: Partial<Pick<FSMContext, 'maxAttempts'>>,
 ): FSMContext {

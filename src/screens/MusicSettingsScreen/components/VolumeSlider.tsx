@@ -26,6 +26,7 @@ interface VolumeSliderProps {
   colors: ThemeColors;
 }
 
+/** 音量滑块。 */
 export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
   value,
   onValueChange,
