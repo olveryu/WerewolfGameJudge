@@ -1,7 +1,7 @@
 ---
 name: 'RoomScreen'
-applyTo: src/screens/RoomScreen/**
-description: 'Use when editing RoomScreen files: policy, hooks, executors, seatTap, components, share modules. Covers RoomScreen sub-directory structure and screen-specific conventions.'
+applyTo: 'src/screens/RoomScreen/**'
+description: 'RoomScreen 子目录规范：policy/hooks/executors/seatTap/components/share 分层。Use when: editing RoomScreen, policy functions, seat tap handlers, night flow executors, share image modules'
 ---
 
 # RoomScreen 规范

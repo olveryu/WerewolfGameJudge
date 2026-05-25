@@ -1,6 +1,6 @@
 ---
 name: 'API Worker'
-description: 'Cloudflare Worker 规范：Hono 路由、Zod 校验、DO 调用、扭蛋系统、认证中间件'
+description: 'Cloudflare Worker 规范：Hono 路由、Zod 校验、DO 调用、扭蛋系统、认证中间件。Use when: editing API worker, Hono routes, DO calls, gacha handlers, auth middleware, D1 queries, R2 storage'
 applyTo: 'packages/api-worker/**'
 ---
 

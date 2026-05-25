@@ -1,6 +1,6 @@
 ---
 name: 'Game Engine'
-description: '纯游戏逻辑共享包规范：相对路径、零平台依赖、reducer/handler/growth 模块'
+description: '纯游戏逻辑共享包规范：相对路径、零平台依赖、reducer/handler/growth 模块。Use when: editing game-engine package, reducers, handlers, growth system, shared game logic, night actions'
 applyTo: 'packages/game-engine/**'
 ---
 

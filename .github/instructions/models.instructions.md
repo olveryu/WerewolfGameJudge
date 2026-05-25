@@ -1,6 +1,6 @@
 ---
 name: 'Models'
-description: 'Model 层规范：ROLE_SPECS/SCHEMAS/NIGHT_STEPS 三层表驱动、纯声明式'
+description: 'Model 层规范：ROLE_SPECS/SCHEMAS/NIGHT_STEPS 三层表驱动、纯声明式。Use when: editing models, role specs, schemas, night steps, type definitions, enums'
 applyTo: 'src/models/**'
 ---
 

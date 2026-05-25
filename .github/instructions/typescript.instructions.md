@@ -1,6 +1,6 @@
 ---
 name: 'TypeScript & Hooks'
-description: '类型安全、React Hooks 卫生、未使用变量处理规范'
+description: '类型安全、React Hooks 卫生、未使用变量处理规范。Use when: TypeScript type safety, React hooks hygiene, unused variables, type assertions, generic inference, noUncheckedIndexedAccess'
 applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
 ---
 

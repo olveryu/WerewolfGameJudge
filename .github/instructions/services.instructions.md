@@ -1,6 +1,6 @@
 ---
 name: 'Services'
-description: 'Service 层规范：facade/transport/infra/feature 服务、resolver、状态管理、音频编排'
+description: 'Service 层规范：facade/transport/infra/feature 服务、resolver、状态管理、音频编排。Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
 applyTo: 'src/services/**'
 ---
 

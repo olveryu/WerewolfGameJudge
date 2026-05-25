@@ -1,6 +1,6 @@
 ---
 name: 'Screens & Components'
-description: 'Screen/Component 层规范：Policy-Orchestrator-Presentational、Theme Token、RN 性能'
+description: 'Screen/Component 层规范：Policy-Orchestrator-Presentational 三层、Theme Token、RN 性能。Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
 applyTo: 'src/screens/**,src/components/**'
 ---
 

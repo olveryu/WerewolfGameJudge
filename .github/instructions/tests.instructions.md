@@ -1,6 +1,6 @@
 ---
 name: 'Tests'
-description: '测试规范：Jest 单元/集成、Board UI 合约测试、Playwright E2E'
+description: '测试规范：Jest 单元/集成、Board UI 合约测试、Playwright E2E。Use when: writing tests, Jest unit tests, integration tests, Playwright E2E specs, test utilities, mocking'
 applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 ---
 

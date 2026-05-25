@@ -1,6 +1,6 @@
 ---
 name: 'CI & Deploy'
-description: 'CI/CD 流水线、build.sh、CDN 发布、D1 迁移、release 流程'
+description: 'CI/CD 流水线、build.sh、CDN 发布、D1 迁移、release 流程。Use when: editing workflows, build scripts, deploy config, CDN publishing, D1 migrations, release process'
 applyTo: '.github/workflows/**,scripts/build.sh,scripts/release.sh'
 ---
 
