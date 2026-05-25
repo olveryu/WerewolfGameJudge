@@ -5,6 +5,10 @@
  * 降级：地理限制（400）/ 配额耗尽（429）/ 过载（503 重试 1 次后）
  *       → fallback 到 Workers AI（@cf/google/gemma-4-26b-a4b-it）。
  * Workers AI 无地理限制，10K Neurons/天预算主要服务受限地区用户。
+ *
+ * @throws 401 — requireAuth 未通过
+ * @throws 400 — zod 校验失败
+ * @throws 502 — Gemini + Workers AI 均失败（最终降级失败）
  */
 
 import { Hono } from 'hono';

@@ -95,3 +95,10 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 - 每局有效游戏：+1 普通券 + XP
 - 每次升级：+1 黄金券
 - 幂等 key：`${roomCode}:${revision}`
+
+## JSDoc 规范
+
+- **Handler 文件头部**必须含模块注释，列出路由 + `@throws` 标注所有可能的 HTTP 错误码及触发条件。
+- **DO RPC 接口** (`IGameRoomRPC.ts`) 每个方法标注 `@pre`（如 status === 'Ongoing'）。
+- **核心 lib**（auth / shared / gameProcessor）标注 `@remarks`（并发策略、锁机制、pipeline 顺序）。
+- **DB schema** 每个表的每个字段加行内注释（含义、单位、null 含义）。

@@ -17,13 +17,13 @@ import type { GameState } from '../store/types';
  * 注意：state 和 myUserId 可能为 null（Facade 不做校验，由 handler 负责）
  */
 export interface HandlerContext {
-  /** 当前状态（只读，可能为 null） */
+  /** 当前状态（只读）。null = DO 未初始化或读取失败 */
   readonly state: GameState | null;
 
-  /** 当前用户 UID（可能为 null） */
+  /** 当前用户 UID。null = 系统上下文（如 alarm 回调） */
   readonly myUserId: string | null;
 
-  /** 当前用户座位号 */
+  /** 当前用户座位号。null = 用户未入座或系统上下文（host-only 操作） */
   readonly mySeat: number | null;
 }
 
@@ -84,9 +84,13 @@ export function handlerError(reason: string): HandlerError {
  * Handler 不直接执行副作用，而是返回描述，由外层执行
  */
 export type SideEffect =
+  /** 广播更新后的 GameState 给所有已连接 WebSocket 客户端 */
   | { type: 'BROADCAST_STATE' }
+  /** 队列音频给 Host 设备播放；isEndAudio=true 从 audio_end/ 目录加载 */
   | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
+  /** 预留（未使用） */
   | { type: 'SEND_MESSAGE'; message: unknown }
+  /** 持久化更新后的 state 到 SQLite */
   | { type: 'SAVE_STATE' };
 
 /**

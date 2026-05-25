@@ -13,6 +13,10 @@
  * 边界约束：
  * - 仅 Host 角色活跃（isHost() === true 时才播放/重试）
  * - dispose() 后不可重用，必须重新创建实例
+ *
+ * @remarks #isPlayingEffects 重入 guard：一次只有一个 audio effect 队列在播放。
+ *   MAX_EFFECTS_LOOP=20 防止无限循环。每次 ack 后重新检查 store 是否有新 effects。
+ *   reconnect 后通过 resumeAfterRejoin 重发 ack（如果上次 ack 在断线时丢失）。
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';

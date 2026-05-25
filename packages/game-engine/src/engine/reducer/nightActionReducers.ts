@@ -3,6 +3,15 @@
  *
  * Pure functions: (state, action) => newState.
  * No IO, no random, no time dependencies.
+ *
+ * @pre 每个 reducer 假定调用方已通过 handler 层校验，不再重复检查前置条件。
+ *   - handleStartNight: @pre status === 'Setup' || status === 'Unseated'
+ *   - handleAdvanceToNextAction: @pre status === 'Ongoing'
+ *   - handleEndNight: @pre status === 'Ongoing' && currentStepId === undefined
+ *   - handleApplyResolverResult: @pre status === 'Ongoing'
+ *   - handleSetAudioPlaying: @pre status === 'Ongoing' || status === 'Ended'
+ *   - handleSetWitchContext: @pre status === 'Ongoing'
+ *   - handleSetWolfKillOverride: @pre status === 'Ongoing'
  */
 
 import { GameStatus } from '../../models';

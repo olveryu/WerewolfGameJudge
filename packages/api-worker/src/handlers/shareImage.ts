@@ -5,6 +5,10 @@
  * 存入 R2 `share/` prefix，返回公开 URL。
  * 图片通过 R2 lifecycle rule 自动过期清理（1 天）。
  * GET /share/:key — 从 R2 提供图片文件。
+ *
+ * @throws 401 — requireAuth 未通过（仅 POST）
+ * @throws 400 — base64 解码失败或超过大小限制
+ * @throws 404 — GET 时 key 不存在
  */
 
 import { Hono } from 'hono';

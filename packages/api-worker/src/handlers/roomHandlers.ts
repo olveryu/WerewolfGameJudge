@@ -4,6 +4,10 @@
  * /room/create、/room/get、/room/delete — D1 元数据操作。
  * /room/state、/room/revision — 从 DO 读取游戏状态。
  * create/delete 需要与 DO 双向同步。
+ *
+ * @throws 401 — requireAuth 未通过
+ * @throws 400 — zod 校验失败 / 房间不存在 / 房间已存在
+ * @throws 503/429 — callDO 检测 DO retryable/overloaded
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';

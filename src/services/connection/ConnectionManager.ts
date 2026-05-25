@@ -72,6 +72,12 @@ export interface ConnectionManagerDeps {
  *
  * 驱动 ConnectionFSM 状态转换并执行所有 side effects：
  * WS 打开/关闭、ping/pong、retry timer、revision poll、平台事件监听。
+ *
+ * @remarks prefetch grace race: WS 连接成功后，Promise.race(prefetch, PREFETCH_GRACE_MS=3s)。
+ *   如果 prefetch 在 grace 内未 settle，放弃 prefetch 改为 fresh fetch
+ *  （此时 DO 已被 WS upgrade 唤醒，fresh request ~2-3s 完成）。
+ *   ping/pong keepalive: 每 PING_INTERVAL_MS 发送 ping，PONG_TIMEOUT_MS 内无 pong 视为断线。
+ *   revision poll: 每 REVISION_POLL_BASE_MS~MAX_MS 轮询 DB revision 检测丢失的 WS 广播。
  */
 export class ConnectionManager {
   #ctx: FSMContext;

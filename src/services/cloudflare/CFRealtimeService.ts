@@ -47,6 +47,7 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#handlers = handlers;
   }
 
+  /**\n   * @pre setEventHandlers() \u5df2\u8c03\u7528\u3002\n   * @remarks generation counter \u9632\u6b62 stale WS \u4e8b\u4ef6\u6cc4\u6f0f\uff1a\u6bcf\u6b21 connect() \u9012\u589e #generation\uff0c\n   *   \u4e8b\u4ef6 handler \u4e2d\u68c0\u67e5 `if (gen !== this.#generation) return;` \u4e22\u5f03\u65e7\u8fde\u63a5\u4e8b\u4ef6\u3002\n   *   \u8fde\u63a5\u8d85\u65f6 = WS_CONNECT_TIMEOUT_MS (8s)\uff0c\u8d85\u65f6\u540e\u4e3b\u52a8 close WS\u3002\n   */
   connect(roomCode: string, _userId: string): void {
     // Close any existing connection first (silent, no event)
     this.#closeWsSilent();

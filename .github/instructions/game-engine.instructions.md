@@ -37,6 +37,7 @@ applyTo: 'packages/game-engine/**'
 - **Null-state guard**: 所有 game control handler 第一行必须检查 `if (!state)` 返回错误。这是已有 pattern（`handleStartGame` 等），新 handler 必须遵循。
 - **sideEffects 不可遗漏**: 修改了 state 的 handler result 必须包含对应 `sideEffects`（`BROADCAST_STATE` / `SAVE_STATE`）。遗漏 = 状态变更不持久化、不广播。
 - **新增 `GameState` 字段必须同步 `normalizeState`**（`engine/state/normalize.ts`）：编译期 `satisfies Complete<...>` 守卫会报错提醒。遗漏 = 字段被静默丢弃。
+- **JSDoc 要求**：handler 模块头部必须含 `@remarks` 说明核心逻辑（gate 校验顺序、death 计算时机等）。对外 handler 函数标注 `@pre`（state.status 等前置条件）。
 
 ## Engine 内部模块
 

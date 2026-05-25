@@ -86,3 +86,10 @@ expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在
   - **L1: Status listener** — WebSocket 真正断开后 SDK 重连 → `ConnectionStatus.Live` → 重试 `postAudioAck`。覆盖真实网络断开。
   - **L2: Browser `online` event** — `window.addEventListener('online', ...)` 零延迟感知网络恢复 → 重试 `postAudioAck`。覆盖 WebSocket 未断但 HTTP 断了的场景（如 Playwright `setOffline`、短暂 DNS 故障）。仅 Web 平台（`typeof globalThis.window?.addEventListener === 'function'` 能力检查），原生端由 L1 覆盖。
   - 两层谁先触发清除对方，`leaveRoom` / `createRoom` / `joinRoom` 统一清理。
+
+## JSDoc 规范
+
+- **Service class**：类头部 `@remarks` 说明核心设计决策（重入 guard、lock 策略、cleanup 顺序）。
+- **Connect / init 方法**：标注 `@pre`（如 roomCode 已设置）和 `@remarks`（超时、重试策略）。
+- **公开方法**：有 IO 或异步副作用的方法标注 `@throws`（网络错误、token 过期）。
+- **FSM context / options 接口**：语义非自明的字段加行内注释（null 含义、计数器上限等）。

@@ -3,6 +3,12 @@
  *
  * Pure functions: (state, action) => newState.
  * No IO, no random, no time dependencies.
+ *
+ * @pre 每个 reducer 假定调用方已通过 handler 层校验。
+ *   - handleRestartGame: @pre action.nonce 必须由 handler 预计算提供
+ *   - handleAssignRoles: @pre assignments keys 为有效 seat numbers
+ *   - handleUpdateTemplate: @pre newTemplateRoles 为合法模板
+ *   - handlePlayerViewedRole: @throws '[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat X'
  */
 
 import { GameStatus, getPlayerCount } from '../../models';

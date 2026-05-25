@@ -21,18 +21,21 @@ import type { CurrentNightResults } from '../resolvers/types';
 /** 猎人/狼王：仅被狼人袭击或公投放逐出局时可发动 */
 export interface ShootConfirmStatus {
   readonly role: 'hunter' | 'darkWolfKing';
+  /** true = 可开枪（死因为 wolfKill 或 exile）；false = 不可（毒/殉情/梦/魅） */
   readonly canShoot: boolean;
 }
 
 /** 复仇者：阵营取决于影子模仿目标 */
 export interface FactionConfirmStatus {
   readonly role: 'avenger';
+  /** Team.Good / Team.Evil / Team.Third */
   readonly faction: Team;
 }
 
 /** 隐狼：获知狼同伴座位 */
 export interface WolfTeammatesConfirmStatus {
   readonly role: 'hiddenWolf';
+  /** 其他狼人的座位号数组（不含自己） */
   readonly wolfTeammates: readonly number[];
 }
 
@@ -47,7 +50,9 @@ export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus | WolfTeam
 export interface ProtocolAction {
   readonly schemaId: SchemaId;
   readonly actorSeat: number;
+  /** 目标座位号；undefined = 无目标动作（如女巫“不用药”） */
   readonly targetSeat?: number;
+  /** 提交时间戳（epoch ms） */
   readonly timestamp: number;
 }
 
@@ -77,8 +82,10 @@ export interface Player {
   userId: string;
   seat: number;
   role?: RoleId | null;
+  /** 该玩家是否已查看分配的角色；assignRoles 后设为 false，viewRole 后设为 true。
+   *  所有玩家 hasViewedRole=true 后 host 才能 startNight。 */
   hasViewedRole: boolean;
-  /** Debug mode: true if this is a bot placeholder (not a real player) */
+  /** true = bot 占位（调试模式）；影响：跳过 reveal ack、groupConfirm、XP 结算 */
   isBot?: boolean;
 }
 
@@ -99,9 +106,13 @@ export interface RosterEntry {
   displayName: string;
   avatarUrl?: string;
   avatarFrame?: string;
+  /** 装备的座位特效 gacha item ID */
   seatFlair?: string;
+  /** 装备的入座动画 gacha item ID */
   seatAnimation?: string;
+  /** 装备的名字样式 gacha item ID */
   nameStyle?: string;
+  /** 装备的翻牌动画 gacha item ID */
   roleRevealEffect?: string;
   level?: number;
 }
@@ -146,6 +157,11 @@ export interface GameState {
    */
   roster: Record<string, RosterEntry>;
 
+  /**
+   * 当前夜晚步骤索引。
+   * -1 = 夜未开始（Setup 阶段）；>= 0 = nightSteps 数组索引。
+   * 仅 status=Ongoing 时有意义。
+   */
   currentStepIndex: number;
   isAudioPlaying: boolean;
 
@@ -164,22 +180,23 @@ export interface GameState {
   // currentNightResults.wolfVotesBySeat
 
   // --- 执行状态 ---
-  /** 第一夜动作记录（normalizeState 保证非 undefined） */
+  /** 第一夜动作记录（normalizeState 保证非 undefined）。endNight 时清空。 */
   actions: ProtocolAction[];
 
   /** 当前夜晚累积结果（type-only from resolver types，单一真相） */
   currentNightResults?: CurrentNightResults;
 
-  /** 待确认的揭示确认（normalizeState 保证非 undefined） */
+  /** 待确认的揭示确认 userId[]（normalizeState 保证非 undefined）。全部 ack 后清空并推进流程。 */
   pendingRevealAcks: string[];
 
-  /** 上一夜死亡 */
+  /** 上一夜死亡座位号[]；首夜前为 undefined。endNight 时由 deathResolution 计算写入。 */
   lastNightDeaths?: number[];
 
   /** 上一夜死亡原因（座位 → 死因） */
   deathReasons?: Readonly<Record<number, DeathReason>>;
 
   // --- 噩梦之影封锁 ---
+  /** 被噩梦封堵的座位号；该座位本夜无法行动（resolver 返回 skip）。仅当夜有效。 */
   nightmareBlockedSeat?: number;
 
   /**

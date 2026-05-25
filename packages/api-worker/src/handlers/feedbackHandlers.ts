@@ -7,6 +7,10 @@
  * GET  /api/feedback/unread-count — 获取未读管理员回复数
  * POST /api/feedback/mark-read    — 标记某 feedback 下管理员回复为已读
  * POST /api/feedback/webhook      — GitHub Webhook 接收管理员回复
+ *
+ * @throws 401 — requireAuth 未通过（webhook 除外）
+ * @throws 400 — zod 校验失败
+ * @throws 500 — GitHub API 调用失败（已 log + Sentry）
  */
 
 import { and, desc, eq, sql } from 'drizzle-orm';

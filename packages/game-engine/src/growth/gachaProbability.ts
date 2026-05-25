@@ -4,6 +4,12 @@
  * 核心：rollRarity() 根据抽奖类型 + pity 计算稀有度，
  *       selectReward() 从指定稀有度池中随机选取物品（允许重复）。
  * 随机数由调用方注入，函数本身无副作用。
+ *
+ * @remarks pity 机制: pityCount 第 10 次(>=9)强制升级。
+ *   pity 计数器在获得目标稀有度+以上后归零。
+ *   RARITY_UPGRADE_ORDER fallback chain: 目标 rarity 池空时先向上 fallback，
+ *   再向下 fallback，全部为空返回 undefined（调用者需处理）。
+ *   selectReward 去重: 已拥有物品仍可抽到，转为碎片补偿（SHARD_VALUES[rarity]）。
  */
 
 import type { Rarity, RewardItem } from './rewardCatalog';
@@ -86,7 +92,13 @@ export interface SelectRewardResult {
 /**
  * 从指定稀有度池中随机选取物品。允许重复，重复时计算碎片奖励。
  *
- * 如果目标稀有度池为空（不应发生），向上 fallback。
+ * 如果目标稀有度池为空（不应发生），先向上 fallback（rare→epic→legendary），
+ * 再向下 fallback（rare→common）。全部为空返回 undefined。
+ *
+ * @param targetRarity - 目标稀有度
+ * @param unlockedIds - 玩家已拥有的物品 ID 集合（用于判断重复）
+ * @param randomFn - (max) => [0, max) 的随机整数
+ * @returns 选中物品 + 是否重复 + 碎片奖励；全部池空时返回 undefined
  */
 export function selectReward(
   targetRarity: Rarity,

@@ -54,3 +54,13 @@ applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
 - `useMemo` 仅用于昂贵计算（filter/sort/reduce、对象深构建），禁止对 primitive / 简单对象字面量包 useMemo。
 - `useCallback` 用于传给 memo 化子组件的回调。不传给子组件的内部 handler 不需要。
 - 返回值 >2 个用具名对象（`function useXxx(): XxxResult`）。单一职责，~80 行考虑拆分。
+
+## JSDoc 规范
+
+- **模块头部**：每个 `.ts` 文件顶部必须有 `/** ... */` 模块注释，说明职责、边界约束（不含 IO / 不写 state 等）。
+- **@throws**：可能抛出异常或返回错误状态码的公开函数/路由必须标注 `@throws`，列出 HTTP 状态码或异常类型 + 触发条件。
+- **@pre**：函数/方法有前置条件时用 `@pre` 说明（如 `status === 'Ongoing'`、`isHost === true`）。纯 reducer 在模块注释中汇总。
+- **@remarks**：核心设计决策、并发策略、算法特性（如 OCC 重试、pity 计数器、single-flight lock）放 `@remarks`，避免在实现中重复注释。
+- **字段注释**：接口/type 中语义非自明的字段加行内 `/** ... */` 注释（null 含义、特殊值 -1 含义、单位等）。
+- **禁止空洞注释**：不写 `// 设置变量` 类重复代码语义的注释。只在"why"层面注释。
+- **语言**：注释正文中文，tag 关键词（@throws / @pre / @remarks / @param）英文。

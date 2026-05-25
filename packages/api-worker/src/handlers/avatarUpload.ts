@@ -5,6 +5,10 @@
  * 压缩后存入 R2，返回公开可访问的 URL。
  * 上传前自动清理用户旧头像。
  * GET /avatar/:userId/:filename — 从 R2 提供头像文件。
+ *
+ * @throws 401 — requireAuth 未通过（仅 POST）
+ * @throws 400 — 缺少 file 字段 / 文件超过大小限制 / 格式不支持
+ * @throws 404 — GET 时头像不存在
  */
 
 import { eq, sql } from 'drizzle-orm';

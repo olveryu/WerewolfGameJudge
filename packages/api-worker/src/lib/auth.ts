@@ -16,17 +16,17 @@ import type { Env } from '../env';
 
 /** JWT payload 中包含的用户信息 */
 interface JwtPayload {
-  /** User ID */
+  /** User UUID (users.id) */
   sub: string;
-  /** Token version — must match users.token_version */
+  /** Token version—必须与 users.token_version 一致，不匹配 = token 已被吊销 */
   ver: number;
-  /** Is anonymous user */
+  /** true = 匿名用户；undefined = 已认证用户 */
   anon?: boolean;
-  /** Email (if authenticated) */
+  /** 仅已认证用户有值 */
   email?: string;
-  /** Issued at (seconds) */
+  /** Issued at（Unix 秒，非毫秒） */
   iat: number;
-  /** Expiration (seconds) */
+  /** Expiration（Unix 秒，非毫秒） */
   exp: number;
 }
 
@@ -116,6 +116,9 @@ async function createRefreshToken(userId: string, env: Env): Promise<string> {
  * 验证 refresh token 并执行 rotation。
  * 成功：删除旧 token，签发新 access + refresh token 对。
  * 失败：返回 null。
+ *
+ * @remarks 使用原子 DELETE-RETURNING：并发多个请求只有一个拿到 token，
+ *   其余得 null。无 race condition——单次使用由 SQL DELETE 原子性保证。
  */
 export async function rotateRefreshToken(
   rawToken: string,
@@ -218,6 +221,9 @@ type AuthVariables = {
  * Hono 中间件：要求 Bearer token 认证。
  * 验证 JWT 签名 + token_version（防止 revoked token 访问）。
  * 通过后 c.var.userId / c.var.jwtPayload 可用。
+ *
+ * @throws 401 — Bearer token 缺失/格式错误、JWT 验证失败（过期/签名无效）、
+ *   token_version 不匹配（token 已被吊销）、用户不存在
  */
 export const requireAuth = createMiddleware<{
   Bindings: Env;

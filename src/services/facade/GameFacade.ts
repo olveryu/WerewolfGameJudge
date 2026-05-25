@@ -17,6 +17,10 @@
  * - 由 composition root（App.tsx）通过 constructor DI 创建
  * - 通过 GameFacadeContext 注入到组件树
  * - 子模块划分：gameActions / seatActions / AudioOrchestrator / ConnectionManager
+ *
+ * @remarks leaveRoom cleanup 顺序: (1) #aborted=true (2) audio stop (3) WS disconnect (4) store reset。
+ *   #aborted=true 立即设置以信号正在进行的异步操作放弃。
+ *   后续异步回调（audio ack、WS 事件 handler）检查 #aborted 决定是否 drop。
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';

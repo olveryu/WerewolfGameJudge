@@ -10,6 +10,11 @@
  * 音频 IO 由 Facade 执行），不直接修改 state（返回 StateAction 列表由 reducer 执行），
  * 不手动推进 index（`++` 兜底策略禁止）。
  *
+ * @remarks 4 gate 验证顺序: (1) status=Ongoing (2) isAudioPlaying=false (3) isHost
+ *   (4) currentStepIndex !== -1。任一失败返回 handlerError。
+ *   禁止手动 currentStepIndex++；仅通过 ADVANCE_TO_NEXT_ACTION action 推进。
+ *   death 计算仅在 END_NIGHT 时执行（由 DeathCalculator 纯函数计算）。
+ *
  * Gate validation → stepTransitionGuards.ts
  * Death resolution helpers → deathResolution.ts
  * UI hint calculation → uiHint.ts

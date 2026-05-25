@@ -69,6 +69,7 @@ import type { IGameRoomRPC } from './IGameRoomRPC';
 interface WebSocketAttachment {
   userId: string;
   roomCode: string;
+  /** Date.now() at WS accept (epoch ms) */
   connectedAt: number;
 }
 
@@ -153,7 +154,11 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     this.#updateRosterLevels(settleResults);
   }
 
-  /** 设置 alarm 重试结算 */
+  /**
+   * 设置 alarm 重试结算。
+   * @remarks 最多重试 SETTLE_MAX_RETRIES=3 次，间隔 SETTLE_RETRY_DELAY_MS=30s。
+   *   耗尽后放弃并记录错误日志。
+   */
   #scheduleSettleRetry(revision: number, attempt: number): void {
     if (attempt >= GameRoom.SETTLE_MAX_RETRIES) {
       log.error('settle retries exhausted', { revision, attempt });
@@ -163,7 +168,11 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     void this.ctx.storage.setAlarm(Date.now() + GameRoom.SETTLE_RETRY_DELAY_MS);
   }
 
-  /** DO Alarm 回调 — 重试未完成的结算 */
+  /**
+   * DO Alarm 回调 — 重试未完成的结算。
+   * @remarks CF DO 保证同一时刻只有一个 alarm 在执行（单线程）。
+   *   如果状态不再是 Ended（已 restart），跳过结算并清除 pending flag。
+   */
   async alarm(): Promise<void> {
     const pending = await this.ctx.storage.get<{ revision: number; attempt: number }>(
       'settle_pending',

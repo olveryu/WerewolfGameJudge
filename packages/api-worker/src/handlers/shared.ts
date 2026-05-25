@@ -40,6 +40,8 @@ const log = createLogger('do');
  *
  * 校验失败返回 400（{ success: false, reason: 'VALIDATION_ERROR', detail }），
  * 格式与原 parseBody 一致。JSON 解析失败由 app.onError 统一处理。
+ *
+ * @throws 400 — body 不符合 schema 时直接返回 400 JSON response（非 throw）
  */
 export function jsonBody<T extends z.ZodType>(schema: T) {
   return validator('json', (value: unknown, c: Context) => {
@@ -116,8 +118,10 @@ type CfRequest = Request & { cf?: IncomingRequestCfProperties };
 
 /**
  * 包装 DO RPC 调用，处理 DO 特有的错误属性。
- * 若 err.retryable === true，抛 503 HTTPException。
- * 若 err.overloaded === true，抛 429 HTTPException。
+ *
+ * @throws HTTPException 503 — err.retryable === true（DO 暂不可用，客户端可重试）
+ * @throws HTTPException 429 — err.overloaded === true（DO 超载，客户端应退避）
+ * @throws 原始异常 — 非 DO 特有错误原样抛出，由 app.onError 处理
  */
 export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
   try {

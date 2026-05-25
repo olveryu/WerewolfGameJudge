@@ -3,6 +3,8 @@
  *
  * Receives per-resource timing data from web clients and writes to
  * Analytics Engine for query via CF SQL API. No auth required — fire-and-forget.
+ *
+ * @throws 400 — JSON 解析失败或 loadTimingSchema 校验不通过
  */
 
 import { Hono } from 'hono';

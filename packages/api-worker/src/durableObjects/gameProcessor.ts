@@ -5,6 +5,13 @@
  * DO 单线程序列化保证无并发冲突，无需 optimistic lock retry。
  * SQLite sql.exec 是同步的，多条 SQL 自动 coalesce 为原子事务。
  * 广播在同实例内完成，零网络开销。
+ *
+ * @remarks 管道顺序：
+ *   1. 读 SQLite（同步）
+ *   2. processFn(state, revision) → HandlerResult
+ *   3. 如果 success: reduce actions → newState → inlineProgression(optional) → extractAudio
+ *   4. 写 SQLite（同步，单次 exec 原子）
+ *   5. 调用方执行 broadcast
  */
 
 import type { HandlerResult, SideEffect } from '@werewolf/game-engine/engine/handlers/types';
@@ -29,6 +36,7 @@ export type GameActionResult =
 
 interface InlineProgressionOptions {
   enabled: boolean;
+  /** Unix timestamp (ms)。用于 stepDeadline 检查。默认 Date.now()。 */
   nowMs?: number;
 }
 

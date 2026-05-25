@@ -18,6 +18,11 @@
  *   AudioContext 会被静默阻止
  * - 微信 web-view（鸿蒙 ArkWeb）可能吞掉 `ended` 事件和原生 `loop`，
  *   用 `timeupdate` 轮询兜底检测曲目结束
+ *
+ * @remarks GainNode 复用：stop() 时不释放 AudioContext/GainNode/element（WeChat ArkWeb
+ *   限制 AudioContext 创建数量）。`timeupdate` fallback: 当 `ended` 事件不触发时，
+ *   在 timeupdate 中检测 currentTime >= duration - 0.3s 手动触发 track end。
+ *   #trackEndFired 防止 ended + timeupdate 双重触发。
  */
 
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';

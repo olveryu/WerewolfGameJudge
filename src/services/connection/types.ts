@@ -84,8 +84,11 @@ export interface FSMContext {
   readonly state: ConnectionState;
   readonly roomCode: string | null;
   readonly userId: string | null;
+  /** 当前重连尝试次数（0-based）。WS 连接成功进入 Connected 后归零。 */
   readonly attempt: number;
+  /** 最大重连次数。耗尽后进入 Failed 状态（等待手动重连或网络恢复）。 */
   readonly maxAttempts: number;
+  /** 最后一次从服务端收到的 state revision。用于 revision poll 检测丢失广播。 */
   readonly lastRevision: number;
   readonly networkOnline: boolean;
   readonly visible: boolean;

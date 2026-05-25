@@ -4,6 +4,9 @@
  * 密码保护的管理端点。提供用户列表、房间列表、活跃统计、加载性能遥测查询。
  * 鉴权通过 X-Admin-Token header + timing-safe compare。
  * 不走 JWT auth 体系，完全独立。
+ *
+ * @throws 401 — X-Admin-Token 缺失或不匹配
+ * @throws 400 — 查询参数无效
  */
 
 import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';

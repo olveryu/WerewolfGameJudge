@@ -5,6 +5,9 @@
  * GET /api/user/:userId/profile：返回指定用户的公开资料。
  * GET /api/user/:userId/unlocks：返回指定用户的已解锁物品列表。
  * 仅限已登录用户。
+ *
+ * @throws 401 — requireAuth 未通过
+ * @throws 404 — 目标用户不存在
  */
 
 import { getLevelTitle } from '@werewolf/game-engine/growth/level';

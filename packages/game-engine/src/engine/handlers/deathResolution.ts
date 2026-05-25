@@ -8,6 +8,11 @@
  * - 构建反伤来源列表（checkSource / poisonSource）
  *
  * 仅被 handleEndNight 消费。不含 IO，不修改 state。
+ *
+ * @remarks 有效座位(effectiveRoleSeatMap) vs 物理座位(roleSeatMap)：
+ *   魔术师/盗贼交换后，effectiveRoleSeatMap 反映运行时角色位置，
+ *   而 state.players 反映初始分配。死亡计算使用 effective。
+ *   死亡优先级由 DeathCalculator 内部决定: wolfKill > poison > couple > dream > charm。
  */
 
 import { type RoleId, type SchemaId } from '../../models';

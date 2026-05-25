@@ -1,9 +1,10 @@
 /**
- * Confirm Context - 猎人/狼王/复仇者确认上下文计算
+ * Confirm Context - 猎人/狼王/复仇者/隐狼确认上下文计算
  *
  * 纯函数模块，负责：
  * - 在进入 hunterConfirm / darkWolfKingConfirm 步骤前，计算 canShoot
  * - 在进入 avengerConfirm 步骤前，计算阵营（faction）
+ * - 在进入 hiddenWolfConfirm 步骤前，计算狼同伴座位
  * - 返回 SET_CONFIRM_STATUS action 或 null
  *
  * 设计原则：
@@ -11,11 +12,11 @@
  * - 纯函数：不 IO、不读外部、不写 state
  * - 与 witchContext.ts 对称：step-entry context，在步骤开始前就位
  *
- * canShoot 判定：仅被狼人袭击或公投放逐出局时可发动。以下夜间死法均不能开枪：
- * - 被女巫/毒师毒杀
- * - 丘比特殉情（搭档夜间死亡）
- * - 摄梦连锁死亡（摄梦人夜间死亡 → 梦游者连带死亡）
- * - 狼美人魅惑连锁（狼美人夜间死亡 → 被魅惑者连带死亡）
+ * @remarks canShoot 精确条件：
+ *   canShoot = true 仅当死因为 wolfKill 或 exile（白天放逐）。
+ *   以下死因不能开枪: poison（女巫/毒师）、couple（殉情）、dream（摄梦连锁）、charm（狼美人魅惑）。
+ *   检查顺序: witchContext.killedSeat → coupleDeathVictim → dreamLinkedDeath → wolfQueenCharm。
+ *   deriveConfirmStepRoleMap() 在模块加载时从 ROLE_SPECS 构建静态映射。
  */
 
 import { type SchemaId } from '../../models/roles/spec';

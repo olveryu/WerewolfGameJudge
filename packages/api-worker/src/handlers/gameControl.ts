@@ -3,6 +3,9 @@
  *
  * Thin router 层：zod 校验 → DO RPC → 错误处理 → 返回响应。
  * 游戏逻辑在 DO (GameRoom) 内部执行。
+ *
+ * @throws 400 — zod 校验失败或 DO 返回 success:false
+ * @throws 503/429 — callDO 检测 DO retryable/overloaded
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

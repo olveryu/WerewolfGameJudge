@@ -50,6 +50,9 @@ let refreshPromise: Promise<boolean> | null = null;
 /**
  * 带锁的 refresh：多个并发 401 请求共享同一个 refresh 调用。
  * 返回 true 表示 refresh 成功（新 token 已设置），false 表示失败。
+ *
+ * @remarks single-flight lock：首个 401 触发 refresh，后续 401 排队等待同一 refresh 结果。
+ *   防止 refresh token 被多次消费（rotation 单次使用）。
  */
 async function refreshWithLock(): Promise<boolean> {
   if (!refreshHandler) return false;
@@ -70,6 +73,9 @@ async function refreshWithLock(): Promise<boolean> {
 /**
  * 网络层重试: 仅重试 fetch() 抛出的 TypeError（DNS/TCP/TLS 失败 = 请求大概率未到达服务器）。
  * DOMException（AbortError/TimeoutError）和编程错误直接抛出，不重试。
+ *
+ * @throws {TypeError} 重试 FETCH_RETRY_COUNT 次后仍失败
+ * @throws {DOMException} AbortError/TimeoutError——立即抛出，不重试
  */
 export async function fetchWithRetry(
   input: RequestInfo | URL,

@@ -42,11 +42,11 @@ const MAX_PROGRESSION_LOOPS = 20;
 interface InlineProgressionResult {
   /** 推进过程中累积的所有 StateAction（不含触发 action 本身） */
   actions: StateAction[];
-  /** 推进过程中收集的待播放音频 */
+  /** 推进过程中收集的待播放音频（按播放顺序） */
   audioEffects: AudioEffect[];
-  /** 最终 state（已 apply 所有 actions） */
+  /** 已 apply 所有 actions 后的最终 state（可能与输入不同） */
   finalState: GameState;
-  /** 推进步数（0 = 未推进） */
+  /** 推进步数（0 = 未推进）；每次 ADVANCE_NIGHT 或 END_NIGHT 计 1 */
   stepsAdvanced: number;
 }
 
@@ -162,6 +162,11 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  *
  * 在 action 处理完成后，同一请求内评估并执行推进链：
  * action complete → evaluate → advance → evaluate → ... → none/end_night
+ *
+ * @pre state.status === 'Ongoing'
+ * @remarks MAX_PROGRESSION_LOOPS=20 熔断保护。递归推进直到 evaluateProgression 返回 'none'。
+ *   auto-skip delay: 底牌空步骤 set stepDeadline = now + random(5000, 10000)ms，
+ *   仅在无 pending audio 时设置（避免 audio duration 与 deadline 窗口重叠）。
  *
  * @param state - action 处理后的 state
  * @param hostUserId - Host UID（用于构建 HandlerContext）

@@ -5,7 +5,17 @@
  * POST /api/gacha/draw     — 执行抽奖（扣券 + roll + 解锁/碎片 + 记录历史）
  * POST /api/gacha/exchange — 碎片兑换指定物品
  *
- * 事务性：draw/exchange 操作使用 OCC，保证原子性。
+ * 事务性：draw/exchange/daily-reward 使用 OCC（userStats.version 乐观锁），
+ * 冲突时最多重试 MAX_DRAW_RETRIES=3 次。幂等键防止重复提交。
+ *
+ * @throws 各路由错误码：
+ * - POST /gacha/draw — 400 NO_STATS | 400 INSUFFICIENT_DRAWS | 409 CONFLICT（OCC 耗尽）
+ * - POST /gacha/daily-reward — 400 NO_STATS | 400 COOLDOWN_NOT_MET | 409 CONFLICT
+ * - POST /gacha/exchange — 400 INVALID_ITEM | 400 NO_STATS | 400 INSUFFICIENT_SHARDS |
+ *     400 ALREADY_OWNED | 409 CONFLICT
+ *
+ * @pre 所有路由需 requireAuth 中间件（Bearer token 认证）
+ * @pre idempotencyKey 唯一标识本次操作；重放时返回缓存响应（24h TTL）
  */
 
 import type { DrawType } from '@werewolf/game-engine/growth/gachaProbability';

@@ -3,6 +3,21 @@
  *
  * 覆盖匿名登录、邮箱注册/登录、用户资料更新、session 恢复。
  * JWT 签发/验证，密码用 PBKDF2 哈希存储到 D1。
+ *
+ * @throws 各路由抛出/返回的 HTTP 错误码：
+ * - POST /auth/anonymous — 无特殊错误
+ * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 409 ROOM_CODE_CONFLICT（merge）| 500 ACCOUNT_MERGE_FAILED
+ * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS（10次/15分钟）| 401 INVALID_CREDENTIALS
+ * - GET /auth/user — 401 token 缺失/无效/revoked | 404 用户已删除
+ * - PUT /auth/profile — 403 装备物品未解锁
+ * - PUT /auth/password — 400 NO_PASSWORD（匿名/微信用户）| 401 旧密码错误
+ * - POST /auth/signout — 无特殊错误
+ * - POST /auth/forgot-password — 500 EMAIL_SEND_FAILED
+ * - POST /auth/reset-password — 400 INVALID_OR_EXPIRED_CODE（过期/5次用尽/已使用）
+ * - POST /auth/refresh — 401 INVALID_REFRESH_TOKEN
+ * - POST /auth/wechat-claim — 500 WECHAT_NOT_CONFIGURED | 504 WECHAT_TIMEOUT | 401 WECHAT_AUTH_FAILED
+ * - POST /auth/claim — 404 nonce 不存在 | 410 CLAIM_EXPIRED（>2分钟）
+ * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
 
 import {
