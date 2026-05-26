@@ -1,108 +1,108 @@
 ---
 name: 'Screens & Components'
-description: 'Screen/Component 层规范：Policy-Orchestrator-Presentational 三层、Theme Token、RN 性能。Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
+description: 'Screen/Component layer standards: Policy-Orchestrator-Presentational three-tier, Theme Tokens, RN performance. Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
 applyTo: 'src/screens/**,src/components/**'
 ---
 
-# Screen & Component 层规范
+# Screen & Component Layer Standards
 
-## 三层分工（RoomScreen）
+## Three-Tier Separation (RoomScreen)
 
-| 层                 | 职责                                               | 位置            |
-| ------------------ | -------------------------------------------------- | --------------- |
-| **Policy**         | 纯逻辑：输入 → Instruction（NOOP/ALERT/SUBMIT 等） | `policy/**`     |
-| **Orchestrator**   | 调用 policy → 执行副作用                           | Screen / hooks  |
-| **Presentational** | 渲染 + 上报 intent（onPress/onChange 回调）        | `components/**` |
+| Tier               | Responsibility                                           | Location        |
+| ------------------ | -------------------------------------------------------- | --------------- |
+| **Policy**         | Pure logic: input → Instruction (NOOP/ALERT/SUBMIT etc.) | `policy/**`     |
+| **Orchestrator**   | Calls policy → executes side effects                     | Screen / hooks  |
+| **Presentational** | Renders + reports intent (onPress/onChange callbacks)    | `components/**` |
 
-- Policy 必须可单元测试，禁止 showAlert / navigation / service / hooks / 副作用。
-- Orchestrator 禁止写与 policy 并行的业务判断。
-- Presentational 禁止 import services，禁止组件内做业务逻辑判断（gate 决策由 policy 完成）。
+- Policy must be unit-testable. showAlert / navigation / service / hooks / side effects are forbidden.
+- Orchestrator must not write business logic in parallel with policy.
+- Presentational must not import services, must not do business logic decisions within components (gate decisions are made by policy).
 
-## 组件层规则
+## Component Layer Rules
 
-- 渲染 UI + 上报 intent，不做业务逻辑判断。禁止 import service（runtime 值）/ showAlert / navigation。
-- 接收 styles prop（父组件 `createXxxStyles(colors)` → `useMemo` 创建一次 → props 传子组件），禁止子组件 `StyleSheet.create`。
-- 视觉置灰（样式 / activeOpacity / accessibilityState）允许，但禁止 `disabled={true}` 阻断 onPress（RN 直接不触发回调）。禁止 onPress 内 `if (xxx) return` 做业务 gate。
-- `React.memo(Component)` 默认 shallow compare，禁止自定义 `arePropsEqual`。回调由父级 `useCallback` 稳定化。
+- Render UI + report intent. No business logic decisions. Importing services (runtime values) / showAlert / navigation is forbidden.
+- Accept styles prop (parent creates via `createXxxStyles(colors)` → `useMemo` once → passed as props). Child components must not use `StyleSheet.create`.
+- Visual graying (styles / activeOpacity / accessibilityState) is allowed, but `disabled={true}` blocking onPress is forbidden (RN simply doesn't fire callback). `if (xxx) return` inside onPress for business gates is forbidden.
+- `React.memo(Component)` uses default shallow compare. Custom `arePropsEqual` is forbidden. Callbacks stabilized by parent's `useCallback`.
 
-## Theme Token（MUST）
+## Theme Tokens (MUST)
 
-所有颜色用 `colors.*`（来自 `useColors()`），间距 `spacing.*`，字号 `typography.*`，圆角 `borderRadius.*`，阴影 `shadows.*`。`componentSizes` / `fixed` 必须从 `src/theme/tokens` 直接导入（`index.ts` 未 re-export）。
+All colors use `colors.*` (from `useColors()`), spacing `spacing.*`, font sizes `typography.*`, border radius `borderRadius.*`, shadows `shadows.*`. `componentSizes` / `fixed` must be imported directly from `src/theme/tokens` (`index.ts` doesn't re-export them).
 
-- 禁止硬编码：`'#xxx'` / `padding: 16` / `fontSize: 14` / `fontWeight: '600'` / `borderRadius: 12` / 手写 shadow。
-- 例外：`*.stories.tsx`、`RoleRevealEffects/*` 动画常量、Emoji fontSize、statusDot 6×6、第三方不可控值。
-- 卡片用 `shadows.sm` + `borderRadius.large` + `colors.surface`，不用 border 描边。全宽 bar 卡片化。Banner 用浅色背景（主色+`'20'`透明度）+ `borderWidth: fixed.borderWidth`。
+- Hardcoding forbidden: `'#xxx'` / `padding: 16` / `fontSize: 14` / `fontWeight: '600'` / `borderRadius: 12` / hand-written shadows.
+- Exceptions: `*.stories.tsx`, `RoleRevealEffects/*` animation constants, Emoji fontSize, statusDot 6×6, third-party uncontrollable values.
+- Cards use `shadows.sm` + `borderRadius.large` + `colors.surface`, no border stroke. Full-width bars use card style. Banners use light background (primary+`'20'` opacity) + `borderWidth: fixed.borderWidth`.
 
-### 4-Faction 阵营色（MUST）
+### 4-Faction Alignment Colors (MUST)
 
-阵营颜色统一使用 theme token，禁止硬编码色值：
+Faction colors must uniformly use theme tokens. Hardcoded color values are forbidden:
 
-| 阵营   | Token             | 用途                                    |
-| ------ | ----------------- | --------------------------------------- |
-| 狼人   | `colors.wolf`     | chip 边框/文字、badge、notepad 角色标签 |
-| 神职   | `colors.god`      | 同上                                    |
-| 村民   | `colors.villager` | 同上                                    |
-| 第三方 | `colors.third`    | 同上                                    |
+| Faction  | Token             | Usage                                       |
+| -------- | ----------------- | ------------------------------------------- |
+| Werewolf | `colors.wolf`     | chip border/text, badge, notepad role label |
+| God      | `colors.god`      | same as above                               |
+| Villager | `colors.villager` | same as above                               |
+| Third    | `colors.third`    | same as above                               |
 
-- 所有 UI 展示阵营色的地方（ConfigScreen chip、BoardInfoCard chip、RoleCard、NotepadPanel badge、AIChatBubble 等）必须从 `colors.*` 读取，确保跟随主题切换。
-- `RoleRevealEffects` 动画组件通过 `createAlignmentThemes(colors)` 工厂函数派生 glow/particle/gradient 色值（`src/components/RoleRevealEffects/types.ts`）。
-- 新增阵营相关 UI 时，必须覆盖全部 4 个 faction（wolf / god / villager / third）。
+- All UI displaying faction colors (ConfigScreen chip, BoardInfoCard chip, RoleCard, NotepadPanel badge, AIChatBubble etc.) must read from `colors.*` to ensure theme-following.
+- `RoleRevealEffects` animation components derive glow/particle/gradient colors via `createAlignmentThemes(colors)` factory function (`src/components/RoleRevealEffects/types.ts`).
+- When adding new faction-related UI, all 4 factions (wolf / god / villager / third) must be covered.
 
-## 共享组件注册表
+## Shared Component Registry
 
-### Avatar 组件系
+### Avatar Component Family
 
-| 组件              | 文件                                 | 何时使用                                                                       |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| `Avatar`          | `src/components/Avatar.tsx`          | 基础头像渲染（内部组件）                                                       |
-| `UserAvatar`      | `src/components/UserAvatar.tsx`      | 用户头像按钮 + 等级 badge（HomeScreen TopBar / RoomScreen HeaderActions 共用） |
-| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | 头像 + 装饰框渲染（SeatTile / AppearanceScreen）                               |
+| Component         | File                                 | When to Use                                                                               |
+| ----------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `Avatar`          | `src/components/Avatar.tsx`          | Base avatar rendering (internal component)                                                |
+| `UserAvatar`      | `src/components/UserAvatar.tsx`      | User avatar button + level badge (shared by HomeScreen TopBar / RoomScreen HeaderActions) |
+| `AvatarWithFrame` | `src/components/AvatarWithFrame.tsx` | Avatar + decorative frame rendering (SeatTile / AppearanceScreen)                         |
 
-### 座位装饰 (seatFlairs)
+### Seat Flairs (seatFlairs)
 
-`src/components/seatFlairs/` — 10 个 Skia 粒子动画组件，注册表模式同 `avatarFrames/`。
+`src/components/seatFlairs/` — 10 Skia particle animation components, registry pattern same as `avatarFrames/`.
 
-- `index.ts` 导出 `SEAT_FLAIRS` 对象 + `getFlairComponent(flairId)` 工厂函数。
-- 每个 Flair 接收 `FlairProps`（`size` / `progress: SharedValue<number>`），用 Skia Immediate Mode 渲染。
-- 新增 flair：创建组件 → 注册到 `index.ts` → 加入 `rewardCatalog.ts` SEAT_FLAIR_IDS。
+- `index.ts` exports `SEAT_FLAIRS` object + `getFlairComponent(flairId)` factory function.
+- Each Flair accepts `FlairProps` (`size` / `progress: SharedValue<number>`), renders with Skia Immediate Mode.
+- Adding flair: create component → register in `index.ts` → add to `rewardCatalog.ts` SEAT_FLAIR_IDS.
 
-### 头像框 (avatarFrames)
+### Avatar Frames (avatarFrames)
 
-`src/components/avatarFrames/` — 注册表模式，`getFrameComponent(frameId)` 工厂函数。新增 frame 同理。
+`src/components/avatarFrames/` — Registry pattern, `getFrameComponent(frameId)` factory function. Adding frames follows same process.
 
-## Actor Identity 三层语义
+## Actor Identity Three-Layer Semantics
 
-- `my*` — 真实身份，仅展示用。
-- `effective*` — 提交身份（`controlledSeat ?? mySeatNumber`），提交路径只用这个。
-- `actor*` — UI 决策身份，policy 入参来自 `getActorIdentity()`。
+- `my*` — True identity, display only.
+- `effective*` — Submission identity (`controlledSeat ?? mySeatNumber`), submission path uses only this.
+- `actor*` — UI decision identity, policy input comes from `getActorIdentity()`.
 
-提交路径禁止 `mySeatNumber`。Policy 禁止直接读 `effectiveSeat`。
+Submission path must not use `mySeatNumber`. Policy must not directly read `effectiveSeat`.
 
-## Screen 拆分信号
+## Screen Split Signal
 
-行数 >400 且 hook 调用 10+ / useMemo+useCallback 10+ / 副作用 5+ 时拆为薄壳组件 + `useXxxScreenState` hook。300 行以下且逻辑简单不拆。拆分不得引入新 Context/Provider。
+When lines >400 and hook calls 10+ / useMemo+useCallback 10+ / side effects 5+, split into thin shell component + `useXxxScreenState` hook. Under 300 lines with simple logic: don't split. Split must not introduce new Context/Provider.
 
-## RN 性能规则
+## RN Performance Rules
 
-- 超 ~10 项列表用 `FlatList` / `SectionList`，禁止 `<ScrollView>{items.map(...)}</ScrollView>`。
-- `keyExtractor` 返回稳定唯一字符串（`item.id` / `String(item.seatNumber)`），禁止 index key。
-- `renderItem` 用 `useCallback` 或独立组件，禁止内联匿名函数（每次渲染新函数 → memo 失效）。
-- 禁止循环/列表内创建内联 style 对象，用预计算 style 或 `StyleSheet.compose`。
-- `<Image>` 必须指定 `resizeMode` + 明确 width/height。
-- 动画统一使用 `react-native-reanimated`（项目已全量迁移），禁止 RN 内置 `Animated` API。禁止动画回调中频繁 `setState`。
-- 导航后重计算用 `InteractionManager.runAfterInteractions`。
-- 禁止渲染路径同步 I/O（大对象 JSON.parse 放 useEffect）。
+- Lists with ~10+ items use `FlatList` / `SectionList`. `<ScrollView>{items.map(...)}</ScrollView>` is forbidden.
+- `keyExtractor` returns stable unique string (`item.id` / `String(item.seatNumber)`). Index key is forbidden.
+- `renderItem` uses `useCallback` or standalone component. Inline anonymous functions are forbidden (new function per render → memo invalidation).
+- Creating inline style objects in loops/lists is forbidden. Use pre-computed styles or `StyleSheet.compose`.
+- `<Image>` must specify `resizeMode` + explicit width/height.
+- Animations use `react-native-reanimated` uniformly (project fully migrated). RN built-in `Animated` API is forbidden. Frequent `setState` in animation callbacks is forbidden.
+- Post-navigation recalculation uses `InteractionManager.runAfterInteractions`.
+- Synchronous I/O in render path is forbidden (large object JSON.parse goes in useEffect).
 
-## Loading / Mutex Flag 必须在 `finally` 中重置
+## Loading / Mutex Flag Must Reset in `finally`
 
-`isStarting` / `isSubmitting` / `isLoading` 等互斥旗（disable 按钮防重复提交）必须放 `try/finally` 重置，不只在 success 路径重置。否则异常后 UI 永久锁死。
+`isStarting` / `isSubmitting` / `isLoading` mutex flags (disable button to prevent double-submit) must reset in `try/finally`, not only on success path. Otherwise UI permanently locks after exception.
 
-## One-shot Effect 需 Ref Guard
+## One-shot Effect Needs Ref Guard
 
-应该在生命周期内只触发一次的 effect（如"进入发言阶段显示发言顺序"）必须用 `useRef(false)` 守卫，防止每次 state broadcast 导致 deps 变化重新触发。Guard ref 在适当时机（phase 切换 / unmount）重置。
+Effects that should only fire once per lifecycle (e.g., "show speaking order when entering speech phase") must use `useRef(false)` guard to prevent re-triggering on every state broadcast deps change. Guard ref resets at appropriate time (phase switch / unmount).
 
-## 音频 Gate 合约
+## Audio Gate Contract
 
-`isAudioPlaying` gate 必须最高优先级：audio 播放时交互统一 NOOP，不得被 `disabledReason` / `notSelf` 等提示抢先。必须有 policy 单测锁死此优先级。新增/修改交互 policy 必须补单测覆盖关键 gate。
+`isAudioPlaying` gate must be highest priority: during audio playback, interactions uniformly NOOP — must not be preempted by `disabledReason` / `notSelf` etc. tips. Must have policy unit test locking this priority. Adding/modifying interaction policies must add unit tests covering key gates.
 
-RoomScreen UI 状态机速查（GameStatus→按钮映射、Schema Kind→交互模式、Overlay/Modal 触发条件、SeatTile 视觉状态）参见 [docs/roomscreen-state-machine.md](../../docs/roomscreen-state-machine.md)。
+RoomScreen UI state machine quick reference (GameStatus→button mapping, Schema Kind→interaction mode, Overlay/Modal trigger conditions, SeatTile visual states): see [docs/roomscreen-state-machine.md](../../docs/roomscreen-state-machine.md).

@@ -1,38 +1,38 @@
 ---
 name: 'RoomScreen'
 applyTo: 'src/screens/RoomScreen/**'
-description: 'RoomScreen 子目录规范：policy/hooks/executors/seatTap/components/share 分层。Use when: editing RoomScreen, policy functions, seat tap handlers, night flow executors, share image modules'
+description: 'RoomScreen subdirectory standards: policy/hooks/executors/seatTap/components/share layering. Use when: editing RoomScreen, policy functions, seat tap handlers, night flow executors, share image modules'
 ---
 
-# RoomScreen 规范
+# RoomScreen Standards
 
-## 子目录
+## Subdirectories
 
-| 目录          | 职责                                                                    |
+| Directory     | Responsibility                                                          |
 | ------------- | ----------------------------------------------------------------------- |
-| `policy/`     | 纯逻辑 policy 函数（输入 → Instruction）                                |
-| `hooks/`      | Screen 级 hooks（`useRoomScreenState` 等）                              |
-| `components/` | RoomScreen 专属 UI 组件                                                 |
-| `executors/`  | Action 执行器（从 hooks 拆出的执行层）                                  |
-| `seatTap/`    | 座位点击交互逻辑                                                        |
-| `share*.ts`   | 分享功能模块（shareImage / shareRoom / shareQRCode / shareNightReview） |
+| `policy/`     | Pure logic policy functions (input → Instruction)                       |
+| `hooks/`      | Screen-level hooks (`useRoomScreenState` etc.)                          |
+| `components/` | RoomScreen-specific UI components                                       |
+| `executors/`  | Action executors (execution layer extracted from hooks)                 |
+| `seatTap/`    | Seat tap interaction logic                                              |
+| `share*.ts`   | Share modules (shareImage / shareRoom / shareQRCode / shareNightReview) |
 
-## Screen 总览
+## Screen Overview
 
-| Screen                    | 位置                               | 职责                                    |
-| ------------------------- | ---------------------------------- | --------------------------------------- |
-| `HomeScreen`              | `screens/HomeScreen/`              | 主页 — 创建/加入房间入口                |
-| `ConfigScreen`            | `screens/ConfigScreen/`            | 游戏配置 — 选择板子、角色、人数         |
-| `RoomScreen`              | `screens/RoomScreen/`              | 房间主屏 — 座位、夜晚流程、所有游戏交互 |
-| `EncyclopediaScreen`      | `screens/EncyclopediaScreen/`      | 角色图鉴                                |
-| `SettingsScreen`          | `screens/SettingsScreen/`          | 用户设置                                |
-| `Auth*Screen`             | `screens/AuthScreen/`              | 登录 / 注册 / 忘记密码 / 重置密码       |
-| `AppearanceScreen`        | `screens/AppearanceScreen/`        | 头像/头像框/座位装饰选择（等级解锁）    |
-| `UnlocksScreen`           | `screens/UnlocksScreen/`           | 解锁奖励展示（头像/框/特效三 tab）      |
-| `BoardPickerScreen`       | `screens/BoardPickerScreen/`       | 板子/模板选择                           |
-| `AnimationSettingsScreen` | `screens/AnimationSettingsScreen/` | 角色翻牌动画选择                        |
-| `MusicSettingsScreen`     | `screens/MusicSettingsScreen/`     | 背景音乐设置                            |
-| `NotepadScreen`           | `screens/NotepadScreen/`           | 游戏笔记本（记录发言/投票）             |
-| `GachaScreen`             | `screens/GachaScreen/`             | 扭蛋机 — 消耗券抽取装饰物品             |
+| Screen                    | Location                           | Responsibility                                              |
+| ------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| `HomeScreen`              | `screens/HomeScreen/`              | Home — create/join room entry                               |
+| `ConfigScreen`            | `screens/ConfigScreen/`            | Game config — select board, roles, player count             |
+| `RoomScreen`              | `screens/RoomScreen/`              | Room main screen — seats, night flow, all game interactions |
+| `EncyclopediaScreen`      | `screens/EncyclopediaScreen/`      | Role encyclopedia                                           |
+| `SettingsScreen`          | `screens/SettingsScreen/`          | User settings                                               |
+| `Auth*Screen`             | `screens/AuthScreen/`              | Login / register / forgot password / reset password         |
+| `AppearanceScreen`        | `screens/AppearanceScreen/`        | Avatar/frame/seat decoration selection (level unlocks)      |
+| `UnlocksScreen`           | `screens/UnlocksScreen/`           | Unlock reward display (avatar/frame/effect three tabs)      |
+| `BoardPickerScreen`       | `screens/BoardPickerScreen/`       | Board/template selection                                    |
+| `AnimationSettingsScreen` | `screens/AnimationSettingsScreen/` | Role reveal animation selection                             |
+| `MusicSettingsScreen`     | `screens/MusicSettingsScreen/`     | Background music settings                                   |
+| `NotepadScreen`           | `screens/NotepadScreen/`           | Game notepad (record speeches/votes)                        |
+| `GachaScreen`             | `screens/GachaScreen/`             | Gacha machine — spend tickets to draw decorations           |
 
-RoomScreen UI 状态机速查参见 `docs/roomscreen-state-machine.md`。
+RoomScreen UI state machine quick reference: see `docs/roomscreen-state-machine.md`.

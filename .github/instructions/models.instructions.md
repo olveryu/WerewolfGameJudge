@@ -1,27 +1,27 @@
 ---
 name: 'Models'
-description: 'Model 层规范：ROLE_SPECS/SCHEMAS/NIGHT_STEPS 三层表驱动、纯声明式。Use when: editing models, role specs, schemas, night steps, type definitions, enums'
+description: 'Model layer standards: ROLE_SPECS/SCHEMAS/NIGHT_STEPS three-tier table-driven, pure declarative. Use when: editing models, role specs, schemas, night steps, type definitions, enums'
 applyTo: 'src/models/**'
 ---
 
-# Model 层规范
+# Model Layer Standards
 
-Model 定义在 `@werewolf/game-engine`（`packages/game-engine/src/models/`）。`src/models/` 仅含测试（`roles/spec/__tests__/`）。
+Models are defined in `@werewolf/game-engine` (`packages/game-engine/src/models/`). `src/models/` only contains tests (`roles/spec/__tests__/`).
 
-## 规则
+## Rules
 
-- 声明式内容（spec / schema / types / enums / 常量），纯函数查询/工厂（`getRoleSpec()`、`makeActionTarget()`、type guard `isActionTarget()`）。
-- 禁止 import service / hooks / UI / contexts / navigation。禁止副作用（IO / 网络 / 音频 / Alert / `console.*`）。禁止 runtime 业务逻辑（状态迁移、resolver 计算、death calculation）。
+- Declarative content (spec / schema / types / enums / constants), pure function queries/factories (`getRoleSpec()`, `makeActionTarget()`, type guard `isActionTarget()`).
+- Importing services / hooks / UI / contexts / navigation is forbidden. Side effects (IO / network / audio / Alert / `console.*`) are forbidden. Runtime business logic (state transitions, resolver calculations, death calculation) is forbidden.
 
-## 三层表驱动（单一真相）
+## Three-Tier Table-Driven (Single Source of Truth)
 
-| 层            | 文件                 | 职责                              |
-| ------------- | -------------------- | --------------------------------- |
-| `ROLE_SPECS`  | `spec/specs.ts`      | 角色固有属性（不随步骤变化）      |
-| `SCHEMAS`     | `spec/schemas.ts`    | 行动输入协议（约束/提示/meeting） |
-| `NIGHT_STEPS` | `spec/nightSteps.ts` | Night-1 步骤顺序 + 音频           |
+| Tier          | File                 | Responsibility                                      |
+| ------------- | -------------------- | --------------------------------------------------- |
+| `ROLE_SPECS`  | `spec/specs.ts`      | Role intrinsic attributes (don't change per step)   |
+| `SCHEMAS`     | `spec/schemas.ts`    | Action input protocol (constraints/prompts/meeting) |
+| `NIGHT_STEPS` | `spec/nightSteps.ts` | Night-1 step order + audio                          |
 
-- Step id = 稳定 `SchemaId`，禁止 UI 文案作逻辑 key。`audioKey` 来自 `NIGHT_STEPS`，禁止 specs/steps 双写。
-- 输入合法性写在 `SCHEMAS[*].constraints`（schema-first）。禁止跨夜约束（`previousActions` / `lastNightTarget` 等）。
-- 袭击中立：可袭击任意座位（包括自己/狼队友），不加 `notSelf` / `notWolf`。
-- `schema.meeting.canSeeEachOther`（开关："何时显示队友"）vs `ROLE_SPECS[role].wolfMeeting.canSeeWolves`（过滤："谁被高亮"）— 不是双写。
+- Step id = stable `SchemaId`. UI text as logic key is forbidden. `audioKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden.
+- Input validity is written in `SCHEMAS[*].constraints` (schema-first). Cross-night constraints (`previousActions` / `lastNightTarget` etc.) are forbidden.
+- Attack neutrality: can attack any seat (including self/wolf teammates), no `notSelf` / `notWolf` added.
+- `schema.meeting.canSeeEachOther` (toggle: "when to show teammates") vs `ROLE_SPECS[role].wolfMeeting.canSeeWolves` (filter: "who gets highlighted") — these are not dual-writes.

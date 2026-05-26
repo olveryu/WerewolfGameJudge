@@ -1,64 +1,64 @@
 ---
 name: 'Tests'
-description: '测试规范：Jest 单元/集成、Board UI 合约测试、Playwright E2E。Use when: writing tests, Jest unit tests, integration tests, Playwright E2E specs, test utilities, mocking'
+description: 'Testing standards: Jest unit/integration, Board UI contract tests, Playwright E2E. Use when: writing tests, Jest unit tests, integration tests, Playwright E2E specs, test utilities, mocking'
 applyTo: '**/*.test.ts,**/*.test.tsx,**/__tests__/**,e2e/**'
 ---
 
-# 测试规范
+# Testing Standards
 
-## 通用规则
+## General Rules
 
-- 禁止 `console.*`（Jest 断言失败自动输出 diff；E2E 有 trace + testInfo.attach）。如需全局拦截，`jest.setup.ts` 中配置 console spy。
-- 禁止 `it.skip` / `test.skip` / `describe.skip`（CI 检测到直接 fail）。
-- 测试断言基于 `GameState` 单一真相，禁止直接改 state / 注入 host-only 状态。
-- 测试文件允许 `as` 构造 mock 数据。允许 mock `src/utils/alert.ts` 的 `showAlert`。
-- Jest mock game-engine 模块用包路径 `@werewolf/game-engine/...`，禁止相对路径 mock 存根。静态分析测试从 `packages/game-engine/src/` 读取源文件。
-- 跑测试禁止 `| grep` / `| head` / `| tail` 截断输出。Playwright 默认使用 `--reporter=list`（如 `pnpm run e2e`）；若执行项目内调试脚本（`e2e:core` / `e2e:remote`）可按脚本使用 `--reporter=line`。
-- 修 bug 优先根因修复，回滚过时 patch。禁止无证据宣称"已修复"：需给 commit hash、修改文件、验证结果。
+- `console.*` is forbidden (Jest outputs diff automatically on assertion failure; E2E has trace + testInfo.attach). For global interception, configure console spy in `jest.setup.ts`.
+- `it.skip` / `test.skip` / `describe.skip` is forbidden (CI detects and fails directly).
+- Test assertions are based on `GameState` single source of truth. Directly modifying state / injecting host-only state is forbidden.
+- Test files may use `as` to construct mock data. Mocking `src/utils/alert.ts`'s `showAlert` is allowed.
+- Jest mocking game-engine modules uses package path `@werewolf/game-engine/...`. Relative path mock stubs are forbidden. Static analysis tests read source files from `packages/game-engine/src/`.
+- Running tests must not use `| grep` / `| head` / `| tail` to truncate output. Playwright defaults to `--reporter=list` (as in `pnpm run e2e`); project debug scripts (`e2e:core` / `e2e:remote`) may use `--reporter=line`.
+- Bug fixes prioritize root cause fix, roll back outdated patches. Claiming "already fixed" without evidence is forbidden: provide commit hash, modified files, verification results.
 
-## Integration Board Tests（`boards/**`）
+## Integration Board Tests (`boards/**`)
 
-跑真实 NightFlow，按 `NIGHT_STEPS` 顺序逐步执行。禁止 advanceToStep / skipToStep / fastForward。禁止 helper 自动清 gate（`pendingRevealAcks`、`isAudioPlaying` 等）或自动发送确认消息（`REVEAL_ACK` 等），必须由测试用例显式发送。`sendPlayerMessage()` / `advanceNight()` 失败必须 fail-fast（含 stepId、seat、reason），禁止 warn / 吞失败。
+Run real NightFlow, execute step by step following `NIGHT_STEPS` order. advanceToStep / skipToStep / fastForward is forbidden. Helpers auto-clearing gates (`pendingRevealAcks`, `isAudioPlaying` etc.) or auto-sending confirmation messages (`REVEAL_ACK` etc.) is forbidden — test cases must send explicitly. `sendPlayerMessage()` / `advanceNight()` failure must fail-fast (include stepId, seat, reason). warn / swallowing failures is forbidden.
 
-## Board UI Tests（`boards-ui/**`）
+## Board UI Tests (`boards-ui/**`)
 
-- 必须使用 `RoomScreenTestHarness` 拦截 showAlert / showDialog。测试末尾覆盖清单断言。
-- 覆盖断言必须用字面量数组（`harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`），禁止变量/函数生成。
-- 难测分支（`confirmTrigger` / `skipConfirm` / `wolfRobotHunterStatus` 等）不得移出 required 清单。
-- Contract test 强制"板子 × 弹窗类型"全覆盖，required 清单 schema/steps 驱动（`SCHEMAS` / `NIGHT_STEPS`），禁止手写硬编码。
+- Must use `RoomScreenTestHarness` to intercept showAlert / showDialog. Test ends with coverage assertion checklist.
+- Coverage assertion must use literal arrays (`harness.assertCoverage(['actionPrompt', 'wolfVote', ...])`). Variables/functions generating the array is forbidden.
+- Hard-to-test branches (`confirmTrigger` / `skipConfirm` / `wolfRobotHunterStatus` etc.) must not be removed from required checklist.
+- Contract tests enforce "board × dialog type" full coverage; required checklist is schema/steps driven (`SCHEMAS` / `NIGHT_STEPS`). Hand-written hardcoding is forbidden.
 
 ## Resolver Unit Tests
 
-覆盖：happy path、nightmare 阻断、schema 约束拒绝、边界条件。纯函数调用，禁止 mock service。
+Cover: happy path, nightmare block, schema constraint rejection, boundary conditions. Pure function calls. Mocking services is forbidden.
 
-## 质量门禁
+## Quality Gate
 
-合约测试覆盖：`NIGHT_STEPS` 引用有效性（roleId、SchemaId）、step ids 唯一性、Night-1-only 红线、audioKey 非空。格式化/静态检查必须 0 errors。
+Contract test coverage: `NIGHT_STEPS` reference validity (roleId, SchemaId), step ids uniqueness, Night-1-only red line, audioKey non-empty. Formatting/static checks must have 0 errors.
 
-## E2E（Playwright）
+## E2E (Playwright)
 
-调试依赖内建机制（`trace: 'retain-on-failure'` + `screenshot: 'only-on-failure'`），不转发浏览器 console 到 stdout。
+Debugging relies on built-in mechanisms (`trace: 'retain-on-failure'` + `screenshot: 'only-on-failure'`). Browser console is not forwarded to stdout.
 
-- `setupDiagnostics()` 只转发 `[DIAG]` 和 error 级别浏览器日志。禁止维护 log prefix 过滤列表，禁止 quiet/verbose 开关。
-- E2E spec / helpers / pages 中禁止 `console.log`，用 `test.step()` 标记流程，`testInfo.attach()` 附加数据到 HTML report。
-- 禁止 `page.waitForTimeout(N)`（唯一例外：轮询循环内 ≤300ms cadence），用 `expect(locator).toBeVisible()` / `locator.waitFor()` 等事件驱动等待替代。
-- 禁止 `.isVisible({ timeout: N })`（Playwright 静默忽略 timeout 参数，瞬间返回）。需等待用 `locator.waitFor({ state: 'visible', timeout })`。
-- 每个 E2E spec 创建独立房间（test isolation），因此支持 `workers > 1` 并行。房间就绪用 `waitForRoomScreenReady()`。
+- `setupDiagnostics()` only forwards `[DIAG]` and error-level browser logs. Maintaining log prefix filter lists is forbidden. quiet/verbose switches are forbidden.
+- E2E spec / helpers / pages must not use `console.log`. Use `test.step()` to mark flow, `testInfo.attach()` to attach data to HTML report.
+- `page.waitForTimeout(N)` is forbidden (sole exception: ≤300ms cadence within polling loops). Use event-driven waits like `expect(locator).toBeVisible()` / `locator.waitFor()`.
+- `.isVisible({ timeout: N })` is forbidden (Playwright silently ignores timeout parameter, returns instantly). For waiting, use `locator.waitFor({ state: 'visible', timeout })`.
+- Each E2E spec creates an independent room (test isolation), thus supports `workers > 1` parallelism. Room readiness uses `waitForRoomScreenReady()`.
 
-### Playwright click 与 actionability
+### Playwright Click & Actionability
 
-- **禁止 `force: true`。** Playwright 的 actionability check（visible、enabled、无 `inert`）是唯一可靠的"可交互"保证。`force: true` 跳过检查 → 点击被 `inert` 吞掉 → 导致 flaky。
-- 去掉 `force: true` 后，Playwright 会自动等待 ModalStack 的 `inert` 属性移除。这是修复 "dismiss alert → click bottom panel" 竞态的正确方式。
-- 唯一允许 `force: true` 的场景：测试"元素在 disabled/hidden 状态下被程序化触发"的异常路径（极少）。
+- **`force: true` is forbidden.** Playwright's actionability check (visible, enabled, no `inert`) is the sole reliable "interactable" guarantee. `force: true` skips checks → click swallowed by `inert` → leads to flaky tests.
+- Removing `force: true`, Playwright automatically waits for ModalStack's `inert` attribute removal. This is the correct fix for "dismiss alert → click bottom panel" race condition.
+- Only allowed `force: true` scenario: testing "element programmatically triggered in disabled/hidden state" exception path (extremely rare).
 
-### `.catch(() => {})` 使用规则
+### `.catch(() => {})` Usage Rules
 
-- **断言型 waitFor 禁止 `.catch(() => {})`。** 如果执行了一个动作（click 确定、dismiss alert），后续状态变更是预期的——失败应该 fail fast 暴露 bug，不能吞掉。
-- **允许 `.catch(() => false)` 的场景：** 条件探测（`isVisible().catch(() => false)`）、retry/polling 循环（下次迭代会重试）、teardown cleanup（`setOffline(false).catch()`、`close().catch()`）。
-- 判断标准：**这个 `.catch` 移除后，如果 await 抛错，是代表一个真实 bug 吗？** 是→移除。不是（只是探测/轮询/cleanup）→保留。
+- **Assertion-type waitFor must not use `.catch(() => {})`.** If an action was performed (click confirm, dismiss alert), subsequent state change is expected — failure should fail fast to expose bugs, not be swallowed.
+- **`.catch(() => false)` is allowed for:** conditional probing (`isVisible().catch(() => false)`), retry/polling loops (next iteration retries), teardown cleanup (`setOffline(false).catch()`, `close().catch()`).
+- Decision criterion: **If this `.catch` is removed and the await throws, does it represent a real bug?** Yes → remove. No (just probing/polling/cleanup) → keep.
 
-### 调试方式
+### Debugging Approach
 
-- **首选 trace viewer**（`npx playwright show-trace`）。项目已配置 `trace: 'retain-on-failure'`，失败时自动生成。trace 包含每个 action 的 DOM snapshot、network、console、timing。
-- **禁止加 `console.log` 调试。** 用 `testInfo.attach('name', { body: data })` 附加诊断数据到 HTML report。
-- 如需临时诊断（`[DIAG]` 前缀），修复后必须清除。禁止 merge 含 `[DIAG]` 的代码。
+- **Prefer trace viewer** (`npx playwright show-trace`). Project is configured with `trace: 'retain-on-failure'`, auto-generates on failure. Trace includes DOM snapshot, network, console, timing for each action.
+- **Adding `console.log` for debugging is forbidden.** Use `testInfo.attach('name', { body: data })` to attach diagnostic data to HTML report.
+- If temporary diagnostics needed (`[DIAG]` prefix), must be removed after fix. Merging code containing `[DIAG]` is forbidden.

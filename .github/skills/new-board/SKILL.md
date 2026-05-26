@@ -1,55 +1,55 @@
 ---
 name: new-board
-description: 'Add a new preset board (板子/模板) to PRESET_TEMPLATES. Use when: adding a board, creating a template, new preset, 新增板子, 添加板子, 添加模板, 新增模板.'
-argument-hint: '板子名 + 角色列表（如：狼王预言家 4民4狼 预言家+女巫+猎人+守卫）'
+description: 'Add a new preset board to PRESET_TEMPLATES. Use when: adding a board, creating a template, new preset.'
+argument-hint: 'Board name + role list (e.g., Wolf King Seer 4villagers 4wolves seer+witch+hunter+guard)'
 ---
 
-# 新增板子 Skill
+# New Board Skill
 
-端到端添加一个预设板子到 `PRESET_TEMPLATES`，从收集需求到验证通过。
+End-to-end addition of a preset board to `PRESET_TEMPLATES`, from collecting requirements to passing verification.
 
 ## When to Use
 
-- 用户要求新增/添加一个预设板子（模板）
-- 用户描述了一组角色配置并希望加为预设
+- User requests adding a new preset board (template)
+- User describes a role configuration and wants it added as a preset
 
 ## Procedure
 
-### Phase 1 — 收集信息
+### Phase 1 — Collect Information
 
-1. 从用户输入中提取已知字段。
-2. 对照下表检查缺失项，**主动询问**所有缺失的必填字段（不猜测）：
+1. Extract known fields from user input.
+2. Check for missing items against the table below, **proactively ask** for all missing required fields (do not guess):
 
-| 必填字段 | 说明                                                               | 示例                            |
-| -------- | ------------------------------------------------------------------ | ------------------------------- |
-| 板子名   | 中文名（通常 3-6 字，不含人数后缀）                                | `狼王魔术师`                    |
-| 分类     | `TemplateCategory.Classic` / `Advanced` / `Special` / `ThirdParty` | `Advanced`                      |
-| 角色列表 | 完整 RoleId 数组（含重复的村民/狼人）                              | `['villager', 'villager', ...]` |
+| Required Field | Description                                                        | Example                         |
+| -------------- | ------------------------------------------------------------------ | ------------------------------- |
+| Board name     | Chinese name (typically 3-6 characters, no player count suffix)    | `狼王魔术师`                    |
+| Category       | `TemplateCategory.Classic` / `Advanced` / `Special` / `ThirdParty` | `Advanced`                      |
+| Role list      | Complete RoleId array (including duplicated villager/wolf)         | `['villager', 'villager', ...]` |
 
-3. 验证所有 RoleId 合法 — 用 `grep_search` 在 `specs.ts` 中确认每个 RoleId 存在。
-4. **如果角色列表中包含项目中不存在的新角色 → 先执行 `/new-role` skill 添加该角色，完成后再继续本 skill。**
+3. Verify all RoleIds are valid — use `grep_search` to confirm each RoleId exists in `specs.ts`.
+4. **If the role list contains a role that doesn't exist in the project → execute `/new-role` skill first to add that role, then continue this skill.**
 
-### Phase 2 — 验证设计
+### Phase 2 — Verify Design
 
-对角色列表进行以下检查：
+Perform the following checks on the role list:
 
-| 检查项         | 要求                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------- |
-| 玩家人数       | 12 人；`getPlayerCount(roles)` 计算实际人数（底牌角色不计入）                           |
-| 阵营平衡       | 狼人通常 3-4，神职通常 3-4，村民填充剩余位置                                            |
-| 无重复特殊角色 | 除 `villager` / `wolf` 外，每个特殊角色最多出现 1 次                                    |
-| 底牌角色       | `treasureMaster` 需额外 3 张底牌、`thief` 需 2 张（加在 roles 末尾，roles.length > 12） |
-| 命名规范       | 不含人数后缀（人数从 roles 派生），3-6 字中文                                           |
+| Check Item                 | Requirement                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| Player count               | 12 players; `getPlayerCount(roles)` calculates actual count (bottom card roles not counted)         |
+| Faction balance            | Wolves typically 3-4, god faction typically 3-4, villagers fill remaining slots                     |
+| No duplicate special roles | Except `villager` / `wolf`, each special role appears at most once                                  |
+| Bottom cards               | `treasureMaster` needs 3 extra bottom cards, `thief` needs 2 (appended to roles, roles.length > 12) |
+| Naming convention          | No player count suffix (count derived from roles), 3-6 Chinese characters                           |
 
-**输出变更计划，等待用户确认后再编码。**
+**Output the change plan, wait for user confirmation before coding.**
 
-### Phase 3 — 实现（用户确认后）
+### Phase 3 — Implementation (After User Confirmation)
 
-#### 步骤 1 — 添加 PRESET_TEMPLATES 条目
+#### Step 1 — Add PRESET_TEMPLATES Entry
 
-**文件**: `packages/game-engine/src/models/Template.ts`
+**File**: `packages/game-engine/src/models/Template.ts`
 
-在对应分类区块末尾添加：
+Add at the end of the corresponding category block:
 
 ```typescript
 {
@@ -72,25 +72,25 @@ argument-hint: '板子名 + 角色列表（如：狼王预言家 4民4狼 预言
 },
 ```
 
-**排列约定**：先村民 → 狼人 → 特殊狼人 → 神职 → 特殊角色 → 底牌（如有）。
+**Ordering convention**: Villagers first → wolves → special wolves → god faction → special roles → bottom cards (if any).
 
-#### 步骤 2 — 更新 guideContent 计数（如需要）
+#### Step 2 — Update guideContent Count (If Needed)
 
-**文件**: `src/config/guideContent.ts`
+**File**: `src/config/guideContent.ts`
 
-搜索 `PRESET_TEMPLATES.length`，如果 guide 文案中硬编码了模板数量（如 `25 个预设板子`），更新为新数量。
+Search `PRESET_TEMPLATES.length`; if the guide text has a hardcoded template count (e.g., `25 个预设板子`), update to the new number.
 
-> 当前实现用 `${PRESET_TEMPLATES.length}` 动态引用，通常**无需手动更新**。仅在文案硬编码数字时才改。
+> Current implementation uses `${PRESET_TEMPLATES.length}` dynamic reference, so usually **no manual update needed**. Only change when the text has a hardcoded number.
 
 ### Phase 4 — Integration Test
 
-在 `src/services/__tests__/boards/` 下新增 integration test。
+Create an integration test under `src/services/__tests__/boards/`.
 
-#### 4a. 新建 integration test 文件
+#### 4a. Create Integration Test File
 
-**文件**: `src/services/__tests__/boards/night1.<主题>.<角色特征>.12p.integration.test.ts`
+**File**: `src/services/__tests__/boards/night1.<topic>.<role-feature>.12p.integration.test.ts`
 
-命名示例：`night1.guard.blocks_wolfkill.12p.integration.test.ts`
+Naming example: `night1.guard.blocks_wolfkill.12p.integration.test.ts`
 
 ```typescript
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -102,45 +102,45 @@ const TEMPLATE_NAME = '板子名';
 
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
-  // seat 0-3: villager, seat 4-6: wolf, seat 7+: 特殊角色
+  // seat 0-3: villager, seat 4-6: wolf, seat 7+: special roles
   map.set(0, 'villager');
   // ...
   return map;
 }
 
-describe('Night-1: <主题描述> (12p)', () => {
+describe('Night-1: <topic description> (12p)', () => {
   let ctx: GameContext;
 
   afterEach(() => {
     cleanupGame();
   });
 
-  it('<核心场景描述>', () => {
+  it('<core scenario description>', () => {
     ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
       wolf: 0,
       witch: { save: null, poison: null },
       seer: 4,
-      // ...其他角色行动
+      // ...other role actions
     });
 
     expect(result.completed).toBe(true);
-    // 断言 currentNightResults / reveal / deaths
+    // Assert currentNightResults / reveal / deaths
     expect(ctx.getGameState().currentNightResults?.xxx).toBe(yyy);
   });
 });
 ```
 
-**必须包含**至少一个主题字段断言（非纯 deaths）：
-`currentNightResults?.xxx` / `seerReveal` / `psychicReveal` / `gargoyleReveal` / `actions?.xxx` 等。
+**Must include** at least one topic-specific assertion (not purely deaths):
+`currentNightResults?.xxx` / `seerReveal` / `psychicReveal` / `gargoyleReveal` / `actions?.xxx` etc.
 
-#### 4b. 注册到 boards coverage contract
+#### 4b. Register in Boards Coverage Contract
 
-**文件**: `src/services/__tests__/boards/night1.boards.coverage.contract.test.ts`
+**File**: `src/services/__tests__/boards/night1.boards.coverage.contract.test.ts`
 
-1. 在 `REQUIRED_12P_TEMPLATES` 数组中添加板子名
-2. 在 `TEMPLATE_TO_TEST_PATTERN` 中添加对应的正则
+1. Add the board name to `REQUIRED_12P_TEMPLATES` array
+2. Add the corresponding regex to `TEMPLATE_TO_TEST_PATTERN`
 
 ```typescript
 // REQUIRED_12P_TEMPLATES
@@ -150,118 +150,101 @@ describe('Night-1: <主题描述> (12p)', () => {
 新板子名: /TEMPLATE_NAME\s*=\s*['"]新板子名['"]/,
 ```
 
-### Phase 4.5 — 核心原则自检
+### Phase 4.5 — Core Principles Self-Check
 
-对本次所有修改逐条过核心原则 🔍 自检：
+Run through the core principles checklist 🔍 for all changes made:
 
-1. 是否有 band-aid 修复？（原则 1）
-2. 涉及第三方 API 是否查了文档？（原则 2）
-3. 是否有 `as any` / 不必要的 `?.`？（原则 3）
-4. 是否有吞错误的 catch / 无反馈的失败路径？（原则 4）
-5. 新增的类型/字段是否全管道贯穿？（原则 5）
+1. Any band-aid fixes? (Principle 1)
+2. Used third-party API — did you check docs? (Principle 2)
+3. Any `as any` / unnecessary `?.`? (Principle 3)
+4. Any error-swallowing catch / failure path without feedback? (Principle 4)
+5. Do new types/fields propagate through the full pipeline? (Principle 5)
 
-### Phase 5 — 验证
+### Phase 5 — Verify
 
-1. **运行合约测试**确保数据自洽：
+1. **Run contract tests** to ensure data consistency:
 
    ```bash
    pnpm exec jest --testPathPattern="Template.contract" --no-coverage
    ```
 
-   合约测试会自动验证：
-   - 所有 RoleId 合法
-   - 无重复特殊角色
-   - numberOfPlayers 与 getPlayerCount 一致
-   - actionOrder 符合 NightPlan 顺序
-   - 名称无人数后缀
+   Contract tests automatically verify:
+   - All RoleIds are valid
+   - No duplicate special roles
+   - numberOfPlayers matches getPlayerCount
+   - actionOrder follows NightPlan order
+   - Name has no player count suffix
 
-2. **运行 boards coverage contract**确保 integration test 注册正确：
+2. **Run boards coverage contract** to ensure integration test is registered correctly:
 
    ```bash
    pnpm exec jest --testPathPattern="night1.boards.coverage.contract" --no-coverage
    ```
 
-3. **运行 nightPlanSchemas 合约测试**确保夜晚计划有效：
+3. **Run nightPlanSchemas contract test** to ensure night plan is valid:
 
    ```bash
    pnpm exec jest --testPathPattern="nightPlanSchemas.contract" --no-coverage
    ```
 
-4. **全量验证**：
+4. **Full verification**:
    ```bash
    pnpm run quality
    ```
-   snapshot 变更用 `pnpm exec jest --updateSnapshot`。
+   For snapshot changes use `pnpm exec jest --updateSnapshot`.
 
 ### Phase 6 — E2E Test
 
-如果板子包含特殊角色组合或新角色，新增 Playwright E2E spec 覆盖首夜流程。
+If the board contains special role combinations or new roles, add a Playwright E2E spec covering the Night 1 flow.
 
-1. 在 `e2e/specs/` 下新增或追加到合适的 `night-roles-*.spec.ts` 文件
-2. 使用 `withSetup` + `BoardPickerPage.selectPreset('板子名')` 选择新板子
-3. 覆盖至少一个核心场景（特殊角色行动 + 结果断言）
-4. 本地运行确认通过：`pnpm run e2e:core`
+1. Add or append to an appropriate `night-roles-*.spec.ts` file under `e2e/specs/`
+2. Use `withSetup` + `BoardPickerPage.selectPreset('板子名')` to select the new board
+3. Cover at least one core scenario (special role action + result assertion)
+4. Run locally to confirm pass: `pnpm run e2e:core`
 
-> 如果板子仅含已有 E2E 覆盖的角色且无新交互，可跳过此步（在收尾中说明理由）。
+> If the board only contains roles already covered by E2E and has no new interactions, this step can be skipped (state the reason in wrap-up).
 
-### Phase 7 — 收尾
+### Phase 7 — Wrap-up
 
-- 确认 `pnpm run quality` 全绿
-- **在 `src/components/BoardStrategy/boardStrategyData.ts` 的 `BOARD_STRATEGY` 中新增攻略条目**（key = `PresetTemplate.name`），包含 `difficulty`、`recommendLevel`、`tags`、`summary`、`goodStrategy`、`wolfStrategy`（如含第三方则加 `thirdStrategy`）、`firstNight`、`pitfalls`、`meta`
-- 更新 `README.md` 和 `README.en.md` 中的预设板子数量（如：「27 套预设板子」→「28 套预设板子」）
-- 更新 `docs/PRESET_BOARDS.md` 预设板子参考文档（在对应分类表格中追加新板子）
-- 总结变更文件清单
-- 提示用户提交：`feat(models): add <boardName> preset template`
-
----
-
-## 分类选择指南
-
-| 分类         | 适用场景                           | 示例                       |
-| ------------ | ---------------------------------- | -------------------------- |
-| `Classic`    | 入门级/经典配置                    | 预女猎白、狼美守卫         |
-| `Advanced`   | 含进阶角色（石像鬼/噩梦/摄梦人等） | 石像鬼守墓人、噩梦之影守卫 |
-| `Special`    | 特殊玩法/独特机制组合              | 纯白夜影、假面舞会         |
-| `ThirdParty` | 含第三方阵营角色                   | 吹笛者、影子复仇者         |
+- Confirm `pnpm run quality` passes
+- **Add a strategy entry in `src/components/BoardStrategy/boardStrategyData.ts`** under `BOARD_STRATEGY` (key = `PresetTemplate.name`), including `difficulty`, `recommendLevel`, `tags`, `summary`, `goodStrategy`, `wolfStrategy` (add `thirdStrategy` if third-party faction present), `firstNight`, `pitfalls`, `meta`
+- Update preset board count in `README.md` and `README.en.md` (e.g., "27 preset boards" → "28 preset boards")
+- Update `docs/PRESET_BOARDS.md` preset boards reference doc (append to corresponding category table)
+- Summarize changed file list
+- Prompt user to commit: `feat(models): add <boardName> preset template`
 
 ---
 
-## 参考角色索引（按阵营）
+## Category Selection Guide
 
-| 阵营   | 可选角色                                                                                                                                                                                                               |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 村民   | `villager`（可重复）                                                                                                                                                                                                   |
-| 狼人   | `wolf`（可重复）, `wolfQueen`, `wolfKing`, `darkWolfKing`, `wolfWitch`, `wolfRobot`, `bloodMoon`                                                                                                                       |
-| 神职   | `seer`, `witch`, `hunter`, `guard`, `idiot`, `knight`, `witcher`, `mirrorSeer`, `drunkSeer`, `psychic`, `gargoyle`, `graveyardKeeper`, `silenceElder`, `votebanElder`, `pureWhite`, `spiritKnight`, `dancer`, `warden` |
-| 功能   | `magician`, `nightmare`, `dreamcatcher`, `slacker`, `wildChild`, `avenger`, `shadow`, `masquerade`                                                                                                                     |
-| 觉醒   | `awakenedGargoyle`                                                                                                                                                                                                     |
-| 第三方 | `piper`                                                                                                                                                                                                                |
-| 底牌   | `treasureMaster`（+3 底牌）, `thief`（+2 底牌）                                                                                                                                                                        |
+| Category     | Applicable Scenario                               | Examples                              |
+| ------------ | ------------------------------------------------- | ------------------------------------- |
+| `Classic`    | Beginner/classic configurations                   | Seer+Witch+Hunter+Guard, Wolf+Beauty  |
+| `Advanced`   | Contains advanced roles (gargoyle/nightmare/etc.) | Gargoyle+Gravekeeper, Nightmare+Guard |
+| `Special`    | Special gameplay/unique mechanic combos           | PureWhite+Shadow, Masquerade          |
+| `ThirdParty` | Contains third-party faction roles                | Piper, Shadow+Avenger                 |
 
-> 此索引可能随版本变化。如果不确定某 RoleId 是否存在，用 `grep_search` 在 `specs.ts` 中验证。
+---
+
+## Role Index Reference (By Faction)
+
+| Faction      | Available Roles                                                                                                                                                                                                        |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Villager     | `villager` (repeatable)                                                                                                                                                                                                |
+| Wolf         | `wolf` (repeatable), `wolfQueen`, `wolfKing`, `darkWolfKing`, `wolfWitch`, `wolfRobot`, `bloodMoon`                                                                                                                    |
+| God          | `seer`, `witch`, `hunter`, `guard`, `idiot`, `knight`, `witcher`, `mirrorSeer`, `drunkSeer`, `psychic`, `gargoyle`, `graveyardKeeper`, `silenceElder`, `votebanElder`, `pureWhite`, `spiritKnight`, `dancer`, `warden` |
+| Utility      | `magician`, `nightmare`, `dreamcatcher`, `slacker`, `wildChild`, `avenger`, `shadow`, `masquerade`                                                                                                                     |
+| Awakened     | `awakenedGargoyle`                                                                                                                                                                                                     |
+| Third-party  | `piper`                                                                                                                                                                                                                |
+| Bottom cards | `treasureMaster` (+3 bottom cards), `thief` (+2 bottom cards)                                                                                                                                                          |
+
+> This index may change across versions. If unsure whether a RoleId exists, use `grep_search` to verify in `specs.ts`.
 
 ---
 
 ## Key Constraints
 
-- 板子名**不含**人数后缀（人数由 `roles.length` 派生）
-- 除 `villager` / `wolf` 外，**特殊角色不重复**
-- `treasureMaster` 需额外 3 张底牌角色、`thief` 需 2 张
-- 所有 RoleId 必须在 `ROLE_SPECS` 中存在
-- 板子按分类区块放置，同分类内按顺序追加到末尾
-
-## Quality Checklist
-
-- [ ] 板子名 3-6 字中文，无人数后缀
-- [ ] 分类正确（Classic / Advanced / Special / ThirdParty）
-- [ ] 所有 RoleId 合法
-- [ ] 无重复特殊角色
-- [ ] 阵营平衡合理
-- [ ] Integration test 已创建，包含主题字段断言
-- [ ] `REQUIRED_12P_TEMPLATES` + `TEMPLATE_TO_TEST_PATTERN` 已注册
-- [ ] Template.contract 测试通过
-- [ ] boards.coverage.contract 测试通过
-- [ ] nightPlanSchemas.contract 测试通过
-- [ ] `README.md` + `README.en.md` 预设板子数量已更新
-- [ ] `docs/PRESET_BOARDS.md` 预设板子参考文档已更新
-- [ ] `pnpm run quality` 全绿
+- Board name **must NOT** include player count suffix (count derived from `roles.length`)
+- Except `villager` / `wolf`, **special roles must not repeat**
+- `treasureMaster` requires 3 extra bottom card roles, `thief` requires 2
+- All RoleIds must exist in `ROLE_SPECS`

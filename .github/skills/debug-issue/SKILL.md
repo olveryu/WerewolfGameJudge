@@ -1,231 +1,231 @@
 ---
 name: debug-issue
-description: '结构化调试工作流：诊断 bug/异常行为、定位根因、验证修复。Use when: debugging, 调试, bug, 排查问题, 定位问题, 异常, error, 报错, crash, 不工作, 不显示, timeout, 断连.'
-argument-hint: '症状描述（如：进入房间后座位不显示、WebSocket 频繁断连、E2E hunter spec timeout）'
+description: 'Structured debugging workflow: diagnose bugs/abnormal behavior, locate root cause, verify fix. Use when: debugging, bug, issue investigation, error, crash, not working, not rendering, timeout, disconnect.'
+argument-hint: 'Symptom description (e.g., seats not showing after entering room, WebSocket frequent disconnects, E2E hunter spec timeout)'
 ---
 
-# 结构化调试 Skill
+# Structured Debugging Skill
 
-按症状分类 → 静态分析 → 动态诊断 → 根因修复 → 验证闭环的结构化流程。
+A structured flow: classify symptoms → static analysis → dynamic diagnosis → root cause fix → verification loop.
 
 ## When to Use
 
-- 用户报告 bug、异常行为、崩溃、性能问题
-- E2E / 单元测试失败需要排查
-- WebSocket 断连、状态不同步、API 报错
+- User reports a bug, abnormal behavior, crash, or performance issue
+- E2E / unit test failure needs investigation
+- WebSocket disconnects, state desync, API errors
 
 ---
 
 ## Procedure
 
-### Phase 1 — 症状分类 + 信息收集
+### Phase 1 — Symptom Classification + Information Gathering
 
-从用户描述提取以下信息：
+Extract the following from the user's description:
 
-| 字段     | 说明                         | 示例                         |
-| -------- | ---------------------------- | ---------------------------- |
-| 症状     | 具体表现                     | 座位不显示 / 401 报错        |
-| 复现条件 | 触发场景                     | 进入房间后 / 第三次点击      |
-| 涉及平台 | Web / iOS / Android / 全平台 | Web                          |
-| 错误信息 | console / Sentry / 弹窗文案  | `TypeError: Cannot read...`  |
-| 最近变更 | 是否刚改过相关代码           | 昨天重构了 ConnectionManager |
+| Field          | Description                        | Example                                |
+| -------------- | ---------------------------------- | -------------------------------------- |
+| Symptom        | Specific behavior                  | Seats not rendering / 401 error        |
+| Reproduction   | Trigger scenario                   | After entering room / third click      |
+| Platform       | Web / iOS / Android / All          | Web                                    |
+| Error message  | console / Sentry / alert text      | `TypeError: Cannot read...`            |
+| Recent changes | Was related code recently modified | Refactored ConnectionManager yesterday |
 
-根据症状分类到场景分支（可组合）：
+Classify symptom into scenario branches (can combine):
 
-| 分支 | 场景               | 典型症状                                      |
-| ---- | ------------------ | --------------------------------------------- |
-| A    | 客户端 UI 异常     | 组件不渲染、状态不更新、样式错乱、闪烁        |
-| B    | WebSocket/网络问题 | 断连、消息丢失、timeout、重连循环             |
-| C    | 游戏逻辑 bug       | 角色行动结果不符预期、状态 drift、reveal 错误 |
-| D    | API/Worker 错误    | 4xx/5xx、DO 异常、D1 查询失败                 |
-| E    | E2E 测试失败       | Playwright spec 报错、timeout、selector 失效  |
-| F    | 性能问题           | 加载慢、渲染卡顿、内存泄漏                    |
-
----
-
-### Phase 2 — 静态分析（首选）
-
-**原则：能静态定位的绝不动态诊断。**
-
-1. **定位代码区域** — `grep_search` / `semantic_search` 找到相关文件
-2. **追踪数据流** — 输入 → 转换 → 输出，逐步验证
-3. **双向追踪** — 修改调用方时追踪被调用方，反之亦然
-4. **检查类型约束** — schema 校验、边界条件、`noUncheckedIndexedAccess` 下标访问
-5. **检查最近变更** — `git log --oneline -20 -- <path>`
-6. **每个受影响符号** — 用 `grep_search` 或 `vscode_listCodeUsages` 验证所有消费者
-
-#### 场景分支首查路径
-
-**A — 客户端 UI 异常：**
-
-| 首查路径                | 排查重点                          |
-| ----------------------- | --------------------------------- |
-| `src/screens/<Screen>/` | Policy hooks 返回值、条件渲染逻辑 |
-| `src/services/facade/`  | GameState snapshot 推导、selector |
-| `src/contexts/`         | Context Provider 挂载、值传递     |
-| `src/components/`       | props 类型、memo 依赖、key 稳定性 |
-
-常见根因：selector 返回新引用导致无限渲染、Context 未挂载、条件渲染遗漏状态
-
-**B — WebSocket/网络问题：**
-
-| 首查路径                                  | 排查重点                          |
-| ----------------------------------------- | --------------------------------- |
-| `src/services/infra/ConnectionManager.ts` | 重连逻辑、错误分类、state machine |
-| `src/services/infra/RealtimeService.ts`   | 订阅/取消订阅、消息路由           |
-| `src/services/facade/`                    | applySnapshot 时序                |
-| `packages/api-worker/src/do/`             | DO WebSocket handler、广播逻辑    |
-
-常见根因：token 过期未刷新、DO 冷启动 race condition、消息序列号跳跃
-
-**C — 游戏逻辑 bug：**
-
-| 首查路径                                      | 排查重点                      |
-| --------------------------------------------- | ----------------------------- |
-| `packages/game-engine/src/resolvers/`         | resolver 处理逻辑、edge case  |
-| `packages/game-engine/src/models/roles/spec/` | NIGHT_STEPS 顺序、schema 约束 |
-| `packages/api-worker/src/do/`                 | DO 内 reducer 调用、状态写入  |
-| `src/services/facade/`                        | 客户端 snapshot 解读          |
-
-常见根因：resolver 未处理跳过情况、NIGHT_STEPS 顺序错误、DO 写入时 race condition
-
-**D — API/Worker 错误：**
-
-| 首查路径                              | 排查重点                  |
-| ------------------------------------- | ------------------------- |
-| `packages/api-worker/src/routes/`     | Zod schema 校验、参数传递 |
-| `packages/api-worker/src/middleware/` | auth 中间件、rate limit   |
-| `packages/api-worker/src/do/`         | DO stub 调用、SQLite 查询 |
-| `packages/api-worker/src/d1/`         | D1 migration 兼容性       |
-
-常见根因：Zod schema 不匹配请求体、DO id 构造错误、D1 migration 缺列
-
-**E — E2E 测试失败：**
-
-| 首查路径                      | 排查重点                            |
-| ----------------------------- | ----------------------------------- |
-| `e2e/specs/<failing-spec>.ts` | selector 变更、wait 逻辑            |
-| `e2e/helpers/night-driver.ts` | role action helpers 是否匹配当前 UI |
-| `e2e/helpers/waits.ts`        | 等待条件是否充分                    |
-| `e2e/helpers/diagnostics.ts`  | DiagnosticData 是否捕获有用信息     |
-
-常见根因：testid 变更未同步、WebSocket 连接未就绪就操作、timeout 不足
-
-**F — 性能问题：**
-
-| 首查路径           | 排查重点                          |
-| ------------------ | --------------------------------- |
-| `src/screens/`     | 大列表未虚拟化、不必要 re-render  |
-| `src/services/`    | 频繁 setState、未 debounce 的操作 |
-| `src/hooks/`       | useMemo/useCallback 依赖项过宽    |
-| Worker network tab | 请求瀑布、payload 过大            |
-
-常见根因：selector 每次返回新对象、未用 memo 的列表项、音频预加载阻塞
+| Branch | Scenario                | Typical Symptoms                                                   |
+| ------ | ----------------------- | ------------------------------------------------------------------ |
+| A      | Client UI anomaly       | Component not rendering, state not updating, style broken, flicker |
+| B      | WebSocket/Network issue | Disconnect, message loss, timeout, reconnect loop                  |
+| C      | Game logic bug          | Role action result unexpected, state drift, reveal error           |
+| D      | API/Worker error        | 4xx/5xx, DO exception, D1 query failure                            |
+| E      | E2E test failure        | Playwright spec error, timeout, selector invalid                   |
+| F      | Performance issue       | Slow load, render jank, memory leak                                |
 
 ---
 
-### Phase 3 — 动态诊断（静态无法确定根因时）
+### Phase 2 — Static Analysis (Preferred)
 
-**仅在 Phase 2 无法定位根因时才进入此阶段。**
+**Principle: Never use dynamic diagnosis when static analysis can locate the issue.**
 
-#### 3a. 添加 `[DIAG]` 诊断日志
+1. **Locate code area** — `grep_search` / `semantic_search` to find relevant files
+2. **Trace data flow** — Input → Transform → Output, verify step by step
+3. **Bidirectional tracing** — When modifying caller, trace callee, and vice versa
+4. **Check type constraints** — Schema validation, boundary conditions, `noUncheckedIndexedAccess` index access
+5. **Check recent changes** — `git log --oneline -20 -- <path>`
+6. **Every affected symbol** — Use `grep_search` or `vscode_listCodeUsages` to verify all consumers
+
+#### First-check Paths by Scenario Branch
+
+**A — Client UI Anomaly:**
+
+| First-check Path        | Investigation Focus                                  |
+| ----------------------- | ---------------------------------------------------- |
+| `src/screens/<Screen>/` | Policy hooks return values, conditional render logic |
+| `src/services/facade/`  | GameState snapshot derivation, selector              |
+| `src/contexts/`         | Context Provider mounting, value passing             |
+| `src/components/`       | Props types, memo deps, key stability                |
+
+Common root causes: Selector returning new reference causing infinite re-render, Context not mounted, conditional render missing state
+
+**B — WebSocket/Network Issue:**
+
+| First-check Path                          | Investigation Focus                                  |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `src/services/infra/ConnectionManager.ts` | Reconnect logic, error classification, state machine |
+| `src/services/infra/RealtimeService.ts`   | Subscribe/unsubscribe, message routing               |
+| `src/services/facade/`                    | applySnapshot timing                                 |
+| `packages/api-worker/src/do/`             | DO WebSocket handler, broadcast logic                |
+
+Common root causes: Token expired without refresh, DO cold-start race condition, message sequence number gap
+
+**C — Game Logic Bug:**
+
+| First-check Path                              | Investigation Focus                   |
+| --------------------------------------------- | ------------------------------------- |
+| `packages/game-engine/src/resolvers/`         | Resolver logic, edge cases            |
+| `packages/game-engine/src/models/roles/spec/` | NIGHT_STEPS order, schema constraints |
+| `packages/api-worker/src/do/`                 | DO reducer calls, state writes        |
+| `src/services/facade/`                        | Client snapshot interpretation        |
+
+Common root causes: Resolver not handling skip case, NIGHT_STEPS order error, DO write race condition
+
+**D — API/Worker Error:**
+
+| First-check Path                      | Investigation Focus                  |
+| ------------------------------------- | ------------------------------------ |
+| `packages/api-worker/src/routes/`     | Zod schema validation, param passing |
+| `packages/api-worker/src/middleware/` | Auth middleware, rate limit          |
+| `packages/api-worker/src/do/`         | DO stub calls, SQLite queries        |
+| `packages/api-worker/src/d1/`         | D1 migration compatibility           |
+
+Common root causes: Zod schema mismatch with request body, DO id construction error, D1 migration missing column
+
+**E — E2E Test Failure:**
+
+| First-check Path              | Investigation Focus                         |
+| ----------------------------- | ------------------------------------------- |
+| `e2e/specs/<failing-spec>.ts` | Selector changes, wait logic                |
+| `e2e/helpers/night-driver.ts` | Role action helpers matching current UI     |
+| `e2e/helpers/waits.ts`        | Wait conditions sufficiency                 |
+| `e2e/helpers/diagnostics.ts`  | Whether DiagnosticData captures useful info |
+
+Common root causes: testid changed without sync, WebSocket not ready before action, insufficient timeout
+
+**F — Performance Issue:**
+
+| First-check Path   | Investigation Focus                                |
+| ------------------ | -------------------------------------------------- |
+| `src/screens/`     | Large lists not virtualized, unnecessary re-render |
+| `src/services/`    | Frequent setState, un-debounced operations         |
+| `src/hooks/`       | useMemo/useCallback deps too broad                 |
+| Worker network tab | Request waterfall, oversized payload               |
+
+Common root causes: Selector returning new object each time, list items without memo, audio preload blocking
+
+---
+
+### Phase 3 — Dynamic Diagnosis (When Static Analysis Cannot Determine Root Cause)
+
+**Only enter this phase when Phase 2 cannot locate the root cause.**
+
+#### 3a. Add `[DIAG]` Diagnostic Logs
 
 ```typescript
-// 用项目 logger，禁止 console.*
+// Use project logger, console.* is forbidden
 import { log } from '@/utils/logger';
 const diagLog = log.extend('DIAG');
 
-// 在关键路径添加诊断
+// Add diagnostics at critical paths
 diagLog.info('[DIAG] snapshot applied', { phase, playerCount: state.players.length });
 ```
 
-规则：
+Rules:
 
-- 前缀 `[DIAG]` 确保 E2E diagnostics.ts 会转发到 Playwright 输出
-- 使用 `log.extend('DIAG')` 或现有模块 logger
-- 记录关键变量值、分支走向、时序信息
-- **修复后必须清除所有 `[DIAG]` 日志**
+- Prefix `[DIAG]` ensures E2E diagnostics.ts will forward to Playwright output
+- Use `log.extend('DIAG')` or existing module logger
+- Record key variable values, branch taken, timing info
+- **All `[DIAG]` logs must be removed after the fix**
 
-#### 3b. 运行相关测试
+#### 3b. Run Related Tests
 
 ```bash
-# 单元测试（指定文件）
+# Unit test (specific file)
 node node_modules/.bin/jest --no-coverage --forceExit --testPathPattern="<pattern>"
 
-# E2E 测试（指定 spec）
+# E2E test (specific spec)
 pnpm exec playwright test e2e/specs/<spec> --reporter=list
 
-# 类型检查
+# Type check
 npx tsc --noEmit
 ```
 
-#### 3c. 解读诊断输出
+#### 3c. Interpret Diagnostic Output
 
-- Playwright trace：`test-results/` 目录自动保存
-- Sentry：生产环境结构化日志（sentryTransport 已配置）
-- Mobile debug panel：内存 500 条日志，on-screen 查看
+- Playwright trace: auto-saved in `test-results/` directory
+- Sentry: production structured logs (sentryTransport configured)
+- Mobile debug panel: 500 in-memory logs, on-screen viewing
 
 ---
 
-### Phase 4 — 根因修复
+### Phase 4 — Root Cause Fix
 
-**禁止 band-aid 修复。** 不得用条件判断、guard clause、`?.` 绕过结构性问题的症状。
+**Band-aid fixes are forbidden.** Do not use conditionals, guard clauses, or `?.` to work around symptoms of structural problems.
 
-#### 修复前必须：
+#### Before fixing, you must:
 
-1. 明确根因（一句话描述为什么出错）
-2. 列出变更清单：
+1. Clearly state the root cause (one sentence explaining why it's broken)
+2. List the change plan:
 
 ```
-文件: <path>
-变更: <具体改动>
-风险: <可能影响的其他功能>
+File: <path>
+Change: <specific modification>
+Risk: <other features that may be affected>
 ```
 
-3. **等待用户确认后再编码**
+3. **Wait for user confirmation before coding**
 
-#### 修复时必须：
+#### While fixing, you must:
 
-- 每个受影响符号用 `grep_search` / `vscode_listCodeUsages` 验证所有消费者
-- 改参数/schema 时双向追踪（调用方 ↔ 被调用方）
-- 错误处理三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文提示)`
-- 可预期错误（401/403/429、用户取消）只 `log.warn()` + UI 反馈，不报 Sentry
+- Verify all consumers of each affected symbol using `grep_search` / `vscode_listCodeUsages`
+- Bidirectional trace when changing params/schema (caller ↔ callee)
+- Error handling three layers: `log.error()` + `Sentry.captureException()` + `showAlert(Chinese message)`
+- Expected errors (401/403/429, user cancellation) only `log.warn()` + UI feedback, no Sentry
 
-#### 禁止的修复模式：
+#### Forbidden fix patterns:
 
-| 禁止                            | 正确做法                         |
-| ------------------------------- | -------------------------------- |
-| `value?.prop` 绕过 required     | 追查为何 value 可能 undefined    |
-| `as any` 消除类型错误           | 修正类型定义或调用方             |
-| `try { } catch { }` 吞异常      | 分类处理：expected vs unexpected |
-| `if (!x) return` guard 掩盖根因 | 修正 x 为何不存在                |
-| `setTimeout` 等待竞态           | 用事件/状态机正确同步            |
-
----
-
-### Phase 4.5 — 核心原则自检
-
-对本次所有修改逐条过核心原则 🔍 自检：
-
-1. 是否有 band-aid 修复？（原则 1）
-2. 涉及第三方 API 是否查了文档？（原则 2）
-3. 是否有 `as any` / 不必要的 `?.`？（原则 3）
-4. 是否有吞错误的 catch / 无反馈的失败路径？（原则 4）
-5. 新增的类型/字段是否全管道贯穿？（原则 5）
-
-### Phase 5 — 验证闭环
-
-1. **清除所有 `[DIAG]` 日志** — `grep_search` 搜索 `[DIAG]` 确认零残留
-2. **跑 quality 管道** — `pnpm run quality`（typecheck + knip + lint + format + test）
-3. **相关 E2E spec 通过**（如有）— `pnpm exec playwright test e2e/specs/<spec> --reporter=list`
-4. **确认无回归** — 受影响模块的测试全部通过
+| Forbidden                             | Correct Approach                          |
+| ------------------------------------- | ----------------------------------------- |
+| `value?.prop` bypassing required      | Investigate why value might be undefined  |
+| `as any` to silence type errors       | Fix the type definition or caller         |
+| `try { } catch { }` swallowing errors | Classify handling: expected vs unexpected |
+| `if (!x) return` guard masking cause  | Fix why x doesn't exist                   |
+| `setTimeout` waiting on races         | Use events/state machine for proper sync  |
 
 ---
 
-## 约束
+### Phase 4.5 — Core Principles Self-Check
 
-- **静态分析首选。** 能 grep/read 定位的问题不加诊断日志。
-- **禁止 `console.*`。** 诊断用 `log.extend('DIAG')` + `[DIAG]` 前缀。
-- **修复后清理。** 不得遗留 `[DIAG]` 日志。
-- **不改无关代码。** 调试过程中发现的"顺手可改"的问题单独提出，不混入本次修复。
-- **Escalation。** 同一方案尝试 3 次仍失败 → 立即停止报告状态。
+Run through the core principles checklist 🔍 for all changes made:
+
+1. Any band-aid fixes? (Principle 1)
+2. Used third-party API — did you check docs? (Principle 2)
+3. Any `as any` / unnecessary `?.`? (Principle 3)
+4. Any error-swallowing catch / failure path without feedback? (Principle 4)
+5. Do new types/fields propagate through the full pipeline? (Principle 5)
+
+### Phase 5 — Verification Loop
+
+1. **Remove all `[DIAG]` logs** — `grep_search` for `[DIAG]` to confirm zero residuals
+2. **Run quality pipeline** — `pnpm run quality` (typecheck + knip + lint + format + test)
+3. **Related E2E spec passes** (if applicable) — `pnpm exec playwright test e2e/specs/<spec> --reporter=list`
+4. **Confirm no regression** — All tests for affected modules pass
+
+---
+
+## Constraints
+
+- **Static analysis preferred.** Do not add diagnostic logs for issues locatable via grep/read.
+- **`console.*` forbidden.** Use `log.extend('DIAG')` + `[DIAG]` prefix for diagnostics.
+- **Clean up after fix.** No `[DIAG]` logs may remain.
+- **Don't change unrelated code.** Issues found during debugging that are "easy fixes" should be raised separately, not mixed into this fix.
+- **Escalation.** Same approach fails 3 times → stop immediately and report status.

@@ -1,95 +1,95 @@
 ---
 name: 'Services'
-description: 'Service 层规范：facade/transport/infra/feature 服务、resolver、状态管理、音频编排。Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
+description: 'Service layer standards: facade/transport/infra/feature services, resolvers, state management, audio orchestration. Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
 applyTo: 'src/services/**'
 ---
 
-# Service 层规范
+# Service Layer Standards
 
-## 源代码位置
+## Source Code Location
 
-游戏逻辑：`@werewolf/game-engine`（详见 `game-engine.instructions.md`）。客户端服务：`facade/`、`transport/`、`infra/`、`feature/`。
+Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). Client services: `facade/`, `transport/`, `infra/`, `feature/`.
 
 ## Feature Services
 
-高层 facade，组合 infra/transport 服务对外提供业务能力。
+High-level facades combining infra/transport services to provide business capabilities externally.
 
-| 服务                  | 文件                                        | 职责                                     |
-| --------------------- | ------------------------------------------- | ---------------------------------------- |
-| **StatsService**      | `src/services/feature/StatsService.ts`      | 用户成长数据查询（XP/等级/解锁物品）     |
-| **GachaService**      | `src/services/feature/GachaService.ts`      | 扭蛋状态查询、抽奖执行、每日登录奖励领取 |
-| **ShareImageService** | `src/services/feature/ShareImageService.ts` | 分享图片上传到 R2，返回公开 URL          |
-| **CFStorageService**  | `src/services/infra/CFStorageService.ts`    | 自定义头像上传到 Cloudflare R2           |
+| Service               | File                                        | Responsibility                                                  |
+| --------------------- | ------------------------------------------- | --------------------------------------------------------------- |
+| **StatsService**      | `src/services/feature/StatsService.ts`      | User growth data query (XP/level/unlocked items)                |
+| **GachaService**      | `src/services/feature/GachaService.ts`      | Gacha status query, draw execution, daily login reward claiming |
+| **ShareImageService** | `src/services/feature/ShareImageService.ts` | Share image upload to R2, returns public URL                    |
+| **CFStorageService**  | `src/services/infra/CFStorageService.ts`    | Custom avatar upload to Cloudflare R2                           |
 
-## 核心规则
+## Core Rules
 
-- Resolver / calculator / validator 是纯函数，禁止 IO/UI。
-- 服务端业务逻辑（night flow / death calc / state transition / reducer）由 Cloudflare Worker（Durable Objects）执行。
-- 客户端 facade 负责：HTTP API 提交 + Realtime 接收 + 音频编排。客户端禁止运行 resolvers / reducers / death calculation。
-- Facade 方法返回 `Promise<ActionResult>`（从 `@werewolf/game-engine/protocol/ActionResult` 导入）。禁止返回裸 `boolean` 或 `{ success: boolean; reason?: string }` 松散类型。
-- Infra service 允许平台 API（MMKV / Platform / expo-audio 等）。
-- 纯类型文件（`src/services/types/**`）可被任意层 `import type`。
-- 禁止跨夜状态（`previousActions` / `lastNightTarget` 等）。
-- SRP ~400 行拆分信号（详见 `screens.instructions.md`）。超阈值先评估是否有独立复用/测试/修改场景，不机械套用。
-- Wire protocol（`PlayerMessage` / `GameState`）必须保持兼容。
+- Resolvers / calculators / validators are pure functions. IO/UI is forbidden.
+- Server-side business logic (night flow / death calc / state transition / reducer) is executed by Cloudflare Worker (Durable Objects).
+- Client facade handles: HTTP API submission + Realtime receive + audio orchestration. Client running resolvers / reducers / death calculation is forbidden.
+- Facade methods return `Promise<ActionResult>` (imported from `@werewolf/game-engine/protocol/ActionResult`). Returning bare `boolean` or loose `{ success: boolean; reason?: string }` type is forbidden.
+- Infra services may use platform APIs (MMKV / Platform / expo-audio etc.).
+- Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
+- Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.
+- SRP ~400 line split signal (see `screens.instructions.md`). When exceeding threshold, first evaluate whether independent reuse/test/modification scenarios exist — don't mechanically apply.
+- Wire protocol (`PlayerMessage` / `GameState`) must maintain compatibility.
 
-## Resolver 规范
+## Resolver Standards
 
-- 输入 `ActionInput` + `ResolverContext`（含 `currentNightResults`），输出 `{ valid, rejectReason?, updates?, result? }`。
-- 必须检查 nightmare 阻断：`blockedSeat === actorSeat` → `{ valid: true, result: {} }`（有效但无效果）。
-- 校验必须与 `SCHEMAS[*].constraints` 双向一致：schema 规定 `notSelf` → resolver 拒绝；schema 允许 → resolver 不得拒绝。
-- Resolver 是唯一验证与计算逻辑来源，Host 不做"二次计算"，reveal 结果必须从 resolver 返回值读取。
+- Input `ActionInput` + `ResolverContext` (contains `currentNightResults`), output `{ valid, rejectReason?, updates?, result? }`.
+- Must check nightmare block: `blockedSeat === actorSeat` → `{ valid: true, result: {} }` (valid but no effect).
+- Validation must be bidirectionally consistent with `SCHEMAS[*].constraints`: schema specifies `notSelf` → resolver rejects; schema allows → resolver must not reject.
+- Resolver is the sole source of validation and calculation logic. Host does no "secondary calculation"; reveal results must be read from resolver return value.
 
-## 状态管理 & Anti-drift
+## State Management & Anti-drift
 
-- `GameState` 是唯一真相。禁止 `HostOnlyState` 或不广播字段。Host/Player state shape 完全一致。
-- 新增字段必须同步 `normalizeState`（详见 `game-engine.instructions.md` Handler 规则）。
-- 派生字段从同一份 state 计算或只写入一次，禁止双写/drift。
+- `GameState` is the single source of truth. `HostOnlyState` or non-broadcast fields are forbidden. Host/Player state shape is completely identical.
+- New fields must sync `normalizeState` (see `game-engine.instructions.md` Handler Rules).
+- Derived fields calculated from same state copy or written only once. Dual-write/drift is forbidden.
 
-## 夜晚流程
+## Night Flow
 
-- `nightFlowHandler` / `stepTransitionHandler` 是推进的单一真相。禁止手动推进 index。
-- Night-1 顺序来自 `NIGHT_STEPS`（表驱动），step id = 稳定 `SchemaId`。禁止重新引入 `night1.order` 或平行 `ACTION_ORDER`。
-- 自动推进集中在 night flow handler（服务端），必须幂等（同一 `{revision, currentStepId}` 最多推进一次）。Facade 仅发起 intent，禁止自行计算 "should advance"。
-- phase 不匹配事件必须是幂等 no-op。Plan builder 遇到非法 `roleId` / `schemaId` 时 fail-fast。
+- `nightFlowHandler` / `stepTransitionHandler` is the single source of truth for advancement. Manual index advancement is forbidden.
+- Night-1 order comes from `NIGHT_STEPS` (table-driven), step id = stable `SchemaId`. Re-introducing `night1.order` or parallel `ACTION_ORDER` is forbidden.
+- Auto-advancement centralized in night flow handler (server-side), must be idempotent (same `{revision, currentStepId}` advances at most once). Facade only initiates intent — calculating "should advance" on its own is forbidden.
+- Phase-mismatch events must be idempotent no-op. Plan builder encountering invalid `roleId` / `schemaId` must fail-fast.
 
 ## Room Transition Cleanup
 
-持有可变状态的 service（flags / players / subscriptions）必须在 `createRoom` / `joinRoom` / `leaveRoom` 重置**全部**可变字段。AudioService 必须先 `stop()` 再 `clearPreloaded()`。遗漏 = 上一局状态泄漏到下一局。
+Services holding mutable state (flags / players / subscriptions) must reset **all** mutable fields on `createRoom` / `joinRoom` / `leaveRoom`. AudioService must `stop()` first then `clearPreloaded()`. Omission = previous game's state leaks into next game.
 
-## HTTP 响应防御
+## HTTP Response Defense
 
-`fetch` 后必须先检查 `res.ok` + `content-type` 含 `application/json`，再调 `.json()`。非 JSON 响应（502/503 HTML）返回结构化错误（`{ success: false, reason: 'SERVER_ERROR' }`），不让 `SyntaxError` 传播到 Sentry。
+After `fetch`, must first check `res.ok` + `content-type` contains `application/json` before calling `.json()`. Non-JSON responses (502/503 HTML) return structured error (`{ success: false, reason: 'SERVER_ERROR' }`). Don't let `SyntaxError` propagate to Sentry.
 
-## Native 资源生命周期
+## Native Resource Lifecycle
 
-expo-audio `AudioPlayer` 等原生资源被替换时必须 track 旧实例，在 `cleanup()` / `clearPreloaded()` 集中 `remove()`。仅 `pause()` 不释放原生内存。Web `HTMLAudioElement` 由浏览器 GC 回收，清引用即可。
+expo-audio `AudioPlayer` and similar native resources: when replaced, must track old instance, collectively `remove()` in `cleanup()` / `clearPreloaded()`. `pause()` alone doesn't release native memory. Web `HTMLAudioElement` is GC'd by browser — clearing references suffices.
 
-## Promise 必达
+## Promise Must Settle
 
-`new Promise()` 构造器必须保证所有路径（成功/错误/取消/stop）都 `resolve` 或 `reject`。`stopCurrentPlayer()` 等中断操作必须 settle 正在进行的 playback promise，禁止 dangling promise。
+`new Promise()` constructor must guarantee all paths (success/error/cancel/stop) either `resolve` or `reject`. Interrupt operations like `stopCurrentPlayer()` must settle in-progress playback promises. Dangling promises are forbidden.
 
-## 持久化数据 Validate + Clamp
+## Persisted Data Validate + Clamp
 
-从 MMKV / DB 加载的 UI 状态（坐标、枚举、配置值）必须 validate 类型 + clamp 到当前有效范围，不能直接 trust。例如屏幕坐标需 clamp 到当前 viewport。
+UI state loaded from MMKV / DB (coordinates, enums, config values) must validate type + clamp to current valid range. Cannot trust directly. E.g., screen coordinates need clamping to current viewport.
 
-## 音频编排
+## Audio Orchestration
 
-单一编排来源：Handler 声明 → Facade 执行 → UI 只读。
+Single orchestration source: Handler declares → Facade executes → UI read-only.
 
-- **Handler**（服务端）：写入 `pendingAudioEffects`，`audioKey` / `audioEndKey` 来自 `NIGHT_STEPS`，禁止 specs/steps 双写。禁止音频 IO。
-- **Facade**（客户端）：reactive 监听 store 中 `pendingAudioEffects` → 播放 → `postAudioAck` 释放 gate。Wolf vote deadline 到期后 `postProgression` 触发推进（一次性 guard 防重入）。
-- **UI**：只读 `isAudioPlaying`。禁止 useEffect 播放音频、禁止 UI toggle `setAudioPlaying`。
-- `isAudioPlaying` 是事实状态，唯一修改途径：`SET_AUDIO_PLAYING` action。禁止其他 action "顺便"设置。
-- **Rejoin 恢复**：`joinRoom(isHost=true)` 从 DB 恢复 → 继续游戏 AlertModal 用户手势（Web autoplay 需手势解锁）→ `resumeAfterRejoin()` 重播当前 step 音频 → `postAudioAck`。禁止 useEffect 自动触发。
-- **Audio-ack 断线重试**（两层互斥）：
-  - **L1: Status listener** — WebSocket 真正断开后 SDK 重连 → `ConnectionStatus.Live` → 重试 `postAudioAck`。覆盖真实网络断开。
-  - **L2: Browser `online` event** — `window.addEventListener('online', ...)` 零延迟感知网络恢复 → 重试 `postAudioAck`。覆盖 WebSocket 未断但 HTTP 断了的场景（如 Playwright `setOffline`、短暂 DNS 故障）。仅 Web 平台（`typeof globalThis.window?.addEventListener === 'function'` 能力检查），原生端由 L1 覆盖。
-  - 两层谁先触发清除对方，`leaveRoom` / `createRoom` / `joinRoom` 统一清理。
+- **Handler** (server-side): writes `pendingAudioEffects`, `audioKey` / `audioEndKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden. Audio IO is forbidden.
+- **Facade** (client-side): reactively watches store's `pendingAudioEffects` → plays → `postAudioAck` releases gate. Wolf vote deadline expires → `postProgression` triggers advancement (one-time guard prevents re-entry).
+- **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
+- `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
+- **Rejoin recovery**: `joinRoom(isHost=true)` recovers from DB → continue game AlertModal user gesture (Web autoplay needs gesture unlock) → `resumeAfterRejoin()` replays current step audio → `postAudioAck`. useEffect auto-triggering is forbidden.
+- **Audio-ack disconnect retry** (two-layer mutual exclusion):
+  - **L1: Status listener** — WebSocket truly disconnects, SDK reconnects → `ConnectionStatus.Live` → retry `postAudioAck`. Covers real network disconnect.
+  - **L2: Browser `online` event** — `window.addEventListener('online', ...)` zero-delay network recovery detection → retry `postAudioAck`. Covers scenario where WebSocket hasn't disconnected but HTTP has (e.g., Playwright `setOffline`, brief DNS failure). Web platform only (`typeof globalThis.window?.addEventListener === 'function'` capability check); native covered by L1.
+  - Whichever layer triggers first clears the other. `leaveRoom` / `createRoom` / `joinRoom` clean up uniformly.
 
-## JSDoc 规范
+## JSDoc Standards
 
-- **Service class**：类头部 `@remarks` 说明核心设计决策（重入 guard、lock 策略、cleanup 顺序）。
-- **Connect / init 方法**：标注 `@pre`（如 roomCode 已设置）和 `@remarks`（超时、重试策略）。
-- **公开方法**：有 IO 或异步副作用的方法标注 `@throws`（网络错误、token 过期）。
-- **FSM context / options 接口**：语义非自明的字段加行内注释（null 含义、计数器上限等）。
+- **Service class**: class header `@remarks` explains core design decisions (re-entry guard, lock strategy, cleanup order).
+- **Connect / init methods**: annotate `@pre` (e.g., roomCode already set) and `@remarks` (timeout, retry strategy).
+- **Public methods**: methods with IO or async side effects annotate `@throws` (network error, token expiration).
+- **FSM context / options interfaces**: fields with non-obvious semantics get inline `/** ... */` comments (null meaning, counter upper limit, etc.).

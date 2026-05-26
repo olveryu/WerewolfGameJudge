@@ -1,7 +1,7 @@
 ---
 name: new-role
-description: 'Add a new werewolf role end-to-end: spec, night step, resolver, audio, badge, config, tests. Use when: adding a role, creating a character, new role SOP, 新增角色, 添加角色.'
-argument-hint: '角色名 + 阵营 + 技能简述（如：狐狸 神职 每晚查验一名玩家）'
+description: 'Add a new werewolf role end-to-end: spec, night step, resolver, audio, badge, config, tests. Use when: adding a role, creating a character, new role SOP.'
+argument-hint: 'Role name + faction + skill summary (e.g., Fox, God faction, can check one player each night)'
 ---
 
 # 新增角色 Skill（V2 架构）

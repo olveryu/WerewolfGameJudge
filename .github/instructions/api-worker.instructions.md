@@ -1,104 +1,104 @@
 ---
 name: 'API Worker'
-description: 'Cloudflare Worker 规范：Hono 路由、Zod 校验、DO 调用、扭蛋系统、认证中间件。Use when: editing API worker, Hono routes, DO calls, gacha handlers, auth middleware, D1 queries, R2 storage'
+description: 'Cloudflare Worker standards: Hono routing, Zod validation, DO calls, gacha system, auth middleware. Use when: editing API worker, Hono routes, DO calls, gacha handlers, auth middleware, D1 queries, R2 storage'
 applyTo: 'packages/api-worker/**'
 ---
 
-# @werewolf/api-worker 规范
+# @werewolf/api-worker Standards
 
-Cloudflare Worker（Durable Objects + D1 + R2）。Game API + Auth API。
-使用 **Hono** 框架（`hono/cors`、`hono/validator`、`hono/http-exception`、`hono/factory`）。
+Cloudflare Worker (Durable Objects + D1 + R2). Game API + Auth API.
+Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `hono/factory`).
 
-## 路由组织
+## Route Organization
 
-- 每个 handler 文件导出一个 Hono 子路由：`export const xxxRoutes = new Hono<AppEnv>()`。
-- `index.ts` 用 `app.route('/prefix', xxxRoutes)` 挂载。
-- CORS 由 `hono/cors` 中间件统一处理（`app.use('*', cors(...))`）。
+- Each handler file exports a Hono sub-router: `export const xxxRoutes = new Hono<AppEnv>()`.
+- `index.ts` mounts via `app.route('/prefix', xxxRoutes)`.
+- CORS is handled uniformly by `hono/cors` middleware (`app.use('*', cors(...))`).
 
-## 请求体校验
+## Request Body Validation
 
-- 使用 `jsonBody<T>(schema)` 中间件（`handlers/shared.ts`，基于 `hono/validator`）校验 JSON body。
-- 校验失败返回 400（`{ success: false, reason: 'VALIDATION_ERROR', detail }`）。
-- handler 中用 `c.req.valid('json')` 获取强类型数据。禁止 `(await req.json()) as { ... }`。
+- Use `jsonBody<T>(schema)` middleware (`handlers/shared.ts`, based on `hono/validator`) to validate JSON body.
+- Validation failure returns 400 (`{ success: false, reason: 'VALIDATION_ERROR', detail }`).
+- Handler accesses strongly-typed data via `c.req.valid('json')`. `(await req.json()) as { ... }` is forbidden.
 
-## Zod Schema 文件
+## Zod Schema Files
 
-- Schema 定义在 `src/schemas/`，按路由分模块（`auth.ts`、`game.ts`、`night.ts`、`room.ts`、`gemini.ts`、`shareImage.ts`）。
-- 项目使用 **zod 4**（`^4.3`）。关键变化：
-  - 顶级格式校验器（`z.email()`、`z.url()` 等），不用已废弃的方法链（`z.string().email()`）。
-  - `z.input<typeof schema>` / `z.output<typeof schema>` 替代旧版 `z.infer<>`（`z.infer` 仍可用但 `z.output` 更精确）。
-  - Zod 4 实现 Standard Schema 接口，Hono 内置 `validator('json', zodSchema)` 可直接使用，但本项目使用自定义 `jsonBody(schema)` 中间件——因为需要统一错误响应格式（`{ success: false, reason: 'VALIDATION_ERROR', detail }`）和结构化日志，内置 validator 的错误格式不可控。
-- seat 数字用 `z.coerce.number().int().min(0)`。discriminated union 按 `action` / `type` 字段区分。
-- Schema 新增/修改时，必须同步更新对应 handler 的 `jsonBody` 调用和解构。
+- Schemas are defined in `src/schemas/`, organized by route module (`auth.ts`, `game.ts`, `night.ts`, `room.ts`, `gemini.ts`, `shareImage.ts`).
+- Project uses **zod 4** (`^4.3`). Key changes:
+  - Top-level format validators (`z.email()`, `z.url()`, etc.) — deprecated method chains (`z.string().email()`) must not be used.
+  - `z.input<typeof schema>` / `z.output<typeof schema>` replace legacy `z.infer<>` (`z.infer` still works but `z.output` is more precise).
+  - Zod 4 implements Standard Schema interface; Hono's built-in `validator('json', zodSchema)` works directly, but this project uses custom `jsonBody(schema)` middleware — because we need unified error response format (`{ success: false, reason: 'VALIDATION_ERROR', detail }`) and structured logging; the built-in validator's error format is uncontrollable.
+- Seat numbers use `z.coerce.number().int().min(0)`. Discriminated unions distinguish by `action` / `type` field.
+- When adding/modifying schemas, the corresponding handler's `jsonBody` call and destructuring must be updated in sync.
 
-## Handler 模式
+## Handler Pattern
 
 ```typescript
-// 带 body 校验的路由
+// Route with body validation
 xxxRoutes.post('/action', jsonBody(xxxSchema), async (c) => {
   const { field } = c.req.valid('json');
   const env = c.env;
-  // ... 业务逻辑
+  // ... business logic
   return c.json(result, resultToStatus(result));
 });
 
-// 需要认证的路由
+// Route requiring authentication
 xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
   const userId = c.var.userId;
   // ...
 });
 ```
 
-## 认证中间件
+## Auth Middleware
 
-- `requireAuth`（`lib/auth.ts`，`createMiddleware` from `hono/factory`）：验证 Bearer token，设置 `c.var.userId` 和 `c.var.jwtPayload`。
-- 可选认证（如 signup）在 handler 内 inline 处理 `extractBearerToken` + `verifyToken`。
+- `requireAuth` (`lib/auth.ts`, `createMiddleware` from `hono/factory`): verifies Bearer token, sets `c.var.userId` and `c.var.jwtPayload`.
+- Optional auth (e.g., signup) is handled inline in handler via `extractBearerToken` + `verifyToken`.
 
-## 错误处理
+## Error Handling
 
-- `callDO(fn)` 在 DO 错误时抛 `HTTPException`（503 retryable、429 overloaded）。
-- `app.onError` 统一捕获 `HTTPException`、`SyntaxError`（malformed JSON）、泛型错误。
-- Handler 内不需要 `try/catch` DO 调用错误。
+- `callDO(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
+- `app.onError` catches `HTTPException`, `SyntaxError` (malformed JSON), and generic errors uniformly.
+- Handlers don't need `try/catch` for DO call errors.
 
-## 共享工具（`handlers/shared.ts`）
+## Shared Utilities (`handlers/shared.ts`)
 
-| 导出                      | 用途                                                                                                                                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `jsonBody<T>(schema)`     | `hono/validator` 中间件，JSON 解析 + zod 校验                                                                                                                                                          |
-| `callDO<T>(fn)`           | DO RPC 调用 + HTTPException 错误处理。**注意**：`@cloudflare/workers-types` 给 DO RPC 返回值注入 `& Disposable`，破坏 DU narrowing。call site 需 `as Promise<GameActionResult>` 断言（详见函数 JSDoc） |
-| `getGameRoomStub(env, c)` | 获取 DO stub                                                                                                                                                                                           |
-| `resultToStatus(result)`  | 入参 `{ success: boolean; reason?: string }`（结构子类型，兼容 `ActionResult` & `GameActionResult`）→ `200 \| 400 \| 500`                                                                              |
-| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                 |
+| Export                    | Purpose                                                                                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsonBody<T>(schema)`     | `hono/validator` middleware: JSON parsing + zod validation                                                                                                                                                          |
+| `callDO<T>(fn)`           | DO RPC call + HTTPException error handling. **Note**: `@cloudflare/workers-types` injects `& Disposable` to DO RPC return values, breaking DU narrowing. Call site needs `as Promise<GameActionResult>` (see JSDoc) |
+| `getGameRoomStub(env, c)` | Get DO stub                                                                                                                                                                                                         |
+| `resultToStatus(result)`  | Input `{ success: boolean; reason?: string }` (structural subtype, compatible with `ActionResult` & `GameActionResult`) → `200 \| 400 \| 500`                                                                       |
+| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                              |
 
-## 扭蛋系统（Gacha）
+## Gacha System
 
-### 路由（`gachaHandlers.ts` → `/api/gacha/*`）
+### Routes (`gachaHandlers.ts` → `/api/gacha/*`)
 
-| 方法   | 路径                      | Auth | Body Schema         | 说明                                          |
-| ------ | ------------------------- | ---- | ------------------- | --------------------------------------------- |
-| `GET`  | `/api/gacha/status`       | ✅   | —                   | 券数 / pity / 已解锁数 / lastLoginRewardAt    |
-| `POST` | `/api/gacha/draw`         | ✅   | `gachaDrawSchema`   | 抽奖（drawType: normal\|golden, count: 1-10） |
-| `POST` | `/api/gacha/daily-reward` | ✅   | `dailyRewardSchema` | 每日登录奖励（localDate: YYYY-MM-DD）         |
+| Method | Path                      | Auth | Body Schema         | Description                                              |
+| ------ | ------------------------- | ---- | ------------------- | -------------------------------------------------------- |
+| `GET`  | `/api/gacha/status`       | ✅   | —                   | Ticket count / pity / unlocked count / lastLoginRewardAt |
+| `POST` | `/api/gacha/draw`         | ✅   | `gachaDrawSchema`   | Draw (drawType: normal\|golden, count: 1-10)             |
+| `POST` | `/api/gacha/daily-reward` | ✅   | `dailyRewardSchema` | Daily login reward (localDate: YYYY-MM-DD)               |
 
-### 并发安全
+### Concurrency Safety
 
-- OCC（乐观并发控制）：`user_stats.version` 列，draw/daily-reward 读 version → 写入 `WHERE version = readVersion`，冲突时重试（MAX_DRAW_RETRIES=3）
-- `crypto.getRandomValues()` 生成随机数，概率函数（`rollRarity` / `selectReward`）从 `@werewolf/game-engine` 导入
+- OCC (Optimistic Concurrency Control): `user_stats.version` column; draw/daily-reward reads version → writes with `WHERE version = readVersion`, retries on conflict (MAX_DRAW_RETRIES=3)
+- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@werewolf/game-engine`
 
-### 每日登录奖励
+### Daily Login Reward
 
-- 客户端传 `localDate`（玩家本地时区日期），服务端校验：同日已领取 → `already_claimed`；距上次 < 20h → `cooldown`
-- 通过后 normalDraws + 1，更新 `lastLoginRewardAt`
+- Client sends `localDate` (player's local timezone date); server validates: same day already claimed → `already_claimed`; less than 20h since last → `cooldown`
+- On pass: normalDraws + 1, update `lastLoginRewardAt`
 
-### 结算（`settleGameResults.ts`）
+### Settlement (`settleGameResults.ts`)
 
-- 每局有效游戏：+1 普通券 + XP
-- 每次升级：+1 黄金券
-- 幂等 key：`${roomCode}:${revision}`
+- Each valid game: +1 normal ticket + XP
+- Each level-up: +1 golden ticket
+- Idempotency key: `${roomCode}:${revision}`
 
-## JSDoc 规范
+## JSDoc Standards
 
-- **Handler 文件头部**必须含模块注释，列出路由 + `@throws` 标注所有可能的 HTTP 错误码及触发条件。
-- **DO RPC 接口** (`IGameRoomRPC.ts`) 每个方法标注 `@pre`（如 status === 'Ongoing'）。
-- **核心 lib**（auth / shared / gameProcessor）标注 `@remarks`（并发策略、锁机制、pipeline 顺序）。
-- **DB schema** 每个表的每个字段加行内注释（含义、单位、null 含义）。
+- **Handler file header** must contain module comment listing routes + `@throws` annotating all possible HTTP error codes and trigger conditions.
+- **DO RPC interface** (`IGameRoomRPC.ts`): each method annotated with `@pre` (e.g., status === 'Ongoing').
+- **Core libs** (auth / shared / gameProcessor): annotate `@remarks` (concurrency strategy, lock mechanism, pipeline order).
+- **DB schema**: every field of every table has inline comment (meaning, unit, null semantics).

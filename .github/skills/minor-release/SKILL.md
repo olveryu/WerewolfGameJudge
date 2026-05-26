@@ -1,53 +1,53 @@
 ---
 name: minor-release
-description: 'Execute a minor release end-to-end: collect changes, write announcement, bump version, commit, tag, push. Use when: minor-release, 发版, minor release, 发 minor, 新版本, release minor.'
-argument-hint: '主要变更描述（可选，用于生成 announcement）'
+description: 'Execute a minor release end-to-end: collect changes, write announcement, bump version, commit, tag, push. Use when: minor-release, minor release, new version, release minor.'
+argument-hint: 'Main changes description (optional, used to generate announcement)'
 ---
 
 # minor-release Skill
 
-端到端执行 minor release：收集变更 → 编写 announcement → quality 检查 → bump + commit + tag + push。
+Execute a minor release end-to-end: collect changes → write announcement → quality check → bump + commit + tag + push.
 
 ## When to Use
 
-- 用户要求发一个 minor 版本
-- 用户说"发版"、"新版本"、"release"
-- 开发周期结束，需要把积累的变更打包发布
+- User requests a minor version release
+- User says "release", "new version", "release minor"
+- Development cycle ends, accumulated changes need to be packaged and released
 
 ---
 
 ## Procedure
 
-### Phase 1 — 收集变更信息
+### Phase 1 — Collect Change Information
 
-1. 获取当前版本号：
+1. Get current version number:
 
    ```bash
    node -p "require('./package.json').version"
    ```
 
-2. 获取上一个 tag 以来的所有 commit：
+2. Get all commits since the last tag:
 
    ```bash
    git log --oneline "$(git describe --tags --abbrev=0 HEAD)..HEAD"
    ```
 
-3. 按 Conventional Commits type 分类（feat / fix / refactor / perf / chore / ci / docs / test / style）。
+3. Classify by Conventional Commits type (feat / fix / refactor / perf / chore / ci / docs / test / style).
 
-4. 过滤出**用户可感知**的变更（保留 feat / fix / perf / refactor 中影响 UI 或行为的）。去掉纯 chore / ci / docs / test / style。
+4. Filter to **user-perceptible** changes (keep feat / fix / perf / refactor that affect UI or behavior). Remove pure chore / ci / docs / test / style.
 
-5. 向用户展示变更摘要，询问：
-   - 是否有额外想强调的功能点？
-   - 是否需要调整措辞或排序？
-   - 是否有变更不应出现在公告中？
+5. Show change summary to user and ask:
+   - Any additional features to highlight?
+   - Need to adjust wording or ordering?
+   - Any changes that should NOT appear in the announcement?
 
 ---
 
-### Phase 2 — 编写 Announcement + 等待确认
+### Phase 2 — Write Announcement + Wait for Confirmation
 
-1. 计算新版本号（当前 minor bump，如 `2.3.0` → `2.4.0`）。
+1. Calculate new version number (current minor bump, e.g., `2.3.0` → `2.4.0`).
 
-2. 在 `src/config/announcements.ts` 的 `ANNOUNCEMENTS` 对象**顶部**（第一个属性位置）新增条目：
+2. Add a new entry at the **top** (first property position) of the `ANNOUNCEMENTS` object in `src/config/announcements.ts`:
 
    ```typescript
    'v{x.y.z}': {
@@ -59,79 +59,79 @@ argument-hint: '主要变更描述（可选，用于生成 announcement）'
    },
    ```
 
-3. **items 编写规范**：
-   - 一律中文，面向终端用户
-   - 每条 ≤30 字，不含技术实现细节（不提"重构"、"架构"、"中间件"等）
-   - 只写用户能感知到的变化：新功能、体验优化、重要 bug 修复
-   - 新功能在前，优化在中，修复在后
-   - 通常 3-6 条
+3. **items writing rules**:
+   - All in Chinese, targeting end users
+   - Each item ≤30 characters, no technical implementation details (no "refactor", "architecture", "middleware", etc.)
+   - Only write changes users can perceive: new features, UX optimizations, important bug fixes
+   - New features first, optimizations in middle, fixes last
+   - Typically 3-6 items
 
-4. **输出草稿，展示给用户，等待确认后再继续。**
+4. **Output draft, show to user, wait for confirmation before continuing.**
 
 ---
 
-### Phase 3 — 执行 Release
+### Phase 3 — Execute Release
 
-#### 3a. 提交 announcement 改动
+#### 3a. Commit announcement changes
 
-如果 `src/config/announcements.ts` 有未提交的改动，先独立提交：
+If `src/config/announcements.ts` has uncommitted changes, commit separately first:
 
 ```bash
 git add src/config/announcements.ts
 git commit -m "docs(announcements): add v{x.y.z} What's New entry"
 ```
 
-#### 3b. 运行质量检查
+#### 3b. Run quality check
 
 ```bash
 pnpm run quality
 ```
 
-如果失败：
+If it fails:
 
-- **lint / format 错误** → `pnpm exec eslint . --fix && pnpm exec prettier --write .`，修完重跑
-- **TypeScript 类型错误** → 尝试修复；无法安全修复则 BLOCKED
-- **测试失败** → 立即 BLOCKED，不自动修改业务逻辑
+- **lint / format errors** → `pnpm exec eslint . --fix && pnpm exec prettier --write .`, fix then rerun
+- **TypeScript type errors** → attempt fix; if can't safely fix then BLOCKED
+- **Test failures** → immediately BLOCKED, do not auto-modify business logic
 
-#### 3c. 执行 release 脚本
+#### 3c. Execute release script
 
 ```bash
 bash scripts/release.sh minor
 ```
 
-脚本会自动：
+The script automatically:
 
-- bump `package.json` + 同步 `app.json`
-- 检查 `announcements.ts` 是否有对应版本条目（Phase 2 已添加）
-- 生成 CHANGELOG 条目
+- Bumps `package.json` + syncs `app.json`
+- Checks whether `announcements.ts` has a matching version entry (added in Phase 2)
+- Generates CHANGELOG entry
 - `git add -A && git commit -m "release: v{x.y.z}"`
-- 创建 git tag `v{x.y.z}`
-- push to origin
+- Creates git tag `v{x.y.z}`
+- Pushes to origin
 
-#### 3d. 处理脚本交互
+#### 3d. Handle script interactions
 
-- 如果脚本提示"检测到版本文件之外的未提交改动"并询问是否一起提交 → 输入 `y`（因为 announcement 已在 3a 提交，此处不应触发；如触发说明有其他改动，需评估）
-- 如果脚本报 announcements 缺条目 → 说明 Phase 2 的提交未生效，回到 Phase 2 检查
+- If the script prompts "detected uncommitted changes beyond version files" and asks whether to include them → enter `y` (since announcement was committed in 3a, this shouldn't trigger; if it does, evaluate the other changes)
+- If the script reports missing announcements entry → Phase 2 commit didn't take effect, go back to Phase 2 to check
 
 ---
 
-### Phase 4 — 验证
+### Phase 4 — Verify
 
-1. 确认 release commit 和 tag：
+1. Confirm release commit and tag:
 
    ```bash
    git log --oneline -3
    ```
 
-2. 确认 tag 存在：
+2. Confirm tag exists:
 
    ```bash
    git tag -l 'v*' | tail -3
    ```
 
-3. 确认远程 push 成功（检查 Phase 3 输出中的 `✅ Released v{x.y.z}`）。
+3. Confirm remote push succeeded (check for `✅ Released v{x.y.z}` in Phase 3 output).
 
-4. 如果 push 失败（网络问题），提示用户：
+4. If push failed (network issue), prompt user:
 
    ```bash
    git push origin HEAD --tags
@@ -139,25 +139,25 @@ bash scripts/release.sh minor
 
 ---
 
-## 错误处理
+## Error Handling
 
-| 场景                               | 处理                                                        |
-| ---------------------------------- | ----------------------------------------------------------- |
-| `pnpm run quality` 失败            | 尝试 auto-fix（lint/format）；类型错误/测试失败 → BLOCKED   |
-| release.sh 报 announcements 缺条目 | 回到 Phase 2，确认条目已正确添加并 commit                   |
-| release.sh 报 working tree 不干净  | 评估未提交改动，必要时先 commit 或 stash                    |
-| push 失败                          | 本地 tag 已创建，提示用户手动 `git push origin HEAD --tags` |
-| 版本号计算错误                     | 以 `package.json` 中的值为准，用 `node -p` 验证             |
+| Scenario                                | Action                                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| `pnpm run quality` fails                | Try auto-fix (lint/format); type errors/test failures → BLOCKED                  |
+| release.sh reports missing announcement | Go back to Phase 2, confirm entry correctly added and committed                  |
+| release.sh reports dirty working tree   | Evaluate uncommitted changes, commit or stash as needed                          |
+| Push fails                              | Local tag already created, prompt user to manually `git push origin HEAD --tags` |
+| Version number calculation error        | Use value in `package.json` as authority, verify with `node -p`                  |
 
 ---
 
-## 约束
+## Constraints
 
-- **announcement items 一律中文**，不含技术实现细节
-- **不修改 `release.sh` 本身**
-- **release commit 由脚本生成**（`release: v$VERSION`），不手动 commit 版本文件
-- **announcement 改动用独立 commit** `docs(announcements): add v$VERSION What's New entry`
-- **禁止 `--no-verify`**，不绕过 git hooks
-- **禁止强制推送**
-- **不改业务逻辑** — 本 skill 只处理发版流程
-- **E2E 兼容** — announcement title 必须匹配 `/^v\d+\.\d+\.\d+ 更新内容$/` 格式（E2E auto-dismisser 依赖此正则）
+- **Announcement items must be in Chinese**, no technical implementation details
+- **Do not modify `release.sh` itself**
+- **Release commit is generated by the script** (`release: v$VERSION`), do not manually commit version files
+- **Announcement changes use separate commit** `docs(announcements): add v$VERSION What's New entry`
+- **`--no-verify` forbidden**, do not bypass git hooks
+- **Force push forbidden**
+- **Don't change business logic** — this skill only handles the release process
+- **E2E compatible** — announcement title must match `/^v\d+\.\d+\.\d+ 更新内容$/` pattern (E2E auto-dismisser depends on this regex)

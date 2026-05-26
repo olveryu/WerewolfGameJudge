@@ -1,76 +1,76 @@
 ---
 name: 'CI & Deploy'
-description: 'CI/CD 流水线、build.sh、CDN 发布、D1 迁移、release 流程。Use when: editing workflows, build scripts, deploy config, CDN publishing, D1 migrations, release process'
+description: 'CI/CD pipeline, build.sh, CDN publishing, D1 migrations, release process. Use when: editing workflows, build scripts, deploy config, CDN publishing, D1 migrations, release process'
 applyTo: '.github/workflows/**,scripts/build.sh,scripts/release.sh'
 ---
 
-# CI/CD & 部署规范
+# CI/CD & Deployment Standards
 
-## CI 流水线（`.github/workflows/ci.yml`）
+## CI Pipeline (`.github/workflows/ci.yml`)
 
-质量门禁 → 条件部署。仅 main 分支触发部署。
+Quality gate → conditional deployment. Only main branch triggers deployment.
 
 ```
 quality → deploy-api-worker (main only)
         → deploy-frontend  (main only)
 ```
 
-**quality job 顺序**：typecheck → lint → format → test:all
+**quality job order**: typecheck → lint → format → test:all
 
 ### deploy-api-worker
 
-1. `pnpm --filter @werewolf/game-engine run build`（Worker 依赖 game-engine dist/）
-2. `wrangler d1 migrations apply werewolf-db --remote`（**迁移先于部署**）
+1. `pnpm --filter @werewolf/game-engine run build` (Worker depends on game-engine dist/)
+2. `wrangler d1 migrations apply werewolf-db --remote` (**migrations before deployment**)
 3. `wrangler deploy`
 
 ### deploy-frontend
 
-1. `bash scripts/build.sh`（Expo export → PWA post-processing）
-2. Rewrite asset URLs → CDN absolute paths（`cdn.npmmirror.com`）
-3. `npm publish werewolf-judge-cdn@0.0.0-<sha8>`（JS bundles + WASM）
-4. Cloudflare Pages publish（HTML 引用 CDN URL）
+1. `bash scripts/build.sh` (Expo export → PWA post-processing)
+2. Rewrite asset URLs → CDN absolute paths (`cdn.npmmirror.com`)
+3. `npm publish werewolf-judge-cdn@0.0.0-<sha8>` (JS bundles + WASM)
+4. Cloudflare Pages publish (HTML references CDN URLs)
 
 ## scripts/build.sh
 
-Cloudflare Pages 构建入口。流程：
+Cloudflare Pages build entry point. Flow:
 
-1. Build game-engine（`pnpm --filter @werewolf/game-engine run build`）
+1. Build game-engine (`pnpm --filter @werewolf/game-engine run build`)
 2. `npx expo export --platform web`
-3. PWA manifest + service worker 注入
-4. Font 文件 post-processing
-5. Custom `index.html` 模板替换
+3. PWA manifest + service worker injection
+4. Font file post-processing
+5. Custom `index.html` template substitution
 
-**环境变量**：`CF_PAGES_BRANCH` → `EXPO_PUBLIC_DEPLOY_ENV`（production | preview）。
-`EXPO_PUBLIC_*` 变量由 Metro 在 bundle 阶段内联，非运行时读取。
+**Environment variables**: `CF_PAGES_BRANCH` → `EXPO_PUBLIC_DEPLOY_ENV` (production | preview).
+`EXPO_PUBLIC_*` variables are inlined by Metro at bundle time, not read at runtime.
 
-## CDN 发布流程
+## CDN Publishing Flow
 
-- JS chunks + CanvasKit WASM 发布为 npm 包 → npmmirror 自动同步
-- npm token（GitHub secret `NPM_TOKEN`）90 天有效，过期后 deploy-frontend 失败
-- 手动触发同步：`curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"`
+- JS chunks + CanvasKit WASM published as npm package → npmmirror auto-syncs
+- npm token (GitHub secret `NPM_TOKEN`) valid for 90 days; deploy-frontend fails when expired
+- Manual sync trigger: `curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"`
 
-## Release 流程
+## Release Flow
 
-`scripts/release.sh`（或 `pnpm run release`）：
+`scripts/release.sh` (or `pnpm run release`):
 
-1. Bump version（package.json → app.json → `src/config/version.ts`，三文件同步）
-2. 更新 CHANGELOG.md
+1. Bump version (package.json → app.json → `src/config/version.ts`, three files in sync)
+2. Update CHANGELOG.md
 3. Git commit + tag `v<version>` + push
 
-GitHub Actions `release.yml` 在 `v*` tag 上创建 GitHub Release。
+GitHub Actions `release.yml` creates GitHub Release on `v*` tags.
 
-## D1 迁移
+## D1 Migrations
 
-- 本地：`pnpm -F @werewolf/api-worker db:migrate:local`
-- 远程（CI）：`wrangler d1 migrations apply werewolf-db --remote`
-- 新 migration 后本地需重新 migrate，否则 Worker 启动报 schema 错误
+- Local: `pnpm -F @werewolf/api-worker db:migrate:local`
+- Remote (CI): `wrangler d1 migrations apply werewolf-db --remote`
+- After new migration, local must re-migrate or Worker startup reports schema error
 
-## Secrets 清单
+## Secrets Inventory
 
-| Secret                  | 用途               | 续签周期 |
-| ----------------------- | ------------------ | -------- |
-| `CLOUDFLARE_API_TOKEN`  | Wrangler 部署      | —        |
-| `CLOUDFLARE_ACCOUNT_ID` | Wrangler 账户标识  | —        |
-| `NPM_TOKEN`             | npm publish CDN 包 | 90 天    |
-| `SENTRY_DSN`            | 前端 Sentry 上报   | —        |
-| `SENTRY_AUTH_TOKEN`     | Source map 上传    | —        |
+| Secret                  | Purpose             | Renewal Cycle |
+| ----------------------- | ------------------- | ------------- |
+| `CLOUDFLARE_API_TOKEN`  | Wrangler deployment | —             |
+| `CLOUDFLARE_ACCOUNT_ID` | Wrangler account ID | —             |
+| `NPM_TOKEN`             | npm publish CDN pkg | 90 days       |
+| `SENTRY_DSN`            | Frontend Sentry     | —             |
+| `SENTRY_AUTH_TOKEN`     | Source map upload   | —             |

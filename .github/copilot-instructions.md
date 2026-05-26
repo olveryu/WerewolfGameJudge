@@ -1,44 +1,44 @@
-## WerewolfGameJudge Copilot 指令
+## WerewolfGameJudge Copilot Instructions
 
 ## Project Overview
 
-React Native (Expo SDK 55) 狼人杀裁判辅助 app。Cloudflare Worker + DO + D1 负责 API/持久化/realtime。**Web 优先**，兼容 iOS / Android / 微信小程序（web-view 壳）。含扭蛋收集 + XP/等级成长系统（`packages/game-engine/src/growth/`）。
+React Native (Expo SDK 55) Werewolf game judge assistant app. Cloudflare Worker + DO + D1 handles API/persistence/realtime. **Web-first**, compatible with iOS / Android / WeChat mini-program (web-view shell). Includes gacha collection + XP/level growth system (`packages/game-engine/src/growth/`).
 
 ## Tech Stack
 
-- **pnpm workspace monorepo**（`packages/game-engine` + `packages/api-worker` + 根项目）
-- React Native + React 19 + Expo SDK 55 | TypeScript（`strict: true` + `noUncheckedIndexedAccess: true`）
+- **pnpm workspace monorepo** (`packages/game-engine` + `packages/api-worker` + root project)
+- React Native + React 19 + Expo SDK 55 | TypeScript (`strict: true` + `noUncheckedIndexedAccess: true`)
 - Cloudflare Worker (Hono) + DO SQLite + D1 + R2 | Sentry | Jest 29 | Playwright | ESLint 9
-- Path alias: `@/` → `src/`（仅根项目；game-engine 内使用相对路径）
-- 版本号以 `package.json` / 锁文件为唯一权威来源，禁止 hardcode
+- Path alias: `@/` → `src/` (root project only; game-engine uses relative paths)
+- Version number authoritative source is `package.json` / lockfile only — no hardcoding
 
-## 质量命令
+## Quality Commands
 
-- `pnpm run test:all` — 单元/集成测试（全 workspace）
-- `pnpm run e2e` — E2E 标准入口（`--reporter=list`）
-- `pnpm run e2e:core` / `pnpm run e2e:remote` — 调试入口
-- `pnpm exec tsc --noEmit` — 类型检查
-- `pnpm run quality` — typecheck + knip + lint + format + test 一次全跑
-- `npx knip --no-exit-code` — 死代码检测。注意甄别误报：`metro.config.js`、`react-dom` 等会被误报。
-- `pnpm run release` — bump 版本号 → CHANGELOG → commit → tag → push
-- `pnpm -F @werewolf/api-worker db:seed:local` — 本地 D1 seed：创建 dev 用户（`dev@test.local` / `dev123`）+ 全物品解锁
+- `pnpm run test:all` — Unit/integration tests (entire workspace)
+- `pnpm run e2e` — E2E standard entry (`--reporter=list`)
+- `pnpm run e2e:core` / `pnpm run e2e:remote` — Debug entry points
+- `pnpm exec tsc --noEmit` — Type checking
+- `pnpm run quality` — typecheck + knip + lint + format + test all at once
+- `npx knip --no-exit-code` — Dead code detection. Watch for false positives: `metro.config.js`, `react-dom`, etc.
+- `pnpm run release` — Bump version → CHANGELOG → commit → tag → push
+- `pnpm -F @werewolf/api-worker db:seed:local` — Local D1 seed: creates dev user (`dev@test.local` / `dev123`) + unlocks all items
 
-### Dev 环境启动
+### Dev Environment Startup
 
-- `pnpm run dev` 通过 concurrently 启动 worker + web
-- Wrangler OAuth token ~24h 过期 → `cd packages/api-worker && npx wrangler login`
-- 首次或新 migration → `pnpm -F @werewolf/api-worker db:migrate:local`
+- `pnpm run dev` starts worker + web via concurrently
+- Wrangler OAuth token expires ~24h → `cd packages/api-worker && npx wrangler login`
+- First time or new migration → `pnpm -F @werewolf/api-worker db:migrate:local`
 
 ---
 
-## ⚠️ 核心原则 Checklist
+## ⚠️ Core Principles Checklist
 
-> **此 checklist 优先级最高。本项目的 fail fast / 结构修复规则覆盖系统默认的 implementationDiscipline。**
-> **每次修改代码后，逐条过 🔍 自检问题。任一未通过则修正后再提交。**
+> **This checklist has highest priority. This project's fail-fast / structural-fix rules override the system default implementationDiscipline.**
+> **After every code change, go through the 🔍 self-check questions one by one. Fix any failures before committing.**
 
-### 原则 1: 结构修复，不打补丁
+### Principle 1: Fix structurally, don't patch
 
-❌ 错误：
+❌ Wrong:
 
 ```typescript
 // bug: onClick fires twice → band-aid: add timestamp debounce
@@ -50,60 +50,60 @@ const handleClick = () => {
 };
 ```
 
-✅ 正确：
+✅ Correct:
 
 ```typescript
-// 根因: modal dismiss 后事件穿透
-// 修复: 用 modal state guard 代替时间戳
+// Root cause: event pass-through after modal dismiss
+// Fix: use modal state guard instead of timestamp
 const handleClick = () => {
-  if (modalStack.length > 0) return; // 结构性 guard: modal 开启时不响应
+  if (modalStack.length > 0) return; // structural guard: no response while modal is open
   doAction();
 };
 ```
 
-🔍 **自检：这个修改解决了"为什么发生"（根因），还是只处理了"发生后怎么办"（症状）？移除这个修改，触发条件是否仍在？**
+🔍 **Self-check: Does this change address "why it happened" (root cause), or just "what to do after it happens" (symptom)? If you remove this change, does the trigger condition still exist?**
 
-### 原则 2: 查文档，不凭记忆
+### Principle 2: Check docs, don't rely on memory
 
-❌ 错误：
+❌ Wrong:
 
 ```typescript
-// 凭训练数据写 API — 可能已过时
+// Writing API from training data — may be outdated
 const schema = z.object({ email: z.string().email() });
-// 或自创架构模式，不查社区是否有成熟方案
+// Or inventing architectural patterns without checking if the community has mature solutions
 ```
 
-✅ 正确：
+✅ Correct:
 
 ```typescript
-// 先用 context7 MCP 或 web 搜索确认当前版本用法
-const schema = z.object({ email: z.email() }); // 确认后的正确写法
-// 新增依赖/模式/架构决策前，先查社区通行做法
+// Use context7 MCP or web search to confirm current version usage first
+const schema = z.object({ email: z.email() }); // confirmed correct usage
+// Before adding dependencies/patterns/architectural decisions, check community best practices
 ```
 
-🔍 **自检：涉及第三方库 API 吗？是否用 context7 或 web 搜索确认过当前版本用法？新增依赖/模式/架构决策时，是否查了社区是否有成熟方案？**
+🔍 **Self-check: Does this involve a third-party library API? Did you use context7 or web search to confirm current version usage? When adding dependencies/patterns/architectural decisions, did you check for established community solutions?**
 
-### 原则 3: 类型诚实，不绕过
+### Principle 3: Type honesty, no bypassing
 
-❌ 错误：
+❌ Wrong:
 
 ```typescript
-const name = data?.user?.displayName ?? 'Unknown'; // data.user 是 required
-const result = response as any; // 类型不匹配 → as any 消音
+const name = data?.user?.displayName ?? 'Unknown'; // data.user is required
+const result = response as any; // type mismatch → as any to silence
 ```
 
-✅ 正确：
+✅ Correct:
 
 ```typescript
-const name = data.user.displayName; // required → 信任类型系统
-const result: GameActionResult = response; // 修正类型定义或数据来源
+const name = data.user.displayName; // required → trust the type system
+const result: GameActionResult = response; // fix the type definition or data source
 ```
 
-🔍 **自检：每处 `?.` 对应的类型是否允许 `undefined`？如果 required，`?.` 在掩盖 bug。每处 `as` 是否仅限 `as const` / 测试 mock？**
+🔍 **Self-check: Does each `?.` correspond to a type that allows `undefined`? If required, `?.` is hiding a bug. Is each `as` limited to `as const` / test mocks?**
 
-### 原则 4: Fail fast，不吞错误
+### Principle 4: Fail fast, don't swallow errors
 
-❌ 错误：
+❌ Wrong:
 
 ```typescript
 try {
@@ -111,10 +111,10 @@ try {
 } catch {
   /* ignore */
 }
-callback?.(); // callback 是 required prop
+callback?.(); // callback is a required prop
 ```
 
-✅ 正确：
+✅ Correct:
 
 ```typescript
 const result = await submitAction();
@@ -124,177 +124,177 @@ if (!result.success) {
 }
 ```
 
-🔍 **自检：每个 catch 是否有明确处理（log + UI 反馈）？有无 `?.` 用在 required 字段上？**
+🔍 **Self-check: Does every catch have explicit handling (log + UI feedback)? Is `?.` used on any required field?**
 
-### 原则 5: 完整贯穿，不留半成品
+### Principle 5: Complete end-to-end, no half-finished work
 
-❌ 错误：
-
-```typescript
-// 新增 RewardType 枚举值，只做了渲染层，"Phase 2 再做后端" → 死代码
-```
-
-✅ 正确：
+❌ Wrong:
 
 ```typescript
-// 新增类型 → DB migration + API + game-engine + 客户端 + UI 全部到位
-// 或明确声明"当前不做"并不提交代码
+// Added RewardType enum value, only did render layer, "Phase 2 for backend" → dead code
 ```
 
-🔍 **自检：新增的类型/字段/枚举，在 DB → API → engine → client → UI 全管道都有消费者？没有 = 死代码。**
+✅ Correct:
 
-### 补充原则
+```typescript
+// New type → DB migration + API + game-engine + client + UI all in place
+// Or explicitly declare "not doing now" and don't commit the code
+```
 
-- **禁止 hardcode 魔法值。** 枚举用引用、常量用命名常量。仅允许语义自明的单次字面量。
-- **禁止臆造事实。** 不确定的 API/库行为/项目结构必须用工具验证。
+🔍 **Self-check: Does every new type/field/enum have consumers across DB → API → engine → client → UI pipeline? If not = dead code.**
 
----
+### Supplementary Principles
 
-## 协作规则（MUST follow）
-
-### 未确认禁止写代码
-
-- 允许只读检查、运行测试/格式化/类型检查。
-- 未经用户确认禁止修改代码。需先列出"文件 + 变更点 + 风险"等待确认。
-
-### 修改代码时逐符号验证
-
-每个受影响符号必须用 `grep_search` 或 `list_code_usages` 独立验证所有消费者。禁止批量推断"无影响"。
-
-### 改参数 / 校验条件时双向追踪
-
-修改调用方参数构造时追踪被调用方消费逻辑，反之亦然。
-
-### 调试策略
-
-静态分析首选。无法确定根因时加 `[DIAG]` 前缀诊断日志（项目 logger），修复后清除。
-
-### 核心原则自检（每次修改代码后）
-
-写完代码后，逐条过核心原则 checklist 的 🔍 自检问题。任一自检未通过则修正后再提交。
-
-### 验证流水线
-
-- pre-commit：eslint --fix + prettier --write（husky + lint-staged 自动执行）
-- pre-push：`npx tsc --noEmit`
-- 手动完整验证：`pnpm run quality`。失败必须修复后重跑。
-- **禁止 `--no-verify`。** 不得跳过 git hooks，除非用户明确要求。
+- **No hardcoded magic values.** Enums use references, constants use named constants. Only allow semantically self-evident one-time literals.
+- **No fabricating facts.** Uncertain API/library behavior/project structure must be verified with tools.
 
 ---
 
-## 不可协商规则
+## Collaboration Rules (MUST follow)
 
-- **服务端是唯一的游戏逻辑权威。** Worker（DO）负责读-算-写-广播。客户端完全平等。
-- **"Host" 只是 UI 角色标记。** `isHost` 决定按钮可见性和音频播放。Host 同时也是玩家。
-- **仅 Night-1 范围。** 禁止跨夜状态/规则。
-- **`GameState` 是单一真相。** 公开广播，UI 按 `myRole` 过滤显示。禁止双写/drift。
-- **信任模型：默认不作弊。** 面对面 party game，不引入额外防作弊架构。
+### No code changes without confirmation
 
-不清楚就先问。不要臆造仓库事实。
+- Read-only checks, running tests/formatting/type-checking are allowed.
+- Code changes are forbidden without user confirmation. Must first list "file + change point + risk" and wait for confirmation.
 
----
+### Verify every symbol when modifying code
 
-## 关键文档
+Every affected symbol must be independently verified for all consumers using `grep_search` or `list_code_usages`. Batch-inferring "no impact" is forbidden.
 
-- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — 部署架构与环境配置
-- [docs/gacha-system-design.md](docs/gacha-system-design.md) — 扭蛋系统设计
-- [docs/growth-system-design.md](docs/growth-system-design.md) — XP/等级成长系统
-- [docs/network-resilience-design.md](docs/network-resilience-design.md) — 断线重连策略
-- [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md) — RoomScreen 状态机
-- [docs/PRESET_BOARDS.md](docs/PRESET_BOARDS.md) — 预设板子列表
-- [e2e/helpers/README.md](e2e/helpers/README.md) — E2E helper 架构
+### Bidirectional tracing when changing parameters / validation conditions
 
----
+When modifying caller parameter construction, trace the callee's consumption logic, and vice versa.
 
-## 架构边界
+### Debugging strategy
 
-- **Worker（DO）** — 游戏逻辑 + DO SQLite 持久化 + WebSocket 广播。
-- **Worker（D1）** — 房间元数据、auth、rate limit。
-- **Cloudflare Pages** — 前端静态资源。CDN 详见 `ci-deploy.instructions.md`。
-- **微信小程序** — web-view 壳，加载 Pages 托管的 Web 版。详见 `ci-deploy.instructions.md`。
-- **客户端** — HTTP 提交 + WebSocket 接收 + `applySnapshot` + 音频（Host）。
-- 禁止 P2P 消息。断线恢复统一读 DO（`/room/state` → `stub.getState()`）。
+Static analysis first. When root cause cannot be determined, add `[DIAG]` prefixed diagnostic logs (project logger), remove after fix.
 
-### 日志
+### Core principles self-check (after every code change)
 
-统一用 `src/utils/logger.ts` 命名 logger。禁止 `console.*`（ESLint `no-console: 'error'` 已强制；`scripts/**`、`jest.setup.ts` 例外）。
+After writing code, go through the core principles checklist 🔍 self-check questions one by one. Fix any failures before committing.
 
-### 错误处理
+### Verification pipeline
 
-- 关键 catch 三层齐备：`log.error()` + `Sentry.captureException()` + `showAlert(中文提示)`。
-- 可预期错误（`401`/`403`/`429`、用户取消）只 `log.warn()` + UI 反馈，禁止报 Sentry。auth 错误用 `getUserFacingMessage()` / `isExpectedError()`（来自 `@/utils/errorUtils`）。
-- 面向用户文本一律中文，`showAlert` title 用具体动作（`'创建失败'`），fallback `'请稍后重试'`。
-- Fail fast：纯函数/handler 严格校验，禁止防御性兜底。修正在调用方。
+- pre-commit: eslint --fix + prettier --write (husky + lint-staged auto-executes)
+- pre-push: `npx tsc --noEmit`
+- Full manual verification: `pnpm run quality`. Must fix failures and re-run.
+- **`--no-verify` is forbidden.** Do not skip git hooks unless the user explicitly requests it.
 
 ---
 
-## 命名规则
+## Non-negotiable Rules
 
-**规则：**
+- **Server is the sole authority for game logic.** Worker (DO) handles read-compute-write-broadcast. Clients are fully equal.
+- **"Host" is just a UI role marker.** `isHost` determines button visibility and audio playback. Host is also a player.
+- **Night-1 scope only.** No cross-night state/rules.
+- **`GameState` is the single source of truth.** Broadcast publicly, UI filters display by `myRole`. No dual-writes/drift.
+- **Trust model: assume no cheating by default.** Face-to-face party game — no additional anti-cheat architecture.
 
-- **命名前必须 grep。** 新增任何标识符（变量、字段、参数、类型、常量、DB 列）前，先用 `grep_search` 搜索该概念的已有命名。已有名称就是规范名称，直接复用，禁止另起炉灶。只有仓库中不存在的全新概念才可自行命名。
-- 布尔字段用 `is` / `has` / `should` 前缀（DB 列同步加 `is_` / `has_`）。
-- 外键引用统一 `<entity>Id` 格式（`userId`, `roomId`）。
-- 自身 PK 始终叫 `id`。
+When in doubt, ask first. Do not fabricate repository facts.
 
 ---
 
-## 编码约定
+## Key Documentation
 
-- **Git Commit**：`<type>(<scope>): <description>`（Conventional Commits，英文小写祈使语气）。
-- **终端**：跑测试禁止 `| grep` / `| head` / `| tail` 截断。
-- **JSDoc**：class/module 头部注释，第一行摘要 + 边界约束。
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — Deployment architecture & environment config
+- [docs/gacha-system-design.md](docs/gacha-system-design.md) — Gacha system design
+- [docs/growth-system-design.md](docs/growth-system-design.md) — XP/level growth system
+- [docs/network-resilience-design.md](docs/network-resilience-design.md) — Reconnection strategy
+- [docs/roomscreen-state-machine.md](docs/roomscreen-state-machine.md) — RoomScreen state machine
+- [docs/PRESET_BOARDS.md](docs/PRESET_BOARDS.md) — Preset board list
+- [e2e/helpers/README.md](e2e/helpers/README.md) — E2E helper architecture
+
+---
+
+## Architecture Boundaries
+
+- **Worker (DO)** — Game logic + DO SQLite persistence + WebSocket broadcast.
+- **Worker (D1)** — Room metadata, auth, rate limit.
+- **Cloudflare Pages** — Frontend static assets. CDN details in `ci-deploy.instructions.md`.
+- **WeChat mini-program** — web-view shell, loads Web version hosted on Pages. Details in `ci-deploy.instructions.md`.
+- **Client** — HTTP submit + WebSocket receive + `applySnapshot` + audio (Host).
+- No P2P messages. Reconnection recovery reads from DO uniformly (`/room/state` → `stub.getState()`).
+
+### Logging
+
+Use `src/utils/logger.ts` named logger uniformly. `console.*` is forbidden (ESLint `no-console: 'error'` enforced; `scripts/**`, `jest.setup.ts` exempted).
+
+### Error Handling
+
+- Critical catch requires all three layers: `log.error()` + `Sentry.captureException()` + `showAlert(Chinese message)`.
+- Expected errors (`401`/`403`/`429`, user cancellation) only `log.warn()` + UI feedback, no Sentry reporting. Auth errors use `getUserFacingMessage()` / `isExpectedError()` (from `@/utils/errorUtils`).
+- All user-facing text (alerts, UI labels, error messages shown in-app) must be in Chinese. `showAlert` title uses specific action (e.g., `'创建失败'`), fallback `'请稍后重试'`.
+- Fail fast: pure functions/handlers validate strictly, no defensive fallbacks. Fix at the call site.
+
+---
+
+## Naming Rules
+
+**Rules:**
+
+- **Grep before naming.** Before adding any identifier (variable, field, parameter, type, constant, DB column), use `grep_search` to search for existing naming of that concept. Existing names are the canonical names — reuse them directly, no reinventing. Only genuinely new concepts with no existing match may be named freely.
+- Boolean fields use `is` / `has` / `should` prefix (DB columns likewise add `is_` / `has_`).
+- Foreign key references use uniform `<entity>Id` format (`userId`, `roomId`).
+- Own PK is always `id`.
+
+---
+
+## Coding Conventions
+
+- **Git Commit**: `<type>(<scope>): <description>` (Conventional Commits, English lowercase imperative).
+- **Terminal**: Running tests must not use `| grep` / `| head` / `| tail` to truncate.
+- **JSDoc**: Class/module header comments, first line summary + boundary constraints.
 
 ---
 
 ## Escalation Protocol
 
-遇到阻塞时，不要无限重试：
+When blocked, do not retry indefinitely:
 
-- **同一方案尝试 3 次仍失败** → 立即停止，报告状态。
-- **不确定安全敏感变更的正确性** → 立即停止，提请用户。
-- **变更范围超出可验证范围** → 立即停止，提请用户。
+- **Same approach fails 3 times** → Stop immediately, report status.
+- **Unsure about correctness of security-sensitive change** → Stop immediately, escalate to user.
+- **Change scope exceeds verifiable range** → Stop immediately, escalate to user.
 
-上报格式：
+Escalation format:
 
 ```
 STATUS: BLOCKED | NEEDS_CONTEXT
-REASON: [1-2 句说明]
-ATTEMPTED: [已尝试的方法]
-RECOMMENDATION: [建议用户下一步]
+REASON: [1-2 sentence explanation]
+ATTEMPTED: [methods already tried]
+RECOMMENDATION: [suggested next step for user]
 ```
 
-**交付差的结果比不交付更糟。** 上报不会被惩罚。
+**Delivering a poor result is worse than not delivering.** Escalation is not penalized.
 
 ---
 
 ## Completion Status Protocol
 
-**多步骤任务完成时**，用以下状态之一收尾：
+**When multi-step tasks complete**, end with one of these statuses:
 
-- **DONE** — 所有步骤完成，每个断言有证据支撑。
-- **DONE_WITH_CONCERNS** — 已完成，但有用户应知悉的问题。逐条列出。
-- **BLOCKED** — 无法继续。说明阻塞点和已尝试的方法。
-- **NEEDS_CONTEXT** — 缺少必要信息。明确列出需要什么。
-
----
-
-## 输出语言规范
-
-- **禁止 AI 空洞词汇：** delve, crucial, robust, comprehensive, nuanced, leverage, streamline, cutting-edge, seamless, utilize, facilitate, moreover, furthermore, in order to, it's worth noting。
-- **禁止空洞套话：** 不说"经过仔细分析"、"让我来帮你"、"这是一个很好的问题"。直接给结论。
-- **代码注释 / commit / PR 描述：** 命名具体文件、函数、命令。不用模糊词。
-- **面向用户文本：** 中文，具体，不空洞。
+- **DONE** — All steps complete, every assertion backed by evidence.
+- **DONE_WITH_CONCERNS** — Complete, but with issues the user should know. List them.
+- **BLOCKED** — Cannot continue. Explain blocker and methods attempted.
+- **NEEDS_CONTEXT** — Missing necessary information. List exactly what's needed.
 
 ---
 
-## Session 末尾反思
+## Output Language Rules
 
-在长 session（≥5 轮交互）结束前，简要检视：
+- **Banned AI filler words:** delve, crucial, robust, comprehensive, nuanced, leverage, streamline, cutting-edge, seamless, utilize, facilitate, moreover, furthermore, in order to, it's worth noting.
+- **Banned empty phrases:** Don't say "after careful analysis", "let me help you", "that's a great question". Give conclusions directly.
+- **Code comments / commit / PR descriptions:** Name specific files, functions, commands. No vague words.
+- **User-facing text:** Chinese, specific, not empty.
 
-- 有没有命令意外失败？
-- 有没有走错方向后回退？
-- 有没有发现项目特有的 quirk（构建顺序、环境变量、时序、配置）？
-- 有没有因为缺少某个 flag 或配置而多花时间？
+---
 
-如果有，记录到 `/memories/repo/` 或 `/memories/` 中，供后续 session 使用。不记录一次性瞬态错误（网络抖动、限流）。判断标准：**知道这个能否在未来 session 省 5 分钟？**
+## End-of-Session Reflection
+
+Before ending a long session (≥5 rounds of interaction), briefly review:
+
+- Did any commands fail unexpectedly?
+- Did you go in the wrong direction and backtrack?
+- Did you discover project-specific quirks (build order, env vars, timing, config)?
+- Did you spend extra time due to a missing flag or configuration?
+
+If yes, record to `/memories/repo/` or `/memories/` for future sessions. Don't record one-off transient errors (network jitter, rate limiting). Criterion: **Would knowing this save 5 minutes in a future session?**

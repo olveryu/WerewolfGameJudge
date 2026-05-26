@@ -1,91 +1,91 @@
 ---
 name: quality-commit
-description: 'Run full quality pipeline, auto-fix lint/format issues, then commit and push. Use when: quality fix commit push, run quality, fix lint, fix format, 跑质量检查, 修 lint, 修格式, 提交推送, quality commit push.'
-argument-hint: 'commit message（可选，不填则自动生成）'
+description: 'Run full quality pipeline, auto-fix lint/format issues, then commit and push. Use when: quality fix commit push, run quality, fix lint, fix format, quality commit push.'
+argument-hint: 'commit message (optional, auto-generated if not provided)'
 ---
 
 # quality-commit Skill
 
-运行完整质量管道 → 自动修复可修复问题 → commit → push，全程零手动。
+Run the full quality pipeline → auto-fix fixable issues → commit → push, completely hands-free.
 
 ## When to Use
 
-- 用户要求跑 quality / fix / commit / push 的任意组合
-- 用户想一键交付当前改动
-- 用户说"帮我 quality fix 然后提交"
+- User requests any combination of quality / fix / commit / push
+- User wants a one-click delivery of current changes
+- User says "run quality fix then commit"
 
 ---
 
 ## Procedure
 
-### Phase 1 — 运行质量检查
+### Phase 1 — Run Quality Check
 
 ```bash
 pnpm run quality
 ```
 
-记录输出。如果全部通过 → 跳到 Phase 3。
+Record output. If all pass → skip to Phase 3.
 
-### Phase 2 — 自动修复（按失败类型逐步处理）
+### Phase 2 — Auto-fix (handle by failure type)
 
-**只做自动可修复的事情；无法自动修复的 bug 必须停下报告。**
+**Only do auto-fixable things; bugs that cannot be auto-fixed must be reported.**
 
-#### 2a. Lint / Format 错误与警告
+#### 2a. Lint / Format Errors and Warnings
 
 ```bash
-# 先跑 lint --fix，再跑 prettier
+# Run lint --fix first, then prettier
 pnpm exec eslint . --fix
 pnpm exec prettier --write .
 ```
 
-`--fix` 处理不了的错误和警告（如 `no-explicit-any`、`no-unnecessary-act`），**直接用代码编辑工具修**，不报 BLOCKED。修完后重跑 `pnpm run quality` 确认清零。
+Errors and warnings that `--fix` can't handle (e.g., `no-explicit-any`, `no-unnecessary-act`), **fix directly with code editing tools** — don't report BLOCKED. After fixing, re-run `pnpm run quality` to confirm zero issues.
 
-只有在改动量超出可验证范围（如同时涉及多个模块的类型重构）时才停下报告。
+Only stop and report when the change scope exceeds verifiable range (e.g., type refactoring affecting multiple modules simultaneously).
 
-#### 2b. TypeScript 类型错误
+#### 2b. TypeScript Type Errors
 
-先尝试用代码编辑工具修复。若修复会影响多个下游模块、或根因不明，立即报告：
-
-```
-STATUS: BLOCKED
-REASON: TypeScript 类型错误无法安全自动修复：<列出每条>
-ATTEMPTED: 代码编辑修复
-RECOMMENDATION: 手动确认根因后重新执行 skill
-```
-
-#### 2c. 测试失败
-
-测试失败不自动修改业务逻辑，立即报告：
+Try to fix with code editing tools first. If fix would affect multiple downstream modules or root cause is unclear, report immediately:
 
 ```
 STATUS: BLOCKED
-REASON: 测试失败：<列出失败的测试名>
+REASON: TypeScript type errors cannot be safely auto-fixed: <list each>
+ATTEMPTED: code editing fix
+RECOMMENDATION: manually confirm root cause then re-run skill
+```
+
+#### 2c. Test Failures
+
+Test failures do not auto-modify business logic, report immediately:
+
+```
+STATUS: BLOCKED
+REASON: Test failures: <list failed test names>
 ATTEMPTED: pnpm run quality
-RECOMMENDATION: 手动修复测试后重新执行 skill
+RECOMMENDATION: manually fix tests then re-run skill
 ```
 
-#### 2d. knip 死代码
+#### 2d. knip Dead Code
 
-knip 误报（`metro.config.js`, `react-dom` 等）忽略。其余死代码（未使用的导出、文件、依赖）**直接删除**，删完重跑 `pnpm run quality` 确认。
+knip false positives (`metro.config.js`, `react-dom` etc.) are ignored. Other dead code (unused exports, files, dependencies) **delete directly**, re-run `pnpm run quality` after deletion to confirm.
 
 ---
 
-### Phase 3 — 生成 commit message
+### Phase 3 — Generate Commit Message
 
-1. 用 `get_changed_files` 或 `git diff --cached --stat` 获取变更文件列表。
-2. 根据变更内容生成 **Conventional Commits** 格式 message：
-   - `<type>(<scope>): <description>`（英文小写祈使语气）
-   - type：`feat` / `fix` / `refactor` / `chore` / `docs` / `test` / `style` / `perf`
-   - scope：取主要变更目录/模块名（如 `roomscreen`、`api-worker`、`game-engine`）
-   - description：具体说明做了什么，不用模糊词
+1. Use `get_changed_files` or `git diff --cached --stat` to get changed file list.
+2. Generate **Conventional Commits** format message based on changes:
+   - `<type>(<scope>): <description>` (English lowercase imperative)
+   - type: `feat` / `fix` / `refactor` / `chore` / `docs` / `test` / `style` / `perf`
+   - scope: main change directory/module name (e.g., `roomscreen`, `api-worker`, `game-engine`)
+   - description: specifically state what was done, no vague words
 
-3. 如果用户已在 argument 里提供了 commit message → 直接用用户提供的，不覆盖。
+3. If user already provided commit message in argument → use user's message directly, don't override.
 
 ---
 
 ### Phase 4 — Commit & Push
 
-直接提交，不等用户确认（skill 本身就是用户授权的自动流程）：
+Commit directly without waiting for user confirmation (the skill itself is user-authorized automation):
 
 ```bash
 git add -A
@@ -93,19 +93,19 @@ git commit -m "<commit message>"
 git push
 ```
 
-检查 push 输出，确认成功。如果 push 被拒（non-fast-forward），报告给用户：
+Check push output, confirm success. If push rejected (non-fast-forward), report to user:
 
 ```
 STATUS: BLOCKED
-REASON: git push 被拒，远端有新提交需要先 pull/rebase
+REASON: git push rejected, remote has new commits requiring pull/rebase first
 ATTEMPTED: git push
-RECOMMENDATION: git pull --rebase 后重新执行 skill
+RECOMMENDATION: git pull --rebase then re-run skill
 ```
 
 ---
 
-## 约束
+## Constraints
 
-- **禁止 `--no-verify`。** 不绕过 git hooks。
-- **禁止强制推送。** 不用 `--force` / `--force-with-lease`。
-- **不改业务逻辑。** 修 lint/TS/test 时只改使问题消失所需的最小改动，不顺手重构。
+- **`--no-verify` is forbidden.** Do not bypass git hooks.
+- **Force push is forbidden.** Do not use `--force` / `--force-with-lease`.
+- **Do not change business logic.** When fixing lint/TS/test issues, only make the minimum change needed to eliminate the issue — no opportunistic refactoring.

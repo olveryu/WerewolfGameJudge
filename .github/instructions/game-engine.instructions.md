@@ -1,52 +1,52 @@
 ---
 name: 'Game Engine'
-description: '纯游戏逻辑共享包规范：相对路径、零平台依赖、reducer/handler/growth 模块。Use when: editing game-engine package, reducers, handlers, growth system, shared game logic, night actions'
+description: 'Pure game logic shared package: relative paths, zero platform deps, reducer/handler/growth modules. Use when: editing game-engine package, reducers, handlers, growth system, shared game logic, night actions'
 applyTo: 'packages/game-engine/**'
 ---
 
-# @werewolf/game-engine 包规范
+# @werewolf/game-engine Package Standards
 
-纯游戏逻辑共享包（pnpm workspace），客户端和服务端同时 import。零平台依赖。
+Pure game logic shared package (pnpm workspace), imported by both client and server simultaneously. Zero platform dependencies.
 
-## 核心规则
+## Core Rules
 
-- 所有 import 用**相对路径**（`../models/roles`），禁止 `@/` alias（`tsconfig.json` 里 `paths: {}` 为空）。
-- 禁止 React / React Native / Expo / 任何平台依赖。禁止 import `src/` 目录下任何文件。
-- 禁止 Node.js 专属 API（`fs`/`path`/`process` 等）在 src/ 中使用。
-- 禁止 `console.*`，使用 `getEngineLogger()`（DI 模式：`setEngineLogger()` 注入，未注入时 noop）。
-- 随机数/ID 使用 Web Crypto API（`crypto.getRandomValues`）。
+- All imports use **relative paths** (`../models/roles`). `@/` alias is forbidden (`tsconfig.json` has `paths: {}` empty).
+- React / React Native / Expo / any platform dependency is forbidden. Importing from `src/` directory is forbidden.
+- Node.js-specific APIs (`fs`/`path`/`process` etc.) forbidden in src/.
+- `console.*` forbidden — use `getEngineLogger()` (DI pattern: `setEngineLogger()` injects, noop when not injected).
+- Random numbers/IDs use Web Crypto API (`crypto.getRandomValues`).
 
-## Import 规则
+## Import Rules
 
-- 消费者通过**深层路径**导入（tree-shaking 友好）：
+- Consumers import via **deep paths** (tree-shaking friendly):
   - `import { ROLE_SPECS } from '@werewolf/game-engine/models/roles'`
   - `import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas'`
   - `import type { GameState } from '@werewolf/game-engine/protocol/types'`
   - `import { getLevel } from '@werewolf/game-engine/growth/level'`
-- `index.ts` barrel export 存在但**不使用**。禁止 `import { ... } from '@werewolf/game-engine'` 根级导入。
-- 修改游戏逻辑 → 编辑 `packages/game-engine/src/` 源文件。
-- 新增文件：在 game-engine 创建源文件，按模块路径导出。平台相关文件不属于 game-engine，直接放 `src/`。
+- `index.ts` barrel export exists but **is not used**. Root-level `import { ... } from '@werewolf/game-engine'` is forbidden.
+- Modifying game logic → edit `packages/game-engine/src/` source files.
+- Adding files: create source file in game-engine, export by module path. Platform-specific files don't belong in game-engine — place in `src/`.
 
-## Reducer 规则
+## Reducer Rules
 
-- **重置完整性**: `RESTART_GAME` 等重置类 action 必须重置 state 接口的**全部**可变字段。新增 state 字段时必须同步更新重置逻辑。
-- **Null seat 防御**: `seats` 数组含 `null`（空座位）。遍历/过滤/`.every()` 检查时显式处理 `null`（`p === null || p.property`），不依赖可选链短路。
+- **Reset completeness**: Reset-type actions like `RESTART_GAME` must reset **all** mutable fields of the state interface. When adding new state fields, reset logic must be updated in sync.
+- **Null seat defense**: `seats` array contains `null` (empty seats). When iterating/filtering/`.every()` checks, handle `null` explicitly (`p === null || p.property`), don't rely on optional chaining short-circuit.
 
-## Handler 规则
+## Handler Rules
 
-- **Null-state guard**: 所有 game control handler 第一行必须检查 `if (!state)` 返回错误。这是已有 pattern（`handleStartGame` 等），新 handler 必须遵循。
-- **sideEffects 不可遗漏**: 修改了 state 的 handler result 必须包含对应 `sideEffects`（`BROADCAST_STATE` / `SAVE_STATE`）。遗漏 = 状态变更不持久化、不广播。
-- **新增 `GameState` 字段必须同步 `normalizeState`**（`engine/state/normalize.ts`）：编译期 `satisfies Complete<...>` 守卫会报错提醒。遗漏 = 字段被静默丢弃。
-- **JSDoc 要求**：handler 模块头部必须含 `@remarks` 说明核心逻辑（gate 校验顺序、death 计算时机等）。对外 handler 函数标注 `@pre`（state.status 等前置条件）。
+- **Null-state guard**: All game control handlers must check `if (!state)` and return error on the first line. This is an established pattern (`handleStartGame` etc.) — new handlers must follow.
+- **sideEffects must not be omitted**: Handler results that modify state must include corresponding `sideEffects` (`BROADCAST_STATE` / `SAVE_STATE`). Omission = state changes not persisted, not broadcast.
+- **New `GameState` fields must sync `normalizeState`** (`engine/state/normalize.ts`): compile-time `satisfies Complete<...>` guard will error as reminder. Omission = field silently dropped.
+- **JSDoc requirement**: Handler module headers must contain `@remarks` explaining core logic (gate validation order, death calculation timing, etc.). Public handler functions annotated with `@pre` (state.status and other preconditions).
 
-## Engine 内部模块
+## Engine Internal Modules
 
-| 模块                  | 文件                                                                                                   | 职责                                                                                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **GameStore**         | `engine/store/GameStore.ts`                                                                            | state 持有 + revision 管理 + applySnapshot + 订阅/通知。不含业务逻辑、不含 IO                                                                                               |
-| **Intents**           | `engine/intents/types.ts`                                                                              | UI→Handler 的强类型 Intent 定义（JoinSeat / StartNight / RestartGame 等）                                                                                                   |
-| **InlineProgression** | `engine/inlineProgression.ts`                                                                          | 服务端单请求内递归推进夜晚步骤（纯函数，最多 20 轮），收集 PLAY_AUDIO sideEffects                                                                                           |
-| **ResolveWolfVotes**  | `engine/resolveWolfVotes.ts`                                                                           | 狼人投票聚合计算                                                                                                                                                            |
-| **DeathCalculator**   | `engine/DeathCalculator.ts`                                                                            | 夜晚死亡结算（守护/毒药/袭击/连带）                                                                                                                                         |
-| **Growth**            | `growth/level.ts` + `growth/frameUnlock.ts` + `growth/rewardCatalog.ts` + `growth/gachaProbability.ts` | XP 阈值 · 等级计算 · 奖励解锁 · 扭蛋概率引擎（rollRarity / selectReward / pity）                                                                                            |
-| **ActionResult**      | `protocol/ActionResult.ts`                                                                             | 操作结果 DU：`{ success: true } \| { success: false; reason: string }`。`GameActionResult`（`protocol/types.ts`）扩展为含 `state` / `revision` / `sideEffects` 的服务端变体 |
+| Module                | File                                                                                                   | Responsibility                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **GameStore**         | `engine/store/GameStore.ts`                                                                            | State holder + revision management + applySnapshot + subscribe/notify. No business logic, no IO                                                                                           |
+| **Intents**           | `engine/intents/types.ts`                                                                              | Strongly-typed Intent definitions from UI→Handler (JoinSeat / StartNight / RestartGame etc.)                                                                                              |
+| **InlineProgression** | `engine/inlineProgression.ts`                                                                          | Server-side recursive night step advancement within single request (pure function, max 20 iterations), collects PLAY_AUDIO sideEffects                                                    |
+| **ResolveWolfVotes**  | `engine/resolveWolfVotes.ts`                                                                           | Wolf vote aggregation calculation                                                                                                                                                         |
+| **DeathCalculator**   | `engine/DeathCalculator.ts`                                                                            | Night death settlement (guard/poison/attack/chain)                                                                                                                                        |
+| **Growth**            | `growth/level.ts` + `growth/frameUnlock.ts` + `growth/rewardCatalog.ts` + `growth/gachaProbability.ts` | XP thresholds · level calculation · reward unlocks · gacha probability engine (rollRarity / selectReward / pity)                                                                          |
+| **ActionResult**      | `protocol/ActionResult.ts`                                                                             | Operation result DU: `{ success: true } \| { success: false; reason: string }`. `GameActionResult` (`protocol/types.ts`) extends with `state` / `revision` / `sideEffects` server variant |

@@ -1,66 +1,66 @@
 ---
 name: 'TypeScript & Hooks'
-description: '类型安全、React Hooks 卫生、未使用变量处理规范。Use when: TypeScript type safety, React hooks hygiene, unused variables, type assertions, generic inference, noUncheckedIndexedAccess'
+description: 'Type safety, React Hooks hygiene, unused variable handling standards. Use when: TypeScript type safety, React hooks hygiene, unused variables, type assertions, generic inference, noUncheckedIndexedAccess'
 applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
 ---
 
-# TypeScript & React Hooks 规范
+# TypeScript & React Hooks Standards
 
-## 类型安全
+## Type Safety
 
-- 用 type guard / `satisfies` / 泛型推导替代 `as` 断言（`as const` 和测试 mock 除外）。api-worker handler body 校验用 `jsonBody(schema)` 中间件 + `c.req.valid('json')`，禁止 `as` cast。
-- `unknown` + 类型收窄替代 `any`（第三方库类型缺失需附注释 suppress）。ESLint `@typescript-eslint/no-unsafe-*` 六条规则均为 `error`，自动拦截 `any` 泄漏。
-- `noUncheckedIndexedAccess` 已启用。数组/字典索引访问返回 `T | undefined`，必须处理：
-  - 已有 length / boundary 守卫证明安全：用 `!` non-null assertion（`arr[i]!`）。
-  - 无法证明安全：用 narrowing guard 或 optional chaining 处理 `undefined`。
-  - 复合赋值（`+=`、`|=`）需展开：`data[x] = data[x]! + y`。
-  - 禁止对已经是非 `undefined` 类型的表达式加 `!`（ESLint `no-unnecessary-type-assertion` 会报警告）。
-- Discriminated Union（`type` / `kind` 标签字段），禁止 optional 字段堆叠区分变体。
-- 操作结果统一用 `ActionResult`（`@werewolf/game-engine/protocol/ActionResult`）DU：`{ success: true; reason?: string } | { success: false; reason: string }`。禁止 `{ success: boolean; reason?: string }` 松散写法。
-- Exhaustive `switch`：`default` 用 `assertNever` 或 `const _: never`。
-- `satisfies` 用于"既检查类型又保留字面量推导"（`ROLE_SPECS`、`SCHEMAS`、config 对象等）。
-- 函数参数数组/对象优先 `readonly`，导出常量优先 `as const`。
-- 导出类型用 `export type`，re-export 用 `export type { Foo } from './bar'`。
+- Use type guards / `satisfies` / generic inference instead of `as` assertions (`as const` and test mocks excepted). api-worker handler body validation uses `jsonBody(schema)` middleware + `c.req.valid('json')`. `as` cast is forbidden.
+- `unknown` + type narrowing instead of `any` (third-party lib type gaps require comment suppress). ESLint `@typescript-eslint/no-unsafe-*` six rules all set to `error`, auto-intercept `any` leakage.
+- `noUncheckedIndexedAccess` is enabled. Array/dictionary index access returns `T | undefined`, must be handled:
+  - Already have length / boundary guard proving safety: use `!` non-null assertion (`arr[i]!`).
+  - Cannot prove safety: use narrowing guard or optional chaining to handle `undefined`.
+  - Compound assignment (`+=`, `|=`) needs expansion: `data[x] = data[x]! + y`.
+  - Adding `!` to expressions already non-`undefined` is forbidden (ESLint `no-unnecessary-type-assertion` will warn).
+- Discriminated Union (`type` / `kind` tag field). Optional field stacking to distinguish variants is forbidden.
+- Operation results uniformly use `ActionResult` (`@werewolf/game-engine/protocol/ActionResult`) DU: `{ success: true; reason?: string } | { success: false; reason: string }`. Loose `{ success: boolean; reason?: string }` is forbidden.
+- Exhaustive `switch`: `default` uses `assertNever` or `const _: never`.
+- `satisfies` used for "both type-check and preserve literal inference" (`ROLE_SPECS`, `SCHEMAS`, config objects etc.).
+- Function parameter arrays/objects prefer `readonly`; exported constants prefer `as const`.
+- Export types with `export type`; re-export with `export type { Foo } from './bar'`.
 
-## 未使用变量 / 导入
+## Unused Variables / Imports
 
-- 未使用的独立变量赋值：**直接删除整行**，禁止加 `_` 前缀消音。
-- 未使用的导入：**直接从 import 语句中移除**。
-- `_` 前缀仅限**语法上必须声明但逻辑上不使用**的场景（解构占位 `const [_, b] = ...`、回调参数 `(_, index) => ...`）。
+- Unused standalone variable assignments: **delete the entire line**. Adding `_` prefix to silence is forbidden.
+- Unused imports: **remove from import statement directly**.
+- `_` prefix only for scenarios where **syntactically required but logically unused** (destructure placeholder `const [_, b] = ...`, callback parameter `(_, index) => ...`).
 
-## Async / Promise 安全
+## Async / Promise Safety
 
-- ESLint `recommendedTypeChecked` 启用 `no-floating-promises` 和 `no-misused-promises`。
-- 故意 fire-and-forget 的 Promise 用 `void` 前缀标记：`void someAsyncFn()`。
-- JSX `onPress` / `onChange` 等事件回调期望 `() => void`，async handler 需包 void wrapper：`onPress={() => void handlePress()}`。
-- 禁止 `require-await`（已 off；DO 接口等大量 false positive）。
+- ESLint `recommendedTypeChecked` enables `no-floating-promises` and `no-misused-promises`.
+- Intentional fire-and-forget Promises use `void` prefix: `void someAsyncFn()`.
+- JSX `onPress` / `onChange` event callbacks expect `() => void`; async handlers need void wrapper: `onPress={() => void handlePress()}`.
+- `require-await` is disabled (already off; DO interfaces have many false positives).
 
-## React Compiler 状态
+## React Compiler Status
 
-- `babel-plugin-react-compiler@^1.0.0` 已安装但 **未在 `babel.config.js` 启用**。当前仍依赖手动 `useMemo` / `useCallback`。
-- `eslint-plugin-react-hooks@^7.0.1` 新增三个 Compiler 配套规则，均已显式 `off`：
-  - `react-hooks/static-components` — Compiler 自动处理，手动模式不需要。
-  - `react-hooks/set-state-in-effect` — 有效但误报多，暂关。
-  - `react-hooks/preserve-manual-memoization` — Compiler 未启用时无意义。
-- 启用 Compiler 后需重新评估 `useMemo` / `useCallback` 手动规则和上述三个 lint 规则。
+- `babel-plugin-react-compiler@^1.0.0` is installed but **not enabled in `babel.config.js`**. Currently still relies on manual `useMemo` / `useCallback`.
+- `eslint-plugin-react-hooks@^7.0.1` adds three Compiler companion rules, all explicitly `off`:
+  - `react-hooks/static-components` — Compiler handles automatically, not needed in manual mode.
+  - `react-hooks/set-state-in-effect` — Useful but too many false positives, temporarily off.
+  - `react-hooks/preserve-manual-memoization` — Meaningless when Compiler is not enabled.
+- When enabling Compiler, reassess manual `useMemo` / `useCallback` rules and the three lint rules above.
 
-## React Hooks 卫生
+## React Hooks Hygiene
 
-- 自定义 hook 以 `use` 前缀命名，文件名与 hook 名一致（`useNightProgress.ts` → `useNightProgress()`）。
-- 禁止条件式调用 hook（`if` / `for` / `switch` / 早期 `return` 之后）。
-- deps 必须诚实反映回调实际读取的值：缺少的要补，**不读取的要移除**。未使用的 dep 参数如果也无其他消费者，应从函数签名一并删除。禁止无理由 suppress `react-hooks/exhaustive-deps`（suppress 需附注释）。
-- Guard 从权威来源读取（`facade.isHostPlayer()`），不从 state dep 读。禁止 `useRef` 镜像 state 绕过 deps（stale closure 例外）。
-- `useEffect` 含订阅 / timer / listener 必须返回 cleanup 函数（即使"现在不会 unmount"）。
-- `useMemo` 仅用于昂贵计算（filter/sort/reduce、对象深构建），禁止对 primitive / 简单对象字面量包 useMemo。
-- `useCallback` 用于传给 memo 化子组件的回调。不传给子组件的内部 handler 不需要。
-- 返回值 >2 个用具名对象（`function useXxx(): XxxResult`）。单一职责，~80 行考虑拆分。
+- Custom hooks use `use` prefix, filename matches hook name (`useNightProgress.ts` → `useNightProgress()`).
+- Conditional hook calls are forbidden (`if` / `for` / `switch` / after early `return`).
+- Deps must honestly reflect values actually read by callback: missing ones must be added, **unread ones must be removed**. Unused dep parameters that have no other consumers should be removed from function signature entirely. Suppressing `react-hooks/exhaustive-deps` without reason is forbidden (suppress requires comment).
+- Guards read from authoritative source (`facade.isHostPlayer()`), not from state dep. `useRef` mirroring state to bypass deps is forbidden (stale closure exception).
+- `useEffect` with subscriptions / timers / listeners must return cleanup function (even if "won't unmount now").
+- `useMemo` only for expensive computations (filter/sort/reduce, deep object construction). Wrapping primitives / simple object literals in useMemo is forbidden.
+- `useCallback` for callbacks passed to memoized child components. Internal handlers not passed to children don't need it.
+- Return values >2 use named objects (`function useXxx(): XxxResult`). Single responsibility, ~80 lines consider splitting.
 
-## JSDoc 规范
+## JSDoc Standards
 
-- **模块头部**：每个 `.ts` 文件顶部必须有 `/** ... */` 模块注释，说明职责、边界约束（不含 IO / 不写 state 等）。
-- **@throws**：可能抛出异常或返回错误状态码的公开函数/路由必须标注 `@throws`，列出 HTTP 状态码或异常类型 + 触发条件。
-- **@pre**：函数/方法有前置条件时用 `@pre` 说明（如 `status === 'Ongoing'`、`isHost === true`）。纯 reducer 在模块注释中汇总。
-- **@remarks**：核心设计决策、并发策略、算法特性（如 OCC 重试、pity 计数器、single-flight lock）放 `@remarks`，避免在实现中重复注释。
-- **字段注释**：接口/type 中语义非自明的字段加行内 `/** ... */` 注释（null 含义、特殊值 -1 含义、单位等）。
-- **禁止空洞注释**：不写 `// 设置变量` 类重复代码语义的注释。只在"why"层面注释。
-- **语言**：注释正文中文，tag 关键词（@throws / @pre / @remarks / @param）英文。
+- **Module header**: every `.ts` file top must have `/** ... */` module comment explaining responsibility, boundary constraints (no IO / no state writes etc.).
+- **@throws**: public functions/routes that may throw or return error status codes must annotate `@throws`, listing HTTP status codes or exception types + trigger conditions.
+- **@pre**: functions/methods with preconditions use `@pre` (e.g., `status === 'Ongoing'`, `isHost === true`). Pure reducers summarize in module comment.
+- **@remarks**: core design decisions, concurrency strategies, algorithm characteristics (e.g., OCC retry, pity counter, single-flight lock) go in `@remarks` — avoid repeating comments in implementation.
+- **Field comments**: fields with non-obvious semantics in interfaces/types get inline `/** ... */` comments (null meaning, special value -1 meaning, unit etc.).
+- **Empty comments forbidden**: don't write comments like `// set variable` that repeat code semantics. Only comment at the "why" level.
+- **Language**: comment body in English, tag keywords (@throws / @pre / @remarks / @param) in English.
