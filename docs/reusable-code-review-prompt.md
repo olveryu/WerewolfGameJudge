@@ -1,11 +1,11 @@
 # Reusable Code Review Prompt
 
-这个文档用于沉淀“通用代码审查 + 优化”提示词，适合贴给 AI 做系统化 code review。
+This document captures reusable "general code review + optimization" prompts, suitable for giving to AI for systematic code review.
 
-## Full Prompt（生产级）
+## Full Prompt (Production-Grade)
 
 ```text
-你是资深 {语言/框架} 代码审查与重构专家。请对我提供的代码做“生产级”审查与优化，目标：提升正确性、可维护性、性能与一致性。请严格按以下顺序输出：
+你是资深 {语言/框架} 代码审查与重构专家。请对我提供的代码做"生产级"审查与优化，目标：提升正确性、可维护性、性能与一致性。请严格按以下顺序输出：
 
 1) Executive Summary（5-10行）
 - 先给整体健康度评分（0-100）与风险等级（高/中/低）。
@@ -26,24 +26,24 @@
 
 4) Bug Hunt Checklist
 - 空值/边界条件/并发与竞态/异步错误处理/资源泄漏/状态不同步/类型不安全/异常吞噬。
-- 标记“已确认 bug”与“高概率隐患”（分别列出）。
+- 标记"已确认 bug"与"高概率隐患"（分别列出）。
 
 5) Tests
 - 为每个 high/critical 问题补充测试建议（单测/集成/E2E）。
 - 给出最小测试样例代码与断言重点。
 
 6) Refactor Plan（可执行）
-- 按 P0/P1/P2 排序，给出“改动项 -> 影响范围 -> 回归风险 -> 验证步骤”。
+- 按 P0/P1/P2 排序，给出"改动项 -> 影响范围 -> 回归风险 -> 验证步骤"。
 - 优先小步重构，保证每一步可回滚。
 
 约束：
 - 不要只讲概念，必须给出具体代码修改建议。
 - 优先标准库与成熟社区方案；避免引入不必要依赖。
 - 不改变业务语义；如需改变，先明确假设与影响。
-- 若信息不足，先列“缺失上下文清单”，再给“基于当前信息的最佳建议”。
+- 若信息不足，先列"缺失上下文清单"，再给"基于当前信息的最佳建议"。
 ```
 
-## Short Prompt（快速扫一遍）
+## Short Prompt (Quick Scan)
 
 ```text
 请对这段代码做快速但严格的 code review，输出：
@@ -55,8 +55,8 @@
 要求：不空谈、不过度设计、优先社区最佳实践。
 ```
 
-## 使用建议
+## Usage Tips
 
-- 在 `{语言/框架}` 填入实际栈，例如：`TypeScript + React Native + Supabase`。
-- 代码量较大时，先分模块贴（如 `services`、`screens`、`game-engine`）。
-- 如需“只找 bug 不重构”，删掉第 3、6 节即可。
+- Fill in the actual stack for `{语言/框架}`, e.g.: `TypeScript + React Native + Supabase`.
+- For large codebases, paste module by module (e.g., `services`, `screens`, `game-engine`).
+- If you only want "find bugs, no refactoring", remove sections 3 and 6.

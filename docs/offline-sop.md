@@ -1,190 +1,150 @@
-# 线下玩法 SOP（首夜电子法官）
+# Offline Gameplay SOP (Night 1 Electronic Judge)
 
-## 产品定位
+## Product Positioning
 
-这款 App 专为**线下同桌、多设备**场景设计，仅负责**首夜的电子法官**工作。Host（房主）同时也是玩家，夜晚时应当闭眼，由 App 自动播放语音引导流程。
-
----
-
-## 1. 开局准备
-
-### 1.1 创建房间（Host）
-
-1. Host 打开 App，点击「创建房间」
-2. 选择游戏板子（角色配置），确认人数
-3. 生成 4 位房间号，分享给其他玩家
-
-### 1.2 加入房间（玩家）
-
-1. 玩家打开 App，点击「进入房间」
-2. 输入 4 位房间号
-3. 点击座位就座（1-12 号位）
-
-### 1.3 分配角色
-
-1. 所有人就座后，Host 点击「准备查看身份」
-2. 系统自动分配角色
-3. 每位玩家点击「查看身份」确认自己的角色
-4. 所有人确认后，Host 点击「开始游戏」
+This App is designed specifically for **offline same-table, multi-device** scenarios, responsible only for the **Night 1 electronic judge** role. The Host is also a player and should close their eyes during the night while the App automatically plays voice-guided flow.
 
 ---
 
-## 2. 首夜流程概览
+## 1. Game Setup
 
-首夜的流程完全由 App 自动播放语音引导：
+### 1.1 Create Room (Host)
+
+1. Host opens the App, taps "创建房间"
+2. Selects a game board (role configuration), confirms player count
+3. Generates a 4-digit room code, shares it with other players
+
+### 1.2 Join Room (Player)
+
+1. Player opens the App, taps "进入房间"
+2. Enters the 4-digit room code
+3. Taps a seat to sit down (seats 1-12)
+
+### 1.3 Assign Roles
+
+1. Once everyone is seated, Host taps "准备查看身份"
+2. System automatically assigns roles
+3. Each player taps "查看身份" to confirm their role
+4. After everyone confirms, Host taps "开始游戏"
+
+---
+
+## 2. Night 1 Flow Overview
+
+Night 1 flow is entirely guided by automatic voice playback from the App:
 
 ```
-🌙 夜晚开始语音
+🌙 Night begins voice
     ↓
-🐺 狼人行动语音 → 狼人玩家选择目标
+🐺 Wolf action voice → Wolf players select target
     ↓
-🔮 预言家行动语音 → 预言家选择查验目标
+🔮 Seer action voice → Seer selects investigation target
     ↓
-🧙 女巫行动语音 → 女巫选择是否用药
+🧙 Witch action voice → Witch decides whether to use potions
     ↓
-... 按板子配置依次进行 ...
+... Continues per board configuration ...
     ↓
-☀️ 首夜结束语音
+☀️ Night 1 end voice
     ↓
-📢 Host 屏幕显示昨晚结果（死亡/平安夜）
+📢 Host screen shows last night's results (death/peaceful night)
 ```
 
-**注意**：白天流程由玩家自行进行（发言、投票等），App 仅负责首夜。
+**Note**: Daytime phase is conducted by players themselves (speeches, voting, etc.). The App is only responsible for Night 1.
 
 ---
 
-## 3. 音频异常说明
+## 3. Audio Anomaly Notes
 
-### 正常情况
+### Normal Behavior
 
-App 会自动依次播放各角色的行动语音。每段语音播放完毕后等待对应玩家操作。
+The App automatically plays each role's action voice sequentially. After each voice segment finishes, it waits for the corresponding player's action.
 
-### 异常处理（已内置保护）
+### Exception Handling (Built-in Safeguards)
 
-- **音频文件缺失**：跳过该段语音，继续下一步
-- **播放失败/被中断**：自动跳过，不会卡死流程
-- **播放超时（15 秒）**：自动放弃等待，继续流程
+- **Missing audio file**: Skips that voice segment, continues to next step
+- **Playback failure/interruption**: Auto-skips, won't freeze the flow
+- **Playback timeout (15 seconds)**: Automatically gives up waiting, continues flow
 
-> ✅ 音频问题不会导致游戏卡死。
+> ✅ Audio issues will not freeze the game.
 
-### 仍可能卡住的情况
+### Situations That May Still Block
 
-- **玩家不操作**：某位玩家一直不点击选择目标
-- **设备锁屏/后台**：玩家手机锁屏导致无法提交行动
+- **Player doesn't act**: A player never taps to select their target
+- **Device locks/backgrounds**: Player's phone locks, preventing action submission
 
-这些需要通过线下沟通或「重新开始」解决。
-
----
-
-## 4. 卡住 / 重开处理
-
-### 4.1 何时需要重开？
-
-- 某个角色行动阶段长时间无进展（如 2 分钟以上）
-- 玩家反馈设备出问题、App 无响应
-- 有人误操作导致流程混乱
-
-### 4.2 线下处理步骤
-
-1. **大家喊停** — 有人发现问题后口头喊停
-2. **宣布本局作废** — Host 宣布："本局作废，我们重来"
-3. **所有人睁眼** — 不再保密当前身份
-
-### 4.3 Host 操作重新开始
-
-1. Host 在屏幕上找到「重开」按钮
-2. 点击后弹出确认对话框
-3. 系统自动：
-   - 清空当前夜晚的所有行动记录
-   - **清空角色分配**（不会立即重新发牌）
-   - 回到「已就座」状态
-
-### 4.4 重开后
-
-1. Host 点击「准备查看身份」重新洗牌分配角色
-2. 所有玩家重新点击「查看身份」确认新角色
-3. Host 点击「开始游戏」
-4. 重新进入首夜
+These require offline communication or using "Restart" to resolve.
 
 ---
 
-## 5. 风险与公平性声明
+## 4. Stuck / Restart Handling
 
-### 关于重新开始
+### 4.1 When Is a Restart Needed?
 
-- 🚨 **重新开始会重新发身份**，不是恢复原来的身份
-- 🚫 **不用于纠错**：如果有人看错身份或操作失误，不应该用重新开始来"修正"
-- ✅ **只用于重开**：真正卡死、无法继续时才使用
+- A role's action phase has no progress for an extended time (e.g., 2+ minutes)
+- A player reports device issues or App unresponsiveness
+- Someone misclicks causing flow confusion
 
-### 权限说明
+### 4.2 Offline Handling Steps
 
-- 只有 Host 能看到「重新开始」按钮
-- 只有 Host 能执行重开操作
-- 建议 Host 在操作前口头征得所有人同意
+1. **Everyone calls stop** — Someone notices the issue and verbally calls stop
+2. **Declare game void** — Host announces: "This round is void, let's restart"
+3. **Everyone opens eyes** — Current identities are no longer secret
 
----
+### 4.3 Host Restart Operation
 
-## 6. 常见问题
+1. Host finds the "重开" (Restart) button on screen
+2. Taps it to trigger a confirmation dialog
+3. System automatically:
+   - Clears all night action records
+   - **Clears role assignments** (does not immediately re-deal)
+   - Returns to "Seated" state
 
-### Q1: 没有声音怎么办？
+### 4.4 After Restart
 
-**A:** 请检查：
-
-1. 手机是否静音/音量是否调低
-2. App 是否有音频权限
-3. 如果仍无声音，流程不会卡死（有 fallback），可以让 Host 口头报出当前行动角色
-
-### Q2: 有人一直不点击操作怎么办？
-
-**A:**
-
-1. 线下口头提醒该玩家操作
-2. 如果设备有问题，可以让 Host 使用「重新开始」
-3. 如果是故意不操作，建议线下协商处理
-
-### Q3: 想换板子/角色配置怎么做？
-
-**A:**
-
-1. 游戏未开始时：Host 点击「⚙️ 设置」修改板子
-2. 游戏进行中：需要先使用「重新开始」，然后再修改
-
-### Q4: 可以中途退出吗？
-
-**A:**
-
-- 可以退出 App，但退出后座位不会自动释放
-- 建议在退出前通知 Host
-
-### Q5: 页面意外关闭后如何继续？
-
-**A:**
-
-1. 重新打开 App，进入同一个房间
-2. Host 会看到「继续游戏」全屏遮罩
-3. 点击「🔊 继续游戏」按钮恢复音频和 BGM
-4. 如果断开时正在播放步骤音频，会自动重播当前步骤音频
-5. 游戏状态完全保留，可以无缝继续
-
-> 注意：Web 版由于浏览器 autoplay 策略，页面重新打开后必须通过点击按钮获取音频播放权限。
-
-### Q6: 首夜结束后怎么办？
-
-**A:**
-
-1. Host 点击「查看昨夜死亡信息」获取死亡结果
-2. Host 口头宣布昨晚结果
-3. 白天流程由玩家自行进行（发言、投票、处决等）
-4. 需要开新一局时，可点击「重开」使用相同板子开始新一局
+1. Host taps "准备查看身份" to re-shuffle and assign roles
+2. All players tap "查看身份" again to confirm new roles
+3. Host taps "开始游戏"
+4. Re-enters Night 1
 
 ---
 
-## 快速参考卡片
+## 5. Risk & Fairness Statement
 
-| 场景           | Host 操作                |
-| -------------- | ------------------------ |
-| 所有人就座完毕 | 点击「准备查看身份」     |
-| 所有人确认身份 | 点击「开始游戏」         |
-| 首夜结束       | 点击「查看昨夜死亡信息」 |
-| 想重开一局     | 点击「重开」             |
-| 想换板子       | 点击「⚙️ 设置」          |
+### About Restarting
+
+- 🚨 **Restarting re-deals identities** — it does not restore original identities
+- 🚫 **Not for error correction**: If someone misreads their role or misclicks, restart should not be used to "fix" it
+- ✅ **Only for true restarts**: Use only when genuinely stuck and unable to continue
+
+### Permission Notes
+
+- Only Host can see the "重新开始" button
+- Only Host can execute a restart
+- Recommended: Host verbally gets everyone's agreement before restarting
+
+---
+
+## 6. FAQ
+
+### Q1: No sound — what to do?
+
+**A:** Check the following:
+
+1. Is the phone on silent / volume turned down?
+2. Does the App have audio permissions?
+3. If still no sound, the flow won't freeze (has fallback). Host can verbally announce the current acting role.
+
+### Q2: Someone won't tap their action — what to do?
+
+**A:**
+
+1. Verbally remind the player offline to take their action
+2. If device has issues, Host can use "重新开始"
+3. If intentionally refusing to act, resolve through offline negotiation
+
+### Q3: Want to change board/role configuration?
+
+**A:**
+
+1. Before game starts: Host taps "⚙️ 设置" to modify the board
+2. During game: Must first use "重新开始", then modify

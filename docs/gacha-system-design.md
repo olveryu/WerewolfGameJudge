@@ -1,95 +1,95 @@
-# 扭蛋系统详细设计文档
+# Gacha System Detailed Design
 
-> 状态：**已实施** (2026-04-19 完成)  
-> 作者：Copilot + eyan  
-> 日期：2026-04-17（设计） · 2026-04-19（实施完成）
-
----
-
-## 目录
-
-1. [系统概述](#1-系统概述)
-2. [现有架构分析](#2-现有架构分析)
-3. [数据模型变更](#3-数据模型变更)
-4. [概率引擎](#4-概率引擎)
-5. [稀有度分配](#5-稀有度分配)
-6. [服务端实现](#6-服务端实现)（含 §6.7 每日登录奖励）
-7. [客户端实现](#7-客户端实现)
-8. [动画方案](#8-动画方案)
-9. [实施步骤](#9-实施步骤)
-10. [边界条件与风险](#10-边界条件与风险)
+> Status: **Implemented** (completed 2026-04-19)  
+> Authors: Copilot + eyan  
+> Date: 2026-04-17 (design) · 2026-04-19 (implementation complete)
 
 ---
 
-## 1. 系统概述
+## Table of Contents
 
-### 1.1 动机
-
-现有成长系统：每局获得 50–70 XP → 升级 → `pickRandomReward()` 直接随机发放 1 个未解锁物品。这种方式的问题：
-
-- **无仪式感**：升级解锁只有 1 条 toast，玩家很可能没注意
-- **无主动行为**：奖励自动到账，玩家对"获得"没有参与感
-- **单一来源**：只有升级才有奖励，打完一局如果没升级，仅显示 "+55 XP"
-
-### 1.2 目标
-
-引入扭蛋（Gacha）机制：
-
-- 每局有效游戏获得 1 张**普通券**，每次升级获得 1 张**黄金券**
-- 玩家在扭蛋页面主动消耗券抽取，支持单抽和 10 连
-- 通过概率表 + 保底 + 去重构建可控的收集体验
-- 扭蛋机动画提供仪式感
-- 每日登录奖励 1 张普通券，增加日活黏性
-
-### 1.3 架构约束
-
-| 约束         | 说明                                                                                         |
-| ------------ | -------------------------------------------------------------------------------------------- |
-| 服务端权威   | 概率计算、券扣减、物品发放全部在 Worker 执行。客户端只提交 "抽" 的请求，展示服务端返回的结果 |
-| 游戏引擎纯净 | `@werewolf/game-engine` 放概率纯函数（`rollRarity`/`selectReward`），不放 IO / DB 操作       |
-| 信任模型     | 面对面 party game，不加额外防作弊架构，但服务端校验券余额                                    |
-| 原子部署     | Worker + Pages 原子部署，不存在新旧版本共存，接口变更直接 breaking                           |
+1. [System Overview](#1-system-overview)
+2. [Existing Architecture Analysis](#2-existing-architecture-analysis)
+3. [Data Model Changes](#3-data-model-changes)
+4. [Probability Engine](#4-probability-engine)
+5. [Rarity Distribution](#5-rarity-distribution)
+6. [Server Implementation](#6-server-implementation) (incl. §6.7 Daily Login Reward)
+7. [Client Implementation](#7-client-implementation)
+8. [Animation Design](#8-animation-design)
+9. [Implementation Steps](#9-implementation-steps)
+10. [Edge Cases & Risks](#10-edge-cases--risks)
 
 ---
 
-## 2. 现有架构分析
+## 1. System Overview
 
-### 2.1 物品注册表
+### 1.1 Motivation
 
-**文件**：`packages/game-engine/src/growth/rewardCatalog.ts`
+Existing growth system: gain 50–70 XP per game → level up → `pickRandomReward()` directly gives 1 random unlocked item. Problems with this approach:
 
-- 4 类物品：`avatar`(43) / `frame`(170) / `seatFlair`(180) / `nameStyle`(170)
-- `REWARD_POOL`：563 个可抽物品，`RewardItem { type, id, rarity }`
-- 4 稀有度：Common(319) / Rare(164) / Epic(55) / Legendary(25)
+- **No ceremony**: Level unlock only shows a toast, players likely miss it
+- **No active engagement**: Rewards auto-deposit, players have no participation in "receiving"
+- **Single source**: Only leveling gives rewards; if no level-up after a game, only "+55 XP" is shown
 
-### 2.2 随机抽取
+### 1.2 Goals
 
-**文件**：`packages/game-engine/src/growth/frameUnlock.ts`
+Introduce gacha mechanism:
 
-- `pickRandomReward(unlockedIds, randomFn, level)` — 按等级模 5/7/3 决定优先类型，过滤已解锁，随机选一个
-- 扭蛋系统将**替代此函数**（不再按等级决定类型，而是先 roll 稀有度，再从该稀有度池中随机选物品）
+- Each valid game earns 1 **Normal Ticket**, each level-up earns 1 **Golden Ticket**
+- Players actively spend tickets on the gacha page, supporting single and 10-pull
+- Build a controlled collection experience through probability table + pity + deduplication
+- Gacha machine animation provides ceremony
+- Daily login reward of 1 normal ticket increases daily active retention
 
-### 2.3 结算链路
+### 1.3 Architecture Constraints
+
+| Constraint           | Description                                                                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server authoritative | Probability calculation, ticket deduction, item grants all execute on Worker. Client only submits "draw" request and displays server-returned results |
+| Game engine purity   | `@werewolf/game-engine` holds probability pure functions (`rollRarity`/`selectReward`), no IO / DB operations                                         |
+| Trust model          | Face-to-face party game, no extra anti-cheat architecture, but server validates ticket balance                                                        |
+| Atomic deployment    | Worker + Pages deploy atomically, no old/new version coexistence, API changes are directly breaking                                                   |
+
+---
+
+## 2. Existing Architecture Analysis
+
+### 2.1 Item Registry
+
+**File**: `packages/game-engine/src/growth/rewardCatalog.ts`
+
+- 4 item types: `avatar`(43) / `frame`(170) / `seatFlair`(180) / `nameStyle`(170)
+- `REWARD_POOL`: 563 drawable items, `RewardItem { type, id, rarity }`
+- 4 rarities: Common(319) / Rare(164) / Epic(55) / Legendary(25)
+
+### 2.2 Random Selection
+
+**File**: `packages/game-engine/src/growth/frameUnlock.ts`
+
+- `pickRandomReward(unlockedIds, randomFn, level)` — determines priority type by level modulo 5/7/3, filters already-unlocked, randomly picks one
+- Gacha system will **replace this function** (no longer type-by-level; instead roll rarity first, then randomly pick from that rarity pool)
+
+### 2.3 Settlement Chain
 
 ```
-游戏结束
+Game ends
   → GameRoom DO #settleIfEnded()
     → settleGameResults() [packages/api-worker/src/growth/settleGameResults.ts]
       → per player: rollXp() → Drizzle upsert → check level up → pickRandomReward()
-    → #sendSettleResults() — WebSocket 单播 SETTLE_RESULT
-    → #updateRosterLevels() — 广播 UPDATE_ROSTER_LEVELS action
+    → #sendSettleResults() — WebSocket unicast SETTLE_RESULT
+    → #updateRosterLevels() — broadcast UPDATE_ROSTER_LEVELS action
 
-客户端
-  → CFRealtimeService 解析 SETTLE_RESULT
+Client
+  → CFRealtimeService parses SETTLE_RESULT
     → facade.handleSettleResult()
-      → useSettleToast hook 显示 toast
+      → useSettleToast hook shows toast
 ```
 
-**关键改动点**：`settleGameResults()` 中不再调用 `pickRandomReward()`，改为增加券数。
+**Key change point**: `settleGameResults()` no longer calls `pickRandomReward()`, instead increments ticket count.
 
 ### 2.4 D1 Schema
 
-**文件**：`packages/api-worker/src/db/schema.ts`
+**File**: `packages/api-worker/src/db/schema.ts`
 
 ```
 user_stats:
@@ -97,43 +97,43 @@ user_stats:
   xp (INTEGER)
   level (INTEGER)
   gamesPlayed (INTEGER)
-  lastRoomCode (TEXT, 幂等 key)
+  lastRoomCode (TEXT, idempotency key)
   unlockedItems (TEXT, JSON array of string IDs)
   updatedAt (TEXT)
 ```
 
-已新增：`normal_draws`、`golden_draws`、`normal_pity`、`golden_pity`、`version`（OCC）、`last_login_reward_at` 列 + `draw_history` 表。
+Added: `normal_draws`, `golden_draws`, `normal_pity`, `golden_pity`, `version` (OCC), `last_login_reward_at` columns + `draw_history` table.
 
-### 2.5 API 路由结构
+### 2.5 API Route Structure
 
-**文件**：`packages/api-worker/src/index.ts`
+**File**: `packages/api-worker/src/index.ts`
 
-现有 growth 相关路由挂载在 `/api`（`statsRoutes`）：
+Existing growth-related routes mounted at `/api` (`statsRoutes`):
 
 - `GET /api/user/stats`
 - `GET /api/user/:userId/profile`
 - `GET /api/user/:userId/unlocks`
 
-新增扭蛋路由方案：在 `/api` 路由组内新增 `/api/gacha/*`。
+New gacha route approach: add `/api/gacha/*` within the `/api` route group.
 
-### 2.6 Migration 编号
+### 2.6 Migration Numbers
 
-扭蛋相关 migration：`0013_gacha_system.sql`（基础列 + draw_history）、`0015_gacha_version.sql`（OCC version 列）、`0016_daily_login_reward.sql`（last_login_reward_at 列）。
+Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column).
 
 ---
 
-## 3. 数据模型变更
+## 3. Data Model Changes
 
 ### 3.1 D1 Migration: `0013_gacha_system.sql`
 
 ```sql
--- 给 user_stats 表添加扭蛋相关列
+-- Add gacha-related columns to user_stats table
 ALTER TABLE user_stats ADD COLUMN normal_draws INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE user_stats ADD COLUMN golden_draws INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE user_stats ADD COLUMN normal_pity INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE user_stats ADD COLUMN golden_pity INTEGER NOT NULL DEFAULT 0;
 
--- 抽奖历史记录
+-- Draw history records
 CREATE TABLE draw_history (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL REFERENCES users(id),
@@ -141,8 +141,8 @@ CREATE TABLE draw_history (
   rarity TEXT NOT NULL,           -- 'common' | 'rare' | 'epic' | 'legendary'
   item_type TEXT NOT NULL,        -- 'avatar' | 'frame' | 'seatFlair' | 'nameStyle'
   item_id TEXT NOT NULL,
-  pity_count INTEGER NOT NULL,    -- 本次抽奖时的 pity 计数（0 = 首次，9 = 保底触发）
-  was_pity INTEGER NOT NULL DEFAULT 0,  -- 1 = 本次是保底触发
+  pity_count INTEGER NOT NULL,    -- pity count at time of draw (0 = first, 9 = pity triggered)
+  was_pity INTEGER NOT NULL DEFAULT 0,  -- 1 = this draw was pity-triggered
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -150,20 +150,20 @@ CREATE INDEX idx_draw_history_user ON draw_history(user_id);
 CREATE INDEX idx_draw_history_created ON draw_history(created_at);
 ```
 
-**字段说明**：
+**Column descriptions**:
 
-| 列             | 类型    | 说明                                              |
-| -------------- | ------- | ------------------------------------------------- |
-| `normal_draws` | INTEGER | 未使用的普通抽奖券数                              |
-| `golden_draws` | INTEGER | 未使用的黄金抽奖券数                              |
-| `normal_pity`  | INTEGER | 普通抽连续未触发保底的次数（0–9），触发后重置为 0 |
-| `golden_pity`  | INTEGER | 黄金抽连续未触发保底的次数（0–9），触发后重置为 0 |
+| Column         | Type    | Description                                                        |
+| -------------- | ------- | ------------------------------------------------------------------ |
+| `normal_draws` | INTEGER | Unused normal draw ticket count                                    |
+| `golden_draws` | INTEGER | Unused golden draw ticket count                                    |
+| `normal_pity`  | INTEGER | Normal draw consecutive non-pity count (0–9), resets after trigger |
+| `golden_pity`  | INTEGER | Golden draw consecutive non-pity count (0–9), resets after trigger |
 
-`draw_history` 用于：调试追溯、未来可能的"抽奖记录"UI、概率审计。不参与实时逻辑（pity 由 `user_stats` 列维护，不需要查 history 表计算）。
+`draw_history` is used for: debug tracing, potential future "draw history" UI, probability auditing. Not involved in real-time logic (pity is maintained by `user_stats` columns, no need to query history table for calculation).
 
-### 3.2 Drizzle Schema 更新
+### 3.2 Drizzle Schema Update
 
-`packages/api-worker/src/db/schema.ts` — `userStats` 表增加 4 列：
+`packages/api-worker/src/db/schema.ts` — `userStats` table gains 4 columns:
 
 ```typescript
 export const userStats = sqliteTable('user_stats', {
@@ -176,7 +176,7 @@ export const userStats = sqliteTable('user_stats', {
 });
 ```
 
-新增 `drawHistory` 表定义：
+New `drawHistory` table definition:
 
 ```typescript
 export const drawHistory = sqliteTable('draw_history', {
@@ -194,9 +194,9 @@ export const drawHistory = sqliteTable('draw_history', {
 });
 ```
 
-### 3.3 RewardItem 增加 rarity
+### 3.3 RewardItem Gains Rarity
 
-`packages/game-engine/src/growth/rewardCatalog.ts`：
+`packages/game-engine/src/growth/rewardCatalog.ts`:
 
 ```typescript
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
@@ -208,11 +208,11 @@ export interface RewardItem {
 }
 ```
 
-`REWARD_POOL` 中每个条目新增 `rarity` 字段。具体分配见 §5。
+Each entry in `REWARD_POOL` gains a `rarity` field. Specific distribution in §5.
 
-### 3.4 SettleResultMessage 变更
+### 3.4 SettleResultMessage Changes
 
-`src/services/types/IRealtimeTransport.ts`：
+`src/services/types/IRealtimeTransport.ts`:
 
 ```typescript
 export interface SettleResultMessage {
@@ -220,68 +220,68 @@ export interface SettleResultMessage {
   newXp: number;
   newLevel: number;
   previousLevel: number;
-  normalDrawsEarned: number; // 通常 = 1（有效局）
-  goldenDrawsEarned: number; // 升级时 = 1（未升级 = 0）
+  normalDrawsEarned: number; // usually = 1 (valid game)
+  goldenDrawsEarned: number; // = 1 on level-up (0 otherwise)
 }
 ```
 
-`reward` 字段直接删除（Web 客户端 + Worker 原子部署，不存在新旧版本共存）。
+`reward` field removed outright (Web client + Worker deploy atomically, no old/new version coexistence).
 
 ---
 
-## 4. 概率引擎
+## 4. Probability Engine
 
-### 4.1 概率表
+### 4.1 Probability Table
 
-**普通抽**（来源：每局有效游戏 1 张）：
+**Normal Draw** (source: 1 ticket per valid game):
 
-| Rarity    | 概率  | 说明     |
-| --------- | ----- | -------- |
-| Common    | 84.5% | 基础物品 |
-| Rare      | 10%   | 中等品质 |
-| Epic      | 4%    | 高品质   |
-| Legendary | 1.5%  | 最高品质 |
+| Rarity    | Probability | Description     |
+| --------- | ----------- | --------------- |
+| Common    | 84.5%       | Basic items     |
+| Rare      | 10%         | Mid quality     |
+| Epic      | 4%          | High quality    |
+| Legendary | 1.5%        | Highest quality |
 
-**黄金抽**（来源：每次升级 1 张）：
+**Golden Draw** (source: 1 ticket per level-up):
 
-| Rarity    | 概率 | 说明     |
-| --------- | ---- | -------- |
-| Common    | 69%  | 基础物品 |
-| Rare      | 20%  | 中等品质 |
-| Epic      | 8%   | 高品质   |
-| Legendary | 3%   | 最高品质 |
+| Rarity    | Probability | Description     |
+| --------- | ----------- | --------------- |
+| Common    | 69%         | Basic items     |
+| Rare      | 20%         | Mid quality     |
+| Epic      | 8%          | High quality    |
+| Legendary | 3%          | Highest quality |
 
-### 4.2 保底机制（Pity）
+### 4.2 Pity Mechanism
 
-| 抽奖类型 | 保底阈值                     | 保底内容                                              |
-| -------- | ---------------------------- | ----------------------------------------------------- |
-| 普通抽   | 连续 10 次未抽到 Rare 或更高 | 第 10 次保底 Rare+（重新 roll，仅排除 Common）        |
-| 黄金抽   | 连续 10 次未抽到 Epic 或更高 | 第 10 次保底 Epic+（重新 roll，仅排除 Common + Rare） |
+| Draw Type   | Pity Threshold                              | Pity Content                                                 |
+| ----------- | ------------------------------------------- | ------------------------------------------------------------ |
+| Normal Draw | 10 consecutive draws without Rare or higher | 10th draw guarantees Rare+ (re-roll excluding Common only)   |
+| Golden Draw | 10 consecutive draws without Epic or higher | 10th draw guarantees Epic+ (re-roll excluding Common + Rare) |
 
-**Pity 计数规则**：
+**Pity Count Rules**:
 
-- 每次抽奖后 +1（不论结果）
-- 抽到保底阈值以上稀有度时重置为 0
-- 普通抽：抽到 Rare/Epic/Legendary → 重置
-- 黄金抽：抽到 Epic/Legendary → 重置
-- 达到 10 时强制触发保底（本次不消耗计数，直接重置为 0）
-- **10 连抽中每次独立计算 pity**（连抽不是一次性 roll 10 个结果再一起结算）
+- +1 after each draw (regardless of result)
+- Resets to 0 when drawing above the pity threshold rarity
+- Normal draw: drawing Rare/Epic/Legendary → reset
+- Golden draw: drawing Epic/Legendary → reset
+- When reaching 10, pity forcibly triggers (this draw doesn't consume count, directly resets to 0)
+- **10-pull calculates pity independently per draw** (multi-pull is not rolling 10 results at once then settling together)
 
-### 4.3 去重机制
+### 4.3 Deduplication Mechanism
 
-**池子移除制**：
+**Pool Removal System**:
 
-- `selectReward(rarity, unlockedIds)` 从 `REWARD_POOL` 过滤 `rarity === target && !unlockedIds.has(id)`
-- 如果目标稀有度池已清空（该稀有度全部集齐），向上升级：Common 空 → Rare → Epic → Legendary
-- 如果全部 563 件都已收集 → 不允许抽奖，API 返回 `{ success: false, reason: 'ALL_COLLECTED' }`
-- 客户端券数 badge 显示 "已集齐"，抽奖按钮 disabled，**券保留不浪费**
+- `selectReward(rarity, unlockedIds)` filters `REWARD_POOL` for `rarity === target && !unlockedIds.has(id)`
+- If target rarity pool is empty (all of that rarity collected), upgrade upward: Common empty → Rare → Epic → Legendary
+- If all 563 items collected → draws disallowed, API returns `{ success: false, reason: 'ALL_COLLECTED' }`
+- Client ticket badge shows "已集齐", draw button disabled, **tickets preserved, not wasted**
 
-### 4.4 纯函数实现位置
+### 4.4 Pure Function Implementation Location
 
-**文件**：`packages/game-engine/src/growth/gachaProbability.ts`（新建）
+**File**: `packages/game-engine/src/growth/gachaProbability.ts` (new)
 
 ```typescript
-// ── 常量 ──
+// ── Constants ──
 export const PITY_THRESHOLD = 10;
 
 export const NORMAL_RATES: Record<Rarity, number> = {
@@ -298,15 +298,15 @@ export const GOLDEN_RATES: Record<Rarity, number> = {
   common: 69,
 };
 
-// ── 核心函数 ──
+// ── Core Functions ──
 
 /**
- * 根据抽奖类型和 pity 计数 roll 稀有度。
+ * Roll rarity based on draw type and pity count.
  *
  * @param drawType - 'normal' | 'golden'
- * @param pityCount - 当前 pity 计数（0–9）
- * @param randomValue - [0, 100) 的随机数（调用方提供，服务端用 crypto）
- * @returns { rarity, pityReset } — pityReset: true 表示 pity 被重置
+ * @param pityCount - current pity count (0–9)
+ * @param randomValue - random number in [0, 100) (caller provides, server uses crypto)
+ * @returns { rarity, pityReset } — pityReset: true means pity was reset
  */
 export function rollRarity(
   drawType: DrawType,
@@ -315,13 +315,13 @@ export function rollRarity(
 ): { rarity: Rarity; pityReset: boolean };
 
 /**
- * 从指定稀有度的未解锁池中选取物品。
- * 如果目标稀有度已清空，向上升级（Common→Rare→Epic→Legendary）。
- * 全部集齐返回 undefined。
+ * Select an item from the unlocked pool of the specified rarity.
+ * If target rarity is empty, upgrade upward (Common→Rare→Epic→Legendary).
+ * Returns undefined if all collected.
  *
- * @param targetRarity - rollRarity 返回的稀有度
- * @param unlockedIds - 已拥有的物品 ID 集合
- * @param randomFn - [0, max) 随机整数
+ * @param targetRarity - rarity returned by rollRarity
+ * @param unlockedIds - set of owned item IDs
+ * @param randomFn - random integer in [0, max)
  */
 export function selectReward(
   targetRarity: Rarity,
@@ -330,101 +330,101 @@ export function selectReward(
 ): RewardItem | undefined;
 ```
 
-**为什么是纯函数**：
+**Why pure functions**:
 
-- 随机数由调用方注入（`randomValue` / `randomFn`），函数本身无副作用
-- 客户端可复用做概率预览/模拟（不影响服务端权威）
-- 方便单元测试，100% 可确定性验证
+- Random numbers injected by caller (`randomValue` / `randomFn`), function itself has no side effects
+- Client can reuse for probability preview/simulation (doesn't affect server authority)
+- Easy to unit test, 100% deterministically verifiable
 
-### 4.5 概率验证测试
+### 4.5 Probability Verification Tests
 
-`packages/game-engine/src/__tests__/gachaProbability.test.ts`（新建）
+`packages/game-engine/src/__tests__/gachaProbability.test.ts` (new)
 
-需要覆盖的场景：
+Scenarios to cover:
 
-| 测试                          | 说明                                    |
-| ----------------------------- | --------------------------------------- |
-| `rollRarity` normal 概率分布  | 10 万次模拟，各稀有度偏差 < 1%          |
-| `rollRarity` golden 概率分布  | 同上                                    |
-| normal pity 第 10 次保底      | pityCount=9 时一定不返回 Common         |
-| golden pity 第 10 次保底      | pityCount=9 时一定不返回 Common 或 Rare |
-| pity 正常抽到高稀有度时 reset | pityCount=5 抽到 Rare → pityReset=true  |
-| `selectReward` 正常选取       | 给定稀有度返回对应稀有度物品            |
-| `selectReward` 稀有度升级     | Common 池空 → 返回 Rare 物品            |
-| `selectReward` 全部集齐       | 返回 undefined                          |
-| `selectReward` 不返回已拥有   | 过滤验证                                |
+| Test                                         | Description                                      |
+| -------------------------------------------- | ------------------------------------------------ |
+| `rollRarity` normal probability distribution | 100K simulations, each rarity deviation < 1%     |
+| `rollRarity` golden probability distribution | Same as above                                    |
+| Normal pity triggers on 10th draw            | When pityCount=9, must not return Common         |
+| Golden pity triggers on 10th draw            | When pityCount=9, must not return Common or Rare |
+| Pity resets on natural high-rarity draw      | pityCount=5 draws Rare → pityReset=true          |
+| `selectReward` normal selection              | Given rarity returns item of that rarity         |
+| `selectReward` rarity upgrade                | Common pool empty → returns Rare item            |
+| `selectReward` all collected                 | Returns undefined                                |
+| `selectReward` won't return owned items      | Filter verification                              |
 
 ---
 
-## 5. 稀有度分配
+## 5. Rarity Distribution
 
-### 5.1 总览
+### 5.1 Overview
 
-| 类型                | 总数    | Legendary | Epic   | Rare    | Common  |
-| ------------------- | ------- | --------- | ------ | ------- | ------- |
-| Avatars 头像        | 43      | 3         | 7      | 14      | 19      |
-| Frames 头像框       | 170     | 11        | 9      | 50      | 100     |
-| SeatFlairs 座位特效 | 180     | 7         | 23     | 50      | 100     |
-| NameStyles 名字样式 | 170     | 4         | 16     | 50      | 100     |
-| **合计**            | **563** | **25**    | **55** | **164** | **319** |
+| Type       | Total   | Legendary | Epic   | Rare    | Common  |
+| ---------- | ------- | --------- | ------ | ------- | ------- |
+| Avatars    | 43      | 3         | 7      | 14      | 19      |
+| Frames     | 170     | 11        | 9      | 50      | 100     |
+| SeatFlairs | 180     | 7         | 23     | 50      | 100     |
+| NameStyles | 170     | 4         | 16     | 50      | 100     |
+| **Total**  | **563** | **25**    | **55** | **164** | **319** |
 
-> 注：具体数字以 `packages/game-engine/src/growth/rewardCatalog.ts` 中 `REWARD_POOL` 为准。
+> Note: Exact numbers defer to `REWARD_POOL` in `packages/game-engine/src/growth/rewardCatalog.ts`.
 
-### 5.2 具体分配
+### 5.2 Specific Distribution
 
 #### Avatars (42)
 
-**Legendary (3)**：`darkWolfKing` / `nightmare` / `masquerade`
+**Legendary (3)**: `darkWolfKing` / `nightmare` / `masquerade`
 
-**Epic (7)**：`wolfKing` / `wolfQueen` / `bloodMoon` / `spiritKnight` / `awakenedGargoyle` / `witch` / `seer`
+**Epic (7)**: `wolfKing` / `wolfQueen` / `bloodMoon` / `spiritKnight` / `awakenedGargoyle` / `witch` / `seer`
 
-**Rare (14)**：`hunter` / `guard` / `knight` / `magician` / `piper` / `poisoner` / `gargoyle` / `dreamcatcher` / `avenger` / `mirrorSeer` / `psychic` / `cursedFox` / `witcher` / `wolfWitch`
+**Rare (14)**: `hunter` / `guard` / `knight` / `magician` / `piper` / `poisoner` / `gargoyle` / `dreamcatcher` / `avenger` / `mirrorSeer` / `psychic` / `cursedFox` / `witcher` / `wolfWitch`
 
-**Common (19)**：`wolf` / `wolfRobot` / `crow` / `cupid` / `dancer` / `drunkSeer` / `graveyardKeeper` / `idiot` / `maskedMan` / `pureWhite` / `shadow` / `silenceElder` / `slacker` / `thief` / `treasureMaster` / `votebanElder` / `warden` / `wildChild` / `halfblood`
+**Common (19)**: `wolf` / `wolfRobot` / `crow` / `cupid` / `dancer` / `drunkSeer` / `graveyardKeeper` / `idiot` / `maskedMan` / `pureWhite` / `shadow` / `silenceElder` / `slacker` / `thief` / `treasureMaster` / `votebanElder` / `warden` / `wildChild` / `halfblood`
 
-> `villager` 是免费默认头像，不在 REWARD_POOL 中。
+> `villager` is a free default avatar, not in REWARD_POOL.
 
 #### Frames (170)
 
-按 `{shape}_{color}` 命名规则生成。10 种形状（circle / diamond / hexagon / octagon / pentagon / shield / square / star / triangle / rounded）× 10 种颜色（gold / silver / bronze / ruby / sapphire / emerald / amethyst / obsidian / pearl / rose），合计 100 Common。另有 50 Rare（手绘主题框）、9 Epic（发光特效框）、11 Legendary（全屏动画框）。
+Generated by `{shape}_{color}` naming convention. 10 shapes (circle / diamond / hexagon / octagon / pentagon / shield / square / star / triangle / rounded) × 10 colors (gold / silver / bronze / ruby / sapphire / emerald / amethyst / obsidian / pearl / rose), totaling 100 Common. Plus 50 Rare (hand-drawn themed frames), 9 Epic (glowing effect frames), 11 Legendary (full-screen animated frames).
 
-详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `FRAME_IDS` / frame rarity 分配。
+See `packages/game-engine/src/growth/rewardCatalog.ts` — `FRAME_IDS` / frame rarity assignments.
 
 #### SeatFlairs (180)
 
-100 Common（基础 SVG 动画）+ 50 Rare + 23 Epic + 7 Legendary。
+100 Common (basic SVG animations) + 50 Rare + 23 Epic + 7 Legendary.
 
-详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `SEAT_FLAIR_IDS` / flair rarity 分配。
+See `packages/game-engine/src/growth/rewardCatalog.ts` — `SEAT_FLAIR_IDS` / flair rarity assignments.
 
 #### NameStyles (170)
 
-100 Common（基础渐变文字）+ 50 Rare + 16 Epic + 4 Legendary。
+100 Common (basic gradient text) + 50 Rare + 16 Epic + 4 Legendary.
 
-详见 `packages/game-engine/src/growth/rewardCatalog.ts` — `NAME_STYLE_IDS` / nameStyle rarity 分配。
+See `packages/game-engine/src/growth/rewardCatalog.ts` — `NAME_STYLE_IDS` / nameStyle rarity assignments.
 
-### 5.3 收集期望分析
+### 5.3 Collection Expectation Analysis
 
-假设只用普通抽（每局 1 张）：
+Assuming only normal draws (1 ticket per game):
 
-| 稀有度         | 池大小 | 单次概率    | 期望抽完所需次数（含保底）      |
-| -------------- | ------ | ----------- | ------------------------------- |
-| Common (319)   | 319    | 84.5%       | ~319 / 0.845 ≈ 378 次           |
-| Rare (164)     | 164    | 10% (+保底) | 有效率 ~15%（含保底）→ ~1093 次 |
-| Epic (55)      | 55     | 4%          | ~1375 次                        |
-| Legendary (25) | 25     | 1.5%        | ~1667 次                        |
+| Rarity         | Pool Size | Single Probability | Expected Draws to Complete (incl. pity)        |
+| -------------- | --------- | ------------------ | ---------------------------------------------- |
+| Common (319)   | 319       | 84.5%              | ~319 / 0.845 ≈ 378 draws                       |
+| Rare (164)     | 164       | 10% (+pity)        | Effective rate ~15% (incl. pity) → ~1093 draws |
+| Epic (55)      | 55        | 4%                 | ~1375 draws                                    |
+| Legendary (25) | 25        | 1.5%               | ~1667 draws                                    |
 
-完整收集 563 件：~2000+ 局（纯普通抽，不含黄金抽加速）。黄金抽有 3× legendary 概率 + 升级 ~52 张，可显著缩短中后期收集。每日登录奖励提供稳定的非游戏券来源（1 张/天）。
+Full collection of 563 items: ~2000+ games (normal draws only, excluding golden draw acceleration). Golden draws have 3× legendary probability + ~52 tickets from leveling, significantly shortening mid-to-late collection. Daily login rewards provide a steady non-gameplay ticket source (1/day).
 
 ---
 
-## 6. 服务端实现
+## 6. Server Implementation
 
-### 6.1 结算改造：`settleGameResults.ts`
+### 6.1 Settlement Refactor: `settleGameResults.ts`
 
-**改动**：
+**Changes**:
 
 ```diff
- // 3. 遍历注册玩家，结算 XP
+ // 3. Iterate registered players, settle XP
  for (const uid of registeredUids) {
    const xpEarned = rollXp();
    // ... upsert XP + gamesPlayed ...
@@ -446,17 +446,17 @@ export function selectReward(
 -      const updatedItems = JSON.stringify([...unlockedSet]);
 -      await db.update(userStats).set({ level: newLevel, unlockedItems: updatedItems }).where(...);
 -    }
-+    // 每局有效游戏 → +1 普通券
++    // Each valid game → +1 normal ticket
 +    let normalDrawsEarned = 1;
 +    let goldenDrawsEarned = 0;
 +
 +    if (newLevel > previousLevel) {
-+      // 每升一级 → +1 黄金券
++      // Each level-up → +1 golden ticket
 +      goldenDrawsEarned = newLevel - previousLevel;
 +      await db.update(userStats).set({ level: newLevel }).where(eq(userStats.userId, uid));
 +    }
 +
-+    // 累加券数
++    // Accumulate tickets
 +    await db.update(userStats).set({
 +      normalDraws: sql`${userStats.normalDraws} + ${normalDrawsEarned}`,
 +      goldenDraws: sql`${userStats.goldenDraws} + ${goldenDrawsEarned}`,
@@ -473,7 +473,7 @@ export function selectReward(
  }
 ```
 
-**`PlayerSettleResult` 接口变更**：
+**`PlayerSettleResult` interface changes**:
 
 ```typescript
 export interface PlayerSettleResult {
@@ -484,38 +484,38 @@ export interface PlayerSettleResult {
   previousLevel: number;
   normalDrawsEarned: number;
   goldenDrawsEarned: number;
-  // reward 字段移除
+  // reward field removed
 }
 ```
 
-**`#sendSettleResults` 变更**：WebSocket 消息增加 `normalDrawsEarned` / `goldenDrawsEarned` 字段。
+**`#sendSettleResults` changes**: WebSocket message adds `normalDrawsEarned` / `goldenDrawsEarned` fields.
 
-### 6.2 新建扭蛋 API：`gachaHandlers.ts`
+### 6.2 New Gacha API: `gachaHandlers.ts`
 
-**文件**：`packages/api-worker/src/handlers/gachaHandlers.ts`
+**File**: `packages/api-worker/src/handlers/gachaHandlers.ts`
 
-**路由**：
+**Routes**:
 
 #### `GET /api/gacha/status`
 
-返回当前用户的扭蛋状态。
+Returns current user's gacha status.
 
 ```typescript
 // Response
 {
-  normalDraws: number; // 可用普通券
-  goldenDraws: number; // 可用黄金券
-  normalPity: number; // 普通 pity 计数
-  goldenPity: number; // 黄金 pity 计数
-  totalCollected: number; // 已收集物品总数
-  totalItems: 112; // 可收集物品总数
-  allCollected: boolean; // 是否全部集齐
+  normalDraws: number; // available normal tickets
+  goldenDraws: number; // available golden tickets
+  normalPity: number; // normal pity count
+  goldenPity: number; // golden pity count
+  totalCollected: number; // total items collected
+  totalItems: 112; // total collectible items
+  allCollected: boolean; // whether all collected
 }
 ```
 
 #### `POST /api/gacha/draw`
 
-执行抽奖。
+Execute draw.
 
 ```typescript
 // Request body (Zod schema)
@@ -531,7 +531,7 @@ export interface PlayerSettleResult {
     rarity: Rarity;
     itemType: RewardType;
     itemId: string;
-    isNew: true; // 扭蛋系统下永远是 true（去重）
+    isNew: true; // always true in gacha system (deduplication)
     wasPity: boolean;
   }>;
   remaining: {
@@ -545,29 +545,29 @@ export interface PlayerSettleResult {
 // Response (failure)
 {
   success: false;
-  reason: 'INSUFFICIENT_DRAWS' | // 券不够
-    'ALL_COLLECTED' | // 已集齐
-    'VALIDATION_ERROR'; // 参数错误
+  reason: 'INSUFFICIENT_DRAWS' | // not enough tickets
+    'ALL_COLLECTED' | // all collected
+    'VALIDATION_ERROR'; // parameter error
 }
 ```
 
-**服务端逻辑伪代码**：
+**Server logic pseudocode**:
 
 ```
 POST /api/gacha/draw:
 1. requireAuth → userId
 2. Validate body: { drawType ∈ ['normal','golden'], count ∈ [1, 10] }
-3. BEGIN transaction (D1 不支持真事务，用 batch 或逐步校验)
-4. 读 user_stats: normalDraws/goldenDraws/normalPity/goldenPity/unlockedItems
-5. 检查券余额 >= count，否则 → INSUFFICIENT_DRAWS
-6. 解析 unlockedItems → Set<string>
-7. 检查 REWARD_POOL.length - unlockedSet.size > 0，否则 → ALL_COLLECTED
+3. BEGIN transaction (D1 doesn't support real transactions, use batch or sequential validation)
+4. Read user_stats: normalDraws/goldenDraws/normalPity/goldenPity/unlockedItems
+5. Check ticket balance >= count, otherwise → INSUFFICIENT_DRAWS
+6. Parse unlockedItems → Set<string>
+7. Check REWARD_POOL.length - unlockedSet.size > 0, otherwise → ALL_COLLECTED
 8. results = []
 9. FOR i = 0 to count-1:
    a. cryptoRandomValue = crypto random [0, 100)
    b. { rarity, pityReset } = rollRarity(drawType, currentPity, cryptoRandomValue)
    c. item = selectReward(rarity, unlockedSet, cryptoRandomInt)
-   d. IF item is undefined → break（池清空了，但前面已检查过，理论上不会发生）
+   d. IF item is undefined → break (pool emptied, but already checked above, theoretically won't happen)
    e. unlockedSet.add(item.id)
    f. IF pityReset → currentPity = 0, ELSE → currentPity += 1
    g. INSERT draw_history
@@ -579,9 +579,9 @@ POST /api/gacha/draw:
 11. RETURN { success: true, results, remaining: { ... } }
 ```
 
-### 6.3 新建 Zod Schema
+### 6.3 New Zod Schema
 
-**文件**：`packages/api-worker/src/schemas/gacha.ts`
+**File**: `packages/api-worker/src/schemas/gacha.ts`
 
 ```typescript
 import { z } from 'zod';
@@ -592,9 +592,9 @@ export const drawSchema = z.object({
 });
 ```
 
-### 6.4 路由挂载
+### 6.4 Route Mounting
 
-`packages/api-worker/src/index.ts`：
+`packages/api-worker/src/index.ts`:
 
 ```diff
  import { statsRoutes } from './handlers/statsHandlers';
@@ -605,15 +605,15 @@ export const drawSchema = z.object({
 +app.route('/api', gachaRoutes);
 ```
 
-### 6.5 幂等性与并发安全
+### 6.5 Idempotency & Concurrency Safety
 
-- **结算幂等**：已有 `lastRoomCode` 机制保证同一局不重复结算
-- **抽奖并发 — OCC（乐观并发控制）**：`user_stats.version` 列（Migration `0015`）。每次 draw 读取 version → 写入时 `WHERE version = readVersion`，影响 0 行即重试（MAX_DRAW_RETRIES=3）。比 D1 余额条件更严格，防止两个并发 draw 读到相同快照后双重扣减
-- **随机数安全**：`crypto.getRandomValues()` 生成 `percent [0, 100)` 和 `int [0, max)`，无 modulo bias（Uint32 范围 4.29B）
+- **Settlement idempotency**: Existing `lastRoomCode` mechanism ensures no duplicate settlement per game
+- **Draw concurrency — OCC (Optimistic Concurrency Control)**: `user_stats.version` column (Migration `0015`). Each draw reads version → writes with `WHERE version = readVersion`; 0 affected rows triggers retry (MAX_DRAW_RETRIES=3). Stricter than D1 balance conditions, prevents two concurrent draws from reading the same snapshot and double-deducting
+- **Random number security**: `crypto.getRandomValues()` generates `percent [0, 100)` and `int [0, max)`, no modulo bias (Uint32 range 4.29B)
 
-### 6.6 seed-local.mjs 更新
+### 6.6 seed-local.mjs Update
 
-`scripts/seed-local.mjs` 更新：给 dev 用户设置初始券数。
+`scripts/seed-local.mjs` updated: sets initial ticket count for dev user.
 
 ```sql
 UPDATE user_stats SET
@@ -624,11 +624,11 @@ UPDATE user_stats SET
 WHERE user_id = '00000000-0000-4000-a000-000000000001';
 ```
 
-### 6.7 每日登录奖励（Daily Login Reward）
+### 6.7 Daily Login Reward
 
-**Migration**：`0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
+**Migration**: `0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
 
-**Schema**：`packages/api-worker/src/schemas/gacha.ts`
+**Schema**: `packages/api-worker/src/schemas/gacha.ts`
 
 ```typescript
 export const dailyRewardSchema = z.object({
@@ -636,55 +636,55 @@ export const dailyRewardSchema = z.object({
 });
 ```
 
-**端点**：`POST /api/gacha/daily-reward`（requireAuth）
+**Endpoint**: `POST /api/gacha/daily-reward` (requireAuth)
 
-**机制**：
+**Mechanism**:
 
-- 客户端传 `localDate`（玩家本地日期 YYYY-MM-DD，`new Date().toLocaleDateString('en-CA')`）
-- 服务端判断：
-  1. 无 user_stats 行 → 自动创建（`INSERT ... ON CONFLICT DO UPDATE`）
+- Client passes `localDate` (player's local date YYYY-MM-DD, `new Date().toLocaleDateString('en-CA')`)
+- Server checks:
+  1. No user_stats row → auto-create (`INSERT ... ON CONFLICT DO UPDATE`)
   2. `lastLoginRewardAt === localDate` → `{ claimed: false, reason: 'already_claimed' }`
-  3. 距上次领取 < 20h → `{ claimed: false, reason: 'cooldown' }`
-  4. 通过 → `normalDraws + 1`，更新 `lastLoginRewardAt`，返回 `{ claimed: true, normalDrawsAdded: 1 }`
-- 20h cooldown guard 防止时区滥用（面对面 party game 信任模型，轻量级防护即可）
-- OCC 重试（MAX_DRAW_RETRIES=3），复用抽奖的并发安全模式
+  3. Less than 20h since last claim → `{ claimed: false, reason: 'cooldown' }`
+  4. Passes → `normalDraws + 1`, update `lastLoginRewardAt`, return `{ claimed: true, normalDrawsAdded: 1 }`
+- 20h cooldown guard prevents timezone abuse (face-to-face party game trust model, lightweight protection suffices)
+- OCC retry (MAX_DRAW_RETRIES=3), reuses draw concurrency safety pattern
 
-**客户端自动领取**：`useAutoClaimDailyReward()` hook：
+**Client auto-claim**: `useAutoClaimDailyReward()` hook:
 
-- 挂载在 HomeScreen，App 启动时检查 `status.lastLoginRewardAt !== today`
-- 自动调 `claimDailyReward(getLocalDate())`，成功后 toast "每日登录奖励 / 获得 1 次普通抽！"
-- `attemptedRef` 保证每 session 只尝试一次
+- Mounted on HomeScreen, checks `status.lastLoginRewardAt !== today` on app startup
+- Auto-calls `claimDailyReward(getLocalDate())`, on success toasts "每日登录奖励 / 获得 1 次普通抽！"
+- `attemptedRef` ensures only one attempt per session
 
 ---
 
-## 7. 客户端实现
+## 7. Client Implementation
 
-### 7.1 结算 Toast 改造
+### 7.1 Settlement Toast Refactor
 
-**文件**：`src/hooks/useSettleToast.ts`
+**File**: `src/hooks/useSettleToast.ts`
 
-改动前：
-
-```
-升级 + reward → "升级！Lv.3 解锁 头像「猎人」"
-升级 → "升级！Lv.3"
-普通 → "+55 XP"
-```
-
-改动后：
+Before:
 
 ```
-升级 + 黄金券 → "升级 Lv.3！获得黄金抽奖机会 🎰"，description: "+55 XP · 抽奖券 +1"
-普通（每局都有普通券） → "+55 XP · 获得抽奖券"
+Level up + reward → "升级！Lv.3 解锁 头像「猎人」"
+Level up → "升级！Lv.3"
+Normal → "+55 XP"
 ```
 
-**SettleResultMessage 接口变更**：直接替换为 §3.4 定义（删除 `reward` 字段，`normalDrawsEarned`/`goldenDrawsEarned` 为 required）。
+After:
 
-**CFRealtimeService 解析变更**：解析新字段，删除旧 `reward` 解析逻辑。
+```
+Level up + golden ticket → "升级 Lv.3！获得黄金抽奖机会 🎰", description: "+55 XP · 抽奖券 +1"
+Normal (every game has normal ticket) → "+55 XP · 获得抽奖券"
+```
 
-### 7.2 新建扭蛋 Service
+**SettleResultMessage interface changes**: Directly replaced with §3.4 definition (remove `reward` field, `normalDrawsEarned`/`goldenDrawsEarned` are required).
 
-**文件**：`src/services/feature/GachaService.ts`
+**CFRealtimeService parsing changes**: Parse new fields, remove old `reward` parsing logic.
+
+### 7.2 New Gacha Service
+
+**File**: `src/services/feature/GachaService.ts`
 
 ```typescript
 export interface GachaStatus {
@@ -730,20 +730,20 @@ export async function performDraw(
 
 ### 7.3 TanStack Query Hooks
 
-**文件**：`src/hooks/queries/useGachaQuery.ts`
+**File**: `src/hooks/queries/useGachaQuery.ts`
 
 ```typescript
 // useGachaStatusQuery — queryKey: ['gachaStatus']
-// staleTime: 30s（进入页面时刷新，但不过于频繁）
-// 匿名用户返回空状态（与 useUserStatsQuery 模式一致）
+// staleTime: 30s (refresh on page entry, but not too frequently)
+// Anonymous users return empty state (consistent with useUserStatsQuery pattern)
 
-// 抽奖用 useMutation:
-// useDraw mutation — onSuccess 时 invalidate ['gachaStatus'] + ['userStats'] + ['userUnlocks']
+// Draw uses useMutation:
+// useDraw mutation — onSuccess invalidates ['gachaStatus'] + ['userStats'] + ['userUnlocks']
 ```
 
-### 7.4 Navigation 注册
+### 7.4 Navigation Registration
 
-`src/navigation/types.ts`：
+`src/navigation/types.ts`:
 
 ```typescript
 export type RootStackParamList = {
@@ -752,249 +752,249 @@ export type RootStackParamList = {
 };
 ```
 
-### 7.5 HomeScreen 入口
+### 7.5 HomeScreen Entry
 
-在 HomeScreen 的 action 区域（现有 "百科" / "设置" 行附近）新增扭蛋入口按钮：
+Add gacha entry button in HomeScreen's action area (near existing "百科" / "设置" row):
 
-- **图标**：🎰 或自定义 Skia icon
-- **Badge**：显示可用券总数 `normalDraws + goldenDraws`（0 时不显示 badge）
-- **文字**：`已集齐` 时替代券数 badge
-- **匿名用户**：不显示入口（与 Settings 中 GrowthSection 模式一致）
-- **位置**：encyclopedia 旁边（同一行 flex row）
+- **Icon**: 🎰 or custom Skia icon
+- **Badge**: Shows available ticket total `normalDraws + goldenDraws` (no badge when 0)
+- **Text**: `已集齐` replaces ticket badge when all collected
+- **Anonymous users**: Entry not shown (consistent with Settings GrowthSection pattern)
+- **Position**: Next to encyclopedia (same flex row)
 
-### 7.6 GachaScreen 结构
+### 7.6 GachaScreen Structure
 
-**文件**：`src/screens/GachaScreen/GachaScreen.tsx`
+**File**: `src/screens/GachaScreen/GachaScreen.tsx`
 
 ```
 GachaScreen
-├── 顶部导航栏（返回）
-├── 扭蛋机动画区域（Skia Canvas）
-│   ├── 透明玻璃圆罩（含扭蛋球物理模拟）
-│   ├── 机身 + 旋钮 + 管道
-│   └── 落地区域（开蛋动画）
-├── 状态栏
-│   ├── 普通券数 + 黄金券数
-│   ├── 收集进度 "42/112"
-│   └── 保底倒计时 "距保底 {10-pity} 次"
-├── 操作按钮区
-│   ├── 普通 ×1 / ×10
-│   └── 黄金 ×1 / ×10（各自 disabled 当券不足或全集齐）
-└── 最近结果展示（最后一次抽的结果，emoji + 名字 + 稀有度色）
+├── Top navigation bar (back)
+├── Gacha machine animation area (Skia Canvas)
+│   ├── Transparent glass dome (with capsule ball physics simulation)
+│   ├── Machine body + dial + tube
+│   └── Landing area (opening animation)
+├── Status bar
+│   ├── Normal ticket count + Golden ticket count
+│   ├── Collection progress "42/112"
+│   └── Pity countdown "Pity in {10-pity} draws"
+├── Action button area
+│   ├── Normal ×1 / ×10
+│   └── Golden ×1 / ×10 (each disabled when tickets insufficient or all collected)
+└── Recent results display (last draw results, emoji + name + rarity color)
 ```
 
-**10 连结果 Overlay**：全屏 modal，5×2 网格，卡片按稀有度排序逐张飞入（与原型 V6 一致）。
+**10-pull Result Overlay**: Full-screen modal, 5×2 grid, cards sorted by rarity fly in sequentially (consistent with prototype V6).
 
-### 7.7 Query Invalidation 链路
+### 7.7 Query Invalidation Chain
 
-抽奖成功后需要 invalidate 的 query：
+Queries to invalidate after successful draw:
 
-| Query Key                 | 原因                 |
-| ------------------------- | -------------------- |
-| `['gachaStatus']`         | 券数、pity 变化      |
-| `['userStats']`           | `unlockedItems` 变化 |
-| `['userUnlocks', userId]` | 同上                 |
+| Query Key                 | Reason                     |
+| ------------------------- | -------------------------- |
+| `['gachaStatus']`         | Ticket count, pity changed |
+| `['userStats']`           | `unlockedItems` changed    |
+| `['userUnlocks', userId]` | Same as above              |
 
-不需要 invalidate `['userStats']` 的 XP/level 数据（抽奖不影响这些）。但 `unlockedItems` 在同一个 response 里，所以整体 invalidate。
-
----
-
-## 8. 动画方案
-
-### 8.1 选型
-
-**Skia Canvas**（`@shopify/react-native-skia`，项目已有依赖）实现全部动画。HTML Canvas 原型已在 V6 验证可行性。
-
-### 8.2 场景描述
-
-#### 扭蛋机静态结构
-
-| 部件     | 描述                                                                              |
-| -------- | --------------------------------------------------------------------------------- |
-| 玻璃圆罩 | 圆形，透明感（左侧弧形高光 + 右上椭圆高光 + 底部弧光 + 极低 alpha 填充）          |
-| 扭蛋球   | 28 颗，上半壳各色 + 下半白色 + "?" 标记，带碰撞物理。所有球外观一致，不泄露稀有度 |
-| 机身     | 矩形暗色容器，标题文字（"GOLDEN GACHA" / "GACHA"），金属质感                      |
-| 旋钮     | 圆形金属旋钮，中心十字线 + 把手圆点                                               |
-| 管道     | 罩底部到地面的出球通道                                                            |
-| 地面     | 水平线 + 轻微阴影                                                                 |
-
-#### 单抽流程（~4 秒）
-
-| 阶段     | 时间        | 描述                                                                  |
-| -------- | ----------- | --------------------------------------------------------------------- |
-| 搅拌     | 0–2.2s      | 旋转力（正弦切换方向）+ 向心力 + 随机扰动。旋钮同步旋转，画面轻震     |
-| 沉降     | 2.2–2.6s    | 力衰减，球在重力下沉降                                                |
-| 开闸     | 2.6s        | 底部闸门打开，底部球被推向洞口                                        |
-| 掉落     | 2.6–3.5s    | 1 颗球穿过管道，重力加速，弹跳落地（bounce 3–4 次衰减）               |
-| 关闸     | 球出闸后    | 立即关闭                                                              |
-| 自动开蛋 | 落地后 0.5s | 壳碎裂（10 片三角碎片向四周飞散）+ 稀有度颜色全屏闪光 + 28 颗星火粒子 |
-| 展示     | 开蛋后      | 物品 emoji（48px）+ 名字 + 稀有度标签 + 底部光晕                      |
-
-#### 10 连流程（~8 秒）
-
-| 阶段     | 时间        | 描述                                                                                |
-| -------- | ----------- | ----------------------------------------------------------------------------------- |
-| 搅拌     | 0–2.2s      | 同单抽                                                                              |
-| 沉降     | 2.2–2.6s    | 同单抽                                                                              |
-| 开闸     | 2.6s        | 闸门大开（管道加宽 28→40px），**持续开放**                                          |
-| 批量掉落 | 2.6–5s      | 10 颗球一起从罩内涌出，各自带随机水平速度，在地面散开弹跳                           |
-| 关闸     | 10 颗出完后 | 关闭                                                                                |
-| 等待落地 | 5–6s        | 所有球弹跳完毕，稳定在地面                                                          |
-| 依次开蛋 | 6–8.5s      | 每 0.25s 自动开一颗。壳碎 + 小闪光 + 位置显示 emoji。效果比单抽缩小（避免视觉过载） |
-| 结果面板 | 8.5s+       | 全屏 overlay：5×2 网格，按稀有度排序，卡片逐张飞入（80ms 间隔）                     |
-
-### 8.3 物理参数
-
-| 参数        | 值                                               | 说明              |
-| ----------- | ------------------------------------------------ | ----------------- |
-| 重力        | 500 px/s²                                        |                   |
-| 碰撞弹性    | 0.7                                              | 球-球、球-壁      |
-| 摩擦系数    | 0.985/帧                                         | 速度衰减          |
-| 球半径      | 14px（罩内）/ 18px（单抽掉落）/ 16px（10连掉落） |                   |
-| 碰撞 solver | 3-pass per frame                                 | 处理密集堆叠      |
-| 圆罩半径    | 125px                                            |                   |
-| 搅拌力      | 3000 × strength                                  | strength 先升后降 |
-
-### 8.4 稀有度视觉映射
-
-| Rarity    | 色值      | Glow                   | 碎裂效果                                    |
-| --------- | --------- | ---------------------- | ------------------------------------------- |
-| Common    | `#9E9E9E` | `rgba(158,158,158,.3)` | 标准碎裂                                    |
-| Rare      | `#4A90D9` | `rgba(74,144,217,.4)`  | 蓝色碎裂 + 更多粒子                         |
-| Epic      | `#9B59B6` | `rgba(155,89,182,.5)`  | 紫色碎裂 + 全屏紫光闪烁                     |
-| Legendary | `#F5A623` | `rgba(245,166,35,.5)`  | 金色碎裂 + 全屏金光 + 画面大震 + 额外粒子环 |
+No need to invalidate `['userStats']` XP/level data (draws don't affect those). But `unlockedItems` is in the same response, so invalidate entirely.
 
 ---
 
-## 9. 实施步骤
+## 8. Animation Design
 
-### Phase 1a — rewardCatalog.ts 加 Rarity
+### 8.1 Tech Choice
 
-**改动文件**：
+**Skia Canvas** (`@shopify/react-native-skia`, already a project dependency) for all animations. HTML Canvas prototype validated feasibility in V6.
 
-- `packages/game-engine/src/growth/rewardCatalog.ts` — 新增 `Rarity` 类型，`RewardItem` 加 `rarity` 字段，`REWARD_POOL` 每个条目加 `rarity`
+### 8.2 Scene Description
+
+#### Gacha Machine Static Structure
+
+| Part          | Description                                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Glass dome    | Circular, transparent feel (left arc highlight + top-right ellipse highlight + bottom arc glow + very low alpha fill)                    |
+| Capsule balls | 28 balls, upper half various colors + lower half white + "?" mark, with collision physics. All balls look identical, don't reveal rarity |
+| Machine body  | Rectangular dark container, title text ("GOLDEN GACHA" / "GACHA"), metallic texture                                                      |
+| Dial          | Circular metal dial, center crosshair + handle dot                                                                                       |
+| Tube          | Exit channel from dome bottom to ground                                                                                                  |
+| Ground        | Horizontal line + light shadow                                                                                                           |
+
+#### Single Draw Flow (~4 seconds)
+
+| Phase       | Time               | Description                                                                                                                       |
+| ----------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| Stirring    | 0–2.2s             | Rotation force (sine direction switching) + centripetal force + random perturbation. Dial rotates in sync, screen slightly shakes |
+| Settling    | 2.2–2.6s           | Force decays, balls settle under gravity                                                                                          |
+| Gate opens  | 2.6s               | Bottom gate opens, bottom ball pushed toward hole                                                                                 |
+| Drop        | 2.6–3.5s           | 1 ball passes through tube, gravity accelerates, bounces on landing (3–4 dampening bounces)                                       |
+| Gate closes | After exit         | Immediately closes                                                                                                                |
+| Auto-open   | 0.5s after landing | Shell cracks (10 triangular shards fly outward) + rarity-color full-screen flash + 28 sparkle particles                           |
+| Reveal      | After open         | Item emoji (48px) + name + rarity label + bottom glow                                                                             |
+
+#### 10-Pull Flow (~8 seconds)
+
+| Phase            | Time              | Description                                                                                                                      |
+| ---------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Stirring         | 0–2.2s            | Same as single                                                                                                                   |
+| Settling         | 2.2–2.6s          | Same as single                                                                                                                   |
+| Gate opens       | 2.6s              | Gate opens wide (tube widens 28→40px), **stays open**                                                                            |
+| Batch drop       | 2.6–5s            | 10 balls rush out from dome, each with random horizontal velocity, scatter and bounce on ground                                  |
+| Gate closes      | After all 10 exit | Closes                                                                                                                           |
+| Wait for landing | 5–6s              | All balls finish bouncing, stabilize on ground                                                                                   |
+| Sequential open  | 6–8.5s            | Auto-open one every 0.25s. Shell crack + small flash + position shows emoji. Effects smaller than single (avoid visual overload) |
+| Result panel     | 8.5s+             | Full-screen overlay: 5×2 grid, sorted by rarity, cards fly in sequentially (80ms interval)                                       |
+
+### 8.3 Physics Parameters
+
+| Parameter            | Value                                                     | Notes                     |
+| -------------------- | --------------------------------------------------------- | ------------------------- |
+| Gravity              | 500 px/s²                                                 |                           |
+| Collision elasticity | 0.7                                                       | Ball-ball, ball-wall      |
+| Friction coefficient | 0.985/frame                                               | Velocity decay            |
+| Ball radius          | 14px (in dome) / 18px (single drop) / 16px (10-pull drop) |                           |
+| Collision solver     | 3-pass per frame                                          | Handle dense stacking     |
+| Dome radius          | 125px                                                     |                           |
+| Stirring force       | 3000 × strength                                           | strength rises then falls |
+
+### 8.4 Rarity Visual Mapping
+
+| Rarity    | Color     | Glow                   | Crack Effect                                                          |
+| --------- | --------- | ---------------------- | --------------------------------------------------------------------- |
+| Common    | `#9E9E9E` | `rgba(158,158,158,.3)` | Standard crack                                                        |
+| Rare      | `#4A90D9` | `rgba(74,144,217,.4)`  | Blue crack + more particles                                           |
+| Epic      | `#9B59B6` | `rgba(155,89,182,.5)`  | Purple crack + full-screen purple flash                               |
+| Legendary | `#F5A623` | `rgba(245,166,35,.5)`  | Gold crack + full-screen gold light + big shake + extra particle ring |
+
+---
+
+## 9. Implementation Steps
+
+### Phase 1a — rewardCatalog.ts Add Rarity
+
+**Changed files**:
+
+- `packages/game-engine/src/growth/rewardCatalog.ts` — Add `Rarity` type, `RewardItem` gains `rarity` field, each `REWARD_POOL` entry gains `rarity`
 - `packages/game-engine/src/index.ts` — export `Rarity`
 
-**影响分析**：
+**Impact analysis**:
 
-- `pickRandomReward()` 参数不变，不受影响（它不读 rarity 字段）
-- `REWARD_POOL` 的消费者：`pickRandomReward`、`getUnlockedAvatars/Frames/Flairs/NameStyles`、seed-local.mjs — 都不读 rarity，安全
-- 类型变更：`RewardItem` 加了 required 字段。所有构造 `RewardItem` 的地方需要更新 → 只有 `REWARD_POOL` 自身（map 函数内加 rarity）
+- `pickRandomReward()` params unchanged, not affected (doesn't read rarity field)
+- `REWARD_POOL` consumers: `pickRandomReward`, `getUnlockedAvatars/Frames/Flairs/NameStyles`, seed-local.mjs — none read rarity, safe
+- Type change: `RewardItem` gains a required field. All places constructing `RewardItem` need updating → only `REWARD_POOL` itself (add rarity in map function)
 
-**测试**：现有测试应全部通过（rarity 是新增字段不破坏现有功能）。
+**Tests**: All existing tests should pass (rarity is a new field that doesn't break existing functionality).
 
-### Phase 1b — 新建 gachaProbability.ts + 测试
+### Phase 1b — New gachaProbability.ts + Tests
 
-**新增文件**：
+**New files**:
 
 - `packages/game-engine/src/growth/gachaProbability.ts`
 - `packages/game-engine/src/__tests__/gachaProbability.test.ts`
-- `packages/game-engine/src/growth/index.ts` — 新增 re-export
-- `packages/game-engine/src/index.ts` — 新增 export
+- `packages/game-engine/src/growth/index.ts` — add re-export
+- `packages/game-engine/src/index.ts` — add export
 
-**测试范围**：§4.5 列出的全部场景。
+**Test coverage**: All scenarios listed in §4.5.
 
 ### Phase 1c — D1 Migration + Drizzle Schema
 
-**新增文件**：
+**New files**:
 
 - `packages/api-worker/migrations/0013_gacha_system.sql`
 
-**改动文件**：
+**Changed files**:
 
-- `packages/api-worker/src/db/schema.ts` — 新增 4 列 + drawHistory 表
+- `packages/api-worker/src/db/schema.ts` — add 4 columns + drawHistory table
 
-**影响分析**：
+**Impact analysis**:
 
-- 新增列有 DEFAULT 值，不影响现有数据
-- Drizzle schema 新增列：所有 `select({...})` 显式列出列名，不受影响（不用 `select()` 全选）
-- `settleGameResults.ts` 的 upsert values 不含新列（用 DEFAULT）→ 安全
+- New columns have DEFAULT values, don't affect existing data
+- Drizzle schema new columns: all `select({...})` explicitly list column names, not affected (don't use `select()` select-all)
+- `settleGameResults.ts` upsert values don't include new columns (use DEFAULT) → safe
 
-### Phase 1d — settleGameResults.ts 改造
+### Phase 1d — settleGameResults.ts Refactor
 
-**改动文件**：
+**Changed files**:
 
-- `packages/api-worker/src/growth/settleGameResults.ts` — 移除 `pickRandomReward` 调用，改为累加券数
-- `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` 新增字段
-- `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` 替换为券数字段（删除 `reward`）
-- `src/services/cloudflare/CFRealtimeService.ts` — 解析新字段
-- `src/hooks/useSettleToast.ts` — 展示改为券数通知
+- `packages/api-worker/src/growth/settleGameResults.ts` — Remove `pickRandomReward` call, replace with ticket accumulation
+- `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` adds fields
+- `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` replaced with ticket count fields (remove `reward`)
+- `src/services/cloudflare/CFRealtimeService.ts` — Parse new fields
+- `src/hooks/useSettleToast.ts` — Display changed to ticket notification
 
-**影响分析**：
+**Impact analysis**:
 
-- `PlayerSettleResult` 接口变更：`reward` → `normalDrawsEarned` / `goldenDrawsEarned`
-- 消费者：`#sendSettleResults`、`#updateRosterLevels` — 前者需改，后者不受影响
-- `getRewardDisplayName` 函数不再需要（删除）
-- `useSettleToast` 的 `showSettleToast` 逻辑重写
+- `PlayerSettleResult` interface change: `reward` → `normalDrawsEarned` / `goldenDrawsEarned`
+- Consumers: `#sendSettleResults`, `#updateRosterLevels` — former needs change, latter unaffected
+- `getRewardDisplayName` function no longer needed (delete)
+- `useSettleToast`'s `showSettleToast` logic rewritten
 
-### Phase 1e — 扭蛋 API Handler
+### Phase 1e — Gacha API Handler
 
-**新增文件**：
+**New files**:
 
 - `packages/api-worker/src/handlers/gachaHandlers.ts`
 - `packages/api-worker/src/schemas/gacha.ts`
 
-**改动文件**：
+**Changed files**:
 
-- `packages/api-worker/src/index.ts` — 挂载路由
+- `packages/api-worker/src/index.ts` — mount routes
 
-### Phase 1f — 客户端数据层
+### Phase 1f — Client Data Layer
 
-**新增文件**：
+**New files**:
 
 - `src/services/feature/GachaService.ts`
 - `src/hooks/queries/useGachaQuery.ts`
 
-### Phase 1g — seed-local.mjs 更新
+### Phase 1g — seed-local.mjs Update
 
-**改动文件**：
+**Changed files**:
 
-- `scripts/seed-local.mjs` — 新增 gacha 列初始值
+- `scripts/seed-local.mjs` — add gacha column initial values
 
-### Phase 2 — GachaScreen + 动画
+### Phase 2 — GachaScreen + Animation
 
-**新增文件**：
+**New files**:
 
 - `src/screens/GachaScreen/GachaScreen.tsx`
-- `src/screens/GachaScreen/components/CapsuleMachine.tsx` — Skia 动画组件
-- `src/screens/GachaScreen/components/TenResultOverlay.tsx` — 10 连结果面板
-- `src/screens/GachaScreen/hooks/usePhysicsEngine.ts` — 物理模拟 hook
+- `src/screens/GachaScreen/components/CapsuleMachine.tsx` — Skia animation component
+- `src/screens/GachaScreen/components/TenResultOverlay.tsx` — 10-pull result panel
+- `src/screens/GachaScreen/hooks/usePhysicsEngine.ts` — Physics simulation hook
 
-**改动文件**：
+**Changed files**:
 
-- `src/navigation/types.ts` — 新增 Gacha route
-- `src/navigation/` — Stack.Screen 注册
-- `src/screens/HomeScreen/HomeScreen.tsx` — 新增入口按钮 + badge
+- `src/navigation/types.ts` — add Gacha route
+- `src/navigation/` — Stack.Screen registration
+- `src/screens/HomeScreen/HomeScreen.tsx` — add entry button + badge
 
-### Phase 3 — 打磨
+### Phase 3 — Polish
 
-- Legendary 特殊全屏动画（单独视觉强化）
-- 抽奖音效（抽奖开始 / 碎裂 / 揭示 / legendary 专属）
-- 抽奖历史页面（optional，从 draw_history 表查）
-- UnlocksScreen 增加稀有度标签显示
+- Legendary special full-screen animation (dedicated visual enhancement)
+- Draw sound effects (draw start / crack / reveal / legendary exclusive)
+- Draw history page (optional, queries from draw_history table)
+- UnlocksScreen add rarity label display
 
 ---
 
-## 10. 边界条件与风险
+## 10. Edge Cases & Risks
 
-### 10.1 边界条件
+### 10.1 Edge Cases
 
-| 场景               | 处理                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------- |
-| 10 连时券只有 3 张 | API 返回 `INSUFFICIENT_DRAWS`，客户端按钮 disabled（count > available 时）                    |
-| 10 连途中池清空    | 循环中 `selectReward` 返回 undefined → 结束循环，只返回已抽到的结果。更新券扣减为实际抽取次数 |
-| 全部 563 件集齐    | GET status → `allCollected: true`，客户端抽奖按钮 disabled，badge 显示 "已集齐"               |
-| 匿名用户           | 不结算、无券、不显示入口                                                                      |
-| 离线 / 断网        | 抽奖是 HTTP POST，标准 cfPost 超时+错误处理。失败时 `showAlert('抽奖失败', '请稍后重试')`     |
-| 多设备同时抽       | D1 UPDATE WHERE 余额足够，第二个请求因余额不足被拒                                            |
-| 结算重试（alarm）  | 现有 retry 机制不变，新字段 `normalDrawsEarned` 在重试时也正确（幂等 upsert）                 |
+| Scenario                       | Handling                                                                                                                            |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 10-pull but only 3 tickets     | API returns `INSUFFICIENT_DRAWS`, client button disabled (when count > available)                                                   |
+| Pool empties mid-10-pull       | Loop's `selectReward` returns undefined → end loop, only return already-drawn results. Update ticket deduction to actual draw count |
+| All 563 items collected        | GET status → `allCollected: true`, client draw button disabled, badge shows "已集齐"                                                |
+| Anonymous user                 | No settlement, no tickets, entry not shown                                                                                          |
+| Offline / disconnected         | Draw is HTTP POST, standard cfPost timeout+error handling. On failure `showAlert('抽奖失败', '请稍后重试')`                         |
+| Multi-device simultaneous draw | D1 UPDATE WHERE balance sufficient, second request rejected due to insufficient balance                                             |
+| Settlement retry (alarm)       | Existing retry mechanism unchanged, new `normalDrawsEarned` field correct on retry (idempotent upsert)                              |
 
-### 10.2 风险
+### 10.2 Risks
 
-| 风险                                           | 等级 | 缓解                                                                                                                                              |
-| ---------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1 并发竞态（两次 draw 同时读到相同余额）      | 低   | D1 单 writer 保证。UPDATE SET WHERE 条件兜底                                                                                                      |
-| 概率偏差（crypto.getRandomValues modulo bias） | 极低 | Uint32 范围 4.29B，modulo 100 偏差 < 0.0000024%                                                                                                   |
-| 10 连中间失败（DB 写入部分成功）               | 低   | 10 次 draw 在同一个 handler 中串行执行，D1 写入原子性足够。最坏情况：部分物品写入但券未扣 → 用户多得物品（可接受风险）。可通过 batch() 进一步降低 |
-| Skia 动画性能（28 球物理 + 粒子）              | 中   | HTML 原型已验证流畅。Skia 的 GPU 加速应更优。必要时降低球数到 20                                                                                  |
-| 概率引擎 bug                                   | 中   | §4.5 测试覆盖 + 10 万次蒙特卡洛验证                                                                                                               |
+| Risk                                                     | Level    | Mitigation                                                                                                                                                                                                       |
+| -------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1 concurrency race (two draws reading same balance)     | Low      | D1 single writer guarantee. UPDATE SET WHERE condition as safety net                                                                                                                                             |
+| Probability bias (crypto.getRandomValues modulo bias)    | Very Low | Uint32 range 4.29B, modulo 100 bias < 0.0000024%                                                                                                                                                                 |
+| Partial failure mid-10-pull (partial DB write success)   | Low      | 10 draws execute serially in same handler, D1 write atomicity is sufficient. Worst case: some items written but tickets not deducted → user gains extra items (acceptable risk). Can further reduce with batch() |
+| Skia animation performance (28 ball physics + particles) | Medium   | HTML prototype verified smooth. Skia's GPU acceleration should be better. If needed, reduce ball count to 20                                                                                                     |
+| Probability engine bug                                   | Medium   | §4.5 test coverage + 100K Monte Carlo verification                                                                                                                                                               |

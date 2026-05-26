@@ -1,4 +1,4 @@
-> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+> ⚠️ Historical document — for reference only, does not reflect current code state
 
 # Refactoring Baseline Metrics
 
@@ -78,27 +78,3 @@
 | `utils/random`              | 5     |
 | `utils/id`                  | 3     |
 | `utils/shuffle`             | 2     |
-| `engine/state`              | 2     |
-| `utils/audioKeyOverride`    | 1     |
-| `resolvers/types`           | 1     |
-
-## RoleRevealEffects
-
-| Metric         | Value  |
-| -------------- | ------ |
-| Files (TS/TSX) | 37     |
-| Total lines    | 10,160 |
-
-## IGameFacade
-
-| Metric  | Value |
-| ------- | ----- |
-| Lines   | 258   |
-| Methods | 35    |
-
-## Test Suite
-
-| Metric           | Value |
-| ---------------- | ----- |
-| Unit test suites | 212+  |
-| E2E specs        | 17    |

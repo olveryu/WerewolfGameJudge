@@ -1,6 +1,6 @@
-记得了。
-不要偷懒，按照2026的社区习惯来做。
-能fail fast就fail fast。
-不要为了简单而简单，打补丁，然后后面引发一堆错误。
-不要做防御性编程。
-不要为了防止用户输入错误而做过多的输入验证。
+Remember this.
+Don't be lazy — follow 2026 community conventions.
+Fail fast whenever possible.
+Don't simplify for the sake of simplicity by patching, only to cause a chain of errors later.
+Don't do defensive programming.
+Don't add excessive input validation just to prevent user input errors.

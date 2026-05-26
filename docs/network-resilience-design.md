@@ -1,13 +1,13 @@
-# 网络韧性改造设计文档
+# Network Resilience Design
 
-> 目标：解决国内用户经常登录失败、操作失败、断线的问题。
-> 根因：中国 → Cloudflare 国际链路丢包率高（5–15%），现有 HTTP 层零网络重试。
+> Goal: Solve frequent login failures, action failures, and disconnections for China-based users.
+> Root cause: China → Cloudflare international link has high packet loss (5–15%), existing HTTP layer has zero network retry.
 
 ---
 
-## 1. 现状分析
+## 1. Current State Analysis
 
-### 1.1 当前架构
+### 1.1 Current Architecture
 
 ```
 ┌──────────────────────────┐     ┌──────────────────────────────┐
@@ -21,7 +21,7 @@
                                  │  消费者: 25 game/seat actions │
                                  └──────────────────────────────┘
 
-> **超时机制现状问题**：`cfPost` 用 `withTimeout`（内部 `Promise.race`），超时后 fetch 仍在后台跑（ghost request）。
+> **Current timeout mechanism issue**: `cfPost` 用 `withTimeout`（内部 `Promise.race`），超时后 fetch 仍在后台跑（ghost request）。
 > `callApiOnce` 用手动 `AbortController + setTimeout`，超时后取消请求。
 > `AIChatService` 已用 `AbortSignal.timeout(30_000)`（社区标准）。本次改造统一到 `AbortSignal.timeout()`。
 ┌──────────────────────────┐
@@ -32,48 +32,48 @@
 └──────────────────────────┘
 ```
 
-### 1.2 重试现状
+### 1.2 Current Retry Status
 
-| 位置                           | 重试什么                        | 策略          | 问题                                            |
-| ------------------------------ | ------------------------------- | ------------- | ----------------------------------------------- |
-| `cfFetch` (cfPost/cfGet/cfPut) | 无                              | 零重试        | 24 个调用点全裸奔                               |
-| `callApiWithRetry`             | CONFLICT_RETRY / INTERNAL_ERROR | 2 次          | **跳过** NETWORK_ERROR / TIMEOUT / SERVER_ERROR |
-| `CFAuthService.initAuth`       | 网络/超时                       | 2 次指数退避  | 手动实现，与其他地方不统一                      |
-| `CFRoomService.createRoom`     | 409 冲突                        | 5 次          | 仅业务重试，无网络重试                          |
-| WebSocket (ConnectionFSM)      | 断线                            | 15 次指数退避 | ✅ 已完善                                       |
+| Location                       | What Is Retried                 | Strategy        | Issue                                                 |
+| ------------------------------ | ------------------------------- | --------------- | ----------------------------------------------------- |
+| `cfFetch` (cfPost/cfGet/cfPut) | None                            | Zero retry      | All 24 call sites have zero retry                     |
+| `callApiWithRetry`             | CONFLICT_RETRY / INTERNAL_ERROR | 2×              | **Skips** NETWORK_ERROR / TIMEOUT / SERVER_ERROR      |
+| `CFAuthService.initAuth`       | Network/timeout                 | 2× exp backoff  | Manual implementation, inconsistent with other places |
+| `CFRoomService.createRoom`     | 409 conflict                    | 5×              | Business retry only, no network retry                 |
+| WebSocket (ConnectionFSM)      | Disconnection                   | 15× exp backoff | ✅ Already complete                                   |
 
-### 1.3 HTTP 调用全量清单
+### 1.3 Complete HTTP Call Inventory
 
-**通过 cfPost/cfGet/cfPut（24 处）：**
+**Via cfPost/cfGet/cfPut (24 call sites):**
 
-| 服务              | 方法              | 端点                         | 网络重试     |
-| ----------------- | ----------------- | ---------------------------- | ------------ |
-| CFAuthService     | signInAnonymously | POST /auth/anonymous         | ❌           |
-| CFAuthService     | signUpWithEmail   | POST /auth/signup            | ❌           |
-| CFAuthService     | signInWithEmail   | POST /auth/signin            | ❌           |
-| CFAuthService     | signOut           | POST /auth/signout           | ❌           |
-| CFAuthService     | forgotPassword    | POST /auth/forgot-password   | ❌           |
-| CFAuthService     | resetPassword     | POST /auth/reset-password    | ❌           |
-| CFAuthService     | signInWithWechat  | POST /auth/wechat            | ❌           |
-| CFAuthService     | bindWechat        | POST /auth/bind-wechat       | ❌           |
-| CFAuthService     | getCurrentUser    | GET /auth/user               | ❌           |
-| CFAuthService     | initAuth          | GET /auth/user               | ⚠️ 手动 2 次 |
-| CFAuthService     | updateProfile     | PUT /auth/profile            | ❌           |
-| CFAuthService     | changePassword    | PUT /auth/password           | ❌           |
-| CFRoomService     | createRoom        | POST /room/create            | ⚠️ 仅 409    |
-| CFRoomService     | getRoom           | POST /room/get               | ❌           |
-| CFRoomService     | deleteRoom        | POST /room/delete            | ❌           |
-| CFRoomService     | getStateRevision  | POST /room/revision          | ❌           |
-| CFRoomService     | getGameState      | POST /room/state             | ❌           |
-| GachaService      | fetchGachaStatus  | GET /api/gacha/status        | ❌           |
-| GachaService      | performDraw       | POST /api/gacha/draw         | ❌           |
-| GachaService      | claimDailyReward  | POST /api/gacha/daily-reward | ❌           |
-| StatsService      | fetchUserStats    | GET /api/user/stats          | ❌           |
-| StatsService      | fetchUserProfile  | GET /api/user/:id/profile    | ❌           |
-| StatsService      | fetchUserUnlocks  | GET /api/user/unlocked-items | ❌           |
-| ShareImageService | uploadShareImage  | POST /share/image            | ❌           |
+| Service           | Method            | Endpoint                     | Network Retry |
+| ----------------- | ----------------- | ---------------------------- | ------------- |
+| CFAuthService     | signInAnonymously | POST /auth/anonymous         | ❌            |
+| CFAuthService     | signUpWithEmail   | POST /auth/signup            | ❌            |
+| CFAuthService     | signInWithEmail   | POST /auth/signin            | ❌            |
+| CFAuthService     | signOut           | POST /auth/signout           | ❌            |
+| CFAuthService     | forgotPassword    | POST /auth/forgot-password   | ❌            |
+| CFAuthService     | resetPassword     | POST /auth/reset-password    | ❌            |
+| CFAuthService     | signInWithWechat  | POST /auth/wechat            | ❌            |
+| CFAuthService     | bindWechat        | POST /auth/bind-wechat       | ❌            |
+| CFAuthService     | getCurrentUser    | GET /auth/user               | ❌            |
+| CFAuthService     | initAuth          | GET /auth/user               | ⚠️ Manual 2×  |
+| CFAuthService     | updateProfile     | PUT /auth/profile            | ❌            |
+| CFAuthService     | changePassword    | PUT /auth/password           | ❌            |
+| CFRoomService     | createRoom        | POST /room/create            | ⚠️ 409 only   |
+| CFRoomService     | getRoom           | POST /room/get               | ❌            |
+| CFRoomService     | deleteRoom        | POST /room/delete            | ❌            |
+| CFRoomService     | getStateRevision  | POST /room/revision          | ❌            |
+| CFRoomService     | getGameState      | POST /room/state             | ❌            |
+| GachaService      | fetchGachaStatus  | GET /api/gacha/status        | ❌            |
+| GachaService      | performDraw       | POST /api/gacha/draw         | ❌            |
+| GachaService      | claimDailyReward  | POST /api/gacha/daily-reward | ❌            |
+| StatsService      | fetchUserStats    | GET /api/user/stats          | ❌            |
+| StatsService      | fetchUserProfile  | GET /api/user/:id/profile    | ❌            |
+| StatsService      | fetchUserUnlocks  | GET /api/user/unlocked-items | ❌            |
+| ShareImageService | uploadShareImage  | POST /share/image            | ❌            |
 
-**通过 callApiWithRetry（25 处游戏/座位操作）：**
+**Via callApiWithRetry (25 game/seat actions):**
 assignRoles, updateTemplate, setRoleRevealAnimation, restartGame, clearAllSeats,
 startNight, submitAction, markViewedRole, clearRevealAcks,
 submitGroupConfirmAck, setWolfRobotHunterStatusViewed, setAudioPlaying, postAudioAck, postProgression,
@@ -81,52 +81,52 @@ shareNightReview, boardNominate, boardUpvote, boardWithdraw,
 fillWithBots, markAllBotsViewed, markAllBotsGroupConfirmed, updatePlayerProfile,
 takeSeat, leaveSeat, kickPlayer
 
-> **注意**: 游戏端点（`/game/*`）不使用 `requireAuth` 中间件，`callApiOnce` 有意不注入 JWT。
-> 这与 cfPost（自动注入 Bearer token）的 auth 模型不同。
+> **Note**: Game endpoints (`/game/*`) do not use `requireAuth` middleware; `callApiOnce` intentionally does not inject JWT.
+> This differs from cfPost (which auto-injects Bearer token) auth model.
 
-**直接 fetch()（3 处）：**
+**Direct fetch() (3 call sites):**
 
-- `apiUtils.ts` callApiOnce — 游戏/座位操作（独立 fetch 实现，不走 cfFetch，无 JWT，用 AbortController 超时）
+- `apiUtils.ts` callApiOnce — Game/seat actions (independent fetch implementation, not via cfFetch, no JWT, uses AbortController timeout)
 - `CFStorageService.uploadAvatar` — multipart/form-data
-- `AIChatService.streamChat` — SSE streaming（AbortSignal.timeout(30s)，不应重试）
+- `AIChatService.streamChat` — SSE streaming (AbortSignal.timeout(30s), should not retry)
 
-### 1.4 UI 反馈现状
+### 1.4 Current UI Feedback Status
 
-| 场景      | Loading                            | 失败提示            | 手动重试                                                 |
-| --------- | ---------------------------------- | ------------------- | -------------------------------------------------------- |
-| 登录      | 按钮"处理中" + 禁用                | Alert 弹窗          | 首页 banner → 刷新页面                                   |
-| 创建房间  | "创建中" + spinner                 | handleError → Alert | 无                                                       |
-| 加入房间  | Modal loading                      | 内联错误文字        | 用户重新点按钮                                           |
-| 游戏操作  | 无（fire-and-forget + optimistic） | Toast / Alert       | 无                                                       |
-| WS 断线   | "正在重连" 进度条                  | 自动重连            | Failed 状态显示与 Disconnected 相同的 UI，无手动重连按钮 |
-| 扭蛋/统计 | TanStack isLoading                 | TanStack 内建       | TanStack 自动重试                                        |
-| 头像上传  | spinner                            | Alert               | 无                                                       |
-| AI 聊天   | spinner                            | 内联错误            | 无                                                       |
+| Scenario      | Loading                             | Failure Notification | Manual Retry                                                           |
+| ------------- | ----------------------------------- | -------------------- | ---------------------------------------------------------------------- |
+| Login         | Button "处理中" + disabled          | Alert dialog         | Home banner → refresh page                                             |
+| Create room   | "创建中" + spinner                  | handleError → Alert  | None                                                                   |
+| Join room     | Modal loading                       | Inline error text    | User re-clicks button                                                  |
+| Game action   | None (fire-and-forget + optimistic) | Toast / Alert        | None                                                                   |
+| WS disconnect | "正在重连" progress bar             | Auto-reconnect       | Failed state shows same UI as Disconnected, no manual reconnect button |
+| Gacha/stats   | TanStack isLoading                  | TanStack built-in    | TanStack auto-retry                                                    |
+| Avatar upload | spinner                             | Alert                | None                                                                   |
+| AI chat       | spinner                             | Inline error         | None                                                                   |
 
-### 1.5 TanStack Query 使用现状
+### 1.5 Current TanStack Query Usage
 
-项目已安装 `@tanstack/react-query@5.99.0`，`QueryClientProvider` 已配在 App.tsx。
+Project has `@tanstack/react-query@5.99.0` installed, `QueryClientProvider` is configured in App.tsx.
 
-**已接入 TanStack Query 的（7 个 hooks + 4 个 queryOptions factory）：**
+**Already using TanStack Query (7 hooks + 4 queryOptions factories):**
 
-- `useQuery`: 4 个 query hook — userStats 和 gachaStatus 走 `useAuthenticatedQuery`（带 auth guard），userProfile 和 userUnlocks 走直接 `useQuery`
-- `useMutation`: drawGacha, claimDailyReward（2 个 mutation hook）
-- `queryOptions` 工厂：queryOptions.ts 已有 4 个 option factory（非 hook，供 useQuery 消费）
-- `QueryClient` 配置：`retry: 1`, `staleTime: 2min`
+- `useQuery`: 4 query hooks — userStats and gachaStatus via `useAuthenticatedQuery` (with auth guard), userProfile and userUnlocks via direct `useQuery`
+- `useMutation`: drawGacha, claimDailyReward (2 mutation hooks)
+- `queryOptions` factories: queryOptions.ts has 4 option factories (not hooks, consumed by useQuery)
+- `QueryClient` config: `retry: 1`, `staleTime: 2min`
 
-**未接入 TanStack Query 的（57 处）：**
+**Not yet using TanStack Query (57 call sites):**
 
-- AuthContext 11 个 async 方法（手动 useState loading/error）
-- Room 操作 5 个方法（手动 useState + handleError）
-- 游戏操作 25 个（callApiWithRetry + handleMutationResult）
-- Settings 操作 ~5 个（AuthContext + showErrorAlert）
-- 其他 ~12 个（各种手动模式）
+- AuthContext 11 async methods (manual useState loading/error)
+- Room operations 5 methods (manual useState + handleError)
+- Game actions 25 (callApiWithRetry + handleMutationResult)
+- Settings operations ~5 (AuthContext + showErrorAlert)
+- Others ~12 (various manual patterns)
 
 ---
 
-## 2. 目标架构
+## 2. Target Architecture
 
-### 2.1 分层设计
+### 2.1 Layered Design
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -148,69 +148,69 @@ takeSeat, leaveSeat, kickPlayer
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 2.2 重试策略
+### 2.2 Retry Strategy
 
-**两层重试，各管各的：**
+**Two-layer retry, each with its own scope:**
 
-| 层                       | 重试什么                                            | 条件                         | 次数                   | 退避                  |
-| ------------------------ | --------------------------------------------------- | ---------------------------- | ---------------------- | --------------------- |
-| **Layer 1: cfFetch**     | `fetch()` 抛异常（DNS失败/TCP RST/TLS握手失败）     | 请求 **大概率** 未到达服务器 | 2 次                   | 1s, 2s 指数退避       |
-| **Layer 3: useMutation** | HTTP 状态码 5xx / 自定义 reason (CONFLICT_RETRY 等) | 请求 **到达** 服务器但失败   | 由各 mutation 自行决定 | TanStack 默认指数退避 |
+| Layer                    | What Is Retried                                              | Condition                                    | Count                 | Backoff                              |
+| ------------------------ | ------------------------------------------------------------ | -------------------------------------------- | --------------------- | ------------------------------------ |
+| **Layer 1: cfFetch**     | `fetch()` throws (DNS failure/TCP RST/TLS handshake failure) | Request **most likely** did not reach server | 2×                    | 1s, 2s exponential backoff           |
+| **Layer 3: useMutation** | HTTP 5xx status / custom reason (CONFLICT_RETRY etc.)        | Request **reached** server but failed        | Per-mutation decision | TanStack default exponential backoff |
 
-**为什么分两层：**
+**Why two layers:**
 
-- Layer 1 重试 **大部分情况安全**（`fetch()` 抛异常通常 = 请求没到服务器）
-- Layer 3 重试需要业务判断（409 冲突该换 code 重试？401 不该重试？只有业务层知道）
+- Layer 1 retry is **safe in most cases** (`fetch()` throwing usually = request did not reach server)
+- Layer 3 retry requires business logic judgment (should 409 conflict retry with new code? 401 should not retry? Only business layer knows)
 
-> **⚠️ `fetch()` 异常 ≠ 100% 请求未到达**
+> **⚠️ `fetch()` exception ≠ 100% request did not arrive**
 >
-> 极少数边界情况下（TCP RST after request sent、TLS alert after handshake complete、proxy 中断），
-> `fetch()` 抛 TypeError 但服务端已收到并处理请求。对**幂等操作**（绝大多数）这没问题，
-> 对**非幂等操作**（如扭蛋 draw）需要额外保护。见 §3.14。
+> In rare edge cases (TCP RST after request sent, TLS alert after handshake complete, proxy interruption),
+> `fetch()` throws TypeError but the server has already received and processed the request. For **idempotent operations** (the vast majority) this is fine;
+> for **non-idempotent operations** (e.g. gacha draw) extra protection is needed. See §3.14.
 
-**不重试的情况：**
+**Cases that are not retried:**
 
-- HTTP 4xx（401/403/404/422）— 客户端错误，重试无意义
-- `AIChatService.streamChat` — SSE streaming，不适合重试
-- 用户主动取消（AbortError）
+- HTTP 4xx (401/403/404/422) — client error, retry is pointless
+- `AIChatService.streamChat` — SSE streaming, not suitable for retry
+- User-initiated cancellation (AbortError)
 
-### 2.3 超时策略
+### 2.3 Timeout Strategy
 
-| 配置项           | 现值    | 新值           | 理由                                                                                |
-| ---------------- | ------- | -------------- | ----------------------------------------------------------------------------------- |
-| `API_TIMEOUT_MS` | 8000ms  | **12000ms**    | 国内 → CF 首次 TLS 握手可达 3-5s                                                    |
-| cfFetch 总预算   | 无      | **不设总预算** | cfFetch 重试 2 次 × 12s = 最坏 36s，但 fetch 异常通常 1-3s 内就知道，只有超时才等满 |
-| WeChat auth      | 15000ms | **20000ms**    | 跨境 Worker → api.weixin.qq.com                                                     |
-| `waitForInit`    | 20000ms | **25000ms**    | 必须 > WeChat timeout                                                               |
+| Config Item      | Current | New Value           | Reason                                                                                                  |
+| ---------------- | ------- | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `API_TIMEOUT_MS` | 8000ms  | **12000ms**         | China → CF first TLS handshake can take 3-5s                                                            |
+| cfFetch budget   | None    | **No total budget** | cfFetch retry 2× × 12s = worst 36s, but fetch exceptions are known within 1-3s, only timeout waits full |
+| WeChat auth      | 15000ms | **20000ms**         | Cross-border Worker → api.weixin.qq.com                                                                 |
+| `waitForInit`    | 20000ms | **25000ms**         | Must be > WeChat timeout                                                                                |
 
-> **最坏等待时间**：
+> **Worst-case wait time**:
 >
-> | 场景                           | cfFetch (Layer 1) | 业务层 (Layer 2/3) | 总计               |
-> | ------------------------------ | ----------------- | ------------------ | ------------------ |
-> | Auth mutation (retry:2)        | 3×12s = 36s       | 3×36s = 108s       | **用总预算兜底**   |
-> | Game action (callApiWithRetry) | 3×12s = 36s       | 3×36s = 108s       | **30s 总预算截断** |
+> | Scenario                       | cfFetch (Layer 1) | Business (Layer 2/3) | Total                      |
+> | ------------------------------ | ----------------- | -------------------- | -------------------------- |
+> | Auth mutation (retry:2)        | 3×12s = 36s       | 3×36s = 108s         | **Capped by total budget** |
+> | Game action (callApiWithRetry) | 3×12s = 36s       | 3×36s = 108s         | **30s total budget cap**   |
 >
-> 不设总预算会出现 108s 最坏等待。`callApiWithRetry` 设 30s 总预算；`useMutation` 靠 TanStack 内建的 `retryDelay` 控制节奏（每层 cfFetch 内部超时已兜底）。
+> Without a total budget, worst-case wait is 108s. `callApiWithRetry` has a 30s total budget; `useMutation` relies on TanStack built-in `retryDelay` to control pacing (cfFetch internal timeout in each layer provides the cap).
 >
-> 实际 99% 场景：fetch 异常在 1-3s 内就知道（DNS/TCP 失败很快），只有超时才等满 12s。
+> In practice 99% of cases: fetch exceptions are known within 1-3s (DNS/TCP failures are fast), only timeouts wait the full 12s.
 
 ---
 
-## 3. 详细改动
+## 3. Detailed Changes
 
-### 3.1 Layer 1: cfFetch — 网络层重试
+### 3.1 Layer 1: cfFetch — Network Layer Retry
 
-**文件**: `src/services/cloudflare/cfFetch.ts`
+**File**: `src/services/cloudflare/cfFetch.ts`
 
-**改动**：提取 `fetchWithRetry` 内部函数，包裹所有 `fetch()` 调用。
+**Changes**: Extract `fetchWithRetry` internal function, wrapping all `fetch()` calls.
 
-**同时统一超时机制**：`cfPost/cfGet/cfPut` 从 `withTimeout(Promise.race)` 迁移到 `AbortSignal.timeout()`。
+**Also unifying timeout mechanism**: Migrate `cfPost/cfGet/cfPut` from `withTimeout(Promise.race)` to `AbortSignal.timeout()`.
 
-> **`AbortSignal.timeout()` 是 2024 Baseline（2026 社区标准）**：Chrome 124+, Safari 16+, Node 17.3+。
-> `AIChatService` 已在使用。本次统一到所有 fetch 调用。
-> 好处：超时后 **abort 请求**（TCP 连接关闭），不存在 ghost request；
-> 与用户取消可组合：`AbortSignal.any([AbortSignal.timeout(ms), userSignal])`；
-> 代码量从 ~15 行（withTimeout wrapper）降到 1 行。
+> **`AbortSignal.timeout()` is 2024 Baseline (2026 community standard)**: Chrome 124+, Safari 16+, Node 17.3+.
+> `AIChatService` already uses this. This refactoring unifies all fetch calls.
+> Benefits: After timeout **aborts request** (TCP connection closed), no ghost request;
+> Composable with user cancellation: `AbortSignal.any([AbortSignal.timeout(ms), userSignal])`;
+> Code size from ~15 lines (withTimeout wrapper) down to 1 line.
 
 ```typescript
 // cfFetch.ts 内部
@@ -245,7 +245,7 @@ async function fetchWithRetry(input: RequestInfo, init?: RequestInit): Promise<R
 }
 ```
 
-**cfPost/cfGet/cfPut** 中的 `fetch()` 全部替换为 `fetchWithRetry()`，`withTimeout` 替换为 `AbortSignal.timeout()`。
+**cfPost/cfGet/cfPut**: All `fetch()` calls replaced with `fetchWithRetry()`, `withTimeout` replaced with `AbortSignal.timeout()`.
 
 ```typescript
 // cfPost 改后示例（关键行）
@@ -255,31 +255,31 @@ const res = await fetchWithRetry(url, {
 });
 ```
 
-> **超时语义：total-operation timeout**
+> **Timeout semantics: total-operation timeout**
 >
-> `AbortSignal.timeout(12s)` 在 cfPost 层创建一次，传入 fetchWithRetry 的 3 次 attempt 共享同一倒计时。
-> 首次 attempt 快速失败（DNS/TCP ~1s）→ delay 1s → 第二次有 ~10s → 正常。
-> 首次 attempt 慢超时（~11s）→ delay 1s → 第二次只剩 ~0s → 立即 TimeoutError。
-> 这是**有意的 total-operation timeout 语义**：不管内部重试几次，对外承诺的最大等待时间不变。
-> 实施时在 fetchWithRetry JSDoc 中注明此行为。
+> `AbortSignal.timeout(12s)` is created once at the cfPost layer, passed into fetchWithRetry where all 3 attempts share the same countdown.
+> First attempt fails fast (DNS/TCP ~1s) → delay 1s → second attempt has ~10s → normal.
+> First attempt slow timeout (~11s) → delay 1s → second attempt only has ~0s → immediate TimeoutError.
+> This is **intentional total-operation timeout semantics**: regardless of internal retry count, the externally promised maximum wait time stays constant.
+> Document this behavior in fetchWithRetry JSDoc during implementation.
 
-**cfPost** 新增可选 `extraHeaders` 参数，供 apiUtils 传 `x-request-id` / `x-region`。
-**cfPost** 新增可选 `noRetry` 参数，禁用网络层重试（见 §3.14）。
+**cfPost**: New optional `extraHeaders` parameter for apiUtils to pass `x-request-id` / `x-region`.
+**cfPost**: New optional `noRetry` parameter to disable network-layer retry (see §3.14).
 
-**影响范围**: 24 个通过 cfPost/cfGet/cfPut 的调用点自动获得网络重试 + 超时取消。零业务代码改动。
+**Impact scope**: All 24 call sites via cfPost/cfGet/cfPut automatically gain network retry + timeout cancellation. Zero business code changes.
 
-导出 `fetchWithRetry` 后，apiUtils.ts 的 `callApiOnce` 也可使用，覆盖 25 个游戏/座位操作。总计 49 个调用点获得网络重试。
+After exporting `fetchWithRetry`, apiUtils.ts `callApiOnce` can also use it, covering 25 game/seat actions. Total 49 call sites gain network retry.
 
-> **弃用 withTimeout**：改造后 `withTimeout` 仅保留给非 fetch 的 Promise（如 DO RPC timeout）。所有 fetch 调用统一用 `AbortSignal.timeout()`。
+> **Deprecating withTimeout**: After this change `withTimeout` is only kept for non-fetch Promises (e.g. DO RPC timeout). All fetch calls use `AbortSignal.timeout()` uniformly.
 
-### 3.1b 错误分类工具适配 — errorUtils.ts
+### 3.1b Error Classification Utility Adaptation — errorUtils.ts
 
-**文件**: `src/utils/errorUtils.ts`
+**File**: `src/utils/errorUtils.ts`
 
-`AbortSignal.timeout()` 超时抛 `DOMException { name: 'TimeoutError' }`，不是 `AbortError`。
-现有 `isAbortError()` 和 `isNetworkError()` 都不匹配 `TimeoutError`，会导致 §3.13 MutationCache onError 误报 Sentry。
+`AbortSignal.timeout()` throws `DOMException { name: 'TimeoutError' }` on timeout, not `AbortError`.
+Existing `isAbortError()` and `isNetworkError()` do not match `TimeoutError`, causing §3.13 MutationCache onError to falsely report to Sentry.
 
-**改动**：
+**Changes**:
 
 ```typescript
 // errorUtils.ts
@@ -297,11 +297,11 @@ export function isAbortError(err: unknown): boolean {
 }
 ```
 
-`isNetworkError` 的 `NETWORK_ERROR_PATTERNS` 中 `'operation timed out after'`（匹配 withTimeout 报错）在改造后仍保留（DO RPC timeout 仍用 withTimeout），无需改动。
+`isNetworkError`'s `NETWORK_ERROR_PATTERNS` entry `'operation timed out after'` (matching withTimeout errors) is kept after the change (DO RPC timeout still uses withTimeout), no modification needed.
 
-**影响**：§3.13 MutationCache `isAbortError(error)` 现在也能匹配 TimeoutError，不会误报 Sentry。
+**Impact**: §3.13 MutationCache `isAbortError(error)` now also matches TimeoutError, preventing false Sentry reports.
 
-### 3.2 Layer 1: cfFetch — cfPost 支持 extraHeaders + noRetry
+### 3.2 Layer 1: cfFetch — cfPost Supports extraHeaders + noRetry
 
 ```typescript
 export async function cfPost<T = Record<string, unknown>>(
@@ -317,19 +317,19 @@ export async function cfPost<T = Record<string, unknown>>(
 }
 ```
 
-**为什么**: `extraHeaders` 为 auth/room 等走 cfPost 的调用方提供传 `x-request-id` 等自定义 header 的能力。
-`noRetry` 保护非幂等操作（详见 §3.14）。
+**Why**: `extraHeaders` provides call sites using cfPost (auth/room etc.) the ability to pass custom headers like `x-request-id`.
+`noRetry` protects non-idempotent operations (see §3.14 for details).
 
-### 3.3 Layer 2: apiUtils — callApiOnce 注入 fetchWithRetry
+### 3.3 Layer 2: apiUtils — callApiOnce Injects fetchWithRetry
 
-**文件**: `src/services/facade/apiUtils.ts`
+**File**: `src/services/facade/apiUtils.ts`
 
-**现在**: `callApiOnce` 自己写 fetch + AbortController + JSON 解析，零网络重试。
-**改后**: **保留独立 fetch 路径**（不改用 cfPost），仅把 `fetch()` 替换为 `fetchWithRetry()`。
+**Before**: `callApiOnce` implements its own fetch + AbortController + JSON parsing, zero network retry.
+**After**: **Keep independent fetch path** (not switching to cfPost), only replace `fetch()` with `fetchWithRetry()`.
 
-**不用 cfPost 的原因**：
+**Reason for not using cfPost**:
 
-- **auth 模型不同**: 游戏端点（`/game/*`）不使用 `requireAuth` 中间件，`callApiOnce` 有意不注入 JWT。`cfPost` 会自动注入 Bearer token（虽然服务端忽略，但改变了请求语义）。
+- **Different auth model**: Game endpoints (`/game/*`) do not use `requireAuth` middleware; `callApiOnce` intentionally does not inject JWT. `cfPost` auto-injects Bearer token (though the server ignores it, it changes request semantics).
 
 ```typescript
 import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
@@ -373,26 +373,26 @@ async function callApiOnce(
 }
 ```
 
-**改动点**：3 处——
+**Change points**: 3 items —
 
 1. `fetch()` → `fetchWithRetry()`
-2. 手动 `AbortController+setTimeout` → `AbortSignal.timeout()`
-3. catch 块：检测 `TimeoutError`（AbortSignal.timeout 抛的 DOMException）+ 原有 `AbortError`
+2. Manual `AbortController+setTimeout` → `AbortSignal.timeout()`
+3. catch block: detect `TimeoutError` (DOMException thrown by AbortSignal.timeout) + existing `AbortError`
 
-保留无 JWT、独立 JSON 解析。删除 `setTimeout`/`clearTimeout`/`abortController` 相关代码。
-**影响**：cfFetch.ts 需 export `fetchWithRetry`。
+Keeps no-JWT and independent JSON parsing. Removes `setTimeout`/`clearTimeout`/`abortController` related code.
+**Impact**: cfFetch.ts needs to export `fetchWithRetry`.
 
-### 3.4 Layer 2: apiUtils — callApiWithRetry 支持网络错误重试
+### 3.4 Layer 2: apiUtils — callApiWithRetry Supports Network Error Retry
 
-**现在**: NETWORK_ERROR / TIMEOUT / SERVER_ERROR 直接 return，不重试。
-**改后**: 重试 NETWORK_ERROR 和 SERVER_ERROR（fetch 异常 / 非 JSON 响应 = 请求未被正确处理）。
-**不重试 TIMEOUT**（AbortController 超时 = 请求可能已到达服务端并执行，只是响应没回来，重试不安全）。
+**Before**: NETWORK_ERROR / TIMEOUT / SERVER_ERROR returned directly, no retry.
+**After**: Retry NETWORK_ERROR and SERVER_ERROR (fetch exception / non-JSON response = request was not properly processed).
+**Do not retry TIMEOUT** (AbortController timeout = request may have reached server and executed, just response not returned, retry is unsafe).
 
-增加**总预算 30s**：防止 cfFetch 重试 × callApiWithRetry 重试叠加导致等待过长。
+Add **30s total budget**: Prevent cfFetch retry × callApiWithRetry retry stacking leading to excessive wait.
 
-> **注意**：30s 是 **soft budget**——在循环开头检查，如果第 N 次 iteration 在 29s 时开始，
-> 它的 callApiOnce 仍会跑完（最多加 12s timeout）。实际最坏等待 ~41s。
-> 这是有意的——不在 mid-flight 取消已发出的请求。
+> **Note**: 30s is a **soft budget** — checked at loop start. If the Nth iteration starts at 29s,
+> its callApiOnce still runs to completion (adding up to 12s timeout). Actual worst wait ~41s.
+> This is intentional — do not cancel already-in-flight requests.
 
 ```typescript
 const CALL_API_TOTAL_BUDGET_MS = 30_000;
@@ -438,17 +438,17 @@ export async function callApiWithRetry(...): Promise<ApiResponse> {
 }
 ```
 
-> **幂等安全性**：
+> **Idempotency safety**:
 >
-> - `NETWORK_ERROR` 重试安全：`fetch()` 抛异常 = 请求未到达服务器 = 无副作用。
-> - `SERVER_ERROR` 重试安全：非 JSON 响应 = Cloudflare proxy 错误页（502/503），Worker 未处理请求。
-> - `TIMEOUT` **不重试**：请求可能已执行。大部分游戏操作靠 reducer state check 天然幂等（step 前进后忽略重复 ack），但不是所有 action 都有此保护，因此不冒险。
-> - `CONFLICT_RETRY` / `INTERNAL_ERROR` 重试安全：服务端明确告知可重试。
+> - `NETWORK_ERROR` retry safe: `fetch()` throws = request did not reach server = no side effects.
+> - `SERVER_ERROR` retry safe: non-JSON response = Cloudflare proxy error page (502/503), Worker did not process request.
+> - `TIMEOUT` **not retried**: Request may have already executed. Most game actions are naturally idempotent via reducer state check (ignores duplicate ack after step advances), but not all actions have this protection, so we don't risk it.
+> - `CONFLICT_RETRY` / `INTERNAL_ERROR` retry safe: Server explicitly indicates retryable.
 
-### 3.5 Layer 2: CFAuthService.initAuth — 删手动重试
+### 3.5 Layer 2: CFAuthService.initAuth — Remove Manual Retry
 
-**现在**: 手动 for 循环 + try/catch + exponential backoff。
-**改后**: cfFetch 已内建网络重试，只保留业务判断（401/403 → 清 token）。
+**Before**: Manual for loop + try/catch + exponential backoff.
+**After**: cfFetch has built-in network retry; only keep business logic (401/403 → clear token).
 
 ```typescript
 async initAuth(): Promise<string | null> {
@@ -475,14 +475,14 @@ async initAuth(): Promise<string | null> {
 }
 ```
 
-### 3.6 Layer 2: CFStorageService.uploadAvatar — 接入网络重试
+### 3.6 Layer 2: CFStorageService.uploadAvatar — Add Network Retry
 
-**现在**: 直接 `fetch()` 上传 multipart/form-data，零重试。
-**改后**: 用 `fetchWithRetry`。
+**Before**: Direct `fetch()` for multipart/form-data upload, zero retry.
+**After**: Use `fetchWithRetry`.
 
-但 `fetchWithRetry` 在 §3.3 中已经决定导出（供 apiUtils 使用）。所以直接用不破坏封装。
+Since `fetchWithRetry` was already decided to be exported in §3.3 (for apiUtils), using it directly does not break encapsulation.
 
-为了统一 cfFetch.ts 的上传 API（JWT 注入 + JSON 解析），额外新增 `cfUpload` 函数：
+To unify cfFetch.ts upload API (JWT injection + JSON parsing), add a new `cfUpload` function:
 
 ```typescript
 // cfFetch.ts
@@ -506,22 +506,22 @@ export async function cfUpload<T = Record<string, unknown>>(
 }
 ```
 
-CFStorageService 改为调 `cfUpload`。
+CFStorageService changes to call `cfUpload`.
 
-### 3.7 Layer 3: Auth mutations — useMutation 化
+### 3.7 Layer 3: Auth mutations — Convert to useMutation
 
-**新文件**: `src/hooks/mutations/useAuthMutations.ts`
+**New file**: `src/hooks/mutations/useAuthMutations.ts`
 
-将 AuthContext 中 11 个手动 try/catch + useState(loading) 方法改为 useMutation。
+Convert 11 manual try/catch + useState(loading) methods from AuthContext to useMutation.
 
-> **TanStack Query v5 社区惯例**（查阅 context7 确认）：
+> **TanStack Query v5 community conventions** (verified via context7):
 >
-> - mutation 默认 `retry: 0`（官方文档："By default, React Query does not retry mutations on error"）。
->   各 mutation 自行声明 `retry` 是标准做法。
-> - **`networkMode: 'offlineFirst'`**：TanStack 内建的离线→恢复自动重试机制。
+> - mutation defaults to `retry: 0` (official docs: "By default, React Query does not retry mutations on error").
+>   Each mutation declaring its own `retry` is the standard practice.
+> - **`networkMode: 'offlineFirst'`**: TanStack's built-in offline→recovery auto-retry mechanism.
 >   "mutations that fail due to an offline state will automatically be retried once the device reconnects"。
->   对国内弱网场景，这可能比手动 `retry: 2 + retryDelay` 更合适——设备从弱网恢复后自动重试，不需要用户手动重新操作。
->   **建议在 auth mutations 中评估使用**，实施时决定。
+>   For China weak-network scenarios, this may be more suitable than manual `retry: 2 + retryDelay` — device auto-retries after recovering from weak network, no user manual re-operation needed.
+>   **Recommended to evaluate for auth mutations**, decide during implementation.
 
 ```typescript
 import { useMutation } from '@tanstack/react-query';
@@ -573,9 +573,9 @@ export function useUpdateProfile() {
 }
 ```
 
-**单独文件**: `src/hooks/mutations/useUploadAvatar.ts`
+**Separate file**: `src/hooks/mutations/useUploadAvatar.ts`
 
-`uploadAvatar` 属于 storage/upload 领域，不属于 auth，单独拆出：
+`uploadAvatar` belongs to storage/upload domain, not auth; extracted separately:
 
 ```typescript
 export function useUploadAvatar() {
@@ -587,7 +587,7 @@ export function useUploadAvatar() {
 }
 ```
 
-**继续 `useAuthMutations.ts`**（剩余 6 个 hooks）：
+**Continuing `useAuthMutations.ts`** (remaining 6 hooks):
 
 ```typescript
 export function useSignOut() {
@@ -648,20 +648,20 @@ export function useBindWechat() {
 }
 ```
 
-> **微信登录/绑定 retry 设计说明**：
+> **WeChat login/bind retry design notes**:
 >
-> 微信 code 是一次性的（用过即失效），但两层重试仍然安全：
+> WeChat code is one-time-use (invalidated once used), but two-layer retry is still safe:
 >
-> - **Layer 1 cfFetch 网络重试（生效）**：`fetch()` 抛异常 = 请求没到服务器 = code 没被消费 = 重试安全。
->   极少数"请求发出但响应丢了"的情况，重试后服务端返回"code 已使用"错误，不比不重试更差。
-> - **Layer 3 useMutation retry: 0（不重试）**：服务端已返回 HTTP 响应（200/4xx/5xx），
->   code 可能已被消费，重试无意义。用户需重新走微信授权拿新 code。
+> - **Layer 1 cfFetch network retry (active)**: `fetch()` throws = request didn't reach server = code not consumed = retry safe.
+>   In rare "request sent but response lost" cases, retry yields server "code already used" error, no worse than not retrying.
+> - **Layer 3 useMutation retry: 0 (no retry)**: Server already returned HTTP response (200/4xx/5xx),
+>   code may have been consumed, retry is pointless. User needs to re-authorize via WeChat for new code.
 >
-> 所以 `retry: 0` 只关闭 useMutation 层重试，cfFetch 网络层重试对微信仍然生效。
+> So `retry: 0` only disables useMutation-layer retry; cfFetch network-layer retry still applies to WeChat.
 
-### 3.8 Layer 3: Room mutations — useMutation 化
+### 3.8 Layer 3: Room mutations — Convert to useMutation
 
-**新文件**: `src/hooks/mutations/useRoomMutations.ts`
+**New file**: `src/hooks/mutations/useRoomMutations.ts`
 
 ```typescript
 export function useCreateRoom() {
@@ -693,24 +693,24 @@ export function useJoinRoom() {
 }
 ```
 
-### 3.9 Layer 3: Game actions — 保持 callApiWithRetry
+### 3.9 Layer 3: Game actions — Keep callApiWithRetry
 
-**不改为 useMutation。原因：架构模型不匹配。**
+**Not converting to useMutation. Reason: architecture model mismatch.**
 
-游戏操作走 `defineGameAction` → `callApiWithRetry`，与 TanStack Query 的 cache 模型根本不兼容：
+Game actions use `defineGameAction` → `callApiWithRetry`, which is fundamentally incompatible with TanStack Query's cache model:
 
-1. **状态管理模型不同** — 游戏状态由 GameStore（authoritative server state 的 local mirror）管理，由 WebSocket snapshot 驱动更新，不是 HTTP 响应驱动。TanStack Query cache 管的是 server state 的 client-side cache，两者是不同的数据流
-2. **调用方不在 React 树内** — 游戏 action 由 `GameFacade` 类和 `AudioOrchestrator` 类调用，useMutation 是 React hook，无法在 class 内使用
-3. **20+ 个动作共享 `defineGameAction` 工厂** — 统一的 guard → build body → callApi → after hook 流程，改 useMutation 要重写整个工厂模式
+1. **Different state management model** — Game state is managed by GameStore (local mirror of authoritative server state), driven by WebSocket snapshot updates, not HTTP responses. TanStack Query cache manages client-side cache of server state — these are different data flows
+2. **Callers are outside the React tree** — Game actions are called by `GameFacade` and `AudioOrchestrator` classes; useMutation is a React hook and cannot be used inside classes
+3. **20+ actions share `defineGameAction` factory** — Unified guard → build body → callApi → after hook flow; switching to useMutation requires rewriting the entire factory pattern
 
-这是 2026 游戏客户端的标准分层：meta-game（大厅/账户/商店）用 TanStack Query，core-game（实时操作）用专用 state store + WebSocket。
+This is the standard 2026 game client layering: meta-game (lobby/account/store) uses TanStack Query, core-game (real-time actions) uses dedicated state store + WebSocket.
 
-**正确做法**: 在 3.4 中已解决 — callApiWithRetry 现在重试网络错误。
+**Correct approach**: Already solved in §3.4 — callApiWithRetry now retries network errors.
 
-### 3.10 Layer 4: AuthContext 简化
+### 3.10 Layer 4: AuthContext Simplification
 
-**现在**: AuthContext 包含 11 个 async 方法，每个都手动 setLoading + try/catch + handleAuthError。
-**改后**: AuthContext 只保留 `user`, `loading`（init 阶段），`error`。mutations 移到消费者用 useMutation。
+**Before**: AuthContext contains 11 async methods, each with manual setLoading + try/catch + handleAuthError.
+**After**: AuthContext only retains `user`, `loading` (init phase), `error`. Mutations move to consumers via useMutation.
 
 ```typescript
 // 改后的 AuthContext 只暴露:
@@ -724,7 +724,7 @@ interface AuthContextValue {
 }
 ```
 
-**Screen 消费者改法示例**：
+**Screen consumer migration example**:
 
 ```tsx
 // 之前 (AuthLoginScreen.tsx):
@@ -757,8 +757,8 @@ const handleAnonymous = () =>
 
 ### 3.11 Layer 4: Settings / Profile mutations
 
-**现在**: SettingsScreen 通过 AuthContext 调 updateProfile / changePassword。
-**改后**: 直接用 useUpdateProfile / useChangePassword mutation。
+**Before**: SettingsScreen calls updateProfile / changePassword via AuthContext.
+**After**: Directly use useUpdateProfile / useChangePassword mutations.
 
 ```tsx
 // SettingsScreen 改后:
@@ -777,10 +777,10 @@ const handleSaveName = () => {
 };
 ```
 
-### 3.12 Layer 4: ConnectionStatusBar — 加手动重连按钮
+### 3.12 Layer 4: ConnectionStatusBar — Add Manual Reconnect Button
 
-**现在**: WS 进入 Failed 状态后，只显示"连接断开，正在重连"但没有可操作 UI。
-**改后**: Failed 状态显示"连接失败"+"点击重连"按钮。
+**Before**: After WS enters Failed state, only shows "连接断开，正在重连" with no actionable UI.
+**After**: Failed state shows "连接失败" + "点击重连" button.
 
 ```tsx
 // ConnectionStatusBar.tsx
@@ -796,12 +796,12 @@ if (status === ConnectionStatus.Failed) {
 }
 ```
 
-需要从 ConnectionManager 暴露 `manualReconnect()` 方法（已有 `MANUAL_RECONNECT` 事件支持）。
+Needs to expose `manualReconnect()` method from ConnectionManager (already has `MANUAL_RECONNECT` event support).
 
-> **注意**: ConnectionFSM 的 Failed 状态已支持三种自动恢复触发器：`MANUAL_RECONNECT`、`NETWORK_ONLINE`、`VISIBILITY_VISIBLE`。
-> 用户切回前台或网络恢复时 FSM 会自动从 Failed → Reconnecting，手动重连按钮是两者都不触发时的 fallback。
+> **Note**: ConnectionFSM's Failed state already supports three auto-recovery triggers: `MANUAL_RECONNECT`, `NETWORK_ONLINE`, `VISIBILITY_VISIBLE`.
+> When user returns to foreground or network recovers, FSM auto-transitions Failed → Reconnecting. The manual reconnect button is a fallback for when neither triggers.
 
-### 3.13 QueryClient 全局配置
+### 3.13 QueryClient Global Configuration
 
 ```typescript
 // src/lib/queryClient.ts
@@ -836,18 +836,18 @@ export const queryClient = new QueryClient({
 });
 ```
 
-### 3.14 非幂等操作保护 — cfPost `noRetry` 选项
+### 3.14 Non-Idempotent Operation Protection — cfPost `noRetry` Option
 
-**问题**: `fetch()` 抛异常不等于 100% 请求未到达服务端（见 §2.2 警告）。对非幂等操作，网络层自动重试可能导致重复执行。
+**Problem**: `fetch()` throwing does not guarantee 100% request did not reach server (see §2.2 warning). For non-idempotent operations, network-layer auto-retry may cause duplicate execution.
 
-**项目中的非幂等操作**：
+**Non-idempotent operations in the project**:
 
-| 操作                          | 端点                   | 风险         | 现有保护                                                          |
-| ----------------------------- | ---------------------- | ------------ | ----------------------------------------------------------------- |
-| 扭蛋抽奖                      | `POST /api/gacha/draw` | 多扣券多抽   | OCC version check（只防并发，不防重复请求）                       |
-| 投票 `submitAction`(wolfVote) | `POST /game/action`    | 同一只狼双投 | reducer step check（step 前进后忽略，但窗口期内无 per-wolf 去重） |
+| Operation                     | Endpoint               | Risk                   | Existing Protection                                                                   |
+| ----------------------------- | ---------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
+| Gacha draw                    | `POST /api/gacha/draw` | Double-spend tickets   | OCC version check (only prevents concurrency, not duplicate requests)                 |
+| Vote `submitAction`(wolfVote) | `POST /game/action`    | Same wolf double-votes | reducer step check (ignored after step advances, but no per-wolf dedup during window) |
 
-**方案**: 给 `cfPost` 加 `noRetry` 选项，非幂等调用方禁用 Layer 1 网络重试。
+**Solution**: Add `noRetry` option to `cfPost`; non-idempotent callers disable Layer 1 network retry.
 
 ```typescript
 // cfFetch.ts
@@ -865,7 +865,7 @@ export async function cfPost<T = Record<string, unknown>>(
 }
 ```
 
-**消费方**：
+**Consumer side**:
 
 ```typescript
 // GachaService — draw 禁用网络重试
@@ -874,49 +874,49 @@ async performDraw(ticketType: TicketType): Promise<DrawResult> {
 }
 ```
 
-`claimDailyReward` 不需要 `noRetry`（服务端有 20h cooldown guard，天然幂等）。
+`claimDailyReward` does not need `noRetry` (server has 20h cooldown guard, naturally idempotent).
 
-> **远期更优方案**: 服务端加 idempotency key（客户端传 `x-idempotency-key: <uuid>`，服务端用 D1 去重 5min 窗口）。
-> 通用性更好，但需要服务端改动，不在此次范围。记录为 follow-up。
+> **Better long-term solution**: Server-side idempotency key (client sends `x-idempotency-key: <uuid>`, server deduplicates using D1 with 5min window).
+> More general-purpose, but requires server changes, not in this scope. Recorded as follow-up.
 >
-> **CF 官方文档参考**：Cloudflare Workers 文档 _Use the Platform > Idempotent requests_ 提供了标准模式——
-> 客户端生成 `crypto.randomUUID()` 作为 idempotency key，服务端在 D1/KV 中存储 `(key, response)` 并在重复请求时直接返回缓存结果。
-> 实施时参考此模式。
+> **CF official docs reference**: Cloudflare Workers docs _Use the Platform > Idempotent requests_ provides the standard pattern —
+> Client generates `crypto.randomUUID()` as idempotency key, server stores `(key, response)` in D1/KV and returns cached result on duplicate requests.
+> Reference this pattern during implementation.
 
 ---
 
-## 4. UI 设计
+## 4. UI Design
 
-### 4.1 核心原则
+### 4.1 Core Principles
 
-**静默重试 + 延迟反馈**：用户只看到 loading 稍长一点，不看到中间的重试过程。
+**Silent retry + delayed feedback**: Users only see slightly longer loading, never see intermediate retry process.
 
-| 阶段                      | 用户看到                                            |
-| ------------------------- | --------------------------------------------------- |
-| mutation.isPending = true | loading spinner / "处理中" / 按钮禁用（和现在一样） |
-| 内部重试中                | **同上**（isPending 在重试期间保持 true）           |
-| 全部重试失败              | isError = true → **才弹错误提示**                   |
+| Phase                     | What User Sees                                             |
+| ------------------------- | ---------------------------------------------------------- |
+| mutation.isPending = true | loading spinner / "处理中" / button disabled (same as now) |
+| Internal retrying         | **Same as above** (isPending stays true during retry)      |
+| All retries failed        | isError = true → **only then show error notification**     |
 
-### 4.2 错误提示策略
+### 4.2 Error Notification Strategy
 
-| 操作类型             | 错误 UI                        | 理由                   |
-| -------------------- | ------------------------------ | ---------------------- |
-| 登录/注册            | `showErrorAlert` 弹窗          | 阻断流程，用户必须处理 |
-| 房间创建/加入        | `showErrorAlert` 弹窗          | 同上                   |
-| 修改资料/密码        | `showErrorAlert` 弹窗          | 同上                   |
-| 游戏操作（网络错误） | `showErrorAlert` 弹窗          | 阻断流程               |
-| 游戏操作（业务拒绝） | `toast.error` 轻提示           | 非致命                 |
-| 扭蛋/签到            | `toast.error` 轻提示           | 非致命                 |
-| 头像上传             | `showErrorAlert` 弹窗          | 用户在等结果           |
-| WS 断线重连中        | ConnectionStatusBar "正在重连" | 自动恢复               |
-| WS 重连失败          | "连接失败" + "点击重连"按钮    | 需用户干预             |
+| Action Type                   | Error UI                       | Reason                        |
+| ----------------------------- | ------------------------------ | ----------------------------- |
+| Login/register                | `showErrorAlert` dialog        | Blocks flow, user must handle |
+| Room create/join              | `showErrorAlert` dialog        | Same as above                 |
+| Edit profile/password         | `showErrorAlert` dialog        | Same as above                 |
+| Game action (network error)   | `showErrorAlert` dialog        | Blocks flow                   |
+| Game action (business reject) | `toast.error` light toast      | Non-fatal                     |
+| Gacha/check-in                | `toast.error` light toast      | Non-fatal                     |
+| Avatar upload                 | `showErrorAlert` dialog        | User is waiting for result    |
+| WS reconnecting               | ConnectionStatusBar "正在重连" | Auto-recovery                 |
+| WS reconnect failed           | "连接失败" + "点击重连" button | Requires user intervention    |
 
-### 4.3 小程序微信登录失败 — 专用全屏错误页
+### 4.3 WeChat Mini-Program Login Failure — Dedicated Full-Screen Error Page
 
-现有 Alert 弹窗对小程序不合适：用户点"确定"后无处可去。
+Existing Alert dialogs are unsuitable for mini-programs: after tapping "确定" the user has nowhere to go.
 
-**小程序内**：微信 code 一次性，失败后无法重试，需重新进入拿新 code。
-显示全屏错误页（不是 Alert）：
+**Inside mini-program**: WeChat code is one-time-use; after failure it cannot be retried, must re-enter to get new code.
+Display full-screen error page (not Alert):
 
 ```
 ┌─────────────────────────────┐
@@ -930,214 +930,214 @@ async performDraw(ticketType: TicketType): Promise<DrawResult> {
 └─────────────────────────────┘
 ```
 
-点击"重新进入" → `wx.miniProgram.reLaunch()` → web-view 重新加载 → URL 带新 code → 重走登录。
+Click "重新进入" → `wx.miniProgram.reLaunch()` → web-view reloads → URL carries new code → re-runs login.
 
-**非小程序（浏览器）**：已有 fallback → `signInAnonymously()` → 匿名进入首页。无需额外 UI。
+**Non-mini-program (browser)**: Already has fallback → `signInAnonymously()` → anonymous entry to home. No extra UI needed.
 
-实现：在 `#autoSignIn` 的小程序微信登录 catch 分支中，设置一个 `wechatLoginFailed` 状态，
-App 层根据此状态渲染全屏错误页组件（替代当前的 splash screen），而不是弹 Alert。
+Implementation: In `#autoSignIn` mini-program WeChat login catch branch, set a `wechatLoginFailed` state;
+App layer renders full-screen error page component based on this state (replacing current splash screen), instead of showing Alert.
 
-### 4.4 不新增的 UI
+### 4.4 UI Not Being Added
 
-- **不加"重试中 (2/3)"计数器** — 增加用户焦虑，社区不推荐
-- **不加全局 offline banner** — `window.online/offline` 在中国不可靠（WiFi 连着但 CF 不通不触发 offline），误导用户
-- **不加 failureCount 显示** — 同上
+- **No "retrying (2/3)" counter** — Increases user anxiety, not recommended by community
+- **No global offline banner** — `window.online/offline` is unreliable in China (WiFi connected but CF unreachable doesn't trigger offline), misleads users
+- **No failureCount display** — Same reason
 
 ---
 
-## 5. 迁移计划
+## 5. Migration Plan
 
-### Phase 1: 基础设施（cfFetch + apiUtils + config）
+### Phase 1: Infrastructure (cfFetch + apiUtils + config)
 
-| Commit | 文件                                          | 改动                                                                                                                               |
-| ------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 1      | `src/config/api.ts`                           | 超时 8s→12s，新增 `FETCH_RETRY_COUNT` 常量                                                                                         |
-| 2      | `src/services/cloudflare/cfFetch.ts`          | 加 `fetchWithRetry`（导出），cfPost/cfGet/cfPut 内部使用，cfPost 加 `options`（extraHeaders, timeoutMs, noRetry），新增 `cfUpload` |
-| 3      | `src/utils/errorUtils.ts`                     | `isAbortError()` 扩展覆盖 `TimeoutError`（AbortSignal.timeout 超时错误类型）                                                       |
-| 4      | `src/services/facade/apiUtils.ts`             | `callApiOnce` 的 `fetch()` → `fetchWithRetry()` + catch 适配 TimeoutError，`callApiWithRetry` 支持网络错误重试 + 30s 总预算        |
-| 5      | `src/services/cloudflare/CFAuthService.ts`    | `initAuth` 删手动重试循环                                                                                                          |
-| 6      | `src/services/cloudflare/CFStorageService.ts` | `uploadAvatar` 改用 `cfUpload`                                                                                                     |
-| 7      | `src/services/feature/GachaService.ts`        | `performDraw` 加 `{ noRetry: true }`                                                                                               |
+| Commit | File                                          | Changes                                                                                                                                          |
+| ------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1      | `src/config/api.ts`                           | Timeout 8s→12s, add `FETCH_RETRY_COUNT` constant                                                                                                 |
+| 2      | `src/services/cloudflare/cfFetch.ts`          | Add `fetchWithRetry` (exported), used internally by cfPost/cfGet/cfPut, cfPost adds `options` (extraHeaders, timeoutMs, noRetry), add `cfUpload` |
+| 3      | `src/utils/errorUtils.ts`                     | `isAbortError()` expanded to cover `TimeoutError` (AbortSignal.timeout error type)                                                               |
+| 4      | `src/services/facade/apiUtils.ts`             | `callApiOnce` `fetch()` → `fetchWithRetry()` + catch adapts to TimeoutError, `callApiWithRetry` supports network error retry + 30s total budget  |
+| 5      | `src/services/cloudflare/CFAuthService.ts`    | `initAuth` remove manual retry loop                                                                                                              |
+| 6      | `src/services/cloudflare/CFStorageService.ts` | `uploadAvatar` switch to `cfUpload`                                                                                                              |
+| 7      | `src/services/feature/GachaService.ts`        | `performDraw` add `{ noRetry: true }`                                                                                                            |
 
-**验证**: 运行 `pnpm run quality`。此阶段零 UI 改动。24 个 cfPost/cfGet/cfPut 调用点 + 25 个 callApiOnce 调用点自动获得网络重试（draw 除外）。
+**Verification**: Run `pnpm run quality`. Zero UI changes in this phase. 24 cfPost/cfGet/cfPut call sites + 25 callApiOnce call sites automatically gain network retry (except draw).
 
 ### Phase 2: Auth mutations
 
-| Commit | 文件                                                            | 改动                                                 |
-| ------ | --------------------------------------------------------------- | ---------------------------------------------------- |
-| 8      | `src/hooks/mutations/useAuthMutations.ts`                       | 新建，10 个 auth mutation hooks（不含 uploadAvatar） |
-| 9      | `src/hooks/mutations/useUploadAvatar.ts`                        | 新建，uploadAvatar 单独文件（属 storage 领域）       |
-| 10     | `src/contexts/AuthContext.tsx`                                  | 简化为只暴露 user/loading/error/refreshUser          |
-| 11     | `src/screens/AuthScreen/AuthLoginScreen.tsx`                    | 改用 useSignInAnonymously                            |
-| 12     | `src/screens/AuthScreen/AuthEmailScreen.tsx` + `useAuthForm.ts` | 改用 useSignInWithEmail / useSignUpWithEmail         |
-| 13     | `src/screens/AuthScreen/AuthForgotPasswordScreen.tsx`           | 改用 useForgotPassword                               |
-| 14     | `src/screens/AuthScreen/AuthResetPasswordScreen.tsx`            | 改用 useResetPassword                                |
-| 15     | `src/components/auth/LoginOptions.tsx` + `EmailForm.tsx` 等     | 消费 mutation 状态                                   |
-| 16     | `src/screens/HomeScreen/HomeScreen.tsx`                         | AuthContext 消费者适配                               |
-| 17     | `src/components/AuthGateOverlay.tsx`                            | AuthContext 消费者适配                               |
+| Commit | File                                                            | Changes                                                  |
+| ------ | --------------------------------------------------------------- | -------------------------------------------------------- |
+| 8      | `src/hooks/mutations/useAuthMutations.ts`                       | New, 10 auth mutation hooks (excluding uploadAvatar)     |
+| 9      | `src/hooks/mutations/useUploadAvatar.ts`                        | New, uploadAvatar separate file (storage domain)         |
+| 10     | `src/contexts/AuthContext.tsx`                                  | Simplified to only expose user/loading/error/refreshUser |
+| 11     | `src/screens/AuthScreen/AuthLoginScreen.tsx`                    | Switch to useSignInAnonymously                           |
+| 12     | `src/screens/AuthScreen/AuthEmailScreen.tsx` + `useAuthForm.ts` | Switch to useSignInWithEmail / useSignUpWithEmail        |
+| 13     | `src/screens/AuthScreen/AuthForgotPasswordScreen.tsx`           | Switch to useForgotPassword                              |
+| 14     | `src/screens/AuthScreen/AuthResetPasswordScreen.tsx`            | Switch to useResetPassword                               |
+| 15     | `src/components/auth/LoginOptions.tsx` + `EmailForm.tsx` etc.   | Consume mutation state                                   |
+| 16     | `src/screens/HomeScreen/HomeScreen.tsx`                         | AuthContext consumer adaptation                          |
+| 17     | `src/components/AuthGateOverlay.tsx`                            | AuthContext consumer adaptation                          |
 
-> **AuthContext 消费者全量**（~28 处 `useAuthContext`）：上述 commit 覆盖所有 auth mutation 消费者。
-> 仅消费 `user` / `isAuthenticated` 的文件（如 `useGameRoom.ts`、`RoomScreen.tsx`）不受影响，因为 AuthContext 仍暴露这些字段。
+> **All AuthContext consumers** (~28 `useAuthContext` usages): Above commits cover all auth mutation consumers.
+> Files that only consume `user` / `isAuthenticated` (e.g. `useGameRoom.ts`, `RoomScreen.tsx`) are unaffected since AuthContext still exposes these fields.
 
-**验证**: 登录/注册/忘记密码 E2E 流程。
+**Verification**: Login/register/forgot-password E2E flows.
 
 ### Phase 3: Room + Settings mutations
 
-| Commit | 文件                                                    | 改动                                          |
-| ------ | ------------------------------------------------------- | --------------------------------------------- |
-| 18     | `src/hooks/mutations/useRoomMutations.ts`               | 新建                                          |
-| 19     | `src/screens/ConfigScreen/useConfigScreenState.ts`      | createRoom 改用 useCreateRoom                 |
-| 20     | `src/hooks/useRoomLifecycle.ts`                         | joinRoom 改用 mutation                        |
-| 21     | `src/screens/SettingsScreen/SettingsScreen.tsx`         | updateProfile / changePassword 改用 mutations |
-| 22     | `src/screens/AvatarPickerScreen/AvatarPickerScreen.tsx` | uploadAvatar / updateProfile 改用 mutations   |
+| Commit | File                                                    | Changes                                            |
+| ------ | ------------------------------------------------------- | -------------------------------------------------- |
+| 18     | `src/hooks/mutations/useRoomMutations.ts`               | New                                                |
+| 19     | `src/screens/ConfigScreen/useConfigScreenState.ts`      | createRoom switch to useCreateRoom                 |
+| 20     | `src/hooks/useRoomLifecycle.ts`                         | joinRoom switch to mutation                        |
+| 21     | `src/screens/SettingsScreen/SettingsScreen.tsx`         | updateProfile / changePassword switch to mutations |
+| 22     | `src/screens/AvatarPickerScreen/AvatarPickerScreen.tsx` | uploadAvatar / updateProfile switch to mutations   |
 
-**验证**: 创建/加入房间 E2E。
+**Verification**: Create/join room E2E.
 
 ### Phase 4: QueryClient + ConnectionStatusBar
 
-| Commit | 文件                                                        | 改动                                                         |
-| ------ | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| 23     | `src/lib/queryClient.ts`                                    | 更新配置（retry: 2, MutationCache onError）                  |
-| 24     | `src/screens/RoomScreen/components/ConnectionStatusBar.tsx` | Failed 状态加手动重连按钮                                    |
-| 25     | `src/services/connection/ConnectionManager.ts`              | 暴露 manualReconnect 给 UI                                   |
-| 26     | `src/services/cloudflare/CFAuthService.ts` + App 层         | 小程序微信登录失败 → wechatLoginFailed 状态 + 全屏错误页组件 |
+| Commit | File                                                        | Changes                                                                                        |
+| ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| 23     | `src/lib/queryClient.ts`                                    | Update config (retry: 2, MutationCache onError)                                                |
+| 24     | `src/screens/RoomScreen/components/ConnectionStatusBar.tsx` | Failed state add manual reconnect button                                                       |
+| 25     | `src/services/connection/ConnectionManager.ts`              | Expose manualReconnect to UI                                                                   |
+| 26     | `src/services/cloudflare/CFAuthService.ts` + App layer      | Mini-program WeChat login failure → wechatLoginFailed state + full-screen error page component |
 
-**验证**: `pnpm run quality` + E2E 全量。
+**Verification**: `pnpm run quality` + full E2E suite.
 
-### Phase 5: 清理 mutation hooks 临时 retry
+### Phase 5: Clean Up Temporary mutation hooks retry
 
-Phase 1 的 fetchWithRetry 已在 cfPost 层处理网络重试。mutation hooks 上的 `retry` 是双层重试（TanStack retry 重跑整个 mutationFn，内部 cfPost 再重试网络），应清除。
+Phase 1's fetchWithRetry already handles network retry at the cfPost layer. `retry` on mutation hooks creates double-layer retry (TanStack retry re-runs entire mutationFn, internal cfPost retries network again) — should be removed.
 
-TanStack Query 社区惯例：mutations 默认 `retry: 0`，网络重试归 transport 层。
+TanStack Query community convention: mutations default to `retry: 0`, network retry belongs to transport layer.
 
-| Commit | 文件                                      | 改动                                                                     |
-| ------ | ----------------------------------------- | ------------------------------------------------------------------------ |
-| 27     | `src/hooks/mutations/useAuthMutations.ts` | 8 个 hook 删 `retry` + `retryDelay`（保留 wechat/signOut 的 `retry: 0`） |
-| 28     | `src/hooks/mutations/useRoomMutations.ts` | 2 个 hook 删 `retry`                                                     |
+| Commit | File                                      | Changes                                                                |
+| ------ | ----------------------------------------- | ---------------------------------------------------------------------- |
+| 27     | `src/hooks/mutations/useAuthMutations.ts` | 8 hooks remove `retry` + `retryDelay` (keep wechat/signOut `retry: 0`) |
+| 28     | `src/hooks/mutations/useRoomMutations.ts` | 2 hooks remove `retry`                                                 |
 
-**验证**: `pnpm run quality`。
-
----
-
-## 6. 不改的部分
-
-| 部分                                                 | 理由                                                                                                                                                    |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defineGameAction` + `callApiWithRetry` 保持现有模式 | 架构模型不匹配：游戏状态由 GameStore + WebSocket 驱动，不是 HTTP response cache；调用方在 class 内（GameFacade/AudioOrchestrator），无法使用 React hook |
-| `AIChatService.streamChat`                           | SSE streaming 不适合重试                                                                                                                                |
-| WebSocket (ConnectionFSM/ConnectionManager)          | 已完善，不在此次范围                                                                                                                                    |
-| `useDrawMutation` / `useClaimDailyRewardMutation`    | 已正确使用 useMutation ✅                                                                                                                               |
-| `useQuery` hooks (stats/profile/unlocks/gacha)       | 已正确使用 useQuery ✅                                                                                                                                  |
-
-### 6.1 networkMode 评估
-
-TanStack Query 提供三种 `networkMode`：`online`（默认）、`offlineFirst`、`always`。
-
-**不采用 `offlineFirst`**：该模式适用于 Service Worker 离线缓存或 HTTP Cache-Control 场景（首次请求可能从本地缓存命中）。本项目所有请求直连 Cloudflare Workers API，无本地缓存层，`offlineFirst` 只会在离线时白发一次注定失败的请求。
-
-**不采用 `always`（暂不改动）**：`always` 模式忽略 `navigator.onLine` 状态，不暂停请求。当前默认 `online` 模式下，中国用户 WiFi 连着但 CF 不通时 `navigator.onLine === true`，mutation 不会被 paused，行为等同 `always`。显式设 `networkMode: 'always'` 可让语义更明确，但无实际行为差异，优先级低。
-
-**结论**：保持默认 `networkMode: 'online'`。网络韧性由 cfPost fetchWithRetry + callApiWithRetry 网络重试保证，不依赖 TanStack 的网络状态检测。
+**Verification**: `pnpm run quality`.
 
 ---
 
-## 7. 改动统计
+## 6. Parts Not Changed
 
-| 类别                       | 文件数       | 新建                                            |
-| -------------------------- | ------------ | ----------------------------------------------- |
-| 基础设施 (Phase 1)         | 7            | 0                                               |
-| Auth mutations (Phase 2)   | 10           | 2 (`useAuthMutations.ts`, `useUploadAvatar.ts`) |
-| Room/Settings (Phase 3)    | 5            | 1 (`useRoomMutations.ts`)                       |
-| QueryClient + UI (Phase 4) | 4            | 0                                               |
-| **总计**                   | **~26 文件** | **3 新文件**                                    |
+| Part                                                         | Reason                                                                                                                                                                          |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineGameAction` + `callApiWithRetry` keep current pattern | Architecture model mismatch: game state driven by GameStore + WebSocket, not HTTP response cache; callers are in classes (GameFacade/AudioOrchestrator), cannot use React hooks |
+| `AIChatService.streamChat`                                   | SSE streaming not suitable for retry                                                                                                                                            |
+| WebSocket (ConnectionFSM/ConnectionManager)                  | Already complete, not in this scope                                                                                                                                             |
+| `useDrawMutation` / `useClaimDailyRewardMutation`            | Already correctly using useMutation ✅                                                                                                                                          |
+| `useQuery` hooks (stats/profile/unlocks/gacha)               | Already correctly using useQuery ✅                                                                                                                                             |
 
----
+### 6.1 networkMode Evaluation
 
-## 8. 风险与缓解
+TanStack Query provides three `networkMode` options: `online` (default), `offlineFirst`, `always`.
 
-| 风险                                       | 影响                       | 缓解                                                                                                                                                    |
-| ------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| cfFetch 重试导致重复提交                   | 副作用执行两次             | fetch() 抛异常 **大概率** = 请求没到服务器，但边界情况存在（见 §2.2）。非幂等操作用 `noRetry` 保护                                                      |
-| cfFetch 重试非幂等操作（gacha draw）       | 多扣券多抽                 | `noRetry: true` 禁用网络层重试。远期加服务端 idempotency key                                                                                            |
-| callApiWithRetry 网络重试导致游戏操作重复  | 状态错乱                   | 只重试 NETWORK_ERROR/SERVER_ERROR（请求未到达/未处理），不重试 TIMEOUT。reducer state check 提供额外保护（step 前进后忽略重复 ack）                     |
-| AuthContext 简化后消费者断裂               | 编译报错                   | Phase 2 覆盖全部 ~28 个 useAuthContext 消费点，逐文件迁移 + tsc 验证                                                                                    |
-| 微信 code 被重试                           | 服务端报 code 已使用       | signInWithWechat/bindWechat retry: 0                                                                                                                    |
-| 超时 12s 导致用户等太久                    | 体验差                     | 实际 99% 场景 <3s，12s 是兜底。cfFetch 重试是网络层错误（通常 <3s 就知道）                                                                              |
-| 非 JSON 响应（502/503）被 cfFetch 重试     | 无意义重试                 | 502/503 是 HTTP Response，fetch 不抛异常，不触发重试。只有 parseJsonResponse 报错，抛到调用方                                                           |
-| ~~withTimeout Promise.race ghost request~~ | ~~超时后请求继续在后台跑~~ | **已解决**：所有 fetch 调用统一迁移到 `AbortSignal.timeout()`，超时后 abort 请求（TCP 连接关闭），不存在 ghost request。非幂等操作额外用 `noRetry` 保护 |
-| wolfVote 同一只狼双投                      | 投票结果偏差               | DO 单线程 + inline progression 提供事实上的保护。远期 follow-up：handler 层加 per-seat 去重 guard                                                       |
+**Not adopting `offlineFirst`**: This mode is suited for Service Worker offline cache or HTTP Cache-Control scenarios (first request might hit local cache). All requests in this project go directly to Cloudflare Workers API with no local cache layer; `offlineFirst` would just fire one doomed request when offline.
+
+**Not adopting `always` (no change for now)**: `always` mode ignores `navigator.onLine` state and never pauses requests. Under current default `online` mode, when China users have WiFi connected but CF unreachable, `navigator.onLine === true` so mutations are not paused — behavior is equivalent to `always`. Explicitly setting `networkMode: 'always'` would make semantics clearer but has no actual behavior difference; low priority.
+
+**Conclusion**: Keep default `networkMode: 'online'`. Network resilience is guaranteed by cfPost fetchWithRetry + callApiWithRetry network retry, not relying on TanStack's network state detection.
 
 ---
 
-## 9. 验证检查清单
+## 7. Change Statistics
 
-- [ ] `pnpm run quality` 通过
-- [ ] E2E: 匿名登录 → 创建房间 → 入座 → 游戏流程
-- [ ] E2E: 邮箱注册 → 登录 → 修改资料 → 修改密码
-- [ ] E2E: 扭蛋抽奖
-- [ ] 手动: 断网 → 操作 → 恢复 → 自动成功
-- [ ] 手动: 国内网络环境测试（如有条件）
-- [ ] 手动: WS Failed 状态 → 点击重连按钮 → 恢复
-- [ ] 手动: 小程序微信登录失败 → 全屏错误页 → 点击"重新进入" → wxReLaunch 正常
-
----
-
-## 附录 A: 幂等性分析
-
-逐个验证了每个 DO handler 和 API 端点的幂等性，判断网络层重试是否安全。
-
-### 游戏操作（通过 callApiWithRetry）
-
-| 操作                         | 幂等   | 重试安全   | 保护机制                                                                                                                                                                                                                |
-| ---------------------------- | ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `handleJoinSeat`（同座同人） | ✅     | 安全       | userId match 允许重入，数据覆写                                                                                                                                                                                         |
-| `handleLeaveMySeat`          | ✅     | 安全       | `mySeat === null` → `REASON_NOT_SEATED`                                                                                                                                                                                 |
-| `handleKickPlayer`           | ✅     | 安全       | `players[seat] === null` → `REASON_SEAT_EMPTY`                                                                                                                                                                          |
-| `handleClearAllSeats`        | ✅     | 安全       | 空 iterator → 0 actions                                                                                                                                                                                                 |
-| `handleAssignRoles`          | ✅     | 安全       | Status gate `Seated` → `Assigned`，第二次 `invalid_status`                                                                                                                                                              |
-| `handleStartNight`           | ✅     | 安全       | Status gate `Ready` → `Ongoing`，第二次 `invalid_status`                                                                                                                                                                |
-| `handleRestartGame`          | ✅     | 安全       | 无 status gate，但 reset to initial state，效果等价                                                                                                                                                                     |
-| `handleSetAudioPlaying`      | ✅     | 安全       | Boolean 纯赋值                                                                                                                                                                                                          |
-| `handleViewedRole`           | ✅     | 安全       | `hasViewedRole: true` → 幂等赋值                                                                                                                                                                                        |
-| `groupConfirmAck`            | ✅     | 安全       | **显式去重**：`if (acks.includes(seatNum)) return handlerSuccess([])`                                                                                                                                                   |
-| `revealAck`                  | ✅     | 安全       | `pendingRevealAcks.length === 0` → `no_pending_acks`                                                                                                                                                                    |
-| `audioAck`                   | ✅     | 安全       | `!isAudioPlaying` → 空 actions                                                                                                                                                                                          |
-| `progression`                | ✅     | 安全       | evaluateProgression 完整 guard 链 + `MAX_PROGRESSION_LOOPS`                                                                                                                                                             |
-| **`handleSubmitAction`**     | **⚠️** | **有条件** | Gate 4b `expectedSchemaId !== currentStepId` → `step_mismatch`。step 内无去重，但 DO 单线程 + inline progression 在 processAction 中同步推进 step。**wolfVote 步骤例外**：多人投票不立即推进 step，同一只狼理论上可双投 |
-
-### cfPost/cfGet/cfPut 操作（通过 cfFetch）
-
-| 操作                           | 幂等   | 重试安全         | 保护机制                                                                     |
-| ------------------------------ | ------ | ---------------- | ---------------------------------------------------------------------------- |
-| `POST /auth/anonymous`         | ❌     | **可接受**       | 每次创建新 UUID。重试 = 孤儿匿名用户（无业务影响）                           |
-| `POST /auth/signup`            | ✅     | 安全             | email 唯一约束 → 重复 = 409                                                  |
-| `POST /auth/signin`            | ✅     | 安全             | 无副作用，返回 token                                                         |
-| `POST /auth/signout`           | ✅     | 安全             | 重复 signout 无副作用                                                        |
-| `PUT /auth/profile`            | ✅     | 安全             | 纯赋值更新                                                                   |
-| `PUT /auth/password`           | ✅     | 安全             | 旧密码验证 + 新密码写入                                                      |
-| `POST /auth/forgot-password`   | ✅     | 安全             | 可能发重复邮件，有 rate limit                                                |
-| `POST /auth/wechat`            | ⚠️     | **Layer 1 安全** | code 一次性，但 fetch 异常 = code 没被消费。useMutation retry:0              |
-| `POST /room/create`            | ✅     | 安全             | DO init 用 `INSERT OR REPLACE`，幂等                                         |
-| `POST /room/get`               | ✅     | 安全             | 只读                                                                         |
-| **`POST /api/gacha/draw`**     | **❌** | **不安全**       | OCC version check 只防并发。重试 = 多扣券多抽。**已用 `noRetry: true` 保护** |
-| `POST /api/gacha/daily-reward` | ✅     | 安全             | 20h cooldown guard                                                           |
-
-### Follow-up（不在此次范围）
-
-| 项目                                      | 优先级 | 说明                                                                                                                                                    |
-| ----------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 服务端 idempotency key                    | P1     | `x-idempotency-key: <uuid>`，D1 存 key+result，5min 窗口去重。参考 CF 官方文档 _Idempotent requests_ 模式                                               |
-| `handleSubmitAction` per-seat 去重        | P2     | handler 层加 `actions.some(a => a.schemaId === schemaId && a.actorSeat === seat)` 检查                                                                  |
-| ~~`withTimeout` 加 AbortController 选项~~ | ~~P2~~ | **已在本次改造中解决**：所有 fetch 调用统一迁移到 `AbortSignal.timeout()`，超时即 abort。`withTimeout` 仅保留给非 fetch 的 Promise（如 DO RPC timeout） |
+| Category                   | File Count    | New Files                                       |
+| -------------------------- | ------------- | ----------------------------------------------- |
+| Infrastructure (Phase 1)   | 7             | 0                                               |
+| Auth mutations (Phase 2)   | 10            | 2 (`useAuthMutations.ts`, `useUploadAvatar.ts`) |
+| Room/Settings (Phase 3)    | 5             | 1 (`useRoomMutations.ts`)                       |
+| QueryClient + UI (Phase 4) | 4             | 0                                               |
+| **Total**                  | **~26 files** | **3 new files**                                 |
 
 ---
 
-## 实施记录
+## 8. Risks & Mitigation
+
+| Risk                                                  | Impact                              | Mitigation                                                                                                                                                                        |
+| ----------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| cfFetch retry causes duplicate submission             | Side effect executes twice          | fetch() throwing **most likely** = request didn't reach server, but edge cases exist (see §2.2). Non-idempotent operations protected with `noRetry`                               |
+| cfFetch retries non-idempotent op (gacha draw)        | Double-spend tickets                | `noRetry: true` disables network-layer retry. Long-term: add server idempotency key                                                                                               |
+| callApiWithRetry network retry duplicates game action | State corruption                    | Only retry NETWORK_ERROR/SERVER_ERROR (request not arrived/not processed), no TIMEOUT retry. Reducer state check provides extra protection (ignores dup ack after step advances)  |
+| AuthContext simplification breaks consumers           | Compile errors                      | Phase 2 covers all ~28 useAuthContext consumption points, file-by-file migration + tsc verification                                                                               |
+| WeChat code gets retried                              | Server reports code used            | signInWithWechat/bindWechat retry: 0                                                                                                                                              |
+| 12s timeout causes long wait                          | Poor UX                             | In practice 99% <3s, 12s is fallback. cfFetch retry is for network-layer errors (usually known within <3s)                                                                        |
+| Non-JSON response (502/503) retried                   | Pointless retry                     | 502/503 are HTTP Responses, fetch doesn't throw, doesn't trigger retry. Only parseJsonResponse errors, thrown to caller                                                           |
+| ~~withTimeout Promise.race ghost request~~            | ~~Request continues after timeout~~ | **Resolved**: All fetch calls unified to `AbortSignal.timeout()`, timeout aborts request (TCP close), no ghost requests. Non-idempotent ops additionally protected with `noRetry` |
+| wolfVote same wolf double-votes                       | Vote result bias                    | DO single-thread + inline progression provides de facto protection. Long-term follow-up: add per-seat dedup guard at handler layer                                                |
+
+---
+
+## 9. Verification Checklist
+
+- [ ] `pnpm run quality` passes
+- [ ] E2E: Anonymous login → create room → take seat → game flow
+- [ ] E2E: Email register → login → edit profile → change password
+- [ ] E2E: Gacha draw
+- [ ] Manual: Disconnect → action → recover → auto-success
+- [ ] Manual: China network environment test (if conditions allow)
+- [ ] Manual: WS Failed state → click reconnect button → recover
+- [ ] Manual: Mini-program WeChat login failure → full-screen error page → click "重新进入" → wxReLaunch works
+
+---
+
+## Appendix A: Idempotency Analysis
+
+Verified each DO handler and API endpoint for idempotency to determine whether network-layer retry is safe.
+
+### Game Actions (via callApiWithRetry)
+
+| Operation                              | Idempotent | Retry Safe      | Protection Mechanism                                                                                                                                                                                                                                                                              |
+| -------------------------------------- | ---------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `handleJoinSeat` (same seat same user) | ✅         | Safe            | userId match allows re-entry, data overwrite                                                                                                                                                                                                                                                      |
+| `handleLeaveMySeat`                    | ✅         | Safe            | `mySeat === null` → `REASON_NOT_SEATED`                                                                                                                                                                                                                                                           |
+| `handleKickPlayer`                     | ✅         | Safe            | `players[seat] === null` → `REASON_SEAT_EMPTY`                                                                                                                                                                                                                                                    |
+| `handleClearAllSeats`                  | ✅         | Safe            | Empty iterator → 0 actions                                                                                                                                                                                                                                                                        |
+| `handleAssignRoles`                    | ✅         | Safe            | Status gate `Seated` → `Assigned`, second time `invalid_status`                                                                                                                                                                                                                                   |
+| `handleStartNight`                     | ✅         | Safe            | Status gate `Ready` → `Ongoing`, second time `invalid_status`                                                                                                                                                                                                                                     |
+| `handleRestartGame`                    | ✅         | Safe            | No status gate, but reset to initial state, equivalent effect                                                                                                                                                                                                                                     |
+| `handleSetAudioPlaying`                | ✅         | Safe            | Boolean pure assignment                                                                                                                                                                                                                                                                           |
+| `handleViewedRole`                     | ✅         | Safe            | `hasViewedRole: true` → idempotent assignment                                                                                                                                                                                                                                                     |
+| `groupConfirmAck`                      | ✅         | Safe            | **Explicit dedup**: `if (acks.includes(seatNum)) return handlerSuccess([])`                                                                                                                                                                                                                       |
+| `revealAck`                            | ✅         | Safe            | `pendingRevealAcks.length === 0` → `no_pending_acks`                                                                                                                                                                                                                                              |
+| `audioAck`                             | ✅         | Safe            | `!isAudioPlaying` → empty actions                                                                                                                                                                                                                                                                 |
+| `progression`                          | ✅         | Safe            | evaluateProgression full guard chain + `MAX_PROGRESSION_LOOPS`                                                                                                                                                                                                                                    |
+| **`handleSubmitAction`**               | **⚠️**     | **Conditional** | Gate 4b `expectedSchemaId !== currentStepId` → `step_mismatch`. No intra-step dedup, but DO single-thread + inline progression synchronously advances step in processAction. **wolfVote exception**: multi-player vote does not immediately advance step, same wolf can theoretically double-vote |
+
+### cfPost/cfGet/cfPut Operations (via cfFetch)
+
+| Operation                      | Idempotent | Retry Safe       | Protection Mechanism                                                                                          |
+| ------------------------------ | ---------- | ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/anonymous`         | ❌         | **Acceptable**   | Creates new UUID each time. Retry = orphan anonymous user (no business impact)                                |
+| `POST /auth/signup`            | ✅         | Safe             | email unique constraint → duplicate = 409                                                                     |
+| `POST /auth/signin`            | ✅         | Safe             | No side effects, returns token                                                                                |
+| `POST /auth/signout`           | ✅         | Safe             | Repeated signout has no side effects                                                                          |
+| `PUT /auth/profile`            | ✅         | Safe             | Pure assignment update                                                                                        |
+| `PUT /auth/password`           | ✅         | Safe             | Old password verification + new password write                                                                |
+| `POST /auth/forgot-password`   | ✅         | Safe             | May send duplicate email, has rate limit                                                                      |
+| `POST /auth/wechat`            | ⚠️         | **Layer 1 Safe** | Code is one-time, but fetch exception = code not consumed. useMutation retry:0                                |
+| `POST /room/create`            | ✅         | Safe             | DO init uses `INSERT OR REPLACE`, idempotent                                                                  |
+| `POST /room/get`               | ✅         | Safe             | Read-only                                                                                                     |
+| **`POST /api/gacha/draw`**     | **❌**     | **Unsafe**       | OCC version check only prevents concurrency. Retry = double-spend tickets. **Protected with `noRetry: true`** |
+| `POST /api/gacha/daily-reward` | ✅         | Safe             | 20h cooldown guard                                                                                            |
+
+### Follow-up (Out of Scope)
+
+| Item                                         | Priority | Description                                                                                                                                                                 |
+| -------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Server-side idempotency key                  | P1       | `x-idempotency-key: <uuid>`, D1 stores key+result, 5min window dedup. Reference CF official docs _Idempotent requests_ pattern                                              |
+| `handleSubmitAction` per-seat dedup          | P2       | Add `actions.some(a => a.schemaId === schemaId && a.actorSeat === seat)` check at handler layer                                                                             |
+| ~~`withTimeout` add AbortController option~~ | ~~P2~~   | **Resolved in this refactoring**: All fetch calls unified to `AbortSignal.timeout()`, timeout = abort. `withTimeout` only kept for non-fetch Promises (e.g. DO RPC timeout) |
+
+---
+
+## Implementation Notes
 
 ### Prefetch Race Fix（2026-05-24）
 
-**根因**：`#fetchState` 无条件 await prefetch promise。慢网络 + 冷 DO 时 prefetch 12s 未 settle → 阻塞 fetchState 发出新请求 → 15s connectAndWait envelope 超时。
+**Root cause**: `#fetchState` unconditionally awaits prefetch promise. On slow network + cold DO, prefetch does not settle within 12s → blocks fetchState from issuing new request → 15s connectAndWait envelope timeout.
 
-**修复**：`Promise.race(prefetch, graceTimer)` — WS open 后给 prefetch 3s grace 窗口（`PREFETCH_GRACE_MS = 3000`）。超时未 settle 则 abandon prefetch、fetch fresh（DO 已因 WS upgrade 而 warm，新请求 2-3s 完成）。
+**Fix**: `Promise.race(prefetch, graceTimer)` — After WS open, give prefetch a 3s grace window (`PREFETCH_GRACE_MS = 3000`). If not settled after timeout, abandon prefetch and fetch fresh (DO is already warm from WS upgrade, new request completes in 2-3s).
 
-**附带**：`connectAndWait` timeout 标记为 expected error（网络条件，非代码缺陷）。
+**Additionally**: `connectAndWait` timeout marked as expected error (network conditions, not code defect).
