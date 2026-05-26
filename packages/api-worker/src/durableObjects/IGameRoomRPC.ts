@@ -1,14 +1,14 @@
 /**
- * IGameRoomRPC — GameRoom Durable Object 的公开 RPC 方法契约。
+ * IGameRoomRPC — GameRoom Durable Object public RPC method contract.
  *
- * GameRoom 类必须 `implements IGameRoomRPC`，确保：
- * - Handler 调用的方法编译期存在
- * - 参数/返回类型一致
- * - 重构安全（改名/删方法触发编译错误）
+ * GameRoom class must `implements IGameRoomRPC`, ensuring:
+ * - Methods called by handlers exist at compile time
+ * - Parameter/return types are consistent
+ * - Refactoring safety (renaming/deleting methods triggers compile errors)
  *
- * @remarks 所有方法运行在 DO 单线程上下文中，无并发竞争。
- *   返回 `GameActionResult`：`{success:true, state, revision}` 或 `{success:false, reason}`。
- *   绝不 throw HTTPException — 错误通过 result.reason 返回，由 Worker handler 层映射为 HTTP 状态码。
+ * @remarks All methods run in DO single-threaded context, no concurrency races.
+ *   Returns `GameActionResult`: `{success:true, state, revision}` or `{success:false, reason}`.
+ *   Never throws HTTPException — errors returned via result.reason, mapped to HTTP status codes by Worker handler layer.
  */
 
 import type { UpdatePlayerProfileAction } from '@werewolf/game-engine/engine/reducer/types';
@@ -22,63 +22,63 @@ export interface IGameRoomRPC {
   // ── No-arg game control ─────────────────────────────────────────────────
 
   /**
-   * 分配角色到座位。
-   * @pre status === 'Setup' && 已入座人数 >= templateRoles.length
-   * @pre 仅 host 可调用（内部使用 state.hostUserId）
+   * Assign roles to seats.
+   * @pre status === 'Setup' && seated count >= templateRoles.length
+   * @pre host-only (uses state.hostUserId internally)
    */
   assignRoles(): Promise<GameActionResult>;
 
   /**
-   * 重置游戏回 Setup 状态（保留座位和 roster）。
+   * Reset game back to Setup status (preserves seats and roster).
    * @pre status === 'Ended' || status === 'Setup'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   restartGame(): Promise<GameActionResult>;
 
   /**
-   * 清空所有座位（保留房间和模板）。
+   * Clear all seats (preserves room and template).
    * @pre status === 'Setup'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   clearAllSeats(): Promise<GameActionResult>;
 
   /**
-   * 用 bot 填充所有空座位（调试模式）。
+   * Fill all empty seats with bots (debug mode).
    * @pre status === 'Setup'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   fillWithBots(): Promise<GameActionResult>;
 
   /**
-   * 标记所有 bot 已查看角色。
-   * @pre status === 'Setup' && assignRoles 已完成
-   * @pre 仅 host 可调用
+   * Mark all bots as having viewed roles.
+   * @pre status === 'Setup' && assignRoles completed
+   * @pre host-only
    */
   markAllBotsViewed(): Promise<GameActionResult>;
 
   /**
-   * 开始夜间流程：生成 nightPlan → 设 status=Ongoing → 广播首个音频。
-   * @pre status === 'Setup' && 所有玩家 hasViewedRole === true
-   * @pre 仅 host 可调用
+   * Start night flow: generate nightPlan -> set status=Ongoing -> broadcast first audio.
+   * @pre status === 'Setup' && all players hasViewedRole === true
+   * @pre host-only
    */
   startNight(): Promise<GameActionResult>;
 
   // ── Parameterized game actions ──────────────────────────────────────────
 
   /**
-   * 座位操作：入座 / 离座 / 踢人。
-   * @pre status === 'Setup'（入座/离座/踢人都仅 Setup 阶段允许）
-   * @pre action='sit' → seat 必须为空，userId 不能已在其他座位
-   * @pre action='kick' → 调用者必须是 host
+   * Seat operations: sit / leave / kick.
+   * @pre status === 'Setup' (sit/leave/kick all only allowed in Setup phase)
+   * @pre action='sit' -> seat must be empty, userId cannot already be in another seat
+   * @pre action='kick' -> caller must be host
    */
   seat(params: SeatActionParams): Promise<GameActionResult>;
 
   /**
-   * 提交夜间行动。
+   * Submit night action.
    * @pre status === 'Ongoing'
-   * @pre seatNum 对应的玩家角色 === role
-   * @pre 该角色的当前步骤与 currentStepId 匹配
-   * @pre 同一步骤同一座位不可重复提交（幂等：重复返回 rejection 而非 error）
+   * @pre player role at seatNum === role
+   * @pre current step of that role matches currentStepId
+   * @pre same step same seat cannot resubmit (idempotent: duplicate returns rejection not error)
    */
   submitAction(
     seatNum: number,
@@ -88,129 +88,129 @@ export interface IGameRoomRPC {
   ): Promise<GameActionResult>;
 
   /**
-   * 标记玩家已查看自己的角色。
-   * @pre userId 对应的 seatNum 有效且已分配角色
+   * Mark player as having viewed their role.
+   * @pre seatNum corresponding to userId is valid and has assigned role
    */
   viewRole(userId: string, seatNum: number): Promise<GameActionResult>;
 
   /**
-   * 更新模板角色配置。
+   * Update template role configuration.
    * @pre status === 'Setup'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   updateTemplate(templateRoles: RoleId[]): Promise<GameActionResult>;
 
   /**
-   * 更新玩家画像（昵称 / 头像 / 装饰）。
-   * @pre 调用者 userId 必须在 roster 中
+   * Update player profile (nickname / avatar / decorations).
+   * @pre caller userId must be in roster
    */
   updateProfile(payload: UpdatePlayerProfileAction['payload']): Promise<GameActionResult>;
 
   /**
-   * Host 分享夜间详细信息给指定座位。
+   * Host shares night detail info to specified seats.
    * @pre status === 'Ended'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   shareReview(allowedSeats: number[]): Promise<GameActionResult>;
 
   // ── Board nomination ────────────────────────────────────────────────────
 
   /**
-   * 提交板子建议（每人最多一条，后提交覆盖前）。
+   * Submit board nomination (max one per person, later overrides).
    * @pre status === 'Setup'
-   * @pre userId 已在 roster 中（任何已连接玩家均可）
+   * @pre userId is in roster (any connected player can submit)
    */
   boardNominate(userId: string, displayName: string, roles: RoleId[]): Promise<GameActionResult>;
 
   /**
-   * 为某建议投票。
+   * Upvote a nomination.
    * @pre status === 'Setup'
-   * @pre targetUserId 的建议存在
-   * @pre 不可给自己投票
+   * @pre targetUserId's nomination exists
+   * @pre cannot vote for own nomination
    */
   boardUpvote(voterUid: string, targetUserId: string): Promise<GameActionResult>;
 
   /**
-   * 撤回自己的板子建议。
+   * Withdraw own board nomination.
    * @pre status === 'Setup'
-   * @pre userId 有已提交的建议
+   * @pre userId has a submitted nomination
    */
   boardWithdraw(userId: string): Promise<GameActionResult>;
 
   // ── Night flow ──────────────────────────────────────────────────────────
 
   /**
-   * 音频播放完成确认（Host 端调用）。
+   * Audio playback completion confirmation (called by Host).
    * @pre isAudioPlaying === true || pendingAudioEffects.length > 0
-   * @remarks 触发 inlineProgression：清除 audio 后可能连锁推进多个步骤。
-   *   如果推进到 END_NIGHT 且 status 变为 Ended，同步触发 XP 结算。
+   * @remarks Triggers inlineProgression: may chain-progress multiple steps after clearing audio.
+   *   If progression reaches END_NIGHT and status becomes Ended, synchronously triggers XP settlement.
    */
   audioAck(): Promise<GameActionResult>;
 
   /**
-   * 设置音频播放状态（Host 端调用，标记开始/结束播放）。
+   * Set audio playing state (called by Host, marks start/end of playback).
    * @pre status === 'Ongoing' || status === 'Ended'
-   * @pre 仅 host 可调用
+   * @pre host-only
    */
   audioGate(isPlaying: boolean): Promise<GameActionResult>;
 
   /**
-   * 请求服务端执行内联推进（无-op trigger）。
+   * Request server-side inline progression (no-op trigger).
    * @pre status === 'Ongoing'
-   * @remarks 当客户端检测到应推进但未推进时调用（如 deadline 到期）。
-   *   服务端执行 inlineProgression，可能连锁多步。
+   * @remarks Called when client detects progression should happen but has not (e.g. deadline expired).
+   *   Server executes inlineProgression, may chain multiple steps.
    */
   progression(): Promise<GameActionResult>;
 
   /**
-   * 确认揭示信息已查看。
+   * Confirm reveal info has been viewed.
    * @pre pendingRevealAcks.length > 0
    */
   revealAck(): Promise<GameActionResult>;
 
   /**
-   * 机械狼人学到猎人后的「已查看」确认。
+   * Wolf Robot "has viewed" confirmation after learning hunter.
    * @pre wolfRobotHunterStatusViewed === false
-   * @pre seatNum 是机械狼人所在座位
+   * @pre seatNum is the wolf robot seat
    */
   wolfRobotViewed(seatNum: number): Promise<GameActionResult>;
 
   /**
-   * 群体确认步骤的单人 ack（催眠揭示 / 转化揭示 / 情侣揭示）。
+   * Single-player ack for group confirm step (hypnotize reveal / conversion reveal / lover reveal).
    * @pre status === 'Ongoing'
-   * @pre currentStepId 对应 schema.kind === 'groupConfirm'
-   * @pre seatNum 有效且 player.userId === userId（或 userId === hostUserId）
-   * @remarks 幂等：已 ack 的座位重复调用返回空 success。
+   * @pre currentStepId corresponds to schema.kind === 'groupConfirm'
+   * @pre seatNum is valid and player.userId === userId (or userId === hostUserId)
+   * @remarks Idempotent: duplicate ack for already-acked seat returns empty success.
    */
   groupConfirmAck(seatNum: number, userId: string): Promise<GameActionResult>;
 
   /**
-   * 批量标记所有 bot 已确认群体步骤。
+   * Batch mark all bots as having confirmed group step.
    * @pre debugMode.botsEnabled === true
    * @pre status === 'Ongoing'
-   * @pre currentStepId 对应 schema.kind === 'groupConfirm'
+   * @pre currentStepId corresponds to schema.kind === 'groupConfirm'
    */
   markBotsGroupConfirmed(): Promise<GameActionResult>;
 
   // ── Read-only ───────────────────────────────────────────────────────────
 
-  /** 读取当前游戏状态 + revision。房间未初始化时返回 null。 */
+  /** Read current game state + revision. Returns null if room not initialized. */
   getState(): Promise<{ state: GameState; revision: number } | null>;
 
-  /** 仅读取当前 revision 号（轻量级 poll 用）。房间未初始化时返回 null。 */
+  /** Read current revision number only (for lightweight polling). Returns null if room not initialized. */
   getRevision(): Promise<number | null>;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
   /**
-   * 初始化 DO 状态（INSERT OR REPLACE）。
-   * @pre 仅在 room/create handler 中调用一次。幂等（重复调用覆盖）。
+   * Initialize DO state (INSERT OR REPLACE).
+   * @pre Called once in room/create handler only. Idempotent (repeated calls overwrite).
    */
   init(initialState: GameState): Promise<void>;
 
   /**
-   * 清除 DO 所有持久化存储（deleteAll）。
-   * @pre 仅在 room/delete handler 中调用。调用后 DO 实例不可再使用。
+   * Clear all DO persistent storage (deleteAll).
+   * @pre Called only in room/delete handler. DO instance unusable after this call.
    */
   cleanup(): Promise<void>;
 }

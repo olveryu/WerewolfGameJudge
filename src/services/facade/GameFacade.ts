@@ -1,26 +1,26 @@
 /**
- * GameFacade — UI Facade 实现。
+ * GameFacade — UI Facade implementation.
  *
- * 职责：
- * - 组合 gameActions / seatActions 子模块
- * - 管理生命周期和身份状态
- * - 对外暴露统一的 public API
- * - 委托音频编排给 AudioOrchestrator
- * - 委托连接生命周期给 ConnectionManager
+ * Responsibilities:
+ * - Compose gameActions / seatActions sub-modules
+ * - Manage lifecycle and identity state
+ * - Expose unified public API
+ * - Delegate audio orchestration to AudioOrchestrator
+ * - Delegate connection lifecycle to ConnectionManager
  *
- * 不负责：
- * - 业务逻辑/校验规则（全部在 handler）
- * - 直接修改 state（全部在 reducer）
- * - 全局单例（已移除 getInstance/resetInstance）
+ * Not responsible for:
+ * - Business logic / validation rules (all in handlers)
+ * - Direct state mutation (all in reducers)
+ * - Global singleton (getInstance/resetInstance removed)
  *
- * 边界约束：
- * - 由 composition root（App.tsx）通过 constructor DI 创建
- * - 通过 GameFacadeContext 注入到组件树
- * - 子模块划分：gameActions / seatActions / AudioOrchestrator / ConnectionManager
+ * Boundary constraints:
+ * - Created by composition root (App.tsx) via constructor DI
+ * - Injected into component tree via GameFacadeContext
+ * - Sub-module split: gameActions / seatActions / AudioOrchestrator / ConnectionManager
  *
- * @remarks leaveRoom cleanup 顺序: (1) #aborted=true (2) audio stop (3) WS disconnect (4) store reset。
- *   #aborted=true 立即设置以信号正在进行的异步操作放弃。
- *   后续异步回调（audio ack、WS 事件 handler）检查 #aborted 决定是否 drop。
+ * @remarks leaveRoom cleanup order: (1) #aborted=true (2) audio stop (3) WS disconnect (4) store reset.
+ *   #aborted=true is set immediately to signal ongoing async operations to abort.
+ *   Subsequent async callbacks (audio ack, WS event handlers) check #aborted to decide whether to drop.
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
@@ -43,26 +43,26 @@ import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
 import { AudioOrchestrator } from './AudioOrchestrator';
-// 子模块
+// Sub-modules
 import type { GameActionsContext } from './gameActions';
 import * as gameActions from './gameActions';
 import type { SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
 /**
- * GameFacade 可注入依赖
+ * GameFacade injectable dependencies
  *
- * 所有字段必填 — 由 composition root（App.tsx）显式创建并注入。
- * 测试中同样显式传入 mock 实例。
+ * All fields required — explicitly created and injected by composition root (App.tsx).
+ * Tests likewise explicitly pass mock instances.
  */
 interface GameFacadeDeps {
-  /** GameStore 实例 */
+  /** GameStore instance */
   store: GameStore;
-  /** ConnectionManager 实例（FSM 驱动的连接生命周期） */
+  /** ConnectionManager instance (FSM-driven connection lifecycle) */
   connectionManager: ConnectionManager;
-  /** AudioService 实例 */
+  /** AudioService instance */
   audioService: AudioService;
-  /** RoomService 实例（DB state 持久化） */
+  /** RoomService instance (DB state persistence) */
   roomService: IRoomService;
 }
 
@@ -86,12 +86,12 @@ function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
 }
 
 /**
- * GameFacade — UI 层唯一入口，编排房间生命周期、连接、状态、音频。
+ * GameFacade — single entry point for UI layer, orchestrating room lifecycle, connection, state, audio.
  *
- * 职责：协调 ConnectionManager + GameStore + AudioService，
- * 暗露 subscribe/getState API 供 hook 消费。
+ * Responsibilities: coordinate ConnectionManager + GameStore + AudioService,
+ * expose subscribe/getState API for hook consumption.
  *
- * 不包含游戏规则逻辑。
+ * Does not contain game rule logic.
  */
 export class GameFacade implements IGameFacade {
   readonly #store: GameStore;
@@ -114,7 +114,7 @@ export class GameFacade implements IGameFacade {
   #aborted = false;
 
   /**
-   * @param deps - 必须由 composition root 或测试显式提供所有依赖。
+   * @param deps - Must be explicitly provided by composition root or tests.
    */
   constructor(deps: GameFacadeDeps) {
     this.#store = deps.store;
@@ -153,7 +153,7 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Identity (从 store 派生，不自己维护)
+  // Identity (derived from store, not self-maintained)
   // =========================================================================
 
   isHostPlayer(): boolean {
@@ -201,8 +201,8 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * 接收 WebSocket SETTLE_RESULT 消息，推送给所有订阅者。
-   * 由 ConnectionManager onSettleResult 回调调用。
+   * Receives WebSocket SETTLE_RESULT message, pushes to all subscribers.
+   * Called by ConnectionManager onSettleResult callback.
    */
   handleSettleResult(result: SettleResultMessage): void {
     for (const fn of this.#settleResultListeners) {
@@ -237,14 +237,14 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Constructor 注册的内部 store listener 数量。
-   * 若在 constructor 中新增/删除 store.subscribe()，必须同步更新此值。
+   * Number of internal store listeners registered in constructor.
+   * Must update this value when adding/removing store.subscribe() in constructor.
    */
   static readonly #internalStoreListenerCount = 1;
 
   /**
-   * 获取当前 外部 listener 数量（仅用于测试/调试）。
-   * 排除 constructor 内部的 reactive 订阅。
+   * Get current external listener count (for testing/debugging only).
+   * Excludes constructor internal reactive subscriptions.
    */
   getListenerCount(): number {
     return this.#store.getListenerCount() - GameFacade.#internalStoreListenerCount;
@@ -263,21 +263,21 @@ export class GameFacade implements IGameFacade {
     this.#myUserId = hostUserId;
     this.#roomCode = roomCode;
 
-    // 初始化 store（使用共享的 buildInitialGameState）
+    // Initialize store (using shared buildInitialGameState)
     const initialState = buildInitialGameState(roomCode, hostUserId, template);
     this.#store.initialize(initialState);
 
-    // 连接 WS + 等待 Connected（FSM: Idle → Connecting → Syncing → Connected）
+    // Connect WS + wait for Connected (FSM: Idle -> Connecting -> Syncing -> Connected)
     await this.#connectionManager.connectAndWait(roomCode, hostUserId);
   }
 
   /**
-   * 加入已有房间（Host rejoin + Player join 统一入口）
+   * Join existing room (unified entry for Host rejoin + Player join)
    *
-   * connectAndWait() 会 WS 连接 + 自动 fetchDB（FSM Syncing → Connected）。
-   * Host rejoin 预设 #wasAudioInterrupted guard 阻断 reactive 误播。
+   * connectAndWait() does WS connection + auto fetchDB (FSM Syncing -> Connected).
+   * Host rejoin presets #wasAudioInterrupted guard to block reactive mis-playback.
    *
-   * @returns success=false 仅在 Host rejoin 且无 DB 状态时
+   * @returns success=false only when Host rejoin has no DB state
    */
   async joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult> {
     facadeLog.info('joinRoom', { roomCode, isHost });
@@ -294,11 +294,11 @@ export class GameFacade implements IGameFacade {
     }
     this.#roomCode = roomCode;
 
-    // Host rejoin: 预设 guard，阻断 subscribe 阶段收到 pendingAudioEffects 时 reactive 误播
+    // Host rejoin: preset guard to block reactive mis-playback when receiving pendingAudioEffects during subscribe phase
     if (isHost) this.#audioOrchestrator.setWasAudioInterrupted(true);
 
-    // connectAndWait: WS 连接 + fetchDB + 等待 Connected
-    // FSM 的 Syncing 阶段会自动 fetchDB → onFetchedState → store.applySnapshot
+    // connectAndWait: WS connection + fetchDB + wait for Connected
+    // FSM Syncing phase auto-fetches DB -> onFetchedState -> store.applySnapshot
     await this.#connectionManager.connectAndWait(roomCode, userId);
 
     // After connectAndWait, store should have state from DB (if any)
@@ -309,7 +309,7 @@ export class GameFacade implements IGameFacade {
         this.#audioOrchestrator.setWasAudioInterrupted(dbState.status === GameStatus.Ongoing);
       }
     } else if (isHost) {
-      // Host rejoin 无 DB 状态：无法恢复
+      // Host rejoin with no DB state: cannot recover
       this.#audioOrchestrator.setWasAudioInterrupted(false);
       this.#isHost = false;
       this.#myUserId = null;
@@ -321,17 +321,17 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Host rejoin 后是否有音频被中断（缓存 isAudioPlaying === true）
-   * UI 层读取此值决定"继续游戏"overlay 是否需要重播当前步骤音频。
+   * Whether audio was interrupted after Host rejoin (cached isAudioPlaying === true)
+   * UI layer reads this to decide if "resume game" overlay needs to replay current step audio.
    */
   get wasAudioInterrupted(): boolean {
     return this.#audioOrchestrator.wasAudioInterrupted;
   }
 
   /**
-   * Host rejoin + 用户点击"继续游戏"后调用。
-   * 触发 user gesture → 解锁 Web AudioContext。
-   * 委托给 AudioOrchestrator 处理音频重播和 ack。
+   * Called after Host rejoin + user clicks "resume game".
+   * Triggers user gesture -> unlocks Web AudioContext.
+   * Delegates to AudioOrchestrator for audio replay and ack.
    */
   async resumeAfterRejoin(): Promise<void> {
     facadeLog.debug('resumeAfterRejoin');
@@ -343,9 +343,9 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * Host: wolf vote deadline 到期后触发服务端推进。
+   * Host: triggers server-side progression after wolf vote deadline expires.
    *
-   * 客户端倒计时到期时调用，服务端执行 inline progression。
+   * Called when client countdown expires, server executes inline progression.
    */
   async postProgression(): Promise<ActionResult> {
     facadeLog.debug('postProgression');
@@ -358,7 +358,7 @@ export class GameFacade implements IGameFacade {
     this.#aborted = true;
     this.#audioOrchestrator.reset();
 
-    // 不自动离座——玩家回到房间时按 UID 恢复原座位
+    // Don't auto-unseat — player recovers original seat by UID when returning to room
 
     // Stop currently playing audio and release preloaded audio to free memory
     this.#audioService.stop();
@@ -374,7 +374,7 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Seating (委托给 seatActions)
+  // Seating (delegated to seatActions)
   // =========================================================================
 
   async takeSeat(seat: number, profile?: SeatProfile): Promise<boolean> {
@@ -406,7 +406,7 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Game Control (委托给 gameActions)
+  // Game Control (delegated to gameActions)
   // =========================================================================
 
   async assignRoles(): Promise<ActionResult> {
@@ -418,7 +418,7 @@ export class GameFacade implements IGameFacade {
   }
 
   async markViewedRole(seat: number): Promise<ActionResult> {
-    // Host 和 Player 统一走 HTTP API
+    // Host and Player both use HTTP API uniformly
     return gameActions.markViewedRole(this.#getActionsContext(), seat);
   }
 
@@ -427,66 +427,66 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Host: 重新开始游戏（HTTP API）
+   * Host: restart game (HTTP API)
    *
-   * 服务端重置 state → WS 广播推送新状态到所有客户端。
+   * Server resets state -> WS broadcast pushes new state to all clients.
    */
   async restartGame(): Promise<ActionResult> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
     this.#audioService.stop();
     this.#audioService.clearPreloaded();
-    // 服务端校验 hostUserId，客户端不再做冗余门控
+    // Server validates hostUserId, client no longer does redundant gating
     return gameActions.restartGame(this.#getActionsContext());
   }
 
   // =========================================================================
-  // Debug Mode: Fill With Bots (委托给 gameActions)
+  // Debug Mode: Fill With Bots (delegated to gameActions)
   // =========================================================================
 
   /**
-   * Host: 填充机器人（Debug-only）
+   * Host: fill with bots (Debug-only)
    *
-   * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true。
-   * 仅在 isHost && status === Unseated 时可用。
+   * Creates bot players for all empty seats, sets debugMode.botsEnabled = true.
+   * Only available when isHost && status === Unseated.
    */
   async fillWithBots(): Promise<ActionResult> {
     return gameActions.fillWithBots(this.#getActionsContext());
   }
 
   /**
-   * Host: 标记所有机器人已查看角色（Debug-only）
+   * Host: mark all bots as having viewed roles (Debug-only)
    *
-   * 仅对 isBot === true 的玩家设置 hasViewedRole = true。
-   * 仅在 debugMode.botsEnabled === true && status === Assigned 时可用。
+   * Sets hasViewedRole = true only for isBot === true players.
+   * Only available when debugMode.botsEnabled === true && status === Assigned.
    */
   async markAllBotsViewed(): Promise<ActionResult> {
     return gameActions.markAllBotsViewed(this.#getActionsContext());
   }
 
   /**
-   * Host: 标记所有机器人已确认 groupConfirm 步骤（Debug-only）
+   * Host: mark all bots as having confirmed groupConfirm step (Debug-only)
    *
-   * 批量为所有 isBot 玩家提交 groupConfirm ack。
-   * 仅在 debugMode.botsEnabled === true && status === Ongoing && 当前步骤为 groupConfirm 时可用。
+   * Batch-submits groupConfirm ack for all isBot players.
+   * Only available when debugMode.botsEnabled === true && status === Ongoing && current step is groupConfirm.
    */
   async markAllBotsGroupConfirmed(): Promise<ActionResult> {
     return gameActions.markAllBotsGroupConfirmed(this.#getActionsContext());
   }
 
   /**
-   * Host: 全员起立
+   * Host: unseat all
    *
-   * 清空所有座位上的玩家。仅在 unseated/seated 状态可用。
+   * Clears all seated players. Only available in unseated/seated status.
    */
   async clearAllSeats(): Promise<ActionResult> {
     return gameActions.clearAllSeats(this.#getActionsContext());
   }
 
   /**
-   * 同步玩家资料到 GameState（任何在座玩家）
+   * Sync player profile to GameState (any seated player)
    *
-   * 用户在 SettingsScreen 改名/换头像后调用，将新资料广播到所有客户端。
-   * 如果不在座则服务端返回 NOT_SEATED（静默忽略即可）。
+   * Called after user changes name/avatar in SettingsScreen, broadcasts new profile to all clients.
+   * If not seated, server returns NOT_SEATED (silently ignore).
    */
   async updatePlayerProfile(
     displayName?: string,
@@ -510,16 +510,16 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * Host: 分享「详细信息」给指定座位
+   * Host: share "detailed info" to specified seats
    *
-   * ended 阶段 Host 选择允许查看夜晚行动详情的座位列表。
+   * In ended phase, Host selects seats allowed to view night action details.
    */
   async shareNightReview(allowedSeats: number[]): Promise<ActionResult> {
     return gameActions.shareNightReview(this.#getActionsContext(), allowedSeats);
   }
 
   // =========================================================================
-  // Board Nomination (委托给 gameActions)
+  // Board Nomination (delegated to gameActions)
   // =========================================================================
 
   async boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult> {
@@ -535,14 +535,14 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Night Actions (委托给 gameActions)
+  // Night Actions (delegated to gameActions)
   // =========================================================================
 
   /**
-   * 提交夜晚行动（HTTP API）
+   * Submit night action (HTTP API)
    *
-   * Host 和 Player 统一走 HTTP API。
-   * 推进由 gameActions.submitAction 内部触发（仅 Host）。
+   * Host and Player both use HTTP API uniformly.
+   * Progression triggered internally by gameActions.submitAction (Host only).
    */
   async submitAction(
     seat: number,
@@ -554,18 +554,18 @@ export class GameFacade implements IGameFacade {
   }
 
   /**
-   * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）（HTTP API）
+   * Submit reveal confirmation (seer/psychic/gargoyle/wolfRobot) (HTTP API)
    *
-   * Host/Player 统一调用 HTTP API
+   * Host/Player both call HTTP API uniformly
    */
   async submitRevealAck(): Promise<ActionResult> {
     return gameActions.clearRevealAcks(this.#getActionsContext());
   }
 
   /**
-   * 提交 groupConfirm ack（催眠确认 "我知道了"）（HTTP API）
+   * Submit groupConfirm ack (hypnotize confirmation "I understand") (HTTP API)
    *
-   * 任意玩家调用。服务端收到所有玩家 ack 后自动推进步骤。
+   * Any player can call. Server auto-progresses step after receiving all player acks.
    */
   async submitGroupConfirmAck(seat: number): Promise<ActionResult> {
     return gameActions.submitGroupConfirmAck(this.#getActionsContext(), seat);
@@ -576,20 +576,20 @@ export class GameFacade implements IGameFacade {
   // =========================================================================
 
   /**
-   * 提交机械狼人查看猎人状态确认（HTTP API）
+   * Submit wolfRobot hunter status view confirmation (HTTP API)
    *
-   * Host/Player 统一调用 HTTP API
+   * Host/Player both call HTTP API uniformly
    *
-   * @param seat - wolfRobot 的座位号（由调用方传入 effectiveSeat，以支持 debug bot 接管）
+   * @param seat - wolfRobot's seat number (caller passes effectiveSeat to support debug bot takeover)
    */
   async sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult> {
     return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), seat);
   }
 
   /**
-   * 从 DB 直接读取最新状态（auto-heal / reconnect fallback）
-   * 服务端权威 — 直接 SELECT from rooms，不经过 broadcast 通道。
-   * Host 和 Player 统一使用。
+   * Read latest state directly from DB (auto-heal / reconnect fallback)
+   * Server-authoritative — direct SELECT from rooms, bypasses broadcast channel.
+   * Used by both Host and Player.
    */
   async fetchStateFromDB(): Promise<boolean> {
     const roomCode = this.#store.getState()?.roomCode ?? this.#roomCode;
@@ -610,22 +610,22 @@ export class GameFacade implements IGameFacade {
   }
 
   // =========================================================================
-  // Night Flow (委托给 gameActions) - PR6
+  // Night Flow (delegated to gameActions) - PR6
   // =========================================================================
 
   /**
-   * Host: 设置音频播放状态
+   * Host: set audio playing state
    *
-   * PR7: 音频时序控制
-   * - 当音频开始播放时，调用 setAudioPlaying(true)
-   * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
+   * PR7: audio timing control
+   * - When audio starts playing, call setAudioPlaying(true)
+   * - When audio ends (or is skipped), call setAudioPlaying(false)
    */
   async setAudioPlaying(isPlaying: boolean): Promise<ActionResult> {
     return gameActions.setAudioPlaying(this.#getActionsContext(), isPlaying);
   }
 
   // =========================================================================
-  // Context Builders (为子模块提供上下文)
+  // Context Builders (provide context for sub-modules)
   // =========================================================================
 
   #getActionsContext(): GameActionsContext {

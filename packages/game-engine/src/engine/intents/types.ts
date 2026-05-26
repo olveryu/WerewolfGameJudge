@@ -1,14 +1,14 @@
 /**
- * Intent Types - 意图类型定义
+ * Intent Types - intent type definitions
  *
- * Intent 是 UI 层发出的动作请求，由 Handler 处理
- * Intent 与 PlayerMessage 对应，但更加类型安全
+ * Intent is an action request from UI layer, processed by Handler
+ * Intent corresponds to PlayerMessage, but more type-safe
  */
 
 import type { RoleId } from '../../models';
 
 // =============================================================================
-// 座位相关 Intent
+// Seat-related Intents
 // =============================================================================
 
 export interface JoinSeatIntent {
@@ -28,8 +28,8 @@ export interface JoinSeatIntent {
 }
 
 /**
- * 离开我的座位（不需要指定 seat）
- * seat 由 handler 从 context.mySeat 获取
+ * Leave my seat (no need to specify seat)
+ * seat obtained by handler from context.mySeat
  */
 export interface LeaveMySeatIntent {
   type: 'LEAVE_MY_SEAT';
@@ -39,17 +39,17 @@ export interface LeaveMySeatIntent {
 }
 
 /**
- * 全员起立 Intent（Host-only）
- * 前置条件：status === Unseated | Seated
- * 结果：所有座位清空，status → Unseated
+ * Unseat all Intent (Host-only)
+ * Precondition: status === Unseated | Seated
+ * Result: all seats cleared, status -> Unseated
  */
 export interface ClearAllSeatsIntent {
   type: 'CLEAR_ALL_SEATS';
 }
 
 /**
- * 移出座位 Intent（Host-only）
- * 前置条件：status === Unseated | Seated，目标座位非空
+ * Kick from seat Intent (Host-only)
+ * Precondition: status === Unseated | Seated, target seat not empty
  */
 export interface KickPlayerIntent {
   type: 'KICK_PLAYER';
@@ -59,22 +59,22 @@ export interface KickPlayerIntent {
 }
 
 // =============================================================================
-// 游戏生命周期 Intent
+// Game lifecycle Intents
 // =============================================================================
 
 /**
- * 分配角色 Intent（Host-only）
- * 前置条件：status === Seated
- * 结果：status → Assigned
+ * Assign roles Intent (Host-only)
+ * Precondition: status === Seated
+ * Result: status -> Assigned
  */
 export interface AssignRolesIntent {
   type: 'ASSIGN_ROLES';
 }
 
 /**
- * 开始夜晚 Intent（Host-only）
- * 前置条件：status === Ready
- * 结果：status → Ongoing，初始化 Night-1 字段
+ * Start night Intent (Host-only)
+ * Precondition: status === Ready
+ * Result: status -> Ongoing, initialize Night-1 fields
  */
 export interface StartNightIntent {
   type: 'START_NIGHT';
@@ -85,9 +85,9 @@ export interface RestartGameIntent {
 }
 
 /**
- * 更新模板 Intent（Host-only）
- * 前置条件：status === Unseated | Seated（分配角色前）
- * 用于 Host 编辑房间配置
+ * Update template Intent (Host-only)
+ * Precondition: status === Unseated | Seated (before role assignment)
+ * Used for Host editing room config
  */
 export interface UpdateTemplateIntent {
   type: 'UPDATE_TEMPLATE';
@@ -97,8 +97,8 @@ export interface UpdateTemplateIntent {
 }
 
 /**
- * 分享详细信息 Intent（Host-only）
- * Host 在 ended 阶段选择允许查看「详细信息」的座位
+ * Share details Intent (Host-only)
+ * Host selects seats allowed to view "detailed info" in ended phase
  */
 export interface ShareNightReviewIntent {
   type: 'SHARE_NIGHT_REVIEW';
@@ -106,12 +106,12 @@ export interface ShareNightReviewIntent {
 }
 
 // =============================================================================
-// 玩家资料 Intent
+// Player profile Intents
 // =============================================================================
 
 /**
- * 更新在座玩家的展示资料（roster 字段）
- * 任何在座玩家均可调用（更新自己的资料）
+ * Update seated player display profile (roster fields)
+ * Any seated player can call (updates own profile)
  */
 export interface UpdatePlayerProfileIntent {
   type: 'UPDATE_PLAYER_PROFILE';
@@ -128,7 +128,7 @@ export interface UpdatePlayerProfileIntent {
 }
 
 // =============================================================================
-// 夜晚行动 Intent
+// Night action Intents
 // =============================================================================
 
 export interface SubmitActionIntent {
@@ -142,7 +142,7 @@ export interface SubmitActionIntent {
 }
 
 // =============================================================================
-// 玩家状态 Intent
+// Player state Intents
 // =============================================================================
 
 export interface ViewedRoleIntent {
@@ -153,20 +153,20 @@ export interface ViewedRoleIntent {
 }
 
 // =============================================================================
-// 音频控制 Intent（仅主机）
+// Audio control Intents (Host-only)
 // =============================================================================
 
 /**
- * 设置音频播放状态 Intent（Host-only）
+ * Set audio playing state Intent (Host-only)
  *
- * PR7: 音频时序控制
- * - 当音频开始播放时，调用 setAudioPlaying(true)
- * - 当音频结束（或被跳过）时，调用 setAudioPlaying(false)
+ * PR7: audio timing control
+ * - When audio starts playing, call setAudioPlaying(true)
+ * - When audio ends (or is skipped), call setAudioPlaying(false)
  *
  * Gate:
  * - host_only
  * - no_state
- * - invalid_status（必须 ongoing）
+ * - invalid_status (must be ongoing)
  */
 export interface SetAudioPlayingIntent {
   type: 'SET_AUDIO_PLAYING';
@@ -176,59 +176,59 @@ export interface SetAudioPlayingIntent {
 }
 
 // =============================================================================
-// 夜晚流程 Intent（仅主机）
+// Night flow Intents (Host-only)
 // =============================================================================
 
 /**
- * 推进夜晚到下一步
- * Host-only：音频结束后调用，推进 currentStepIndex + currentStepId
+ * Advance night to next step
+ * Host-only: called after audio ends, advances currentStepIndex + currentStepId
  */
 export interface AdvanceNightIntent {
   type: 'ADVANCE_NIGHT';
 }
 
 /**
- * 结束夜晚
- * Host-only：夜晚结束音频结束后，进行死亡结算并置 ended
+ * End night
+ * Host-only: after night end audio finishes, perform death settlement and set ended
  */
 export interface EndNightIntent {
   type: 'END_NIGHT';
 }
 
 // =============================================================================
-// Debug Bots Intent（仅主机）
+// Debug Bots Intents (Host-only)
 // =============================================================================
 
 /**
- * 填充机器人 Intent（Host-only, Debug-only）
+ * Fill with bots Intent (Host-only, Debug-only)
  *
- * 前置条件：status === Unseated
- * 结果：
- * - 为所有空座位创建 bot player（isBot: true）
- * - 设置 debugMode.botsEnabled = true
+ * Precondition: status === Unseated
+ * Result:
+ * - Create bot players for all empty seats (isBot: true)
+ * - Set debugMode.botsEnabled = true
  */
 export interface FillWithBotsIntent {
   type: 'FILL_WITH_BOTS';
 }
 
 /**
- * 标记所有机器人已查看角色 Intent（Host-only, Debug-only）
+ * Mark all bots as having viewed roles Intent (Host-only, Debug-only)
  *
- * 前置条件：debugMode.botsEnabled === true && status === Assigned
- * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
+ * Precondition: debugMode.botsEnabled === true && status === Assigned
+ * Result: set hasViewedRole = true only for isBot === true players
  */
 export interface MarkAllBotsViewedIntent {
   type: 'MARK_ALL_BOTS_VIEWED';
 }
 
 // =============================================================================
-// 板子建议 Intent（任意已连接玩家）
+// Board Nomination Intents (any connected player)
 // =============================================================================
 
 /**
- * 提交板子建议 Intent
- * 任何已连接玩家可提交，每人最多一条（后覆盖前）。
- * 前置条件：status === Unseated | Seated（分配角色前）
+ * Submit board nomination Intent
+ * Any connected player can submit, max one per person (later overrides).
+ * Precondition: status === Unseated | Seated (before role assignment)
  */
 export interface BoardNominateIntent {
   type: 'BOARD_NOMINATE';
@@ -240,22 +240,22 @@ export interface BoardNominateIntent {
 }
 
 /**
- * 点赞板子建议 Intent
- * 前置条件：目标建议存在，不能给自己点赞
+ * Upvote board nomination Intent
+ * Precondition: target nomination exists, cannot upvote own
  */
 export interface BoardUpvoteIntent {
   type: 'BOARD_UPVOTE';
   payload: {
-    /** 被点赞建议的提交者 userId */
+    /** Upvoted nomination submitter userId */
     targetUserId: string;
-    /** 点赞者 userId */
+    /** Upvoter userId */
     voterUid: string;
   };
 }
 
 /**
- * 撤回板子建议 Intent
- * 仅建议提交者本人可撤回
+ * Withdraw board nomination Intent
+ * Only the submitter can withdraw
  */
 export interface BoardWithdrawIntent {
   type: 'BOARD_WITHDRAW';

@@ -1,8 +1,8 @@
 /**
- * IGameFacade - UI Facade 接口
+ * IGameFacade - UI Facade interface
  *
- * facade 统一接口，覆盖房间生命周期、座位、游戏控制和夜晚行动。
- * Facade 只做编排，不写业务逻辑。
+ * Unified facade interface covering room lifecycle, seating, game control, and night actions.
+ * Facade only orchestrates, no business logic.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -12,7 +12,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
 
-/** 入座时携带的玩家 profile 信息 */
+/** Player profile info carried when taking a seat */
 export interface SeatProfile {
   displayName?: string;
   avatarUrl?: string;
@@ -33,20 +33,20 @@ export enum ConnectionStatus {
   Failed = 'Failed',
 }
 
-/** 状态变化监听器类型。 */
+/** State change listener type. */
 export type FacadeStateListener = (state: GameState | null) => void;
 
-/** GameFacade 公共接口 — UI 层与游戏状态交互的唯一契约。 */
+/** GameFacade public interface — sole contract for UI layer interaction with game state. */
 export interface IGameFacade {
   // === Lifecycle ===
   /**
-   * 订阅状态变化
-   * @returns 取消订阅函数
+   * Subscribe to state changes
+   * @returns unsubscribe function
    */
   addListener(fn: FacadeStateListener): () => void;
 
   /**
-   * 获取当前状态（一次性读取）
+   * Get current state (one-time read)
    */
   getState(): GameState | null;
 
@@ -58,10 +58,10 @@ export interface IGameFacade {
   subscribe(onStoreChange: () => void): () => void;
 
   // === Identity ===
-  /** 当前用户是否是 Host */
+  /** Whether current user is Host */
   isHostPlayer(): boolean;
 
-  /** 当前用户 UID */
+  /** Current user UID */
   getMyUserId(): string | null;
 
   /**
@@ -71,131 +71,131 @@ export interface IGameFacade {
   updateMyUserId(newUid: string): void;
 
   /**
-   * 当前用户座位号
-   * 从 state 派生，不自己维护
+   * Current user seat number
+   * Derived from state, not self-maintained
    */
   getMySeat(): number | null;
 
   /**
-   * 状态版本号
-   * 以 store 为单一真相
+   * State version number
+   * Store is the single source of truth
    */
   getStateRevision(): number;
 
   /**
-   * 消费最近一次广播携带的 lastAction（一次性读取，读后清除）
-   * 用于客户端检测被动操作（kick/clearAllSeats/assignRoles 等）并显示 toast
+   * Consume last broadcast's lastAction (one-time read, cleared after read)
+   * Used by client to detect passive operations (kick/clearAllSeats/assignRoles etc.) and show toast
    */
   consumeLastAction(): string | null;
 
   /**
-   * 订阅结算结果推送（SETTLE_RESULT WebSocket 单播）
-   * @returns 取消订阅函数
+   * Subscribe to settlement result push (SETTLE_RESULT WebSocket unicast)
+   * @returns unsubscribe function
    */
   addSettleResultListener(fn: (result: SettleResultMessage) => void): () => void;
 
   // === Room Lifecycle ===
   /**
-   * Host: 创建新房间
-   * 初始化 store + 加入 broadcast 频道
+   * Host: create new room
+   * Initialize store + join broadcast channel
    */
   createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void>;
 
   /**
-   * 加入已有房间（Host rejoin + Player join 统一入口）
+   * Join existing room (unified entry for Host rejoin + Player join)
    *
-   * Host rejoin: isHost=true, 从 DB 恢复状态，检测 _wasAudioInterrupted
-   * Player join: isHost=false, 从 DB 读取初始状态
+   * Host rejoin: isHost=true, recover state from DB, detect _wasAudioInterrupted
+   * Player join: isHost=false, read initial state from DB
    *
-   * @returns success=false 仅在 Host rejoin 且无 DB 状态时
+   * @returns success=false only when Host rejoin has no DB state
    */
   joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult>;
 
   /**
-   * 离开房间
+   * Leave room
    */
   leaveRoom(): Promise<void>;
 
   // === Seating ===
   /**
-   * 入座
-   * 统一 HTTP API，服务端处理
+   * Take seat
+   * Unified HTTP API, server-processed
    */
   takeSeat(seat: number, profile?: SeatProfile): Promise<boolean>;
 
   /**
-   * 入座（带 ACK 等待）
-   * 统一 HTTP API，等待服务端响应
-   * @returns success + reason（透传服务端拒绝原因）
+   * Take seat (with ACK wait)
+   * Unified HTTP API, waits for server response
+   * @returns success + reason (passthrough of server rejection reason)
    */
   takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult>;
   /**
-   * 离座
-   * 统一 HTTP API，服务端处理
+   * Leave seat
+   * Unified HTTP API, server-processed
    */
   leaveSeat(): Promise<boolean>;
 
   /**
-   * 离座（带 ACK 等待）
-   * 统一 HTTP API，等待服务端响应
-   * @returns success + reason（透传服务端拒绝原因）
+   * Leave seat (with ACK wait)
+   * Unified HTTP API, waits for server response
+   * @returns success + reason (passthrough of server rejection reason)
    */
   leaveSeatWithAck(): Promise<ActionResult>;
 
   /**
-   * 将玩家移出座位（Host-only）
-   * 仅在 Unseated/Seated 阶段可用
+   * Kick player from seat (Host-only)
+   * Only available in Unseated/Seated phase
    */
   kickPlayer(targetSeat: number): Promise<ActionResult>;
 
   // === Game Control (Host-only) ===
   /**
-   * 分配角色
+   * Assign roles
    */
   assignRoles(): Promise<ActionResult>;
 
   /**
-   * 更新模板（Host only，仅在 unseated 状态）
+   * Update template (Host only, only in unseated status)
    */
   updateTemplate(template: GameTemplate): Promise<ActionResult>;
 
   /**
-   * 开始夜晚
+   * Start night
    */
   startNight(): Promise<ActionResult>;
 
   /**
-   * 重新开始游戏
+   * Restart game
    */
   restartGame(): Promise<ActionResult>;
 
   // === Debug Mode ===
   /**
-   * 填充机器人（Debug-only, Host-only）
-   * 为所有空座位创建 bot player
+   * Fill with bots (Debug-only, Host-only)
+   * Creates bot players for all empty seats
    */
   fillWithBots(): Promise<ActionResult>;
 
   /**
-   * 标记所有机器人已查看角色（Debug-only, Host-only）
+   * Mark all bots as having viewed roles (Debug-only, Host-only)
    */
   markAllBotsViewed(): Promise<ActionResult>;
 
   /**
-   * 标记所有机器人已确认 groupConfirm 步骤（Debug-only, Host-only）
+   * Mark all bots as having confirmed groupConfirm step (Debug-only, Host-only)
    */
   markAllBotsGroupConfirmed(): Promise<ActionResult>;
 
   /**
-   * 全员起立（Host-only）
-   * 清空所有座位，仅在 unseated/seated 状态可用
+   * Unseat all (Host-only)
+   * Clears all seats, only available in unseated/seated status
    */
   clearAllSeats(): Promise<ActionResult>;
 
   /**
-   * 同步玩家资料到 GameState（任何在座玩家）
-   * 用户在 Settings 改名/换头像后调用，广播新资料到所有客户端。
-   * 不在座时服务端返回 NOT_SEATED，调用方可静默忽略。
+   * Sync player profile to GameState (any seated player)
+   * Called after user changes name/avatar in Settings, broadcasts new profile to all clients.
+   * Server returns NOT_SEATED when not seated, caller can silently ignore.
    */
   updatePlayerProfile(
     displayName?: string,
@@ -208,34 +208,34 @@ export interface IGameFacade {
   ): Promise<ActionResult>;
 
   /**
-   * 分享「详细信息」给指定座位（Host-only, ended 阶段）
+   * Share "detailed info" to specified seats (Host-only, ended phase)
    */
   shareNightReview(allowedSeats: number[]): Promise<ActionResult>;
 
-  // === Board Nomination (任意已连接玩家) ===
+  // === Board Nomination (any connected player) ===
   /**
-   * 提交板子建议（每人最多一条，后覆盖前）
+   * Submit board nomination (max one per person, later overrides earlier)
    */
   boardNominate(displayName: string, roles: RoleId[]): Promise<ActionResult>;
 
   /**
-   * 点赞板子建议
+   * Upvote board nomination
    */
   boardUpvote(targetUserId: string): Promise<ActionResult>;
 
   /**
-   * 撤回板子建议（仅提交者本人）
+   * Withdraw board nomination (submitter only)
    */
   boardWithdraw(): Promise<ActionResult>;
 
   // === Player Actions ===
   /**
-   * 玩家确认已查看角色
+   * Player confirms role viewed
    */
   markViewedRole(seat: number): Promise<ActionResult>;
 
   /**
-   * 提交夜晚行动
+   * Submit night action
    */
   submitAction(
     seat: number,
@@ -245,63 +245,63 @@ export interface IGameFacade {
   ): Promise<ActionResult>;
 
   /**
-   * 提交 reveal 确认（seer/psychic/gargoyle/wolfRobot）
+   * Submit reveal confirmation (seer/psychic/gargoyle/wolfRobot)
    */
   submitRevealAck(): Promise<ActionResult>;
 
   /**
-   * 提交 groupConfirm ack（催眠确认 "我知道了"）
-   * @param seat - 玩家座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
+   * Submit groupConfirm ack (hypnotize confirmation "I understand")
+   * @param seat - player seat number (caller must pass effectiveSeat to support debug bot takeover)
    */
   submitGroupConfirmAck(seat: number): Promise<ActionResult>;
 
   /**
-   * 提交机械狼人查看猎人状态确认
-   * @param seat - wolfRobot 的座位号（必须由调用方传入 effectiveSeat，以支持 debug bot 接管）
+   * Submit wolfRobot hunter status view confirmation
+   * @param seat - wolfRobot seat number (caller must pass effectiveSeat to support debug bot takeover)
    */
   sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult>;
 
   // === Night Flow (Host-only) ===
   /**
-   * 设置音频播放状态
+   * Set audio playing state
    */
   setAudioPlaying(isPlaying: boolean): Promise<ActionResult>;
 
   /**
-   * Host: wolf vote deadline 到期后触发服务端推进
+   * Host: trigger server-side progression after wolf vote deadline expires
    */
   postProgression(): Promise<ActionResult>;
 
   // === Sync ===
   /**
-   * 从 DB 直接读取最新状态（auto-heal / reconnect fallback）
-   * 服务端权威 — 直接 SELECT from rooms，不经过 broadcast 通道
-   * Host 和 Player 统一使用
+   * Read latest state directly from DB (auto-heal / reconnect fallback)
+   * Server-authoritative — direct SELECT from rooms, bypasses broadcast channel
+   * Used by both Host and Player
    */
   fetchStateFromDB(): Promise<boolean>;
 
   /**
-   * Host rejoin 后是否有音频被中断
+   * Whether audio was interrupted after Host rejoin
    */
   readonly wasAudioInterrupted: boolean;
 
   /**
-   * Host rejoin + 用户点击"继续游戏"后调用。
-   * 在 user gesture 上下文中启动 BGM + 重播当前步骤音频（如果需要）。
+   * Called after Host rejoin + user clicks "resume game".
+   * Starts BGM + replays current step audio (if needed) within user gesture context.
    */
   resumeAfterRejoin(): Promise<void>;
 
   // === Connection ===
   /**
-   * 订阅连接状态变化
-   * 委托 RealtimeService.addStatusListener，避免 UI 层直接依赖 RealtimeService
-   * @returns 取消订阅函数
+   * Subscribe to connection status changes
+   * Delegates to RealtimeService.addStatusListener, avoiding UI layer direct dependency on RealtimeService
+   * @returns unsubscribe function
    */
   addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
 
   /**
-   * Manual reconnect: 用户点击"重连"按钮时调用。
-   * 委托给 ConnectionManager FSM 触发 MANUAL_RECONNECT 事件。
+   * Manual reconnect: called when user clicks "reconnect" button.
+   * Delegates to ConnectionManager FSM to trigger MANUAL_RECONNECT event.
    */
   manualReconnect(): void;
 }

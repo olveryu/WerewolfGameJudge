@@ -1,22 +1,22 @@
 /**
- * AudioOrchestrator — Host 音频编排 + ack 重试。
+ * AudioOrchestrator — Host audio orchestration + ack retry.
  *
- * 职责：
- * - Reactive 监听 store 中 pendingAudioEffects → 播放 → postAudioAck
- * - Host rejoin 时 resumeAfterRejoin（重播当前步骤音频）
- * - Audio-ack 断线重试（L2 status listener + L3a online retry）
+ * Responsibilities:
+ * - Reactively watch store pendingAudioEffects -> play -> postAudioAck
+ * - resumeAfterRejoin on Host rejoin (replay current step audio)
+ * - Audio-ack disconnect retry (L2 status listener + L3a online retry)
  *
- * 不负责：
- * - 房间生命周期或通用断线恢复（由 ConnectionRecoveryManager 处理）
- * - 平台特定音频播放（由 AudioService 处理）
+ * Not responsible for:
+ * - Room lifecycle or generic disconnect recovery (handled by ConnectionRecoveryManager)
+ * - Platform-specific audio playback (handled by AudioService)
  *
- * 边界约束：
- * - 仅 Host 角色活跃（isHost() === true 时才播放/重试）
- * - dispose() 后不可重用，必须重新创建实例
+ * Boundary constraints:
+ * - Only active for Host role (plays/retries only when isHost() === true)
+ * - Not reusable after dispose(), must create new instance
  *
- * @remarks #isPlayingEffects 重入 guard：一次只有一个 audio effect 队列在播放。
- *   MAX_EFFECTS_LOOP=20 防止无限循环。每次 ack 后重新检查 store 是否有新 effects。
- *   reconnect 后通过 resumeAfterRejoin 重发 ack（如果上次 ack 在断线时丢失）。
+ * @remarks #isPlayingEffects re-entry guard: only one audio effect queue plays at a time.
+ *   MAX_EFFECTS_LOOP=20 prevents infinite loops. Re-checks store for new effects after each ack.
+ *   After reconnect, resends ack via resumeAfterRejoin (if last ack was lost during disconnect).
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -32,68 +32,68 @@ import { facadeLog } from '@/utils/logger';
 import type { GameActionsContext } from './gameActions';
 import * as gameActions from './gameActions';
 
-/** AudioOrchestrator 的可注入依赖 */
+/** AudioOrchestrator injectable dependencies */
 export interface AudioOrchestratorDeps {
-  /** GameStore 实例 */
+  /** GameStore instance */
   store: GameStore;
-  /** AudioService 实例 */
+  /** AudioService instance */
   audioService: AudioService;
-  /** 订阅 Realtime 连接状态变化 */
+  /** Subscribe to Realtime connection status changes */
   addStatusListener: (fn: (status: ConnectionStatus) => void) => () => void;
-  /** 获取当前 GameActionsContext（延迟求值，避免构造时循环） */
+  /** Get current GameActionsContext (lazy-evaluated to avoid constructor cycles) */
   getActionsContext: () => GameActionsContext;
-  /** 当前是否是 Host（延迟求值） */
+  /** Whether currently Host (lazy-evaluated) */
   isHost: () => boolean;
-  /** 当前是否已 abort（延迟求值） */
+  /** Whether currently aborted (lazy-evaluated) */
   isAborted: () => boolean;
 }
 
 /**
- * AudioOrchestrator — 夜间音频编排器。
+ * AudioOrchestrator — night audio orchestrator.
  *
- * 职责：将 pendingAudioEffects 按顺序播放，含 skip/abort 逻辑。
- * 不决定“何时播什么”，只负责执行。
+ * Responsibilities: play pendingAudioEffects in order, with skip/abort logic.
+ * Does not decide "when to play what", only executes.
  */
 export class AudioOrchestrator {
   readonly #deps: AudioOrchestratorDeps;
 
   /**
-   * 防止 #playPendingAudioEffects 重入。
-   * 同一批 pendingAudioEffects 只播放一次。
+   * Prevents #playPendingAudioEffects re-entry.
+   * Same batch of pendingAudioEffects plays only once.
    */
   #isPlayingEffects = false;
 
   /**
-   * 标记 Host rejoin 时音频是否被中断（缓存中 isAudioPlaying === true）。
-   * 用于 UI 层判断是否需要重播当前步骤音频。
+   * Marks whether audio was interrupted during Host rejoin (cached isAudioPlaying === true).
+   * Used by UI layer to determine whether current step audio needs replay.
    * @see resumeAfterRejoin
    */
   #wasAudioInterrupted = false;
 
   /**
-   * 断线时 postAudioAck 失败 → 设为 true。
-   * 重连后（status → live）且仍为 Host 时自动重试 postAudioAck。
-   * leaveRoom / createRoom / joinRoom 重置。
+   * Set to true when postAudioAck fails during disconnect.
+   * Auto-retries postAudioAck after reconnect (status -> live) if still Host.
+   * Reset on leaveRoom / createRoom / joinRoom.
    */
   #pendingAudioAckRetry = false;
 
-  /** Browser 'online' event handler: 网络恢复时重试 postAudioAck（Web 平台兜底 SDK 未触发 Live 事件） */
+  /** Browser 'online' event handler: retry postAudioAck on network restore (Web platform fallback when SDK doesn't fire Live event) */
   #onlineRetryHandler: (() => void) | null = null;
 
-  /** check+listen 模式的延迟重试 timer（navigator.onLine 已为 true 时立即调度） */
+  /** Delayed retry timer for check+listen pattern (scheduled immediately when navigator.onLine is already true) */
   #onlineRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
-  /** Periodic poll fallback: 每 POLL_INTERVAL_MS 检查 navigator.onLine 并重试（防止 online 事件丢失） */
+  /** Periodic poll fallback: check navigator.onLine every POLL_INTERVAL_MS and retry (guards against lost online events) */
   #onlineRetryPollTimer: ReturnType<typeof setInterval> | null = null;
 
-  /** 连续重试计数（指数退避 + 上限防止无限轮询） */
+  /** Consecutive retry count (exponential backoff + cap to prevent infinite polling) */
   #onlineRetryAttempt = 0;
 
   /** Unsubscribe handles for constructor subscriptions */
   #unsubscribeStore: (() => void) | null = null;
   #unsubscribeStatus: (() => void) | null = null;
 
-  /** 最大重试次数（超过后停止重试，等待用户手动刷新） */
+  /** Maximum retry count (stops retrying after exceeded, waits for user manual refresh) */
   static readonly #maxOnlineRetries = 5;
 
   /** Poll interval for periodic ack retry fallback (ms) */
@@ -102,7 +102,7 @@ export class AudioOrchestrator {
   constructor(deps: AudioOrchestratorDeps) {
     this.#deps = deps;
 
-    // Reactive: 监听 state 中 pendingAudioEffects 出现 → Host 播放 → postAudioAck
+    // Reactive: watch state pendingAudioEffects appear -> Host plays -> postAudioAck
     this.#unsubscribeStore = deps.store.subscribe((state) => {
       if (!state) return;
       if (!deps.isHost()) return;
@@ -112,7 +112,7 @@ export class AudioOrchestrator {
       void this.#playPendingAudioEffects(state.pendingAudioEffects);
     });
 
-    // L2: Retry — 断线期间 postAudioAck 失败 → 重连 live 后重播音频 + 重试 ack
+    // L2: Retry — postAudioAck failed during disconnect -> replay audio + retry ack after reconnect live
     this.#unsubscribeStatus = deps.addStatusListener((status) => {
       if (status !== ConnectionStatus.Live) return;
       if (!deps.isHost()) return;
@@ -131,7 +131,7 @@ export class AudioOrchestrator {
   // Public API
   // =========================================================================
 
-  /** Host rejoin 后是否有音频被中断（缓存 isAudioPlaying === true） */
+  /** Whether audio was interrupted after Host rejoin (cached isAudioPlaying === true) */
   get wasAudioInterrupted(): boolean {
     return this.#wasAudioInterrupted;
   }
@@ -164,18 +164,18 @@ export class AudioOrchestrator {
   // =========================================================================
 
   /**
-   * Host rejoin + 用户点击"继续游戏"后调用。
-   * 触发 user gesture → 解锁 Web AudioContext。
+   * Called after Host rejoin + user clicks "resume game".
+   * Triggers user gesture -> unlocks Web AudioContext.
    *
-   * 行为：
-   * 1. 如果 BGM 设置开启 → 启动 BGM（由 useGameRoom 调用）
-   * 2. 如果断开时音频正在播放 → 重播当前步骤的 begin 音频
-   * 3. 音频结束后 POST audio-ack 解锁 gate
+   * Behavior:
+   * 1. If BGM setting is on -> start BGM (called by useGameRoom)
+   * 2. If audio was playing when disconnected -> replay current step begin audio
+   * 3. After audio ends, POST audio-ack to unlock gate
    *
-   * 注意：isAudioPlaying 从 DB 保持为 true，不需要再 setAudioPlaying(true)。
+   * Note: isAudioPlaying persists as true from DB, no need to setAudioPlaying(true) again.
    */
   async resumeAfterRejoin(): Promise<void> {
-    // Early clear — 阻断 listener 重新设 overlay + 防止多次点击重入
+    // Early clear — prevent listener from re-setting overlay + prevent multiple click re-entry
     if (!this.#wasAudioInterrupted) return;
     this.#wasAudioInterrupted = false;
 
@@ -183,13 +183,13 @@ export class AudioOrchestrator {
     if (!state) return;
 
     try {
-      // 如果音频没在播放（DB 中 isAudioPlaying=false），只需恢复 BGM（caller 已处理）
-      // 服务端内联推进会自动处理后续步骤
+      // If audio not playing (isAudioPlaying=false in DB), only need to restore BGM (caller already handles)
+      // Server inline progression handles subsequent steps automatically
       if (!state.isAudioPlaying) {
         return;
       }
 
-      // 重播当前步骤音频（isAudioPlaying 已从 DB 保持为 true，gate 已激活）
+      // Replay current step audio (isAudioPlaying persists as true from DB, gate is active)
       if (state.currentStepId) {
         const stepSpec = getStepSpec(state.currentStepId);
         if (stepSpec) {
@@ -201,15 +201,15 @@ export class AudioOrchestrator {
             const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
             await this.#deps.audioService.playRoleBeginningAudio(resolvedKey);
           } finally {
-            // 音频完成（或失败）后，POST audio-ack 释放 gate + 触发推进
+            // After audio completes (or fails), POST audio-ack to release gate + trigger progression
             await this.#postAudioAckWithRetry();
           }
         } else {
-          // 无 stepSpec（不该发生），兜底释放 gate
+          // No stepSpec (shouldn't happen), fallback release gate
           await this.#postAudioAckWithRetry();
         }
       } else {
-        // 无 currentStepId，兜底释放 gate
+        // No currentStepId, fallback release gate
         await this.#postAudioAckWithRetry();
       }
     } catch (e) {
@@ -243,13 +243,13 @@ export class AudioOrchestrator {
   // =========================================================================
 
   /**
-   * Host 响应式播放 pendingAudioEffects 队列。
+   * Host reactively plays pendingAudioEffects queue.
    *
-   * 触发源：store subscription 检测到 state.pendingAudioEffects 非空。
-   * 播放完成后调用 postAudioAck 释放 isAudioPlaying gate + 触发推进。
+   * Trigger: store subscription detects state.pendingAudioEffects non-empty.
+   * After playback, calls postAudioAck to release isAudioPlaying gate + trigger progression.
    *
-   * 防重入：isPlayingEffects flag。
-   * 中断：aborted flag（leaveRoom 时设置）。
+   * Re-entry guard: isPlayingEffects flag.
+   * Interruption: aborted flag (set on leaveRoom).
    */
   async #playPendingAudioEffects(effects: AudioEffect[]): Promise<void> {
     if (this.#isPlayingEffects) return;
@@ -281,14 +281,14 @@ export class AudioOrchestrator {
             } else if (effect.audioKey === 'night') {
               await audioService.playNightAudio();
             } else if (effect.audioKey === 'night_end') {
-              // 音频时序：天亮语音前立即停 BGM，避免 BGM 与"天亮了"语音重叠。
+              // Audio timing: stop BGM immediately before dawn audio to avoid BGM overlapping with "dawn" voice.
               audioService.stopBgm();
               await audioService.playNightEndAudio();
             } else {
               await audioService.playRoleBeginningAudio(effect.audioKey);
             }
           } catch (e) {
-            // 单个音频失败不阻断队列（与 resumeAfterRejoin 一致）
+            // Single audio failure doesn't block queue (consistent with resumeAfterRejoin)
             facadeLog.warn('Audio effect playback failed, continuing', {
               audioKey: effect.audioKey,
               error: e,
@@ -296,7 +296,7 @@ export class AudioOrchestrator {
           }
         }
 
-        // POST audio-ack 释放 gate
+        // POST audio-ack releases gate
         if (!this.#deps.isAborted()) {
           const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
           if (!ackResult.success) {
@@ -305,13 +305,13 @@ export class AudioOrchestrator {
             });
             this.#pendingAudioAckRetry = true;
             this.#registerOnlineRetry();
-            break; // ack 失败，不再 re-check（等 retry 路径恢复）
+            break; // ack failed, no re-check (wait for retry path to recover)
           }
         }
 
-        // Re-check: audio-ack 的内联推进可能产生了新 pendingAudioEffects（如 role_end + night_end），
-        // 但 applySnapshot 触发 store subscription 时 #isPlayingEffects 还为 true 被跳过了。
-        // 仅在 ack 成功后 re-check 一次；ack 失败时 break 出循环。
+        // Re-check: audio-ack inline progression may have produced new pendingAudioEffects (e.g. role_end + night_end),
+        // but applySnapshot triggering store subscription was skipped since #isPlayingEffects was still true.
+        // Re-check once only after ack success; break out of loop on ack failure.
         const postAckState = this.#deps.store.getState();
         if (
           postAckState?.pendingAudioEffects &&
@@ -334,13 +334,13 @@ export class AudioOrchestrator {
   // =========================================================================
 
   /**
-   * 重连后重试 pending audio ack：检查 pendingAudioEffects → 重播或直接 postAudioAck。
+   * Retry pending audio ack after reconnect: check pendingAudioEffects -> replay or direct postAudioAck.
    *
-   * 调用方（L2 status listener / L3a online handler）负责清除 #pendingAudioAckRetry
-   * 和 online retry 注册。此方法仅执行重试逻辑。
+   * Caller (L2 status listener / L3a online handler) is responsible for clearing #pendingAudioAckRetry
+   * and online retry registration. This method only executes retry logic.
    *
-   * @param trigger - 日志标识触发来源
-   * @param onRetryFailed - ack 直接重试失败时的回调（让调用方决定是否 re-register online retry）
+   * @param trigger - log identifier for trigger source
+   * @param onRetryFailed - callback when ack direct retry fails (lets caller decide whether to re-register online retry)
    */
   #retryPendingAudioAck(trigger: string, onRetryFailed?: () => void): void {
     const state = this.#deps.store.getState();
@@ -350,7 +350,7 @@ export class AudioOrchestrator {
         trigger,
         effectCount: effects.length,
       });
-      // #playPendingAudioEffects finally 块会 postAudioAck
+      // #playPendingAudioEffects finally block will postAudioAck
       void this.#playPendingAudioEffects(effects);
     } else {
       facadeLog.info('Retrying postAudioAck (no effects to replay)', { trigger });
@@ -379,18 +379,18 @@ export class AudioOrchestrator {
   // =========================================================================
 
   /**
-   * 注册 audio-ack 重试：check + listen + poll 三层模式。
+   * Register audio-ack retry: check + listen + poll three-layer pattern.
    *
-   * 1. 若 `navigator.onLine === true` → 延迟 500ms 后直接执行重试（避免同步递归）
-   * 2. 若离线 → 挂 `window.addEventListener('online', ...)` 等待网络恢复
-   * 3. 无论 1/2，额外启动 POLL_INTERVAL_MS 周期轮询兜底（防止 online 事件在
-   *    CI headless Chromium 等环境中丢失）
+   * 1. If `navigator.onLine === true` -> delay 500ms then execute retry directly (avoid synchronous recursion)
+   * 2. If offline -> attach `window.addEventListener('online', ...)` to wait for network restore
+   * 3. Regardless of 1/2, additionally start POLL_INTERVAL_MS periodic poll fallback (guards against
+   *    online events being lost in CI headless Chromium etc.)
    *
-   * 解决时序竞争：online 事件可能在 registerOnlineRetry() 调用之前已经触发，
-   * 此时仅靠 listener 永远收不到事件 → 用 navigator.onLine 检测兜底。
-   * 周期轮询是最终安全网：即使 check 和 listen 都未触发，5s 后 poll 仍会重试。
+   * Solves timing race: online event may fire before registerOnlineRetry() is called,
+   * in which case listener alone will never receive event -> use navigator.onLine check as fallback.
+   * Periodic poll is the final safety net: even if check and listen both don't fire, poll retries after 5s.
    *
-   * 原生端 WebSocket 会真正断开 → status listener 已覆盖，此处仅 Web 平台需要。
+   * Native WebSocket truly disconnects -> status listener already covers that; this is only needed for Web platform.
    */
   #registerOnlineRetry(): void {
     this.#unregisterOnlineRetry();
@@ -399,7 +399,7 @@ export class AudioOrchestrator {
     const doRetry = () => {
       if (!this.#pendingAudioAckRetry || !this.#deps.isHost() || this.#deps.isAborted()) return;
 
-      // 指数退避上限：超过最大重试次数后停止，避免无限 HTTP 轮询
+      // Exponential backoff cap: stop after max retry count to avoid infinite HTTP polling
       if (this.#onlineRetryAttempt >= AudioOrchestrator.#maxOnlineRetries) {
         facadeLog.warn(
           `Online ack retry exhausted (${AudioOrchestrator.#maxOnlineRetries} attempts), giving up`,
@@ -419,7 +419,7 @@ export class AudioOrchestrator {
       this.#retryPendingAudioAck('online event', () => this.#registerOnlineRetry());
     };
 
-    // Check: 已在线 → 指数退避延迟重试（避免同步递归 + 给 event loop 让步）
+    // Check: already online -> exponential backoff delay retry (avoid synchronous recursion + yield to event loop)
     if (globalThis.navigator?.onLine) {
       const delay = Math.min(500 * Math.pow(2, this.#onlineRetryAttempt), 16_000);
       facadeLog.info(
@@ -429,21 +429,21 @@ export class AudioOrchestrator {
       return;
     }
 
-    // Listen: 离线 → 等待 online 事件
+    // Listen: offline -> wait for online event
     this.#onlineRetryHandler = doRetry;
     globalThis.window.addEventListener('online', this.#onlineRetryHandler);
 
-    // Poll fallback: 无论 check/listen 哪条路径，额外启动 POLL_INTERVAL_MS 周期轮询兜底
-    // 覆盖 online 事件在 CI headless Chromium 等环境中偶尔不触发的情况
+    // Poll fallback: regardless of check/listen path, additionally start POLL_INTERVAL_MS periodic poll
+    // Covers cases where online event occasionally doesn't fire in CI headless Chromium etc.
     this.#startPollFallback(doRetry);
   }
 
   /**
-   * 启动周期轮询兜底。仅在 #registerOnlineRetry 内部调用。
-   * 每 POLL_INTERVAL_MS 检查 navigator.onLine，为 true 时触发 doRetry。
+   * Start periodic poll fallback. Only called internally by #registerOnlineRetry.
+   * Checks navigator.onLine every POLL_INTERVAL_MS, triggers doRetry when true.
    */
   #startPollFallback(doRetry: () => void): void {
-    // check 路径已设置 500ms timer → 不需要额外 poll（timer 会先触发）
+    // check path already set 500ms timer -> no need for extra poll (timer fires first)
     if (this.#onlineRetryTimer !== null) return;
 
     this.#onlineRetryPollTimer = setInterval(() => {

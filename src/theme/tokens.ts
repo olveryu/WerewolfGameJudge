@@ -1,18 +1,18 @@
 /**
  * tokens - Design Tokens (Semantic Design System)
  *
- * 三层架构:
- * 1. Primitives (内部) - 基础数值
- * 2. Semantic (公开 API) - 语义化命名
- * 3. Component (公开 API) - 组件专用尺寸
+ * Three-layer architecture:
+ * 1. Primitives (internal) - base values
+ * 2. Semantic (public API) - semantic naming
+ * 3. Component (public API) - component-specific sizes
  *
- * 导出 spacing / typography / borderRadius / shadows / layout / componentSizes 定义。
+ * Exports spacing / typography / borderRadius / shadows / layout / componentSizes definitions.
  *
- * 使用方式:
+ * Usage:
  * - import { spacing, typography, borderRadius, componentSizes } from '@/theme/tokens';
  * - spacing.small, typography.body, borderRadius.medium
  *
- * 不包含业务逻辑，不引入 React 或 service。颜色值统一在 themes.ts 中定义，此处禁止硬编码颜色。
+ * No business logic, no React or service imports. Colors defined in themes.ts; hardcoding colors here is forbidden.
  */
 
 import { Dimensions, PixelRatio, Platform, type TextStyle, type ViewStyle } from 'react-native';
@@ -22,13 +22,13 @@ import { Dimensions, PixelRatio, Platform, type TextStyle, type ViewStyle } from
 // ============================================================================
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const BASE_WIDTH = 375; // iPhone SE/8 基准宽度
+const BASE_WIDTH = 375; // iPhone SE/8 base width
 
 /**
- * 响应式缩放因子 (0.75x ~ 1.25x)
- * - 小屏 (320px): 0.85x
- * - 基准 (375px): 1.0x
- * - 大屏 (428px+): 1.14x ~ 1.25x
+ * Responsive scale factor (0.75x ~ 1.25x)
+ * - Small screen (320px): 0.85x
+ * - Base (375px): 1.0x
+ * - Large screen (428px+): 1.14x ~ 1.25x
  */
 const getScaleFactor = (): number => {
   const raw = SCREEN_WIDTH / BASE_WIDTH;
@@ -38,19 +38,19 @@ const getScaleFactor = (): number => {
 const SCALE = getScaleFactor();
 
 /**
- * 应用响应式缩放
- * @param size 基础尺寸
- * @returns 缩放后的尺寸 (像素对齐)
+ * Apply responsive scaling
+ * @param size Base size
+ * @returns Scaled size (pixel-aligned)
  */
 const scale = (size: number): number => {
   return PixelRatio.roundToNearestPixel(size * SCALE);
 };
 
 // ============================================================================
-// Layer 1: Primitives (内部使用)
+// Layer 1: Primitives (internal use)
 // ============================================================================
 
-/** 基础间距值 */
+/** Base spacing values */
 const primitiveSpace = {
   0: 0,
   1: 2,
@@ -67,7 +67,7 @@ const primitiveSpace = {
   12: 64,
 } as const;
 
-/** 基础字号值 */
+/** Base font size values */
 const primitiveFontSize = {
   10: 10,
   11: 11,
@@ -88,7 +88,7 @@ const primitiveFontSize = {
   48: 48,
 } as const;
 
-/** 基础圆角值 */
+/** Base border radius values */
 const primitiveRadius = {
   0: 0,
   4: 4,
@@ -101,7 +101,7 @@ const primitiveRadius = {
   9999: 9999,
 } as const;
 
-/** 基础尺寸值 */
+/** Base size values */
 const primitiveSize = {
   12: 12,
   16: 16,
@@ -122,70 +122,70 @@ const primitiveSize = {
 } as const;
 
 // ============================================================================
-// Layer 2: Semantic Tokens (公开 API)
+// Layer 2: Semantic Tokens (public API)
 // ============================================================================
 
 /**
- * 语义化间距
- * - tight: 紧凑间距 (图标与文字)
- * - small: 小间距 (列表项内部)
- * - medium: 中等间距 (卡片内边距)
- * - large: 大间距 (区块分隔)
- * - xlarge: 超大间距 (页面边距)
- * - xxlarge: 特大间距 (大区块分隔)
+ * Semantic spacing
+ * - tight: compact spacing (icon & text)
+ * - small: small spacing (list item internal)
+ * - medium: medium spacing (card padding)
+ * - large: large spacing (section separation)
+ * - xlarge: extra-large spacing (page margin)
+ * - xxlarge: double-extra-large spacing (major section separation)
  */
 export const spacing = {
-  /** 2px - 微间距（紧凑复合控件内部） */
+  /** 2px - micro spacing (inside compact compound controls) */
   micro: scale(primitiveSpace[1]),
-  /** 4px - 紧凑间距 */
+  /** 4px - tight spacing */
   tight: scale(primitiveSpace[2]),
-  /** 8px - 小间距 */
+  /** 8px - small spacing */
   small: scale(primitiveSpace[4]),
-  /** 16px - 中等间距 */
+  /** 16px - medium spacing */
   medium: scale(primitiveSpace[6]),
-  /** 24px - 大间距 */
+  /** 24px - large spacing */
   large: scale(primitiveSpace[8]),
-  /** 32px - 超大间距 */
+  /** 32px - extra-large spacing */
   xlarge: scale(primitiveSpace[9]),
-  /** 48px - 特大间距 */
+  /** 48px - double-extra-large spacing */
   xxlarge: scale(primitiveSpace[11]),
-  /** 20px - 屏幕水平边距（区别于卡片内距 medium=16） */
+  /** 20px - screen horizontal margin (distinct from card padding medium=16) */
   screenH: scale(primitiveSpace[7]),
 } as const;
 
 /**
- * 语义化字号
- * - captionSmall: 极小辅助
- * - caption: 辅助说明文字
- * - secondary: 次要信息
- * - body: 正文
- * - subtitle: 副标题
- * - title: 标题
- * - heading: 大标题
- * - hero: 超大标题
- * - display: 展示标题
+ * Semantic font sizes
+ * - captionSmall: extra-small auxiliary
+ * - caption: auxiliary/description text
+ * - secondary: secondary info
+ * - body: body text
+ * - subtitle: subtitle
+ * - title: title
+ * - heading: heading
+ * - hero: hero title
+ * - display: display title
  */
 export const typography = {
-  /** 10px - 极小辅助 */
+  /** 10px - extra-small auxiliary */
   captionSmall: scale(primitiveFontSize[10]),
-  /** 12px - 辅助说明 */
+  /** 12px - auxiliary/caption */
   caption: scale(primitiveFontSize[12]),
-  /** 14px - 次要信息 */
+  /** 14px - secondary info */
   secondary: scale(primitiveFontSize[14]),
-  /** 16px - 正文 */
+  /** 16px - body */
   body: scale(primitiveFontSize[16]),
-  /** 18px - 副标题 */
+  /** 18px - subtitle */
   subtitle: scale(primitiveFontSize[18]),
-  /** 20px - 标题 */
+  /** 20px - title */
   title: scale(primitiveFontSize[20]),
-  /** 24px - 大标题 */
+  /** 24px - heading */
   heading: scale(primitiveFontSize[24]),
-  /** 32px - 超大标题 */
+  /** 32px - hero title */
   hero: scale(primitiveFontSize[32]),
-  /** 40px - 展示标题 */
+  /** 40px - display title */
   display: scale(primitiveFontSize[40]),
 
-  /** 字重 */
+  /** Font weight */
   weights: {
     normal: '400' as TextStyle['fontWeight'],
     medium: '500' as TextStyle['fontWeight'],
@@ -193,7 +193,7 @@ export const typography = {
     bold: '700' as TextStyle['fontWeight'],
   },
 
-  /** 行高（与字号语义层一一对应） */
+  /** Line height (1:1 mapping with font size semantic layer) */
   lineHeights: {
     captionSmall: scale(14),
     caption: scale(16),
@@ -206,59 +206,59 @@ export const typography = {
     display: scale(50),
   },
 
-  /** 字间距 */
+  /** Letter spacing */
   letterSpacing: {
-    /** 大标题收紧 */
+    /** Heading tightened */
     tight: -0.5,
-    /** 正文 */
+    /** Body */
     normal: 0,
-    /** caption / button label 展开 */
+    /** caption / button label expanded */
     wide: 0.5,
-    /** display / hero 收紧 */
+    /** display / hero tightened */
     hero: -1,
   },
 } as const;
 
 /**
- * 语义化圆角
- * - none: 无圆角
- * - small: 小圆角 (按钮、输入框)
- * - medium: 中等圆角 (卡片)
- * - large: 大圆角 (弹窗、底部面板)
- * - xlarge: 超大圆角
- * - full: 完全圆角 (头像、徽章)
+ * Semantic border radius
+ * - none: no rounding
+ * - small: small radius (buttons, inputs)
+ * - medium: medium radius (cards)
+ * - large: large radius (modals, bottom panels)
+ * - xlarge: extra-large radius
+ * - full: fully rounded (avatars, badges)
  */
 export const borderRadius = {
   /** 0px */
   none: primitiveRadius[0],
-  /** 10px — 按钮、输入框 */
+  /** 10px — buttons, inputs */
   small: scale(10),
-  /** 14px — 标签、小卡片 */
+  /** 14px — tags, small cards */
   medium: scale(14),
-  /** 20px — 内容卡片、弹窗 */
+  /** 20px — content cards, modals */
   large: scale(20),
-  /** 28px — Hero 卡片、底部面板 */
+  /** 28px — Hero cards, bottom panels */
   xlarge: scale(28),
   /** 9999px */
   full: primitiveRadius[9999],
 } as const;
 
 // ============================================================================
-// Layer 3: Component Tokens (公开 API)
+// Layer 3: Component Tokens (public API)
 // ============================================================================
 
 /**
- * 组件尺寸
+ * Component sizes
  */
 export const componentSizes = {
-  /** 按钮高度 */
+  /** Button height */
   button: {
     sm: scale(primitiveSize[32]),
     md: scale(primitiveSize[44]),
     lg: scale(primitiveSize[56]),
   },
 
-  /** 头像尺寸 */
+  /** Avatar sizes */
   avatar: {
     xs: scale(primitiveSize[24]),
     sm: scale(primitiveSize[32]),
@@ -267,7 +267,7 @@ export const componentSizes = {
     xl: scale(primitiveSize[80]),
   },
 
-  /** 图标尺寸 */
+  /** Icon sizes */
   icon: {
     xs: scale(primitiveSize[12]),
     sm: scale(primitiveSize[16]),
@@ -276,7 +276,7 @@ export const componentSizes = {
     xl: scale(primitiveSize[32]),
   },
 
-  /** 徽章尺寸 */
+  /** Badge sizes */
   badge: {
     dot: scale(8),
     sm: scale(primitiveSize[16]),
@@ -284,64 +284,64 @@ export const componentSizes = {
     lg: scale(primitiveSize[24]),
   },
 
-  /** 标签/Chip */
+  /** Tag/Chip */
   chip: {
     minWidth: scale(primitiveSize[56]),
     paddingH: scale(primitiveSpace[5]),
     paddingV: scale(primitiveSpace[3]),
   },
 
-  /** 拖拽手柄（Bottom Sheet） */
+  /** Drag handle (Bottom Sheet) */
   handle: {
     width: scale(primitiveSize[36]),
     height: scale(4),
   },
 
-  /** 单选按钮 */
+  /** Radio button */
   radio: {
     size: scale(primitiveSize[20]),
     dotSize: scale(10),
   },
 
-  /** 进度条 */
+  /** Progress bar */
   progressBar: {
     height: 2,
     borderRadius: 1,
   },
 
-  /** 模态框 */
+  /** Modal */
   modal: {
-    /** 居中弹窗最小宽度（~280px 基准） */
+    /** Centered modal minimum width (~280px base) */
     minWidth: scale(280),
   },
 
-  /** 弹出菜单 */
+  /** Popup menu */
   menu: {
     minWidth: scale(180),
     compactMinWidth: scale(140),
   },
 
-  /** 头部操作区（左/右按钮组） */
+  /** Header action area (left/right button groups) */
   headerAction: {
     minWidth: scale(60),
   },
 
-  /** 头部导航栏 */
+  /** Header navigation bar */
   header: scale(primitiveSize[56]),
 
-  /** 底部标签栏 */
+  /** Bottom tab bar */
   tabBar: scale(primitiveSize[56]),
 } as const;
 
 // ============================================================================
-// Text Style Presets (结构性：fontSize + lineHeight + fontWeight，不含 color)
+// Text Style Presets (structural: fontSize + lineHeight + fontWeight, no color)
 // ============================================================================
 
 /**
- * 预组合文字样式 — 仅包含结构属性（fontSize / lineHeight / fontWeight）。
+ * Pre-composed text styles — structural properties only (fontSize / lineHeight / fontWeight).
  *
- * 使用时展开并追加 color：`{ ...textStyles.body, color: colors.text }`
- * 消除 fontSize + lineHeight 配对不一致的风险。
+ * Spread and append color when using: `{ ...textStyles.body, color: colors.text }`
+ * Eliminates risk of mismatched fontSize + lineHeight pairs.
  */
 export const textStyles = {
   caption: {
@@ -405,34 +405,34 @@ export const textStyles = {
 } as const;
 
 // ============================================================================
-// Fixed Values (不响应式缩放)
+// Fixed Values (not responsive-scaled)
 // ============================================================================
 
 /**
- * 固定值 - 不随屏幕缩放
+ * Fixed values - not scaled with screen size
  */
 export const fixed = {
-  /** 边框宽度 */
+  /** Border width */
   borderWidth: 1,
   borderWidthThick: 2,
   borderWidthHighlight: 3,
 
-  /** 分隔线高度 */
+  /** Separator height */
   divider: 1,
 
-  /** 最小点击区域 */
+  /** Minimum tap area */
   minTouchTarget: 44,
 
-  /** 最大内容宽度 */
+  /** Maximum content width */
   maxContentWidth: 600,
 
-  /** 键盘避让额外间距 */
+  /** Keyboard avoidance extra spacing */
   keyboardOffset: 24,
 
-  /** TouchableOpacity 按下态透明度 */
+  /** TouchableOpacity pressed opacity */
   activeOpacity: 0.7,
 
-  /** 通用禁用态静态 opacity */
+  /** Generic disabled state opacity */
   disabledOpacity: 0.5,
 } as const;
 
@@ -441,7 +441,7 @@ export const fixed = {
 // ============================================================================
 
 /**
- * 跨平台 textShadow 生成器
+ * Cross-platform textShadow generator
  * - iOS/Android: textShadowColor / textShadowOffset / textShadowRadius
  * - Web: textShadow (string shorthand)
  */
@@ -462,9 +462,9 @@ export function crossPlatformTextShadow(
 }
 
 /**
- * 阴影样式 (跨平台)
+ * Shadow styles (cross-platform)
  *
- * RN 0.76+ New Architecture: boxShadow 直接跨 iOS / Android / Web。
+ * RN 0.76+ New Architecture: boxShadow works directly across iOS / Android / Web.
  */
 export const shadows = {
   none: {} as ViewStyle,
@@ -482,27 +482,27 @@ export const shadows = {
 // ============================================================================
 
 /**
- * 布局常量
+ * Layout constants
  */
 export const layout = {
-  /** 最大内容宽度 */
+  /** Maximum content width */
   maxWidth: fixed.maxContentWidth,
-  /** 头部高度 */
+  /** Header height */
   headerHeight: componentSizes.header,
-  /** 标签栏高度 */
+  /** Tab bar height */
   tabBarHeight: componentSizes.tabBar,
-  /** 屏幕水平内边距 */
+  /** Screen horizontal padding */
   screenPaddingH: spacing.screenH,
-  /** 屏幕 header 垂直内边距 */
+  /** Screen header vertical padding */
   headerPaddingV: spacing.medium,
-  /** 屏幕 header 标题字号 */
+  /** Screen header title font size */
   headerTitleSize: typography.title,
-  /** 屏幕 header 标题行高 */
+  /** Screen header title line height */
   headerTitleLineHeight: typography.lineHeights.title,
-  /** 屏幕垂直内边距 */
+  /** Screen vertical padding */
   screenPaddingV: spacing.large,
-  /** 卡片内边距 */
+  /** Card padding */
   cardPadding: spacing.medium,
-  /** 列表项间距 */
+  /** List item gap */
   listItemGap: spacing.small,
 } as const;

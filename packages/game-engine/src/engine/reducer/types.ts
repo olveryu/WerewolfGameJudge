@@ -1,7 +1,7 @@
 /**
- * Reducer Types - 状态动作类型定义
+ * Reducer Types - state action type definitions
  *
- * StateAction 是 reducer 的输入，描述状态变更
+ * StateAction is reducer input, describing state mutations
  */
 
 import type { RoleId, SchemaId } from '../../models';
@@ -12,7 +12,7 @@ import type { CurrentNightResults } from '../../resolvers/types';
 import type { DeathReason } from '../DeathCalculator';
 
 // =============================================================================
-// 游戏生命周期动作
+// Game lifecycle actions
 // =============================================================================
 
 export interface InitializeGameAction {
@@ -38,7 +38,7 @@ export interface UpdateTemplateAction {
 }
 
 // =============================================================================
-// 座位管理动作
+// Seat management actions
 // =============================================================================
 
 export interface PlayerJoinAction {
@@ -58,7 +58,7 @@ export interface PlayerLeaveAction {
 }
 
 /**
- * 更新在座玩家的展示资料（roster 字段：displayName / avatarUrl / avatarFrame）
+ * Update seated player's display profile (roster fields: displayName / avatarUrl / avatarFrame)
  */
 export interface UpdatePlayerProfileAction {
   type: 'UPDATE_PLAYER_PROFILE';
@@ -75,7 +75,7 @@ export interface UpdatePlayerProfileAction {
 }
 
 // =============================================================================
-// 游戏阶段动作
+// Game phase actions
 // =============================================================================
 
 export interface AssignRolesAction {
@@ -84,13 +84,13 @@ export interface AssignRolesAction {
     assignments: Record<number, RoleId>;
     /** Seer label map - set when both seer + mirrorSeer are in template */
     seerLabelMap?: Readonly<Record<string, number>>;
-    /** 底牌角色列表（盗宝大师 3 张 / 盗贼 2 张），仅底牌角色在场时存在 */
+    /** Deck card role list (TreasureMaster 3 / Thief 2), only exists when deck role is present */
     bottomCards?: readonly RoleId[];
-    /** 盗宝大师所在座位号 */
+    /** TreasureMaster seat number */
     treasureMasterSeat?: number;
-    /** 盗贼所在座位号 */
+    /** Thief seat number */
     thiefSeat?: number;
-    /** 丘比特所在座位号 */
+    /** Cupid seat number */
     cupidSeat?: number;
   };
 }
@@ -99,7 +99,7 @@ export interface StartNightAction {
   type: 'START_NIGHT';
   payload: {
     currentStepIndex: number;
-    /** 首步 stepId，来自 NIGHT_STEPS[0].id 表驱动单源 */
+    /** First step stepId, from NIGHT_STEPS[0].id table-driven single source */
     currentStepId: SchemaId;
   };
 }
@@ -108,7 +108,7 @@ export interface AdvanceToNextActionAction {
   type: 'ADVANCE_TO_NEXT_ACTION';
   payload: {
     nextStepIndex: number;
-    /** 下一步 stepId（来自 NIGHT_STEPS 表驱动单源），null 表示夜晚结束 */
+    /** Next step stepId (from NIGHT_STEPS table-driven single source), null means night ended */
     nextStepId: SchemaId | null;
   };
 }
@@ -122,7 +122,7 @@ export interface EndNightAction {
 }
 
 // =============================================================================
-// 夜晚行动动作
+// Night action actions
 // =============================================================================
 
 export interface RecordActionAction {
@@ -191,14 +191,14 @@ export interface SetWolfKillOverrideAction {
 }
 
 // =============================================================================
-// UI Hint 动作（Host 广播驱动，UI 只读）
+// UI Hint actions (Host broadcast driven, UI read-only)
 // =============================================================================
 
 /**
- * 设置当前步骤的 UI Hint
+ * Set current step UI Hint
  *
- * 职责：Host 通过 resolver/handler 判定后写入，进入下一 step 时清空。
- * UI 只读展示，不推导。按 targetRoleIds 过滤"谁能看到"。
+ * Purpose: Host writes after resolver/handler determination, cleared on next step entry.
+ * UI read-only display, no derivation. Filters "who can see" by targetRoleIds.
  */
 export interface SetUiHintAction {
   type: 'SET_UI_HINT';
@@ -218,7 +218,7 @@ export interface SetUiHintAction {
 }
 
 // =============================================================================
-// 音频状态动作
+// Audio state actions
 // =============================================================================
 
 export interface SetAudioPlayingAction {
@@ -229,7 +229,7 @@ export interface SetAudioPlayingAction {
 }
 
 // =============================================================================
-// 玩家状态动作
+// Player state actions
 // =============================================================================
 
 export interface PlayerViewedRoleAction {
@@ -240,7 +240,7 @@ export interface PlayerViewedRoleAction {
 }
 
 // =============================================================================
-// 错误/拒绝动作
+// Error/rejection actions
 // =============================================================================
 
 export interface ActionRejectedAction {
@@ -262,7 +262,7 @@ export interface ClearActionRejectedAction {
 }
 
 // =============================================================================
-// Reveal ACK 动作
+// Reveal ACK actions
 // =============================================================================
 
 export interface AddRevealAckAction {
@@ -277,7 +277,7 @@ export interface ClearRevealAcksAction {
 }
 
 // =============================================================================
-// Wolf Robot Hunter Gate 动作
+// Wolf Robot Hunter Gate actions
 // =============================================================================
 
 export interface SetWolfRobotHunterStatusViewedAction {
@@ -288,12 +288,12 @@ export interface SetWolfRobotHunterStatusViewedAction {
 }
 
 // =============================================================================
-// Debug Bots 动作
+// Debug Bots actions
 // =============================================================================
 
 /**
- * 填充机器人动作
- * 为所有空座位创建 bot player，设置 debugMode.botsEnabled = true
+ * Fill with bots action
+ * Create bot players for all empty seats, set debugMode.botsEnabled = true
  */
 export interface FillWithBotsAction {
   type: 'FILL_WITH_BOTS';
@@ -306,21 +306,21 @@ export interface FillWithBotsAction {
 }
 
 /**
- * 标记所有机器人已查看角色动作
- * 仅对 isBot === true 的玩家设置 hasViewedRole = true
+ * Mark all bots as having viewed roles action
+ * Set hasViewedRole = true only for isBot === true players
  */
 export interface MarkAllBotsViewedAction {
   type: 'MARK_ALL_BOTS_VIEWED';
 }
 
 // =============================================================================
-// 步骤推进截止时间（统一 deadline-gate）
+// Step progression deadline (unified deadline-gate)
 // =============================================================================
 
 /**
- * 设置当前步骤的推进截止时间（epoch ms）。
- * - wolfKill 步骤：全投完后 set (now + WOLF_VOTE_COUNTDOWN_MS)
- * - 底牌空步骤：步入时 set (now + random(5000, 10000))
+ * Set current step progression deadline (epoch ms).
+ * - wolfKill step: set (now + WOLF_VOTE_COUNTDOWN_MS) after all votes
+ * - Empty deck step: set (now + random(5000, 10000)) on entry
  */
 export interface SetStepDeadlineAction {
   type: 'SET_STEP_DEADLINE';
@@ -330,20 +330,20 @@ export interface SetStepDeadlineAction {
 }
 
 /**
- * 清除当前步骤的推进截止时间。
- * 狼人撤回投票导致未全投完时清除。
+ * Clear current step progression deadline.
+ * Cleared when wolf retract vote results in not all voted.
  */
 export interface ClearStepDeadlineAction {
   type: 'CLEAR_STEP_DEADLINE';
 }
 
 // =============================================================================
-// 待消费音频队列动作
+// Pending audio queue actions
 // =============================================================================
 
 /**
- * 设置待消费音频队列（服务端内联推进产物）
- * 服务端推进后写入 pendingAudioEffects。
+ * Set pending audio queue (produced by server-side inline progression)
+ * Written to pendingAudioEffects after server progression.
  */
 export interface SetPendingAudioEffectsAction {
   type: 'SET_PENDING_AUDIO_EFFECTS';
@@ -353,16 +353,16 @@ export interface SetPendingAudioEffectsAction {
 }
 
 /**
- * 清除待消费音频队列
- * Host 播放完成后 POST audio-ack 清除。
+ * Clear pending audio queue
+ * Cleared via POST audio-ack after Host playback.
  */
 export interface ClearPendingAudioEffectsAction {
   type: 'CLEAR_PENDING_AUDIO_EFFECTS';
 }
 
 /**
- * 设置详细信息分享权限
- * Host 在 ended 阶段选择允许查看「详细信息」的座位列表。
+ * Set detail sharing permissions
+ * Host selects seats allowed to view "detailed info" in ended phase.
  */
 export interface SetNightReviewAllowedSeatsAction {
   type: 'SET_NIGHT_REVIEW_ALLOWED_SEATS';
@@ -370,12 +370,12 @@ export interface SetNightReviewAllowedSeatsAction {
 }
 
 // =============================================================================
-// 吹笛者 groupConfirm ACK
+// Piper groupConfirm ACK
 // =============================================================================
 
 /**
- * 记录某座位已确认催眠状态（幂等：重复 ack 忽略）。
- * 所有在座玩家 ack 后，服务端推进到下一步骤。
+ * Record seat confirmed hypnotize status (idempotent: duplicate ack ignored).
+ * Server progresses to next step after all seated players ack.
  */
 export interface AddPiperRevealAckAction {
   type: 'ADD_PIPER_REVEAL_ACK';
@@ -385,12 +385,12 @@ export interface AddPiperRevealAckAction {
 }
 
 // =============================================================================
-// 觉醒石像鬼 groupConfirm ACK
+// Awakened Gargoyle groupConfirm ACK
 // =============================================================================
 
 /**
- * 记录某座位已确认转化状态（幂等：重复 ack 忽略）。
- * 所有在座玩家 ack 后，服务端推进到下一步骤。
+ * Record seat confirmed conversion status (idempotent: duplicate ack ignored).
+ * Server progresses to next step after all seated players ack.
  */
 export interface AddConversionRevealAckAction {
   type: 'ADD_CONVERSION_REVEAL_ACK';
@@ -400,12 +400,12 @@ export interface AddConversionRevealAckAction {
 }
 
 // =============================================================================
-// 丘比特 groupConfirm ACK
+// Cupid groupConfirm ACK
 // =============================================================================
 
 /**
- * 记录某座位已确认情侣状态（幂等：重复 ack 忽略）。
- * 所有在座玩家 ack 后，服务端推进到下一步骤。
+ * Record seat confirmed lover status (idempotent: duplicate ack ignored).
+ * Server progresses to next step after all seated players ack.
  */
 export interface AddCupidLoversRevealAckAction {
   type: 'ADD_CUPID_LOVERS_REVEAL_ACK';
@@ -415,10 +415,10 @@ export interface AddCupidLoversRevealAckAction {
 }
 
 // =============================================================================
-// 板子建议动作
+// Board Nomination actions
 // =============================================================================
 
-/** 提交/更新板子建议（每 userId 仅一条，后覆盖前） */
+/** Submit/update board nomination (one per userId, later overrides earlier) */
 export interface SetBoardNominationAction {
   type: 'SET_BOARD_NOMINATION';
   payload: {
@@ -426,18 +426,18 @@ export interface SetBoardNominationAction {
   };
 }
 
-/** 点赞板子建议 */
+/** Upvote board nomination */
 export interface UpvoteBoardNominationAction {
   type: 'UPVOTE_BOARD_NOMINATION';
   payload: {
-    /** 被点赞的建议提交者 userId */
+    /** Upvoted nomination submitter userId */
     targetUserId: string;
-    /** 点赞者 userId */
+    /** Upvoter userId */
     voterUid: string;
   };
 }
 
-/** 撤回板子建议 */
+/** Withdraw board nomination */
 export interface WithdrawBoardNominationAction {
   type: 'WITHDRAW_BOARD_NOMINATION';
   payload: {
@@ -445,7 +445,7 @@ export interface WithdrawBoardNominationAction {
   };
 }
 
-/** 结算后批量更新 roster level */
+/** Batch update roster levels after settlement */
 export interface UpdateRosterLevelsAction {
   type: 'UPDATE_ROSTER_LEVELS';
   payload: {
@@ -454,40 +454,40 @@ export interface UpdateRosterLevelsAction {
 }
 
 // =============================================================================
-// StateAction 联合类型
+// StateAction union type
 // =============================================================================
 
 export type StateAction =
-  // 生命周期
+  // Lifecycle
   | InitializeGameAction
   | RestartGameAction
   | UpdateTemplateAction
-  // 座位
+  // Seating
   | PlayerJoinAction
   | PlayerLeaveAction
   | UpdatePlayerProfileAction
-  // 游戏阶段
+  // Game phase
   | AssignRolesAction
   | StartNightAction
   | AdvanceToNextActionAction
   | EndNightAction
-  // 夜晚行动
+  // Night actions
   | RecordActionAction
   | ApplyResolverResultAction
   | SetWitchContextAction
   | SetConfirmStatusAction
   | ClearRevealStateAction
-  // 狼人相关
+  // Wolf related
   | SetWolfKillOverrideAction
   // Wolf Robot Hunter Gate
   | SetWolfRobotHunterStatusViewedAction
-  // UI Hint（Host 广播驱动）
+  // UI Hint (Host broadcast driven)
   | SetUiHintAction
-  // 音频
+  // Audio
   | SetAudioPlayingAction
-  // 玩家状态
+  // Player state
   | PlayerViewedRoleAction
-  // 错误
+  // Error
   | ActionRejectedAction
   | ClearActionRejectedAction
   // Reveal ACK
@@ -496,23 +496,23 @@ export type StateAction =
   // Debug Bots
   | FillWithBotsAction
   | MarkAllBotsViewedAction
-  // 步骤推进截止时间
+  // Step progression deadline
   | SetStepDeadlineAction
   | ClearStepDeadlineAction
-  // 待消费音频队列
+  // Pending audio queue
   | SetPendingAudioEffectsAction
   | ClearPendingAudioEffectsAction
-  // 详细信息分享
+  // Detail sharing
   | SetNightReviewAllowedSeatsAction
-  // 吹笛者 groupConfirm ACK
+  // Piper groupConfirm ACK
   | AddPiperRevealAckAction
-  // 觉醒石像鬼 groupConfirm ACK
+  // Awakened Gargoyle groupConfirm ACK
   | AddConversionRevealAckAction
-  // 丘比特 groupConfirm ACK
+  // Cupid groupConfirm ACK
   | AddCupidLoversRevealAckAction
-  // 板子建议
+  // Board Nomination
   | SetBoardNominationAction
   | UpvoteBoardNominationAction
   | WithdrawBoardNominationAction
-  // 成长结算
+  // Growth settlement
   | UpdateRosterLevelsAction;

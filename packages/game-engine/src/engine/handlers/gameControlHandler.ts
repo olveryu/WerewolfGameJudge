@@ -1,13 +1,13 @@
 /**
- * Game Control Handler - 游戏控制处理器（Host-only）
+ * Game Control Handler - game control processor (Host-only)
  *
- * 职责：
- * - 处理 ASSIGN_ROLES / START_NIGHT / RESTART_GAME / UPDATE_TEMPLATE intent
- * - 角色分配逻辑（shuffle + 写入 state）
- * - NightPlan 构建（基于 template 生成步骤计划）
+ * Responsibilities:
+ * - Handle ASSIGN_ROLES / START_NIGHT / RESTART_GAME / UPDATE_TEMPLATE intents
+ * - Role assignment logic (shuffle + write to state)
+ * - NightPlan construction (generate step plan from template)
  *
- * 导出角色分配、NightPlan 构建及 StateAction 列表构建逻辑，不包含 IO（网络 / 音频 / Alert），
- * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
+ * Exports role assignment, NightPlan construction, and StateAction list building logic; no IO (network / audio / Alert),
+ * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
 import { GameStatus, type RoleId } from '../../models';
@@ -69,13 +69,13 @@ function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {
 }
 
 /**
- * 处理分配角色（仅 seated → assigned）
+ * Handle assign roles (only seated -> assigned)
  *
- * - 前置条件：status === GameStatus.Seated
- * - 洗牌分配角色
- * - 设置 hasViewedRole = false
- * - status → GameStatus.Assigned
- * - 广播 STATE_UPDATE
+ * - Precondition: status === GameStatus.Seated
+ * - Shuffle and assign roles
+ * - Set hasViewedRole = false
+ * - status -> GameStatus.Assigned
+ * - Broadcast STATE_UPDATE
  */
 export function handleAssignRoles(
   _intent: AssignRolesIntent,
@@ -95,7 +95,7 @@ export function handleAssignRoles(
   const bottomCardCount = getBottomCardCount(state.templateRoles);
   const expectedRoleCount = seatCount + bottomCardCount;
 
-  // 验证：模板角色数量与座位数匹配（含底牌）
+  // Validate: template role count matches seat count (including deck cards)
   if (state.templateRoles.length !== expectedRoleCount) {
     return handlerError('role_count_mismatch');
   }
@@ -107,7 +107,7 @@ export function handleAssignRoles(
   let cupidSeat: number | undefined;
 
   if (bottomCardRoleId) {
-    // 底牌角色在场：shuffle → 前 seatCount 分配座位 + 后 N 为底牌
+    // Deck role present: shuffle -> first seatCount assigned to seats + remaining N as deck
     const result = shuffleWithBottomCardConstraints(
       state.templateRoles,
       seatCount,
@@ -127,7 +127,7 @@ export function handleAssignRoles(
     assignments[seats[i]!] = seatedRoles[i]!;
   }
 
-  // 记录底牌角色/丘比特座位
+  // Record deck roles / cupid seat
   if (bottomCardRoleId) {
     for (const [seatStr, roleId] of Object.entries(assignments)) {
       if (roleId === 'treasureMaster') {
@@ -137,7 +137,7 @@ export function handleAssignRoles(
       }
     }
   }
-  // 记录丘比特座位（无论是否有底牌角色）
+  // Record cupid seat (regardless of deck role presence)
   for (const [seatStr, roleId] of Object.entries(assignments)) {
     if (roleId === 'cupid') {
       cupidSeat = Number.parseInt(seatStr, 10);
@@ -145,8 +145,8 @@ export function handleAssignRoles(
     }
   }
 
-  // 当多个 seerFamily 标签角色同时在场，随机分配编号标签
-  // 注意：需要用全部角色（含底牌）来判断 seer 家族
+  // When multiple seerFamily-tagged roles coexist, randomly assign numbered labels
+  // Note: must use all roles (including deck) to determine seer family
   const allRoles = bottomCards ? [...seatedRoles, ...bottomCards] : seatedRoles;
   const seerLikeRoles = [
     ...new Set(
@@ -163,7 +163,7 @@ export function handleAssignRoles(
     seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]!]));
   }
 
-  // 只产生 ASSIGN_ROLES action（不产生 START_NIGHT）
+  // Only produce ASSIGN_ROLES action (not START_NIGHT)
   const assignRolesAction: AssignRolesAction = {
     type: 'ASSIGN_ROLES',
     payload: {
@@ -181,15 +181,15 @@ export function handleAssignRoles(
 // Bottom card shuffle with constraints (rejection sampling)
 // ---------------------------------------------------------------------------
 
-/** 最大重试次数（底牌约束满足概率极高，几乎不需重试） */
+/** Maximum retry count (deck constraint satisfaction probability is very high, rarely needs retry) */
 const MAX_SHUFFLE_RETRIES = 100;
 
 /**
  * Shuffle roles and split into seated + bottom cards with constraints.
  *
  * Bottom card constraints vary by role:
- * - treasureMaster: 最多1只普通狼人；不全神；不全民；无技能狼
- * - thief: ≤1张狼队伍牌（含技能狼）；不能2张都是狼队伍牌
+ * - treasureMaster: at most 1 regular wolf; not all gods; not all villagers; no skill wolves
+ * - thief: <=1 wolf-team card (including skill wolves); cannot have 2 wolf-team cards
  */
 function shuffleWithBottomCardConstraints(
   templateRoles: readonly RoleId[],
@@ -231,7 +231,7 @@ function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean
   return true;
 }
 
-/** TreasureMaster 底牌约束：S21 严格 1Wolf(普通狼人) + 1God + 1Villager */
+/** TreasureMaster deck constraint: S21 strict 1Wolf(regular wolf) + 1God + 1Villager */
 function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
   const factions = cards.map((r) => {
     const spec = ROLE_SPECS[r] as RoleSpec | undefined;
@@ -241,16 +241,16 @@ function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
   const godCount = factions.filter((f) => f === Faction.God).length;
   const villagerCount = factions.filter((f) => f === Faction.Villager).length;
   if (wolfCount !== 1 || godCount !== 1 || villagerCount !== 1) return false;
-  // 狼阵营底牌只能是普通狼人，不含技能狼
+  // Wolf faction deck card can only be regular wolf, no skill wolves
   const wolfCard = cards.find(
     (r) => (ROLE_SPECS[r] as RoleSpec | undefined)?.faction === Faction.Wolf,
   );
   return wolfCard === 'wolf';
 }
 
-/** Thief 底牌约束 */
+/** Thief deck constraint */
 function validateThiefBottomCards(cards: RoleId[]): boolean {
-  // ≤1 张狼队伍牌（含技能狼）
+  // <=1 wolf-team card (including skill wolves)
   const wolfFactionCount = cards.filter((r) => {
     const spec = ROLE_SPECS[r] as RoleSpec | undefined;
     return spec?.faction === Faction.Wolf;
@@ -261,14 +261,14 @@ function validateThiefBottomCards(cards: RoleId[]): boolean {
 }
 
 /**
- * 处理开始夜晚（ready → ongoing）
+ * Handle start night (ready -> ongoing)
  *
- * - 前置条件：status === GameStatus.Ready
- * - 初始化 Night-1 字段
- * - status → GameStatus.Ongoing
- * - 广播 STATE_UPDATE
+ * - Precondition: status === GameStatus.Ready
+ * - Initialize Night-1 fields
+ * - status -> GameStatus.Ongoing
+ * - Broadcast STATE_UPDATE
  *
- * PR3 范围：只做状态初始化，不做音频/advance/action 处理
+ * PR3 scope: state initialization only, no audio/advance/action handling
  */
 export function handleStartNight(
   _intent: StartNightIntent,
@@ -283,10 +283,10 @@ export function handleStartNight(
     return handlerError('invalid_status');
   }
 
-  // 首步来自 buildNightPlan 表驱动单源（按当前模板角色过滤）
+  // First step comes from buildNightPlan table-driven single source (filtered by current template roles)
   const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
-  // 无夜晚行动角色（如纯村民板）：跳过夜晚，直接结束，无死亡
+  // No roles with night actions (e.g. pure villager board): skip night, end directly, no deaths
   if (nightPlan.steps.length === 0) {
     const endNightAction: EndNightAction = {
       type: 'END_NIGHT',
@@ -298,29 +298,29 @@ export function handleStartNight(
   const firstStepId = nightPlan.steps[0]!.stepId;
   const firstStepSpec = getStepSpec(firstStepId);
 
-  // 收集需要返回的 actions
+  // Collect actions to return
   const actions: StateAction[] = [];
 
-  // Night-1 only: currentStepIndex 从 0 开始（首个步骤）
+  // Night-1 only: currentStepIndex starts at 0 (first step)
   const startNightAction: StartNightAction = {
     type: 'START_NIGHT',
     payload: { currentStepIndex: 0, currentStepId: firstStepId },
   };
   actions.push(startNightAction);
 
-  // 使用统一函数检查是否需要设置 witchContext（无狼板子首步为 witchAction 的情况）
+  // Use unified function to check if witchContext needs to be set (no-wolf board where first step is witchAction)
   const witchContextAction = maybeCreateWitchContextAction(firstStepId, state);
   if (witchContextAction) {
     actions.push(witchContextAction);
   }
 
-  // 使用统一函数检查是否需要设置 confirmStatus（首步为 hunterConfirm 的极端情况）
+  // Use unified function to check if confirmStatus needs to be set (edge case: first step is hunterConfirm)
   const confirmStatusAction = maybeCreateConfirmStatusAction(firstStepId, state);
   if (confirmStatusAction) {
     actions.push(confirmStatusAction);
   }
 
-  // 毒师在场：首夜狼人无法袭击（板子级规则）
+  // Witch present: wolves cannot attack on first night (board-level rule)
   if (state.templateRoles.includes('poisoner' as RoleId)) {
     const wolfKillOverrideAction: SetWolfKillOverrideAction = {
       type: 'SET_WOLF_KILL_OVERRIDE',
@@ -334,15 +334,15 @@ export function handleStartNight(
     actions.push(wolfKillOverrideAction);
   }
 
-  // 构建 sideEffects：先广播 + 保存，然后播放夜晚开始音频 + 第一步音频
+  // Build sideEffects: broadcast + save first, then play night start audio + first step audio
   const sideEffects: SideEffect[] = [
     { type: 'BROADCAST_STATE' },
     { type: 'SAVE_STATE' },
-    // 夜晚开始背景音
+    // Night start background sound
     { type: 'PLAY_AUDIO', audioKey: 'night', isEndAudio: false },
   ];
 
-  // 添加第一步（通常是狼人）的开始音频
+  // Add first step (usually wolf) start audio
   if (firstStepSpec) {
     sideEffects.push({
       type: 'PLAY_AUDIO',
@@ -355,7 +355,7 @@ export function handleStartNight(
 }
 
 /**
- * 处理重新开始游戏
+ * Handle restart game
  */
 export function handleRestartGame(
   _intent: RestartGameIntent,
@@ -373,9 +373,9 @@ export function handleRestartGame(
 }
 
 /**
- * 处理更新模板（仅“分配角色前”：unseated | seated）
+ * Handle update template (only "before role assignment": unseated | seated)
  *
- * Host 编辑房间配置时调用。
+ * Called when Host edits room config.
  */
 export function handleUpdateTemplate(
   intent: UpdateTemplateIntent,
@@ -385,8 +385,8 @@ export function handleUpdateTemplate(
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
-  // 验证：仅允许“分配角色前”修改（unseated/seated）。
-  // 一旦进入 assigned/ready/ongoing/ended，修改会造成状态机与玩家认知漂移，因此强制要求先 RESTART_GAME。
+  // Validate: only allow modification "before role assignment" (unseated/seated).
+  // Once in assigned/ready/ongoing/ended, modifications cause state machine and player perception drift, so RESTART_GAME is required first.
   const canUpdateTemplateBeforeView =
     state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canUpdateTemplateBeforeView) {
@@ -404,14 +404,14 @@ export function handleUpdateTemplate(
 }
 
 /**
- * 处理填充机器人（Debug-only, Host-only）
+ * Handle fill with bots (Debug-only, Host-only)
  *
- * 前置条件：
+ * Preconditions:
  * - status === GameStatus.Unseated
  *
- * 结果：
- * - 为所有空座位创建 bot player（isBot: true）
- * - 设置 debugMode.botsEnabled = true
+ * Result:
+ * - Create bot players for all empty seats (isBot: true)
+ * - Set debugMode.botsEnabled = true
  */
 export function handleFillWithBots(
   _intent: FillWithBotsIntent,
@@ -421,14 +421,14 @@ export function handleFillWithBots(
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
-  // Gate: 只允许在 unseated 阶段填充 bot
+  // Gate: only allow bot fill in unseated phase
   if (state.status !== GameStatus.Unseated) {
     return handlerError('invalid_status');
   }
 
-  // 计算空座位并生成 bot players
+  // Calculate empty seats and generate bot players
   const seatCount = getPlayerCount(state.templateRoles);
-  // 只有 player !== null 的座位才算已占用
+  // Only seats with player !== null count as occupied
   const occupiedSeats = new Set(
     Object.entries(state.players)
       .filter(([, player]) => player !== null)
@@ -461,13 +461,13 @@ export function handleFillWithBots(
 }
 
 /**
- * 处理标记所有机器人已查看角色（Debug-only, Host-only）
+ * Handle mark all bots as having viewed roles (Debug-only, Host-only)
  *
- * 前置条件：
+ * Preconditions:
  * - debugMode.botsEnabled === true
  * - status === GameStatus.Assigned
  *
- * 结果：仅对 isBot === true 的玩家设置 hasViewedRole = true
+ * Result: set hasViewedRole = true only for isBot === true players
  */
 export function handleMarkAllBotsViewed(
   _intent: MarkAllBotsViewedIntent,
@@ -477,12 +477,12 @@ export function handleMarkAllBotsViewed(
   if (!guard.ok) return guard.result;
   const { state } = guard;
 
-  // Gate: debugMode.botsEnabled 必须为 true
+  // Gate: debugMode.botsEnabled must be true
   if (!state.debugMode?.botsEnabled) {
     return handlerError('debug_not_enabled');
   }
 
-  // Gate: status 必须是 assigned
+  // Gate: status must be assigned
   if (state.status !== GameStatus.Assigned) {
     return handlerError('invalid_status');
   }
@@ -495,10 +495,10 @@ export function handleMarkAllBotsViewed(
 }
 
 /**
- * 处理分享详细信息（Host-only, ended 阶段）
+ * Handle share details (Host-only, ended phase)
  *
- * Host 选择允许查看「详细信息」的座位列表，写入 state 后广播。
- * 前置条件：仅 Host 可操作 + status === GameStatus.Ended
+ * Host selects seats allowed to view "detailed info", writes to state and broadcasts.
+ * Preconditions: Host only + status === GameStatus.Ended
  */
 export function handleShareNightReview(
   intent: ShareNightReviewIntent,
@@ -521,14 +521,14 @@ export function handleShareNightReview(
 }
 
 // =============================================================================
-// 板子建议 Handlers（任意已连接玩家）
+// Board Nomination Handlers (any connected player)
 // =============================================================================
 
 /**
- * 提交板子建议
+ * Submit board nomination
  *
- * 任何已连接玩家可提交，每人最多一条（后覆盖前）。
- * 前置条件：status === Unseated | Seated
+ * Any connected player can submit, max one per person (later overrides earlier).
+ * Preconditions: status === Unseated | Seated
  */
 export function handleBoardNominate(
   intent: BoardNominateIntent,
@@ -547,19 +547,19 @@ export function handleBoardNominate(
     return handlerError('角色列表不能为空');
   }
 
-  // ── 去重：排序后比较已有 nomination 的 roles ──
+  // ── Dedup: compare roles of existing nominations after sorting ──
   const sortedRoles = [...intent.payload.roles].sort();
   const nominations = state.boardNominations;
   if (nominations) {
     for (const [existingUid, nom] of Object.entries(nominations)) {
-      // 同用户 → 走覆盖逻辑（现有行为）
+      // Same user -> use override logic (existing behavior)
       if (existingUid === intent.payload.userId) continue;
       const existingSorted = [...nom.roles].sort();
       if (
         existingSorted.length === sortedRoles.length &&
         existingSorted.every((r, i) => r === sortedRoles[i])
       ) {
-        // 角色完全相同 → 自动投票已有建议
+        // Roles identical -> auto-vote existing nomination
         const action: UpvoteBoardNominationAction = {
           type: 'UPVOTE_BOARD_NOMINATION',
           payload: { targetUserId: existingUid, voterUid: intent.payload.userId },
@@ -585,12 +585,12 @@ export function handleBoardNominate(
 }
 
 /**
- * 点赞板子建议
+ * Upvote board nomination
  *
- * 前置条件：
+ * Preconditions:
  * - status === Unseated | Seated
- * - 不能给自己点赞
- * - 目标建议必须存在
+ * - Cannot upvote own nomination
+ * - Target nomination must exist
  */
 export function handleBoardUpvote(
   intent: BoardUpvoteIntent,
@@ -620,10 +620,10 @@ export function handleBoardUpvote(
 }
 
 /**
- * 撤回板子建议
+ * Withdraw board nomination
  *
- * 仅建议提交者本人可撤回。
- * 前置条件：status === Unseated | Seated + 建议存在
+ * Only the submitter can withdraw.
+ * Preconditions: status === Unseated | Seated + nomination exists
  */
 export function handleBoardWithdraw(
   intent: BoardWithdrawIntent,

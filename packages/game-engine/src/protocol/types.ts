@@ -1,13 +1,13 @@
 /**
- * Protocol Types - 协议层类型定义（唯一权威）
+ * Protocol Types - Protocol layer type definitions (single source of truth)
  *
- * 所有线协议类型的单一真相（Single Source of Truth）。
- * 其他文件必须从此处导入这些类型，禁止从 RealtimeService.ts 导入。
+ * Single Source of Truth for all wire protocol types.
+ * Other files must import these types from here; importing from RealtimeService.ts is forbidden.
  *
- * ⚠️ 本文件只能包含 type-only imports 和类型定义，禁止任何运行时代码。
+ * ⚠️ This file may only contain type-only imports and type definitions; no runtime code allowed.
  */
 
-// ⚠️ 以现有 repo 导出路径为准
+// ⚠️ Use existing repo export paths as canonical reference
 import type { DeathReason } from '../engine/DeathCalculator';
 import type { GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
@@ -18,24 +18,24 @@ import type { CurrentNightResults } from '../resolvers/types';
 // Confirm Status (discriminated union, role tag)
 // =============================================================================
 
-/** 猎人/狼王：仅被狼人袭击或公投放逐出局时可发动 */
+/** Hunter/Dark Wolf King: can only activate when killed by wolf attack or exile vote */
 export interface ShootConfirmStatus {
   readonly role: 'hunter' | 'darkWolfKing';
-  /** true = 可开枪（死因为 wolfKill 或 exile）；false = 不可（毒/殉情/梦/魅） */
+  /** true = can shoot (died by wolfKill or exile); false = cannot (poison/lover-suicide/dream/charm) */
   readonly canShoot: boolean;
 }
 
-/** 复仇者：阵营取决于影子模仿目标 */
+/** Avenger: faction depends on shadow mimic target */
 export interface FactionConfirmStatus {
   readonly role: 'avenger';
   /** Team.Good / Team.Evil / Team.Third */
   readonly faction: Team;
 }
 
-/** 隐狼：获知狼同伴座位 */
+/** Hidden Wolf: learns wolf teammate seats */
 export interface WolfTeammatesConfirmStatus {
   readonly role: 'hiddenWolf';
-  /** 其他狼人的座位号数组（不含自己） */
+  /** Array of other wolves' seat numbers (excluding self) */
   readonly wolfTeammates: readonly number[];
 }
 
@@ -43,160 +43,160 @@ export interface WolfTeammatesConfirmStatus {
 export type ConfirmStatus = ShootConfirmStatus | FactionConfirmStatus | WolfTeammatesConfirmStatus;
 
 // =============================================================================
-// 协议动作记录（ProtocolAction）— 线安全、稳定
+// Protocol Action Record (ProtocolAction) — wire-safe, stable
 // =============================================================================
 
-/** 用于线传输的动作记录 */
+/** Action record for wire transmission */
 export interface ProtocolAction {
   readonly schemaId: SchemaId;
   readonly actorSeat: number;
-  /** 目标座位号；undefined = 无目标动作（如女巫“不用药”） */
+  /** Target seat number; undefined = no-target action (e.g. witch "no potion") */
   readonly targetSeat?: number;
-  /** 提交时间戳（epoch ms） */
+  /** Submission timestamp (epoch ms) */
   readonly timestamp: number;
 }
 
 // =============================================================================
-// 音频效果（AudioEffect）— 服务端内联推进产物
+// Audio Effects (AudioEffect) — produced by server-side inline progression
 // =============================================================================
 
 /**
- * 音频效果描述符
+ * Audio effect descriptor
  *
- * 服务端内联推进时产生，写入 `GameStatePayload.pendingAudioEffects`。
- * Host 设备消费队列播放音频，播放完成后 POST `/game/night/audio-ack` 清除。
- * Non-Host 设备忽略。
+ * Produced during server-side inline progression, written to `GameStatePayload.pendingAudioEffects`.
+ * Host device consumes queue to play audio; cleared via POST `/game/night/audio-ack` after playback.
+ * Non-Host devices ignore this.
  */
 export interface AudioEffect {
-  /** 音频资源 key（角色 ID / 'night' / 'night_end'） */
+  /** Audio resource key (role ID / 'night' / 'night_end') */
   readonly audioKey: string;
-  /** 是否为结束音频（true → audio_end 目录） */
+  /** Whether this is end audio (true -> audio_end directory) */
   readonly isEndAudio?: boolean;
 }
 
 // =============================================================================
-// 玩家（Player）— 线协议
+// Player — wire protocol
 // =============================================================================
 
 export interface Player {
   userId: string;
   seat: number;
   role?: RoleId | null;
-  /** 该玩家是否已查看分配的角色；assignRoles 后设为 false，viewRole 后设为 true。
-   *  所有玩家 hasViewedRole=true 后 host 才能 startNight。 */
+  /** Whether this player has viewed their assigned role; set to false after assignRoles, true after viewRole.
+   *  Host can only startNight after all players have hasViewedRole=true. */
   hasViewedRole: boolean;
-  /** true = bot 占位（调试模式）；影响：跳过 reveal ack、groupConfirm、XP 结算 */
+  /** true = bot placeholder (debug mode); affects: skip reveal ack, groupConfirm, XP settlement */
   isBot?: boolean;
 }
 
 // =============================================================================
-// 玩家画像（RosterEntry）— 展示字段，与游戏逻辑分离
+// RosterEntry — display fields, separated from game logic
 // =============================================================================
 
 /**
- * RosterEntry — 房间内玩家的展示信息（昵称 / 头像 / 等级）。
+ * RosterEntry — player display info within a room (nickname / avatar / level).
  *
- * 与 Player（游戏逻辑字段）分离：
+ * Separated from Player (game logic fields):
  * - Player: userId / seat / role / hasViewedRole / isBot
  * - RosterEntry: displayName / avatarUrl / avatarFrame / level
  *
- * keyed by userId in GameStatePayload.roster。
+ * keyed by userId in GameStatePayload.roster.
  */
 export interface RosterEntry {
   displayName: string;
   avatarUrl?: string;
   avatarFrame?: string;
-  /** 装备的座位特效 gacha item ID */
+  /** Equipped seat flair gacha item ID */
   seatFlair?: string;
-  /** 装备的入座动画 gacha item ID */
+  /** Equipped seat animation gacha item ID */
   seatAnimation?: string;
-  /** 装备的名字样式 gacha item ID */
+  /** Equipped name style gacha item ID */
   nameStyle?: string;
-  /** 装备的翻牌动画 gacha item ID */
+  /** Equipped role reveal effect gacha item ID */
   roleRevealEffect?: string;
   level?: number;
 }
 
 // =============================================================================
-// 板子建议（Board Nomination）
+// Board Nomination
 // =============================================================================
 
 /**
- * 板子建议（BoardNomination）— 任何已连接玩家可提交。
- * 每人最多一个（以 userId 为 key，后提交覆盖前）。
+ * Board Nomination — any connected player can submit.
+ * Max one per person (keyed by userId, later submissions override earlier ones).
  */
 export interface BoardNomination {
-  /** 提交者 userId（冗余存储，方便 UI 渲染） */
+  /** Submitter userId (redundantly stored for UI rendering) */
   readonly userId: string;
-  /** 提交者显示名 */
+  /** Submitter display name */
   readonly displayName: string;
-  /** 建议的角色配置 */
+  /** Suggested role configuration */
   readonly roles: readonly RoleId[];
-  /** 点赞的 userId 列表 */
+  /** List of userIds who upvoted */
   readonly upvoters: readonly string[];
 }
 
 // =============================================================================
-// 游戏状态（GameState）— 唯一权威状态类型
+// GameState — single authoritative state type
 // =============================================================================
 
 export interface GameState {
-  // --- 核心字段（现有） ---
+  // --- Core fields (existing) ---
   roomCode: string;
   hostUserId: string;
   status: GameStatus;
   templateRoles: RoleId[];
 
-  // ⚠️ Phase 1: players 保持 Record<number, ...> 不改，与现有实现一致
+  // ⚠️ Phase 1: players remains Record<number, ...> unchanged, consistent with existing implementation
   players: Record<number, Player | null>;
 
   /**
-   * 玩家画像（RosterEntry），keyed by userId。
-   * 展示字段（displayName / avatarUrl / avatarFrame / level）与 Player 分离。
-   * join 时写入，leave 时移除，updateProfile 时更新。
+   * Player display info (RosterEntry), keyed by userId.
+   * Display fields (displayName / avatarUrl / avatarFrame / level) separated from Player.
+   * Written on join, removed on leave, updated on updateProfile.
    */
   roster: Record<string, RosterEntry>;
 
   /**
-   * 当前夜晚步骤索引。
-   * -1 = 夜未开始（Setup 阶段）；>= 0 = nightSteps 数组索引。
-   * 仅 status=Ongoing 时有意义。
+   * Current night step index.
+   * -1 = night not started (Setup phase); >= 0 = nightSteps array index.
+   * Only meaningful when status=Ongoing.
    */
   currentStepIndex: number;
   isAudioPlaying: boolean;
 
   /**
-   * 本局开牌动画随机种子（用于 random 解析 + 发言顺序 RNG）
-   * Host 在创建房间/重开游戏时生成
+   * Random seed for role reveal animation (used for random parsing + speech order RNG)
+   * Generated by Host on room creation / game restart
    * seed = roomCode + ':' + roleRevealRandomNonce
    */
   roleRevealRandomNonce?: string;
 
-  /** 当前夜晚步骤 ID（来自 NIGHT_STEPS 表驱动单源） */
+  /** Current night step ID (from NIGHT_STEPS table-driven single source) */
   currentStepId?: SchemaId;
 
-  // --- Seat-map 字段 ---
+  // --- Seat-map fields ---
   // NOTE: single source of truth for wolf vote is:
   // currentNightResults.wolfVotesBySeat
 
-  // --- 执行状态 ---
-  /** 第一夜动作记录（normalizeState 保证非 undefined）。endNight 时清空。 */
+  // --- Execution state ---
+  /** Night-1 action records (normalizeState guarantees non-undefined). Cleared on endNight. */
   actions: ProtocolAction[];
 
-  /** 当前夜晚累积结果（type-only from resolver types，单一真相） */
+  /** Current night accumulated results (type-only from resolver types, single source of truth) */
   currentNightResults?: CurrentNightResults;
 
-  /** 待确认的揭示确认 userId[]（normalizeState 保证非 undefined）。全部 ack 后清空并推进流程。 */
+  /** Pending reveal ack userId[] (normalizeState guarantees non-undefined). Cleared and progresses after all ack. */
   pendingRevealAcks: string[];
 
-  /** 上一夜死亡座位号[]；首夜前为 undefined。endNight 时由 deathResolution 计算写入。 */
+  /** Previous night death seats[]; undefined before night-1. Computed by deathResolution on endNight. */
   lastNightDeaths?: number[];
 
-  /** 上一夜死亡原因（座位 → 死因） */
+  /** Previous night death reasons (seat -> cause) */
   deathReasons?: Readonly<Record<number, DeathReason>>;
 
-  // --- 噩梦之影封锁 ---
-  /** 被噩梦封堵的座位号；该座位本夜无法行动（resolver 返回 skip）。仅当夜有效。 */
+  // --- Nightmare blocking ---
+  /** Seat blocked by nightmare; cannot act this night (resolver returns skip). Valid for current night only. */
   nightmareBlockedSeat?: number;
 
   /**
@@ -205,18 +205,18 @@ export interface GameState {
    */
   wolfKillOverride?: WolfKillOverride;
 
-  // --- 机械狼人伪装上下文 ---
+  // --- Wolf Robot disguise context ---
   /**
-   * 机械狼人伪装上下文（用于“查验类”resolver 的身份解析）
+   * Wolf Robot disguise context (for identity resolution in "check-type" resolvers)
    *
-   * 职责：这是给 server-only resolvers/engine 用的“计算上下文”，用于统一的
-   * `resolveRoleForChecks()`：当某座位的有效身份为 wolfRobot 时，需要把它
-   * 解释为 `disguisedRole`，从而影响预言家/通灵师/石像鬼等的查验结果。
+   * Purpose: computation context for server-only resolvers/engine, used by unified
+   * `resolveRoleForChecks()`: when a seat's effective identity is wolfRobot, interprets it
+   * as `disguisedRole`, affecting seer/psychic/gargoyle check results.
    *
-   * 注意：
-   * - 这是 GameStatePayload 的一部分（公开广播），但 UI 一般不直接依赖它；
-   *   UI 只从 schema + GameStatePayload 渲染，并按 myRole 过滤展示。
-   * - 禁止在 engine 之外维护平行的“伪装身份”状态，避免 server/client drift。
+   * Notes:
+   * - Part of GameStatePayload (publicly broadcast), but UI generally doesn't depend on it;
+   *   UI only renders from schema + GameStatePayload, filtered by myRole.
+   * - Maintaining parallel "disguised identity" state outside engine is forbidden to avoid server/client drift.
    */
   wolfRobotContext?: {
     /** The seat wolfRobot learned from */
@@ -225,7 +225,7 @@ export interface GameState {
     disguisedRole: RoleId;
   };
 
-  // --- 角色特定上下文（全部公开，UI 按 myRole 过滤） ---
+  // --- Role-specific context (all public, UI filters by myRole) ---
   /** Witch turn context - only display to witch via UI filter */
   witchContext?: {
     killedSeat: number;
@@ -276,12 +276,12 @@ export interface GameState {
   };
 
   /**
-   * 机械狼人学习结果（公开广播的“事实结果”）
+   * Wolf Robot learn result (publicly broadcast "factual result")
    *
-   * 职责：描述 wolfRobot 在 wolfRobotLearn 这一步的计算结果（学了谁/学到什么）。
-   * 这是单一真相（Single source of truth）：服务端执行 resolver 后写入并广播。
+   * Purpose: describes wolfRobot's computation result in the wolfRobotLearn step (who/what was learned).
+   * This is the single source of truth: server writes and broadcasts after executing resolver.
    *
-   * UI：所有客户端都会收到，但必须按 myRole 过滤，只对 wolfRobot（或 Host UI）展示。
+   * UI: all clients receive it but must filter by myRole, showing only to wolfRobot (or Host UI).
    */
   wolfRobotReveal?: {
     targetSeat: number;
@@ -296,21 +296,21 @@ export interface GameState {
   };
 
   /**
-   * Gate（流程前置条件）：机械狼人学到猎人后，必须“查看状态”才能推进夜晚
+   * Gate (flow precondition): after wolfRobot learns hunter, must "view status" before night can progress
    *
-   * 职责：这是 server-authoritative 的流程 gate。
-   * - 服务端写入：当 `wolfRobotReveal.learnedRoleId === 'hunter'` 时设置为 false（需要查看）。
-   * - 服务端清除：收到玩家确认消息 `WOLF_ROBOT_HUNTER_STATUS_VIEWED` 后设置为 true。
-   * - NightFlow：若 gate 未清除，服务端必须拒绝推进（防止 authority split）。
-   * - UI：仅根据 schema + GameStatePayload 展示底部按钮，不允许 UI 本地状态机自推导。
+   * Purpose: this is a server-authoritative flow gate.
+   * - Server writes: set to false when `wolfRobotReveal.learnedRoleId === 'hunter'` (requires viewing).
+   * - Server clears: set to true after receiving player confirmation `WOLF_ROBOT_HUNTER_STATUS_VIEWED`.
+   * - NightFlow: if gate not cleared, server must refuse to progress (prevents authority split).
+   * - UI: renders bottom buttons solely from schema + GameStatePayload, no local state machine derivation allowed.
    */
   wolfRobotHunterStatusViewed?: boolean;
 
   /**
    * Confirm status (discriminated by role).
    *
-   * - hunter / darkWolfKing → ShootConfirmStatus（canShoot：仅被狼人袭击或放逐时可发动）
-   * - avenger → FactionConfirmStatus（faction：好人/狼人/绑定）
+   * - hunter / darkWolfKing -> ShootConfirmStatus (canShoot: can only activate when killed by wolf attack or exile)
+   * - avenger -> FactionConfirmStatus (faction: good/wolf/bound)
    *
    * Only display to that role via UI filter.
    */
@@ -325,49 +325,49 @@ export interface GameState {
     rejectionId: string;
   };
 
-  // --- 步骤推进截止时间 ---
+  // --- Step progression deadline ---
   /**
-   * 当前步骤的推进截止时间（epoch ms）。
+   * Current step progression deadline (epoch ms).
    *
-   * 统一的 deadline-gate：到期后 inlineProgression 允许 advance。
-   * 用途：
-   * - wolfKill 步骤：全投完后 set (now + WOLF_VOTE_COUNTDOWN_MS)，改票/撤回清除
-   * - 底牌空步骤：步入时 set (now + random(5000, 10000))
+   * Unified deadline-gate: inlineProgression allows advance after expiry.
+   * Usage:
+   * - wolfKill step: set (now + WOLF_VOTE_COUNTDOWN_MS) after all votes, cleared on change/retract
+   * - Empty deck step: set (now + random(5000, 10000)) on entry
    *
-   * 生命周期：
-   * - 设置：engine 内部（wolf vote post-action / unchosen step entry）
-   * - 检查：evaluateProgression (inlineProgression.ts)
-   * - 清除：ADVANCE_TO_NEXT_ACTION reducer
+   * Lifecycle:
+   * - Set: internal engine (wolf vote post-action / unchosen step entry)
+   * - Check: evaluateProgression (inlineProgression.ts)
+   * - Clear: ADVANCE_TO_NEXT_ACTION reducer
    */
   stepDeadline?: number;
 
-  // --- 待消费音频队列（服务端内联推进产物） ---
+  // --- Pending audio queue (produced by server-side inline progression) ---
   /**
-   * 服务端推进时写入的待播放音频列表。
+   * Pending audio list written during server-side progression.
    *
-   * Host 设备消费并按序播放，播放完成后 POST `/game/night/audio-ack` 清除。
-   * Non-Host 设备忽略。
+   * Host device consumes and plays in order, cleared via POST `/game/night/audio-ack` after playback.
+   * Non-Host devices ignore this.
    *
-   * 生命周期：
-   * - 写入：服务端内联推进（action → advance/endNight）时从 sideEffects 提取
-   * - 消费：Host 设备监听 state 变化 → 检测非空 → 播放 → POST ack 清除
-   * - 清除：`/game/night/audio-ack` 清空数组 + 设 isAudioPlaying=false
+   * Lifecycle:
+   * - Write: extracted from sideEffects during server-side inline progression (action -> advance/endNight)
+   * - Consume: Host device watches state changes -> detects non-empty -> plays -> POST ack clears
+   * - Clear: `/game/night/audio-ack` empties array + sets isAudioPlaying=false
    */
   pendingAudioEffects?: AudioEffect[];
 
-  // --- UI Hints（服务端广播驱动，UI 只读展示） ---
+  // --- UI Hints (server broadcast driven, UI read-only display) ---
   /**
    * UI hint for current step - Server writes, UI reads only (no derivation).
    *
-   * 职责：允许 Host 向特定角色广播“提前提示”（如被封锁/袭击被禁用）。
-   * Host 通过 resolver/handler 判定后写入，进入下一 step 或阻断解除时清空。
+   * Purpose: allows Host to broadcast "early hints" to specific roles (e.g. blocked/attack disabled).
+   * Host writes after resolver/handler determination, cleared on next step entry or block release.
    *
-   * UI 规则：
-   * - targetRoleIds 决定"谁能看到"这个 hint（UI 按 myRole 过滤）
-   * - bottomAction === 'skipOnly' → 底部只显示 skip
-   * - bottomAction === 'wolfEmptyOnly' → 底部只显示放弃袭击
-   * - promptOverride 存在 → 替换 actionPrompt 文案
-   * - message 用于 banner/提示/按钮文案
+   * UI rules:
+   * - targetRoleIds determines "who can see" this hint (UI filters by myRole)
+   * - bottomAction === 'skipOnly' -> bottom only shows skip
+   * - bottomAction === 'wolfEmptyOnly' -> bottom only shows abandon attack
+   * - promptOverride present -> replaces actionPrompt text
+   * - message used for banner/prompt/button text
    */
   ui?: {
     currentActorHint?: {
@@ -377,9 +377,9 @@ export interface GameState {
         | 'wolf_unanimity_required'
         | 'wolf_tie_random';
       /**
-       * 哪些角色能看到这个 hint（UI 按 myRole 过滤）
-       * - blocked_by_nightmare: [被封锁角色的 roleId]
-       * - wolf_kill_disabled: 所有狼角色（wolf, darkWolfKing, wolfRobot, wolfQueen, etc.）
+       * Which roles can see this hint (UI filters by myRole)
+       * - blocked_by_nightmare: [roleId of blocked role]
+       * - wolf_kill_disabled: all wolf roles (wolf, darkWolfKing, wolfRobot, wolfQueen, etc.)
        */
       targetRoleIds: RoleId[];
       message: string;
@@ -388,7 +388,7 @@ export interface GameState {
     } | null;
   };
 
-  // --- Debug 模式 ---
+  // --- Debug mode ---
   /**
    * Debug mode settings (optional, for development/testing only).
    * When debugMode.botsEnabled is true, bot-related UI and features are enabled.
@@ -399,140 +399,140 @@ export interface GameState {
   };
 
   /**
-   * 双预言家标签映射（当 seer + mirrorSeer 同时在模板中时生成）
+   * Dual seer label mapping (generated when seer + mirrorSeer coexist in template)
    *
-   * 随机分配“1号预言家”和“2号预言家”标签，玩家无法知晓哪个是真预言家。
-   * 在 ASSIGN_ROLES 时生成，用于音频/显示名/角色卡。
+   * Randomly assigns "Seer #1" and "Seer #2" labels; players cannot tell which is real.
+   * Generated at ASSIGN_ROLES, used for audio/display name/role card.
    */
   seerLabelMap?: Readonly<Record<string, number>>;
 
   /**
-   * Host 分享「详细信息」给指定座位的玩家。
-   * ended 阶段 Host 选择座位后写入，restart 时清除。
-   * UI 判断：若 effectiveSeat 在此列表中，显示「详细信息」按钮。
+   * Host shares "detailed info" with players at specified seats.
+   * Written after Host selects seats in ended phase, cleared on restart.
+   * UI rule: if effectiveSeat is in this list, show "detailed info" button.
    */
   nightReviewAllowedSeats?: readonly number[];
 
-  // --- 吹笛者（Piper）---
+  // --- Piper ---
   /**
-   * 被催眠的座位列表（Night-1 only）。
-   * 服务端在 piperHypnotize resolver 执行后写入。
-   * UI 在 piperHypnotizedReveal 步骤按 mySeat 过滤，显示催眠/未催眠信息。
-   * 初始化为 `[]`，服务端保证非 undefined。
+   * List of hypnotized seats (Night-1 only).
+   * Written by server after piperHypnotize resolver executes.
+   * UI in piperHypnotizedReveal step filters by mySeat, showing hypnotized/not-hypnotized info.
+   * Initialized as `[]`, server guarantees non-undefined.
    */
   hypnotizedSeats: readonly number[];
 
   /**
-   * piperHypnotizedReveal 步骤中已确认（ack）的座位列表。
-   * 所有存活玩家 ack 后，服务端推进到下一步骤。
-   * 进入下一夜时重置为空。
-   * 初始化为 `[]`，服务端保证非 undefined。
+   * List of seats that have acknowledged (ack) in piperHypnotizedReveal step.
+   * Server progresses to next step after all alive players ack.
+   * Reset to empty on next night entry.
+   * Initialized as `[]`, server guarantees non-undefined.
    */
   piperRevealAcks: readonly number[];
 
-  // --- 觉醒石像鬼（Awakened Gargoyle）---
+  // --- Awakened Gargoyle ---
   /**
-   * 被转化的座位（Night-1 only）。
-   * 服务端在 awakenedGargoyleConvert resolver 执行后写入。
-   * UI 在 awakenedGargoyleConvertReveal 步骤按 mySeat 过滤，显示转化/未转化信息。
+   * Converted seat (Night-1 only).
+   * Written by server after awakenedGargoyleConvert resolver executes.
+   * UI in awakenedGargoyleConvertReveal step filters by mySeat, showing converted/not-converted info.
    */
   convertedSeat?: number;
 
   /**
-   * awakenedGargoyleConvertReveal 步骤中已确认（ack）的座位列表。
-   * 所有存活玩家 ack 后，服务端推进到下一步骤。
-   * 进入下一夜时重置为空。
-   * 初始化为 `[]`，服务端保证非 undefined。
+   * List of seats that have acknowledged (ack) in awakenedGargoyleConvertReveal step.
+   * Server progresses to next step after all alive players ack.
+   * Reset to empty on next night entry.
+   * Initialized as `[]`, server guarantees non-undefined.
    */
   conversionRevealAcks: readonly number[];
 
-  // --- 盗宝大师（TreasureMaster）---
+  // --- Treasure Master ---
   /**
-   * 底牌（3 张身份牌），发牌时从 15 张模板角色中分出。
-   * 仅盗宝大师在场时存在。发牌后不变。
+   * Deck cards (3 identity cards), split from 15 template roles during dealing.
+   * Only exists when Treasure Master is present. Unchanged after dealing.
    */
   bottomCards?: readonly RoleId[];
 
   /**
-   * 盗宝大师所在座位号。
-   * 发牌时写入，用于 resolver actor 路由和查验伪装。
+   * Treasure Master seat number.
+   * Written during dealing, used for resolver actor routing and check disguise.
    */
   treasureMasterSeat?: number;
 
   /**
-   * 盗宝大师选中的底牌身份。
-   * treasureMasterChoose resolver 写入。
-   * 查验 treasureMasterSeat 时返回此身份。
+   * Identity chosen by Treasure Master from deck.
+   * Written by treasureMasterChoose resolver.
+   * Returns this identity when checking treasureMasterSeat.
    */
   treasureMasterChosenCard?: RoleId;
 
   /**
-   * 盗宝大师选卡后的动态阵营。
-   * 由底牌组成决定（含狼→Wolf，≥2神→Good，≥2民→Good）。
-   * 查验 treasureMasterSeat 的 team 时使用此值。
+   * Treasure Master's dynamic faction after card selection.
+   * Determined by deck composition (contains wolf->Wolf, >=2 god->Good, >=2 villager->Good).
+   * Used when checking treasureMasterSeat's team.
    */
   effectiveTeam?: Team;
 
   /**
-   * 底牌中有夜晚步骤、但未被盗宝大师选中的角色列表。
-   * 这些角色的步骤保留在 nightPlan 中但无人操作（auto-skip）。
-   * handleStartNight / treasureMasterChoose resolver 写入。
+   * List of deck roles with night steps that were not chosen by Treasure Master.
+   * These roles' steps remain in nightPlan but no one operates them (auto-skip).
+   * Written by handleStartNight / treasureMasterChoose resolver.
    */
   bottomCardStepRoles?: readonly RoleId[];
 
-  // --- 盗贼（Thief）---
+  // --- Thief ---
   /**
-   * 盗贼所在座位号。
-   * 发牌时写入，用于 resolver actor 路由和查验伪装。
+   * Thief seat number.
+   * Written during dealing, used for resolver actor routing and check disguise.
    */
   thiefSeat?: number;
 
   /**
-   * 盗贼选中的底牌身份。
-   * thiefChoose resolver 写入。
-   * 查验 thiefSeat 时返回此身份。
+   * Identity chosen by Thief from deck.
+   * Written by thiefChoose resolver.
+   * Returns this identity when checking thiefSeat.
    */
   thiefChosenCard?: RoleId;
 
-  // --- 丘比特（Cupid）---
+  // --- Cupid ---
   /**
-   * 情侣座位对（sorted ascending）。
-   * cupidChooseLovers resolver 写入。
+   * Lover seat pair (sorted ascending).
+   * Written by cupidChooseLovers resolver.
    */
   loverSeats?: readonly [number, number];
 
   /**
-   * 丘比特所在座位号。
-   * 发牌时写入。
+   * Cupid seat number.
+   * Written during dealing.
    */
   cupidSeat?: number;
 
   /**
-   * cupidLoversReveal 步骤中已确认（ack）的座位列表。
-   * 所有存活玩家 ack 后，服务端推进到下一步骤。
-   * 初始化为 `[]`，服务端保证非 undefined。
+   * List of seats that have acknowledged (ack) in cupidLoversReveal step.
+   * Server progresses to next step after all alive players ack.
+   * Initialized as `[]`, server guarantees non-undefined.
    */
   cupidLoversRevealAcks: readonly number[];
 
-  // --- 板子建议（Board Nomination）---
+  // --- Board Nomination ---
   /**
-   * 板子建议列表（userId → BoardNomination）。
-   * 任何已连接玩家可提交建议，每人最多一条（后提交覆盖前）。
-   * Host 可采纳某条建议（触发 UPDATE_TEMPLATE）。
-   * UPDATE_TEMPLATE / RESTART_GAME 时清空。
+   * Board nomination list (userId -> BoardNomination).
+   * Any connected player can submit, max one per person (later submissions override).
+   * Host can adopt a nomination (triggers UPDATE_TEMPLATE).
+   * Cleared on UPDATE_TEMPLATE / RESTART_GAME.
    */
   boardNominations?: Readonly<Record<string, BoardNomination>>;
 }
 
 // =============================================================================
-// 玩家消息（PlayerMessage）— 仅 integration test 使用
+// Player Message (PlayerMessage) — integration test only
 // =============================================================================
 
 /**
- * Integration test 专用 — 模拟 player→server intent 的消息类型
+ * Integration test only — message type simulating player->server intents
  *
- * 生产环境中玩家通过 HTTP API 提交操作，不使用此类型。
- * 保留供 board integration tests（hostGameContext / hostGameFactory）使用。
+ * In production, players submit actions via HTTP API; this type is not used.
+ * Retained for board integration tests (hostGameContext / hostGameFactory).
  */
 export type PlayerMessage =
   | { type: 'REQUEST_STATE'; userId: string }
