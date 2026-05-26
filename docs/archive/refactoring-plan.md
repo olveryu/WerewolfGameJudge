@@ -1,6 +1,6 @@
-> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+> ⚠️ Historical document — for reference only, does not reflect current code state
 
-# WerewolfGameJudge 大规模重构方案
+# WerewolfGameJudge Large-Scale Refactoring Plan
 
 > 生成日期：2026-03-07  
 > 基线版本：`main` HEAD  

@@ -1,4 +1,6 @@
-# 全量代码审计报告
+> ⚠️ Historical document — for reference only
+
+# Full Codebase Audit Report
 
 **日期**: 2026-04-08  
 **范围**: 全项目逐文件审计  

@@ -1,4 +1,6 @@
-# RoleSpec Schema 重设计：Data-Driven 角色定义系统
+> ⚠️ Historical document — for reference only
+
+# RoleSpec Schema Redesign: Data-Driven Role Definition System
 
 > 设计者视角：Blood on the Clocktower / TFT / Hearthstone 引擎架构经验
 > 目标：让 spec 成为角色行为的唯一真相来源

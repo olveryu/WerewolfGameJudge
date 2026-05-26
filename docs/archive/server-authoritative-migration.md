@@ -1,4 +1,6 @@
-# 服务器权威架构迁移方案
+> ⚠️ Historical document — for reference only
+
+# Server-Authoritative Architecture Migration Plan
 
 > ⚠️ **本迁移已全部完成（v1.0.225）。** 本文档保留作为历史参考，其中提及的文件路径和架构可能与当前代码不一致。
 

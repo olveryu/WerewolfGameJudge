@@ -1,6 +1,6 @@
-> ⚠️ 历史文档 — 仅供参考，不反映当前代码状态
+> ⚠️ Historical document — for reference only, does not reflect current code state
 
-# Code Review 变更计划
+# Code Review Change Plan
 
 > **分支**: `feature/optimize_1`
 > **影响范围**: game-engine (handlers/reducer/state) + client services/screens
