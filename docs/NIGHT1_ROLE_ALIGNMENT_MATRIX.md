@@ -1,798 +1,613 @@
-# Night-1 角色对齐矩阵
+# Night-1 Role Alignment Matrix
 
-> 更新日期: 2026-05-24
-> 版本: Handler→Facade→UI 架构
+> Updated: 2026-05-24
+> Version: Handler→Facade→UI architecture
 
-## 概述
+## Overview
 
-本文档记录 Night-1 所有角色/步骤/行动的完整行为对齐。
+This document records the complete behavioral alignment of all Night-1 roles/steps/actions.
 
-## NIGHT_STEPS 顺序（权威）
+## NIGHT_STEPS Order (Authoritative)
 
-| 序号 | stepId                          | roleId             | audioKey                        | audioEndKey                     |
-| ---- | ------------------------------- | ------------------ | ------------------------------- | ------------------------------- |
-| 0    | `thiefChoose`                   | `thief`            | `thief`                         | (同)                            |
-| 1    | `treasureMasterChoose`          | `treasureMaster`   | `treasureMaster`                | (同)                            |
-| 2    | `cupidChooseLovers`             | `cupid`            | `cupid`                         | (同)                            |
-| 3    | `cupidLoversReveal`             | `cupid`            | `cupidLoversReveal`             | `cupidLoversReveal`             |
-| 4    | `magicianSwap`                  | `magician`         | `magician`                      | (同)                            |
-| 5    | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (同)                            |
-| 6    | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (同)                            |
-| 7    | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (同)                            |
-| 8    | `avengerConfirm`                | `avenger`          | `avenger`                       | (同)                            |
-| 9    | `eclipseWolfQueenShelter`       | `eclipseWolfQueen` | `eclipseWolfQueen`              | (同)                            |
-| 10   | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (同)                            |
-| 11   | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (同)                            |
-| 12   | `guardProtect`                  | `guard`            | `guard`                         | (同)                            |
-| 13   | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (同)                            |
-| 14   | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (同)                            |
-| 15   | `crowCurse`                     | `crow`             | `crow`                          | (同)                            |
-| 16   | `wolfKill`                      | `wolf`             | `wolf`                          | (同)                            |
-| 17   | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (同)                            |
-| 18   | `hiddenWolfReveal`              | `hiddenWolf`       | `hiddenWolf`                    | (同)                            |
-| 19   | `witchAction`                   | `witch`            | `witch`                         | (同)                            |
-| 20   | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (同)                            |
-| 21   | `hunterConfirm`                 | `hunter`           | `hunter`                        | (同)                            |
-| 22   | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (同)                            |
-| 23   | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (同)                            |
-| 24   | `seerCheck`                     | `seer`             | `seer`                          | (同)                            |
-| 25   | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (同)                            |
-| 26   | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (同)                            |
-| 27   | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (同)                            |
-| 28   | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (同)                            |
-| 29   | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (同)                            |
-| 30   | `psychicCheck`                  | `psychic`          | `psychic`                       | (同)                            |
-| 31   | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (同)                            |
-| 32   | `piperHypnotize`                | `piper`            | `piper`                         | (同)                            |
-| 33   | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
-| 34   | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
+| Index | stepId                          | roleId             | audioKey                        | audioEndKey                     |
+| ----- | ------------------------------- | ------------------ | ------------------------------- | ------------------------------- |
+| 0     | `thiefChoose`                   | `thief`            | `thief`                         | (same)                          |
+| 1     | `treasureMasterChoose`          | `treasureMaster`   | `treasureMaster`                | (same)                          |
+| 2     | `cupidChooseLovers`             | `cupid`            | `cupid`                         | (same)                          |
+| 3     | `cupidLoversReveal`             | `cupid`            | `cupidLoversReveal`             | `cupidLoversReveal`             |
+| 4     | `magicianSwap`                  | `magician`         | `magician`                      | (same)                          |
+| 5     | `slackerChooseIdol`             | `slacker`          | `slacker`                       | (same)                          |
+| 6     | `wildChildChooseIdol`           | `wildChild`        | `wildChild`                     | (same)                          |
+| 7     | `shadowChooseMimic`             | `shadow`           | `shadow`                        | (same)                          |
+| 8     | `avengerConfirm`                | `avenger`          | `avenger`                       | (same)                          |
+| 9     | `eclipseWolfQueenShelter`       | `eclipseWolfQueen` | `eclipseWolfQueen`              | (same)                          |
+| 10    | `nightmareBlock`                | `nightmare`        | `nightmare`                     | (same)                          |
+| 11    | `dreamcatcherDream`             | `dreamcatcher`     | `dreamcatcher`                  | (same)                          |
+| 12    | `guardProtect`                  | `guard`            | `guard`                         | (same)                          |
+| 13    | `silenceElderSilence`           | `silenceElder`     | `silenceElder`                  | (same)                          |
+| 14    | `votebanElderBan`               | `votebanElder`     | `votebanElder`                  | (same)                          |
+| 15    | `crowCurse`                     | `crow`             | `crow`                          | (same)                          |
+| 16    | `wolfKill`                      | `wolf`             | `wolf`                          | (same)                          |
+| 17    | `wolfQueenCharm`                | `wolfQueen`        | `wolfQueen`                     | (same)                          |
+| 18    | `hiddenWolfReveal`              | `hiddenWolf`       | `hiddenWolf`                    | (same)                          |
+| 19    | `witchAction`                   | `witch`            | `witch`                         | (same)                          |
+| 20    | `poisonerPoison`                | `poisoner`         | `poisoner`                      | (same)                          |
+| 21    | `hunterConfirm`                 | `hunter`           | `hunter`                        | (same)                          |
+| 22    | `darkWolfKingConfirm`           | `darkWolfKing`     | `darkWolfKing`                  | (same)                          |
+| 23    | `wolfRobotLearn`                | `wolfRobot`        | `wolfRobot`                     | (same)                          |
+| 24    | `seerCheck`                     | `seer`             | `seer`                          | (same)                          |
+| 25    | `mirrorSeerCheck`               | `mirrorSeer`       | `mirrorSeer`                    | (same)                          |
+| 26    | `drunkSeerCheck`                | `drunkSeer`        | `drunkSeer`                     | (same)                          |
+| 27    | `wolfWitchCheck`                | `wolfWitch`        | `wolfWitch`                     | (same)                          |
+| 28    | `gargoyleCheck`                 | `gargoyle`         | `gargoyle`                      | (same)                          |
+| 29    | `pureWhiteCheck`                | `pureWhite`        | `pureWhite`                     | (same)                          |
+| 30    | `psychicCheck`                  | `psychic`          | `psychic`                       | (same)                          |
+| 31    | `awakenedGargoyleConvert`       | `awakenedGargoyle` | `awakenedGargoyle`              | (same)                          |
+| 32    | `piperHypnotize`                | `piper`            | `piper`                         | (same)                          |
+| 33    | `piperHypnotizedReveal`         | `piper`            | `piperHypnotizedReveal`         | `piperHypnotizedReveal`         |
+| 34    | `awakenedGargoyleConvertReveal` | `awakenedGargoyle` | `awakenedGargoyleConvertReveal` | `awakenedGargoyleConvertReveal` |
 
-**合约保证**：
+**Contract guarantees**:
 
-- 大部分步骤 `audioKey === roleId`，例外：`piperHypnotizedReveal`、`awakenedGargoyleConvertReveal`（独立音频）
-- stepId 唯一且顺序稳定 (snapshot 测试)
+- Most steps have `audioKey === roleId`; exceptions: `piperHypnotizedReveal`, `awakenedGargoyleConvertReveal` (independent audio)
+- stepId is unique and order-stable (snapshot tested)
 
 ---
 
-## 全角色行为对齐矩阵
-
-### 0. thiefChoose (盗贼)
-
-| 属性               | 值                                                           | 说明                             |
-| ------------------ | ------------------------------------------------------------ | -------------------------------- |
-| **schemaId**       | `thiefChoose`                                                |                                  |
-| **kind**           | `chooseCard`                                                 | 从底牌中选择 1 张                |
-| **constraints**    | 无                                                           |                                  |
-| **canSkip**        | `false`                                                      | **必须选择**                     |
-| **prompt**         | "请选择一张底牌作为你的身份"                                 |                                  |
-| **revealKind**     | 无                                                           |                                  |
-| **nightmare 阻断** | ✅ 支持                                                      | 阻断时允许 skip                  |
-| **特殊规则**       | 底牌中有狼人阵营的牌时**必须选择**狼人                       |                                  |
-| **结果落点**       | `{ thiefChosenCard: RoleId, bottomCardStepRoles: RoleId[] }` |                                  |
-| **失败原因**       | `必须选择一张底牌` / `底牌中有狼人阵营的牌时必须选择狼人`    |                                  |
-| **Resolver**       | 独立 `thiefChooseResolver`                                   | 验证 cardIndex、校验狼牌强制选择 |
-
-### 0b. treasureMasterChoose (盗宝大师)
-
-| 属性               | 值                                                                                   | 说明                                               |
-| ------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| **schemaId**       | `treasureMasterChoose`                                                               |                                                    |
-| **kind**           | `chooseCard`                                                                         | 从 3 张底牌中选 1 张                               |
-| **constraints**    | 无                                                                                   |                                                    |
-| **canSkip**        | `false`                                                                              | **必须选择**                                       |
-| **prompt**         | "请选择一张底牌作为你的身份"                                                         |                                                    |
-| **revealKind**     | 无                                                                                   |                                                    |
-| **nightmare 阻断** | ✅ 支持                                                                              | 阻断时允许 skip                                    |
-| **特殊规则**       | **不能选择狼人阵营底牌**；底牌固定 1 狼+1 神+1 民                                    |                                                    |
-| **结果落点**       | `{ treasureMasterChosenCard: RoleId, effectiveTeam, bottomCardStepRoles: RoleId[] }` |                                                    |
-| **失败原因**       | `必须选择一张底牌` / `不能选择狼人阵营底牌`                                          |                                                    |
-| **Resolver**       | 独立 `treasureMasterChooseResolver`                                                  | 验证 cardIndex、校验不可选狼牌、计算 effectiveTeam |
-
-### 0c. cupidChooseLovers (丘比特)
-
-| 属性               | 值                                                     | 说明                          |
-| ------------------ | ------------------------------------------------------ | ----------------------------- |
-| **schemaId**       | `cupidChooseLovers`                                    |                               |
-| **kind**           | `multiChooseSeat`                                      | 选择 2 名目标                 |
-| **constraints**    | `[]`                                                   | 可选自己                      |
-| **minTargets**     | `2`                                                    |                               |
-| **maxTargets**     | `2`                                                    |                               |
-| **canSkip**        | `false`                                                | **必须选择**                  |
-| **prompt**         | "请选择两名玩家成为情侣，可以选择自己"                 |                               |
-| **revealKind**     | 无                                                     |                               |
-| **nightmare 阻断** | ✅ 支持                                                |                               |
-| **结果落点**       | `{ loverSeats: [seatA, seatB] }`                       | 排序后存储                    |
-| **失败原因**       | `必须选择两名玩家` / `不能选择同一玩家` / `目标不存在` |                               |
-| **Resolver**       | 独立 `cupidChooseLoversResolver`                       | 验证恰好 2 名、无重复、均存在 |
-
-### 0d. cupidLoversReveal (情侣确认)
-
-| 属性                  | 值                                     | 说明                  |
-| --------------------- | -------------------------------------- | --------------------- |
-| **schemaId**          | `cupidLoversReveal`                    |                       |
-| **kind**              | `groupConfirm`                         | 全员确认              |
-| **requireAllAcks**    | `true`                                 | 所有玩家须确认        |
-| **prompt**            | "所有玩家请睁眼，请看手机确认情侣信息" |                       |
-| **loverText**         | "你是情侣之一，你的另一半是：{seat}号" |                       |
-| **notLoverText**      | "你不是情侣"                           |                       |
-| **confirmButtonText** | "我知道了"                             |                       |
-| **nightmare 阻断**    | ❌ 不适用                              | groupConfirm 无需检查 |
-| **失败原因**          | 无                                     | 始终 valid            |
-
-### 1. magicianSwap (魔术师)
-
-| 属性               | 值                                            | 说明                                      |
-| ------------------ | --------------------------------------------- | ----------------------------------------- |
-| **schemaId**       | `magicianSwap`                                |                                           |
-| **kind**           | `swap`                                        | 选择两个座位交换身份                      |
-| **constraints**    | `[]`                                          | 无约束，可选任意两人                      |
-| **canSkip**        | `true`                                        | 可以不使用技能                            |
-| **prompt**         | "请选择要交换的两名玩家"                      |                                           |
-| **revealKind**     | 无                                            | 无 reveal 弹窗                            |
-| **nightmare 阻断** | ✅ 支持                                       | resolver 检查 `blockedSeat === actorSeat` |
-| **结果落点**       | `currentNightResults.swappedSeats`            | `[seatA, seatB]`                          |
-| **UI 目标限制**    | 任意两个不同座位                              |                                           |
-| **失败原因**       | `必须选择两名交换对象` / `不能选择同一个玩家` |                                           |
-
-### 2. slackerChooseIdol (懒惰者)
-
-| 属性               | 值                               | 说明                |
-| ------------------ | -------------------------------- | ------------------- |
-| **schemaId**       | `slackerChooseIdol`              |                     |
-| **kind**           | `chooseSeat`                     |                     |
-| **constraints**    | `['notSelf']`                    | 不能选自己          |
-| **canSkip**        | `false`                          | **必须选择**        |
-| **prompt**         | "请选择你的榜样"                 |                     |
-| **revealKind**     | 无                               |                     |
-| **nightmare 阻断** | ✅ 支持                          | 阻断后 `result: {}` |
-| **结果落点**       | `result.idolTarget` (无 updates) |                     |
-| **UI 目标限制**    | 排除自己                         |                     |
-| **失败原因**       | `必须选择榜样` / `不能选择自己`  |                     |
-
-### 3. shadowChooseMimic (影子)
-
-| 属性               | 值                                                                                                   | 说明                             |
-| ------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------- |
-| **schemaId**       | `shadowChooseMimic`                                                                                  |                                  |
-| **kind**           | `chooseSeat`                                                                                         |                                  |
-| **constraints**    | `['notSelf']`                                                                                        | 不能选自己                       |
-| **canSkip**        | `false`                                                                                              | **必须选择**                     |
-| **prompt**         | "请选择你要模仿的玩家"                                                                               |                                  |
-| **revealKind**     | 无                                                                                                   |                                  |
-| **nightmare 阻断** | ✅ 支持                                                                                              | 阻断后为 valid no-op（跳过不选） |
-| **结果落点**       | `currentNightResults.shadowMimicTarget` + `avengerFaction`                                           | 同时计算复仇者阵营               |
-| **UI 目标限制**    | 排除自己                                                                                             |                                  |
-| **失败原因**       | `必须选择模仿目标` / `不能选择自己` / `目标玩家不存在`                                               |                                  |
-| **特殊逻辑**       | 选中 avenger → 二人绑定（Team.Third）；选中狼阵营 → avenger 为好人；选中好人/第三方 → avenger 为狼人 |                                  |
-
-### 4. avengerConfirm (复仇者)
-
-| 属性                 | 值                                    | 说明                           |
-| -------------------- | ------------------------------------- | ------------------------------ |
-| **schemaId**         | `avengerConfirm`                      |                                |
-| **kind**             | `confirm`                             | 查看阵营信息                   |
-| **constraints**      | 无                                    |                                |
-| **canSkip**          | `true`                                | 可跳过不看                     |
-| **prompt**           | "请点击下方按钮查看你的阵营信息"      |                                |
-| **revealKind**       | 无（通过 `confirmStatusUi` 展示阵营） | 三种结果：好人/狼人/绑定第三方 |
-| **nightmare 阻断**   | handler 层处理                        |                                |
-| **结果落点**         | 无状态变更                            | 纯查看，always valid           |
-| **bottomActionText** | `'查看阵营'`                          |                                |
-
-### 4.5. eclipseWolfQueenShelter (蚀时狼妃)
-
-| 属性               | 值                                                                            | 说明                                            |
-| ------------------ | ----------------------------------------------------------------------------- | ----------------------------------------------- |
-| **schemaId**       | `eclipseWolfQueenShelter`                                                     |                                                 |
-| **kind**           | `chooseSeat`                                                                  | 选择一名玩家放逐                                |
-| **constraints**    | 无                                                                            | 可选任何人（含自己）                            |
-| **canSkip**        | `true`                                                                        | 可不使用技能                                    |
-| **prompt**         | "请选择要放逐的玩家，如不使用请点击「不用技能」"                              |                                                 |
-| **revealKind**     | 无                                                                            |                                                 |
-| **nightmare 阻断** | ✅ 支持                                                                       | 阻断时允许 skip                                 |
-| **特殊规则**       | 当晚神职对被放逐者释放的技能 → 效果反弹至施法者自身（`applyShelterRedirect`） | 仅影响神职技能；狼阵营不受影响                  |
-| **结果落点**       | `{ shelteredSeat: number }`                                                   | writeSlot → `currentNightResults.shelteredSeat` |
-| **失败原因**       | `目标玩家不存在`                                                              |                                                 |
-
-### 5. wolfRobotLearn (机器狼)
-
-| 属性               | 值                                                | 说明                            |
-| ------------------ | ------------------------------------------------- | ------------------------------- |
-| **schemaId**       | `wolfRobotLearn`                                  |                                 |
-| **kind**           | `chooseSeat`                                      |                                 |
-| **constraints**    | `['notSelf']`                                     |                                 |
-| **canSkip**        | `true`                                            |                                 |
-| **prompt**         | "请选择要学习的玩家"                              |                                 |
-| **revealKind**     | `wolfRobot`                                       | 弹窗显示目标身份                |
-| **nightmare 阻断** | ✅ 支持                                           |                                 |
-| **魔术师交换**     | ✅ 支持                                           | 查验交换后的身份                |
-| **结果落点**       | `wolfRobotReveal: { targetSeat, result: RoleId }` |                                 |
-| **ack 阻塞**       | ✅                                                | `pendingRevealAcks += schemaId` |
-| **UI 目标限制**    | 排除自己                                          |                                 |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在`                 |                                 |
-
-### 6. dreamcatcherDream (摄梦人)
-
-| 属性               | 值                                 | 说明 |
-| ------------------ | ---------------------------------- | ---- |
-| **schemaId**       | `dreamcatcherDream`                |      |
-| **kind**           | `chooseSeat`                       |      |
-| **constraints**    | `['notSelf']`                      |      |
-| **canSkip**        | `true`                             |      |
-| **prompt**         | "请选择要摄梦的玩家"               |      |
-| **revealKind**     | 无                                 |      |
-| **nightmare 阻断** | ✅ 支持                            |      |
-| **结果落点**       | `currentNightResults.dreamingSeat` |      |
-| **UI 目标限制**    | 排除自己                           |      |
-| **失败原因**       | `不能选择自己`                     |      |
-
-### 7. gargoyleCheck (石像鬼)
-
-| 属性               | 值                                               | 说明             |
-| ------------------ | ------------------------------------------------ | ---------------- |
-| **schemaId**       | `gargoyleCheck`                                  |                  |
-| **kind**           | `chooseSeat`                                     |                  |
-| **constraints**    | `['notSelf']`                                    | 不能查自己       |
-| **canSkip**        | `true`                                           |                  |
-| **prompt**         | "请选择要查验的玩家"                             |                  |
-| **revealKind**     | `gargoyle`                                       | 弹窗显示完整身份 |
-| **nightmare 阻断** | ✅ 支持                                          |                  |
-| **魔术师交换**     | ✅ 支持                                          |                  |
-| **结果落点**       | `gargoyleReveal: { targetSeat, result: RoleId }` |                  |
-| **ack 阻塞**       | ✅                                               |                  |
-| **UI 目标限制**    | 所有座位                                         |                  |
-| **失败原因**       | `目标玩家不存在`                                 |                  |
-
-### 8. nightmareBlock (噩梦之影)
-
-| 属性               | 值                                                    | 说明                     |
-| ------------------ | ----------------------------------------------------- | ------------------------ |
-| **schemaId**       | `nightmareBlock`                                      |                          |
-| **kind**           | `chooseSeat`                                          |                          |
-| **constraints**    | `[]`                                                  | 可封自己（中立裁判规则） |
-| **canSkip**        | `true`                                                |                          |
-| **prompt**         | "请选择要封锁的玩家"                                  |                          |
-| **revealKind**     | 无                                                    |                          |
-| **nightmare 阻断** | ❌ 不适用                                             | 噩梦之影本身不能被封     |
-| **特殊规则**       | 封锁狼人 → `wolfKillDisabled=true`                    |                          |
-| **结果落点**       | `currentNightResults.blockedSeat`, `wolfKillDisabled` |                          |
-| **UI 目标限制**    | 所有座位                                              |                          |
-| **失败原因**       | `目标玩家不存在`                                      |                          |
-
-### 9. guardProtect (守卫)
-
-| 属性               | 值                                | 说明                     |
-| ------------------ | --------------------------------- | ------------------------ |
-| **schemaId**       | `guardProtect`                    |                          |
-| **kind**           | `chooseSeat`                      |                          |
-| **constraints**    | `[]`                              | 可守自己（中立裁判规则） |
-| **canSkip**        | `true`                            |                          |
-| **prompt**         | "请选择要守护的玩家"              |                          |
-| **revealKind**     | 无                                |                          |
-| **nightmare 阻断** | ✅ 支持                           |                          |
-| **结果落点**       | `currentNightResults.guardedSeat` |                          |
-| **UI 目标限制**    | 所有座位                          |                          |
-| **失败原因**       | 无（canSkip=true）                |                          |
-
-### 9b. crowCurse (乌鸦)
-
-| 属性               | 值                                | 说明                |
-| ------------------ | --------------------------------- | ------------------- |
-| **schemaId**       | `crowCurse`                       |                     |
-| **kind**           | `chooseSeat`                      |                     |
-| **constraints**    | `['notSelf']`                     | 不能选自己          |
-| **canSkip**        | `true`                            |                     |
-| **prompt**         | "请选择要诅咒的玩家"              |                     |
-| **revealKind**     | 无                                |                     |
-| **nightmare 阻断** | ✅ 支持                           |                     |
-| **结果落点**       | `currentNightResults.cursedSeat`  | 被诅咒者次日投票 +1 |
-| **UI 目标限制**    | 排除自己                          |                     |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在` |                     |
-| **Resolver**       | generic（writeSlot → cursedSeat） |                     |
-
-### 10. wolfKill (袭击)
-
-| 属性                        | 值                                    | 说明                                                                                             |
-| --------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **schemaId**                | `wolfKill`                            |                                                                                                  |
-| **kind**                    | `wolfVote`                            | 特殊：多狼投票机制                                                                               |
-| **constraints**             | `[]`                                  | 中立裁判：可袭击任意座位                                                                         |
-| **meeting.canSeeEachOther** | `true`                                | 狼人互相可见                                                                                     |
-| **meeting.resolution**      | `majority`                            | 多数投票生效                                                                                     |
-| **meeting.allowEmptyVote**  | `true`                                | 可放弃袭击                                                                                       |
-| **prompt**                  | "请选择袭击目标"                      |                                                                                                  |
-| **emptyVoteText**           | "放弃袭击"                            |                                                                                                  |
-| **revealKind**              | 无                                    |                                                                                                  |
-| **wolfKillDisabled**        | ✅ 检查                               | 噩梦之影封狼则无法袭击                                                                           |
-| **结果落点**                | `currentNightResults.wolfVotesBySeat` |                                                                                                  |
-| **UI 目标限制**             | 所有座位（含狼队友/自己）             |                                                                                                  |
-| **Host 权威拒绝**           | ✅                                    | 免疫袭击目标会被 Host/Resolver 拒绝，并通过 `actionRejected` 统一弹“操作无效”提示（UI 不做禁用） |
-| **失败原因**                | `目标玩家不存在`                      |                                                                                                  |
-
-### 11. wolfQueenCharm (狼美人)
-
-| 属性               | 值                                | 说明 |
-| ------------------ | --------------------------------- | ---- |
-| **schemaId**       | `wolfQueenCharm`                  |      |
-| **kind**           | `chooseSeat`                      |      |
-| **constraints**    | `['notSelf']`                     |      |
-| **canSkip**        | `true`                            |      |
-| **prompt**         | "请选择要魅惑的玩家"              |      |
-| **revealKind**     | 无                                |      |
-| **nightmare 阻断** | ✅ 支持                           |      |
-| **结果落点**       | `result.charmTarget` (无 updates) |      |
-| **UI 目标限制**    | 排除自己                          |      |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在` |      |
-
-### 11b. hiddenWolfReveal (隐狼)
-
-| 属性                 | 值                                              | 说明                                                                  |
-| -------------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
-| **schemaId**         | `hiddenWolfReveal`                              |                                                                       |
-| **kind**             | `confirm`                                       | 查看狼同伴信息                                                        |
-| **constraints**      | 无                                              |                                                                       |
-| **canSkip**          | `true`                                          | 可跳过不看                                                            |
-| **prompt**           | "请点击下方按钮查看你的狼同伴"                  |                                                                       |
-| **bottomActionText** | `'查看同伴'`                                    |                                                                       |
-| **revealKind**       | 无（通过 `confirmStatusUi` 展示狼同伴）         | 显示狼同伴座位号                                                      |
-| **nightmare 阻断**   | ❌ 不适用                                       | confirm 类型无需检查                                                  |
-| **结果落点**         | `confirmStatus: { kind: 'wolfTeammates', ... }` | 纯查看，always valid                                                  |
-| **特殊规则**         | team=Good（预言家查验为好人）；不参与狼人投票   | `recognition: { canSeeWolves: false, participatesInWolfVote: false }` |
-| **UI 行为**          | 点击按钮查看狼同伴座位列表                      |                                                                       |
-| **失败原因**         | 无                                              | 始终 valid                                                            |
-
-### 12. witchAction (女巫)
-
-| 属性               | 值                                                                         | 说明                    |
-| ------------------ | -------------------------------------------------------------------------- | ----------------------- |
-| **schemaId**       | `witchAction`                                                              |                         |
-| **kind**           | `compound`                                                                 | 复合行动：save + poison |
-| **步骤**           |                                                                            |                         |
-| - save             | `confirmTarget`, constraints=`['notSelf']`                                 | 不能自救                |
-| - poison           | `chooseSeat`, constraints=`[]`                                             | 可毒任意座位            |
-| **canSkip**        | 两步都可跳过                                                               |                         |
-| **prompt**         | "女巫请行动"                                                               |                         |
-| **revealKind**     | 无                                                                         |                         |
-| **nightmare 阻断** | ✅ 支持                                                                    |                         |
-| **特殊规则**       | 同一晚不能同时使用                                                         |                         |
-| **witchContext**   | `{ killedIndex, canSave, canPoison }`                                      | Host 设置               |
-| **结果落点**       | `currentNightResults.savedSeat`, `poisonedSeat`                            |                         |
-| **UI 目标限制**    | save: 被杀者（非自己）; poison: 任意                                       |                         |
-| **失败原因**       | `女巫不能自救` / `只能救被狼人袭击的玩家` / `同一晚不能同时使用解药和毒药` |                         |
-
-### 12b. poisonerPoison (毒师)
-
-| 属性               | 值                                                  | 说明         |
-| ------------------ | --------------------------------------------------- | ------------ |
-| **schemaId**       | `poisonerPoison`                                    |              |
-| **kind**           | `chooseSeat`                                        |              |
-| **constraints**    | `[]`                                                | 可选任意座位 |
-| **canSkip**        | `true`                                              |              |
-| **prompt**         | "请选择要毒杀的玩家"                                |              |
-| **revealKind**     | 无                                                  |              |
-| **nightmare 阻断** | ✅ 支持                                             |              |
-| **特殊规则**       | 一次性毒药（uses: 1）；有毒师在场时首夜狼人无法袭击 |              |
-| **结果落点**       | `currentNightResults.poisonedSeat`                  |              |
-| **UI 目标限制**    | 所有座位                                            |              |
-| **失败原因**       | `目标玩家不存在`                                    |              |
-| **Resolver**       | generic（writeSlot → poisonedSeat）                 |              |
-
-### 13. seerCheck (预言家)
-
-| 属性               | 值                                        | 说明         |
-| ------------------ | ----------------------------------------- | ------------ | --- |
-| **schemaId**       | `seerCheck`                               |              |
-| **kind**           | `chooseSeat`                              |              |
-| **constraints**    | `['notSelf']`                             | 不能查自己   |
-| **canSkip**        | `true`                                    |              |
-| **prompt**         | "请选择要查验的玩家"                      |              |
-| **revealKind**     | `seer`                                    | 弹窗显示阵营 |
-| **nightmare 阻断** | ✅ 支持                                   |              |
-| **魔术师交换**     | ✅ 支持                                   |              |
-| **结果落点**       | `seerReveal: { targetSeat, result: '好人' | '狼人' }`    |     |
-| **ack 阻塞**       | ✅                                        |              |
-| **UI 目标限制**    | 所有座位                                  |              |
-| **失败原因**       | `目标玩家不存在`                          |              |
-
-### 14. psychicCheck (通灵师)
-
-| 属性               | 值                                              | 说明             |
-| ------------------ | ----------------------------------------------- | ---------------- |
-| **schemaId**       | `psychicCheck`                                  |                  |
-| **kind**           | `chooseSeat`                                    |                  |
-| **constraints**    | `['notSelf']`                                   | 不能查自己       |
-| **canSkip**        | `true`                                          |                  |
-| **prompt**         | "请选择要通灵的玩家"                            |                  |
-| **revealKind**     | `psychic`                                       | 弹窗显示完整身份 |
-| **nightmare 阻断** | ✅ 支持                                         |                  |
-| **魔术师交换**     | ✅ 支持                                         |                  |
-| **结果落点**       | `psychicReveal: { targetSeat, result: RoleId }` |                  |
-| **ack 阻塞**       | ✅                                              |                  |
-| **UI 目标限制**    | 所有座位                                        |                  |
-| **失败原因**       | `目标玩家不存在`                                |                  |
-
-### 15. hunterConfirm (猎人)
-
-| 属性                 | 值                                       | 说明                 |
-| -------------------- | ---------------------------------------- | -------------------- |
-| **schemaId**         | `hunterConfirm`                          |                      |
-| **kind**             | `confirm`                                | 只需确认，无目标选择 |
-| **prompt**           | "请点击下方按钮查看技能发动状态"         |                      |
-| **bottomActionText** | "发动状态"                               |                      |
-| **revealKind**       | 无                                       |                      |
-| **nightmare 阻断**   | ❌ 不适用                                | confirm 类型无需检查 |
-| **结果落点**         | `confirmStatus: { kind: 'hunter', ... }` |                      |
-| **UI 行为**          | 点击按钮确认                             |                      |
-| **失败原因**         | 无                                       | 始终 valid           |
-
-### 16. darkWolfKingConfirm (狼王)
-
-| 属性                 | 值                                             | 说明       |
-| -------------------- | ---------------------------------------------- | ---------- |
-| **schemaId**         | `darkWolfKingConfirm`                          |            |
-| **kind**             | `confirm`                                      |            |
-| **prompt**           | "请点击下方按钮查看技能发动状态"               |            |
-| **bottomActionText** | "发动状态"                                     |            |
-| **revealKind**       | 无                                             |            |
-| **nightmare 阻断**   | ❌ 不适用                                      |            |
-| **结果落点**         | `confirmStatus: { kind: 'darkWolfKing', ... }` |            |
-| **UI 行为**          | 点击按钮确认                                   |            |
-| **失败原因**         | 无                                             | 始终 valid |
-
-### 17. wildChildChooseIdol (野孩子)
-
-| 属性               | 值                               | 说明                |
-| ------------------ | -------------------------------- | ------------------- |
-| **schemaId**       | `wildChildChooseIdol`            |                     |
-| **kind**           | `chooseSeat`                     |                     |
-| **constraints**    | `['notSelf']`                    | 不能选自己          |
-| **canSkip**        | `false`                          | **必须选择**        |
-| **prompt**         | "请选择你的榜样"                 |                     |
-| **revealKind**     | 无                               |                     |
-| **nightmare 阻断** | ✅ 支持                          | 阻断后 `result: {}` |
-| **结果落点**       | `result.idolTarget` (无 updates) |                     |
-| **UI 目标限制**    | 排除自己                         |                     |
-| **失败原因**       | `必须选择榜样` / `不能选择自己`  |                     |
-
-### 18. silenceElderSilence (禁言长老)
-
-| 属性               | 值                                 | 说明         |
-| ------------------ | ---------------------------------- | ------------ |
-| **schemaId**       | `silenceElderSilence`              |              |
-| **kind**           | `chooseSeat`                       |              |
-| **constraints**    | `[]`                               | 可选任意座位 |
-| **canSkip**        | `true`                             |              |
-| **prompt**         | "请选择要禁言的玩家"               |              |
-| **revealKind**     | 无                                 |              |
-| **nightmare 阻断** | ✅ 支持                            |              |
-| **结果落点**       | `currentNightResults.silencedSeat` |              |
-| **UI 目标限制**    | 所有座位                           |              |
-| **失败原因**       | `目标玩家不存在`                   |              |
-
-### 19. votebanElderBan (禁票长老)
-
-| 属性               | 值                                   | 说明         |
-| ------------------ | ------------------------------------ | ------------ |
-| **schemaId**       | `votebanElderBan`                    |              |
-| **kind**           | `chooseSeat`                         |              |
-| **constraints**    | `[]`                                 | 可选任意座位 |
-| **canSkip**        | `true`                               |              |
-| **prompt**         | "请选择要禁票的玩家"                 |              |
-| **revealKind**     | 无                                   |              |
-| **nightmare 阻断** | ✅ 支持                              |              |
-| **结果落点**       | `currentNightResults.votebannedSeat` |              |
-| **UI 目标限制**    | 所有座位                             |              |
-| **失败原因**       | `目标玩家不存在`                     |              |
-
-### 20. mirrorSeerCheck (灯影预言家)
-
-| 属性               | 值                                              | 说明                            |
-| ------------------ | ----------------------------------------------- | ------------------------------- | ------------------ |
-| **schemaId**       | `mirrorSeerCheck`                               |                                 |
-| **kind**           | `chooseSeat`                                    |                                 |
-| **constraints**    | `['notSelf']`                                   | 不能查自己                      |
-| **canSkip**        | `true`                                          |                                 |
-| **prompt**         | "请选择要查验的玩家"                            |                                 |
-| **revealKind**     | `mirrorSeer`                                    | 弹窗显示阵营（反转）            |
-| **nightmare 阻断** | ✅ 支持                                         |                                 |
-| **魔术师交换**     | ✅ 支持                                         |                                 |
-| **结果落点**       | `mirrorSeerReveal: { targetSeat, result: '好人' | '狼人' }`                       | 结果与真实阵营相反 |
-| **ack 阻塞**       | ✅                                              | `pendingRevealAcks += schemaId` |
-| **UI 目标限制**    | 排除自己                                        |                                 |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在`               |                                 |
-
-### 21. drunkSeerCheck (酒鬼预言家)
-
-| 属性               | 值                                             | 说明                            |
-| ------------------ | ---------------------------------------------- | ------------------------------- | --------------- |
-| **schemaId**       | `drunkSeerCheck`                               |                                 |
-| **kind**           | `chooseSeat`                                   |                                 |
-| **constraints**    | `['notSelf']`                                  | 不能查自己                      |
-| **canSkip**        | `true`                                         |                                 |
-| **prompt**         | "请选择要查验的玩家"                           |                                 |
-| **revealKind**     | `drunkSeer`                                    | 弹窗显示阵营（50%随机）         |
-| **nightmare 阻断** | ✅ 支持                                        |                                 |
-| **魔术师交换**     | ✅ 支持                                        |                                 |
-| **结果落点**       | `drunkSeerReveal: { targetSeat, result: '好人' | '狼人' }`                       | 50%正确/50%错误 |
-| **ack 阻塞**       | ✅                                             | `pendingRevealAcks += schemaId` |
-| **UI 目标限制**    | 排除自己                                       |                                 |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在`              |                                 |
-
-### 22. wolfWitchCheck (狼巫)
-
-| 属性               | 值                                                | 说明                            |
-| ------------------ | ------------------------------------------------- | ------------------------------- |
-| **schemaId**       | `wolfWitchCheck`                                  |                                 |
-| **kind**           | `chooseSeat`                                      |                                 |
-| **constraints**    | `['notWolfFaction']`                              | 不能查狼人阵营                  |
-| **canSkip**        | `true`                                            |                                 |
-| **prompt**         | "请选择要查验的非狼人阵营玩家"                    |                                 |
-| **revealKind**     | `wolfWitch`                                       | 弹窗显示完整身份                |
-| **nightmare 阻断** | ✅ 支持                                           |                                 |
-| **魔术师交换**     | ✅ 支持                                           |                                 |
-| **结果落点**       | `wolfWitchReveal: { targetSeat, result: RoleId }` |                                 |
-| **ack 阻塞**       | ✅                                                | `pendingRevealAcks += schemaId` |
-| **UI 目标限制**    | 排除狼人阵营                                      |                                 |
-| **失败原因**       | `不能选择狼人阵营` / `目标玩家不存在`             |                                 |
-
-### 23. pureWhiteCheck (纯白之女)
-
-| 属性               | 值                                                | 说明                            |
-| ------------------ | ------------------------------------------------- | ------------------------------- |
-| **schemaId**       | `pureWhiteCheck`                                  |                                 |
-| **kind**           | `chooseSeat`                                      |                                 |
-| **constraints**    | `['notSelf']`                                     | 不能查自己                      |
-| **canSkip**        | `true`                                            |                                 |
-| **prompt**         | "请选择要查验的玩家"                              |                                 |
-| **revealKind**     | `pureWhite`                                       | 弹窗显示完整身份                |
-| **nightmare 阻断** | ✅ 支持                                           |                                 |
-| **魔术师交换**     | ✅ 支持                                           |                                 |
-| **结果落点**       | `pureWhiteReveal: { targetSeat, result: RoleId }` |                                 |
-| **ack 阻塞**       | ✅                                                | `pendingRevealAcks += schemaId` |
-| **UI 目标限制**    | 排除自己                                          |                                 |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在`                 |                                 |
-
-### 24. piperHypnotize (吹笛者催眠)
-
-| 属性               | 值                                    | 说明            |
-| ------------------ | ------------------------------------- | --------------- |
-| **schemaId**       | `piperHypnotize`                      |                 |
-| **kind**           | `multiChooseSeat`                     | 选择 1-2 名目标 |
-| **constraints**    | `['notSelf']`                         | 不能选自己      |
-| **minTargets**     | `1`                                   |                 |
-| **maxTargets**     | `2`                                   |                 |
-| **canSkip**        | `true`                                |                 |
-| **prompt**         | "请选择1-2名要催眠的玩家"             |                 |
-| **revealKind**     | 无                                    |                 |
-| **nightmare 阻断** | ✅ 支持                               |                 |
-| **结果落点**       | `currentNightResults.hypnotizedSeats` |                 |
-| **UI 目标限制**    | 排除自己，可选 1-2 名                 |                 |
-| **失败原因**       | `不能选择自己` / `目标玩家不存在`     |                 |
-
-### 25. piperHypnotizedReveal (吹笛者催眠确认)
-
-| 属性                  | 值                                            | 说明                  |
-| --------------------- | --------------------------------------------- | --------------------- |
-| **schemaId**          | `piperHypnotizedReveal`                       |                       |
-| **kind**              | `groupConfirm`                                | 全员确认              |
-| **requireAllAcks**    | `true`                                        | 所有玩家须确认        |
-| **prompt**            | "所有玩家请睁眼，请看手机确认催眠信息"        |                       |
-| **hypnotizedText**    | "你已被吹笛者催眠，当前被催眠的座位：{seats}" |                       |
-| **notHypnotizedText** | "你未被催眠"                                  |                       |
-| **confirmButtonText** | "我知道了"                                    |                       |
-| **nightmare 阻断**    | ❌ 不适用                                     | groupConfirm 无需检查 |
-| **失败原因**          | 无                                            | 始终 valid            |
-
----
-
-## Gate 机制对齐
-
-### 音频 Gate (`isAudioPlaying`)
-
-| 环节    | 行为                                                                     |
-| ------- | ------------------------------------------------------------------------ |
-| Handler | 返回 `PLAY_AUDIO` sideEffect                                             |
-| Facade  | 执行前 `setAudioPlayingGate(true)`，finally `setAudioPlayingGate(false)` |
-| Reducer | `SET_AUDIO_PLAYING` action 更新 `isAudioPlaying`                         |
-| UI      | 读取 `isAudioPlaying`，true 时禁用所有提交按钮                           |
-
-### Reveal Ack Gate (`pendingRevealAcks`)
-
-| 环节    | 行为                                                     |
-| ------- | -------------------------------------------------------- |
-| Handler | 有 `revealKind` 时返回 `ADD_REVEAL_ACK` action           |
-| Reducer | `pendingRevealAcks.push(ackKey)`                         |
-| UI      | 显示 reveal 弹窗，用户点确认后发送 `REVEAL_ACK` 消息     |
-| Host    | 收到 `REVEAL_ACK` 后执行 `CLEAR_REVEAL_ACKS`，然后可推进 |
-
-### Night Advance Gate
-
-| 条件                             | 说明               |
-| -------------------------------- | ------------------ |
-| `isAudioPlaying === false`       | 音频播放完毕       |
-| `pendingRevealAcks.length === 0` | 所有 reveal 已确认 |
-| 当前步骤已有行动                 | action 已记录      |
-
----
-
-## 与 Legacy 的差异
-
-| 差异点               | 当前行为                      | Legacy 行为              | 决定                                 |
-| -------------------- | ----------------------------- | ------------------------ | ------------------------------------ |
-| ackKey               | 使用 `schemaId`               | 使用 `revealKind` 字符串 | **按当前架构**：schemaId 更稳定      |
-| audioKey             | 使用 `RoleId` 格式            | 使用 snake_case          | **按当前架构**：与 AudioService 对齐 |
-| 音频触发             | Handler 声明，Facade 执行     | UI 直接调用              | **按当前架构**：架构更清晰           |
-| witchContext.canSave | 综合考虑 killedIndex、notSelf | 部分逻辑分散             | **按当前架构**：schema-first         |
-| guardProtect 自守    | schema `[]` + resolver 允许   | UI 层限制                | **按当前架构**：schema-first 对齐    |
-
----
-
-## 合约测试覆盖
-
-| 测试文件                                   | 覆盖范围                               |
-| ------------------------------------------ | -------------------------------------- |
-| `nightSteps.contract.test.ts`              | stepId 唯一、顺序稳定、audioKey=roleId |
-| `schemaResolverAlignment.contract.test.ts` | canSkip、notSelf 对齐                  |
-| `constraints.contract.test.ts`             | 所有 constraint 验证                   |
-| `night1Only.contract.test.ts`              | 无跨夜字段                             |
-| `night1RoleCoverage.contract.test.ts`      | 全角色覆盖                             |
-| `night1FullAlignment.contract.test.ts`     | **全量对齐**：60 个测试                |
-
----
-
-## 测试通过证据
-
-> 下方数字为初版对齐时的快照，实际测试数量已随后续迭代增长。当前最新数据请运行 `pnpm run test:all`。
-
-```
-=== Night-1 Role Coverage Report ===
-Total Steps: 32
-With Schema: 32/32 (100%)
-With Resolver: 32/32 (100%)
-With Audio: 32/32 (100%)
-```
-
----
-
-## 设计决定
-
-### guardProtect 允许自守（Night-1）
-
-- **Schema**: `constraints: []`（无约束）
-- **Resolver**: 允许自守（`valid: true`）
-- **设计原因**: Night-1 场景下守卫首夜可自守是合法策略（中立裁判规则）
-- **Schema-Resolver 对齐**: ✅ 完全对齐
-
----
-
-## UX-only 限制说明
-
-> **原则**: UI 层原则上不得添加 schema 未定义的业务约束。若确有 UX-only 限制，必须在此显式记录并有测试覆盖。
-
-### 当前 Night-1 的 UX-only 例外（必须测试覆盖）
-
-| 角色                 | Schema 约束                                              | UI 行为                | UX-only 限制                                                                    |
-| -------------------- | -------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------- |
-| thief                | `chooseCard`                                             | 底牌选择面板           | ❌ 无（来自 schema）                                                            |
-| treasureMaster       | `chooseCard`                                             | 底牌选择面板           | ❌ 无（来自 schema）                                                            |
-| cupid                | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
-| nightmare            | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
-| dreamcatcher         | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| guard                | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
-| silenceElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
-| votebanElder         | `[]`                                                     | 可选任意座位（含自己） | ❌ 无                                                                           |
-| crow                 | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| seer                 | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| mirrorSeer           | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| drunkSeer            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| psychic              | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| pureWhite            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| gargoyle             | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfWitch            | `['notWolfFaction']`                                     | 狼人阵营座位禁用       | ❌ 无（来自 schema）                                                            |
-| wolf（袭击）         | `[]`                                                     | UI 不禁用任何目标      | ❌ 无（改为 Host/Resolver 权威拒绝免疫目标，UI 统一用 `actionRejected` 弹提示） |
-| witch（save/poison） | save: `['notSelf']`                                      | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| poisoner             | `[]`                                                     | 可选任意座位           | ❌ 无                                                                           |
-| slacker              | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wildChild            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfQueen            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| wolfRobot            | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| piper                | `['notSelf']`                                            | 自己座位禁用           | ❌ 无（来自 schema）                                                            |
-| awakenedGargoyle     | `['notSelf', 'notWolfFaction', 'adjacentToWolfFaction']` | 自己+狼阵营+非相邻禁用 | ❌ 无（来自 schema）                                                            |
-
-### 当前约定（替代 UX-only）：Host/Resolver 权威拒绝 + UI 统一提示
-
-- **UI 行为**：袭击阶段不在座位上做 `immuneToWolfKill` 的禁用/灰显（避免 UI 维护 schema 外规则导致 drift）。
-- **Host 行为**：提交免疫目标时，Host/Resolver 返回拒绝，并写入 `actionRejected` 广播。
-- **提示入口**：`RoomScreen` 监听 `gameState.actionRejected`，弹出“操作无效”（reason 为具体原因）。
-- **测试覆盖**：
-  - Host 侧：`packages/game-engine/src/engine/handlers/actionHandler.ts`（wolf vote gate + ACTION_REJECTED）
-  - UI 侧：`src/screens/RoomScreen/RoomScreen.tsx`（state-driven actionRejected effect）与对应 UI 测试
-
----
-
-## 三层对齐测试覆盖
-
-> **Schema-first 架构**: SCHEMAS 是唯一真相，Resolver 必须按 schema 校验，UI 必须从 schema 读取。
-
-### 新增测试文件
-
-| 测试文件                                     | 覆盖范围                         |
-| -------------------------------------------- | -------------------------------- |
-| `schemaUIResolverAlignment.contract.test.ts` | **三层对齐**：Schema→Resolver→UI |
-
-### 测试内容
-
-#### 1. Schema WITH notSelf 对齐验证
-
-| SchemaId                | Schema 检查                          | Resolver 检查 |
-| ----------------------- | ------------------------------------ | ------------- |
-| seerCheck               | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| mirrorSeerCheck         | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| drunkSeerCheck          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| psychicCheck            | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| pureWhiteCheck          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| gargoyleCheck           | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| dreamcatcherDream       | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wolfQueenCharm          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wolfRobotLearn          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| slackerChooseIdol       | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| wildChildChooseIdol     | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| piperHypnotize          | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-| awakenedGargoyleConvert | ✅ `constraints.includes('notSelf')` | ✅ 拒绝自指   |
-
-#### 2. Schema WITHOUT notSelf 对齐验证
-
-| SchemaId            | Schema 检查                           | Resolver 检查 |
-| ------------------- | ------------------------------------- | ------------- |
-| nightmareBlock      | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指   |
-| guardProtect        | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指   |
-| silenceElderSilence | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指   |
-| votebanElderBan     | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指   |
-| wolfKill            | ✅ `!constraints.includes('notSelf')` | ✅ 允许自指   |
-
-#### 3. Schema WITH notWolfFaction 对齐验证
-
-| SchemaId                | Schema 检查                                 | Resolver 检查       |
-| ----------------------- | ------------------------------------------- | ------------------- |
-| wolfWitchCheck          | ✅ `constraints.includes('notWolfFaction')` | ✅ 拒绝狼人阵营目标 |
-| awakenedGargoyleConvert | ✅ `constraints.includes('notWolfFaction')` | ✅ 拒绝狼人阵营目标 |
-
-#### 4. witchAction 复合步骤验证
-
-| 步骤               | Schema 检查     | 说明           |
-| ------------------ | --------------- | -------------- |
-| witchAction.save   | ✅ `notSelf`    | 女巫不能自救   |
-| witchAction.poison | ✅ 无 `notSelf` | 女巫可以毒自己 |
-
-#### 5. UI 无 Hardcode 验证
-
-| 测试项                              | 验证方式                                        |
-| ----------------------------------- | ----------------------------------------------- |
-| buildSeatViewModels 无角色 hardcode | 检查源码不包含 `'nightmare'`/`'guard'` 等字符串 |
-| 所有 chooseSeat/swap schemas 已覆盖 | 完整性检查                                      |
-
-### 测试证据
-
-```
-PASS src/screens/RoomScreen/__tests__/schemaUIResolverAlignment.contract.test.ts
-  三层对齐 (Schema → Resolver → UI)
-    Schema WITH notSelf → Resolver 必须拒绝自指
-      ✓ seerCheck: schema has notSelf constraint
-      ✓ seerCheck: resolver rejects self-target
-      ✓ dreamcatcherDream: schema has notSelf constraint
-      ✓ dreamcatcherDream: resolver rejects self-target
-      ✓ wolfQueenCharm: schema has notSelf constraint
-      ✓ wolfQueenCharm: resolver rejects self-target
-      ✓ wolfRobotLearn: schema has notSelf constraint
-      ✓ wolfRobotLearn: resolver rejects self-target
-      ✓ slackerChooseIdol: schema has notSelf constraint
-      ✓ slackerChooseIdol: resolver rejects self-target
-      ...
-    Schema WITHOUT notSelf → Resolver 必须允许自指
-      ✓ nightmareBlock: schema has NO notSelf constraint
-      ✓ nightmareBlock: resolver accepts self-target
-      ...
-    UI 无 Hardcode 验证
-      ✓ buildSeatViewModels has no role-specific hardcode for notSelf
-      ✓ All chooseSeat/swap schemas are covered in this test
-```
+## Full Role Behavior Alignment Matrix
+
+### 0. thiefChoose (Thief)
+
+| Property            | Value                                                         | Description                                     |
+| ------------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| **schemaId**        | `thiefChoose`                                                 |                                                 |
+| **kind**            | `chooseCard`                                                  | Choose 1 card from bottom cards                 |
+| **constraints**     | None                                                          |                                                 |
+| **canSkip**         | `false`                                                       | **Must choose**                                 |
+| **prompt**          | "请选择一张底牌作为你的身份"                                  |                                                 |
+| **revealKind**      | None                                                          |                                                 |
+| **nightmare block** | ✅ Supported                                                  | Allows skip when blocked                        |
+| **special rules**   | Must choose wolf faction card when one exists in bottom cards |                                                 |
+| **result slot**     | `{ thiefChosenCard: RoleId, bottomCardStepRoles: RoleId[] }`  |                                                 |
+| **failure reason**  | `必须选择一张底牌` / `底牌中有狼人阵营的牌时必须选择狼人`     |                                                 |
+| **Resolver**        | Dedicated `thiefChooseResolver`                               | Validates cardIndex, wolf-card forced selection |
+
+### 0b. treasureMasterChoose (Treasure Master)
+
+| Property            | Value                                                                                   | Description                                                     |
+| ------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **schemaId**        | `treasureMasterChoose`                                                                  |                                                                 |
+| **kind**            | `chooseCard`                                                                            | Choose 1 from 3 bottom cards                                    |
+| **constraints**     | None                                                                                    |                                                                 |
+| **canSkip**         | `false`                                                                                 | **Must choose**                                                 |
+| **prompt**          | "请选择一张底牌作为你的身份"                                                            |                                                                 |
+| **revealKind**      | None                                                                                    |                                                                 |
+| **nightmare block** | ✅ Supported                                                                            | Allows skip when blocked                                        |
+| **special rules**   | **Cannot choose wolf faction cards**; bottom cards fixed at 1 wolf + 1 god + 1 villager |                                                                 |
+| **result slot**     | `{ treasureMasterChosenCard: RoleId, effectiveTeam, bottomCardStepRoles: RoleId[] }`    |                                                                 |
+| **failure reason**  | `必须选择一张底牌` / `不能选择狼人阵营底牌`                                             |                                                                 |
+| **Resolver**        | Dedicated `treasureMasterChooseResolver`                                                | Validates cardIndex, no-wolf-card check, computes effectiveTeam |
+
+### 0c. cupidChooseLovers (Cupid)
+
+| Property            | Value                                                  | Description                                   |
+| ------------------- | ------------------------------------------------------ | --------------------------------------------- |
+| **schemaId**        | `cupidChooseLovers`                                    |                                               |
+| **kind**            | `multiChooseSeat`                                      | Choose 2 targets                              |
+| **constraints**     | `[]`                                                   | Can choose self                               |
+| **minTargets**      | `2`                                                    |                                               |
+| **maxTargets**      | `2`                                                    |                                               |
+| **canSkip**         | `false`                                                | **Must choose**                               |
+| **prompt**          | "请选择两名玩家成为情侣，可以选择自己"                 |                                               |
+| **revealKind**      | None                                                   |                                               |
+| **nightmare block** | ✅ Supported                                           |                                               |
+| **result slot**     | `{ loverSeats: [seatA, seatB] }`                       | Sorted before storage                         |
+| **failure reason**  | `必须选择两名玩家` / `不能选择同一玩家` / `目标不存在` |                                               |
+| **Resolver**        | Dedicated `cupidChooseLoversResolver`                  | Validates exactly 2, no duplicates, all exist |
+
+### 0d. cupidLoversReveal (Lovers Reveal)
+
+| Property              | Value                                  | Description                 |
+| --------------------- | -------------------------------------- | --------------------------- |
+| **schemaId**          | `cupidLoversReveal`                    |                             |
+| **kind**              | `groupConfirm`                         | All-player confirm          |
+| **requireAllAcks**    | `true`                                 | All players must confirm    |
+| **prompt**            | "所有玩家请睁眼，请看手机确认情侣信息" |                             |
+| **loverText**         | "你是情侣之一，你的另一半是：{seat}号" |                             |
+| **notLoverText**      | "你不是情侣"                           |                             |
+| **confirmButtonText** | "我知道了"                             |                             |
+| **nightmare block**   | ❌ N/A                                 | groupConfirm needs no check |
+| **failure reason**    | None                                   | Always valid                |
+
+### 1. magicianSwap (Magician)
+
+| Property            | Value                                         | Description                                 |
+| ------------------- | --------------------------------------------- | ------------------------------------------- |
+| **schemaId**        | `magicianSwap`                                |                                             |
+| **kind**            | `swap`                                        | Choose two seats to swap identities         |
+| **constraints**     | `[]`                                          | No constraints, can choose any two          |
+| **canSkip**         | `true`                                        | Can skip                                    |
+| **prompt**          | "请选择要交换的两名玩家"                      |                                             |
+| **revealKind**      | None                                          | No reveal popup                             |
+| **nightmare block** | ✅ Supported                                  | Resolver checks `blockedSeat === actorSeat` |
+| **result slot**     | `currentNightResults.swappedSeats`            | `[seatA, seatB]`                            |
+| **UI target limit** | Any two different seats                       |                                             |
+| **failure reason**  | `必须选择两名交换对象` / `不能选择同一个玩家` |                                             |
+
+### 2. slackerChooseIdol (Slacker)
+
+| Property            | Value                            | Description            |
+| ------------------- | -------------------------------- | ---------------------- |
+| **schemaId**        | `slackerChooseIdol`              |                        |
+| **kind**            | `chooseSeat`                     |                        |
+| **constraints**     | `['notSelf']`                    | Cannot choose self     |
+| **canSkip**         | `false`                          | **Must choose**        |
+| **prompt**          | "请选择你的榜样"                 |                        |
+| **revealKind**      | None                             |                        |
+| **nightmare block** | ✅ Supported                     | Blocked → `result: {}` |
+| **result slot**     | `result.idolTarget` (no updates) |                        |
+| **UI target limit** | Exclude self                     |                        |
+| **failure reason**  | `必须选择榜样` / `不能选择自己`  |                        |
+
+### 3. shadowChooseMimic (Shadow)
+
+| Property            | Value                                                                                                           | Description                   |
+| ------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **schemaId**        | `shadowChooseMimic`                                                                                             |                               |
+| **kind**            | `chooseSeat`                                                                                                    |                               |
+| **constraints**     | `['notSelf']`                                                                                                   | Cannot choose self            |
+| **canSkip**         | `false`                                                                                                         | **Must choose**               |
+| **prompt**          | "请选择你要模仿的玩家"                                                                                          |                               |
+| **revealKind**      | None                                                                                                            |                               |
+| **nightmare block** | ✅ Supported                                                                                                    | Blocked → valid no-op (skip)  |
+| **result slot**     | `currentNightResults.shadowMimicTarget` + `avengerFaction`                                                      | Also computes avenger faction |
+| **UI target limit** | Exclude self                                                                                                    |                               |
+| **failure reason**  | `必须选择模仿目标` / `不能选择自己` / `目标玩家不存在`                                                          |                               |
+| **special logic**   | Choose avenger → bound (Team.Third); choose wolf faction → avenger is good; choose good/third → avenger is wolf |                               |
+
+### 4. avengerConfirm (Avenger)
+
+| Property             | Value                                      | Description                           |
+| -------------------- | ------------------------------------------ | ------------------------------------- |
+| **schemaId**         | `avengerConfirm`                           |                                       |
+| **kind**             | `confirm`                                  | View faction info                     |
+| **constraints**      | None                                       |                                       |
+| **canSkip**          | `true`                                     | Can skip                              |
+| **prompt**           | "请点击下方按钮查看你的阵营信息"           |                                       |
+| **revealKind**       | None (shows faction via `confirmStatusUi`) | Three outcomes: good/wolf/bound third |
+| **nightmare block**  | Handler-level handling                     |                                       |
+| **result slot**      | No state change                            | View-only, always valid               |
+| **bottomActionText** | `'查看阵营'`                               |                                       |
+
+### 4.5. eclipseWolfQueenShelter (Eclipse Wolf Queen)
+
+| Property            | Value                                                                                               | Description                                      |
+| ------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **schemaId**        | `eclipseWolfQueenShelter`                                                                           |                                                  |
+| **kind**            | `chooseSeat`                                                                                        | Choose a player to shelter                       |
+| **constraints**     | None                                                                                                | Can choose anyone (including self)               |
+| **canSkip**         | `true`                                                                                              | Can skip                                         |
+| **prompt**          | "请选择要放逐的玩家，如不使用请点击「不用技能」"                                                    |                                                  |
+| **revealKind**      | None                                                                                                |                                                  |
+| **nightmare block** | ✅ Supported                                                                                        | Allows skip when blocked                         |
+| **special rules**   | God-faction skills targeting sheltered player → effect redirects to caster (`applyShelterRedirect`) | Only affects god skills; wolf faction unaffected |
+| **result slot**     | `{ shelteredSeat: number }`                                                                         | writeSlot → `currentNightResults.shelteredSeat`  |
+| **failure reason**  | `目标玩家不存在`                                                                                    |                                                  |
+
+### 5. wolfRobotLearn (Wolf Robot)
+
+| Property            | Value                                             | Description                     |
+| ------------------- | ------------------------------------------------- | ------------------------------- |
+| **schemaId**        | `wolfRobotLearn`                                  |                                 |
+| **kind**            | `chooseSeat`                                      |                                 |
+| **constraints**     | `['notSelf']`                                     |                                 |
+| **canSkip**         | `true`                                            |                                 |
+| **prompt**          | "请选择要学习的玩家"                              |                                 |
+| **revealKind**      | `wolfRobot`                                       | Popup shows target identity     |
+| **nightmare block** | ✅ Supported                                      |                                 |
+| **magician swap**   | ✅ Supported                                      | Checks post-swap identity       |
+| **result slot**     | `wolfRobotReveal: { targetSeat, result: RoleId }` |                                 |
+| **ack blocking**    | ✅                                                | `pendingRevealAcks += schemaId` |
+| **UI target limit** | Exclude self                                      |                                 |
+| **failure reason**  | `不能选择自己` / `目标玩家不存在`                 |                                 |
+
+### 6. dreamcatcherDream (Dreamcatcher)
+
+| Property            | Value                              | Description |
+| ------------------- | ---------------------------------- | ----------- |
+| **schemaId**        | `dreamcatcherDream`                |             |
+| **kind**            | `chooseSeat`                       |             |
+| **constraints**     | `['notSelf']`                      |             |
+| **canSkip**         | `true`                             |             |
+| **prompt**          | "请选择要摄梦的玩家"               |             |
+| **revealKind**      | None                               |             |
+| **nightmare block** | ✅ Supported                       |             |
+| **result slot**     | `currentNightResults.dreamingSeat` |             |
+| **UI target limit** | Exclude self                       |             |
+| **failure reason**  | `不能选择自己`                     |             |
+
+### 7. gargoyleCheck (Gargoyle)
+
+| Property            | Value                                            | Description               |
+| ------------------- | ------------------------------------------------ | ------------------------- |
+| **schemaId**        | `gargoyleCheck`                                  |                           |
+| **kind**            | `chooseSeat`                                     |                           |
+| **constraints**     | `['notSelf']`                                    | Cannot check self         |
+| **canSkip**         | `true`                                           |                           |
+| **prompt**          | "请选择要查验的玩家"                             |                           |
+| **revealKind**      | `gargoyle`                                       | Popup shows full identity |
+| **nightmare block** | ✅ Supported                                     |                           |
+| **magician swap**   | ✅ Supported                                     |                           |
+| **result slot**     | `gargoyleReveal: { targetSeat, result: RoleId }` |                           |
+| **ack blocking**    | ✅                                               |                           |
+| **UI target limit** | All seats                                        |                           |
+| **failure reason**  | `目标玩家不存在`                                 |                           |
+
+### 8. nightmareBlock (Nightmare)
+
+| Property            | Value                                                 | Description                         |
+| ------------------- | ----------------------------------------------------- | ----------------------------------- |
+| **schemaId**        | `nightmareBlock`                                      |                                     |
+| **kind**            | `chooseSeat`                                          |                                     |
+| **constraints**     | `[]`                                                  | Can block self (neutral judge rule) |
+| **canSkip**         | `true`                                                |                                     |
+| **prompt**          | "请选择要封锁的玩家"                                  |                                     |
+| **revealKind**      | None                                                  |                                     |
+| **nightmare block** | ❌ N/A                                                | Nightmare itself cannot be blocked  |
+| **special rules**   | Blocking wolf → `wolfKillDisabled=true`               |                                     |
+| **result slot**     | `currentNightResults.blockedSeat`, `wolfKillDisabled` |                                     |
+| **UI target limit** | All seats                                             |                                     |
+| **failure reason**  | `目标玩家不存在`                                      |                                     |
+
+### 9. guardProtect (Guard)
+
+| Property            | Value                             | Description                         |
+| ------------------- | --------------------------------- | ----------------------------------- |
+| **schemaId**        | `guardProtect`                    |                                     |
+| **kind**            | `chooseSeat`                      |                                     |
+| **constraints**     | `[]`                              | Can guard self (neutral judge rule) |
+| **canSkip**         | `true`                            |                                     |
+| **prompt**          | "请选择要守护的玩家"              |                                     |
+| **revealKind**      | None                              |                                     |
+| **nightmare block** | ✅ Supported                      |                                     |
+| **result slot**     | `currentNightResults.guardedSeat` |                                     |
+| **UI target limit** | All seats                         |                                     |
+| **failure reason**  | None (canSkip=true)               |                                     |
+
+### 9b. crowCurse (Crow)
+
+| Property            | Value                             | Description                         |
+| ------------------- | --------------------------------- | ----------------------------------- |
+| **schemaId**        | `crowCurse`                       |                                     |
+| **kind**            | `chooseSeat`                      |                                     |
+| **constraints**     | `['notSelf']`                     | Cannot choose self                  |
+| **canSkip**         | `true`                            |                                     |
+| **prompt**          | "请选择要诅咒的玩家"              |                                     |
+| **revealKind**      | None                              |                                     |
+| **nightmare block** | ✅ Supported                      |                                     |
+| **result slot**     | `currentNightResults.cursedSeat`  | Cursed player gets +1 vote next day |
+| **UI target limit** | Exclude self                      |                                     |
+| **failure reason**  | `不能选择自己` / `目标玩家不存在` |                                     |
+| **Resolver**        | generic (writeSlot → cursedSeat)  |                                     |
+
+### 10. wolfKill (Wolf Kill)
+
+| Property                      | Value                                     | Description                                                                                                        |
+| ----------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **schemaId**                  | `wolfKill`                                |                                                                                                                    |
+| **kind**                      | `wolfVote`                                | Special: multi-wolf voting mechanism                                                                               |
+| **constraints**               | `[]`                                      | Neutral judge: can attack any seat                                                                                 |
+| **meeting.canSeeEachOther**   | `true`                                    | Wolves can see each other                                                                                          |
+| **meeting.resolution**        | `majority`                                | Majority vote takes effect                                                                                         |
+| **meeting.allowEmptyVote**    | `true`                                    | Can forfeit attack                                                                                                 |
+| **prompt**                    | "请选择袭击目标"                          |                                                                                                                    |
+| **emptyVoteText**             | "放弃袭击"                                |                                                                                                                    |
+| **revealKind**                | None                                      |                                                                                                                    |
+| **wolfKillDisabled**          | ✅ Checked                                | Nightmare blocking wolf disables attack                                                                            |
+| **result slot**               | `currentNightResults.wolfVotesBySeat`     |                                                                                                                    |
+| **UI target limit**           | All seats (including wolf teammates/self) |                                                                                                                    |
+| **Host authoritative reject** | ✅                                        | Immune targets rejected by Host/Resolver; unified "action invalid" hint via `actionRejected` (UI does not disable) |
+| **failure reason**            | `目标玩家不存在`                          |                                                                                                                    |
+
+### 11. wolfQueenCharm (Wolf Queen)
+
+| Property            | Value                             | Description |
+| ------------------- | --------------------------------- | ----------- |
+| **schemaId**        | `wolfQueenCharm`                  |             |
+| **kind**            | `chooseSeat`                      |             |
+| **constraints**     | `['notSelf']`                     |             |
+| **canSkip**         | `true`                            |             |
+| **prompt**          | "请选择要魅惑的玩家"              |             |
+| **revealKind**      | None                              |             |
+| **nightmare block** | ✅ Supported                      |             |
+| **result slot**     | `result.charmTarget` (no updates) |             |
+| **UI target limit** | Exclude self                      |             |
+| **failure reason**  | `不能选择自己` / `目标玩家不存在` |             |
+
+### 11b. hiddenWolfReveal (Hidden Wolf)
+
+| Property             | Value                                                             | Description                                                           |
+| -------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **schemaId**         | `hiddenWolfReveal`                                                |                                                                       |
+| **kind**             | `confirm`                                                         | View wolf teammates info                                              |
+| **constraints**      | None                                                              |                                                                       |
+| **canSkip**          | `true`                                                            | Can skip                                                              |
+| **prompt**           | "请点击下方按钮查看你的狼同伴"                                    |                                                                       |
+| **bottomActionText** | `'查看同伴'`                                                      |                                                                       |
+| **revealKind**       | None (shows wolf teammates via `confirmStatusUi`)                 | Shows wolf teammate seat numbers                                      |
+| **nightmare block**  | ❌ N/A                                                            | confirm type needs no check                                           |
+| **result slot**      | `confirmStatus: { kind: 'wolfTeammates', ... }`                   | View-only, always valid                                               |
+| **special rules**    | team=Good (seer checks as good); doesn't participate in wolf vote | `recognition: { canSeeWolves: false, participatesInWolfVote: false }` |
+| **UI behavior**      | Click button to view wolf teammate seat list                      |                                                                       |
+| **failure reason**   | None                                                              | Always valid                                                          |
+
+### 12. witchAction (Witch)
+
+| Property            | Value                                                                      | Description                    |
+| ------------------- | -------------------------------------------------------------------------- | ------------------------------ |
+| **schemaId**        | `witchAction`                                                              |                                |
+| **kind**            | `compound`                                                                 | Compound action: save + poison |
+| **steps**           |                                                                            |                                |
+| - save              | `confirmTarget`, constraints=`['notSelf']`                                 | Cannot self-save               |
+| - poison            | `chooseSeat`, constraints=`[]`                                             | Can poison any seat            |
+| **canSkip**         | Both steps can be skipped                                                  |                                |
+| **prompt**          | "女巫请行动"                                                               |                                |
+| **revealKind**      | None                                                                       |                                |
+| **nightmare block** | ✅ Supported                                                               |                                |
+| **special rules**   | Cannot use both on same night                                              |                                |
+| **witchContext**    | `{ killedIndex, canSave, canPoison }`                                      | Set by Host                    |
+| **result slot**     | `currentNightResults.savedSeat`, `poisonedSeat`                            |                                |
+| **UI target limit** | save: killed player (not self); poison: any                                |                                |
+| **failure reason**  | `女巫不能自救` / `只能救被狼人袭击的玩家` / `同一晚不能同时使用解药和毒药` |                                |
+
+### 12b. poisonerPoison (Poisoner)
+
+| Property            | Value                                                                                | Description         |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------- |
+| **schemaId**        | `poisonerPoison`                                                                     |                     |
+| **kind**            | `chooseSeat`                                                                         |                     |
+| **constraints**     | `[]`                                                                                 | Can choose any seat |
+| **canSkip**         | `true`                                                                               |                     |
+| **prompt**          | "请选择要毒杀的玩家"                                                                 |                     |
+| **revealKind**      | None                                                                                 |                     |
+| **nightmare block** | ✅ Supported                                                                         |                     |
+| **special rules**   | One-time poison (uses: 1); when poisoner is present, wolves cannot attack on night 1 |                     |
+| **result slot**     | `currentNightResults.poisonedSeat`                                                   |                     |
+| **UI target limit** | All seats                                                                            |                     |
+| **failure reason**  | `目标玩家不存在`                                                                     |                     |
+| **Resolver**        | generic (writeSlot → poisonedSeat)                                                   |                     |
+
+### 13. seerCheck (Seer)
+
+| Property            | Value                                                  | Description         |
+| ------------------- | ------------------------------------------------------ | ------------------- |
+| **schemaId**        | `seerCheck`                                            |                     |
+| **kind**            | `chooseSeat`                                           |                     |
+| **constraints**     | `['notSelf']`                                          | Cannot check self   |
+| **canSkip**         | `true`                                                 |                     |
+| **prompt**          | "请选择要查验的玩家"                                   |                     |
+| **revealKind**      | `seer`                                                 | Popup shows faction |
+| **nightmare block** | ✅ Supported                                           |                     |
+| **magician swap**   | ✅ Supported                                           |                     |
+| **result slot**     | `seerReveal: { targetSeat, result: '好人' \| '狼人' }` |                     |
+| **ack blocking**    | ✅                                                     |                     |
+| **UI target limit** | All seats                                              |                     |
+| **failure reason**  | `目标玩家不存在`                                       |                     |
+
+### 14. psychicCheck (Psychic)
+
+| Property            | Value                                           | Description               |
+| ------------------- | ----------------------------------------------- | ------------------------- |
+| **schemaId**        | `psychicCheck`                                  |                           |
+| **kind**            | `chooseSeat`                                    |                           |
+| **constraints**     | `['notSelf']`                                   | Cannot check self         |
+| **canSkip**         | `true`                                          |                           |
+| **prompt**          | "请选择要通灵的玩家"                            |                           |
+| **revealKind**      | `psychic`                                       | Popup shows full identity |
+| **nightmare block** | ✅ Supported                                    |                           |
+| **magician swap**   | ✅ Supported                                    |                           |
+| **result slot**     | `psychicReveal: { targetSeat, result: RoleId }` |                           |
+| **ack blocking**    | ✅                                              |                           |
+| **UI target limit** | All seats                                       |                           |
+| **failure reason**  | `目标玩家不存在`                                |                           |
+
+### 15. hunterConfirm (Hunter)
+
+| Property             | Value                                    | Description                       |
+| -------------------- | ---------------------------------------- | --------------------------------- |
+| **schemaId**         | `hunterConfirm`                          |                                   |
+| **kind**             | `confirm`                                | Confirm only, no target selection |
+| **prompt**           | "请点击下方按钮查看技能发动状态"         |                                   |
+| **bottomActionText** | "发动状态"                               |                                   |
+| **revealKind**       | None                                     |                                   |
+| **nightmare block**  | ❌ N/A                                   | confirm type needs no check       |
+| **result slot**      | `confirmStatus: { kind: 'hunter', ... }` |                                   |
+| **UI behavior**      | Click button to confirm                  |                                   |
+| **failure reason**   | None                                     | Always valid                      |
+
+### 16. darkWolfKingConfirm (Dark Wolf King)
+
+| Property             | Value                                          | Description  |
+| -------------------- | ---------------------------------------------- | ------------ |
+| **schemaId**         | `darkWolfKingConfirm`                          |              |
+| **kind**             | `confirm`                                      |              |
+| **prompt**           | "请点击下方按钮查看技能发动状态"               |              |
+| **bottomActionText** | "发动状态"                                     |              |
+| **revealKind**       | None                                           |              |
+| **nightmare block**  | ❌ N/A                                         |              |
+| **result slot**      | `confirmStatus: { kind: 'darkWolfKing', ... }` |              |
+| **UI behavior**      | Click button to confirm                        |              |
+| **failure reason**   | None                                           | Always valid |
+
+### 17. wildChildChooseIdol (Wild Child)
+
+| Property            | Value                            | Description            |
+| ------------------- | -------------------------------- | ---------------------- |
+| **schemaId**        | `wildChildChooseIdol`            |                        |
+| **kind**            | `chooseSeat`                     |                        |
+| **constraints**     | `['notSelf']`                    | Cannot choose self     |
+| **canSkip**         | `false`                          | **Must choose**        |
+| **prompt**          | "请选择你的榜样"                 |                        |
+| **revealKind**      | None                             |                        |
+| **nightmare block** | ✅ Supported                     | Blocked → `result: {}` |
+| **result slot**     | `result.idolTarget` (no updates) |                        |
+| **UI target limit** | Exclude self                     |                        |
+| **failure reason**  | `必须选择榜样` / `不能选择自己`  |                        |
+
+### 18. silenceElderSilence (Silence Elder)
+
+| Property            | Value                              | Description         |
+| ------------------- | ---------------------------------- | ------------------- |
+| **schemaId**        | `silenceElderSilence`              |                     |
+| **kind**            | `chooseSeat`                       |                     |
+| **constraints**     | `[]`                               | Can choose any seat |
+| **canSkip**         | `true`                             |                     |
+| **prompt**          | "请选择要禁言的玩家"               |                     |
+| **revealKind**      | None                               |                     |
+| **nightmare block** | ✅ Supported                       |                     |
+| **result slot**     | `currentNightResults.silencedSeat` |                     |
+| **UI target limit** | All seats                          |                     |
+| **failure reason**  | `目标玩家不存在`                   |                     |
+
+### 19. votebanElderBan (Voteban Elder)
+
+| Property            | Value                                | Description         |
+| ------------------- | ------------------------------------ | ------------------- |
+| **schemaId**        | `votebanElderBan`                    |                     |
+| **kind**            | `chooseSeat`                         |                     |
+| **constraints**     | `[]`                                 | Can choose any seat |
+| **canSkip**         | `true`                               |                     |
+| **prompt**          | "请选择要禁票的玩家"                 |                     |
+| **revealKind**      | None                                 |                     |
+| **nightmare block** | ✅ Supported                         |                     |
+| **result slot**     | `currentNightResults.voteBannedSeat` |                     |
+| **UI target limit** | All seats                            |                     |
+| **failure reason**  | `目标玩家不存在`                     |                     |
+
+### 20. mirrorSeerCheck (Mirror Seer)
+
+| Property            | Value                                                        | Description                    |
+| ------------------- | ------------------------------------------------------------ | ------------------------------ |
+| **schemaId**        | `mirrorSeerCheck`                                            |                                |
+| **kind**            | `chooseSeat`                                                 |                                |
+| **constraints**     | `['notSelf']`                                                | Cannot check self              |
+| **canSkip**         | `true`                                                       |                                |
+| **prompt**          | "请选择要查验的玩家"                                         |                                |
+| **revealKind**      | `mirrorSeer`                                                 | Popup shows faction (reversed) |
+| **nightmare block** | ✅ Supported                                                 |                                |
+| **magician swap**   | ✅ Supported                                                 |                                |
+| **result slot**     | `mirrorSeerReveal: { targetSeat, result: '好人' \| '狼人' }` |                                |
+| **ack blocking**    | ✅                                                           |                                |
+| **UI target limit** | All seats                                                    |                                |
+| **failure reason**  | `目标玩家不存在`                                             |                                |
+
+### 21. drunkSeerCheck (Drunk Seer)
+
+| Property            | Value                                                       | Description                        |
+| ------------------- | ----------------------------------------------------------- | ---------------------------------- |
+| **schemaId**        | `drunkSeerCheck`                                            |                                    |
+| **kind**            | `chooseSeat`                                                |                                    |
+| **constraints**     | `['notSelf']`                                               | Cannot check self                  |
+| **canSkip**         | `true`                                                      |                                    |
+| **prompt**          | "请选择要查验的玩家"                                        |                                    |
+| **revealKind**      | `drunkSeer`                                                 | Popup shows faction (may be wrong) |
+| **nightmare block** | ✅ Supported                                                |                                    |
+| **magician swap**   | ✅ Supported                                                |                                    |
+| **result slot**     | `drunkSeerReveal: { targetSeat, result: '好人' \| '狼人' }` |                                    |
+| **ack blocking**    | ✅                                                          |                                    |
+| **UI target limit** | All seats                                                   |                                    |
+| **failure reason**  | `目标玩家不存在`                                            |                                    |
+
+### 22. wolfWitchCheck (Wolf Witch)
+
+| Property            | Value                                                       | Description         |
+| ------------------- | ----------------------------------------------------------- | ------------------- |
+| **schemaId**        | `wolfWitchCheck`                                            |                     |
+| **kind**            | `chooseSeat`                                                |                     |
+| **constraints**     | `['notSelf']`                                               | Cannot check self   |
+| **canSkip**         | `true`                                                      |                     |
+| **prompt**          | "请选择要查验的玩家"                                        |                     |
+| **revealKind**      | `wolfWitch`                                                 | Popup shows faction |
+| **nightmare block** | ✅ Supported                                                |                     |
+| **magician swap**   | ✅ Supported                                                |                     |
+| **result slot**     | `wolfWitchReveal: { targetSeat, result: '好人' \| '狼人' }` |                     |
+| **ack blocking**    | ✅                                                          |                     |
+| **UI target limit** | All seats                                                   |                     |
+| **failure reason**  | `目标玩家不存在`                                            |                     |
+
+### 23. pureWhiteCheck (Pure White)
+
+| Property            | Value                                             | Description               |
+| ------------------- | ------------------------------------------------- | ------------------------- |
+| **schemaId**        | `pureWhiteCheck`                                  |                           |
+| **kind**            | `chooseSeat`                                      |                           |
+| **constraints**     | `['notSelf']`                                     | Cannot check self         |
+| **canSkip**         | `true`                                            |                           |
+| **prompt**          | "请选择要查验的玩家"                              |                           |
+| **revealKind**      | `pureWhite`                                       | Popup shows full identity |
+| **nightmare block** | ✅ Supported                                      |                           |
+| **magician swap**   | ✅ Supported                                      |                           |
+| **result slot**     | `pureWhiteReveal: { targetSeat, result: RoleId }` |                           |
+| **ack blocking**    | ✅                                                |                           |
+| **UI target limit** | All seats                                         |                           |
+| **failure reason**  | `目标玩家不存在`                                  |                           |
+
+### 24. awakenedGargoyleConvert (Awakened Gargoyle)
+
+| Property            | Value                                                  | Description              |
+| ------------------- | ------------------------------------------------------ | ------------------------ |
+| **schemaId**        | `awakenedGargoyleConvert`                              |                          |
+| **kind**            | `chooseSeat`                                           | Choose target to convert |
+| **constraints**     | `['notSelf']`                                          | Cannot choose self       |
+| **canSkip**         | `false`                                                | **Must choose**          |
+| **prompt**          | "请选择要转化的玩家"                                   |                          |
+| **revealKind**      | None                                                   |                          |
+| **nightmare block** | ✅ Supported                                           |                          |
+| **result slot**     | `currentNightResults.convertedSeat`                    |                          |
+| **UI target limit** | Exclude self                                           |                          |
+| **failure reason**  | `必须选择转化目标` / `不能选择自己` / `目标玩家不存在` |                          |
+
+### 25. piperHypnotize (Piper)
+
+| Property            | Value                                 | Description                          |
+| ------------------- | ------------------------------------- | ------------------------------------ |
+| **schemaId**        | `piperHypnotize`                      |                                      |
+| **kind**            | `multiChooseSeat`                     | Choose multiple targets to hypnotize |
+| **constraints**     | `['notSelf']`                         | Cannot choose self                   |
+| **minTargets**      | `1`                                   |                                      |
+| **maxTargets**      | `2`                                   | Up to 2 per night                    |
+| **canSkip**         | `true`                                | Can skip                             |
+| **prompt**          | "请选择要催眠的玩家（最多2人）"       |                                      |
+| **revealKind**      | None                                  |                                      |
+| **nightmare block** | ✅ Supported                          |                                      |
+| **result slot**     | `currentNightResults.hypnotizedSeats` |                                      |
+| **UI target limit** | Exclude self                          |                                      |
+| **failure reason**  | `不能选择自己` / `目标玩家不存在`     |                                      |
+
+### 25b. piperHypnotizedReveal (Hypnotized Reveal)
+
+| Property              | Value                                  | Description                 |
+| --------------------- | -------------------------------------- | --------------------------- |
+| **schemaId**          | `piperHypnotizedReveal`                |                             |
+| **kind**              | `groupConfirm`                         | All-player confirm          |
+| **requireAllAcks**    | `true`                                 | All players must confirm    |
+| **prompt**            | "所有玩家请睁眼，请看手机确认催眠信息" |                             |
+| **hypnotizedText**    | "你被催眠了"                           |                             |
+| **notHypnotizedText** | "你没有被催眠"                         |                             |
+| **confirmButtonText** | "我知道了"                             |                             |
+| **nightmare block**   | ❌ N/A                                 | groupConfirm needs no check |
+| **failure reason**    | None                                   | Always valid                |
+
+### 26. awakenedGargoyleConvertReveal (Convert Reveal)
+
+| Property              | Value                                  | Description                 |
+| --------------------- | -------------------------------------- | --------------------------- |
+| **schemaId**          | `awakenedGargoyleConvertReveal`        |                             |
+| **kind**              | `groupConfirm`                         | All-player confirm          |
+| **requireAllAcks**    | `true`                                 | All players must confirm    |
+| **prompt**            | "所有玩家请睁眼，请看手机确认转化信息" |                             |
+| **convertedText**     | "你已被转化为石像鬼阵营"               |                             |
+| **notConvertedText**  | "你没有被转化"                         |                             |
+| **confirmButtonText** | "我知道了"                             |                             |
+| **nightmare block**   | ❌ N/A                                 | groupConfirm needs no check |
+| **failure reason**    | None                                   | Always valid                |

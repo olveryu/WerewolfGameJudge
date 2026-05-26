@@ -1,13 +1,13 @@
-> ⚠️ 历史文档 — 迁移已完成，仅供参考
+> ⚠️ Historical document — migration completed, for reference only
 
 # DO Migration Plan: Game State → Durable Objects
 
-> 将 game/night 的 D1 读-算-写 迁移到 Durable Object 内部执行，消除 optimistic locking。
+> Migrate game/night D1 read-compute-write operations to Durable Object internal execution, eliminating optimistic locking.
 >
-> **社区依据**：[Rules of Durable Objects](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/) —
+> **Community reference**: [Rules of Durable Objects](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/) —
 > "Use Durable Objects when you need: Coordination — Multiple clients need to interact with shared state (chat rooms, **multiplayer games**); Strong consistency — Operations must be **serialized** to avoid race conditions."
 
-## 1. 现状概览
+## 1. Current State Overview
 
 ```
 Client  ──POST /game/*──▶  Worker handler
@@ -25,70 +25,70 @@ Client  ──POST /game/*──▶  Worker handler
                          WebSocket push
 ```
 
-**问题**：
+**Problems**:
 
-- Worker handler → D1 两次网络 RTT（SELECT + UPDATE），read-modify-write 存在 50-150ms 竞争窗口
-- 靠 `state_revision` + 3 次 retry 模拟 DO 的单线程序列化
-- 广播需要跨网络 POST 到 DO，再通过 `ctx.waitUntil` 保活
+- Worker handler → D1 requires two network RTTs (SELECT + UPDATE); read-modify-write has a 50-150ms race window
+- Relies on `state_revision` + 3 retries to simulate DO's single-threaded serialization
+- Broadcast requires cross-network POST to DO, then uses `ctx.waitUntil` to keep alive
 
-## 2. 目标架构
+## 2. Target Architecture
 
 ```
-Client  ──POST /game/*──▶  Worker (thin router: 参数校验 + DO error handling)
+Client  ──POST /game/*──▶  Worker (thin router: param validation + DO error handling)
                               │
                          DO RPC (typed)
                               │
                     ┌── DO GameRoom ──┐
-                    │  SQLite read    │  ← 单线程，零竞争
+                    │  SQLite read    │  ← single-threaded, zero contention
                     │  game-engine    │
-                    │  SQLite write   │  ← 原子 coalesce
-                    │  WS broadcast   │  ← 同实例内，零网络
+                    │  SQLite write   │  ← atomic coalesce
+                    │  WS broadcast   │  ← same instance, zero network
                     └─────────────────┘
 ```
 
-**关键不变项**：
+**Key Invariants**:
 
-- HTTP API 路径不变（`/game/*`, `/game/night/*`）→ **客户端零改动**
-- game-engine 纯函数不变（handler + reducer + inlineProgression）
-- 响应格式不变（`{ success, reason?, state?, revision? }`）
-- WebSocket 消息格式不变（`{ type: 'STATE_UPDATE', state, revision }`）
+- HTTP API paths unchanged (`/game/*`, `/game/night/*`) → **zero client changes**
+- game-engine pure functions unchanged (handler + reducer + inlineProgression)
+- Response format unchanged (`{ success, reason?, state?, revision? }`)
+- WebSocket message format unchanged (`{ type: 'STATE_UPDATE', state, revision }`)
 
-## 3. 迁移范围
+## 3. Migration Scope
 
-### 3.1 迁移到 DO 内部（21 个 handler）
+### 3.1 Migrate to DO Internal (21 handlers)
 
-| 类别         | Handler                                                                                                                                         | 当前文件                  |
+| Category     | Handler                                                                                                                                         | Current File              |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
 | Game Control | assign, seat, start, restart, clear-seats, fill-bots, mark-bots-viewed, set-animation, view-role, update-template, update-profile, share-review | `handlers/gameControl.ts` |
 | Night        | action, audio-ack, audio-gate, end, progression, reveal-ack, wolf-robot-viewed, group-confirm-ack, mark-bots-group-confirmed                    | `handlers/night.ts`       |
 
-### 3.2 保持 D1（不迁移）
+### 3.2 Stays in D1 (Not Migrated)
 
-| 路由            | 原因                                       |
-| --------------- | ------------------------------------------ |
-| `/room/create`  | D1 插入元数据 + 初始化 DO（见 4.5）        |
-| `/room/get`     | 跨房间元数据查询，D1 适合                  |
-| `/room/delete`  | D1 元数据删除 + DO `deleteAll()`（见 4.6） |
-| `/auth/*`       | 全局关系型数据                             |
-| `/avatar/*`     | R2 存储                                    |
-| `/gemini-proxy` | 外部代理                                   |
+| Route           | Reason                                       |
+| --------------- | -------------------------------------------- |
+| `/room/create`  | D1 metadata insert + DO initialization (4.5) |
+| `/room/get`     | Cross-room metadata query, D1 is appropriate |
+| `/room/delete`  | D1 metadata delete + DO `deleteAll()` (4.6)  |
+| `/auth/*`       | Global relational data                       |
+| `/avatar/*`     | R2 storage                                   |
+| `/gemini-proxy` | External proxy                               |
 
-### 3.3 读路径改从 DO 读
+### 3.3 Read Paths Changed to Read from DO
 
-| 路由                  | 变更                        | 原因                                         |
-| --------------------- | --------------------------- | -------------------------------------------- |
-| `POST /room/state`    | D1 → DO RPC `getState()`    | game_state 的权威源从 D1 移到 DO             |
-| `POST /room/revision` | D1 → DO RPC `getRevision()` | 同上，`ConnectionManager` revision poll 需要 |
+| Route                 | Change                      | Reason                                                  |
+| --------------------- | --------------------------- | ------------------------------------------------------- |
+| `POST /room/state`    | D1 → DO RPC `getState()`    | Authoritative source for game_state moves from D1 to DO |
+| `POST /room/revision` | D1 → DO RPC `getRevision()` | Same — `ConnectionManager` revision poll needs this     |
 
-## 4. 分阶段实施
+## 4. Phased Implementation
 
-### Phase 1：DO 改造（纯服务端，不动客户端）
+### Phase 1: DO Refactoring (Server-side only, no client changes)
 
-#### Step 4.1 — `GameRoom` 继承 `DurableObject` 基类 + SQLite 初始化
+#### Step 4.1 — `GameRoom` Extends `DurableObject` Base Class + SQLite Initialization
 
-当前 `GameRoom` 不继承 `DurableObject`，无法使用 RPC。必须改为继承。
+Current `GameRoom` doesn't extend `DurableObject`, preventing RPC usage. Must change to extend it.
 
-> 社区依据：[Use RPC methods instead of the fetch() handler](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-rpc-methods-instead-of-the-fetch-handler) —
+> Community reference: [Use RPC methods instead of the fetch() handler](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-rpc-methods-instead-of-the-fetch-handler) —
 > "RPC is more ergonomic, provides better **type safety**, and eliminates manual request/response parsing."
 
 ```typescript
@@ -109,36 +109,36 @@ export class GameRoom extends DurableObject<Env> {
     });
   }
 
-  // ...RPC methods + fetch handler 共存（WebSocket 仍走 fetch）
+  // ...RPC methods + fetch handler coexist (WebSocket still uses fetch)
 }
 ```
 
-**要点**：
+**Key points**:
 
-- `extends DurableObject<Env>` 解锁 RPC + 保留 `fetch()` 用于 WebSocket upgrade
-- SQLite-backed DO（wrangler.toml 已配置 `new_sqlite_classes = ["GameRoom"]`）
-- 单行表 `room_state`，`id=1` CHECK 约束保证只有一行
-- `blockConcurrencyWhile` 仅在 constructor 中执行一次（[社区推荐](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-blockconcurrencywhile-sparingly)：仅用于初始化，不用于请求处理）
+- `extends DurableObject<Env>` unlocks RPC + preserves `fetch()` for WebSocket upgrade
+- SQLite-backed DO (wrangler.toml already configured `new_sqlite_classes = ["GameRoom"]`)
+- Single-row table `room_state`, `id=1` CHECK constraint ensures only one row
+- `blockConcurrencyWhile` executes only once in constructor ([community recommendation](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-blockconcurrencywhile-sparingly): use only for initialization, not for request handling)
 
-#### Step 4.2 — DO 内部 `#processAction`（替代 `gameStateManager.ts`）
+#### Step 4.2 — DO Internal `#processAction` (Replaces `gameStateManager.ts`)
 
-**旧 `processGameAction`**：D1 SELECT → game-engine → D1 UPDATE (WHERE revision=N) → retry on conflict
-**新 `#processAction`**：SQLite read → game-engine → SQLite write → broadcast，单线程无冲突
+**Old `processGameAction`**: D1 SELECT → game-engine → D1 UPDATE (WHERE revision=N) → retry on conflict
+**New `#processAction`**: SQLite read → game-engine → SQLite write → broadcast, single-threaded no conflicts
 
 ```typescript
 /**
- * 核心读-算-写流程（DO 内部 private 方法）
+ * Core read-compute-write flow (DO internal private method)
  *
- * 与旧 processGameAction 语义完全一致，但：
- * - 无 retry 循环（DO 单线程保证无并发冲突）
- * - SQLite sql.exec 是同步的，多条 SQL 自动 coalesce 为原子事务
- * - 广播在同实例内完成，零网络开销
+ * Semantically identical to old processGameAction, but:
+ * - No retry loop (DO single-threaded guarantee eliminates concurrent conflicts)
+ * - SQLite sql.exec is synchronous; multiple SQL statements auto-coalesce into atomic transaction
+ * - Broadcast completes within same instance, zero network overhead
  */
 #processAction(
   processFn: (state: GameState, revision: number) => HandlerResult,
   inlineProgression?: { enabled: boolean; nowMs?: number },
 ): GameActionResult {
-  // 1. 读 SQLite（同步，零网络）
+  // 1. Read SQLite (synchronous, zero network)
   const rows = this.ctx.storage.sql
     .exec('SELECT game_state, revision FROM room_state WHERE id = 1')
     .toArray();
@@ -150,18 +150,18 @@ export class GameRoom extends DurableObject<Env> {
   const state: GameState = JSON.parse(rows[0].game_state as string);
   const revision = rows[0].revision as number;
 
-  // 2. 调用 game-engine 纯函数
+  // 2. Call game-engine pure function
   const result = processFn(state, revision);
 
-  // error: 前置条件/基础设施失败 → 不持久化
+  // error: precondition/infrastructure failure → don't persist
   if (result.kind === 'error') {
     return { success: false, reason: result.reason };
   }
 
-  // success | rejection: 都有 actions 需要 apply + persist + broadcast
+  // success | rejection: both have actions to apply + persist + broadcast
   const isSuccess = result.kind === 'success';
 
-  // 3. apply actions → 新 state
+  // 3. Apply actions → new state
   let newState = state;
   let totalActionsApplied = 0;
   for (const action of result.actions) {
@@ -169,7 +169,7 @@ export class GameRoom extends DurableObject<Env> {
     totalActionsApplied++;
   }
 
-  // 3.5. inline progression（可选，仅 success 时）
+  // 3.5. Inline progression (optional, only on success)
   if (isSuccess && inlineProgression?.enabled) {
     const prog = runInlineProgression(
       newState, newState.hostUid, inlineProgression.nowMs,
@@ -193,14 +193,14 @@ export class GameRoom extends DurableObject<Env> {
   newState = normalizeState(newState);
   const newRevision = revision + 1;
 
-  // 4. 写 SQLite（与上面的 read 自动 coalesce 为原子事务）
+  // 4. Write SQLite (auto-coalesces with above read into atomic transaction)
   this.ctx.storage.sql.exec(
     'UPDATE room_state SET game_state = ?, revision = ? WHERE id = 1',
     JSON.stringify(newState),
     newRevision,
   );
 
-  // 5. 原地广播 — output gate 保证 write 完成后才发送
+  // 5. In-place broadcast — output gate ensures write completes before sending
   const shouldBroadcast =
     result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
   if (shouldBroadcast) {
@@ -217,27 +217,27 @@ export class GameRoom extends DurableObject<Env> {
 }
 ```
 
-**关键差异 vs 旧 `processGameAction`**：
+**Key differences vs old `processGameAction`**:
 
-|          | 旧（D1）                               | 新（DO SQLite）                              |
-| -------- | -------------------------------------- | -------------------------------------------- |
-| 并发保护 | optimistic lock + 3× retry             | 单线程序列化，无需保护                       |
-| 原子性   | 两次独立 I/O，无事务                   | sql.exec 自动 coalesce 为隐式事务            |
-| 广播     | 跨网络 POST /broadcast + ctx.waitUntil | 同实例 this.#broadcast()，output gate 保证   |
-| 输出安全 | N/A                                    | DO output gate = 响应在 write 持久化后才发出 |
+|                   | Old (D1)                                      | New (DO SQLite)                                          |
+| ----------------- | --------------------------------------------- | -------------------------------------------------------- |
+| Concurrency guard | optimistic lock + 3× retry                    | Single-threaded serialization, no protection needed      |
+| Atomicity         | Two independent I/O ops, no transaction       | sql.exec auto-coalesces into implicit transaction        |
+| Broadcast         | Cross-network POST /broadcast + ctx.waitUntil | Same-instance this.#broadcast(), output gate guaranteed  |
+| Output safety     | N/A                                           | DO output gate = response sent only after write persists |
 
-#### Step 4.3 — 类型安全的 RPC 方法（替代 string dispatch）
+#### Step 4.3 — Type-Safe RPC Methods (Replaces string dispatch)
 
-> 社区依据：[Use RPC methods instead of the fetch() handler](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-rpc-methods-instead-of-the-fetch-handler) —
+> Community reference: [Use RPC methods instead of the fetch() handler](https://developers.cloudflare.com/durable-objects/best-practices/rules-of-durable-objects/#use-rpc-methods-instead-of-the-fetch-handler) —
 > "Define public methods on your Durable Object class, and call them **directly** from stubs with **full TypeScript support**."
 
-**不用** `dispatch(string, payload)` —— 没有编译期保障。
-**用** 独立 typed RPC 方法。21 个 handler 按 RPC 特征分为三类：
+**Don't** use `dispatch(string, payload)` — no compile-time guarantees.
+**Do** use independent typed RPC methods. 21 handlers grouped into three categories by RPC characteristics:
 
-##### (A) 无参数 RPC（roomCode 已由 Worker 路由到正确的 DO）
+##### (A) No-parameter RPC (roomCode already routes Worker to correct DO)
 
 ```typescript
-// 只需 roomCode 的 handler → 无参 RPC
+// Handlers that only need roomCode → no-param RPC
 async assignRoles(): Promise<GameActionResult> {
   return this.#processAction((state) => {
     const ctx = buildHandlerContext(state, state.hostUid);
@@ -245,13 +245,13 @@ async assignRoles(): Promise<GameActionResult> {
   });
 }
 
-async restartGame(): Promise<GameActionResult> { /* 同模式 */ }
-async clearAllSeats(): Promise<GameActionResult> { /* 同模式 */ }
-async fillWithBots(): Promise<GameActionResult> { /* 同模式 */ }
-async markAllBotsViewed(): Promise<GameActionResult> { /* 同模式 */ }
+async restartGame(): Promise<GameActionResult> { /* same pattern */ }
+async clearAllSeats(): Promise<GameActionResult> { /* same pattern */ }
+async fillWithBots(): Promise<GameActionResult> { /* same pattern */ }
+async markAllBotsViewed(): Promise<GameActionResult> { /* same pattern */ }
 ```
 
-##### (B) 带参数 RPC
+##### (B) Parameterized RPC
 
 ```typescript
 async seat(
@@ -301,7 +301,7 @@ async submitAction(
 //     markBotsGroupConfirmed(), wolfRobotViewed(seat)
 ```
 
-##### (C) 带 post-processing 的 RPC（extractAudioActions）
+##### (C) RPC with Post-processing (extractAudioActions)
 
 ```typescript
 async startNight(): Promise<GameActionResult> {
@@ -309,7 +309,7 @@ async startNight(): Promise<GameActionResult> {
     const ctx = buildHandlerContext(state, state.hostUid);
     const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
     if (result.kind === 'error') return result;
-    // extractAudioActions 逻辑内聚到 DO 内
+    // extractAudioActions logic encapsulated within DO
     const extraActions = extractAudioActions(result.sideEffects);
     if (extraActions.length > 0) {
       return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
@@ -319,11 +319,11 @@ async startNight(): Promise<GameActionResult> {
 }
 
 async endNight(): Promise<GameActionResult> {
-  // 同 startNight 模式
+  // Same pattern as startNight
 }
 ```
 
-##### (D) 读接口
+##### (D) Read Interfaces
 
 ```typescript
 async getState(): Promise<{ state: GameState; revision: number } | null> {
@@ -345,7 +345,7 @@ async getRevision(): Promise<number | null> {
 }
 ```
 
-##### (E) 初始化 + 清理
+##### (E) Initialization + Cleanup
 
 ```typescript
 async init(initialState: GameState): Promise<void> {
@@ -360,16 +360,16 @@ async cleanup(): Promise<void> {
 }
 ```
 
-##### WebSocket 保持 `fetch()` handler
+##### WebSocket Keeps `fetch()` Handler
 
-RPC 和 `fetch()` 可以共存在同一个 DO class 上。WebSocket upgrade 仍走 `fetch()`，不变。
+RPC and `fetch()` can coexist on the same DO class. WebSocket upgrade still goes through `fetch()`, unchanged.
 
-#### Step 4.4 — Worker handler 改造
+#### Step 4.4 — Worker Handler Refactoring
 
-Worker handler 变成 thin router：参数校验 → DO RPC → 错误处理 → 返回响应。
+Worker handler becomes a thin router: param validation → DO RPC → error handling → return response.
 
 ```typescript
-// handlers/gameControl.ts — handleSeat 迁移后
+// handlers/gameControl.ts — handleSeat after migration
 
 export const handleSeat: HandlerFn = async (req, env, _ctx) => {
   const body = (await req.json()) as {
@@ -384,7 +384,7 @@ export const handleSeat: HandlerFn = async (req, env, _ctx) => {
   };
   const { roomCode, action, uid, seat, targetSeat, displayName, avatarUrl, avatarFrame } = body;
 
-  // 参数校验保留在 Worker（fail fast，不唤醒 DO）
+  // Param validation stays in Worker (fail fast, don't wake DO)
   if (!roomCode || !uid || !action) return missingParams(env);
   if (action !== 'sit' && action !== 'standup' && action !== 'kick') {
     return jsonResponse({ success: false, reason: 'INVALID_ACTION' }, 400, env);
@@ -396,7 +396,7 @@ export const handleSeat: HandlerFn = async (req, env, _ctx) => {
     return jsonResponse({ success: false, reason: 'MISSING_SEAT' }, 400, env);
   }
 
-  // DO RPC —— 类型安全，直接调用
+  // DO RPC — type-safe, direct call
   const stub = getGameRoomStub(env, roomCode);
   const result = await stub.seat(
     action,
@@ -412,7 +412,7 @@ export const handleSeat: HandlerFn = async (req, env, _ctx) => {
 };
 ```
 
-##### `createSimpleHandler` 也简化
+##### `createSimpleHandler` Also Simplified
 
 ```typescript
 export function createSimpleHandler(
@@ -428,7 +428,7 @@ export function createSimpleHandler(
   };
 }
 
-// 使用
+// Usage
 export const handleAssign = createSimpleHandler((stub) => stub.assignRoles());
 export const handleRestart = createSimpleHandler((stub) => stub.restartGame());
 export const handleClearSeats = createSimpleHandler((stub) => stub.clearAllSeats());
@@ -436,22 +436,22 @@ export const handleFillBots = createSimpleHandler((stub) => stub.fillWithBots())
 export const handleMarkBotsViewed = createSimpleHandler((stub) => stub.markAllBotsViewed());
 ```
 
-##### Worker 层 DO 错误处理
+##### Worker-Level DO Error Handling
 
-> 社区依据：[Error handling](https://developers.cloudflare.com/durable-objects/best-practices/error-handling/) —
+> Community reference: [Error handling](https://developers.cloudflare.com/durable-objects/best-practices/error-handling/) —
 > "errors may include `.retryable` and `.overloaded` properties indicating whether the operation can be retried."
 
 ```typescript
-// handlers/shared.ts — 新增 helper
+// handlers/shared.ts — new helper
 function getGameRoomStub(env: Env, roomCode: string): DurableObjectStub<GameRoom> {
   const id = env.GAME_ROOM.idFromName(roomCode);
   return env.GAME_ROOM.get(id);
 }
 
 /**
- * 包装 DO RPC 调用，处理 DO 特有的错误属性。
- * 若 err.retryable === true，返回 503 让客户端 retry。
- * 若 err.overloaded === true，返回 429。
+ * Wraps DO RPC calls, handling DO-specific error properties.
+ * If err.retryable === true, returns 503 for client retry.
+ * If err.overloaded === true, returns 429.
  */
 async function callDO<T>(fn: () => Promise<T>, env: Env): Promise<T | Response> {
   try {
@@ -464,36 +464,36 @@ async function callDO<T>(fn: () => Promise<T>, env: Env): Promise<T | Response> 
     if (doErr.overloaded) {
       return jsonResponse({ success: false, reason: 'OVERLOADED' }, 429, env);
     }
-    throw err; // 非 DO 错误，上抛给全局 catch
+    throw err; // Not a DO error, rethrow to global catch
   }
 }
 ```
 
-#### Step 4.5 — `/room/create`：D1 + DO 原子性
+#### Step 4.5 — `/room/create`: D1 + DO Atomicity
 
-**问题**：先写 D1 再 init DO，如果 DO init 失败，D1 已有记录但 DO 无 state。
+**Problem**: Writing D1 first then initializing DO — if DO init fails, D1 already has a record but DO has no state.
 
-**解法**：DO init 失败时回滚 D1 记录。
+**Solution**: Roll back D1 record if DO init fails.
 
 ```typescript
-// roomHandlers.ts — handleCreateRoom 修改
+// roomHandlers.ts — handleCreateRoom modification
 export async function handleCreateRoom(request: Request, env: Env): Promise<Response> {
-  // ... 校验 token、roomCode ...
+  // ... validate token, roomCode ...
 
-  // 1. D1 插入 room 元数据
+  // 1. D1 insert room metadata
   await env.DB.prepare(sql).bind(...params).run();
 
-  // 2. 初始化 DO 状态（如有 initialState）
+  // 2. Initialize DO state (if initialState provided)
   if (body.initialState) {
     try {
       const stub = getGameRoomStub(env, body.roomCode);
       await stub.init(body.initialState as GameState);
     } catch (err) {
-      // DO init 失败 → 回滚 D1 记录
+      // DO init failed → rollback D1 record
       await env.DB.prepare('DELETE FROM rooms WHERE code = ?')
         .bind(body.roomCode)
         .run();
-      throw err; // 上抛给全局 catch → 500
+      throw err; // Rethrow to global catch → 500
     }
   }
 
@@ -501,12 +501,12 @@ export async function handleCreateRoom(request: Request, env: Env): Promise<Resp
 }
 ```
 
-#### Step 4.6 — `/room/delete`：D1 + DO 清理
+#### Step 4.6 — `/room/delete`: D1 + DO Cleanup
 
 ```typescript
-// roomHandlers.ts — handleDeleteRoom 修改
+// roomHandlers.ts — handleDeleteRoom modification
 export async function handleDeleteRoom(request: Request, env: Env): Promise<Response> {
-  // ... 校验 ...
+  // ... validation ...
   const result = await env.DB.prepare('DELETE FROM rooms WHERE code = ? AND host_id = ?')
     .bind(body.roomCode, payload.sub)
     .run();
@@ -514,20 +514,20 @@ export async function handleDeleteRoom(request: Request, env: Env): Promise<Resp
     return jsonResponse({ error: 'room not found or not authorized' }, 403, env);
   }
 
-  // 清理 DO 存储（非关键路径，失败不阻塞）
+  // Clean up DO storage (non-critical path, failure doesn't block)
   try {
     const stub = getGameRoomStub(env, body.roomCode);
     await stub.cleanup();
   } catch {
-    // DO cleanup 失败不影响删除结果。
-    // DO 存储会通过 cron 定期清理过期房间。
+    // DO cleanup failure doesn't affect delete result.
+    // DO storage will be cleaned up by cron for expired rooms.
   }
 
   return jsonResponse({ success: true }, 200, env);
 }
 ```
 
-#### Step 4.7 — `/room/state` 和 `/room/revision` 改读 DO
+#### Step 4.7 — `/room/state` and `/room/revision` Changed to Read from DO
 
 ```typescript
 export async function handleGetGameState(request: Request, env: Env): Promise<Response> {
@@ -552,146 +552,146 @@ export async function handleGetRevision(request: Request, env: Env): Promise<Res
 }
 ```
 
-**关于 DO 唤醒延迟**：revision poll 每隔 N 秒调用一次。如果 DO 在 hibernation 中，RPC 调用会自动唤醒。Hibernation 唤醒 <50ms，对 poll 场景可接受。实际上，只要有 WebSocket 连接活跃，DO 一般不会 hibernate。
+**Regarding DO wake-up latency**: Revision poll calls periodically. If DO is in hibernation, RPC call automatically wakes it. Hibernation wake-up <50ms is acceptable for poll scenarios. In practice, as long as WebSocket connections are active, DO generally won't hibernate.
 
-### Phase 2：清理（Phase 1 验证通过后）
+### Phase 2: Cleanup (After Phase 1 verification passes)
 
-1. D1 `rooms` 表删除 `game_state` / `state_revision` 列
-2. 删除 `lib/gameStateManager.ts`（整个文件）
-3. 删除 `lib/broadcast.ts`（整个文件）
-4. 删除 `handlers/shared.ts` 中旧的 `processGameAction` 相关导入
+1. D1 `rooms` table: remove `game_state` / `state_revision` columns
+2. Delete `lib/gameStateManager.ts` (entire file)
+3. Delete `lib/broadcast.ts` (entire file)
+4. Delete old `processGameAction` related imports from `handlers/shared.ts`
 
-## 5. 详细文件变更清单
+## 5. Detailed File Change List
 
-### 新增
+### New Files
 
-| 文件                              | 说明                                                                                                       |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `durableObjects/gameProcessor.ts` | `#processAction` + `buildHandlerContext` + `extractAudioActions`（从 DO class 拆出，保持 DO 文件 <400 行） |
+| File                              | Description                                                                                                      |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `durableObjects/gameProcessor.ts` | `#processAction` + `buildHandlerContext` + `extractAudioActions` (extracted from DO class to keep it <400 lines) |
 
-### 修改
+### Modified Files
 
-| 文件                         | 变更                                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `durableObjects/GameRoom.ts` | 继承 `DurableObject<Env>`；加 typed RPC 方法；保留 WebSocket fetch handler                       |
-| `handlers/gameControl.ts`    | 所有 handler 改为 DO RPC 调用（参数校验保留，删除 processGameAction/broadcastIfNeeded）          |
-| `handlers/night.ts`          | 同上                                                                                             |
-| `handlers/shared.ts`         | `createSimpleHandler` 改为接收 `(stub) => stub.xxx()` lambda；新增 `getGameRoomStub` + `callDO`  |
-| `handlers/roomHandlers.ts`   | `handleCreateRoom` 加 DO init + rollback；`handleDeleteRoom` 加 DO cleanup；读路径改 DO RPC      |
-| `env.ts`                     | 不变（GAME_ROOM binding 已存在）                                                                 |
-| `index.ts`                   | 不变（路由表不变）                                                                               |
-| `wrangler.toml`              | 不变（migration tag "v1" + `new_sqlite_classes` 已存在；构造时 CREATE IF NOT EXISTS 无需新 tag） |
+| File                         | Changes                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `durableObjects/GameRoom.ts` | Extends `DurableObject<Env>`; add typed RPC methods; preserve WebSocket fetch handler                                     |
+| `handlers/gameControl.ts`    | All handlers changed to DO RPC calls (param validation preserved, processGameAction/broadcastIfNeeded removed)            |
+| `handlers/night.ts`          | Same as above                                                                                                             |
+| `handlers/shared.ts`         | `createSimpleHandler` changed to receive `(stub) => stub.xxx()` lambda; add `getGameRoomStub` + `callDO`                  |
+| `handlers/roomHandlers.ts`   | `handleCreateRoom` adds DO init + rollback; `handleDeleteRoom` adds DO cleanup; read paths changed to DO RPC              |
+| `env.ts`                     | Unchanged (GAME_ROOM binding already exists)                                                                              |
+| `index.ts`                   | Unchanged (route table unchanged)                                                                                         |
+| `wrangler.toml`              | Unchanged (migration tag "v1" + `new_sqlite_classes` already exist; CREATE IF NOT EXISTS in constructor needs no new tag) |
 
-### Phase 2 删除
+### Phase 2 Deletions
 
-| 文件                      | 说明     |
-| ------------------------- | -------- |
-| `lib/gameStateManager.ts` | 整个文件 |
-| `lib/broadcast.ts`        | 整个文件 |
+| File                      | Description |
+| ------------------------- | ----------- |
+| `lib/gameStateManager.ts` | Entire file |
+| `lib/broadcast.ts`        | Entire file |
 
-### 不动
+### Unchanged
 
-| 文件                       | 原因                             |
-| -------------------------- | -------------------------------- |
-| **客户端所有文件**         | HTTP 路径 + 请求/响应格式不变    |
-| **`game-engine` 包**       | 纯函数，不关心调用方             |
-| `handlers/authHandlers.ts` | D1 直访                          |
-| `handlers/avatarUpload.ts` | R2 直访                          |
-| `handlers/geminiProxy.ts`  | 外部代理                         |
-| `handlers/cronHandlers.ts` | D1 清理（可加 DO stale cleanup） |
+| File                       | Reason                                         |
+| -------------------------- | ---------------------------------------------- |
+| **All client files**       | HTTP paths + request/response format unchanged |
+| **`game-engine` package**  | Pure functions, agnostic to caller             |
+| `handlers/authHandlers.ts` | D1 direct access                               |
+| `handlers/avatarUpload.ts` | R2 direct access                               |
+| `handlers/geminiProxy.ts`  | External proxy                                 |
+| `handlers/cronHandlers.ts` | D1 cleanup (can add DO stale cleanup)          |
 
-## 6. 完整 RPC 方法清单
+## 6. Complete RPC Method List
 
-| RPC 方法                                   | 参数                                                                   | handler 来源                                                | inlineProgression |
+| RPC Method                                 | Parameters                                                             | Handler Source                                              | inlineProgression |
 | ------------------------------------------ | ---------------------------------------------------------------------- | ----------------------------------------------------------- | ----------------- |
-| `assignRoles()`                            | —                                                                      | `handleAssignRoles`                                         | 否                |
-| `seat(action, uid, seat, ...)`             | action, uid, seat, displayName?, avatarUrl?, avatarFrame?, targetSeat? | `handleJoinSeat` / `handleLeaveMySeat` / `handleKickPlayer` | 否                |
-| `startNight()`                             | —                                                                      | `handleStartNight` + extractAudioActions                    | 否                |
-| `restartGame()`                            | —                                                                      | `handleRestartGame`                                         | 否                |
-| `clearAllSeats()`                          | —                                                                      | `handleClearAllSeats`                                       | 否                |
-| `fillWithBots()`                           | —                                                                      | `handleFillWithBots`                                        | 否                |
-| `markAllBotsViewed()`                      | —                                                                      | `handleMarkAllBotsViewed`                                   | 否                |
-| `setAnimation(animation)`                  | animation: string                                                      | `handleSetRoleRevealAnimation`                              | 否                |
-| `viewRole(uid, seat)`                      | uid: string, seat: number                                              | `handleViewedRole`                                          | 否                |
-| `updateTemplate(roles)`                    | roles: RoleId[]                                                        | `handleUpdateTemplate`                                      | 否                |
-| `updateProfile(uid, ...)`                  | uid, displayName?, avatarUrl?, avatarFrame?                            | `handleUpdatePlayerProfile`                                 | 否                |
-| `shareReview(allowedSeats)`                | allowedSeats: number[]                                                 | `handleShareNightReview`                                    | 否                |
-| `submitAction(seat, role, target, extra?)` | seat, role, target, extra?                                             | `handleSubmitAction`                                        | **是**            |
-| `audioAck()`                               | —                                                                      | inline logic                                                | **是**            |
-| `audioGate(isPlaying)`                     | isPlaying: boolean                                                     | `handleSetAudioPlaying`                                     | 否                |
-| `endNight()`                               | —                                                                      | `handleEndNight` + extractAudioActions                      | 否                |
-| `progression()`                            | —                                                                      | status guard                                                | **是**            |
-| `revealAck()`                              | —                                                                      | inline logic                                                | **是**            |
-| `wolfRobotViewed(seat)`                    | seat: number                                                           | `handleSetWolfRobotHunterStatusViewed`                      | **是**            |
-| `groupConfirmAck(seat, uid)`               | seat, uid                                                              | inline logic                                                | **是**            |
-| `markBotsGroupConfirmed()`                 | —                                                                      | inline logic                                                | **是**            |
+| `assignRoles()`                            | —                                                                      | `handleAssignRoles`                                         | No                |
+| `seat(action, uid, seat, ...)`             | action, uid, seat, displayName?, avatarUrl?, avatarFrame?, targetSeat? | `handleJoinSeat` / `handleLeaveMySeat` / `handleKickPlayer` | No                |
+| `startNight()`                             | —                                                                      | `handleStartNight` + extractAudioActions                    | No                |
+| `restartGame()`                            | —                                                                      | `handleRestartGame`                                         | No                |
+| `clearAllSeats()`                          | —                                                                      | `handleClearAllSeats`                                       | No                |
+| `fillWithBots()`                           | —                                                                      | `handleFillWithBots`                                        | No                |
+| `markAllBotsViewed()`                      | —                                                                      | `handleMarkAllBotsViewed`                                   | No                |
+| `setAnimation(animation)`                  | animation: string                                                      | `handleSetRoleRevealAnimation`                              | No                |
+| `viewRole(uid, seat)`                      | uid: string, seat: number                                              | `handleViewedRole`                                          | No                |
+| `updateTemplate(roles)`                    | roles: RoleId[]                                                        | `handleUpdateTemplate`                                      | No                |
+| `updateProfile(uid, ...)`                  | uid, displayName?, avatarUrl?, avatarFrame?                            | `handleUpdatePlayerProfile`                                 | No                |
+| `shareReview(allowedSeats)`                | allowedSeats: number[]                                                 | `handleShareNightReview`                                    | No                |
+| `submitAction(seat, role, target, extra?)` | seat, role, target, extra?                                             | `handleSubmitAction`                                        | **Yes**           |
+| `audioAck()`                               | —                                                                      | inline logic                                                | **Yes**           |
+| `audioGate(isPlaying)`                     | isPlaying: boolean                                                     | `handleSetAudioPlaying`                                     | No                |
+| `endNight()`                               | —                                                                      | `handleEndNight` + extractAudioActions                      | No                |
+| `progression()`                            | —                                                                      | status guard                                                | **Yes**           |
+| `revealAck()`                              | —                                                                      | inline logic                                                | **Yes**           |
+| `wolfRobotViewed(seat)`                    | seat: number                                                           | `handleSetWolfRobotHunterStatusViewed`                      | **Yes**           |
+| `groupConfirmAck(seat, uid)`               | seat, uid                                                              | inline logic                                                | **Yes**           |
+| `markBotsGroupConfirmed()`                 | —                                                                      | inline logic                                                | **Yes**           |
 | `init(state)`                              | state: GameState                                                       | —                                                           | —                 |
 | `getState()`                               | —                                                                      | —                                                           | —                 |
 | `getRevision()`                            | —                                                                      | —                                                           | —                 |
 | `cleanup()`                                | —                                                                      | —                                                           | —                 |
 
-## 7. 测试策略
+## 7. Testing Strategy
 
-### 7.1 现有测试不动
+### 7.1 Existing Tests Unchanged
 
-- `game-engine` 的单元测试：纯函数，不依赖 I/O，100% 保留
-- 客户端 `GameFacade` / `seatActions` 等测试：mock HTTP API，接口不变，100% 保留
-- E2E 测试（Playwright）：HTTP 路径 + 响应格式不变，100% 保留
+- `game-engine` unit tests: pure functions, no I/O dependency, 100% preserved
+- Client `GameFacade` / `seatActions` tests: mock HTTP API, interface unchanged, 100% preserved
+- E2E tests (Playwright): HTTP paths + response format unchanged, 100% preserved
 
-### 7.2 新增测试
+### 7.2 New Tests
 
-| 测试                      | 框架                                       | 说明                                                                            |
-| ------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| `#processAction` 单元测试 | Vitest + `@cloudflare/vitest-pool-workers` | 验证 read-process-write-broadcast 全流程；验证 NO-OP guard；验证 ROOM_NOT_FOUND |
-| 各 RPC 方法集成测试       | 同上                                       | 验证每个 RPC 正确调用 game-engine handler                                       |
-| Worker → DO 端到端        | 同上                                       | 验证 Worker 参数校验 → DO RPC → Response 完整链路                               |
-| 并发序列化测试            | 同上                                       | 两个 `seat('sit', ...)` 并发调用同一座位 → DO 序列化 → 只有一个成功             |
-| DO error 测试             | 同上                                       | 验证 `callDO` 对 retryable/overloaded 的处理                                    |
+| Test                           | Framework                                  | Description                                                                              |
+| ------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `#processAction` unit test     | Vitest + `@cloudflare/vitest-pool-workers` | Verify read-process-write-broadcast full flow; verify NO-OP guard; verify ROOM_NOT_FOUND |
+| RPC method integration tests   | Same                                       | Verify each RPC correctly calls game-engine handler                                      |
+| Worker → DO end-to-end         | Same                                       | Verify Worker param validation → DO RPC → Response full chain                            |
+| Concurrency serialization test | Same                                       | Two `seat('sit', ...)` concurrent calls to same seat → DO serializes → only one succeeds |
+| DO error test                  | Same                                       | Verify `callDO` handling of retryable/overloaded                                         |
 
-### 7.3 验证检查清单
+### 7.3 Verification Checklist
 
-Phase 1 完成后，逐项验证：
+After Phase 1 completion, verify each item:
 
-- [ ] `pnpm exec tsc --noEmit` 类型检查通过
-- [ ] `pnpm run test:all` 所有单元/集成测试通过
-- [ ] `pnpm run e2e` 所有 E2E 测试通过
-- [ ] 手动：创建房间 → 入座 → 分配 → 看牌 → 开夜 → 夜晚全流程 → 结束
-- [ ] 手动：断线恢复（关 tab → 重开 → poll revision → fetchStateFromDB）
-- [ ] 手动：并发入座（两设备同时点同一座位 → 只有一个成功）
-- [ ] 手动：Host 重启游戏
-- [ ] 手动：删除房间后重新创建同 code 房间
-- [ ] 确认 D1 `rooms.game_state` 不再被写入（可 SELECT 验证）
+- [ ] `pnpm exec tsc --noEmit` type check passes
+- [ ] `pnpm run test:all` all unit/integration tests pass
+- [ ] `pnpm run e2e` all E2E tests pass
+- [ ] Manual: create room → sit → assign → view role → start night → full night flow → end
+- [ ] Manual: disconnect recovery (close tab → reopen → poll revision → fetchStateFromDB)
+- [ ] Manual: concurrent seating (two devices tap same seat simultaneously → only one succeeds)
+- [ ] Manual: Host restart game
+- [ ] Manual: delete room then recreate with same code
+- [ ] Confirm D1 `rooms.game_state` is no longer written to (verify with SELECT)
 
-## 8. 回滚策略
+## 8. Rollback Strategy
 
-Phase 1 期间 D1 `game_state` 列**保留但不再写入**。
+During Phase 1, D1 `game_state` column is **preserved but no longer written to**.
 
-| 场景               | 操作                                                                              |
-| ------------------ | --------------------------------------------------------------------------------- |
-| 发现 bug 需回滚    | `handlers/*.ts` 恢复 `processGameAction(env.DB, ...)`；GameRoom 恢复为 relay-only |
-| 数据恢复           | Phase 1 期间 D1 列还在但数据停留在迁移前的快照。新房间无 D1 数据，需看 DO 存储    |
-| Phase 2 后无法回滚 | 所以 Phase 2 必须在 Phase 1 充分验证（≥1 周线上运行）后才执行                     |
+| Scenario                      | Action                                                                                                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Bug found, need rollback      | `handlers/*.ts` restore `processGameAction(env.DB, ...)`; GameRoom reverts to relay-only                                   |
+| Data recovery                 | During Phase 1, D1 column exists but data is frozen at pre-migration snapshot. New rooms have no D1 data; check DO storage |
+| Cannot rollback after Phase 2 | Phase 2 must only execute after Phase 1 is sufficiently verified (≥1 week in production)                                   |
 
-## 9. 风险与缓解
+## 9. Risks and Mitigations
 
-| 风险                        | 概率 | 缓解                                                                  |
-| --------------------------- | ---- | --------------------------------------------------------------------- |
-| DO 唤醒延迟                 | 低   | Hibernation 唤醒 <50ms；游戏中 WebSocket 活跃不会 hibernate           |
-| DO RPC `.retryable` 错误    | 低   | Worker 层 `callDO` 统一处理，返回 503                                 |
-| `/room/create` D1↔DO 不一致 | 低   | DO init 失败时 rollback D1 记录                                       |
-| GameRoom.ts 膨胀            | 中   | 拆出 `gameProcessor.ts` 模块，DO class 只做 RPC 入口 + WebSocket      |
-| 迁移期间活跃房间            | 低   | 房间生命周期 <2h；深夜部署或通知用户                                  |
-| Wrangler migration tag      | 无   | 已有 v1 tag + `new_sqlite_classes`；`CREATE TABLE IF NOT EXISTS` 幂等 |
-| DO 被驱逐后 revision poll   | 无   | RPC 调用自动唤醒 DO → blockConcurrencyWhile → 读 SQLite               |
+| Risk                               | Probability | Mitigation                                                                            |
+| ---------------------------------- | ----------- | ------------------------------------------------------------------------------------- |
+| DO wake-up latency                 | Low         | Hibernation wake-up <50ms; WebSocket active during game prevents hibernation          |
+| DO RPC `.retryable` error          | Low         | Worker-level `callDO` handles uniformly, returns 503                                  |
+| `/room/create` D1↔DO inconsistency | Low         | DO init failure rolls back D1 record                                                  |
+| GameRoom.ts bloat                  | Medium      | Extract `gameProcessor.ts` module; DO class only handles RPC entry + WebSocket        |
+| Active rooms during migration      | Low         | Room lifecycle <2h; deploy at night or notify users                                   |
+| Wrangler migration tag             | None        | Already has v1 tag + `new_sqlite_classes`; `CREATE TABLE IF NOT EXISTS` is idempotent |
+| DO evicted then revision poll      | None        | RPC call auto-wakes DO → blockConcurrencyWhile → read SQLite                          |
 
-## 10. 工期估算
+## 10. Effort Estimate
 
-| Step    | 内容                                      | 预计代码量                              |
-| ------- | ----------------------------------------- | --------------------------------------- |
-| 4.1     | GameRoom 继承 DurableObject + SQLite init | ~30 行修改                              |
-| 4.2     | `#processAction` 核心流程                 | ~80 行新增                              |
-| 4.3     | 25 个 typed RPC 方法                      | ~250 行新增（含 gameProcessor.ts 拆分） |
-| 4.4     | Worker handler 改造（21 个）              | ~净减 100 行（每个 handler 简化）       |
-| 4.5-4.7 | roomHandlers 调整 + shared helpers        | ~60 行修改                              |
-| 测试    | Vitest DO 测试 + 全量回归                 | ~200 行新增                             |
-| Phase 2 | 删除 gameStateManager + broadcast + D1 列 | ~净减 200 行                            |
+| Step    | Content                                         | Estimated Code Volume                           |
+| ------- | ----------------------------------------------- | ----------------------------------------------- |
+| 4.1     | GameRoom extends DurableObject + SQLite init    | ~30 lines modified                              |
+| 4.2     | `#processAction` core flow                      | ~80 lines added                                 |
+| 4.3     | 25 typed RPC methods                            | ~250 lines added (incl. gameProcessor.ts split) |
+| 4.4     | Worker handler refactoring (21 handlers)        | ~net -100 lines (each handler simplified)       |
+| 4.5-4.7 | roomHandlers adjustments + shared helpers       | ~60 lines modified                              |
+| Tests   | Vitest DO tests + full regression               | ~200 lines added                                |
+| Phase 2 | Delete gameStateManager + broadcast + D1 column | ~net -200 lines                                 |
