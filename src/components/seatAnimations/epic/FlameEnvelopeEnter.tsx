@@ -5,7 +5,7 @@
  * Epic-tier archetype. Parameterized by flame color, intensity, direction.
  * All flame tongues rendered in a single Picture worklet.
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
@@ -18,6 +18,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 
 import { EPIC_DURATION } from '../durations';
 import type { SeatAnimationProps } from '../SeatAnimationProps';
@@ -129,9 +131,9 @@ export const FlameEnvelopeEnter = memo<SeatAnimationProps & { config: FlameEnvel
 
     return (
       <View style={[styles.container, { width: size, height: size }]}>
-        <Canvas style={canvasStyle}>
+        <ResilientCanvas style={canvasStyle}>
           <Picture picture={flamePicture} />
-        </Canvas>
+        </ResilientCanvas>
         <Animated.View
           style={[styles.childWrapper, { width: size, height: size, borderRadius }, childStyle]}
         >

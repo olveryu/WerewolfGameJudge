@@ -6,7 +6,7 @@
  * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
+import { Blur, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -39,6 +39,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { borderRadius, colors, crossPlatformTextShadow, spacing, typography } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -445,7 +446,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
 
       {/* Confetti burst — Picture API batch with group-level blur */}
       {isRevealed && !reducedMotion && (
-        <Canvas style={styles.fullScreen}>
+        <ResilientCanvas style={styles.fullScreen}>
           <Group
             layer={
               <Paint>
@@ -455,7 +456,7 @@ export const ScratchReveal: React.FC<RoleRevealEffectProps> = ({
           >
             <Picture picture={confettiPicture} />
           </Group>
-        </Canvas>
+        </ResilientCanvas>
       )}
 
       {/* Milestone flash overlay */}

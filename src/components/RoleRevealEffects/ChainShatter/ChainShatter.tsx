@@ -15,7 +15,7 @@
  * Reanimated 负责：驱动所有 shared value + 阶段切换。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
+import { Blur, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,6 +46,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { colors, crossPlatformTextShadow } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -985,7 +986,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
       {/* Ambient dust particles + Skia torch flames (full-screen Skia canvas behind lock) */}
       {phase !== 'revealed' && !reducedMotion && (
-        <Canvas style={styles.absoluteFillNoEvents}>
+        <ResilientCanvas style={styles.absoluteFillNoEvents}>
           {dustParticles.map((dust, i) => (
             <DustParticle key={`dust-${i}`} dust={dust} progress={dustProgress} />
           ))}
@@ -998,7 +999,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
               flicker={torchFlicker}
             />
           ))}
-        </Canvas>
+        </ResilientCanvas>
       )}
 
       {/* Pressable overlay for tap interaction */}
@@ -1010,7 +1011,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
         <Animated.View style={[StyleSheet.absoluteFill, canvasContainerStyle]}>
           <Animated.View style={[StyleSheet.absoluteFill, chainContainerStyle]}>
             {/* Skia: lock + chains + cracks + sparks + shockwaves */}
-            <Canvas style={StyleSheet.absoluteFill}>
+            <ResilientCanvas style={StyleSheet.absoluteFill}>
               {/* Lock + chains (fade to 0 on shatter) */}
               <Group opacity={lockSkiaOpacity}>
                 {/* Lock body fill — dark steel */}
@@ -1165,7 +1166,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   />
                 ))}
               </Group>
-            </Canvas>
+            </ResilientCanvas>
 
             {/* Hit counter inside shake container */}
             {(phase === 'idle' || phase === 'hitting') && (
@@ -1192,7 +1193,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
 
           {/* Shard particles + radial burst (after shatter, with gravity + spin) */}
           {phase === 'shatter' && (
-            <Canvas style={StyleSheet.absoluteFill}>
+            <ResilientCanvas style={StyleSheet.absoluteFill}>
               <RadialBurst
                 cx={cx}
                 cy={cy}
@@ -1209,7 +1210,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                   progress={shatterProgress}
                 />
               ))}
-            </Canvas>
+            </ResilientCanvas>
           )}
         </Animated.View>
 

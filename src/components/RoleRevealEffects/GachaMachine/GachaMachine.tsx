@@ -6,7 +6,7 @@
  * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
  * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
+import { Blur, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -38,6 +38,7 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { colors, crossPlatformTextShadow } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -471,7 +472,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Skia scene layer: rotary lights + confetti */}
       {!reducedMotion && (
-        <Canvas style={styles.fullScreen}>
+        <ResilientCanvas style={styles.fullScreen}>
           {/* Rotary lights — Picture API batch with group-level blur */}
           <Group
             layer={
@@ -495,7 +496,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
               <Picture picture={confettiPicture} />
             </Group>
           )}
-        </Canvas>
+        </ResilientCanvas>
       )}
 
       {/* Machine - fades out on reveal */}

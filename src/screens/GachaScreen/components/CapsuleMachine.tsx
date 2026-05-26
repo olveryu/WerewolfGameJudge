@@ -5,7 +5,7 @@
  * 背景、机身、玻璃罩、28 颗球、管道、旋钮、地面、闪光。
  * 物理状态来自 useGachaPhysics 的 shared values。
  */
-import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
+import { Picture, Skia } from '@shopify/react-native-skia';
 import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -14,6 +14,8 @@ import Animated, {
   useDerivedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 
 import {
   BALL_COLORS,
@@ -430,9 +432,9 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
     return (
       <View style={[styles.container, { width: canvasW, height: canvasH }]}>
         <Animated.View style={[StyleSheet.absoluteFill, shakeStyle]}>
-          <Canvas style={{ width: canvasW, height: canvasH }}>
+          <ResilientCanvas style={{ width: canvasW, height: canvasH }}>
             <Picture picture={scenePicture} />
-          </Canvas>
+          </ResilientCanvas>
           <Text style={labelStyle}>{drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}</Text>
         </Animated.View>
       </View>

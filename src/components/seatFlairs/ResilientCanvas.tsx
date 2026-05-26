@@ -1,15 +1,22 @@
 /**
- * ResilientCanvas — Skia Canvas wrapper with WebGL context-loss recovery.
+ * ResilientCanvas — Skia Canvas wrapper with WebGL context lifecycle management.
  *
- * Problem: WeChat/Android WebView reclaims WebGL contexts on viewport resize.
- * Skia's WebGLRenderer.onResize() then calls CanvasKit.MakeWebGLCanvasSurface
- * which invokes gl.getShaderPrecisionFormat() on a lost context → returns null
- * → WASM dereferences .rangeMin → TypeError crash.
+ * Web browsers impose a limit of 16 WebGL contexts per page. When exceeded,
+ * the oldest context is forcibly reclaimed mid-render, causing CanvasKit to
+ * dereference null from gl.getShaderPrecisionFormat() → TypeError (.rangeMin)
+ * or WASM Aborted() crashes.
  *
- * Solution: listen for the standard `webglcontextlost` event on the underlying
- * <canvas> DOM element. When fired, increment a React key to force-remount the
- * Canvas — creating a fresh WebGL context. Animations resume automatically.
- * No static mode, no sacrificed functionality.
+ * Solution: `__destroyWebGLContextAfterRender` releases the WebGL context
+ * after each frame is painted to the <canvas> element. Animations remain
+ * visible (context is recreated on the next frame). At any moment, at most
+ * one context is active across all ResilientCanvas instances — eliminating
+ * context exhaustion entirely.
+ *
+ * The `webglcontextlost` listener is retained as a safety net for edge cases
+ * (tab backgrounding, OS memory pressure) where the browser reclaims a context
+ * between the create→render→destroy cycle.
+ *
+ * @see https://shopify.github.io/react-native-skia/docs/getting-started/web
  */
 import type { CanvasProps } from '@shopify/react-native-skia';
 import { Canvas } from '@shopify/react-native-skia';
@@ -57,7 +64,7 @@ export const ResilientCanvas: React.FC<CanvasProps> = ({ children, ...props }) =
 
   return (
     <div ref={attachContextLostListener} style={styles.contents}>
-      <Canvas key={epoch} {...props}>
+      <Canvas key={epoch} __destroyWebGLContextAfterRender {...props}>
         {children}
       </Canvas>
     </div>

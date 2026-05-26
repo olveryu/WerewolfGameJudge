@@ -7,7 +7,7 @@
  * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
  * 不 import service，不含业务逻辑。
  */
-import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
+import { Blur, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
 import type React from 'react';
 import { useEffect, useMemo } from 'react';
 import {
@@ -20,6 +20,7 @@ import {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
+import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { borderRadius } from '@/theme';
 
 const { common, alignmentEffects, skia: SK } = CONFIG;
@@ -164,7 +165,7 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   });
 
   return (
-    <Canvas style={canvasStyle}>
+    <ResilientCanvas style={canvasStyle}>
       {/* Main breathing border — stroke + blur glow */}
       <Group opacity={borderOpacity} blendMode="screen">
         <RoundedRect
@@ -192,6 +193,6 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
       >
         <Picture picture={runnerPicture} />
       </Group>
-    </Canvas>
+    </ResilientCanvas>
   );
 };
