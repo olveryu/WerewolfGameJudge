@@ -1,14 +1,14 @@
 /**
- * useAuthForm — 登录/注册表单 state + handlers
+ * useAuthForm — login/signup form state + handlers
  *
- * 封装 HomeScreen 和 SettingsScreen 共享的认证逻辑：
- * - 4 个表单 state（email / password / displayName / isSignUp）
- * - handleEmailAuth（校验 → 调 API → onSuccess → 清理 → 错误处理）
- * - handleAnonymousLogin（try/catch + onSuccess + 错误处理）
+ * Encapsulates auth logic shared by HomeScreen and SettingsScreen:
+ * - 4 form states (email / password / displayName / isSignUp)
+ * - handleEmailAuth (validate -> call API -> onSuccess -> cleanup -> error handling)
+ * - handleAnonymousLogin (try/catch + onSuccess + error handling)
  * - resetForm / toggleSignUp
  *
- * 管理 form state、调用 AuthContext API 和 showAlert。
- * 不硬编码样式值，不使用 console.*，不 import service 层。
+ * Manages form state, calls AuthContext API and showAlert.
+ * No hardcoded style values, no console.*, no service-layer imports.
  */
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner-native';
@@ -57,9 +57,9 @@ interface AuthFormResult {
 }
 
 /**
- * 登录/注册表单的共享状态与 handler。
+ * Shared state and handlers for login/signup form.
  *
- * 封装 email/password 表单、匹名登录、游客登录等操作。
+ * Encapsulates email/password form, anonymous sign-in, and guest login.
  */
 export function useAuthForm({
   onSuccess,
@@ -99,7 +99,7 @@ export function useAuthForm({
         });
         await refreshUser();
         if (wasAnonymous) {
-          // Anonymous → email upgrade: userId preserved, already in Settings
+          // Anonymous -> email upgrade: userId preserved, already in Settings
           toast.success('绑定成功');
         } else {
           toast.success('注册成功');

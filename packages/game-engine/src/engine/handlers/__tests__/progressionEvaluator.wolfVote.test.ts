@@ -51,7 +51,7 @@ function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
 // =============================================================================
 
 describe('isWolfVoteAllComplete', () => {
-  it('全投完 → true', () => {
+  it('all voted -> true', () => {
     const state = createWolfKillState({
       currentNightResults: {
         wolfVotesBySeat: { '0': 2, '1': 3 },
@@ -60,7 +60,7 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(true);
   });
 
-  it('有撤回(key 不存在) → false', () => {
+  it('withdrawn (key absent) -> false', () => {
     const state = createWolfKillState({
       currentNightResults: {
         // Seat 0 voted, seat 1 withdrew (key deleted by resolver)
@@ -70,11 +70,11 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(false);
   });
 
-  it('player.role 缺失 → false（fail-closed，旧逻辑 continue 会误判完成）', () => {
+  it('player.role missing -> false (fail-closed; the old `continue` logic would incorrectly mark complete)', () => {
     const state = createWolfKillState({
       players: {
         0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: null }, // role 缺失
+        1: { userId: 'p1', seat: 1, hasViewedRole: true, role: null }, // role missing
         2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'villager' },
       },
       currentNightResults: {
@@ -84,7 +84,7 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(false);
   });
 
-  it('无参与狼人(0 wolves) → false', () => {
+  it('no participating wolves (0 wolves) -> false', () => {
     const state = createWolfKillState({
       players: {
         0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'villager' },
@@ -95,16 +95,16 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(false);
   });
 
-  it('重复提交相同目标后 allVoted 仍为 true', () => {
+  it('after repeated submits on the same target, allVoted remains true', () => {
     const state = createWolfKillState({
       currentNightResults: {
-        wolfVotesBySeat: { '0': 2, '1': 2 }, // 两狼都投了 seat 2
+        wolfVotesBySeat: { '0': 2, '1': 2 }, // both wolves voted for seat 2
       },
     });
     expect(isWolfVoteAllComplete(state)).toBe(true);
   });
 
-  it('放弃袭击(-1)视为已投票', () => {
+  it('skip attack (-1) is treated as voted', () => {
     const state = createWolfKillState({
       currentNightResults: {
         wolfVotesBySeat: { '0': -1, '1': 3 },
@@ -144,7 +144,7 @@ describe('isWolfVoteAllComplete', () => {
 describe('decideWolfVoteTimerAction', () => {
   const NOW = 1000000;
 
-  it('allVoted + 无 timer → set', () => {
+  it('allVoted + no timer -> set', () => {
     const action = decideWolfVoteTimerAction(true, false, NOW);
     expect(action.type).toBe('set');
     if (action.type === 'set') {
@@ -152,7 +152,7 @@ describe('decideWolfVoteTimerAction', () => {
     }
   });
 
-  it('allVoted + 有 timer → set（重置）', () => {
+  it('allVoted + has timer -> set (reset)', () => {
     const action = decideWolfVoteTimerAction(true, true, NOW);
     expect(action.type).toBe('set');
     if (action.type === 'set') {
@@ -160,17 +160,17 @@ describe('decideWolfVoteTimerAction', () => {
     }
   });
 
-  it('!allVoted + 有 timer → clear', () => {
+  it('!allVoted + has timer -> clear', () => {
     const action = decideWolfVoteTimerAction(false, true, NOW);
     expect(action).toEqual({ type: 'clear' });
   });
 
-  it('!allVoted + 无 timer → noop', () => {
+  it('!allVoted + no timer -> noop', () => {
     const action = decideWolfVoteTimerAction(false, false, NOW);
     expect(action).toEqual({ type: 'noop' });
   });
 
-  it('allVoted + 有 timer + 内容未變 → set（策略 A：仍重置）', () => {
+  it('allVoted + has timer + content unchanged -> set (strategy A: still reset)', () => {
     // Strategy A: any successful submit resets. Content change is irrelevant.
     const action = decideWolfVoteTimerAction(true, true, NOW);
     expect(action.type).toBe('set');

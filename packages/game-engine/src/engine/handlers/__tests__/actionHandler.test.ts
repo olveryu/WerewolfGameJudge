@@ -55,7 +55,7 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
 }
 
 describe('handleViewedRole', () => {
-  // Helper: 创建 assigned 状态用于 ViewedRole 测试
+  // Helper: create assigned state for ViewedRole tests
   const createAssignedState = (overrides?: Partial<GameState>): GameState => {
     return createMinimalState({
       status: GameStatus.Assigned,
@@ -181,8 +181,8 @@ describe('handleViewedRole', () => {
 
 describe('handleSubmitAction', () => {
   /**
-   * 创建 ongoing 状态，用于 SubmitAction 测试
-   * currentStepId 设为 'seerCheck'（预言家步骤）
+   * Create ongoing state for SubmitAction tests
+   * currentStepId set to 'seerCheck' (Seer step)
    */
   const createOngoingState = (
     overrides?: Partial<GameState> & { currentStepId?: SchemaId },
@@ -216,7 +216,7 @@ describe('handleSubmitAction', () => {
 
     const success = expectSuccess(result);
     expect(success.actions.length).toBeGreaterThanOrEqual(1);
-    // 必须产生 RECORD_ACTION
+    // Must produce RECORD_ACTION
     expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
   });
 
@@ -321,7 +321,7 @@ describe('handleSubmitAction', () => {
   // === Gate: step_mismatch ===
 
   it('should fail when submitted role does not match current step (gate: step_mismatch)', () => {
-    // currentStepId 是 seerCheck，但提交的是 guard 行动
+    // currentStepId is seerCheck but submitting a guard action
     const state = createOngoingState({
       currentStepId: 'seerCheck',
       players: {
@@ -369,7 +369,7 @@ describe('handleSubmitAction', () => {
   it('should fail when player role does not match submitted role (gate: role_mismatch)', () => {
     const state = createOngoingState();
     const context = createContext(state);
-    // seat 0 是 villager，但提交的 role 是 seer
+    // seat 0 is villager but submitted role is seer
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 0, role: 'seer', target: 1, extra: {} },
@@ -394,16 +394,16 @@ describe('handleSubmitAction', () => {
     const result = handleSubmitAction(intent, context);
 
     expectError(result);
-    // Gate rejection 不产生 sideEffects（只有 resolver rejection 才有）
-    // 但根据 PR4 要求，reject 也必须 broadcast - 需要修复
+    // Gate rejection produces no sideEffects (only resolver rejection has them)
+    // But per PR4 requirements, reject must also broadcast - needs fix
   });
 
   // === Schema constraints (resolver-first) ===
 
   describe('schema constraints (resolver-first)', () => {
     /**
-     * 锁死：schema constraints 校验口径以 SCHEMAS[*].constraints 为准。
-     * wolfRobotLearn 有 notSelf constraint，尝试自指应被 resolver reject。
+     * Locked: schema constraints validation follows SCHEMAS[*].constraints as the authority.
+     * wolfRobotLearn has notSelf constraint; self-targeting should be rejected by resolver.
      */
     it('should reject self-target when schema has notSelf constraint (wolfRobotLearn)', () => {
       const state = createOngoingState({
@@ -415,7 +415,7 @@ describe('handleSubmitAction', () => {
         },
       });
       const context = createContext(state);
-      // wolfRobot (seat 2) 尝试自指 (target: 2)
+      // wolfRobot (seat 2) attempts self-targeting (target: 2)
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat: 2, role: 'wolfRobot', target: 2, extra: {} },
@@ -423,7 +423,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      // resolver 应 reject，原因来自 constraintValidator
+      // resolver should reject; reason comes from constraintValidator
       const rej = expectRejection(result);
       expect(rej.reason).toContain('不能选择自己');
       // resolver rejection 产生 ACTION_REJECTED action

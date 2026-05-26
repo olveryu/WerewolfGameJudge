@@ -1,8 +1,8 @@
 /**
- * Night Plan Builder — 从 ROLE_SPECS 构建夜晚行动序列
+ * Night Plan Builder — builds night action sequence from ROLE_SPECS
  *
- * NIGHT_STEP_ORDER 定义全局步骤执行顺序，各角色的 nightSteps 提供步骤详情。
- * 导出 buildNightPlan 纯函数，不依赖 service、不含副作用或 IO。
+ * NIGHT_STEP_ORDER defines the global step execution order; each role's nightSteps provides step details.
+ * Exports buildNightPlan as a pure function: no service dependency, no side effects, no IO.
  */
 
 import type { NightPlan, NightPlanStep } from './plan.types';
@@ -13,7 +13,7 @@ import type { NightStepDef, RoleSpec } from './roleSpec.types';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
 
 // =============================================================================
-// NIGHT_STEP_ORDER — 全局步骤执行顺序（单一真相）
+// NIGHT_STEP_ORDER — global step execution order (single source of truth)
 // =============================================================================
 
 /**
@@ -23,25 +23,25 @@ import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
  * Each entry is a stepId matching a NightStepDef.stepId in ROLE_SPECS_V2.
  */
 const NIGHT_STEP_ORDER_INTERNAL = [
-  // === 底牌角色（最先行动，选取底牌身份）===
+  // === Deck card roles (act first, pick deck card identity) ===
   'thiefChoose',
   'treasureMasterChoose',
 
-  // === 丘比特（底牌之后，其他特殊角色之前）===
+  // === Cupid (after deck cards, before other special roles) ===
   'cupidChooseLovers',
   'cupidLoversReveal',
 
-  // === 特殊角色（最先行动）===
+  // === Special roles (act first) ===
   'magicianSwap',
   'slackerChooseIdol',
   'wildChildChooseIdol',
   'shadowChooseMimic',
   'avengerConfirm',
 
-  // === 蚀时狼妃放逐（所有好人行动之前）===
+  // === Eclipse Wolf Queen shelter (before all good faction actions) ===
   'eclipseWolfQueenShelter',
 
-  // === 守护/查验类（袭击前）===
+  // === Protect/check (before kill) ===
   'nightmareBlock',
   'dreamcatcherDream',
   'guardProtect',
@@ -49,20 +49,20 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   'votebanElderBan',
   'crowCurse',
 
-  // === 狼人会议阶段 ===
+  // === Wolf meeting phase ===
   'wolfKill',
   'wolfQueenCharm',
   'hiddenWolfReveal',
 
-  // === 女巫 / 毒师 ===
+  // === Witch / Poisoner ===
   'witchAction',
   'poisonerPoison',
 
-  // === 确认类 ===
+  // === Confirm types ===
   'hunterConfirm',
   'darkWolfKingConfirm',
 
-  // === 最后四个角色（机械狼人 → 预言家 → 石像鬼 → 通灵师）===
+  // === Last four roles (Wolf Robot -> Seer -> Gargoyle -> Psychic) ===
   'wolfRobotLearn',
   'seerCheck',
   'mirrorSeerCheck',
@@ -72,14 +72,14 @@ const NIGHT_STEP_ORDER_INTERNAL = [
   'pureWhiteCheck',
   'psychicCheck',
 
-  // === 觉醒石像鬼转化（查验类之后）===
+  // === Awakened Gargoyle conversion (after check types) ===
   'awakenedGargoyleConvert',
 
-  // === 吹笛者（催眠 → 全员确认）===
+  // === Piper (hypnotize -> all-confirm) ===
   'piperHypnotize',
   'piperHypnotizedReveal',
 
-  // === 觉醒石像鬼转化揭示（最后）===
+  // === Awakened Gargoyle conversion reveal (last) ===
   'awakenedGargoyleConvertReveal',
 ] as const;
 

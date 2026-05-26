@@ -1,9 +1,9 @@
 /**
- * AvatarSection - 头像显示/编辑组件（Memoized）
+ * AvatarSection - avatar display/edit component (Memoized).
  *
- * 显示当前头像 + 编辑角标，通过回调上报操作意图。
- * 匿名用户额外显示升级引导 teaser 卡片。
- * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
+ * Displays the current avatar plus an edit badge and reports action intent via callbacks.
+ * Anonymous users additionally see an upgrade-prompt teaser card.
+ * Renders UI and reports user intent; does not import services or contain business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
@@ -51,7 +51,7 @@ interface AvatarSectionProps {
   colors: ThemeColors;
 }
 
-/** 头像显示区域。 */
+/** Avatar display area. */
 export const AvatarSection = memo<AvatarSectionProps>(
   ({
     isAnonymous,

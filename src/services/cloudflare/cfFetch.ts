@@ -1,58 +1,58 @@
 /**
- * cfFetch — Cloudflare Workers API HTTP 客户端
+ * cfFetch — Cloudflare Workers API HTTP client
  *
- * 统一封装 fetch 调用：JWT Bearer token 注入、超时（AbortSignal.timeout）、
- * 网络层自动重试（fetchWithRetry）、JSON 响应解析、
- * 401 自动 refresh（单次 refresh 锁 + 队列）、
- * 结构化错误处理（非 JSON 响应返回 `{ success: false, reason: 'SERVER_ERROR' }`）。
- * 纯 IO 模块，不含业务逻辑。
+ * Unified fetch wrapper: JWT Bearer token injection, timeout (AbortSignal.timeout),
+ * network-layer auto retry (fetchWithRetry), JSON response parsing,
+ * 401 auto refresh (single refresh lock + queue),
+ * structured error handling (non-JSON responses return `{ success: false, reason: 'SERVER_ERROR' }`).
+ * Pure IO module, no business logic.
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS, FETCH_RETRY_BASE_MS, FETCH_RETRY_COUNT } from '@/config/api';
 import { createTimeoutSignal } from '@/utils/abortSignal';
 import { cfFetchLog } from '@/utils/logger';
 
-// ── Token 管理 ──────────────────────────────────────────────────────────────
+// ── Token management ────────────────────────────────────────────────────────
 
-/** 从内存缓存读取 access token 的回调（由 CFAuthService 注入） */
+/** Callback to read access token from in-memory cache (injected by CFAuthService) */
 let tokenProvider: (() => string | null) | null = null;
 
-/** 执行 refresh token → 新 token pair 的回调（由 CFAuthService 注入） */
+/** Callback to execute refresh token -> new token pair (injected by CFAuthService) */
 let refreshHandler: (() => Promise<boolean>) | null = null;
 
-/** 当 refresh 也失败（token 彻底过期）时的回调（由 CFAuthService 注入） */
+/** Callback when refresh also fails (token fully expired) (injected by CFAuthService) */
 let onAuthExpired: (() => void) | null = null;
 
-/** 注入 access token 读取回调（由 CFAuthService 调用）。 */
+/** Inject access token reader callback (called by CFAuthService). */
 export function setTokenProvider(provider: () => string | null): void {
   tokenProvider = provider;
 }
 
-/** 注入 refresh token 执行回调（由 CFAuthService 调用）。 */
+/** Inject refresh token executor callback (called by CFAuthService). */
 export function setRefreshHandler(handler: () => Promise<boolean>): void {
   refreshHandler = handler;
 }
 
-/** 注入 token 彻底过期时的回调（用于触发重新登录流程）。 */
+/** Inject callback for when token is fully expired (triggers re-login flow). */
 export function setOnAuthExpired(handler: () => void): void {
   onAuthExpired = handler;
 }
 
-/** 获取当前 JWT token（供 CFStorageService 等非 cfFetch 调用者使用） */
+/** Get current JWT token (for non-cfFetch callers like CFStorageService) */
 export function getCurrentToken(): string | null {
   return tokenProvider?.() ?? null;
 }
 
-// ── Refresh 锁：确保同一时刻只有一个 refresh 请求 ──────────────────────────
+// ── Refresh lock: ensures only one refresh request at a time ────────────────
 
 let refreshPromise: Promise<boolean> | null = null;
 
 /**
- * 带锁的 refresh：多个并发 401 请求共享同一个 refresh 调用。
- * 返回 true 表示 refresh 成功（新 token 已设置），false 表示失败。
+ * Locked refresh: multiple concurrent 401 requests share the same refresh call.
+ * Returns true if refresh succeeded (new token set), false on failure.
  *
- * @remarks single-flight lock：首个 401 触发 refresh，后续 401 排队等待同一 refresh 结果。
- *   防止 refresh token 被多次消费（rotation 单次使用）。
+ * @remarks single-flight lock: first 401 triggers refresh, subsequent 401s queue for the same result.
+ *   Prevents refresh token from being consumed multiple times (rotation is single-use).
  */
 async function refreshWithLock(): Promise<boolean> {
   if (!refreshHandler) return false;
@@ -68,14 +68,14 @@ async function refreshWithLock(): Promise<boolean> {
   return refreshPromise;
 }
 
-// ── 网络层重试 ──────────────────────────────────────────────────────────────
+// ── Network-layer retry ─────────────────────────────────────────────────────
 
 /**
- * 网络层重试: 仅重试 fetch() 抛出的 TypeError（DNS/TCP/TLS 失败 = 请求大概率未到达服务器）。
- * DOMException（AbortError/TimeoutError）和编程错误直接抛出，不重试。
+ * Network-layer retry: only retries TypeError thrown by fetch() (DNS/TCP/TLS failure = request likely never reached server).
+ * DOMException (AbortError/TimeoutError) and programming errors are thrown immediately, no retry.
  *
- * @throws {TypeError} 重试 FETCH_RETRY_COUNT 次后仍失败
- * @throws {DOMException} AbortError/TimeoutError——立即抛出，不重试
+ * @throws {TypeError} Still fails after FETCH_RETRY_COUNT retries
+ * @throws {DOMException} AbortError/TimeoutError — thrown immediately, no retry
  */
 export async function fetchWithRetry(
   input: RequestInfo | URL,
@@ -100,7 +100,7 @@ export async function fetchWithRetry(
   throw new Error('fetchWithRetry: unreachable');
 }
 
-// ── 内部请求执行（带 401 拦截）────────────────────────────────────────────
+// ── Internal request execution (with 401 interception) ─────────────────────
 
 interface RequestOptions {
   method: string;
@@ -109,7 +109,7 @@ interface RequestOptions {
   headers: Record<string, string>;
   timeoutMs: number;
   noRetry?: boolean;
-  /** 是 refresh 请求自身，跳过 401 拦截 */
+  /** This is the refresh request itself; skip 401 interception */
   skipAuthIntercept?: boolean;
 }
 
@@ -125,7 +125,7 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
       signal: createTimeoutSignal(opts.timeoutMs),
     });
 
-  // 第一次请求
+  // First request
   const headers = { ...opts.headers };
   const token = tokenProvider?.();
   if (token) {
@@ -134,12 +134,12 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
 
   const res = await doFetch(headers);
 
-  // 401 拦截：尝试 refresh 后重试一次
+  // 401 interception: attempt refresh and retry once
   if (res.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
     cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
     const refreshed = await refreshWithLock();
     if (refreshed) {
-      // 用新 token 重试
+      // Retry with new token
       const retryHeaders = { ...opts.headers };
       const newToken = tokenProvider?.();
       if (newToken) {
@@ -148,17 +148,17 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
       const retryRes = await doFetch(retryHeaders);
       return parseJsonResponse<T>(retryRes, opts.path);
     }
-    // Refresh 失败 → 触发 auth expired 回调
+    // Refresh failed -> trigger auth expired callback
     onAuthExpired?.();
   }
 
   return parseJsonResponse<T>(res, opts.path);
 }
 
-// ── 公共 API ────────────────────────────────────────────────────────────────
+// ── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * 发起 JSON POST 请求到 Workers API。
+ * Send a JSON POST request to the Workers API.
  */
 export async function cfPost<T = Record<string, unknown>>(
   path: string,
@@ -186,7 +186,7 @@ export async function cfPost<T = Record<string, unknown>>(
 }
 
 /**
- * 发起 GET 请求到 Workers API。
+ * Send a GET request to the Workers API.
  */
 export async function cfGet<T = Record<string, unknown>>(
   path: string,
@@ -204,7 +204,7 @@ export async function cfGet<T = Record<string, unknown>>(
 }
 
 /**
- * 发起 PUT 请求到 Workers API。
+ * Send a PUT request to the Workers API.
  */
 export async function cfPut<T = Record<string, unknown>>(
   path: string,
@@ -223,7 +223,7 @@ export async function cfPut<T = Record<string, unknown>>(
 }
 
 /**
- * 安全解析 JSON 响应。非 JSON（502/503 HTML）返回结构化错误。
+ * Safely parse a JSON response. Non-JSON (502/503 HTML) returns a structured error.
  */
 async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
   const contentType = res.headers.get('content-type') ?? '';
@@ -264,7 +264,7 @@ async function parseJsonResponse<T>(res: Response, path: string): Promise<T> {
 }
 
 /**
- * 上传 multipart/form-data 到 Workers API。
+ * Upload multipart/form-data to the Workers API.
  */
 export async function cfUpload<T = Record<string, unknown>>(
   path: string,

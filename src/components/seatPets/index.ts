@@ -1,9 +1,10 @@
 /**
- * seatPets — 座位宠物注册表
+ * seatPets -- Seat pet registry
  *
- * 每个翻牌动画效果 (RoleRevealEffectId) 对应一个伴生宠物。
- * 装备翻牌动画后，座位右下角出现对应宠物，所有玩家可见。
- * Pattern 同 `seatFlairs/index.ts`。
+ * Each role-reveal effect (RoleRevealEffectId) maps to a companion pet.
+ * After equipping a reveal animation, the corresponding pet appears at the
+ * bottom-right of the seat and is visible to all players.
+ * Pattern follows `seatFlairs/index.ts`.
  */
 import {
   ROLE_REVEAL_EFFECT_IDS,
@@ -26,15 +27,15 @@ import { SealBeastPet } from './SealBeastPet';
 import { VortexEyePet } from './VortexEyePet';
 
 interface SeatPetConfig {
-  /** 中文显示名 */
+  /** Chinese display name */
   name: string;
-  /** SVG + Reanimated 动画组件 */
+  /** SVG + Reanimated animation component */
   Component: React.ComponentType<PetProps>;
 }
 
 /**
- * 翻牌动画 → 座位宠物映射（exhaustive Record）。
- * ROLE_REVEAL_EFFECT_IDS 新增 ID 而此处未添加 → TS 编译报错。
+ * Reveal effect -> seat pet map (exhaustive Record).
+ * Adding a new ID to ROLE_REVEAL_EFFECT_IDS without adding it here causes a TS compile error.
  */
 const PET_REGISTRY: Record<RoleRevealEffectId, SeatPetConfig> = {
   roulette: { name: '骰灵', Component: DicePet },
@@ -51,13 +52,13 @@ const PET_REGISTRY: Record<RoleRevealEffectId, SeatPetConfig> = {
   vortexCollapse: { name: '漩涡眼', Component: VortexEyePet },
 };
 
-/** 所有座位宠物列表（顺序 = ROLE_REVEAL_EFFECT_IDS） */
+/** All seat pets (order = ROLE_REVEAL_EFFECT_IDS) */
 const SEAT_PETS: readonly (SeatPetConfig & { id: RoleRevealEffectId })[] =
   ROLE_REVEAL_EFFECT_IDS.map((id) => ({ id, ...PET_REGISTRY[id] }));
 
 const PET_MAP = new Map<string, SeatPetConfig>(SEAT_PETS.map((p) => [p.id, p]));
 
-/** 按翻牌动画效果 ID 获取座位宠物配置。无效 / none / random → undefined。 */
+/** Get seat pet config by reveal effect ID. Invalid / none / random -> undefined. */
 export function getPetByEffectId(effectId: string | null | undefined): SeatPetConfig | undefined {
   if (!effectId) return undefined;
   return PET_MAP.get(effectId);

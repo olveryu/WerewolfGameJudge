@@ -1,8 +1,8 @@
 /**
- * platform - 揭示动画平台检测工具
+ * platform - reveal animation platform detection utilities
  *
- * 提供平台判断、native driver / haptics / audio 能力检测。
- * 导出平台检测常量与纯函数。不 import service，不含游戏业务逻辑。
+ * Provides platform checks and native driver / haptics / audio capability detection.
+ * Exports platform detection constants and pure functions. No service imports, no game business logic.
  */
 import { Platform } from 'react-native';
 

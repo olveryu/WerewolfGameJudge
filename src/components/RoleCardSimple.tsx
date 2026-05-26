@@ -1,10 +1,10 @@
 /**
- * RoleCardSimple - 无动画直接显示角色卡片模态框
+ * RoleCardSimple - role card modal shown directly without animation
  *
- * 点击"查看身份"后直接显示角色信息，无任何动画。
- * 卡片内容复用 RoleCardContent，本组件仅负责 Modal 包裹 + "我知道了"按钮。
- * 有变体的角色在卡片下方显示变体切换 pill bar，点击 pill 切换卡片内容并同步回调。
- * 渲染 Modal 与按钮。不 import service，不含业务逻辑，不重复卡片 UI。
+ * After tapping "查看身份" the role info is shown directly, with no animation.
+ * Card content reuses RoleCardContent; this component only handles the Modal wrapper + "我知道了" button.
+ * Roles with variants show a variant-switching pill bar below the card; tapping a pill switches card content and fires the callback.
+ * Renders Modal and button. Does not import services, contains no business logic, and does not duplicate card UI.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
@@ -34,27 +34,27 @@ interface RoleCardSimpleProps {
   roleId: RoleId | null;
   onClose: () => void;
   /**
-   * 为 true 时显示角色真实身份（跳过 displayAs 伪装）。
-   * 用于裁判视角的技能预览。默认 false。
+   * When true, shows the role's real identity (skipping displayAs disguise).
+   * Used for the judge-view skill preview. Defaults to false.
    */
   showRealIdentity?: boolean;
   /**
-   * 双预言家编号（1 或 2），由 seerLabelMap 派生。
-   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存配置使用。
+   * Dual-Seer label (1 or 2), derived from seerLabelMap.
+   * When present, the role name shows as "X号预言家". Only used in seer+mirrorSeer coexistence configs.
    */
   seerLabel?: number;
   /**
-   * 全部变体 roleId 列表（含 base role）。
-   * 存在且 length > 1 时显示变体切换 pill bar。
+   * Full list of variant roleIds (including the base role).
+   * Shows the variant pill bar when present and length > 1.
    */
   variantIds?: string[];
-  /** 当前选中的变体 roleId。 */
+  /** Currently selected variant roleId. */
   activeVariant?: string;
-  /** 用户点击 pill 切换变体时的回调。 */
+  /** Callback when the user taps a pill to switch variant. */
   onVariantSelect?: (variantId: string) => void;
   /**
-   * 点击 AI 攻略按钮的回调，接收当前显示的 roleId（含变体切换）。
-   * 存在时显示 AI 按钮，不存在时隐藏。
+   * Callback for the AI strategy button; receives the currently displayed roleId (including variant switch).
+   * When present, the AI button is shown; otherwise hidden.
    */
   onAskAI?: (displayRoleId: RoleId) => void;
 }

@@ -1,13 +1,13 @@
 /**
- * CardPick - 桌面抽牌揭示效果（Reanimated 4 + Skia）
+ * CardPick - Table card-pick reveal effect (Reanimated 4 + Skia)
  *
- * 动画流程：木质画框 + 散落筹码的桌面 → 面朝下的牌平铺（网格排列）→
- * 玩家点选一张 → 其余牌暗化消失 → 金色粒子拖尾飞向中央 →
- * 充能光环脉冲 → 翻转（侧光条扫过） → 揭示角色。
+ * Animation flow: wooden frame + table with scattered chips -> face-down cards laid out in a grid ->
+ * player picks one -> remaining cards dim and disappear -> gold particle trail flies to center ->
+ * charge aura pulses -> flip (side light bars sweep) -> reveal role.
  *
- * `remainingCards` 决定桌面上展示多少张牌（= 总人数 - 已查看人数），
- * 让后查看的玩家看到更少的牌，营造"越来越少"的紧张感。
- * 渲染抽牌动画与触觉反馈。不 import service，不含业务逻辑。
+ * `remainingCards` determines how many cards to display on the table (= total players - already viewed),
+ * so later viewers see fewer cards, creating a "running out" tension.
+ * Renders pick animation and haptic feedback. No service imports, no business logic.
  */
 import {
   Blur,
@@ -53,14 +53,14 @@ import { borderRadius, colors } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
 const TABLE_COLORS = {
-  /** 桌面 — 暖色亚麻 */
+  /** Table felt - warm linen */
   felt: ['#e6dfd5', '#f0ebe3', '#e6dfd5'] as const,
-  /** 牌背 — 象牙白 */
+  /** Card back - ivory */
   cardBack: ['#f5f1eb', '#faf7f2', '#f5f1eb'] as const,
-  /** 牌背装饰 — 青铜 */
+  /** Card back accent - bronze */
   accent: '#8b7355',
   accentLight: '#b8a080',
-  /** 牌背中央符号 */
+  /** Center symbol on card back */
   symbol: '♠',
   /** Wood frame */
   woodDark: '#5a3a1e',

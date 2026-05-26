@@ -1,9 +1,9 @@
 /**
- * useLastActionToast — 被动操作 toast 通知
+ * useLastActionToast — passive-action toast notifications
  *
- * 检测 STATE_UPDATE 广播中的 lastAction envelope，
- * 为非 Host 玩家显示 toast 通知（kick/clearAllSeats/assignRoles/startNight/endNight/restartGame）。
- * 使用 consumeLastAction 一次性消费，不影响其他逻辑。
+ * Detects lastAction envelope in STATE_UPDATE broadcasts,
+ * shows toast notifications to non-Host players (kick/clearAllSeats/assignRoles/startNight/endNight/restartGame).
+ * Uses consumeLastAction for one-time consumption, no impact on other logic.
  */
 
 import { useEffect, useRef } from 'react';
@@ -20,10 +20,10 @@ interface UseLastActionToastParams {
 }
 
 /**
- * Toast 显示规则：
- * - KICK_PLAYER: 被踢玩家（seat number→null 且非 Host）
- * - CLEAR_ALL_SEATS: 非 Host 在座玩家（seat number→null）
- * - ASSIGN_ROLES / START_NIGHT / END_NIGHT / RESTART_GAME: 非 Host 玩家
+ * Toast display rules:
+ * - KICK_PLAYER: kicked player (seat number -> null and non-Host)
+ * - CLEAR_ALL_SEATS: seated non-Host players (seat number -> null)
+ * - ASSIGN_ROLES / START_NIGHT / END_NIGHT / RESTART_GAME: non-Host players
  */
 export function useLastActionToast({
   facade,

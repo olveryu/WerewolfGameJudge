@@ -1,18 +1,18 @@
 /**
  * chooseSeat Batch Handler Contract Tests
  *
- * 使用 describe.each 批量验证所有 chooseSeat 类 schema 的 wire protocol：
- * - UI 发送 { schemaId, target: number | null }
- * - Handler 通过 buildActionInput 解析为 { schemaId, target }
- * - Resolver 接收 ActionInput，返回 ResolverResult
+ * Uses describe.each to batch-verify the wire protocol for all chooseSeat schemas:
+ * - UI sends { schemaId, target: number | null }
+ * - Handler parses via buildActionInput into { schemaId, target }
+ * - Resolver receives ActionInput, returns ResolverResult
  *
- * 涵盖的 chooseSeat schemas:
- * - seerCheck, guardProtect, psychicCheck (神职)
- * - nightmareBlock, gargoyleCheck, wolfRobotLearn, wolfQueenCharm (狼职)
- * - dreamcatcherDream, slackerChooseIdol (其他)
+ * chooseSeat schemas covered:
+ * - seerCheck, guardProtect, psychicCheck (good faction roles)
+ * - nightmareBlock, gargoyleCheck, wolfRobotLearn, wolfQueenCharm (wolf roles)
+ * - dreamcatcherDream, slackerChooseIdol (others)
  *
- * 注意：witchAction.steps[1].poison 是 compound 内嵌的 inline step，
- * 走 compound 路径，不在此测试范围。
+ * Note: witchAction.steps[1].poison is a compound-embedded inline step
+ * that goes through the compound path and is out of scope here.
  */
 
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
@@ -33,14 +33,14 @@ import { expectRejection, expectSuccess } from './handlerTestUtils';
 // =============================================================================
 
 /**
- * chooseSeat schema 测试数据
+ * chooseSeat schema test data
  *
- * 每个条目包含：
- * - schemaId: 对应的 SchemaId
- * - role: 使用该 schema 的角色
- * - constraints: schema 约束（用于验证）
- * - hasReveal: 是否有 reveal 结果
- * - revealKey: reveal 结果的 key（如果有）
+ * Each entry contains:
+ * - schemaId: corresponding SchemaId
+ * - role: role using this schema
+ * - constraints: schema constraints (for validation)
+ * - hasReveal: whether a reveal result is produced
+ * - revealKey: key of the reveal result (if any)
  */
 interface ChooseSeatTestCase {
   schemaId: SchemaId;
@@ -78,7 +78,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
     hasReveal: false,
   },
 
-  // === 狼职 ===
+  // === Wolf roles ===
   {
     schemaId: 'nightmareBlock',
     role: 'nightmare',
@@ -106,7 +106,7 @@ const CHOOSE_SEAT_SCHEMAS: ChooseSeatTestCase[] = [
     hasReveal: false,
   },
 
-  // === 第三方 ===
+  // === Third-party ===
   {
     schemaId: 'slackerChooseIdol',
     role: 'slacker',
@@ -198,7 +198,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const state = createMinimalState(schemaId, role);
         const context = createContext(state);
 
-        // target = 0（选择 villager）
+        // target = 0 (selects villager)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
           payload: { seat: 1, role, target: 0, extra: {} },
@@ -207,7 +207,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const result = handleSubmitAction(intent, context);
 
         const success = expectSuccess(result);
-        // 有 reveal 的 schema 会额外产生 ADD_REVEAL_ACK action
+        // schemas with reveal produce an extra ADD_REVEAL_ACK action
         const expectedLength = hasReveal ? 3 : 2;
         expect(success.actions).toHaveLength(expectedLength);
         expect(success.actions[0]!.type).toBe('RECORD_ACTION');
@@ -256,7 +256,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const state = createMinimalState(schemaId, role);
         const context = createContext(state);
 
-        // target = 1（自己，座位 1）
+        // target = 1 (self, seat 1)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
           payload: { seat: 1, role, target: 1, extra: {} },
@@ -264,7 +264,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const result = handleSubmitAction(intent, context);
 
-        // 只断言失败，不断言具体文案（避免中文依赖）
+        // assert only failure, not specific text (avoid Chinese dependency)
         const rej = expectRejection(result);
         expect(rej.reason).toBeDefined();
       },
@@ -276,7 +276,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const state = createMinimalState(schemaId, role);
         const context = createContext(state);
 
-        // target = 1（自己）
+        // target = 1 (self)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
           payload: { seat: 1, role, target: 1, extra: {} },
@@ -306,7 +306,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const result = handleSubmitAction(intent, context);
 
         const rej = expectRejection(result);
-        // 使用常量断言，避免中文文案依赖
+        // assert against constant to avoid Chinese text dependency
         expect(rej.reason).toBe(BLOCKED_UI_DEFAULTS.message);
       },
     );
@@ -357,7 +357,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         const applyAction = getApplyResolverResult(success);
         expect(applyAction).toBeDefined();
 
-        // 验证 reveal 结果存在
+        // verify reveal result exists
         if (revealKey) {
           expect(applyAction!.payload[revealKey]).toBeDefined();
           expect(applyAction!.payload[revealKey]!.targetSeat).toBe(0);
@@ -389,7 +389,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 });
 
 describe('chooseSeat canSkip=false edge case', () => {
-  // slackerChooseIdol 是唯一 canSkip=false 的 chooseSeat
+  // slackerChooseIdol is the only canSkip=false chooseSeat
   it('slackerChooseIdol - should reject skip (target=null) when canSkip=false', () => {
     const state = createMinimalState('slackerChooseIdol', 'slacker');
     const context = createContext(state);
@@ -401,9 +401,9 @@ describe('chooseSeat canSkip=false edge case', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    // canSkip=false 时跳过应该失败
-    // 注意：当前 handler 可能允许 skip，这里验证预期行为
-    // 如果 handler 不校验 canSkip，此测试会失败，需要修复 handler
+    // skip should fail when canSkip=false
+    // Note: current handler may allow skip; this verifies expected behavior
+    // If handler does not validate canSkip, this test fails and handler must be fixed
     expectRejection(result);
   });
 });

@@ -1,8 +1,8 @@
 /**
- * CrystalPet — 水晶球
+ * CrystalPet — Crystal ball
  *
- * tarot 翻牌动画的伴生宠物。
- * 紫色渐变水晶球 + 底座 + 内部星光闪烁 + 星云脉动。
+ * Companion pet for the tarot flip animation.
+ * Purple gradient crystal ball + base + inner star twinkle + nebula pulse.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

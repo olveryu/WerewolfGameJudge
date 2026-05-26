@@ -1,9 +1,9 @@
 /**
- * EmailForm — 邮箱登录/注册表单（共享组件）
+ * EmailForm — email login/signup form (shared component)
  *
- * Home 和 Settings 共用。接收 AuthStyles 统一样式接口。
- * 包含 autocomplete / keyboard 增强 / 邮箱域名下拉。
- * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
+ * Used by Home and Settings. Accepts a unified AuthStyles style interface.
+ * Includes autocomplete / keyboard enhancements / email domain dropdown.
+ * Renders form UI and reports user intent. No service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';

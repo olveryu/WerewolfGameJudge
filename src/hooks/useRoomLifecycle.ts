@@ -9,8 +9,8 @@
  * - Snapshot requests (force sync)
  * - Seat error tracking
  *
- * 通过 facade 管理房间/座位，使用 authService/roomService。
- * 不绕过 facade 修改游戏状态。
+ * Manages rooms/seats via facade, using authService/roomService.
+ * Does not bypass facade to mutate game state.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -76,9 +76,9 @@ interface RoomLifecycleDeps {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * 房间生命周期 hook — 创建/加入/离开/入座等操作。
+ * Room lifecycle hook — create/join/leave/take-seat operations.
  *
- * 通过 facade 管理 WS 连接和房间状态，暴露 loading/error/needsAuth。
+ * Manages WS connection and room state via facade, exposes loading/error/needsAuth.
  */ export function useRoomLifecycle(deps: RoomLifecycleDeps): RoomLifecycleState {
   const { facade, authService, user: authUser, setRoomRecord } = deps;
   const queryClient = useQueryClient();

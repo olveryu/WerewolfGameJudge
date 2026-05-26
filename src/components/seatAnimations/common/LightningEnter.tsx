@@ -1,5 +1,5 @@
 /**
- * LightningEnter — 闪电入场
+ * LightningEnter — Lightning Entrance.
  *
  * A zigzag lightning bolt strikes down, then children flash in.
  * Rare-tier entrance animation template.
@@ -65,7 +65,7 @@ export const LightningEnter = memo<ColoredAnimationProps>(
       'worklet';
       const t = strikeProgress.value;
       const cx = size / 2;
-      // Zigzag bolt: top → 40% left → 55% right → center bottom
+      // Zigzag bolt: top -> 40% left -> 55% right -> center bottom
       const endY = size * t;
       const points = [
         `M ${cx} 0`,

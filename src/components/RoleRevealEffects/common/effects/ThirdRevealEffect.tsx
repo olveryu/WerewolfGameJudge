@@ -1,15 +1,15 @@
 /**
- * ThirdRevealEffect — 第三方阵营揭示特效（Skia + Reanimated 4）
+ * ThirdRevealEffect - third-faction reveal effect (Skia + Reanimated 4)
  *
- * 翻牌后在卡片区域渲染神秘系列动画：
- * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱紫色发光
- * 2. 旋转符文环（2 层）— Skia Circle stroke + dashPathEffect，持续旋转
- * 3. 螺旋轨道粒子（30 颗）— Skia Circle + Blur + blendMode="screen"，绕中心公转
- * 4. 召唤闪电弧（6 条）— Skia Path + Blur，从中心向外辐射的电弧
- * 5. 中心能量核心 — Skia Circle + RadialGradient + Blur 脉动
+ * After the flip, renders a mystic series of animations in the card area:
+ * 1. Card glow - Skia RadialGradient + Blur, bright burst -> persistent faint purple glow
+ * 2. Rotating rune rings (2 layers) - Skia Circle stroke + dashPathEffect, continuous rotation
+ * 3. Spiral orbit particles (30) - Skia Circle + Blur + blendMode="screen", orbiting the center
+ * 4. Summoning lightning arcs (6) - Skia Path + Blur, electric arcs radiating from center
+ * 5. Central energy core - Skia Circle + RadialGradient + Blur pulsation
  *
- * 符文环和粒子持续循环，光晕持续保留。
- * 不 import service，不含业务逻辑。
+ * Rune rings and particles loop continuously; glow persists.
+ * Does not import service, contains no business logic.
  */
 import {
   Blur,
@@ -206,7 +206,7 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
   useEffect(() => {
     if (!animate) return;
 
-    // Main progress 0→1 over 2.5s
+    // Main progress 0 -> 1 over 2.5s
     progress.value = withDelay(
       AE.effectStartDelay,
       withTiming(1, { duration: 2500, easing: Easing.out(Easing.quad) }),
@@ -218,7 +218,7 @@ export const ThirdRevealEffect: React.FC<ThirdRevealEffectProps> = ({
       withTiming(1, { duration: 500, easing: Easing.out(Easing.quad) }),
     );
 
-    // Card glow: peak → medium → persist
+    // Card glow: peak -> medium -> persist
     glowIntensity.value = withDelay(
       AE.effectStartDelay,
       withSequence(

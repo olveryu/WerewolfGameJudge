@@ -1,16 +1,16 @@
 /**
- * IStorageService - 文件存储服务接口
+ * IStorageService - file storage service interface
  *
- * 定义头像上传的公共 API 契约。
- * 不涉及游戏逻辑或认证逻辑（认证由 IAuthService 管理）。
+ * Defines the public API contract for avatar upload.
+ * No game logic or auth logic (auth is managed by IAuthService).
  */
 
 export interface IStorageService {
   /**
-   * 上传头像图片，返回公开可访问的 URL。
-   * 内部处理压缩、去重、旧文件清理。
-   * @param fileUri - 本地文件 URI（如 `file:///path/to/image.jpg`）
-   * @returns 公开 URL
+   * Upload an avatar image and return a publicly accessible URL.
+   * Internally handles compression, deduplication, and old-file cleanup.
+   * @param fileUri - Local file URI (e.g. `file:///path/to/image.jpg`)
+   * @returns Public URL
    */
   uploadAvatar(fileUri: string): Promise<string>;
 }

@@ -1,17 +1,17 @@
 /**
- * SimpleMarkdown - 轻量 Markdown 渲染组件
+ * SimpleMarkdown - lightweight Markdown rendering component
  *
- * 专为 AI 聊天气泡设计（~150 字短文本），处理常见格式：
- * - **加粗**
+ * Designed for AI chat bubbles (~150-char short text), handles common formats:
+ * - **bold**
  * - `inline code`
  * - ```code blocks```
- * - # / ## / ### 标题
- * - 无序列表（- / * / •）
- * - 有序列表（1. 2. 3.）
- * - 换行
+ * - # / ## / ### headings
+ * - Unordered list (- / * / •)
+ * - Ordered list (1. 2. 3.)
+ * - Line breaks
  *
- * 不引入完整 markdown 库（过度）。
- * 纯 UI 渲染，接收 theme colors。不 import service，不含业务逻辑。
+ * Does not pull in a full markdown library (overkill).
+ * Pure UI rendering; accepts theme colors. Does not import services and contains no business logic.
  */
 
 import type React from 'react';
@@ -22,12 +22,12 @@ import { borderRadius, colors, spacing, type ThemeColors, typography, withAlpha 
 interface SimpleMarkdownProps {
   content: string;
   colors: ThemeColors;
-  /** 是否反色文字（用于用户消息气泡） */
+  /** Whether to use inverted text color (used for user message bubbles) */
   inverted?: boolean;
 }
 
 /**
- * 将一行文本中的 **bold** 和 `code` 解析为带样式的片段
+ * Parses **bold** and `code` in a single line into styled fragments
  */
 function renderInlineFormatting(
   line: string,
@@ -36,7 +36,7 @@ function renderInlineFormatting(
   codeStyle: object,
 ): React.ReactNode[] {
   const parts: React.ReactNode[] = [];
-  // 匹配 **bold**、__bold__、`code`
+  // Matches **bold**, __bold__, `code`
   const inlineRegex = /(\*\*|__)(.+?)\1|`([^`]+)`/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;

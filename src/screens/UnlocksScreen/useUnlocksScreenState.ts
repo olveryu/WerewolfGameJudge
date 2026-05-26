@@ -1,8 +1,8 @@
 /**
- * useUnlocksScreenState — UnlocksScreen 的状态 hook
+ * useUnlocksScreenState — State hook for UnlocksScreen
  *
- * 数据获取（self / other user unlocks）、tab/filter 切换、
- * item 列表计算、进度统计。
+ * Data fetching (self / other user unlocks), tab/filter switching,
+ * item list computation, progress stats.
  */
 import {
   AVATAR_IDS,
@@ -35,10 +35,10 @@ function getUnlocksNumColumns(screenWidth: number): number {
   return 4;
 }
 
-/** 解锁物品页签类型。 */
+/** Tab key for unlocked item categories. */
 export type TabKey = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
 
-/** 页签配置列表。 */
+/** Tab config list. */
 export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'avatar', label: '头像' },
   { key: 'frame', label: '框' },
@@ -48,10 +48,10 @@ export const TABS: readonly { key: TabKey; label: string }[] = [
   { key: 'seatAnimation', label: '入座' },
 ] as const;
 
-/** 稀有度筛选。 */
+/** Rarity filter. */
 export type RarityFilter = 'all' | Rarity;
 
-/** 单个解锁物品视图模型。 */
+/** View model for a single unlock item. */
 export interface UnlockItem {
   id: string;
   type: TabKey;
@@ -64,14 +64,14 @@ interface Params {
   viewingUserId: string | undefined;
 }
 
-/** 解锁屏幕状态 hook。 */
+/** State hook for the unlocks screen. */
 export function useUnlocksScreenState({ viewingUserId }: Params) {
   const isViewer = !!viewingUserId;
 
   const [activeTab, setActiveTab] = useState<TabKey>('avatar');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
 
-  // Fetch unlocked items: self → useUserStatsQuery, other → useUserUnlocksQuery
+  // Fetch unlocked items: self -> useUserStatsQuery, other -> useUserUnlocksQuery
   const selfStats = useUserStatsQuery({ enabled: !isViewer });
   const otherUnlocks = useUserUnlocksQuery(viewingUserId ?? '');
   const unlockedItems = isViewer

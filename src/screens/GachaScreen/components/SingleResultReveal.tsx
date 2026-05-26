@@ -1,13 +1,13 @@
 /**
- * SingleResultReveal — 单抽结果分级演出
+ * SingleResultReveal — tiered reveal animation for single draw result
  *
- * 4 级稀有度完全不同的视觉表现：
- * - Common: 简洁淡入，40% 遮罩，自动关闭 or 点击
- * - Rare: 蓝色径向辉光，back easing 弹入
- * - Epic: 紫色粒子背景，从底部 spring 弹入，脉冲辉光边框
- * - Legendary: 金色光柱从上方降下，冲击波扩散，金雨粒子，呼吸辉光
+ * 4 rarity tiers with distinct visuals:
+ * - Common: simple fade in, 40% overlay, auto-close or tap
+ * - Rare: blue radial glow, back-easing bounce in
+ * - Epic: purple particle backdrop, spring up from bottom, pulsing glow border
+ * - Legendary: golden light pillar from above, shockwave, gold rain particles, breathing glow
  *
- * reducedMotion 时所有动画退化为简单 fade-in。
+ * Under reducedMotion all animations degrade to a simple fade-in.
  */
 import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useEffect } from 'react';
@@ -67,7 +67,7 @@ interface SingleResultRevealProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-/** 单抽结果揭晓动画。 */
+/** Single draw result reveal animation. */
 export function SingleResultReveal({
   item,
   onDismiss,

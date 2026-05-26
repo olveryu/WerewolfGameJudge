@@ -1,15 +1,15 @@
 /**
- * Drizzle D1 driver 实例化
+ * Drizzle D1 driver instantiation
  *
- * 每个请求调用 `createDb(env.DB)` 获取 drizzle 实例。
- * D1 绑定生命周期与请求一致，无需单例缓存。
+ * Each request calls `createDb(env.DB)` to obtain a drizzle instance.
+ * D1 binding lifecycle matches the request, no singleton cache needed.
  */
 
 import { drizzle } from 'drizzle-orm/d1';
 
 import * as schema from './schema';
 
-/** 创建绑定到当前请求 D1 实例的 drizzle 客户端。 */
+/** Create a drizzle client bound to the current request's D1 instance. */
 export function createDb(d1: D1Database) {
   return drizzle(d1, { schema });
 }

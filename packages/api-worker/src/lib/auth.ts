@@ -1,9 +1,9 @@
 /**
- * JWT Auth — 自实现 JWT 认证 + Refresh Token
+ * JWT Auth — custom JWT authentication + Refresh Token
  *
- * Access token: 短期（1 小时），HS256 签名，含 sub/ver/anon/email。
- * Refresh token: 随机 hex 字符串，SHA-256 哈希后存 D1，90 天有效，单次使用（rotation）。
- * Token version: users.token_version 字段，signout/password change 时 +1 使所有旧 token 失效。
+ * Access token: short-lived (1 hour), HS256 signed, contains sub/ver/anon/email.
+ * Refresh token: random hex string, SHA-256 hashed and stored in D1, 90-day TTL, single-use (rotation).
+ * Token version: users.token_version field, bumped on signout/password change to invalidate all old tokens.
  */
 
 import { eq, sql } from 'drizzle-orm';
@@ -14,19 +14,19 @@ import { createDb } from '../db';
 import { refreshTokens, users } from '../db/schema';
 import type { Env } from '../env';
 
-/** JWT payload 中包含的用户信息 */
+/** User info contained in JWT payload */
 interface JwtPayload {
   /** User UUID (users.id) */
   sub: string;
-  /** Token version—必须与 users.token_version 一致，不匹配 = token 已被吊销 */
+  /** Token version — must match users.token_version; mismatch = token revoked */
   ver: number;
-  /** true = 匿名用户；undefined = 已认证用户 */
+  /** true = anonymous user; undefined = authenticated user */
   anon?: boolean;
-  /** 仅已认证用户有值 */
+  /** Set only for authenticated users */
   email?: string;
-  /** Issued at（Unix 秒，非毫秒） */
+  /** Issued at (Unix seconds, not milliseconds) */
   iat: number;
-  /** Expiration（Unix 秒，非毫秒） */
+  /** Expiration (Unix seconds, not milliseconds) */
   exp: number;
 }
 
@@ -49,7 +49,7 @@ async function sha256Hex(input: string): Promise<string> {
     .join('');
 }
 
-/** 签发 access token（短期 JWT） */
+/** Issue an access token (short-lived JWT) */
 async function signToken(
   userId: string,
   env: Env,
@@ -68,7 +68,7 @@ async function signToken(
     .sign(getSecret(env));
 }
 
-/** 验证 JWT，返回 payload 或 null */
+/** Verify JWT, return payload or null */
 export async function verifyToken(token: string, env: Env): Promise<JwtPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret(env));
@@ -78,16 +78,16 @@ export async function verifyToken(token: string, env: Env): Promise<JwtPayload |
   }
 }
 
-/** 从 Authorization header 提取 Bearer token */
+/** Extract Bearer token from Authorization header */
 export function extractBearerToken(request: Request): string | null {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
   return auth.slice(7);
 }
 
-// ── Refresh Token 管理 ──────────────────────────────────────────────────────
+// ── Refresh Token management ──────────────────────────────────────────────
 
-/** 生成 refresh token（随机 hex），存哈希到 D1，返回明文 */
+/** Generate refresh token (random hex), store hash in D1, return plaintext */
 async function createRefreshToken(userId: string, env: Env): Promise<string> {
   const rawBytes = new Uint8Array(32);
   crypto.getRandomValues(rawBytes);
@@ -113,12 +113,12 @@ async function createRefreshToken(userId: string, env: Env): Promise<string> {
 }
 
 /**
- * 验证 refresh token 并执行 rotation。
- * 成功：删除旧 token，签发新 access + refresh token 对。
- * 失败：返回 null。
+ * Verify refresh token and perform rotation.
+ * Success: delete old token, issue new access + refresh token pair.
+ * Failure: return null.
  *
- * @remarks 使用原子 DELETE-RETURNING：并发多个请求只有一个拿到 token，
- *   其余得 null。无 race condition——单次使用由 SQL DELETE 原子性保证。
+ * @remarks Uses atomic DELETE-RETURNING: among concurrent requests only one gets the token,
+ *   the rest get null. No race condition — single-use is guaranteed by SQL DELETE atomicity.
  */
 export async function rotateRefreshToken(
   rawToken: string,
@@ -191,14 +191,14 @@ export async function bumpTokenVersion(userId: string, env: Env): Promise<number
   return row!.tokenVersion;
 }
 
-// ── Token Pair 签发（login/signup/reset 统一入口）───────────────────────────
+// ── Token Pair issuance (unified entry for login/signup/reset) ─────────────
 
 interface TokenPair {
   access_token: string;
   refresh_token: string;
 }
 
-/** 签发 access + refresh token 对 */
+/** Issue access + refresh token pair */
 export async function issueTokenPair(
   userId: string,
   env: Env,
@@ -209,21 +209,21 @@ export async function issueTokenPair(
   return { access_token: accessToken, refresh_token: refreshToken };
 }
 
-// ── Hono 中间件 ─────────────────────────────────────────────────────────────
+// ── Hono middleware ─────────────────────────────────────────────────────────
 
-/** requireAuth 中间件设置的 Variables 类型 */
+/** Variables type set by the requireAuth middleware */
 type AuthVariables = {
   userId: string;
   jwtPayload: JwtPayload;
 };
 
 /**
- * Hono 中间件：要求 Bearer token 认证。
- * 验证 JWT 签名 + token_version（防止 revoked token 访问）。
- * 通过后 c.var.userId / c.var.jwtPayload 可用。
+ * Hono middleware: requires Bearer token authentication.
+ * Verifies JWT signature + token_version (blocks revoked tokens).
+ * On success c.var.userId / c.var.jwtPayload are available.
  *
- * @throws 401 — Bearer token 缺失/格式错误、JWT 验证失败（过期/签名无效）、
- *   token_version 不匹配（token 已被吊销）、用户不存在
+ * @throws 401 — Bearer token missing/malformed, JWT verification failed (expired/invalid signature),
+ *   token_version mismatch (token revoked), or user does not exist
  */
 export const requireAuth = createMiddleware<{
   Bindings: Env;

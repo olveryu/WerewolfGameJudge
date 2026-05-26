@@ -1,5 +1,5 @@
 /**
- * PopEnter — 弹出入场
+ * PopEnter — pop-in entrance
  *
  * Children pop in with an elastic overshoot scale and a colored burst ring.
  * Common-tier entrance animation template.

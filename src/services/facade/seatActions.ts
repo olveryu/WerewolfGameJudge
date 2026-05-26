@@ -1,10 +1,10 @@
 /**
- * Seat Actions - 座位操作编排（HTTP API）
+ * Seat Actions - Seat operation orchestration (HTTP API)
  *
- * 所有座位操作（入座/离座）统一通过 HTTP 调用服务端 API。
- * 服务端处理 handler → reducer → DB 写入 → Realtime 广播。
- * Host 和 Player 不再有区别。负责 HTTP 调用和结果解析。
- * 不包含业务逻辑/校验规则（全部在服务端 handler），不直接修改 state（全部在服务端 reducer）。
+ * All seat operations (sit/unseat) go through HTTP to the server API.
+ * Server handles handler -> reducer -> DB write -> Realtime broadcast.
+ * Host and Player are no longer distinguished. Handles HTTP calls and result parsing.
+ * Contains no business logic/validation rules (all in server handler), does not mutate state directly (all in server reducer).
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -16,29 +16,29 @@ import type { SeatProfile } from '../types/IGameFacade';
 import { type ApiResponse, callApiWithRetry } from './apiUtils';
 
 /**
- * Seat Actions 依赖的上下文接口
+ * Context interface required by Seat Actions
  *
- * 迁移后只需 roomCode + userId 信息，不再需要 store / realtimeService 等
+ * After migration only needs roomCode + userId; no longer requires store / realtimeService etc.
  */
-/** Seat Actions 依赖的上下文接口。 */
+/** Context interface required by Seat Actions. */
 export interface SeatActionsContext {
   myUserId: string | null;
   getRoomCode: () => string | null;
-  /** GameStore 实例（用于 HTTP 响应即时 applySnapshot） */
+  /** GameStore instance (for HTTP response immediate applySnapshot) */
   readonly store?: GameStore;
 }
 
-/** 座位操作 API 响应（alias for readability within this file） */
+/** Seat operation API response (alias for readability within this file) */
 type SeatApiResponse = ApiResponse;
 
 /**
- * 调用座位 API（内置客户端重试）
+ * Call seat API (with built-in client retry)
  *
- * 座位操作不做客户端乐观更新：低频操作（点一次等结果），
- * 靠 HTTP 响应的 applySnapshot 即时渲染（~100-300ms 延迟可接受）。
- * 乐观更新曾导致服务端拒绝 / 广播竞态时客户端 state 脱轨。
+ * Seat operations do not use client optimistic updates: low-frequency operations (click once and wait),
+ * rely on applySnapshot from HTTP response for immediate render (~100-300ms latency acceptable).
+ * Optimistic updates previously caused client state drift when server rejected / broadcast race.
  *
- * 服务端瞬时错误（CONFLICT_RETRY / INTERNAL_ERROR）透明重试最多 2 次。
+ * Transient server errors (CONFLICT_RETRY / INTERNAL_ERROR) are retried transparently up to 2 times.
  */
 async function callSeatApi(
   roomCode: string,
@@ -53,7 +53,7 @@ async function callSeatApi(
 // =============================================================================
 
 /**
- * 入座（返回 boolean，兼容旧 API）
+ * Sit (returns boolean, compatible with legacy API)
  */
 export async function takeSeat(
   ctx: SeatActionsContext,
@@ -65,7 +65,7 @@ export async function takeSeat(
 }
 
 /**
- * 入座并返回完整结果（包含 reason）
+ * Sit and return full result (including reason)
  */
 export async function takeSeatWithAck(
   ctx: SeatActionsContext,
@@ -99,7 +99,7 @@ export async function takeSeatWithAck(
 }
 
 /**
- * 离座（返回 boolean，兼容旧 API）
+ * Unseat (returns boolean, compatible with legacy API)
  */
 export async function leaveSeat(ctx: SeatActionsContext): Promise<boolean> {
   const result = await leaveSeatWithAck(ctx);
@@ -107,7 +107,7 @@ export async function leaveSeat(ctx: SeatActionsContext): Promise<boolean> {
 }
 
 /**
- * 离座并返回完整结果（包含 reason）
+ * Unseat and return full result (including reason)
  */
 export async function leaveSeatWithAck(ctx: SeatActionsContext): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
@@ -130,7 +130,7 @@ export async function leaveSeatWithAck(ctx: SeatActionsContext): Promise<ActionR
 }
 
 /**
- * 将玩家移出座位（Host-only）
+ * Kick player from seat (Host-only)
  */
 export async function kickPlayer(
   ctx: SeatActionsContext,

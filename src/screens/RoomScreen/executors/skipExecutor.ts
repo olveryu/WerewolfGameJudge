@@ -12,7 +12,7 @@ import { roomScreenLog } from '@/utils/logger';
 import { buildWitchStepResults, getSubStepByKey } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
-/** 跳过行动执行器。 */
+/** Skip-action executor. */
 export const skipExecutor: IntentExecutor = (intent, ctx) => {
   const { currentSchema, effectiveSeat, proceedWithAction, actionDialogs } = ctx;
 

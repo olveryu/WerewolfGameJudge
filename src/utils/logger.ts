@@ -1,7 +1,7 @@
 /**
  * logger - Unified logging module using react-native-logs
  *
- * 全项目统一日志入口，提供命名 logger 实例，支持创建命名 logger 和配置 transport/severity。
+ * Unified logging entry for the whole project; provides named logger instances, supports creating named loggers and configuring transport/severity.
  *
  * Usage:
  *   import { log } from '@/utils/logger';
@@ -11,7 +11,7 @@
  *   const myLog = log.extend('MyModule');
  *   myLog.info('Seat action', { seat: 1 });
  *
- * 不引入 React、service 或游戏状态。
+ * Does not import React, services, or game state.
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -115,43 +115,43 @@ const config = {
   },
 };
 
-/** 全局根 logger 实例，所有命名 logger 通过 `log.extend('Module')` 派生。 */
+/** Global root logger instance; all named loggers derive via `log.extend('Module')`. */
 export const log = logger.createLogger(config);
 
 // Pre-configured extensions for common modules
-/** Realtime/WebSocket 层日志 */
+/** Realtime/WebSocket layer log */
 export const realtimeLog = log.extend('Realtime');
-/** 音频播放日志 */
+/** Audio playback log */
 export const audioLog = log.extend('Audio');
-/** 认证流程日志 */
+/** Auth flow log */
 export const authLog = log.extend('Auth');
-/** 房间管理日志 */
+/** Room management log */
 export const roomLog = log.extend('Room');
-/** GameRoom hook 日志 */
+/** GameRoom hook log */
 export const gameRoomLog = log.extend('GameRoom');
-/** WebSocket 连接生命周期日志 */
+/** WebSocket connection lifecycle log */
 export const connectionLog = log.extend('Connection');
-/** 配置加载日志 */
+/** Config loading log */
 export const configLog = log.extend('Config');
-/** RoomScreen 日志 */
+/** RoomScreen log */
 export const roomScreenLog = log.extend('RoomScreen');
-/** HomeScreen 日志 */
+/** HomeScreen log */
 export const homeLog = log.extend('Home');
-/** GameFacade 日志 */
+/** GameFacade log */
 export const facadeLog = log.extend('Facade');
-/** 设置页面日志 */
+/** Settings page log */
 export const settingsLog = log.extend('Settings');
-/** SettingsService 日志 */
+/** SettingsService log */
 export const settingsServiceLog = log.extend('SettingsService');
-/** BGM 播放日志 */
+/** BGM playback log */
 export const bgmLog = log.extend('BGM');
-/** AI Chat 日志 */
+/** AI Chat log */
 export const chatLog = log.extend('Chat');
-/** cfFetch 网络层日志 */
+/** cfFetch network layer log */
 export const cfFetchLog = log.extend('cfFetch');
-/** 统计/个人数据日志 */
+/** Stats / personal data log */
 export const statsLog = log.extend('Stats');
-/** 分享功能日志 */
+/** Share feature log */
 export const shareLog = log.extend('Share');
-/** 扭蛋系统日志 */
+/** Gacha system log */
 export const gachaLog = log.extend('Gacha');

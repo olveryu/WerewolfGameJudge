@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: Psychic Reveal
  *
- * 主题：通灵师查验结果的写入与 swap 后变化。
+ * Topic: Psychic check result writes and changes after swap.
  *
- * 模板：机械狼人通灵师
- * 固定 seat-role assignment:
+ * Template: 机械狼人通灵师
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: wolfRobot
@@ -13,11 +13,11 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 核心规则：
- * - psychic 查验结果写入 GameState.psychicReveal
- * - 查验结果基于目标的阵营（好人/狼人）
+ * Core rules:
+ * - Psychic check result writes to GameState.psychicReveal
+ * - Result based on target's faction (good/wolf)
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,7 +28,7 @@ import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './st
 const TEMPLATE_NAME = '机械狼人通灵师';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -56,31 +56,31 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
   describe('Psychic 查验结果写入 psychicReveal', () => {
     /**
-     * Psychic resolver 返回 identityResult (exact roleId)，
-     * 而不是阵营（good/wolf）。
+     * Psychic resolver returns identityResult (exact roleId),
+     * not faction (good/wolf).
      *
-     * 这与 Gargoyle 类似（返回精确角色），而不是 Seer（返回阵营）。
+     * Similar to Gargoyle (returns exact role), unlike Seer (returns faction).
      */
     it('psychic 查验 villager(0)，应返回 roleId "villager"', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 psychicCheck step
+      // Step-aware assertion: confirm we did reach psychicCheck step
       expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
       ctx.assertStep('psychicCheck');
 
-      // 继续执行剩余步骤
+      // Continue executing remaining steps
       const result = executeRemainingSteps(ctx, {
-        wolfRobot: null, // wolfRobot learn（如有）
+        wolfRobot: null, // wolfRobot learn (if any)
         guard: null,
         wolf: 1,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: 0, // 查验 villager
+        psychic: 0, // check villager
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：psychicReveal 写入 GameState
+      // Core assertion: psychicReveal written to GameState
       const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(0);
@@ -96,7 +96,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
         wolf: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: 4, // 查验 wolf
+        psychic: 4, // check wolf
       });
 
       expect(result.completed).toBe(true);
@@ -116,7 +116,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
         wolf: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: 7, // 查验 wolfRobot
+        psychic: 7, // check wolfRobot
       });
 
       expect(result.completed).toBe(true);
@@ -124,7 +124,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(7);
-      // wolfRobot 是狼阵营，返回精确角色 roleId
+      // wolfRobot is wolf faction; returns exact roleId
       expect(state.psychicReveal!.result).toBe('wolfRobot');
     });
   });
@@ -133,23 +133,23 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 不查验时，psychicReveal 不写入或为空', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 psychicCheck step
+      // Step-aware assertion: confirm we did reach psychicCheck step
       expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
       ctx.assertStep('psychicCheck');
 
-      // 继续执行剩余步骤
+      // Continue executing remaining steps
       const result = executeRemainingSteps(ctx, {
         wolfRobot: null,
         guard: null,
         wolf: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: null, // 不查验
+        psychic: null, // no check
       });
 
       expect(result.completed).toBe(true);
 
-      // psychicReveal 应该为 undefined 或不包含结果
+      // psychicReveal should be undefined or contain no result
       const state = ctx.getGameState();
       expect(state.psychicReveal?.result).toBeUndefined();
     });
@@ -159,18 +159,18 @@ describe('Night-1: Psychic Reveal (12p)', () => {
     it('psychic 查验 guard(11，好人阵营)，应返回 roleId "guard"', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 psychicCheck step
+      // Step-aware assertion: confirm we did reach psychicCheck step
       expect(executeStepsUntil(ctx, 'psychicCheck')).toBe(true);
       ctx.assertStep('psychicCheck');
 
-      // 继续执行剩余步骤
+      // Continue executing remaining steps
       const result = executeRemainingSteps(ctx, {
         wolfRobot: null,
-        guard: 0, // guard 守人
+        guard: 0, // guard protects
         wolf: 1,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: 11, // 查验 guard
+        psychic: 11, // check guard
       });
 
       expect(result.completed).toBe(true);
@@ -178,7 +178,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
       const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(11);
-      // psychic 返回精确角色 roleId
+      // psychic returns exact roleId
       expect(state.psychicReveal!.result).toBe('guard');
     });
 
@@ -191,7 +191,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
         wolf: 0,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
-        psychic: 9, // 查验 witch
+        psychic: 9, // check witch
       });
 
       expect(result.completed).toBe(true);

@@ -1,34 +1,34 @@
 /**
- * quickQuestions - 快捷问题池与生成逻辑
+ * quickQuestions - Quick-question pool and generation logic
  *
- * 纯函数 + 静态数据，无副作用。
- * 根据游戏上下文和聊天记录动态生成 4 道快捷问题。
- * 读取 gameState 进行问题匹配。不调用 service，不修改 state。
+ * Pure function + static data, no side effects.
+ * Dynamically generates 4 quick questions based on game context and chat history.
+ * Reads gameState for question matching. Does not call services or modify state.
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
 
-// ── 问题池 ───────────────────────────────────────────────
+// ── Question pool ───────────────────────────────────────
 
-/** 通用问题池 - 不在游戏中时使用（≤10字） */
+/** General question pool — used outside of a game (≤10 chars) */
 const GENERAL_QUESTIONS = [
-  // 基础规则
+  // Basic rules
   '狼人杀基本规则？',
   '游戏怎么获胜？',
   '出局有哪些方式？',
   '什么是遗言环节？',
   '投票怎么进行？',
   '如何判断出局？',
-  // 阵营概念
+  // Faction concepts
   '好人怎么配合？',
   '狼人怎么隐藏？',
   '狼队怎么配合？',
   '好人阵营有哪些？',
   '狼人阵营有哪些？',
   '第三方阵营是啥？',
-  // 核心术语
+  // Core terminology
   '什么是金水银水？',
   '什么是查杀？',
   '什么是悍跳？',
@@ -37,7 +37,7 @@ const GENERAL_QUESTIONS = [
   '什么是踩人拉人？',
   '什么是做票？',
   '什么是警上警下？',
-  // 发言策略
+  // Speech strategy
   '怎么分析发言？',
   '首轮怎么发言？',
   '好人发言重点？',
@@ -46,13 +46,13 @@ const GENERAL_QUESTIONS = [
   '怎么回应质疑？',
   '末位发言技巧？',
   '怎么总结发言？',
-  // 投票策略
+  // Voting strategy
   '投票该投谁？',
   '弃票好不好？',
   '怎么看投票站边？',
   '归票是什么意思？',
   '怎么分析票型？',
-  // 信息分析
+  // Information analysis
   '怎么判断狼人？',
   '怎么保护神职？',
   '怎么分析夜间？',
@@ -60,7 +60,7 @@ const GENERAL_QUESTIONS = [
   '怎么分析遗言？',
   '怎么分析站位？',
   '如何排号码位？',
-  // 进阶概念
+  // Advanced concepts
   '什么是锤？',
   '什么是银水狼？',
   '什么是穿衣服？',
@@ -71,7 +71,7 @@ const GENERAL_QUESTIONS = [
   '什么是预言家坑？',
   '首日怎么排听？',
   '怎么上警发言？',
-  // 身份代称
+  // Identity nicknames
   '什么是铜水？',
   '什么是链子？',
   '什么是金银双水？',
@@ -79,7 +79,7 @@ const GENERAL_QUESTIONS = [
   '什么是双查杀？',
   '什么是形势金水？',
   '身份高低什么意思？',
-  // 局势术语
+  // Situational terms
   '什么是轮次？',
   '什么是容错？',
   '什么是共边打包？',
@@ -94,7 +94,7 @@ const GENERAL_QUESTIONS = [
   '什么是奶穿？',
   '什么是板子？',
   '什么是相面？',
-  // 游戏行为
+  // In-game behavior
   '什么是抿身份？',
   '什么是诈身份？',
   '什么是保人捞人？',
@@ -104,17 +104,17 @@ const GENERAL_QUESTIONS = [
   '什么是凿船？',
   '什么是锁龙？',
   '什么是追刀？',
-  // 投票术语
+  // Voting terms
   '什么是分票？',
   '什么是冲票？',
   '什么是压票绑票？',
   '什么是做规矩？',
   '什么是倒冲？',
-  // 出局与胜负
+  // Elimination and outcome
   '什么是抗刀挡刀？',
   '什么是屠边屠城？',
   '什么是交牌？',
-  // 狼人类型
+  // Wolf archetypes
   '什么是局气狼？',
   '什么是煽动狼？',
   '什么是金刚狼？',
@@ -123,9 +123,9 @@ const GENERAL_QUESTIONS = [
   '什么是自刀做局？',
 ];
 
-/** 根据角色生成相关问题（≤10字） */
+/** Generate role-specific questions (≤10 chars) */
 const ROLE_QUESTIONS: Record<string, string[]> = {
-  // ── 村民 ──
+  // ── Villager ──
   villager: [
     '村民怎么发挥？',
     '村民怎么发言？',
@@ -138,7 +138,7 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
     '村民首日怎么听？',
     '村民能骗袭击吗？',
   ],
-  // ── 神职 ──
+  // ── God roles ──
   seer: [
     '预言家先查谁？',
     '预言家怎么自保？',
@@ -271,7 +271,7 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
     '守墓人遗言说啥？',
     '守墓人被袭击咋办？',
   ],
-  // ── 狼人 ──
+  // ── Wolves ──
   wolf: [
     '狼人袭击技巧？',
     '狼人怎么伪装？',
@@ -428,7 +428,7 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
     '狼巫被查验？',
     '狼巫遗言说啥？',
   ],
-  // ── 村民 / 伪装身份 ──
+  // ── Villager / disguised identities ──
   mirrorSeer: [
     '灯影预言家技能？',
     '灯影和预言家区别？',
@@ -501,7 +501,7 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
     '禁票长老遗言？',
     '禁票长老投票？',
   ],
-  // ── 第三方 ──
+  // ── Third-party ──
   slacker: [
     '混血儿什么阵营？',
     '混血儿胜利条件？',
@@ -638,7 +638,7 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
 };
 
 /**
- * 根据游戏上下文和聊天记录生成快捷问题（共4道）
+ * Generate quick questions (4 total) based on game context and chat history
  */
 export function generateQuickQuestions(state: GameState | null, mySeat: number | null): string[] {
   const questions: string[] = [];
@@ -651,12 +651,12 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   };
 
-  // 1. 固定 — 本局角色技能介绍
+  // 1. Fixed — current game's role skill intro
   if (state?.templateRoles && state.templateRoles.length > 0) {
     add('本局角色技能介绍？');
   }
 
-  // 2. 动态 — 我的角色相关（第一条）
+  // 2. Dynamic — my-role-related (first entry)
   if (mySeat !== null && state?.players[mySeat]?.role) {
     const myRole = state.players[mySeat]?.role;
     if (myRole && ROLE_QUESTIONS[myRole]) {
@@ -665,7 +665,7 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   }
 
-  // 3. 动态 — 我的角色相关（第二条）
+  // 3. Dynamic — my-role-related (second entry)
   if (mySeat !== null && state?.players[mySeat]?.role) {
     const myRole = state.players[mySeat]?.role;
     if (myRole && ROLE_QUESTIONS[myRole]) {
@@ -674,7 +674,7 @@ export function generateQuickQuestions(state: GameState | null, mySeat: number |
     }
   }
 
-  // 4. 通用问题补满 6 个
+  // 4. Top up with general questions to 6
   if (questions.length < 6) {
     const remaining = 6 - questions.length;
     const available = GENERAL_QUESTIONS.filter((q) => !used.has(q));

@@ -1,8 +1,8 @@
 /**
- * LunarHaloFlair — 月华光环
+ * LunarHaloFlair — lunar halo
  *
- * 3 条新月弧光带绕头像旋转，端点带辉光球。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 3 crescent arc light bands rotating around the avatar, with a glow ball at each endpoint.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,21 +1,21 @@
 /**
- * handlers/gachaHandlers — 扭蛋/抽奖 Hono routes
+ * handlers/gachaHandlers -- Gacha/draw Hono routes
  *
- * GET  /api/gacha/status   — 查询当前抽奖券数量 + pity 计数 + 碎片余额
- * POST /api/gacha/draw     — 执行抽奖（扣券 + roll + 解锁/碎片 + 记录历史）
- * POST /api/gacha/exchange — 碎片兑换指定物品
+ * GET  /api/gacha/status   -- query current draw ticket counts + pity counters + shard balance
+ * POST /api/gacha/draw     -- execute draw (deduct ticket + roll + unlock/shards + history)
+ * POST /api/gacha/exchange -- exchange shards for a specific item
  *
- * 事务性：draw/exchange/daily-reward 使用 OCC（userStats.version 乐观锁），
- * 冲突时最多重试 MAX_DRAW_RETRIES=3 次。幂等键防止重复提交。
+ * Transactional: draw/exchange/daily-reward use OCC (userStats.version optimistic lock);
+ * on conflict, retry up to MAX_DRAW_RETRIES=3 times. Idempotency keys prevent duplicate submissions.
  *
- * @throws 各路由错误码：
- * - POST /gacha/draw — 400 NO_STATS | 400 INSUFFICIENT_DRAWS | 409 CONFLICT（OCC 耗尽）
- * - POST /gacha/daily-reward — 400 NO_STATS | 400 COOLDOWN_NOT_MET | 409 CONFLICT
- * - POST /gacha/exchange — 400 INVALID_ITEM | 400 NO_STATS | 400 INSUFFICIENT_SHARDS |
+ * @throws Per-route error codes:
+ * - POST /gacha/draw -- 400 NO_STATS | 400 INSUFFICIENT_DRAWS | 409 CONFLICT (OCC exhausted)
+ * - POST /gacha/daily-reward -- 400 NO_STATS | 400 COOLDOWN_NOT_MET | 409 CONFLICT
+ * - POST /gacha/exchange -- 400 INVALID_ITEM | 400 NO_STATS | 400 INSUFFICIENT_SHARDS |
  *     400 ALREADY_OWNED | 409 CONFLICT
  *
- * @pre 所有路由需 requireAuth 中间件（Bearer token 认证）
- * @pre idempotencyKey 唯一标识本次操作；重放时返回缓存响应（24h TTL）
+ * @pre All routes require requireAuth middleware (Bearer token authentication)
+ * @pre idempotencyKey uniquely identifies this operation; replays return cached response (24h TTL)
  */
 
 import type { DrawType } from '@werewolf/game-engine/growth/gachaProbability';
@@ -36,7 +36,7 @@ import { jsonBody } from './shared';
 
 const log = createLogger('gacha');
 
-/** 扭蛋系统路由（抽奖/每日奖励/解锁）。 */
+/** Gacha system routes (draws / daily reward / unlocks). */
 export const gachaRoutes = new Hono<AppEnv>();
 
 /** Minimum hours between daily reward claims (server-side cooldown guard) */
@@ -247,7 +247,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       const result = selectReward(rarity, unlockedSet, cryptoRandomInt);
 
       if (!result) {
-        // Pool is empty (should not happen — pool is static), break
+        // Pool is empty (should not happen -- pool is static), break
         break;
       }
 
@@ -307,7 +307,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       .returning({ version: userStats.version });
 
     if (updated.length === 0) {
-      // Version conflict — another request modified stats concurrently, retry
+      // Version conflict -- another request modified stats concurrently, retry
       continue;
     }
 
@@ -340,12 +340,12 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     return c.json(response);
   }
 
-  // All retries exhausted — concurrent conflict persisted
+  // All retries exhausted -- concurrent conflict persisted
   log.error('OCC retries exhausted', { userId, drawType, count });
   return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });
 
-/** POST /api/gacha/daily-reward — 每日登录奖励：领取普通抽 + 1 黄金抽 */
+/** POST /api/gacha/daily-reward -- daily login reward: claim normal draws + 1 golden draw */
 gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
@@ -362,7 +362,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       .where(eq(userStats.userId, userId))
       .get();
 
-    // ── No stats row yet → create one with the daily reward ──
+    // ── No stats row yet -> create one with the daily reward ──
     if (!stats) {
       const dailyDraws = rollNormalDraws();
       const claimedAt = new Date().toISOString();
@@ -391,7 +391,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
     if (stats.lastLoginRewardAt) {
-      // lastLoginRewardAt is ISO datetime (or legacy YYYY-MM-DD → parsed as midnight UTC)
+      // lastLoginRewardAt is ISO datetime (or legacy YYYY-MM-DD -> parsed as midnight UTC)
       const lastClaimTime = new Date(stats.lastLoginRewardAt).getTime();
       const hoursSinceLastClaim = (Date.now() - lastClaimTime) / (1000 * 60 * 60);
       if (hoursSinceLastClaim < DAILY_REWARD_COOLDOWN_HOURS) {
@@ -423,7 +423,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
   return c.json({ success: false, reason: 'CONFLICT' }, 409);
 });
 
-/** POST /api/gacha/exchange — 碎片兑换指定物品 */
+/** POST /api/gacha/exchange -- exchange shards for a specific item */
 gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;

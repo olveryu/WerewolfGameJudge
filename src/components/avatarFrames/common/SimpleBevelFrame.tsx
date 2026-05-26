@@ -1,7 +1,7 @@
 /**
- * SimpleBevelFrame — 斜面
+ * SimpleBevelFrame — bevel.
  *
- * 带有倒角和内嵌线条的边框。Common 级头像框模板。
+ * Border with chamfered edges and inset lines. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

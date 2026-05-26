@@ -4,7 +4,7 @@
  * Pure functions: (state, action) => newState.
  * No IO, no random, no time dependencies.
  *
- * @pre 每个 reducer 假定调用方已通过 handler 层校验，不再重复检查前置条件。
+ * @pre Each reducer assumes the caller has validated via the handler layer; preconditions are not re-checked.
  *   - handleStartNight: @pre status === 'Setup' || status === 'Unseated'
  *   - handleAdvanceToNextAction: @pre status === 'Ongoing'
  *   - handleEndNight: @pre status === 'Ongoing' && currentStepId === undefined
@@ -31,7 +31,7 @@ import type {
   StartNightAction,
 } from './types';
 
-/** 开始夜晚（设置初始 stepIndex，清空 actions/results）。 */
+/** Start night (set initial stepIndex, clear actions/results). */
 export function handleStartNight(state: GameState, action: StartNightAction): GameState {
   const { currentStepIndex, currentStepId } = action.payload;
   return {
@@ -39,14 +39,14 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     status: GameStatus.Ongoing,
     currentStepIndex,
     currentStepId,
-    // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
+    // Do not set isAudioPlaying in reducer; Host UI controls it via SET_AUDIO_PLAYING
     actions: [],
     currentNightResults: {},
     pendingRevealAcks: [],
   };
 }
 
-/** 推进到下一个夜间步骤。 */
+/** Advance to the next night step. */
 export function handleAdvanceToNextAction(
   state: GameState,
   action: AdvanceToNextActionAction,
@@ -55,21 +55,21 @@ export function handleAdvanceToNextAction(
   return {
     ...state,
     currentStepIndex: nextStepIndex,
-    // PR6 contract: 推进时同步更新 currentStepId（单一真相）
+    // PR6 contract: sync currentStepId on advance (single source of truth)
     currentStepId: nextStepId ?? undefined,
-    // 推进到新步骤时清除上一步的 stepDeadline
+    // Clear previous step's stepDeadline when advancing to a new step
     stepDeadline: undefined,
-    // 不在 reducer 里设置 isAudioPlaying，由 Host UI 调用 SET_AUDIO_PLAYING 控制
-    // 注意：wolf 投票单一真相在 currentNightResults.wolfVotesBySeat（协议已移除 wolfVotes/wolfVoteStatus）。
-    // P0-FIX: 不再清空 reveal 字段。reveal 应该保留到整个夜晚结束，
-    // 让 UI 有足够时间显示弹窗。只清空 confirmStatus 和 witchContext
-    // 因为这些是步骤特定的 context，不是 reveal 结果。
+    // Do not set isAudioPlaying in reducer; Host UI controls it via SET_AUDIO_PLAYING
+    // Note: wolf vote single source of truth is currentNightResults.wolfVotesBySeat (protocol removed wolfVotes/wolfVoteStatus).
+    // P0-FIX: no longer clear reveal fields. Reveal should persist through the entire night
+    // so UI has enough time to display the popup. Only clear confirmStatus and witchContext
+    // since these are step-specific context, not reveal results.
     confirmStatus: undefined,
     witchContext: undefined,
   };
 }
 
-/** 结束夜晚（写入死亡结果，状态转 Ended）。 */
+/** End night (write death results, transition status to Ended). */
 export function handleEndNight(state: GameState, action: EndNightAction): GameState {
   const { deaths, deathReasons } = action.payload;
   return {
@@ -80,13 +80,13 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
     lastNightDeaths: deaths,
     deathReasons,
     currentStepIndex: -1,
-    // PR6 contract: 夜晚结束清空 stepId 和 isAudioPlaying
+    // PR6 contract: clear stepId and isAudioPlaying when night ends
     currentStepId: undefined,
     isAudioPlaying: false,
   };
 }
 
-/** 记录一次夜间行动。 */
+/** Record a single night action. */
 export function handleRecordAction(state: GameState, action: RecordActionAction): GameState {
   const { action: newAction } = action.payload;
   const existingActions = state.actions;
@@ -96,7 +96,7 @@ export function handleRecordAction(state: GameState, action: RecordActionAction)
   };
 }
 
-/** 应用 resolver 计算结果到 state（reveal、状态同步）。 */
+/** Apply resolver computed result to state (reveal, status sync). */
 export function handleApplyResolverResult(
   state: GameState,
   action: ApplyResolverResultAction,
@@ -186,7 +186,7 @@ export function handleApplyResolverResult(
   };
 }
 
-/** 设置女巫上下文（毒药水状态）。 */
+/** Set Witch context (poison potion status). */
 export function handleSetWitchContext(state: GameState, action: SetWitchContextAction): GameState {
   return {
     ...state,
@@ -194,7 +194,7 @@ export function handleSetWitchContext(state: GameState, action: SetWitchContextA
   };
 }
 
-/** 设置确认状态（查验结果待确认）。 */
+/** Set confirm status (check result pending confirmation). */
 export function handleSetConfirmStatus(
   state: GameState,
   action: SetConfirmStatusAction,
@@ -205,7 +205,7 @@ export function handleSetConfirmStatus(
   };
 }
 
-/** 覆写狼人击杀目标（噩梦影封堵后）。 */
+/** Override wolf kill target (after Nightmare blocks). */
 export function handleSetWolfKillOverride(
   state: GameState,
   action: SetWolfKillOverrideAction,
@@ -223,7 +223,7 @@ export function handleSetWolfKillOverride(
   };
 }
 
-/** 标记机械狼人已查看猎人状态。 */
+/** Mark Wolf Robot as having viewed Hunter status. */
 export function handleSetWolfRobotHunterStatusViewed(
   state: GameState,
   action: SetWolfRobotHunterStatusViewedAction,
@@ -234,7 +234,7 @@ export function handleSetWolfRobotHunterStatusViewed(
   };
 }
 
-/** 设置音频播放状态。 */
+/** Set audio playing status. */
 export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingAction): GameState {
   return {
     ...state,
@@ -242,7 +242,7 @@ export function handleSetAudioPlaying(state: GameState, action: SetAudioPlayingA
   };
 }
 
-/** 记录行动被拒绝（用于 UI 弹窗反馈）。 */
+/** Record that an action was rejected (for UI popup feedback). */
 export function handleActionRejected(state: GameState, action: ActionRejectedAction): GameState {
   return {
     ...state,
@@ -250,7 +250,7 @@ export function handleActionRejected(state: GameState, action: ActionRejectedAct
   };
 }
 
-/** 添加 reveal ack（幂等）。 */
+/** Add reveal ack (idempotent). */
 export function handleAddRevealAck(state: GameState, action: AddRevealAckAction): GameState {
   const { ackKey } = action.payload;
   const existing = state.pendingRevealAcks;

@@ -1,7 +1,7 @@
 /**
- * VortexFlair — 旋涡
+ * VortexFlair — Vortex
  *
- * Multiple particles spiral inward and fade. Rare 级座位装饰模板 — 8 particles.
+ * Multiple particles spiral inward and fade. Rare-tier seat flair template — 8 particles.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

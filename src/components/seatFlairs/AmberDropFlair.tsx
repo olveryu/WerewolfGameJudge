@@ -1,7 +1,7 @@
 /**
- * AmberDropFlair — 琥珀坠落
+ * AmberDropFlair — amber drops effect.
  *
- * 5 枚琥珀泪滴以钟摆弧线缓慢摇荡下落，带光泽高光点。
+ * 5 amber teardrops sway slowly down in a pendulum arc, with glossy highlight points.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,8 +1,8 @@
 /**
- * AshCloudFlair — 灰烬之云
+ * AshCloudFlair — Ash Cloud
  *
- * 10 枚灰烬微粒在空中缓慢飘浮，不规则布朗运动。
- * 每颗 = 朦胧外晕 + 颗粒实心核。
+ * 10 ash particles drift slowly through the air in irregular Brownian motion.
+ * Each particle = hazy outer halo + solid grain core.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

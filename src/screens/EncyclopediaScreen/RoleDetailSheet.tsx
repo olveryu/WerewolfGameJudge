@@ -1,9 +1,9 @@
 /**
- * RoleDetailSheet — 角色详情底部面板
+ * RoleDetailSheet — role detail bottom sheet
  *
- * 底部滑入的 Modal 面板，展示角色完整信息：badge 大图 + 角色名 + 阵营 +
- * structuredDescription（复用 RoleDescriptionView）+ 能力 tag chips。
- * 纯展示组件，不 import service，不含业务逻辑。
+ * Bottom slide-in Modal panel that displays full role info: badge image + role name + faction +
+ * structuredDescription (reuses RoleDescriptionView) + ability tag chips.
+ * Pure presentation component, does not import service, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
@@ -73,7 +73,7 @@ interface RoleDetailSheetProps {
 
 const HERO_BADGE_SIZE = componentSizes.avatar.xl;
 
-/** 角色详情底部弹窗。 */
+/** Role detail bottom sheet. */
 export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleId, onClose }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(colors, insets.bottom), [insets.bottom]);

@@ -1,14 +1,14 @@
 /**
  * Vertical Slice Board Test
  *
- * 从 gameFactory 产生的真实 GameState 驱动 RoomScreen UI 渲染。
- * 目的：验证 integration state → UI rendering 的完整通路，
- * 捕获 mock 与真实 state 形状不一致导致的 UI 行为差异。
+ * Drives RoomScreen UI rendering from real GameState produced by gameFactory.
+ * Purpose: verify the full pipeline from integration state -> UI rendering,
+ * catching UI behavior differences caused by mock vs. real-state shape mismatches.
  *
- * 策略：
- * 1. gameFactory 创建游戏并走到 witchAction 步骤
- * 2. 将真实 snapshot 转换为 useGameRoom mock 格式
- * 3. 渲染 RoomScreen 并验证正确的 dialog 出现
+ * Strategy:
+ * 1. gameFactory creates the game and advances to witchAction step
+ * 2. Convert the real snapshot to useGameRoom mock format
+ * 3. Render RoomScreen and verify the correct dialog appears
  */
 
 import { render, waitFor } from '@testing-library/react-native';
@@ -100,8 +100,8 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 /**
- * 将 GameState (protocol 格式) 转换为 useGameRoom mock 中的 gameState 格式。
- * 使用真实的 toLocalState 适配器（与生产代码路径一致）。
+ * Convert GameState (protocol format) to the gameState format used in the useGameRoom mock.
+ * Uses the real toLocalState adapter (matches the production code path).
  */
 function toMockGameState(state: GameState) {
   return toLocalState(state);
@@ -118,7 +118,7 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 // Tests
 // =============================================================================
 
-describe('Vertical Slice: real state → UI rendering', () => {
+describe('Vertical Slice: real state -> UI rendering', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     harness = new RoomScreenTestHarness();
@@ -129,7 +129,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     cleanupGame();
   });
 
-  it('witchAction step with real state → shows witchSavePrompt', async () => {
+  it('witchAction step with real state -> shows witchSavePrompt', async () => {
     // 1. Create real game and walk to witchAction
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
@@ -228,7 +228,7 @@ describe('Vertical Slice: real state → UI rendering', () => {
     await waitFor(() => expect(harness.hasSeen('witchSavePrompt')).toBe(true));
   });
 
-  it('seerCheck step with real state → shows actionPrompt', async () => {
+  it('seerCheck step with real state -> shows actionPrompt', async () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 

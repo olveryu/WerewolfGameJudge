@@ -1,8 +1,8 @@
 /**
- * ChainFrame — 锁链
+ * ChainFrame -- Chain
  *
  * Linked oval "chain" pattern along the border.
- * Rare 级头像框模板.
+ * Rare-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, Ellipse, LinearGradient, Rect, Stop } from 'react-native-svg';

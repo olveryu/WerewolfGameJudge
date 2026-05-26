@@ -1,8 +1,8 @@
 /**
- * Dropdown - 下拉选择器（Memoized，带 Modal）
+ * Dropdown - dropdown selector (Memoized, with Modal).
  *
- * 支持 testID 子 ID 约定（trigger / option / overlay）。
- * 渲染 UI 并通过回调上报 onSelect，不 import service，不包含业务逻辑判断。
+ * Supports testID sub-id conventions (trigger / option / overlay).
+ * Renders UI and reports selection via onSelect callback; does not import services or contain business logic.
  *
  * ## testID convention (E2E only)
  *
@@ -48,7 +48,7 @@ interface DropdownProps {
   testID?: string;
 }
 
-/** 下拉选择器。 */
+/** Dropdown selector. */
 export const Dropdown = memo<DropdownProps>(
   ({ label, value, options, onSelect, styles, testID }) => {
     const [visible, setVisible] = useState(false);

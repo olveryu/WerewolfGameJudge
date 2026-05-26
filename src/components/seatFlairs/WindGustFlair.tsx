@@ -1,8 +1,8 @@
 /**
- * WindGustFlair — 疾风粒子
+ * WindGustFlair - wind gust particles
  *
- * 8 条短水平划线从左吹向右，跳过中心区域，带头部光点。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 8 short horizontal streaks blow from left to right, skipping the central area, with a leading bright dot.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

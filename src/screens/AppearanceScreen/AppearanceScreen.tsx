@@ -1,10 +1,10 @@
 /**
- * AppearanceScreen - 头像与头像框选择（全屏 Screen）
+ * AppearanceScreen - avatar and avatar frame selection (full-screen).
  *
- * 两个 Tab：「头像」（自定义 + 内置 4 列网格）和「头像框」（3×2 大尺寸试穿网格）。
- * 顶部 Hero 预览区实时合成头像 + 框效果，两个 Tab 共享。
- * 支持选中 + 确认保存 + 长按预览。
- * Orchestrator 层：调用 useAppearanceState → 编排所有 Presentational 组件。
+ * Two tabs: "Avatars" (custom + built-in 4-column grid) and "Frames" (3x2 large try-on grid).
+ * The Hero preview area at the top composites avatar + frame in real time and is shared by both tabs.
+ * Supports selection + confirm-to-save + long-press preview.
+ * Orchestrator layer: calls useAppearanceState -> composes all Presentational components.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
@@ -51,7 +51,7 @@ import type {
 } from './types';
 import { FRAME_NUM_COLUMNS, NUM_COLUMNS, PREVIEW_ALL_ROLES, PREVIEW_ROLE } from './types';
 
-/** 外观自定义屏幕。 */
+/** Appearance customization screen. */
 export const AppearanceScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAppearanceScreenStyles(colors), []);

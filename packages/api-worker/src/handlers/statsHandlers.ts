@@ -1,13 +1,13 @@
 /**
- * handlers/statsHandlers — 用户成长数据 Hono routes
+ * handlers/statsHandlers — User growth data Hono routes
  *
- * GET /api/user/stats：返回当前用户 XP、等级、局数。
- * GET /api/user/:userId/profile：返回指定用户的公开资料。
- * GET /api/user/:userId/unlocks：返回指定用户的已解锁物品列表。
- * 仅限已登录用户。
+ * GET /api/user/stats: returns current user XP, level, games played.
+ * GET /api/user/:userId/profile: returns specified user's public profile.
+ * GET /api/user/:userId/unlocks: returns specified user's unlocked items list.
+ * Logged-in users only.
  *
- * @throws 401 — requireAuth 未通过
- * @throws 404 — 目标用户不存在
+ * @throws 401 — requireAuth failed
+ * @throws 404 — target user not found
  */
 
 import { getLevelTitle } from '@werewolf/game-engine/growth/level';
@@ -19,10 +19,10 @@ import { users, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 
-/** 用户统计/资料路由。 */
+/** User stats/profile routes. */
 export const statsRoutes = new Hono<AppEnv>();
 
-/** GET /api/user/:userId/profile — 查看其他玩家公开资料 */
+/** GET /api/user/:userId/profile — view another player's public profile */
 statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const targetUserId = c.req.param('userId');
@@ -81,7 +81,7 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
   );
 });
 
-/** GET /api/user/:userId/unlocks — 查看其他玩家已解锁物品列表 */
+/** GET /api/user/:userId/unlocks — view another player's unlocked items list */
 statsRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const targetUserId = c.req.param('userId');
@@ -99,7 +99,7 @@ statsRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
   return c.json({ unlockedItems }, 200);
 });
 
-/** GET /api/user/stats — 当前用户成长数据 */
+/** GET /api/user/stats — current user's growth data */
 statsRoutes.get('/user/stats', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const payload = c.var.jwtPayload;

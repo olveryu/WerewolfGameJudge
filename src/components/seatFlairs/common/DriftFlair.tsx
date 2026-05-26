@@ -1,7 +1,7 @@
 /**
- * DriftFlair — 飘浮
+ * DriftFlair — Drift
  *
- * A single dot that drifts in a figure-8 / lemniscate path. Common 级座位装饰模板。
+ * A single dot that drifts in a figure-8 / lemniscate path. Common-tier seat flair template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

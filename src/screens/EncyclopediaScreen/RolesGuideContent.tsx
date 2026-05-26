@@ -1,10 +1,10 @@
 /**
- * RolesGuideContent — 角色图鉴内容区
+ * RolesGuideContent — role encyclopedia content area
  *
- * 从 EncyclopediaScreen 提取的完整角色浏览内容：
- * 阵营筛选 tabs、能力标签 dropdown、搜索、SectionList 2-col 网格、RoleDetailSheet。
- * 作为 EncyclopediaScreen 的 tab content 使用，不含 ScreenHeader / SafeAreaView。
- * 状态由父组件通过 props 传入（hook 在 shell 层调用）。
+ * Full role-browsing content extracted from EncyclopediaScreen:
+ * faction filter tabs, ability tag dropdown, search, SectionList 2-col grid, RoleDetailSheet.
+ * Used as the tab content of EncyclopediaScreen; does not include ScreenHeader / SafeAreaView.
+ * State is passed in by the parent via props (the hook is called at the shell layer).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Faction, getRoleSpec, isWolfRole, type RoleId } from '@werewolf/game-engine/models/roles';
@@ -45,7 +45,7 @@ interface RolesGuideContentProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-/** 角色指南内容区。 */
+/** Role guide content area. */
 export const RolesGuideContent: React.FC<RolesGuideContentProps> = ({ state }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createEncyclopediaStyles(colors), []);

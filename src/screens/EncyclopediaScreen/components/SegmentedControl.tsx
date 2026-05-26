@@ -1,8 +1,8 @@
 /**
- * SegmentedControl — 通用双段切换组件
+ * SegmentedControl — generic two-segment switch component.
  *
- * 用于 EncyclopediaScreen 顶部 "角色 | 板子" tab 切换。
- * 纯展示组件，不含业务逻辑、service 依赖。
+ * Used for the top tab switch on EncyclopediaScreen ("Roles | Boards").
+ * Pure presentational component — no business logic, no service dependencies.
  */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -19,7 +19,7 @@ interface SegmentedControlProps<T extends string> {
   onChangeKey: (key: T) => void;
 }
 
-/** 通用分段控制器。 */
+/** Generic segmented control. */
 export function SegmentedControl<T extends string>({
   segments,
   activeKey,

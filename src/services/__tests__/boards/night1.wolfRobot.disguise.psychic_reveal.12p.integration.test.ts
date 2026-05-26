@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: WolfRobot Disguise - Psychic Reveal
  *
- * 主题：机械狼人学习后伪装身份，通灵师查验显示伪装角色
+ * Theme: Wolf Robot disguises identity after learning, Psychic check shows disguised role
  *
- * 模板：机械狼人通灵师
- * 固定 seat-role assignment:
+ * Template: 机械狼人通灵师
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: wolfRobot
@@ -13,11 +13,11 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 核心规则（wolfRobot 伪装契约 - psychic 视角）：
- * - wolfRobot 学习某角色后，psychic 查验 wolfRobot 显示 disguisedRole
- * - 未学习时，psychic 查验返回 wolfRobot 本体
+ * Core rules (wolfRobot disguise contract - psychic perspective):
+ * - After wolfRobot learns a role, psychic check on wolfRobot shows disguisedRole
+ * - When not learned, psychic check returns wolfRobot itself
  *
- * 架构：intents → handlers → resolver(resolveRoleForChecks) → GameState
+ * Architecture: intents -> handlers -> resolver(resolveRoleForChecks) -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,7 +28,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '机械狼人通灵师';
 
 /**
- * 固定 seat-role assignment（按模板顺序）
+ * Fixed seat-role assignment (by template order)
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -58,26 +58,26 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
-      wolfRobot: 0, // 学习 villager
+      wolfRobot: 0, // learn villager
       guard: null,
       wolf: 1,
       witch: { save: null, poison: null },
-      psychic: 7, // 查验 wolfRobot
+      psychic: 7, // check wolfRobot
     });
 
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext 写入
+    // wolfRobotContext written
     expect(state.wolfRobotContext).toBeDefined();
     expect(state.wolfRobotContext!.learnedSeat).toBe(0);
     expect(state.wolfRobotContext!.disguisedRole).toBe('villager');
 
-    // psychicReveal 显示伪装角色 villager
+    // psychicReveal shows disguised role villager
     expect(state.psychicReveal!.targetSeat).toBe(7);
     expect(state.psychicReveal!.result).toBe('villager');
 
-    // wolfRobotReveal 也写入
+    // wolfRobotReveal also written
     expect(state.wolfRobotReveal!.result).toBe('villager');
   });
 
@@ -85,11 +85,11 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
-      wolfRobot: 4, // 学习 wolf
+      wolfRobot: 4, // learn wolf
       guard: null,
       wolf: 1,
       witch: { save: null, poison: null },
-      psychic: 7, // 查验 wolfRobot
+      psychic: 7, // check wolfRobot
     });
 
     expect(result.completed).toBe(true);
@@ -103,19 +103,19 @@ describe('Night-1: WolfRobot Disguise - Psychic Reveal (12p)', () => {
     ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     const result = executeFullNight(ctx, {
-      wolfRobot: null, // 不学习
+      wolfRobot: null, // do not learn
       guard: null,
       wolf: 1,
       witch: { save: null, poison: null },
-      psychic: 7, // 查验 wolfRobot
+      psychic: 7, // check wolfRobot
     });
 
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
-    // wolfRobotContext 未写入
+    // wolfRobotContext not written
     expect(state.wolfRobotContext).toBeUndefined();
-    // psychicReveal 显示真实角色 wolfRobot
+    // psychicReveal shows real role wolfRobot
     expect(state.psychicReveal!.result).toBe('wolfRobot');
   });
 });

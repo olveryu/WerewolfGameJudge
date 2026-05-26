@@ -1,22 +1,22 @@
 /**
- * Auth Route Handlers — 自实现认证 API (Hono routes)
+ * Auth Route Handlers — self-implemented auth API (Hono routes)
  *
- * 覆盖匿名登录、邮箱注册/登录、用户资料更新、session 恢复。
- * JWT 签发/验证，密码用 PBKDF2 哈希存储到 D1。
+ * Covers anonymous login, email signup/signin, profile update, session recovery.
+ * JWT issuing/verification; passwords hashed via PBKDF2 and stored in D1.
  *
- * @throws 各路由抛出/返回的 HTTP 错误码：
- * - POST /auth/anonymous — 无特殊错误
- * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 409 ROOM_CODE_CONFLICT（merge）| 500 ACCOUNT_MERGE_FAILED
- * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS（10次/15分钟）| 401 INVALID_CREDENTIALS
- * - GET /auth/user — 401 token 缺失/无效/revoked | 404 用户已删除
- * - PUT /auth/profile — 403 装备物品未解锁
- * - PUT /auth/password — 400 NO_PASSWORD（匿名/微信用户）| 401 旧密码错误
- * - POST /auth/signout — 无特殊错误
+ * @throws HTTP error codes thrown/returned by each route:
+ * - POST /auth/anonymous — no special errors
+ * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 409 ROOM_CODE_CONFLICT (merge) | 500 ACCOUNT_MERGE_FAILED
+ * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS (10/15min) | 401 INVALID_CREDENTIALS
+ * - GET /auth/user — 401 token missing/invalid/revoked | 404 user deleted
+ * - PUT /auth/profile — 403 equipped item not unlocked
+ * - PUT /auth/password — 400 NO_PASSWORD (anonymous/WeChat user) | 401 old password incorrect
+ * - POST /auth/signout — no special errors
  * - POST /auth/forgot-password — 500 EMAIL_SEND_FAILED
- * - POST /auth/reset-password — 400 INVALID_OR_EXPIRED_CODE（过期/5次用尽/已使用）
+ * - POST /auth/reset-password — 400 INVALID_OR_EXPIRED_CODE (expired/5-attempt limit/already used)
  * - POST /auth/refresh — 401 INVALID_REFRESH_TOKEN
  * - POST /auth/wechat-claim — 500 WECHAT_NOT_CONFIGURED | 504 WECHAT_TIMEOUT | 401 WECHAT_AUTH_FAILED
- * - POST /auth/claim — 404 nonce 不存在 | 410 CLAIM_EXPIRED（>2分钟）
+ * - POST /auth/claim — 404 nonce not found | 410 CLAIM_EXPIRED (>2 minutes)
  * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
 
@@ -70,7 +70,7 @@ import { selectUserProfile, toUserMetadata } from './userProfile';
 
 const log = createLogger('auth');
 
-/** 认证相关路由（注册/登录/刷新/密码重置）。 */
+/** Auth-related routes (signup/signin/refresh/password reset). */
 export const authRoutes = new Hono<AppEnv>();
 
 /** Extract Cloudflare edge geo from incoming request. */
@@ -82,11 +82,11 @@ function requestGeo(c: { req: { raw: Request } }) {
   };
 }
 
-/** 注册欢迎奖励：普通券 5 + 黄金券 1 */
+/** Signup welcome bonus: 5 normal tickets + 1 golden ticket */
 const WELCOME_NORMAL_DRAWS = 5;
 const WELCOME_GOLDEN_DRAWS = 1;
 
-/** 给新注册用户发放欢迎抽奖券（upsert，已有行则累加） */
+/** Grant welcome draw tickets to a newly registered user (upsert; accumulates if row exists) */
 async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string): Promise<void> {
   await db
     .insert(userStats)
@@ -214,7 +214,7 @@ async function mergeUserStats(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/anonymous — 匿名登录
+// POST /auth/anonymous — anonymous login
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/anonymous', async (c) => {
   const env = c.env;
@@ -243,7 +243,7 @@ authRoutes.post('/anonymous', async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/signup — 邮箱注册（或匿名升级）
+// POST /auth/signup — email signup (or anonymous upgrade)
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   const env = c.env;
@@ -453,7 +453,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/signin — 邮箱密码登录
+// POST /auth/signin — email + password login
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Max failed login attempts per email within the rate limit window */
@@ -546,7 +546,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /auth/user — 获取当前用户信息（通过 JWT）
+// GET /auth/user — fetch current user info (via JWT)
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.get('/user', async (c) => {
   const env = c.env;
@@ -607,7 +607,7 @@ authRoutes.get('/user', async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUT /auth/profile — 更新用户资料
+// PUT /auth/profile — update user profile
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c) => {
   const env = c.env;
@@ -686,7 +686,7 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUT /auth/password — 修改密码（已登录用户）
+// PUT /auth/password — change password (authenticated user)
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.put('/password', requireAuth, jsonBody(changePasswordSchema), async (c) => {
   const env = c.env;
@@ -723,7 +723,7 @@ authRoutes.put('/password', requireAuth, jsonBody(changePasswordSchema), async (
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/signout — 登出（revoke tokens，使所有设备下线）
+// POST /auth/signout — sign out (revoke tokens, log out all devices)
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/signout', requireAuth, async (c) => {
   const userId = c.var.userId;
@@ -738,7 +738,7 @@ authRoutes.post('/signout', requireAuth, async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/forgot-password — 发送密码重置验证码邮件
+// POST /auth/forgot-password — send password reset verification code email
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Rate limit: max reset requests per email per hour */
@@ -847,7 +847,7 @@ authRoutes.post('/forgot-password', jsonBody(forgotPasswordSchema), async (c) =>
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/reset-password — 验证码重置密码 + 自动登录
+// POST /auth/reset-password — reset password via verification code + auto sign-in
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   const env = c.env;
@@ -934,7 +934,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/refresh — Refresh token rotation（换取新 access + refresh token）
+// POST /auth/refresh — refresh token rotation (exchange for new access + refresh token)
 // ─────────────────────────────────────────────────────────────────────────────
 authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
   const env = c.env;
@@ -955,7 +955,7 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/wechat-claim — 小程序原生侧预备登录（code + nonce → 存 openid 待 claim）
+// POST /auth/wechat-claim — mini-program native-side pre-login (code + nonce -> store openid for later claim)
 // ─────────────────────────────────────────────────────────────────────────────
 
 authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
@@ -1006,7 +1006,7 @@ authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/claim — web-view 用 nonce 领取 openid → 登录/注册
+// POST /auth/claim — web-view redeems openid by nonce -> sign in / sign up
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CLAIM_TTL_MS = 120_000; // 2 minutes
@@ -1092,7 +1092,7 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// POST /auth/claim-bind — web-view 用 nonce 绑定 openid 到已有用户
+// POST /auth/claim-bind — web-view uses nonce to bind openid to existing user
 // ─────────────────────────────────────────────────────────────────────────────
 
 authRoutes.post('/claim-bind', requireAuth, jsonBody(claimNonceSchema), async (c) => {

@@ -1,8 +1,8 @@
 /**
- * Template - 游戏模板数据模型
+ * Template - game template data model
  *
- * 定义 GameTemplate 接口、模板校验、预设模板和模板工厂。
- * 导出类型定义、纯函数校验/工厂及预设常量，不包含 service 依赖、副作用或 IO。
+ * Defines the GameTemplate interface, template validation, preset templates, and template factories.
+ * Exports type definitions, pure-function validators/factories, and preset constants. No service deps, side effects, or IO.
  */
 import { isValidRoleId, type RoleId } from './roles';
 
@@ -11,17 +11,17 @@ import { isValidRoleId, type RoleId } from './roles';
 // ---------------------------------------------------------------------------
 
 export enum TemplateCategory {
-  /** 经典板（预女猎白、狼美守卫、狼王守卫等入门阵容） */
+  /** Classic boards (Seer/Witch/Hunter/Idiot, Wolf+Queen+Guard, Wolf King+Guard — beginner lineups) */
   Classic = 'classic',
-  /** 进阶板（石像鬼、血月猎魔等需要经验的阵容） */
+  /** Advanced boards (Gargoyle, Blood Moon Witcher, etc. — lineups requiring experience) */
   Advanced = 'advanced',
-  /** 特色板（噩梦之影、灯影、假面等独特机制） */
+  /** Special boards (Nightmare, Lampshade, Masquerade, etc. — unique mechanics) */
   Special = 'special',
-  /** 第三方板（混血儿、吹笛、野孩等含第三方阵营） */
+  /** Third-party boards (Slacker, Piper, Wild Child, etc. — include third-party factions) */
   ThirdParty = 'thirdParty',
 }
 
-/** 模板分类中文标签映射。 */
+/** Template category -> Chinese label mapping. */
 export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
   [TemplateCategory.Classic]: '经典',
   [TemplateCategory.Advanced]: '进阶',
@@ -29,7 +29,7 @@ export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
   [TemplateCategory.ThirdParty]: '第三方',
 };
 
-/** 预设板子结构（名称 + 角色列表 + 分类）。 */
+/** Preset board structure (name + role list + category). */
 export interface PresetTemplate {
   name: string;
   roles: RoleId[];
@@ -78,18 +78,18 @@ export interface GameTemplate {
   roles: RoleId[];
 }
 
-/** 盗宝大师底牌数量 */
+/** Treasure Master deck card count */
 export const BOTTOM_CARD_COUNT = 3;
 
-/** 盗贼底牌数量 */
+/** Thief deck card count */
 export const THIEF_BOTTOM_CARD_COUNT = 2;
 
-/** 底牌角色 ID 列表（互斥：同一模板最多一个） */
+/** Deck-card role IDs (mutually exclusive: at most one per template) */
 const BOTTOM_CARD_ROLE_IDS = ['treasureMaster', 'thief'] as const;
 
 /**
- * 获取模板中底牌角色的 ID（如有）。
- * treasureMaster 和 thief 互斥。
+ * Get the deck-card role ID in the template, if any.
+ * treasureMaster and thief are mutually exclusive.
  */
 export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
   for (const id of BOTTOM_CARD_ROLE_IDS) {
@@ -99,7 +99,7 @@ export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
 }
 
 /**
- * 获取底牌张数。treasureMaster=3, thief=2, 无底牌角色=0。
+ * Get the number of deck cards. treasureMaster=3, thief=2, no deck-card role=0.
  */
 export function getBottomCardCount(roles: readonly RoleId[]): number {
   const bottomCardRole = getBottomCardRoleId(roles);
@@ -109,14 +109,14 @@ export function getBottomCardCount(roles: readonly RoleId[]): number {
 }
 
 /**
- * 计算实际玩家数（座位数）。
- * 含底牌角色时，roles 比座位多 N 张底牌。
+ * Compute the actual player count (seat count).
+ * When a deck-card role is present, roles has N extra deck cards beyond seats.
  */
 export function getPlayerCount(roles: readonly RoleId[]): number {
   return roles.length - getBottomCardCount(roles);
 }
 
-/** 从角色列表创建自定义模板（不 shuffle，分配角色时再洗牌）。 */
+/** Create a custom template from a role list (no shuffle; shuffle later when assigning roles). */
 export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   return {
     name: '',
@@ -125,7 +125,7 @@ export const createCustomTemplate = (roles: RoleId[]): GameTemplate => {
   };
 };
 
-/** 从已有角色列表重建模板（用于数据库加载）。 */
+/** Rebuild a template from an existing role list (used by database load). */
 export const createTemplateFromRoles = (roles: RoleId[]): GameTemplate => ({
   name: '',
   numberOfPlayers: getPlayerCount(roles),
@@ -205,7 +205,7 @@ const multisetIntersectionSize = (a: Map<string, number>, b: Map<string, number>
   return count;
 };
 
-/** 全部预设板子注册表。 */
+/** Registry of all preset boards. */
 export const PRESET_TEMPLATES: PresetTemplate[] = [
   {
     name: '预女猎白',

@@ -1,9 +1,9 @@
 /**
- * avatarFrames — 头像框注册表
+ * avatarFrames — avatar frame registry
  *
- * FrameId 类型从 `@werewolf/game-engine/growth/rewardCatalog` 的 FRAME_IDS 派生。
- * 通过 getFrameComponent 按 id 获取对应的 SVG 渲染组件。
- * 不引入 service、theme。
+ * FrameId type derived from FRAME_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * Use getFrameComponent to fetch the corresponding SVG render component by id.
+ * No service or theme imports.
  */
 import { FRAME_IDS, type FrameId } from '@werewolf/game-engine/growth/rewardCatalog';
 import type React from 'react';
@@ -64,16 +64,16 @@ import { WraithBoneFrame } from './WraithBoneFrame';
 export type { FrameId };
 
 interface AvatarFrameConfig {
-  /** 中文显示名 */
+  /** Chinese display name */
   name: string;
-  /** SVG 渲染组件 */
+  /** SVG render component */
   Component: React.ComponentType<FrameProps>;
 }
 
 /**
- * 头像框注册表（exhaustive Record）—— FRAME_IDS 新增 ID 而此处未添加 → TS 编译报错。
- * UI 展示顺序跟随 FRAME_IDS。
- * 静态条目手动列举；Common 50 条从 factory 展开（runtime 由 gachaProbability 测试覆盖）。
+ * Avatar frame registry (exhaustive Record) — adding a new ID to FRAME_IDS without adding here -> TS compile error.
+ * UI display order follows FRAME_IDS.
+ * Static entries listed manually; 50 Common entries expanded from factory (runtime covered by gachaProbability tests).
  */
 function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
   // Static entries — manually listed for unique hand-crafted frames
@@ -138,14 +138,14 @@ function buildFrameRegistry(): Record<FrameId, AvatarFrameConfig> {
 }
 const FRAME_REGISTRY = buildFrameRegistry();
 
-/** 所有可用头像框（顺序 = FRAME_IDS 展示顺序） */
+/** All available avatar frames (order = FRAME_IDS display order) */
 export const AVATAR_FRAMES: readonly (AvatarFrameConfig & { id: FrameId })[] = FRAME_IDS.map(
   (id) => ({ id, ...FRAME_REGISTRY[id] }),
 );
 
 const FRAME_MAP = new Map<string, AvatarFrameConfig>(AVATAR_FRAMES.map((f) => [f.id, f]));
 
-/** 按 id 获取头像框配置。无效 id 返回 undefined。 */
+/** Get avatar frame config by id. Returns undefined for invalid id. */
 export function getFrameById(id: string | null | undefined): AvatarFrameConfig | undefined {
   if (!id) return undefined;
   return FRAME_MAP.get(id);

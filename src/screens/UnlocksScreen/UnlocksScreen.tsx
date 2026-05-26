@@ -1,8 +1,8 @@
 /**
- * UnlocksScreen — 解锁物品一览
+ * UnlocksScreen — overview of unlocked items
  *
- * 顶部 tab 切换"头像"/"头像框"/"特效"/"名字"，summary card 显示当前 tab 进度。
- * 已解锁 cell 高亮 + 绿色对勾角标，未解锁灰暗 + 锁标。
+ * Top tabs switch between "avatars" / "avatar frames" / "effects" / "names"; summary card shows current tab's progress.
+ * Unlocked cells are highlighted with a green checkmark badge; locked cells are dimmed with a lock badge.
  */
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,7 +37,7 @@ const RARITY_TABS: readonly { key: RarityFilter; label: string }[] = [
   ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
 ] as const;
 
-/** 解锁物品展示屏幕。 */
+/** Unlocked items display screen. */
 export const UnlocksScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Unlocks'>>();

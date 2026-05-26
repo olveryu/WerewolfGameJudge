@@ -1,7 +1,7 @@
 /**
- * JadeMistFlair — 玉雾弥漫
+ * JadeMistFlair — Jade mist
  *
- * 5 道翡翠色雾气卷须从底部蛇形上升，AnimatedPath S 曲线 + 尖端亮点。
+ * 5 emerald mist tendrils rise from the bottom in a snake-like path; AnimatedPath S-curve + bright tip.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

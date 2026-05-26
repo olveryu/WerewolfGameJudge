@@ -56,7 +56,7 @@ interface FactionGroup {
 // Data
 // ============================================
 
-/** 阵营分组配置（UI 展示用）。 */
+/** Faction group config (for UI display). */
 export const FACTION_GROUPS: FactionGroup[] = [
   {
     title: '好人阵营',

@@ -1,7 +1,7 @@
 /**
- * SimpleDoubleFrame — 双线
+ * SimpleDoubleFrame — Double line
  *
- * 双层同色边框。Common 级头像框模板。
+ * Double-layer same-color border. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

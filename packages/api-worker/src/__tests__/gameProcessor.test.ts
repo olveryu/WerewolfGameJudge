@@ -1,8 +1,8 @@
 /**
  * gameProcessor unit tests — pure function tests
  *
- * buildHandlerContext 和 extractAudioActions 不依赖 DO/SQLite，
- * 可直接在 Workers 运行时中测试。
+ * buildHandlerContext and extractAudioActions do not depend on DO/SQLite,
+ * so they can be tested directly in the Workers runtime.
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';

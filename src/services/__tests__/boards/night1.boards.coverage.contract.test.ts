@@ -1,10 +1,10 @@
 /**
  * Night-1 Boards Coverage Contract Test
  *
- * 门禁测试：强制 10 个 12 人板子全部有 integration test 覆盖
+ * Gate test: enforces that all 10 12-player boards have integration test coverage.
  *
- * A. 强制 10 个板子全部有测试文件
- * B. 防止"空壳 / 只测 deaths"的测试
+ * A. Enforce that all 10 boards have test files
+ * B. Prevent "empty shell / deaths-only" tests
  */
 
 import * as fs from 'node:fs';
@@ -13,7 +13,7 @@ import * as path from 'node:path';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 
 // =============================================================================
-// 权威列表：10 个 12 人板子（来自 PRESET_TEMPLATES）
+// Authoritative list: 10 12-player boards (from PRESET_TEMPLATES)
 // =============================================================================
 
 const REQUIRED_12P_TEMPLATES = [
@@ -33,12 +33,12 @@ const REQUIRED_12P_TEMPLATES = [
 ] as const;
 
 // =============================================================================
-// 板子名 → 测试文件关键字映射
+// Board name -> test file keyword mapping
 // =============================================================================
 
 /**
- * 每个板子对应的测试文件必须包含这些关键字之一
- * 用于匹配 TEMPLATE_NAME = '...' 语句
+ * The test file for each board must contain one of these keywords.
+ * Used to match the `TEMPLATE_NAME = '...'` statement.
  */
 const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
   预女猎白: /TEMPLATE_NAME\s*=\s*['"]预女猎白['"]/,
@@ -57,7 +57,7 @@ const TEMPLATE_TO_TEST_PATTERN: Record<string, RegExp> = {
 };
 
 // =============================================================================
-// 主题字段断言关键字（至少包含其中一个）
+// Theme field assertion keywords (must contain at least one)
 // =============================================================================
 
 const REQUIRED_ASSERTION_PATTERNS = [
@@ -75,13 +75,13 @@ const REQUIRED_ASSERTION_PATTERNS = [
 ];
 
 // =============================================================================
-// 测试目录路径
+// Test directory path
 // =============================================================================
 
 const BOARDS_TEST_DIR = path.join(__dirname, '.');
 
 // =============================================================================
-// 辅助函数
+// Helpers
 // =============================================================================
 
 function getIntegrationTestFiles(): string[] {
@@ -124,18 +124,18 @@ function fileMentionsStepId(content: string, stepId: string): boolean {
 describe('Night-1 Boards Coverage Contract', () => {
   const testFiles = getIntegrationTestFiles();
 
-  describe('A. 强制 10 个板子全部有测试文件', () => {
-    it('应该发现至少 10 个 night1.*.12p.integration.test.ts 文件', () => {
+  describe('A. Enforce that all 10 boards have test files', () => {
+    it('should find at least 10 night1.*.12p.integration.test.ts files', () => {
       expect(testFiles.length).toBeGreaterThanOrEqual(10);
     });
 
     it.each(REQUIRED_12P_TEMPLATES)(
-      '板子 "%s" 必须有对应的 integration test 文件',
+      'board "%s" must have a corresponding integration test file',
       (templateName) => {
         const pattern = TEMPLATE_TO_TEST_PATTERN[templateName]!;
         expect(pattern).toBeDefined();
 
-        // 查找至少一个测试文件包含该模板名
+        // Find at least one test file that contains the template name
         const hasTestFile = testFiles.some((filename) => {
           const content = readTestFileContent(filename);
           return pattern.test(content);
@@ -146,30 +146,33 @@ describe('Night-1 Boards Coverage Contract', () => {
     );
   });
 
-  describe('B. 防止"空壳 / 只测 deaths"', () => {
-    it.each(testFiles)('文件 "%s" 必须包含至少一个主题字段断言（非纯 deaths 测试）', (filename) => {
-      const content = readTestFileContent(filename);
+  describe('B. Prevent "empty shell / deaths-only" tests', () => {
+    it.each(testFiles)(
+      'file "%s" must contain at least one theme field assertion (not a pure deaths test)',
+      (filename) => {
+        const content = readTestFileContent(filename);
 
-      // 检查是否包含至少一个主题字段断言
-      const hasThemeAssertion = REQUIRED_ASSERTION_PATTERNS.some((pattern) =>
-        pattern.test(content),
-      );
+        // Check whether it contains at least one theme field assertion
+        const hasThemeAssertion = REQUIRED_ASSERTION_PATTERNS.some((pattern) =>
+          pattern.test(content),
+        );
 
-      expect(hasThemeAssertion).toBe(true);
-    });
+        expect(hasThemeAssertion).toBe(true);
+      },
+    );
   });
 
-  describe('C. Step-level coverage: NIGHT_STEPS 每个 stepId 必须在 boards tests 中出现', () => {
+  describe('C. Step-level coverage: every stepId in NIGHT_STEPS must appear in boards tests', () => {
     const stepIds = NIGHT_STEPS.map((s) => s.id);
 
-    it('NIGHT_STEPS 中的 stepId 必须非空且唯一', () => {
+    it('stepIds in NIGHT_STEPS must be non-empty and unique', () => {
       expect(stepIds.length).toBeGreaterThan(0);
       expect(new Set(stepIds).size).toBe(stepIds.length);
       expect(stepIds.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
     });
 
     it.each(stepIds)(
-      'stepId "%s" 必须至少被一个 boards test 提及（显式断言或推进到该 step）',
+      'stepId "%s" must be mentioned by at least one boards test (explicit assertion or progression to this step)',
       (stepId) => {
         // Search all boards tests (including non-12p helpers/contract tests)
         const allBoardTests = fs.readdirSync(BOARDS_TEST_DIR).filter((f) => f.endsWith('.test.ts'));

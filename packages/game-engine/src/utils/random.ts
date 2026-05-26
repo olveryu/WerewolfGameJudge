@@ -1,22 +1,22 @@
 /**
  * random - Platform-agnostic secure random utilities for game-engine
  *
- * 使用标准 Web Crypto API（Node 19+ / 所有现代浏览器原生支持）。
- * 不依赖 expo-crypto。导出 secureRng / randomIntInclusive / randomBool / randomPick / Rng 类型。
- * 不使用 Math.random()，不 import 平台依赖。
+ * Uses standard Web Crypto API (natively supported by Node 19+ and all modern browsers).
+ * Does not depend on expo-crypto. Exports secureRng / randomIntInclusive / randomBool / randomPick / Rng types.
+ * Does not use Math.random(); no platform-dependent imports.
  */
 
 /**
- * 随机数生成器类型
- * 返回 [0, 1) 范围的浮点数
+ * Random number generator type.
+ * Returns a float in [0, 1).
  */
 export type Rng = () => number;
 
 /**
- * 安全随机数生成器
- * 使用 Web Crypto API（Node 19+ / 浏览器原生支持）
+ * Secure random number generator.
+ * Uses Web Crypto API (natively supported by Node 19+ / browsers).
  *
- * @returns [0, 1) 范围的浮点数
+ * @returns Float in [0, 1)
  */
 export function secureRng(): number {
   const array = new Uint32Array(1);
@@ -25,12 +25,12 @@ export function secureRng(): number {
 }
 
 /**
- * 生成指定范围内的随机整数（包含两端）
+ * Generate a random integer in the given range (inclusive on both ends).
  *
- * @param min - 最小值（包含）
- * @param max - 最大值（包含）
- * @param rng - 可选的随机数生成器，默认使用 secureRng
- * @returns [min, max] 范围内的整数
+ * @param min - Minimum value (inclusive)
+ * @param max - Maximum value (inclusive)
+ * @param rng - Optional Rng, defaults to secureRng
+ * @returns Integer in [min, max]
  */
 export function randomIntInclusive(min: number, max: number, rng: Rng = secureRng): number {
   const range = max - min + 1;
@@ -38,22 +38,22 @@ export function randomIntInclusive(min: number, max: number, rng: Rng = secureRn
 }
 
 /**
- * 生成随机布尔值
+ * Generate a random boolean.
  *
- * @param rng - 可选的随机数生成器，默认使用 secureRng
- * @returns true 或 false
+ * @param rng - Optional Rng, defaults to secureRng
+ * @returns true or false
  */
 export function randomBool(rng: Rng = secureRng): boolean {
   return rng() < 0.5;
 }
 
 /**
- * 从数组中随机选取一个元素
+ * Pick a random element from an array.
  *
- * @param arr - 非空数组
- * @param rng - 可选的随机数生成器，默认使用 secureRng
- * @returns 数组中的随机元素
- * @throws 如果数组为空
+ * @param arr - Non-empty array
+ * @param rng - Optional Rng, defaults to secureRng
+ * @returns A random element from the array
+ * @throws If the array is empty
  */
 export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
   if (arr.length === 0) {
@@ -72,7 +72,7 @@ export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
  * @returns A deterministic Rng function producing [0, 1) floats
  */
 export function createSeededRng(seed: string): Rng {
-  // Simple string → 32-bit hash (djb2)
+  // Simple string -> 32-bit hash (djb2)
   let h = 5381;
   for (let i = 0; i < seed.length; i++) {
     h = ((h << 5) + h + seed.charCodeAt(i)) | 0;

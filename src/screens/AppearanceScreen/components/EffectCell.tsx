@@ -23,7 +23,7 @@ interface EffectCellProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 特效网格单元格。 */
+/** Effect grid cell. */
 export const EffectCell = memo<EffectCellProps>(({ item, selectedEffect, onPress, styles }) => {
   const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);
   const isSelected = selectedEffect === item.id;

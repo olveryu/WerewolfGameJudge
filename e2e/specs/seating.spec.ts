@@ -111,7 +111,7 @@ test.describe('Seating', () => {
       // "我" badge should be visible
       await room.expectMyBadgeVisible();
 
-      // Click own seat → should show player profile card (self-profile with "离座" button)
+      // Click own seat -> should show player profile card (self-profile with "离座" button)
       await room.getSeatTile(0).click();
       await expect(page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
 
@@ -154,7 +154,7 @@ test.describe('Seating', () => {
 
       const roomB = new RoomPage(pageB);
 
-      // Joiner taps host's occupied seat (index 0) — shows player profile card
+      // Joiner taps host's occupied seat (index 0) - shows player profile card
       await roomB.getSeatTile(0).click();
       await expect(pageB.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
       // No seat dialog should appear (profile card, not "入座")
@@ -213,11 +213,11 @@ test.describe('Seating', () => {
       // Host sees seat 2 occupied
       await pollSeatOccupied(roomA, 2);
 
-      // Host taps joiner's seat → profile card opens
+      // Host taps joiner's seat -> profile card opens
       await roomA.getSeatTile(1).click();
       await expect(pageA.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
 
-      // Click "移出座位" button inside the profile card → directly kicks (no confirm dialog)
+      // Click "移出座位" button inside the profile card -> directly kicks (no confirm dialog)
       await pageA.getByText('移出座位', { exact: true }).click();
 
       // Host sees seat 2 become empty

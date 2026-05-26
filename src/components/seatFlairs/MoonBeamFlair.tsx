@@ -1,7 +1,7 @@
 /**
- * MoonBeamFlair — 月光束
+ * MoonBeamFlair — Moon Beam
  *
- * 5 道竖直月光柱从上方缓慢扫过头像区域，带光晕圆。
+ * 5 vertical moonlight columns slowly sweep across the avatar area from above, with halo circles.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

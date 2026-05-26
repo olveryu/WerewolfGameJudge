@@ -1,29 +1,29 @@
 /**
- * Thief Resolver (SERVER-ONLY, 纯函数)
+ * Thief Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验底牌选择 + 强制有狼必选狼 + 写入 thiefChosenCard。
- * thief 先于所有角色行动，从底牌两张中选择一张作为自身身份。
- * 底牌中有狼队伍牌时必须选择狼队伍牌。
- * 不包含 IO（网络 / 音频 / Alert）。
+ * Responsibilities: validate deck-card pick + enforce must-pick-wolf-if-present + write thiefChosenCard.
+ * Thief acts before all other roles; picks one of two deck cards as their identity.
+ * If any wolf-faction card is among the deck cards, thief must pick the wolf-faction card.
+ * No IO (network / audio / Alert).
  */
 
 import { ROLE_SPECS, type RoleId } from '../models';
 import { Faction } from '../models/roles/spec/types';
 import type { ResolverFn } from './types';
 
-/** 底牌张数（thief 固定 2） */
+/** Number of deck cards (thief is fixed at 2) */
 const THIEF_BOTTOM_CARD_COUNT = 2;
 
-/** 必须选择一张底牌 */
+/** Must pick a deck card */
 const REJECT_MUST_CHOOSE = '必须选择一张底牌' as const;
 
-/** cardIndex 超出范围 */
+/** cardIndex out of range */
 const REJECT_INVALID_INDEX = '无效的卡牌索引' as const;
 
-/** 底牌中有狼人阵营的牌时必须选择狼人 */
+/** Must pick wolf card when a wolf-faction card is among the deck cards */
 const REJECT_MUST_CHOOSE_WOLF = '底牌中有狼人阵营的牌，必须选择狼人' as const;
 
-/** 缺少盗贼上下文 */
+/** Missing thief context */
 const REJECT_NO_CONTEXT = '缺少盗贼上下文' as const;
 
 function isWolfFaction(roleId: RoleId): boolean {

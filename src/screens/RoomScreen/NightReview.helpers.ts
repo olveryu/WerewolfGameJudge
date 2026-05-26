@@ -1,9 +1,9 @@
 /**
- * NightReview.helpers - 纯函数：从 LocalGameState 提取夜晚行动摘要与全员身份表
+ * NightReview.helpers - Pure functions: extract night action summary and full identity table from LocalGameState
  *
- * 第一行摘要：将 currentNightResults / lastNightDeaths / 各查验 reveal 转为中文描述列表。
- * 第二部分：按座位号输出每位玩家的真实角色。
- * 不 import service / hook / React；仅依赖 game-engine 类型与 getRoleDisplayName。
+ * First section: convert currentNightResults / lastNightDeaths / all check reveals to Chinese description list.
+ * Second section: output each player's real role by seat number.
+ * No service / hook / React imports; relies only on game-engine types and getRoleDisplayName.
  */
 
 import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
@@ -47,8 +47,8 @@ function findSeatByRole(
 }
 
 /**
- * 判断某座位是否会在夜间死亡（被狼刀且未被救/被毒杀）。
- * 用于连锁死亡判断的子条件。
+ * Whether the seat will die tonight (wolf-killed without save, or poisoned).
+ * Used as a sub-condition for chain-death determination.
  */
 function willDieTonight(seat: number, gameState: LocalGameState): boolean {
   const nr = gameState.currentNightResults;
@@ -65,31 +65,31 @@ function willDieTonight(seat: number, gameState: LocalGameState): boolean {
 }
 
 /**
- * 判断某座位的猎人/狼王是否可以开枪。
+ * Whether the seat's Hunter/Dark Wolf King can shoot.
  *
- * 仅被狼人袭击或公投放逐出局时可发动。
- * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
+ * Can only trigger when wolf-killed or exile-voted out.
+ * Cannot shoot on abnormal night death (poison / lover suicide / dreamcatcher chain / charm chain).
  */
 function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
   const nr = gameState.currentNightResults;
 
-  // 被毒杀
+  // Poisoned
   if (nr.poisonedSeat === seat) return false;
 
-  // 殉情
+  // Lover suicide
   const loverSeats = gameState.loverSeats;
   if (loverSeats && loverSeats.includes(seat)) {
     const partnerSeat = loverSeats[0] === seat ? loverSeats[1] : loverSeats[0];
     if (willDieTonight(partnerSeat, gameState)) return false;
   }
 
-  // 摄梦连锁
+  // Dreamcatcher chain
   if (nr.dreamingSeat === seat) {
     const dcSeat = findSeatByRole(gameState.players, 'dreamcatcher' as RoleId);
     if (dcSeat !== undefined && willDieTonight(dcSeat, gameState)) return false;
   }
 
-  // 狼美人魅惑连锁
+  // Eclipse Wolf Queen charm chain
   if (nr.charmedSeat === seat) {
     const wqSeat = findSeatByRole(gameState.players, 'wolfQueen' as RoleId);
     if (wqSeat !== undefined && willDieTonight(wqSeat, gameState)) return false;
@@ -129,9 +129,9 @@ function resolveWolfKillTarget(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface NightReviewData {
-  /** 夜晚行动逐条描述 */
+  /** Per-action descriptions of the night */
   actionLines: string[];
-  /** 座位号 → 角色中文名 */
+  /** Seat number -> Chinese role name */
   identityLines: string[];
 }
 
@@ -443,8 +443,8 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // 9. Hunter / DarkWolfKing canShoot status
   // confirmStatus is cleared on step advance, so we re-derive canShoot.
-  // Rule: 仅被狼人袭击或公投放逐出局时可发动。
-  // 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
+  // Rule: can only trigger when wolf-killed or exile-voted out.
+  // Cannot shoot on abnormal night death (poison / lover suicide / dreamcatcher chain / charm chain).
   const hunterSeat = findSeatByRole(gameState.players, 'hunter' as RoleId);
   if (hunterSeat !== undefined) {
     const canShoot = canShootForSeat(hunterSeat, gameState);
@@ -463,7 +463,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 
   // ── Interaction annotations ──
 
-  // 同守同救 warning
+  // Same-guard-same-save warning
   const wolfTarget = resolveWolfKillTarget(nr.wolfVotesBySeat);
   if (wolfTarget !== undefined && nr.guardedSeat === wolfTarget && nr.savedSeat === wolfTarget) {
     lines.push(`⚠️ 同守同救：${formatSeat(wolfTarget)} 仍然死亡`);

@@ -1,8 +1,8 @@
 /**
- * LuckyStarPet — 幸运星
+ * LuckyStarPet - lucky star
  *
- * fortuneWheel 翻牌动画的伴生宠物。
- * 金色五角星 + 可爱脸 + 肚皮转盘缓转 + 星光闪烁，浮动。
+ * Companion pet for the fortuneWheel flip animation.
+ * Gold five-pointed star + cute face + slow-spinning belly wheel + twinkling sparkles, floating.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

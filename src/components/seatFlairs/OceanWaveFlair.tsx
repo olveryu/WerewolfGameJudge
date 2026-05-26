@@ -1,8 +1,8 @@
 /**
- * OceanWaveFlair — 海浪涌动 (Skia Canvas + Picture)
+ * OceanWaveFlair — ocean wave swell (Skia Canvas + Picture)
  *
- * 3 道水平正弦波纹从底部向上涌动，不同相位/振幅，带波峰水花粒子。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 3 horizontal sine waves surge upward from the bottom with different phases/amplitudes, with crest spray particles.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

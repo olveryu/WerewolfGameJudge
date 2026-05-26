@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * SpiritBarkFrame — 灵木
+ * SpiritBarkFrame — Spirit Wood
  *
- * 古树皮框 · 四角粗壮树根向外蜿蜒 · 树瘤突起 · 灵光苔藓斑点。
+ * Ancient bark frame · thick roots winding outward from all four corners · knot bumps · spirit-glow moss spots.
  */
 export const SpiritBarkFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

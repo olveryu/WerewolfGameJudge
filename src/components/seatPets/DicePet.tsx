@@ -1,8 +1,8 @@
 /**
- * DicePet — 骰灵
+ * DicePet - Dice spirit
  *
- * roulette 翻牌动画的伴生宠物。
- * 白紫色圆角骰子 + 可爱大眼 + 金色星光闪烁，缓慢浮动。
+ * Companion pet for roulette card-flip animation.
+ * White-purple rounded dice + cute big eyes + golden sparkle twinkle, slowly floating.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

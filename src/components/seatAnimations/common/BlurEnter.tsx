@@ -1,5 +1,5 @@
 /**
- * BlurEnter — 模糊渐清入场
+ * BlurEnter - blur-to-sharp entrance
  *
  * Children go from blurred/low-opacity to sharp/full-opacity. On web, we use
  * a scale+opacity approximation since RN does not support blur on Animated.View natively.

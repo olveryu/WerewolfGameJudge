@@ -1,7 +1,7 @@
 /**
- * BlazeTrailFlair — 烈焰轨迹
+ * BlazeTrailFlair — Blaze trail
  *
- * 3 道火焰弧在头像周围旋转，每道弧由 AnimatedPath 绘制 + 亮头粒子。
+ * 3 flame arcs rotate around the avatar; each arc drawn via AnimatedPath + bright head particle.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

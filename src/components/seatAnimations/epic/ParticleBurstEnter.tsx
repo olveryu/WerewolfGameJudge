@@ -1,5 +1,5 @@
 /**
- * ParticleBurstEnter — 粒子爆散
+ * ParticleBurstEnter — particle burst
  *
  * Particles burst outward from center in all directions, then child fades in.
  * Epic-tier archetype. Parameterized by particle count, color, shape, and speed.

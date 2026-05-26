@@ -1,7 +1,7 @@
 /**
- * StatsTab — Admin 活跃统计
+ * StatsTab — admin active-user statistics.
  *
- * TimeRangeSelector + MetricCard + BarChart (国家/Colo)。
+ * TimeRangeSelector + MetricCard + BarChart (country / Colo).
  */
 
 import type React from 'react';

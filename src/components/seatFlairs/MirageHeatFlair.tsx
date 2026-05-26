@@ -1,7 +1,7 @@
 /**
- * MirageHeatFlair — 海市蜃楼
+ * MirageHeatFlair — mirage heat haze
  *
- * 6 道水平波浪线上下起伏，模拟热浪扭曲效果，不同高度/振幅/频率。
+ * 6 horizontal waves rise and fall to simulate heat distortion, with varying heights / amplitudes / frequencies.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,11 +1,11 @@
 /**
  * Wire Protocol Contract Tests
  *
- * 验证 wire protocol 正确性：
+ * Verify wire protocol correctness:
  * - magician swap: target=null + extra.targets
  * - witch: target=null + extra.stepResults
  *
- * 方案 A：运行态抓包 - 捕获 harness 真实发送的 payload
+ * Approach A: runtime capture - capture the payload actually sent by the harness
  */
 
 import { type RoleId } from '@werewolf/game-engine/models/roles';
@@ -14,7 +14,7 @@ import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
-// ACTION message 类型
+// ACTION message type
 interface ActionMessage {
   type: 'ACTION';
   seat: number;
@@ -84,7 +84,7 @@ describe('Wire Protocol Contract', () => {
   });
 
   describe('Runtime Payload Shape - Harness 运行态抓包', () => {
-    // 12人狼王魔术师板子：含 magician(swap) + witch(compound)
+    // 12-player Wolf King + Magician board: includes magician(swap) + witch(compound)
     const TEMPLATE_ROLES: RoleId[] = [
       'villager',
       'villager',
@@ -118,8 +118,8 @@ describe('Wire Protocol Contract', () => {
     }
 
     /**
-     * 查找 WOLF_VOTE 消息
-     * wolfVote 使用 WOLF_VOTE message type（不是 ACTION）
+     * Find WOLF_VOTE messages
+     * wolfVote uses WOLF_VOTE message type (not ACTION)
      */
     function findWolfVoteMessages(
       captured: ReturnType<ReturnType<typeof createGame>['getCapturedMessages']>,
@@ -137,7 +137,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：magician 交换 seat 0 和 seat 1
+      // Run night: magician swaps seat 0 and seat 1
       executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
@@ -159,7 +159,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：magician 不交换
+      // Run night: magician does not swap
       executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
@@ -173,7 +173,7 @@ describe('Wire Protocol Contract', () => {
 
       expect(magicianMsg).toBeDefined();
       expect(magicianMsg!.target).toBeNull();
-      // 空 targets 时 extra 可以是 undefined 或 { targets: [] }
+      // With empty targets, extra may be undefined or { targets: [] }
       if (magicianMsg!.extra !== undefined) {
         expect(
           magicianMsg!.extra.targets === undefined ||
@@ -186,7 +186,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：witch 救人
+      // Run night: witch saves
       executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
@@ -207,7 +207,7 @@ describe('Wire Protocol Contract', () => {
         poison: number | null;
       };
       expect(stepResults).toBeDefined();
-      // 必须有 save 和 poison 两个 key（即使值为 null）
+      // Must contain both save and poison keys (even if values are null)
       expect('save' in stepResults).toBe(true);
       expect('poison' in stepResults).toBe(true);
       expect(stepResults.save).toBe(0);
@@ -218,7 +218,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：witch 毒人
+      // Run night: witch poisons
       executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
@@ -249,7 +249,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：witch 不使用技能
+      // Run night: witch uses no skill
       executeFullNight(ctx, {
         wolf: 0,
         seer: 4,
@@ -270,7 +270,7 @@ describe('Wire Protocol Contract', () => {
         poison: number | null;
       };
       expect(stepResults).toBeDefined();
-      // 即使不使用技能，也必须有 save 和 poison 两个 key
+      // Even when no skill is used, both save and poison keys must be present
       expect('save' in stepResults).toBe(true);
       expect('poison' in stepResults).toBe(true);
     });
@@ -296,9 +296,9 @@ describe('Wire Protocol Contract', () => {
       expect(hunterMsg!.extra!.confirmed).toBe(true);
     });
 
-    // NOTE: 由于系统不允许未被 block 时 skip hunterConfirm，
-    // 此处不再测试 "skip 时 confirmed === false" 场景。
-    // 如需测试 "被 block 时的 skip"，需要配置 nightmare block hunter 的模板。
+    // NOTE: Since the system does not allow skipping hunterConfirm when not blocked,
+    // the "skip when confirmed === false" scenario is no longer tested here.
+    // To test "skip when blocked", configure a template with nightmare blocking hunter.
 
     it('darkWolfKingConfirm payload: target === null, extra.confirmed', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
@@ -326,7 +326,7 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：袭击座位 2
+      // Run night: attack seat 2
       executeFullNight(ctx, {
         wolf: 2,
         seer: 4,
@@ -338,18 +338,18 @@ describe('Wire Protocol Contract', () => {
       const captured = ctx.getCapturedMessages();
       const wolfVotes = findWolfVoteMessages(captured, 'wolfKill');
 
-      // 应该有 4 个狼（wolf x3 + darkWolfKing）发送 WOLF_VOTE
+      // Should have 4 wolves (wolf x3 + darkWolfKing) sending WOLF_VOTE
       expect(wolfVotes.length).toBe(4);
 
-      // 所有 WOLF_VOTE 的 target 都应该是 2
+      // All WOLF_VOTE targets should be 2
       for (const vote of wolfVotes) {
         expect(vote.target).toBe(2);
-        // target 是单一座位号，不是 encoded 值
+        // target is a single seat number, not an encoded value
         expect(vote.target).toBeLessThan(100);
         expect(vote.target).toBeGreaterThanOrEqual(-1);
       }
 
-      // wolfKill 步骤结束后还会发送一个 ACTION 消息（lead wolf 提交）
+      // After wolfKill step ends, an ACTION message is also sent (lead wolf submission)
       const wolfKillAction = findActionMessage(captured, 'wolfKill');
       expect(wolfKillAction).toBeDefined();
       expect(wolfKillAction!.target).toBe(2);
@@ -359,9 +359,9 @@ describe('Wire Protocol Contract', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
       ctx.clearCapturedMessages();
 
-      // 运行夜晚：狼放弃袭击（target 为 null）
+      // Run night: wolves skip attack (target is null)
       executeFullNight(ctx, {
-        wolf: null, // 放弃袭击
+        wolf: null, // skip attack
         seer: 4,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
@@ -371,11 +371,11 @@ describe('Wire Protocol Contract', () => {
       const captured = ctx.getCapturedMessages();
       const wolfVotes = findWolfVoteMessages(captured, 'wolfKill');
 
-      // 放弃袭击时不应该发送 WOLF_VOTE（或者发送 target=-1）
-      // 当前实现是不发送 WOLF_VOTE
+      // Skipping attack should not send WOLF_VOTE (or send target=-1)
+      // Current implementation does not send WOLF_VOTE
       expect(wolfVotes.length).toBe(0);
 
-      // 但 ACTION 消息应该存在，target 为 null
+      // But ACTION message should exist with target = null
       const wolfKillAction = findActionMessage(captured, 'wolfKill');
       expect(wolfKillAction).toBeDefined();
       expect(wolfKillAction!.target).toBeNull();
@@ -418,10 +418,10 @@ describe('Wire Protocol Contract', () => {
       for (const msg of actionMessages) {
         const actionMsg = msg.message as ActionMessage;
         const target = actionMsg.target;
-        // target 要么是 null，要么是单一座位号（0-11），不能是 encoded 值（如 100+）
+        // target must be either null or a single seat number (0-11), not an encoded value (e.g. 100+)
         if (target !== null && target !== undefined) {
           expect(target).toBeLessThan(100);
-          expect(target).toBeGreaterThanOrEqual(-1); // -1 表示放弃
+          expect(target).toBeGreaterThanOrEqual(-1); // -1 means skip
         }
       }
     });
@@ -429,19 +429,19 @@ describe('Wire Protocol Contract', () => {
 
   describe('chooseSeat Wire Protocol Contract', () => {
     /**
-     * chooseSeat 类 schema 的 wire protocol 合约：
-     * - target: number | null（单一座位号或 null 表示跳过）
-     * - 不使用 extra 字段（extra 仅用于 compound/swap/confirm）
+     * Wire protocol contract for chooseSeat-kind schemas:
+     * - target: number | null (single seat number or null to skip)
+     * - extra field not used (extra is only for compound/swap/confirm)
      */
 
-    // 简化模板：只包含 seer 和 wolf
+    // Simplified template: only includes seer and wolf
     const SEER_TEMPLATE: RoleId[] = ['seer', 'wolf', 'villager', 'villager'];
 
-    /** 辅助函数：推进到 seerCheck 步骤 */
+    /** Helper: advance to seerCheck step */
     function advanceToSeerCheck(ctx: ReturnType<typeof createGame>): void {
-      // 第一步是 wolfKill
+      // First step is wolfKill
       if (ctx.getGameState().currentStepId === 'wolfKill') {
-        // 狼放弃袭击
+        // Wolves skip attack
         ctx.sendPlayerMessage({
           type: 'WOLF_VOTE',
           seat: 1,

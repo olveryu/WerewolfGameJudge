@@ -1,9 +1,10 @@
 /**
- * BoardStrategyContent — 板子策略攻略 Accordion 内容组件
+ * BoardStrategyContent — accordion content component for board strategy guides.
  *
- * 展示板子核心博弈描述 + 可折叠的策略 sections（好人方/狼人方/第三方/首夜/翻车）。
- * 纯展示组件，不 import service，不含业务逻辑。
- * 通过 props 接收 boardName，从 BOARD_STRATEGY 查找数据。
+ * Shows the core gameplay description + collapsible strategy sections
+ * (good faction / wolf faction / third party / first night / pitfalls).
+ * Pure presentational component — no service imports, no business logic.
+ * Receives boardName via props and looks up data from BOARD_STRATEGY.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -40,7 +41,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface BoardStrategyContentProps {
-  /** 板子名称（对应 BOARD_STRATEGY 的 key） */
+  /** Board name (matches a key in BOARD_STRATEGY) */
   boardName: string;
 }
 

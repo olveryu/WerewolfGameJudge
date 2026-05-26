@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * SandStoneFrame — 砂岩
+ * SandStoneFrame — sandstone.
  *
- * 风化砂岩框 · 四角裂出的楔形石块 · 象形符号浮雕 · 风蚀曲线轮廓。
+ * Weathered sandstone frame · wedge-shaped fractured stones at the four corners · hieroglyphic relief · wind-eroded curve outline.
  */
 export const SandStoneFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

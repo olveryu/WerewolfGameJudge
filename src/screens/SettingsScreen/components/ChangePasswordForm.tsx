@@ -1,9 +1,9 @@
 /**
- * ChangePasswordForm — 修改密码内联表单
+ * ChangePasswordForm — inline change-password form
  *
- * 已登录邮箱用户在 SettingsScreen 中展开使用。
- * 三个字段：旧密码、新密码、确认新密码。客户端校验后调用 changePassword。
- * 使用 FormTextField 统一样式。不含业务逻辑，不 import service 层。
+ * Expanded within SettingsScreen for signed-in email users.
+ * Three fields: old password, new password, confirm new password. Calls changePassword after client-side validation.
+ * Uses FormTextField for unified styling. No business logic; does not import service layer.
  */
 import { memo, useCallback, useRef, useState } from 'react';
 import { Text, type TextInput, View } from 'react-native';
@@ -23,7 +23,7 @@ interface ChangePasswordFormProps {
   colors: ThemeColors;
 }
 
-/** 修改密码表单。 */
+/** Change-password form. */
 export const ChangePasswordForm = memo<ChangePasswordFormProps>(
   ({ onSubmit, onCancel, styles, colors }) => {
     const [oldPassword, setOldPassword] = useState('');

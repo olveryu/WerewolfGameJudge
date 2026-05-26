@@ -1,9 +1,9 @@
 /**
- * alert - 跨平台 Alert 封装
+ * alert - Cross-platform Alert wrapper
  *
- * 提供统一的 showAlert / setAlertListener API，在 Web 端使用自定义 Modal，
- * 在 Native 端使用 RN Alert.alert。支持 listener 模式驱动 AlertModal。
- * 不引入 React 组件、service 或游戏状态。
+ * Provides unified showAlert / setAlertListener API: uses custom Modal on Web,
+ * uses RN Alert.alert on Native. Supports listener mode to drive AlertModal.
+ * Does not import React components, services, or game state.
  */
 import { Alert, Platform } from 'react-native';
 
@@ -35,7 +35,7 @@ let alertListener: AlertListener | null = null;
 /**
  * When blocked, showAlert() is a no-op.
  * Used by the "继续游戏" overlay to prevent lower-priority alerts
- * (e.g. 夜间行动) from covering the continue-game button.
+ * (e.g. night action) from covering the continue-game button.
  */
 let alertBlocked = false;
 

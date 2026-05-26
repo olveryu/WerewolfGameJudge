@@ -1,14 +1,14 @@
 /**
  * Step-by-Step Night Runner
  *
- * 按真实 NightPlan 顺序逐步执行夜晚流程（禁止一键跑完）
+ * Execute night flow step-by-step in real NightPlan order (no one-shot fast-forward)
  *
- * 硬性要求：
- * 1. 每个步骤必须：提交真实 PlayerMessage.ACTION → advanceNight()
- * 2. 任何 gate（如 wolfRobotHunterStatusViewed）都必须由测试显式发送消息解除
- * 3. 禁止 helper 自动发送任何确认/ack 类消息
- * 4. 每次 sendPlayerMessage / advanceNight 必须 fail-fast（失败即 throw）
- * 5. advanceNightOrThrow 的单一实现来源是 ctx.advanceNightOrThrow()（在 gameFactory.ts）
+ * Hard requirements:
+ * 1. Each step must: submit real PlayerMessage.ACTION -> advanceNight()
+ * 2. Any gate (e.g. wolfRobotHunterStatusViewed) must be cleared by explicit test message
+ * 3. Helpers must NOT auto-send any confirmation/ack messages
+ * 4. Every sendPlayerMessage / advanceNight must fail-fast (throw on failure)
+ * 5. The single source of advanceNightOrThrow is ctx.advanceNightOrThrow() (in gameFactory.ts)
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -24,19 +24,19 @@ import type { GameContext } from './gameContext';
 // =============================================================================
 
 /**
- * 发送 PlayerMessage 并 fail-fast（失败即 throw）
+ * Send PlayerMessage and fail-fast (throw on failure)
  *
- * 这是所有 board integration tests 发送消息的单一 fail-fast 来源。
- * 禁止在测试文件或其他地方自行实现类似的 helper，以防止 drift。
+ * Single fail-fast entry point for all board integration tests to send messages.
+ * Do NOT reimplement similar helpers in test files or elsewhere to prevent drift.
  *
- * ⚠️ 硬性要求：
- * - 此函数不会自动发送任何 ack/gate 消息
- * - 所有 gate（REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED）必须由测试显式发送
+ * Hard requirements:
+ * - This function does NOT auto-send any ack/gate message
+ * - All gates (REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED) must be sent explicitly by tests
  *
  * @param ctx - GameContext
- * @param message - PlayerMessage 消息
- * @param context - 上下文信息（用于错误消息）
- * @throws 如果 sendPlayerMessage 返回 success: false
+ * @param message - PlayerMessage
+ * @param context - Context info (for error messages)
+ * @throws if sendPlayerMessage returns success: false
  */
 export function sendMessageOrThrow(
   ctx: GameContext,
@@ -66,15 +66,15 @@ export function sendMessageOrThrow(
 // =============================================================================
 
 /**
- * 自定义 action 配置
+ * Custom action config
  *
- * 支持的值类型：
- * - number: 目标座位
- * - null: 放弃袭击/不行动
- * - { save: number | null; poison: number | null }: 女巫 compound action
- * - { targets: number[] }: 魔术师交换
- * - { confirmed: boolean }: 确认类 action
- * - { cardIndex: number }: 盗宝大师选卡
+ * Supported value types:
+ * - number: target seat
+ * - null: skip attack / no action
+ * - { save: number | null; poison: number | null }: witch compound action
+ * - { targets: number[] }: magician swap
+ * - { confirmed: boolean }: confirmation-type action
+ * - { cardIndex: number }: Treasure Master card pick
  */
 type ActionValue =
   | number
@@ -87,12 +87,12 @@ type ActionValue =
 type CustomActions = Partial<Record<RoleId, ActionValue>>;
 
 /**
- * 执行结果
+ * Execution result
  */
 interface StepByStepResult {
-  /** 最终死亡列表 */
+  /** Final deaths list */
   deaths: number[];
-  /** 夜晚是否完成 */
+  /** Whether the night completed */
   completed: boolean;
 }
 
@@ -101,20 +101,20 @@ interface StepByStepResult {
 // =============================================================================
 
 /**
- * 按真实 NightPlan 顺序逐步执行到指定步骤（不跳过任何步骤）
+ * Execute step-by-step in real NightPlan order until target step (skipping nothing)
  *
- * 对每个步骤：
- * 1. 提交该角色的 action
- * 2. advanceNight() 到下一步
+ * For each step:
+ * 1. Submit that role's action
+ * 2. advanceNight() to next step
  *
- * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
- *    必须由测试在 customActions 回调中显式发送消息解除
+ * Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
+ *    must be cleared by explicit test message in customActions callback
  *
  * @param ctx - GameContext
- * @param targetStepId - 目标步骤 ID
- * @param customActions - 自定义某些角色的 action
- * @returns 是否成功到达目标步骤
- * @throws 如果 advanceNight 失败
+ * @param targetStepId - Target step ID
+ * @param customActions - Custom actions for specific roles
+ * @returns Whether target step was reached
+ * @throws if advanceNight fails
  */
 export function executeStepsUntil(
   ctx: GameContext,
@@ -128,15 +128,15 @@ export function executeStepsUntil(
     const currentStepId = state.currentStepId;
     if (!currentStepId) return false;
 
-    // 已到达目标
+    // Target reached
     if (currentStepId === targetStepId) {
       return true;
     }
 
-    // 执行当前步骤
+    // Execute current step
     executeCurrentStep(ctx, customActions);
 
-    // 推进到下一步（使用 ctx.advanceNightOrThrow - 单一实现来源）
+    // Advance to next step (use ctx.advanceNightOrThrow - single source)
     ctx.advanceNightOrThrow(`executeStepsUntil step "${currentStepId}"`);
   }
 
@@ -144,22 +144,22 @@ export function executeStepsUntil(
 }
 
 /**
- * 从当前步骤继续执行到 Night-1 结束
+ * Continue from current step to end of Night-1
  *
- * 语义：从当前 `GameState.currentStepId` 接着往后逐步执行，直到 Night-1 结束。
- * 支持先 `executeStepsUntil` 到某个步骤，再调用本函数继续跑完剩余流程。
+ * Semantics: continue step-by-step from current `GameState.currentStepId` until Night-1 ends.
+ * Supports calling `executeStepsUntil` to a step first, then invoking this to finish the rest.
  *
- * ⚠️ 硬性要求（MUST follow）：
- * - 本函数不会自动发送任何 ack/gate 消息
- * - 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
- *   必须由测试显式发送对应消息解除
- * - 遇到 gate 阻塞时会 throw（fail-fast），不会自动处理
+ * Hard requirements (MUST follow):
+ * - This function does NOT auto-send any ack/gate message
+ * - Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
+ *   must be cleared by explicit test message
+ * - Throws (fail-fast) when blocked by a gate; does NOT auto-handle
  *
  * @param ctx - GameContext
- * @param customActions - 自定义某些角色的 action
- * @returns 执行结果（deaths 列表 + 是否完成）
- * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
- * @throws 如果 state.status !== Ongoing 且 currentStepId 存在（状态不一致）
+ * @param customActions - Custom actions for specific roles
+ * @returns Execution result (deaths list + completion flag)
+ * @throws if advanceNight fails (including gate blockage)
+ * @throws if state.status !== Ongoing while currentStepId exists (inconsistent state)
  */
 export function executeRemainingSteps(
   ctx: GameContext,
@@ -167,7 +167,7 @@ export function executeRemainingSteps(
 ): StepByStepResult {
   const MAX_ITERATIONS = 30;
 
-  // Fail-fast 校验：状态必须合法（只读校验，不修改 state）
+  // Fail-fast check: state must be valid (read-only check, does not mutate state)
   const initialState = ctx.getGameState();
   if (initialState.currentStepId && initialState.status !== GameStatus.Ongoing) {
     throw new Error(
@@ -181,9 +181,9 @@ export function executeRemainingSteps(
     const state = ctx.getGameState();
     const currentStepId = state.currentStepId;
 
-    // Night 已结束（currentStepId 为空）
+    // Night already ended (currentStepId empty)
     if (!currentStepId) {
-      // 触发死亡结算
+      // Trigger death settlement
       const result = ctx.endNight();
       return {
         deaths: result.deaths,
@@ -191,7 +191,7 @@ export function executeRemainingSteps(
       };
     }
 
-    // 检查是否已经结束
+    // Check whether already ended
     if (state.status === GameStatus.Ended) {
       return {
         deaths: state.lastNightDeaths ?? [],
@@ -199,14 +199,14 @@ export function executeRemainingSteps(
       };
     }
 
-    // 执行当前步骤
+    // Execute current step
     executeCurrentStep(ctx, customActions);
 
-    // 推进到下一步（使用 ctx.advanceNightOrThrow - 单一实现来源）
+    // Advance to next step (use ctx.advanceNightOrThrow - single source)
     ctx.advanceNightOrThrow(`executeRemainingSteps step "${currentStepId}"`);
   }
 
-  // 超出最大迭代次数，触发结束
+  // Exceeded max iterations, trigger end
   const result = ctx.endNight();
   return {
     deaths: result.deaths,
@@ -215,34 +215,34 @@ export function executeRemainingSteps(
 }
 
 /**
- * 执行完整的 Night-1 流程（测试意图层别名）
+ * Execute the full Night-1 flow (test-intent alias)
  *
- * ⚠️ 这是 `executeRemainingSteps` 的薄封装，用于提升测试可读性。
+ * This is a thin wrapper around `executeRemainingSteps` to improve test readability.
  *
- * ⚠️ 硬性护栏（MUST follow）：
- * - 本函数**不会** start night、不会重置 state
- * - 本函数**不会**自动处理任何 ack/gate，包括：
- *   - pendingRevealAcks（需要测试显式发送 REVEAL_ACK）
- *   - wolfRobotHunterStatusViewed（需要测试显式发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED）
- * - gate 必须由测试显式发送对应消息解除
- * - 遇到 gate 阻塞时会 throw（fail-fast），不会自动处理
+ * Hard guardrails (MUST follow):
+ * - This function does **NOT** start night or reset state
+ * - This function does **NOT** auto-handle any ack/gate, including:
+ *   - pendingRevealAcks (test must send REVEAL_ACK explicitly)
+ *   - wolfRobotHunterStatusViewed (test must send WOLF_ROBOT_HUNTER_STATUS_VIEWED explicitly)
+ * - Gates must be cleared by explicit test message
+ * - Throws (fail-fast) when blocked by a gate; does NOT auto-handle
  *
- * 禁止在本函数内新增：
- * - 自动发 REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED
- * - 自动清任何 gate
- * - 自动 skip step / fast-forward / jump
- * - 任何"遇到 gate 就帮忙处理"的逻辑
+ * Do NOT add to this function:
+ * - Auto-sending REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED
+ * - Auto-clearing any gate
+ * - Auto skip step / fast-forward / jump
+ * - Any "auto-handle when encountering a gate" logic
  *
  * @param ctx - GameContext
- * @param customActions - 自定义某些角色的 action
- * @returns 执行结果（deaths 列表 + 是否完成）
- * @throws 如果 advanceNight 失败（包括被 gate 阻塞）
+ * @param customActions - Custom actions for specific roles
+ * @returns Execution result (deaths list + completion flag)
+ * @throws if advanceNight fails (including gate blockage)
  */
 export function executeFullNight(
   ctx: GameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
-  // 薄封装：只调用 executeRemainingSteps，禁止添加任何额外逻辑
+  // Thin wrapper: only call executeRemainingSteps, do NOT add any extra logic
   return executeRemainingSteps(ctx, customActions);
 }
 
@@ -251,12 +251,12 @@ export function executeFullNight(
 // =============================================================================
 
 /**
- * 执行当前步骤（不推进）
+ * Execute the current step (without advancing)
  *
- * 仅提交当前步骤的 action。
+ * Only submits the action for the current step.
  *
- * ⚠️ 任何 gate（如 pendingRevealAcks / wolfRobotHunterStatusViewed）
- *    必须由测试在 customActions 回调中显式发送消息解除
+ * Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
+ *    must be cleared by explicit test message in customActions callback
  */
 function executeCurrentStep(ctx: GameContext, customActions: CustomActions): void {
   const plan = ctx.getNightPlan();
@@ -264,7 +264,7 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
   const currentStepId = state.currentStepId;
   if (!currentStepId) return;
 
-  // 找到当前步骤的配置
+  // Find the config for the current step
   const stepConfig = plan.steps.find((s) => s.stepId === currentStepId);
   if (!stepConfig) return;
 
@@ -272,33 +272,33 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
   let actorSeat = ctx.findSeatByRole(roleId);
   let actorRole: RoleId = roleId;
 
-  // TreasureMaster actor override: 所选底牌角色的步骤由盗宝大师代行
+  // TreasureMaster actor override: the chosen deck card role's step is performed by Treasure Master
   if (actorSeat === -1) {
     const state2 = ctx.getGameState();
     if (state2.treasureMasterChosenCard === roleId && state2.treasureMasterSeat != null) {
       actorSeat = state2.treasureMasterSeat;
-      actorRole = 'treasureMaster' as RoleId; // Gate 4b/5b 要求发送实际座位角色
+      actorRole = 'treasureMaster' as RoleId; // Gate 4b/5b requires sending the actual seat's role
     } else if (state2.thiefChosenCard === roleId && state2.thiefSeat != null) {
       actorSeat = state2.thiefSeat;
       actorRole = 'thief' as RoleId;
     } else {
-      // 该角色不在模板中，跳过（advanceNight 会在外层调用）
+      // Role not in template, skip (advanceNight will be called by caller)
       return;
     }
   }
 
-  // 获取自定义 action
+  // Get custom action
   const actionValue = customActions[roleId];
 
-  // 根据步骤类型提交 action
+  // Submit action based on step type
   submitActionForStep(ctx, currentStepId, actorRole, actorSeat, actionValue);
 
-  // ⚠️ 注意：reveal ack / wolfRobot hunter gate 等确认消息
-  // 必须由测试在 customActions 中显式处理，不在此自动发送
+  // Note: reveal ack / wolfRobot hunter gate and other confirmation messages
+  // must be sent explicitly by the test in customActions; not auto-sent here
 }
 
 /**
- * 根据步骤类型提交对应的 action
+ * Submit the corresponding action based on step type
  */
 function submitActionForStep(
   ctx: GameContext,
@@ -335,13 +335,13 @@ function submitActionForStep(
     // groupConfirm: auto-completes after audio, no action submission needed
     return;
   } else {
-    // 普通 action（seer, guard, nightmare, etc.）
+    // Normal action (seer, guard, nightmare, etc.)
     submitNormalAction(ctx, stepId, roleId, actorSeat, actionValue);
   }
 }
 
 /**
- * 提交盗宝大师选卡 action
+ * Submit Treasure Master card pick action
  */
 function submitChooseCardAction(
   ctx: GameContext,
@@ -369,7 +369,7 @@ function submitChooseCardAction(
 }
 
 /**
- * 提交袭击 action
+ * Submit attack action
  */
 function submitWolfKillAction(
   ctx: GameContext,
@@ -380,8 +380,8 @@ function submitWolfKillAction(
   const target = typeof actionValue === 'number' ? actionValue : null;
   const state = ctx.getGameState();
 
-  // 所有参与袭击的狼投票（fail-fast）
-  // 注意：只有 participatesInWolfVote=true 的角色才发送 WOLF_VOTE
+  // All wolves participating in attack vote (fail-fast)
+  // Note: only roles with participatesInWolfVote=true send WOLF_VOTE
   if (target !== null) {
     for (const [seatStr, player] of Object.entries(state.players)) {
       const seat = Number.parseInt(seatStr, 10);
@@ -400,13 +400,13 @@ function submitWolfKillAction(
     }
   }
 
-  // 找到 lead wolf seat（参与袭击的第一个狼）
+  // Find lead wolf seat (first wolf participating in attack)
   let leadWolfSeat = actorSeat;
   let leadWolfRole: RoleId = 'wolf';
   for (const [seatStr, player] of Object.entries(state.players)) {
     const seat = Number.parseInt(seatStr, 10);
     const role = player?.role;
-    // 只有 participatesInWolfVote=true 的角色能成为 lead wolf
+    // Only roles with participatesInWolfVote=true can be lead wolf
     if (role && doesRoleParticipateInWolfVote(role)) {
       leadWolfSeat = seat;
       leadWolfRole = role;
@@ -428,7 +428,7 @@ function submitWolfKillAction(
 }
 
 /**
- * 提交女巫 action
+ * Submit witch action
  */
 function submitWitchAction(
   ctx: GameContext,
@@ -441,7 +441,7 @@ function submitWitchAction(
   if (actionValue && typeof actionValue === 'object' && 'save' in actionValue) {
     stepResults = actionValue as { save: number | null; poison: number | null };
   } else if (typeof actionValue === 'number') {
-    // 单个数字表示救人
+    // A single number means save
     stepResults = { save: actionValue, poison: null };
   }
 
@@ -459,7 +459,7 @@ function submitWitchAction(
 }
 
 /**
- * 提交魔术师交换 action
+ * Submit magician swap action
  */
 function submitMagicianSwapAction(
   ctx: GameContext,
@@ -487,10 +487,10 @@ function submitMagicianSwapAction(
 }
 
 /**
- * 提交确认类 action
+ * Submit confirmation-type action
  *
- * 默认 confirmed = true（正常情况下确认通过）
- * 如果测试需要跳过（confirmed: false），必须显式指定
+ * Defaults confirmed = true (normal confirm passes)
+ * Tests that need to skip (confirmed: false) must specify explicitly
  */
 function submitConfirmAction(
   ctx: GameContext,
@@ -499,7 +499,7 @@ function submitConfirmAction(
   actorSeat: number,
   actionValue: ActionValue | undefined,
 ): void {
-  // 默认 true：正常情况下确认步骤需要 confirmed: true
+  // Default true: under normal conditions, confirm step requires confirmed: true
   let confirmed = true;
 
   if (actionValue && typeof actionValue === 'object' && 'confirmed' in actionValue) {
@@ -520,7 +520,7 @@ function submitConfirmAction(
 }
 
 /**
- * 提交吹笛者催眠 action（multiChooseSeat）
+ * Submit Piper hypnotize action (multiChooseSeat)
  */
 function submitPiperHypnotizeAction(
   ctx: GameContext,
@@ -553,7 +553,7 @@ function submitPiperHypnotizeAction(
 }
 
 /**
- * 提交丘比特选情侣 action（multiChooseSeat, 2 targets）
+ * Submit Cupid choose-lovers action (multiChooseSeat, 2 targets)
  */
 function submitCupidChooseLoversAction(
   ctx: GameContext,
@@ -584,7 +584,7 @@ function submitCupidChooseLoversAction(
 }
 
 /**
- * 提交普通 action
+ * Submit normal action
  */
 function submitNormalAction(
   ctx: GameContext,
@@ -608,5 +608,5 @@ function submitNormalAction(
   );
 }
 
-// ⚠️ 已删除 handleRevealAck / handleWolfRobotHunterGate
-// 所有确认类消息必须由测试在 customActions 回调中显式发送
+// handleRevealAck / handleWolfRobotHunterGate have been removed
+// All confirmation messages must be sent explicitly by tests in customActions callback

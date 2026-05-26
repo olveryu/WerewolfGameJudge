@@ -1,11 +1,11 @@
 /**
- * GeneratedAvatar — 程序化 SVG 头像组件
+ * GeneratedAvatar — Procedural SVG avatar component
  *
- * 从 boring-avatars (MIT) fork 两种变体的核心算法，
- * 适配 react-native-svg 渲染。
+ * Forks the core algorithms of two variants from boring-avatars (MIT),
+ * adapted for react-native-svg rendering.
  *
- * - Common (`genC*`): **ring** — 多色同心环
- * - Rare (`genR*`): **beam** — 卡通圆脸 + 五官
+ * - Common (`genC*`): **ring** — multicolor concentric rings
+ * - Rare (`genR*`): **beam** — cartoon round face + features
  *
  * @see https://github.com/boringdesigners/boring-avatars
  */
@@ -95,7 +95,7 @@ function generateRingColors(name: string, palette: readonly string[]): string[] 
   const shuffled = Array.from({ length: RING_NUM_COLORS }, (_, i) =>
     getRandomColor(numFromName + i, palette, range),
   );
-  // Map 5 shuffled colors → 9 ring segments (as per boring-avatars algorithm)
+  // Map 5 shuffled colors -> 9 ring segments (as per boring-avatars algorithm)
   return [
     shuffled[0]!,
     shuffled[1]!,

@@ -1,14 +1,14 @@
 /**
- * FilmRewind - 胶片倒放揭示动画（Skia + Reanimated 4）
+ * FilmRewind - Film rewind reveal animation (Skia + Reanimated 4)
  *
- * 视觉设计：老旧电影放映机风格 — 暖色投影灯光 + 胶片边框齿孔 +
- * 倒计时数字(5→0) + 胶片颗粒噪点 + 闪烁 + 竖划痕 + 暗角。
- * 交互：点击屏幕启动放映，5→0 倒计时后自动揭示（无需持续操作）。
- * 属于 AUTO_EFFECTS — 点击后自动完成。
+ * Visual design: vintage projector style - warm projection light + film border sprocket holes +
+ * countdown numbers (5->0) + film grain noise + flicker + vertical scratches + vignette.
+ * Interaction: tap to start projection, 5->0 countdown auto-reveals (no continued action needed).
+ * Belongs to AUTO_EFFECTS - completes automatically after tap.
  *
- * Skia 负责：胶片边框 + 齿孔 + 噪点 + 划痕 + 倒计时圆环 + 暗角。
- * Reanimated 负责：齿孔滚动 + 闪烁 + 阶段切换 + 卡片入场。
- * 不 import service，不含业务逻辑。
+ * Skia handles: film borders + sprocket holes + noise + scratches + countdown ring + vignette.
+ * Reanimated handles: sprocket scroll + flicker + phase transitions + card entrance.
+ * Does not import service, contains no business logic.
  */
 import {
   Canvas,

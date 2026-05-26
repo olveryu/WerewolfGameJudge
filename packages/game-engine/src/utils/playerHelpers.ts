@@ -1,16 +1,16 @@
 /**
- * Player Iteration Helpers — 消除 Object.entries(state.players) 样板代码
+ * Player Iteration Helpers — eliminates Object.entries(state.players) boilerplate
  *
- * 提供三种常用 player 迭代模式的类型安全封装，
- * 避免每次手动 Number.parseInt(seatStr, 10) 转换 key 类型。
- * 仅包含纯函数，不包含 IO。
+ * Provides type-safe wrappers for three common player iteration patterns,
+ * avoiding manual Number.parseInt(seatStr, 10) key conversion every time.
+ * Pure functions only, no IO.
  */
 import type { RoleId } from '../models';
 import type { GameState } from '../protocol/types';
 
 type Players = GameState['players'];
 
-/** 构建 seat → RoleId 映射（仅含已分配角色的座位） */
+/** Builds a seat -> RoleId map (only seats with assigned roles) */
 export function buildSeatRoleMap(players: Players): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
   for (const [seatStr, player] of Object.entries(players)) {
@@ -21,7 +21,7 @@ export function buildSeatRoleMap(players: Players): Map<number, RoleId> {
   return map;
 }
 
-/** 查找拥有指定角色的座位号（未找到返回 null） */
+/** Finds the seat holding the given role (returns null if not found) */
 export function findSeatByRole(players: Players, roleId: RoleId): number | null {
   for (const [seatStr, player] of Object.entries(players)) {
     if (player?.role === roleId) {
@@ -31,7 +31,7 @@ export function findSeatByRole(players: Players, roleId: RoleId): number | null 
   return null;
 }
 
-/** 遍历所有非空座位，回调 (seat, player) */
+/** Iterates over all non-empty seats, calling callback(seat, player) */
 export function forEachSeatedPlayer(
   players: Players,
   callback: (seat: number, player: NonNullable<Players[number]>) => void,
@@ -44,13 +44,14 @@ export function forEachSeatedPlayer(
 }
 
 /**
- * 获取底牌角色（盗贼/盗宝大师）的有效角色。
+ * Returns the effective role for deck-card roles (thief / treasureMaster).
  *
- * 底牌角色选卡后以所选卡的身份行动（狼人投票、女巫用药等），
- * 但 player.role 始终保留原始角色。此函数统一"原始角色 → 有效角色"映射，
- * 供狼人投票参与判定、UI actioner 判定、推进完成度检查等场景共用。
+ * After a deck-card role selects a card, they act as that card's identity (wolf vote, witch potions, etc.),
+ * but player.role always retains the original role. This function provides the unified
+ * "original role -> effective role" mapping, used for wolf-vote participation, UI actioner
+ * resolution, progression completeness checks, etc.
  *
- * 非底牌角色或尚未选卡时原样返回。
+ * Returns as-is for non-deck-card roles or when no card has been chosen.
  */
 export function getBottomCardEffectiveRole(
   role: RoleId,
@@ -63,8 +64,8 @@ export function getBottomCardEffectiveRole(
 }
 
 /**
- * treasureMaster 永远不参与 wolfVote（即使选了狼牌也不见面、不投票）。
- * 在所有 wolfVote 消费点使用 originalRole 做排除。
+ * treasureMaster never participates in wolfVote (even after picking a wolf card,
+ * they don't see wolves and don't vote). All wolfVote consumers exclude based on originalRole.
  */
 export function isBottomCardWolfVoteExcluded(originalRole: RoleId): boolean {
   return originalRole === 'treasureMaster';

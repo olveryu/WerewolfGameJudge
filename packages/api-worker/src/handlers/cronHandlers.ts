@@ -1,9 +1,9 @@
 /**
- * Cron Handlers — 定时清理任务
+ * Cron Handlers — scheduled cleanup tasks
  *
- * 由 Cloudflare Cron Trigger 每日 UTC 03:00 触发。
- * - 删除 24 小时前创建的过期房间
- * - 清理 14 天不活跃的匿名用户（需非任何房间 host）
+ * Triggered by Cloudflare Cron Trigger daily at UTC 03:00.
+ * - Deletes expired rooms created over 24 hours ago
+ * - Cleans up anonymous users inactive for 14 days (must not be host of any room)
  */
 
 import { sql } from 'drizzle-orm';

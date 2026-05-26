@@ -1,8 +1,8 @@
 /**
- * VortexEyePet — 漩涡眼
+ * VortexEyePet — Vortex Eye.
  *
- * vortexCollapse 翻牌动画的伴生宠物。
- * 深紫水滴体 + 触手摆动 + 大眼 + 漩涡虹膜持续旋转 + 瞳孔高光。
+ * Companion pet for the vortexCollapse flip animation.
+ * Deep-purple blob body + tentacle wobble + big eye + continuously rotating vortex iris + pupil highlight.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

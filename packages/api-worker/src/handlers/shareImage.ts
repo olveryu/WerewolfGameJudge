@@ -1,14 +1,14 @@
 /**
- * handlers/shareImage — 临时分享图片 Hono routes (R2)
+ * handlers/shareImage — temporary share image Hono routes (R2)
  *
- * POST /share/image — 接收 JSON { base64 }，
- * 存入 R2 `share/` prefix，返回公开 URL。
- * 图片通过 R2 lifecycle rule 自动过期清理（1 天）。
- * GET /share/:key — 从 R2 提供图片文件。
+ * POST /share/image — accepts JSON { base64 },
+ * stores under R2 `share/` prefix, returns public URL.
+ * Images expire automatically via R2 lifecycle rule (1 day).
+ * GET /share/:key — serves image file from R2.
  *
- * @throws 401 — requireAuth 未通过（仅 POST）
- * @throws 400 — base64 解码失败或超过大小限制
- * @throws 404 — GET 时 key 不存在
+ * @throws 401 — requireAuth failed (POST only)
+ * @throws 400 — base64 decode failed or exceeds size limit
+ * @throws 404 — key not found on GET
  */
 
 import { Hono } from 'hono';
@@ -24,10 +24,10 @@ function randomHex(bytes: number): string {
   return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** 分享图片上传路由。 */
+/** Share image upload routes. */
 export const shareRoutes = new Hono<AppEnv>();
 
-// POST /share/image — 上传分享图片
+// POST /share/image — upload share image
 shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async (c) => {
   const env = c.env;
   if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
@@ -60,7 +60,7 @@ shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async 
   return c.json({ url: publicUrl.toString() }, 200);
 });
 
-// GET /share/:key+ — 从 R2 提供图片
+// GET /share/:key+ — serve image from R2
 shareRoutes.get('/:key{.+}', async (c) => {
   const env = c.env;
   if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);

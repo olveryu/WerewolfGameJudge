@@ -1,13 +1,13 @@
 /**
- * FortuneWheel - 命运转盘揭示动画（Skia + RN Text + Reanimated 4 + Gesture Handler）
+ * FortuneWheel - Fortune wheel reveal animation (Skia + RN Text + Reanimated 4 + Gesture Handler)
  *
- * 视觉设计：宝石色彩扇形 + 金色外圈转盘，每格显示角色名（RN Text），顶部固定指针。
- * 交互：Pan 拖拽/flick 旋转转盘，减速后停在玩家真实角色。
- * 停止后：闪光 → 转盘淡出 → 卡牌放大揭示。
+ * Visual design: jewel-tone sectors + golden outer rim, each segment shows role name (RN Text), fixed pointer at top.
+ * Interaction: Pan drag/flick spins the wheel; decelerates and stops on the player's actual role.
+ * After stop: flash -> wheel fades out -> card scales up to reveal.
  *
- * 角色名使用 RN Text overlay（Skia matchFont 在 web 不可用），通过
- * Animated.View rotation 同步跟随 Skia 转盘旋转。
- * 不 import service，不含业务逻辑。
+ * Role names use RN Text overlay (Skia matchFont unavailable on web); synced with Skia wheel rotation
+ * via Animated.View rotation.
+ * No service imports, no business logic.
  */
 import {
   Blur,

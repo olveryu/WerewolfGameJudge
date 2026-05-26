@@ -1,13 +1,13 @@
 /**
- * Game Reducer - 状态归约器（compose shell）
+ * Game Reducer - state reducer (compose shell)
  *
- * 纯函数：(state, action) => newState
+ * Pure function: (state, action) => newState
  *
- * 子 reducer 按 action category 拆分至：
- * - lifecycleReducers  — 初始化、重启、入座、角色分配等生命周期
- * - nightActionReducers — 夜晚流程推进、resolver 结果、状态设置
+ * Sub-reducers are split by action category into:
+ * - lifecycleReducers  — initialization, restart, seating, role assignment, etc.
+ * - nightActionReducers — night flow progression, resolver results, state setters
  *
- * 本文件仅保留 switch 路由和极简 inline cases。
+ * This file retains only switch routing and minimal inline cases.
  */
 
 import type { GameState } from '../store/types';
@@ -43,7 +43,7 @@ import {
 import type { StateAction } from './types';
 
 /**
- * 游戏状态归约器
+ * Game state reducer
  */
 export function gameReducer(state: GameState, action: StateAction): GameState {
   switch (action.type) {

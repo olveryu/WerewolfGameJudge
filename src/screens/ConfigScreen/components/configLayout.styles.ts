@@ -1,5 +1,5 @@
 /**
- * ConfigScreen layout / scaffold styles — container, headers, cards, scroll, loading.
+ * ConfigScreen layout / scaffold styles -- container, headers, cards, scroll, loading.
  *
  * Used primarily by ConfigScreen.tsx itself.
  */
@@ -18,7 +18,7 @@ import {
   typography,
 } from '@/theme';
 
-/** 创建配置屏幕布局样式。 */
+/** Create ConfigScreen layout styles. */
 export const createConfigLayoutStyles = (colors: ThemeColors) => ({
   container: {
     flex: 1,

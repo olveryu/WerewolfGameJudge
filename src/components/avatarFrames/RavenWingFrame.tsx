@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * RavenWingFrame — 鸦羽
+ * RavenWingFrame — Raven Feather
  *
- * 漆黑乌鸦翼框 · 四角大型翼展向外张开 · 羽毛层叠覆盖边缘 · 鸦眼红色宝石。
+ * Pitch-black raven wing frame · large wingspans flare from the four corners · layered feathers cover the edges · red gemstone raven eyes.
  */
 export const RavenWingFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,8 +1,8 @@
 /**
- * InlayFrame — 嵌边
+ * InlayFrame — Inlay
  *
  * Thick outer border with a colored inlay stripe running inside.
- * Rare 级头像框模板 — visually richer than common (3-layer border stack).
+ * Rare-tier avatar frame template — visually richer than common (3-layer border stack).
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

@@ -1,8 +1,8 @@
 /**
- * CardSpritePet — 牌灵
+ * CardSpritePet — card sprite
  *
- * cardPick 翻牌动画的伴生宠物。
- * 绿色小精灵坐在扑克牌上，翅膀轻摆 + 星光闪烁。
+ * Companion pet for the cardPick flip animation.
+ * A green sprite sits on a playing card with gentle wing wobble + sparkle twinkle.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

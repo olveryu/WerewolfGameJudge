@@ -3,7 +3,7 @@
  *
  * This is a discriminated union that covers all possible night actions.
  * No magic numbers, no encoding/decoding - just plain structured data.
- * 导出类型定义和 type guard 纯函数，不依赖 service、不含副作用或业务逻辑。
+ * Exports type definitions and pure type guard functions; no service dependencies, side effects, or business logic.
  */
 
 import { type WitchAction } from './WitchAction';

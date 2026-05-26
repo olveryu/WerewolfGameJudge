@@ -1,12 +1,12 @@
 /**
- * handlers/night — 夜晚阶段 Hono routes (Workers 版)
+ * handlers/night — night-phase Hono routes (Workers edition)
  *
- * Thin router 层：zod 校验 → DO RPC → 错误处理 → 返回响应。
- * 夜晚逻辑在 DO (GameRoom) 内部执行。
+ * Thin router layer: zod validation -> DO RPC -> error handling -> response.
+ * Night logic runs inside the DO (GameRoom).
  *
- * @throws 400 — zod 校验失败（VALIDATION_ERROR）或 DO 返回 success:false
- * @throws 503 — callDO 检测 DO retryable error
- * @throws 429 — callDO 检测 DO overloaded
+ * @throws 400 — zod validation failure (VALIDATION_ERROR) or DO returns success:false
+ * @throws 503 — callDO detects a DO retryable error
+ * @throws 429 — callDO detects DO overloaded
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -22,7 +22,7 @@ import {
 } from '../schemas/night';
 import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
 
-/** 夜间行动路由。 */
+/** Night action routes. */
 export const nightRoutes = new Hono<AppEnv>();
 
 // ── Night handlers ──────────────────────────────────────────────────────────

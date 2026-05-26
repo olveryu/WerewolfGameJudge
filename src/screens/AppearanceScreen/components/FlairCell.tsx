@@ -25,7 +25,7 @@ interface FlairCellProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 德誉网格单元格。 */
+/** Flair grid cell. */
 export const FlairCell = memo<FlairCellProps>(
   ({ item, selectedFlair, previewAvatarUrl, userId, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);

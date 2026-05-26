@@ -136,7 +136,7 @@ describe('ConfigScreen', () => {
     it('should render role chips for active tab', () => {
       const { getByText, getByTestId } = renderWithFacade(<ConfigScreen />);
 
-      // Default active tab is good — god role chips should be visible
+      // Default active tab is good -- god role chips should be visible
       expect(getByText('女巫')).toBeTruthy();
       expect(getByText('预言家')).toBeTruthy();
       expect(getByTestId('config-stepper-dec-villager')).toBeTruthy();

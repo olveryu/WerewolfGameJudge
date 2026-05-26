@@ -1,8 +1,8 @@
 /**
- * CapsulePet — 蛋仔
+ * CapsulePet — egg buddy
  *
- * gachaMachine 翻牌动画的伴生宠物。
- * 扭蛋球造型，上下半壳 + 眼睛从接缝窥视 + 脸红 + 小脚，壳盖一开一合。
+ * Companion pet for the gachaMachine reveal animation.
+ * Gacha capsule shape: top/bottom halves + eyes peeking from seam + blush + small feet, lid bobs open and shut.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

@@ -1,8 +1,8 @@
 /**
  * confirmContext.test.ts
  *
- * 测试 maybeCreateConfirmStatusAction 纯函数（公共 API）
- * confirmStatus 计算逻辑通过公共 API 间接覆盖
+ * Tests the maybeCreateConfirmStatusAction pure function (public API).
+ * confirmStatus computation logic is indirectly covered via the public API.
  */
 
 import {
@@ -48,15 +48,15 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
 }
 
 // =============================================================================
-// maybeCreateConfirmStatusAction — confirm 计算逻辑
+// maybeCreateConfirmStatusAction — confirm computation logic
 // =============================================================================
 
 describe('maybeCreateConfirmStatusAction', () => {
-  // ---- hunter canShoot 正确性 ----
+  // ---- hunter canShoot correctness ----
 
   it('猎人未被毒 → canShoot = true', () => {
     const state = createOngoingState({
-      currentNightResults: { poisonedSeat: 3 }, // 毒了 seat 3 (villager)
+      currentNightResults: { poisonedSeat: 3 }, // poisoned seat 3 (villager)
     });
     const action = maybeCreateConfirmStatusAction('hunterConfirm', state);
     expect(action).toEqual({

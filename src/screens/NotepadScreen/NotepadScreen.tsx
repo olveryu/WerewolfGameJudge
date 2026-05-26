@@ -1,10 +1,10 @@
 /**
- * NotepadScreen - 全屏笔记本页面
+ * NotepadScreen - full-screen notepad page
  *
- * 独立 Screen，从 RoomScreen 的 BoardInfoCard "笔记"按钮导航进入（modal presentation）。
- * 展示单列笔记面板 + 公共笔记区 + 阵营图例。
- * 通过 useGameFacade() 获取 facade → useNotepad 管理纯客户端笔记状态。
- * 不直接调用 service（笔记持久化由 useNotepad 内部 AsyncStorage 完成）。
+ * Standalone screen, navigated to from RoomScreen's BoardInfoCard "笔记" button (modal presentation).
+ * Shows a single-column notepad panel + public note area + faction legend.
+ * Uses useGameFacade() to get the facade -> useNotepad manages pure-client notepad state.
+ * Does not call services directly (notepad persistence is handled inside useNotepad via AsyncStorage).
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -33,7 +33,7 @@ import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { createNotepadScreenStyles } from './NotepadScreen.styles';
 
 // ── Component ────────────────────────────────────────────
-/** 记事本屏幕。 */ export const NotepadScreen: React.FC = () => {
+/** Notepad screen. */ export const NotepadScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createNotepadScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();

@@ -16,12 +16,12 @@ import { withSetup } from '../helpers/night-setup';
 /**
  * Night Roles E2E — HiddenWolf + Crow coverage.
  *
- * NIGHT_STEPS order: crowCurse → wolfKill → hiddenWolfReveal → seerCheck
+ * NIGHT_STEPS order: crowCurse -> wolfKill -> hiddenWolfReveal -> seerCheck
  *
  * Tests:
- * - Seer checks hiddenWolf → reveals 好人 (core mechanic)
+ * - Seer checks hiddenWolf -> reveals good (core mechanic)
  * - Crow curse action completes successfully
- * - Crow skips curse via "不用技能"
+ * - Crow skips curse via "skip skill"
  */
 
 test.setTimeout(180_000);
@@ -32,8 +32,8 @@ test.setTimeout(180_000);
 
 test.describe('Night Roles — HiddenWolf + Crow', () => {
   // --------------------------------------------------------------------------
-  // Seer checks hiddenWolf → 好人
-  // Night order for this config: wolfKill → hiddenWolfReveal → seerCheck
+  // Seer checks hiddenWolf -> good
+  // Night order for this config: wolfKill -> hiddenWolfReveal -> seerCheck
   // --------------------------------------------------------------------------
   test('seer checks hiddenWolf → reveal shows 好人', async ({ browser }) => {
     await withSetup(
@@ -104,9 +104,9 @@ test.describe('Night Roles — HiddenWolf + Crow', () => {
 
   // --------------------------------------------------------------------------
   // Crow curses a player successfully
-  // Night order: crowCurse → wolfKill (crow acts BEFORE wolf)
+  // Night order: crowCurse -> wolfKill (crow acts BEFORE wolf)
   // --------------------------------------------------------------------------
-  test('crow curses a target → action completes', async ({ browser }) => {
+  test('crow curses a target -> action completes', async ({ browser }) => {
     await withSetup(
       browser,
       {
@@ -148,8 +148,8 @@ test.describe('Night Roles — HiddenWolf + Crow', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Crow skips curse → night completes normally
-  // Night order: crowCurse → wolfKill (crow acts BEFORE wolf)
+  // Crow skips curse -> night completes normally
+  // Night order: crowCurse -> wolfKill (crow acts BEFORE wolf)
   // --------------------------------------------------------------------------
   test('crow skips curse via 不用技能 → night completes', async ({ browser }) => {
     await withSetup(

@@ -1,9 +1,9 @@
 /**
- * usePWAInstall - PWA 安装到主屏幕
+ * usePWAInstall - install PWA to home screen
  *
- * 封装 `beforeinstallprompt`（Android/桌面 Chrome）与 iOS 浏览器手动引导逻辑。
- * 仅在 Web 平台 + 非 standalone 模式下有效。涵盖平台检测、localStorage 读写、触发系统安装弹窗。
- * 不 import service，不直接操作 DOM。
+ * Wraps `beforeinstallprompt` (Android/desktop Chrome) and iOS browser manual guide logic.
+ * Only effective on Web platform + non-standalone mode. Covers platform detection, localStorage read/write, triggering the system install dialog.
+ * Does not import service, does not directly manipulate DOM.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
@@ -23,20 +23,20 @@ declare global {
 
 type PWAInstallMode = 'prompt' | 'ios-guide' | 'hidden';
 
-/** iOS 浏览器类型，用于展示对应的引导步骤 */
+/** iOS browser type, used to display the corresponding guide steps */
 type IOSBrowser = 'safari' | 'chrome' | 'other';
 
 interface PWAInstallResult {
-  /** 当前安装模式：prompt（可一键安装）、ios-guide（需引导）、hidden（不显示） */
+  /** Current install mode: prompt (one-click install), ios-guide (needs guide), hidden (not shown) */
   mode: PWAInstallMode;
-  /** iOS 浏览器类型（仅 ios-guide 模式有意义），用于展示对应引导步骤 */
+  /** iOS browser type (only meaningful in ios-guide mode), used to display the corresponding guide steps */
   iosBrowser: IOSBrowser | null;
-  /** 触发安装。prompt 模式调用系统弹窗；ios-guide 模式由调用方展示引导 UI */
+  /** Trigger install. prompt mode calls the system dialog; ios-guide mode is shown by caller's guide UI */
   install: () => Promise<void>;
 }
 
 /**
- * 检测是否以 standalone 模式运行（已安装 PWA）
+ * Detect whether running in standalone mode (PWA installed)
  */
 function isStandalone(): boolean {
   if (Platform.OS !== 'web') return false;
@@ -48,7 +48,7 @@ function isStandalone(): boolean {
 }
 
 /**
- * 检测 iOS 浏览器（排除微信 WebView，微信已在 HTML 层蒙层拦截）
+ * Detect iOS browser (excludes WeChat WebView; WeChat is intercepted at the HTML overlay layer)
  */
 function isIOSBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -61,53 +61,53 @@ function isIOSBrowser(): boolean {
 }
 
 /**
- * 检测 iOS 上的具体浏览器类型
+ * Detect the specific browser type on iOS
  */
 function detectIOSBrowser(): IOSBrowser {
   if (typeof navigator === 'undefined') return 'other';
   const ua = navigator.userAgent;
   if (/CriOS/i.test(ua)) return 'chrome';
-  // 排除内嵌 WebView / 其他第三方浏览器后，默认 Safari
+  // After excluding embedded WebView / other third-party browsers, default to Safari
   if (!/FxiOS|EdgiOS|OPiOS/i.test(ua)) return 'safari';
   return 'other';
 }
 
 /**
- * 管理 PWA 安装提示状态（Chromium beforeinstallprompt / iOS 引导）。
+ * Manage PWA install prompt state (Chromium beforeinstallprompt / iOS guide).
  *
- * @returns 安装模式、iOS 浏览器类型、触发安装和关闭回调
+ * @returns install mode, iOS browser type, trigger install and close callbacks
  */
 export function usePWAInstall(): PWAInstallResult {
   const [mode, setMode] = useState<PWAInstallMode>('hidden');
   const [iosBrowser, setIOSBrowser] = useState<IOSBrowser | null>(null);
 
   useEffect(() => {
-    // 非 Web 平台或已安装，不显示
+    // Not Web platform or already installed: do not show
     if (Platform.OS !== 'web' || isStandalone()) {
       setMode('hidden');
       return;
     }
 
-    // Android/桌面 Chrome 已捕获 prompt 事件
+    // Android/desktop Chrome has captured the prompt event
     if (window.__pwaInstallPrompt) {
       setMode('prompt');
       return;
     }
 
-    // iOS 浏览器（Safari / Chrome / Firefox 等）
+    // iOS browser (Safari / Chrome / Firefox, etc.)
     if (isIOSBrowser()) {
       setMode('ios-guide');
       setIOSBrowser(detectIOSBrowser());
       return;
     }
 
-    // 监听后续触发的 beforeinstallprompt（iOS 不触发此事件，故移到 iOS 检查之后）
+    // Listen for later beforeinstallprompt events (iOS does not fire this, so move after iOS check)
     const handler = () => {
       setMode('prompt');
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // 其他浏览器（Firefox 等）不支持安装
+    // Other browsers (Firefox, etc.) do not support installation
     setMode('hidden');
 
     return () => {

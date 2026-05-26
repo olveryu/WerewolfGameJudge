@@ -1,8 +1,8 @@
 /**
- * EqualizerBars — 均衡器竖条动画
+ * EqualizerBars — equalizer vertical bar animation
  *
- * 3 根竖条做高度跳动循环，用 Animated API (useNativeDriver)。
- * 纯 UI 组件：接收 active + color，不 import service。
+ * 3 vertical bars cycle height jumps via Animated API (useNativeDriver).
+ * Pure UI component: takes active + color, does not import service layer.
  */
 import { memo, useEffect, useState } from 'react';
 import { Animated, StyleSheet, View, type ViewStyle } from 'react-native';
@@ -24,7 +24,7 @@ interface EqualizerBarsProps {
   colors: ThemeColors;
 }
 
-/** 均衡器动画条。 */
+/** Animated equalizer bars. */
 export const EqualizerBars = memo<EqualizerBarsProps>(function EqualizerBars({ active, colors }) {
   // useState (not useRef) because Animated.Values are consumed during render
   const [anims] = useState(createAnimValues);

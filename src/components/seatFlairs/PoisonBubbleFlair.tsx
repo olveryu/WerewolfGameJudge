@@ -1,8 +1,8 @@
 /**
- * PoisonBubbleFlair — 剧毒气泡
+ * PoisonBubbleFlair — poison bubbles
  *
- * 8 颗绿色气泡从底部浮起，带高光反射点，到顶部消散。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 8 green bubbles rise from the bottom with highlight reflection points and fade out at the top.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

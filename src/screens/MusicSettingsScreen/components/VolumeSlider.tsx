@@ -1,10 +1,10 @@
 /**
- * VolumeSlider — 音量滑块组件
+ * VolumeSlider — Volume slider component
  *
- * 基于 react-native-awesome-slider（Reanimated + Gesture Handler），
- * 全程 UI Thread 驱动，拖动丝滑无延迟。
- * 自定义 thumb（白底+阴影+主色内圆）+ 左右音量图标。
- * 纯 Presentational 组件：接收 value + onValueChange 回调，不 import service。
+ * Based on react-native-awesome-slider (Reanimated + Gesture Handler),
+ * fully UI-Thread driven, smooth drag with no latency.
+ * Custom thumb (white background + shadow + primary-color inner circle) + volume icons on each side.
+ * Pure presentational component: receives value + onValueChange callback, does not import service.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useEffect, useMemo } from 'react';
@@ -26,7 +26,7 @@ interface VolumeSliderProps {
   colors: ThemeColors;
 }
 
-/** 音量滑块。 */
+/** Volume slider. */
 export const VolumeSlider = memo<VolumeSliderProps>(function VolumeSlider({
   value,
   onValueChange,

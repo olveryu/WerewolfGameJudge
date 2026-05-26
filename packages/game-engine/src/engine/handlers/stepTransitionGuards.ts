@@ -1,11 +1,11 @@
 /**
- * Step Transition Guards - 夜晚步骤切换前置条件验证
+ * Step Transition Guards - Night step transition preconditions
  *
- * 纯函数模块，负责：
- * - ADVANCE_NIGHT / END_NIGHT 共用 gate 验证
- * - SET_AUDIO_PLAYING 专用 gate 验证
+ * Pure function module, handles:
+ * - ADVANCE_NIGHT / END_NIGHT shared gate validation
+ * - SET_AUDIO_PLAYING dedicated gate validation
  *
- * Gate 不含 IO，不修改 state。
+ * Gates have no IO and do not mutate state.
  */
 
 import { GameStatus } from '../../models';
@@ -14,9 +14,9 @@ import type { HandlerContext, HandlerResult, NonNullState } from './types';
 import { handlerError } from './types';
 
 /**
- * 验证前置条件（ADVANCE_NIGHT / END_NIGHT 共用）
+ * Validate preconditions (shared by ADVANCE_NIGHT / END_NIGHT)
  *
- * Gate 顺序：
+ * Gate order:
  * 1. no_state
  * 2. invalid_status (must be ongoing)
  * 3. forbidden_while_audio_playing
@@ -69,13 +69,13 @@ export function validateNightFlowPreconditions(
 }
 
 /**
- * 验证 SET_AUDIO_PLAYING 前置条件
+ * Validate SET_AUDIO_PLAYING preconditions
  *
- * Gate 顺序：
+ * Gate order:
  * 1. no_state
  * 2. invalid_status (must be ongoing or ended)
  *
- * 注：不检查 isAudioPlaying，因为这个 handler 就是用来设置它的
+ * Note: does not check isAudioPlaying, since this handler is what sets it.
  */
 export function validateSetAudioPlayingPreconditions(
   context: HandlerContext,
@@ -91,7 +91,7 @@ export function validateSetAudioPlayingPreconditions(
   }
 
   // Gate 2: invalid_status (must be ongoing or ended)
-  // 允许 ended 状态是因为天亮音频在 endNight 之后播放
+  // ended is allowed because the daybreak audio plays after endNight
   if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
     return {
       valid: false,

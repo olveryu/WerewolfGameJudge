@@ -18,11 +18,11 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-/** 底部操作栏视图模型。 */ export interface BottomActionVM {
+/** Bottom action bar view model. */ export interface BottomActionVM {
   buttons: BottomButton[];
 }
 
-/** 单个底部按钮。 */
+/** Single bottom button. */
 export interface BottomButton {
   /** Stable key (align to schema step keys when possible). */
   key: string; // 'save' | 'skip' | 'wolfEmpty' ...
@@ -87,7 +87,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   if (!imActioner) return EMPTY;
 
   // ─────────────────────────────────────────────────────────────────────────
-  // UI Hint（服务端广播驱动，UI 只读展示）
+  // UI Hint (driven by server broadcast; UI is read-only display)
   // ─────────────────────────────────────────────────────────────────────────
   const hint = gameState.ui?.currentActorHint;
   // For bottom card actors (thief/treasureMaster), check hint against effective role
@@ -122,7 +122,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
         ],
       };
     }
-    // hint 存在但没有 bottomAction 指示 → 按正常 schema 处理
+    // hint present but no bottomAction directive -> fall through to normal schema handling
   }
 
   // wolfRobot learned hunter gate: must view status before continuing

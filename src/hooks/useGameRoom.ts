@@ -10,8 +10,8 @@
  * - useNightDerived: pure night-phase derivations
  *
  * Server is the Single Source of Truth for all game state.
- * 组合子 hooks、订阅 facade state、派生 identity/roomStatus。
- * 不直接调用服务层，不包含业务 callback 逻辑（应在子 hooks 中）。
+ * Composes sub-hooks, subscribes to facade state, derives identity/roomStatus.
+ * Does not call the service layer directly; contains no business callback logic (belongs in sub-hooks).
  */
 
 import { useIsFocused } from '@react-navigation/native';
@@ -121,10 +121,10 @@ interface UseGameRoomResult {
   getLastNightInfo: () => string;
   getCurseInfo: () => string | null;
   hasWolfVoted: (seat: number) => boolean;
-  /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
+  /** Host: triggers server progression after wolf vote deadline expires. Returns whether successful (used by retry guard). */
   postProgression: () => Promise<boolean>;
 
-  // Board nomination (任意已连接玩家)
+  // Board nomination (any connected player)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
   boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
@@ -144,9 +144,9 @@ interface UseGameRoomResult {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * RoomScreen 的组合 hook，编排 6 个子 hook 为统一的游戏房间接口。
+ * Composition hook for RoomScreen — orchestrates 6 sub-hooks into a unified game room interface.
  *
- * 负责生命周期、连接状态、游戏状态、行动、夜间派生、BGM 的组装。
+ * Responsible for assembling lifecycle, connection status, game state, actions, night-phase derivations, and BGM.
  */ export const useGameRoom = (): UseGameRoomResult => {
   // =========================================================================
   // Core: facade + services
@@ -184,17 +184,17 @@ interface UseGameRoomResult {
   // =========================================================================
   // Facade state subscription (useSyncExternalStore + useIsFocused)
   //
-  // Web 上 NativeStackNavigator pop 的 screen 用 CSS 隐藏而非 unmount，
-  // 因此 useEffect cleanup 不会执行。用 useIsFocused 控制订阅：
-  // - 聚焦时：真订阅 → state 实时更新
-  // - 失焦时：空订阅 → 0 listener 累积
-  // - 再聚焦时：isFocused 变 → subscribe 变 → React re-subscribe
-  //   → 立即调 getSnapshot() 读最新 state（补上 blur 期间的变更）
+  // On Web, NativeStackNavigator popped screens are hidden via CSS rather than unmounted,
+  // so useEffect cleanup won't run. Use useIsFocused to gate subscription:
+  // - Focused: real subscribe -> state updates live
+  // - Blurred: empty subscribe -> 0 listeners accumulate
+  // - Refocus: isFocused changes -> subscribe changes -> React re-subscribes
+  //   -> immediately calls getSnapshot() to read latest state (covers changes during blur)
   // =========================================================================
 
   const subscribe = useCallback(
     (cb: () => void) => {
-      if (!isFocused) return () => {}; // 不聚焦 → 空订阅（防止 listener 累积）
+      if (!isFocused) return () => {}; // not focused -> empty subscribe (prevent listener accumulation)
       return facade.subscribe(cb);
     },
     [facade, isFocused],
@@ -218,7 +218,7 @@ interface UseGameRoomResult {
   const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
 
   useEffect(() => {
-    if (!isFocused) return; // 不聚焦的隐藏 screen 不执行副作用
+    if (!isFocused) return; // hidden (blurred) screens do not run side effects
     if (snapshot) {
       gameRoomLog.debug('State update from facade', {
         roomCode: snapshot.roomCode,
@@ -267,9 +267,10 @@ interface UseGameRoomResult {
   // =========================================================================
   // Profile sync on reconnect
   //
-  // 当连接恢复（Live）且已在座时，从 D1 拉最新 profile → push 到 DO roster。
-  // 覆盖场景：rejoin 房间、WS 断线自动重连后 roster 仍缓存旧数据。
-  // Fire-and-forget：失败只 warn，不阻塞游戏流程。
+  // When connection is restored (Live) and player is seated, pull the latest profile from D1
+  // and push it to the DO roster. Covers: rejoining a room, and auto-reconnect after WS drop
+  // when the roster still caches stale data.
+  // Fire-and-forget: failure only warns, does not block game flow.
   // =========================================================================
   useEffect(() => {
     if (connection.connectionStatus !== ConnectionStatus.Live) return;
@@ -309,7 +310,7 @@ interface UseGameRoomResult {
     setAlertBlocked(false);
     setShowContinueOverlay(false);
     bgm.startBgmIfEnabled();
-    // Fire-and-forget: 音频后台播放，overlay 已立即消失
+    // Fire-and-forget: audio plays in background; overlay has already been dismissed immediately
     void facade.resumeAfterRejoin();
   }, [facade, bgm]);
 
@@ -399,7 +400,7 @@ interface UseGameRoomResult {
     stopBgm: bgm.stopBgm,
     // Rejoin recovery
     resumeAfterRejoin,
-    // 失焦的隐藏 screen 不渲染 Modal（Web 上 Modal 浮于顶层不受 CSS 隐藏控制）
+    // Hidden (blurred) screens must not render Modal (on Web, Modals float on top and are not affected by CSS hiding)
     needsContinueOverlay: isFocused && showContinueOverlay,
     dismissContinueOverlay,
   };

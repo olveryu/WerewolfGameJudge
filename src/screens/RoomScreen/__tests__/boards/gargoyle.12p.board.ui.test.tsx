@@ -343,7 +343,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   // =============================================================================
-  // Chain Interaction (press button → assert callback)
+  // Chain Interaction (press button -> assert callback)
   // =============================================================================
 
   describe('chain interaction', () => {

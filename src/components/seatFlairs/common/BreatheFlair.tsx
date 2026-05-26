@@ -1,7 +1,7 @@
 /**
- * BreatheFlair — 呼吸
+ * BreatheFlair — breathe
  *
- * 3 个散布内部的柔光圆点，交错呼吸明灭（bokeh 风格）。Common 级座位装饰模板。
+ * 3 soft-glow dots scattered inside, alternating breathing pulses (bokeh style). Common-tier seat decoration template.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,9 +1,9 @@
 /**
- * deepLinkStack.contract — 深度链接堆栈契约测试
+ * deepLinkStack.contract — Deep-link stack contract test
  *
- * 确保所有 screen 通过 URL 直接访问时，navigation stack 底部都有 Home，
- * 保证 goBack() / 取消 能正常返回。新增 screen 时如果 getStateFromPath 未覆盖，
- * 本测试自动失败。
+ * Ensures every screen accessed directly via URL has Home at the bottom of the navigation stack,
+ * so goBack() / cancel returns correctly. When adding a new screen, if getStateFromPath is not covered,
+ * this test fails automatically.
  */
 
 import { linking } from '../AppNavigator';

@@ -1,21 +1,21 @@
 /**
- * Generic Resolver (SERVER-ONLY, 纯函数)
+ * Generic Resolver (SERVER-ONLY, pure function)
  *
- * Data-driven resolver：从 ROLE_SPECS 的 abilities 声明驱动行动校验与结果计算。
- * 替代大量 pattern-identical 的独立 resolver 文件。
+ * Data-driven resolver: drives action validation and result computation from ROLE_SPECS' abilities declarations.
+ * Replaces many pattern-identical individual resolver files.
  *
- * 支持的 effect kinds（按 P2-P4 逐步扩展）:
- * - writeSlot: 写入 CurrentNightResults 槽位（guard/dreamcatcher/silenceElder/votebanElder/wolfQueen）
- * - chooseIdol: 选择榜样（slacker/wildChild）
- * - check: 查验阵营/身份（seer family/psychic/gargoyle/wolfWitch/pureWhite）
- * - charm: 魅惑目标（wolfQueen — writeSlot charmedSeat + result）
- * - block: 封锁目标技能（nightmare）
- * - learn: 学习目标身份和技能（wolfRobot）
- * - confirm: 确认类（hunter/darkWolfKing/avenger）
+ * Supported effect kinds (expanded gradually in P2-P4):
+ * - writeSlot: write to CurrentNightResults slot (guard/dreamcatcher/silenceElder/votebanElder/wolfQueen)
+ * - chooseIdol: choose idol (slacker/wildChild)
+ * - check: check faction/identity (seer family/psychic/gargoyle/wolfWitch/pureWhite)
+ * - charm: charm target (wolfQueen — writeSlot charmedSeat + result)
+ * - block: block target skill (nightmare)
+ * - learn: learn target identity and skill (wolfRobot)
+ * - confirm: confirmation type (hunter/darkWolfKing/avenger)
  *
- * 不处理：witch（compound 双步骤）、wolf（投票聚合）、shadow（跨角色联动）、
- * piper（多目标 + 累积催眠）、magician（swap 双目标）、awakenedGargoyle（转化逻辑）。
- * 这些角色保留 customResolver。
+ * Does not handle: witch (compound two-step), wolf (vote aggregation), shadow (cross-role interaction),
+ * piper (multi-target + cumulative hypnosis), magician (swap two targets), awakenedGargoyle (transformation logic).
+ * These roles retain customResolver.
  */
 
 import type { RoleId } from '../models';
@@ -51,7 +51,7 @@ type EffectProcessor = (
 ) => ResolverResult;
 
 /**
- * writeSlot: 写入 target 到 CurrentNightResults 指定槽位
+ * writeSlot: write target to specified slot in CurrentNightResults
  */
 function processWriteSlot(
   ability: ActiveAbility,
@@ -87,7 +87,7 @@ function processWriteSlot(
 }
 
 /**
- * charm: 魅惑目标（wolfQueen — 写入 charmedSeat + result）
+ * charm: charm target (wolfQueen — writes charmedSeat + result)
  */
 function processCharm(
   _ability: ActiveAbility,
@@ -103,7 +103,7 @@ function processCharm(
 }
 
 /**
- * chooseIdol: 选择榜样（slacker/wildChild）
+ * chooseIdol: choose idol (slacker/wildChild)
  */
 function processChooseIdol(
   _ability: ActiveAbility,
@@ -118,7 +118,7 @@ function processChooseIdol(
 }
 
 /**
- * check: 阵营查验（seer family）或身份查验（psychic/gargoyle/pureWhite/wolfWitch）
+ * check: faction check (seer family) or identity check (psychic/gargoyle/pureWhite/wolfWitch)
  */
 function processCheck(
   ability: ActiveAbility,
@@ -185,7 +185,7 @@ function processIdentityCheck(context: ResolverContext, target: number): Resolve
 }
 
 /**
- * block: 封锁目标技能（nightmare）
+ * block: block target skill (nightmare)
  */
 function processBlock(
   ability: ActiveAbility,
@@ -222,7 +222,7 @@ function processBlock(
 }
 
 /**
- * learn: 学习目标身份（wolfRobot）
+ * learn: learn target identity (wolfRobot)
  */
 function processLearn(
   ability: ActiveAbility,
@@ -252,9 +252,9 @@ function processLearn(
     identityResult: effectiveRoleId,
   };
 
-  // Gate triggers (e.g., hunter → canShootAsHunter)
-  // Resolver 仅标记"学到了 gate role"，权威 canShoot 计算由 actionHandler 层
-  // 使用完整 GameState + computeCanShootForSeat 覆盖。
+  // Gate triggers (e.g., hunter -> canShootAsHunter)
+  // Resolver only marks "learned gate role"; authoritative canShoot is computed
+  // by the actionHandler layer using full GameState + computeCanShootForSeat.
   if (effect.gateTriggersOnRoles?.includes(effectiveRoleId)) {
     result.canShootAsHunter = true;
   }
@@ -266,7 +266,7 @@ function processLearn(
 }
 
 /**
- * confirm: 确认类（hunter/darkWolfKing confirm status）
+ * confirm: confirmation type (hunter/darkWolfKing confirm status)
  */
 function processConfirm(
   _ability: ActiveAbility,

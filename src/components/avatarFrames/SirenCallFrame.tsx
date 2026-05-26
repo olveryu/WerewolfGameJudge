@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * SirenCallFrame — 海妖
+ * SirenCallFrame - siren
  *
- * 青蓝贝壳框 · 四角大型海螺壳 · 波浪形边缘 · 珍珠点缀。
+ * Teal seashell frame, large conch shells at four corners, wave-shaped edges, pearl accents.
  */
 export const SirenCallFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

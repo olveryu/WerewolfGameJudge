@@ -1,11 +1,11 @@
 /**
- * CloseButton — 圆形 ✕ 关闭按钮（共享组件）
+ * CloseButton — Circular ✕ close button (shared component)
  *
- * 两种变体：
- * - `onSurface`：亮色卡片/Modal 上使用（浅灰底 + 灰色图标）
- * - `onOverlay`：深色全屏蒙层上使用（白色半透明底 + 白色图标）
+ * Two variants:
+ * - `onSurface`: for light cards/Modals (light gray bg + gray icon)
+ * - `onOverlay`: for dark full-screen overlays (translucent white bg + white icon)
  *
- * 默认 absolute 定位（top-right），消费者可通过 style 覆盖 top/right。
+ * Default absolute positioning (top-right); consumers can override top/right via style.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';

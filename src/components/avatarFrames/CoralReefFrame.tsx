@@ -13,9 +13,9 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * CoralReefFrame — 珊瑚
+ * CoralReefFrame — coral
  *
- * 海底珊瑚丛 · 分枝造型 · 橙→青渐变 + 气泡高光 + 海星。
+ * Underwater coral cluster · branching shape · orange->teal gradient + bubble highlights + sea stars.
  */
 export const CoralReefFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();
@@ -71,7 +71,7 @@ export const CoralReefFrame = memo<FrameProps>(({ size, rx }) => {
         strokeWidth={0.7}
         opacity={0.3}
       />
-      {/* Coral branches — top-left */}
+      {/* Coral branches - top-left */}
       <G opacity={0.75} strokeLinecap="round">
         <Path d="M20,-2 Q17,-7 15,-10" fill="none" stroke="#FF7F50" strokeWidth={1.5} />
         <Path d="M15,-10 Q13,-12 10,-11" fill="none" stroke="#FF6347" strokeWidth={1} />

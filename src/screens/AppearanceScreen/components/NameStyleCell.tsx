@@ -23,7 +23,7 @@ interface NameStyleCellProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 名字样式网格单元格。 */
+/** Name style grid cell. */
 export const NameStyleCell = memo<NameStyleCellProps>(
   ({ item, selectedNameStyle, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);

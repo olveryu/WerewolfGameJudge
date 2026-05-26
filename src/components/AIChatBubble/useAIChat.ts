@@ -1,9 +1,9 @@
 /**
- * useAIChat - AI 聊天泡泡编排层
+ * useAIChat - orchestration layer for the AI chat bubble.
  *
- * 组合 useBubbleDrag / useKeyboardHeight / useChatMessages 三个子 hook，
- * 管理 isOpen 状态和快捷问题刷新，对外暴露统一的 UseAIChatReturn 接口。
- * 组合子 hook 并管理打开/关闭状态。不直接实现拖动/键盘/消息逻辑，均委托给子 hook。
+ * Composes three sub-hooks (useBubbleDrag / useKeyboardHeight / useChatMessages),
+ * manages isOpen state and quick-question refresh, and exposes the unified UseAIChatReturn interface.
+ * Composes sub-hooks and manages open/close state. Drag/keyboard/message logic is delegated entirely to sub-hooks.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -91,9 +91,9 @@ export function useAIChat(): UseAIChatReturn {
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only: facade is a stable singleton, refreshing quick questions only when panel opens
-  }, [isOpen]); // 故意不依赖 messages，只在打开时刷新一次
+  }, [isOpen]); // intentionally not depending on messages — only refresh once on open
 
-  // Refresh quick questions when streaming completes（每条回复后刷新建议问题）
+  // Refresh quick questions when streaming completes (refresh suggestions after each reply)
   useEffect(() => {
     if (prevStreamingRef.current && !chat.isStreaming) {
       const gameState = facade.getState();

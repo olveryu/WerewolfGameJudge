@@ -1,7 +1,7 @@
 /**
  * UPDATE_TEMPLATE reducer tests - Player retention logic
  *
- * 验证更新模板时智能保留/扩缩容座位玩家
+ * Verifies that seat players are intelligently retained / scaled up or down when the template is updated.
  */
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
@@ -43,7 +43,7 @@ function createStateWithPlayers(
     }
   }
 
-  // 判断是否全部入座
+  // Determine whether all seats are filled
   const allSeated = players.every((p) => p !== null);
 
   return {
@@ -98,7 +98,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.players[0]?.userId).toBe('u1');
     expect(newState.players[1]?.userId).toBe('u2');
     expect(newState.players[2]).toBeNull();
-    expect(newState.status).toBe(GameStatus.Unseated); // 有空座位
+    expect(newState.status).toBe(GameStatus.Unseated); // has empty seats
   });
 
   it('should remove trailing players when template size decreases', () => {
@@ -116,7 +116,7 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(Object.keys(newState.players).length).toBe(2);
     expect(newState.players[0]?.userId).toBe('u1');
     expect(newState.players[1]?.userId).toBe('u2');
-    expect(newState.players[2]).toBeUndefined(); // 被移除
+    expect(newState.players[2]).toBeUndefined(); // removed
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
@@ -146,14 +146,14 @@ describe('UPDATE_TEMPLATE player retention', () => {
   });
 
   it('should handle partial seating correctly', () => {
-    // 原始状态：3 座位，只有 0 和 2 号有人
+    // Initial state: 3 seats, only seats 0 and 2 are occupied
     const state = createStateWithPlayers([
       { userId: 'u1', displayName: 'Player1' },
       null,
       { userId: 'u3', displayName: 'Player3' },
     ]);
 
-    // 扩容到 4 座
+    // Scale up to 4 seats
     const newState = gameReducer(state, {
       type: 'UPDATE_TEMPLATE',
       payload: { templateRoles: ['wolf', 'villager', 'seer', 'witch'] },

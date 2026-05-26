@@ -1,12 +1,13 @@
 /**
  * Night-1 Integration Test: TreasureMaster Card Selection (15p)
  *
- * 主题：盗宝大师从 3 张底牌中选择身份，验证选卡、身份替代、auto-skip、effectiveTeam。
+ * Topic: TreasureMaster picks an identity from 3 deck cards. Verifies card selection,
+ * identity substitution, auto-skip, and effectiveTeam.
  *
- * 模板：15 角色 = 12 玩家 + 3 底牌
- *   通灵师 + 毒师 + 猎人 + 摄梦人 + 乌鸦 + 狼王 + 狼人×3 + 盗宝大师 + 平民×5
+ * Template: 15 roles = 12 players + 3 deck cards
+ *   Psychic + Poisoner + Hunter + Dreamcatcher + Crow + WolfKing + Wolf×3 + TreasureMaster + Villager×5
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -16,7 +17,7 @@ import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 // =============================================================================
-// Template: 15 角色（12 玩家 + 3 底牌）
+// Template: 15 roles (12 players + 3 deck cards)
 // =============================================================================
 
 const TEMPLATE_ROLES: RoleId[] = [
@@ -38,12 +39,12 @@ const TEMPLATE_ROLES: RoleId[] = [
 ] as RoleId[];
 
 // =============================================================================
-// Test 1: 底牌 = wolf, crow, villager（含狼牌 → effectiveTeam = Wolf）
+// Test 1: deck = wolf, crow, villager (contains wolf card → effectiveTeam = Wolf)
 // =============================================================================
 
-describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
+describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
   /**
-   * 固定 seat-role assignment（12 玩家）:
+   * Fixed seat-role assignment (12 players):
    *   seat 0-3: villager ×4
    *   seat 4-5: wolf ×2
    *   seat 6: darkWolfKing
@@ -53,7 +54,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
    *   seat 10: dreamcatcher
    *   seat 11: treasureMaster
    *
-   * 底牌: wolf, crow, villager
+   * Deck cards: wolf, crow, villager
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
@@ -80,64 +81,64 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
     cleanupGame();
   });
 
-  it('盗宝选 crow（cardIndex=1），代行 crowCurse，全夜完成', () => {
+  it('TreasureMaster picks crow (cardIndex=1), proxies crowCurse, full night completes', () => {
     ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
       bottomCards: BOTTOM_CARDS,
     });
 
-    // 验证初始状态
+    // Verify initial state
     const initState = ctx.getGameState();
     expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
     expect(initState.treasureMasterSeat).toBe(11);
 
-    // 首步 = treasureMasterChoose
+    // First step = treasureMasterChoose
     ctx.assertStep('treasureMasterChoose');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 1 }, // 选 crow（index 1）
-      dreamcatcher: 0, // 摄梦 seat 0
-      crow: 3, // treasureMaster 代行 crowCurse，诅咒 seat 3
-      wolf: null, // 毒师在场，首夜无法袭击
-      poisoner: null, // 不毒
+      treasureMaster: { cardIndex: 1 }, // pick crow (index 1)
+      dreamcatcher: 0, // dream on seat 0
+      crow: 3, // treasureMaster proxies crowCurse, curses seat 3
+      wolf: null, // Poisoner present, no kill on night 1
+      poisoner: null, // no poison
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
-      psychic: 4, // 通灵查 seat 4（wolf）
+      psychic: 4, // psychic checks seat 4 (wolf)
     });
 
     expect(result.completed).toBe(true);
 
     const state = ctx.getGameState();
 
-    // 核心断言：盗宝大师选卡结果
+    // Core assertion: TreasureMaster card selection result
     expect(state.treasureMasterChosenCard).toBe('crow');
-    expect(state.effectiveTeam).toBe(Team.Wolf); // 底牌含 wolf → Team.Wolf
+    expect(state.effectiveTeam).toBe(Team.Wolf); // deck contains wolf → Team.Wolf
     expect(state.bottomCardStepRoles).toEqual(expect.arrayContaining(['wolf', 'crow']));
 
-    // wolfKill 正常执行（底牌有 wolf 但玩家中仍有 wolf×2，不应被 auto-skip）
-    // 毒师在场，首夜无法袭击→无袭击死亡
+    // wolfKill runs normally (deck has wolf but players still have wolf×2, should not auto-skip)
+    // Poisoner present, no kill on night 1 → no kill deaths
     expect(result.deaths).toEqual([]);
 
-    // crowCurse 由盗宝代行 → cursedSeat 已写入
+    // crowCurse proxied by TreasureMaster → cursedSeat is written
     expect(state.currentNightResults?.cursedSeat).toBe(3);
 
-    // dreamcatcher 正常行动
+    // dreamcatcher acts normally
     expect(state.currentNightResults?.dreamingSeat).toBe(0);
 
-    // psychic 正常查验
+    // psychic checks normally
     expect(state.psychicReveal).toBeDefined();
     expect(state.psychicReveal!.targetSeat).toBe(4);
   });
 
-  it('盗宝选 villager（cardIndex=2），无步骤代行，全夜完成', () => {
+  it('TreasureMaster picks villager (cardIndex=2), no step proxy, full night completes', () => {
     ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
       bottomCards: BOTTOM_CARDS,
     });
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 2 }, // 选 villager（index 2）
+      treasureMaster: { cardIndex: 2 }, // pick villager (index 2)
       dreamcatcher: 0,
-      // crow 在底牌且未被选 → crowCurse auto-skip
-      wolf: null, // 毒师在场，首夜无法袭击
+      // crow in deck and not picked → crowCurse auto-skip
+      wolf: null, // Poisoner present, no kill on night 1
       poisoner: null,
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
@@ -148,26 +149,26 @@ describe('Night-1: TreasureMaster (15p) — 底牌含狼', () => {
 
     const state = ctx.getGameState();
 
-    // 盗宝选了村民
+    // TreasureMaster picked villager
     expect(state.treasureMasterChosenCard).toBe('villager');
-    expect(state.effectiveTeam).toBe(Team.Wolf); // 底牌含 wolf → Team.Wolf
+    expect(state.effectiveTeam).toBe(Team.Wolf); // deck contains wolf → Team.Wolf
 
-    // crowCurse 被 auto-skip（crow 在底牌且未被选）
+    // crowCurse auto-skipped (crow in deck and not picked)
     expect(state.currentNightResults?.cursedSeat).toBeUndefined();
 
-    // wolfKill 仍正常执行（wolf×2 仍是玩家）
-    // 毒师在场，首夜无法袭击→无死亡
+    // wolfKill still runs normally (wolf×2 still players)
+    // Poisoner present, no kill on night 1 → no deaths
     expect(result.deaths).toEqual([]);
   });
 });
 
 // =============================================================================
-// Test 2: 底牌 = poisoner, dreamcatcher, villager（无狼牌 → effectiveTeam = Good）
+// Test 2: deck = poisoner, dreamcatcher, villager (no wolf card → effectiveTeam = Good)
 // =============================================================================
 
-describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
+describe('Night-1: TreasureMaster (15p) — deck has no wolf', () => {
   /**
-   * 固定 seat-role assignment（12 玩家）:
+   * Fixed seat-role assignment (12 players):
    *   seat 0-3: villager ×4
    *   seat 4-6: wolf ×3
    *   seat 7: darkWolfKing
@@ -176,7 +177,7 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
    *   seat 10: crow
    *   seat 11: treasureMaster
    *
-   * 底牌: poisoner, dreamcatcher, villager
+   * Deck cards: poisoner, dreamcatcher, villager
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
@@ -207,22 +208,22 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
     cleanupGame();
   });
 
-  it('盗宝选 dreamcatcher（cardIndex=1），代行摄梦，poisonerPoison auto-skip', () => {
+  it('TreasureMaster picks dreamcatcher (cardIndex=1), proxies dream, poisonerPoison auto-skip', () => {
     ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
       bottomCards: BOTTOM_CARDS,
     });
 
-    // 验证底牌
+    // Verify deck cards
     const initState = ctx.getGameState();
     expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
     ctx.assertStep('treasureMasterChoose');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 1 }, // 选 dreamcatcher（index 1）
-      dreamcatcher: 0, // treasureMaster 代行 dreamcatcherDream，摄梦 seat 0
-      crow: 3, // crow 是玩家，正常诅咒 seat 3
-      wolf: null, // 毒师在模板中（底牌），首夜无法袭击
-      // poisoner 在底牌且未被选 → poisonerPoison auto-skip
+      treasureMaster: { cardIndex: 1 }, // pick dreamcatcher (index 1)
+      dreamcatcher: 0, // treasureMaster proxies dreamcatcherDream, dream on seat 0
+      crow: 3, // crow is a player, normal curse on seat 3
+      wolf: null, // Poisoner in template (deck), no kill on night 1
+      // poisoner in deck and not picked → poisonerPoison auto-skip
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
       psychic: 4,
@@ -232,33 +233,33 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
 
     const state = ctx.getGameState();
 
-    // 核心断言：盗宝大师选卡
+    // Core assertion: TreasureMaster card selection
     expect(state.treasureMasterChosenCard).toBe('dreamcatcher');
-    expect(state.effectiveTeam).toBe(Team.Good); // 底牌无 wolf → Team.Good
+    expect(state.effectiveTeam).toBe(Team.Good); // deck has no wolf → Team.Good
     expect(state.bottomCardStepRoles).toEqual(expect.arrayContaining(['poisoner', 'dreamcatcher']));
 
-    // dreamcatcherDream 由盗宝代行
+    // dreamcatcherDream proxied by TreasureMaster
     expect(state.currentNightResults?.dreamingSeat).toBe(0);
 
-    // poisonerPoison 被 auto-skip（poisoner 在底牌且未被选）
-    // 毒师在模板中（底牌），首夜无法袭击→无袭击死亡
+    // poisonerPoison auto-skipped (poisoner in deck and not picked)
+    // Poisoner in template (deck), no kill on night 1 → no kill deaths
     expect(result.deaths).toEqual([]);
 
-    // crowCurse 正常（crow 是玩家）
+    // crowCurse normal (crow is a player)
     expect(state.currentNightResults?.cursedSeat).toBe(3);
   });
 
-  it('盗宝选 poisoner（cardIndex=0），代行毒师，dreamcatcherDream auto-skip', () => {
+  it('TreasureMaster picks poisoner (cardIndex=0), proxies poisoner, dreamcatcherDream auto-skip', () => {
     ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
       bottomCards: BOTTOM_CARDS,
     });
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 0 }, // 选 poisoner（index 0）
-      // dreamcatcher 在底牌且未被选 → dreamcatcherDream auto-skip
+      treasureMaster: { cardIndex: 0 }, // pick poisoner (index 0)
+      // dreamcatcher in deck and not picked → dreamcatcherDream auto-skip
       crow: 3,
-      wolf: null, // 毒师在模板中（底牌），首夜无法袭击
-      poisoner: 2, // treasureMaster 代行 poisonerPoison，毒杀 seat 2
+      wolf: null, // Poisoner in template (deck), no kill on night 1
+      poisoner: 2, // treasureMaster proxies poisonerPoison, poisons seat 2
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
       psychic: 4,
@@ -271,11 +272,11 @@ describe('Night-1: TreasureMaster (15p) — 底牌无狼', () => {
     expect(state.treasureMasterChosenCard).toBe('poisoner');
     expect(state.effectiveTeam).toBe(Team.Good);
 
-    // dreamcatcherDream 被 auto-skip
+    // dreamcatcherDream auto-skipped
     expect(state.currentNightResults?.dreamingSeat).toBeUndefined();
 
-    // poisonerPoison 由盗宝代行 → seat 2 被毒
-    // 狼无法袭击（毒师在模板）+ seat 2 被毒
+    // poisonerPoison proxied by TreasureMaster → seat 2 poisoned
+    // Wolves cannot kill (poisoner in template) + seat 2 poisoned
     expect(result.deaths).toEqual([2]);
   });
 });

@@ -1,39 +1,39 @@
 /**
- * Handler Types - 处理器类型定义
+ * Handler Types - handler type definitions
  *
- * Handler 负责：
- * 1. 验证 Intent
- * 2. 调用 Resolver（如果需要）
- * 3. 返回 StateAction 列表
+ * Handlers are responsible for:
+ * 1. Validating Intent
+ * 2. Calling Resolver (if needed)
+ * 3. Returning a list of StateAction
  */
 
 import type { StateAction } from '../reducer/types';
 import type { GameState } from '../store/types';
 
 /**
- * Handler 上下文
- * 提供 handler 执行所需的依赖
+ * Handler context
+ * Provides dependencies required for handler execution
  *
- * 注意：state 和 myUserId 可能为 null（Facade 不做校验，由 handler 负责）
+ * Note: state and myUserId may be null (Facade does not validate; handler is responsible)
  */
 export interface HandlerContext {
-  /** 当前状态（只读）。null = DO 未初始化或读取失败 */
+  /** Current state (read-only). null = DO uninitialized or read failure */
   readonly state: GameState | null;
 
-  /** 当前用户 UID。null = 系统上下文（如 alarm 回调） */
+  /** Current user UID. null = system context (e.g., alarm callback) */
   readonly myUserId: string | null;
 
-  /** 当前用户座位号。null = 用户未入座或系统上下文（host-only 操作） */
+  /** Current user seat number. null = user not seated or system context (host-only operations) */
   readonly mySeat: number | null;
 }
 
 /**
- * Handler 结果 — discriminated union
+ * Handler result — discriminated union
  *
- * 三种结果语义：
- * - `success`：正常完成，有 actions 需要 apply + persist + broadcast
- * - `rejection`：业务拒绝（如免疫袭击），有 actions（ACTION_REJECTED 等）需要 persist + broadcast
- * - `error`：基础设施/前置条件失败（state 不存在、状态不对），无 actions，直接返回 HTTP 错误
+ * Three result semantics:
+ * - `success`: completed normally, has actions to apply + persist + broadcast
+ * - `rejection`: business rejection (e.g., immune to attack), has actions (ACTION_REJECTED etc.) to persist + broadcast
+ * - `error`: infrastructure/precondition failure (state missing, wrong status), no actions, returns HTTP error directly
  */
 export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 
@@ -41,7 +41,7 @@ export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
   readonly sideEffects?: readonly SideEffect[];
-  /** 可选元信息（如 'DEDUPLICATED'），不影响 success 语义，供客户端 toast 使用 */
+  /** Optional metadata (e.g., 'DEDUPLICATED'); does not affect success semantics, used by client toast */
   readonly reason?: string;
 }
 
@@ -80,24 +80,24 @@ export function handlerError(reason: string): HandlerError {
 }
 
 /**
- * 副作用类型
- * Handler 不直接执行副作用，而是返回描述，由外层执行
+ * Side effect types
+ * Handlers do not execute side effects directly; they return descriptions executed by the outer layer
  */
 export type SideEffect =
-  /** 广播更新后的 GameState 给所有已连接 WebSocket 客户端 */
+  /** Broadcast updated GameState to all connected WebSocket clients */
   | { type: 'BROADCAST_STATE' }
-  /** 队列音频给 Host 设备播放；isEndAudio=true 从 audio_end/ 目录加载 */
+  /** Queue audio for Host device playback; isEndAudio=true loads from audio_end/ directory */
   | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
-  /** 预留（未使用） */
+  /** Reserved (unused) */
   | { type: 'SEND_MESSAGE'; message: unknown }
-  /** 持久化更新后的 state 到 SQLite */
+  /** Persist updated state to SQLite */
   | { type: 'SAVE_STATE' };
 
 /**
- * 标准副作用：广播状态 + 保存状态
+ * Standard side effects: broadcast state + save state
  *
- * 大多数 handler 的 sideEffects 都是这对组合。
- * 包含 PLAY_AUDIO 的 handler 应自行构造完整列表。
+ * Most handler sideEffects are this pair combined.
+ * Handlers including PLAY_AUDIO should construct the full list themselves.
  */
 export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
   { type: 'BROADCAST_STATE' },
@@ -105,6 +105,6 @@ export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
 ] as const);
 
 /**
- * 非 null 的 GameState 类型（通过 handler validation 后使用）
+ * Non-null GameState type (used after handler validation)
  */
 export type NonNullState = NonNullable<HandlerContext['state']>;

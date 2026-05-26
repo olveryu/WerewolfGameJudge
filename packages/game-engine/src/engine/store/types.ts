@@ -1,8 +1,8 @@
 /**
- * Store Types - 状态存储类型定义
+ * Store Types - state store type definitions
  *
- * GameState 定义在 protocol/types.ts（唯一权威）。
- * Store 是 parse boundary：input 接收 GameState，output 返回 GameState。
+ * GameState is defined in protocol/types.ts (single source of truth).
+ * The store is the parse boundary: input accepts GameState, output returns GameState.
  */
 
 // Re-export from protocol (canonical definition)
@@ -10,47 +10,47 @@ export type { GameState } from '../../protocol/types';
 import type { GameState } from '../../protocol/types';
 
 /**
- * 状态订阅者回调（Store 层）
- * state 可能为 null（reset 后），非 null 时为 normalized 后的 GameState
+ * State subscriber callback (Store layer)
+ * state may be null (after reset); when non-null it is the normalized GameState
  */
 export type StoreStateListener = (state: GameState | null, revision: number) => void;
 
 /**
- * 状态存储接口
+ * State store interface
  */
 interface IGameStore {
-  /** 获取当前状态（normalized 后的 GameState） */
+  /** Get the current state (normalized GameState) */
   getState(): GameState | null;
 
-  /** 获取当前 revision */
+  /** Get the current revision */
   getRevision(): number;
 
-  /** 订阅状态变化 */
+  /** Subscribe to state changes */
   subscribe(listener: StoreStateListener): () => void;
 
-  /** 应用快照（玩家端）— 接收 wire payload，内部 normalize */
+  /** Apply snapshot (player side) — receives wire payload, normalizes internally */
   applySnapshot(state: GameState, revision: number, lastAction?: string): void;
 
-  /** 消费最近一次广播携带的 lastAction（一次性读取，读后清除） */
+  /** Consume the lastAction carried by the most recent broadcast (one-shot read, cleared after reading) */
   consumeLastAction(): string | null;
 }
 
 /**
- * 可写存储接口（含 setState/updateState/initialize/reset/destroy）
+ * Writable store interface (includes setState/updateState/initialize/reset/destroy)
  */
 export interface IWritableGameStore extends IGameStore {
-  /** 设置状态（仅主机）— 接收 raw state，内部 normalize */
+  /** Set state (host only) — receives raw state, normalizes internally */
   setState(state: GameState): void;
 
-  /** 增量更新状态（仅主机）— updater 读到 GameState，返回 GameState */
+  /** Incrementally update state (host only) — updater reads GameState and returns GameState */
   updateState(updater: (state: GameState) => GameState): void;
 
-  /** 初始化状态 — 接收 raw state，内部 normalize */
+  /** Initialize state — receives raw state, normalizes internally */
   initialize(state: GameState): void;
 
-  /** 重置 store（只清除 state，保留 listeners） */
+  /** Reset the store (clears state only, retains listeners) */
   reset(): void;
 
-  /** 完全销毁 store（包括 listeners，仅用于测试） */
+  /** Fully destroy the store (including listeners, for tests only) */
   destroy(): void;
 }

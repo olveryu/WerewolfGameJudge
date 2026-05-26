@@ -1,9 +1,9 @@
 /**
- * SeatTile - 单个座位瓦片（Memoized）
+ * SeatTile - single seat tile (Memoized)
  *
- * 由 PlayerGrid 创建 styles 并传入，自定义 areEqual 防止不必要重渲染。
- * 入场/离场动画（slide up + bounce / fade out + shrink）。
- * 渲染 UI 并通过回调上报 onPress，不 import service / showAlert，不包含业务逻辑判断。
+ * Styles are created by PlayerGrid and passed in; custom areEqual prevents unnecessary re-renders.
+ * Enter/leave animations (slide up + bounce / fade out + shrink).
+ * Renders UI and reports onPress via callback; does not import service / showAlert, no business logic checks.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

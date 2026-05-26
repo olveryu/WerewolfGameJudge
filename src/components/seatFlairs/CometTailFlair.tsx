@@ -1,8 +1,8 @@
 /**
- * CometTailFlair — 彗星拖尾 (Skia Canvas + Picture)
+ * CometTailFlair — comet tail (Skia Canvas + Picture)
  *
- * 3 颗彗星在外围环绕，每颗带 8 节渐隐拖尾。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 3 comets orbit on the perimeter, each with an 8-segment fading tail.
+ * All drawing happens imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

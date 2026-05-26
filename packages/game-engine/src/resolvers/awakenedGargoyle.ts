@@ -1,10 +1,10 @@
 /**
- * Awakened Gargoyle Resolvers (SERVER-ONLY, 纯函数)
+ * Awakened Gargoyle Resolvers (SERVER-ONLY, pure functions)
  *
- * 职责：
- * - awakenedGargoyleConvertResolver: 校验觉醒石像鬼转化行动（选择狼人阵营相邻的一名非狼非己玩家）。
- * - awakenedGargoyleConvertRevealResolver: groupConfirm 步骤的 no-op resolver（ack 由 handler 层处理）。
- * 不包含 IO（网络 / 音频 / Alert）。
+ * Responsibilities:
+ * - awakenedGargoyleConvertResolver: validates Awakened Gargoyle conversion action (picks a non-wolf, non-self player adjacent to the wolf faction).
+ * - awakenedGargoyleConvertRevealResolver: no-op resolver for the groupConfirm step (ack handled at the handler layer).
+ * No IO (network / audio / Alert).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
@@ -19,7 +19,7 @@ export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverCon
   const target = input.target;
   const schema: ChooseSeatSchema = SCHEMAS.awakenedGargoyleConvert as ChooseSeatSchema;
 
-  // canSkip: false — 强制发动，不允许跳过
+  // canSkip: false — mandatory action, no skip allowed
   if (target === undefined || target === null) {
     return { valid: false, rejectReason: '觉醒石像鬼必须选择转化目标' };
   }
@@ -50,10 +50,10 @@ export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverCon
 };
 
 /**
- * awakenedGargoyleConvertReveal — groupConfirm 步骤的 no-op resolver。
+ * awakenedGargoyleConvertReveal — no-op resolver for the groupConfirm step.
  *
- * 此步骤由所有玩家确认（ack），实际确认逻辑由 handler 层处理。
- * Resolver 仅做最小校验，确保 contract test 覆盖完整。
+ * This step is acknowledged by all players; the actual ack logic lives at the handler layer.
+ * The resolver performs only minimal validation to keep contract test coverage complete.
  */
 export const awakenedGargoyleConvertRevealResolver: ResolverFn = (_context, input) => {
   // groupConfirm step: player confirms they've seen conversion status

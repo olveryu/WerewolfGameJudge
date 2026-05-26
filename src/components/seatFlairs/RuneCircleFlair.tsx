@@ -1,9 +1,9 @@
 /**
- * RuneCircleFlair — 符文之环 (Skia Canvas + Picture)
+ * RuneCircleFlair — Rune circle (Skia Canvas + Picture)
  *
- * 8 个几何符文（十字/菱形/三角/方框）排列成旋转圆环，
- * 光晕层 + 符文路径层 + 中心点，波浪脉冲流转。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 8 geometric runes (cross/diamond/triangle/square) arranged in a rotating ring,
+ * with halo layer + rune-path layer + center dot, wave-pulse flow.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

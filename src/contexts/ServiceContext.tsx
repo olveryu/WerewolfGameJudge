@@ -1,9 +1,9 @@
 /**
  * ServiceContext - Composition root DI for infrastructure & feature services
  *
- * 由 App.tsx 组合根统一创建 service 实例并通过 Context 注入，
- * 消除 getInstance() 单例模式的隐式依赖。提供 Context + Provider 和 useServices hook。
- * 不包含业务逻辑，不创建 service 实例（由 composition root 负责）。
+ * The App.tsx composition root creates service instances and injects them via Context,
+ * eliminating the implicit dependencies of the getInstance() singleton pattern. Provides Context + Provider and the useServices hook.
+ * No business logic, no service instance creation (handled by the composition root).
  */
 import type React from 'react';
 import { createContext, use, useMemo } from 'react';
@@ -14,7 +14,7 @@ import type { IAuthService } from '@/services/types/IAuthService';
 import type { IRoomService } from '@/services/types/IRoomService';
 import type { IStorageService } from '@/services/types/IStorageService';
 
-/** DI 容器提供的服务实例集合。 */
+/** Set of service instances provided by the DI container. */
 export interface ServiceContextValue {
   authService: IAuthService;
   roomService: IRoomService;
@@ -30,16 +30,16 @@ interface ServiceProviderProps {
   services: ServiceContextValue;
 }
 
-/** 服务注入 Provider，在 App.tsx composition root 中包裹整个组件树。 */
+/** Service injection Provider; wraps the entire component tree in App.tsx composition root. */
 export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children, services }) => {
   const value = useMemo(() => services, [services]);
   return <ServiceContext value={value}>{children}</ServiceContext>;
 };
 
 /**
- * 获取全局服务实例。
+ * Get the global service instances.
  *
- * 必须在 ServiceProvider 子树内调用，否则抛出。
+ * Must be called inside the ServiceProvider subtree; otherwise it throws.
  */
 export const useServices = (): ServiceContextValue => {
   const ctx = use(ServiceContext);

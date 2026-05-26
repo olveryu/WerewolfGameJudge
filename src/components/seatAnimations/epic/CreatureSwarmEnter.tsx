@@ -1,5 +1,5 @@
 /**
- * CreatureSwarmEnter — 群体涌现
+ * CreatureSwarmEnter — Creature Swarm
  *
  * Multiple small shapes (bats, crows, spirits) swarm around before settling.
  * Epic-tier archetype. Parameterized by creature count, shape, color, and path.

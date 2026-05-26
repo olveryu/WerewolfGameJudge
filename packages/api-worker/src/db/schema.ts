@@ -1,8 +1,8 @@
 /**
- * Drizzle ORM schema — D1 表定义
+ * Drizzle ORM schema — D1 table definitions
  *
- * 与 migrations/ 下的 SQL 保持一致。修改字段时需同步新增 migration 文件。
- * 表名、列名使用 snake_case，与 D1 中的物理列一致。
+ * Stay consistent with SQL under migrations/. When modifying fields, add a corresponding migration file.
+ * Table and column names use snake_case to match physical columns in D1.
  */
 
 import {
@@ -17,39 +17,39 @@ import {
 
 // ── users ───────────────────────────────────────────────────────────────────
 
-/** 用户表。 */
+/** Users table. */
 export const users = sqliteTable(
   'users',
   {
     id: text('id').primaryKey(),
-    /** 可为 null：OAuth / 匿名用户无 email */
+    /** Nullable: OAuth / anonymous users have no email */
     email: text('email'),
-    /** 可为 null：OAuth 用户无密码（WeChat-only / 匿名升级前） */
+    /** Nullable: OAuth users have no password (WeChat-only / before anonymous upgrade) */
     passwordHash: text('password_hash'),
     displayName: text('display_name'),
-    /** 默认头像 URL（注册时生成） */
+    /** Default avatar URL (generated at registration) */
     avatarUrl: text('avatar_url'),
-    /** 用户上传的自定义头像（优先级高于 avatarUrl） */
+    /** User-uploaded custom avatar (takes priority over avatarUrl) */
     customAvatarUrl: text('custom_avatar_url'),
-    /** 装备的头像框 gacha item ID */
+    /** Equipped avatar frame gacha item ID */
     avatarFrame: text('avatar_frame'),
-    /** 装备的座位特效 gacha item ID */
+    /** Equipped seat flair gacha item ID */
     equippedFlair: text('equipped_flair'),
-    /** 装备的名字样式 gacha item ID */
+    /** Equipped name style gacha item ID */
     equippedNameStyle: text('equipped_name_style'),
-    /** 装备的翻牌动画 gacha item ID */
+    /** Equipped card-flip animation gacha item ID */
     equippedEffect: text('equipped_effect'),
-    /** 装备的入座动画 gacha item ID */
+    /** Equipped seat animation gacha item ID */
     equippedSeatAnimation: text('equipped_seat_animation'),
-    /** 微信 OAuth 唯一标识符（一个 openid 只绑定一个账号） */
+    /** WeChat OAuth unique identifier (one openid binds to one account only) */
     wechatOpenid: text('wechat_openid'),
-    /** SQLite boolean：0=认证用户，1=匿名用户 */
+    /** SQLite boolean: 0=authenticated user, 1=anonymous user */
     isAnonymous: integer('is_anonymous').notNull().default(1),
-    /** 每次登出/改密递增；使所有已颁发 access token 失效（JWT payload.ver 校验） */
+    /** Incremented on each logout / password change; invalidates all issued access tokens (verified via JWT payload.ver) */
     tokenVersion: integer('token_version').notNull().default(0),
-    /** 最近连接的国家代码（如 'CN'/'US'），来自 CF request.cf */
+    /** Most recent connection country code (e.g. 'CN'/'US'), from CF request.cf */
     lastCountry: text('last_country'),
-    /** 最近连接的 CF colo（如 'SJC'/'HKG'），来自 CF request.cf */
+    /** Most recent connection CF colo (e.g. 'SJC'/'HKG'), from CF request.cf */
     lastColo: text('last_colo'),
     /** ISO 8601 UTC */
     createdAt: text('created_at').notNull(),
@@ -61,7 +61,7 @@ export const users = sqliteTable(
 
 // ── rooms ───────────────────────────────────────────────────────────────────
 
-/** 房间表。 */
+/** Rooms table. */
 export const rooms = sqliteTable('rooms', {
   id: text('id').primaryKey(),
   code: text('code').notNull().unique(),
@@ -72,19 +72,19 @@ export const rooms = sqliteTable('rooms', {
 
 // ── password_reset_tokens ───────────────────────────────────────────────────
 
-/** 密码重置令牌表。 */
+/** Password reset tokens table. */
 export const passwordResetTokens = sqliteTable('password_reset_tokens', {
   id: text('id').primaryKey(),
   userId: text('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  /** 6 位验证码与 email 拼接后的 SHA-256 hash */
+  /** SHA-256 hash of the 6-digit code concatenated with email */
   tokenHash: text('token_hash').notNull(),
-  /** ISO 8601 UTC；创建后 15 分钟过期 */
+  /** ISO 8601 UTC; expires 15 minutes after creation */
   expiresAt: text('expires_at').notNull(),
-  /** SQLite boolean：0=未使用，1=已使用（成功重置后标记） */
+  /** SQLite boolean: 0=unused, 1=used (marked after successful reset) */
   isUsed: integer('is_used').notNull().default(0),
-  /** 验证尝试次数；达到 5 次后令牌失效 */
+  /** Verification attempt count; token invalidated after 5 attempts */
   verifyAttempts: integer('verify_attempts').notNull().default(0),
   /** ISO 8601 UTC */
   createdAt: text('created_at').notNull(),
@@ -92,7 +92,7 @@ export const passwordResetTokens = sqliteTable('password_reset_tokens', {
 
 // ── refresh_tokens ──────────────────────────────────────────────────────────
 
-/** Refresh token 表。单次使用（rotation）：消费时原子 DELETE-RETURNING。 */
+/** Refresh token table. Single-use (rotation): atomic DELETE-RETURNING on consume. */
 export const refreshTokens = sqliteTable(
   'refresh_tokens',
   {
@@ -100,9 +100,9 @@ export const refreshTokens = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** 32-byte 随机 token 的 SHA-256 hex hash（明文不存储） */
+    /** SHA-256 hex hash of the 32-byte random token (plaintext not stored) */
     tokenHash: text('token_hash').notNull(),
-    /** ISO 8601 UTC；90 天有效期 */
+    /** ISO 8601 UTC; 90-day validity */
     expiresAt: text('expires_at').notNull(),
     /** ISO 8601 UTC */
     createdAt: text('created_at').notNull(),
@@ -115,10 +115,10 @@ export const refreshTokens = sqliteTable(
 
 // ── login_attempts ──────────────────────────────────────────────────────────
 
-/** 登录尝试记录（限流用）。10 次/15 分钟后拦截，由 cron 每小时清理。 */
+/** Login attempt records (for rate limiting). Block after 10 attempts / 15 minutes; cleaned hourly by cron. */
 export const loginAttempts = sqliteTable('login_attempts', {
   id: text('id').primaryKey(),
-  /** email 的 SHA-256 hash（不存储明文，防制举攻击时泄露 email） */
+  /** SHA-256 hash of the email (plaintext not stored, prevents leaking email during enumeration attacks) */
   emailHash: text('email_hash').notNull(),
   /** ISO 8601 UTC */
   attemptedAt: text('attempted_at').notNull(),
@@ -126,7 +126,7 @@ export const loginAttempts = sqliteTable('login_attempts', {
 
 // ── user_stats ──────────────────────────────────────────────────────────────
 
-/** 用户统计（XP / 等级 / 扭蛋）。 */
+/** User stats (XP / level / gacha). */
 export const userStats = sqliteTable('user_stats', {
   userId: text('user_id')
     .primaryKey()
@@ -135,23 +135,23 @@ export const userStats = sqliteTable('user_stats', {
   level: integer('level').notNull().default(0),
   gamesPlayed: integer('games_played').notNull().default(0),
   lastRoomCode: text('last_room_code'),
-  /** JSON 字符串化的已解锁 gacha reward ID 数组（如 '["flair_fire","frame_gold"]'） */
+  /** JSON-stringified array of unlocked gacha reward IDs (e.g. '["flair_fire","frame_gold"]') */
   unlockedItems: text('unlocked_items').notNull().default('[]'),
-  /** 剩余普通抽次数 */
+  /** Remaining normal draw count */
   normalDraws: integer('normal_draws').notNull().default(0),
-  /** 剩余金色抽次数 */
+  /** Remaining golden draw count */
   goldenDraws: integer('golden_draws').notNull().default(0),
-  /** 普通抽保底计数（0-9）；第 10 抽(pityCount>=9)强制升级 rare+，触发后归零 */
+  /** Normal-draw pity counter (0-9); the 10th draw (pityCount>=9) forces rare+, resets after trigger */
   normalPity: integer('normal_pity').notNull().default(0),
-  /** 金色抽保底计数（0-9）；同上 */
+  /** Golden-draw pity counter (0-9); same as above */
   goldenPity: integer('golden_pity').notNull().default(0),
-  /** 碎片余额（重复物品转换获得，用于兑换） */
+  /** Shard balance (gained from duplicate-item conversion, used for redemption) */
   shards: integer('shards').notNull().default(0),
-  /** OCC 版本号；每次写操作 WHERE version = ? 保证原子性，冲突时重试 */
+  /** OCC version number; each write uses WHERE version = ? for atomicity, retries on conflict */
   version: integer('version').notNull().default(0),
-  /** ISO 8601 UTC；最近一次每日奖励领取时间（冷却 20h）。null = 从未领取 */
+  /** ISO 8601 UTC; timestamp of the most recent daily reward claim (20h cooldown). null = never claimed */
   lastLoginRewardAt: text('last_login_reward_at'),
-  /** ISO 8601 UTC；最近一次 XP 结算时间戳。null = 从未结算 */
+  /** ISO 8601 UTC; timestamp of the most recent XP settlement. null = never settled */
   settledAt: text('settled_at'),
   /** ISO 8601 UTC */
   updatedAt: text('updated_at').notNull(),
@@ -159,7 +159,7 @@ export const userStats = sqliteTable('user_stats', {
 
 // ── draw_history ────────────────────────────────────────────────────────────
 
-/** 扭蛋抽取历史。 */
+/** Gacha draw history. */
 export const drawHistory = sqliteTable('draw_history', {
   id: text('id').primaryKey(),
   userId: text('user_id')
@@ -167,19 +167,19 @@ export const drawHistory = sqliteTable('draw_history', {
     .references(() => users.id, { onDelete: 'cascade' }),
   /** 'normal' | 'golden' */
   drawType: text('draw_type').notNull(),
-  /** 抽中的稀有度（'common' | 'rare' | 'epic' | 'legendary'） */
+  /** Rarity drawn ('common' | 'rare' | 'epic' | 'legendary') */
   rarity: text('rarity').notNull(),
-  /** 奖励类型（'flair' | 'frame' | 'nameStyle' | 'effect' | 'seatAnimation'） */
+  /** Reward type ('flair' | 'frame' | 'nameStyle' | 'effect' | 'seatAnimation') */
   rewardType: text('reward_type').notNull(),
-  /** 奖励物品 ID */
+  /** Reward item ID */
   rewardId: text('reward_id').notNull(),
-  /** 本次抽取时的 pity 计数值（0-9） */
+  /** Pity counter value at the time of this draw (0-9) */
   pityCount: integer('pity_count').notNull(),
-  /** SQLite boolean：是否由保底触发 */
+  /** SQLite boolean: whether triggered by pity */
   isPityTriggered: integer('is_pity_triggered').notNull().default(0),
-  /** SQLite boolean：是否为重复物品（转碎片） */
+  /** SQLite boolean: whether the result is a duplicate (converted to shards) */
   isDuplicate: integer('is_duplicate').notNull().default(0),
-  /** 重复时补償的碎片数；非重复时为 0 */
+  /** Shards awarded as compensation when duplicate; 0 when not a duplicate */
   shardsAwarded: integer('shards_awarded').notNull().default(0),
   /** ISO 8601 UTC */
   createdAt: text('created_at').notNull(),
@@ -187,7 +187,7 @@ export const drawHistory = sqliteTable('draw_history', {
 
 // ── room_participants ────────────────────────────────────────────────────────
 
-/** 房间参与者关联表。 */
+/** Room participants association table. */
 export const roomParticipants = sqliteTable(
   'room_participants',
   {
@@ -208,16 +208,16 @@ export const roomParticipants = sqliteTable(
 
 // ── idempotency_keys ────────────────────────────────────────────────────────
 
-/** 幂等键表（防重放）。TTL 24h，由 cron 清理。 */
+/** Idempotency keys table (replay protection). TTL 24h, cleaned by cron. */
 export const idempotencyKeys = sqliteTable(
   'idempotency_keys',
   {
-    /** 幂等键（客户端生成的 UUID） */
+    /** Idempotency key (client-generated UUID) */
     key: text('key').primaryKey(),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** 缓存的响应 JSON（重放时直接返回） */
+    /** Cached response JSON (returned directly on replay) */
     response: text('response').notNull(),
     /** ISO 8601 UTC */
     createdAt: text('created_at').notNull(),
@@ -227,7 +227,7 @@ export const idempotencyKeys = sqliteTable(
 
 // ── feedbacks ───────────────────────────────────────────────────────────────
 
-/** 用户反馈表。 */
+/** User feedback table. */
 export const feedbacks = sqliteTable(
   'feedbacks',
   {
@@ -249,7 +249,7 @@ export const feedbacks = sqliteTable(
 
 // ── feedback_replies ────────────────────────────────────────────────────────
 
-/** 反馈回复表。 */
+/** Feedback replies table. */
 export const feedbackReplies = sqliteTable(
   'feedback_replies',
   {
@@ -271,11 +271,11 @@ export const feedbackReplies = sqliteTable(
 
 // ── wx_claims ───────────────────────────────────────────────────────────────
 
-/** 微信 claim nonce 表。TTL 5 分钟，由 cron 清理。 */
+/** WeChat claim nonce table. TTL 5 minutes, cleaned by cron. */
 export const wxClaims = sqliteTable('wx_claims', {
-  /** 一次性 nonce（小程序端生成，消费后删除） */
+  /** Single-use nonce (generated by mini-program client, deleted on consume) */
   nonce: text('nonce').primaryKey(),
-  /** 微信用户 openid（login code 换取后存入） */
+  /** WeChat user openid (stored after login-code exchange) */
   openid: text('openid').notNull(),
   /** ISO 8601 UTC */
   createdAt: text('created_at').notNull(),

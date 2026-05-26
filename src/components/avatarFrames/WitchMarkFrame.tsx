@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * WitchMarkFrame — 巫痕
+ * WitchMarkFrame — witch mark
  *
- * 暗橙巫术框 · 四角巫术五角星标记 · 刻痕纹路延伸 · 魔力火焰点。
+ * Dark-orange occult frame, pentagram marks at the four corners, etched scratch patterns extending out, arcane flame dots.
  */
 export const WitchMarkFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

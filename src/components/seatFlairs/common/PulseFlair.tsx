@@ -1,7 +1,7 @@
 /**
- * PulseFlair — 脉冲
+ * PulseFlair — pulse
  *
- * 2-3 个散布光斑，脉冲式明灭+微缩放。Common 级座位装饰模板。
+ * 2-3 scattered spots that pulse-fade and micro-scale. Common-tier seat flair template.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

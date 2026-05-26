@@ -1,8 +1,8 @@
 /**
- * FilmBugPet — 胶片虫
+ * FilmBugPet — Film Bug
  *
- * filmRewind 翻牌动画的伴生宠物。
- * 胶片卷造型虫子 + 齿孔 + 金眼 + 触角 + 4 条腿交替抽动。
+ * Companion pet for the filmRewind flip animation.
+ * Film-strip-shaped bug + sprocket holes + golden eyes + antennae + 4 legs that twitch alternately.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

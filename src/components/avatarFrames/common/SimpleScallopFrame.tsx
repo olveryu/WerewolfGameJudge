@@ -1,8 +1,8 @@
 /**
- * SimpleScallopFrame — 波浪
+ * SimpleScallopFrame — Wave
  *
  * 10 shallow cubic-bezier waves per edge — elegant stamp/porcelain rim.
- * Common 级头像框模板。
+ * Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';

@@ -1,15 +1,15 @@
 /**
- * EncyclopediaScreen constants — 共享常量
+ * EncyclopediaScreen constants — shared constants
  *
- * 能力标签中文映射、阵营显示配置。
- * 不含业务逻辑、副作用、平台依赖。
+ * Ability tag Chinese label mapping, faction display config.
+ * No business logic, side effects, or platform dependencies.
  */
 import type { RoleAbilityTag } from '@werewolf/game-engine/models/roles';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 
 import type { ThemeColors } from '@/theme';
 
-/** 能力标签中文映射（百科筛选 + 卡片展示用） */
+/** Ability tag Chinese labels (used for encyclopedia filtering and card display) */
 export const TAG_LABELS: Record<RoleAbilityTag, string> = {
   check: '查验',
   protect: '保护',
@@ -24,7 +24,7 @@ export const TAG_LABELS: Record<RoleAbilityTag, string> = {
   none: '无能力',
 };
 
-/** 能力标签语义色（引用 ThemeColors key） */
+/** Ability tag semantic colors (references ThemeColors keys) */
 export const TAG_COLOR_KEY: Record<RoleAbilityTag, keyof ThemeColors> = {
   check: 'info',
   protect: 'success',
@@ -39,7 +39,7 @@ export const TAG_COLOR_KEY: Record<RoleAbilityTag, keyof ThemeColors> = {
   none: 'textMuted',
 };
 
-/** 所有能力标签有序列表 */
+/** Ordered list of all ability tags */
 export const ALL_TAGS: readonly RoleAbilityTag[] = [
   'check',
   'protect',
@@ -53,14 +53,14 @@ export const ALL_TAGS: readonly RoleAbilityTag[] = [
   'none',
 ] as const;
 
-/** 阵营显示配置 */
+/** Faction display config */
 interface FactionConfig {
   faction: Faction;
   label: string;
   colorKey: 'god' | 'wolf' | 'villager' | 'third';
 }
 
-/** SectionList 阵营分组顺序 */
+/** SectionList faction group order */
 export const FACTION_SECTIONS: readonly FactionConfig[] = [
   { faction: Faction.God, label: '神职', colorKey: 'god' },
   { faction: Faction.Wolf, label: '狼人', colorKey: 'wolf' },

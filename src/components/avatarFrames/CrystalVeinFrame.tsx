@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * CrystalVeinFrame — 晶脉
+ * CrystalVeinFrame — crystal veins
  *
- * 深色框体上裂开发光的水晶脉络 · 脉络从四角向中心延伸 · 裂口内透出青白光芒。
+ * Dark frame cracked by glowing crystal veins · veins extend from each corner toward the center · cyan-white light shines through the cracks.
  */
 export const CrystalVeinFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

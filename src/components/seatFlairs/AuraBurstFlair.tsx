@@ -1,7 +1,7 @@
 /**
- * AuraBurstFlair — 灵气爆发
+ * AuraBurstFlair — aura burst
  *
- * 3 道同心光环从中心向外扩散，不同相位，到边缘消失后重置。
+ * 3 concentric rings expand outward from center with different phases; reset after fading at the edge.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

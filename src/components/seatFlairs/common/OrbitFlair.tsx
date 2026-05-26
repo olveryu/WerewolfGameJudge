@@ -1,7 +1,7 @@
 /**
- * OrbitFlair — 轨道
+ * OrbitFlair — Orbit
  *
- * Two dots orbiting at different radii and speeds. Common 级座位装饰模板。
+ * Two dots orbiting at different radii and speeds. Template for Common-tier seat flair.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

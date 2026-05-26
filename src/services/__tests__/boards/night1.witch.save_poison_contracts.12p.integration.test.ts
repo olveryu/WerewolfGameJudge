@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: Witch Save/Poison Contracts
  *
- * 主题：女巫的解药/毒药约束和效果。
+ * Topic: Witch save/poison constraints and effects.
  *
- * 模板：狼王魔术师
- * 固定 seat-role assignment:
+ * Template: 狼王魔术师
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: darkWolfKing
@@ -13,12 +13,12 @@
  *   seat 10: hunter
  *   seat 11: magician
  *
- * 核心约束（Night-1-only）：
- * - notSelf：女巫不能自救
- * - save 只能救被狼人袭击的玩家
- * - 同一晚不能同时使用解药和毒药
+ * Core constraints (Night-1-only):
+ * - notSelf: Witch cannot self-save
+ * - save can only target players attacked by wolves
+ * - Cannot use save and poison in the same night
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -29,7 +29,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '狼王魔术师';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -59,7 +59,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     it('女巫救被袭击的玩家，该玩家不死', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 袭击 seat 0，女巫救 seat 0
+      // Attack seat 0, witch saves seat 0
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: 0,
@@ -69,10 +69,10 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 0 被救，不在死亡列表中
+      // Core assertion: seat 0 saved, not in death list
       expect(result.deaths).toEqual([]);
 
-      // savedSeat 写入 currentNightResults
+      // savedSeat written to currentNightResults
       expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
     });
 
@@ -95,7 +95,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     it('女巫毒人，该玩家死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 狼放弃袭击，女巫毒 seat 2
+      // Wolves skip attack, witch poisons seat 2
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: null,
@@ -105,10 +105,10 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 2 被毒死
+      // Core assertion: seat 2 poisoned to death
       expect(result.deaths).toEqual([2]);
 
-      // poisonedSeat 写入 currentNightResults
+      // poisonedSeat written to currentNightResults
       expect(ctx.getGameState().currentNightResults?.poisonedSeat).toBe(2);
     });
 
@@ -118,7 +118,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: null,
-        witch: { save: null, poison: 4 }, // 毒 wolf
+        witch: { save: null, poison: 4 }, // poison wolf
         seer: 5,
       });
 
@@ -129,24 +129,24 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
 
   describe('notSelf 约束：女巫不能自救', () => {
     /**
-     * notSelf 约束在 UI 层就是禁选：女巫无法在 UI 上选择自己。
-     * 这里验证：当女巫自己被袭击时，只能选择不救（skip）。
-     * reject 的直接测试由 schema/resolver contract 测试覆盖。
+     * notSelf constraint at UI layer disables selection: witch cannot select self in UI.
+     * Here we verify: when the witch is attacked, can only choose not to save (skip).
+     * Direct reject testing covered by schema/resolver contract tests.
      */
     it('袭击女巫 seat(9) 时，女巫 skip 救人，女巫死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 袭击 seat 9（witch），女巫 skip（因为不能自救）
+      // Attack seat 9 (witch), witch skips (cannot self-save)
       const result = executeFullNight(ctx, {
         magician: null,
-        wolf: 9, // 袭击女巫
-        witch: { save: null, poison: null }, // 不救（自救被禁）
+        wolf: 9, // attack witch
+        witch: { save: null, poison: null }, // skip save (self-save forbidden)
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：女巫不能自救，seat 9 死亡
+      // Core assertion: witch cannot self-save, seat 9 dies
       expect(result.deaths).toContain(9);
     });
   });
@@ -155,45 +155,45 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     it('袭击目标写入 witchContext.killedSeat（验证最终状态）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 完整走完夜晚，检查 state 中的 savedSeat/poisonedSeat 记录
+      // Run full night, check savedSeat/poisonedSeat records in state
       const result = executeFullNight(ctx, {
         magician: null,
-        wolf: 0, // 袭击 seat 0
-        witch: { save: 0, poison: null }, // 救 seat 0
+        wolf: 0, // attack seat 0
+        witch: { save: 0, poison: null }, // save seat 0
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：savedSeat 记录了女巫救的目标
+      // Core assertion: savedSeat records the witch's save target
       expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
 
-      // seat 0 被救，不死
+      // seat 0 saved, alive
       expect(result.deaths).toEqual([]);
     });
   });
 
   describe('Save 只能救被袭击的目标', () => {
     /**
-     * 女巫只能救被袭击的目标。UI 层只会 enable 被袭击的座位。
-     * 如果狼放弃袭击，女巫的救人选项不可用。
-     * 这里验证：袭击 seat 0，女巫救 seat 0 成功；女巫 skip 时 seat 0 死亡。
-     * reject 的直接测试由 schema/resolver contract 测试覆盖。
+     * Witch can only save the attacked target. UI layer only enables the attacked seat.
+     * If wolves skip attack, the witch's save option is unavailable.
+     * Here we verify: attack seat 0, witch saves seat 0 succeeds; if witch skips seat 0 dies.
+     * Direct reject testing covered by schema/resolver contract tests.
      */
     it('女巫只救被袭击目标，救成功', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 袭击 seat 0，女巫救 seat 0（唯一合法目标）
+      // Attack seat 0, witch saves seat 0 (only legal target)
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: 0,
-        witch: { save: 0, poison: null }, // 救被袭击的人
+        witch: { save: 0, poison: null }, // save the attacked
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 0 被救，不死
+      // Core assertion: seat 0 saved, alive
       expect(result.deaths).not.toContain(0);
       expect(ctx.getGameState().currentNightResults?.savedSeat).toBe(0);
     });
@@ -201,17 +201,17 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     it('女巫不救人时，被袭击者死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 袭击 seat 0，女巫不救
+      // Attack seat 0, witch does not save
       const result = executeFullNight(ctx, {
         magician: null,
         wolf: 0,
-        witch: { save: null, poison: null }, // 不救
+        witch: { save: null, poison: null }, // skip save
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 0 死亡
+      // Core assertion: seat 0 dies
       expect(result.deaths).toContain(0);
     });
   });

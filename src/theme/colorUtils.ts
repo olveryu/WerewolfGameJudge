@@ -1,8 +1,9 @@
 /**
- * colorUtils - 纯色彩工具函数
+ * colorUtils - pure color utility functions
  *
- * 提供 hex 色值的 lighten / darken 运算，供主题派生色（如阵营 glow / particle / gradient）使用。
- * 纯函数，无依赖，不含 React 或 service。
+ * Provides lighten / darken operations on hex color values for theme-derived colors
+ * (e.g. faction glow / particle / gradient).
+ * Pure functions; no dependencies; no React or services.
  */
 
 /** Parse hex (#RRGGBB or #RGB) to [r, g, b] */

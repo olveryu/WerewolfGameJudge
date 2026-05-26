@@ -1,10 +1,10 @@
 /**
- * RevealBurst — 揭示瞬间爆裂粒子特效
+ * RevealBurst — burst particle effect at the moment of reveal
  *
- * 在卡牌翻转/揭示的瞬间从中心爆发金色粒子 + 震荡环。
- * 使用 Reanimated Animated.View 实现（替代原 Skia Canvas，减少同屏 Canvas 数量）。
- * `trigger` 从 false → true 时触发一次性爆发动画。
- * 不 import service，不含业务逻辑。
+ * Bursts gold particles + shockwave ring from center the instant the card flips / reveals.
+ * Implemented with Reanimated Animated.View (replaces the original Skia Canvas to reduce on-screen Canvas count).
+ * Triggers a one-shot burst animation when `trigger` transitions false -> true.
+ * Does not import services; contains no business logic.
  */
 import React, { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';

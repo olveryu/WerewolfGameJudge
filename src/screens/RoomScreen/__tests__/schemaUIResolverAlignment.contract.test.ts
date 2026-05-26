@@ -1,12 +1,12 @@
 /**
- * Schema-UI-Resolver 三层对齐合约测试
+ * Schema-UI-Resolver three-layer alignment contract test
  *
- * 本测试确保：
- * 1. Schema 是 notSelf 约束的单一真相
- * 2. UI 从 schema 读取约束（无 hardcode）
- * 3. Resolver 按 schema 校验（schema-first）
+ * This test ensures:
+ * 1. Schema is the single source of truth for notSelf constraint
+ * 2. UI reads constraints from schema (no hardcode)
+ * 3. Resolver validates per schema (schema-first)
  *
- * 如果任何层出现 drift，此测试会失败。
+ * If any layer drifts, this test fails.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -50,10 +50,10 @@ function getSchemaConstraints(schemaId: SchemaId): readonly string[] {
   return [];
 }
 
-// === Schema 是 notSelf 的单一真相 ===
+// === Schema is single source of truth for notSelf ===
 
 describe('Schema notSelf constraint - single source of truth', () => {
-  // 有 notSelf 的 schema（必须拒绝自指）
+  // Schemas with notSelf (must reject self-target)
   const schemasWithNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'seerCheck', roleId: 'seer' },
     { schemaId: 'mirrorSeerCheck', roleId: 'mirrorSeer' },
@@ -70,7 +70,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'crowCurse', roleId: 'crow' },
   ];
 
-  // 无 notSelf 的 schema（允许自指）
+  // Schemas without notSelf (allow self-target)
   const schemasWithoutNotSelf: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'nightmareBlock', roleId: 'nightmare' },
     { schemaId: 'guardProtect', roleId: 'guard' },
@@ -78,7 +78,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
     { schemaId: 'poisonerPoison', roleId: 'poisoner' },
   ];
 
-  // 有 notWolfFaction 的 schema（不能选狼阵营，自身为狼阵营所以也不能自指）
+  // Schemas with notWolfFaction (cannot target wolf faction; self is wolf faction so cannot self-target either)
   const schemasWithNotWolfFaction: Array<{ schemaId: SchemaId; roleId: RoleId }> = [
     { schemaId: 'wolfWitchCheck', roleId: 'wolfWitch' },
     { schemaId: 'awakenedGargoyleConvert', roleId: 'awakenedGargoyle' },
@@ -224,32 +224,32 @@ describe('Schema notSelf constraint - single source of truth', () => {
   });
 });
 
-// === UI 从 schema 读取（无 hardcode） ===
+// === UI reads from schema (no hardcode) ===
 
 describe('UI reads constraints from schema (no hardcode)', () => {
   /**
-   * 这个测试验证 RoomScreen.helpers.ts 中的 buildSeatViewModels
-   * 只根据传入的 schemaConstraints 禁用座位，无 hardcode。
+   * This test verifies buildSeatViewModels in RoomScreen.helpers.ts
+   * disables seats only based on passed-in schemaConstraints, no hardcode.
    *
-   * 相关代码：
+   * Related code:
    * - RoomScreen.tsx: currentSchemaConstraints = currentSchema.constraints
    * - RoomScreen.helpers.ts: if (options?.schemaConstraints?.includes('notSelf') && seat === actorSeat)
    */
   it('buildSeatViewModels uses schemaConstraints parameter (not hardcoded role checks)', () => {
-    // 这个测试在 RoomScreen.helpers.test.ts 中有详细覆盖
-    // 这里只做存在性断言
+    // This test is covered in detail by RoomScreen.helpers.test.ts
+    // Here we just do an existence assertion
     const { buildSeatViewModels } = require('@/screens/RoomScreen/RoomScreen.helpers') as {
       buildSeatViewModels: (...args: unknown[]) => unknown;
     };
     expect(typeof buildSeatViewModels).toBe('function');
 
-    // 函数签名中包含 schemaConstraints 参数
+    // Function signature contains schemaConstraints parameter
     const fnStr = buildSeatViewModels.toString();
     expect(fnStr).toContain('schemaConstraints');
   });
 });
 
-// === 完整性检查 ===
+// === Completeness check ===
 
 describe('notSelf constraint completeness', () => {
   it('all chooseSeat/swap schemas are covered in this test', () => {
@@ -297,7 +297,7 @@ describe('notSelf constraint completeness', () => {
       (id) => !testedSchemas.has(id) && id !== 'witchAction',
     );
 
-    // 如果有新的 chooseSeat schema 未测试，此测试会失败
+    // If any new chooseSeat schema is untested, this test fails
     expect(untested).toEqual([]);
   });
 });

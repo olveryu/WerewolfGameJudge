@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: EclipseWolfQueen Shelter Redirect
  *
- * 主题：蚀时狼妃放逐机制 — 神职技能目标重定向。
+ * Topic: Eclipse Wolf Queen shelter mechanic - god-role skill target redirect.
  *
- * 模板：永序之轮
- * 固定 seat-role assignment:
+ * Template: 永序之轮
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: eclipseWolfQueen
@@ -13,12 +13,12 @@
  *   seat 10: guard
  *   seat 11: sequencePrince
  *
- * 核心规则：
- * - 蚀时狼妃选择一名玩家放逐（shelteredSeat）
- * - 神职对被放逐者释放技能 → 效果重定向到施法者自身
- * - 狼人阵营对被放逐者释放技能 → 不受影响
+ * Core rules:
+ * - Eclipse Wolf Queen selects a player to shelter (shelteredSeat)
+ * - Good-faction god role targets the sheltered seat -> effect redirected to the caster itself
+ * - Wolf-faction targets the sheltered seat -> unaffected
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -56,19 +56,19 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
     it('预言家查验被放逐者 → 查验结果为预言家自身阵营（好人）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // eclipseWolfQueen 放逐 seat 4 (wolf)
-      // seer 查验 seat 4 → 重定向为查验自身(seat 8) → 结果：好人
+      // eclipseWolfQueen shelters seat 4 (wolf)
+      // seer checks seat 4 -> redirected to checking self (seat 8) -> result: good faction
       const result = executeFullNight(ctx, {
         eclipseWolfQueen: 4,
         guard: null,
         wolf: 0,
         witch: { save: null, poison: null },
-        seer: 4, // 查验被放逐的狼人 → 重定向查自己
+        seer: 4, // Check sheltered wolf -> redirected to self
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seer 的 action targetSeat 被重定向为 seer 自身座位
+      // Core assertion: the seer action's targetSeat is redirected to the seer's own seat
       const state = ctx.getGameState();
       const shelterAction = state.actions?.find((a) => a.schemaId === 'eclipseWolfQueenShelter');
       expect(shelterAction).toBeDefined();
@@ -76,20 +76,20 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
 
       const seerAction = state.actions?.find((a) => a.schemaId === 'seerCheck');
       expect(seerAction).toBeDefined();
-      expect(seerAction!.targetSeat).toBe(8); // 重定向到 seer 自身
+      expect(seerAction!.targetSeat).toBe(8); // Redirected to seer self
     });
 
     it('预言家查验未被放逐者 → 正常查验', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // eclipseWolfQueen 放逐 seat 0 (villager)
-      // seer 查验 seat 4 (wolf) → 不受影响
+      // eclipseWolfQueen shelters seat 0 (villager)
+      // seer checks seat 4 (wolf) -> unaffected
       const result = executeFullNight(ctx, {
         eclipseWolfQueen: 0,
         guard: null,
         wolf: 1,
         witch: { save: null, poison: null },
-        seer: 4, // 查验未被放逐的狼人
+        seer: 4, // Check non-sheltered wolf
       });
 
       expect(result.completed).toBe(true);
@@ -97,7 +97,7 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
       const state = ctx.getGameState();
       const seerAction = state.actions?.find((a) => a.schemaId === 'seerCheck');
       expect(seerAction).toBeDefined();
-      expect(seerAction!.targetSeat).toBe(4); // 未重定向
+      expect(seerAction!.targetSeat).toBe(4); // Not redirected
     });
   });
 
@@ -105,25 +105,25 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
     it('守卫守护被放逐者 → guardedSeat 为守卫自身', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // eclipseWolfQueen 放逐 seat 0
-      // guard 守护 seat 0 → 重定向守护自身(seat 10)
+      // eclipseWolfQueen shelters seat 0
+      // guard protects seat 0 -> redirected to protecting self (seat 10)
       const result = executeFullNight(ctx, {
         eclipseWolfQueen: 0,
-        guard: 0, // 守护被放逐者 → 重定向
-        wolf: 0, // 袭击 seat 0
+        guard: 0, // Protect sheltered seat -> redirected
+        wolf: 0, // Attack seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // guard action 的 targetSeat 被重定向为 guard 自身
+      // The guard action's targetSeat is redirected to the guard itself
       const state = ctx.getGameState();
       const guardAction = state.actions?.find((a) => a.schemaId === 'guardProtect');
       expect(guardAction).toBeDefined();
-      expect(guardAction!.targetSeat).toBe(10); // 重定向到 guard 自身
+      expect(guardAction!.targetSeat).toBe(10); // Redirected to guard self
 
-      // seat 0 被狼人袭击且没有有效守护 → 死亡
+      // seat 0 is attacked by wolves with no effective protection -> dies
       expect(result.deaths).toContain(0);
     });
   });
@@ -132,22 +132,22 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
     it('女巫毒被放逐者 → poisonedSeat 为女巫自身', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // eclipseWolfQueen 放逐 seat 0
-      // witch 毒 seat 0 → 重定向毒自身(seat 9)
+      // eclipseWolfQueen shelters seat 0
+      // witch poisons seat 0 -> redirected to poisoning self (seat 9)
       const result = executeFullNight(ctx, {
         eclipseWolfQueen: 0,
         guard: null,
-        wolf: 1, // 袭击 seat 1
-        witch: { save: null, poison: 0 }, // 毒被放逐者 → 重定向
+        wolf: 1, // Attack seat 1
+        witch: { save: null, poison: 0 }, // Poison sheltered seat -> redirected
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 女巫毒死自己 + 狼人袭击 seat 1
-      expect(result.deaths).toContain(9); // 女巫自己
-      expect(result.deaths).toContain(1); // 被袭击者
-      expect(result.deaths).not.toContain(0); // 被放逐者安全
+      // Witch poisons herself + wolves attack seat 1
+      expect(result.deaths).toContain(9); // Witch herself
+      expect(result.deaths).toContain(1); // Attacked seat
+      expect(result.deaths).not.toContain(0); // Sheltered seat is safe
     });
   });
 
@@ -156,7 +156,7 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
-        eclipseWolfQueen: null, // 不放逐
+        eclipseWolfQueen: null, // No shelter
         guard: 0,
         wolf: 0,
         witch: { save: null, poison: null },
@@ -165,12 +165,12 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // guard 正常守护 seat 0
+      // guard protects seat 0 normally
       const state = ctx.getGameState();
       const guardAction = state.actions?.find((a) => a.schemaId === 'guardProtect');
-      expect(guardAction!.targetSeat).toBe(0); // 未重定向
+      expect(guardAction!.targetSeat).toBe(0); // Not redirected
 
-      // seat 0 被守护 → 不死
+      // seat 0 is protected -> survives
       expect(result.deaths).not.toContain(0);
     });
   });
@@ -179,18 +179,18 @@ describe('Night-1: EclipseWolfQueen Shelter Redirect (12p)', () => {
     it('狼人袭击被放逐者 → 正常袭击不重定向', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // eclipseWolfQueen 放逐 seat 0
-      // wolf 袭击 seat 0 → 狼人是 Wolf team，不重定向
+      // eclipseWolfQueen shelters seat 0
+      // wolf attacks seat 0 -> wolves are Wolf team, no redirect
       const result = executeFullNight(ctx, {
         eclipseWolfQueen: 0,
         guard: null,
-        wolf: 0, // 袭击被放逐者
+        wolf: 0, // Attack sheltered seat
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
-      // seat 0 正常死亡（狼人不受放逐重定向影响）
+      // seat 0 dies normally (wolves are not affected by shelter redirect)
       expect(result.deaths).toContain(0);
     });
   });

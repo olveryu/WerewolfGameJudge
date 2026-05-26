@@ -1,9 +1,9 @@
 /**
- * ScreenFlash — Skia 电影级全屏闪光特效
+ * ScreenFlash -- Skia cinematic full-screen flash effect
  *
- * 翻牌揭示后从卡片中心迸裂：径向冲击波 + 迸射粒子。
- * 使用 Skia Canvas + Blur + RadialGradient + blendMode="screen" 实现。
- * 不 import service，不含业务逻辑。
+ * After reveal, bursts from card center: radial shockwave + scattered particles.
+ * Implemented with Skia Canvas + Blur + RadialGradient + blendMode="screen".
+ * No service imports; no business logic.
  */
 import {
   Blur,
@@ -113,7 +113,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
 
   return (
     <Canvas style={styles.canvas}>
-      {/* Radial shockwave — expanding glow from center */}
+      {/* Radial shockwave -- expanding glow from center */}
       <Group opacity={waveOpacity}>
         <Circle cx={centerX} cy={centerY} r={waveR}>
           <RadialGradient
@@ -125,7 +125,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
         </Circle>
       </Group>
 
-      {/* Burst particles — Picture API with group-level blur */}
+      {/* Burst particles -- Picture API with group-level blur */}
       <Group
         blendMode="screen"
         layer={

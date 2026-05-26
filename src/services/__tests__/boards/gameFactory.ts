@@ -1,12 +1,12 @@
 /**
  * Game Factory for Integration Tests
  *
- * 完全基于 架构：
- * - intents → handlers → reducer → GameState
- * - 禁止 import legacy GameStateService / NightFlowController
- * - 禁止 encoded target 协议
+ * Fully based on the architecture:
+ * - intents -> handlers -> reducer -> GameState
+ * - No import of legacy GameStateService / NightFlowController
+ * - No encoded target protocol
  *
- * 单一真相：GameState
+ * Single source of truth: GameState
  */
 
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
@@ -50,7 +50,7 @@ interface InternalState {
   revision: number;
   nightPlan: NightPlan;
   template: GameTemplate;
-  /** 捕获的消息（用于 wire protocol 合约测试） */
+  /** Captured messages (for wire protocol contract tests) */
   capturedMessages: CapturedMessage[];
 }
 
@@ -71,7 +71,7 @@ function createContext(state: GameState): HandlerContext {
 // =============================================================================
 
 interface CreateGameOptions {
-  /** 盗宝大师底牌（3 张），仅 15 角色模板需要 */
+  /** Treasure Master deck cards (3 cards), required only for 15-role templates */
   bottomCards?: readonly RoleId[];
 }
 
@@ -197,7 +197,7 @@ export function createGame(
     },
   });
 
-  // 毒师在场：首夜 wolfKillOverride（与 handleStartNight 行为一致）
+  // Poisoner present: night-1 wolfKillOverride (consistent with handleStartNight behavior)
   if (template.roles.includes('poisoner' as RoleId)) {
     state = gameReducer(state, {
       type: 'SET_WOLF_KILL_OVERRIDE',
@@ -268,17 +268,17 @@ export function createGame(
   };
 
   /**
-   * 推进到下一个夜晚步骤（fail-fast 版本）
+   * Advance to the next night step (fail-fast version)
    *
-   * 逻辑与 stepByStepRunner.advanceNightOrThrow 完全一致：
-   * - 调用 advanceNight()
-   * - 如果 success: false 则 throw
+   * Logic identical to stepByStepRunner.advanceNightOrThrow:
+   * - Call advanceNight()
+   * - Throw if success: false
    *
-   * 两处实现保持行为一致，避免循环依赖。
-   * 逻辑极简（call + throw），不存在 drift 风险。
+   * Two implementations stay behaviorally consistent to avoid circular dependency.
+   * Logic is minimal (call + throw) — no drift risk.
    *
-   * @param context - 上下文信息（用于错误消息）
-   * @throws 如果 advanceNight 返回 success: false
+   * @param context - Context info (used for error messages)
+   * @throws if advanceNight returns success: false
    */
   const advanceNightOrThrow = (context: string): void => {
     const result = advanceNight();
@@ -293,19 +293,19 @@ export function createGame(
   };
 
   /**
-   * 结束夜晚，触发死亡结算
+   * End the night, trigger death settlement
    *
-   * FAIL-FAST: 只有当 night plan 走完（currentStepId 为空）时才允许调用。
-   * 中途调用会抛出错误，因为这违反了 NightFlow invariants。
+   * FAIL-FAST: Only allowed once the night plan is complete (currentStepId is null).
+   * Mid-flight calls throw because they violate NightFlow invariants.
    *
-   * 复用生产 handleEndNight handler，不自造 deaths。
-   * 走 executeHandler 统一管线（applyActions + normalizeState）。
+   * Reuses production handleEndNight handler — does not fabricate deaths.
+   * Goes through unified executeHandler pipeline (applyActions + normalizeState).
    */
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state);
     const result = handleEndNight({ type: 'END_NIGHT' }, context);
     if (result.kind !== 'success') {
-      // FAIL-FAST: 如果是 night_not_complete，说明测试代码试图中途 endNight，这是架构违规
+      // FAIL-FAST: night_not_complete means test code tried to endNight mid-flight, an architectural violation
       if (result.kind === 'error' && result.reason === 'night_not_complete') {
         throw new Error(
           `endNight() called before night plan completed. currentStepId=${internal.state.currentStepId}. ` +
@@ -322,7 +322,7 @@ export function createGame(
   };
 
   const sendPlayerMessage = (msg: PlayerMessage): ActionResult => {
-    // 捕获消息用于 wire protocol 合约测试
+    // Capture messages for wire protocol contract tests
     internal.capturedMessages.push({
       stepId: internal.state.currentStepId ?? null,
       message: msg,
@@ -407,5 +407,5 @@ export function createGame(
 }
 
 export function cleanupGame(): void {
-  // 不使用 singleton，无需清理
+  // No singleton — nothing to clean up
 }

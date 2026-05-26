@@ -1,9 +1,10 @@
 /**
- * Constraint Validator (SERVER-ONLY, 纯函数)
+ * Constraint Validator (SERVER-ONLY, pure function)
  *
- * 职责：根据 schema constraints 统一校验 target 合法性（单一真相），
- * 提供 schema constraint 校验（TargetConstraint.NotSelf / TargetConstraint.NotWolfFaction 等）。resolver 不自行硬编码约束检查（必须调用
- * validateConstraints），不包含 IO（网络 / 音频 / Alert）。
+ * Responsibility: uniformly validate target legality against schema constraints (single source of truth);
+ * provides schema constraint validation (TargetConstraint.NotSelf / TargetConstraint.NotWolfFaction etc.).
+ * Resolvers must not hardcode their own constraint checks (must call validateConstraints) and must not
+ * contain IO (network / audio / Alert).
  */
 
 import { ROLE_SPECS, type RoleId, Team } from '../models';
@@ -15,7 +16,7 @@ interface ConstraintValidationContext {
   actorSeat: number;
   /** Target seat to validate */
   target: number;
-  /** Player seat → roleId map (required for faction-based constraints like notWolfFaction) */
+  /** Player seat -> roleId map (required for faction-based constraints like notWolfFaction) */
   players?: ReadonlyMap<number, RoleId>;
   /** Magician swapped seats (required for swap-aware constraints like AdjacentToWolfFaction) */
   swappedSeats?: readonly [number, number];

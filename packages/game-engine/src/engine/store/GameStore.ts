@@ -1,20 +1,20 @@
 /**
- * GameStore — 游戏状态持有者。
+ * GameStore — game state holder.
  *
- * 职责：
- * - 持有 normalized GameState
- * - 管理 revision 版本号
- * - 订阅/通知机制
- * - 玩家端：applySnapshot（版本号检查）
- * - 主机端：setState / updateState
+ * Responsibilities:
+ * - Holds normalized GameState
+ * - Manages revision number
+ * - Subscribe/notify mechanism
+ * - Player side: applySnapshot (revision check)
+ * - Host side: setState / updateState
  *
- * 不负责：
- * - 业务逻辑（校验/结算/流程推进）
- * - IO（网络/音频/Alert）
+ * Not responsible for:
+ * - Business logic (validation/settlement/progression)
+ * - IO (network/audio/Alert)
  *
- * 边界约束：
- * - Store 是 parse boundary：input 接收 GameState，内部 normalizeState() 后存储
- * - applySnapshot 仅当 incoming revision > local revision 时应用
+ * Boundary constraints:
+ * - Store is the parse boundary: input accepts GameState, internally stored after normalizeState()
+ * - applySnapshot only applies when incoming revision > local revision
  */
 
 import { getEngineLogger } from '../../utils/logger';
@@ -28,26 +28,26 @@ export class GameStore implements IWritableGameStore {
   #revision: number = 0;
   readonly #listeners: Set<StoreStateListener> = new Set();
 
-  /** 最近一次广播携带的 action 类型（一次性消费） */
+  /** Action type carried by the most recent broadcast (consumed once) */
   #lastAction: string | null = null;
 
   /**
-   * 获取当前状态
+   * Get current state
    */
   getState(): GameState | null {
     return this.#state;
   }
 
   /**
-   * 获取当前 revision
+   * Get current revision
    */
   getRevision(): number {
     return this.#revision;
   }
 
   /**
-   * 订阅状态变化
-   * @returns 取消订阅函数
+   * Subscribe to state changes
+   * @returns unsubscribe function
    */
   subscribe(listener: StoreStateListener): () => void {
     this.#listeners.add(listener);
@@ -57,13 +57,13 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 应用快照（玩家端）
-   * 仅当 incoming revision > local revision 时应用
-   * 应用 normalizeState 确保 Host/Player shape 一致（anti-drift）
+   * Apply snapshot (player side)
+   * Only applies when incoming revision > local revision
+   * Applies normalizeState to ensure Host/Player shape consistency (anti-drift)
    */
   applySnapshot(state: GameState, revision: number, lastAction?: string): void {
     if (revision <= this.#revision) {
-      // 丢弃旧版本
+      // Drop older revision
       return;
     }
 
@@ -75,8 +75,8 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 设置状态（仅主机）
-   * 自动递增 revision 并归一化
+   * Set state (host only)
+   * Auto-increments revision and normalizes
    */
   setState(state: GameState): void {
     this.#state = normalizeState(state);
@@ -85,8 +85,8 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 增量更新状态（仅主机）
-   * @param updater 状态更新函数
+   * Incrementally update state (host only)
+   * @param updater state updater function
    */
   updateState(updater: (state: GameState) => GameState): void {
     if (!this.#state) {
@@ -98,7 +98,7 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 初始化状态（主机创建房间时）
+   * Initialize state (when host creates the room)
    */
   initialize(state: GameState): void {
     this.#state = normalizeState(state);
@@ -107,15 +107,15 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 重置 store（只清除 state，保留 listeners）
-   * 用于 leaveRoom 等场景
+   * Reset store (only clears state, keeps listeners)
+   * Used for scenarios like leaveRoom
    */
   reset(): void {
     this.#state = null;
     this.#revision = 0;
     this.#lastAction = null;
-    // 注意：不清除 listeners，因为 React useEffect 的 listener 生命周期独立于 store
-    // 通知 listeners state 已变为 null
+    // Note: do not clear listeners — React useEffect listener lifecycle is independent of the store
+    // Notify listeners that state has become null
     for (const listener of this.#listeners) {
       try {
         listener(null, 0);
@@ -126,8 +126,8 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 完全销毁 store（包括 listeners）
-   * 仅用于测试隔离
+   * Fully destroy store (including listeners)
+   * Only used for test isolation
    */
   destroy(): void {
     this.#state = null;
@@ -137,7 +137,7 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 消费最近一次广播携带的 lastAction（一次性读取，读后清除）
+   * Consume the lastAction carried by the most recent broadcast (read once, clears after read)
    */
   consumeLastAction(): string | null {
     const action = this.#lastAction;
@@ -146,14 +146,14 @@ export class GameStore implements IWritableGameStore {
   }
 
   /**
-   * 获取当前 listener 数量（仅用于测试/调试）
+   * Get current listener count (only for testing/debugging)
    */
   getListenerCount(): number {
     return this.#listeners.size;
   }
 
   /**
-   * 通知所有订阅者
+   * Notify all subscribers
    */
   #notifyListeners(): void {
     if (!this.#state) return;
@@ -162,7 +162,7 @@ export class GameStore implements IWritableGameStore {
       try {
         listener(this.#state, this.#revision);
       } catch (error) {
-        // 防止单个 listener 错误影响其他订阅者
+        // Prevent a single listener error from affecting other subscribers
         gameStoreLog.error('Listener error', { error });
       }
     }

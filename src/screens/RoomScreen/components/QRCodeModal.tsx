@@ -1,10 +1,10 @@
 /**
- * QRCodeModal - 房间二维码分享弹窗
+ * QRCodeModal - room QR code share modal
  *
- * 展示房间 URL 对应的 QR 码 + 房间号。
- * 支持「分享」（生成临时 PNG → 系统分享 sheet）和「复制链接」两种操作。
- * 小程序 web-view 内改为显示微信转发引导。
- * 纯展示组件：不 import service，不含业务逻辑判断。
+ * Displays the QR code for the room URL plus the room code.
+ * Supports "Share" (generate temporary PNG -> system share sheet) and "Copy link".
+ * Inside WeChat mini-program web-view, shows a WeChat forward guide instead.
+ * Pure presentational component: imports no service, contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -61,11 +61,11 @@ interface QRCodeModalProps {
   onClose: () => void;
 }
 
-/** QR 码尺寸（逻辑像素） */
+/** QR code size (logical pixels) */
 const QR_SIZE = 160;
-/** QR 中心 logo 尺寸 */
+/** QR center logo size */
 const QR_LOGO_SIZE = 44;
-/** QR 中心 logo 外边距（白色背景区域） */
+/** QR center logo margin (white background area) */
 const QR_LOGO_MARGIN = 4;
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset

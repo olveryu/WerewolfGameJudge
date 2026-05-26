@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * FrostForgeFrame — 霜锻
+ * FrostForgeFrame — Frost Forge
  *
- * 冰蓝色锻冰框 · 冰晶棱角向外突出 · 四角冰锥 · 霜花纹理沿边缘。
+ * Ice-blue forged ice frame · ice crystal edges protrude outward · four corner ice spires · frost pattern along edges.
  */
 export const FrostForgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

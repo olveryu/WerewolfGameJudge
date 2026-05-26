@@ -44,7 +44,7 @@ import {
 import type { PickerTab, RarityFilter, Selection } from '../types';
 import { useAppearanceSave } from './useAppearanceSave';
 
-/** 外观屏幕状态 hook。 */
+/** Appearance screen state hook. */
 export function useAppearanceState() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Appearance'>>();
   const { user, refreshUser } = useAuth();

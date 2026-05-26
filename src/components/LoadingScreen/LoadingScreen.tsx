@@ -1,12 +1,12 @@
 /**
- * LoadingScreen - 统一加载界面组件
+ * LoadingScreen - unified loading UI component
  *
- * 两种模式：
- * 1. Step mode（`steps` prop）— 启动阶段展示真实初始化步骤 checklist
- * 2. Indeterminate mode（`message` prop）— Screen 级 Suspense fallback / 通用加载
+ * Two modes:
+ * 1. Step mode (`steps` prop) - shows real initialization step checklist during boot
+ * 2. Indeterminate mode (`message` prop) - screen-level Suspense fallback / generic loading
  *
- * 带有 logo 脉冲动画，与 PWA 启动画面保持一致。
- * 渲染加载状态 UI 与脉冲动画。不 import service，不含业务逻辑。
+ * Includes logo pulse animation, consistent with the PWA splash screen.
+ * Renders loading state UI and pulse animation. Does not import service, contains no business logic.
  */
 import { useEffect, useState } from 'react';
 import { Image, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -33,15 +33,15 @@ interface BootStep {
 }
 
 interface LoadingScreenProps {
-  /** 加载提示文本（indeterminate mode） */
+  /** Loading hint text (indeterminate mode) */
   readonly message?: string;
-  /** 是否全屏显示（默认 true） */
+  /** Whether to display fullscreen (default true) */
   readonly fullScreen?: boolean;
-  /** 启动步骤列表（step mode）— 提供时展示 checklist，忽略 message */
+  /** Boot step list (step mode) - shows checklist when provided, ignores message */
   readonly steps?: readonly BootStep[];
-  /** 错误信息 — 展示错误 UI + 重试按钮 */
+  /** Error message - shows error UI + retry button */
   readonly error?: string | null;
-  /** 重试回调 — error 存在时必须提供 */
+  /** Retry callback - must be provided when error exists */
   readonly onRetry?: () => void;
 }
 

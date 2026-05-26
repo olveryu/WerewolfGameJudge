@@ -1,5 +1,5 @@
 /**
- * RingPortalEnter — 环形传送
+ * RingPortalEnter — ring portal
  *
  * Concentric rings expand from center with glow, child materializes inside.
  * Epic-tier archetype. Parameterized by ring count, color, pulse, and glow intensity.

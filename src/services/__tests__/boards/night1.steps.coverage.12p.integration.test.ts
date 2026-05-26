@@ -1,12 +1,12 @@
 /**
  * Night-1 Steps Coverage Integration Test (12p)
  *
- * 目的：补齐 NIGHT_STEPS 的 step-level coverage contract。
+ * Purpose: fill the step-level coverage contract for NIGHT_STEPS.
  *
- * 注意：这是“覆盖门禁”，不是行为细节测试。
- * - 不跳 step（使用 stepByStepRunner.executeStepsUntil）
- * - 不自动 ack / 不自动清 gate
- * - 不绕过 handler
+ * Note: this is a "coverage gate", not a behavior-detail test.
+ * - No step skipping (uses stepByStepRunner.executeStepsUntil)
+ * - No auto-ack / no auto-clear gate
+ * - No bypassing the handler
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -17,8 +17,9 @@ import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 const TEMPLATE_NAME = '预女猎白';
 
 /**
- * 选用包含：slacker/gargoyle/psychic 的 12p 配置。
- * 这里直接用 RoleId[] 创建模板，避免依赖 preset 模板名是否包含这些角色。
+ * Chooses a 12p config containing: slacker/gargoyle/psychic.
+ * Constructs the template directly from RoleId[] to avoid depending on whether
+ * preset template names include these roles.
  */
 const CUSTOM_ROLES: RoleId[] = [
   'magician',
@@ -110,17 +111,17 @@ describe('Night-1: step-level coverage (12p)', () => {
     ).toBe(true);
     ctx.assertStep('psychicCheck');
 
-    // 收尾：跑完整晚，避免 endNight 由于未完成而 fail-fast
+    // Wrap-up: run the full night to avoid endNight fail-fast on incompletion
     executeFullNight(ctx);
 
-    // 仅用于 coverage contract：确保文件包含 TEMPLATE_NAME 常量（对应旧 contract 的 pattern 机制）
+    // For coverage contract only: ensures the file contains the TEMPLATE_NAME constant (matches the old contract's pattern mechanism)
     expect(TEMPLATE_NAME).toBe('预女猎白');
   });
 
   it('should reach crowCurse / poisonerPoison steps and wolfKillOverride by poisoner', () => {
     const ctx = createGame(CUSTOM_ROLES_CROW_POISONER);
 
-    // 毒师在场 → 首夜 wolfKillOverride set（板子级规则）
+    // Poisoner present -> night-1 wolfKillOverride set (board-level rule)
     expect(ctx.getGameState().wolfKillOverride).toBeDefined();
     expect(ctx.getGameState().wolfKillOverride?.source).toBe('poisoner');
     expect(ctx.getGameState().currentNightResults?.wolfKillOverride).toBeDefined();
@@ -138,7 +139,7 @@ describe('Night-1: step-level coverage (12p)', () => {
     ).toBe(true);
     ctx.assertStep('poisonerPoison');
 
-    // 收尾：跑完整晚
+    // Wrap-up: run the full night
     executeFullNight(ctx);
   });
 
@@ -155,7 +156,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   });
 
   // hiddenWolfReveal — stepId coverage stub.
-  // Full integration test with 隐狼乌鸦 template deferred to dedicated test file.
+  // Full integration test with the Hidden Wolf + Crow template deferred to a dedicated test file.
   it('hiddenWolfReveal step exists in NIGHT_STEPS', () => {
     const { NIGHT_STEPS } =
       require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');

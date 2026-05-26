@@ -1,10 +1,10 @@
 /**
  * Debug Bots Contract Tests
  *
- * 验证 debug bots 功能的核心约束：
- * 1. fillWithBots 后：debugMode.botsEnabled === true，新增 player 均 isBot: true
- * 2. markAllBotsViewed：只对 isBot === true 的玩家设置 hasViewedRole = true
- * 3. debug 未开启时调用必须 reject
+ * Verifies core constraints of debug bots functionality:
+ * 1. After fillWithBots: debugMode.botsEnabled === true, all newly added players have isBot: true
+ * 2. markAllBotsViewed: only sets hasViewedRole = true on players with isBot === true
+ * 3. Calling when debug is not enabled must reject
  */
 
 import {

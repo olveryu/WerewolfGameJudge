@@ -1,5 +1,5 @@
 /**
- * BloodMoonRise — 血月升起
+ * BloodMoonRise -- Blood moon rise
  *
  * Legendary entrance: red moon rises from bottom, blood-red eclipse ring pulses,
  * dark mist swirls, avatar appears under the blood moon.

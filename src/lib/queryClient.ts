@@ -1,15 +1,16 @@
 /**
- * queryClient — TanStack Query 全局实例配置。
+ * queryClient — global TanStack Query instance configuration.
  *
- * 统一 staleTime / retry / 全局错误上报策略。
- * Query/Mutation 重试耗尽后自动报 Sentry（跳过网络/abort/预期错误）。
+ * Unifies staleTime / retry / global error reporting policy.
+ * After Query/Mutation retries are exhausted, automatically reports to Sentry
+ * (skips network/abort/expected errors).
  */
 import * as Sentry from '@sentry/react-native';
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
 
-/** 全局 QueryClient 实例，由 App.tsx QueryClientProvider 注入。 */
+/** Global QueryClient instance, injected by QueryClientProvider in App.tsx. */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -18,12 +19,12 @@ export const queryClient = new QueryClient({
       retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
     },
     mutations: {
-      retry: 0, // mutation 默认不重试，由各 mutation 自行声明
+      retry: 0, // mutations do not retry by default; each mutation opts in itself
     },
   },
   queryCache: new QueryCache({
     onError: (error, query) => {
-      // Query 重试耗尽后仍失败 — 报 Sentry（跳过网络/abort/预期错误）
+      // Query still failed after retries exhausted — report to Sentry (skip network/abort/expected errors)
       if (isNetworkError(error) || isAbortError(error) || isExpectedError(error)) {
         return;
       }
@@ -34,8 +35,8 @@ export const queryClient = new QueryClient({
   }),
   mutationCache: new MutationCache({
     onError: (error, _variables, _onMutateResult, mutation) => {
-      // 全局 mutation 错误日志（不含 UI 反馈，UI 在各 mutation 的 onError 里）
-      // 跳过可预期错误：网络错误（已重试过）、用户取消、auth/validation 错误
+      // Global mutation error log (no UI feedback; UI lives in each mutation's onError)
+      // Skip expected errors: network errors (already retried), user cancellation, auth/validation errors
       if (isNetworkError(error) || isAbortError(error) || isExpectedError(error)) {
         return;
       }

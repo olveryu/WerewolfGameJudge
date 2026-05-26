@@ -1,5 +1,5 @@
 /**
- * ZoomOutEnter — 缩放入场
+ * ZoomOutEnter — zoom-out entrance
  *
  * Children shrink from an oversized state to normal with a colored ring implosion.
  * Common-tier entrance animation template.

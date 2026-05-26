@@ -1,11 +1,11 @@
 /**
- * useSettleToast — 结算 XP/升级/抽奖券 toast 通知
+ * useSettleToast -- settle XP/level-up/draw-ticket toast notifications
  *
- * 订阅 facade.addSettleResultListener，收到 SETTLE_RESULT 时显示：
- * - 升级 + 黄金券："升级 Lv.{n}！获得黄金抽奖券"
- * - 普通获取 XP + 抽奖券："+{xp} XP · 获得抽奖券"
+ * Subscribes to facade.addSettleResultListener; on SETTLE_RESULT shows:
+ * - Level-up + golden ticket: "升级 Lv.{n}！获得黄金抽奖券"
+ * - Normal XP + tickets: "+{xp} XP · 获得抽奖券"
  *
- * 同时 invalidate gachaStatus + userStats query，触发 header badge 刷新。
+ * Also invalidates gachaStatus + userStats queries to refresh the header badge.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -47,10 +47,10 @@ function showSettleToast(result: SettleResultMessage): void {
 }
 
 /**
- * 监听结算结果，弹出 XP/升级 toast 并刷新扭蛋/统计查询缓存。
+ * Listen for settle results, pop XP/level-up toast, and refresh gacha/stats query cache.
  *
- * @param params.facade - GameFacade 实例
- * @param params.isFocused - 当前屏幕是否 focused（避免后台弹 toast）
+ * @param params.facade - GameFacade instance
+ * @param params.isFocused - Whether the current screen is focused (avoid background toasts)
  */
 export function useSettleToast({ facade, isFocused }: UseSettleToastParams): void {
   const queryClient = useQueryClient();

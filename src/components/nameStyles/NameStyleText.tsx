@@ -1,11 +1,11 @@
 /**
- * NameStyleText — 跨平台名字特效渲染器
+ * NameStyleText — cross-platform name effect renderer
  *
- * Web: CSS background-clip: text + @keyframes 动画（通过 <style> 标签注入）
- * Native: 纯色 + textShadow 静态样式（渐变/动画降级到纯色）
+ * Web: CSS background-clip: text + @keyframes animation (injected via <style> tag)
+ * Native: solid color + static textShadow style (gradient / animation downgraded to solid color)
  *
- * 用法: <NameStyleText styleId="phoenixRebirth" style={baseStyle}>玩家名</NameStyleText>
- * 如果 styleId 无效或 undefined，渲染为普通 <Text>。
+ * Usage: <NameStyleText styleId="phoenixRebirth" style={baseStyle}>玩家名</NameStyleText>
+ * If styleId is invalid or undefined, renders as a plain <Text>.
  */
 
 import React, { useMemo } from 'react';

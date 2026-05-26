@@ -1,12 +1,12 @@
 /**
- * rewardCatalog — 可解锁物品 ID 注册表（唯一权威来源）
+ * rewardCatalog — unlockable item ID registry (single source of truth)
  *
- * 头像 ID 和头像框 ID 在此集中定义，客户端和服务端共用。
- * 客户端 `avatar.ts` 和 `avatarFrames/index.ts` 从此处 import ID 列表。
- * 新增头像/头像框时只需在此追加 + 客户端追加对应图片/组件。
+ * Avatar IDs and avatar frame IDs are defined centrally here, shared by client and server.
+ * Client `avatar.ts` and `avatarFrames/index.ts` import the ID lists from here.
+ * Adding a new avatar/frame requires only appending here + adding the corresponding image/component on the client.
  */
 
-/** 可解锁物品类型。 */
+/** Unlockable item type. */
 export type RewardType =
   | 'avatar'
   | 'frame'
@@ -15,10 +15,10 @@ export type RewardType =
   | 'roleRevealEffect'
   | 'seatAnimation';
 
-/** 稀有度等级。 */
+/** Rarity tier. */
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
-/** 单个可解锁物品条目。 */
+/** Single unlockable item entry. */
 export interface RewardItem {
   readonly type: RewardType;
   readonly id: string;
@@ -26,11 +26,11 @@ export interface RewardItem {
 }
 
 /**
- * 全部头像 ID（排序稳定，与资源文件名 1:1 对应）。
- * 无头像时显示 wolf-paw 默认图标（不在此列表中）。
+ * All avatar IDs (stable order, 1:1 with asset filenames).
+ * When no avatar is set, the default wolf-paw icon is shown (not in this list).
  */
 // prettier-ignore
-/** 手绘头像 ID（43 个，Rare+ 档） */
+/** Hand-drawn avatar IDs (43, Rare+ tier) */
 const HAND_DRAWN_AVATAR_IDS = [
   'avenger',
   'awakenedGargoyle',
@@ -80,7 +80,7 @@ const HAND_DRAWN_AVATAR_IDS = [
   'wolfWitch',
 ] as const;
 
-/** 程序化生成头像 ID — Common（ring variant, 100 个） */
+/** Procedurally generated avatar IDs — Common (ring variant, 100) */
 // prettier-ignore
 const GENERATED_COMMON_IDS = [
   'genC001', 'genC002', 'genC003', 'genC004', 'genC005', 'genC006', 'genC007', 'genC008', 'genC009', 'genC010',
@@ -95,7 +95,7 @@ const GENERATED_COMMON_IDS = [
   'genC091', 'genC092', 'genC093', 'genC094', 'genC095', 'genC096', 'genC097', 'genC098', 'genC099', 'genC100',
 ] as const;
 
-/** 程序化生成头像 ID — Rare（beam variant, 50 个） */
+/** Procedurally generated avatar IDs — Rare (beam variant, 50) */
 // prettier-ignore
 const GENERATED_RARE_IDS = [
   'genR001', 'genR002', 'genR003', 'genR004', 'genR005', 'genR006', 'genR007', 'genR008', 'genR009', 'genR010',
@@ -105,21 +105,21 @@ const GENERATED_RARE_IDS = [
   'genR041', 'genR042', 'genR043', 'genR044', 'genR045', 'genR046', 'genR047', 'genR048', 'genR049', 'genR050',
 ] as const;
 
-/** 全部头像 ID（手绘 + 生成），顺序稳定。 */
+/** All avatar IDs (hand-drawn + generated), stable order. */
 export const AVATAR_IDS = [
   ...HAND_DRAWN_AVATAR_IDS,
   ...GENERATED_COMMON_IDS,
   ...GENERATED_RARE_IDS,
 ] as const;
 
-/** 传说头像框 ID 集合 — 用于客户端渲染传说动效判定 */
+/** Legendary frame ID set — used by client to gate legendary rendering effects */
 // prettier-ignore
 export const LEGENDARY_FRAME_IDS: ReadonlySet<string> = new Set([
   'stormBolt', 'dragonScale', 'starNebula', 'shadowWeave', 'celestialRing',
   'obsidianEdge', 'pharaohGold', 'voidRift', 'coralReef', 'darkVine', 'sakuraDrift',
 ]);
 
-/** 全部头像框 ID（与 `avatarFrames/index.ts` Component 注册表 1:1 对应）。 */
+/** All frame IDs (1:1 with `avatarFrames/index.ts` component registry). */
 // prettier-ignore
 export const FRAME_IDS = [
   // Epic (39) — hand-crafted themed SVG frames
@@ -208,7 +208,7 @@ export const FRAME_IDS = [
   'grooveBlue', 'grooveIndigo', 'groovePurple', 'groovePink', 'grooveGray',
 ] as const;
 
-/** 全部座位装饰 ID（与 `seatFlairs/index.ts` Component 注册表 1:1 对应）。 */
+/** All seat flair IDs (1:1 with `seatFlairs/index.ts` component registry). */
 // prettier-ignore
 export const SEAT_FLAIR_IDS = [
   // Epic (53) — hand-crafted themed SVG flair
@@ -307,7 +307,7 @@ export const SEAT_FLAIR_IDS = [
   'fireflyBlue', 'fireflyIndigo', 'fireflyPurple', 'fireflyPink', 'fireflyGray',
 ] as const;
 
-/** 全部名字特效 ID（与 `nameStyles/index.ts` 配置注册表 1:1 对应）。 */
+/** All name style IDs (1:1 with `nameStyles/index.ts` config registry). */
 // prettier-ignore
 export const NAME_STYLE_IDS = [
   // Epic (46) — hand-crafted gradient text
@@ -396,7 +396,7 @@ export const NAME_STYLE_IDS = [
   'lustrousAzure', 'lustrousIndigo', 'lustrousViolet', 'lustrousRose', 'lustrousSlate',
 ] as const;
 
-/** 全部开牌特效 ID（与 RoleRevealAnimation 中的 RandomizableAnimation 1:1 对应）。 */
+/** All role-reveal effect IDs (1:1 with RandomizableAnimation in RoleRevealAnimation). */
 // prettier-ignore
 export const ROLE_REVEAL_EFFECT_IDS = [
   'roulette',
@@ -413,7 +413,7 @@ export const ROLE_REVEAL_EFFECT_IDS = [
   'vortexCollapse',
 ] as const;
 
-/** 全部入坐动画 ID（与 `seatAnimations/index.ts` Component 注册表 1:1 对应）。 */
+/** All seat-animation IDs (1:1 with `seatAnimations/index.ts` component registry). */
 // prettier-ignore
 export const SEAT_ANIMATION_IDS = [
   // Epic (40) — hand-crafted themed entrance animations
@@ -502,51 +502,51 @@ export const SEAT_ANIMATION_IDS = [
   'bloomBlueEnter', 'bloomIndigoEnter', 'bloomPurpleEnter', 'bloomPinkEnter', 'bloomGrayEnter',
 ] as const;
 
-/** 头像 ID literal union（手绘 + 生成） */
+/** Avatar ID literal union (hand-drawn + generated) */
 export type AvatarId = (typeof AVATAR_IDS)[number];
 
-/** 手绘头像 ID literal union（有图片资源的 43 个） */
+/** Hand-drawn avatar ID literal union (43 with image assets) */
 export type HandDrawnAvatarId = (typeof HAND_DRAWN_AVATAR_IDS)[number];
 
-/** 手绘头像 ID 列表（导出给客户端图片注册表使用） */
+/** Hand-drawn avatar ID list (exported for client image registry) */
 export { HAND_DRAWN_AVATAR_IDS };
 
-/** 头像框 ID literal union */
+/** Frame ID literal union */
 export type FrameId = (typeof FRAME_IDS)[number];
 
-/** 座位装饰 ID literal union */
+/** Seat flair ID literal union */
 export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 
-/** 名字特效 ID literal union */
+/** Name style ID literal union */
 export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
 
-/** 开牌特效 ID literal union */
+/** Role-reveal effect ID literal union */
 export type RoleRevealEffectId = (typeof ROLE_REVEAL_EFFECT_IDS)[number];
 
-/** 入坐动画 ID literal union */
+/** Seat-animation ID literal union */
 export type SeatAnimationId = (typeof SEAT_ANIMATION_IDS)[number];
 
-/** 注册即得的免费头像 ID */
+/** Free avatar IDs granted on registration */
 export const FREE_AVATAR_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 注册即得的免费头像框 ID（无） */
+/** Free frame IDs granted on registration (none) */
 export const FREE_FRAME_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 注册即得的免费座位装饰 ID（无） */
+/** Free seat flair IDs granted on registration (none) */
 export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 注册即得的免费名字特效 ID（无） */
+/** Free name style IDs granted on registration (none) */
 export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 注册即得的免费开牌特效 ID（无） */
+/** Free role-reveal effect IDs granted on registration (none) */
 export const FREE_ROLE_REVEAL_EFFECT_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 注册即得的免费入坐动画 ID（无） */
+/** Free seat-animation IDs granted on registration (none) */
 export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();
 
-/** 头像稀有度映射 */
+/** Avatar rarity mapping */
 const AVATAR_RARITY: Record<string, Rarity> = {
-  // Legendary (10) — 原 legendary 3 + 原 epic 7 升档
+  // Legendary (10) — original 3 legendary + 7 promoted from epic
   darkWolfKing: 'legendary',
   nightmare: 'legendary',
   masquerade: 'legendary',
@@ -558,7 +558,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   eclipseWolfQueen: 'legendary',
   witch: 'legendary',
   seer: 'legendary',
-  // Epic (33) — 原 rare 14 升档 + 原 common 19 升档
+  // Epic (33) — 14 promoted from rare + 19 promoted from common
   hunter: 'epic',
   guard: 'epic',
   knight: 'epic',
@@ -599,7 +599,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   // Common (100) — generated pixel variant (fallback default)
 };
 
-/** 头像框稀有度映射 */
+/** Frame rarity mapping */
 const FRAME_RARITY: Record<string, Rarity> = {
   // Legendary (11)
   starNebula: 'legendary',
@@ -707,7 +707,7 @@ const FRAME_RARITY: Record<string, Rarity> = {
   // Common (100) — simple colored frames
 };
 
-/** 座位装饰稀有度映射 */
+/** Seat flair rarity mapping */
 const FLAIR_RARITY: Record<string, Rarity> = {
   // Legendary (7)
   runeCircle: 'legendary',
@@ -825,16 +825,16 @@ const FLAIR_RARITY: Record<string, Rarity> = {
   // Common (100) — simple colored effects
 };
 
-/** 开牌特效稀有度映射 — 6 legendary + 6 epic（按实现复杂度分级） */
+/** Role-reveal effect rarity mapping — 6 legendary + 6 epic (tiered by implementation complexity) */
 const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
-  // Legendary (6) — 复杂交互 / 多阶段演出
+  // Legendary (6) — complex interactions / multi-stage sequences
   roleHunt: 'legendary',
   sealBreak: 'legendary',
   chainShatter: 'legendary',
   tarot: 'legendary',
   fortuneWheel: 'legendary',
   scratch: 'legendary',
-  // Epic (6) — 较简单动画
+  // Epic (6) — simpler animations
   roulette: 'epic',
   vortexCollapse: 'epic',
   gachaMachine: 'epic',
@@ -843,7 +843,7 @@ const ROLE_REVEAL_EFFECT_RARITY: Record<string, Rarity> = {
   cardPick: 'epic',
 };
 
-/** 名字样式稀有度映射 */
+/** Name style rarity mapping */
 const NAME_STYLE_RARITY: Record<string, Rarity> = {
   // Legendary (4)
   celestialDawn: 'legendary',
@@ -952,7 +952,7 @@ const NAME_STYLE_RARITY: Record<string, Rarity> = {
 };
 
 // prettier-ignore
-/** 入坐动画稀有度映射 */
+/** Seat-animation rarity mapping */
 const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
   // Legendary (10)
   wolfKingEntry: 'legendary', witchBrew: 'legendary', seerVision: 'legendary',
@@ -998,7 +998,7 @@ const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
   // Common (100) — 10 patterns × 10 colors (not listed → falls through to 'common')
 };
 
-/** 按 ID 查稀有度（avatar/frame/flair/nameStyle/roleRevealEffect/seatAnimation 统一查询） */
+/** Look up rarity by ID (unified across avatar/frame/flair/nameStyle/roleRevealEffect/seatAnimation) */
 export function getItemRarity(id: string): Rarity {
   return (
     AVATAR_RARITY[id] ??
@@ -1012,8 +1012,8 @@ export function getItemRarity(id: string): Rarity {
 }
 
 /**
- * 可抽奖励池（全部可解锁物品 - 免费物品）。
- * 服务端升级时从此池中排除已解锁 → 随机抽取。
+ * Drawable reward pool (all unlockable items - free items).
+ * On server-side level-up, already-unlocked items are excluded from this pool, then a random draw is performed.
  */
 export const REWARD_POOL: readonly RewardItem[] = [
   ...AVATAR_IDS.filter((id) => !FREE_AVATAR_IDS.has(id)).map(
@@ -1041,7 +1041,7 @@ export const REWARD_POOL: readonly RewardItem[] = [
   ),
 ];
 
-/** 免费物品总数 */
+/** Total free item count */
 export const FREE_ITEM_COUNT =
   FREE_AVATAR_IDS.size +
   FREE_FRAME_IDS.size +
@@ -1050,17 +1050,17 @@ export const FREE_ITEM_COUNT =
   FREE_ROLE_REVEAL_EFFECT_IDS.size +
   FREE_SEAT_ANIMATION_IDS.size;
 
-/** 全部可获得物品总数（含免费） */
+/** Total obtainable item count (including free) */
 export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;
 
-/** id → RewardItem 快速查找索引（O(1) 替代 REWARD_POOL.find()） */
+/** id → RewardItem fast lookup index (O(1) replacement for REWARD_POOL.find()) */
 export const REWARD_POOL_BY_ID: ReadonlyMap<string, RewardItem> = new Map(
   REWARD_POOL.map((item) => [item.id, item]),
 );
 
 // ── Shard System ────────────────────────────────────────────────────────
 
-/** 抽到重复物品时获得的碎片数 */
+/** Shard count awarded when drawing a duplicate item */
 export const SHARD_VALUES: Readonly<Record<Rarity, number>> = {
   common: 5,
   rare: 15,
@@ -1068,7 +1068,7 @@ export const SHARD_VALUES: Readonly<Record<Rarity, number>> = {
   legendary: 200,
 };
 
-/** 碎片兑换指定物品的消耗数 */
+/** Shard cost to redeem a specific item */
 export const SHARD_COSTS: Readonly<Record<Rarity, number>> = {
   common: 30,
   rare: 90,

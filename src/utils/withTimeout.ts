@@ -1,15 +1,15 @@
 /**
  * withTimeout - Promise timeout utilities
  *
- * 统一的超时封装，支持 Promise 超时封装和 retry with timeout，
- * 确保 timer 在 resolve/reject/timeout 后正确清理。
+ * Unified timeout wrapper, supports Promise timeout wrapping and retry with timeout,
+ * ensures timer is properly cleaned up after resolve/reject/timeout.
  *
- * 契约：
- * - 超时时必须 reject（不 resolve）
- * - finally 必须清理内部 timer
- * - 支持 errorFactory 自定义超时错误
+ * Contract:
+ * - Must reject on timeout (not resolve)
+ * - finally must clean up internal timer
+ * - Supports errorFactory for custom timeout errors
  *
- * 不引入 React、service 或游戏状态。
+ * Does not introduce React, services, or game state.
  */
 
 import { log } from './logger';
@@ -17,15 +17,15 @@ import { log } from './logger';
 const timeoutLog = log.extend('Timeout');
 
 /**
- * 超时错误工厂类型
- * @param ms - 超时时间（毫秒）
- * @param context - 可选上下文信息
- * @returns Error 对象
+ * Timeout error factory type
+ * @param ms - timeout duration (milliseconds)
+ * @param context - optional context info
+ * @returns Error object
  */
 type TimeoutErrorFactory = (ms: number, context?: string) => Error;
 
 /**
- * 默认超时错误工厂（技术消息，仅用于日志/调试）
+ * Default timeout error factory (technical message, used only for logs/debugging)
  */
 const defaultErrorFactory: TimeoutErrorFactory = (ms, context) =>
   new Error(
@@ -33,19 +33,19 @@ const defaultErrorFactory: TimeoutErrorFactory = (ms, context) =>
   );
 
 /**
- * 包装一个 Promise，在指定时间内未完成则 reject
+ * Wraps a Promise, rejects if not completed within the specified time
  *
- * @param promise - 要包装的 Promise
- * @param ms - 超时时间（毫秒）
- * @param contextOrFactory - 上下文字符串（用于日志），或自定义错误工厂
- * @returns 原 Promise 的结果，或超时 reject
+ * @param promise - the Promise to wrap
+ * @param ms - timeout duration (milliseconds)
+ * @param contextOrFactory - context string (for logs) or custom error factory
+ * @returns the original Promise's result, or rejects on timeout
  *
  * @example
  * ```ts
- * // 使用默认技术消息
+ * // Use default technical message
  * const result = await withTimeout(fetchData(), 5000, 'fetchData');
  *
- * // 使用自定义用户友好错误
+ * // Use custom user-friendly error
  * const result = await withTimeout(authPromise, 10000, () => new Error('登录超时，请重试'));
  * ```
  */
@@ -56,7 +56,7 @@ export function withTimeout<T>(
 ): Promise<T> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
-  // 解析参数：字符串当 context，函数当 errorFactory
+  // Parse args: string is context, function is errorFactory
   const context = typeof contextOrFactory === 'string' ? contextOrFactory : undefined;
   const errorFactory =
     typeof contextOrFactory === 'function' ? contextOrFactory : defaultErrorFactory;
@@ -64,7 +64,7 @@ export function withTimeout<T>(
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(() => {
       const error = errorFactory(ms, context);
-      // 技术日志（带 context）
+      // Technical log (with context)
       timeoutLog.warn('Timeout', { context: context ?? 'unknown', ms });
       reject(error);
     }, ms);

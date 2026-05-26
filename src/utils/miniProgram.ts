@@ -1,9 +1,9 @@
 /**
- * miniProgram - 微信小程序 web-view 环境检测与通信
+ * miniProgram - WeChat mini-program web-view environment detection and communication
  *
- * 检测当前页面是否在微信小程序 web-view 内运行。
- * 使用 UA 中的 `miniProgram` 字样（微信 7.0.0+）或 `window.__wxjs_environment`。
- * 仅在 web 平台有意义；native 侧永远返回 false / no-op。
+ * Detects whether the current page is running inside a WeChat mini-program web-view.
+ * Uses the `miniProgram` token in UA (WeChat 7.0.0+) or `window.__wxjs_environment`.
+ * Only meaningful on web platform; native side always returns false / no-op.
  */
 import { Platform } from 'react-native';
 
@@ -32,7 +32,7 @@ declare global {
 
 let cached: boolean | null = null;
 
-/** 当前页面是否在微信小程序 web-view 内运行 */
+/** Whether the current page is running inside a WeChat mini-program web-view */
 export function isMiniProgram(): boolean {
   if (Platform.OS !== 'web') return false;
   if (cached !== null) return cached;
@@ -47,8 +47,8 @@ export function isMiniProgram(): boolean {
 }
 
 /**
- * 调用 wx.miniProgram.reLaunch 让小程序重新加载首页。
- * 用于 wx.login code 失效后获取新 code（onLoad 重新走 wx.login）。
+ * Calls wx.miniProgram.reLaunch to make the mini-program reload the home page.
+ * Used to obtain a new code after wx.login code expires (onLoad re-runs wx.login).
  */
 export function wxReLaunch(): void {
   if (Platform.OS !== 'web') return;
@@ -64,8 +64,8 @@ export function wxReLaunch(): void {
 const WX_CLAIM_NONCE_KEY = 'wx_claim_nonce';
 
 /**
- * 生成或读取 claim nonce。
- * 首次调用生成 UUID 存入 localStorage，后续调用直接读取。
+ * Generate or read claim nonce.
+ * First call generates a UUID and stores it in localStorage; subsequent calls read it directly.
  */
 export function getOrCreateClaimNonce(): string {
   if (Platform.OS !== 'web') return '';
@@ -76,21 +76,21 @@ export function getOrCreateClaimNonce(): string {
   return nonce;
 }
 
-/** 读取已有的 claim nonce（不创建新的）。 */
+/** Read existing claim nonce (do not create a new one). */
 export function readClaimNonce(): string | null {
   if (Platform.OS !== 'web') return null;
   return localStorage.getItem(WX_CLAIM_NONCE_KEY);
 }
 
-/** 清除 claim nonce（claim 成功后调用）。 */
+/** Clear claim nonce (called after successful claim). */
 export function clearClaimNonce(): void {
   if (Platform.OS !== 'web') return;
   localStorage.removeItem(WX_CLAIM_NONCE_KEY);
 }
 
 /**
- * 调用 wx.miniProgram.reLaunch 并携带 nonce，让小程序原生侧完成登录。
- * 小程序 onLoad 收到 nonce 后用 wx.login + wx.request 调用 /auth/wechat-claim。
+ * Calls wx.miniProgram.reLaunch with a nonce so the mini-program native side completes login.
+ * After receiving nonce in onLoad, the mini-program calls /auth/wechat-claim via wx.login + wx.request.
  */
 export function wxReLaunchWithNonce(nonce: string): void {
   if (Platform.OS !== 'web') return;
@@ -102,8 +102,8 @@ export function wxReLaunchWithNonce(nonce: string): void {
 }
 
 /**
- * 调用微信 JSSDK wx.previewImage 展示原生图片预览器。
- * web-view 中可用；用户可长按保存/转发。需要 HTTP(S) URL（不支持 base64）。
+ * Calls WeChat JSSDK wx.previewImage to show the native image previewer.
+ * Available inside web-view; user can long-press to save/forward. Requires HTTP(S) URL (no base64).
  */
 export function wxPreviewImage(url: string): Promise<void> {
   return new Promise((resolve, reject) => {

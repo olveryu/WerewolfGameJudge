@@ -1,11 +1,11 @@
 /**
  * Resolver Coverage Contract Test
  *
- * 确保 resolvers/ 目录下每个 resolver 源文件都有对应的 *.resolver.test.ts。
- * 新增 resolver 源文件但忘记写测试 → 此测试失败。
+ * Ensures every resolver source file under resolvers/ has a corresponding *.resolver.test.ts.
+ * Adding a new resolver source file but forgetting the test -> this test fails.
  *
- * 策略：扫描源文件而非 RESOLVERS registry key，避免 key 名称
- * 与文件名不匹配（如 seerCheck → seer.ts）导致的大量误报。
+ * Strategy: scan source files instead of RESOLVERS registry keys, to avoid mass false
+ * positives when key names do not match file names (e.g. seerCheck -> seer.ts).
  */
 
 import * as fs from 'fs';

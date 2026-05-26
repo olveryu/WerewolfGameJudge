@@ -3,7 +3,7 @@
  *
  * Board: 盗宝大师
  * Roles: 5x villager, 3x wolf, darkWolfKing, psychic, poisoner, hunter,
- *        dreamcatcher, crow, treasureMaster (15 roles → 12 players + 3 bottom cards)
+ *        dreamcatcher, crow, treasureMaster (15 roles -> 12 players + 3 bottom cards)
  *
  * Required UI coverage (getRequiredUiDialogTypes):
  * - actionPrompt: psychic, dreamcatcher actions
@@ -282,7 +282,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   // =============================================================================
-  // Chain Interaction (press button → assert callback)
+  // Chain Interaction (press button -> assert callback)
   // =============================================================================
 
   describe('chain interaction', () => {
@@ -345,7 +345,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         10,
       );
 
-      // Step 2: wolfVote → press confirm → submitAction(1) called
+      // Step 2: wolfVote -> press confirm -> submitAction(1) called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
@@ -362,7 +362,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(wolfVoteAction).toHaveBeenCalledWith(1);
 
-      // Step 3: confirmTrigger (darkWolfKing) → press primary + assertNoLoop
+      // Step 3: confirmTrigger (darkWolfKing) -> press primary + assertNoLoop
       await coverageChainConfirmTrigger(
         harness,
         setMock,
@@ -373,7 +373,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         9,
       );
 
-      // Step 4: actionConfirm (psychic tap seat) → press confirm → submitAction called
+      // Step 4: actionConfirm (psychic tap seat) -> press confirm -> submitAction called
       const { submitAction: psychicSubmit } = await coverageChainSeatActionConfirm(
         harness,
         setMock,
@@ -386,7 +386,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(psychicSubmit).toHaveBeenCalled();
 
-      // Step 5: skipConfirm (psychic) → press primary → submitAction called
+      // Step 5: skipConfirm (psychic) -> press primary -> submitAction called
       const { submitAction: psychicSkip } = await coverageChainSkipConfirm(
         harness,
         setMock,
@@ -398,7 +398,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(psychicSkip).toHaveBeenCalled();
 
-      // Step 6: wolfVoteEmpty → press confirm → submitAction(null) called
+      // Step 6: wolfVoteEmpty -> press confirm -> submitAction(null) called
       const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,

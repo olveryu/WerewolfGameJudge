@@ -1,8 +1,8 @@
 /**
- * IceCrystalFlair — 冰晶棱镜
+ * IceCrystalFlair — Ice Crystal Prism
  *
- * 6 颗旋转六边形冰晶分布在外围，脉冲闪烁，细线连接中心。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 6 rotating hexagonal ice crystals on the perimeter, pulse-flickering, thin lines connecting to center.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

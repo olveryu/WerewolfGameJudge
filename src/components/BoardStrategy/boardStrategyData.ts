@@ -1,32 +1,32 @@
 /**
- * Board Strategy Data — 板子策略文案数据
+ * Board Strategy Data — board strategy copy
  *
- * 每个预设板子的策略内容：难度、标签、核心博弈、阵营策略、首夜关键、常见翻车、meta 分析。
- * 纯静态数据，不含逻辑、不 import service。
+ * Strategy content per preset board: difficulty, tags, core gameplay, faction strategies, night-1 keys, common pitfalls, meta analysis.
+ * Pure static data; no logic, no service imports.
  */
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface BoardStrategy {
-  /** 难度评级 1-5 */
+  /** Difficulty rating 1-5 */
   readonly difficulty: number;
-  /** 推荐经验等级 */
+  /** Recommended experience level */
   readonly recommendLevel: '新手入门' | '进阶' | '高手';
-  /** 特点标签 */
+  /** Feature tags */
   readonly tags: readonly string[];
-  /** 核心博弈描述 (2-3 句) */
+  /** Core gameplay description (2-3 sentences) */
   readonly summary: string;
-  /** 好人方策略要点 */
+  /** Good faction strategy points */
   readonly goodStrategy: readonly string[];
-  /** 狼人方策略要点 */
+  /** Wolf faction strategy points */
   readonly wolfStrategy: readonly string[];
-  /** 第三方策略要点（仅第三方板） */
+  /** Third-party strategy points (third-party boards only) */
   readonly thirdStrategy?: readonly string[];
-  /** 首夜关键决策 */
+  /** Night-1 key decisions */
   readonly firstNight: readonly string[];
-  /** 常见翻车场景 */
+  /** Common pitfall scenarios */
   readonly pitfalls: readonly string[];
-  /** Meta 分析 */
+  /** Meta analysis */
   readonly meta: string;
 }
 

@@ -1,31 +1,31 @@
 /**
- * Connection FSM 类型定义
+ * Connection FSM type definitions
  *
- * 定义连接状态机的所有状态、事件、副作用和上下文。
- * 纯类型文件，零运行时依赖。
+ * Defines all states, events, side effects, and context for the connection state machine.
+ * Pure types file, zero runtime dependencies.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
 // States
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** FSM 内部连接状态（8 种，比 UI 展示更细粒度） */
+/** FSM internal connection states (8 total, more granular than UI display) */
 export enum ConnectionState {
-  /** 初始 / 已离开房间。无活跃连接。 */
+  /** Initial / left room. No active connection. */
   Idle = 'Idle',
-  /** 正在建立 WebSocket 连接 */
+  /** Establishing WebSocket connection */
   Connecting = 'Connecting',
-  /** WS 已连接，正在从 DB 同步初始状态 */
+  /** WS connected, syncing initial state from DB */
   Syncing = 'Syncing',
-  /** 连接正常，状态已同步 */
+  /** Connection healthy, state synced */
   Connected = 'Connected',
-  /** 连接断开，等待重连 */
+  /** Connection lost, awaiting reconnect */
   Disconnected = 'Disconnected',
-  /** 正在重连（WS + fetch） */
+  /** Reconnecting (WS + fetch) */
   Reconnecting = 'Reconnecting',
-  /** 重连次数耗尽，等待手动干预或网络恢复 */
+  /** Reconnect attempts exhausted, awaiting manual intervention or network recovery */
   Failed = 'Failed',
-  /** 已销毁，不再接受任何事件 */
+  /** Disposed, no longer accepting events */
   Disposed = 'Disposed',
 }
 
@@ -33,7 +33,7 @@ export enum ConnectionState {
 // Events
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** FSM 事件类型（输入）— 触发状态转换。 */
+/** FSM event types (input) — trigger state transitions. */
 export type ConnectionEvent =
   | { type: 'CONNECT'; roomCode: string; userId: string }
   | { type: 'WS_OPEN' }
@@ -57,7 +57,7 @@ export type ConnectionEvent =
 // Side Effects
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** FSM 副作用类型（输出）— 由 ConnectionManager 执行。 */
+/** FSM side effect types (output) — executed by ConnectionManager. */
 export type SideEffect =
   | { type: 'OPEN_WS'; roomCode: string; userId: string }
   | { type: 'CLOSE_WS' }
@@ -79,16 +79,16 @@ export type SideEffect =
 // FSM Context
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** FSM 上下文— 状态机的全部可变数据。 */
+/** FSM context — all mutable data of the state machine. */
 export interface FSMContext {
   readonly state: ConnectionState;
   readonly roomCode: string | null;
   readonly userId: string | null;
-  /** 当前重连尝试次数（0-based）。WS 连接成功进入 Connected 后归零。 */
+  /** Current reconnect attempt count (0-based). Resets to 0 when WS connection succeeds and enters Connected. */
   readonly attempt: number;
-  /** 最大重连次数。耗尽后进入 Failed 状态（等待手动重连或网络恢复）。 */
+  /** Max reconnect attempts. Enters Failed state when exhausted (awaits manual reconnect or network recovery). */
   readonly maxAttempts: number;
-  /** 最后一次从服务端收到的 state revision。用于 revision poll 检测丢失广播。 */
+  /** Last state revision received from server. Used by revision poll to detect missed broadcasts. */
   readonly lastRevision: number;
   readonly networkOnline: boolean;
   readonly visible: boolean;
@@ -105,10 +105,10 @@ export interface TransitionResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * SupersededError — connectAndWait() 被更新调用取消时抛出。
+ * SupersededError — thrown when connectAndWait() is cancelled by a newer call.
  *
- * 何时抛出：当新的 connectAndWait() 调用取代尚未 resolve 的旧调用。
- * 如何 catch：`instanceof SupersededError` —— 不是真实失败，仅为取消信号。
+ * When thrown: when a new connectAndWait() call supersedes a prior unresolved one.
+ * How to catch: `instanceof SupersededError` — not a real failure, just a cancellation signal.
  */
 export class SupersededError extends Error {
   constructor() {

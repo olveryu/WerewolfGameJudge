@@ -1,11 +1,11 @@
 /**
  * Night-1 Piper Hypnotize Integration Test (12p)
  *
- * 覆盖：piperHypnotize + piperHypnotizedReveal 步骤
+ * Covers: piperHypnotize + piperHypnotizedReveal steps
  * - piperHypnotize: multi-target hypnotize (multiChooseSeat schema)
  * - piperHypnotizedReveal: group confirm (auto-completes)
  *
- * 板子：自定义 12 人（含 piper）
+ * Board: custom 12-player (includes piper)
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

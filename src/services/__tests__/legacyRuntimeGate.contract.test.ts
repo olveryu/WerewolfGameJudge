@@ -1,7 +1,7 @@
 /**
  * Legacy Runtime=0 Gate Test (PR8)
  *
- * 确保运行时入口不再 import legacy 模块。
+ * Ensures runtime entry points no longer import legacy modules.
  */
 
 import * as fs from 'node:fs';
@@ -10,8 +10,8 @@ import * as path from 'node:path';
 const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
 
 const LEGACY_IMPORT_PATTERNS = [
-  // 任何形式的 GameStateService import（包括 type import）
-  // 都应该被禁止，因为 LocalGameState 等类型应从 types/GameStateTypes 导入
+  // Any form of GameStateService import (including type imports)
+  // is forbidden, because types like LocalGameState should be imported from types/GameStateTypes
   /^\s*import\s+.*GameStateService/,
 ];
 

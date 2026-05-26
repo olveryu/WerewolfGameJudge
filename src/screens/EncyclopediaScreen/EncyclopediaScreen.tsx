@@ -1,9 +1,9 @@
 /**
- * EncyclopediaScreen - 图鉴（角色 + 板子）
+ * EncyclopediaScreen - encyclopedia (roles + boards)
  *
- * Thin shell: ScreenHeader + SegmentedControl("角色" | "板子") + tab content。
- * 具体内容由 RolesGuideContent / BoardsGuideContent 渲染。
- * 纯展示屏，不依赖 service，不含业务逻辑。
+ * Thin shell: ScreenHeader + SegmentedControl("角色" | "板子") + tab content.
+ * Content is rendered by RolesGuideContent / BoardsGuideContent.
+ * Pure presentational screen: depends on no service, contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -36,7 +36,7 @@ const GUIDE_SEGMENTS: readonly { key: GuideTab; label: string }[] = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-/** 角色百科/板子指南屏幕。 */
+/** Role encyclopedia / board guide screen. */
 export const EncyclopediaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();

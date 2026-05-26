@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 
 import { borderRadius, fixed, spacing, type ThemeColors, typography, withAlpha } from '@/theme';
 
-/** 创建板子指南样式。 */
+/** Creates boards guide styles. */
 export function createBoardsGuideStyles(colors: ThemeColors) {
   return StyleSheet.create({
     container: {

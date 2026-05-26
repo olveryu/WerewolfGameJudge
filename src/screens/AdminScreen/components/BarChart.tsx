@@ -62,7 +62,7 @@ const BarChartComponent: React.FC<BarChartProps> = ({ title, items, labelWidth =
   );
 };
 
-/** 水平柱状图。 */
+/** Horizontal bar chart. */
 export const BarChart = memo(BarChartComponent);
 
 const styles = StyleSheet.create({

@@ -1,8 +1,8 @@
 /**
- * FiligreeFrame — 花纹
+ * FiligreeFrame — filigree pattern
  *
  * Corner scrollwork arcs on each corner + main border.
- * Rare 级头像框模板.
+ * Rare-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';

@@ -1,8 +1,8 @@
 /**
- * BloodMarkFlair — 血月印记
+ * BloodMarkFlair -- Blood Moon mark
  *
- * 4 颗暗红血滴从顶部滑落，拉长尾迹，到底部消散后循环。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 4 dark-red drops fall from the top, leaving stretched trails that fade out at the bottom and loop.
+ * Built with react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

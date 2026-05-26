@@ -1,14 +1,14 @@
 /**
- * AlignmentRevealOverlay - 阵营特效统一分发器
+ * AlignmentRevealOverlay - Unified faction effect dispatcher
  *
- * 在翻牌 revealed 阶段根据角色阵营渲染差异化视觉效果。
- * 每个阵营都有专属特效 + 持续呼吸边框 + ScreenFlash。
- * `onComplete` 在 BreathingBorder 的 effectDisplayDuration 后触发。
- * Reduced motion 时不渲染任何特效，通过 timer 触发 onComplete。
+ * During the reveal phase, renders differentiated visual effects based on role faction.
+ * Each faction has dedicated effects + continuous breathing border + ScreenFlash.
+ * `onComplete` fires after BreathingBorder's effectDisplayDuration.
+ * Under reduced motion, renders no effects and triggers onComplete via timer.
  *
- * 裂痕层由 RoleCardContent 内部渲染（渐变背景与角色图标之间），
- * 确保裂痕在角色图片后面。
- * 不 import service，不含业务逻辑。
+ * Crack layer rendered inside RoleCardContent (between gradient background and role icon)
+ * to ensure cracks sit behind the role image.
+ * No service imports, no business logic.
  */
 import type React from 'react';
 import { useEffect } from 'react';

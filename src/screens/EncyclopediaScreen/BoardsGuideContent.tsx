@@ -1,9 +1,9 @@
 /**
- * BoardsGuideContent — 板子图鉴内容区
+ * BoardsGuideContent — Boards encyclopedia content area
  *
- * 分类 chips 筛选 + 特色标签 dropdown 筛选 + 搜索 + FlatList<BoardCard>。
- * 复用 BoardPickerScreen 的 BoardCard 组件（showSelectButton=false）。
- * 纯展示组件，不含业务逻辑。
+ * Category chips filter + feature tag dropdown filter + search + FlatList<BoardCard>.
+ * Reuses BoardPickerScreen's BoardCard component (showSelectButton=false).
+ * Pure display component, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getRoleSpec } from '@werewolf/game-engine/models/roles';
@@ -119,7 +119,7 @@ interface BoardsGuideContentProps {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-/** 板子指南内容区。 */
+/** Boards guide content area. */
 export const BoardsGuideContent: React.FC<BoardsGuideContentProps> = ({
   searchVisible,
   searchQuery,

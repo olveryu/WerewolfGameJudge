@@ -1,9 +1,9 @@
 /**
- * ResetPasswordForm — 验证码重置密码表单
+ * ResetPasswordForm - Verification-code password reset form
  *
- * 用户输入邮件中收到的 6 位验证码 + 新密码。成功后自动登录。
- * 与 EmailForm 平级的 auth 表单组件。接收 AuthStyles 统一样式接口。
- * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
+ * User enters the 6-digit code from email + new password. Auto sign-in on success.
+ * Sibling auth form component to EmailForm. Receives the unified AuthStyles style interface.
+ * Renders form UI and reports user intent. Does not import service, contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback, useRef, useState } from 'react';

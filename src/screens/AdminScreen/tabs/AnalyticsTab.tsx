@@ -1,7 +1,7 @@
 /**
- * AnalyticsTab — Admin 加载性能遥测
+ * AnalyticsTab — Admin load performance telemetry
  *
- * TimeRangeSelector + MetricCard (avgLoad/avgTTFB) + BarChart (国家/Colo/ISP)。
+ * TimeRangeSelector + MetricCard (avgLoad/avgTTFB) + BarChart (country/Colo/ISP).
  */
 
 import type React from 'react';

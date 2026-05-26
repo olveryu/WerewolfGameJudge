@@ -1,12 +1,12 @@
 /**
  * Template Contract Tests
  *
- * 验证 PRESET_TEMPLATES 数据自洽：
+ * Verify PRESET_TEMPLATES data is self-consistent:
  *
- * NOTE（Night-1-only scope）:
- * - 本项目只做第一晚。
- * - 任何"第一晚不行动/从第二晚开始才行动"的角色，不应有 `nightSteps` 定义。
- *   这样它才不会出现在 `template.actionOrder`，避免夜晚流程错误提示该角色起床。
+ * NOTE (Night-1-only scope):
+ * - This project covers only Night 1.
+ * - Any role that "does not act on Night 1 / starts acting from Night 2" must not have a `nightSteps` definition.
+ *   This keeps it out of `template.actionOrder`, avoiding incorrect wake-up prompts in the night flow.
  */
 
 import {

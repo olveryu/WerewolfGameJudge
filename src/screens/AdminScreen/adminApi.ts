@@ -1,8 +1,8 @@
 /**
- * adminApi — Admin portal HTTP 客户端
+ * adminApi — Admin portal HTTP client
  *
- * 独立于 cfFetch（不走 JWT auth），使用 X-Admin-Token header 鉴权。
- * 返回 typed JSON 或抛出错误。
+ * Independent of cfFetch (does not use JWT auth); authenticates via X-Admin-Token header.
+ * Returns typed JSON or throws an error.
  */
 
 import { API_BASE_URL, API_TIMEOUT_MS } from '@/config/api';
@@ -38,10 +38,10 @@ async function adminFetch<T>(path: string, query?: Record<string, string>): Prom
 }
 
 /**
- * AdminApiError — Admin API 请求失败时抛出。
+ * AdminApiError — Thrown when Admin API request fails.
  *
- * 何时抛出：当 Admin API 返回非 2xx 状态码。
- * 如何 catch：`instanceof AdminApiError` —— 读取 .status 和 .reason 展示给用户。
+ * When thrown: when Admin API returns non-2xx status code.
+ * How to catch: `instanceof AdminApiError` — read .status and .reason to show the user.
  */
 class AdminApiError extends Error {
   constructor(

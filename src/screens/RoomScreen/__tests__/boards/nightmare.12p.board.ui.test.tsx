@@ -16,8 +16,8 @@
  * Server-data required (covered by integration):
  * - seerReveal
  *
- * CRITICAL: Nightmare board MUST cover blocked → actionRejected with REAL interaction:
- * - Blocked player (e.g., seer) taps a seat → triggers action → server rejects
+ * CRITICAL: Nightmare board MUST cover blocked -> actionRejected with REAL interaction:
+ * - Blocked player (e.g., seer) taps a seat -> triggers action -> server rejects
  * - UI shows actionRejected with BLOCKED_UI_DEFAULTS message
  */
 
@@ -598,7 +598,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         7,
       );
 
-      // Step 2: wolfVote (nightmare wolf voting) → confirm → submitAction called
+      // Step 2: wolfVote (nightmare wolf voting) -> confirm -> submitAction called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
@@ -635,7 +635,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 5: witchPoisonPrompt
       await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 9);
 
-      // Step 6: confirmTrigger (hunter) → confirm button pressed → assertNoLoop
+      // Step 6: confirmTrigger (hunter) -> confirm button pressed -> assertNoLoop
       await coverageChainConfirmTrigger(
         harness,
         setMock,
@@ -646,7 +646,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         10,
       );
 
-      // Step 7: skipConfirm (guard) → skip button pressed → submitAction called
+      // Step 7: skipConfirm (guard) -> skip button pressed -> submitAction called
       const { submitAction } = await coverageChainSkipConfirm(
         harness,
         setMock,
@@ -658,7 +658,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(submitAction).toHaveBeenCalledTimes(1);
 
-      // Step 8: actionConfirm (seer tap seat) → press confirm → submitAction called
+      // Step 8: actionConfirm (seer tap seat) -> press confirm -> submitAction called
       const { submitAction: seerSubmit } = await coverageChainSeatActionConfirm(
         harness,
         setMock,
@@ -671,7 +671,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSubmit).toHaveBeenCalled();
 
-      // Step 9: wolfVoteEmpty → press confirm → submitAction(null) called
+      // Step 9: wolfVoteEmpty -> press confirm -> submitAction(null) called
       const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,

@@ -271,10 +271,10 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: 同时更新 index 和 stepId
+      // PR6 contract: update index and stepId together
       expect(newState.currentStepIndex).toBe(1);
       expect(newState.currentStepId).toBe('seerCheck');
-      // P0-FIX: reveal 状态保留到夜晚结束，给 UI 足够时间显示弹窗
+      // P0-FIX: reveal state retained until night end, giving UI enough time to show popups
       expect(newState.seerReveal).toEqual({ targetSeat: 1, result: '好人' });
       expect(newState.psychicReveal).toEqual({ targetSeat: 2, result: '狼人阵营' });
       expect(newState.gargoyleReveal).toEqual({ targetSeat: 3, result: '守卫' });
@@ -283,7 +283,7 @@ describe('gameReducer', () => {
         result: '预言家',
         learnedRoleId: 'seer',
       });
-      // context 仍然被清空（这些是步骤特定的，不是结果）
+      // context is still cleared (these are step-specific, not results)
       expect(newState.confirmStatus).toBeUndefined();
       expect(newState.witchContext).toBeUndefined();
     });
@@ -318,7 +318,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: nextStepId=null 表示夜晚结束，stepId 清空
+      // PR6 contract: nextStepId=null indicates night end, stepId is cleared
       expect(newState.currentStepIndex).toBe(-1);
       expect(newState.currentStepId).toBeUndefined();
     });
@@ -341,7 +341,7 @@ describe('gameReducer', () => {
       expect(newState.status).toBe(GameStatus.Ended);
       expect(newState.lastNightDeaths).toEqual([1, 2]);
       expect(newState.currentStepIndex).toBe(-1);
-      // PR6 contract: 清空 stepId 和 isAudioPlaying
+      // PR6 contract: clear stepId and isAudioPlaying
       expect(newState.currentStepId).toBeUndefined();
       expect(newState.isAudioPlaying).toBe(false);
     });
@@ -360,7 +360,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR6 contract: 夜晚结束必须清 stepId 和 isAudioPlaying
+      // PR6 contract: night end must clear stepId and isAudioPlaying
       expect(newState.currentStepId).toBeUndefined();
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.currentStepIndex).toBe(-1);
@@ -486,7 +486,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.players[0]?.hasViewedRole).toBe(true);
-      // status 仍为 assigned（因为还有玩家没 viewed）
+      // status remains assigned (because some players haven't viewed yet)
       expect(newState.status).toBe(GameStatus.Assigned);
     });
 
@@ -496,29 +496,29 @@ describe('gameReducer', () => {
         players: {
           0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
           1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: true },
-          2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: false }, // 最后一个
+          2: { userId: 'p3', seat: 2, role: 'seer', hasViewedRole: false }, // last one
         },
       });
       const action: PlayerViewedRoleAction = {
         type: 'PLAYER_VIEWED_ROLE',
-        payload: { seat: 2 }, // 标记最后一个玩家
+        payload: { seat: 2 }, // mark the last player
       };
 
       const newState = gameReducer(state, action);
 
       expect(newState.players[2]?.hasViewedRole).toBe(true);
-      // 所有玩家都 viewed → status 变为 ready
+      // All players viewed -> status becomes ready
       expect(newState.status).toBe(GameStatus.Ready);
     });
 
     it('should handle null seats correctly when checking all viewed', () => {
-      // 场景：只有 2 个玩家，第 3 个座位是空的
+      // Scenario: only 2 players, 3rd seat is empty
       const state = createMinimalState({
         status: GameStatus.Assigned,
         players: {
           0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
           1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: false },
-          2: null, // 空座位应被忽略
+          2: null, // empty seat should be ignored
         },
       });
       const action: PlayerViewedRoleAction = {
@@ -529,7 +529,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.players[1]?.hasViewedRole).toBe(true);
-      // 所有非 null 玩家都 viewed → status 变为 ready
+      // All non-null players viewed -> status becomes ready
       expect(newState.status).toBe(GameStatus.Ready);
     });
 
@@ -548,7 +548,7 @@ describe('gameReducer', () => {
 
     it('should NOT transition if status is not assigned', () => {
       const state = createMinimalState({
-        status: GameStatus.Ongoing, // 不是 assigned
+        status: GameStatus.Ongoing, // not assigned
         players: {
           0: { userId: 'p1', seat: 0, role: 'villager', hasViewedRole: true },
           1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: false },
@@ -563,7 +563,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.players[1]?.hasViewedRole).toBe(true);
-      // status 不变，因为原始 status 不是 assigned
+      // status unchanged, because original status is not assigned
       expect(newState.status).toBe(GameStatus.Ongoing);
     });
 
@@ -575,7 +575,7 @@ describe('gameReducer', () => {
           1: { userId: 'p2', seat: 1, role: 'wolf', hasViewedRole: false },
           2: null,
         },
-        // 确保这些字段在 assigned 状态下是初始值
+        // Ensure these fields are at initial values in assigned status
         currentNightResults: undefined,
         currentStepIndex: -1,
       });
@@ -586,7 +586,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR2 contract: 不触碰 night 字段
+      // PR2 contract: do not touch night fields
       expect(newState.actions).toEqual([]);
       expect(newState.currentNightResults).toBeUndefined();
       expect(newState.currentStepIndex).toBe(-1);
@@ -597,9 +597,9 @@ describe('gameReducer', () => {
 
   describe('RESTART_GAME', () => {
     /**
-     * PR9: 对齐 v1 行为
-     * - 状态重置到 GameStatus.Seated（不是 GameStatus.Unseated）
-     * - 保留玩家但清除角色和 hasViewedRole
+     * PR9: align with v1 behavior
+     * - Status reset to GameStatus.Seated (not GameStatus.Unseated)
+     * - Keep players but clear roles and hasViewedRole
      */
     it('should reset game state while keeping players (v1 alignment)', () => {
       const state = createMinimalState({
@@ -615,18 +615,18 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, { type: 'RESTART_GAME', nonce: 'test-nonce' });
 
-      // v1 对齐：状态重置到 GameStatus.Seated
+      // v1 alignment: status reset to GameStatus.Seated
       expect(newState.status).toBe(GameStatus.Seated);
       expect(newState.roomCode).toBe('TEST');
       expect(newState.hostUserId).toBe('host-1');
 
-      // v1 对齐：保留玩家但清除角色
+      // v1 alignment: keep players but clear roles
       expect(newState.players[0]).not.toBeNull();
       expect(newState.players[0]?.userId).toBe('p1');
       expect(newState.players[0]?.role).toBeNull();
       expect(newState.players[0]?.hasViewedRole).toBe(false);
 
-      // 夜晚状态清除
+      // Night state cleared
       expect(newState.actions).toEqual([]);
       expect(newState.lastNightDeaths).toBeUndefined();
       expect(newState.currentStepIndex).toBe(-1);
@@ -650,13 +650,13 @@ describe('gameReducer', () => {
   });
 
   // =============================================================================
-  // ACTION_REJECTED 契约测试
+  // ACTION_REJECTED contract tests
   // =============================================================================
 
   describe('ACTION_REJECTED', () => {
     /**
-     * 锁死：ACTION_REJECTED 只写入 actionRejected 字段。
-     * actionRejected 必须属于 GameState（公开广播），不引入 hostOnly 字段。
+     * Lock-in: ACTION_REJECTED only writes the actionRejected field.
+     * actionRejected must belong to GameState (public broadcast), no hostOnly fields introduced.
      */
     it('should write actionRejected to state (public broadcast field)', () => {
       const state = createMinimalState({ status: GameStatus.Ongoing });
@@ -694,7 +694,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // 确保没有 hostOnly 或其他私有字段被引入
+      // Ensure no hostOnly or other private fields are introduced
       expect('hostOnly' in newState).toBe(false);
       expect('_private' in newState).toBe(false);
       expect('hostOnlyState' in newState).toBe(false);
@@ -864,7 +864,7 @@ describe('gameReducer', () => {
     it('should set isAudioPlaying to false even if it was true', () => {
       const state = createMinimalState({
         status: GameStatus.Ongoing,
-        isAudioPlaying: true, // 音频还在播放（理论上不应该发生，但 reducer 要保证）
+        isAudioPlaying: true, // audio still playing (shouldn't happen in theory, but reducer must guarantee)
         currentStepId: 'hunterConfirm',
       });
       const action: EndNightAction = {
@@ -874,7 +874,7 @@ describe('gameReducer', () => {
 
       const newState = gameReducer(state, action);
 
-      // PR7 contract: END_NIGHT 必须强制 isAudioPlaying=false
+      // PR7 contract: END_NIGHT must force isAudioPlaying=false
       expect(newState.isAudioPlaying).toBe(false);
       expect(newState.status).toBe(GameStatus.Ended);
       expect(newState.currentStepId).toBeUndefined();
@@ -900,7 +900,7 @@ describe('gameReducer', () => {
   });
 
   // ===========================================================================
-  // Phase 2 migration — 新增 action type 覆盖
+  // Phase 2 migration — coverage for new action types
   // ===========================================================================
 
   describe('SET_WITCH_CONTEXT', () => {

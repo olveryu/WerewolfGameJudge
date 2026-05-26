@@ -1,7 +1,7 @@
 /**
- * FlickerFlair — 闪烁
+ * FlickerFlair — Flicker.
  *
- * A single center dot that flickers with randomized intensity. Common 级座位装饰模板。
+ * A single center dot that flickers with randomized intensity. Template for Common-tier seat flairs.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

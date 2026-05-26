@@ -1,18 +1,18 @@
 /**
- * CFStorageService — Cloudflare R2 头像上传服务。
+ * CFStorageService — Cloudflare R2 avatar upload service.
  *
- * 职责：
- * - 实现 IStorageService 接口
- * - 通过 multipart/form-data 上传到 Workers /avatar/upload
- * - Web 端本地 DOM Canvas 压缩后再上传
+ * Responsibilities:
+ * - Implements the IStorageService interface
+ * - Uploads via multipart/form-data to Workers /avatar/upload
+ * - On Web, compresses locally with DOM Canvas before upload
  *
- * 不负责：
- * - 游戏逻辑或认证逻辑
- * - Native 端图片压缩（回退为原图上传）
+ * Not responsible for:
+ * - Game logic or auth logic
+ * - Image compression on Native (falls back to uploading original)
  *
- * 边界约束：
- * - 与 Supabase AvatarUploadService 行为语义兼容（上传 → 返回公开 URL）
- * - 依赖 cfUpload 处理 token 注入和错误拦截
+ * Boundary constraints:
+ * - Behaviorally compatible with Supabase AvatarUploadService (upload -> returns public URL)
+ * - Relies on cfUpload for token injection and error interception
  */
 
 import type { IStorageService } from '@/services/types/IStorageService';
@@ -23,9 +23,9 @@ import { cfUpload } from './cfFetch';
 const avatarLog = log.extend('CFAvatar');
 
 /**
- * CFStorageService — 通过 Cloudflare R2 上传头像。
+ * CFStorageService — uploads avatars via Cloudflare R2.
  *
- * 职责：图片压缩、FormData 构建、上传调用。
+ * Responsibilities: image compression, FormData construction, upload call.
  */
 export class CFStorageService implements IStorageService {
   async uploadAvatar(fileUri: string): Promise<string> {

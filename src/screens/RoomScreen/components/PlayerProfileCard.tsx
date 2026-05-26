@@ -1,9 +1,9 @@
 /**
- * PlayerProfileCard — 玩家资料卡弹窗（游戏卡牌风格）
+ * PlayerProfileCard — player profile card modal (game card style)
  *
- * 点击其他玩家座位时弹出，展示公开资料（头像+头像框、等级称号、局数、装备橱窗）。
- * Host 额外显示"移出座位"按钮。Bot 显示简化卡（无 API）。
- * 纯展示 + 数据获取，不含游戏逻辑。
+ * Pops up when tapping another player's seat, showing public info (avatar+frame, level title, games played, equipment showcase).
+ * Host additionally sees a "remove from seat" button. Bot shows a simplified card (no API).
+ * Pure display + data fetching, contains no game logic.
  */
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -65,14 +65,14 @@ interface PlayerProfileCardProps {
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
 const CARD_MAX_WIDTH = 300;
 
-/** 等级称号对应的主题色 */
+/** Theme color for each level title */
 function getTitleColor(level: number): string {
   if (level >= 41) return colors.warning;
-  if (level >= 31) return colors.god; // 元老 — 紫色
-  if (level >= 21) return colors.info; // 老手 — 蓝色
-  if (level >= 11) return colors.success; // 常客 — 绿色
-  if (level >= 6) return colors.textSecondary; // 入门
-  return colors.textMuted; // 新手
+  if (level >= 31) return colors.god; // Elder — purple
+  if (level >= 21) return colors.info; // Veteran — blue
+  if (level >= 11) return colors.success; // Regular — green
+  if (level >= 6) return colors.textSecondary; // Beginner
+  return colors.textMuted; // Newbie
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ interface SlotInfo {
 
 const SLOT_PREVIEW_SIZE = 28;
 
-/** 从 avatarUrl 解析头像显示名 + 稀有度 */
+/** Resolve avatar display name + rarity from avatarUrl */
 function resolveAvatarSlot(avatarUrl: string | undefined): SlotInfo {
   if (!avatarUrl) return { name: '', rarity: null, typeLabel: '头像' };
   if (isBuiltinAvatarUrl(avatarUrl)) {
@@ -169,7 +169,7 @@ function resolveRoleRevealSlot(effectId: string | undefined): SlotInfo {
   };
 }
 
-/** 单个装备槽 */
+/** Single equipment slot */
 const EquipmentSlot: React.FC<{
   slot: SlotInfo;
   children: React.ReactNode;
@@ -209,7 +209,7 @@ const EquipmentSlot: React.FC<{
 });
 EquipmentSlot.displayName = 'EquipmentSlot';
 
-/** 装备橱窗 — 6 个装备槽，2 行 × 3 列 */
+/** Equipment showcase — 6 slots, 2 rows x 3 cols */
 const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ profile }) => {
   const avatarSlot = useMemo(() => resolveAvatarSlot(profile.avatarUrl), [profile.avatarUrl]);
   const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
@@ -233,7 +233,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         <View style={styles.equipDividerLine} />
       </View>
 
-      {/* Row 1: 个人外观 */}
+      {/* Row 1: personal appearance */}
       <View style={styles.equipRow}>
         {/* Avatar */}
         <EquipmentSlot slot={avatarSlot}>
@@ -269,14 +269,14 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
         </EquipmentSlot>
       </View>
 
-      {/* Row 2: 特效 */}
+      {/* Row 2: effects */}
       <View style={styles.equipRow}>
         {/* Seat Flair */}
         <EquipmentSlot slot={flairSlot}>
           {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
         </EquipmentSlot>
 
-        {/* Role Reveal Effect (翻牌动画/宠物) */}
+        {/* Role Reveal Effect (card-flip animation / pet) */}
         <EquipmentSlot slot={roleRevealSlot}>
           {roleRevealSlot.name ? <Text style={styles.equipSlotIcon}>🎴</Text> : null}
         </EquipmentSlot>

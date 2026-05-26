@@ -1,9 +1,9 @@
 /**
- * useGachaPhysics — 扭蛋机物理引擎 (Reanimated 4 worklet)
+ * useGachaPhysics — Gacha machine physics engine (Reanimated 4 worklet)
  *
- * 28 球在圆罩内碰撞。搅拌 → 沉降 → 开闸 → 掉落 → 弹跳落地。
- * 全部在 UI 线程运行（useFrameCallback），零桥接延迟。
- * 从 gacha-capsule-v5.html 原型 1:1 移植物理参数。
+ * 28 balls collide inside the dome. Tumble -> settle -> gate open -> drop -> bounce on floor.
+ * Runs entirely on the UI thread (useFrameCallback), zero bridge latency.
+ * Physics parameters ported 1:1 from the gacha-capsule-v5.html prototype.
  */
 import { useCallback, useEffect } from 'react';
 import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
@@ -222,7 +222,7 @@ function physicsTick(
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────
-/** 扭蛋机物理动画 hook（管理球体位置、请求帧循环）。 */ export function useGachaPhysics(
+/** Gacha machine physics animation hook (manages ball positions, drives frame loop). */ export function useGachaPhysics(
   scale: number,
 ) {
   const s = scale;
@@ -726,7 +726,7 @@ function physicsTick(
     renderTick.value += 1;
   }, false);
 
-  // Deactivate frame callback when physics is done (DONE or cancelled → IDLE)
+  // Deactivate frame callback when physics is done (DONE or cancelled -> IDLE)
   const deactivateFrameCallback = useCallback(() => {
     frameCallback.setActive(false);
   }, [frameCallback]);

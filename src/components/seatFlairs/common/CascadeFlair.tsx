@@ -1,8 +1,8 @@
 /**
- * CascadeFlair — 瀑布
+ * CascadeFlair — Waterfall
  *
  * Multiple dots cascade down the sides, creating a waterfall curtain effect.
- * Rare 级座位装饰模板 — 6 animated particles with phase offsets.
+ * Rare tier seat flair template — 6 animated particles with phase offsets.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

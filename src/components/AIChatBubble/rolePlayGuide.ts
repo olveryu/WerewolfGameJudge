@@ -1,8 +1,8 @@
 /**
- * rolePlayGuide - 构建角色玩法咨询 prompt
+ * rolePlayGuide - builds role-strategy consultation prompt
  *
- * 纯函数，无副作用。接收 roleId，输出结构化 prompt 供 AI 分析该角色的策略。
- * 不调用 service，不修改 state。
+ * Pure function, no side effects. Takes a roleId and outputs a structured prompt for AI to analyze that role's strategy.
+ * Does not call services or modify state.
  */
 
 import {
@@ -12,8 +12,8 @@ import {
 } from '@werewolf/game-engine/models/roles';
 
 /**
- * 构建角色玩法咨询的 AI prompt。
- * roleId 无效时返回 null。
+ * Builds an AI prompt for role-strategy consultation.
+ * Returns null when roleId is invalid.
  */
 export function buildRolePlayGuidePrompt(roleId: RoleId): string | null {
   const spec = getRoleSpec(roleId);

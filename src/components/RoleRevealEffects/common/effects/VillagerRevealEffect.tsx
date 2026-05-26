@@ -1,14 +1,14 @@
 /**
- * VillagerRevealEffect — 村民阵营揭示特效（Skia + Reanimated 4）
+ * VillagerRevealEffect — villager-faction reveal effect (Skia + Reanimated 4)
  *
- * 翻牌后在卡片区域渲染宁静夜空系列动画：
- * 1. 卡片光晕 — Skia RadialGradient + Blur，柔和爆发→持续微弱暖色发光
- * 2. 护盾涟漪（2 层）— Skia Circle stroke + Blur，从中心柔和扩散后淡出
- * 3. 萤火虫粒子（16 颗）— Skia Circle + Blur + blendMode="screen"，缓慢漂浮上升
- * 4. 闪烁星点（10 颗）— Skia Circle + Blur，固定位置交替闪烁
+ * After the card is flipped, renders the "tranquil night sky" animation series over the card area:
+ * 1. Card glow — Skia RadialGradient + Blur, soft burst -> persistent faint warm glow
+ * 2. Shield ripples (2 layers) — Skia Circle stroke + Blur, gently expanding from center then fading out
+ * 3. Firefly particles (16) — Skia Circle + Blur + blendMode="screen", slowly drifting upward
+ * 4. Twinkling stars (10) — Skia Circle + Blur, fixed positions twinkling in alternation
  *
- * 萤火虫和星光持续循环，光晕持续保留。
- * 不 import service，不含业务逻辑。
+ * Fireflies and twinkles loop continuously; the glow persists.
+ * Does not import services and contains no business logic.
  */
 import {
   Blur,

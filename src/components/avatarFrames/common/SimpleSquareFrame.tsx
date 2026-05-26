@@ -1,7 +1,7 @@
 /**
- * SimpleSquareFrame — 方框
+ * SimpleSquareFrame - Square frame
  *
- * 直角方框 + 内外双线。Common 级头像框模板。
+ * Right-angle square frame + inner/outer double line. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

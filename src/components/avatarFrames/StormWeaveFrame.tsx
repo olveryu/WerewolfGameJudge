@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * StormWeaveFrame — 风暴织
+ * StormWeaveFrame — Storm Weave
  *
- * 暴风蓝灰框 · 闪电从四角劈出 · 风旋涡纹 · 电弧节点。
+ * Storm blue-gray frame; lightning bolts from the four corners; wind spiral motifs; arc nodes.
  */
 export const StormWeaveFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

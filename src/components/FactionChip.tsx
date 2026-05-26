@@ -1,10 +1,10 @@
 /**
- * FactionChip — 阵营色圆角 chip，展示角色名称。
+ * FactionChip - Faction-colored rounded chip displaying a role name.
  *
- * 两个尺寸：`sm`（caption 字号，用于 TemplatePicker）、`md`（secondary 字号，用于 RoomScreen）。
- * 圆角矩形 + surfaceHover 背景 + 阵营色边框/文字。
- * 当 `onPress` 存在时渲染 TouchableOpacity，否则渲染普通 View。
- * 纯展示组件，不 import service，不包含业务逻辑。
+ * Two sizes: `sm` (caption font, for TemplatePicker), `md` (secondary font, for RoomScreen).
+ * Rounded rectangle + surfaceHover background + faction-color border/text.
+ * Renders TouchableOpacity when `onPress` is provided, otherwise renders plain View.
+ * Pure presentation component; does not import service, contains no business logic.
  */
 import { memo, useMemo } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';

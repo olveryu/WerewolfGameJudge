@@ -1,9 +1,9 @@
 /**
- * TenResultOverlay — 10 连抽结果全屏面板
+ * TenResultOverlay — full-screen panel for 10-pull results
  *
- * 5×2 网格，按稀有度排序（高→低），卡片 stagger 入场。
- * 高稀有度（epic/legendary）卡片有发光边框、放大、呼吸辉光。
- * Common/rare 先入场，epic/legendary 延迟亮起（建设期待）。
+ * 5x2 grid, sorted by rarity (high -> low); cards enter staggered.
+ * High-rarity (epic/legendary) cards have a glow border, scale-up, and breathing glow.
+ * Common/rare enter first; epic/legendary light up later (builds anticipation).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useMemo } from 'react';
@@ -146,7 +146,7 @@ interface RarityGroup {
   startIndex: number;
 }
 
-/** 十连抽结果展示覆盖层。 */
+/** Overlay displaying the 10-pull results. */
 export function TenResultOverlay({ results, drawType, onClose, onGoEquip }: TenResultOverlayProps) {
   const groups = useMemo((): RarityGroup[] => {
     const withItems = RARITY_ORDER.map((rarity) => ({

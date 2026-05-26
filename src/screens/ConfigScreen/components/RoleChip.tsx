@@ -1,8 +1,8 @@
 /**
- * RoleChip - 角色选择标签（Memoized）
+ * RoleChip - role selection chip (memoized)
  *
- * 带阵营色选中状态。渲染 UI 并通过回调上报 onToggle，不 import service，不包含业务逻辑判断。
- * 变体 chip 用加粗边框区分。所有 chip 长按可查看技能说明（变体角色在卡片内切换变体）。
+ * Selected state uses faction color. Renders UI and reports onToggle via callback; does not import service, contains no business logic.
+ * Variant chips use thicker borders to differentiate. All chips support long-press to view ability info (variant roles toggle variants in-card).
  */
 import { memo } from 'react';
 import { Text, TouchableOpacity, type ViewStyle } from 'react-native';
@@ -12,7 +12,7 @@ import { fixed } from '@/theme';
 
 import { type ConfigScreenStyles } from './styles';
 
-/** 阵营色系 key。 */
+/** Faction color key. */
 export type FactionColorKey = 'wolf' | 'god' | 'villager' | 'third';
 
 interface RoleChipProps {
@@ -38,7 +38,7 @@ const FACTION_STYLE_MAP: Record<FactionColorKey, keyof ConfigScreenStyles> = {
   third: 'chipSelectedThird',
 };
 
-/** 角色芯片组件。 */
+/** Role chip component. */
 export const RoleChip = memo<RoleChipProps>(
   ({
     id,

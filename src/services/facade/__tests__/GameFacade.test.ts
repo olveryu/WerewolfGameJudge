@@ -1,11 +1,11 @@
 /**
- * GameFacade 单元测试
+ * GameFacade unit tests
  *
- * 测试范围：
- * - Host 创建房间 → store 初始化
- * - Host 入座 → 走 HTTP API 路径
- * - Player 入座 → 走 HTTP API 路径
- * - Player 收到 STATE_UPDATE → applySnapshot
+ * Test scope:
+ * - Host creates room -> store initialization
+ * - Host takes seat -> HTTP API path
+ * - Player takes seat -> HTTP API path
+ * - Player receives STATE_UPDATE -> applySnapshot
  */
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
@@ -142,7 +142,7 @@ describe('GameFacade', () => {
       getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
     };
 
-    // DI: 直接注入 mock，无需 singleton
+    // DI: inject mock directly, no singleton needed
     testStore = new GameStore();
     facade = new GameFacade({
       store: testStore,
@@ -153,7 +153,7 @@ describe('GameFacade', () => {
   });
 
   // ===========================================================================
-  // Shared Helper: 通过 PLAYER_JOIN actions + reducer 填充所有座位
+  // Shared Helper: fill all seats via PLAYER_JOIN actions + reducer
   // ===========================================================================
   const fillAllSeatsViaReducer = (_facadeInstance: GameFacade, template: typeof mockTemplate) => {
     let state: GameState = testStore.getState()!;
@@ -163,7 +163,7 @@ describe('GameFacade', () => {
       const player: Player = {
         userId,
         seat: i,
-        role: null, // 必须包含 role: null
+        role: null, // must include role: null
         hasViewedRole: false,
       };
 
@@ -179,7 +179,7 @@ describe('GameFacade', () => {
       state = gameReducer(state, action);
     }
 
-    // 写回 store
+    // Write back to store
     testStore.setState(state);
 
     return state;
@@ -382,7 +382,7 @@ describe('GameFacade', () => {
 
       await facade.takeSeat(1, { displayName: 'Player One' });
 
-      // 座位操作不做乐观更新，靠 HTTP 响应的 applySnapshot 渲染
+      // Seat operations don't do optimistic updates; render via applySnapshot from HTTP response
       expect(facade.getMySeat()).toBe(1);
       expect(facade.getStateRevision()).toBe(2);
     });
@@ -1339,7 +1339,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
       await setupRetryFacade();
 
-      // Trigger #playPendingAudioEffects manually via store subscription
+      // Trigger #playPendingAudioEffects manually via store subscription.
       // The facade constructor subscribes to store, so applySnapshot with pendingAudioEffects triggers it
       const store = retryStore;
       store.applySnapshot(
@@ -1462,8 +1462,8 @@ describe('GameFacade', () => {
     // Online event ack retry fallback (Web platform)
     // =========================================================================
     describe('online event retry (Web platform)', () => {
-      // jest-expo 环境中 globalThis.window 不是真正浏览器 window，
-      // 需要 patch addEventListener/removeEventListener 来模拟 Web 平台行为
+      // In jest-expo env, globalThis.window is not real browser window;
+      // need to patch addEventListener/removeEventListener to simulate Web platform behavior
       const onlineListeners: Set<EventListener> = new Set();
       let origAddEventListener: typeof globalThis.window.addEventListener | undefined;
       let origRemoveEventListener: typeof globalThis.window.removeEventListener | undefined;
@@ -1474,7 +1474,7 @@ describe('GameFacade', () => {
         origAddEventListener = globalThis.window?.addEventListener;
         origRemoveEventListener = globalThis.window?.removeEventListener;
         origNavigatorOnLine = globalThis.navigator?.onLine;
-        // Patch: 只拦截 'online' 事件
+        // Patch: only intercept 'online' event
         const mutableWindow = globalThis.window as unknown as Record<string, unknown>;
         mutableWindow.addEventListener = (type: string, listener: EventListener) => {
           if (type === 'online') onlineListeners.add(listener);

@@ -1,9 +1,9 @@
 /**
- * FormTextField — 通用文本输入组件
+ * FormTextField — generic text input component.
  *
- * 统一项目中表单字段和搜索栏的 TextInput 样式与行为。
- * 支持 ref 转发、两种变体（default 表单 / search 搜索栏）、错误展示、左侧图标。
- * 使用 theme tokens 构建样式，不含业务逻辑。
+ * Unifies TextInput style and behavior across form fields and search bars in the project.
+ * Supports ref forwarding, two variants (default form / search bar), error display, and a left icon.
+ * Styles use theme tokens; contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type ComponentProps, type Ref } from 'react';
@@ -23,15 +23,15 @@ import { borderRadius, colors, componentSizes, fixed, spacing, typography } from
 // ── Types ────────────────────────────────────────────────
 
 interface FormTextFieldProps extends Omit<TextInputProps, 'style'> {
-  /** 变体：'default' = 有边框表单字段 | 'search' = 圆角搜索栏（含容器） */
+  /** Variant: 'default' = bordered form field | 'search' = rounded search bar (with container) */
   variant?: 'default' | 'search';
-  /** 左侧图标（Ionicons name），search 变体渲染在容器内 */
+  /** Left icon (Ionicons name); rendered inside the container for the search variant */
   icon?: ComponentProps<typeof Ionicons>['name'];
-  /** 错误信息（default 变体显示在输入框下方） */
+  /** Error message (shown below the input for the default variant) */
   error?: string;
-  /** 额外样式合并到 TextInput */
+  /** Extra style merged onto the TextInput */
   style?: StyleProp<TextStyle>;
-  /** 容器额外样式 */
+  /** Extra container style */
   containerStyle?: StyleProp<ViewStyle>;
   /** Ref forwarded to the underlying TextInput */
   ref?: Ref<TextInput>;

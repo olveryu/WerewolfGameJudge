@@ -1,8 +1,8 @@
 /**
  * Night-1 Silence/Voteban Elder Integration Test (12p)
  *
- * 覆盖门禁：确保 silenceElderSilence / votebanElderBan stepId 被 boards tests 提及。
- * 使用包含 silenceElder + votebanElder 的 12p 配置。
+ * Coverage gate: ensures silenceElderSilence / votebanElderBan stepIds are referenced by boards tests.
+ * Uses a 12p config containing silenceElder + votebanElder.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -53,7 +53,7 @@ describe('Night-1: silenceElder + votebanElder steps (12p)', () => {
     ).toBe(true);
     ctx.assertStep('votebanElderBan');
 
-    // 收尾：跑完整晚
+    // Wrap-up: run the entire night
     executeFullNight(ctx);
 
     // contract gate pattern

@@ -51,9 +51,9 @@ describe('NIGHT_STEPS contract', () => {
     });
 
     it('audioKey should match roleId for single-step roles, first step for multi-step roles', () => {
-      // AudioService.playRoleBeginningAudio/playRoleEndingAudio 使用 audioKey 查找音频
-      // 单步骤角色：audioKey 必须与 roleId 一致
-      // 多步骤角色（如 piper）：第一步的 audioKey 必须与 roleId 一致，后续步骤可以不同
+      // AudioService.playRoleBeginningAudio/playRoleEndingAudio uses audioKey to look up audio
+      // Single-step roles: audioKey must match roleId
+      // Multi-step roles (e.g. piper): first step's audioKey must match roleId; subsequent steps may differ
       const stepsByRole = new Map<
         string,
         typeof NIGHT_STEPS extends readonly (infer T)[] ? T[] : never
@@ -75,7 +75,7 @@ describe('NIGHT_STEPS contract', () => {
   describe('Night-1-only red line', () => {
     it('should NOT contain cross-night fields', () => {
       for (const step of NIGHT_STEPS) {
-        // TypeScript 层已禁止，这里做运行时断言
+        // Disallowed at TypeScript layer; runtime assertion here
         const stepAny = step as unknown as Record<string, unknown>;
         expect(stepAny.previousNight).toBeUndefined();
         expect(stepAny.lastNight).toBeUndefined();

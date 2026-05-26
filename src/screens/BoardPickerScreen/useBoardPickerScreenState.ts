@@ -1,7 +1,7 @@
 /**
- * useBoardPickerScreenState — BoardPickerScreen 的状态 hook
+ * useBoardPickerScreenState — state hook for BoardPickerScreen
  *
- * 搜索 / 分类 / 角色筛选 / 展开折叠 / 导航。
+ * Search / category / role filter / expand-collapse / navigation.
  */
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -22,7 +22,7 @@ import { colors } from '@/theme';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'BoardPicker'>;
 type BoardPickerRouteProp = RouteProp<RootStackParamList, 'BoardPicker'>;
 
-/** 板子选择屏幕状态 hook。 */
+/** Board picker screen state hook. */
 export function useBoardPickerScreenState() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();

@@ -1,10 +1,10 @@
 /**
- * nameStyleConfigs — 20 名字特效的声明式配置
+ * nameStyleConfigs — declarative configs for 20 name effects
  *
- * 每个配置描述颜色、文字阴影、渐变（web-only）、动画参数。
- * 渲染器根据平台选择实现方式：
+ * Each config describes color, text shadow, gradient (web-only), animation params.
+ * Renderer picks implementation by platform:
  * - Web: CSS background-clip: text + @keyframes
- * - Native: 纯色 + textShadow（渐变/动画降级）
+ * - Native: solid color + textShadow (gradient/animation degraded)
  */
 
 import type { NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
@@ -47,7 +47,7 @@ export interface AnimationConfig {
 export interface NameStyleConfig {
   /** Engine ID (matches rewardCatalog) */
   id: NameStyleId;
-  /** 中文显示名 */
+  /** Chinese display name */
   name: string;
   /** Rarity tier for UI grouping */
   tier: NameStyleTier;

@@ -1,9 +1,9 @@
 /**
- * Shadow Resolver (SERVER-ONLY, 纯函数)
+ * Shadow Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验影子模仿行动 + 计算结果。
- * 直接计算复仇者阵营（avengerFaction）：与影子模仿目标阵营对立。
- * 不包含 IO（网络 / 音频 / Alert）。
+ * Responsibility: validates Shadow's mimic action + computes result.
+ * Directly computes avenger's faction (avengerFaction): opposite of Shadow's mimic target faction.
+ * Contains no IO (network / audio / Alert).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
@@ -13,10 +13,10 @@ import { Team } from '../models/roles/spec/types';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
-/** 必须选择模仿目标（canSkip=false） */
+/** Must choose a mimic target (canSkip=false) */
 const REJECT_MUST_CHOOSE = '必须选择模仿目标' as const;
 
-/** 目标玩家不存在 */
+/** Target player does not exist */
 const REJECT_TARGET_NOT_FOUND = '目标玩家不存在' as const;
 
 export const shadowChooseMimicResolver: ResolverFn = (context, input) => {

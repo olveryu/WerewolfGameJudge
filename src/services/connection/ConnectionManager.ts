@@ -1,24 +1,24 @@
 /**
- * ConnectionManager — 连接生命周期管理（imperative shell）。
+ * ConnectionManager — connection lifecycle management (imperative shell).
  *
- * 职责：
- * - 持有 ConnectionFSM，驱动所有状态转换
- * - Prefetch：OPEN_WS 时并行发起 HTTP fetch（唤醒 DO + 预取状态）
- * - Ping/pong keepalive + timeout 检测
- * - Retry timer（指数退避 + jitter）
- * - Revision poll（5s 轮询 DB revision 检测丢广播）
- * - 平台事件监听（online/offline、visibilitychange）
- * - connectAndWait()：带 Promise 语义的初始连接
+ * Responsibilities:
+ * - Owns ConnectionFSM and drives all state transitions
+ * - Prefetch: on OPEN_WS, fire HTTP fetch in parallel (wakes DO + preloads state)
+ * - Ping/pong keepalive + timeout detection
+ * - Retry timer (exponential backoff + jitter)
+ * - Revision poll (5s polls DB revision to detect missed broadcasts)
+ * - Platform event listeners (online/offline, visibilitychange)
+ * - connectAndWait(): initial connection with Promise semantics
  *
- * 不负责：
- * - 游戏逻辑
- * - 状态持久化
- * - 直接创建 WebSocket（通过 IRealtimeTransport 接口操作）
+ * Not responsible for:
+ * - Game logic
+ * - State persistence
+ * - Directly creating WebSocket (operates via IRealtimeTransport interface)
  *
- * 边界约束：
- * - 遵循 functional core / imperative shell 模式
- * - ConnectionFSM（functional core）是纯函数
- * - ConnectionManager（imperative shell）执行 side effects
+ * Boundary constraints:
+ * - Follows functional core / imperative shell pattern
+ * - ConnectionFSM (functional core) is pure functions
+ * - ConnectionManager (imperative shell) executes side effects
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
@@ -47,19 +47,19 @@ import {
 
 type ConnectionStateListener = (state: ConnectionState) => void;
 
-/** ConnectionManager 依赖注入接口。 */
+/** ConnectionManager dependency injection interface. */
 export interface ConnectionManagerDeps {
-  /** WebSocket 传输层（IRealtimeTransport） */
+  /** WebSocket transport layer (IRealtimeTransport) */
   transport: IRealtimeTransport;
-  /** 从 DB 拉取完整 game state（Host + Player 通用） */
+  /** Fetch full game state from DB (used by both Host and Player) */
   fetchStateFromDB: (roomCode: string) => Promise<{ state: GameState; revision: number } | null>;
-  /** 轻量 revision 比对：从 DB 读 state_revision */
+  /** Lightweight revision comparison: read state_revision from DB */
   getStateRevision: (roomCode: string) => Promise<number | null>;
-  /** WS 广播收到 STATE_UPDATE 时的回调 */
+  /** Callback when WS broadcast receives STATE_UPDATE */
   onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
-  /** fetch 或 WS 广播获得新 state 后的回调（用于 store.applySnapshot） */
+  /** Callback after fetch or WS broadcast yields new state (used for store.applySnapshot) */
   onFetchedState: (state: GameState, revision: number) => void;
-  /** 游戏结算结果单播回调（可选） */
+  /** Settle-result unicast callback (optional) */
   onSettleResult?: (result: SettleResultMessage) => void;
 }
 
@@ -68,16 +68,16 @@ export interface ConnectionManagerDeps {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * ConnectionManager — 连接生命周期管理（imperative shell）。
+ * ConnectionManager — connection lifecycle management (imperative shell).
  *
- * 驱动 ConnectionFSM 状态转换并执行所有 side effects：
- * WS 打开/关闭、ping/pong、retry timer、revision poll、平台事件监听。
+ * Drives ConnectionFSM state transitions and executes all side effects:
+ * WS open/close, ping/pong, retry timer, revision poll, platform event listeners.
  *
- * @remarks prefetch grace race: WS 连接成功后，Promise.race(prefetch, PREFETCH_GRACE_MS=3s)。
- *   如果 prefetch 在 grace 内未 settle，放弃 prefetch 改为 fresh fetch
- *  （此时 DO 已被 WS upgrade 唤醒，fresh request ~2-3s 完成）。
- *   ping/pong keepalive: 每 PING_INTERVAL_MS 发送 ping，PONG_TIMEOUT_MS 内无 pong 视为断线。
- *   revision poll: 每 REVISION_POLL_BASE_MS~MAX_MS 轮询 DB revision 检测丢失的 WS 广播。
+ * @remarks prefetch grace race: after WS connects, Promise.race(prefetch, PREFETCH_GRACE_MS=3s).
+ *   If prefetch has not settled within the grace window, abandon prefetch and do a fresh fetch
+ *   (by then the DO has been woken by the WS upgrade, so a fresh request completes in ~2-3s).
+ *   ping/pong keepalive: sends ping every PING_INTERVAL_MS; missing pong within PONG_TIMEOUT_MS is treated as disconnect.
+ *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
  */
 export class ConnectionManager {
   #ctx: FSMContext;

@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { type Locator, type Page } from '@playwright/test';
 
 /**
- * UI Helpers (通用原语层，纯工具)
+ * UI Helpers (generic primitives layer, pure utilities)
  *
  * Generic UI interaction primitives for Playwright tests.
  * These are low-level utilities with no app-specific logic.

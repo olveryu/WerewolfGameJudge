@@ -21,7 +21,7 @@ interface PickerTabBarProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 外观选择器页签栏。 */
+/** Appearance picker tab bar. */
 export const PickerTabBar: React.FC<PickerTabBarProps> = ({ activeTab, onTabChange, styles }) => (
   <View style={styles.pickerTabBar}>
     {TABS.map((tab) => {

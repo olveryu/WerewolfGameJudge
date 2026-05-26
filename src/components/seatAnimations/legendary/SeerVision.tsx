@@ -1,5 +1,5 @@
 /**
- * SeerVision — 预言家之眼
+ * SeerVision — Seer's Eye
  *
  * Legendary entrance: a glowing eye opens in the center, iris contracts,
  * vision ripples outward, avatar appears as if being "seen".

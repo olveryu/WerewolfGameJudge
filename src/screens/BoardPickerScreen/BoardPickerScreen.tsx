@@ -1,10 +1,10 @@
 /**
- * BoardPickerScreen - 全屏板子选择页面（创建房间第一步）
+ * BoardPickerScreen - full-screen board picker page (first step of room creation)
  *
- * SectionList 按分类展示预设模板卡片（经典 / 进阶 / 特色 / 第三方）。
- * 每张卡片展示名称 + 阵营统计 + 关键差异角色 chip。
- * 顶部搜索栏支持按名字 + 角色名过滤。底部"自定义"入口跳过预设直接进 ConfigScreen。
- * 纯展示层，不 import service，不包含业务逻辑。
+ * SectionList displays preset template cards by category (Classic / Advanced / Special / Third-party).
+ * Each card shows name + faction stats + key differentiating role chips.
+ * Top search bar supports filtering by name + role name. Bottom "Custom" entry skips presets and goes directly to ConfigScreen.
+ * Pure presentation layer, does not import service, contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
@@ -56,7 +56,7 @@ const CATEGORY_TABS: TemplateCategory[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Screen
 // ─────────────────────────────────────────────────────────────────────────────
-/** 板子选择屏幕。 */ export const BoardPickerScreen: React.FC = () => {
+/** Board picker screen. */ export const BoardPickerScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();

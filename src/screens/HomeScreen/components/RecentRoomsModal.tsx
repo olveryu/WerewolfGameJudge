@@ -1,13 +1,13 @@
 /**
- * RecentRoomsModal — 最近房间列表弹窗
+ * RecentRoomsModal — recent rooms list modal
  *
- * 打开时并行检查所有 recent room codes 是否在线。
- * - online → 绿色圆点 + micro-card 可点击进入
- * - offline → 从列表和 storage 中移除，不渲染
- * - error（网络异常）→ 橙色感叹号，不清除 storage
- * - checking → spinner，不可点
+ * On open, checks all recent room codes in parallel to see whether they are online.
+ * - online -> green dot + micro-card, tap to enter
+ * - offline -> removed from list and storage, not rendered
+ * - error (network exception) -> orange exclamation mark, storage not cleared
+ * - checking -> spinner, not tappable
  *
- * 整张卡片用 PressableScale 实现按压反馈。
+ * The entire card uses PressableScale for press feedback.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -43,7 +43,7 @@ interface RecentRoomsModalProps {
   onJoin: (roomCode: string) => void;
 }
 
-/** Format room code with spaced digits for readability: "1234" → "1 2 3 4" */
+/** Format room code with spaced digits for readability: "1234" -> "1 2 3 4" */
 function formatRoomCode(code: string): string {
   return code.split('').join(' ');
 }

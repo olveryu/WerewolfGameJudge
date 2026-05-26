@@ -10,7 +10,7 @@
  * - Team.Good OR Team.Third → seer sees "好人"
  * - This is strictly binary. Third-party roles are treated as "好人" for seer checks.
  *
- * 导出 Faction / Team 枚举及 getSeerCheckResultForTeam 纯函数，不依赖 service、不含副作用。
+ * Exports Faction / Team enums and the getSeerCheckResultForTeam pure function. No service deps, no side effects.
  */
 
 export enum Faction {

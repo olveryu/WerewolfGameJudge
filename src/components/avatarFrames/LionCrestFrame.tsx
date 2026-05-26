@@ -4,12 +4,12 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 're
 import type { FrameProps } from './FrameProps';
 
 /**
- * LionCrestFrame — 狮纹
+ * LionCrestFrame — Lion Crest.
  *
- * 纹章盾牌风格。顶部三尖皇冠 · 对角绶带(sash path) ·
- * 四角盾牌 badge(多层 Path 不同于 WolfFang 的 claw Lines) ·
- * 底部垂幔横幅(banner scroll) · 交叉剑/标枪(背景纹) · 金红配色。
- * 与 WolfFang 完全不同: 无 triangle 阵列, 无 claw scratch, 采用 heraldic 纹章元素。
+ * Heraldic shield style. Top three-pointed crown / diagonal sash path /
+ * four-corner shield badges (multi-layer Path, distinct from WolfFang's claw Lines) /
+ * bottom banner scroll / crossed swords/lances (background motif) / gold-and-red palette.
+ * Completely different from WolfFang: no triangle array, no claw scratches; uses heraldic motifs.
  */
 export const LionCrestFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

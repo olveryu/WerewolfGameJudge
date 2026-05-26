@@ -1,19 +1,19 @@
 /**
- * RoleHunt - 瞄准镜狙击揭示动画（Skia + Reanimated 4 + Gesture Handler 2）
+ * RoleHunt - Scoped sniper reveal animation (Skia + Reanimated 4 + Gesture Handler 2)
  *
- * 动画流程：森林夜景背景 → 动物角色从左右横穿屏幕 → 玩家拖动瞄准镜瞄准 →
- * 抬手/点击射击 → 命中非目标角色（烟雾消散）→ 命中目标角色时全屏庆祝 → 揭示角色卡。
- * 6 发子弹限制，弹尽自动揭晓。
+ * Animation flow: forest night background -> animal roles cross screen -> player drags scope ->
+ * release/tap to shoot -> hit non-target (smoke dissipates) -> hit target triggers full-screen
+ * celebration -> reveal role card. 6-bullet limit; auto-reveals when empty.
  *
- * Skia Canvas 负责：
- *   - 预渲染森林背景（暮色天空 + 星星 + 月亮 + 山丘 + 树线 + 地面 + 草丛 + 雾 + 暗角）
- *   - 瞄准镜覆层（暗色遮罩 + 圆形亮区 + 红色十字准星 + mil-dot）
- *   - 萤火虫浮动光点
- *   - 射击命中爆发光线
+ * Skia Canvas handles:
+ *   - Pre-rendered forest background (dusk sky + stars + moon + hills + tree lines + ground + grass + fog + vignette)
+ *   - Scope overlay (dark mask + circular bright area + red crosshair + mil-dot)
+ *   - Firefly floating points
+ *   - Shot hit burst rays
  *
- * Reanimated 负责：动物横穿动画、子弹 HUD、庆祝粒子、卡牌揭示。
- * Gesture Handler 负责：瞄准镜拖动 + 射击触发。
- * 不 import service，不含业务逻辑。
+ * Reanimated handles: animal cross-screen animation, bullet HUD, celebration particles, card reveal.
+ * Gesture Handler handles: scope drag + shot trigger.
+ * No service imports, no business logic.
  */
 import {
   Blur,

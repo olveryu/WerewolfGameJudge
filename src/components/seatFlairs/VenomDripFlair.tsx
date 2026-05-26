@@ -1,7 +1,7 @@
 /**
- * VenomDripFlair — 毒液滴落
+ * VenomDripFlair — venom drip
  *
- * 5 枚毒液水滴从顶部滴落，带拖尾 3 circles + 落地溅射扩散环。
+ * 5 venom droplets drip from the top with 3-circle trails + a splash expansion ring on landing.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

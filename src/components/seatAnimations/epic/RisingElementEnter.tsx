@@ -1,5 +1,5 @@
 /**
- * RisingElementEnter — 元素升起
+ * RisingElementEnter — rising elements
  *
  * Elements rise from the bottom edge (or fall from top) before child appears.
  * Epic-tier archetype. Parameterized by direction, element shape, color, and count.

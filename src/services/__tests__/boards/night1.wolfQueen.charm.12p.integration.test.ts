@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: WolfQueen Charm
  *
- * 主题：狼美人魅惑行为及链接死亡。
+ * Theme: Eclipse Wolf Queen charm behavior and linked death.
  *
- * 模板：狼美守卫
- * 固定 seat-role assignment:
+ * Template: 狼美守卫
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: wolfQueen
@@ -13,11 +13,11 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 核心规则：
- * - wolfQueen 魅惑目标通过 action 记录（targetSeat）
- * - 被魅惑者与狼美人连体（链接死亡在 DeathCalculator 处理）
+ * Core rules:
+ * - wolfQueen charm target recorded via action (targetSeat)
+ * - charmed target linked to wolfQueen (linked death handled in DeathCalculator)
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,7 +28,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '狼美守卫';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -60,22 +60,22 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 1, // 袭击 seat 1
-        wolfQueen: 0, // 魅惑 seat 0
+        wolf: 1, // attack seat 1
+        wolfQueen: 0, // charm seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：wolfQueenCharm action 写入 state.actions
+      // Core assertion: wolfQueenCharm action written to state.actions
       const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
-      expect(charmAction!.actorSeat).toBe(7); // wolfQueen 在 seat 7
-      expect(charmAction!.targetSeat).toBe(0); // 魅惑 seat 0
+      expect(charmAction!.actorSeat).toBe(7); // wolfQueen at seat 7
+      expect(charmAction!.targetSeat).toBe(0); // charm seat 0
 
-      // 只有被袭击的 seat 1 死亡，seat 0 和 wolfQueen 存活
+      // Only attacked seat 1 dies, seat 0 and wolfQueen survive
       expect(result.deaths).toEqual([1]);
     });
 
@@ -85,14 +85,14 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       const result = executeFullNight(ctx, {
         guard: null,
         wolf: 0,
-        wolfQueen: 8, // 魅惑 seer
+        wolfQueen: 8, // charm seer
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：action 记录魅惑目标
+      // Core assertion: action records charm target
       const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
       expect(charmAction).toBeDefined();
@@ -109,15 +109,15 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
       const result = executeFullNight(ctx, {
         guard: null,
         wolf: 0,
-        wolfQueen: null, // 不魅惑
+        wolfQueen: null, // no charm
         witch: { save: null, poison: null },
         seer: 4,
       });
 
-      // 核心断言：空选时 action 存在但 targetSeat 为 undefined，或无该 action
+      // Core assertion: when empty, action exists with targetSeat undefined, or no action
       const state = ctx.getGameState();
       const charmAction = state.actions?.find((a) => a.schemaId === 'wolfQueenCharm');
-      // 空选时：要么无 action，要么 targetSeat 为 undefined
+      // Empty selection: either no action, or targetSeat is undefined
       expect(charmAction?.targetSeat).toBeUndefined();
 
       expect(result.completed).toBe(true);
@@ -127,48 +127,48 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
   describe('WolfQueen 链接死亡（Night-1 内）', () => {
     /**
-     * 注意：当前实现是**单向链接**
-     * - wolfQueen 死 → 被魅惑者也死 ✓
-     * - 被魅惑者死 → wolfQueen 不受影响（单向链接）
+     * Note: current implementation is **one-way linked**
+     * - wolfQueen dies -> charmed target also dies ✓
+     * - charmed target dies -> wolfQueen unaffected (one-way link)
      *
-     * 这反映了 DeathCalculator.ts 的规则：
+     * Reflects DeathCalculator.ts rule:
      * "If queen is dead, charmed target also dies"
      */
 
     it('被魅惑者被袭击时，只有被魅惑者死（单向链接）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // wolfQueen 魅惑 seat 0，袭击 seat 0
-      // 根据当前规则（单向链接），只有 seat 0 死
+      // wolfQueen charms seat 0, attacks seat 0
+      // Per current rule (one-way link), only seat 0 dies
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 袭击被魅惑者
-        wolfQueen: 0, // 魅惑 seat 0
+        wolf: 0, // attack charmed target
+        wolfQueen: 0, // charm seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：只有 seat 0 死，wolfQueen(7) 存活（单向链接）
+      // Core assertion: only seat 0 dies, wolfQueen(7) survives (one-way link)
       expect(result.deaths).toEqual([0]);
     });
 
     it('wolfQueen 死亡时，被魅惑者也死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // wolfQueen 魅惑 seat 0，女巫毒 wolfQueen(7)
+      // wolfQueen charms seat 0, witch poisons wolfQueen(7)
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 放弃袭击
-        wolfQueen: 0, // 魅惑 seat 0
-        witch: { save: null, poison: 7 }, // 毒 wolfQueen
+        wolf: null, // skip attack
+        wolfQueen: 0, // charm seat 0
+        witch: { save: null, poison: 7 }, // poison wolfQueen
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：wolfQueen(7) 和被魅惑者(0) 都死亡
+      // Core assertion: wolfQueen(7) and charmed target(0) both die
       expect([...result.deaths].sort((a, b) => a - b)).toEqual([0, 7]);
     });
   });
@@ -179,15 +179,15 @@ describe('Night-1: WolfQueen Charm (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 1, // 袭击 seat 1
-        wolfQueen: 0, // 魅惑 seat 0（不同于袭击目标）
+        wolf: 1, // attack seat 1
+        wolfQueen: 0, // charm seat 0 (different from attack target)
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：只有 seat 1 死，seat 0 和 wolfQueen 存活
+      // Core assertion: only seat 1 dies, seat 0 and wolfQueen survive
       expect(result.deaths).toEqual([1]);
     });
   });

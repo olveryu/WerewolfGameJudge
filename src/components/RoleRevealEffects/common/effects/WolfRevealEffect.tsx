@@ -1,17 +1,17 @@
 /**
- * WolfRevealEffect — 狼人阵营揭示特效（Skia + Reanimated 4）
+ * WolfRevealEffect — wolf faction reveal effect (Skia + Reanimated 4)
  *
- * 翻牌后在卡片区域渲染暗红恐怖系列动画：
- * 1. 卡片辉光 — Skia RadialGradient + Blur，从极亮爆发→持续微弱暗红发光
- * 2. 暗红雾气 — Skia 多层 Circle + Blur 模拟干冰烟雾弥漫
- * 3. 血滴粒子 — 5 颗水滴形液滴从卡片顶部边缘加速滴落（带拖尾辉光）
- * 4. 裂痕网 — 从中心扩散的不规则裂纹 Path（strokeDashoffset 蔓延）
- * 5. 狼瞳脉冲 — 两只暗红光点在暗处脉动
- * 6. 暗色冲击波 — 2 层从中心扩散的扭曲波纹
- * 7. 火花碎片 — 24 颗从中心射出带 Blur + blendMode 的粒子
+ * After flipping the card, renders a dark red horror animation series in the card area:
+ * 1. Card glow — Skia RadialGradient + Blur, from bright burst -> sustained faint dark red glow
+ * 2. Dark red fog — Skia multi-layer Circle + Blur simulates dry-ice smoke drift
+ * 3. Blood drop particles — 5 teardrop-shaped droplets accelerate from the top of the card (with trailing glow)
+ * 4. Crack web — irregular crack Path spreading from center (strokeDashoffset propagation)
+ * 5. Wolf eye pulse — two dark red glows throbbing in the dark
+ * 6. Dark shockwave — 2 layers of distorted ripples spreading from center
+ * 7. Spark fragments — 24 particles shooting from center with Blur + blendMode
  *
- * 情绪签名：slow burn（缓慢升温的不安）。
- * 不 import service，不含业务逻辑。
+ * Mood signature: slow burn (gradually rising unease).
+ * Does not import service, no business logic.
  */
 import {
   Blur,
@@ -149,10 +149,10 @@ interface WolfCrackBackgroundProps {
 }
 
 /**
- * WolfCrackBackground — 裂痕背景层
+ * WolfCrackBackground — crack background layer
  *
- * 渲染在角色图片之后（z-order 更低），模拟卡片从内部裂开、
- * 裂缝中透出暗红能量光的效果。独立 Canvas + 动画。
+ * Renders behind the role image (lower z-order), simulating the card cracking from inside
+ * with dark red energy light leaking through the cracks. Independent Canvas + animation.
  */
 export const WolfCrackBackground: React.FC<WolfCrackBackgroundProps> = ({
   cardWidth,

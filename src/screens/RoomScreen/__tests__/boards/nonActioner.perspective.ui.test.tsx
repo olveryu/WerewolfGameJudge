@@ -1,11 +1,11 @@
 /**
  * Non-Actioner Board UI Test
  *
- * 验证非行动者视角：当 imActioner=false 时，
- * 行动类 dialog（actionPrompt / witchSavePrompt / witchPoisonPrompt / confirmTrigger）
- * 应该不出现。这补齐了 board UI 测试只测 actioner 视角的盲区。
+ * Verifies non-actioner perspective: when imActioner=false,
+ * action dialogs (actionPrompt / witchSavePrompt / witchPoisonPrompt / confirmTrigger)
+ * must NOT appear. Fills the gap that board UI tests only cover the actioner view.
  *
- * 策略：与 standard board UI test 同模板，但 useActionerState mock 返回 imActioner=false。
+ * Strategy: same template as standard board UI test, but useActionerState mock returns imActioner=false.
  */
 
 import { render } from '@testing-library/react-native';
@@ -86,7 +86,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
   });
 
   it('seer step: non-actioner villager sees no actionPrompt', async () => {
-    // 当前是 seerCheck 步骤，但 myRole 是 villager（非行动者）
+    // Current step is seerCheck, but myRole is villager (non-actioner)
     mockUseGameRoomReturn = createGameRoomMock({
       schemaId: 'seerCheck',
       currentActionRole: 'seer',

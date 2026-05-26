@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * ThornCrownFrame — 荆冠
+ * ThornCrownFrame — Thorn Crown
  *
- * 古铜荆棘冠 · 粗壮荆条编织环绕 · 尖刺向外突出 · 暗红宝石镶嵌。
+ * Antique bronze thorn crown · thick brambles woven around · spikes jutting outward · dark ruby gems inlaid.
  */
 export const ThornCrownFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,10 +1,10 @@
 /**
- * AuthEmailScreen — 邮箱登录/注册表单（Modal Screen）
+ * AuthEmailScreen — email login / signup form (Modal Screen)
  *
- * 接收 route params 配置（mode / formTitle / signOutFirst / showToggleMode 等）。
- * 登录/注册成功后 goBack() 回到 caller screen，caller 通过 auth context 响应状态变更。
- * signUp 且 navigateSettingsOnSignUp=true 时 replace 到 Settings。
- * 不含游戏业务逻辑，不 import service 层（signOut 除外）。
+ * Receives route params (mode / formTitle / signOutFirst / showToggleMode, etc.).
+ * On login/signup success, goBack() to caller screen; caller responds to state via auth context.
+ * When signUp and navigateSettingsOnSignUp=true, replaces to Settings.
+ * No game business logic; does not import service layer (except signOut).
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +27,7 @@ import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthEmail'>;
 
-/** 邮箱认证屏幕。 */
+/** Email auth screen. */
 export const AuthEmailScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);
@@ -116,7 +116,7 @@ export const AuthEmailScreen: React.FC = () => {
     navigation.goBack();
   }, [navigation]);
 
-  // Whether to show the "忘记密码?" link
+  // Whether to show the "forgot password" link
   const showForgotLink = !isSignUp;
 
   return (

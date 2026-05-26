@@ -1,20 +1,20 @@
 /**
- * announcements — What's New 弹窗内容配置
+ * announcements — What's New modal content config
  *
- * 每个版本号对应一条公告。用户打开 app 时，若 MMKV 存储的 lastSeenVersion
- * 不等于当前 APP_VERSION 且当前版本有对应条目，则弹出一次。
- * 新版本发布时在此添加条目即可。只写用户能感知到的变化。
+ * Each version maps to one announcement. On app launch, if MMKV-stored lastSeenVersion
+ * does not equal current APP_VERSION and the current version has an entry, show once.
+ * Add an entry here on each new release. Only describe user-visible changes.
  */
 
-/** What's New 弹窗单条公告结构。 */
+/** Single What's New announcement entry. */
 interface Announcement {
-  /** 弹窗标题（如 "v2.5.0 更新内容"） */
+  /** Modal title (e.g. "v2.5.0 更新内容") */
   title: string;
-  /** 更新条目列表，每条一句话描述用户可感知的变化 */
+  /** Update item list; each is a one-sentence description of a user-visible change */
   items: string[];
 }
 
-/** 按版本号索引的公告内容。key 格式与 APP_VERSION 一致：`v{major}.{minor}.{patch}` */
+/** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
   'v2.5.0': {
     title: 'v2.5.0 更新内容',
@@ -80,11 +80,11 @@ export const ANNOUNCEMENTS: Record<string, Announcement> = {
   },
 };
 
-// ── 板子版本归属 ─────────────────────────────────────────────────────────────
+// ── Board version mapping ────────────────────────────────────────────────────
 
-/** 每个板子首次加入的版本。key = PresetTemplate.name */
+/** Version when each board was first introduced. key = PresetTemplate.name */
 export const BOARD_VERSION_MAP: Record<string, string> = {
-  // v1.0.0 — 首发 17 套
+  // v1.0.0 — initial 17 boards
   预女猎白: 'v1.0.0',
   狼美守卫: 'v1.0.0',
   狼王守卫: 'v1.0.0',
@@ -117,7 +117,7 @@ export const BOARD_VERSION_MAP: Record<string, string> = {
   隐狼乌鸦: 'v2.5.0',
 };
 
-/** 板子版本降序排列（最新在前），用于分组展示 */
+/** Board versions in descending order (latest first), for grouped display */
 export const BOARD_VERSIONS_DESC = [
   'v2.5.0',
   'v2.2.0',
@@ -127,8 +127,8 @@ export const BOARD_VERSIONS_DESC = [
   'v1.0.0',
 ] as const;
 
-/** 开发者微信号，在公告底部固定展示 */
+/** Developer WeChat ID, shown fixed at announcement footer */
 export const DEVELOPER_WECHAT_ID = 'olveryu';
 
-/** 所有版本号降序排列（最新在前），用于 AnnouncementModal 翻页 */
+/** All versions in descending order (latest first), for AnnouncementModal paging */
 export const ANNOUNCEMENT_VERSIONS = Object.keys(ANNOUNCEMENTS);

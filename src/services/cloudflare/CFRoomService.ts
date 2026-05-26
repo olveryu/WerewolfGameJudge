@@ -1,18 +1,18 @@
 /**
- * CFRoomService — Cloudflare Workers 房间服务。
+ * CFRoomService — Cloudflare Workers room service.
  *
- * 职责：
- * - 实现 IRoomService 接口
- * - 通过 HTTP 调用 Workers /room/* 端点
- * - 房间创建时自动处理 roomCode 冲突重试
+ * Responsibilities:
+ * - Implements IRoomService interface
+ * - Calls Workers /room/* endpoints via HTTP
+ * - Handles roomCode conflict retry on room creation
  *
- * 不负责：
- * - 游戏逻辑校验
- * - realtime 传输（由 CFRealtimeService 处理）
+ * Not responsible for:
+ * - Game logic validation
+ * - Realtime transport (handled by CFRealtimeService)
  *
- * 边界约束：
- * - 与 Supabase RoomService 行为语义兼容
- * - 依赖 cfPost 处理 token 注入和错误拦截
+ * Boundary constraints:
+ * - Semantically compatible with Supabase RoomService behavior
+ * - Depends on cfPost for token injection and error interception
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
@@ -24,9 +24,9 @@ import { generateRoomCode } from '@/utils/roomCode';
 import { cfPost } from './cfFetch';
 
 /**
- * CFRoomService — 通过 Cloudflare Workers API 操作房间记录。
+ * CFRoomService — operates on room records via Cloudflare Workers API.
  *
- * 职责：创建/查询/删除房间（乐观插入 + 冲突重试）。
+ * Responsibilities: create/query/delete rooms (optimistic insert + conflict retry).
  */
 export class CFRoomService implements IRoomService {
   async createRoom(

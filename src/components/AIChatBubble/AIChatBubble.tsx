@@ -1,14 +1,14 @@
 /**
- * AIChatBubble - 全局悬浮聊天泡泡
+ * AIChatBubble - global floating chat bubble
  *
- * 在右下角显示一个可拖动的悬浮按钮，点击后弹出聊天窗口。
- * 支持 streaming 流式输出、消息长按操作、scroll-to-bottom、
- * typing indicator、触觉反馈等。
+ * Shows a draggable floating button in the bottom-right; tap opens the chat window.
+ * Supports streaming output, long-press message actions, scroll-to-bottom,
+ * typing indicator, haptic feedback, etc.
  *
- * 逻辑层：useAIChat.ts（编排 → useBubbleDrag / useKeyboardHeight / useChatMessages）
- * 样式层：AIChatBubble.styles.ts
+ * Logic layer: useAIChat.ts (orchestrates -> useBubbleDrag / useKeyboardHeight / useChatMessages)
+ * Style layer: AIChatBubble.styles.ts
  *
- * 渲染聊天 UI，通过 useAIChat hook 交互。不直接 import service，不直接调用 API。
+ * Renders chat UI; interacts via the useAIChat hook. Does not import services or call APIs directly.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -45,7 +45,7 @@ const PULSE_CYCLES = 3;
 const PULSE_DURATION = 1000;
 
 interface AIChatBubbleProps {
-  /** When this transitions from false → true, trigger a pulse animation */
+  /** When this transitions from false -> true, trigger a pulse animation */
   triggerPulse?: boolean;
 }
 
@@ -63,7 +63,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ triggerPulse = false
 
   useEffect(() => {
     if (!prevTriggerRef.current && triggerPulse) {
-      // Roles just assigned → start pulse
+      // Roles just assigned -> start pulse
       pulseAnim.setValue(0);
       Animated.loop(
         Animated.timing(pulseAnim, {

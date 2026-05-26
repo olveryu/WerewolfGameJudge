@@ -1,7 +1,7 @@
 /**
- * LavaBurstFlair — 熔岩迸发
+ * LavaBurstFlair — lava burst
  *
- * 5 枚熔岩块从底部喷发，抛物线轨迹 + 重力下坠，带火星拖尾(3 trail circles)。
+ * 5 lava blobs erupt from the bottom on parabolic trajectories with gravity fall and spark trails (3 trail circles).
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,13 +1,13 @@
 /**
- * Magician Swap → Seer Reveal Regression Test
+ * Magician Swap -> Seer Reveal Regression Test
  *
- * 关键回归：确保 seer 查验在 magician 交换后使用**交换后身份**。
+ * Key regression: ensure seer check uses **post-swap identity** after magician swap.
  *
- * 场景：
- * - 魔术师将 seat 0（原 magician）与 seat 1（原 wolf）交换
- * - 交换后：seat 0 = wolf, seat 1 = magician
- * - seer 查验 seat 0 应返回 "狼人/wolf"（因为现在是 wolf）
- * - seer 查验 seat 1 应返回 "好人/good"（因为现在是 magician）
+ * Scenario:
+ * - Magician swaps seat 0 (original magician) with seat 1 (original wolf)
+ * - After swap: seat 0 = wolf, seat 1 = magician
+ * - Seer checks seat 0 should return "狼人/wolf" (now wolf)
+ * - Seer checks seat 1 should return "好人/good" (now magician)
  *
  * Wire Protocol:
  * - magician swap: target=null + extra.targets=[seatA, seatB]
@@ -22,8 +22,8 @@ const MAX_STEP_ADVANCES = 20;
 
 describe('Magician Swap → Seer Reveal Regression', () => {
   /**
-   * 模板：magician + wolf + seer + villager
-   * 初始配置：
+   * Template: magician + wolf + seer + villager
+   * Initial config:
    * - seat 0: magician
    * - seat 1: wolf
    * - seat 2: seer
@@ -42,7 +42,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
     return map;
   }
 
-  /** 推进到指定步骤的辅助函数（带 hard cap） */
+  /** Helper to advance to a specific step (with hard cap) */
   function advanceToStep(
     ctx: ReturnType<typeof createGame>,
     targetStepId: string,
@@ -55,7 +55,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
         return;
       }
 
-      // 允许调用方处理中间步骤
+      // Allow caller to handle intermediate steps
       if (handleStep) {
         handleStep(currentStepId!);
       }
@@ -75,10 +75,10 @@ describe('Magician Swap → Seer Reveal Regression', () => {
     it('seer checks swapped seat 0 → should see wolf (original wolf was swapped to seat 0)', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
-      // 第一步应该是 magicianSwap
+      // First step should be magicianSwap
       expect(ctx.getGameState().currentStepId).toBe('magicianSwap');
 
-      // 魔术师交换 seat 0 (magician) 与 seat 1 (wolf)
+      // Magician swaps seat 0 (magician) with seat 1 (wolf)
       // Wire protocol: target=null, extra.targets=[seatA, seatB]
       const swapResult = ctx.sendPlayerMessage({
         type: 'ACTION',
@@ -89,10 +89,10 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       });
       expect(swapResult.success).toBe(true);
 
-      // 推进到 seerCheck，处理中间步骤（狼放弃袭击）
+      // Advance to seerCheck, handle intermediate steps (wolves skip attack)
       advanceToStep(ctx, 'seerCheck', (stepId) => {
         if (stepId === 'wolfKill') {
-          // 狼放弃袭击
+          // Wolves skip attack
           ctx.sendPlayerMessage({
             type: 'WOLF_VOTE',
             seat: 1,
@@ -109,13 +109,13 @@ describe('Magician Swap → Seer Reveal Regression', () => {
 
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
-      // seer 查验 seat 0（交换后应该是 wolf）
-      // 注意：交换后 seat 0 的角色变成了 wolf
+      // Seer checks seat 0 (should be wolf after swap)
+      // Note: after swap, seat 0's role is now wolf
       const checkResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 2,
         role: 'seer',
-        target: 0, // 查验 seat 0
+        target: 0, // check seat 0
       });
 
       expect(checkResult.success).toBe(true);
@@ -123,14 +123,14 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
-      // 关键断言：应该返回 wolf 身份（交换后身份）
+      // Key assertion: should return wolf identity (post-swap identity)
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
     });
 
     it('seer checks swapped seat 1 → should see good (original magician was swapped to seat 1)', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
-      // 魔术师交换 seat 0 (magician) 与 seat 1 (wolf)
+      // Magician swaps seat 0 (magician) with seat 1 (wolf)
       const swapResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -140,7 +140,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       });
       expect(swapResult.success).toBe(true);
 
-      // 推进到 seerCheck，处理中间步骤
+      // Advance to seerCheck, handle intermediate steps
       advanceToStep(ctx, 'seerCheck', (stepId) => {
         if (stepId === 'wolfKill') {
           ctx.sendPlayerMessage({
@@ -159,12 +159,12 @@ describe('Magician Swap → Seer Reveal Regression', () => {
 
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
-      // seer 查验 seat 1（交换后应该是 magician = 好人）
+      // Seer checks seat 1 (should be magician = good after swap)
       const checkResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 2,
         role: 'seer',
-        target: 1, // 查验 seat 1
+        target: 1, // check seat 1
       });
 
       expect(checkResult.success).toBe(true);
@@ -172,24 +172,24 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(1);
-      // 关键断言：应该返回好人身份（magician 是好人阵营）
+      // Key assertion: should return good identity (magician is in good faction)
       expect(['好人', 'good']).toContain(state.seerReveal!.result);
     });
 
     it('no swap (skip) → seer should use original identity', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
-      // 魔术师跳过（不交换）
+      // Magician skips (no swap)
       const skipResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
         role: 'magician',
         target: null,
-        extra: { targets: [] }, // 空 targets 表示跳过
+        extra: { targets: [] }, // empty targets means skip
       });
       expect(skipResult.success).toBe(true);
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToStep(ctx, 'seerCheck', (stepId) => {
         if (stepId === 'wolfKill') {
           ctx.sendPlayerMessage({
@@ -206,7 +206,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
         }
       });
 
-      // seer 查验 seat 1（原始身份应该还是 wolf）
+      // Seer checks seat 1 (original identity should still be wolf)
       const checkResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 2,
@@ -219,7 +219,7 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(1);
-      // 没有交换，seat 1 应该还是 wolf
+      // No swap; seat 1 should still be wolf
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
     });
   });

@@ -1,7 +1,7 @@
 /**
- * useEncyclopediaScreenState — EncyclopediaScreen 的状态 hook
+ * useEncyclopediaScreenState — state hook for EncyclopediaScreen
  *
- * 阵营/标签筛选、搜索、角色详情面板、section 构建。
+ * Faction/tag filtering, search, role detail panel, section building.
  */
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -27,7 +27,7 @@ interface FactionTab {
   label: string;
 }
 
-/** 阵营筛选页签配置。 */
+/** Faction filter tab config. */
 export const FACTION_TABS: readonly FactionTab[] = [
   { key: 'god', label: '神职' },
   { key: 'wolf', label: '狼人' },
@@ -42,7 +42,7 @@ const FACTION_KEY_MAP: Record<Exclude<FactionFilterKey, 'all'>, Faction> = {
   third: Faction.Special,
 };
 
-/** 角色分组（SectionList 数据源）。 */
+/** Role grouping (SectionList data source). */
 export interface RoleSection {
   title: string;
   colorKey: string;
@@ -113,7 +113,7 @@ function buildSections(
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
-/** 百科屏幕状态 hook。 */
+/** Encyclopedia screen state hook. */
 export function useEncyclopediaScreenState() {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();

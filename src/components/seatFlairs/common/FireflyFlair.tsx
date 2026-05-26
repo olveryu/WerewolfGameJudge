@@ -1,8 +1,8 @@
 /**
- * FireflyFlair — 萤火
+ * FireflyFlair - Fireflies
  *
  * Multiple firefly dots that move randomly and blink independently.
- * Rare 级座位装饰模板 — 6 particles with pseudo-random paths.
+ * Rare-tier seat flair template - 6 particles with pseudo-random paths.
  */
 import { memo, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';

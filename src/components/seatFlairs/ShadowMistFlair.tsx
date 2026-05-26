@@ -1,8 +1,8 @@
 /**
- * ShadowMistFlair — 暗影迷雾
+ * ShadowMistFlair — Shadow mist
  *
- * 5 团紫黑色烟雾从底部升起并扩散，opacity 渐灭。循环往复。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 5 purple-black smoke puffs rise from the bottom and disperse, opacity fades out. Loops.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

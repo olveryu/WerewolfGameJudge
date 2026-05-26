@@ -1,11 +1,11 @@
 /**
- * V2 Ability System — 能力/效果/免疫/互认/资源类型定义
+ * V2 Ability System — ability / effect / immunity / recognition / resource type definitions
  *
- * 角色行为的原子构件。每种 AbilityEffect 对应 genericResolver 中的一个 effect processor。
- * 类型设计为纯 JSON-serializable（无函数、无 class），可存 DB / 跨 Edge Function 传输。
- * 不含业务逻辑、副作用、平台依赖。
+ * Atomic building blocks for role behavior. Each AbilityEffect maps to one effect processor in genericResolver.
+ * Types are designed to be pure JSON-serializable (no functions, no classes), storable in DB and transportable across Edge Functions.
+ * Contains no business logic, side effects, or platform dependencies.
  *
- * 复用 V1 的 Faction / Team / TargetConstraint 枚举，不重复定义。
+ * Reuses V1's Faction / Team / TargetConstraint enums; no duplicate definitions.
  */
 
 import type { ConfirmStatusUi } from './schema.types';
@@ -34,29 +34,29 @@ export interface TargetRule {
 // ---------------------------------------------------------------------------
 
 /**
- * Check effect — 查验类：返回阵营或角色名
+ * Check effect — inspection: returns faction or role name
  *
  * `resultType`:
- * - 'faction': 返回 '好人'/'狼人'（seer family）
- * - 'identity': 返回具体角色名称（psychic, gargoyle, pureWhite, wolfWitch, wolfRobot）
+ * - 'faction': returns '好人'/'狼人' (seer family)
+ * - 'identity': returns concrete role name (psychic, gargoyle, pureWhite, wolfWitch, wolfRobot)
  */
 export interface CheckEffect {
   readonly kind: 'check';
   readonly resultType: 'faction' | 'identity';
   /**
-   * Result transformer — 查验结果变换器
-   * - 'identity': 原样返回（seer, psychic, gargoyle...）
-   * - 'invert': 反转好人/狼人（mirrorSeer）
-   * - 'random': 50% 概率反转（drunkSeer）
+   * Result transformer — transforms inspection result
+   * - 'identity': returns as-is (seer, psychic, gargoyle...)
+   * - 'invert': inverts good/wolf (mirrorSeer)
+   * - 'random': 50% chance to invert (drunkSeer)
    */
   readonly transformer?: 'identity' | 'invert' | 'random';
 }
 
 /**
- * WriteSlot effect — 写入夜间结果槽位
+ * WriteSlot effect — write to a night-result slot
  *
- * 把行动结果写入 CurrentNightResults 的特定字段。
- * 例如 guard → guardedSeat, dreamcatcher → dreamingSeat
+ * Writes action result into a specific field of CurrentNightResults.
+ * E.g. guard -> guardedSeat, dreamcatcher -> dreamingSeat
  */
 export interface WriteSlotEffect {
   readonly kind: 'writeSlot';
@@ -65,8 +65,8 @@ export interface WriteSlotEffect {
 }
 
 /**
- * Block effect — 封锁目标技能
- * nightmare 的核心效果
+ * Block effect — blocks target's ability
+ * Core effect of nightmare
  */
 export interface BlockEffect {
   readonly kind: 'block';
@@ -74,18 +74,18 @@ export interface BlockEffect {
   readonly disablesWolfKillOnWolfTarget?: boolean;
 }
 
-/** Charm effect — 魅惑目标（wolfQueen） */
+/** Charm effect — charm target (wolfQueen) */
 export interface CharmEffect {
   readonly kind: 'charm';
 }
 
-/** Swap effect — 交换两个目标的号码牌（magician） */
+/** Swap effect — swap two targets' number tags (magician) */
 export interface SwapEffect {
   readonly kind: 'swap';
 }
 
 /**
- * Learn effect — 学习目标角色的身份和技能（wolfRobot）
+ * Learn effect — learn target's identity and ability (wolfRobot)
  */
 export interface LearnEffect {
   readonly kind: 'learn';
@@ -93,47 +93,47 @@ export interface LearnEffect {
   readonly gateTriggersOnRoles?: readonly string[];
 }
 
-/** ChooseIdol effect — 选择榜样（slacker / wildChild） */
+/** ChooseIdol effect — choose an idol (slacker / wildChild) */
 export interface ChooseIdolEffect {
   readonly kind: 'chooseIdol';
 }
 
 /**
- * Mimic effect — 模仿目标（shadow）
+ * Mimic effect — mimic target (shadow)
  */
 export interface MimicEffect {
   readonly kind: 'mimic';
-  /** When mimicking this roleId, triggers faction binding (shadow → avenger) */
+  /** When mimicking this roleId, triggers faction binding (shadow -> avenger) */
   readonly pairedRole?: string;
 }
 
-/** Hypnotize effect — 催眠多目标（piper） */
+/** Hypnotize effect — hypnotize multiple targets (piper) */
 export interface HypnotizeEffect {
   readonly kind: 'hypnotize';
 }
 
-/** Convert effect — 转化目标阵营（awakenedGargoyle） */
+/** Convert effect — convert target's faction (awakenedGargoyle) */
 export interface ConvertEffect {
   readonly kind: 'convert';
 }
 
-/** GroupReveal effect — 全员确认信息（piperHypnotizedReveal / awakenedGargoyleConvertReveal） */
+/** GroupReveal effect — group-wide confirmation reveal (piperHypnotizedReveal / awakenedGargoyleConvertReveal) */
 export interface GroupRevealEffect {
   readonly kind: 'groupReveal';
 }
 
-/** ChooseCard effect — 从底牌中选择一张身份牌（treasureMaster / thief） */
+/** ChooseCard effect — choose an identity card from the deck (treasureMaster / thief) */
 export interface ChooseCardEffect {
   readonly kind: 'chooseCard';
 }
 
-/** ChooseLovers effect — 选择两名玩家成为情侣（cupid） */
+/** ChooseLovers effect — choose two players to become lovers (cupid) */
 export interface ChooseLoversEffect {
   readonly kind: 'chooseLovers';
 }
 
 /**
- * Confirm effect — 确认类（查看状态）
+ * Confirm effect — confirmation (view status)
  * hunter / darkWolfKing / avenger / hiddenWolf confirm
  */
 export interface ConfirmEffect {
@@ -177,9 +177,9 @@ export type ActionKind =
   | 'chooseCard';
 
 /**
- * Active ability — 需要玩家主动操作
+ * Active ability — requires player input
  *
- * 夜间/白天选目标，产生效果
+ * Choose targets at night/day, produces effects
  */
 export interface ActiveAbility {
   readonly type: 'active';
@@ -203,9 +203,9 @@ export interface ActiveAbility {
 }
 
 /**
- * Passive ability — 始终生效，无需操作
+ * Passive ability — always active, no input required
  *
- * 修改检查结果/伤害计算/死亡判定等
+ * Modifies inspection results / damage calculation / death determination, etc.
  */
 export interface PassiveAbility {
   readonly type: 'passive';
@@ -221,9 +221,9 @@ export type PassiveEffectKind =
   | 'silentWolfKillImmune';
 
 /**
- * Triggered ability — 事件触发
+ * Triggered ability — event-driven
  *
- * onDeath / onExile / onChecked 等
+ * onDeath / onExile / onChecked, etc.
  */
 export interface TriggeredAbility {
   readonly type: 'triggered';
@@ -265,7 +265,7 @@ export interface Immunity {
 }
 
 // ---------------------------------------------------------------------------
-// Recognition (互认)
+// Recognition (mutual recognition)
 // ---------------------------------------------------------------------------
 
 export interface RecognitionConfig {

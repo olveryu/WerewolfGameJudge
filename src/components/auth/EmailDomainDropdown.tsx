@@ -1,9 +1,9 @@
 /**
- * EmailDomainDropdown — 邮箱域名下拉建议
+ * EmailDomainDropdown — email-domain dropdown suggestions
  *
- * 输入邮箱时，在输入框下方显示常见域名补全项（dropdown 列表）。
- * 点选后填入完整邮箱并自动跳到下一个输入框。
- * 渲染下拉 UI 并上报用户选择。不 import service，不含业务逻辑。
+ * While typing an email, shows common domain completions below the input (dropdown list).
+ * Tapping an option fills in the full email and auto-advances to the next input.
+ * Renders the dropdown UI and reports user selection. Does not import services and contains no business logic.
  */
 import { memo, useMemo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

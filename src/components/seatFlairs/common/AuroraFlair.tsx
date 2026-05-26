@@ -1,8 +1,8 @@
 /**
- * AuroraFlair — 极光
+ * AuroraFlair — Aurora
  *
  * A slow-breathing colored arc that sweeps over the top edge.
- * Rare 级座位装饰模板 — animated path with shifting control points.
+ * Rare-tier seat flair template — animated path with shifting control points.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

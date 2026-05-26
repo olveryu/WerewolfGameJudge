@@ -1,18 +1,18 @@
 /**
- * useKeyboardHeight - 跨平台键盘高度监听
+ * useKeyboardHeight - cross-platform keyboard height listener
  *
  * Web: visualViewport resize/scroll
  * iOS: keyboardWillShow / keyboardWillHide
  * Android: keyboardDidShow / keyboardDidHide
  *
- * 提供平台检测与键盘事件监听。不含业务逻辑。
+ * Provides platform detection and keyboard event listening. Contains no business logic.
  */
 
 import { useEffect, useState } from 'react';
 import { Keyboard, Platform } from 'react-native';
 
 /**
- * 返回当前键盘高度（px），未弹出时为 0
+ * Returns the current keyboard height (px); 0 when not displayed.
  */
 export function useKeyboardHeight(): number {
   const [keyboardHeight, setKeyboardHeight] = useState(0);

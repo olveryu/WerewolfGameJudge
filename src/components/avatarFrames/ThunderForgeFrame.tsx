@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * ThunderForgeFrame — 雷锻
+ * ThunderForgeFrame — Thunder Forge
  *
- * 钴蓝雷电框 · Z字闪电从边缘劈出 · 电弧光球 · 金属蓝渐变。
+ * Cobalt-blue lightning frame · Z-shaped bolts striking from the edges · arc orbs · metallic-blue gradient.
  */
 export const ThunderForgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

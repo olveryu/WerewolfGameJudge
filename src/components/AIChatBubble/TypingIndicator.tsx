@@ -1,8 +1,8 @@
 /**
- * TypingIndicator - AI 回复中的 ··· 动画气泡
+ * TypingIndicator - Animated ... bubble while AI is replying
  *
- * 三个圆点依次弹跳，表示 AI 正在思考/生成中。
- * 纯 UI 动画组件，不含业务逻辑。
+ * Three dots bounce in sequence, indicating the AI is thinking/generating.
+ * Pure UI animation component; no business logic.
  */
 
 import type React from 'react';

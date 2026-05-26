@@ -1,10 +1,10 @@
 /**
- * WxLoginFailedScreen — 小程序登录入口页
+ * WxLoginFailedScreen — WeChat mini-program login entry page
  *
- * 在 App 层渲染（替代 splash screen）。当 claim 流程需要用户操作时显示。
- * 视觉上复用 splash screen 的狼人背景图 + 标题布局。
- * 底部显示"进入游戏"按钮 — 点击后触发 nonce claim 流程。
- * 仅在小程序 web-view 内渲染（web-only）。
+ * Rendered at App layer (replaces splash screen). Shown when claim flow needs user action.
+ * Visually reuses splash screen's wolf background image + title layout.
+ * Bottom shows "进入游戏" button — click triggers nonce claim flow.
+ * Only rendered inside WeChat mini-program web-view (web-only).
  */
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
@@ -13,7 +13,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { getOrCreateClaimNonce, wxReLaunchWithNonce } from '@/utils/miniProgram';
 
-// Splash screen 专用色值（匹配 web/index.html 中的 splash CSS）
+// Splash screen-specific colors (matches splash CSS in web/index.html)
 const SPLASH_BG = '#0a0a12';
 const TEXT_WHITE = '#ffffff';
 const TEXT_SHADOW = 'rgba(0, 0, 0, 0.8)';
@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '45%',
-    // RN web 支持 linearGradient backgroundImage
+    // RN web supports linearGradient backgroundImage
     // @ts-expect-error -- web-only CSS property
     backgroundImage:
       'linear-gradient(to bottom, transparent, rgba(8,8,16,0.85) 70%, rgba(8,8,16,0.95))',

@@ -17,7 +17,7 @@ import { DISCONNECTED_BANNER_TEXT, waitForRoomScreenReady } from '../helpers/wai
  *
  * Verifies that players can fully disconnect for 5-10 seconds and
  * reconnect during the night phase. Tests:
- * 1. Connection status transitions (live → disconnected → live)
+ * 1. Connection status transitions (live -> disconnected -> live)
  * 2. Game continues normally after reconnection
  *
  * Two scenarios:
@@ -441,7 +441,7 @@ test.describe('Network reconnect during night', () => {
         );
       });
 
-      // Step 3: Wait 30 seconds — long enough to trigger dead channel detection (≥5s)
+      // Step 3: Wait 30 seconds — long enough to trigger dead channel detection (>=5s)
       // and heartbeat timeout (~25s). This exercises L5 dead channel recovery.
       await test.step('wait 30s while disconnected', async () => {
         await disconnectPage.waitForTimeout(30_000);

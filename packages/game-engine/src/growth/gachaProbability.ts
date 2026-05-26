@@ -1,27 +1,27 @@
 /**
- * gachaProbability — 扭蛋概率引擎（纯函数）
+ * gachaProbability — Gacha probability engine (pure functions)
  *
- * 核心：rollRarity() 根据抽奖类型 + pity 计算稀有度，
- *       selectReward() 从指定稀有度池中随机选取物品（允许重复）。
- * 随机数由调用方注入，函数本身无副作用。
+ * Core: rollRarity() computes rarity from draw type + pity,
+ *       selectReward() randomly picks an item from the target rarity pool (duplicates allowed).
+ * Random values are injected by callers; functions themselves have no side effects.
  *
- * @remarks pity 机制: pityCount 第 10 次(>=9)强制升级。
- *   pity 计数器在获得目标稀有度+以上后归零。
- *   RARITY_UPGRADE_ORDER fallback chain: 目标 rarity 池空时先向上 fallback，
- *   再向下 fallback，全部为空返回 undefined（调用者需处理）。
- *   selectReward 去重: 已拥有物品仍可抽到，转为碎片补偿（SHARD_VALUES[rarity]）。
+ * @remarks pity mechanism: pityCount forces upgrade on the 10th attempt (>=9).
+ *   Pity counter resets after obtaining target rarity or higher.
+ *   RARITY_UPGRADE_ORDER fallback chain: when target rarity pool is empty, fall back upward first,
+ *   then downward; all empty returns undefined (caller must handle).
+ *   selectReward duplicate handling: owned items can still be rolled, converted to shard compensation (SHARD_VALUES[rarity]).
  */
 
 import type { Rarity, RewardItem } from './rewardCatalog';
 import { REWARD_POOL, SHARD_VALUES } from './rewardCatalog';
 
-/** 抽奖类型：普通 / 金色。 */
+/** Draw type: normal / golden. */
 export type DrawType = 'normal' | 'golden';
 
-/** 连续多少次未触发高稀有度后强制保底 */
+/** How many consecutive draws without triggering high rarity before forced pity */
 export const PITY_THRESHOLD = 10;
 
-/** 普通抽概率（%），总和 = 100 */
+/** Normal draw probabilities (%), total = 100 */
 export const NORMAL_RATES: Readonly<Record<Rarity, number>> = {
   legendary: 2.5,
   epic: 4,
@@ -29,7 +29,7 @@ export const NORMAL_RATES: Readonly<Record<Rarity, number>> = {
   common: 83.5,
 };
 
-/** 黄金抽概率（%），总和 = 100 */
+/** Golden draw probabilities (%), total = 100 */
 export const GOLDEN_RATES: Readonly<Record<Rarity, number>> = {
   legendary: 5,
   epic: 8,
@@ -37,20 +37,20 @@ export const GOLDEN_RATES: Readonly<Record<Rarity, number>> = {
   common: 67,
 };
 
-/** 稀有度升级顺序（用于去重时向上 fallback） */
+/** Rarity upgrade order (used for upward fallback on deduplication) */
 const RARITY_UPGRADE_ORDER: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 /**
- * 根据抽奖类型和 pity 计数 roll 稀有度。
+ * Roll rarity based on draw type and pity count.
  *
- * 保底规则：
- * - 普通抽：连续 10 次未抽到 Rare+ → 保底 Rare+
- * - 黄金抽：连续 10 次未抽到 Epic+ → 保底 Epic+
+ * Pity rules:
+ * - Normal draw: 10 consecutive draws without Rare+ -> guaranteed Rare+
+ * - Golden draw: 10 consecutive draws without Epic+ -> guaranteed Epic+
  *
  * @param drawType - 'normal' | 'golden'
- * @param pityCount - 当前 pity 计数（0–9）
- * @param randomValue - [0, 100) 的随机浮点数
- * @returns { rarity, pityReset } — pityReset=true 表示 pity 被重置为 0
+ * @param pityCount - current pity count (0-9)
+ * @param randomValue - random float in [0, 100)
+ * @returns { rarity, pityReset } — pityReset=true means pity is reset to 0
  */
 export function rollRarity(
   drawType: DrawType,
@@ -58,13 +58,13 @@ export function rollRarity(
   randomValue: number,
 ): { rarity: Rarity; pityReset: boolean } {
   const rates = drawType === 'golden' ? GOLDEN_RATES : NORMAL_RATES;
-  const isPityTrigger = pityCount >= PITY_THRESHOLD - 1; // pityCount=9 → 第 10 次
+  const isPityTrigger = pityCount >= PITY_THRESHOLD - 1; // pityCount=9 -> 10th attempt
 
-  // 正常 roll（保底时也走同一概率表，仅 clamp 下限）
+  // Normal roll (pity also uses same probability table, only clamps lower bound)
   let rarity: Rarity = rollFromRates(rates, randomValue);
 
   if (isPityTrigger) {
-    // 保底触发：低于保底线的结果 clamp 到保底线，高稀有度概率不变
+    // Pity triggered: results below pity floor clamp to floor; high rarity probabilities unchanged
     const pityFloor: Rarity = drawType === 'golden' ? 'epic' : 'rare';
     if (RARITY_UPGRADE_ORDER.indexOf(rarity) < RARITY_UPGRADE_ORDER.indexOf(pityFloor)) {
       rarity = pityFloor;
@@ -72,7 +72,7 @@ export function rollRarity(
     return { rarity, pityReset: true };
   }
 
-  // 判断是否 reset pity
+  // Determine whether to reset pity
   const resetsNormalPity = rarity !== 'common'; // Rare/Epic/Legendary reset
   const resetsGoldenPity = rarity === 'epic' || rarity === 'legendary';
   const pityReset = drawType === 'golden' ? resetsGoldenPity : resetsNormalPity;
@@ -80,25 +80,25 @@ export function rollRarity(
   return { rarity, pityReset };
 }
 
-/** selectReward 返回结果 */
+/** selectReward return result */
 export interface SelectRewardResult {
   readonly reward: RewardItem;
-  /** 玩家是否已拥有该物品 */
+  /** Whether the player already owns the item */
   readonly isDuplicate: boolean;
-  /** 重复时获得的碎片数（非重复为 0） */
+  /** Shards awarded on duplicate (0 if not duplicate) */
   readonly shardsAwarded: number;
 }
 
 /**
- * 从指定稀有度池中随机选取物品。允许重复，重复时计算碎片奖励。
+ * Randomly pick an item from the target rarity pool. Duplicates allowed; on duplicate, compute shard reward.
  *
- * 如果目标稀有度池为空（不应发生），先向上 fallback（rare→epic→legendary），
- * 再向下 fallback（rare→common）。全部为空返回 undefined。
+ * If target rarity pool is empty (should not happen), fall back upward first (rare->epic->legendary),
+ * then downward (rare->common). All empty returns undefined.
  *
- * @param targetRarity - 目标稀有度
- * @param unlockedIds - 玩家已拥有的物品 ID 集合（用于判断重复）
- * @param randomFn - (max) => [0, max) 的随机整数
- * @returns 选中物品 + 是否重复 + 碎片奖励；全部池空时返回 undefined
+ * @param targetRarity - target rarity
+ * @param unlockedIds - set of item IDs the player already owns (used for duplicate detection)
+ * @param randomFn - (max) => random integer in [0, max)
+ * @returns selected item + duplicate flag + shard reward; undefined if all pools are empty
  */
 export function selectReward(
   targetRarity: Rarity,
@@ -140,7 +140,7 @@ export function selectReward(
 
 // ── Internal helpers ──────────────────────────────────────────────────────
 
-/** 按完整概率表 roll */
+/** Roll using full probability table */
 function rollFromRates(rates: Readonly<Record<Rarity, number>>, value: number): Rarity {
   let cumulative = 0;
   cumulative += rates.legendary;

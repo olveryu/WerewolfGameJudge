@@ -1,5 +1,5 @@
 /**
- * PortalEnter — 传送门入场
+ * PortalEnter — portal entrance
  *
  * A colored elliptical portal opens vertically, then children emerge from within.
  * Rare-tier entrance animation template.

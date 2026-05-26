@@ -5,8 +5,8 @@
  * All role data comes from ROLE_SPECS.
  *
  * No class hierarchy, no BaseRole - pure declarative data.
- * Re-export spec 类型与常量，提供派生查询函数（getRoleSpec / isWolfRole 等），
- * 不依赖 service、不含副作用或 resolver 逻辑。
+ * Re-exports spec types and constants, provides derived query functions (getRoleSpec / isWolfRole etc).
+ * No service dependencies, no side effects, no resolver logic.
  */
 
 import { getEngineLogger } from '../../utils/logger';
@@ -102,10 +102,11 @@ export function canRoleSeeWolves(roleId: string): boolean {
  * Check if a role participates in wolf vote
  *
  * IMPORTANT:
- * - participatesInWolfVote 仅表示“是否参与 wolfKill（wolf vote）会议/投票”
- * - canSeeWolves 仅表示“在狼队可见阶段，是否能看到/高亮狼队友”
- *   （例如机械狼人/石像鬼：不参会，因此即使是狼阵营也不应该进入投票流程；
- *    他们各自行动的步骤也不是 wolfVote schema，自然不会触发狼队可见 UI）
+ * - participatesInWolfVote only indicates "whether the role participates in wolfKill (wolf vote) meeting/vote"
+ * - canSeeWolves only indicates "whether the role can see/highlight wolf teammates during the wolf-visible phase"
+ *   (e.g. Wolf Robot / Awakened Gargoyle: do NOT participate, so even though they are wolf-faction
+ *    they should not enter the vote flow; their individual action steps are not wolfVote schema either,
+ *    so they will not trigger the wolf-visible UI)
  */
 export function doesRoleParticipateInWolfVote(roleId: string): boolean {
   if (!isValidRoleId(roleId)) return false;

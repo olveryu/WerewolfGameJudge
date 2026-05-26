@@ -1,9 +1,9 @@
 /**
- * playerContext - 从游戏状态构建玩家视角的 AI 上下文
+ * playerContext - build the player-perspective AI context from game state
  *
- * 纯函数，无副作用。将 GameState 映射为 GameContext，
- * 只包含该玩家应当知道的信息（不作弊）。
- * 读取 gameState 与 ROLE_SPECS。不修改 state，不调用 service。
+ * Pure function, no side effects. Maps GameState to GameContext,
+ * containing only information the player should know (no cheating).
+ * Reads gameState and ROLE_SPECS. Does not modify state or call services.
  */
 
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
@@ -12,7 +12,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { GameContext } from '@/services/feature/AIChatService';
 
 /**
- * 从游戏状态构建玩家视角的上下文（不包含作弊信息）
+ * Build the player-perspective context from game state (no cheating info)
  */
 export function buildPlayerContext(state: GameState | null, mySeat: number | null): GameContext {
   if (!state) {
@@ -26,7 +26,7 @@ export function buildPlayerContext(state: GameState | null, mySeat: number | nul
     totalPlayers: Object.values(state.players).filter(Boolean).length,
   };
 
-  // 角色配置（公开信息）
+  // Role configuration (public info)
   if (state.templateRoles && state.templateRoles.length > 0) {
     context.boardRoleDetails = state.templateRoles.map((roleId) => {
       const roleSpec = ROLE_SPECS[roleId];
@@ -37,7 +37,7 @@ export function buildPlayerContext(state: GameState | null, mySeat: number | nul
     });
   }
 
-  // 我的座位和角色
+  // My seat and role
   if (mySeat !== null && mySeat !== undefined) {
     context.mySeat = mySeat;
     const player = state.players[mySeat];

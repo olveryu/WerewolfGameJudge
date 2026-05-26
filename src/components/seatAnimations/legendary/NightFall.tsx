@@ -1,5 +1,5 @@
 /**
- * NightFall — 夜幕降临
+ * NightFall — nightfall
  *
  * Legendary entrance: darkness sweeps down from top, stars twinkle on,
  * crescent moon glows, then all fades to reveal avatar.

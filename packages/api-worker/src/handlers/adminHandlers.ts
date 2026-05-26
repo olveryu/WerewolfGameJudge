@@ -1,12 +1,13 @@
 /**
  * handlers/adminHandlers — Admin portal Hono routes
  *
- * 密码保护的管理端点。提供用户列表、房间列表、活跃统计、加载性能遥测查询。
- * 鉴权通过 X-Admin-Token header + timing-safe compare。
- * 不走 JWT auth 体系，完全独立。
+ * Password-protected admin endpoints. Provides user list, room list, active stats,
+ * and load-performance telemetry queries.
+ * Auth uses X-Admin-Token header + timing-safe compare.
+ * Bypasses the JWT auth system entirely.
  *
- * @throws 401 — X-Admin-Token 缺失或不匹配
- * @throws 400 — 查询参数无效
+ * @throws 401 — X-Admin-Token missing or mismatched
+ * @throws 400 — invalid query parameters
  */
 
 import { and, count, desc, eq, inArray, like, sql } from 'drizzle-orm';
@@ -54,7 +55,8 @@ const requireAdmin = createMiddleware<{ Bindings: Env }>(async (c, next) => {
 });
 
 // ── Routes ──────────────────────────────────────────────────────────────────
-/** 管理后台路由（需 admin 权限）。 */ export const adminRoutes = new Hono<AppEnv>();
+/** Admin portal routes (admin permission required). */ export const adminRoutes =
+  new Hono<AppEnv>();
 
 adminRoutes.use('*', requireAdmin);
 

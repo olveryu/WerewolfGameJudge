@@ -1,8 +1,8 @@
 /**
  * Auth screen styles — LoginOptions / EmailForm / ForgotPassword / ResetPassword modal screens
  *
- * 统一所有 auth modal screen 的视觉样式。基于 createAuthBaseStyles 扩展 modal 容器布局。
- * 仅导出样式工厂函数，不含运行时逻辑。
+ * Unified visual styling for all auth modal screens. Extends createAuthBaseStyles with modal container layout.
+ * Exports only style factory functions; contains no runtime logic.
  */
 import { type ViewStyle } from 'react-native';
 
@@ -15,7 +15,7 @@ interface AuthScreenStyles extends AuthStyles {
   modalContent: ViewStyle;
 }
 
-/** 创建认证屏幕样式。 */
+/** Create auth screen styles. */
 export function createAuthScreenStyles(colors: ThemeColors, screenWidth: number): AuthScreenStyles {
   const base = createAuthBaseStyles(colors);
   return {

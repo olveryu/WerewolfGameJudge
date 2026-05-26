@@ -1,19 +1,19 @@
 /**
- * Inline Progression — 服务端内联推进（纯函数）
+ * Inline Progression — server-side inline progression (pure function)
  *
- * 职责：
- * - 在 action 处理完成后，同一请求内评估并执行夜晚推进（advance / endNight）
- * - 收集推进过程中产生的 PLAY_AUDIO sideEffects → AudioEffect[]
- * - 所有 StateAction 按序累积，由外层统一 reduce
+ * Responsibilities:
+ * - After action processing completes, evaluate and execute night progression (advance / endNight) within the same request
+ * - Collect PLAY_AUDIO sideEffects produced during progression -> AudioEffect[]
+ * - All StateActions accumulate in order, reduced uniformly by the outer caller
  *
- * 设计：
- * - 纯函数，不做 IO（DB / 网络 / 音频）
- * - 使用 evaluateNightProgression（服务端始终有权限）
- * - 递归推进直到 decision=none（与客户端 handleNightProgression 等价）
- * - 最多 MAX_PROGRESSION_LOOPS 次防止无限循环
+ * Design:
+ * - Pure function, no IO (DB / network / audio)
+ * - Uses evaluateNightProgression (server always has permission)
+ * - Recursively advances until decision=none (equivalent to client handleNightProgression)
+ * - At most MAX_PROGRESSION_LOOPS iterations to prevent infinite loops
  *
- * 可读取 state、调用 handler 纯函数并返回 actions/effects，
- * 不包含 IO、副作用或时间依赖（Date.now 由调用方传入）。
+ * Reads state, invokes handler pure functions and returns actions/effects;
+ * contains no IO, side effects, or time dependency (Date.now is passed in by caller).
  */
 
 import { GameStatus, type SchemaId, SCHEMAS } from '../models';
@@ -29,35 +29,35 @@ import type { StateAction } from './reducer/types';
 
 const log = getEngineLogger().extend('InlineProgression');
 
-/** 底牌空步骤随机延迟范围（ms） */
+/** Random delay range for vacant bottom card step (ms) */
 export const AUTO_SKIP_DELAY_MIN_MS = 5000;
 export const AUTO_SKIP_DELAY_MAX_MS = 10000;
 
-/** 最大推进循环次数（防止无限循环） */
+/** Max progression loop iterations (prevents infinite loops) */
 const MAX_PROGRESSION_LOOPS = 20;
 
 /**
- * Inline progression 结果
+ * Inline progression result
  */
 interface InlineProgressionResult {
-  /** 推进过程中累积的所有 StateAction（不含触发 action 本身） */
+  /** All StateActions accumulated during progression (excluding the trigger action itself) */
   actions: StateAction[];
-  /** 推进过程中收集的待播放音频（按播放顺序） */
+  /** Pending audio collected during progression (in playback order) */
   audioEffects: AudioEffect[];
-  /** 已 apply 所有 actions 后的最终 state（可能与输入不同） */
+  /** Final state after applying all actions (may differ from input) */
   finalState: GameState;
-  /** 推进步数（0 = 未推进）；每次 ADVANCE_NIGHT 或 END_NIGHT 计 1 */
+  /** Number of steps advanced (0 = no progression); each ADVANCE_NIGHT or END_NIGHT counts as 1 */
   stepsAdvanced: number;
 }
 
 /**
- * 检查当前步骤是否完成（与 progressionEvaluator.isCurrentStepComplete 等价）
+ * Check whether the current step is complete (equivalent to progressionEvaluator.isCurrentStepComplete)
  *
- * 内联在此处避免导出 private 函数。
+ * Inlined here to avoid exporting a private function.
  */
 function isStepComplete(state: GameState): boolean {
   const stepId = state.currentStepId;
-  if (!stepId) return true; // 没有当前步骤 → 完成（进入 endNight）
+  if (!stepId) return true; // No current step -> complete (enter endNight)
 
   if (stepId === 'wolfKill') {
     return isWolfVoteAllComplete(state);
@@ -110,11 +110,11 @@ function isUnchosenBottomCardStep(state: GameState): boolean {
 }
 
 /**
- * 服务端内联评估推进决策
+ * Server-side inline progression decision evaluation
  *
- * 与 evaluateNightProgression 等价，但：
- * - 不使用 ProgressionTracker（服务端无状态）
- * - 接受 nowMs 用于 stepDeadline 检查
+ * Equivalent to evaluateNightProgression, except:
+ * - Does not use ProgressionTracker (server is stateless)
+ * - Accepts nowMs for stepDeadline checks
  */
 function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_night' | 'none' {
   if (state.status !== GameStatus.Ongoing) return 'none';
@@ -145,7 +145,7 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
 }
 
 /**
- * 从 sideEffects 提取 AudioEffect[]
+ * Extract AudioEffect[] from sideEffects
  */
 function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): AudioEffect[] {
   if (!sideEffects) return [];
@@ -158,20 +158,20 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
 }
 
 /**
- * 服务端内联推进（纯函数）
+ * Server-side inline progression (pure function)
  *
- * 在 action 处理完成后，同一请求内评估并执行推进链：
- * action complete → evaluate → advance → evaluate → ... → none/end_night
+ * After action processing completes, evaluate and execute the progression chain within the same request:
+ * action complete -> evaluate -> advance -> evaluate -> ... -> none/end_night
  *
  * @pre state.status === 'Ongoing'
- * @remarks MAX_PROGRESSION_LOOPS=20 熔断保护。递归推进直到 evaluateProgression 返回 'none'。
- *   auto-skip delay: 底牌空步骤 set stepDeadline = now + random(5000, 10000)ms，
- *   仅在无 pending audio 时设置（避免 audio duration 与 deadline 窗口重叠）。
+ * @remarks MAX_PROGRESSION_LOOPS=20 circuit-breaker protection. Recursively advances until evaluateProgression returns 'none'.
+ *   auto-skip delay: vacant bottom card step sets stepDeadline = now + random(5000, 10000)ms,
+ *   set only when no pending audio (avoids audio duration overlapping with deadline window).
  *
- * @param state - action 处理后的 state
- * @param hostUserId - Host UID（用于构建 HandlerContext）
- * @param nowMs - 当前时间戳（用于 stepDeadline 检查，默认 Date.now()）
- * @returns 推进结果（actions + audioEffects + finalState）
+ * @param state - state after action processing
+ * @param hostUserId - Host UID (used to build HandlerContext)
+ * @param nowMs - current timestamp (used for stepDeadline check, defaults to Date.now())
+ * @returns progression result (actions + audioEffects + finalState)
  */
 export function runInlineProgression(
   state: GameState,
@@ -191,7 +191,7 @@ export function runInlineProgression(
     const ctx: HandlerContext = {
       state: currentState,
       myUserId: hostUserId,
-      mySeat: null, // 服务端不需要 mySeat
+      mySeat: null, // server-side doesn't need mySeat
     };
 
     if (decision === 'advance') {

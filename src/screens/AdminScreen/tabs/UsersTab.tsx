@@ -1,7 +1,7 @@
 /**
- * UsersTab — Admin 用户列表
+ * UsersTab — Admin user list
  *
- * Search + Sort AdminPills + Country/Type filter chips + Pagination FlatList。
+ * Search + Sort AdminPills + Country/Type filter chips + Pagination FlatList.
  */
 
 import type React from 'react';

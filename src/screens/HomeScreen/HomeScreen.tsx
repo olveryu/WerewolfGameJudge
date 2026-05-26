@@ -1,11 +1,11 @@
 /**
- * HomeScreen - 主页入口（登录、加入房间、创建房间）
+ * HomeScreen - Home entry point (login, join room, create room)
  *
- * Apple HIG 风格布局：TopBar 品牌+头像 → Hero Card → Action Row →
- * RandomRoleCard → Announcement & Feedback Card → Footer。
- * 性能优化：styles factory 集中创建一次，通过 props 传入子组件；handlers 用 useCallback 稳定化。
- * 负责编排子组件、调用 service/navigation/showAlert。
- * 不使用硬编码样式值，不使用 console.*。
+ * Apple HIG-style layout: TopBar brand+avatar → Hero Card → Action Row →
+ * RandomRoleCard → Announcement & Feedback Card → Footer.
+ * Performance: styles factory created once and passed via props to children; handlers stabilized with useCallback.
+ * Responsible for orchestrating children, calling service/navigation/showAlert.
+ * No hardcoded style values, no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -59,7 +59,7 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
-/** 主屏幕。 */
+/** Main screen. */
 export const HomeScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -355,7 +355,7 @@ export const HomeScreen: React.FC = () => {
     if (isMiniProgram()) {
       wxReLaunch();
     } else {
-      // 非小程序环境，刷新页面重新走 auth 流程
+      // Non-mini-program: reload the page to re-run the auth flow
       window.location.reload();
     }
   }, []);

@@ -1,7 +1,8 @@
 /**
- * FloatFlair — 浮点
+ * FloatFlair — Float dot
  *
- * 一个小光点沿 Lissajous 曲线在座位内部漫游（不贴边）。Common 级座位装饰模板。
+ * A small light point roams inside the seat along a Lissajous curve (not hugging the edge).
+ * Common-tier seat flair template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

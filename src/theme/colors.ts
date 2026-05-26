@@ -1,8 +1,8 @@
 /**
- * colors - 应用颜色常量
+ * colors - app color constants
  *
- * 基于「月白」配色方案的语义色定义。
- * 纯常量，不含 React 或 service。
+ * Semantic colors based on the "月白" color scheme.
+ * Pure constants, no React or service.
  */
 
 export interface ThemeColors {
@@ -47,7 +47,7 @@ export interface ThemeColors {
   transparent: 'transparent';
 }
 
-/** 月白 — 克制、通透、雅致，带有游戏氛围的靛蓝调 */
+/** 月白 — restrained, translucent, elegant indigo with gaming atmosphere */
 export const colors: ThemeColors = {
   primary: '#4F46E5',
   primaryLight: '#818CF8',

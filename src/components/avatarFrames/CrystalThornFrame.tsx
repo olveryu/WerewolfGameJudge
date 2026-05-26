@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * CrystalThornFrame — 晶棘
+ * CrystalThornFrame — Crystal Thorn
  *
- * 紫水晶尖刺从边框向外突出 · 四角大晶簇 · 内圈高光弧线 · 碎晶散布。
+ * Amethyst spikes jutting outward from the border · large crystal clusters at four corners · inner highlight arcs · scattered crystal shards.
  */
 export const CrystalThornFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

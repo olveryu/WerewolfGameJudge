@@ -1,9 +1,9 @@
 /**
- * frameUnlock — 解锁查询与随机抽取
+ * frameUnlock — unlock queries and random draws
  *
- * 数据来自 `rewardCatalog.ts`（唯一权威 ID 注册表）。
- * 本模块提供：已解锁集合查询、随机抽取、免费物品判断。
- * 纯函数，客户端与服务端共用。
+ * Data from `rewardCatalog.ts` (single authoritative ID registry).
+ * This module provides: unlocked set queries, random draws, free-item checks.
+ * Pure functions, shared by client and server.
  */
 
 import {
@@ -20,15 +20,15 @@ import {
 } from './rewardCatalog';
 
 /**
- * 从未解锁池中随机抽取一个奖励。
+ * Randomly draw a reward from the not-yet-unlocked pool.
  *
- * 规则：每 5 级优先头像框，每 3 级优先座位装饰，每 7 级优先名字特效，其余级别优先头像。
- * 如果目标类型池已空，fallback 到任意未解锁物品。
+ * Rules: every 5 levels prefers frame, every 3 levels prefers seat flair, every 7 levels prefers name style; other levels prefer avatar.
+ * If the target type pool is empty, fall back to any unlocked item.
  *
- * @param unlockedIds - 玩家已解锁的 id 集合（含免费物品）
- * @param randomFn - 返回 [0, max) 整数的随机函数（服务端用 crypto）
- * @param level - 本次升到的等级（决定抽取类型）
- * @returns 抽中的奖励，池空则 undefined
+ * @param unlockedIds - set of ids the player has unlocked (including free items)
+ * @param randomFn - random function returning an integer in [0, max) (server uses crypto)
+ * @param level - the level just reached (determines draw type)
+ * @returns the drawn reward, or undefined if the pool is empty
  */
 export function pickRandomReward(
   unlockedIds: ReadonlySet<string>,
@@ -52,13 +52,13 @@ export function pickRandomReward(
   );
   if (preferred.length > 0) return preferred[randomFn(preferred.length)];
 
-  // Fallback: 目标类型已抽完，从任意未解锁物品抽
+  // Fallback: target type exhausted, draw from any unlocked item
   const fallback = REWARD_POOL.filter((item) => !unlockedIds.has(item.id));
   if (fallback.length === 0) return undefined;
   return fallback[randomFn(fallback.length)];
 }
 
-/** 已解锁头像 id 集合（免费 + 玩家解锁的 avatar 类型） */
+/** Set of unlocked avatar ids (free + player-unlocked avatar type) */
 export function getUnlockedAvatars(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_AVATAR_IDS);
   for (const id of unlockedIds) {
@@ -67,7 +67,7 @@ export function getUnlockedAvatars(unlockedIds: readonly string[]): ReadonlySet<
   return set;
 }
 
-/** 已解锁头像框 id 集合（免费 + 玩家解锁的 frame 类型） */
+/** Set of unlocked frame ids (free + player-unlocked frame type) */
 export function getUnlockedFrames(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_FRAME_IDS);
   for (const id of unlockedIds) {
@@ -76,12 +76,12 @@ export function getUnlockedFrames(unlockedIds: readonly string[]): ReadonlySet<s
   return set;
 }
 
-/** 头像框是否已解锁 */
+/** Whether the avatar frame is unlocked */
 export function isFrameUnlocked(frameId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedFrames(unlockedIds).has(frameId);
 }
 
-/** 已解锁座位装饰 id 集合（免费 + 玩家解锁的 seatFlair 类型） */
+/** Set of unlocked seat flair ids (free + player-unlocked seatFlair type) */
 export function getUnlockedFlairs(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_FLAIR_IDS);
   for (const id of unlockedIds) {
@@ -90,12 +90,12 @@ export function getUnlockedFlairs(unlockedIds: readonly string[]): ReadonlySet<s
   return set;
 }
 
-/** 座位装饰是否已解锁 */
+/** Whether the seat flair is unlocked */
 export function isFlairUnlocked(flairId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedFlairs(unlockedIds).has(flairId);
 }
 
-/** 已解锁名字特效 id 集合（免费 + 玩家解锁的 nameStyle 类型） */
+/** Set of unlocked name style ids (free + player-unlocked nameStyle type) */
 export function getUnlockedNameStyles(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_NAME_STYLE_IDS);
   for (const id of unlockedIds) {
@@ -104,12 +104,12 @@ export function getUnlockedNameStyles(unlockedIds: readonly string[]): ReadonlyS
   return set;
 }
 
-/** 名字特效是否已解锁 */
+/** Whether the name style is unlocked */
 export function isNameStyleUnlocked(nameStyleId: string, unlockedIds: readonly string[]): boolean {
   return getUnlockedNameStyles(unlockedIds).has(nameStyleId);
 }
 
-/** 已解锁开牌特效 id 集合（免费 + 玩家解锁的 roleRevealEffect 类型） */
+/** Set of unlocked role reveal effect ids (free + player-unlocked roleRevealEffect type) */
 export function getUnlockedRoleRevealEffects(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_ROLE_REVEAL_EFFECT_IDS);
   for (const id of unlockedIds) {
@@ -118,7 +118,7 @@ export function getUnlockedRoleRevealEffects(unlockedIds: readonly string[]): Re
   return set;
 }
 
-/** 开牌特效是否已解锁 */
+/** Whether the role reveal effect is unlocked */
 export function isRoleRevealEffectUnlocked(
   effectId: string,
   unlockedIds: readonly string[],
@@ -126,7 +126,7 @@ export function isRoleRevealEffectUnlocked(
   return getUnlockedRoleRevealEffects(unlockedIds).has(effectId);
 }
 
-/** 已解锁入坐动画 id 集合（免费 + 玩家解锁的 seatAnimation 类型） */
+/** Set of unlocked seat animation ids (free + player-unlocked seatAnimation type) */
 export function getUnlockedSeatAnimations(unlockedIds: readonly string[]): ReadonlySet<string> {
   const set = new Set<string>(FREE_SEAT_ANIMATION_IDS);
   for (const id of unlockedIds) {
@@ -135,7 +135,7 @@ export function getUnlockedSeatAnimations(unlockedIds: readonly string[]): Reado
   return set;
 }
 
-/** 入坐动画是否已解锁 */
+/** Whether the seat animation is unlocked */
 export function isSeatAnimationUnlocked(
   animationId: string,
   unlockedIds: readonly string[],

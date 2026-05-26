@@ -1,7 +1,7 @@
 /**
- * SolarFlareFlair — 日冕耀斑
+ * SolarFlareFlair — Solar Flare.
  *
- * 4 道弧形耀斑从边缘喷射，三层(外晕/中层/芯)叠加，尖端粒子。
+ * 4 arc flares erupt from the edge, three layers (outer halo / mid / core) stacked, plus tip particles.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

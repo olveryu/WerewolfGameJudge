@@ -1,11 +1,11 @@
 /**
  * Schema-Resolver Alignment Contract Tests
  *
- * PR contract: resolver skip 行为必须逐 schema 对齐
- * - 如果 schema.canSkip === true，resolver 必须接受 null target
- * - 如果 schema.canSkip === false 或 undefined，resolver 必须拒绝 null target
+ * PR contract: resolver skip behavior must be aligned per-schema
+ * - If schema.canSkip === true, resolver must accept null target
+ * - If schema.canSkip === false or undefined, resolver must reject null target
  *
- * 这是防止 "一刀切" skip 行为的合约测试。
+ * Contract test guarding against blanket skip behavior.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -18,13 +18,13 @@ import {
 import { RESOLVERS } from '@werewolf/game-engine/resolvers';
 import type { ActionInput, ResolverContext } from '@werewolf/game-engine/resolvers/types';
 
-// 创建基础的 ResolverContext
+// Build a base ResolverContext
 function createBaseContext(
   actorSeat: number,
   actorRoleId: RoleId,
   overrides?: Partial<ResolverContext>,
 ): ResolverContext {
-  // 使用有效的 RoleId 类型
+  // Use valid RoleId values
   const players = new Map<number, RoleId>([
     [0, 'wolf'],
     [1, 'seer'],
@@ -47,19 +47,19 @@ function createBaseContext(
   };
 }
 
-// 获取 schema 的 canSkip 值
+// Read the canSkip value of a schema
 function getSchemaCanSkip(schemaId: SchemaId): boolean {
   const schema = SCHEMAS[schemaId];
   if (!schema) return false;
 
-  // compound schema 的 canSkip 需要看 steps
+  // For compound schemas, canSkip is derived from the steps
   if (schema.kind === 'compound') {
     const compoundSchema = schema;
-    // 如果所有 steps 都有 canSkip: true，则整体可以 skip
+    // The whole schema is skippable only if every step is skippable
     return compoundSchema.steps?.every((s) => s.canSkip === true) ?? false;
   }
 
-  // chooseSeat schema 直接读取 canSkip
+  // chooseSeat schema reads canSkip directly
   if ('canSkip' in schema) {
     return (schema as ChooseSeatSchema).canSkip === true;
   }
@@ -68,14 +68,14 @@ function getSchemaCanSkip(schemaId: SchemaId): boolean {
 }
 
 describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
-  // 列出所有 canSkip=true 的 schema，需要验证 resolver 接受 null
+  // All canSkip=true schemas — verify each resolver accepts null
   const canSkipSchemas: { schemaId: SchemaId; roleId: RoleId; seat: number }[] = [
     { schemaId: 'seerCheck', roleId: 'seer', seat: 1 },
     { schemaId: 'nightmareBlock', roleId: 'nightmare', seat: 5 },
     { schemaId: 'gargoyleCheck', roleId: 'gargoyle', seat: 7 },
     { schemaId: 'dreamcatcherDream', roleId: 'dreamcatcher', seat: 6 },
     { schemaId: 'guardProtect', roleId: 'guard', seat: 3 },
-    { schemaId: 'psychicCheck', roleId: 'psychic', seat: 1 }, // 复用 seer 座位做测试
+    { schemaId: 'psychicCheck', roleId: 'psychic', seat: 1 }, // reuses seer seat for the test
   ];
 
   describe('resolvers with canSkip=true should accept null target', () => {
@@ -93,12 +93,12 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
           target: undefined, // Skip
         };
 
-        // ResolverFn 签名：(context, input)
+        // ResolverFn signature: (context, input)
         const context = createBaseContext(seat, roleId);
         const result = resolver!(context, input);
 
         expect(result.valid).toBe(true);
-        // Skip 行为不应该有 updates（空操作）
+        // Skip behavior should produce no updates (no-op)
         expect(result.result).toEqual({});
       },
     );
@@ -118,7 +118,7 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
       const result = resolver!(context, input);
 
       expect(result.valid).toBe(true);
-      // 跳过时不应有效果
+      // No effects should apply when skipped
       expect(result.result?.savedTarget).toBeUndefined();
       expect(result.result?.poisonedTarget).toBeUndefined();
     });
@@ -127,11 +127,11 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
 
 describe('witchContext.canSave notSelf alignment (PR contract)', () => {
   /**
-   * Schema 定义：witchAction.steps[0] (save) 有 notSelf 约束
-   * 合约：当被杀者是女巫自己时，canSave 必须为 false
+   * Schema definition: witchAction.steps[0] (save) has the notSelf constraint
+   * Contract: when the killed player is the Witch herself, canSave must be false
    *
-   * 这个测试验证 nightFlowHandler 中 SET_WITCH_CONTEXT 的 canSave 逻辑
-   * 必须与 schema notSelf 约束对齐。
+   * This test ensures that the canSave logic in nightFlowHandler's SET_WITCH_CONTEXT
+   * stays aligned with the schema notSelf constraint.
    */
 
   it('schema witchAction.save step should have notSelf constraint', () => {
@@ -147,16 +147,16 @@ describe('witchContext.canSave notSelf alignment (PR contract)', () => {
     const resolver = RESOLVERS.witchAction;
     expect(resolver).toBeDefined();
 
-    // 女巫在座位2，尝试救座位2（自己）
+    // Witch is at seat 2, attempts to save seat 2 (herself)
     const input: ActionInput = {
       schemaId: 'witchAction',
-      stepResults: { save: 2 }, // 尝试救自己
+      stepResults: { save: 2 }, // attempt self-save
     };
 
     const context = createBaseContext(2, 'witch');
     const result = resolver!(context, input);
 
-    // resolver 应该拒绝自救
+    // resolver should reject self-save
     expect(result.valid).toBe(false);
     expect(result.rejectReason).toContain('自救');
   });

@@ -1,27 +1,27 @@
 /**
- * IRoomService - 房间记录 + 游戏状态持久化接口
+ * IRoomService - Room record + game state persistence interface
  *
- * 定义房间 CRUD 和 game_state 读写的公共 API 契约。
- * 不校验游戏逻辑，不涉及 realtime 传输。
+ * Defines public API contract for room CRUD and game_state read/write.
+ * Does not validate game logic, does not handle realtime transport.
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-/** 房间记录（面向消费者的抽象） */
+/** Room record (consumer-facing abstraction) */
 export interface RoomRecord {
   roomCode: string;
   hostUserId: string;
   createdAt: Date;
 }
 
-/** 房间 CRUD + game_state 读写接口。 */
+/** Room CRUD + game_state read/write interface. */
 export interface IRoomService {
   /**
-   * 创建房间（乐观插入 + 冲突重试）。
-   * @param hostUserId - Host 用户 ID
-   * @param initialRoomNumber - 尝试的初始房间号
-   * @param maxRetries - 冲突重试上限（默认 5）
-   * @param buildInitialState - 可选的初始 state 构建器
+   * Create room (optimistic insert + conflict retry).
+   * @param hostUserId - Host user ID
+   * @param initialRoomNumber - Initial room number to try
+   * @param maxRetries - Conflict retry limit (default 5)
+   * @param buildInitialState - Optional initial state builder
    */
   createRoom(
     hostUserId: string,
@@ -30,18 +30,18 @@ export interface IRoomService {
     buildInitialState?: (roomCode: string) => GameState,
   ): Promise<RoomRecord>;
 
-  /** 查询房间记录，不存在返回 null */
+  /** Query room record, returns null if not found */
   getRoom(roomCode: string): Promise<RoomRecord | null>;
 
-  /** 检查房间是否存在 */
+  /** Check whether room exists */
   roomExists(roomCode: string): Promise<boolean>;
 
-  /** 删除房间 */
+  /** Delete room */
   deleteRoom(roomCode: string): Promise<void>;
 
-  /** 读取 state_revision（轻量级轮询） */
+  /** Read state_revision (lightweight polling) */
   getStateRevision(roomCode: string): Promise<number | null>;
 
-  /** 读取完整 game_state + revision */
+  /** Read full game_state + revision */
   getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null>;
 }

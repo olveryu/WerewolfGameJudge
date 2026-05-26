@@ -1,8 +1,8 @@
 /**
- * AudioService — 音频播放引擎（composition root）。
+ * AudioService — audio playback engine (composition root).
  *
- * 委托平台特定 TTS 播放给 AudioPlaybackStrategy，
- * 委托 BGM 生命周期给 BgmPlayer，统一 public API。
+ * Delegates platform-specific TTS playback to AudioPlaybackStrategy,
+ * delegates BGM lifecycle to BgmPlayer, exposes a unified public API.
  */
 import * as Sentry from '@sentry/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,21 +28,21 @@ import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 const isWeb = Platform.OS === 'web';
 
 /**
- * AudioService — 音频播放引擎（composition root）。
+ * AudioService — audio playback engine (composition root).
  *
- * 职责：
- * - 委托平台特定 TTS 播放给 AudioPlaybackStrategy
- * - 委托 BGM 生命周期给 BgmPlayer
- * - 提供统一 public API 供 GameFacade / gameActions 消费
- * - 管理 Web 可见性变化时的 pause/resume
+ * Responsibilities:
+ * - Delegate platform-specific TTS playback to AudioPlaybackStrategy
+ * - Delegate BGM lifecycle to BgmPlayer
+ * - Provide a unified public API for GameFacade / gameActions to consume
+ * - Manage pause/resume on Web visibility change
  *
- * 不负责：
- * - 决定“何时播放什么”（由 Handler 声明，Facade 编排）
- * - 游戏逻辑或状态管理
+ * Not responsible for:
+ * - Deciding "when to play what" (declared by Handler, orchestrated by Facade)
+ * - Game logic or state management
  *
- * 边界约束：
- * - 构造时同步注册 Web gesture unlock listener，禁止放在 await 之后
- * - Web 端依赖 setupWebAudioUnlock() 已在构造函数内同步调用
+ * Boundary constraints:
+ * - Synchronously register the Web gesture unlock listener at construction; must not sit behind an `await`
+ * - Web depends on setupWebAudioUnlock() being called synchronously in the constructor
  */
 export class AudioService {
   readonly #strategy: AudioPlaybackStrategy;

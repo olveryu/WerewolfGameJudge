@@ -1,9 +1,9 @@
 /**
- * NowPlayingBar — 试听中迷你播放条
+ * NowPlayingBar — mini playback bar shown while previewing
  *
- * 显示当前试听曲名 + 均衡器动画 + 停止按钮。
- * 仅当有曲目正在试听时渲染。
- * 纯 Presentational 组件，不 import service。
+ * Shows the previewing track name + equalizer animation + stop button.
+ * Only renders when a track is being previewed.
+ * Pure presentational component; does not import services.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
@@ -36,7 +36,7 @@ interface NowPlayingBarProps {
   colors: ThemeColors;
 }
 
-/** 当前播放曲目栏。 */
+/** Now-playing track bar. */
 export const NowPlayingBar = memo<NowPlayingBarProps>(function NowPlayingBar({
   trackLabel,
   onStop,

@@ -12,7 +12,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
 
-/** 组确认 ack 执行器。 */
+/** Group confirm ack executor. */
 export const groupConfirmAckExecutor: IntentExecutor = (_intent, ctx) => {
   const { gameState, currentSchema, actorSeatForUi, groupConfirmAckMutation, actionDialogs } = ctx;
 

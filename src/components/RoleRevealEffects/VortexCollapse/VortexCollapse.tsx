@@ -1,14 +1,14 @@
 /**
- * VortexCollapse - 虚空坍缩揭示动画（Skia + Reanimated 4 + Gesture Handler）
+ * VortexCollapse - void-collapse reveal animation (Skia + Reanimated 4 + Gesture Handler)
  *
- * 视觉设计：星际穿越 / 黑洞风格 — 深空背景 + 星云 + 旋涡中心 + 事件视界 +
- * 螺旋臂 + 80 轨道粒子 + 20 碎片 + 进度环 + 坍缩爆炸粒子。
- * 交互：画圈手势驱动旋转加速，spin 累计达 100% → 临界坍缩 → 爆发揭示。
+ * Visual design: Interstellar / black-hole style — deep-space background + nebulae + vortex center + event horizon +
+ * spiral arms + 80 orbital particles + 20 debris chunks + progress ring + collapse burst particles.
+ * Interaction: circular pan gesture accelerates the vortex; spin reaches 100% -> critical collapse -> burst reveal.
  *
- * Skia 负责：深空 + 星云 + 事件视界 + 螺旋臂 + 轨道粒子/碎片 + 进度环 + 爆炸粒子。
- * Reanimated 负责：阶段切换 + 卡片入场。
- * Gesture Handler 负责：`Gesture.Pan()` 画圈累加 spin。
- * 不 import service，不含业务逻辑。
+ * Skia handles: deep space + nebulae + event horizon + spiral arms + orbital particles/debris + progress ring + burst particles.
+ * Reanimated handles: phase transitions + card entrance.
+ * Gesture Handler handles: `Gesture.Pan()` accumulates spin via circle drawing.
+ * Does not import services and contains no business logic.
  */
 import {
   Blur,
@@ -523,7 +523,7 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
       -1,
     );
 
-    // Atmosphere → idle
+    // Atmosphere -> idle
     const timer = setTimeout(() => {
       setPhase('idle');
       rafRef.current = requestAnimationFrame(updateLoop);

@@ -1,9 +1,9 @@
 /**
- * ConnectionStatusBar - 断线横幅 + indeterminate 进度条 / 手动重连按钮（Memoized）
+ * ConnectionStatusBar - disconnect banner + indeterminate progress bar / manual reconnect button (memoized)
  *
- * 非 Live 状态时显示 "连接断开，正在重连…" 及底部滑动进度条。
- * Failed 状态（自动重试耗尽）显示 "连接失败" + "点击重连" 按钮。
- * 社区标准做法：indeterminate progress bar（类似 Slack/Discord）表示持续重连中。
+ * Shows "连接断开，正在重连…" with a sliding bottom progress bar when not in Live state.
+ * Failed state (auto-retry exhausted) shows "连接失败" + "点击重连" button.
+ * Community-standard approach: indeterminate progress bar (similar to Slack/Discord) indicates ongoing reconnect.
  */
 import type React from 'react';
 import { memo, useEffect, useState } from 'react';

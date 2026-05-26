@@ -1,7 +1,7 @@
 /**
- * @werewolf/game-engine/growth — 成长体系模块
+ * @werewolf/game-engine/growth - Growth system module
  *
- * 等级系统 + 随机解锁奖励（头像/头像框）+ 扭蛋概率引擎。纯函数，客户端与服务端共用。
+ * Level system + random unlock rewards (avatars / avatar frames) + gacha probability engine. Pure functions, shared by client and server.
  */
 
 export {

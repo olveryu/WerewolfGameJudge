@@ -1,7 +1,7 @@
 /**
- * AITab — Admin AI 使用量遥测
+ * AITab — Admin AI usage telemetry
  *
- * TimeRangeSelector + MetricCards (总请求/平均TTFR/错误率) + BarCharts (Provider/Model/Country/TopUsers/Status)。
+ * TimeRangeSelector + MetricCards (total requests / avg TTFR / error rate) + BarCharts (Provider/Model/Country/TopUsers/Status).
  */
 
 import type React from 'react';

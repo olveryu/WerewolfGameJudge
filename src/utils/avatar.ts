@@ -2,15 +2,15 @@
  * avatar - Local avatar image registry and selection utilities
  *
  * 43 dark fantasy role portraits from assets/avatars/raw/.
- * 提供头像图片映射、基于 userId/roomId 的稳定 hash 分配和去重。
- * 不引入 React、service，也不发起网络请求。
+ * Provides avatar image mapping plus stable hash assignment + deduplication keyed on userId/roomId.
+ * Does not import React or services; does not make network requests.
  *
- * ID 注册表来自 `@werewolf/game-engine/growth/rewardCatalog`（唯一权威来源）。
- * 新增头像需同时更新 rewardCatalog AVATAR_IDS 和 avatarImages.ts / avatarImages.web.ts。
+ * The ID registry lives in `@werewolf/game-engine/growth/rewardCatalog` (single source of truth).
+ * Adding a new avatar requires updating both rewardCatalog AVATAR_IDS and avatarImages.ts / avatarImages.web.ts.
  *
  * Image maps are split by platform (Metro resolves .web.ts automatically):
- * - avatarImages.ts — native: 2048px raw PNGs + 512px badge PNGs
- * - avatarImages.web.ts — web: 512px WebP avatars + 128px WebP badges
+ * - avatarImages.ts -- native: 2048px raw PNGs + 512px badge PNGs
+ * - avatarImages.web.ts -- web: 512px WebP avatars + 128px WebP badges
  */
 
 import {
@@ -61,7 +61,7 @@ export function getHandDrawnImage(avatarId: string): number | undefined {
 }
 
 /**
- * FNV-1a hash — better avalanche properties than djb2 for short similar strings.
+ * FNV-1a hash -- better avalanche properties than djb2 for short similar strings.
  * Returns an unsigned 32-bit integer.
  */
 function fnv1aHash(str: string): number {
@@ -103,7 +103,7 @@ function getDefaultAvatarIndex(roomId: string, userId: string): number {
  *
  * @param roomId - The room identifier
  * @param uids   - Ordered list of player UIDs in the room
- * @returns Map from userId → unique avatar index (0-based)
+ * @returns Map from userId -> unique avatar index (0-based)
  */
 export function getUniqueAvatarMap(roomId: string, uids: string[]): Map<string, number> {
   const N = AVATAR_IMAGES.length;
@@ -137,7 +137,7 @@ export function isBuiltinAvatarUrl(url: string): boolean {
   return url.startsWith(BUILTIN_AVATAR_PREFIX);
 }
 
-/** Extract the avatar ID from a builtin:// URL (e.g. "builtin://seer" → "seer") */
+/** Extract the avatar ID from a builtin:// URL (e.g. "builtin://seer" -> "seer") */
 export function getBuiltinAvatarId(url: string): string {
   return url.slice(BUILTIN_AVATAR_PREFIX.length);
 }

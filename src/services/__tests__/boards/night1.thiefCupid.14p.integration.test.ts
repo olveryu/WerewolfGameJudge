@@ -1,12 +1,12 @@
 /**
  * Night-1 Integration Test: Thief + Cupid (盗贼丘比特)
  *
- * 主题：盗贼从 2 张底牌中选择身份，丘比特连线情侣，验证选卡、情侣连线、全夜流程。
+ * Theme: Thief picks identity from 2 deck cards, Cupid links lovers; verifies card selection, lover linking, full-night flow.
  *
- * 模板：14 角色 = 12 玩家 + 2 底牌
- *   预言家 + 女巫 + 猎人 + 白痴 + 狼人×3 + 村民×5 + 盗贼 + 丘比特
+ * Template: 14 roles = 12 players + 2 deck cards
+ *   Seer + Witch + Hunter + Idiot + Wolf x3 + Villager x5 + Thief + Cupid
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -15,7 +15,7 @@ import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
 
 // =============================================================================
-// Template: 14 角色（12 玩家 + 2 底牌）
+// Template: 14 roles (12 players + 2 deck cards)
 // =============================================================================
 
 const TEMPLATE_NAME = '盗贼丘比特';
@@ -38,21 +38,21 @@ const TEMPLATE_ROLES: RoleId[] = [
 ] as RoleId[];
 
 // =============================================================================
-// Test: 盗贼选底牌 + 丘比特连线
+// Test: Thief picks deck card + Cupid links lovers
 // =============================================================================
 
 describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () => {
   /**
-   * 固定 seat-role assignment（12 玩家）:
-   *   seat 0-3: villager ×4
-   *   seat 4-6: wolf ×3
+   * Fixed seat-role assignment (12 players):
+   *   seat 0-3: villager x4
+   *   seat 4-6: wolf x3
    *   seat 7: seer
    *   seat 8: witch
    *   seat 9: hunter
    *   seat 10: thief
    *   seat 11: cupid
    *
-   * 底牌: villager, idiot
+   * Deck cards: villager, idiot
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
@@ -84,31 +84,31 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
       bottomCards: BOTTOM_CARDS,
     });
 
-    // 验证初始状态
+    // Verify initial state
     const initState = ctx.getGameState();
     expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
     expect(initState.thiefSeat).toBe(10);
 
-    // 首步 = thiefChoose
+    // First step = thiefChoose
     ctx.assertStep('thiefChoose');
 
-    // 执行到 cupidChooseLovers 验证步骤推进
+    // Run to cupidChooseLovers to verify step progression
     executeStepsUntil(ctx, 'cupidChooseLovers', {
       thief: { cardIndex: 1 },
     });
     ctx.assertStep('cupidChooseLovers');
 
-    // 继续执行到 cupidLoversReveal
+    // Continue to cupidLoversReveal
     executeStepsUntil(ctx, 'cupidLoversReveal', {
       cupid: { targets: [0, 1] },
     });
     ctx.assertStep('cupidLoversReveal');
 
-    // 执行剩余夜晚
+    // Execute remaining night
     const result = executeFullNight(ctx, {
-      wolf: 7, // 袭击 seer（seat 7）
-      witch: { save: 7, poison: null }, // 女巫救人
-      seer: 0, // 查验 seat 0
+      wolf: 7, // Attack seer (seat 7)
+      witch: { save: 7, poison: null }, // Witch saves
+      seer: 0, // Check seat 0
       hunter: { confirmed: true },
     });
 
@@ -116,17 +116,17 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
 
     const state = ctx.getGameState();
 
-    // 核心断言：盗贼选卡结果
+    // Core assertion: Thief card selection result
     expect(state.thiefChosenCard).toBe('idiot');
 
-    // 核心断言：丘比特连线结果
+    // Core assertion: Cupid lover linking result
     expect(state.loverSeats).toEqual([0, 1]);
 
-    // seer 正常查验
+    // Seer normal check
     expect(state.seerReveal).toBeDefined();
     expect(state.seerReveal!.targetSeat).toBe(0);
 
-    // wolf → seer saved by witch → 平安夜
+    // wolf -> seer saved by witch -> peaceful night
     expect(result.deaths).toEqual([]);
   });
 
@@ -136,11 +136,11 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     });
 
     const result = executeFullNight(ctx, {
-      thief: { cardIndex: 0 }, // 选 villager（index 0）
-      cupid: { targets: [7, 10] }, // 连线 seer 和 thief
-      wolf: 0, // 袭击 villager（seat 0）
-      witch: null, // 女巫不救
-      seer: 4, // 查验 seat 4（wolf）
+      thief: { cardIndex: 0 }, // Pick villager (index 0)
+      cupid: { targets: [7, 10] }, // Link seer and thief
+      wolf: 0, // Attack villager (seat 0)
+      witch: null, // Witch does not save
+      seer: 4, // Check seat 4 (wolf)
       hunter: { confirmed: true },
     });
 
@@ -148,14 +148,14 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
 
     const state = ctx.getGameState();
 
-    // 盗贼选了 villager
+    // Thief picked villager
     expect(state.thiefChosenCard).toBe('villager');
 
-    // 丘比特连线 seer 和 thief
+    // Cupid links seer and thief
     expect(state.loverSeats).toEqual([7, 10]);
 
-    // cupidLoversReveal 应已通过
-    // wolf 袭击 seat 0 → 死亡
+    // cupidLoversReveal should have passed
+    // wolf attacks seat 0 -> dies
     expect(result.deaths).toEqual([0]);
   });
 });

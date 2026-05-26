@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: Gargoyle Check
  *
- * 主题：石像鬼查验结果（返回具体角色）及 swap 后变化。
+ * Theme: Gargoyle check result (returns specific role) and changes after swap.
  *
- * 模板：石像鬼守墓人
- * 固定 seat-role assignment:
+ * Template: Awakened Gargoyle + Graveyard Keeper
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: gargoyle
@@ -13,12 +13,12 @@
  *   seat 10: hunter
  *   seat 11: graveyardKeeper
  *
- * 核心规则：
- * - gargoyle 查验返回具体角色（不是阵营）
- * - 查验结果基于 swap 后的身份
- * - 结果写入 GameState.gargoyleReveal
+ * Core rules:
+ * - gargoyle check returns specific role (not faction)
+ * - Check result based on post-swap identity
+ * - Result written to GameState.gargoyleReveal
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -29,7 +29,7 @@ import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './st
 const TEMPLATE_NAME = '石像鬼守墓人';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -59,13 +59,13 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验 villager(0)，返回 villager', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      // Step-aware assertion: confirm we reached the gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
       ctx.assertStep('gargoyleCheck');
 
-      // 继续执行剩余步骤
+      // Continue executing remaining steps
       const result = executeRemainingSteps(ctx, {
-        gargoyle: 0, // 查验 villager
+        gargoyle: 0, // Check villager
         wolf: 1,
         witch: { save: null, poison: null },
         seer: 4,
@@ -73,7 +73,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：gargoyleReveal 返回具体角色
+      // Core assertion: gargoyleReveal returns specific role
       const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeDefined();
       expect(state.gargoyleReveal!.targetSeat).toBe(0);
@@ -84,7 +84,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
-        gargoyle: 4, // 查验 wolf
+        gargoyle: 4, // Check wolf
         wolf: 0,
         witch: { save: null, poison: null },
         seer: 5,
@@ -102,7 +102,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
-        gargoyle: 8, // 查验 seer
+        gargoyle: 8, // Check seer
         wolf: 0,
         witch: { save: null, poison: null },
         seer: 4,
@@ -120,7 +120,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
-        gargoyle: 10, // 查验 hunter
+        gargoyle: 10, // Check hunter
         wolf: 0,
         witch: { save: null, poison: null },
         seer: 4,
@@ -139,13 +139,13 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 不查验时，gargoyleReveal 不写入', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      // Step-aware assertion: confirm we reached the gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
       ctx.assertStep('gargoyleCheck');
 
-      // 继续执行剩余步骤
+      // Continue executing remaining steps
       const result = executeRemainingSteps(ctx, {
-        gargoyle: null, // 不查验
+        gargoyle: null, // No check
         wolf: 0,
         witch: { save: null, poison: null },
         seer: 4,
@@ -153,7 +153,7 @@ describe('Night-1: Gargoyle Check (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // gargoyleReveal 应该为 undefined
+      // gargoyleReveal should be undefined
       const state = ctx.getGameState();
       expect(state.gargoyleReveal).toBeUndefined();
     });
@@ -163,11 +163,11 @@ describe('Night-1: Gargoyle Check (12p)', () => {
     it('gargoyle 查验自己应被拒绝 (notSelf constraint)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Step-aware 断言：确认确实走到了 gargoyleCheck step
+      // Step-aware assertion: confirm we reached the gargoyleCheck step
       expect(executeStepsUntil(ctx, 'gargoyleCheck')).toBe(true);
       ctx.assertStep('gargoyleCheck');
 
-      // 石像鬼查验自己应被拒绝
+      // Gargoyle checking self should be rejected
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 7,

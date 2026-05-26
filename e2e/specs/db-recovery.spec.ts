@@ -21,8 +21,8 @@ import { RoomPage } from '../pages/RoomPage';
  * 6. Night should complete normally
  *
  * This is distinct from rejoin.spec.ts which tests full page reload.
- * This test exercises the auto-heal path: network drops → WebSocket reconnects
- * → stale state detected → fetchStateFromDB → state restored.
+ * This test exercises the auto-heal path: network drops -> WebSocket reconnects
+ * -> stale state detected -> fetchStateFromDB -> state restored.
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -117,7 +117,7 @@ test.describe('DB state recovery after network interruption', () => {
           `Room: ${roomCode}`,
           `Disconnect indicator shown: ${isDisconnected}`,
           `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Turns: ${nightResult.turnLog.join(' -> ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });
@@ -198,7 +198,7 @@ test.describe('DB state recovery after network interruption', () => {
         });
       });
 
-      // Step 4: Restore network on both（使用后续 waitForRoomScreenReady 事件驱动等待）
+      // Step 4: Restore network on both (event-driven wait via subsequent waitForRoomScreenReady)
       await test.step('reconnect both host and player', async () => {
         await hostContext.setOffline(false);
         await joinerContext.setOffline(false);
@@ -243,7 +243,7 @@ test.describe('DB state recovery after network interruption', () => {
         body: [
           `Room: ${roomCode}`,
           `Result: ${nightResult.resultText}`,
-          `Turns: ${nightResult.turnLog.join(' → ')}`,
+          `Turns: ${nightResult.turnLog.join(' -> ')}`,
         ].join('\n'),
         contentType: 'text/plain',
       });

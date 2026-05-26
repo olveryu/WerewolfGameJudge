@@ -1,7 +1,7 @@
 /**
- * SimpleDashFrame — 虚线
+ * SimpleDashFrame — dashed
  *
- * 虚线圆角边框。Common 级头像框模板。
+ * Rounded dashed border. Common-tier avatar-frame template.
  */
 import { memo } from 'react';
 import Svg, { Rect } from 'react-native-svg';

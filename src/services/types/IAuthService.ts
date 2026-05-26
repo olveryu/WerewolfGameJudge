@@ -1,13 +1,13 @@
 /**
- * IAuthService - 认证服务接口
+ * IAuthService - Authentication service interface
  *
- * 定义认证服务的公共 API 契约，覆盖匿名登录、邮箱认证、用户资料管理。
- * 不涉及游戏逻辑或游戏状态存储。
+ * Defines the public API contract for auth service, covering anonymous login, email auth, user profile management.
+ * Does not involve game logic or game state storage.
  */
 
 /**
- * API 返回的 user_metadata 完整类型（snake_case wire format）。
- * 与服务端 userProfile.ts 的 UserMetadata 保持一致。
+ * Full user_metadata type returned by API (snake_case wire format).
+ * Kept in sync with UserMetadata in server-side userProfile.ts.
  */
 export interface UserMetadata {
   display_name: string | null;
@@ -21,8 +21,8 @@ export interface UserMetadata {
 }
 
 /**
- * 抽象用户类型。
- * 仅包含业务代码实际读取的字段。
+ * Abstract user type.
+ * Only includes fields actually read by business code.
  */
 export interface AuthUser {
   id: string;
@@ -33,55 +33,55 @@ export interface AuthUser {
 }
 
 /**
- * getCurrentUser() 返回值。
+ * Return value of getCurrentUser().
  *
- * 契约：server `/auth/user` 仅在 200 时返回此结构；缺失 user / token 失效 → 401/404，
- * 由 cfFetch 抛出，不会走到这里。所以 `user` 不为 null。
+ * Contract: server `/auth/user` returns this structure only on 200; missing user / invalid token -> 401/404,
+ * thrown by cfFetch, won't reach here. So `user` is never null.
  */
 export interface GetCurrentUserResponse {
   data: { user: AuthUser };
 }
 
-/** 认证服务接口 — 覆盖匹名登录、邮箱认证、用户资料管理。 */
+/** Auth service interface - covers anonymous login, email auth, user profile management. */
 export interface IAuthService {
-  /** 等待初始化完成（session 恢复 / 自动登录） */
+  /** Wait for initialization to complete (session restore / auto login) */
   waitForInit(): Promise<void>;
 
-  /** 小程序内是否需要用户手动触发微信登录（仅 miniprogram web-view 内有意义） */
+  /** Whether the mini-program requires user to manually trigger WeChat login (only meaningful inside miniprogram web-view) */
   readonly needsWechatLogin: boolean;
 
   /**
-   * 确保已认证：优先恢复 session，fallback 匿名登录。
-   * 网络失败时 throw。
+   * Ensure authenticated: prefer session restore, fallback to anonymous login.
+   * Throws on network failure.
    */
   ensureAuthenticated(): Promise<string>;
 
-  /** 服务是否已配置（环境变量齐全 + client 已初始化） */
+  /** Whether the service is configured (env vars complete + client initialized) */
   isConfigured(): boolean;
 
-  /** 当前用户 ID（同步读取缓存值） */
+  /** Current user ID (synchronous read of cached value) */
   getCurrentUserId(): string | null;
 
   /**
-   * 获取当前用户完整信息。
-   * 未登录或 token 失效时返回 null。
+   * Get current user full info.
+   * Returns null when not logged in or token invalid.
    */
   getCurrentUser(): Promise<GetCurrentUserResponse | null>;
 
-  /** 匿名登录，返回 userId */
+  /** Anonymous login, returns userId */
   signInAnonymously(): Promise<string>;
 
-  /** 邮箱注册（匿名用户升级 or 新建账户） */
+  /** Email signup (upgrade anonymous user or create new account) */
   signUpWithEmail(
     email: string,
     password: string,
     displayName?: string,
   ): Promise<{ userId: string; user: AuthUser | null }>;
 
-  /** 邮箱密码登录，返回 userId */
+  /** Email + password login, returns userId */
   signInWithEmail(email: string, password: string): Promise<string>;
 
-  /** 更新用户资料（昵称 / 头像 / 头像框 / 座位装饰 / 名字特效 / 开牌特效 / 入座动画） */
+  /** Update user profile (display name / avatar / avatar frame / seat flair / name style / reveal effect / seat animation) */
   updateProfile(updates: {
     displayName?: string;
     avatarUrl?: string;
@@ -93,21 +93,21 @@ export interface IAuthService {
     seatAnimation?: string;
   }): Promise<void>;
 
-  /** 登出 */
+  /** Sign out */
   signOut(): Promise<void>;
 
-  /** 修改密码（已登录邮箱用户） */
+  /** Change password (logged-in email user) */
   changePassword(oldPassword: string, newPassword: string): Promise<void>;
 
-  /** 发送密码重置验证码邮件 */
+  /** Send password reset verification code email */
   forgotPassword(email: string): Promise<void>;
 
-  /** 用验证码重置密码，成功后自动登录，返回 userId */
+  /** Reset password with verification code, auto login on success, returns userId */
   resetPassword(email: string, code: string, newPassword: string): Promise<string>;
 
-  /** 从本地 session 恢复认证，返回 userId 或 null */
+  /** Restore auth from local session, returns userId or null */
   initAuth(): Promise<string | null>;
 
-  /** 生成随机中文昵称（狼人杀梗前缀 + 角色名），session 内缓存 */
+  /** Generate random Chinese display name (Werewolf meme prefix + role name), cached per session */
   generateDisplayName(): string;
 }

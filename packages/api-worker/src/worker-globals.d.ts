@@ -1,10 +1,10 @@
 /**
  * Worker globals supplementary declarations
  *
- * game-engine 源码通过 globalThis.crypto 访问 Web Crypto API。
- * @cloudflare/workers-types 已声明顶层 crypto 变量，
- * 但 ES2022 lib 的 globalThis 上不包含 crypto 属性。
- * 此文件在 globalThis 上补充 crypto 声明以消除类型错误。
+ * game-engine source accesses the Web Crypto API via globalThis.crypto.
+ * @cloudflare/workers-types already declares a top-level crypto variable,
+ * but ES2022 lib's globalThis does not include a crypto property.
+ * This file supplements crypto on globalThis to eliminate type errors.
  */
 
 interface Crypto {

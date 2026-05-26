@@ -1,13 +1,13 @@
 /**
- * MeteorStrike - 流星坠落揭示动画（Skia + Reanimated 4）
+ * MeteorStrike - meteor-strike reveal animation (Skia + Reanimated 4)
  *
- * 视觉设计：原神祈愿风格深空夜幕 + 闪烁星辰 + 流星划过 + 坠地爆炸。
- * 交互：点击飞过屏幕的流星使其坠落 → 冲击波 + 爆炸粒子 → 角色卡揭示。
- * 流星未命中时循环飞过，auto-timeout 8s 后自动触发坠落。
+ * Visual design: Genshin wish-style deep-space night sky + twinkling stars + streaking meteor + ground-impact explosion.
+ * Interaction: tap the meteor flying across the screen to make it fall -> shockwave + explosion particles -> role card reveal.
+ * If the meteor is missed it loops across the screen; auto-timeout 8s later triggers the fall automatically.
  *
- * Skia 负责：星空背景 + 流星拖尾 + 发光头部 + 冲击波环 + 爆炸碎片。
- * Reanimated 负责：驱动阶段切换 + 卡片入场。
- * 不 import service，不含业务逻辑。
+ * Skia handles: starfield background + meteor trail + glowing head + shockwave rings + explosion shards.
+ * Reanimated handles: driving phase transitions + card entrance.
+ * Does not import service, no business logic.
  */
 import {
   Blur,
@@ -404,7 +404,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
           trailIndexRef.current++;
         }
 
-        // Off screen → respawn
+        // Off screen -> respawn
         if (m.x > screenW + 100) {
           spawnMeteor();
         }
@@ -431,7 +431,7 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
       -1,
     );
 
-    // Atmosphere phase → idle
+    // Atmosphere phase -> idle
     const atmosphereTimer = setTimeout(() => {
       setPhase('idle');
       spawnMeteor();

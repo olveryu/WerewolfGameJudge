@@ -1,8 +1,8 @@
 /**
- * normalize.contract.test.ts - normalizeState 契约测试
+ * normalize.contract.test.ts - normalizeState contract tests
  *
- * 确保 normalizeState 正确透传 GameState 的所有字段。
- * 当新增字段时，如果忘记在 normalizeState 中透传，此测试会失败。
+ * Ensures normalizeState correctly passes through all fields of GameState.
+ * When adding new fields, if you forget to pass them through in normalizeState, this test will fail.
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
@@ -10,15 +10,15 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /**
- * GameState 的所有顶层字段列表（单一真相）
+ * List of all top-level fields of GameState (single source of truth)
  *
- * 当向 GameState 新增字段时：
- * 1. 在此列表添加字段名
- * 2. 在 normalizeState 中添加透传
- * 3. 运行此测试验证
+ * When adding new fields to GameState:
+ * 1. Add the field name to this list
+ * 2. Add the pass-through in normalizeState
+ * 3. Run this test to verify
  */
 const GAME_STATE_FIELDS: (keyof GameState)[] = [
-  // 核心必填字段
+  // Core required fields
   'roomCode',
   'hostUserId',
   'status',
@@ -28,35 +28,35 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'currentStepIndex',
   'isAudioPlaying',
 
-  // 开牌动画配置
+  // Role reveal animation config
   'roleRevealRandomNonce',
 
-  // Night flow 状态
+  // Night flow state
   'currentStepId',
 
-  // 执行状态
+  // Execution state
   'actions',
   'currentNightResults',
   'pendingRevealAcks',
   'lastNightDeaths',
   'deathReasons',
 
-  // 梦魇封锁
+  // Nightmare block
   'nightmareBlockedSeat',
   'wolfKillOverride',
 
-  // 吹笛者
+  // Piper
   'hypnotizedSeats',
   'piperRevealAcks',
 
-  // 觉醒石像鬼
+  // Awakened Gargoyle
   'convertedSeat',
   'conversionRevealAcks',
 
-  // 机械狼伪装上下文
+  // Wolf Robot disguise context
   'wolfRobotContext',
 
-  // 角色特定上下文
+  // Role-specific context
   'witchContext',
   'seerReveal',
   'mirrorSeerReveal',
@@ -70,51 +70,51 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'confirmStatus',
   'actionRejected',
 
-  // 统一步骤截止时间
+  // Unified step deadline
   'stepDeadline',
 
-  // 待消费音频队列
+  // Pending audio effect queue
   'pendingAudioEffects',
 
-  // Debug 模式
+  // Debug mode
   'debugMode',
 
   // UI Hints
   'ui',
 
-  // 双预言家标签映射
+  // Dual Seer label mapping
   'seerLabelMap',
 
-  // 详细信息分享权限
+  // Night review share permissions
   'nightReviewAllowedSeats',
 
-  // 盗宝大师
+  // Treasure Master
   'bottomCards',
   'treasureMasterSeat',
   'treasureMasterChosenCard',
   'effectiveTeam',
   'bottomCardStepRoles',
 
-  // 盗贼
+  // Thief
   'thiefSeat',
   'thiefChosenCard',
 
-  // 丘比特
+  // Cupid
   'loverSeats',
   'cupidSeat',
   'cupidLoversRevealAcks',
 
-  // 板子建议
+  // Board nominations
   'boardNominations',
 ];
 
 describe('normalizeState contract', () => {
   /**
-   * 创建一个包含所有字段的完整 GameState
+   * Create a full GameState containing all fields
    */
   const createFullState = (): GameState => {
     return {
-      // 核心必填字段
+      // Core required fields
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Ongoing,
@@ -126,37 +126,37 @@ describe('normalizeState contract', () => {
       currentStepIndex: 0,
       isAudioPlaying: false,
 
-      // 开牌动画配置
+      // Role reveal animation config
       roleRevealRandomNonce: 'nonce-123',
 
-      // Night flow 状态
+      // Night flow state
       currentStepId: 'wolfKill',
 
-      // 执行状态
+      // Execution state
       actions: [{ schemaId: 'wolfKill', actorSeat: 1, targetSeat: 2, timestamp: Date.now() }],
       currentNightResults: { wolfVotesBySeat: { '1': 2 } },
       pendingRevealAcks: ['seer-1'],
       lastNightDeaths: [3],
 
-      // 梦魇封锁
+      // Nightmare block
       nightmareBlockedSeat: 5,
       wolfKillOverride: {
         source: 'nightmare',
         ui: { promptTitle: 't', promptMessage: 'm', emptyVoteText: 'e', rejectMessage: 'r' },
       },
 
-      // 吹笛者
+      // Piper
       hypnotizedSeats: [3, 5],
       piperRevealAcks: [3],
 
-      // 觉醒石像鬼
+      // Awakened Gargoyle
       convertedSeat: 2,
       conversionRevealAcks: [0, 1],
 
-      // 机械狼伪装上下文
+      // Wolf Robot disguise context
       wolfRobotContext: { learnedSeat: 4, disguisedRole: 'seer' },
 
-      // 角色特定上下文
+      // Role-specific context
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 3, result: '好人' },
       psychicReveal: { targetSeat: 4, result: 'seer' },
@@ -173,28 +173,28 @@ describe('normalizeState contract', () => {
         rejectionId: 'rej-1',
       },
 
-      // 统一步骤截止时间
+      // Unified step deadline
       stepDeadline: Date.now() + 5000,
 
-      // 待消费音频队列
+      // Pending audio effect queue
       pendingAudioEffects: [{ audioKey: 'wolfKill', isEndAudio: true }],
 
-      // Debug 模式
+      // Debug mode
       debugMode: { botsEnabled: true },
 
-      // 详细信息分享权限
+      // Night review share permissions
       nightReviewAllowedSeats: [0, 2],
 
-      // 盗贼
+      // Thief
       thiefSeat: 0,
       thiefChosenCard: 'wolf',
 
-      // 丘比特
+      // Cupid
       loverSeats: [1, 3] as readonly [number, number],
       cupidSeat: 4,
       cupidLoversRevealAcks: [1],
 
-      // 板子建议
+      // Board nominations
       boardNominations: {
         'user-1': {
           userId: 'user-1',
@@ -210,11 +210,11 @@ describe('normalizeState contract', () => {
     const fullState = createFullState();
     const normalized = normalizeState(fullState);
 
-    // 检查所有字段都被透传
+    // Check that all fields are passed through
     for (const field of GAME_STATE_FIELDS) {
       expect(normalized).toHaveProperty(field);
-      // 对于必填字段，值应该相等
-      // 对于可选字段，如果原始有值，归一化后也应该有值
+      // For required fields, values should be equal
+      // For optional fields, if the source has a value, the normalized result should also have a value
       if (fullState[field] !== undefined) {
         expect(normalized[field]).toBeDefined();
       }
@@ -225,16 +225,16 @@ describe('normalizeState contract', () => {
     const fullState = createFullState();
     const normalized = normalizeState(fullState);
 
-    // 获取归一化后的所有字段
+    // Get all fields after normalization
     const normalizedFields = Object.keys(normalized) as (keyof GameState)[];
 
-    // 确保 GAME_STATE_FIELDS 覆盖了所有字段
-    // 如果归一化后有新字段不在列表中，测试会失败
+    // Ensure GAME_STATE_FIELDS covers all fields
+    // If a new field appears after normalization that's not in the list, the test fails
     for (const field of normalizedFields) {
       expect(GAME_STATE_FIELDS).toContain(field);
     }
 
-    // 确保列表中的所有字段都在归一化结果中
+    // Ensure all fields in the list are in the normalized result
     for (const field of GAME_STATE_FIELDS) {
       expect(normalizedFields).toContain(field);
     }
@@ -269,7 +269,7 @@ describe('normalizeState contract', () => {
 
     const normalized = normalizeState(minimalState);
 
-    // 可选字段应该保持 undefined
+    // Optional fields should remain undefined
     expect(normalized.debugMode).toBeUndefined();
     expect(normalized.witchContext).toBeUndefined();
     expect(normalized.seerReveal).toBeUndefined();

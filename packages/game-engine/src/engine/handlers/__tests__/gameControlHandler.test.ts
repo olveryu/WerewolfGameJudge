@@ -72,7 +72,7 @@ describe('handleAssignRoles', () => {
     const result = handleAssignRoles(intent, context);
 
     const success = expectSuccess(result);
-    // PR1: 只产生 ASSIGN_ROLES，不产生 START_NIGHT
+    // PR1: only produces ASSIGN_ROLES, no START_NIGHT
     expect(success.actions).toHaveLength(1);
     expect(success.actions[0]!.type).toBe('ASSIGN_ROLES');
   });
@@ -202,14 +202,14 @@ describe('handleStartNight', () => {
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
-      // 首步来自 buildNightPlan 表驱动单源，按模板角色过滤
-      // readyState 有 villager/wolf/seer → 首步是 'wolfKill'（不是 magicianSwap，因为没有 magician）
+      // First step comes from buildNightPlan's table-driven single source, filtered by template roles
+      // readyState has villager/wolf/seer -> first step is 'wolfKill' (not magicianSwap, since no magician)
       expect(startNightAction.payload.currentStepId).toBe('wolfKill');
     }
   });
 
   it('should set witchContext when first step is witchAction (no wolf template)', () => {
-    // 无狼板子：只有女巫 + 村民
+    // No-wolf board: only witch + villagers
     const noWolfState = createMinimalState({
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'witch'],
@@ -226,24 +226,24 @@ describe('handleStartNight', () => {
 
     const success = expectSuccess(result);
 
-    // 应该有 START_NIGHT + SET_WITCH_CONTEXT 两个 actions
+    // Should have two actions: START_NIGHT + SET_WITCH_CONTEXT
     expect(success.actions.length).toBe(2);
 
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
     if (startNightAction?.type === 'START_NIGHT') {
-      // 首步应该是 witchAction（无狼，跳过 wolfKill）
+      // First step should be witchAction (no wolf, wolfKill skipped)
       expect(startNightAction.payload.currentStepId).toBe('witchAction');
     }
 
     const witchContextAction = success.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
     expect(witchContextAction).toBeDefined();
     if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
-      // 无人死亡
+      // No one died
       expect(witchContextAction.payload.killedSeat).toBe(-1);
-      // 没有人需要救
+      // No one to save
       expect(witchContextAction.payload.canSave).toBe(false);
-      // 毒药可用
+      // Poison available
       expect(witchContextAction.payload.canPoison).toBe(true);
     }
   });

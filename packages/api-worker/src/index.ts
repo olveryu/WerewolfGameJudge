@@ -1,22 +1,22 @@
 /**
- * Werewolf API Worker — Hono app entry point
+ * Werewolf API Worker -- Hono app entry point
  *
- * 声明式路由，CORS / 错误处理中间件统一管理。
- * Handler 文件各自导出 Hono route group，此文件负责组合。
+ * Declarative routes; CORS / error-handling middleware managed centrally.
+ * Each handler file exports a Hono route group; this file composes them.
  *
- * 路由结构：
- *   POST /auth/anonymous          — 匿名登录
- *   POST /auth/signup             — 邮箱注册
- *   POST /auth/signin             — 邮箱登录
- *   GET  /auth/user               — 获取当前用户
- *   PUT  /auth/profile            — 更新资料
- *   POST /auth/signout            — 登出
- *   POST /auth/forgot-password    — 发送密码重置验证码
- *   POST /auth/reset-password     — 验证码重置密码
- *   POST /game/{assign,seat,...}  — 游戏控制 API
- *   POST /game/night/{action,...} — 夜晚流程 API
- *   POST /gemini-proxy            — Gemini AI 代理
- *   GET  /health                  — 健康检查
+ * Route structure:
+ *   POST /auth/anonymous          -- anonymous sign-in
+ *   POST /auth/signup             -- email signup
+ *   POST /auth/signin             -- email sign-in
+ *   GET  /auth/user               -- get current user
+ *   PUT  /auth/profile            -- update profile
+ *   POST /auth/signout            -- sign out
+ *   POST /auth/forgot-password    -- send password reset code
+ *   POST /auth/reset-password     -- reset password with code
+ *   POST /game/{assign,seat,...}  -- game control API
+ *   POST /game/night/{action,...} -- night flow API
+ *   POST /gemini-proxy            -- Gemini AI proxy
+ *   GET  /health                  -- health check
  */
 
 import * as Sentry from '@sentry/cloudflare';

@@ -1,9 +1,9 @@
 /**
- * roleBadges — 角色徽章资源索引
+ * roleBadges — role badge asset index
  *
- * Metro bundler 要求 require() 使用静态字符串字面量，因此需要手动映射每个 roleId。
- * 导出 getRoleBadge(roleId) 获取 512px PNG 的 ImageSourcePropType。
- * 不含业务逻辑、不 import service。
+ * Metro bundler requires require() to use static string literals, so each roleId must be mapped manually.
+ * Exports getRoleBadge(roleId) to get ImageSourcePropType for 512px PNG.
+ * No business logic, no service imports.
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ImageSourcePropType } from 'react-native';
@@ -108,7 +108,7 @@ const BADGE_MAP: Record<RoleId, ImageSourcePropType> = {
   cursedFox: badge_cursedFox,
 };
 
-/** 获取角色徽章 PNG 资源（512px），用于 `<Image source={...} />` */
+/** Get role badge PNG asset (512px), for use with `<Image source={...} />` */
 export function getRoleBadge(roleId: RoleId): ImageSourcePropType {
   return BADGE_MAP[roleId];
 }

@@ -1,9 +1,9 @@
 /**
- * TrackRow — 单首 BGM 曲目行
+ * TrackRow — single BGM track row
  *
- * 展示曲名 + 中文副标题 + 氛围标签 + radio 选中态 + play/stop 按钮。
- * 点击行体选择曲目，点击播放按钮试听。两个操作独立。
- * 纯 Presentational 组件：props 回调上报 intent，不 import service。
+ * Shows track name + Chinese subtitle + mood tag + radio selected state + play/stop button.
+ * Tapping the row body selects the track; tapping the play button previews it. The two actions are independent.
+ * Pure presentational component: callbacks report intent via props; does not import services.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
@@ -41,7 +41,7 @@ interface TrackRowProps {
   colors: ThemeColors;
 }
 
-/** 曲目行。 */
+/** Track row. */
 export const TrackRow = memo<TrackRowProps>(function TrackRow({
   track,
   isSelected,

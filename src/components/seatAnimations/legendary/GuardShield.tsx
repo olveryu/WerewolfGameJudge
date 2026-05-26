@@ -1,5 +1,5 @@
 /**
- * GuardShield — 守卫盾牌
+ * GuardShield — Guard shield
  *
  * Legendary entrance: hexagonal shield segments assemble around center,
  * golden glow pulses, shield shatters outward revealing avatar.

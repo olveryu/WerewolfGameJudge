@@ -1,7 +1,7 @@
 /**
- * ThornVineFlair — 荆棘缠绕
+ * ThornVineFlair — thorny vines wrap
  *
- * 4 条荆棘藤蔓从四角向中心生长，带尖刺粒子。
+ * 4 thorny vines grow from the corners toward the center with thorn particles.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

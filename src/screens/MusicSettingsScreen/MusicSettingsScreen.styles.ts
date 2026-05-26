@@ -39,7 +39,7 @@ interface MusicSettingsStyles {
   bottomSpacer: ViewStyle;
 }
 
-/** 创建音乐设置屏幕样式。 */
+/** Create music settings screen styles. */
 export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsStyles =>
   StyleSheet.create<MusicSettingsStyles>({
     container: {

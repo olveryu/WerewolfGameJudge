@@ -1,10 +1,10 @@
 /**
- * FactionRoleList — 阵营统计 badge + 分阵营 FactionChip 行
+ * FactionRoleList — faction stat badges + per-faction FactionChip rows
  *
- * 共享展示组件，BoardPickerScreen（展开卡）和 BoardNominationModal 均使用。
- * 接收 roles 数组，内部调用 computeFactionStats / groupRolesByFaction，
- * 渲染"狼N 神N 民N 特N"badge 行 + 按阵营分组的 FactionChip 行。
- * 纯展示组件，不 import service，不包含业务逻辑。
+ * Shared presentation component, used by both BoardPickerScreen (expanded card) and BoardNominationModal.
+ * Receives roles array, internally calls computeFactionStats / groupRolesByFaction,
+ * renders the "狼N 神N 民N 特N" badge row + per-faction FactionChip rows.
+ * Pure presentation component, does not import service, no business logic.
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { memo, useMemo } from 'react';

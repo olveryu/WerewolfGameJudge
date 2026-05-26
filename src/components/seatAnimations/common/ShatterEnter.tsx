@@ -1,5 +1,5 @@
 /**
- * ShatterEnter — 碎片入场
+ * ShatterEnter — Shatter entrance
  *
  * 8 colored SVG shards explode outward from center, then children fade in.
  * Rare-tier entrance animation template.

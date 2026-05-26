@@ -1,18 +1,18 @@
 /**
- * SettingsService — 用户设置持久化服务。
+ * SettingsService — user settings persistence service.
  *
- * 职责：
- * - 使用 MMKV 持久化用户偏好设置（音频/动画等）
- * - 所有设置存储在单个 key 下的 JSON 对象
- * - 提供默认值合并与类型安全读写
+ * Responsibilities:
+ * - Persist user preferences (audio / animation, etc.) using MMKV
+ * - All settings stored as a JSON object under a single key
+ * - Provide default-value merging and type-safe read/write
  *
- * 不负责：
- * - 游戏逻辑或游戏状态存储
- * - UI 层设置面板渲染
+ * Not responsible for:
+ * - Game logic or game state storage
+ * - UI-layer settings panel rendering
  *
- * 边界约束：
- * - load() 必须在 app 启动时调用一次，后续读取为同步
- * - MMKV 不可用时静默降级为内存默认值
+ * Boundary constraints:
+ * - load() must be called once at app startup; subsequent reads are synchronous
+ * - Silently degrades to in-memory defaults when MMKV is unavailable
  */
 import * as Sentry from '@sentry/react-native';
 
@@ -43,9 +43,9 @@ const DEFAULT_SETTINGS: UserSettings = {
 };
 
 /**
- * SettingsService — 用户设置管理（BGM / 音量 / 音轨）。
+ * SettingsService — user settings management (BGM / volume / track).
  *
- * 职责：MMKV 读写 + 内存缓存 + 服务端同步。
+ * Responsibilities: MMKV read/write + in-memory cache + server sync.
  */
 export class SettingsService {
   #settings: UserSettings = { ...DEFAULT_SETTINGS };

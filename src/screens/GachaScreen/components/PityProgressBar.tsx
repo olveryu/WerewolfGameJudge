@@ -1,9 +1,9 @@
 /**
- * PityProgressBar — 保底进度条
+ * PityProgressBar — Pity progress bar
  *
- * 水平进度条，pity/threshold 填充比例。
- * ≥80% 阈值时触发脉冲动画 + 颜色加深提示。
- * golden 模式使用金色渐变。
+ * Horizontal progress bar with pity/threshold fill ratio.
+ * At >=80% threshold triggers pulse animation + darker color cue.
+ * golden mode uses gold gradient.
  */
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -32,7 +32,7 @@ interface PityProgressBarProps {
 }
 
 // ─── Component ──────────────────────────────────────────────────────────
-/** 保底进度条。 */ export function PityProgressBar({
+/** Pity progress bar. */ export function PityProgressBar({
   pity,
   threshold,
   golden,

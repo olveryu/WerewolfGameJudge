@@ -1,15 +1,15 @@
 /**
- * restartGame 行为契约测试（HTTP API — Phase 2 migration）
+ * restartGame behavior contract test (HTTP API — Phase 2 migration)
  *
- * Phase 2: restartGame 已迁移到 HTTP API
+ * Phase 2: restartGame has been migrated to HTTP API
  *
- * 验收标准：
- * 1. 调用正确 API endpoint（/game/restart）
- * 2. 传递正确 request body（roomCode）
- * 3. 权限检查：仅 Host 可调用（facade-level gate）
- * 4. 返回 API 响应
- * 5. 网络错误处理
- * 6. 服务端负责状态重置，postgres_changes 推送新状态到所有客户端
+ * Acceptance criteria:
+ * 1. Calls the correct API endpoint (/game/restart)
+ * 2. Passes the correct request body (roomCode)
+ * 3. Permission check: only Host can call (facade-level gate)
+ * 4. Returns the API response
+ * 5. Network error handling
+ * 6. Server handles state reset; postgres_changes pushes new state to all clients
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
@@ -69,7 +69,7 @@ describe('restartGame Contract (HTTP API)', () => {
       getContext: jest.fn(),
     };
 
-    // DI: 直接注入 mock
+    // DI: inject mock directly
     facade = new GameFacade({
       store: new GameStore(),
       connectionManager: mockConnectionManager as unknown as ConnectionManager,
@@ -97,7 +97,7 @@ describe('restartGame Contract (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // API 调用测试
+  // API call tests
   // ===========================================================================
 
   describe('API Call', () => {
@@ -160,12 +160,12 @@ describe('restartGame Contract (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // 权限检查（facade-level gate，不依赖 API）
+  // Permission check (facade-level gate, not dependent on API)
   // ===========================================================================
 
   describe('Permission Check', () => {
     it('non-host calls are now rejected server-side (no client gate)', async () => {
-      // Phase 7: 客户端不再做 isHost 门控，服务端通过 state.hostUserId 校验拒绝
+      // Phase 7: client no longer gates by isHost; server rejects via state.hostUserId check
       (facade as unknown as { isHost: boolean }).isHost = false;
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -183,7 +183,7 @@ describe('restartGame Contract (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // 网络错误处理
+  // Network error handling
   // ===========================================================================
 
   describe('Network Error', () => {
@@ -198,15 +198,15 @@ describe('restartGame Contract (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // 服务端行为说明（不再客户端测试）
+  // Server-side behavior notes (no longer tested on client)
   // ===========================================================================
 
   describe('Server-side behavior (documented, not tested here)', () => {
     it('NOTE: restart is handled server-side, state pushed via postgres_changes', () => {
-      // 服务端 /game/restart 负责：
-      // 1. 调用 handleRestartGame handler
-      // 2. 写入 DB → postgres_changes 推送新状态到所有客户端
-      // 这些行为由 API route 测试验证，不在 facade 测试中
+      // Server-side /game/restart is responsible for:
+      // 1. Calling handleRestartGame handler
+      // 2. Writing to DB -> postgres_changes pushes new state to all clients
+      // These behaviors are verified by API route tests, not in facade tests
       expect(true).toBe(true);
     });
   });

@@ -1,14 +1,14 @@
 /**
- * BaseCenterModal — 居中弹窗基础组件
+ * BaseCenterModal — base centered modal component
  *
- * 提供 overlay（dark backdrop）+ 居中 content box 的通用壳子。
- * 消费者通过 children 填充自定义内容，通过 contentStyle 覆盖尺寸/圆角/阴影等。
- * 不包含业务逻辑，不 import service。
+ * Provides a generic shell with an overlay (dark backdrop) + centered content box.
+ * Consumers fill custom content via children and override size/radius/shadow via contentStyle.
+ * No business logic, no service imports.
  *
- * Overlay dismiss 使用 sibling 布局（Pressable absoluteFill 在 content 下层），
- * 而非 parent-wrapping 模式。这样 content children 的触摸事件不会被 overlay 拦截，
- * 兼容 web（DOM click bubble）和 native（responder system）。
- * 参考 RN 官方 Modal 文档示例。
+ * Overlay dismiss uses a sibling layout (Pressable absoluteFill placed below content),
+ * not the parent-wrapping pattern. This way content children touch events are not intercepted by the overlay,
+ * compatible with web (DOM click bubble) and native (responder system).
+ * See RN official Modal docs example.
  */
 import type React from 'react';
 import { Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
@@ -19,12 +19,12 @@ import { borderRadius, colors, spacing } from '@/theme';
 interface BaseCenterModalProps {
   visible: boolean;
   onClose: () => void;
-  /** 点击蒙层是否关闭 (default: false) */
+  /** Whether tapping the overlay closes the modal (default: false) */
   dismissOnOverlayPress?: boolean;
   animationType?: 'fade' | 'slide' | 'none';
-  /** 内容区样式覆盖（width / maxHeight / borderRadius / padding / shadow 等） */
+  /** Content style overrides (width / maxHeight / borderRadius / padding / shadow, etc.) */
   contentStyle?: StyleProp<ViewStyle>;
-  /** 内容区 testID */
+  /** Content testID */
   testID?: string;
   children: React.ReactNode;
 }

@@ -1,8 +1,8 @@
 /**
- * ScratchCatPet — 刮刮猫
+ * ScratchCatPet — Scratch Cat
  *
- * scratch 翻牌动画的伴生宠物。
- * 奶黄小猫 + 三角耳 + 胡须 + 前爪挠金币，浮动。
+ * Companion pet for the scratch card flip animation.
+ * Creamy yellow kitten + triangle ears + whiskers + paw scratching a gold coin, floating.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

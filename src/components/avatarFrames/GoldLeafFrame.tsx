@@ -14,12 +14,13 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * GoldLeafFrame — 金箔
+ * GoldLeafFrame - gold leaf
  *
- * 锤揲金属(hammered gold)边框。表面布满锤痕凹坑(dimple RadialGradient circles)。
- * 四角 = 精细 filigree 卷须(scrollwork = 多段 C-bezier)。
- * 边缘 = 不规则撕裂金箔(torn leaf edge jagged Paths)。浮雕双层内框。
- * 与原版完全不同: 原版是 crackle 折线+单圈卷轴, 新版是 dimple 纹+filigree 多层卷须+撕裂边。
+ * Hammered gold metal border. Surface covered with hammer dimples (dimple RadialGradient circles).
+ * Four corners = fine filigree scrollwork (multi-segment C-bezier).
+ * Edges = irregular torn gold leaf (torn leaf edge jagged Paths). Double-layer relief inner frame.
+ * Completely different from the original: the original was crackle polylines + single-loop scroll;
+ * this version uses dimple pattern + multi-layer filigree scrollwork + torn edges.
  */
 export const GoldLeafFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

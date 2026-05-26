@@ -1,9 +1,9 @@
 /**
- * SkiaSparkle — 共享十字闪烁星形组件（Skia）
+ * SkiaSparkle — shared cross-twinkle sparkle component (Skia)
  *
- * 渲染一个 ✦ 形 sparkle：中心亮点 + 十字 Line spike + 可选对角 spike（8 芒）+ 柔光晕。
- * 不含动画驱动——由外层 Group opacity / transform 控制。
- * 不 import service，不含业务逻辑。
+ * Renders a ✦-shaped sparkle: center bright dot + cross-Line spikes + optional diagonal spikes (8-pointed) + soft halo.
+ * Has no animation driver — animation is controlled by the outer Group's opacity / transform.
+ * Does not import services and contains no business logic.
  */
 import { Blur, Circle, Group, Line, vec } from '@shopify/react-native-skia';
 import React from 'react';

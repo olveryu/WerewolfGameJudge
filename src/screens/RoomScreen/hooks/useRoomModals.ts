@@ -1,9 +1,9 @@
 /**
- * useRoomModals — RoomScreen 的全局弹窗/模态框状态管理
+ * useRoomModals — Global modal/dialog state management for RoomScreen
  *
- * 从 useRoomScreenState 提取，集中管理所有弹窗的 visible 状态和 open/close handler。
- * 包含：角色卡片、技能预览、夜晚详情、分享详情、昨夜信息。
- * 不包含座位弹窗（由 useRoomSeatDialogs 管理）和 action 弹窗（由 useRoomActionDialogs 管理）。
+ * Extracted from useRoomScreenState; centralizes visible state and open/close handlers for all modals.
+ * Includes: role card, skill preview, night details, share details, last-night info.
+ * Excludes seat dialogs (managed by useRoomSeatDialogs) and action dialogs (managed by useRoomActionDialogs).
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -12,23 +12,23 @@ import { useCallback, useRef, useState } from 'react';
 import { DISMISS_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 
-/** useRoomModals 依赖 */
+/** useRoomModals deps */
 interface UseRoomModalsDeps {
-  /** 当前用户是否是 Host（决定 "详细信息" 弹窗的选项） */
+  /** Whether current user is Host (determines "详细信息" modal options) */
   isHost: boolean;
-  /** 当前用户是否可以分享战报截图（Host 或已被 Host share 的玩家） */
+  /** Whether current user can share the night-report screenshot (Host or a player shared by Host) */
   canShareReport: boolean;
-  /** 获取昨夜信息文本 */
-  getLastNightInfo: () => string; /** 获取乌鸦诅咒信息，无乌鸦返回 null */
-  getCurseInfo: () => string | null; /** 分享夜晚详情给指定座位（HTTP API） */
+  /** Get last-night info text */
+  getLastNightInfo: () => string; /** Get crow curse info; null if no crow */
+  getCurseInfo: () => string | null; /** Share night details to specified seats (HTTP API) */
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
-  /** 开始后台截图战报，返回 base64（成功）或 null（失败） */
+  /** Begin background capture of report; returns base64 (success) or null (failure) */
   beginReportCapture: () => Promise<string | null>;
-  /** 直接分享战报（系统分享/复制）。返回值可选，调用方不使用。 */
+  /** Directly share the report (system share/copy). Return value is optional and unused by caller. */
   shareNightReviewReport: () => Promise<unknown>;
 }
 
-/** useRoomModals 返回值 */
+/** useRoomModals return value */
 interface RoomModalsState {
   // ── Role card modal ──
   roleCardVisible: boolean;

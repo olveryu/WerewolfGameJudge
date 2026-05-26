@@ -1,7 +1,7 @@
 /**
- * GlowFlair — 微光
+ * GlowFlair — soft glow
  *
- * 四角微弱发光点，缓慢脉冲。Common 级座位装饰模板。
+ * Faint glowing dots in the four corners with slow pulse. Common-tier seat flair template.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

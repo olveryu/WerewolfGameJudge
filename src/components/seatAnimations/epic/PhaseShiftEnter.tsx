@@ -1,5 +1,5 @@
 /**
- * PhaseShiftEnter — 相位偏移
+ * PhaseShiftEnter — Phase Shift
  *
  * Child appears with a ghostly shimmer/phase effect — multiple translucent copies offset.
  * Epic-tier archetype. Parameterized by phase count, color tint, and shift pattern.

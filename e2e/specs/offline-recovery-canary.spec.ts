@@ -8,8 +8,8 @@ import { RoomPage } from '../pages/RoomPage';
 /**
  * Offline Recovery Canary
  *
- * 最小化回归用例：验证玩家短暂断网后可恢复到 Live 状态。
- * 该用例不覆盖完整夜晚流程，专注网络恢复链路健康检查。
+ * Minimal regression case: verifies a player can recover to Live state after brief offline.
+ * Does not cover the full night flow; focuses on network recovery path health check.
  */
 
 test.describe.configure({ mode: 'serial' });

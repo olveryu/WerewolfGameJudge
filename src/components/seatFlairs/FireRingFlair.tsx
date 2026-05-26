@@ -1,10 +1,10 @@
 /**
- * FireRingFlair — 烈焰之环 (Skia Canvas + Picture)
+ * FireRingFlair — Ring of Flames (Skia Canvas + Picture)
  *
- * 8 颗火焰粒子沿头像边缘环形运动，红→橙→黄渐变，带拖尾。
- * 背景层：LegendaryAura 多层辉光 + 色温偏移轨道环。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制，
- * 单一 Canvas 节点替代原先 34 个 SVG AnimatedCircle。
+ * 8 fire particles orbit the avatar edge in a ring, red->orange->yellow gradient, with trails.
+ * Background layer: LegendaryAura multi-layer glow + hue-shifted orbit ring.
+ * All drawn imperatively on UI thread via useDerivedValue + Picture;
+ * a single Canvas node replaces the original 34 SVG AnimatedCircle nodes.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

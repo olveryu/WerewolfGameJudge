@@ -1,7 +1,7 @@
 /**
  * Standard 12P Board UI Test
  *
- * Board: 预女猎白
+ * Board: Seer-Witch-Hunter-Villager
  * Roles: 4x villager, 4x wolf, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):

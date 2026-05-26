@@ -1,8 +1,8 @@
 /**
- * haptics - 揭示动画触觉反馈工具
+ * haptics - haptic feedback utility for reveal animations
  *
- * 惰性加载 expo-haptics，Web 端优雅降级。
- * 提供触觉反馈 IO。不 import service，不含游戏业务逻辑。
+ * Lazy-loads expo-haptics, with graceful degradation on web.
+ * Provides haptic feedback IO. Does not import service, contains no game business logic.
  */
 import { canUseHaptics } from './platform';
 

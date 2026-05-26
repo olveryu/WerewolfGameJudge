@@ -1,15 +1,15 @@
 /**
- * Witch Context - 女巫上下文计算
+ * Witch Context - witch context computation
  *
- * 纯函数模块，负责：
- * - 计算女巫行动时所需的上下文（killedSeat, canSave, canPoison）
- * - 判断是否需要设置 witchContext 并返回 action
+ * Pure function module, responsible for:
+ * - Computing the context the witch needs when acting (killedSeat, canSave, canPoison)
+ * - Deciding whether witchContext needs to be set and returning the action
  *
- * 设计原则：
- * - 单一真相：witchContext 只存在于 GameState.witchContext
- * - 纯函数：不 IO、不读外部、不写 state
- * - Schema-first：canSave 逻辑与 witchAction.steps[0].constraints['notSelf'] 对齐
- * - Night-1-only：canPoison 总是 true（项目规则：Night-1 毒药可用）
+ * Design principles:
+ * - Single source of truth: witchContext lives only in GameState.witchContext
+ * - Pure function: no IO, no external reads, no state writes
+ * - Schema-first: canSave logic aligns with witchAction.steps[0].constraints['notSelf']
+ * - Night-1-only: canPoison is always true (project rule: poison available on Night-1)
  */
 
 import type { SchemaId } from '../../models/roles/spec';
@@ -19,14 +19,14 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { NonNullState } from './types';
 
 /**
- * 计算女巫上下文（纯函数）
+ * Compute the witch context (pure function)
  *
- * 在进入 witchAction 步骤前调用，统一计算：
- * - killedSeat: 袭击目标（-1 表示无人死亡）
- * - canSave: 是否可以使用解药
- * - canPoison: 是否可以使用毒药
+ * Called before entering the witchAction step, uniformly computes:
+ * - killedSeat: attack target (-1 means no death)
+ * - canSave: whether the antidote can be used
+ * - canPoison: whether poison can be used
  *
- * @param state 当前游戏状态
+ * @param state current game state
  * @returns witchContext payload
  */
 function computeWitchContext(state: NonNullState): {
@@ -34,7 +34,7 @@ function computeWitchContext(state: NonNullState): {
   canSave: boolean;
   canPoison: boolean;
 } {
-  // 1. 计算袭击目标（killedSeat）
+  // 1. Compute the attack target (killedSeat)
   let killedSeat = -1;
 
   if (!state.wolfKillOverride) {
@@ -53,31 +53,31 @@ function computeWitchContext(state: NonNullState): {
     }
   }
 
-  // 2. 查找女巫座位，用于 notSelf 约束
+  // 2. Find the witch's seat, used for the notSelf constraint
   const witchSeat = findSeatByRole(state.players, 'witch') ?? -1;
 
-  // 3. Schema-first: witchAction.steps[0] (save) 有 notSelf 约束
-  // canSave 必须为 false 当：
-  //   (1) 没有被杀者（killedSeat < 0）
-  //   (2) 被杀者是女巫自己（killedSeat === witchSeat）
-  //   (3) 女巫座位未找到（witchSeat === -1，防御性：禁止救人避免异常态误操作）
+  // 3. Schema-first: witchAction.steps[0] (save) has the notSelf constraint
+  // canSave must be false when:
+  //   (1) no one was killed (killedSeat < 0)
+  //   (2) the killed seat is the witch herself (killedSeat === witchSeat)
+  //   (3) the witch's seat is not found (witchSeat === -1; defensive: forbid save to avoid mishandling abnormal state)
   const canSave = killedSeat >= 0 && witchSeat >= 0 && killedSeat !== witchSeat;
 
-  // Night-1 only（项目规则）: 毒药总是可用
-  // 若未来支持多夜，需改为从 state 读取女巫是否已用毒
+  // Night-1 only (project rule): poison is always available
+  // If multi-night becomes supported, switch to reading whether the witch has already used poison from state
   const canPoison = true;
 
   return { killedSeat, canSave, canPoison };
 }
 
 /**
- * 检查是否需要设置 witchContext，如需要则返回 action
+ * Check whether witchContext needs to be set, and return the action if so
  *
- * 统一入口：任何地方进入 witchAction 步骤时都调用此函数
+ * Unified entry point: any code path entering the witchAction step calls this function
  *
- * @param nextStepId 即将进入的步骤 ID
- * @param state 当前游戏状态
- * @returns SET_WITCH_CONTEXT action 或 null
+ * @param nextStepId the step ID being entered
+ * @param state current game state
+ * @returns SET_WITCH_CONTEXT action or null
  */
 export function maybeCreateWitchContextAction(
   nextStepId: SchemaId,
@@ -85,7 +85,7 @@ export function maybeCreateWitchContextAction(
 ): SetWitchContextAction | null {
   const hasWitch = state.templateRoles.includes('witch');
 
-  // 只在进入 witchAction 步骤且尚未设置 witchContext 时触发
+  // Only trigger when entering the witchAction step and witchContext has not yet been set
   if (nextStepId !== 'witchAction' || !hasWitch || state.witchContext) {
     return null;
   }

@@ -1,15 +1,15 @@
 /**
- * Action Schema Types - 行动输入协议类型定义
+ * Action Schema Types - action input protocol type definitions
  *
  * Declarative descriptions of role action inputs.
  * Pure data - no functions, no flow control.
- * 导出 ActionSchema / CompoundSchema / SchemaUi / ConfirmStatusUi 等类型定义及 BLOCKED_UI_DEFAULTS 常量，
- * 不依赖 service、不含副作用或流程控制。
+ * Exports type definitions like ActionSchema / CompoundSchema / SchemaUi / ConfirmStatusUi and the BLOCKED_UI_DEFAULTS constant.
+ * No service dependencies, no side effects or flow control.
  */
 
 // === Confirm Status Dialog UI (discriminated union, kind tag) ===
 
-/** 二态确认 UI — 猎人/狼王：可/不可发动技能 */
+/** Binary-state confirm UI — Hunter/Wolf King: can/cannot use ability */
 export interface ShootConfirmUi {
   readonly kind: 'shoot';
   readonly statusDialogTitle: string;
@@ -17,7 +17,7 @@ export interface ShootConfirmUi {
   readonly cannotText: string;
 }
 
-/** 三态阵营 UI — 复仇者：好人/狼人/绑定 */
+/** Ternary faction UI — Avenger: good/wolf/bonded */
 export interface FactionConfirmUi {
   readonly kind: 'faction';
   readonly statusDialogTitle: string;
@@ -26,7 +26,7 @@ export interface FactionConfirmUi {
   readonly bondedText: string;
 }
 
-/** 隐狼：显示狼同伴座位 */
+/** Hidden Wolf: display wolf teammates' seats */
 export interface WolfTeammatesConfirmUi {
   readonly kind: 'wolfTeammates';
   readonly statusDialogTitle: string;
@@ -212,7 +212,7 @@ interface BaseActionSchema {
 export interface ChooseSeatSchema extends BaseActionSchema {
   readonly kind: 'chooseSeat';
   readonly constraints: readonly TargetConstraint[];
-  readonly canSkip: boolean; // 是否可以不选
+  readonly canSkip: boolean; // whether selection can be skipped
 }
 
 /** Wolf vote - special handling for wolf pack */
@@ -248,7 +248,7 @@ interface MeetingConfig {
 
   /**
    * Whether an empty vote (no target) is allowed.
-   * - true: wolves can choose to "放弃袭击"
+   * - true: wolves can choose to "放弃袭击" (abandon attack)
    * - false: must select a target
    */
   readonly allowEmptyVote: boolean;
@@ -323,9 +323,9 @@ export interface MultiChooseSeatSchema extends BaseActionSchema {
   readonly maxTargets: number;
   readonly canSkip: boolean;
   readonly ui?: SchemaUi & {
-    /** 跳过按钮文案（如「不用技能」） */
+    /** Skip button text (e.g. "不用技能") */
     readonly bottomActionText?: string;
-    /** 确认按钮文案，支持 {count} 占位符（如「确认催眠({count}人)」） */
+    /** Confirm button text, supports {count} placeholder (e.g. "确认催眠({count}人)") */
     readonly confirmButtonText?: string;
   };
 }
@@ -341,17 +341,17 @@ export interface GroupConfirmSchema extends BaseActionSchema {
   /** Whether all living players must ack before proceeding */
   readonly requireAllAcks: boolean;
   readonly ui?: SchemaUi & {
-    /** 底栏按钮文案（如「催眠状态」），点击后弹出催眠信息弹窗 */
+    /** Bottom bar button text (e.g. "催眠状态"), tapping opens hypnotized info dialog */
     readonly bottomActionText?: string;
-    /** 弹窗内确认按钮文案（如「我知道了」） */
+    /** In-dialog confirm button text (e.g. "我知道了") */
     readonly confirmButtonText?: string;
-    /** 被催眠玩家看到的文案，支持 {seats} 占位符 */
+    /** Text shown to hypnotized players, supports {seats} placeholder */
     readonly hypnotizedText?: string;
-    /** 未被催眠玩家看到的文案 */
+    /** Text shown to non-hypnotized players */
     readonly notHypnotizedText?: string;
-    /** 情侣看到的文案，支持 {seat} 占位符（显示搭档座位号） */
+    /** Text shown to lovers, supports {seat} placeholder (displays partner's seat number) */
     readonly loverText?: string;
-    /** 非情侣看到的文案 */
+    /** Text shown to non-lovers */
     readonly notLoverText?: string;
   };
 }

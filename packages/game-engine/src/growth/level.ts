@@ -1,21 +1,21 @@
 /**
- * level — 等级系统
+ * level — level system
  *
- * 52 级（Lv.0–Lv.51），按累计 XP 升级。每级解锁 1 个头像或头像框。
- * XP/局: 50 + random(0~20)，期望 ~60。前期 1 局/级，后期 2 局/级。
- * 纯函数，无副作用。
+ * 52 levels (Lv.0–Lv.51), level up via cumulative XP. Each level unlocks 1 avatar or avatar frame.
+ * XP/game: 50 + random(0~20), expected ~60. Early game ~1 game/level, late game ~2 games/level.
+ * Pure function, no side effects.
  */
 
-/** XP 基础值 */
+/** XP base value */
 export const XP_BASE = 50;
 
-/** XP 随机基础范围上限（含），实际范围 = XP_RANDOM_BASE + level */
+/** Upper bound (inclusive) of XP random base range; actual range = XP_RANDOM_BASE + level */
 export const XP_RANDOM_BASE = 20;
 
 /**
- * 累计 XP 阈值表。index = 等级。
+ * Cumulative XP threshold table. index = level.
  *
- * Lv.0 = 0（免费），Lv.1–20 每级 +60，Lv.21–40 每级 +90，Lv.41–51 每级 +120。
+ * Lv.0 = 0 (free), Lv.1–20 +60 per level, Lv.21–40 +90 per level, Lv.41–51 +120 per level.
  */
 export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
   const t = [0];
@@ -28,7 +28,7 @@ export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
 
 const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1;
 
-/** 根据累计 XP 计算等级 */
+/** Compute level from cumulative XP */
 export function getLevel(xp: number): number {
   for (let i = MAX_LEVEL; i >= 0; i--) {
     if (xp >= LEVEL_THRESHOLDS[i]!) return i;
@@ -36,7 +36,7 @@ export function getLevel(xp: number): number {
   return 0;
 }
 
-/** 当前等级进度比例 0–1（满级返回 1） */
+/** Current level progress ratio 0–1 (returns 1 at max level) */
 export function getLevelProgress(xp: number): number {
   const level = getLevel(xp);
   if (level >= MAX_LEVEL) return 1;
@@ -45,7 +45,7 @@ export function getLevelProgress(xp: number): number {
   return (xp - currentThreshold) / (nextThreshold - currentThreshold);
 }
 
-/** 等级称号（按等级段位划分） */
+/** Level titles (bucketed by level range) */
 const LEVEL_TITLES = [
   { min: 0, max: 5, title: '新手' },
   { min: 6, max: 10, title: '入门' },
@@ -55,7 +55,7 @@ const LEVEL_TITLES = [
   { min: 41, max: 51, title: '传奇' },
 ] as const;
 
-/** 根据等级返回中文称号 */
+/** Return the Chinese title for a given level */
 export function getLevelTitle(level: number): string {
   for (const { min, max, title } of LEVEL_TITLES) {
     if (level >= min && level <= max) return title;
@@ -63,7 +63,7 @@ export function getLevelTitle(level: number): string {
   return '传奇';
 }
 
-/** 掷一次经验值（服务端调用）。50 + random(0 ~ 20 + level)。 */
+/** Roll an XP value (server-side). 50 + random(0 ~ 20 + level). */
 export function rollXp(level: number): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
@@ -74,15 +74,15 @@ export function rollXp(level: number): number {
 // ─── Per-game normal draw reward ────────────────────────────────────────
 
 /**
- * 每局普通券随机分布（加权）。E[X] = 2.25。
+ * Per-game normal-ticket random distribution (weighted). E[X] = 2.25.
  *
- * | 张数 | 概率 | 累积权重 |
- * |------|------|----------|
- * | 1    | 30%  | 30       |
- * | 2    | 35%  | 65       |
- * | 3    | 20%  | 85       |
- * | 4    | 10%  | 95       |
- * | 5    | 5%   | 100      |
+ * | Count | Prob | Cumulative weight |
+ * |-------|------|-------------------|
+ * | 1     | 30%  | 30                |
+ * | 2     | 35%  | 65                |
+ * | 3     | 20%  | 85                |
+ * | 4     | 10%  | 95                |
+ * | 5     | 5%   | 100               |
  */
 const NORMAL_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[] = [
   { draws: 1, cumulativeWeight: 30 },
@@ -92,7 +92,7 @@ const NORMAL_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[
   { draws: 5, cumulativeWeight: 100 },
 ];
 
-/** 掷一次每局普通券数量（服务端调用）。1–5 张，加权随机。 */
+/** Roll per-game normal ticket count (server-side). 1–5, weighted random. */
 export function rollNormalDraws(): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);
@@ -106,15 +106,15 @@ export function rollNormalDraws(): number {
 // ─── Level-up golden draw reward ───────────────────────────────────────
 
 /**
- * 升级黄金券随机分布（加权）。E[X] = 2.11。
+ * Level-up golden-ticket random distribution (weighted). E[X] = 2.11.
  *
- * | 张数 | 概率 | 累积权重 |
- * |------|------|----------|
- * | 1    | 35%  | 35       |
- * | 2    | 35%  | 70       |
- * | 3    | 18%  | 88       |
- * | 4    | 8%   | 96       |
- * | 5    | 4%   | 100      |
+ * | Count | Prob | Cumulative weight |
+ * |-------|------|-------------------|
+ * | 1     | 35%  | 35                |
+ * | 2     | 35%  | 70                |
+ * | 3     | 18%  | 88                |
+ * | 4     | 8%   | 96                |
+ * | 5     | 4%   | 100               |
  */
 const GOLDEN_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[] = [
   { draws: 1, cumulativeWeight: 35 },
@@ -124,7 +124,7 @@ const GOLDEN_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[
   { draws: 5, cumulativeWeight: 100 },
 ];
 
-/** 掷一次升级黄金券数量（服务端调用）。1–5 张，加权随机。 */
+/** Roll level-up golden ticket count (server-side). 1–5, weighted random. */
 export function rollGoldenDraws(): number {
   const array = new Uint32Array(1);
   crypto.getRandomValues(array);

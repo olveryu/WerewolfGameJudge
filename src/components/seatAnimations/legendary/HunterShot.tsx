@@ -1,5 +1,5 @@
 /**
- * HunterShot — 猎人开枪
+ * HunterShot — Hunter shoots
  *
  * Legendary entrance: crosshair appears, locks on, muzzle flash, bullet trail,
  * shockwave reveals avatar.

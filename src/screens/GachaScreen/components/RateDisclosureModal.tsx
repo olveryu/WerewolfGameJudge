@@ -1,8 +1,8 @@
 /**
- * RateDisclosureModal — 概率公示弹窗
+ * RateDisclosureModal — probability disclosure modal
  *
- * 表格展示普通抽 / 黄金抽各稀有度概率，底部保底规则说明。
- * 数据直接读 game-engine 导出的 NORMAL_RATES / GOLDEN_RATES，无 hardcode。
+ * Table shows per-rarity probabilities for normal / golden draws, with pity rules at the bottom.
+ * Data reads directly from game-engine's NORMAL_RATES / GOLDEN_RATES exports, no hardcoding.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
@@ -37,7 +37,7 @@ const NORMAL_DRAW_PROBS = [30, 35, 20, 10, 5] as const;
 /** Level-up golden probabilities (%) — matches rollGoldenDraws weights */
 const GOLDEN_DRAW_PROBS = [35, 35, 18, 8, 4] as const;
 
-/** 概率披露弹窗。 */
+/** Probability disclosure modal. */
 export const RateDisclosureModal = React.memo<Props>(({ visible, onClose }) => {
   const styles = useMemo(() => createStyles(), []);
 

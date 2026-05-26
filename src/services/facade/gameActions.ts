@@ -1,11 +1,12 @@
 /**
- * Game Actions — 游戏 HTTP API 业务编排（声明式）
+ * Game Actions — Game HTTP API business orchestration (declarative)
  *
- * 使用 defineGameAction 工厂将原本手动的 debug-log → guard → callApi 模式
- * 替换为声明式定义。每个动作只声明 name / path / 可选的 body / after。
+ * Uses the defineGameAction factory to replace the previously manual
+ * debug-log -> guard -> callApi pattern with declarative definitions.
+ * Each action only declares name / path / optional body / after.
  *
- * 职责同 defineGameAction.ts。
- * 禁止：业务逻辑/校验规则（全部在 handler / 服务端），直接修改 state。
+ * Responsibilities same as defineGameAction.ts.
+ * Forbidden: business logic/validation rules (all in handler / server), direct state mutation.
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -18,51 +19,51 @@ import { facadeLog } from '@/utils/logger';
 import { defineGameAction } from './defineGameAction';
 
 /**
- * gameActions 依赖的上下文接口
- * （从 Facade 注入，避免循环依赖）
+ * Context interface required by gameActions
+ * (injected from Facade to avoid circular dependencies)
  */
 export interface GameActionsContext {
   readonly store: GameStore;
   myUserId: string | null;
   getMySeat: () => number | null;
-  /** AudioService 实例（用于 preload 等直接调用） */
+  /** AudioService instance (for direct calls like preload) */
   audioService: AudioService;
 }
 
 // =============================================================================
-// Host-only: 房间 / 模板管理
+// Host-only: room / template management
 // =============================================================================
 
-/** Host: 分配角色 */
+/** Host: assign roles */
 export const assignRoles = defineGameAction({
   name: 'assignRoles',
   path: '/game/assign',
 });
 
-/** Host: 更新模板 */
+/** Host: update template */
 export const updateTemplate = defineGameAction<[GameTemplate]>({
   name: 'updateTemplate',
   path: '/game/update-template',
   body: (template) => ({ templateRoles: template.roles }),
 });
 
-/** Host: 重新开始游戏 */
+/** Host: restart game */
 export const restartGame = defineGameAction({
   name: 'restartGame',
   path: '/game/restart',
 });
 
-/** Host: 全员起立 */
+/** Host: unseat all */
 export const clearAllSeats = defineGameAction({
   name: 'clearAllSeats',
   path: '/game/clear-seats',
 });
 
 // =============================================================================
-// 角色查看
+// Role viewing
 // =============================================================================
 
-/** Host/Player: 标记某座位已查看角色 */
+/** Host/Player: mark a seat as having viewed role */
 export const markViewedRole = defineGameAction<[number]>({
   name: 'markViewedRole',
   path: '/game/view-role',
@@ -71,10 +72,10 @@ export const markViewedRole = defineGameAction<[number]>({
 });
 
 // =============================================================================
-// 夜晚流程
+// Night flow
 // =============================================================================
 
-/** Host: 开始夜晚（成功后 preload 音频） */
+/** Host: start night (preload audio on success) */
 export const startNight = defineGameAction({
   name: 'startNight',
   path: '/game/start',
@@ -89,14 +90,14 @@ export const startNight = defineGameAction({
   },
 });
 
-/** Host: 分享夜晚详情给指定座位 */
+/** Host: share night review with specific seats */
 export const shareNightReview = defineGameAction<[number[]]>({
   name: 'shareNightReview',
   path: '/game/share-review',
   body: (allowedSeats) => ({ allowedSeats }),
 });
 
-/** 提交夜晚行动 */
+/** Submit night action */
 export const submitAction = defineGameAction<[number, RoleId, number | null, unknown?]>({
   name: 'submitAction',
   path: '/game/night/action',
@@ -108,7 +109,7 @@ export const submitAction = defineGameAction<[number, RoleId, number | null, unk
   },
 });
 
-/** Host: 设置音频播放状态 */
+/** Host: set audio playback state */
 export const setAudioPlaying = defineGameAction<[boolean]>({
   name: 'setAudioPlaying',
   path: '/game/night/audio-gate',
@@ -119,7 +120,7 @@ export const setAudioPlaying = defineGameAction<[boolean]>({
 // Reveal / Group-Confirm Ack
 // =============================================================================
 
-/** Host: 清除 pending reveal acks 并推进 */
+/** Host: clear pending reveal acks and progress */
 export const clearRevealAcks = defineGameAction({
   name: 'clearRevealAcks',
   path: '/game/night/reveal-ack',
@@ -130,7 +131,7 @@ export const clearRevealAcks = defineGameAction({
   },
 });
 
-/** Player: 提交 groupConfirm ack */
+/** Player: submit groupConfirm ack */
 export const submitGroupConfirmAck = defineGameAction<[number]>({
   name: 'submitGroupConfirmAck',
   path: '/game/night/group-confirm-ack',
@@ -143,7 +144,7 @@ export const submitGroupConfirmAck = defineGameAction<[number]>({
   },
 });
 
-/** Host/Player: 机械狼人查看猎人状态 */
+/** Host/Player: Wolf Robot viewed Hunter status */
 export const setWolfRobotHunterStatusViewed = defineGameAction<[number]>({
   name: 'setWolfRobotHunterStatusViewed',
   path: '/game/night/wolf-robot-viewed',
@@ -159,13 +160,13 @@ export const setWolfRobotHunterStatusViewed = defineGameAction<[number]>({
 // Audio Ack & Progression
 // =============================================================================
 
-/** Host: 音频播放完毕后确认 */
+/** Host: ack after audio playback completes */
 export const postAudioAck = defineGameAction({
   name: 'postAudioAck',
   path: '/game/night/audio-ack',
 });
 
-/** Host: 触发服务端推进 */
+/** Host: trigger server-side progression */
 export const postProgression = defineGameAction({
   name: 'postProgression',
   path: '/game/night/progression',
@@ -175,29 +176,29 @@ export const postProgression = defineGameAction({
 // Debug Mode
 // =============================================================================
 
-/** Host: 填充机器人（Debug-only） */
+/** Host: fill seats with bots (Debug-only) */
 export const fillWithBots = defineGameAction({
   name: 'fillWithBots',
   path: '/game/fill-bots',
 });
 
-/** Host: 标记所有机器人已查看角色（Debug-only） */
+/** Host: mark all bots as having viewed role (Debug-only) */
 export const markAllBotsViewed = defineGameAction({
   name: 'markAllBotsViewed',
   path: '/game/mark-bots-viewed',
 });
 
-/** Host: 标记所有机器人已确认 groupConfirm 步骤（Debug-only） */
+/** Host: mark all bots as having confirmed groupConfirm step (Debug-only) */
 export const markAllBotsGroupConfirmed = defineGameAction({
   name: 'markAllBotsGroupConfirmed',
   path: '/game/night/mark-bots-group-confirmed',
 });
 
 // =============================================================================
-// 玩家资料同步
+// Player profile sync
 // =============================================================================
 
-/** 同步玩家资料到 GameState（任何在座玩家） */
+/** Sync player profile to GameState (any seated player) */
 export const updatePlayerProfile = defineGameAction<
   [string?, string?, string?, string?, string?, string?, string?]
 >({
@@ -224,10 +225,10 @@ export const updatePlayerProfile = defineGameAction<
 });
 
 // =============================================================================
-// 板子建议
+// Board suggestions
 // =============================================================================
 
-/** 提交板子建议（任意已连接玩家，每人最多一条） */
+/** Submit board suggestion (any connected player, max one per person) */
 export const boardNominate = defineGameAction<[string, RoleId[]]>({
   name: 'boardNominate',
   path: '/game/board-nominate',
@@ -235,7 +236,7 @@ export const boardNominate = defineGameAction<[string, RoleId[]]>({
   body: (displayName, roles) => ({ displayName, roles }),
 });
 
-/** 点赞板子建议（任意已连接玩家） */
+/** Upvote board suggestion (any connected player) */
 export const boardUpvote = defineGameAction<[string]>({
   name: 'boardUpvote',
   path: '/game/board-upvote',
@@ -243,7 +244,7 @@ export const boardUpvote = defineGameAction<[string]>({
   body: (targetUserId) => ({ targetUserId }),
 });
 
-/** 撤回板子建议（仅提交者本人） */
+/** Withdraw board suggestion (submitter only) */
 export const boardWithdraw = defineGameAction({
   name: 'boardWithdraw',
   path: '/game/board-withdraw',

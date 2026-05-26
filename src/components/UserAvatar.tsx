@@ -1,10 +1,10 @@
 /**
- * UserAvatar — 用户头像按钮（含抽奖券 badge）
+ * UserAvatar — user avatar button (with gacha ticket badge)
  *
- * 已登录：显示用户头像（Avatar 组件），点击进 Settings。
- * 未登录：显示默认人物 icon，点击进 Settings。
- * 纯展示组件，不 import service，不包含业务逻辑。
- * HomeScreen TopBar 和 RoomScreen HeaderActions 共用。
+ * Signed-in: shows user avatar (Avatar component); tap opens Settings.
+ * Signed-out: shows default person icon; tap opens Settings.
+ * Pure presentational component, no service imports, no business logic.
+ * Shared by HomeScreen TopBar and RoomScreen HeaderActions.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';

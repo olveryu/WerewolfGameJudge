@@ -1,8 +1,8 @@
 /**
- * GachaService — 扭蛋/抽奖客户端 service
+ * GachaService — gacha/draw client service
  *
- * 查询抽奖状态、执行抽奖、领取每日登录奖励、碎片兑换。
- * 使用 cfGet/cfPost 统一封装。
+ * Queries draw status, performs draws, claims daily login rewards, and exchanges shards.
+ * Wrapped uniformly via cfGet/cfPost.
  */
 
 import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
@@ -53,12 +53,12 @@ export interface ExchangeResponse {
   remainingShards: number;
 }
 
-/** 获取当前用户的抽奖状态 */
+/** Gets the current user's gacha status */
 export async function fetchGachaStatus(): Promise<GachaStatus> {
   return cfGet<GachaStatus>('/api/gacha/status');
 }
 
-/** 执行抽奖（幂等：同一 idempotencyKey 重试返回相同结果） */
+/** Performs a draw (idempotent: retrying with the same idempotencyKey returns the same result) */
 export async function performDraw(
   drawType: 'normal' | 'golden',
   count: number = 1,
@@ -67,12 +67,12 @@ export async function performDraw(
   return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count, idempotencyKey });
 }
 
-/** 领取每日登录奖励（1–5 次普通抽 + 1 次黄金抽） */
+/** Claims daily login reward (1-5 normal draws + 1 golden draw) */
 export async function claimDailyReward(localDate: string): Promise<DailyRewardResponse> {
   return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', { localDate });
 }
 
-/** 碎片兑换指定物品（幂等：同一 idempotencyKey 重试返回相同结果） */
+/** Exchanges shards for the specified item (idempotent: retrying with the same idempotencyKey returns the same result) */
 export async function exchangeShard(rewardId: string): Promise<ExchangeResponse> {
   const idempotencyKey = crypto.randomUUID();
   return cfPost<ExchangeResponse>('/api/gacha/exchange', { rewardId, idempotencyKey });

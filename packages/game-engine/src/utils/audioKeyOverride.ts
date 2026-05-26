@@ -1,14 +1,14 @@
 /**
- * Audio key override — 多预言家标签音频重写
+ * Audio key override - multi-Seer label audio rewrite
  *
- * 当多个 displayAs='seer' 角色同时在场时，`seerLabelMap` 会在 ASSIGN_ROLES 阶段随机生成，
- * 记录各角色对应的编号（1, 2, ...）。本函数将原始 audioKey 映射到编号化的音频文件 key。
+ * When multiple displayAs='seer' roles are in play, `seerLabelMap` is randomly generated during ASSIGN_ROLES,
+ * recording each role's corresponding number (1, 2, ...). This function maps the original audioKey to a numbered audio file key.
  *
- * 规则：
- * - 有 seerLabelMap 且 audioKey 在 map 中有对应编号 → `'seer_N'`
- * - 其余情况原样返回
+ * Rules:
+ * - seerLabelMap exists and audioKey has a corresponding number in map -> `'seer_N'`
+ * - Otherwise return as-is
  *
- * 不处理仅单个 seer-like 角色在场的情况——此时无 seerLabelMap，角色的原始音频直接播放。
+ * Does not handle the case where only a single seer-like role is in play — in that case there is no seerLabelMap and the role's original audio plays directly.
  */
 export function resolveSeerAudioKey(
   audioKey: string,

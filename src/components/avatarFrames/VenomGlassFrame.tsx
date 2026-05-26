@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * VenomGlassFrame — 毒玻璃
+ * VenomGlassFrame — Venom glass
  *
- * 翡翠毒液框 · 毒液水滴从边缘滴落 · 裂纹玻璃效果 · 四角毒蘑菇造型。
+ * Emerald venom frame, venom droplets dripping from edges, cracked-glass effect, toxic mushroom motifs in each corner.
  */
 export const VenomGlassFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

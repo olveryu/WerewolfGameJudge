@@ -1,28 +1,29 @@
 /**
- * BgmPlayer — 背景音乐生命周期管理器。
+ * BgmPlayer — background music lifecycle manager.
  *
- * 职责：
- * - 单曲循环模式（用户选定 BGM）
- * - 播放列表模式（shuffle 全曲目，顺序播放，循环时重新洗牌）
- * - 跨平台后端：Web 用 AudioContext + GainNode，Native 用 expo-audio
- * - 页面可见性变化时 pause/resume
+ * Responsibilities:
+ * - Single-track loop mode (user-selected BGM)
+ * - Playlist mode (shuffle all tracks, sequential playback, re-shuffle on cycle)
+ * - Cross-platform backend: Web uses AudioContext + GainNode, Native uses expo-audio
+ * - pause/resume on page visibility change
  *
- * 不负责：
- * - TTS 语音播放（由 AudioPlaybackStrategy 处理）
- * - 决定何时播放（由 AudioOrchestrator 编排）
+ * Not responsible for:
+ * - TTS voice playback (handled by AudioPlaybackStrategy)
+ * - Deciding when to play (orchestrated by AudioOrchestrator)
  *
- * 边界约束：
- * - Web 用 GainNode 控制音量（iOS Safari 忽略 HTMLAudioElement.volume）
+ * Boundary constraints:
+ * - Web uses GainNode for volume control (iOS Safari ignores HTMLAudioElement.volume)
  * - AudioContext / GainNode / MediaElementAudioSourceNode / HTMLAudioElement
- *   全部跨曲目复用——微信 web-view 中非用户手势创建 new Audio() 或
- *   AudioContext 会被静默阻止
- * - 微信 web-view（鸿蒙 ArkWeb）可能吞掉 `ended` 事件和原生 `loop`，
- *   用 `timeupdate` 轮询兜底检测曲目结束
+ *   are all reused across tracks — in WeChat web-view, creating `new Audio()` or
+ *   AudioContext outside a user gesture is silently blocked
+ * - WeChat web-view (HarmonyOS ArkWeb) may swallow the `ended` event and native `loop`;
+ *   use `timeupdate` polling as a fallback to detect track end
  *
- * @remarks GainNode 复用：stop() 时不释放 AudioContext/GainNode/element（WeChat ArkWeb
- *   限制 AudioContext 创建数量）。`timeupdate` fallback: 当 `ended` 事件不触发时，
- *   在 timeupdate 中检测 currentTime >= duration - 0.3s 手动触发 track end。
- *   #trackEndFired 防止 ended + timeupdate 双重触发。
+ * @remarks GainNode reuse: stop() does not release AudioContext/GainNode/element
+ *   (WeChat ArkWeb limits AudioContext creation count). `timeupdate` fallback: when
+ *   the `ended` event does not fire, detect `currentTime >= duration - 0.3s` in
+ *   timeupdate to manually fire track end. #trackEndFired prevents
+ *   double-fire from ended + timeupdate.
  */
 
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
@@ -40,9 +41,9 @@ import { getUnlockedAudioContext, getUnlockedBgmElement } from './webAudioUnlock
 const isWeb = Platform.OS === 'web';
 
 /**
- * BgmPlayer — BGM 播放器（单曲/播放列表/随机）。
+ * BgmPlayer — BGM player (single-track / playlist / shuffle).
  *
- * Web 使用 HTMLAudioElement，Native 使用 expo-audio。
+ * Web uses HTMLAudioElement, Native uses expo-audio.
  */
 export class BgmPlayer {
   // ── Shared state ──
@@ -252,7 +253,7 @@ export class BgmPlayer {
       audio.addEventListener('ended', this.#webEndedHandler);
     }
 
-    // Fallback: WeChat web-view (鸿蒙 ArkWeb) may not fire `ended` and may
+    // Fallback: WeChat web-view (HarmonyOS ArkWeb) may not fire `ended` and may
     // ignore `audio.loop`. Poll via `timeupdate` to detect track end.
     this.#webTimeupdateHandler = () => {
       if (this.#trackEndFired) return;

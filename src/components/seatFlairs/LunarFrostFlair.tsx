@@ -1,7 +1,7 @@
 /**
- * LunarFrostFlair — 月霜凝结
+ * LunarFrostFlair — lunar frost condensation
  *
- * 4 朵六臂冰晶在头像区域缓慢旋转 + 渐现渐隐，AnimatedLine 绘制对称臂。
+ * 4 six-armed ice crystals slowly rotate + fade in/out over the avatar area; AnimatedLine draws the symmetric arms.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

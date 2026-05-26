@@ -40,7 +40,7 @@ export function isBottomCardActorOverride(state: NonNullState, stepId: SchemaId)
 }
 
 /**
- * 根据角色获取对应的 SchemaId
+ * Get the corresponding SchemaId for a given role.
  */
 function getSchemaIdForRole(role: RoleId): SchemaId | null {
   for (const step of NIGHT_STEPS) {
@@ -52,15 +52,15 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
 }
 
 /**
- * 验证前置条件（PR4 完整 gate）
+ * Validate action preconditions (PR4 full gate).
  *
- * Gate 顺序（必须遵守）：
+ * Gate order (must follow):
  * 1. no_state
  * 2. invalid_status (must be ongoing)
  * 3. forbidden_while_audio_playing
- * 4. invalid_step (currentStepId 必须存在且匹配)
- * 5. not_seated (actor seat 必须有玩家)
- * 6. schema constraints (由 resolver 处理)
+ * 4. invalid_step (currentStepId must exist and match)
+ * 5. not_seated (actor seat must have a player)
+ * 6. schema constraints (handled by resolver)
  */
 export function validateActionPreconditions(
   state: NonNullState | null,
@@ -93,7 +93,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 4: invalid_step (currentStepId 必须存在且能在 SCHEMAS 里找到)
+  // Gate 4: invalid_step (currentStepId must exist and be found in SCHEMAS)
   const currentStepId = state.currentStepId;
   if (!currentStepId) {
     return {
@@ -110,7 +110,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 4b: step mismatch - 提交的 role 必须与当前 step 对应
+  // Gate 4b: step mismatch - submitted role must match the current step
   const expectedSchemaId = getSchemaIdForRole(role);
   // Special case: wolfKill is a meeting step shared by multiple wolf-team roles
   // (e.g. wolf, spiritKnight, wolfQueen...). For this step we validate participation
@@ -129,7 +129,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 5: not_seated (actor seat 必须有玩家)
+  // Gate 5: not_seated (actor seat must have a player)
   const player = state.players[actorSeat];
   if (!player) {
     return {
@@ -138,7 +138,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 5b: 玩家角色必须匹配
+  // Gate 5b: player role must match
   if (player.role !== role) {
     return {
       valid: false,
@@ -146,7 +146,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 6: resolver 存在性检查
+  // Gate 6: resolver existence check
   if (!RESOLVERS[currentStepId]) {
     return {
       valid: false,
@@ -162,35 +162,35 @@ export function validateActionPreconditions(
 // =============================================================================
 
 /**
- * Schema-aware skip 判断
+ * Schema-aware skip detection.
  *
- * 根据 schema.kind 判断本次提交是否为 skip（无实际行动）
+ * Determines whether the submission is a skip (no actual action) based on schema.kind.
  *
- * @param schema - 当前步骤的 schema 定义
- * @param actionInput - 玩家提交的 action input
- * @returns true 表示是 skip，false 表示是实际行动
+ * @param schema - Schema definition of the current step
+ * @param actionInput - Player-submitted action input
+ * @returns true for skip, false for actual action
  */
 export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): boolean {
   switch (schema.kind) {
     case 'confirm':
-      // confirm 类型：confirmed !== true 视为 skip
+      // confirm kind: confirmed !== true is treated as skip
       return actionInput.confirmed !== true;
 
     case 'chooseSeat':
     case 'wolfVote':
-      // 选择座位类型：target == null 视为 skip
+      // chooseSeat kind: target == null is treated as skip
       return actionInput.target === undefined || actionInput.target === null;
 
     case 'multiChooseSeat':
-      // 多目标选择类型：targets 为空视为 skip
+      // multiChooseSeat kind: empty targets is treated as skip
       return !actionInput.targets || actionInput.targets.length === 0;
 
     case 'swap':
-      // 交换类型：targets 为空视为 skip
+      // swap kind: empty targets is treated as skip
       return !actionInput.targets || actionInput.targets.length === 0;
 
     case 'compound': {
-      // 复合类型：stepResults 为空或所有 step 都是 null 视为 skip
+      // compound kind: empty stepResults or all-null is treated as skip
       if (!actionInput.stepResults) return true;
       const results = Object.values(actionInput.stepResults);
       // empty array is considered skip; all-null is also skip
@@ -199,40 +199,40 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
     }
 
     case 'groupConfirm':
-      // groupConfirm 类型：确认步骤，永远不是 skip
+      // groupConfirm kind: confirmation step, never a skip
       return false;
 
     case 'chooseCard':
-      // 选卡类型：cardIndex == null 视为 skip
+      // chooseCard kind: cardIndex == null is treated as skip
       return actionInput.cardIndex === undefined || actionInput.cardIndex === null;
 
     default:
-      // 未知类型：安全策略 - 统一视为 non-skip
-      // 被 block 时宁可多 reject，避免漏过非法输入
+      // Unknown kind: safe policy — treat as non-skip
+      // When blocked, prefer over-rejecting to avoid letting invalid input through
       return false;
   }
 }
 
 /**
- * 统一的 nightmare block 校验（单点 guard，schema-aware）
+ * Unified nightmare block validation (single-point guard, schema-aware).
  *
- * 规则（MUST follow）：
+ * Rules (MUST follow):
  *
- * 1. 被噩梦之影封锁 = 规则禁止输入，只能跳过
- *    - 被 block 时：只有 skip 是 valid，任何非 skip 行动都必须 reject
+ * 1. Blocked by Nightmare = rules forbid input, only skip is allowed.
+ *    - When blocked: only skip is valid; any non-skip action must be rejected.
  *
- * 2. confirm 类（hunter/darkWolfKing）的 skip 规则：
- *    - 未被 block 时：不允许 skip（confirmed 不是 true 就是非法输入 → reject）
- *    - 被 block 时：只允许 skip（confirmed===true 也要 reject；只有"跳过"才 valid）
+ * 2. confirm kind (hunter/darkWolfKing) skip rules:
+ *    - When not blocked: skip not allowed (confirmed !== true is invalid -> reject)
+ *    - When blocked: only skip allowed (confirmed===true is also rejected; only "skip" is valid)
  *
- * 3. 其他类（chooseSeat/wolfVote/swap/compound）：
- *    - 被 block 时：只允许 skip
- *    - 未被 block 时：不做额外限制
+ * 3. Other kinds (chooseSeat/wolfVote/swap/compound):
+ *    - When blocked: only skip allowed
+ *    - When not blocked: no extra restrictions
  *
- * @param seat - 行动者座位
- * @param schema - 当前步骤的 schema 定义
- * @param actionInput - 构建好的 ActionInput（包含所有 payload 字段）
- * @param blockedSeat - 被噩梦之影封锁的座位
+ * @param seat - Actor seat
+ * @param schema - Schema definition of the current step
+ * @param actionInput - Constructed ActionInput (includes all payload fields)
+ * @param blockedSeat - Seat blocked by Nightmare
  * @returns rejectReason if rejected, undefined if allowed
  */
 export function checkNightmareBlockGuard(
@@ -244,7 +244,7 @@ export function checkNightmareBlockGuard(
   const isBlocked = blockedSeat === seat;
   const isSkip = isSkipAction(schema, actionInput);
 
-  // confirm 类的特殊规则：未被 block 时不允许 skip
+  // Special rule for confirm kind: skip not allowed when not blocked
   if (schema.kind === 'confirm') {
     if (!isBlocked && isSkip) {
       return '当前无法跳过，请执行行动';
@@ -255,7 +255,7 @@ export function checkNightmareBlockGuard(
     return undefined;
   }
 
-  // 其他 schema：被 block 时只允许 skip
+  // Other schemas: only skip allowed when blocked
   if (isBlocked && !isSkip) {
     return BLOCKED_UI_DEFAULTS.message;
   }

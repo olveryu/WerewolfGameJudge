@@ -1,12 +1,12 @@
 /**
  * Seer Integration Tests
  *
- * 验证 seer 角色在 架构下的完整链路：
- * - UI → PlayerMessage(ACTION) → Handler → Resolver → APPLY_RESOLVER_RESULT
- * - seerReveal 结果正确性
- * - Nightmare block 场景
+ * Verifies the full pipeline for the seer role under the current architecture:
+ * - UI -> PlayerMessage(ACTION) -> Handler -> Resolver -> APPLY_RESOLVER_RESULT
+ * - seerReveal result correctness
+ * - Nightmare block scenarios
  *
- * 使用 harness (createGame)
+ * Uses harness (createGame)
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -19,11 +19,11 @@ const MAX_STEP_ADVANCES = 20;
 
 describe('Seer Integration', () => {
   /**
-   * 简化模板：只包含 seer 和 wolf（最小可测试配置）
+   * Simplified template: only seer and wolf (minimal testable config)
    *
-   * NIGHT_STEPS 顺序决定第一步：
-   * - 这个模板的第一步是 wolfKill（因为 wolf 在步骤表中排在 seer 前面）
-   * - 测试需要先推进到 seerCheck 步骤
+   * NIGHT_STEPS order determines the first step:
+   * - First step here is wolfKill (wolf precedes seer in the step table)
+   * - Tests must advance to the seerCheck step first
    */
   const SEER_TEMPLATE: RoleId[] = [
     'seer', // seat 0
@@ -38,15 +38,15 @@ describe('Seer Integration', () => {
     return map;
   }
 
-  /** 推进到 seerCheck 步骤的辅助函数（带 hard cap）*/
+  /** Helper to advance to the seerCheck step (with hard cap) */
   function advanceToSeerStep(ctx: ReturnType<typeof createGame>): boolean {
-    // 第一步是 wolfKill
+    // First step is wolfKill
     if (ctx.getGameState().currentStepId === 'wolfKill') {
-      // 狼放弃袭击
+      // Wolf abandons attack
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 1,
-        target: -1, // 放弃袭击
+        target: -1, // abandon attack
       });
       ctx.sendPlayerMessage({
         type: 'ACTION',
@@ -57,7 +57,7 @@ describe('Seer Integration', () => {
       ctx.advanceNight();
     }
 
-    // 现在应该在 seerCheck
+    // Should now be at seerCheck
     return ctx.getGameState().currentStepId === 'seerCheck';
   }
 
@@ -65,11 +65,11 @@ describe('Seer Integration', () => {
     it('should write seerReveal to GameState when seer checks wolf', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       expect(advanceToSeerStep(ctx)).toBe(true);
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
-      // seer 查验 seat 1 (wolf)
+      // seer checks seat 1 (wolf)
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -82,17 +82,17 @@ describe('Seer Integration', () => {
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(1);
-      // result 可能是 "wolf" 或 "狼人"（取决于 resolver 实现）
+      // result may be "wolf" or "狼人" (depends on resolver impl)
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
     });
 
     it('should write seerReveal with "good" when seer checks villager', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerStep(ctx);
 
-      // seer 查验 seat 2 (villager)
+      // seer checks seat 2 (villager)
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -105,17 +105,17 @@ describe('Seer Integration', () => {
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(2);
-      // 预言家查验好人返回 "好人" 或 "good"
+      // Seer checking a good player returns "好人" or "good"
       expect(['好人', 'good']).toContain(state.seerReveal!.result);
     });
 
     it('should reject seer self-check (notSelf constraint)', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerStep(ctx);
 
-      // seer 查验自己 (seat 0)
+      // seer checks self (seat 0)
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -132,7 +132,7 @@ describe('Seer Integration', () => {
     it('should allow seer to skip (target=null)', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerStep(ctx);
 
       const result = ctx.sendPlayerMessage({
@@ -145,13 +145,13 @@ describe('Seer Integration', () => {
       expect(result.success).toBe(true);
 
       const state = ctx.getGameState();
-      // skip 时不应该有 seerReveal
+      // No seerReveal expected on skip
       expect(state.seerReveal).toBeUndefined();
     });
   });
 
   describe('Nightmare Block Edge Cases', () => {
-    // 需要包含 nightmare 的模板
+    // Template including nightmare
     const NIGHTMARE_SEER_TEMPLATE: RoleId[] = [
       'nightmare', // seat 0
       'wolf', // seat 1
@@ -165,7 +165,7 @@ describe('Seer Integration', () => {
       return map;
     }
 
-    /** 推进到 seerCheck 步骤（带 hard cap） */
+    /** Advance to seerCheck step (with hard cap) */
     function advanceToSeerCheckWithCap(ctx: ReturnType<typeof createGame>): void {
       for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
         if (ctx.getGameState().currentStepId === 'seerCheck') {
@@ -174,7 +174,7 @@ describe('Seer Integration', () => {
 
         const currentStep = ctx.getGameState().currentStepId;
 
-        // 如果是 wolfKill，需要提交袭击
+        // If at wolfKill, must submit attack
         if (currentStep === 'wolfKill') {
           ctx.sendPlayerMessage({
             type: 'WOLF_VOTE',
@@ -201,10 +201,10 @@ describe('Seer Integration', () => {
     it('should reject blocked seer with non-skip action', () => {
       const ctx = createGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
-      // 第一步是 nightmare
+      // First step is nightmare
       expect(ctx.getGameState().currentStepId).toBe('nightmareBlock');
 
-      // nightmare 封锁 seer (seat 2)
+      // nightmare blocks seer (seat 2)
       ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -212,13 +212,13 @@ describe('Seer Integration', () => {
         target: 2,
       });
 
-      // 验证 blockedSeat 已设置
+      // Verify blockedSeat is set
       expect(ctx.getGameState().currentNightResults?.blockedSeat).toBe(2);
 
-      // 推进到 seer 步骤（带 hard cap）
+      // Advance to seer step (with hard cap)
       advanceToSeerCheckWithCap(ctx);
 
-      // seer 尝试查验（应该被 reject）
+      // seer attempts check (should be rejected)
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 2,
@@ -227,14 +227,14 @@ describe('Seer Integration', () => {
       });
 
       expect(result.success).toBe(false);
-      // 使用常量断言，避免中文文案依赖
+      // Assert against constant to avoid Chinese-copy dependency
       expect(result.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
 
     it('should allow blocked seer to skip', () => {
       const ctx = createGame(NIGHTMARE_SEER_TEMPLATE, createNightmareAssignment());
 
-      // nightmare 封锁 seer (seat 2)
+      // nightmare blocks seer (seat 2)
       ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -242,10 +242,10 @@ describe('Seer Integration', () => {
         target: 2,
       });
 
-      // 推进到 seer 步骤（带 hard cap）
+      // Advance to seer step (with hard cap)
       advanceToSeerCheckWithCap(ctx);
 
-      // seer 跳过（应该成功）
+      // seer skips (should succeed)
       const result = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 2,
@@ -261,7 +261,7 @@ describe('Seer Integration', () => {
     it('seerCheck payload: target is single seat number (not encoded)', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerStep(ctx);
       ctx.clearCapturedMessages();
 
@@ -278,14 +278,14 @@ describe('Seer Integration', () => {
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as { target: number | null };
       expect(msg.target).toBe(1);
-      // 不是 encoded 值
+      // Not an encoded value
       expect(msg.target).toBeLessThan(100);
     });
 
     it('seerCheck payload: skip has target=null', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerStep(ctx);
       ctx.clearCapturedMessages();
 

@@ -1,12 +1,12 @@
 /**
- * Night-1 Integration Test: 灯影预言家 - MirrorSeer / DrunkSeer Reveal
+ * Night-1 Integration Test: MirrorSeer / DrunkSeer Reveal
  *
- * 板子：灯影预言家（seer 变体家族）
- * 主题：
- *   - 灯影预言家查验结果写入 GameState.mirrorSeerReveal（反转）
- *   - 酒鬼预言家查验结果写入 GameState.drunkSeerReveal（随机）
+ * Board: 灯影预言家 (seer variant family)
+ * Topics:
+ *   - MirrorSeer check result writes to GameState.mirrorSeerReveal (inverted)
+ *   - DrunkSeer check result writes to GameState.drunkSeerReveal (random)
  *
- * MirrorSeer 固定 seat-role assignment:
+ * MirrorSeer fixed seat-role assignment:
  *   seat 0-2: villager
  *   seat 3-5: wolf
  *   seat 6: darkWolfKing
@@ -16,9 +16,9 @@
  *   seat 10: guard
  *   seat 11: knight
  *
- * DrunkSeer 额外 seat-role assignment（knight → drunkSeer）见下方。
+ * DrunkSeer additional seat-role assignment (knight -> drunkSeer) below.
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -30,7 +30,7 @@ import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './
 const TEMPLATE_NAME = '灯影预言家';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -50,7 +50,7 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 /**
- * 酒鬼预言家 seat-role assignment（复用灯影板子，knight → drunkSeer）
+ * DrunkSeer seat-role assignment (reuses MirrorSeer board, knight -> drunkSeer)
  *
  *   seat 0-2: villager
  *   seat 3-5: wolf
@@ -109,7 +109,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.5);
       ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
-      // 推进到 drunkSeerCheck 步骤
+      // Advance to drunkSeerCheck step
       const reached = executeStepsUntil(ctx, 'drunkSeerCheck', {
         wolf: 1,
         seer: null,
@@ -118,7 +118,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       expect(reached).toBe(true);
       expect(ctx.getGameState().currentStepId).toBe('drunkSeerCheck');
 
-      // drunkSeer 查验 seat 0 (villager)
+      // drunkSeer checks seat 0 (villager)
       sendMessageOrThrow(
         ctx,
         {
@@ -161,7 +161,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       const state = ctx.getGameState();
       expect(state.drunkSeerReveal).toBeDefined();
       expect(state.drunkSeerReveal!.targetSeat).toBe(0);
-      // 查验好人，反转后返回 "狼人"
+      // Check good faction, inverted returns "狼人"
       expect(state.drunkSeerReveal!.result).toBe('狼人');
     });
   });
@@ -196,7 +196,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
     it('mirrorSeer 查验 villager(0)，mirrorSeerReveal.result 为 "狼人"（反转）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 推进到 mirrorSeerCheck 步骤
+      // Advance to mirrorSeerCheck step
       const reached = executeStepsUntil(ctx, 'mirrorSeerCheck', {
         wolf: 1,
         seer: null,
@@ -204,7 +204,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       expect(reached).toBe(true);
       expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
 
-      // mirrorSeer 查验 seat 0 (villager)
+      // mirrorSeer checks seat 0 (villager)
       sendMessageOrThrow(
         ctx,
         {
@@ -219,7 +219,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
       expect(state.mirrorSeerReveal!.targetSeat).toBe(0);
-      // 灯影预言家查验好人应该返回 "狼人"（反转）
+      // MirrorSeer checking good faction should return "狼人" (inverted)
       expect(state.mirrorSeerReveal!.result).toBe('狼人');
     });
 
@@ -232,7 +232,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       });
       expect(reached).toBe(true);
 
-      // mirrorSeer 查验 seat 3 (wolf)
+      // mirrorSeer checks seat 3 (wolf)
       sendMessageOrThrow(
         ctx,
         {
@@ -247,7 +247,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
       expect(state.mirrorSeerReveal!.targetSeat).toBe(3);
-      // 查验狼人应该返回 "好人"（反转）
+      // Checking wolf should return "好人" (inverted)
       expect(state.mirrorSeerReveal!.result).toBe('好人');
     });
   });
@@ -256,13 +256,13 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
     it('seer 和 mirrorSeer 各自写入独立 reveal', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       const reachedSeer = executeStepsUntil(ctx, 'seerCheck', {
         wolf: 1,
       });
       expect(reachedSeer).toBe(true);
 
-      // seer 查验 seat 3 (wolf)
+      // seer checks seat 3 (wolf)
       sendMessageOrThrow(
         ctx,
         {
@@ -274,7 +274,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
         'seerCheck',
       );
 
-      // 验证 seerReveal
+      // Verify seerReveal
       const stateAfterSeer = ctx.getGameState();
       expect(stateAfterSeer.seerReveal).toBeDefined();
       expect(stateAfterSeer.seerReveal!.result).toBe('狼人');
@@ -286,12 +286,12 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
         'seerCheck reveal ack',
       );
 
-      // 推进到 mirrorSeerCheck
+      // Advance to mirrorSeerCheck
       ctx.advanceNightOrThrow('after seerCheck');
 
       expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
 
-      // mirrorSeer 查验 seat 3 (wolf) — 应返回 "好人"（反转）
+      // mirrorSeer checks seat 3 (wolf) -> should return "好人" (inverted)
       sendMessageOrThrow(
         ctx,
         {
@@ -311,17 +311,17 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
 
   describe('seerLabelMap 生成', () => {
     it('板子同时包含 seer + mirrorSeer 时 gameControlHandler 会生成 seerLabelMap', () => {
-      // seerLabelMap 由 handleAssignRoles (gameControlHandler) 在
-      // ASSIGN_ROLES action 的 payload 中注入，gameFactory 直接使用
-      // gameReducer 不经过 handler 层，因此此处手动注入验证 reducer 行为。
+      // seerLabelMap is injected by handleAssignRoles (gameControlHandler) into the
+      // ASSIGN_ROLES action payload; gameFactory uses it directly.
+      // gameReducer does not go through the handler layer, so manually inject here to verify reducer behavior.
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // gameFactory 直接调用 gameReducer(ASSIGN_ROLES)，
-      // seerLabelMap 由 handler 层注入 — 这里验证 reducer 正确存储它
-      // (handler 层测试见 gameControlHandler.test.ts)
-      // 此集成测试侧重 mirrorSeerReveal 反转逻辑，seerLabelMap 生成
-      // 属于 handler 层职责，在 gameControlHandler 单元测试中覆盖。
-      expect(true).toBe(true); // placeholder — handler 层测试覆盖
+      // gameFactory calls gameReducer(ASSIGN_ROLES) directly;
+      // seerLabelMap is injected by handler layer -> here we verify reducer stores it correctly
+      // (handler layer tests are in gameControlHandler.test.ts)
+      // This integration test focuses on mirrorSeerReveal inversion logic; seerLabelMap generation
+      // is a handler layer responsibility, covered in gameControlHandler unit tests.
+      expect(true).toBe(true); // placeholder -- covered by handler layer tests
     });
   });
 

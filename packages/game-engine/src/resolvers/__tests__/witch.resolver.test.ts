@@ -53,7 +53,7 @@ describe('witchActionResolver', () => {
       const result = witchActionResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      // 跳过时没有 save/poison，updates 应该是空的
+      // No save/poison on skip; updates should be empty
       expect(result.updates?.savedSeat).toBeUndefined();
       expect(result.updates?.poisonedSeat).toBeUndefined();
     });

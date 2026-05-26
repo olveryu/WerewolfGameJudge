@@ -14,12 +14,12 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * FlameThornFrame — 火棘
+ * FlameThornFrame — Flame Thorn
  *
- * 从底部升起的烈焰浪潮边框。底边 = 大型火焰波浪 Path (3 层: 外焰/中焰/芯)。
- * 侧边 = 渐弱火舌 Path。顶边 = 热浪扭曲 + 灰烬。
- * RadialGradient 热源中心在底部。灰烬微粒在上方飘散。
- * 与 ThornCrown 完全不同: 无 vine, 无 thorn Q-hook, 采用火焰波浪+热源+灰烬。
+ * A rising-flame border. Bottom edge = large flame wave Path (3 layers: outer/mid/core).
+ * Side edges = fading flame tongues. Top edge = heat shimmer + ash.
+ * RadialGradient heat source centered at the bottom. Ash particles drift above.
+ * Completely different from ThornCrown: no vine, no thorn Q-hook; uses flame wave + heat source + ash.
  */
 export const FlameThornFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

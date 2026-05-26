@@ -1,5 +1,5 @@
 /**
- * WolfKingEntry — 狼王登场 (Skia Canvas + Picture)
+ * WolfKingEntry — Wolf King entrance (Skia Canvas + Picture)
  *
  * Legendary entrance: glowing wolf-eye pupils appear, claw slashes form an X,
  * then a blood-red shockwave reveals the avatar with a zoom-in.

@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 're
 import type { FrameProps } from './FrameProps';
 
 /**
- * ObsidianEdgeFrame — 黑曜
+ * ObsidianEdgeFrame — Obsidian Edge.
  *
- * 火山黑曜石 · 双层彩虹光泽 · 棱切面 + 斜切角 + 棱柱色点。
+ * Volcanic obsidian / double-layer rainbow sheen / faceted cuts + beveled corners + prism color dots.
  */
 export const ObsidianEdgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -17,11 +17,11 @@ import { RoomPage } from '../pages/RoomPage';
  * Entry Flow E2E Tests
  *
  * Verifies app entry scenarios:
- * 1. First-time open (no session) → login button visible, can login
- * 2. Return with existing session → home ready without re-login
+ * 1. First-time open (no session) -> login button visible, can login
+ * 2. Return with existing session -> home ready without re-login
  * 3. Enter room from home via join flow
- * 4. Direct room URL with session → room screen loads
- * 5. Direct room URL without session → AuthGateOverlay → login → room loads
+ * 4. Direct room URL with session -> room screen loads
+ * 5. Direct room URL without session -> AuthGateOverlay -> login -> room loads
  */
 
 test.setTimeout(60_000);
@@ -98,7 +98,7 @@ test.describe('Return with existing session', () => {
       await page.reload();
       await waitForAppReady(page);
 
-      // Session should persist — user name visible without re-login
+      // Session should persist - user name visible without re-login
       await expect(userName).toBeVisible({ timeout: 15_000 });
 
       // Home screen action buttons should be ready
@@ -172,7 +172,7 @@ test.describe('Direct room URL', () => {
     if (fixture) await closeAll(fixture);
   });
 
-  test('with session → room screen loads directly', async ({ browser }) => {
+  test('with session -> room screen loads directly', async ({ browser }) => {
     // Step 1: Host creates a room
     fixture = await createPlayerContexts(browser, 1);
     const [hostPage] = fixture.pages;
@@ -189,7 +189,7 @@ test.describe('Direct room URL', () => {
     const hostRoom = new RoomPage(hostPage);
     const roomCode = await hostRoom.getRoomCode();
 
-    // Step 2: New context with session — login first, then go to direct URL
+    // Step 2: New context with session - login first, then go to direct URL
     const directCtx = await browser.newContext();
     const directPage = await directCtx.newPage();
     await registerAutoDismissers(directPage);
@@ -212,7 +212,7 @@ test.describe('Direct room URL', () => {
     await expect(header).toContainText(roomCode);
   });
 
-  test('without session → AuthGateOverlay → login → room loads', async ({ browser }) => {
+  test('without session -> AuthGateOverlay -> login -> room loads', async ({ browser }) => {
     // Step 1: Host creates a room (needs a logged-in context)
     fixture = await createPlayerContexts(browser, 1);
     const [hostPage] = fixture.pages;
@@ -229,7 +229,7 @@ test.describe('Direct room URL', () => {
     const hostRoom = new RoomPage(hostPage);
     const roomCode = await hostRoom.getRoomCode();
 
-    // Step 2: Fresh context with NO session — direct URL to room
+    // Step 2: Fresh context with NO session - direct URL to room
     const freshCtx = await browser.newContext();
     const freshPage = await freshCtx.newPage();
     await registerAutoDismissers(freshPage);

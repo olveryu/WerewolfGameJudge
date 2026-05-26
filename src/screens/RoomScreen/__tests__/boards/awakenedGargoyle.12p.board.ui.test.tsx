@@ -1,7 +1,7 @@
 /**
  * AwakenedGargoyle 12P Board UI Test
  *
- * Board: 唯邻是从
+ * Board: 唯邻是从 (Follow Your Neighbor)
  * Roles: 4x villager, 2x wolf, awakenedGargoyle, seer, witch, hunter, guard, graveyardKeeper
  *
  * Required UI coverage (getRequiredUiDialogTypes):

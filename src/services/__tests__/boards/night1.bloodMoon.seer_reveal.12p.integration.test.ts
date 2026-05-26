@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: 血月猎魔 - Seer Reveal
  *
- * 板子：血月猎魔
- * 主题：预言家查验结果写入 GameState.seerReveal
+ * Board: 血月猎魔
+ * Theme: Seer check result writes to GameState.seerReveal
  *
- * 固定 seat-role assignment:
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: bloodMoon
@@ -13,7 +13,7 @@
  *   seat 10: idiot
  *   seat 11: witcher
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -24,7 +24,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '血月猎魔';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -57,12 +57,12 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
       const result = executeFullNight(ctx, {
         wolf: 1,
         witch: { save: null, poison: null },
-        seer: 0, // 查验 villager
+        seer: 0, // check villager
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入 GameState
+      // Core assertion: seerReveal written to GameState
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
@@ -77,12 +77,12 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
       const result = executeFullNight(ctx, {
         wolf: 0,
         witch: { save: null, poison: null },
-        seer: 7, // 查验 bloodMoon
+        seer: 7, // check bloodMoon
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：bloodMoon 是狼阵营
+      // Core assertion: bloodMoon is in the wolf faction
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
@@ -97,12 +97,12 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
       const result = executeFullNight(ctx, {
         wolf: 0,
         witch: { save: null, poison: null },
-        seer: null, // 不查验
+        seer: null, // no check
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 无结果
+      // Core assertion: seerReveal has no result
       expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
     });
   });

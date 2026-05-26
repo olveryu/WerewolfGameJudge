@@ -1,9 +1,9 @@
 /**
- * RoleListItem — 角色图鉴卡片
+ * RoleListItem — Role encyclopedia card
  *
- * 垂直布局：顶部 badge + 角色名 + 阵营 chip + 能力 tag chips。
- * flex: 1 配合父级 gridRow 实现 2 列等宽。
- * 纯展示组件，不 import service，不含业务逻辑。
+ * Vertical layout: top badge + role name + faction chip + ability tag chips.
+ * flex: 1 with parent gridRow yields a 2-column equal-width layout.
+ * Pure presentational component; no service imports, no business logic.
  */
 import { ROLE_SPECS, type RoleAbilityTag, type RoleId } from '@werewolf/game-engine/models/roles';
 import React from 'react';
@@ -37,7 +37,7 @@ interface RoleListItemProps {
 
 const BADGE_SIZE = componentSizes.avatar.md;
 
-/** 角色列表行。 */
+/** Role list row. */
 export const RoleListItem = React.memo<RoleListItemProps>(function RoleListItem({
   roleId,
   factionColor,

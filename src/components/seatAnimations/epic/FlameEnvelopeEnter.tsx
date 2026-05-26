@@ -1,5 +1,5 @@
 /**
- * FlameEnvelopeEnter — 火焰包裹 (Skia Canvas + Picture)
+ * FlameEnvelopeEnter — Flame Envelope (Skia Canvas + Picture)
  *
  * Flame-like particles envelope the tile from edges, then recede to reveal child.
  * Epic-tier archetype. Parameterized by flame color, intensity, direction.

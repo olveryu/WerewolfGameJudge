@@ -1,7 +1,7 @@
 /**
- * RippleFlair — 涟漪
+ * RippleFlair — ripple
  *
- * 从中心偏移点发出小型圆形涟漪，不贴边。Common 级座位装饰模板。
+ * Emits small circular ripples from an off-center point, kept away from the edges. Common-tier seat flair template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,13 +1,13 @@
 /**
- * RewardPreview — 奖励实际视觉预览 + 中文显示名
+ * RewardPreview — actual visual preview of a reward + Chinese display name
  *
- * 按 rewardType 渲染：
- * - avatar: 512px 缩略图
- * - frame: AvatarWithFrame（默认狼人头像 + 框）
- * - seatFlair: 默认头像 + 粒子动画叠加
- * - nameStyle: NameStyleText 实际效果
+ * Renders by rewardType:
+ * - avatar: 512px thumbnail
+ * - frame: AvatarWithFrame (default wolf avatar + frame)
+ * - seatFlair: default avatar + particle animation overlay
+ * - nameStyle: actual NameStyleText effect
  *
- * 复用 UnlocksScreen 的渲染模式。
+ * Reuses the rendering pattern from UnlocksScreen.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
@@ -26,7 +26,7 @@ import { borderRadius, colors } from '@/theme';
 import { getAvatarThumbByIndex, HAND_DRAWN_KEYS } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
 
-/** wolf-paw icon（预览底图，与 AppearanceScreen 默认头像一致） */
+/** wolf-paw icon (preview base; matches AppearanceScreen's default avatar) */
 const WOLF_PAW = getAvatarIcon('preview');
 
 // ─── Display name resolver ──────────────────────────────────────────────
@@ -63,7 +63,7 @@ interface RewardPreviewProps {
   size: number;
 }
 
-/** 奖励预览图（按类型渲染头像/框/德誉等）。 */
+/** Reward preview image (renders avatar/frame/flair etc. by type). */
 export const RewardPreview = React.memo<RewardPreviewProps>(({ rewardType, rewardId, size }) => {
   switch (rewardType) {
     case 'avatar':

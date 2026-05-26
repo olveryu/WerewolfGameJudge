@@ -1,9 +1,9 @@
 /**
- * seatFlairs — 座位装饰注册表
+ * seatFlairs — seat flair registry
  *
- * FlairId 类型从 `@werewolf/game-engine/growth/rewardCatalog` 的 SEAT_FLAIR_IDS 派生。
- * 通过 getFlairById 按 id 获取对应的 Reanimated 动画组件。
- * pattern 同 `avatarFrames/index.ts`。
+ * The FlairId type is derived from SEAT_FLAIR_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * Use getFlairById to retrieve the matching Reanimated animation component by id.
+ * Same pattern as `avatarFrames/index.ts`.
  */
 import { type FlairId, SEAT_FLAIR_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import type React from 'react';
@@ -74,16 +74,16 @@ import { WindGustFlair } from './WindGustFlair';
 export type { FlairId };
 
 interface SeatFlairConfig {
-  /** 中文显示名 */
+  /** Chinese display name */
   name: string;
-  /** SVG + Reanimated 粒子/光效动画组件 */
+  /** SVG + Reanimated particle/light effect animation component */
   Component: React.ComponentType<FlairProps>;
 }
 
 /**
- * 座位装饰注册表（exhaustive Record）—— SEAT_FLAIR_IDS 新增 ID 而此处未添加 → TS 编译报错。
- * UI 展示顺序跟随 SEAT_FLAIR_IDS。
- * 静态条目手动列举；Common 50 条从 factory 展开（runtime 由 gachaProbability 测试覆盖）。
+ * Seat flair registry (exhaustive Record) — adding a new ID to SEAT_FLAIR_IDS without adding it here -> TS compile error.
+ * UI display order follows SEAT_FLAIR_IDS.
+ * Static entries are listed manually; the 50 Common entries are expanded from a factory (runtime covered by gachaProbability tests).
  */
 function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
   const staticEntries: Record<string, SeatFlairConfig> = {
@@ -155,14 +155,14 @@ function buildFlairRegistry(): Record<FlairId, SeatFlairConfig> {
 }
 const FLAIR_REGISTRY = buildFlairRegistry();
 
-/** 所有可用座位装饰（顺序 = SEAT_FLAIR_IDS 展示顺序） */
+/** All available seat flairs (order = SEAT_FLAIR_IDS display order) */
 export const SEAT_FLAIRS: readonly (SeatFlairConfig & { id: FlairId })[] = SEAT_FLAIR_IDS.map(
   (id) => ({ id, ...FLAIR_REGISTRY[id] }),
 );
 
 const FLAIR_MAP = new Map<string, SeatFlairConfig>(SEAT_FLAIRS.map((f) => [f.id, f]));
 
-/** 按 id 获取座位装饰配置。无效 id 返回 undefined。 */
+/** Get seat flair config by id. Returns undefined for invalid ids. */
 export function getFlairById(id: string | null | undefined): SeatFlairConfig | undefined {
   if (!id) return undefined;
   return FLAIR_MAP.get(id);

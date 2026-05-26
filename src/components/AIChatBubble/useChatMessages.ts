@@ -1,9 +1,9 @@
 /**
- * useChatMessages - 聊天消息状态与 API 交互
+ * useChatMessages - Chat message state and API interaction
  *
- * 管理消息列表、streaming 流式接收、冷却计时、
- * AbortController 生命周期、MMKV 持久化、触觉反馈。
- * 负责消息 CRUD、调用 AIChatService 和触觉反馈。不涉及 UI 渲染或手势处理。
+ * Manages message list, streaming reception, cooldown timer,
+ * AbortController lifecycle, MMKV persistence, haptic feedback.
+ * Owns message CRUD, AIChatService calls, and haptics. No UI rendering or gesture handling.
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -50,14 +50,14 @@ export interface UseChatMessagesReturn {
   cooldownRemaining: number;
   handleSend: () => Promise<void>;
   handleQuickQuestion: (question: string) => void;
-  /** 发送完整文本给 AI，但在聊天气泡中显示简短的 displayText */
+  /** Send full text to AI but display a shorter displayText in the chat bubble */
   sendWithDisplay: (fullText: string, displayText: string, maxTokens?: number) => void;
   handleClearHistory: () => void;
 }
 
 /**
- * @param facade 游戏 facade（用于构建玩家上下文）
- * @param isOpen 聊天窗口是否打开（关闭时 abort 请求）
+ * @param facade Game facade (used to build player context)
+ * @param isOpen Whether the chat window is open (abort request on close)
  */
 export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMessagesReturn {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);

@@ -17,11 +17,11 @@ import { withSetup } from '../helpers/night-setup';
  * Night Roles E2E — Awakened Gargoyle (觉醒石像鬼) coverage.
  *
  * Tests chooseSeat convert and groupConfirm reveal:
- * - Gargoyle converts adjacent non-wolf → all players ack → night ends
+ * - Gargoyle converts adjacent non-wolf -> all players ack -> night ends
  * - Verify personal messages: converted player sees "转化为狼人阵营", others see "未被转化"
  *
  * The awakened gargoyle is a wolf role with mandatory convert (canSkip: false).
- * Night step order: wolfKill → awakenedGargoyleConvert → awakenedGargoyleConvertReveal → ...
+ * Night step order: wolfKill -> awakenedGargoyleConvert -> awakenedGargoyleConvertReveal -> ...
  * Does not modify game state directly or import services/models.
  */
 
@@ -33,7 +33,7 @@ test.setTimeout(180_000);
 
 /**
  * Drive a single player through the groupConfirm ack flow for convert reveal:
- * dismiss any existing alert → click "转化状态" → read personal message alert → click "知道了".
+ * dismiss any existing alert -> click "转化状态" -> read personal message alert -> click "知道了".
  *
  * Returns the personal message text shown in the alert.
  */

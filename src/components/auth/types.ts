@@ -1,15 +1,15 @@
 /**
- * Auth 共享组件样式接口
+ * Shared style interface for Auth components.
  *
- * 统一 HomeScreen 和 SettingsScreen 的登录/注册组件样式 key。
- * 各 screen 的 styles factory 需实现此接口的子集。
- * 导出类型定义。不含运行时逻辑，不含硬编码值。
+ * Unifies the style keys used by login/signup components in HomeScreen and SettingsScreen.
+ * Each screen's styles factory implements a subset of this interface.
+ * Exports type definitions only — no runtime logic, no hardcoded values.
  */
 import { type ImageStyle, type TextStyle, type ViewStyle } from 'react-native';
 
 import { type ThemeColors } from '@/theme';
 
-/** EmailForm + LoginOptions 共用的样式 key */
+/** Shared style keys for EmailForm + LoginOptions */
 export interface AuthStyles {
   // Layout
   formContainer: ViewStyle;
@@ -51,9 +51,9 @@ export interface AuthStyles {
   avatarStripLink: TextStyle;
 }
 
-/** EmailForm props — 两端共享 */
+/** EmailForm props — shared across both ends */
 export interface EmailFormProps {
-  /** 覆盖表单标题（匿名绑定邮箱时传 '绑定邮箱'）。缺省走 isSignUp 判断。 */
+  /** Override the form title (pass '绑定邮箱' when anonymous user is binding email). Defaults to isSignUp branch. */
   formTitle?: string;
   isSignUp: boolean;
   /** Hide display name field even in signUp mode (e.g. bind existing account) */
@@ -74,25 +74,25 @@ export interface EmailFormProps {
   colors: ThemeColors;
 }
 
-/** LoginOptions props — 两端共享 */
+/** LoginOptions props — shared across both ends */
 export interface LoginOptionsProps {
   authLoading: boolean;
-  /** 标题，不传则不显示（Settings 卡片已有标题时省略） */
+  /** Title; hidden if not passed (omitted when Settings card already has its own title) */
   title?: string;
-  /** 副标题，不传则不显示 */
+  /** Subtitle; hidden if not passed */
   subtitle?: string;
-  /** 点击「邮箱注册」→ 进入注册表单 */
+  /** Tap "Email Sign Up" -> enter signup form */
   onEmailSignUp: () => void;
-  /** 点击「邮箱登录」→ 进入登录表单 */
+  /** Tap "Email Sign In" -> enter signin form */
   onEmailSignIn: () => void;
   onAnonymousLogin: () => void;
-  /** 微信小程序环境下隐藏匿名登录按钮 */
+  /** Hide anonymous login button in WeChat mini-program env */
   hideAnonymous?: boolean;
-  /** 匿名用户升级模式：「邮箱注册」→「绑定邮箱」 */
+  /** Anonymous-user upgrade mode: "Email Sign Up" -> "Bind Email" */
   isUpgrade?: boolean;
-  /** 点击「浏览全部头像」→ 进入 AppearanceScreen */
+  /** Tap "Browse All Avatars" -> enter AppearanceScreen */
   onBrowseAvatars?: () => void;
-  /** 不传则不显示取消按钮（Settings 不需要） */
+  /** Hides the cancel button when not passed (Settings does not need it) */
   onCancel?: () => void;
   styles: AuthStyles;
 }

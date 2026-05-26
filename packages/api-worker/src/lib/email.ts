@@ -1,8 +1,8 @@
 /**
- * email — Resend API 邮件发送封装
+ * email — Resend API email-sending wrapper
  *
- * 通过 Resend REST API 发送密码重置验证码邮件。
- * 纯 IO 模块，不含业务逻辑。
+ * Sends password reset verification code emails via the Resend REST API.
+ * Pure IO module, contains no business logic.
  */
 
 import type { Env } from '../env';
@@ -17,8 +17,8 @@ interface SendEmailOptions {
 }
 
 /**
- * 通过 Resend 发送邮件。
- * @throws 如果 Resend API 调用失败或未配置 API key
+ * Send email via Resend.
+ * @throws if Resend API call fails or API key is not configured
  */
 async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
   if (!env.RESEND_API_KEY) {
@@ -46,7 +46,7 @@ async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
 }
 
 /**
- * 发送密码重置验证码邮件。
+ * Send password reset verification code email.
  */
 export async function sendPasswordResetEmail(env: Env, email: string, code: string): Promise<void> {
   await sendEmail(env, {

@@ -1,8 +1,8 @@
 /**
- * ShardExchangeScreen — 碎片兑换商店
+ * ShardExchangeScreen — shard exchange shop
  *
- * 按物品类型 tab 浏览全部可兑换物品，碎片换指定物品。
- * 已拥有物品灰显 + "已拥有"标签，碎片不够的禁用兑换按钮。
+ * Browse all exchangeable items by item-type tab; exchange shards for specific items.
+ * Owned items are dimmed with "已拥有" badge; exchange button disabled when shards insufficient.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -82,7 +82,7 @@ function getNumColumns(screenWidth: number): number {
 const PREVIEW_SIZE = 56;
 
 // ── Component ───────────────────────────────────────────────────────────
-/** 碎片兑换屏幕。 */ export function ShardExchangeScreen({ navigation }: Props) {
+/** Shard exchange screen. */ export function ShardExchangeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const numColumns = getNumColumns(screenWidth);

@@ -1,8 +1,8 @@
 /**
- * PhoenixFeatherFlair — 凤凰羽
+ * PhoenixFeatherFlair - Phoenix feather
  *
- * 8 根金红色羽毛从外围螺旋上升，带弧线轨迹和辉光。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 8 gold-red feathers spiral up from the outer ring with curved trajectory and glow.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

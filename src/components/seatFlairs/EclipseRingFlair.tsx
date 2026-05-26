@@ -1,8 +1,8 @@
 /**
- * EclipseRingFlair — 日蚀光环
+ * EclipseRingFlair — Eclipse Ring
  *
- * 日蚀光环脉动：内暗外亮的环形光晕在头像边缘呼吸，
- * 3 层同心弧(不同厚度/色调) + 边缘火星。
+ * Pulsing eclipse halo: a ring with a dark inside and bright outside breathes around the avatar edge,
+ * with 3 concentric arcs (varying thickness/tone) + edge sparks.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

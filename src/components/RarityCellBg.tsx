@@ -1,9 +1,9 @@
 /**
- * RarityCellBg — 稀有度底色渐变覆盖层
+ * RarityCellBg — rarity background gradient overlay
  *
- * 作为 grid cell 的第一个子元素（absolute 定位），从上至下渲染
- * 稀有度主题色渐变。Common 不渲染。
- * AppearanceScreen / UnlocksScreen 格子共用。
+ * Rendered as the first child of a grid cell (absolute positioning), top-to-bottom
+ * gradient using the rarity theme color. Common rarity is not rendered.
+ * Shared by AppearanceScreen / UnlocksScreen grid cells.
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { LinearGradient } from 'expo-linear-gradient';

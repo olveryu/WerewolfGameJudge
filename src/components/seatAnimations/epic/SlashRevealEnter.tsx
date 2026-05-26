@@ -1,5 +1,5 @@
 /**
- * SlashRevealEnter — 爪痕揭示
+ * SlashRevealEnter — Slash mark reveal
  *
  * Diagonal slash lines sweep across the tile, revealing child behind.
  * Epic-tier archetype. Parameterized by slash count, angle, color, and speed.

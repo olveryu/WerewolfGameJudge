@@ -1,17 +1,17 @@
 /**
- * Contract Test: 禁止在业务/服务/Screen 代码中使用 Math.random()
+ * Contract Test: forbid Math.random() in business/service/Screen code
  *
- * 规则（详见 docs/random-and-id-guidelines.md）：
- * 1. ID/nonce 生成 → 用 src/utils/id.ts (randomHex, newRequestId, newRejectionId)
- * 2. 可测试随机 → 用 src/utils/random.ts (secureRng + Rng 注入)
- * 3. 跨客户端一致随机 → 服务端解析 + GameState 广播
+ * Rules (see docs/random-and-id-guidelines.md):
+ * 1. ID/nonce generation -> use src/utils/id.ts (randomHex, newRequestId, newRejectionId)
+ * 2. Testable randomness -> use src/utils/random.ts (secureRng + Rng injection)
+ * 3. Cross-client consistent randomness -> server-resolved + GameState broadcast
  *
- * 例外（允许 Math.random）：
- * - __tests__/ 测试文件
+ * Exceptions (Math.random allowed):
+ * - __tests__/ test files
  * - *.test.ts / *.test.tsx
- * - *.stories.tsx Storybook 文件
- * - RoleRevealEffects/ 内的视觉装饰（粒子、位移等）
- * - 注释/文档字符串中的示例
+ * - *.stories.tsx Storybook files
+ * - Visual decoration in RoleRevealEffects/ (particles, displacement, etc.)
+ * - Examples in comments/doc strings
  */
 
 import * as fs from 'node:fs';
@@ -19,20 +19,20 @@ import * as path from 'node:path';
 
 import { glob } from 'glob';
 
-// 允许使用 Math.random() 的文件模式
+// File patterns where Math.random() is allowed
 const ALLOWED_PATTERNS = [
-  // 测试文件
+  // Test files
   '**/__tests__/**',
   '**/*.test.ts',
   '**/*.test.tsx',
   // Storybook
   '**/*.stories.tsx',
-  // 视觉装饰（纯 UI 动画效果，不影响游戏逻辑）
+  // Visual decoration (pure UI animation, no impact on game logic)
   '**/RoleRevealEffects/**',
   '**/GachaScreen/**',
 ];
 
-// 需要检查的目录
+// Directories to scan
 const SCAN_DIRS = ['src/screens', 'src/services', 'src/hooks', 'src/contexts', 'src/components'];
 
 describe('Math.random() 禁止规则', () => {
@@ -44,7 +44,7 @@ describe('Math.random() 禁止规则', () => {
       const dirPath = path.join(srcRoot, dir.replace('src/', ''));
       if (!fs.existsSync(dirPath)) continue;
 
-      // 查找所有 .ts/.tsx 文件
+      // Find all .ts/.tsx files
       const files = await glob('**/*.{ts,tsx}', {
         cwd: dirPath,
         absolute: true,
@@ -54,9 +54,9 @@ describe('Math.random() 禁止规则', () => {
       for (const file of files) {
         const relativePath = path.relative(srcRoot, file);
 
-        // 检查是否在允许列表中
+        // Check whether file is in the allowed list
         const isAllowed = ALLOWED_PATTERNS.some((pattern) => {
-          // 简单的通配符匹配
+          // Simple glob matching
           if (pattern.includes('**')) {
             const regex = new RegExp(
               pattern
@@ -75,13 +75,13 @@ describe('Math.random() 禁止规则', () => {
         const lines = content.split('\n');
 
         lines.forEach((line, index) => {
-          // 跳过注释行
+          // Skip comment lines
           const trimmed = line.trim();
           if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) {
             return;
           }
 
-          // 检测 Math.random()
+          // Detect Math.random()
           if (line.includes('Math.random()')) {
             violations.push({
               file: relativePath,
@@ -111,17 +111,17 @@ describe('Math.random() 禁止规则', () => {
   it('shuffle 函数应使用 Rng 注入而非 Math.random()', async () => {
     const shufflePath = path.resolve(__dirname, '../utils/shuffle.ts');
     if (!fs.existsSync(shufflePath)) {
-      // shuffle.ts 不存在则跳过
+      // Skip if shuffle.ts does not exist
       return;
     }
 
     const content = fs.readFileSync(shufflePath, 'utf-8');
 
-    // 确保没有直接调用 Math.random()
+    // Ensure no direct Math.random() call
     const hasMathRandom = content.includes('Math.random()');
     expect(hasMathRandom).toBe(false);
 
-    // 确保使用了 Rng 类型
+    // Ensure Rng type is used
     const hasRngType = content.includes('Rng') || content.includes('rng');
     expect(hasRngType).toBe(true);
   });

@@ -1,27 +1,27 @@
 /**
- * notepadSummary - 将笔记状态格式化为 AI 分析请求文本
+ * notepadSummary - formats notepad state as AI analysis request text
  *
- * 纯函数，无副作用。读取 NotepadState + roleTags，
- * 输出结构化文本供 AI 分析游戏局势。
- * 不调用 service，不修改 state。
+ * Pure function, no side effects. Reads NotepadState + roleTags,
+ * outputs structured text for AI to analyze game situation.
+ * Does not call services, does not mutate state.
  */
 
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
 import type { NotepadState } from '@/hooks/useNotepad';
 
-/** 总文本最大字符数（截断公共笔记区） */
+/** Max total text length (truncates public note section) */
 const MAX_SUMMARY_LENGTH = 1500;
 
-/** 记录者自身身份信息 */
+/** Recorder's own identity info */
 interface NotepadRoleInfo {
   seat: number;
   roleName: string;
 }
 
 /**
- * 将笔记状态构建为 AI 分析请求文本。
- * 空笔记返回 null。
+ * Build notepad state into AI analysis request text.
+ * Returns null for empty notepad.
  */
 export function buildNotepadSummary(
   state: NotepadState,
@@ -71,8 +71,8 @@ export function buildNotepadSummary(
     return null;
   }
 
-  // Note: 板子角色配置和技能描述已通过 system prompt (buildPlayerContext → buildGameContextPrompt) 注入，
-  // 此处不重复，避免浪费 token。
+  // Note: board role config and skill descriptions are already injected via system prompt
+  // (buildPlayerContext -> buildGameContextPrompt); not repeated here to avoid wasting tokens.
 
   // Assemble sections
   const sections: string[] = [

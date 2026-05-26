@@ -5,17 +5,17 @@
  * - Wolf kill basics
  * - Guard protection
  * - Witch save/poison
- * - 同守同救必死 (double save = death)
+ * - Double save = death (同守同救必死)
  * - Witcher/dancer/masquerade poison immunity (driven by poisonImmuneSeats)
  * - Wolf Queen link death
- * - Bonded link death (Shadow ↔ Avenger)
+ * - Bonded link death (Shadow <-> Avenger)
  * - Dreamcatcher protection and link death
  * - Magician swap
  * - Nightmare block effects
  * - Spirit Knight reflection
  * - Peaceful night (no deaths)
  *
- * NightActions 字段定义来源：src/services/DeathCalculator.ts
+ * NightActions field definitions source: src/services/DeathCalculator.ts
  * - wolfKill: number | undefined
  * - guardProtect: number | undefined
  * - witchAction: WitchAction | undefined
@@ -25,11 +25,11 @@
  * - nightmareBlock: number | undefined
  * - isWolfBlockedByNightmare: boolean | undefined
  *
- * RoleSeatMap 字段定义来源：src/services/DeathCalculator.ts
- * - wolfQueenLinkSeat, dreamcatcherLinkSeat, poisonSourceSeat, guardProtectorSeat: number (-1 表示不在场)
- * - poisonImmuneSeats: number[] (免疫毒药的角色座位)
- * - reflectsDamageSeats: number[] (反伤角色座位)
- * - reflectionSources: ReflectionSource[] (反伤来源配对列表)
+ * RoleSeatMap field definitions source: src/services/DeathCalculator.ts
+ * - wolfQueenLinkSeat, dreamcatcherLinkSeat, poisonSourceSeat, guardProtectorSeat: number (-1 means absent)
+ * - poisonImmuneSeats: number[] (seats of poison-immune roles)
+ * - reflectsDamageSeats: number[] (seats of damage-reflecting roles)
+ * - reflectionSources: ReflectionSource[] (reflection source-target pairing list)
  */
 
 import {
@@ -406,8 +406,8 @@ describe('DeathCalculator', () => {
     it('封锁守卫 → 守卫保护无效', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        guardProtect: 0, // 守卫想保护0号
-        nightmareBlock: 11, // 封锁守卫（座位11）
+        guardProtect: 0, // guard wants to protect seat 0
+        nightmareBlock: 11, // block guard (seat 11)
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
@@ -416,15 +416,15 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions, roleSeatMap);
 
-      // 守卫被封锁，保护无效，0号死亡
+      // Guard blocked, protection invalid, seat 0 dies
       expect(deaths).toEqual([0]);
     });
 
     it('封锁女巫 → 女巫救人无效', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        witchAction: makeWitchSave(0), // 女巫想救0号
-        nightmareBlock: 9, // 封锁女巫（座位9）
+        witchAction: makeWitchSave(0), // witch wants to save seat 0
+        nightmareBlock: 9, // block witch (seat 9)
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
@@ -433,15 +433,15 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions, roleSeatMap);
 
-      // 女巫被封锁，救人无效，0号死亡
+      // Witch blocked, save invalid, seat 0 dies
       expect(deaths).toEqual([0]);
     });
 
     it('封锁女巫 → 女巫毒人无效', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        witchAction: makeWitchPoison(1), // 女巫想毒1号
-        nightmareBlock: 9, // 封锁女巫（座位9）
+        witchAction: makeWitchPoison(1), // witch wants to poison seat 1
+        nightmareBlock: 9, // block witch (seat 9)
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
@@ -450,27 +450,27 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions, roleSeatMap);
 
-      // 女巫被封锁，毒人无效，只有0号死亡
+      // Witch blocked, poison invalid, only seat 0 dies
       expect(deaths).toEqual([0]);
     });
 
     it('封锁狼人 → 狼人无法袭击', () => {
       const actions: NightActions = {
-        wolfKill: 0, // 狼想杀0号
-        isWolfBlockedByNightmare: true, // 噩梦之影封锁了狼人
+        wolfKill: 0, // wolf wants to kill seat 0
+        isWolfBlockedByNightmare: true, // nightmare blocked the wolf
       };
 
       const deaths = calculateDeaths(actions);
 
-      // 狼人被封锁，当夜无法袭击
+      // Wolf blocked, cannot attack this night
       expect(deaths).toEqual([]);
     });
 
     it('封锁非关键角色 → 不影响其他技能', () => {
       const actions: NightActions = {
         wolfKill: 0,
-        guardProtect: 0, // 守卫保护0号
-        nightmareBlock: 0, // 封锁座位0（村民）
+        guardProtect: 0, // guard protects seat 0
+        nightmareBlock: 0, // block seat 0 (villager)
       };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
@@ -479,7 +479,7 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions, roleSeatMap);
 
-      // 封锁的是村民，守卫保护有效
+      // Blocked target is villager, guard protection still works
       expect(deaths).toEqual([]);
     });
   });
@@ -699,7 +699,7 @@ describe('DeathCalculator', () => {
 
       const deaths = calculateDeaths(actions, roleSeatMap);
 
-      // 女巫被封锁，毒无效 → 无反伤，只有 0 号死
+      // Witch blocked, poison invalid -> no reflection, only seat 0 dies
       expect(deaths).toEqual([0]);
     });
 
@@ -873,8 +873,8 @@ describe('DeathCalculator', () => {
     });
 
     it('狼刀咒狐 + 女巫救咒狐 → 咒狐不死，解药浪费', () => {
-      // 咒狐免疫狼刀，所以 processWolfKill 直接 return（不加死亡）
-      // 女巫的 save 实际上不影响结果（因为没人会死），解药被浪费
+      // Cursed Fox is immune to wolf kill, so processWolfKill returns early (no death added)
+      // Witch save does not affect the result (no one would die), antidote is wasted
       const actions: NightActions = {
         wolfKill: 5,
         witchAction: makeWitchSave(5),
@@ -893,7 +893,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = { wolfKill: 2 };
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        wolfKillSilentImmuneSeats: [5], // 咒狐在5号位但被刀的是2号位
+        wolfKillSilentImmuneSeats: [5], // Cursed Fox is at seat 5 but seat 2 is the target
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);
@@ -904,7 +904,7 @@ describe('DeathCalculator', () => {
       const actions: NightActions = {};
       const roleSeatMap: RoleSeatMap = {
         ...NO_ROLES,
-        // checkDeathTargetSeats 为空，因为预言家查验的不是咒狐
+        // checkDeathTargetSeats is empty because Seer did not check Cursed Fox
       };
 
       const deaths = calculateDeaths(actions, roleSeatMap);

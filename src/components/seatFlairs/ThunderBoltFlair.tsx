@@ -1,8 +1,8 @@
 /**
- * ThunderBoltFlair — 雷鸣电闪 (Skia Canvas + Picture)
+ * ThunderBoltFlair — thunder and lightning effect (Skia Canvas + Picture).
  *
- * 6 条短锯齿闪电从头像边缘向外劈出，轮流闪亮（flash→afterglow→fade）。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * Six short jagged lightning bolts strike outward from the avatar edge, flashing in turn (flash -> afterglow -> fade).
+ * All drawing is imperative on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
@@ -88,7 +88,7 @@ export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) =
         ptsY.push(cy + sinA * r + perpY * lateralOff);
       }
 
-      // 3 layers (glow → core → bright)
+      // 3 layers (glow -> core -> bright)
       const layerWidths = [size * 0.05, size * 0.025, size * 0.012];
       const layerAlphas = [intensity * 0.25, intensity * 0.5, intensity * 0.9];
 

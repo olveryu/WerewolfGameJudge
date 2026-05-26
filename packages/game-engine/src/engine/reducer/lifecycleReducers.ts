@@ -4,10 +4,10 @@
  * Pure functions: (state, action) => newState.
  * No IO, no random, no time dependencies.
  *
- * @pre 每个 reducer 假定调用方已通过 handler 层校验。
- *   - handleRestartGame: @pre action.nonce 必须由 handler 预计算提供
- *   - handleAssignRoles: @pre assignments keys 为有效 seat numbers
- *   - handleUpdateTemplate: @pre newTemplateRoles 为合法模板
+ * @pre Each reducer assumes caller has validated through the handler layer.
+ *   - handleRestartGame: @pre action.nonce must be precomputed by handler
+ *   - handleAssignRoles: @pre assignments keys are valid seat numbers
+ *   - handleUpdateTemplate: @pre newTemplateRoles is a valid template
  *   - handlePlayerViewedRole: @throws '[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat X'
  */
 
@@ -29,7 +29,7 @@ import type {
   WithdrawBoardNominationAction,
 } from './types';
 
-/** 初始化游戏状态（设置房间号、模板、座位数）。 */
+/** Initialize game state (set room code, template, seat count). */
 export function handleInitializeGame(state: GameState, action: InitializeGameAction): GameState {
   const { roomCode, hostUserId, templateRoles, totalSeats } = action.payload;
   const players: Record<number, null> = {};
@@ -48,18 +48,18 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
   };
 }
 
-/** 重启游戏（保留玩家，清除角色分配，回到 Seated）。 */
+/** Restart game (keep players, clear role assignments, back to Seated). */
 export function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
-  // PR9: 对齐 v1 行为 - 保留玩家但清除角色
-  // v1: 保持 players 不变，仅清除 role/hasViewedRole
-  // v1: 状态重置到 GameStatus.Seated（不是 GameStatus.Unseated）
+  // PR9: align with v1 behavior - keep players but clear roles
+  // v1: keep players unchanged, only clear role/hasViewedRole
+  // v1: status resets to GameStatus.Seated (not GameStatus.Unseated)
   const players: Record<number, (typeof state.players)[number]> = {};
   const seatCount = Object.keys(state.players).length;
 
   for (let i = 0; i < seatCount; i++) {
     const existingPlayer = state.players[i];
     if (existingPlayer) {
-      // 保留玩家但清除角色
+      // Keep player but clear role
       players[i] = {
         ...existingPlayer,
         role: null,
@@ -70,23 +70,23 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     }
   }
 
-  // 使用 handler 预计算的 nonce（保证 reducer 纯函数性）
+  // Use handler-precomputed nonce (ensures reducer purity)
   const newNonce = action.nonce;
 
   return {
-    // ── 保留字段（跨局不变） ──────────────────────────────
+    // ── Preserved fields (unchanged across games) ──────────────────────────────
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
     debugMode: state.debugMode,
     roster: state.roster,
 
-    // ── 重置字段 ─────────────────────────────────────────
+    // ── Reset fields ─────────────────────────────────────────
     players,
-    status: GameStatus.Seated, // v1: 重置到 seated，不是 unseated
-    currentStepIndex: -1, // 与 buildInitialGameState 一致
+    status: GameStatus.Seated, // v1: reset to seated, not unseated
+    currentStepIndex: -1, // consistent with buildInitialGameState
     isAudioPlaying: false,
-    currentStepId: undefined, // 清除夜晚步骤
+    currentStepId: undefined, // clear night step
     actions: [],
     currentNightResults: undefined,
     lastNightDeaths: undefined,
@@ -117,31 +117,31 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     convertedSeat: undefined,
     conversionRevealAcks: [],
 
-    // 盗宝大师
+    // Treasure Master
     bottomCards: undefined,
     treasureMasterSeat: undefined,
     treasureMasterChosenCard: undefined,
     effectiveTeam: undefined,
     bottomCardStepRoles: undefined,
 
-    // 盗贼
+    // Thief
     thiefSeat: undefined,
     thiefChosenCard: undefined,
 
-    // 丘比特
+    // Cupid
     loverSeats: undefined,
     cupidSeat: undefined,
     cupidLoversRevealAcks: [],
 
-    // boardNominations: 保留，重开不清空
+    // boardNominations: preserved, not cleared on restart
     boardNominations: state.boardNominations,
 
-    // ── 重开时更新 nonce ─────────────────────────
+    // ── Update nonce on restart ─────────────────────────
     roleRevealRandomNonce: newNonce,
   } satisfies Complete<GameState>;
 }
 
-/** 更新游戏模板（调整座位数、保留已入座玩家）。 */
+/** Update game template (adjust seat count, keep seated players). */
 export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAction): GameState {
   const newTemplateRoles = action.payload.templateRoles;
   const newCount = getPlayerCount(newTemplateRoles);
@@ -152,20 +152,20 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
   for (let i = 0; i < newCount; i++) {
     const existingPlayer = oldPlayers[i];
     if (existingPlayer) {
-      // 保留玩家，但清除 role（安全兜底，理论上此时不应有 role）
+      // Keep player but clear role (safety fallback; should not have role at this point)
       newPlayers[i] = {
         ...existingPlayer,
         role: null,
         hasViewedRole: false,
       };
     } else {
-      // 空座位或扩容新增的座位
+      // Empty seat or newly added seat from expansion
       newPlayers[i] = null;
     }
   }
-  // 注意：超出 newCount 的座位（缩容）自动不复制，即被踢掉
+  // Note: seats beyond newCount (shrink) are not copied, i.e. kicked
 
-  // 判断是否全部入座
+  // Check if all seats are occupied
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
 
   return {
@@ -173,11 +173,11 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
     templateRoles: newTemplateRoles,
     players: newPlayers,
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,
-    // boardNominations: 保留，采纳不清空
+    // boardNominations: preserved, not cleared on adopt
   };
 }
 
-/** 玩家入座。 */
+/** Player takes a seat. */
 export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): GameState {
   const { seat, player, rosterEntry } = action.payload;
   const newPlayers = { ...state.players, [seat]: player };
@@ -192,7 +192,7 @@ export function handlePlayerJoin(state: GameState, action: PlayerJoinAction): Ga
   };
 }
 
-/** 玩家离座。 */
+/** Player leaves seat. */
 export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): GameState {
   const { seat } = action.payload;
   const leavingPlayer = state.players[seat];
@@ -208,7 +208,7 @@ export function handlePlayerLeave(state: GameState, action: PlayerLeaveAction): 
   };
 }
 
-/** 玩家离座。 */
+/** Update player profile. */
 export function handleUpdatePlayerProfile(
   state: GameState,
   action: UpdatePlayerProfileAction,
@@ -244,7 +244,7 @@ export function handleUpdatePlayerProfile(
   };
 }
 
-/** 分配角色（将 assignments 写入 players，状态转 Assigned）。 */
+/** Assign roles (write assignments into players, status transitions to Assigned). */
 export function handleAssignRoles(state: GameState, action: AssignRolesAction): GameState {
   const { assignments, seerLabelMap, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat } =
     action.payload;
@@ -270,7 +270,7 @@ export function handleAssignRoles(state: GameState, action: AssignRolesAction): 
   };
 }
 
-/** 标记玩家已查看角色（全部查看后状态转 Ready）。 */
+/** Mark player as having viewed role (status transitions to Ready when all viewed). */
 export function handlePlayerViewedRole(
   state: GameState,
   action: PlayerViewedRoleAction,
@@ -281,16 +281,16 @@ export function handlePlayerViewedRole(
     throw new Error(`[FAIL-FAST] PLAYER_VIEWED_ROLE: no player at seat ${seat}`);
   }
 
-  // 更新当前玩家的 hasViewedRole
+  // Update hasViewedRole for current player
   const newPlayers = {
     ...state.players,
     [seat]: { ...player, hasViewedRole: true },
   };
 
-  // 检查是否所有已入座玩家都已查看角色
+  // Check if all seated players have viewed roles
   const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
 
-  // 仅当 status === GameStatus.Assigned 且 all viewed 时才推进到 GameStatus.Ready
+  // Only advance to GameStatus.Ready when status === GameStatus.Assigned and all viewed
   const newStatus =
     state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
 
@@ -301,18 +301,18 @@ export function handlePlayerViewedRole(
   };
 }
 
-/** 用 bot 填充空座位。 */
+/** Fill empty seats with bots. */
 export function handleFillWithBots(state: GameState, action: FillWithBotsAction): GameState {
   const { bots, botRoster } = action.payload;
 
-  // 合并现有玩家和 bot
+  // Merge existing players and bots
   const newPlayers = { ...state.players };
   for (const [seatStr, bot] of Object.entries(bots)) {
     const seat = Number.parseInt(seatStr, 10);
     newPlayers[seat] = bot;
   }
 
-  // 判断是否全部入座
+  // Check if all seats are occupied
   const allSeated = Object.values(newPlayers).every((p) => p !== null);
 
   return {
@@ -324,7 +324,7 @@ export function handleFillWithBots(state: GameState, action: FillWithBotsAction)
   };
 }
 
-/** 标记所有 bot 已查看角色。 */
+/** Mark all bots as having viewed roles. */
 export function handleMarkAllBotsViewed(state: GameState): GameState {
   const newPlayers = { ...state.players };
 
@@ -338,7 +338,7 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
     }
   }
 
-  // 检查是否所有玩家都已查看角色（null 座位视为已查看，与 handlePlayerViewedRole 一致）
+  // Check if all players have viewed roles (null seat treated as viewed, consistent with handlePlayerViewedRole)
   const allViewed = Object.values(newPlayers).every((p) => p === null || p.hasViewedRole === true);
   const newStatus =
     state.status === GameStatus.Assigned && allViewed ? GameStatus.Ready : state.status;
@@ -351,10 +351,10 @@ export function handleMarkAllBotsViewed(state: GameState): GameState {
 }
 
 // =============================================================================
-// 板子建议 Reducers
+// Board Nomination Reducers
 // =============================================================================
 
-/** 设置板子建议。 */
+/** Set board nomination. */
 export function handleSetBoardNomination(
   state: GameState,
   action: SetBoardNominationAction,
@@ -369,7 +369,7 @@ export function handleSetBoardNomination(
   };
 }
 
-/** 对板子建议投票（toggle，单选）。 */
+/** Upvote board nomination (toggle, single choice). */
 export function handleUpvoteBoardNomination(
   state: GameState,
   action: UpvoteBoardNominationAction,
@@ -379,13 +379,13 @@ export function handleUpvoteBoardNomination(
   const target = nominations?.[targetUserId];
   if (!target) return state;
 
-  // Toggle：已点赞则取消，未点赞则添加（每人全局只能投一条）
+  // Toggle: cancel if already voted, add if not (each user can vote on only one globally)
   const alreadyVoted = target.upvoters.includes(voterUid);
   const updatedUpvoters = alreadyVoted
     ? target.upvoters.filter((userId) => userId !== voterUid)
     : [...target.upvoters, voterUid];
 
-  // 投新票时，从其他建议中撤回旧票（单选）
+  // When voting new, withdraw old vote from other nominations (single choice)
   let updatedNominations = {
     ...nominations,
     [targetUserId]: { ...target, upvoters: updatedUpvoters },
@@ -407,7 +407,7 @@ export function handleUpvoteBoardNomination(
   };
 }
 
-/** 撤回板子建议。 */
+/** Withdraw board nomination. */
 export function handleWithdrawBoardNomination(
   state: GameState,
   action: WithdrawBoardNominationAction,

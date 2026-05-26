@@ -8,8 +8,8 @@
  * - Reveal ack and wolfRobot hunter status gates
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
- * 通过 facade 执行游戏操作，使用 debug/bgm sub-hook state。
- * 不直接修改 GameState，不绕过 facade。
+ * Executes game operations via facade; uses debug/bgm sub-hook state.
+ * Does not modify GameState directly and does not bypass the facade.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -29,19 +29,19 @@ import type { BgmControlState } from './useBgmControl';
 import type { DebugModeState } from './useDebugMode';
 
 /**
- * Mutation 结果统一处理 — 按错误类型分层通知用户
+ * Unified mutation-result handling — tiered user notification by error type
  *
- * - 网络/基础设施错误（NETWORK_ERROR / SERVER_ERROR）：请求未到服务器，始终弹 alert
- * - 业务拒绝：交给 onBusinessError 回调处理
- *   - 传 toastError → 轻量 toast（业务错误统一展示方式）
- *   - 不传 → 静默（state-driven / 后台操作）
+ * - Network/infrastructure errors (NETWORK_ERROR / SERVER_ERROR): request never reached server, always show alert
+ * - Business rejection: delegated to onBusinessError callback
+ *   - Pass toastError -> lightweight toast (unified business-error presentation)
+ *   - Omit -> silent (state-driven / background operations)
  *
- * 用于 useGameActions 内用户发起的操作。
- * 不用于后台/系统操作（audio-ack / progression 等）。
+ * Used for user-initiated operations within useGameActions.
+ * Not used for background/system operations (audio-ack / progression, etc.).
  */
 type BusinessErrorHandler = (title: string, message: string) => void;
 
-/** 轻量 toast 错误提示 — 作为 onBusinessError 回调传入 handleMutationResult */
+/** Lightweight toast error — passed to handleMutationResult as the onBusinessError callback */
 function toastError(title: string, message: string): void {
   toast.error(title, { description: message });
 }
@@ -54,13 +54,13 @@ function handleMutationResult(
   if (result.success) return;
   const { reason } = result;
 
-  // 网络/基础设施错误 → 请求没到服务器，始终弹 alert
+  // Network/infrastructure error -> request never reached server, always show alert
   if (reason === 'NETWORK_ERROR' || reason === 'SERVER_ERROR') {
     showErrorAlert(`${actionLabel}失败`, reason === 'NETWORK_ERROR' ? NETWORK_ERROR : SERVER_ERROR);
     return;
   }
 
-  // 业务拒绝 → 交给调用方
+  // Business rejection -> delegate to caller
   onBusinessError?.(`${actionLabel}失败`, translateReasonCode(reason));
 }
 
@@ -84,10 +84,10 @@ interface GameActionsState {
   submitRevealAck: () => Promise<ActionResult>;
   submitGroupConfirmAck: () => Promise<ActionResult>;
   sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
-  /** Host: wolf vote deadline 到期后触发服务端推进。返回是否成功（用于 retry guard）。 */
+  /** Host: triggers server progression after wolf vote deadline. Returns success status (used for retry guard). */
   postProgression: () => Promise<boolean>;
 
-  // Board nomination (任意已连接玩家)
+  // Board nomination (any connected player)
   boardNominate: (displayName: string, roles: RoleId[]) => Promise<void>;
   boardUpvote: (targetUserId: string) => Promise<void>;
   boardWithdraw: () => Promise<void>;
@@ -110,9 +110,9 @@ interface GameActionsDeps {
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * 游戏操作 hook — 封装开始游戏、夜间行动、重启等全部交互。
+ * Game actions hook — wraps all interactions: start game, night action, restart, etc.
  *
- * 通过 facade 发起 HTTP 请求，不直接操作本地状态。
+ * Issues HTTP requests via the facade; does not touch local state directly.
  */ export function useGameActions(deps: GameActionsDeps): GameActionsState {
   const { facade, bgm, debug, mySeat, gameState } = deps;
 
@@ -138,7 +138,7 @@ interface GameActionsDeps {
   }, [facade]);
 
   // Start game (host only)
-  // BGM 由 useBgmControl 的 gameStatus→Ongoing reactive effect 驱动，不在此处命令式启动。
+  // BGM is driven by useBgmControl's gameStatus->Ongoing reactive effect; not imperatively started here.
   const startGame = useCallback(async (): Promise<void> => {
     if (!facade.isHostPlayer()) return;
 
@@ -174,7 +174,7 @@ interface GameActionsDeps {
     [facade],
   );
 
-  // Set audio playing (host only) - PR7 音频时序控制
+  // Set audio playing (host only) - PR7 audio timing control
   const setAudioPlaying = useCallback(
     async (isPlaying: boolean): Promise<ActionResult> => {
       if (!facade.isHostPlayer()) {
@@ -232,7 +232,7 @@ interface GameActionsDeps {
   }, [debug.effectiveSeat, facade]);
 
   // WolfRobot hunter status viewed gate
-  // seat 参数由调用方传入 effectiveSeat，以支持 debug bot 接管模式
+  // The seat parameter is passed by caller as effectiveSeat to support debug bot takeover mode
   const sendWolfRobotHunterStatusViewed = useCallback(
     async (seat: number): Promise<void> => {
       const result = await facade.sendWolfRobotHunterStatusViewed(seat);
@@ -241,7 +241,7 @@ interface GameActionsDeps {
     [facade],
   );
 
-  // Post progression (host only) — wolf vote deadline 到期时由客户端触发
+  // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
     if (!facade.isHostPlayer()) return false;
     const result = await facade.postProgression();
@@ -249,7 +249,7 @@ interface GameActionsDeps {
   }, [facade]);
 
   // =========================================================================
-  // Board Nomination (任意已连接玩家)
+  // Board Nomination (any connected player)
   // =========================================================================
 
   const boardNominate = useCallback(

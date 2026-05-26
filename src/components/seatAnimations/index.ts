@@ -1,9 +1,9 @@
 /**
- * seatAnimations — 入座动画注册表
+ * seatAnimations — sit animation registry.
  *
- * SeatAnimationId 类型从 `@werewolf/game-engine/growth/rewardCatalog` 的 SEAT_ANIMATION_IDS 派生。
- * 通过 getSeatAnimationById 按 id 获取对应的 Reanimated 动画组件。
- * 结构同 `seatFlairs/index.ts`。
+ * SeatAnimationId type is derived from SEAT_ANIMATION_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * Use getSeatAnimationById to look up the corresponding Reanimated animation component by id.
+ * Structure mirrors `seatFlairs/index.ts`.
  */
 import {
   SEAT_ANIMATION_IDS,
@@ -26,16 +26,16 @@ import { WolfKingEntry } from './legendary/WolfKingEntry';
 import type { SeatAnimationProps } from './SeatAnimationProps';
 
 interface SeatAnimationConfig {
-  /** 中文显示名 */
+  /** Chinese display name */
   name: string;
-  /** Reanimated 入座动画组件 */
+  /** Reanimated sit animation component */
   Component: React.ComponentType<SeatAnimationProps>;
 }
 
 /**
- * 入座动画注册表（exhaustive Record）—— SEAT_ANIMATION_IDS 新增 ID 而此处未添加 → TS 编译报错。
- * UI 展示顺序跟随 SEAT_ANIMATION_IDS。
- * Legendary 手动列举；Common/Rare/Epic 从各自 factory 展开。
+ * Sit animation registry (exhaustive Record) — TS will fail to compile if SEAT_ANIMATION_IDS gains a new id not added here.
+ * UI display order follows SEAT_ANIMATION_IDS.
+ * Legendary entries are listed manually; Common/Rare/Epic are spread from their respective factories.
  */
 function buildAnimationRegistry(): Record<SeatAnimationId, SeatAnimationConfig> {
   const legendaryEntries: Record<string, SeatAnimationConfig> = {
@@ -59,13 +59,13 @@ function buildAnimationRegistry(): Record<SeatAnimationId, SeatAnimationConfig> 
 }
 const ANIMATION_REGISTRY = buildAnimationRegistry();
 
-/** 所有可用入座动画（顺序 = SEAT_ANIMATION_IDS 展示顺序） */
+/** All available sit animations (order = SEAT_ANIMATION_IDS display order) */
 export const SEAT_ANIMATIONS: readonly (SeatAnimationConfig & { id: SeatAnimationId })[] =
   SEAT_ANIMATION_IDS.map((id) => ({ id, ...ANIMATION_REGISTRY[id] }));
 
 const ANIMATION_MAP = new Map<string, SeatAnimationConfig>(SEAT_ANIMATIONS.map((a) => [a.id, a]));
 
-/** 按 id 获取入座动画配置。无效 id 返回 undefined。 */
+/** Look up sit animation config by id. Returns undefined for invalid id. */
 export function getSeatAnimationById(
   id: string | null | undefined,
 ): SeatAnimationConfig | undefined {

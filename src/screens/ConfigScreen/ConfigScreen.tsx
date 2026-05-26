@@ -1,10 +1,10 @@
 /**
- * ConfigScreen - 游戏配置与房间创建（Render-only）
+ * ConfigScreen - Game configuration and room creation (Render-only)
  *
- * 角色列表由 FACTION_GROUPS + ROLE_SPECS 数据驱动。
- * 所有状态/回调由 useConfigScreenState hook 提供。
- * 纯函数 helpers 在 configHelpers.ts。
- * 不使用硬编码样式值，不使用 console.*。
+ * Role list is data-driven from FACTION_GROUPS + ROLE_SPECS.
+ * All state/callbacks come from the useConfigScreenState hook.
+ * Pure-function helpers live in configHelpers.ts.
+ * No hardcoded style values; no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -42,7 +42,7 @@ import { useConfigScreenState } from './useConfigScreenState';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
 type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
 
-/** 角色配置屏幕。 */
+/** Role configuration screen. */
 export const ConfigScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createConfigScreenStyles(colors), []);
@@ -102,7 +102,7 @@ export const ConfigScreen: React.FC = () => {
       edges={['left', 'right']}
       testID={TESTIDS.configScreenRoot}
     >
-      {/* Header row — ← | 预女猎白 12人 | ⋯ */}
+      {/* Header row — back | board name + player count | reset */}
       <View style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}>
         <Button variant="icon" onPress={handleGoBack} testID={TESTIDS.configBackButton}>
           <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
@@ -160,7 +160,7 @@ export const ConfigScreen: React.FC = () => {
                 const sectionFaction = section.faction ?? activeGroup!.faction;
                 const sectionAccentColor = getFactionAccentColor(sectionFaction);
 
-                // Bulk slot → RoleStepper
+                // Bulk slot -> RoleStepper
                 const bulkSlot = section.roles.find((s) => s.isBulk);
                 if (bulkSlot) {
                   const maxCount = bulkSlot.count ?? 1;
@@ -184,7 +184,7 @@ export const ConfigScreen: React.FC = () => {
                   );
                 }
 
-                // Skill slots → Section + RoleChips
+                // Skill slots -> Section + RoleChips
                 const sectionFactionColorKey = FACTION_COLOR_MAP[sectionFaction] ?? 'villager';
                 return (
                   <React.Fragment key={section.title}>

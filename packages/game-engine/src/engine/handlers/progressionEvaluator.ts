@@ -1,12 +1,12 @@
 /**
- * Wolf Vote Pure Functions — 狼人投票相关纯函数
+ * Wolf Vote Pure Functions
  *
- * 职责：
- * - isWolfVoteAllComplete：判断全部狼人是否投票完成（server + evaluator 共用）
- * - decideWolfVoteTimerAction：Timer set/clear/noop 决策
+ * Responsibilities:
+ * - isWolfVoteAllComplete: determine whether all wolves have completed voting (shared by server + evaluator)
+ * - decideWolfVoteTimerAction: Timer set/clear/noop decision
  *
- * 仅读取 state 事实做判断，不包含 IO（网络 / 音频 / Alert）。
- * 推进决策与执行由服务端 runInlineProgression 负责（见 inlineProgression.ts）。
+ * Only reads state facts to make decisions; contains no IO (network / audio / Alert).
+ * Progression decision and execution handled by server-side runInlineProgression (see inlineProgression.ts).
  */
 
 import { doesRoleParticipateInWolfVote } from '../../models';
@@ -16,25 +16,25 @@ import {
   isBottomCardWolfVoteExcluded,
 } from '../../utils/playerHelpers';
 
-/** 狼人投票倒计时毫秒数 */
+/** Wolf vote countdown in milliseconds */
 export const WOLF_VOTE_COUNTDOWN_MS = 5000;
 
 /**
- * 判断全部参与投票的狼人是否都已完成投票（exported 纯函数）。
+ * Determine whether all wolves participating in the vote have voted (exported pure function).
  *
- * Fail-closed 设计：
- * - player.role 缺失 → return false（无法确定角色 → 不认为全完成）
- * - 0 参与狼人 → return false（wolfKill step 下无狼人是异常，不应推进）
- * - 撤回（-2）的狼人 key 已被 resolver 删除，不在 wolfVotesBySeat 中 → 未投票 → false
+ * Fail-closed design:
+ * - player.role missing -> return false (cannot determine role -> not considered all-complete)
+ * - 0 participating wolves -> return false (no wolves under wolfKill step is abnormal, should not progress)
+ * - Retracted (-2) wolf key already removed by resolver, not in wolfVotesBySeat -> not voted -> false
  *
- * @invariant player.role !== null when status=Ongoing（此函数仅在 wolfKill step 调用）。
- * 保证链：handleAssignRoles 为全部 seats 写入 role → status=Assigned →
- * handleStartNight 设 status=Ongoing。Ongoing 期间 handleTakeSeat 拒绝加入
- * （status !== Unseated/Seated），handleLeaveMySeat 拒绝离开（status === Ongoing）。
- * 因此 fail-closed 的 `return false` 在生产中不会触发 deadlock。
+ * @invariant player.role !== null when status=Ongoing (this function only called during wolfKill step).
+ * Guarantee chain: handleAssignRoles writes role for all seats -> status=Assigned ->
+ * handleStartNight sets status=Ongoing. During Ongoing, handleTakeSeat rejects joining
+ * (status !== Unseated/Seated), handleLeaveMySeat rejects leaving (status === Ongoing).
+ * Thus the fail-closed `return false` will not trigger deadlock in production.
  *
- * ⚠️ 行为变更（vs 旧 isCurrentStepComplete wolfKill 分支）：
- * 旧逻辑 `continue` 跳过 role 缺失的座位，新逻辑 `return false`（fail-closed）。
+ * Behavior change (vs old isCurrentStepComplete wolfKill branch):
+ * Old logic `continue` skipped seats with missing role; new logic `return false` (fail-closed).
  */
 export function isWolfVoteAllComplete(state: GameState): boolean {
   const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
@@ -42,7 +42,7 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
   for (const [seatStr, player] of Object.entries(state.players)) {
     const seat = Number.parseInt(seatStr, 10);
     if (!Number.isFinite(seat)) continue;
-    if (!player?.role) return false; // fail-closed：role 缺失 → 不确定 → false
+    if (!player?.role) return false; // fail-closed: role missing -> uncertain -> false
     const effectiveRole = getBottomCardEffectiveRole(
       player.role,
       state.thiefChosenCard,
@@ -55,7 +55,7 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
       participatingWolfSeats.push(seat);
     }
   }
-  if (participatingWolfSeats.length === 0) return false; // fail-closed：0 狼人 → 异常 → false
+  if (participatingWolfSeats.length === 0) return false; // fail-closed: 0 wolves -> abnormal -> false
   return participatingWolfSeats.every((seat) => {
     const v = wolfVotes[String(seat)];
     return typeof v === 'number' && (v >= 0 || v === -1);
@@ -63,20 +63,20 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
 }
 
 /**
- * Timer 决策纯函数结果类型
+ * Result type for the Timer decision pure function
  */
 type WolfVoteTimerAction = { type: 'set'; deadline: number } | { type: 'clear' } | { type: 'noop' };
 
 /**
- * 决定狼人投票 Timer 的动作（纯函数）。
+ * Decide the wolf vote Timer action (pure function).
  *
- * | allVoted | hasExistingTimer | 动作 |
+ * | allVoted | hasExistingTimer | Action |
  * |---------|-----------------|------|
- * | true    | any             | set（设置/重置 deadline） |
- * | false   | true            | clear（撤回导致未全投完） |
+ * | true    | any             | set (set/reset deadline) |
+ * | false   | true            | clear (retract caused vote no longer complete) |
  * | false   | false           | noop |
  *
- * 策略 A：任何成功 submit 都调用此函数，allVoted 时一律 set（无论内容是否改变）。
+ * Strategy A: any successful submit calls this function; when allVoted, always set (regardless of content change).
  */
 export function decideWolfVoteTimerAction(
   allVoted: boolean,

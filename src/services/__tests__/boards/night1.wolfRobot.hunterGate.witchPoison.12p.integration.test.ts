@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: WolfRobot learns Hunter + Witch poison scenarios
  *
- * 主题：机械狼人学习到猎人后，女巫毒与不毒他的两种结局
+ * Theme: after Wolf Robot learns Hunter, two outcomes based on whether Witch poisons it
  *
- * 自定义模板（12人，含 wolfRobot + witch + hunter）
- * 固定 seat-role assignment:
+ * Custom template (12 players, with wolfRobot + witch + hunter)
+ * Fixed seat-role assignment:
  *   seat 0-2: villager
  *   seat 3: hunter
  *   seat 4-6: wolf
@@ -14,16 +14,16 @@
  *   seat 10: guard
  *   seat 11: psychic
  *
- * 核心规则（WolfRobot Hunter Gate）：
- * - wolfRobot 学习 hunter 后，wolfRobotReveal.learnedRoleId === 'hunter'
+ * Core rules (WolfRobot Hunter Gate):
+ * - After wolfRobot learns hunter, wolfRobotReveal.learnedRoleId === 'hunter'
  * - wolfRobotContext.disguisedRole === 'hunter'
- * - wolfRobotHunterStatusViewed 初始为 false，发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 后变为 true
- * - gate 解除后夜晚才能继续推进
+ * - wolfRobotHunterStatusViewed starts as false; becomes true after WOLF_ROBOT_HUNTER_STATUS_VIEWED is sent
+ * - Night can only advance after the gate is cleared
  *
- * 测试风格：按 NightPlan 顺序真实执行每个 step，不跳过任何步骤
- * 使用统一 runner（stepByStepRunner.ts），禁止自造 runner
+ * Test style: execute every step in NightPlan order; skip nothing
+ * Use the unified runner (stepByStepRunner.ts); no custom runners
  *
- * 架构：intents → handlers → resolver → GameState
+ * Architecture: intents -> handlers -> resolver -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -32,7 +32,7 @@ import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
 
 /**
- * 自定义角色列表（含 wolfRobot + witch + hunter）
+ * Custom role list (with wolfRobot + witch + hunter)
  */
 const CUSTOM_ROLES: RoleId[] = [
   'villager',
@@ -50,7 +50,7 @@ const CUSTOM_ROLES: RoleId[] = [
 ];
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -83,16 +83,16 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     it('wolfRobot 学习 hunter 后，wolfRobotHunterStatusViewed 初始为 false，发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 后变为 true', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
-      // Step 1: 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
+      // Step 1: execute in order up to wolfRobotLearn step (using unified runner)
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 袭击 villager seat 0
+        wolf: 0, // attack villager seat 0
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
       });
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: 提交 wolfRobot 学习 hunter (seat 3) 的 action（显式发送，fail-fast）
+      // Step 2: submit wolfRobot's action to learn hunter (seat 3) (explicit send, fail-fast)
       sendMessageOrThrow(
         ctx,
         {
@@ -105,28 +105,28 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolfRobot learn hunter',
       );
 
-      // 断言 1: 学习事实已记录
+      // Assertion 1: learn fact recorded
       const stateAfterLearn = ctx.getGameState();
       expect(stateAfterLearn.wolfRobotReveal).toBeDefined();
       expect(stateAfterLearn.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(stateAfterLearn.wolfRobotReveal?.targetSeat).toBe(HUNTER_SEAT);
 
-      // 断言 2: 伪装上下文已写入
+      // Assertion 2: disguise context written
       expect(stateAfterLearn.wolfRobotContext).toBeDefined();
       expect(stateAfterLearn.wolfRobotContext?.disguisedRole).toBe('hunter');
 
-      // 断言 3: Hunter gate 初始为 false
+      // Assertion 3: Hunter gate starts as false
       expect(stateAfterLearn.wolfRobotHunterStatusViewed).toBe(false);
 
-      // 断言 4: 当前 step 仍是 wolfRobotLearn（被 gate 阻塞）
+      // Assertion 4: current step is still wolfRobotLearn (blocked by gate)
       expect(stateAfterLearn.currentStepId).toBe('wolfRobotLearn');
 
-      // Step 3: 尝试 advance（应该被 gate 阻塞）
+      // Step 3: attempt advance (should be blocked by gate)
       const advResultBlocked = ctx.advanceNight();
       expect(advResultBlocked.success).toBe(false);
       expect(advResultBlocked.reason).toContain('wolfrobot_hunter_status_not_viewed');
 
-      // Step 4: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 解除 gate（显式发送，真实 protocol）
+      // Step 4: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send, real protocol)
       sendMessageOrThrow(
         ctx,
         {
@@ -136,14 +136,14 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolf robot hunter gate',
       );
 
-      // 断言 5: gate 已解除
+      // Assertion 5: gate cleared
       const stateAfterGate = ctx.getGameState();
       expect(stateAfterGate.wolfRobotHunterStatusViewed).toBe(true);
 
-      // 断言 6: advance 不再被拒绝（可以推进到下一步）
+      // Assertion 6: advance no longer rejected (can move to next step)
       ctx.advanceNightOrThrow('after gate cleared');
 
-      // 断言 7: 已推进到下一步（不再是 wolfRobotLearn）
+      // Assertion 7: advanced to next step (no longer wolfRobotLearn)
       const stateAfterAdvance = ctx.getGameState();
       expect(stateAfterAdvance.currentStepId).not.toBe('wolfRobotLearn');
     });
@@ -153,17 +153,17 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     it('女巫毒杀学到猎人的机械狼人，机械狼人死亡但 wolfRobotReveal/wolfRobotContext 仍存在', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
-      // Step 1: 按顺序执行到 wolfRobotLearn 步骤
-      // 女巫在前面毒 wolfRobot
+      // Step 1: execute in order up to wolfRobotLearn step
+      // Witch poisons wolfRobot earlier
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 袭击 villager seat 0
-        witch: { save: null, poison: WOLF_ROBOT_SEAT }, // 女巫毒 wolfRobot
+        wolf: 0, // attack villager seat 0
+        witch: { save: null, poison: WOLF_ROBOT_SEAT }, // witch poisons wolfRobot
         hunter: { confirmed: true },
       });
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: wolfRobot 学习 hunter（显式发送）
+      // Step 2: wolfRobot learns hunter (explicit send)
       sendMessageOrThrow(
         ctx,
         {
@@ -176,13 +176,13 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolfRobot learn hunter',
       );
 
-      // 验证学习结果
+      // Verify learn result
       let state = ctx.getGameState();
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
 
-      // Step 3: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 解除 gate（显式发送）
+      // Step 3: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send)
       sendMessageOrThrow(
         ctx,
         {
@@ -195,22 +195,22 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
-      // 推进到下一步
+      // Advance to next step
       ctx.advanceNightOrThrow('after wolfRobot gate cleared');
 
-      // Step 4: 完成剩余步骤（使用统一 runner）
+      // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
-        seer: 4, // 预言家查验狼
-        psychic: 5, // 通灵师查验狼
+        seer: 4, // Seer checks wolf
+        psychic: 5, // Psychic checks wolf
       });
 
-      // 核心断言: wolfRobot seat 被毒死
+      // Core assertion: wolfRobot seat is poisoned
       expect(deaths).toContain(WOLF_ROBOT_SEAT);
 
-      // 被袭击的 villager seat 0 也死亡
+      // Attacked villager seat 0 also dies
       expect(deaths).toContain(0);
 
-      // 回归断言：毒杀不应影响 wolfRobotReveal / wolfRobotContext 的存在性
+      // Regression: poison should not affect existence of wolfRobotReveal / wolfRobotContext
       const finalState = ctx.getGameState();
       expect(finalState.wolfRobotReveal).toBeDefined();
       expect(finalState.wolfRobotReveal?.learnedRoleId).toBe('hunter');
@@ -223,17 +223,17 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     it('女巫不毒机械狼人，机械狼人存活且 wolfRobotReveal 仍存在', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
-      // Step 1: 按顺序执行到 wolfRobotLearn 步骤
-      // 女巫不毒
+      // Step 1: execute in order up to wolfRobotLearn step
+      // Witch does not poison
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
-        wolf: 0, // 袭击 villager seat 0
-        witch: { save: null, poison: null }, // 女巫不毒
+        wolf: 0, // attack villager seat 0
+        witch: { save: null, poison: null }, // witch does not poison
         hunter: { confirmed: true },
       });
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: wolfRobot 学习 hunter（显式发送）
+      // Step 2: wolfRobot learns hunter (explicit send)
       sendMessageOrThrow(
         ctx,
         {
@@ -246,13 +246,13 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
         'wolfRobot learn hunter',
       );
 
-      // 验证学习结果和 gate 状态
+      // Verify learn result and gate state
       let state = ctx.getGameState();
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('hunter');
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
 
-      // Step 3: 发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 解除 gate（显式发送）
+      // Step 3: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send)
       sendMessageOrThrow(
         ctx,
         {
@@ -265,22 +265,22 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
 
-      // 推进到下一步
+      // Advance to next step
       ctx.advanceNightOrThrow('after wolfRobot gate cleared');
 
-      // Step 4: 完成剩余步骤（使用统一 runner）
+      // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
         seer: 4,
         psychic: 5,
       });
 
-      // 核心断言: wolfRobot seat 不在死亡列表中（仍存活）
+      // Core assertion: wolfRobot seat not in death list (still alive)
       expect(deaths).not.toContain(WOLF_ROBOT_SEAT);
 
-      // 被袭击的 villager seat 0 死亡
+      // Attacked villager seat 0 dies
       expect(deaths).toContain(0);
 
-      // wolfRobotReveal 仍存在
+      // wolfRobotReveal still exists
       const finalState = ctx.getGameState();
       expect(finalState.wolfRobotReveal).toBeDefined();
       expect(finalState.wolfRobotReveal?.learnedRoleId).toBe('hunter');
@@ -293,7 +293,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
     it('wolfRobot 学习非 hunter 角色时，不触发 hunter gate', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
-      // 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
+      // Execute in order up to wolfRobotLearn step (using unified runner)
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
         wolf: 0,
         witch: { save: null, poison: null },
@@ -301,7 +301,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       });
       expect(reachedWolfRobot).toBe(true);
 
-      // wolfRobot 学习 villager (seat 0)（显式发送）
+      // wolfRobot learns villager (seat 0) (explicit send)
       sendMessageOrThrow(
         ctx,
         {
@@ -316,20 +316,20 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       const state = ctx.getGameState();
 
-      // 学习 villager，不是 hunter
+      // Learned villager, not hunter
       expect(state.wolfRobotReveal?.learnedRoleId).toBe('villager');
 
-      // 不应该触发 hunter gate（wolfRobotHunterStatusViewed 应该不存在或不为 false）
+      // Should not trigger hunter gate (wolfRobotHunterStatusViewed should be absent or not false)
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
-      // 可以直接 advance（不被 gate 阻塞）
+      // Can advance directly (not blocked by gate)
       ctx.advanceNightOrThrow('after learning non-hunter');
     });
 
     it('wolfRobot 跳过学习时，不触发 hunter gate', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
-      // 按顺序执行到 wolfRobotLearn 步骤（使用统一 runner）
+      // Execute in order up to wolfRobotLearn step (using unified runner)
       const reachedWolfRobot = executeStepsUntil(ctx, 'wolfRobotLearn', {
         wolf: 0,
         witch: { save: null, poison: null },
@@ -337,14 +337,14 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       });
       expect(reachedWolfRobot).toBe(true);
 
-      // wolfRobot 不学习（skip）（显式发送）
+      // wolfRobot skips learning (explicit send)
       sendMessageOrThrow(
         ctx,
         {
           type: 'ACTION',
           seat: WOLF_ROBOT_SEAT,
           role: 'wolfRobot',
-          target: null, // 跳过
+          target: null, // skip
           extra: undefined,
         },
         'wolfRobot skip',
@@ -352,13 +352,13 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
 
       const state = ctx.getGameState();
 
-      // 没有学习，wolfRobotReveal 不应该有 learnedRoleId
+      // Did not learn; wolfRobotReveal should not have learnedRoleId
       expect(state.wolfRobotReveal?.learnedRoleId).toBeUndefined();
 
-      // 不应该触发 hunter gate
+      // Should not trigger hunter gate
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
-      // 可以直接 advance
+      // Can advance directly
       ctx.advanceNightOrThrow('after skip');
     });
   });

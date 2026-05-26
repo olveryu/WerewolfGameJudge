@@ -1,9 +1,9 @@
 /**
- * useNotepad - 笔记本状态管理 hook
+ * useNotepad - notepad state management hook.
  *
- * 管理玩家笔记（文本 + 上警/身份/角色猜测标记），通过 AsyncStorage 持久化。
- * 提供 toggleHand / cycleIdentity / setNote / setRole / clearAll 操作。
- * 纯客户端状态，不涉及服务端 API 或 game-engine 逻辑。
+ * Manages player notes (text + sheriff/identity/role-guess markers) persisted via AsyncStorage.
+ * Provides toggleHand / cycleIdentity / setNote / setRole / clearAll operations.
+ * Pure client-side state; no server API or game-engine logic involved.
  */
 
 import { GameStatus } from '@werewolf/game-engine/models';
@@ -18,10 +18,10 @@ import { chatLog } from '@/utils/logger';
 
 // ── Types ────────────────────────────────────────────────
 
-/** 身份标记：0=未标记, 1=好人, 2=坏人, 3=存疑 */
+/** Identity marker: 0=unmarked, 1=good, 2=bad, 3=suspect */
 export type IdentityState = 0 | 1 | 2 | 3;
 
-/** 角色标签信息（从 ROLE_SPECS 派生） */
+/** Role tag info (derived from ROLE_SPECS) */
 export interface RoleTagInfo {
   roleId: RoleId;
   shortName: string;
@@ -34,9 +34,9 @@ export interface NotepadState {
   handStates: Record<number, boolean>;
   identityStates: Record<number, IdentityState>;
   roleGuesses: Record<number, RoleId | null>;
-  /** 公共笔记区（左）— 不绑定座位的自由文本 */
+  /** Public notes area (left) — free text not bound to a seat */
   publicNoteLeft: string;
-  /** 公共笔记区（右）— 不绑定座位的自由文本 */
+  /** Public notes area (right) — free text not bound to a seat */
   publicNoteRight: string;
 }
 
@@ -78,9 +78,9 @@ export function getNotepadStorageKey(roomCode: string | null): string | null {
 // Hook
 // ══════════════════════════════════════════════════════════
 /**
- * 管理玩家笔记状态（身份标记/文本备注），带 AsyncStorage 持久化。
+ * Manages player notepad state (identity markers / text notes) with AsyncStorage persistence.
  *
- * @param facade - GameFacade 实例，用于读取当前游戏状态
+ * @param facade - GameFacade instance, used to read current game state
  */ export function useNotepad(facade: IGameFacade): UseNotepadReturn {
   const [state, setState] = useState<NotepadState>(emptyState);
 

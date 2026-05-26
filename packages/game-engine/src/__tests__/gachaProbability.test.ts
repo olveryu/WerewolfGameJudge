@@ -80,10 +80,10 @@ describe('gachaProbability', () => {
         const { rarity } = rollRarity('normal', PITY_THRESHOLD - 1, val);
         counts[rarity]++;
       }
-      // legendary/epic 保持原始概率不变
+      // legendary/epic keep original probabilities
       expect(Math.abs((counts.legendary / N) * 100 - NORMAL_RATES.legendary)).toBeLessThan(1);
       expect(Math.abs((counts.epic / N) * 100 - NORMAL_RATES.epic)).toBeLessThan(1);
-      // rare 吃掉原 common 的份额
+      // rare absorbs the original common share
       expect(
         Math.abs((counts.rare / N) * 100 - (NORMAL_RATES.rare + NORMAL_RATES.common)),
       ).toBeLessThan(1);
@@ -107,9 +107,9 @@ describe('gachaProbability', () => {
         const { rarity } = rollRarity('golden', PITY_THRESHOLD - 1, val);
         counts[rarity]++;
       }
-      // legendary 保持原始概率不变
+      // legendary keeps original probability
       expect(Math.abs((counts.legendary / N) * 100 - GOLDEN_RATES.legendary)).toBeLessThan(1);
-      // epic 吃掉原 common+rare 的份额
+      // epic absorbs the original common+rare share
       expect(
         Math.abs(
           (counts.epic / N) * 100 - (GOLDEN_RATES.epic + GOLDEN_RATES.rare + GOLDEN_RATES.common),

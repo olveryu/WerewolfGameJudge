@@ -1,9 +1,9 @@
 /**
- * MessageBubble - 单条聊天消息气泡
+ * MessageBubble - Single chat message bubble
  *
- * 用户消息右对齐蓝色，AI 消息左对齐灰色。
- * Streaming 时在文本末尾显示闪烁光标 ▊。
- * 渲染消息气泡与光标动画。不直接调用 service。
+ * User messages are right-aligned and blue; AI messages are left-aligned and grey.
+ * While streaming, shows a blinking cursor ▊ at end of text.
+ * Renders message bubble + cursor animation. Does not call services directly.
  */
 
 import { memo, useEffect, useRef } from 'react';
@@ -23,7 +23,7 @@ interface MessageBubbleProps {
   colors: ThemeColors;
   bubbleStyle: object;
   textStyle: object;
-  /** 是否正在 streaming（显示闪烁光标） */
+  /** Whether currently streaming (shows blinking cursor) */
   isStreaming?: boolean;
 }
 

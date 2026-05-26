@@ -1,16 +1,16 @@
 /**
- * GodRevealEffect — 神职阵营揭示特效（Skia + Reanimated 4）
+ * GodRevealEffect — god-faction reveal effect (Skia + Reanimated 4)
  *
- * 翻牌后在卡片区域渲染圣光系列动画：
- * 1. 卡片光晕 — Skia RadialGradient + Blur，极亮爆发→持续微弱金色发光
- * 2. 天降光柱 — Skia 从卡片顶部向上延伸的锥形光束（blendMode="screen"）
- * 3. 十字闪光 — Skia Rect + Blur + screen blend，快闪后消失
- * 4. 光环绽放 — 4 层同心 Circle stroke + Blur 从中心扩散
- * 5. 圣光粒子 — 24 颗金色光尘 + Blur 从中心向四周飘散
- * 6. 底部光晕 — 地面反射的半圆形柔光
+ * After the flip, renders holy-light animations over the card region:
+ * 1. Card glow — Skia RadialGradient + Blur, bright burst -> sustained faint gold glow
+ * 2. Heavenly pillar — Skia tapered beam from card top extending upward (blendMode="screen")
+ * 3. Cross flash — Skia Rect + Blur + screen blend, brief flash then disappears
+ * 4. Halo bloom — 4 concentric Circle strokes + Blur expanding from center
+ * 5. Holy particles — 24 gold dust particles + Blur scattering outward from center
+ * 6. Bottom glow — semicircular soft ground reflection
  *
- * 情绪签名：瞬间爆发 + "divine intervention" 力量感。
- * 不 import service，不含业务逻辑。
+ * Emotional signature: instant burst + "divine intervention" power.
+ * Does not import services; contains no business logic.
  */
 import {
   Blur,

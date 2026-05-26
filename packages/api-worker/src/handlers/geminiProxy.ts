@@ -1,14 +1,14 @@
 /**
  * AI Chat Hono routes — Gemini (primary) + Workers AI (fallback)
  *
- * 主力：Gemini API（OpenAI 兼容层），固定模型 gemini-3.1-flash-lite。
- * 降级：地理限制（400）/ 配额耗尽（429）/ 过载（503 重试 1 次后）
- *       → fallback 到 Workers AI（@cf/google/gemma-4-26b-a4b-it）。
- * Workers AI 无地理限制，10K Neurons/天预算主要服务受限地区用户。
+ * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.1-flash-lite.
+ * Fallback: geo block (400) / quota exhausted (429) / overload (503 after 1 retry)
+ *       -> fall back to Workers AI (@cf/google/gemma-4-26b-a4b-it).
+ * Workers AI has no geo restriction; 10K Neurons/day budget mainly serves users in restricted regions.
  *
- * @throws 401 — requireAuth 未通过
- * @throws 400 — zod 校验失败
- * @throws 502 — Gemini + Workers AI 均失败（最终降级失败）
+ * @throws 401 — requireAuth failed
+ * @throws 400 — zod validation failed
+ * @throws 502 — Both Gemini and Workers AI failed (final fallback failed)
  */
 
 import { Hono } from 'hono';
@@ -28,8 +28,8 @@ const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const GEMINI_TIMEOUT_MS = 15_000;
 
 /**
- * 将 Workers AI SSE 流（`{"response":"..."}` 格式）转换为 OpenAI 兼容格式
- * （`{"choices":[{"delta":{"content":"..."}}]}`），客户端解析器只认后者。
+ * Convert Workers AI SSE stream (`{"response":"..."}` format) to OpenAI-compatible format
+ * (`{"choices":[{"delta":{"content":"..."}}]}`); the client parser only recognizes the latter.
  */
 function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
   const decoder = new TextDecoder();
@@ -55,7 +55,7 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
 
           try {
             const parsed: unknown = JSON.parse(data);
-            // Workers AI: {"response":"..."} → OpenAI: {"choices":[{"delta":{"content":"..."}}]}
+            // Workers AI: {"response":"..."} -> OpenAI: {"choices":[{"delta":{"content":"..."}}]}
             if (typeof parsed === 'object' && parsed !== null && 'response' in parsed) {
               const openAIChunk = {
                 choices: [{ delta: { content: (parsed as { response: string }).response } }],
@@ -79,7 +79,7 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
   );
 }
 
-/** Gemini AI 代理路由。 */
+/** Gemini AI proxy routes. */
 export const geminiRoutes = new Hono<AppEnv>();
 
 type Message = { role: string; content: string };

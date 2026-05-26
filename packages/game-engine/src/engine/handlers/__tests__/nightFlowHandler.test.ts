@@ -3,15 +3,15 @@
  *
  * PR6: ADVANCE_NIGHT / END_NIGHT (Night-1 only)
  *
- * Gate 测试:
+ * Gate tests:
  * - host_only
  * - no_state
  * - invalid_status
  * - forbidden_while_audio_playing
  *
- * Happy path 测试:
- * - advanceNight 推进 index 和 stepId
- * - endNight 调用 calculateDeaths 并产出正确 deaths
+ * Happy path tests:
+ * - advanceNight progresses index and stepId
+ * - endNight calls calculateDeaths and produces correct deaths
  */
 
 import {
@@ -35,7 +35,7 @@ import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 import { expectError, expectSuccess } from './handlerTestUtils';
 
 /**
- * 创建完整的玩家对象
+ * Create a complete player object
  */
 function createPlayer(seat: number, role: string, overrides?: Partial<Player>): Player {
   return {
@@ -48,7 +48,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
 }
 
 /**
- * 创建基础的 ongoing 状态
+ * Create a basic ongoing state
  */
 function createOngoingState(overrides?: Partial<GameState>): GameState {
   return {
@@ -139,13 +139,13 @@ describe('nightFlowHandler', () => {
 
     describe('Happy path', () => {
       it('should advance to next action index and stepId', () => {
-        // 测试模板: wolf, wolf, seer, witch, villager, villager
-        // buildNightPlan 会过滤出: wolfKill → witchAction → seerCheck
+        // Test template: wolf, wolf, seer, witch, villager, villager
+        // buildNightPlan will filter to: wolfKill → witchAction → seerCheck
         const templateRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
         const nightPlan = buildNightPlan(templateRoles);
 
         const context: HandlerContext = {
-          // 从 wolfKill 推进，且模板包含 witch，应该设置 witchContext
+          // Progressing from wolfKill with witch in template, should set witchContext
           state: createOngoingState({
             currentStepIndex: 0,
             currentStepId: 'wolfKill',
@@ -158,22 +158,22 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         const success = expectSuccess(result);
-        // 从 wolfKill 推进且有 witch，应该返回 3 个 actions (ADVANCE + SET_WITCH_CONTEXT + SET_UI_HINT)
+        // Progressing from wolfKill with witch present, should return 3 actions (ADVANCE + SET_WITCH_CONTEXT + SET_UI_HINT)
         expect(success.actions).toHaveLength(3);
 
         const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
         if (advanceAction.type === 'ADVANCE_TO_NEXT_ACTION') {
           expect(advanceAction.payload.nextStepIndex).toBe(1);
-          // 使用 buildNightPlan 过滤后的步骤（对应模板角色）
+          // Use steps filtered by buildNightPlan (matching template roles)
           expect(advanceAction.payload.nextStepId).toBe(nightPlan.steps[1]?.stepId ?? null);
         }
 
-        // 从 wolfKill 推进且有 witch，应该有 SET_WITCH_CONTEXT action
+        // Progressing from wolfKill with witch present, should have SET_WITCH_CONTEXT action
         const witchContextAction = success.actions[1]!;
         expect(witchContextAction.type).toBe('SET_WITCH_CONTEXT');
 
-        // 应该有 SET_UI_HINT action 清除当前提示
+        // Should have SET_UI_HINT action to clear current hint
         const uiHintAction = success.actions[2]!;
         expect(uiHintAction.type).toBe('SET_UI_HINT');
 
@@ -181,12 +181,12 @@ describe('nightFlowHandler', () => {
       });
 
       it('should set nextStepId to null when no more steps', () => {
-        // 测试模板: wolf, wolf, seer, witch, villager, villager
-        // buildNightPlan 会过滤出: wolfKill → witchAction → seerCheck（共 3 步）
+        // Test template: wolf, wolf, seer, witch, villager, villager
+        // buildNightPlan will filter to: wolfKill → witchAction → seerCheck (3 steps total)
         const templateRoles: RoleId[] = ['wolf', 'wolf', 'seer', 'witch', 'villager', 'villager'];
         const nightPlan = buildNightPlan(templateRoles);
 
-        // 设置 index 到最后一步
+        // Set index to the last step
         const lastIndex = nightPlan.steps.length - 1;
         const context: HandlerContext = {
           state: createOngoingState({
@@ -315,10 +315,10 @@ describe('nightFlowHandler', () => {
 
     describe('Gate: night_not_complete', () => {
       it('should reject when currentStepId is still set (night plan not finished)', () => {
-        // currentStepId 仍然有值，说明 night plan 还没走完
+        // currentStepId still has a value, meaning the night plan has not finished
         const context: HandlerContext = {
           state: createOngoingState({
-            currentStepId: 'wolfKill', // 还在 wolfKill 步骤
+            currentStepId: 'wolfKill', // still on wolfKill step
             currentNightResults: { wolfVotesBySeat: {} },
           }),
           myUserId: 'host-uid',
@@ -334,8 +334,8 @@ describe('nightFlowHandler', () => {
 
     describe('Happy path: death calculation', () => {
       it('should produce END_NIGHT action with empty deaths when no wolf kill', () => {
-        // 没有狼投票 = 放弃袭击 = 无死亡
-        // currentStepId: undefined 表示 night plan 已走完
+        // No wolf votes = skip attack = no deaths
+        // currentStepId: undefined means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -360,8 +360,8 @@ describe('nightFlowHandler', () => {
       });
 
       it('should calculate wolf kill death (simple case)', () => {
-        // 两只狼都投给 4 号（villager）
-        // currentStepId: undefined 表示 night plan 已走完
+        // Both wolves vote for seat 4 (villager)
+        // currentStepId: undefined means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -382,8 +382,8 @@ describe('nightFlowHandler', () => {
       });
 
       it('should randomly pick one target on tie vote (平票随机刀)', () => {
-        // 两只狼投不同目标 = 平票 = 随机选一个目标刀
-        // currentStepId: undefined 表示 night plan 已走完
+        // Two wolves vote different targets = tie = randomly pick one target to kill
+        // currentStepId: undefined means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -399,15 +399,15 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 平票 = 随机选一个刀
+          // Tie = randomly pick one to kill
           expect(action.payload.deaths).toHaveLength(1);
           expect([4, 5]).toContain(action.payload.deaths[0]);
         }
       });
 
       it('should return empty deaths when wolfKillOverride set (nightmare blocked wolf)', () => {
-        // 狼被封锁，即使投票了也无效
-        // currentStepId: undefined 表示 night plan 已走完
+        // Wolves blocked, votes have no effect
+        // currentStepId: undefined means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -432,8 +432,8 @@ describe('nightFlowHandler', () => {
       });
 
       it('should respect guard protection (no death)', () => {
-        // 袭击 4 号，守卫守 4 号
-        // currentStepId: undefined 表示 night plan 已走完
+        // Attack seat 4, guard protects seat 4
+        // currentStepId: undefined means night plan has finished
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -460,7 +460,7 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 被守卫保护，无死亡
+          // Protected by guard, no death
           expect(action.payload.deaths).not.toContain(4);
         }
       });
@@ -470,10 +470,10 @@ describe('nightFlowHandler', () => {
       // ================================================================
 
       it('should apply magician swap to spiritKnight identity in death calc (wolf kills swapped seat)', () => {
-        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
-        // 袭击 seat 2（swap 后 seat 2 是 villager 身份）→ seat 2 死亡
+        // Scenario: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // Attack seat 2 (after swap seat 2 has villager identity) → seat 2 dies
         // processMagicianSwap: seat 2 dead → swap → seat 4 dead, seat 2 alive
-        // 灵骑能力跟着身份走到 seat 4，seat 2 不再是灵骑 → 不免疫
+        // SpiritKnight ability follows identity to seat 4, seat 2 is no longer spiritKnight → not immune
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -499,17 +499,17 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // seat 2 原本死亡，swap 后 seat 4 死亡（seat 2 存活）
+          // seat 2 originally dies, after swap seat 4 dies (seat 2 alive)
           expect(action.payload.deaths).toContain(4);
           expect(action.payload.deaths).not.toContain(2);
         }
       });
 
       it('should apply magician swap: seer checks swapped spiritKnight seat → no reflection', () => {
-        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
-        // 预言家(seat 3) 查验 seat 2（swap 后 seat 2 = villager 身份）
-        // spiritKnight 的能力在 seat 4 → 查 seat 2 不触发反弹
-        // 预言家不死
+        // Scenario: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // Seer(seat 3) checks seat 2 (after swap seat 2 = villager identity)
+        // spiritKnight ability is at seat 4 → checking seat 2 does not trigger reflection
+        // Seer does not die
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -538,15 +538,15 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 预言家不死（spiritKnight 身份在 seat 4，不在 seat 2）
+          // Seer does not die (spiritKnight identity is at seat 4, not seat 2)
           expect(action.payload.deaths).not.toContain(3);
         }
       });
 
       it('should apply magician swap: seer checks seat with swapped-in spiritKnight → seer dies by reflection', () => {
-        // 场景: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
-        // 预言家(seat 3) 查验 seat 4（swap 后 seat 4 = spiritKnight 身份）
-        // 触发反弹 → 预言家死
+        // Scenario: magician swap spiritKnight(seat 2) ↔ villager(seat 4)
+        // Seer(seat 3) checks seat 4 (after swap seat 4 = spiritKnight identity)
+        // Triggers reflection → Seer dies
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -575,13 +575,13 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 预言家查到了 swap 后的灵骑 → 反弹致死
+          // Seer checked the post-swap spiritKnight → killed by reflection
           expect(action.payload.deaths).toContain(3);
         }
       });
 
       it('should not change roleSeatMap when no magician swap (backward compatible)', () => {
-        // 无 swap 时行为不变：spiritKnight 在 seat 2，袭击 villager seat 4
+        // Behavior unchanged without swap: spiritKnight at seat 2, attack villager seat 4
         const context: HandlerContext = {
           state: createOngoingState({
             currentStepId: undefined,
@@ -607,7 +607,7 @@ describe('nightFlowHandler', () => {
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
         if (action.type === 'END_NIGHT') {
-          // 袭击 villager → seat 4 死亡
+          // Attack villager → seat 4 dies
           expect(action.payload.deaths).toEqual([4]);
         }
       });
@@ -734,18 +734,18 @@ describe('nightFlowHandler', () => {
 
     describe('PR contract: witchContext.canSave aligns with notSelf constraint', () => {
       /**
-       * Schema 定义：witchAction.steps[0] (save) 有 notSelf 约束
-       * 合约：当被杀者是女巫自己时，canSave 必须为 false
+       * Schema definition: witchAction.steps[0] (save) has notSelf constraint
+       * Contract: when killed seat is the witch herself, canSave must be false
        *
-       * 此测试验证 handleAdvanceNight 设置的 witchContext.canSave
-       * 正确实现 schema 的 notSelf 约束。
+       * This test verifies that witchContext.canSave set by handleAdvanceNight
+       * correctly implements the schema's notSelf constraint.
        */
 
       it('should set canSave=false when wolf kills the witch (notSelf alignment)', () => {
-        // 模板: wolf, witch, villager (witch 在座位 1)
+        // Template: wolf, witch, villager (witch at seat 1)
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
-        // players: wolf 在 0, witch 在 1
+        // players: wolf at 0, witch at 1
         const players: Record<number, Player> = {
           0: createPlayer(0, 'wolf'),
           1: createPlayer(1, 'witch'),
@@ -756,10 +756,10 @@ describe('nightFlowHandler', () => {
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 0, // wolfKill 是第 0 步
+            currentStepIndex: 0, // wolfKill is step 0
             currentStepId: 'wolfKill',
             templateRoles,
-            // 狼杀了女巫（座位 1）
+            // Wolf killed the witch (seat 1)
             currentNightResults: { wolfVotesBySeat: { '0': 1 } },
           }),
           myUserId: 'host-uid',
@@ -769,22 +769,22 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         const success = expectSuccess(result);
-        // 应该有 2 个 actions: ADVANCE + SET_WITCH_CONTEXT
+        // Should have 2 actions: ADVANCE + SET_WITCH_CONTEXT
         expect(success.actions.length).toBeGreaterThanOrEqual(2);
 
         const witchContextAction = success.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
         expect(witchContextAction).toBeDefined();
 
         if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
-          // killedSeat 应该是 1（女巫座位）
+          // killedSeat should be 1 (witch's seat)
           expect(witchContextAction.payload.killedSeat).toBe(1);
-          // canSave 必须是 false（女巫不能自救，notSelf 约束）
+          // canSave must be false (witch cannot self-save, notSelf constraint)
           expect(witchContextAction.payload.canSave).toBe(false);
         }
       });
 
       it('should set canSave=true when wolf kills someone else (normal case)', () => {
-        // 模板: wolf, witch, villager (witch 在座位 1)
+        // Template: wolf, witch, villager (witch at seat 1)
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
         const players: Record<number, Player> = {
@@ -800,7 +800,7 @@ describe('nightFlowHandler', () => {
             currentStepIndex: 0,
             currentStepId: 'wolfKill',
             templateRoles,
-            // 狼杀了村民（座位 2）
+            // Wolf killed a villager (seat 2)
             currentNightResults: { wolfVotesBySeat: { '0': 2 } },
           }),
           myUserId: 'host-uid',
@@ -815,23 +815,23 @@ describe('nightFlowHandler', () => {
         expect(witchContextAction).toBeDefined();
 
         if (witchContextAction?.type === 'SET_WITCH_CONTEXT') {
-          // killedSeat 应该是 2（村民座位）
+          // killedSeat should be 2 (villager's seat)
           expect(witchContextAction.payload.killedSeat).toBe(2);
-          // canSave 应该是 true（可以救别人）
+          // canSave should be true (can save others)
           expect(witchContextAction.payload.canSave).toBe(true);
         }
       });
 
       it('should set witchContext when advancing TO witchAction on no-wolf board (Case 2)', () => {
         /**
-         * Bug fix: 当板子里没有狼人时，女巫不会弹出"昨夜无人倒台"的提示
+         * Bug fix: when board has no wolves, witch doesn't show "no one died last night" prompt
          *
-         * 场景：模板中有女巫但没有狼人角色
-         * - buildNightPlan() 会跳过 wolfKill 步骤
-         * - 当从非 wolfKill 步骤推进到 witchAction 时，Case 2 触发
+         * Scenario: template has witch but no wolf roles
+         * - buildNightPlan() will skip wolfKill step
+         * - When advancing from a non-wolfKill step to witchAction, Case 2 triggers
          */
 
-        // 模板: 女巫 + 预言家 + 村民，没有狼人
+        // Template: witch + seer + villager, no wolves
         const templateRoles: RoleId[] = ['witch', 'seer', 'villager', 'villager'];
 
         const players: Record<number, Player> = {
@@ -857,18 +857,18 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         expectSuccess(result);
-        // handler 内部依赖 nightFlow.peekNext()，这里验证不会崩溃
+        // Handler internally depends on nightFlow.peekNext(); this verifies it does not crash
       });
 
       it('should NOT set witchContext when nextStepId is undefined (night ends)', () => {
         /**
-         * Fail-safe 测试：当夜晚推进到最后一步并结束时，
-         * nextStepId 为 undefined，不应设置 witchContext
+         * Fail-safe test: when night progresses past the last step and ends,
+         * nextStepId is undefined, witchContext should not be set
          *
-         * 这验证了显式 guard：nextStepId ? maybeCreate...() : null
+         * This verifies the explicit guard: nextStepId ? maybeCreate...() : null
          */
 
-        // 模板: wolf, witch - 只有 2 步（wolfKill, witchAction）
+        // Template: wolf, witch - only 2 steps (wolfKill, witchAction)
         const templateRoles: RoleId[] = ['wolf', 'witch', 'villager'];
 
         const players: Record<number, Player> = {
@@ -878,15 +878,15 @@ describe('nightFlowHandler', () => {
         };
 
         const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
-        // 当前在最后一步 witchAction，推进后夜晚结束
+        // Currently on last step witchAction; night ends after progression
         const context: HandlerContext = {
           state: createOngoingState({
             players,
-            currentStepIndex: 1, // witchAction 是第 1 步
+            currentStepIndex: 1, // witchAction is step 1
             currentStepId: 'witchAction',
             templateRoles,
             currentNightResults: {},
-            // witchContext 已经设置（进入 witchAction 时设置的）
+            // witchContext already set (set when entering witchAction)
             witchContext: { killedSeat: -1, canSave: false, canPoison: true },
           }),
           myUserId: 'host-uid',
@@ -896,8 +896,8 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         const success = expectSuccess(result);
-        // 夜晚结束时返回 END_NIGHT，不是 ADVANCE
-        // 关键断言：不应有 SET_WITCH_CONTEXT action
+        // Returns END_NIGHT when night ends, not ADVANCE
+        // Key assertion: should have no SET_WITCH_CONTEXT action
         const witchContextAction = success.actions.find((a) => a.type === 'SET_WITCH_CONTEXT');
         expect(witchContextAction).toBeUndefined();
       });

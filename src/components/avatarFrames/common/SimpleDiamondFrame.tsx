@@ -1,7 +1,7 @@
 /**
- * SimpleDiamondFrame — 菱形
+ * SimpleDiamondFrame — Diamond
  *
- * 圆角矩形渐变边框。Common 级头像框模板。
+ * Rounded-rect gradient border. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

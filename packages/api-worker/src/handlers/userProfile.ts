@@ -1,8 +1,9 @@
 /**
- * userProfile — 用户 profile 查询与序列化的单一真相
+ * userProfile — single source of truth for user profile queries and serialization
  *
- * 所有 auth 端点返回 user_metadata 时必须通过此模块。
- * 新增装饰字段只需改此文件 + DB schema，不需要改 7 个 handler 位置。
+ * All auth endpoints returning user_metadata must go through this module.
+ * Adding a new cosmetic field only requires editing this file + DB schema,
+ * not 7 different handler sites.
  */
 
 import { eq } from 'drizzle-orm';
@@ -10,9 +11,9 @@ import { eq } from 'drizzle-orm';
 import type { createDb } from '../db';
 import { users } from '../db/schema';
 
-// ── Wire format (API → 客户端) ─────────────────────────────────────────────
+// ── Wire format (API -> client) ─────────────────────────────────────────────
 
-/** API 返回给客户端的 user_metadata 完整类型（snake_case wire format） */
+/** Full user_metadata type returned to clients (snake_case wire format) */
 interface UserMetadata {
   display_name: string | null;
   avatar_url: string | null;
@@ -24,11 +25,11 @@ interface UserMetadata {
   seat_animation: string | null;
 }
 
-// ── DB select 字段（单一真相） ──────────────────────────────────────────────
+// ── DB select fields (single source of truth) ──────────────────────────────
 
 /**
- * 从 users 表选取 profile 相关列。
- * 所有 auth 端点共用，避免字段遗漏。
+ * Selects profile-related columns from the users table.
+ * Shared across all auth endpoints to avoid missing fields.
  */
 const PROFILE_SELECT = {
   displayName: users.displayName,
@@ -41,14 +42,14 @@ const PROFILE_SELECT = {
   equippedSeatAnimation: users.equippedSeatAnimation,
 } as const;
 
-/** DB 查询结果行的类型 */
+/** DB query result row type */
 type ProfileRow = {
   [K in keyof typeof PROFILE_SELECT]: string | null;
 };
 
-// ── 序列化 ──────────────────────────────────────────────────────────────────
+// ── Serialization ───────────────────────────────────────────────────────────
 
-/** 将 DB profile row 转为 wire format user_metadata */
+/** Converts a DB profile row to wire-format user_metadata */
 export function toUserMetadata(row: ProfileRow | null | undefined): UserMetadata {
   return {
     display_name: row?.displayName ?? null,
@@ -62,11 +63,11 @@ export function toUserMetadata(row: ProfileRow | null | undefined): UserMetadata
   };
 }
 
-// ── DB 查询 ─────────────────────────────────────────────────────────────────
+// ── DB queries ──────────────────────────────────────────────────────────────
 
 /**
- * 查询用户 profile 列（不含 id/email/isAnonymous 等身份字段）。
- * 返回 null 表示用户不存在。
+ * Queries user profile columns (excludes identity fields like id/email/isAnonymous).
+ * Returns null if the user does not exist.
  */
 export async function selectUserProfile(
   db: ReturnType<typeof createDb>,

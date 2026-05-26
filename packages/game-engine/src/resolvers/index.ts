@@ -1,8 +1,8 @@
 /**
  * Resolvers Registry (SERVER-ONLY)
  *
- * 职责：注册 SchemaId → ResolverFn 的映射表，供 actionHandler 调用，
- * 导出 resolver 映射注册。不被 UI 代码 import（import boundary test 强制）。
+ * Responsibility: registers the SchemaId -> ResolverFn map used by actionHandler,
+ * and exports the resolver mapping. Must not be imported by UI code (enforced by the import-boundary test).
  *
  * ⚠️ WARNING: This module MUST NOT be imported by UI code.
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.

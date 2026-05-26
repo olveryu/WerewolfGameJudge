@@ -1,20 +1,20 @@
 /**
- * WebAudioStrategy — Web 平台音频播放策略。
+ * WebAudioStrategy — Web platform audio playback strategy.
  *
- * 职责：
- * - 实现 AudioPlaybackStrategy 接口（HTML Audio 后端）
- * - 复用单个 Audio 元素（iOS Safari 要求用户手势创建的 Audio 才能跨 src 自动播放）
- * - 等待 `canplaythrough` 再调用 play()，保证完整缓冲
- * - 加载错误时重置 src，让浏览器在网络恢复时重试
+ * Responsibilities:
+ * - Implements the AudioPlaybackStrategy interface (HTML Audio backend)
+ * - Reuses a single Audio element (iOS Safari requires gesture-created Audio for cross-src autoplay)
+ * - Waits for `canplaythrough` before calling play(), ensuring full buffering
+ * - Resets src on load errors so the browser retries when network recovers
  *
- * 不负责：
- * - Native 平台播放（由 NativeAudioStrategy 处理）
- * - 播放顺序/编排逻辑
+ * Not responsible for:
+ * - Native platform playback (handled by NativeAudioStrategy)
+ * - Playback ordering / orchestration logic
  *
- * 边界约束：
- * - 无 expo-audio 依赖
- * - 不设人工超时——依赖浏览器原生重试机制
- * - 消除 "streaming stall" 问题（部分缓冲的音频永不触发 `ended`）
+ * Boundary constraints:
+ * - No expo-audio dependency
+ * - No manual timeout — relies on browser native retry mechanism
+ * - Eliminates "streaming stall" issues (partially buffered audio never firing `ended`)
  */
 
 import { audioLog } from '@/utils/logger';
@@ -30,9 +30,9 @@ import { getUnlockedAudioElement } from './webAudioUnlock';
 const LOAD_RETRY_DELAY_MS = 2000;
 
 /**
- * WebAudioStrategy — HTMLAudioElement 实现。
+ * WebAudioStrategy — HTMLAudioElement implementation.
  *
- * 用于 Web 端 TTS 音频播放，含预加载、加载失败重试、可见性 pause/resume。
+ * Used for web-side TTS audio playback, with preloading, load-failure retry, and visibility pause/resume.
  */
 export class WebAudioStrategy implements AudioPlaybackStrategy {
   #audioElement: HTMLAudioElement | null = null;

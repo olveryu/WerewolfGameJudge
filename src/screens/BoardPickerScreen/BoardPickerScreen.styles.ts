@@ -20,7 +20,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-/** 板子选择屏幕样式类型。 */
+/** Board picker screen style types. */
 export interface BoardPickerStyles {
   // ── Layout ──
   container: ViewStyle;
@@ -89,7 +89,7 @@ export interface BoardPickerStyles {
   customButtonText: TextStyle;
 }
 
-/** 创建板子选择屏幕样式。 */
+/** Creates board picker screen styles. */
 export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles => {
   const shared = createSharedStyles(colors);
 

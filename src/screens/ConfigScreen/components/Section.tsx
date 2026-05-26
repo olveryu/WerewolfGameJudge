@@ -1,7 +1,7 @@
 /**
- * Section - 角色分组容器（Memoized）
+ * Section - role group container (memoized)
  *
- * 接收 title + children（RoleChip 列表）。仅渲染分区 UI，不 import service，不包含业务逻辑判断。
+ * Accepts title + children (RoleChip list). Only renders the section UI; does not import services, contains no business logic.
  */
 import type React from 'react';
 import { memo } from 'react';

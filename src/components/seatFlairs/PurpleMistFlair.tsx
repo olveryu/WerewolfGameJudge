@@ -1,8 +1,8 @@
 /**
- * PurpleMistFlair — 紫雾缭绕
+ * PurpleMistFlair — purple mist swirl
  *
- * 7 团紫色雾气在外围漂浮，大小呼吸脉冲，多层渐变模拟柔焦。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 7 purple mist clusters drift around the perimeter, size pulses like breathing, multi-layered gradient simulates soft focus.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

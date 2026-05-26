@@ -1,8 +1,8 @@
 /**
- * MeteorBuddyPet — 陨石仔
+ * MeteorBuddyPet — meteor buddy
  *
- * meteorStrike 翻牌动画的伴生宠物。
- * 棕色陨石 + 渐变质感 + 火焰尾巴闪烁 + 可爱脸 + 弹坑 + 光环脉动。
+ * Companion pet for the meteorStrike card-flip animation.
+ * Brown meteor + gradient texture + flickering flame tail + cute face + craters + pulsing halo.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

@@ -1,8 +1,8 @@
 /**
- * TicketTabBar — 双面板券种切换器
+ * TicketTabBar — Two-panel ticket type switcher
  *
- * 两个 tab 各显示 icon + 名称 + 数量，inactive tab 降透明度但数字始终可见。
- * Animated sliding indicator 跟随 active tab 滑动。
+ * Each tab shows icon + name + count; inactive tab is dimmed but the number is always visible.
+ * Animated sliding indicator follows the active tab.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect } from 'react';
@@ -31,7 +31,7 @@ interface TicketTabBarProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-/** 普通/金色票切换栏。 */
+/** Normal/golden ticket tab bar. */
 export function TicketTabBar({
   activeTab,
   normalCount,

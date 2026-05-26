@@ -1,7 +1,7 @@
 /**
- * SimpleNotchFrame — 缺角
+ * SimpleNotchFrame — notched corners
  *
- * 四角各有三角形缺口。Common 级头像框模板。
+ * Triangular notch at each of the 4 corners. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';

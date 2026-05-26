@@ -1,7 +1,7 @@
 /**
- * SparkleFlair — 星点
+ * SparkleFlair — sparkle points
  *
- * 4 颗小星点在四角闪烁。Common 级座位装饰模板。
+ * 4 small star points twinkle in the four corners. Common-tier seat decoration template.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

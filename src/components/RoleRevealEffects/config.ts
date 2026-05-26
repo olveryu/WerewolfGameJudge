@@ -1,8 +1,8 @@
 /**
- * RoleRevealEffects/config - 揭示动画集中配置
+ * RoleRevealEffects/config - centralized reveal animation configuration
  *
- * 所有动画参数（时长、尺寸、数量）统一在此调整。
- * 导出声明式动画参数常量。不 import service，不含运行时副作用。
+ * All animation parameters (duration, size, count) are tuned here.
+ * Exports declarative animation constants. No service imports, no runtime side effects.
  */
 
 export const CONFIG = {
@@ -68,7 +68,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Role Hunt (角色猎场)
+  // Role Hunt
   // =====================================================
   roleHunt: {
     /** Delay after hitting target before revealing card (ms) */
@@ -116,7 +116,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Gacha Machine (扭蛋机)
+  // Gacha Machine
   // =====================================================
   gachaMachine: {
     /** Dial rotation speed (ms per turn) */
@@ -134,7 +134,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Card Pick (抽牌)
+  // Card Pick
   // =====================================================
   cardPick: {
     /** Duration for cards to spread onto the table (ms) */
@@ -162,7 +162,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Seal Break (封印解除)
+  // Seal Break
   // =====================================================
   sealBreak: {
     /** Seal appear + scale-in duration (ms) */
@@ -194,7 +194,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Chain Shatter (锁链击碎)
+  // Chain Shatter
   // =====================================================
   chainShatter: {
     /** Lock body width as fraction of screen width */
@@ -218,7 +218,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Fortune Wheel (命运转盘)
+  // Fortune Wheel
   // =====================================================
   fortuneWheel: {
     /** Wheel radius as fraction of screen width */
@@ -232,13 +232,13 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Alignment reveal effects (阵营特效)
+  // Alignment reveal effects
   // =====================================================
   alignmentEffects: {
     /** Delay before effects start after card reveal (ms) */
     effectStartDelay: 100,
 
-    // ── God (神职) — 圣光系 ──
+    // ── God — holy light theme ──
     /** Number of radiating light rays */
     godRayCount: 12,
     /** Max ray length (px) */
@@ -248,7 +248,7 @@ export const CONFIG = {
     /** Number of sparkle particles (matches HTML demo: 40 canvas particles) */
     godParticleCount: 40,
 
-    // ── Wolf (狼人) — 暗红系 ──
+    // ── Wolf — dark red theme ──
     /** Wolf total animation duration (ms) */
     wolfAnimationDuration: 2000,
     /** Number of shockwave rings */

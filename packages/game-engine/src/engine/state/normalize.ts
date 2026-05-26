@@ -1,11 +1,11 @@
 /**
- * State Normalization - 状态归一化（parse boundary）
+ * State Normalization (parse boundary)
  *
- * normalizeState 是 GameState → GameState 的归一化转换点。
- * 广播前 / store 写入前调用，确保：
- * - seat-map keys 规范化为 string
- * - 可选字段正确透传
- * - 必填字段 fail-fast（requireField）
+ * normalizeState is the GameState → GameState normalization transform point.
+ * Called before broadcast / before store write, ensuring:
+ * - seat-map keys are canonicalized to string
+ * - Optional fields are correctly passed through
+ * - Required fields fail-fast (requireField)
  */
 
 import type { GameState } from '../../protocol/types';
@@ -22,8 +22,8 @@ import type { GameState } from '../../protocol/types';
 export type Complete<T> = Record<keyof T, unknown>;
 
 /**
- * 规范化座位键记录（canonicalize），确保所有 key 都是 string。
- * 用于任何 Record<string, T> 在运行时可能收到 number key 的场景。
+ * Canonicalize a seat-key record, ensuring all keys are strings.
+ * Used for any Record<string, T> that may receive number keys at runtime.
  */
 function canonicalizeSeatKeyRecord<T>(
   record: Record<string | number, T> | undefined,
@@ -44,14 +44,14 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
 }
 
 /**
- * 广播前归一化状态（normalizeState）— parse boundary。
+ * Pre-broadcast state normalization (normalizeState) — parse boundary.
  *
- * - 核心必填字段: fail-fast（requireField）
+ * - Core required fields: fail-fast (requireField)
  * - seat-map keys: canonicalize to string
  *
- * 🛡️ Compile-time guard:
- * 返回对象使用 `satisfies Complete<GameState>` 确保每个字段都被显式列出。
- * 新增 GameState 字段但忘记在此透传 → 编译报错（不再静默丢弃）。
+ * Compile-time guard:
+ * The returned object uses `satisfies Complete<GameState>` to ensure every field is explicitly listed.
+ * Adding a new GameState field without passing it through here → compile error (no silent drop).
  */
 export function normalizeState(raw: GameState): GameState {
   // single source of truth: currentNightResults.wolfVotesBySeat
@@ -66,32 +66,32 @@ export function normalizeState(raw: GameState): GameState {
     : raw.currentNightResults;
 
   return {
-    // 必填字段（fail-fast，避免掩盖状态损坏）
+    // Required fields (fail-fast to avoid masking state corruption)
     roomCode: requireField(raw.roomCode, 'roomCode'),
     hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),
     templateRoles: requireField(raw.templateRoles, 'templateRoles'),
-    // ⚠️ Phase 1: players 保持原样，不做 key 规范化
+    // Phase 1: players kept as-is, no key canonicalization
     players: requireField(raw.players, 'players'),
-    // 玩家画像（roster），keyed by userId
+    // Player display info (roster), keyed by userId
     roster: raw.roster ?? {},
     currentStepIndex: requireField(raw.currentStepIndex, 'currentStepIndex'),
     isAudioPlaying: requireField(raw.isAudioPlaying, 'isAudioPlaying'),
 
-    // 执行状态（边界 normalize：undefined → []，内部代码无需 ?? []）
+    // Execution state (boundary normalize: undefined → [], so internal code doesn't need ?? [])
     actions: raw.actions ?? [],
     currentNightResults,
     pendingRevealAcks: raw.pendingRevealAcks ?? [],
     lastNightDeaths: raw.lastNightDeaths,
     deathReasons: raw.deathReasons,
 
-    // Night flow 状态（关键：currentStepId 必须透传）
+    // Night flow state (critical: currentStepId must be passed through)
     currentStepId: raw.currentStepId,
 
-    // 开牌动画种子（必须透传，否则发言顺序 RNG 读不到）
+    // Role reveal animation seed (must be passed through, otherwise speaking-order RNG can't read it)
     roleRevealRandomNonce: raw.roleRevealRandomNonce,
 
-    // 其他可选字段（透传）
+    // Other optional fields (pass-through)
     nightmareBlockedSeat: raw.nightmareBlockedSeat,
     wolfKillOverride: raw.wolfKillOverride,
     witchContext: raw.witchContext,
@@ -108,49 +108,49 @@ export function normalizeState(raw: GameState): GameState {
     confirmStatus: raw.confirmStatus,
     actionRejected: raw.actionRejected,
 
-    // 步骤推进截止时间（统一 deadline-gate，透传）
+    // Step progression deadline (unified deadline-gate, pass-through)
     stepDeadline: raw.stepDeadline,
 
-    // 待消費音频隊列（透传）
+    // Pending audio effect queue (pass-through)
     pendingAudioEffects: raw.pendingAudioEffects,
 
-    // UI Hints（Host 広播駆動，UI 只読展示，必須透伝）
+    // UI Hints (Host broadcast-driven, UI read-only display, must be passed through)
     ui: raw.ui,
 
-    // Debug mode（透传）
+    // Debug mode (pass-through)
     debugMode: raw.debugMode,
 
-    // 双预言家标签映射（透传）
+    // Dual Seer label mapping (pass-through)
     seerLabelMap: raw.seerLabelMap,
 
-    // 详细信息分享权限（透传）
+    // Night review share permissions (pass-through)
     nightReviewAllowedSeats: raw.nightReviewAllowedSeats,
 
-    // 吹笛者（透传，必填字段）
+    // Piper (pass-through, required fields)
     hypnotizedSeats: raw.hypnotizedSeats,
     piperRevealAcks: raw.piperRevealAcks,
 
-    // 觉醒石像鬼（透传）
+    // Awakened Gargoyle (pass-through)
     convertedSeat: raw.convertedSeat,
     conversionRevealAcks: raw.conversionRevealAcks,
 
-    // 盗宝大师（透传）
+    // Treasure Master (pass-through)
     bottomCards: raw.bottomCards,
     treasureMasterSeat: raw.treasureMasterSeat,
     treasureMasterChosenCard: raw.treasureMasterChosenCard,
     effectiveTeam: raw.effectiveTeam,
     bottomCardStepRoles: raw.bottomCardStepRoles,
 
-    // 盗贼（透传）
+    // Thief (pass-through)
     thiefSeat: raw.thiefSeat,
     thiefChosenCard: raw.thiefChosenCard,
 
-    // 丘比特（透传）
+    // Cupid (pass-through)
     loverSeats: raw.loverSeats,
     cupidSeat: raw.cupidSeat,
     cupidLoversRevealAcks: raw.cupidLoversRevealAcks,
 
-    // 板子建议（透传）
+    // Board nominations (pass-through)
     boardNominations: raw.boardNominations,
   } satisfies Complete<GameState>;
 }

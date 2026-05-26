@@ -1,10 +1,10 @@
 /**
- * AnnouncementModal — 公告与反馈弹窗（三 tab 切换）
+ * AnnouncementModal — Announcement and feedback modal (3-tab switcher)
  *
- * 受控组件：由父级传入 visible / onClose。
- * Tab 1「板子」：按版本分组展示全部预设板子，最新版在上。
- * Tab 2「更新日志」：垂直滚动展示版本更新内容（最新在上）。
- * Tab 3「意见反馈」：双向对话系统（FeedbackTab 组件）。
+ * Controlled component: parent passes visible / onClose.
+ * Tab 1 "Boards": all preset boards grouped by version, latest on top.
+ * Tab 2 "Changelog": vertical scroll of version updates (latest on top).
+ * Tab 3 "Feedback": two-way conversation system (FeedbackTab component).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PRESET_TEMPLATES, TEMPLATE_CATEGORY_LABELS } from '@werewolf/game-engine/models/Template';
@@ -26,7 +26,7 @@ import { FeedbackTab } from './FeedbackTab';
 
 type Tab = 'boards' | 'changelog' | 'feedback';
 
-/** 分类对应的颜色 token key */
+/** Color token key for each category */
 const CATEGORY_COLOR: Record<string, string> = {
   classic: colors.god,
   advanced: colors.primary,
@@ -34,7 +34,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   thirdParty: colors.third,
 };
 
-/** 版本组内板子数 ≥ 此值时默认折叠 */
+/** Collapse by default when boards in a version group >= this value */
 const COLLAPSE_THRESHOLD = 6;
 
 interface AnnouncementModalProps {
@@ -57,7 +57,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>('boards');
   const [expandedVersions, setExpandedVersions] = useState<Set<string>>(new Set());
 
-  /** 按版本分组的板子列表（每组内保留 PRESET_TEMPLATES 原顺序） */
+  /** Boards grouped by version (each group preserves original PRESET_TEMPLATES order) */
   const boardsByVersion = useMemo(() => {
     return BOARD_VERSIONS_DESC.map((version) => {
       const boards = PRESET_TEMPLATES.filter((t) => BOARD_VERSION_MAP[t.name] === version);
@@ -127,7 +127,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           </Pressable>
         </View>
 
-        {/* ── Tab: 板子 ── */}
+        {/* ── Tab: Boards ── */}
         {activeTab === 'boards' && (
           <ScrollView
             style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
@@ -142,7 +142,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                 <View key={version}>
                   {groupIdx > 0 && <View style={styles.separator} />}
                   <View style={[styles.versionGroup, isLatest && styles.versionGroupLatest]}>
-                    {/* 版本标题行 */}
+                    {/* Version title row */}
                     <View style={styles.versionHeaderRow}>
                       <View
                         style={[
@@ -160,7 +160,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                       )}
                     </View>
 
-                    {/* 折叠态 */}
+                    {/* Collapsed state */}
                     {shouldCollapse && !isExpanded ? (
                       <Pressable
                         style={styles.expandButton}
@@ -191,7 +191,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
                       </View>
                     )}
 
-                    {/* 展开后可收起 */}
+                    {/* Collapse button when expanded */}
                     {shouldCollapse && isExpanded && (
                       <Pressable
                         style={styles.expandButton}
@@ -218,7 +218,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           </ScrollView>
         )}
 
-        {/* ── Tab: 更新日志 ── */}
+        {/* ── Tab: Changelog ── */}
         {activeTab === 'changelog' && (
           <ScrollView
             style={[styles.scrollArea, { maxHeight: scrollMaxHeight }]}
@@ -247,7 +247,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({
           </ScrollView>
         )}
 
-        {/* ── Tab: 意见反馈 ── */}
+        {/* ── Tab: Feedback ── */}
         {activeTab === 'feedback' && (
           <FeedbackTab
             scrollMaxHeight={scrollMaxHeight}

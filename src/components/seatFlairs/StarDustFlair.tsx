@@ -1,7 +1,7 @@
 /**
- * StarDustFlair — 星尘飘散
+ * StarDustFlair — drifting stardust
  *
- * 7 枚微型十字星在周围闪烁(十字线+对角线+中心圆 = 5 elements per star)。
+ * 7 tiny cross-stars twinkle around the perimeter (cross lines + diagonals + center circle = 5 elements per star).
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

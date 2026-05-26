@@ -22,7 +22,7 @@ interface AvatarCellProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 头像网格单元格。 */
+/** Avatar grid cell. */
 export const AvatarCell = memo<AvatarCellProps>(
   ({ avatarId, isSelected, isCurrentlyUsed, locked, rarity, onPress, onLongPress, styles }) => {
     const handlePress = useCallback(() => {

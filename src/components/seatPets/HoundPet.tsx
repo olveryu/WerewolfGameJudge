@@ -1,8 +1,8 @@
 /**
- * HoundPet — 猎犬
+ * HoundPet — hound
  *
- * roleHunt 翻牌动画的伴生宠物。
- * 棕色小猎犬 + 摇摆耳朵 + 放大镜 + 摇尾巴，浮动。
+ * Companion pet for the roleHunt card-flip animation.
+ * Brown puppy + wobbling ears + magnifying glass + wagging tail, floating.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

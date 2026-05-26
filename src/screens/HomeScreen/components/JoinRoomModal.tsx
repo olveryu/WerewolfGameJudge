@@ -1,8 +1,8 @@
 /**
- * JoinRoomModal - 加入房间弹窗（Memoized）
+ * JoinRoomModal - join-room dialog (Memoized)
  *
- * 内嵌 NumPad 输入房间号，通过回调上报加入/取消意图。
- * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
+ * Embeds NumPad for entering room code; reports join/cancel intent via callbacks.
+ * Renders UI and reports user intent. Does not import services; contains no business logic.
  */
 import type React from 'react';
 import { memo, useMemo } from 'react';

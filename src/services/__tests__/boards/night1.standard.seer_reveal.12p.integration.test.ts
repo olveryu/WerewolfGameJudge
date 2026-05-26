@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: 预女猎白 - Seer Reveal
  *
- * 板子：预女猎白
- * 主题：预言家查验结果写入 GameState.seerReveal
+ * Board: 预女猎白
+ * Theme: Seer check result written to GameState.seerReveal
  *
- * 固定 seat-role assignment:
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-7: wolf
  *   seat 8: seer
@@ -12,7 +12,7 @@
  *   seat 10: hunter
  *   seat 11: idiot
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -23,7 +23,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '预女猎白';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -56,12 +56,12 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
       const result = executeFullNight(ctx, {
         wolf: 1,
         witch: { save: null, poison: null },
-        seer: 0, // 查验 villager
+        seer: 0, // Check villager
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入 GameState
+      // Core assertion: seerReveal written to GameState
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
@@ -76,12 +76,12 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
       const result = executeFullNight(ctx, {
         wolf: 0,
         witch: { save: null, poison: null },
-        seer: 4, // 查验 wolf
+        seer: 4, // Check wolf
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入
+      // Core assertion: seerReveal written
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);

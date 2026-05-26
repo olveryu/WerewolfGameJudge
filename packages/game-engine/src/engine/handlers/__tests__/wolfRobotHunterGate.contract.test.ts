@@ -1,7 +1,7 @@
 /**
  * WolfRobot Hunter Status Gate Server Enforcement Contract Tests
  *
- * Gate 5 触发条件（三条件全满足才阻挡）:
+ * Gate 5 trigger conditions (blocks only when all three are met):
  * 1. currentStepId === 'wolfRobotLearn'
  * 2. wolfRobotReveal.learnedRoleId === 'hunter'
  * 3. wolfRobotHunterStatusViewed === false
@@ -12,8 +12,8 @@
  * 3. Server allows advance when not applicable (wrong step or not hunter)
  * 4. Handler correctly validates and returns SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
  *
- * 本测试文件只测试 handleAdvanceNight 的 Gate 逻辑。
- * Facade 的 security validation 测试应放在 gameActions 的单元测试中。
+ * This test file only tests Gate logic in handleAdvanceNight.
+ * Facade security validation tests should go in gameActions unit tests.
  */
 
 import { handleAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
@@ -113,7 +113,7 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
       expectSuccess(result);
     });
 
-    it('[边界] 不在 wolfRobotLearn step 时，即使 wolfRobotHunterStatusViewed === false 也必须允许推进', () => {
+    it('[boundary] must allow advance when not in wolfRobotLearn step, even if wolfRobotHunterStatusViewed === false', () => {
       const state = createTestState({
         currentStepId: 'seerCheck', // different step - NOT wolfRobotLearn
         wolfRobotHunterStatusViewed: false, // gate still false but wrong step
@@ -127,13 +127,13 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
 
-      // Gate 5 只在 wolfRobotLearn step 生效，其他 step 不阻挡
+      // Gate 5 only takes effect in wolfRobotLearn step; other steps do not block
       expectSuccess(result);
     });
 
     it('allows advance when canShootAsHunter === false but status is viewed', () => {
-      // 这测试确认 gate 条件只看 learnedRoleId + wolfRobotHunterStatusViewed
-      // canShootAsHunter 仅影响 UI 显示，不影响 gate
+      // This test confirms gate conditions only look at learnedRoleId + wolfRobotHunterStatusViewed
+      // canShootAsHunter only affects UI display, not the gate
       const state = createTestState({
         wolfRobotReveal: {
           targetSeat: 1,

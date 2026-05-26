@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * DuskIronFrame — 暮铁
+ * DuskIronFrame — Dusk Iron
  *
- * 锻铁栅栏框 · 粗壮铆钉沿边 · 四角铁蝴蝶结锁扣（大三角对）· 铁锈色渐变。
+ * Wrought-iron fence frame · thick rivets along edges · iron bow-knot clasps at four corners (large triangle pairs) · rust-colored gradient.
  */
 export const DuskIronFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

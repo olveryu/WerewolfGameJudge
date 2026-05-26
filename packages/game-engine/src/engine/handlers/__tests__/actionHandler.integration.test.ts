@@ -47,7 +47,7 @@ jest.mock('@werewolf/game-engine/resolvers', () => ({
 
 jest.mock('@werewolf/game-engine/models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
-  SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: 必须 mock SCHEMAS
+  SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: must mock SCHEMAS
 }));
 
 describe('handleSubmitAction', () => {

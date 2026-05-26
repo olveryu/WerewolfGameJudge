@@ -1,7 +1,7 @@
 /**
  * shared handler utilities — pure function tests
  *
- * isValidSeat / resultToStatus 不依赖 DO，可直接测试。
+ * isValidSeat / resultToStatus do not depend on DO; can be tested directly.
  */
 
 import { describe, expect, it } from 'vitest';

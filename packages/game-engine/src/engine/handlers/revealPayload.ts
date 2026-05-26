@@ -96,7 +96,7 @@ function makeIdentityResultRevealHandler(
 }
 
 /**
- * 处理 WolfRobot reveal
+ * Handle WolfRobot reveal
  */
 function handleWolfRobotReveal(
   result: ResolverResult,
@@ -170,7 +170,7 @@ const REVEAL_HANDLERS: Record<RevealKind, RevealHandler> = {
 // ---------------------------------------------------------------------------
 
 /**
- * 从 resolver result 构建 ApplyResolverResultAction payload
+ * Build ApplyResolverResultAction payload from resolver result
  */
 export function buildRevealPayload(
   result: ResolverResult,
@@ -181,7 +181,7 @@ export function buildRevealPayload(
     updates: result.updates,
   };
 
-  // 从 schema.ui.revealKind 查表设置对应的 reveal（schema 是单一真相）
+  // Look up the corresponding reveal via schema.ui.revealKind (schema is single source of truth)
   const schema = SCHEMAS[schemaId];
   const revealKind = (schema?.ui as { revealKind?: RevealKind } | undefined)?.revealKind;
   if (revealKind) {

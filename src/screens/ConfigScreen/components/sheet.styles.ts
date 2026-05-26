@@ -17,7 +17,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-/** 创建设置弹窗样式。 */
+/** Create settings sheet styles. */
 export const createSheetStyles = (colors: ThemeColors) => ({
   // ── Settings sheet (Animation + BGM) ──────
   settingsSheetOverlay: {

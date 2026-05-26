@@ -1,5 +1,5 @@
 /**
- * ZoomInEnter — 放大弹入
+ * ZoomInEnter — Zoom-In Pop
  *
  * Children scale up from a small point to full size with a colored ring burst.
  * Common-tier entrance animation template.

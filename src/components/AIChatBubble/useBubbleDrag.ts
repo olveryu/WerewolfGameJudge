@@ -1,9 +1,9 @@
 /**
- * useBubbleDrag - 浮动气泡拖动手势 + 位置持久化
+ * useBubbleDrag - floating bubble drag gesture + position persistence
  *
- * 管理气泡的 touch/drag 交互、边界约束、位置 MMKV 持久化。
- * 短按视为点击（打开聊天），拖动距离超过阈值视为拖拽。
- * 提供手势处理、Animated 动画和 MMKV 位置持久化。不含游戏业务逻辑。
+ * Manages bubble touch/drag interaction, boundary constraints, and MMKV position persistence.
+ * Short tap counts as click (open chat); drag distance over threshold counts as drag.
+ * Provides gesture handling, Animated animation, and MMKV position persistence. Contains no game business logic.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,7 +33,7 @@ interface UseBubbleDragReturn {
 }
 
 /**
- * @param onOpen 点击气泡时的回调（打开聊天窗口）
+ * @param onOpen callback when bubble is tapped (opens chat window)
  */
 export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -43,14 +43,14 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   const stableHeightRef = useRef(screenHeight);
   const prevWidthRef = useRef(screenWidth);
   if (screenWidth !== prevWidthRef.current) {
-    // Width changed → likely rotation, accept new height
+    // Width changed -> likely rotation, accept new height
     stableHeightRef.current = screenHeight;
     prevWidthRef.current = screenWidth;
   } else if (screenHeight > stableHeightRef.current) {
-    // Height grew (keyboard dismissed) → accept the larger value
+    // Height grew (keyboard dismissed) -> accept the larger value
     stableHeightRef.current = screenHeight;
   }
-  // Height shrank (keyboard opened) → keep the old stableHeight
+  // Height shrank (keyboard opened) -> keep the old stableHeight
   const stableHeight = stableHeightRef.current;
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -59,7 +59,7 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
   const isDraggingRef = useRef(false);
   const justHandledTouchRef = useRef(false);
 
-  // 用 ref 追踪最新 position，避免 handleTouchEnd 闭包 stale
+  // Track latest position via ref to avoid stale closure in handleTouchEnd
   const positionRef = useRef(position);
   positionRef.current = position;
 

@@ -1,19 +1,19 @@
 /**
- * ChainShatter - 锁链击碎揭示动画（Skia + Reanimated 4）
+ * ChainShatter - chain-shattering reveal animation (Skia + Reanimated 4)
  *
- * 视觉设计：中央锁头（金属蓝钢渐变锁身 + 铆钉 + 高光提梁 + 钥匙孔光晕）
- * + 左右各 4 个链环。背景飘浮尘埃粒子增加氛围。
- * 交互：连续点击击碎（6 次），每击产生：
- *   - 累积可见裂纹（gold→red 渐变）+ glow 光晕
- *   - 径向火花粒子（8-12 个 gold/orange/white）
- *   - 扩散冲击环
- *   - 屏幕抖动 + 冲击闪光
- * 连击机制：>800ms 未击则连击数回退 1。
- * 全碎后不规则多边形碎片带旋转 + 重力爆炸 + 径向光环扩散。
+ * Visual design: central padlock (metallic blue steel gradient body + rivets + highlighted shackle + keyhole glow)
+ * + 4 chain links per side. Background floating dust particles add atmosphere.
+ * Interaction: rapid taps to shatter (6 hits); each hit produces:
+ *   - Accumulating visible cracks (gold -> red gradient) + glow halo
+ *   - Radial spark particles (8-12 gold/orange/white)
+ *   - Expanding shockwave ring
+ *   - Screen shake + impact flash
+ * Combo mechanic: more than 800ms without a hit reduces combo count by 1.
+ * After full shatter: irregular polygon shards with spin + gravity explosion + radial light ring expansion.
  *
- * Skia 负责：锁头 + 链环 + 裂纹 + 火花 + 冲击环 + 碎片 + 尘埃。
- * Reanimated 负责：驱动所有 shared value + 阶段切换。
- * 不 import service，不含业务逻辑。
+ * Skia handles: lock + chain links + cracks + sparks + shockwaves + shards + dust.
+ * Reanimated handles: driving all shared values + phase transitions.
+ * Does not import service, contains no business logic.
  */
 import { Blur, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -59,7 +59,7 @@ const COLORS = {
   lockHighlight: '#4A5570',
   /** Lock body stroke — steel edge */
   lockStroke: '#5A6580',
-  /** Shackle (提梁) — bright steel */
+  /** Shackle — bright steel */
   shackle: '#7888A0',
   /** Shackle highlight */
   shackleHighlight: '#A0B0C8',
@@ -795,7 +795,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     const now = Date.now();
     let current = hitCountRef.current;
 
-    // Combo decay: too slow → lose 1 hit
+    // Combo decay: too slow -> lose 1 hit
     if (current > 0 && now - lastHitTimeRef.current > CS.comboTimeout) {
       current = Math.max(0, current - 1);
     }
@@ -819,7 +819,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
     };
     setCracks((prev) => [...prev, newCrack]);
 
-    // Crack stays visible (flash in → hold) instead of fading out
+    // Crack stays visible (flash in -> hold) instead of fading out
     crackOpacities[crackIdx]!.value = withSequence(
       withTiming(1, { duration: 50 }),
       withTiming(0.85, { duration: 200 }),
@@ -884,7 +884,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
       withTiming(0, { duration: 30 }),
     );
 
-    // All hits done → shatter
+    // All hits done -> shatter
     if (current >= CS.requiredHits) {
       setTimeout(() => triggerShatter(), 200);
     }
@@ -1100,7 +1100,7 @@ export const ChainShatter: React.FC<RoleRevealEffectProps> = ({
                 ))}
               </Group>
 
-              {/* Persistent crack lines (accumulate, gold→red) */}
+              {/* Persistent crack lines (accumulate, gold -> red) */}
               {cracks.map((crack, i) => (
                 <CrackLine
                   key={`crack-${i}`}

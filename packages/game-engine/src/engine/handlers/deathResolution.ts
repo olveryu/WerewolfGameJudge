@@ -1,18 +1,18 @@
 /**
- * Death Resolution - 夜晚结束死亡结算辅助函数
+ * Death Resolution - night-end death settlement helpers
  *
- * 纯函数模块，负责：
- * - 从 state 构建 NightActions（狼杀、守卫、女巫、狼王魅惑等）
- * - 构建 effective role → seat 映射（magician swap 感知）
- * - 构建 RoleSeatMap（deathCalcRole 驱动，供 DeathCalculator 使用）
- * - 构建反伤来源列表（checkSource / poisonSource）
+ * Pure function module, responsible for:
+ * - Building NightActions from state (wolf kill, guard, witch, wolf queen charm, etc.)
+ * - Building effective role -> seat map (magician swap aware)
+ * - Building RoleSeatMap (deathCalcRole driven, consumed by DeathCalculator)
+ * - Building reflection source list (checkSource / poisonSource)
  *
- * 仅被 handleEndNight 消费。不含 IO，不修改 state。
+ * Only consumed by handleEndNight. No IO, does not mutate state.
  *
- * @remarks 有效座位(effectiveRoleSeatMap) vs 物理座位(roleSeatMap)：
- *   魔术师/盗贼交换后，effectiveRoleSeatMap 反映运行时角色位置，
- *   而 state.players 反映初始分配。死亡计算使用 effective。
- *   死亡优先级由 DeathCalculator 内部决定: wolfKill > poison > couple > dream > charm。
+ * @remarks effective seat (effectiveRoleSeatMap) vs physical seat (roleSeatMap):
+ *   After magician/thief swap, effectiveRoleSeatMap reflects runtime role positions,
+ *   while state.players reflects initial assignment. Death calculation uses effective.
+ *   Death priority is determined internally by DeathCalculator: wolfKill > poison > couple > dream > charm.
  */
 
 import { type RoleId, type SchemaId } from '../../models';
@@ -33,13 +33,15 @@ import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { NonNullState } from './types';
 
 /**
- * 从 state.players 构建 RoleSeatMap（magician swap 感知）
+ * Build RoleSeatMap from state.players (magician swap aware)
  *
- * 统一身份解析：遍历所有 seat，用 getRoleAfterSwap 获取交换后的有效身份，
- * 再反向查找每个关键角色所在的「有效座位」。
- * 这样 DeathCalculator 中灵骑反弹、毒药免疫等规则自动跟着交换后的身份走。
+ * Unified identity resolution: iterate all seats, use getRoleAfterSwap to get the
+ * post-swap effective identity, then reverse-lookup the "effective seat" for each key role.
+ * This way, rules like Spirit Knight reflection and poison immunity in DeathCalculator
+ * automatically follow the post-swap identity.
  *
- * Constraint 校验仍使用原始 players map（玩家不知道 swap，操作合法性按已知信息判定）。
+ * Constraint validation still uses the original players map (players don't know about
+ * swap; action legality is judged by known information).
  */
 export function buildEffectiveRoleSeatMap(state: NonNullState): Map<RoleId, number> {
   const swappedSeats = state.currentNightResults?.swappedSeats;
@@ -56,11 +58,11 @@ export function buildEffectiveRoleSeatMap(state: NonNullState): Map<RoleId, numb
 }
 
 /**
- * 从 effectiveRoleSeatMap 构建 RoleSeatMap（deathCalcRole 驱动）
+ * Build RoleSeatMap from effectiveRoleSeatMap (deathCalcRole driven)
  *
- * 单循环扫描每个角色的 deathCalcRole + immunities + abilities，
- * 替代原先 7 个 roleId 字符串硬编码查找。
- * reflectionSources 由 buildReflectionSources 构建后注入。
+ * Single-loop scan over each role's deathCalcRole + immunities + abilities,
+ * replacing the previous hardcoded lookup of 7 roleId strings.
+ * reflectionSources is built by buildReflectionSources then injected.
  */
 export function buildRoleSeatMap(
   effectiveRoleSeatMap: Map<RoleId, number>,
@@ -143,10 +145,10 @@ export function buildRoleSeatMap(
 }
 
 /**
- * 构建本夜被查验的目标座位列表。
+ * Build the list of seats checked tonight.
  *
- * 扫描 deathCalcRole='checkSource' 的角色，从 ProtocolAction 中提取实际查验目标。
- * 用于计算 checkDeathTargetSeats（与 checkDeathVulnerable 取交集）。
+ * Scans roles with deathCalcRole='checkSource', extracts actual check targets from ProtocolAction.
+ * Used to compute checkDeathTargetSeats (intersection with checkDeathVulnerable).
  */
 export function buildCheckedSeats(
   effectiveRoleSeatMap: Map<RoleId, number>,
@@ -175,14 +177,14 @@ export function buildCheckedSeats(
 }
 
 /**
- * 构建反伤来源列表。
+ * Build the reflection source list.
  *
- * 扫描 deathCalcRole='checkSource' 的角色：从 spec.nightSteps[0].stepId 找到 schemaId，
- * 再从 ProtocolAction 中取 targetSeat → 生成 { sourceSeat, targetSeat }。
+ * Scans roles with deathCalcRole='checkSource': find schemaId from spec.nightSteps[0].stepId,
+ * then read targetSeat from ProtocolAction -> generate { sourceSeat, targetSeat }.
  *
- * 扫描 deathCalcRole='poisonSource'：从 nightActions.witchAction 提取 poisonTarget。
+ * Scans deathCalcRole='poisonSource': extract poisonTarget from nightActions.witchAction.
  *
- * nightmare 封锁的来源在此排除（sourceSeat === nightmareBlock → 不生成条目）。
+ * Sources blocked by nightmare are excluded here (sourceSeat === nightmareBlock -> no entry generated).
  */
 export function buildReflectionSources(
   effectiveRoleSeatMap: Map<RoleId, number>,
@@ -219,7 +221,7 @@ export function buildReflectionSources(
 }
 
 /**
- * 从 ProtocolAction 列表中按 schemaId 查找 action
+ * Look up an action by schemaId from the ProtocolAction list.
  */
 function findActionBySchemaId(
   actions: readonly ProtocolAction[],
@@ -229,10 +231,10 @@ function findActionBySchemaId(
 }
 
 /**
- * 从 currentNightResults 还原 WitchAction
+ * Reconstruct WitchAction from currentNightResults.
  *
- * wire protocol: witch 的 save/poison 结果已经写入 currentNightResults.savedSeat / poisonedSeat
- * 这里直接从 currentNightResults 读取，不再依赖 ProtocolAction.targetSeat
+ * wire protocol: witch's save/poison result is already written to currentNightResults.savedSeat / poisonedSeat.
+ * Read directly from currentNightResults here, no longer depending on ProtocolAction.targetSeat.
  */
 function extractWitchAction(currentNightResults?: {
   savedSeat?: number;
@@ -241,7 +243,7 @@ function extractWitchAction(currentNightResults?: {
   const savedSeat = currentNightResults?.savedSeat;
   const poisonedSeat = currentNightResults?.poisonedSeat;
 
-  // 优先判断 save（因为 save 和 poison 不会同时有效）
+  // Check save first (save and poison cannot both be effective)
   if (savedSeat !== undefined) {
     return makeWitchSave(savedSeat);
   }
@@ -250,21 +252,21 @@ function extractWitchAction(currentNightResults?: {
     return makeWitchPoison(poisonedSeat);
   }
 
-  // 没有使用技能
+  // No ability used
   return makeWitchNone();
 }
 
 /**
  * Build NightActions from state for death resolution.
  *
- * 数据来源设计：
- * - currentNightResults（resolver 产出）: wolfVotesBySeat, witchAction, swappedSeats
- *   → 这些字段经过 resolver 处理，是最终语义结果（如 witch save/poison 区分）。
- * - ProtocolAction[]（原始提交）: guardProtect, wolfQueenCharm, dreamcatcherDream, nightmareBlock
- *   → 这些字段是简单 chooseSeat 目标，resolver 不做额外转换，targetSeat 即最终值。
- * - 查验类反伤来源（seerCheck 等）不再收集到 NightActions，改由 buildReflectionSources 驱动。
+ * Data source design:
+ * - currentNightResults (resolver output): wolfVotesBySeat, witchAction, swappedSeats
+ *   -> these fields are processed by resolvers, representing final semantic results (e.g. witch save/poison distinction).
+ * - ProtocolAction[] (raw submissions): guardProtect, wolfQueenCharm, dreamcatcherDream, nightmareBlock
+ *   -> these fields are simple chooseSeat targets, resolvers do no extra transformation, targetSeat is the final value.
+ * - Check-type reflection sources (seerCheck etc.) are no longer collected into NightActions, driven by buildReflectionSources instead.
  *
- * 所有座位号均为物理座位（0-based），坐标空间一致。
+ * All seat numbers are physical seats (0-based), consistent coordinate space.
  */
 export function buildNightActions(state: NonNullState): NightActions {
   const actions = state.actions;
@@ -294,7 +296,7 @@ export function buildNightActions(state: NonNullState): NightActions {
     }
   }
 
-  // 检查 nightmare 封锁的是否是狼人
+  // Check whether nightmare blocked a wolf
   if (state.wolfKillOverride) {
     nightActions.isWolfBlockedByNightmare = true;
   }
@@ -305,7 +307,7 @@ export function buildNightActions(state: NonNullState): NightActions {
     nightActions.guardProtect = guardAction.targetSeat;
   }
 
-  // Witch action - 从 currentNightResults.savedSeat / poisonedSeat 读取
+  // Witch action - read from currentNightResults.savedSeat / poisonedSeat
   nightActions.witchAction = extractWitchAction(state.currentNightResults);
 
   // Wolf Queen charm
@@ -320,7 +322,7 @@ export function buildNightActions(state: NonNullState): NightActions {
     nightActions.dreamcatcherDream = dreamcatcherAction.targetSeat;
   }
 
-  // Magician swap - 从 currentNightResults.swappedSeats 获取
+  // Magician swap - read from currentNightResults.swappedSeats
   if (state.currentNightResults?.swappedSeats) {
     const [first, second] = state.currentNightResults.swappedSeats;
     nightActions.magicianSwap = { first, second };

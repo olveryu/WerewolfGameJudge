@@ -65,7 +65,7 @@ export function useRoomSeatDialogs({
 
   const showEnterSeatDialog = useCallback(
     (seat: number) => {
-      submittingRef.current = false; // 新对话框 → 解除旧异步锁
+      submittingRef.current = false; // New dialog -> release old async lock
       setIsSeatSubmitting(false);
       setPendingSeat(seat);
       setModalType('enter');
@@ -80,7 +80,7 @@ export function useRoomSeatDialogs({
 
   const showLeaveSeatDialog = useCallback(
     (seat: number) => {
-      submittingRef.current = false; // 新对话框 → 解除旧异步锁
+      submittingRef.current = false; // New dialog -> release old async lock
       setIsSeatSubmitting(false);
       setPendingSeat(seat);
       setModalType('leave');
@@ -104,7 +104,7 @@ export function useRoomSeatDialogs({
     void takeSeat(seat)
       .then((success) => {
         if (success) {
-          // 成功 → 关弹窗
+          // Success -> close modal
           setSeatModalVisible(false);
           setPendingSeat(null);
         } else {
@@ -142,7 +142,7 @@ export function useRoomSeatDialogs({
 
     void leaveSeat()
       .then(() => {
-        // 成功 → 关弹窗
+        // Success -> close modal
         setSeatModalVisible(false);
         setPendingSeat(null);
       })

@@ -1,8 +1,8 @@
 /**
- * HintWithWarning — 底部互斥提示/警告文字区域
+ * HintWithWarning — bottom mutually-exclusive hint / warning text region.
  *
- * 所有揭示效果共用的底部文字 UI：当 autoTimeoutWarning 激活时替换 hintText。
- * 不 import service，不含业务逻辑。
+ * Shared bottom text UI for all reveal effects: replaces hintText when autoTimeoutWarning is active.
+ * Does not import services; contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

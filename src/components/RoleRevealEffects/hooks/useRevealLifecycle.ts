@@ -1,8 +1,9 @@
 /**
- * useRevealLifecycle — 揭示动画共享生命周期 hook
+ * useRevealLifecycle — Shared reveal-animation lifecycle hook
  *
- * 统一 9 个揭示效果组件中重复的完成守卫、hold timer 清理、auto-timeout 警告逻辑。
- * 不处理动画本身或 reducedMotion 跳过（各组件各异）。
+ * Unifies completion guard, hold-timer cleanup, and auto-timeout warning logic
+ * that was duplicated across 9 reveal effect components.
+ * Does not handle the animation itself or reducedMotion skip (varies per component).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -67,7 +68,7 @@ export function useRevealLifecycle(options: UseRevealLifecycleOptions): UseRevea
  * 1. Fires `onTimeout` after `CONFIG.common.autoTimeout` ms.
  * 2. Returns `true` when `autoTimeoutWarningLeadTime` ms remain before timeout.
  *
- * `active` drives the timer lifecycle (true → start, false → reset).
+ * `active` drives the timer lifecycle (true -> start, false -> reset).
  * `onTimeout` captured by ref — callback changes never restart timers.
  * Returns `active && warning` so the value is immediately false when active flips off.
  */

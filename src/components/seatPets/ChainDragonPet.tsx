@@ -1,8 +1,8 @@
 /**
- * ChainDragonPet — 锁龙
+ * ChainDragonPet — Chained dragon
  *
- * chainShatter 翻牌动画的伴生宠物。
- * 绿色小龙 + 双角 + 红瞳 + 断链晃动 + 小翅膀，浮动。
+ * Companion pet for the chainShatter reveal animation.
+ * Green small dragon + two horns + red pupils + swinging broken chain + small wings, floating.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

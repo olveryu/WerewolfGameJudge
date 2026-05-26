@@ -3,20 +3,20 @@
 import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { z } from 'zod';
 
-/** 注册请求校验。 */
+/** Sign-up request validation. */
 export const signUpSchema = z.object({
   email: z.email().max(255),
   password: z.string().min(1).max(128),
   displayName: z.string().max(30).optional(),
 });
 
-/** 登录请求校验。 */
+/** Sign-in request validation. */
 export const signInSchema = z.object({
   email: z.email().max(255),
   password: z.string().min(1).max(128),
 });
 
-/** 更新资料请求校验。 */
+/** Profile update request validation. */
 export const updateProfileSchema = z.object({
   displayName: z.string().max(30).optional(),
   avatarUrl: z.string().max(500).optional(),
@@ -28,36 +28,36 @@ export const updateProfileSchema = z.object({
   seatAnimation: z.string().max(100).optional(),
 });
 
-/** 修改密码请求校验。 */
+/** Change password request validation. */
 export const changePasswordSchema = z.object({
   oldPassword: z.string().min(1).max(128),
   newPassword: z.string().min(6).max(128),
 });
 
-/** 忘记密码请求校验。 */
+/** Forgot password request validation. */
 export const forgotPasswordSchema = z.object({
   email: z.email().max(255),
 });
 
-/** 重置密码请求校验。 */
+/** Reset password request validation. */
 export const resetPasswordSchema = z.object({
   email: z.email().max(255),
   code: z.string().min(1).max(10),
   newPassword: z.string().min(6).max(128),
 });
 
-/** 刷新 token 请求校验。 */
+/** Refresh token request validation. */
 export const refreshTokenSchema = z.object({
   refresh_token: z.string().min(1).max(128),
 });
 
-/** 微信 claim 请求校验。 */
+/** WeChat claim request validation. */
 export const wechatClaimSchema = z.object({
   code: z.string().min(1).max(200),
   nonce: z.string().min(1).max(64),
 });
 
-/** claim nonce 请求校验。 */
+/** Claim nonce request validation. */
 export const claimNonceSchema = z.object({
   nonce: z.string().min(1).max(64),
 });

@@ -1,30 +1,30 @@
 /**
- * LoopingSeatAnimation — 循环播放入座动画的预览包装器
+ * LoopingSeatAnimation — Preview wrapper that loops sit-down animations
  *
- * 入座动画组件设计为一次性播放（onComplete 后停止）。
- * 本组件通过 key 递增触发 React 重新挂载来实现循环播放，
- * 每轮之间有可配置的间隔。用于 AppearanceScreen / UnlocksScreen 的网格预览。
+ * Sit-down animations are designed for one-shot playback (stop after onComplete).
+ * This component achieves looping by incrementing a key to trigger React remount,
+ * with a configurable interval between cycles. Used in AppearanceScreen / UnlocksScreen grid preview.
  */
 import { memo, useCallback, useEffect, useReducer, useRef } from 'react';
 import { View } from 'react-native';
 
 import type { SeatAnimationProps } from './SeatAnimationProps';
 
-/** 每轮动画结束后的等待时间（ms） */
+/** Wait time after each animation cycle ends (ms) */
 const DEFAULT_LOOP_DELAY = 800;
 
 interface LoopingSeatAnimationProps {
-  /** 要循环播放的动画组件 */
+  /** Animation component to loop */
   Component: React.ComponentType<SeatAnimationProps>;
-  /** 动画尺寸 */
+  /** Animation size */
   size: number;
-  /** 圆角 */
+  /** Border radius */
   borderRadius: number;
-  /** 子元素（动画包裹的内容） */
+  /** Children (content wrapped by the animation) */
   children: React.ReactNode;
-  /** 循环间隔 ms，默认 800 */
+  /** Loop interval (ms), default 800 */
   loopDelay?: number;
-  /** 动画活跃状态变化回调：true=正在播放，false=间隙等待 */
+  /** Callback when animation active state changes: true=playing, false=waiting between cycles */
   onActiveChange?: (active: boolean) => void;
 }
 

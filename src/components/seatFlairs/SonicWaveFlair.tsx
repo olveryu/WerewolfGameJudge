@@ -1,8 +1,8 @@
 /**
- * SonicWaveFlair — 音波震荡
+ * SonicWaveFlair - sonic wave oscillation
  *
- * 5 道青绿色声波环从中心向外脉冲扩散，带频率调制抖动。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 5 teal sound wave rings pulse outward from the center with frequency-modulated jitter.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

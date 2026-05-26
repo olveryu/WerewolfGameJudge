@@ -1,8 +1,8 @@
 /**
- * GameRoom Durable Object — integration tests
+ * GameRoom Durable Object -- integration tests
  *
- * 通过 RPC stub 测试 DO 的完整生命周期。
- * 运行在 Workers 运行时内（@cloudflare/vitest-pool-workers）。
+ * Tests the full DO lifecycle through the RPC stub.
+ * Runs inside the Workers runtime (@cloudflare/vitest-pool-workers).
  */
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
@@ -215,7 +215,7 @@ describe('GameRoom game flow', () => {
     const result = (await stub.restartGame()) as GameActionResult;
 
     assertSuccess(result);
-    // Players are still seated → status is Seated, not Unseated
+    // Players are still seated -> status is Seated, not Unseated
     expect(result.state?.status).toBe(GameStatus.Seated);
   });
 
@@ -264,7 +264,7 @@ describe('GameRoom error handling', () => {
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
     await stub.assignRoles();
-    // Don't view roles → startNight should fail
+    // Don't view roles -> startNight should fail
 
     const result = (await stub.startNight()) as GameActionResult;
 
@@ -272,7 +272,7 @@ describe('GameRoom error handling', () => {
   });
 });
 
-// Note: WebSocket upgrade tests omitted — stub.fetch() with Hibernation API
+// Note: WebSocket upgrade tests omitted -- stub.fetch() with Hibernation API
 // creates WAL files that break vitest-pool-workers isolated storage.
 // WebSocket behavior is verified via E2E tests instead.
 
@@ -465,7 +465,7 @@ describe('GameRoom board nomination', () => {
     const stub = await initUnseatRoom();
     // p1 nominates [wolf, seer, villager]
     await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager']);
-    // p2 nominates same roles in different order → should deduplicate
+    // p2 nominates same roles in different order -> should deduplicate
     const result = (await stub.boardNominate('p2', 'Player2', [
       'seer',
       'villager',

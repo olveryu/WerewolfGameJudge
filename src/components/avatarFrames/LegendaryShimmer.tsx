@@ -1,13 +1,13 @@
 /**
- * LegendaryShimmer — 传说头像框专属动效层 (Skia Canvas + Picture)
+ * LegendaryShimmer — animation layer for the Legendary avatar frame (Skia Canvas + Picture).
  *
- * 三层动效叠加：
- * 1. 环绕光弧（orbiting arc）：金色光弧沿边框轨道匀速旋转（两对光点对向运动）
- * 2. 外围脉冲辉光（glow pulse）：金色发光呼吸（圆角矩形描边 opacity）
- * 3. 角落星尘（corner sparkles）：四角交替闪烁的光点
+ * Three layered effects:
+ * 1. Orbiting arc: gold arcs rotate around the frame at constant speed (two pairs moving in opposite directions)
+ * 2. Glow pulse: gold breathing glow (rounded-rect stroke opacity)
+ * 3. Corner sparkles: alternating sparkle points at the four corners
  *
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制，
- * 替代 9 个 SVG AnimatedComponent。Web + Native 行为一致。
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture,
+ * replacing 9 SVG AnimatedComponents. Web and Native behave consistently.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
@@ -31,16 +31,16 @@ const LEAD_COLOR = Skia.Color('#FFFDE8');
 const SPARKLE_COLOR = Skia.Color('#FFD700');
 const GLOW_GOLD = Skia.Color('#FFD700');
 
-/** 环绕光弧旋转周期（ms） */
+/** Orbiting arc rotation period (ms) */
 const ORBIT_DURATION = 3000;
-/** 辉光呼吸周期（ms） */
+/** Glow pulse period (ms) */
 const GLOW_DURATION = 3200;
-/** 星尘闪烁周期（ms） */
+/** Sparkle flicker period (ms) */
 const SPARKLE_DURATION = 2400;
 
 /**
- * 计算矩形边框周长上某一比例位置的坐标。
- * `t` ∈ [0,1) 沿顺时针从左上角 (x0,y0) 出发。
+ * Compute the coordinate at a given fractional position along the rectangle perimeter.
+ * `t` ∈ [0,1) starts clockwise from the top-left corner (x0,y0).
  */
 function perimeterPoint(
   t: number,
@@ -62,9 +62,9 @@ function perimeterPoint(
 }
 
 interface LegendaryShimmerProps {
-  /** SVG 总尺寸（含 viewBox 外扩，= avatar size * 116/100） */
+  /** Total SVG size (includes viewBox extension, = avatar size * 116/100) */
   size: number;
-  /** 主边框圆角（viewBox 单位） */
+  /** Main border corner radius (viewBox units) */
   rx: number;
 }
 

@@ -16,7 +16,7 @@ import { createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 describe('WolfVote Integration Tests', () => {
-  // 12人板子：含 4 个狼角色
+  // 12-player board: contains 4 wolf roles
   const TEMPLATE_ROLES: RoleId[] = [
     'villager',
     'villager',
@@ -42,7 +42,7 @@ describe('WolfVote Integration Tests', () => {
     it('多狼投票后 wolfVotesBySeat 正确记录所有投票', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
-      // 运行夜晚：所有狼袭击座位 0
+      // Run night: all wolves attack seat 0
       executeFullNight(ctx, {
         wolf: 0,
         darkWolfKing: { confirmed: true },
@@ -52,13 +52,13 @@ describe('WolfVote Integration Tests', () => {
         magician: { targets: [] },
       });
 
-      // 验证 wolfVotesBySeat 单一真相
+      // Verify wolfVotesBySeat single source of truth
       const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
       expect(wolfVotesBySeat).toBeDefined();
 
-      // 4 个狼（seats 4, 5, 6, 7）都应该有投票记录
+      // All 4 wolves (seats 4, 5, 6, 7) should have vote records
       expect(wolfVotesBySeat!['4']).toBe(0);
       expect(wolfVotesBySeat!['5']).toBe(0);
       expect(wolfVotesBySeat!['6']).toBe(0);
@@ -68,9 +68,9 @@ describe('WolfVote Integration Tests', () => {
     it('放弃袭击时 wolfVotesBySeat 记录 -1', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
-      // 运行夜晚：狼放弃袭击
+      // Run night: wolves abstain from attacking
       executeFullNight(ctx, {
-        wolf: null, // 放弃袭击
+        wolf: null, // abstain from attacking
         darkWolfKing: { confirmed: true },
         seer: 0,
         witch: { save: null, poison: null },
@@ -78,13 +78,13 @@ describe('WolfVote Integration Tests', () => {
         magician: { targets: [] },
       });
 
-      // 验证放弃袭击记录
+      // Verify abstain attack record
       const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
-      // 放弃袭击时 lead wolf 的投票应该记录为 -1
-      // 注意：当前实现中，放弃袭击时只有 lead wolf 发送 ACTION，其他狼不发 WOLF_VOTE
-      // 所以可能只有 lead wolf 有记录
+      // When abstaining, the lead wolf's vote should be recorded as -1
+      // Note: in the current implementation, when abstaining, only the lead wolf sends ACTION; other wolves don't send WOLF_VOTE
+      // So only the lead wolf may have a record
       expect(wolfVotesBySeat).toBeDefined();
       // At least the lead wolf should have a record
       const wolfSeats = ['4', '5', '6', '7'];
@@ -104,16 +104,16 @@ describe('WolfVote Integration Tests', () => {
         magician: { targets: [] },
       });
 
-      // 夜晚应该正常结束
+      // Night should complete normally
       expect(result.completed).toBe(true);
-      // 座位 2 应该死亡（被袭击）
+      // Seat 2 should be dead (attacked)
       expect(result.deaths).toContain(2);
     });
   });
 
   describe('wolfVote Handler Contract', () => {
-    // 极简模板：只有狼 + seer/witch/hunter（都在 wolfKill 之后）
-    // 这样 wolfKill 就是第一步
+    // Minimal template: only wolves + seer/witch/hunter (all after wolfKill)
+    // This way wolfKill is the first step
     const SIMPLE_TEMPLATE: RoleId[] = [
       'villager',
       'villager',
@@ -138,19 +138,19 @@ describe('WolfVote Integration Tests', () => {
     it('WOLF_VOTE 消息通过统一 resolver 管线处理', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
 
-      // 这个模板第一步应该是 wolfKill（没有 guard/nightmare/magician 等前置角色）
+      // For this template, the first step should be wolfKill (no preceding roles like guard/nightmare/magician)
       ctx.assertStep('wolfKill');
 
-      // 手动发送 WOLF_VOTE 消息
+      // Manually send WOLF_VOTE message
       const sendResult = ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
-        seat: 4, // 第一个狼
+        seat: 4, // first wolf
         target: 1,
       });
 
       expect(sendResult.success).toBe(true);
 
-      // 验证 wolfVotesBySeat 被更新
+      // Verify wolfVotesBySeat is updated
       const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
     });
@@ -159,7 +159,7 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
-      // 非狼角色尝试发送 WOLF_VOTE
+      // Non-wolf role attempts to send WOLF_VOTE
       const sendResult = ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 0, // villager
@@ -167,11 +167,11 @@ describe('WolfVote Integration Tests', () => {
       });
 
       expect(sendResult.success).toBe(false);
-      // villager 发送 WOLF_VOTE 时：
-      // - 先走 validateActionPreconditions 的 step 检查
-      // - villager 不满足 doesRoleParticipateInWolfVote，所以 step_mismatch
-      // - 或者走到后面的 not_wolf_participant
-      // 只要拒绝了就是正确行为
+      // When villager sends WOLF_VOTE:
+      // - First goes through validateActionPreconditions step check
+      // - villager doesn't satisfy doesRoleParticipateInWolfVote, so step_mismatch
+      // - Or falls through to not_wolf_participant
+      // As long as it's rejected, the behavior is correct
       expect(['step_mismatch', 'not_wolf_participant']).toContain(sendResult.reason);
     });
 
@@ -179,25 +179,25 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
-      // 第一次投票
+      // First vote
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 4,
         target: 1,
       });
 
-      // 验证第一次投票
+      // Verify first vote
       let state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
 
-      // 改票
+      // Change vote
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 4,
         target: 2,
       });
 
-      // 验证改票后的结果
+      // Verify result after vote change
       state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(2);
     });
@@ -206,21 +206,21 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
-      // 狼 1 投票
+      // Wolf 1 votes
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 4,
         target: 0,
       });
 
-      // 狼 2 投票不同目标
+      // Wolf 2 votes a different target
       ctx.sendPlayerMessage({
         type: 'WOLF_VOTE',
         seat: 5,
         target: 1,
       });
 
-      // 验证所有投票都被记录
+      // Verify all votes are recorded
       const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
@@ -231,7 +231,7 @@ describe('WolfVote Integration Tests', () => {
   });
 
   describe('Nightmare Block Edge Cases', () => {
-    // 带 nightmare 的板子（简化：只有 nightmare + wolf）
+    // Board with nightmare (simplified: only nightmare + wolf)
     const NIGHTMARE_TEMPLATE: RoleId[] = [
       'nightmare', // seat 0 (nightmare)
       'villager',
@@ -256,10 +256,10 @@ describe('WolfVote Integration Tests', () => {
     it('nightmare 封锁狼后，wolfKillOverride set', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
-      // 第一步应该是 nightmare
+      // First step should be nightmare
       ctx.assertStep('nightmareBlock');
 
-      // nightmare 封锁座位 4（第一个狼）
+      // nightmare blocks seat 4 (first wolf)
       const blockResult = ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -268,7 +268,7 @@ describe('WolfVote Integration Tests', () => {
       });
       expect(blockResult.success).toBe(true);
 
-      // 验证封锁状态
+      // Verify block state
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(4);
       expect(state.currentNightResults?.wolfKillOverride).toBeDefined();
@@ -279,7 +279,7 @@ describe('WolfVote Integration Tests', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
       ctx.assertStep('nightmareBlock');
 
-      // nightmare 封锁座位 1（villager，非狼）
+      // nightmare blocks seat 1 (villager, not wolf)
       ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -287,7 +287,7 @@ describe('WolfVote Integration Tests', () => {
         target: 1,
       });
 
-      // 验证狼没有被禁用
+      // Verify wolves are not disabled
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBe(1);
       expect(state.currentNightResults?.wolfKillOverride).toBeUndefined();
@@ -296,21 +296,21 @@ describe('WolfVote Integration Tests', () => {
     it('nightmare 封锁后通过逐步执行完成夜晚，被封锁狼放弃袭击', () => {
       const ctx = createGame(NIGHTMARE_TEMPLATE, createNightmareRoleAssignment());
 
-      // 完整运行夜晚：nightmare 封锁座位 4（第一个狼）
-      // 注意：被封锁的狼只能 skip（非 skip action 会被 reject）
+      // Run full night: nightmare blocks seat 4 (first wolf)
+      // Note: a blocked wolf can only skip (non-skip actions are rejected)
       const result = executeFullNight(ctx, {
-        nightmare: 4, // 封锁座位 4
-        wolf: null, // 狼放弃袭击（被封锁只能 skip）
+        nightmare: 4, // block seat 4
+        wolf: null, // wolves abstain (blocked, skip-only)
         seer: 2,
         witch: { save: null, poison: null },
         hunter: { confirmed: true },
         guard: 3,
       });
 
-      // 夜晚应该完成
+      // Night should complete
       expect(result.completed).toBe(true);
 
-      // 由于狼被封锁，无人死亡
+      // Since wolves are blocked, no deaths
       expect(result.deaths).toEqual([]);
     });
   });

@@ -1,8 +1,8 @@
 /**
- * ForgotPasswordForm — 忘记密码：输入邮箱发送验证码
+ * ForgotPasswordForm — forgot-password: enter email to send a verification code
  *
- * 与 EmailForm 平级的 auth 表单组件。接收 AuthStyles 统一样式接口。
- * 渲染表单 UI 并上报用户 intent。不 import service，不含业务逻辑。
+ * Auth form component on par with EmailForm. Accepts the unified AuthStyles interface.
+ * Renders form UI and reports user intent. Does not import services and contains no business logic.
  */
 import { memo, useCallback, useRef } from 'react';
 import { Text, type TextInput, TouchableOpacity, View } from 'react-native';

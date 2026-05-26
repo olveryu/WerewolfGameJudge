@@ -1,14 +1,14 @@
 /**
- * seatActions Unit Tests (HTTP API 版本)
+ * seatActions Unit Tests (HTTP API version)
  *
- * 测试座位操作编排层（迁移后）：
- * - 统一 HTTP API 调用（Host / Player 不再有区别）
- * - takeSeat / takeSeatWithAck → fetch POST /game/seat
- * - leaveSeat / leaveSeatWithAck → fetch POST /game/seat
- * - NOT_CONNECTED guard（无 roomCode / userId 时）
- * - NETWORK_ERROR 处理
+ * Tests seat operation orchestration layer (post-migration):
+ * - Unified HTTP API calls (Host / Player no longer distinguished)
+ * - takeSeat / takeSeatWithAck -> fetch POST /game/seat
+ * - leaveSeat / leaveSeatWithAck -> fetch POST /game/seat
+ * - NOT_CONNECTED guard (when roomCode / userId missing)
+ * - NETWORK_ERROR handling
  *
- * 通过 mock fetch（HTTP 调用）只验证编排逻辑，不 mock handler（服务端逻辑不在此处）。
+ * Via mock fetch (HTTP calls), only verifies orchestration logic; does not mock handler (server logic is elsewhere).
  */
 
 import type { SeatActionsContext } from '@/services/facade/seatActions';
@@ -49,7 +49,7 @@ function createMockCtx(overrides?: Partial<SeatActionsContext>): SeatActionsCont
   };
 }
 
-/** 创建 mock fetch response */
+/** Create mock fetch response */
 function mockFetchSuccess(body: Record<string, unknown> = { success: true }): jest.Mock {
   return jest.fn().mockResolvedValue({
     ok: true,

@@ -1,20 +1,20 @@
 /**
- * GameRoomBase — 游戏状态权威 + WebSocket 广播。
+ * GameRoomBase — game state authority + WebSocket broadcast.
  *
- * 职责：
- * - 每个房间对应一个 DO 实例
- * - SQLite 持久化 game_state + revision（单线程序列化，零竞争）
- * - Typed RPC 方法供 Worker handler 调用
- * - WebSocket Hibernation API 管理实时连接 + 广播
+ * Responsibilities:
+ * - One DO instance per room
+ * - SQLite persists game_state + revision (single-threaded serialized, zero contention)
+ * - Typed RPC methods for Worker handlers to call
+ * - WebSocket Hibernation API manages realtime connections + broadcast
  *
- * 不负责：
- * - HTTP 路由/认证（由 Worker handler 处理）
- * - D1 房间元数据（由 Worker D1 层处理）
+ * Not responsible for:
+ * - HTTP routing/auth (handled by Worker handler)
+ * - D1 room metadata (handled by Worker D1 layer)
  *
- * 边界约束：
- * - Worker handler 通过 RPC 直接调用 DO 方法，DO 内部完成读-算-写-广播
- * - WebSocket upgrade 仍走 fetch() handler（RPC 与 fetch 共存）
- * - 自动 pong：ctx.setWebSocketAutoResponse('ping' → 'pong')
+ * Boundary constraints:
+ * - Worker handler calls DO methods directly via RPC; DO completes read-compute-write-broadcast internally
+ * - WebSocket upgrade still goes through fetch() handler (RPC and fetch coexist)
+ * - Auto pong: ctx.setWebSocketAutoResponse('ping' → 'pong')
  */
 
 import * as Sentry from '@sentry/cloudflare';
@@ -74,9 +74,9 @@ interface WebSocketAttachment {
 }
 
 class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
-  /** 结算最大重试次数 */
+  /** Max settle retries */
   static readonly SETTLE_MAX_RETRIES = 3;
-  /** 重试间隔（毫秒） */
+  /** Retry interval (ms) */
   static readonly SETTLE_RETRY_DELAY_MS = 30_000;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -103,7 +103,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   ): GameActionResult {
     const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
 
-    // 广播 — output gate 保证 write 持久化后才发送
+    // Broadcast — output gate ensures send only after write is persisted
     if (result.success && result.state && result.revision != null) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
@@ -132,7 +132,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
   }
 
-  /** 如果游戏刚结束（status === Ended），异步触发成长结算 */
+  /** If game just ended (status === Ended), asynchronously trigger growth settlement */
   #settleIfEnded(result: GameActionResult): void {
     if (result.success && result.state?.status === GameStatus.Ended) {
       const revision = result.revision!;
@@ -147,7 +147,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
   }
 
-  /** 执行结算并广播结果 + 更新 roster levels */
+  /** Run settlement and broadcast results + update roster levels */
   async #runSettle(state: GameState, revision: number): Promise<void> {
     const settleResults = await settleGameResults(state, this.env, revision);
     this.#sendSettleResults(settleResults);
@@ -155,9 +155,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   }
 
   /**
-   * 设置 alarm 重试结算。
-   * @remarks 最多重试 SETTLE_MAX_RETRIES=3 次，间隔 SETTLE_RETRY_DELAY_MS=30s。
-   *   耗尽后放弃并记录错误日志。
+   * Schedule alarm to retry settlement.
+   * @remarks Retries up to SETTLE_MAX_RETRIES=3 times at SETTLE_RETRY_DELAY_MS=30s intervals.
+   *   Gives up and logs error after exhausted.
    */
   #scheduleSettleRetry(revision: number, attempt: number): void {
     if (attempt >= GameRoom.SETTLE_MAX_RETRIES) {
@@ -169,9 +169,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   }
 
   /**
-   * DO Alarm 回调 — 重试未完成的结算。
-   * @remarks CF DO 保证同一时刻只有一个 alarm 在执行（单线程）。
-   *   如果状态不再是 Ended（已 restart），跳过结算并清除 pending flag。
+   * DO Alarm callback — retries incomplete settlement.
+   * @remarks CF DO guarantees only one alarm is executing at a time (single-threaded).
+   *   If state is no longer Ended (already restarted), skip settlement and clear pending flag.
    */
   async alarm(): Promise<void> {
     const pending = await this.ctx.storage.get<{ revision: number; attempt: number }>(
@@ -206,7 +206,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
   }
 
-  /** 结算后通过 processAction 更新 roster level 并广播 */
+  /** After settlement, update roster level via processAction and broadcast */
   #updateRosterLevels(results: PlayerSettleResult[]): void {
     if (results.length === 0) return;
 
@@ -220,7 +220,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     });
   }
 
-  /** 单播结算结果给每个已连接的注册玩家 */
+  /** Unicast settlement result to each connected registered player */
   #sendSettleResults(results: PlayerSettleResult[]): void {
     if (results.length === 0) return;
     const resultByUid = new Map(results.map((r) => [r.userId, r]));
@@ -472,7 +472,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       },
       { enabled: true },
     );
-    // 结算由最后一次 audioAck 触发（音频播完后），此处不 settle
+    // Settlement is triggered by the last audioAck (after audio finishes); do not settle here
     return result;
   }
 

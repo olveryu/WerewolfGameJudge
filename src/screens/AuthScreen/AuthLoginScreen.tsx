@@ -1,9 +1,9 @@
 /**
- * AuthLoginScreen — 登录方式选择（Modal Screen）
+ * AuthLoginScreen — login method selection (Modal Screen)
  *
- * 显示 LoginOptions（邮箱注册/邮箱登录/匿名登录），导航到对应 auth screen。
- * 匿名登录在本 screen 完成后 goBack()。
- * 不含游戏业务逻辑，不 import service 层。
+ * Shows LoginOptions (email sign-up / email sign-in / anonymous sign-in) and navigates to the matching auth screen.
+ * Anonymous sign-in completes on this screen and then calls goBack().
+ * No game business logic; does not import the service layer.
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,7 +26,7 @@ import { createAuthScreenStyles } from './AuthScreen.styles';
 
 type RouteProp = import('@react-navigation/native').RouteProp<RootStackParamList, 'AuthLogin'>;
 
-/** 登录屏幕。 */
+/** Login screen. */
 export const AuthLoginScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

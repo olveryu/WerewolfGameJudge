@@ -91,7 +91,7 @@ const TimeRangeSelectorComponent: React.FC<TimeRangeSelectorProps> = ({ onRangeC
   );
 };
 
-/** 时间范围选择器。 */
+/** Time range selector. */
 export const TimeRangeSelector = memo(TimeRangeSelectorComponent);
 
 const styles = StyleSheet.create({

@@ -1,9 +1,9 @@
 /**
- * Avatar - 用户头像组件
+ * Avatar - user avatar component
  *
- * 自定义头像优先（远程 URL / builtin://）。无自定义时使用狼爪图标作为默认头像，
- * 基于 userId hash 确定性分配颜色 tint。
- * Memoized 以避免不必要的重渲染。不 import service，不含业务逻辑。
+ * Custom avatar takes priority (remote URL / builtin://). When no custom avatar is set, falls back to the wolf-paw icon
+ * and deterministically assigns a tint color based on the userId hash.
+ * Memoized to avoid unnecessary re-renders. Imports no service, contains no business logic.
  */
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
@@ -32,8 +32,8 @@ interface AvatarProps {
  * or a deterministic lucide icon based on userId.
  *
  * Rendering priority:
- * 1. Remote URL → ExpoImage
- * 2. builtin:// URL → hand-drawn Image or generated SVG
+ * 1. Remote URL -> ExpoImage
+ * 2. builtin:// URL -> hand-drawn Image or generated SVG
  * 3. Wolf paw fallback
  */
 const AvatarComponent: React.FC<AvatarProps> = ({

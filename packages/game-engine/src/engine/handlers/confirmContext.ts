@@ -1,22 +1,22 @@
 /**
- * Confirm Context - 猎人/狼王/复仇者/隐狼确认上下文计算
+ * Confirm Context - Confirm-context computation for Hunter / DarkWolfKing / Avenger / HiddenWolf
  *
- * 纯函数模块，负责：
- * - 在进入 hunterConfirm / darkWolfKingConfirm 步骤前，计算 canShoot
- * - 在进入 avengerConfirm 步骤前，计算阵营（faction）
- * - 在进入 hiddenWolfConfirm 步骤前，计算狼同伴座位
- * - 返回 SET_CONFIRM_STATUS action 或 null
+ * Pure-function module, responsible for:
+ * - Computing canShoot before entering hunterConfirm / darkWolfKingConfirm steps
+ * - Computing faction before entering avengerConfirm step
+ * - Computing wolf-teammate seats before entering hiddenWolfConfirm step
+ * - Returning a SET_CONFIRM_STATUS action or null
  *
- * 设计原则：
- * - 单一真相：confirmStatus 只存在于 GameState.confirmStatus
- * - 纯函数：不 IO、不读外部、不写 state
- * - 与 witchContext.ts 对称：step-entry context，在步骤开始前就位
+ * Design principles:
+ * - Single source of truth: confirmStatus lives only in GameState.confirmStatus
+ * - Pure function: no IO, no external reads, no state writes
+ * - Symmetric with witchContext.ts: step-entry context, ready before the step begins
  *
- * @remarks canShoot 精确条件：
- *   canShoot = true 仅当死因为 wolfKill 或 exile（白天放逐）。
- *   以下死因不能开枪: poison（女巫/毒师）、couple（殉情）、dream（摄梦连锁）、charm（狼美人魅惑）。
- *   检查顺序: witchContext.killedSeat → coupleDeathVictim → dreamLinkedDeath → wolfQueenCharm。
- *   deriveConfirmStepRoleMap() 在模块加载时从 ROLE_SPECS 构建静态映射。
+ * @remarks Exact canShoot conditions:
+ *   canShoot = true only when the cause of death is wolfKill or exile (daytime exile vote).
+ *   The following causes cannot shoot: poison (witch/poisoner), couple (lover suicide), dream (dreamcatcher chain), charm (eclipse wolf queen charm).
+ *   Check order: witchContext.killedSeat -> coupleDeathVictim -> dreamLinkedDeath -> wolfQueenCharm.
+ *   deriveConfirmStepRoleMap() builds a static mapping from ROLE_SPECS at module load time.
  */
 
 import { type SchemaId } from '../../models/roles/spec';
@@ -48,14 +48,14 @@ function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
   return map;
 }
 
-/** hunterConfirm / darkWolfKingConfirm / avengerConfirm stepId → role 映射 */
+/** hunterConfirm / darkWolfKingConfirm / avengerConfirm stepId -> role mapping */
 const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = deriveConfirmStepRoleMap();
 
 /**
- * 判断某座位夜间是否可以开枪（仅被狼人袭击或公投放逐出局时可发动）。
+ * Determine whether a seat can shoot at night (only when killed by wolves or exiled by vote).
  *
- * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
- * 供 confirmContext（猎人/狼王）和 actionHandler（wolfRobot 学到猎人）共用。
+ * Abnormal night deaths (poison / lover suicide / dreamcatcher chain / charm chain) cannot shoot.
+ * Shared by confirmContext (Hunter / DarkWolfKing) and actionHandler (wolfRobot learning Hunter).
  */
 export function computeCanShootForSeat(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
@@ -68,12 +68,12 @@ export function computeCanShootForSeat(seat: number, state: NonNullState): boole
 }
 
 /**
- * 计算 confirmStatus（纯函数）
+ * Compute confirmStatus (pure function).
  *
- * 猎人/狼王：仅被狼人袭击或公投放逐出局时可发动。
- * 夜间非正常死亡（毒杀/殉情/摄梦连锁/魅惑连锁）均不能开枪。
+ * Hunter / DarkWolfKing: can shoot only when killed by wolves or exiled by vote.
+ * Abnormal night deaths (poison / lover suicide / dreamcatcher chain / charm chain) cannot shoot.
  *
- * 复仇者：阵营由 shadow resolver 预计算存入 currentNightResults.avengerFaction，此处直接读取。
+ * Avenger: faction is precomputed by the shadow resolver and stored in currentNightResults.avengerFaction; read directly here.
  */
 function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmStatus {
   if (role === 'avenger') {
@@ -86,7 +86,7 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
   // Hunter / DarkWolfKing
   const roleSeat = findSeatByRole(state.players, role);
 
-  // Fail-closed: 如果找不到角色座位，canShoot = false（异常态不应发技能）
+  // Fail-closed: if the role seat is not found, canShoot = false (abnormal state should not trigger the skill)
   if (roleSeat === null) {
     return { role, canShoot: false };
   }
@@ -95,10 +95,10 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
 }
 
 /**
- * 计算复仇者确认状态
+ * Compute Avenger confirm status.
  *
- * avengerFaction 由 shadow resolver 在模仿时直接计算并存入 currentNightResults。
- * 此处仅读取，无需再次推导。未选目标（被封锁/不在模板）→ 兜底好人阵营。
+ * avengerFaction is computed directly by the shadow resolver during mimicry and stored in currentNightResults.
+ * Just read it here; no need to re-derive. No target selected (blocked / not in template) -> default to good faction.
  */
 function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
   return {
@@ -108,9 +108,9 @@ function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
 }
 
 /**
- * 计算隐狼确认状态
+ * Compute HiddenWolf confirm status.
  *
- * 遍历所有座位，找到 faction === Faction.Wolf 且不是隐狼自身的座位。
+ * Iterate over all seats and find those with faction === Faction.Wolf that are not the HiddenWolf itself.
  */
 function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfirmStatus {
   const wolfTeammates: number[] = [];
@@ -125,22 +125,22 @@ function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfi
 }
 
 // =============================================================================
-// 夜间非正常死亡判定（canShoot = false 的条件）
+// Abnormal night-death checks (conditions where canShoot = false)
 // =============================================================================
 
 /**
- * 判断某座位是否会在夜间死亡（被狼刀且未被救/被毒杀）。
+ * Determine whether a seat will die at night (wolf-killed and not saved / poisoned).
  *
- * 仅用于连锁死亡判断的子条件。
- * 在 hunterConfirm / darkWolfKingConfirm 步骤时调用（此时 wolf/witch 已行动）。
+ * Used only as a sub-condition for chain-death checks.
+ * Called during hunterConfirm / darkWolfKingConfirm steps (after wolf/witch have acted).
  */
 function willDieTonight(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
 
-  // 被毒杀
+  // Poisoned
   if (results?.poisonedSeat === seat) return true;
 
-  // 被狼刀且未被女巫救
+  // Wolf-killed and not saved by witch
   const wolfKillTarget = state.witchContext?.killedSeat;
   if (wolfKillTarget !== undefined && wolfKillTarget >= 0 && wolfKillTarget === seat) {
     if (results?.savedSeat === seat) return false;
@@ -151,9 +151,9 @@ function willDieTonight(seat: number, state: NonNullState): boolean {
 }
 
 /**
- * 判断该座位是否会因情侣殉情而死亡。
+ * Determine whether the seat will die due to lover suicide.
  *
- * 检查该座位是否为情侣之一，且搭档是否会在夜间死亡。
+ * Checks whether the seat is one of the lovers and whether the partner will die at night.
  */
 function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
   const loverSeats = state.loverSeats;
@@ -164,9 +164,9 @@ function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
 }
 
 /**
- * 判断该座位是否会因摄梦连锁而死亡。
+ * Determine whether the seat will die due to the dreamcatcher chain.
  *
- * 条件：该座位是摄梦目标（dreamingSeat）且摄梦人当夜会死亡。
+ * Condition: the seat is the dream target (dreamingSeat) and the dreamcatcher will die that night.
  */
 function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
@@ -179,9 +179,9 @@ function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
 }
 
 /**
- * 判断该座位是否会因狼美人魅惑连锁而死亡。
+ * Determine whether the seat will die due to the Eclipse Wolf Queen charm chain.
  *
- * 条件：该座位是狼美人魅惑目标（charmedSeat）且狼美人当夜会死亡。
+ * Condition: the seat is the charm target (charmedSeat) and the Eclipse Wolf Queen will die that night.
  */
 function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
@@ -194,13 +194,13 @@ function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
 }
 
 /**
- * 检查是否需要设置 confirmStatus，如需要则返回 action
+ * Check whether confirmStatus needs to be set; if so, return the action.
  *
- * 统一入口：任何地方进入 hunterConfirm / darkWolfKingConfirm 步骤时都调用此函数
+ * Unified entry: call this whenever hunterConfirm / darkWolfKingConfirm steps are about to be entered.
  *
- * @param nextStepId 即将进入的步骤 ID
- * @param state 当前游戏状态
- * @returns SET_CONFIRM_STATUS action 或 null
+ * @param nextStepId The step ID about to be entered
+ * @param state Current game state
+ * @returns SET_CONFIRM_STATUS action or null
  */
 export function maybeCreateConfirmStatusAction(
   nextStepId: SchemaId,
@@ -211,7 +211,7 @@ export function maybeCreateConfirmStatusAction(
     return null;
   }
 
-  // 检查模板中是否有该角色
+  // Check whether the role is in the template
   if (!state.templateRoles.includes(role)) {
     return null;
   }

@@ -1,7 +1,7 @@
 /**
- * CoralGlowFlair — 珊瑚荧光
+ * CoralGlowFlair — Coral Glow
  *
- * 4 组分枝珊瑚形(AnimatedPath Y分叉)从底部生长，带荧光脉冲。
+ * 4 branched coral shapes (AnimatedPath Y-fork) growing from the bottom with fluorescent pulses.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

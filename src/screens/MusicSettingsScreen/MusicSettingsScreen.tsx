@@ -1,12 +1,12 @@
 /**
- * MusicSettingsScreen — 音乐设置页
+ * MusicSettingsScreen — music settings page
  *
- * 两大区域：BGM（开关+曲目选择+试听+音量） + 角色音效（开关+音量+试听）。
- * 试听与选择解耦——试听不自动切换选中曲目。
- * BGM 关闭时曲目列表保留但 disable（避免布局跳跃）。
- * 设置持久化通过 SettingsService（AsyncStorage）。
- * 试听通过 AudioService.startBgm / stopBgm。
- * 不含游戏逻辑，不 import GameFacade。
+ * Two main sections: BGM (toggle + track selection + preview + volume) + Role audio (toggle + volume + preview).
+ * Preview is decoupled from selection — previewing does not auto-switch the selected track.
+ * When BGM is off the track list remains visible but disabled (avoids layout jumps).
+ * Settings are persisted via SettingsService (AsyncStorage).
+ * Preview goes through AudioService.startBgm / stopBgm.
+ * Contains no game logic, does not import GameFacade.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -29,7 +29,7 @@ import { createMusicSettingsStyles } from './MusicSettingsScreen.styles';
 
 const musicSettingsLog = log.extend('MusicSettingsScreen');
 
-/** 音乐设置屏幕。 */
+/** Music settings screen. */
 export const MusicSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createMusicSettingsStyles(colors), []);

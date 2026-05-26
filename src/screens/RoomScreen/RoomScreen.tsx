@@ -75,7 +75,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), []);
 
   // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
-  // Moved here from App.tsx — Skia is now lazy-loaded, so warmup runs when Skia is ready.
+  // Moved here from App.tsx -- Skia is now lazy-loaded, so warmup runs when Skia is ready.
   useSkiaShaderWarmup();
 
   // ─── Notepad ──────────────────────────────────────────────────────────
@@ -111,8 +111,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         } else if (result === 'failed') {
           showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
         }
-        // 'shared' → system share sheet already provided feedback
-        // 'cancelled' → user dismissed intentionally, no alert needed
+        // 'shared' -> system share sheet already provided feedback
+        // 'cancelled' -> user dismissed intentionally, no alert needed
       })
       .catch((e) => {
         handleError(e, {
@@ -293,7 +293,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     // Exact match first (via name or roles)
     const exactName = gameState.template.name;
     if (exactName && BOARD_STRATEGY_KEYS.has(exactName)) return exactName;
-    // Fuzzy match — only against boards that have strategy content
+    // Fuzzy match -- only against boards that have strategy content
     return findClosestPresetName(roles, 0.1, BOARD_STRATEGY_KEYS);
   }, [gameState]);
 
@@ -378,7 +378,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
-    // Auth gate: first-time user via direct URL — show login options (must check before error)
+    // Auth gate: first-time user via direct URL -- show login options (must check before error)
     if (needsAuth) {
       if (isMiniProgram()) {
         return (
@@ -455,7 +455,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
           </Button>
-          {/* BGM Toggle — all players, ended phase only, right of back button */}
+          {/* BGM Toggle -- all players, ended phase only, right of back button */}
           {roomStatus === GameStatus.Ended && !isAudioPlaying && (
             <Button
               variant="icon"
@@ -557,7 +557,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* StatusRibbon — unified slot: connection > night progress > speaking order > host guide */}
+      {/* StatusRibbon -- unified slot: connection > night progress > speaking order > host guide */}
       <StatusRibbon
         connectionStatus={connectionStatus}
         onManualReconnect={manualReconnect}
@@ -631,7 +631,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         bottomInset={insets.bottom}
       />
 
-      {/* Continue Game Overlay — shown after Host rejoin to unlock audio */}
+      {/* Continue Game Overlay -- shown after Host rejoin to unlock audio */}
       <AlertModal
         visible={needsContinueOverlay}
         title="游戏已恢复"
@@ -674,7 +674,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Skill Preview Modal — triggered by tapping a role chip in BoardInfoCard */}
+      {/* Skill Preview Modal -- triggered by tapping a role chip in BoardInfoCard */}
       <RoleCardSimple
         visible={skillPreviewRoleId !== null}
         roleId={skillPreviewRoleId}
@@ -685,7 +685,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         }
       />
 
-      {/* Player Profile Card — triggered by tapping another player's seat */}
+      {/* Player Profile Card -- triggered by tapping another player's seat */}
       <PlayerProfileCard
         visible={profileCardVisible}
         onClose={closeProfileCard}
@@ -698,7 +698,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onLeaveSeat={handleProfileLeaveSeat}
       />
 
-      {/* Night Review Modal — 裁判/观战者用，显示夜晚行动 + 全员身份 */}
+      {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
       {nightReviewVisible && nightReviewData && (
         <NightReviewModal
           visible={nightReviewVisible}
@@ -707,7 +707,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Share card — mounted on-demand during capture only */}
+      {/* Share card -- mounted on-demand during capture only */}
       {isCapturingShareCard && nightReviewData && (
         <View style={styles.hiddenShareCardContainer}>
           <NightReviewShareCard
@@ -718,7 +718,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
       )}
 
-      {/* Share Review Modal — Host 选择分享详细信息的座位 */}
+      {/* Share Review Modal -- Host picks seats whose details to share */}
       {shareReviewVisible && gameState && (
         <ShareReviewModal
           visible={shareReviewVisible}
@@ -735,7 +735,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* QR Code Modal — 房间二维码分享 */}
+      {/* QR Code Modal -- room QR code share */}
       <QRCodeModal
         visible={qrModalVisible}
         roomCode={roomCode}
@@ -745,7 +745,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         onClose={() => setQrModalVisible(false)}
       />
 
-      {/* Board Nomination Modal — 板子建议列表 */}
+      {/* Board Nomination Modal -- board suggestion list */}
       {nominationModalVisible && (
         <BoardNominationModal
           visible={nominationModalVisible}
@@ -764,7 +764,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Choose Bottom Card Modal — 盗宝大师 / 盗贼底牌选择 */}
+      {/* Choose Bottom Card Modal -- Treasure Master / Thief deck card selection */}
       {chooseCardModalVisible && gameState?.bottomCards && (
         <ChooseBottomCardModal
           visible={chooseCardModalVisible}
@@ -778,10 +778,10 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {/* Board Strategy Modal — 攻略详情 */}
+      {/* Board Strategy Modal -- strategy details */}
       <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
 
-      {/* Debug Console — store-driven modal, toggled via useHiddenDebugTrigger */}
+      {/* Debug Console -- store-driven modal, toggled via useHiddenDebugTrigger */}
       <DebugPanel />
     </SafeAreaView>
   );

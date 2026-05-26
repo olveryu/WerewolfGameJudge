@@ -1,11 +1,11 @@
 /**
- * Piper Resolvers (SERVER-ONLY, 纯函数)
+ * Piper Resolvers (SERVER-ONLY, pure functions)
  *
- * 职责：
- * - piperHypnotizeResolver: 校验吹笛者催眠行动（选择 1-2 名目标）+ 写入 hypnotizedSeats。
- * - piperHypnotizedRevealResolver: groupConfirm 步骤的 no-op resolver（ack 由 handler 层处理）。
- * 提供多目标校验。
- * 不包含 IO（网络 / 音频 / Alert）。
+ * Responsibilities:
+ * - piperHypnotizeResolver: validate Piper hypnotize action (1-2 targets) + write hypnotizedSeats.
+ * - piperHypnotizedRevealResolver: no-op resolver for the groupConfirm step (ack handled at handler layer).
+ * Provides multi-target validation.
+ * No IO (no network / audio / Alert).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
@@ -60,10 +60,10 @@ export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, inp
 };
 
 /**
- * piperHypnotizedReveal — groupConfirm 步骤的 no-op resolver。
+ * piperHypnotizedReveal — no-op resolver for the groupConfirm step.
  *
- * 此步骤由所有玩家确认（ack），实际确认逻辑由 handler 层处理。
- * Resolver 仅做最小校验，确保 contract test 覆盖完整。
+ * This step is confirmed (ack) by all players; the actual confirmation logic lives in the handler layer.
+ * The resolver does minimal validation to keep contract test coverage complete.
  */
 export const piperHypnotizedRevealResolver: ResolverFn = (_context, input) => {
   // groupConfirm step: player confirms they've seen hypnotized status

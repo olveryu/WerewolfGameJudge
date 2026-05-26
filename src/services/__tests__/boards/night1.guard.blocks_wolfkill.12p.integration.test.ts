@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: Guard Blocks Wolf Kill
  *
- * 主题：守卫守护与袭击的互动。
+ * Topic: Interaction between Guard's protection and the wolf kill.
  *
- * 模板：狼王守卫
- * 固定 seat-role assignment:
+ * Template: 狼王守卫
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: darkWolfKing
@@ -13,11 +13,11 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 核心规则：
- * - 守卫守护的目标免疫袭击
- * - witchContext.killedSeat 在守卫抵挡袭击时的取值需要固化
+ * Core rules:
+ * - The Guard's protected target is immune to the wolf kill
+ * - witchContext.killedSeat needs to be pinned down when the Guard blocks the kill
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,7 +28,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '狼王守卫';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -58,37 +58,37 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
     it('守卫守护袭击目标，该目标不死', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 0，袭击 seat 0
+      // Guard protects seat 0, wolves attack seat 0
       const result = executeFullNight(ctx, {
-        guard: 0, // 守 seat 0
-        wolf: 0, // 袭击 seat 0
+        guard: 0, // protect seat 0
+        wolf: 0, // attack seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 0 被守卫保护，不在死亡列表中
+      // Core assertion: seat 0 is protected by Guard and not in the death list
       expect(result.deaths).toEqual([]);
 
-      // guardedSeat 写入 currentNightResults
+      // guardedSeat is written to currentNightResults
       expect(ctx.getGameState().currentNightResults?.guardedSeat).toBe(0);
     });
 
     it('守卫守护非袭击目标，袭击目标死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 1，袭击 seat 0
+      // Guard protects seat 1, wolves attack seat 0
       const result = executeFullNight(ctx, {
-        guard: 1, // 守 seat 1
-        wolf: 0, // 袭击 seat 0
+        guard: 1, // protect seat 1
+        wolf: 0, // attack seat 0
         witch: { save: null, poison: null },
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seat 0 不被保护，死亡
+      // Core assertion: seat 0 is unprotected and dies
       expect(result.deaths).toEqual([0]);
     });
   });
@@ -98,7 +98,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
-        guard: null, // 不守护
+        guard: null, // no protection
         wolf: 2,
         witch: { save: null, poison: null },
         seer: 4,
@@ -110,18 +110,19 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
   });
 
   /**
-   * witchContext.killedSeat 的 contract 由 witchContext.test.ts 单元测试覆盖。
-   * Integration 测试只验证最终死亡结果，不检查中间状态。
+   * The witchContext.killedSeat contract is covered by witchContext.test.ts unit tests.
+   * Integration tests only verify the final death outcome, not intermediate state.
    *
-   * 守卫抵挡袭击时，witchContext.killedSeat 仍为原目标（女巫能看到谁被袭击）。
-   * 这个规则的验证见：src/services/engine/handlers/__tests__/witchContext.test.ts
+   * When the Guard blocks the kill, witchContext.killedSeat still reports the original target
+   * (so the witch can see who was attacked).
+   * See: src/services/engine/handlers/__tests__/witchContext.test.ts
    */
 
   describe('守卫 + 女巫同守同救', () => {
     it('守卫守护 + 女巫救同一目标：按"同守同救必死"规则，目标死亡', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 0，女巫救 seat 0，袭击 seat 0
+      // Guard protects seat 0, witch saves seat 0, wolves attack seat 0
       const result = executeFullNight(ctx, {
         guard: 0,
         wolf: 0,
@@ -131,24 +132,24 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：同守同救必死
+      // Core assertion: guard-and-save on the same target always dies
       expect(result.deaths).toEqual([0]);
     });
 
     it('守卫守护 A + 女巫救 B：只有女巫救的 B 生效（如果 B 被袭击）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // 守卫守 seat 1，袭击 seat 0，女巫救 seat 0
+      // Guard protects seat 1, wolves attack seat 0, witch saves seat 0
       const result = executeFullNight(ctx, {
-        guard: 1, // 守 seat 1（不是被袭击的）
-        wolf: 0, // 袭击 seat 0
-        witch: { save: 0, poison: null }, // 救 seat 0
+        guard: 1, // protect seat 1 (not the attack target)
+        wolf: 0, // attack seat 0
+        witch: { save: 0, poison: null }, // save seat 0
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：只有女巫救，seat 0 不死
+      // Core assertion: only the witch save applies; seat 0 survives
       expect(result.deaths).toEqual([]);
     });
   });

@@ -1,12 +1,12 @@
 /**
- * gachaConstants — 扭蛋机动画常量。
+ * gachaConstants — Gacha machine animation constants.
  *
- * 物理参数、几何布局（基于 400×600 参考坐标系）、颜色。
- * CapsuleMachine 按实际 Canvas 尺寸缩放。
+ * Physics params, geometric layout (based on a 400x600 reference coordinate system), colors.
+ * CapsuleMachine scales by the actual Canvas size.
  */
 
 // ─── Phase state machine ────────────────────────────────────────────────
-/** 动画阶段枚举。 */ export const PHASE = {
+/** Animation phase enum. */ export const PHASE = {
   IDLE: 0,
   TUMBLING: 1,
   SETTLING: 2,
@@ -35,7 +35,7 @@ export const TUMBLE_DURATION = 2.2;
 export const SETTLE_DURATION = 0.4;
 export const TUMBLE_FORCE = 3000;
 
-// ─── Reference geometry (400×600) ───────────────────────────────────────
+// ─── Reference geometry (400x600) ───────────────────────────────────────
 
 export const REF_W = 400;
 export const REF_H = 600;

@@ -8,7 +8,7 @@ import { RoomPage } from '../pages/RoomPage';
 /**
  * Restart & Settings E2E Tests
  *
- * - restart: After first night → 重新开始 → second night completes
+ * - restart: After first night -> 重新开始 -> second night completes
  * - settings: Template change via settings affects seat count
  */
 
@@ -43,7 +43,7 @@ test.describe('Restart & Settings', () => {
         });
       }
 
-      // Re-run the full game setup: prepare → view → start
+      // Re-run the full game setup: prepare -> view -> start
       await room.prepareRoles();
 
       for (const page of fixture.pages) {
@@ -108,7 +108,7 @@ test.describe('Restart & Settings', () => {
       const config = new ConfigPage(hostPage);
       await config.waitForSaveMode();
 
-      // Add 1 villager to go from 2 → 3 players
+      // Add 1 villager to go from 2 -> 3 players
       // Villager is a bulk-stepper role; use increase stepper
       await config.increaseStepper('villager', 1);
 

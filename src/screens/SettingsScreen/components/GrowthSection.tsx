@@ -1,9 +1,9 @@
 /**
- * GrowthSection — 成长区块（Memoized）
+ * GrowthSection - Growth section (Memoized)
  *
- * 全宽 XP 进度条 + dresserEntry 风格的成长入口行。
- * 点击跳转 UnlocksScreen。
- * 嵌入账户 card 内部，不自带 card 容器。
+ * Full-width XP progress bar + dresserEntry-style growth entry row.
+ * Taps navigate to UnlocksScreen.
+ * Embedded inside account card; does not include its own card container.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
@@ -28,7 +28,7 @@ interface GrowthSectionProps {
   onPressUnlocks?: () => void;
 }
 
-/** 等级/经验值区域。 */
+/** Level / XP section. */
 export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressUnlocks }) => {
   const progress = getLevelProgress(stats.xp);
   const nextThreshold =

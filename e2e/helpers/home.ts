@@ -11,7 +11,7 @@ import { clickIfVisible, screenshotOnFail } from './ui';
  */
 export async function registerAutoDismissers(page: Page): Promise<void> {
   // Announcement / What's New modal — trigger on the close button itself
-  // (only visible when modal is open, becomes hidden after click → no infinite loop).
+  // (only visible when modal is open, becomes hidden after click -> no infinite loop).
   // Using getByText('公告与反馈') as trigger would match the home page card too.
   await page.addLocatorHandler(page.getByRole('button', { name: '关闭公告' }), async () => {
     await page.getByRole('button', { name: '关闭公告' }).click();
@@ -19,11 +19,11 @@ export async function registerAutoDismissers(page: Page): Promise<void> {
 }
 
 /**
- * Home Screen Helpers (首页/登录稳定化层)
+ * Home Screen Helpers (home/login stabilization layer)
  *
  * These helpers ensure stable entry to the app by handling:
  * - App hydration (React Native Web)
- * - Transient states (loading, "创建中...")
+ * - Transient states (loading, "creating...")
  * - Login flows (anonymous login)
  * - Error recovery (retry dialogs)
  *
@@ -173,7 +173,7 @@ async function isHomeReady(page: Page): Promise<boolean> {
  *
  * Handles:
  * - Login modal ("登录") shown directly when auth is required
- * - "点击登录" → "👤 匿名登录" flow
+ * - "点击登录" -> "👤 匿名登录" flow
  *
  * Returns true if login was performed.
  */
@@ -346,7 +346,7 @@ async function ensureHomeReady(
  *
  * Strategy:
  * 1. If already logged in (user name visible), verify home is stable
- * 2. Otherwise click "进入房间" to trigger requireAuth → login modal
+ * 2. Otherwise click "进入房间" to trigger requireAuth -> login modal
  * 3. Complete login flow and dismiss any leftover modals
  * 4. Wait for home to be stable
  *
@@ -374,7 +374,7 @@ export async function ensureAnonLogin(page: Page): Promise<void> {
     return;
   }
 
-  // Trigger login via "进入房间" button (calls requireAuth → shows login modal)
+  // Trigger login via "进入房间" button (calls requireAuth -> shows login modal)
   const enterRoomBtn = page.locator(`[data-testid="${TESTIDS.homeEnterRoomButton}"]`);
   const hasEnterBtn = await enterRoomBtn
     .waitFor({ state: 'visible', timeout: 3000 })

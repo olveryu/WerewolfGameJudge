@@ -1,8 +1,8 @@
 /**
- * WillowWispFlair — 柳树鬼火
+ * WillowWispFlair — willow wisp flair
  *
- * 6 个鬼火在头像四周游荡：缓慢的 Lissajous 轨迹 + 随机闪烁明灭。
- * 每个鬼火 = 外晕 + 亮核。
+ * 6 wisps drift around the avatar: slow Lissajous paths + random flicker.
+ * Each wisp = outer halo + bright core.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

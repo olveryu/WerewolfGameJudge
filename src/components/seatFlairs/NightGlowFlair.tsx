@@ -1,7 +1,7 @@
 /**
- * NightGlowFlair — 夜光虫
+ * NightGlowFlair — Glowworms
  *
- * 8 枚生物荧光粒子在头像周围缓慢浮动，带呼吸脉冲(光晕+亮核)。
+ * 8 bioluminescent particles slowly drift around the avatar with a breathing pulse (halo + bright core).
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

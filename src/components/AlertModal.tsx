@@ -1,9 +1,9 @@
 /**
- * AlertModal - 跨平台自定义 Alert Modal
+ * AlertModal - cross-platform custom Alert Modal
  *
- * Web 端替代 RN Alert.alert，提供统一的 Modal 弹窗样式。
- * 支持可选文本输入（prompt 模式）。
- * 渲染 Modal UI，通过 onPress 回调上报用户操作。不 import service，不含业务逻辑。
+ * Replaces RN Alert.alert on web, providing unified Modal popup styles.
+ * Supports optional text input (prompt mode).
+ * Renders Modal UI and reports user actions via onPress callbacks. Imports no service, contains no business logic.
  */
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -104,7 +104,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   const handleButtonPress = useCallback(
     (button: AlertButton, index: number) => {
       // Capture generation BEFORE calling onPress — if onPress synchronously
-      // calls showAlert() (e.g. "详细信息" → "自己查看" → showConfirmAlert),
+      // calls showAlert() (e.g. "详细信息" -> "自己查看" -> showConfirmAlert),
       // generation will have incremented and we must NOT close the new alert.
       const gen = getAlertGeneration();
       const result = button.onPress?.(input ? inputValue : undefined);

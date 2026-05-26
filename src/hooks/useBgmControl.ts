@@ -6,8 +6,8 @@
  * - Toggling BGM on/off (persisted to SettingsService)
  * - Auto-stopping BGM when game ends AND ending audio finishes (Host only)
  *
- * 读写 BGM 设置、监听 game status 变化。
- * 不直接操作游戏状态。
+ * Read/write BGM settings, watch game status changes.
+ * Does not directly operate on game state.
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -33,7 +33,7 @@ export interface BgmControlState {
 
 /**
  * Resolve BGM track setting to asset array.
- * 'random' → all tracks (BgmPlayer will shuffle); specific track → single-element array.
+ * 'random' -> all tracks (BgmPlayer will shuffle); specific track -> single-element array.
  */
 function resolveBgmAssets(track: string): AudioAsset[] {
   if (track === 'random') {
@@ -70,10 +70,10 @@ export function useBgmControl(
     });
   }, [settingsService, audioService]);
 
-  // ── 状态驱动：gameStatus 转换到 Ongoing → 启动 BGM ──
-  // BGM 启动由 GameState 状态转换驱动（与停止对称），不绑定 HTTP 响应。
-  // Guard: prevStatus === null 排除 mount/rejoin（null→Ongoing），
-  // rejoin 场景由 resumeAfterRejoin 手动启动。
+  // ── State-driven: gameStatus transitions to Ongoing -> start BGM ──
+  // BGM start driven by GameState transitions (symmetric to stop), not bound to HTTP response.
+  // Guard: prevStatus === null excludes mount/rejoin (null->Ongoing);
+  // rejoin scenario is started manually by resumeAfterRejoin.
   const prevStatusRef = useRef<GameStatus | null>(null);
   useEffect(() => {
     const prevStatus = prevStatusRef.current;
@@ -96,9 +96,9 @@ export function useBgmControl(
     }
   }, [isHost, gameStatus, settingsService, audioService]);
 
-  // ── 状态驱动：gameStatus 转换到 Ended → 停止 BGM ──
-  // 音频时序层面的 stopBgm（如"天亮了"语音前停 BGM）由 AudioOrchestrator 负责，
-  // 这里作为生命周期收尾，确保 BGM 不会在 ended 状态残留。stopBgm() 幂等。
+  // ── State-driven: gameStatus transitions to Ended -> stop BGM ──
+  // Audio-timing-level stopBgm (e.g. stopping BGM before "天亮了" voice) is handled by AudioOrchestrator;
+  // here it serves as lifecycle cleanup to ensure BGM doesn't linger in ended state. stopBgm() is idempotent.
   useEffect(() => {
     if (!isHost) return;
     if (gameStatus === GameStatus.Ended && !isAudioPlaying) {

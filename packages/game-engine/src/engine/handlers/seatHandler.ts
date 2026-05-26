@@ -1,12 +1,12 @@
 /**
- * Seat Handler - 座位操作处理器（Host-only）
+ * Seat Handler - seat operations handler (Host-only)
  *
- * 职责：
- * - 处理 JOIN_SEAT / LEAVE_MY_SEAT intent
- * - 所有校验（state/userId/座位有效性/重复占座）集中在此，Facade 不做任何校验
+ * Responsibilities:
+ * - Handle JOIN_SEAT / LEAVE_MY_SEAT intents
+ * - All validation (state/userId/seat validity/duplicate occupancy) lives here; Facade does no validation
  *
- * 提供座位校验并返回 StateAction 列表，不包含 IO（网络 / 音频 / Alert），
- * 不直接修改 state（返回 StateAction 列表由 reducer 执行）。
+ * Performs seat validation and returns a StateAction list. No IO (network / audio / alert),
+ * does not mutate state directly (returned StateAction list is executed by the reducer).
  */
 
 import { GameStatus } from '../../models';
@@ -37,8 +37,8 @@ import type { HandlerContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
 /**
- * 处理加入座位
- * 支持换座：如果玩家已有座位，会先清空旧座位
+ * Handle joining a seat
+ * Supports seat changes: if the player already has a seat, the old seat is cleared first
  */
 export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext): HandlerResult {
   const {
@@ -55,49 +55,49 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   } = intent.payload;
   const { state } = context;
 
-  // 校验：state 是否存在
+  // Validate: state exists
   if (!state) {
     return handlerError(REASON_NO_STATE);
   }
 
-  // 校验：userId 是否有效
+  // Validate: userId is valid
   if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
-  // 验证：座位是否存在
+  // Validate: seat exists
   if (!(seat in state.players)) {
     return handlerError(REASON_INVALID_SEAT);
   }
 
-  // 验证：座位是否已被占用（被其他玩家）
+  // Validate: seat is not already taken (by another player)
   const existingPlayer = state.players[seat]!;
   if (existingPlayer !== null && existingPlayer.userId !== userId) {
     return handlerError(REASON_SEAT_TAKEN);
   }
 
-  // 验证：游戏状态是否允许加入
+  // Validate: game status allows joining
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
   const actions: (PlayerJoinAction | PlayerLeaveAction)[] = [];
 
-  // 检查玩家是否已在其他座位（换座场景）
+  // Check if player is already in another seat (seat-change scenario)
   for (const [seatKey, player] of Object.entries(state.players)) {
     const seatNum = Number(seatKey);
     if (player?.userId === userId && seatNum !== seat) {
-      // 先离开旧座位
+      // Leave the old seat first
       const leaveAction: PlayerLeaveAction = {
         type: 'PLAYER_LEAVE',
         payload: { seat: seatNum },
       };
       actions.push(leaveAction);
-      break; // 只可能有一个旧座位
+      break; // There can be only one old seat
     }
   }
 
-  // 加入新座位
+  // Join the new seat
   const joinAction: PlayerJoinAction = {
     type: 'PLAYER_JOIN',
     payload: {
@@ -126,10 +126,10 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
 }
 
 /**
- * 处理离开"我的座位"
+ * Handle leaving "my seat"
  *
- * 不需要 payload 中指定 seat，seat 从 context.mySeat 获取
- * 如果未入座 (mySeat === null)，返回 REASON_NOT_SEATED
+ * No need to specify seat in payload; seat comes from context.mySeat
+ * If not seated (mySeat === null), returns REASON_NOT_SEATED
  */
 export function handleLeaveMySeat(
   intent: LeaveMySeatIntent,
@@ -138,22 +138,22 @@ export function handleLeaveMySeat(
   const { userId } = intent.payload;
   const { state, mySeat } = context;
 
-  // 校验：state 是否存在
+  // Validate: state exists
   if (!state) {
     return handlerError(REASON_NO_STATE);
   }
 
-  // 校验：userId 是否有效
+  // Validate: userId is valid
   if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
-  // 校验：是否已入座
+  // Validate: player is seated
   if (mySeat === null) {
     return handlerError(REASON_NOT_SEATED);
   }
 
-  // 验证：游戏状态是否允许离开（仅 Unseated/Seated 允许）
+  // Validate: game status allows leaving (only Unseated/Seated allowed)
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
@@ -167,10 +167,10 @@ export function handleLeaveMySeat(
 }
 
 /**
- * 处理全员起立（Host-only）
+ * Handle clearing all seats (Host-only)
  *
- * 清空所有已入座玩家，状态回到 unseated。
- * 前置条件：status in (GameStatus.Unseated, GameStatus.Seated)
+ * Removes all seated players and returns status to unseated.
+ * Precondition: status in (GameStatus.Unseated, GameStatus.Seated)
  */
 export function handleClearAllSeats(
   _intent: ClearAllSeatsIntent,
@@ -195,10 +195,10 @@ export function handleClearAllSeats(
 }
 
 /**
- * 更新在座玩家的显示资料（displayName / avatarUrl）
+ * Update seated player's display info (displayName / avatarUrl)
  *
- * 任何在座玩家均可调用（更新自己的资料）。
- * mySeat 由 context 提供（通过 userId 查找），不需要客户端传 seat。
+ * Any seated player can call this (to update their own info).
+ * mySeat is provided by context (looked up via userId); the client does not pass seat.
  */
 export function handleUpdatePlayerProfile(
   intent: UpdatePlayerProfileIntent,
@@ -246,10 +246,10 @@ export function handleUpdatePlayerProfile(
 }
 
 /**
- * 处理移出座位（Host-only）
+ * Handle kicking a player from a seat (Host-only)
  *
- * Host 可以在 Unseated/Seated 阶段将指定座位的玩家移出座位。
- * 移出后座位变空，如果之前是 Seated 状态会回退到 Unseated。
+ * Host can remove the player at a given seat during Unseated/Seated phase.
+ * After kick, the seat becomes empty; if previously Seated, status reverts to Unseated.
  */
 export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerContext): HandlerResult {
   const { targetSeat } = intent.payload;
@@ -259,22 +259,22 @@ export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerConte
     return handlerError(REASON_NO_STATE);
   }
 
-  // 校验：只有 Host 可以踢人
+  // Validate: only Host can kick
   if (state.hostUserId !== context.myUserId) {
     return handlerError(REASON_NOT_HOST);
   }
 
-  // 校验：仅在 Unseated/Seated 阶段
+  // Validate: only during Unseated/Seated phase
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  // 校验：座位有效
+  // Validate: seat is valid
   if (!(targetSeat in state.players)) {
     return handlerError(REASON_INVALID_SEAT);
   }
 
-  // 校验：座位非空
+  // Validate: seat is not empty
   if (state.players[targetSeat] === null) {
     return handlerError(REASON_SEAT_EMPTY);
   }

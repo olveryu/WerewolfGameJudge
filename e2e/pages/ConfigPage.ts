@@ -221,11 +221,11 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→1
    */
   async configure2Player() {
-    // 好人阵营 tab is active by default
+    // good faction tab is active by default
     await this.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
 
-    // Switch to 狼人阵营 tab to adjust wolf count
+    // Switch to wolf faction tab to adjust wolf count
     await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 3); // 4 → 1
   }
@@ -238,11 +238,11 @@ export class ConfigPage {
    * - 狼人阵营 tab: reduce wolf 4→2
    */
   async configure6Player() {
-    // 好人阵营 tab is active by default
+    // good faction tab is active by default
     await this.deselectRoles(['idiot']);
     await this.decreaseStepper('villager', 3); // 4 → 1
 
-    // Switch to 狼人阵营 tab to adjust wolf count
+    // Switch to wolf faction tab to adjust wolf count
     await this.switchToFactionTab('Wolf');
     await this.decreaseStepper('wolf', 2); // 4 → 2
   }
@@ -272,7 +272,7 @@ export class ConfigPage {
   }) {
     const { wolves = 0, villagers = 0, goodRoles = [], wolfRoles = [], specialRoles = [] } = opts;
 
-    // --- 好人阵营 (active by default) ---
+    // --- good faction (active by default) ---
     // Deselect all default god roles
     await this.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
     // Adjust villager count from default 4 → target
@@ -293,7 +293,7 @@ export class ConfigPage {
       }
     }
 
-    // --- 狼人阵营 ---
+    // --- wolf faction ---
     await this.switchToFactionTab('Wolf');
     // Adjust wolf count from default 4 → target
     const wolfDelta = 4 - wolves;

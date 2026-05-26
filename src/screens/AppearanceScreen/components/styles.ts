@@ -18,7 +18,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-/** 外观屏幕样式类型。 */
+/** Appearance screen style type. */
 export interface AppearanceScreenStyles {
   container: ViewStyle;
   content: ViewStyle;
@@ -85,7 +85,7 @@ export interface AppearanceScreenStyles {
 
 const HERO_ICON_SIZE = 72;
 
-/** 创建外观屏幕样式。 */
+/** Create appearance screen styles. */
 export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScreenStyles =>
   StyleSheet.create<AppearanceScreenStyles>({
     container: {

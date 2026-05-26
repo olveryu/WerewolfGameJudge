@@ -1,9 +1,9 @@
 /**
  * Resolver Types (SERVER-ONLY)
  *
- * 职责：定义 Resolver 系统的核心类型（ResolverFn / ResolverContext / ResolverResult / CurrentNightResults）
- * 以及 resolveRoleForChecks 等纯函数工具。导出类型定义与纯函数工具。
- * 不被 UI 代码 import（import boundary test 强制），不携带跨夜字段（previousActions / lastNightTarget 等）。
+ * Responsibility: defines the core types of the Resolver system (ResolverFn / ResolverContext / ResolverResult / CurrentNightResults)
+ * plus pure-function utilities like resolveRoleForChecks. Exports type definitions and pure-function utilities.
+ * Not imported by UI code (enforced by the import boundary test); carries no cross-night fields (previousActions / lastNightTarget, etc.).
  *
  * ⚠️ WARNING: These types and the resolver implementations MUST NOT be imported by UI code.
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
@@ -15,7 +15,7 @@ import type { Team } from '../models/roles/spec/types';
 
 /**
  * Current night's accumulated results.
- * Used to pass resolved results between steps (e.g., nightmare block → wolf kill).
+ * Used to pass resolved results between steps (e.g., nightmare block -> wolf kill).
  */
 export interface CurrentNightResults {
   /**
@@ -176,20 +176,20 @@ export interface ResolverResult {
 }
 
 // =============================================================================
-// WolfRobot Resolver 专用类型（编译期强类型保证）
+// WolfRobot Resolver dedicated types (compile-time strong type guarantee)
 // =============================================================================
 
 /**
- * WolfRobot Resolver 的专用返回类型
+ * Dedicated return type for the WolfRobot Resolver.
  *
- * 为了向后兼容现有测试代码（不先检查 valid），
- * 此类型继承 ResolverResult，所有字段都是可选的。
+ * For backward compatibility with existing test code (which does not check valid first),
+ * this type extends ResolverResult with all fields optional.
  *
- * 真正的编译期类型安全由 resolver 内部 overload 保证。
+ * Real compile-time type safety is guaranteed by overloads inside the resolver.
  */
 export interface WolfRobotResolverResult extends ResolverResult {
-  // 继承 ResolverResult，向后兼容
-  // 编译期保证由 resolver 内部实现
+  // Extends ResolverResult, backward compatible
+  // Compile-time guarantee implemented inside the resolver
 }
 
 /** Resolver function signature */

@@ -1,8 +1,8 @@
 /**
- * LoginOptions — 登录方式选择（共享组件）
+ * LoginOptions — login method selector (shared component)
  *
- * Home 和 Settings 共用。显示邮箱登录 / 匿名登录按钮。
- * 渲染登录方式 UI 并上报用户选择。不 import service，不含业务逻辑。
+ * Shared between Home and Settings. Shows email login / anonymous login buttons.
+ * Renders login-method UI and reports user selection. Does not import services; no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
@@ -78,7 +78,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           )}
         </View>
 
-        {/* 邮箱注册 / 绑定邮箱 — 主按钮 */}
+        {/* Email signup / bind email — primary button */}
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={onEmailSignUp}
@@ -96,7 +96,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           </Text>
         </TouchableOpacity>
 
-        {/* 邮箱登录 — 次级按钮 */}
+        {/* Email login — secondary button */}
         <TouchableOpacity
           style={styles.outlineButton}
           onPress={onEmailSignIn}
@@ -109,7 +109,7 @@ export const LoginOptions = memo<LoginOptionsProps>(
           <Text style={styles.buttonCaption}>已有账号，回到你的专属形象</Text>
         </TouchableOpacity>
 
-        {/* 匿名登录 — 微信小程序环境下隐藏 */}
+        {/* Anonymous login — hidden in WeChat mini-program environment */}
         {!hideAnonymous && (
           <TouchableOpacity
             style={[styles.outlineButton, authLoading && styles.buttonDisabled]}

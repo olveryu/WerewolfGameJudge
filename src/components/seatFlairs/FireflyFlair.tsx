@@ -1,8 +1,8 @@
 /**
- * FireflyFlair — 萤火虫之夜
+ * FireflyFlair — firefly night
  *
- * 8 只萤火虫在外围不规则游走，明暗闪烁节奏错开，带暖色辉光晕。
- * react-native-svg + Reanimated useAnimatedProps。
+ * 8 fireflies wander irregularly around the perimeter with staggered blink rhythms and a warm glow halo.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

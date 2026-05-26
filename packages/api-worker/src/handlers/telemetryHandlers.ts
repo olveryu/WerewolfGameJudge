@@ -4,7 +4,7 @@
  * Receives per-resource timing data from web clients and writes to
  * Analytics Engine for query via CF SQL API. No auth required — fire-and-forget.
  *
- * @throws 400 — JSON 解析失败或 loadTimingSchema 校验不通过
+ * @throws 400 — JSON parse failure or loadTimingSchema validation failure
  */
 
 import { Hono } from 'hono';
@@ -12,7 +12,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../env';
 import { loadTimingSchema } from '../schemas/telemetry';
 
-/** Telemetry 数据上报路由。 */
+/** Telemetry data reporting routes. */
 export const telemetryRoutes = new Hono<AppEnv>();
 
 telemetryRoutes.post('/load-timing', async (c) => {

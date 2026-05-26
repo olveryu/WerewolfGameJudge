@@ -1,18 +1,18 @@
 /**
- * RoomScreenTestHarness — RoomScreen UI 测试基础设施。
+ * RoomScreenTestHarness — RoomScreen UI test infrastructure.
  *
- * 职责：
- * - 拦截并记录所有 showAlert 调用
- * - 提供 fluent API 用于事件检查和断言
- * - Dialog 类型分类的单一真相（centralized classification）
- * - 支持循环检测和覆盖率验证
+ * Responsibilities:
+ * - Intercept and record all showAlert calls
+ * - Provide fluent API for event inspection and assertions
+ * - Single source of truth for dialog type classification (centralized classification)
+ * - Support loop detection and coverage verification
  *
- * 不负责：
- * - 自动清除 gate 或跳过断言
- * - 实际游戏逻辑执行
+ * Not responsible for:
+ * - Automatically clearing gates or skipping assertions
+ * - Actual game logic execution
  *
- * 边界约束：
- * - 仅用于 Jest 测试环境，不可在生产代码中引用
+ * Boundary constraints:
+ * - Only for Jest test environment; must not be referenced from production code
  */
 
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';

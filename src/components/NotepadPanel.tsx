@@ -1,11 +1,11 @@
 /**
- * NotepadPanel - 笔记面板（NotepadScreen 内嵌单列 12 行）
+ * NotepadPanel - Notepad panel (single-column 12-row embed in NotepadScreen)
  *
- * 显示玩家卡片列表：每行包含座位号（可点击选角色）+ 角色徽标 + 上警标签 + 笔记输入。
- * 点击座位号弹出角色选择气泡，选中后在座位号旁显示角色徽标。
- * 卡片背景色随角色猜测自动变化（狼人/神职/平民/第三方 4 色区分）。
- * 接收 notepad 状态和操作回调（来自 useNotepad），接收 styles prop。
- * 不直接调用 service / AsyncStorage / game-engine。
+ * Renders a player card list: each row has seat number (tap to select role) + role badge + hand-up tag + note input.
+ * Tapping the seat number opens a role-picker popover; selection shows a role badge next to the seat number.
+ * Card background color follows the role guess (4-color distinction: wolf / god / villager / third party).
+ * Receives notepad state and action callbacks (from useNotepad), plus a styles prop.
+ * Does not directly call service / AsyncStorage / game-engine.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -29,7 +29,7 @@ import { Modal } from '@/components/AppModal';
 import type { NotepadState, RoleTagInfo } from '@/hooks/useNotepad';
 import { fixed } from '@/theme';
 
-// ── NotepadStyles（NotepadPanel 依赖此类型） ─────────────
+// ── NotepadStyles (NotepadPanel depends on this type) ─────────────
 
 interface NotepadStyles {
   container: ViewStyle;
@@ -106,7 +106,7 @@ function getFactionStyleKey(faction: Faction): 'Wolf' | 'God' | 'Villager' | 'Th
   }
 }
 
-// ── NotepadCard (独立组件，管理自身 TextInput 高度) ─────
+// ── NotepadCard (standalone component, manages its own TextInput height) ─────
 
 interface NotepadCardProps {
   seat: number;
@@ -207,7 +207,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
 );
 NotepadCard.displayName = 'NotepadCard';
 
-// ── RolePickerModal (角色选择气泡) ───────────────────────
+// ── RolePickerModal (role-picker popover) ───────────────────────
 
 interface RolePickerModalProps {
   seat: number | null;

@@ -19,8 +19,8 @@ import { withSetup } from '../helpers/night-setup';
  * Night Roles E2E — Protection / Immunity effect coverage.
  *
  * Tests all roles that prevent or modify night deaths:
- * - Guard protect → 平安夜
- * - Witch save → 平安夜, Witch self-save rejection
+ * - Guard protect -> 平安夜
+ * - Witch save -> 平安夜, Witch self-save rejection
  * - Dreamcatcher hit/miss/link death
  * - SpiritKnight wolf-kill immunity, poison reflection
  *
@@ -36,7 +36,7 @@ test.setTimeout(180_000);
 
 test.describe('Night Roles — Protection / Immunity', () => {
   // --------------------------------------------------------------------------
-  // Guard protects → 平安夜
+  // Guard protects -> 平安夜
   // --------------------------------------------------------------------------
   test('guard protects wolf target → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -84,7 +84,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Witch saves → 平安夜
+  // Witch saves -> 平安夜
   // --------------------------------------------------------------------------
   test('witch saves wolf-killed player → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -157,7 +157,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Dreamcatcher dreams wolf target → immune (平安夜)
+  // Dreamcatcher dreams wolf target -> immune (平安夜)
   // --------------------------------------------------------------------------
   test('dreamcatcher dreams wolf target → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -207,7 +207,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Dreamcatcher dreams wrong target → death occurs
+  // Dreamcatcher dreams wrong target -> death occurs
   // --------------------------------------------------------------------------
   test('dreamcatcher dreams wrong target → death occurs', async ({ browser }) => {
     await withSetup(
@@ -238,7 +238,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(dcTurn).toBe(true);
         await clickSeatAndConfirm(pages[dcIdx]!, dreamSeat);
 
-        // Wolf kills villager2 (different target → no protection)
+        // Wolf kills villager2 (different target -> no protection)
         const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
@@ -346,10 +346,10 @@ test.describe('Night Roles — Protection / Immunity', () => {
         );
         expect(wolfTurn).toBe(true);
 
-        // First wolf tries to vote spiritKnight → confirm → rejection
+        // First wolf tries to vote spiritKnight -> confirm -> rejection
         await clickSeatAndConfirm(pages[allWolfIndices[0]!]!, skSeat);
 
-        // Should see rejection alert (server rejects → actionRejected shows '操作无效')
+        // Should see rejection alert (server rejects -> actionRejected shows '操作无效')
         const alertModal = pages[allWolfIndices[0]!]!.locator('[data-testid="alert-modal"]');
         await alertModal.waitFor({ state: 'visible', timeout: 5000 });
         const rejectionText = await readAlertText(pages[allWolfIndices[0]!]!);
@@ -367,7 +367,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // SpiritKnight — witch poison reflects → witch dies, SK survives
+  // SpiritKnight — witch poison reflects -> witch dies, SK survives
   // --------------------------------------------------------------------------
   test('witch poisons spiritKnight → poison reflects → witch dies', async ({ browser }) => {
     await withSetup(
@@ -433,7 +433,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Dreamcatcher link death — DC dies → dream target dies too
+  // Dreamcatcher link death — DC dies -> dream target dies too
   // --------------------------------------------------------------------------
   test('dreamcatcher dies → dream target link-dies', async ({ browser }) => {
     await withSetup(

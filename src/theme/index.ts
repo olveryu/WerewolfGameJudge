@@ -1,7 +1,7 @@
 /**
- * Theme System - 设计系统入口
+ * Theme System - design system entry point
  *
- * 用法示例:
+ * Usage example:
  *
  * import { colors, spacing, borderRadius } from '@/theme';
  *
@@ -23,7 +23,7 @@
 // Colors
 export { colors, type ThemeColors } from './colors';
 
-// Tokens (可直接导入)
+// Tokens (importable directly)
 export {
   borderRadius,
   componentSizes,

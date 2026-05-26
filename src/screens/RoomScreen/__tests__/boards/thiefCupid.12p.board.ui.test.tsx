@@ -3,7 +3,7 @@
  *
  * Board: 盗贼丘比特
  * Roles: 5x villager, 3x wolf, seer, witch, hunter, idiot,
- *        thief, cupid (14 roles → 12 players + 2 bottom cards)
+ *        thief, cupid (14 roles -> 12 players + 2 bottom cards)
  *
  * Required UI coverage (getRequiredUiDialogTypes):
  * - actionPrompt: seer actions
@@ -324,7 +324,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 1: actionPrompt (seer)
       await coverageChainActionPrompt(harness, setMock, renderRoom, 'seerCheck', 'seer', 'seer', 8);
 
-      // Step 2: wolfVote → press confirm → submitAction(1) called
+      // Step 2: wolfVote -> press confirm -> submitAction(1) called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
@@ -340,7 +340,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(wolfVoteAction).toHaveBeenCalledWith(1);
 
-      // Step 3: confirmTrigger (hunter) → press primary + assertNoLoop
+      // Step 3: confirmTrigger (hunter) -> press primary + assertNoLoop
       await coverageChainConfirmTrigger(
         harness,
         setMock,
@@ -351,7 +351,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         10,
       );
 
-      // Step 4: actionConfirm (seer tap seat) → press confirm → submitAction called
+      // Step 4: actionConfirm (seer tap seat) -> press confirm -> submitAction called
       const { submitAction: seerSubmit } = await coverageChainSeatActionConfirm(
         harness,
         setMock,
@@ -364,7 +364,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSubmit).toHaveBeenCalled();
 
-      // Step 5: skipConfirm (seer) → press primary → submitAction called
+      // Step 5: skipConfirm (seer) -> press primary -> submitAction called
       const { submitAction: seerSkip } = await coverageChainSkipConfirm(
         harness,
         setMock,
@@ -376,7 +376,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSkip).toHaveBeenCalled();
 
-      // Step 6: wolfVoteEmpty → press confirm → submitAction(null) called
+      // Step 6: wolfVoteEmpty -> press confirm -> submitAction(null) called
       const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,

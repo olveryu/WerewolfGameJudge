@@ -1,13 +1,13 @@
 /**
- * SealBreak - 封印解除揭示动画（Skia + Reanimated 4）
+ * SealBreak - seal-break role reveal animation (Skia + Reanimated 4)
  *
- * 视觉设计：中央深红蜡封圆盘 + 外圈旋转符文魔法阵 + 内聚能量粒子。
- * 交互：长按封印中心灌注能量，环形进度从 0→100%，裂纹随进度扩展，
- * 松手进度缓慢回退。满能后白光爆闪 → 碎片四散 → 角色卡放大显示。
+ * Visual design: central deep-red wax seal disc + outer rotating rune magic circle + converging energy particles.
+ * Interaction: long-press the seal center to pour in energy; ring progress goes 0->100%, cracks expand with progress,
+ * and progress slowly decays when released. At full charge, white flash burst -> shards scatter -> role card scales up.
  *
- * Skia 负责：封印圆盘 + 符文环 + 裂纹 path + 能量粒子 + 碎片。
- * Reanimated 负责：驱动所有 shared value + 阶段切换。
- * 不 import service，不含业务逻辑。
+ * Skia handles: seal disc + rune ring + crack paths + energy particles + shards.
+ * Reanimated handles: drives all shared values + phase transitions.
+ * Imports no service, contains no business logic.
  */
 import {
   Blur,

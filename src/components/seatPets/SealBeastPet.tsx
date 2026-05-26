@@ -1,8 +1,8 @@
 /**
- * SealBeastPet — 印兽
+ * SealBeastPet — Seal Beast
  *
- * sealBreak 翻牌动画的伴生宠物。
- * 灰蓝石兽 + 独角 + 金色眼睛脉动 + 脚下符纸 + "封"字闪烁。
+ * Companion pet for the sealBreak flip animation.
+ * Gray-blue stone beast + single horn + pulsing golden eyes + talisman paper underfoot + flickering "封" glyph.
  */
 import { memo } from 'react';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';

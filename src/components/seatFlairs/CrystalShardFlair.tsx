@@ -1,7 +1,7 @@
 /**
- * CrystalShardFlair — 水晶碎片
+ * CrystalShardFlair — Crystal Shards
  *
- * 6 枚棱形水晶碎片在头像周围缓慢旋转浮动，带棱面高光线。
+ * 6 diamond-shaped crystal shards slowly rotate and float around the avatar, with faceted highlight lines.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

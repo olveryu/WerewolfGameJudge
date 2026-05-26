@@ -1,11 +1,11 @@
 /**
- * animationOptions — 动画选项配置注册表
+ * animationOptions — animation option config registry
  *
- * 每个动画强制包含 value / label / icon / shortDesc，TypeScript 保证字段完整性。
- * 新增动画只需在 ANIMATION_OPTIONS 数组加一项，`satisfies` 确保缺字段编译报错。
- * "随机"和"关闭"用布尔标记区分，UI 组件据此差异化渲染。
+ * Each animation requires value / label / icon / shortDesc; TypeScript enforces completeness.
+ * To add an animation, append one entry to the ANIMATION_OPTIONS array; `satisfies` raises a compile error on missing fields.
+ * "Random" and "Off" are distinguished via boolean flags; UI components render differently based on them.
  *
- * 纯配置文件：不含 React / service / 副作用。
+ * Pure config file: no React / service / side effects.
  */
 import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
@@ -19,14 +19,14 @@ interface AnimationOptionConfig {
   readonly icon: string;
   readonly shortDesc: string;
   readonly operationType?: string;
-  /** 装备后座位出现的宠物名（none / random 无宠物） */
+  /** Pet name shown at the seat after equipping (none / random have no pet) */
   readonly petName?: string;
   readonly isRandom?: true;
   readonly isNone?: true;
 }
 
 // ---------------------------------------------------------------------------
-// Registry — 新增动画在此追加，satisfies 保证字段完整
+// Registry — append new animations here; satisfies enforces required fields
 // ---------------------------------------------------------------------------
 
 const ANIMATION_OPTIONS = [
@@ -142,12 +142,12 @@ const ANIMATION_OPTIONS = [
   },
 ] as const satisfies readonly AnimationOptionConfig[];
 
-/** value → config 快速查找索引 */
+/** value -> config fast lookup index */
 const ANIMATION_OPTIONS_BY_VALUE: ReadonlyMap<string, (typeof ANIMATION_OPTIONS)[number]> = new Map(
   ANIMATION_OPTIONS.map((o) => [o.value, o]),
 );
 
-/** 按 value 查找动画配置。random/none 也在内。 */
+/** Look up animation config by value. Includes random/none. */
 export function getAnimationOption(value: string): (typeof ANIMATION_OPTIONS)[number] | undefined {
   return ANIMATION_OPTIONS_BY_VALUE.get(value);
 }

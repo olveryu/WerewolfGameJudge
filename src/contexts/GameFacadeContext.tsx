@@ -1,9 +1,9 @@
 /**
  * GameFacadeContext - Dependency injection for GameFacade
  *
- * 由 composition root 创建 facade 实例并通过 Context 注入，
- * 避免全局 holder / 隐式依赖。提供 Context + Provider 和 useGameFacade hook。
- * 不包含业务逻辑，不直接调用 service，不创建 facade 实例。
+ * The composition root creates the facade instance and injects it via Context,
+ * avoiding global holders / implicit dependencies. Provides Context + Provider and useGameFacade hook.
+ * Contains no business logic, does not call services directly, does not create facade instances.
  */
 import type React from 'react';
 import { createContext, use, useMemo } from 'react';
@@ -18,11 +18,11 @@ const GameFacadeContext = createContext<GameFacadeContextValue | null>(null);
 
 interface GameFacadeProviderProps {
   children: React.ReactNode;
-  /** 必填：由 composition root 创建并注入，避免全局 holder/隐式依赖。 */
+  /** Required: created and injected by the composition root, avoiding global holders / implicit deps. */
   facade: IGameFacade;
 }
 
-/** GameFacade 注入 Provider，由 composition root 创建 facade 并注入。 */
+/** GameFacade injection Provider; the composition root creates and injects the facade. */
 export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children, facade }) => {
   const value = useMemo(
     () => ({
@@ -35,9 +35,9 @@ export const GameFacadeProvider: React.FC<GameFacadeProviderProps> = ({ children
 };
 
 /**
- * 获取 GameFacade 实例。
+ * Get the GameFacade instance.
  *
- * 必须在 GameFacadeProvider 子树内调用，否则抛出。
+ * Must be called within a GameFacadeProvider subtree, otherwise throws.
  */
 export const useGameFacade = (): IGameFacade => {
   const ctx = use(GameFacadeContext);

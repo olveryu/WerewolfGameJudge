@@ -1,10 +1,10 @@
 /**
- * Night-1 Integration Test: 恶灵骑士 - Spirit Knight Reflection
+ * Night-1 Integration Test: Spirit Knight - Reflection
  *
- * 板子：恶灵骑士
- * 主题：恶灵骑士反伤机制
+ * Board: Spirit Knight
+ * Theme: Spirit Knight reflection mechanic
  *
- * 固定 seat-role assignment:
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: spiritKnight
@@ -13,12 +13,12 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 核心规则（来自 DeathCalculator.processSpiritKnightReflection）：
- * - Spirit Knight 免疫袭击（wolf kill has no effect）
- * - Seer 查验 Spirit Knight → Seer 死亡（反伤）
- * - Witch 毒 Spirit Knight → Witch 死亡，Spirit Knight 免疫（反伤 + 免疫）
+ * Core rules (from DeathCalculator.processSpiritKnightReflection):
+ * - Spirit Knight immune to wolf kill (wolf kill has no effect)
+ * - Seer inspects Spirit Knight -> Seer dies (reflection)
+ * - Witch poisons Spirit Knight -> Witch dies, Spirit Knight immune (reflection + immunity)
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents -> handlers -> reducer -> GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -29,7 +29,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '恶灵骑士';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -61,29 +61,29 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 袭击 villager(0)
+        wolf: 0, // kill villager(0)
         witch: { save: null, poison: null },
-        seer: 7, // 查验 spiritKnight
+        seer: 7, // inspect spiritKnight
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言 1：seerReveal 写入（主题字段）
+      // Core assertion 1: seerReveal written (theme field)
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
 
-      // 核心断言 2：seer(8) 反伤死亡
+      // Core assertion 2: seer(8) dies by reflection
       expect(result.deaths).toContain(8);
 
-      // 核心断言 3：spiritKnight(7) 不死
+      // Core assertion 3: spiritKnight(7) does not die
       expect(result.deaths).not.toContain(7);
 
-      // 额外断言：villager(0) 被袭击也死了
+      // Extra assertion: villager(0) killed by wolf also dies
       expect(result.deaths).toContain(0);
 
-      // 完整死亡列表
+      // Full death list
       expect([...result.deaths].sort((a, b) => a - b)).toEqual([0, 8]);
     });
 
@@ -94,20 +94,20 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
         guard: null,
         wolf: 0,
         witch: { save: null, poison: null },
-        seer: 4, // 查验 wolf，不是 spiritKnight
+        seer: 4, // inspect wolf, not spiritKnight
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入，但目标不是 spiritKnight
+      // Core assertion: seerReveal written, but target is not spiritKnight
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
 
-      // seer(8) 不反伤死亡
+      // seer(8) does not die by reflection
       expect(result.deaths).not.toContain(8);
 
-      // 只有被袭击的 villager(0) 死亡
+      // Only the killed villager(0) dies
       expect(result.deaths).toEqual([0]);
     });
   });
@@ -118,24 +118,24 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 放弃袭击
-        witch: { save: null, poison: 7 }, // 毒 spiritKnight
-        seer: 4, // 查验 wolf，不触发反伤
+        wolf: null, // skip kill
+        witch: { save: null, poison: 7 }, // poison spiritKnight
+        seer: 4, // inspect wolf, no reflection
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言 1：witch 的 action 记录 poisonedSeat（主题字段）
+      // Core assertion 1: witch action records poisonedSeat (theme field)
       const state = ctx.getGameState();
       expect(state.currentNightResults?.poisonedSeat).toBe(7);
 
-      // 核心断言 2：witch(9) 反伤死亡
+      // Core assertion 2: witch(9) dies by reflection
       expect(result.deaths).toContain(9);
 
-      // 核心断言 3：spiritKnight(7) 免疫毒药，不死
+      // Core assertion 3: spiritKnight(7) immune to poison, does not die
       expect(result.deaths).not.toContain(7);
 
-      // 完整死亡列表：只有 witch 死
+      // Full death list: only witch dies
       expect(result.deaths).toEqual([9]);
     });
 
@@ -144,47 +144,47 @@ describe('Night-1: 恶灵骑士 - Spirit Knight Reflection (12p)', () => {
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: null, // 放弃袭击
-        witch: { save: null, poison: 0 }, // 毒 villager(0)
+        wolf: null, // skip kill
+        witch: { save: null, poison: 0 }, // poison villager(0)
         seer: 4,
       });
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：poisonedSeat 写入
+      // Core assertion: poisonedSeat written
       const state = ctx.getGameState();
       expect(state.currentNightResults?.poisonedSeat).toBe(0);
 
-      // witch(9) 不反伤死亡
+      // witch(9) does not die by reflection
       expect(result.deaths).not.toContain(9);
 
-      // 只有被毒的 villager(0) 死亡
+      // Only the poisoned villager(0) dies
       expect(result.deaths).toEqual([0]);
     });
   });
 
   describe('Wolf 袭击 spiritKnight → 禁选（免疫实现）', () => {
     /**
-     * spiritKnight 的袭击免疫是通过“禁选”实现的（immuneToWolfKill flag）。
-     * 狼人在投票时就无法选择 spiritKnight，而不是事后结算时免疫。
-     * 此测试验证狼人选择其他目标时的正常流程。
+     * spiritKnight wolf-kill immunity is implemented via "forbidden selection" (immuneToWolfKill flag).
+     * Wolves cannot select spiritKnight at vote time, rather than immunity at settlement.
+     * This test verifies the normal flow when wolves choose another target.
      */
     it('wolf 袭击 villager(0)，流程正常执行', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
       const result = executeFullNight(ctx, {
         guard: null,
-        wolf: 0, // 袭击 villager（spiritKnight 是禁选目标）
+        wolf: 0, // kill villager (spiritKnight is forbidden target)
         witch: { save: null, poison: null },
-        seer: 1, // 查验 villager
+        seer: 1, // inspect villager
       });
 
       expect(result.completed).toBe(true);
 
-      // villager(0) 死亡
+      // villager(0) dies
       expect(result.deaths).toContain(0);
 
-      // spiritKnight(7) 存活
+      // spiritKnight(7) survives
       expect(result.deaths).not.toContain(7);
     });
   });

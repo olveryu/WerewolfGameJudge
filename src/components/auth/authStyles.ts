@@ -1,8 +1,8 @@
 /**
- * Auth shared base styles — HomeScreen 和 SettingsScreen 的 AuthStyles 公共基础
+ * Auth shared base styles — Common AuthStyles base for HomeScreen and SettingsScreen
  *
- * 提取完全重复的样式 key；各 screen 需通过 spread override 差异化的 key。
- * 仅导出样式工厂函数，不含运行时逻辑。
+ * Extracts fully duplicated style keys; each screen must spread-override the differing keys.
+ * Only exports a style factory function; contains no runtime logic.
  */
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
 

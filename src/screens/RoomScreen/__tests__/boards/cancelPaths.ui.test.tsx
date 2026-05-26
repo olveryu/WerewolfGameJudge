@@ -84,7 +84,7 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // wolfVote cancel → submitAction NOT called
+  // wolfVote cancel -> submitAction NOT called
   // ===========================================================================
 
   describe('wolfVote cancel', () => {
@@ -119,7 +119,7 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // wolfVoteEmpty cancel → submitAction NOT called
+  // wolfVoteEmpty cancel -> submitAction NOT called
   // ===========================================================================
 
   describe('wolfVoteEmpty cancel', () => {
@@ -156,7 +156,7 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // actionConfirm cancel → submitAction NOT called
+  // actionConfirm cancel -> submitAction NOT called
   // ===========================================================================
 
   describe('actionConfirm cancel', () => {
@@ -185,7 +185,7 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // skipConfirm cancel → submitAction NOT called
+  // skipConfirm cancel -> submitAction NOT called
   // ===========================================================================
 
   describe('skipConfirm cancel', () => {
@@ -216,7 +216,7 @@ describe('Cancel Paths (cross-board)', () => {
   });
 
   // ===========================================================================
-  // witchPoisonPrompt cancel → submitAction NOT called
+  // witchPoisonPrompt cancel -> submitAction NOT called
   // ===========================================================================
 
   describe('witchPoisonPrompt cancel', () => {
@@ -273,7 +273,7 @@ describe('Cancel Paths (cross-board)', () => {
       tapSeat(getByTestId, 1);
       await waitFor(() => expect(harness.hasSeen('magicianFirst')).toBe(true));
 
-      // magicianFirst only has a primary button (知道了), no cancel
+      // magicianFirst only has a primary button ("知道了"), no cancel
       // Verify submitAction is not called at this point
       expect(submitAction).not.toHaveBeenCalled();
     });

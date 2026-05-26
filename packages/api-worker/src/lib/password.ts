@@ -1,9 +1,9 @@
 /**
- * Password Hashing — 双算法验证 (PBKDF2 + bcrypt)
+ * Password Hashing — dual-algorithm verification (PBKDF2 + bcrypt)
  *
- * 新注册用户使用 PBKDF2-SHA256（CF Workers 原生 Web Crypto API）。
- * 从 Supabase Auth 迁移的用户保留 bcrypt hash，首次登录验证成功后
- * 自动 rehash 为 PBKDF2（lazy migration）。
+ * Newly registered users use PBKDF2-SHA256 (CF Workers native Web Crypto API).
+ * Users migrated from Supabase Auth keep their bcrypt hash; on first successful login
+ * they are automatically rehashed to PBKDF2 (lazy migration).
  */
 
 import { compare } from 'bcryptjs';
@@ -12,21 +12,21 @@ const ITERATIONS = 100_000;
 const SALT_BYTES = 16;
 const HASH_BYTES = 32;
 
-/** 密码验证结果，携带 rehash 信号供调用方更新 DB */
+/** Password verification result, carries a rehash signal for the caller to update DB */
 interface VerifyResult {
   valid: boolean;
-  /** 如果为 true，调用方应将 newHash 写回 DB 替换旧的 bcrypt hash */
+  /** If true, caller should write newHash back to DB to replace the old bcrypt hash */
   needsRehash: boolean;
-  /** 仅当 needsRehash=true 时有值 — PBKDF2 格式的新 hash */
+  /** Only set when needsRehash=true — new hash in PBKDF2 format */
   newHash?: string;
 }
 
-/** 检测是否为 bcrypt 格式 hash（$2a$ / $2b$ / $2y$） */
+/** Detect whether the hash is in bcrypt format ($2a$ / $2b$ / $2y$) */
 function isBcryptHash(hash: string): boolean {
   return /^\$2[aby]\$/.test(hash);
 }
 
-/** 生成 PBKDF2 hash，返回 `$pbkdf2-sha256$iterations$salt$hash` 格式 */
+/** Generate PBKDF2 hash, returns `$pbkdf2-sha256$iterations$salt$hash` format */
 export async function hashPassword(password: string): Promise<string> {
   const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES));
   const key = await crypto.subtle.importKey(
@@ -52,8 +52,8 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * 验证密码，支持 PBKDF2 和 bcrypt 两种格式。
- * bcrypt 验证成功时标记 needsRehash，由调用方完成 lazy migration。
+ * Verify password, supports both PBKDF2 and bcrypt formats.
+ * On successful bcrypt verification, marks needsRehash for the caller to complete lazy migration.
  */
 export async function verifyPassword(password: string, storedHash: string): Promise<VerifyResult> {
   // ── bcrypt (migrated from Supabase Auth) ─────────────────────────────────

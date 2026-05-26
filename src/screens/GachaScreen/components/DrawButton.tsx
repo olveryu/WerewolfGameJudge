@@ -1,11 +1,11 @@
 /**
- * DrawButton — 材质感抽奖按钮
+ * DrawButton — textured gacha draw button
  *
- * 普通：靛紫渐变 + 流光扫过。黄金：金色渐变 + 更快流光 + 金色边框。
- * 附带 sparkle 图标 + "仅剩 N 抽" 提示。
- * Press 反馈：Reanimated spring scale 0.95。
- * Disabled 态：去饱和 + 降低 opacity。
- * reducedMotion 时跳过流光动画。
+ * Normal: indigo-purple gradient + shimmer sweep. Golden: gold gradient + faster shimmer + gold border.
+ * Includes a sparkle icon + "仅剩 N 抽" hint.
+ * Press feedback: Reanimated spring scale 0.95.
+ * Disabled state: desaturated + reduced opacity.
+ * Skips shimmer animation when reducedMotion is true.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -42,7 +42,7 @@ interface DrawButtonProps {
 
 // ─── Component ──────────────────────────────────────────────────────────
 
-/** 抽奖按钮（普通/金色）。 */
+/** Gacha draw button (normal / golden). */
 export function DrawButton({
   label,
   disabled,

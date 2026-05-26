@@ -1,5 +1,5 @@
 /**
- * VortexSwirlEnter — 漩涡汇聚
+ * VortexSwirlEnter - Vortex convergence
  *
  * Particles swirl inward toward center in a vortex pattern, then child appears.
  * Epic-tier archetype. Parameterized by rotation direction, speed, color, and density.

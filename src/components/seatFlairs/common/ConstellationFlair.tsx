@@ -1,8 +1,8 @@
 /**
- * ConstellationFlair — 星座
+ * ConstellationFlair — constellation
  *
  * Fixed dot positions connected by fading lines that appear sequentially.
- * Rare 级座位装饰模板 — static dots + animated connecting lines.
+ * Rare-tier seat flair template — static dots + animated connecting lines.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

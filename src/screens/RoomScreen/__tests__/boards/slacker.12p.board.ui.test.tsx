@@ -388,11 +388,11 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
   });
 
   // =============================================================================
-  // Chain Interaction (press button → assert callback)
+  // Chain Interaction (press button -> assert callback)
   // =============================================================================
 
   describe('chain interaction', () => {
-    it('wolfVote confirm → submitAction called', async () => {
+    it('wolfVote confirm -> submitAction called', async () => {
       await chainWolfVoteConfirm(
         harness,
         setMock,
@@ -409,7 +409,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
     });
 
-    it('confirmTrigger (hunter) → dialog dismissed', async () => {
+    it('confirmTrigger (hunter) -> dialog dismissed', async () => {
       await chainConfirmTrigger(
         harness,
         setMock,
@@ -431,7 +431,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 1: actionPrompt (seer)
       await coverageChainActionPrompt(harness, setMock, renderRoom, 'seerCheck', 'seer', 'seer', 9);
 
-      // Step 2: wolfVote → press confirm → submitAction(1) called
+      // Step 2: wolfVote -> press confirm -> submitAction(1) called
       const { submitAction: wolfVoteAction } = await coverageChainWolfVote(
         harness,
         setMock,
@@ -454,7 +454,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       // Step 4: witchPoisonPrompt
       await coverageChainWitchPoisonPrompt(harness, setMock, renderRoom, 10);
 
-      // Step 5: confirmTrigger (hunter) → press primary + assertNoLoop
+      // Step 5: confirmTrigger (hunter) -> press primary + assertNoLoop
       await coverageChainConfirmTrigger(
         harness,
         setMock,
@@ -465,7 +465,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         11,
       );
 
-      // Step 6: actionConfirm (seer tap seat) → press confirm → submitAction called
+      // Step 6: actionConfirm (seer tap seat) -> press confirm -> submitAction called
       const { submitAction: seerSubmit } = await coverageChainSeatActionConfirm(
         harness,
         setMock,
@@ -478,7 +478,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSubmit).toHaveBeenCalled();
 
-      // Step 7: skipConfirm (seer) → press primary → submitAction called
+      // Step 7: skipConfirm (seer) -> press primary -> submitAction called
       const { submitAction: seerSkip } = await coverageChainSkipConfirm(
         harness,
         setMock,
@@ -490,7 +490,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       );
       expect(seerSkip).toHaveBeenCalled();
 
-      // Step 8: wolfVoteEmpty → press confirm → submitAction(null) called
+      // Step 8: wolfVoteEmpty -> press confirm -> submitAction(null) called
       const { submitAction: emptyVote } = await coverageChainWolfVoteEmpty(
         harness,
         setMock,
