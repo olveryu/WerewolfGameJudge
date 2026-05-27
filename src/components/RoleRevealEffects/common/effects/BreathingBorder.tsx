@@ -1,11 +1,11 @@
 /**
- * BreathingBorder — Skia 脉冲辉光边框
+ * BreathingBorder — Skia pulsing glow border
  *
- * 翻牌揭示后在卡片周围渲染弥散的能量场光晕（而非简单边框线），
- * 使用 Skia RoundedRect stroke + Blur + blendMode 实现。
- * 4 颗光点沿矩形边缘缓慢移动。无限呼吸脉动保持视觉存在感。
- * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
- * 不 import service，不含业务逻辑。
+ * Renders a diffused energy field halo around the card after reveal (not a simple border line),
+ * implemented with Skia RoundedRect stroke + Blur + blendMode.
+ * 4 light orbs move slowly along the rectangular edge. Infinite breathing pulse maintains visual presence.
+ * `onComplete` fires after `effectDisplayDuration` delay following mount.
+ * No service imports, no business logic.
  */
 import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
 import type React from 'react';

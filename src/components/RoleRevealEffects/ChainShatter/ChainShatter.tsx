@@ -1,19 +1,19 @@
 /**
- * ChainShatter - 锁链击碎揭示动画（Skia + Reanimated 4）
+ * ChainShatter - Chain-smashing reveal animation (Skia + Reanimated 4)
  *
- * 视觉设计：中央锁头（金属蓝钢渐变锁身 + 铆钉 + 高光提梁 + 钥匙孔光晕）
- * + 左右各 4 个链环。背景飘浮尘埃粒子增加氛围。
- * 交互：连续点击击碎（6 次），每击产生：
- *   - 累积可见裂纹（gold→red 渐变）+ glow 光晕
- *   - 径向火花粒子（8-12 个 gold/orange/white）
- *   - 扩散冲击环
- *   - 屏幕抖动 + 冲击闪光
- * 连击机制：>800ms 未击则连击数回退 1。
- * 全碎后不规则多边形碎片带旋转 + 重力爆炸 + 径向光环扩散。
+ * Visual design: central lock (blue-steel gradient body + rivets + shackle highlight + keyhole glow)
+ * + 4 chain links on each side. Floating dust particles in background for atmosphere.
+ * Interaction: tap repeatedly to shatter (6 hits), each hit produces:
+ *   - Accumulated visible cracks (gold→red gradient) + glow
+ *   - Radial spark particles (8-12, gold/orange/white)
+ *   - Expanding shockwave ring
+ *   - Screen shake + impact flash
+ * Combo mechanic: if no hit for >800ms, combo count decrements by 1.
+ * After full shatter: irregular polygon shards with rotation + gravity explosion + radial halo burst.
  *
- * Skia 负责：锁头 + 链环 + 裂纹 + 火花 + 冲击环 + 碎片 + 尘埃。
- * Reanimated 负责：驱动所有 shared value + 阶段切换。
- * 不 import service，不含业务逻辑。
+ * Skia handles: lock + chains + cracks + sparks + shockwave rings + shards + dust.
+ * Reanimated handles: driving all shared values + phase switching.
+ * No service imports, no business logic.
  */
 import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';

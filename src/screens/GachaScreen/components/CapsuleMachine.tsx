@@ -1,9 +1,9 @@
 /**
- * CapsuleMachine — Skia Canvas 扭蛋机渲染组件
+ * CapsuleMachine — Skia Canvas gacha machine render component
  *
- * 使用 useDerivedValue + Picture API 在 UI 线程渲染整个场景：
- * 背景、机身、玻璃罩、28 颗球、管道、旋钮、地面、闪光。
- * 物理状态来自 useGachaPhysics 的 shared values。
+ * Uses useDerivedValue + Picture API to render the entire scene on the UI thread:
+ * background, body, glass dome, 28 balls, chute, dial, floor, flash.
+ * Physics state comes from shared values in useGachaPhysics.
  */
 import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { forwardRef, useImperativeHandle, useMemo } from 'react';
@@ -90,7 +90,8 @@ const SKIA_FLASH = Skia.Color('#FFFFFF');
 const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
 
 // ─── Types ──────────────────────────────────────────────────────────────
-/** 扭蛋机组件命令式接口。 */ export interface CapsuleMachineRef {
+/** Imperative handle for the gacha machine component. */
+export interface CapsuleMachineRef {
   startAnimation: (drawType: 'normal' | 'golden', count: number) => void;
   setResults: (rarities: string[]) => void;
   cancelAnimation: () => void;
