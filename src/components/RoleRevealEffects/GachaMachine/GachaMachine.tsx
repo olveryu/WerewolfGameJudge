@@ -1,12 +1,12 @@
 /**
- * GachaMachine - Retro Japanese gacha machine reveal effect (Reanimated 4 + Skia).
+ * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4 + Skia）
  *
- * Animation flow: rotating lights + coin slot → coin slides in → handle turns → ball rolls →
- * capsule slides out of chute → cracks appear → opens → stars fly + rarity label.
- * Uses `useSharedValue` to drive all animations; `` switches phases.
- * Renders animations and haptic feedback. No service imports, no business logic.
+ * 动画流程：旋转灯 + 投币口 → 金币滑入 → 旋转手柄 → 球体翻滚 →
+ * 扭蛋从出口滑出 → 裂纹显现 → 打开 → 星星纷飞 + 稀有度标签。
+ * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
+ * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
  */
-import { Blur, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -38,7 +38,6 @@ import {
 import type { RoleRevealEffectProps } from '@/components/RoleRevealEffects/types';
 import { createAlignmentThemes } from '@/components/RoleRevealEffects/types';
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
-import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { colors, crossPlatformTextShadow } from '@/theme';
 
 // ─── Visual constants ──────────────────────────────────────────────────
@@ -472,7 +471,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
 
       {/* Skia scene layer: rotary lights + confetti */}
       {!reducedMotion && (
-        <ResilientCanvas style={styles.fullScreen}>
+        <Canvas style={styles.fullScreen}>
           {/* Rotary lights — Picture API batch with group-level blur */}
           <Group
             layer={
@@ -496,7 +495,7 @@ export const GachaMachine: React.FC<RoleRevealEffectProps> = ({
               <Picture picture={confettiPicture} />
             </Group>
           )}
-        </ResilientCanvas>
+        </Canvas>
       )}
 
       {/* Machine - fades out on reveal */}

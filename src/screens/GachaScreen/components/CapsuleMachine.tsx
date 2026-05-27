@@ -1,11 +1,11 @@
 /**
- * CapsuleMachine — Skia Canvas gacha machine render component
+ * CapsuleMachine — Skia Canvas 扭蛋机渲染组件
  *
- * Uses useDerivedValue + Picture API to render the entire scene on the UI thread:
- * background, body, glass dome, 28 balls, chute, dial, floor, flash.
- * Physics state comes from shared values in useGachaPhysics.
+ * 使用 useDerivedValue + Picture API 在 UI 线程渲染整个场景：
+ * 背景、机身、玻璃罩、28 颗球、管道、旋钮、地面、闪光。
+ * 物理状态来自 useGachaPhysics 的 shared values。
  */
-import { Picture, Skia } from '@shopify/react-native-skia';
+import { Canvas, Picture, Skia } from '@shopify/react-native-skia';
 import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -14,8 +14,6 @@ import Animated, {
   useDerivedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
-
-import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 
 import {
   BALL_COLORS,
@@ -92,7 +90,7 @@ const SKIA_FLASH = Skia.Color('#FFFFFF');
 const SKIA_DOME_BOTTOM_ARC = Skia.Color('rgba(255,255,255,0.06)');
 
 // ─── Types ──────────────────────────────────────────────────────────────
-/** Gacha machine component imperative interface. */ export interface CapsuleMachineRef {
+/** 扭蛋机组件命令式接口。 */ export interface CapsuleMachineRef {
   startAnimation: (drawType: 'normal' | 'golden', count: number) => void;
   setResults: (rarities: string[]) => void;
   cancelAnimation: () => void;
@@ -432,9 +430,9 @@ export const CapsuleMachine = forwardRef<CapsuleMachineRef, CapsuleMachineProps>
     return (
       <View style={[styles.container, { width: canvasW, height: canvasH }]}>
         <Animated.View style={[StyleSheet.absoluteFill, shakeStyle]}>
-          <ResilientCanvas style={{ width: canvasW, height: canvasH }}>
+          <Canvas style={{ width: canvasW, height: canvasH }}>
             <Picture picture={scenePicture} />
-          </ResilientCanvas>
+          </Canvas>
           <Text style={labelStyle}>{drawType === 'golden' ? '★ GOLDEN GACHA ★' : '✦ GACHA ✦'}</Text>
         </Animated.View>
       </View>

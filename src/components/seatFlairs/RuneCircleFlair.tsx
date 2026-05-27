@@ -1,23 +1,24 @@
 /**
- * RuneCircleFlair — Rune circle (Skia Canvas + Picture)
+ * RuneCircleFlair — Rune Circle
  *
  * 8 geometric runes (cross/diamond/triangle/square) arranged in a rotating ring,
- * with halo layer + rune-path layer + center dot, wave-pulse flow.
- * All drawn imperatively on the UI thread via useDerivedValue + Picture.
+ * halo layer + rune path layer + center point, with wave-pulse flow.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
-import { Picture, Skia } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
-import { ResilientCanvas } from './ResilientCanvas';
+import { LegendaryAura } from './legendaryEffects';
+import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
 const N = 8;
 const ORBIT = 0.42;
@@ -34,145 +35,108 @@ const GLYPH_ORDER: GlyphType[] = [
   'square',
 ];
 
-// ── Pre-allocated Skia resources ──
-const recorder = Skia.PictureRecorder();
-const paint = Skia.Paint();
-const path = Skia.Path.Make();
-
-const HALO_COLOR = Skia.Color('rgb(180,120,240)');
-const STROKE_COLOR = Skia.Color('rgb(200,160,255)');
-const DOT_COLOR = Skia.Color('rgb(220,190,255)');
-const RING_COLOR = Skia.Color('rgb(160,96,224)');
-const AURA_BASE = Skia.Color('rgb(160,96,224)');
-const AURA_R = 160;
-const AURA_G = 96;
-const AURA_B = 224;
-
-function drawGlyph(
-  c: ReturnType<typeof recorder.beginRecording>,
-  glyph: GlyphType,
-  x: number,
-  y: number,
-  g: number,
-): void {
+const buildGlyphD = (glyph: GlyphType, x: number, y: number, g: number): string => {
   'worklet';
-  path.reset();
   if (glyph === 'cross') {
-    path.moveTo(x - g, y);
-    path.lineTo(x + g, y);
-    path.moveTo(x, y - g);
-    path.lineTo(x, y + g);
-  } else if (glyph === 'diamond') {
-    path.moveTo(x, y - g);
-    path.lineTo(x + g, y);
-    path.lineTo(x, y + g);
-    path.lineTo(x - g, y);
-    path.close();
-  } else if (glyph === 'triangle') {
-    const h = g * 0.866;
-    path.moveTo(x, y - g);
-    path.lineTo(x + h, y + g * 0.5);
-    path.lineTo(x - h, y + g * 0.5);
-    path.close();
-  } else {
-    const half = g * 0.75;
-    path.moveTo(x - half, y - half);
-    path.lineTo(x + half, y - half);
-    path.lineTo(x + half, y + half);
-    path.lineTo(x - half, y + half);
-    path.close();
+    return `M ${x - g} ${y} L ${x + g} ${y} M ${x} ${y - g} L ${x} ${y + g}`;
   }
-  c.drawPath(path, paint);
-}
+  if (glyph === 'diamond') {
+    return `M ${x} ${y - g} L ${x + g} ${y} L ${x} ${y + g} L ${x - g} ${y} Z`;
+  }
+  if (glyph === 'triangle') {
+    const h = g * 0.866;
+    return `M ${x} ${y - g} L ${x + h} ${y + g * 0.5} L ${x - h} ${y + g * 0.5} Z`;
+  }
+  // square
+  const half = g * 0.75;
+  return `M ${x - half} ${y - half} L ${x + half} ${y - half} L ${x + half} ${y + half} L ${x - half} ${y + half} Z`;
+};
+
+const RuneParticle = memo<{
+  index: number;
+  glyph: GlyphType;
+  size: number;
+  progress: { value: number };
+}>(({ index, glyph, size, progress }) => {
+  const cx = size / 2;
+  const cy = size / 2;
+  const orbit = ORBIT * size;
+  const glyphR = size * 0.04;
+
+  const haloProps = useAnimatedProps(() => {
+    'worklet';
+    const angle = (index / N) * Math.PI * 2 + progress.value * Math.PI * 2;
+    const x = cx + Math.cos(angle) * orbit;
+    const y = cy + Math.sin(angle) * orbit;
+    const pulse =
+      0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
+    return { cx: x, cy: y, r: glyphR * 1.6, opacity: pulse * 0.2 } as Record<string, number>;
+  });
+
+  const glyphProps = useAnimatedProps(() => {
+    'worklet';
+    const angle = (index / N) * Math.PI * 2 + progress.value * Math.PI * 2;
+    const x = cx + Math.cos(angle) * orbit;
+    const y = cy + Math.sin(angle) * orbit;
+    const pulse =
+      0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
+    const d = buildGlyphD(glyph, x, y, glyphR);
+    return { d, opacity: pulse * 0.85, strokeWidth: 1.5 } as {
+      d: string;
+      opacity: number;
+      strokeWidth: number;
+    };
+  });
+
+  const dotProps = useAnimatedProps(() => {
+    'worklet';
+    const angle = (index / N) * Math.PI * 2 + progress.value * Math.PI * 2;
+    const x = cx + Math.cos(angle) * orbit;
+    const y = cy + Math.sin(angle) * orbit;
+    const pulse =
+      0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
+    return { cx: x, cy: y, r: size * 0.006, opacity: pulse * 0.7 } as Record<string, number>;
+  });
+
+  return (
+    <>
+      <AnimatedCircle animatedProps={haloProps} fill="rgb(180,120,240)" />
+      <AnimatedPath animatedProps={glyphProps} stroke="rgb(200,160,255)" fill="none" />
+      <AnimatedCircle animatedProps={dotProps} fill="rgb(220,190,255)" />
+    </>
+  );
+});
+RuneParticle.displayName = 'RuneParticle';
 
 export const RuneCircleFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
   const slowProgress = useSharedValue(0);
+  const cx = size / 2;
+  const cy = size / 2;
+  const orbit = ORBIT * size;
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 10000, easing: Easing.linear }), -1);
     slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
   }, [progress, slowProgress]);
 
-  const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
-
-  const flairPicture = useDerivedValue(() => {
-    'worklet';
-    const t = progress.value;
-    const st = slowProgress.value;
-    const cx = size / 2;
-    const cy = size / 2;
-    const orbit = ORBIT * size;
-    const glyphR = size * 0.04;
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-
-    // ── LegendaryAura ──
-    const breathe = 0.03 + 0.07 * (0.5 + 0.5 * Math.sin(st * Math.PI * 2));
-    paint.setColor(AURA_BASE);
-    paint.setAlphaf(breathe * 0.3);
-    c.drawCircle(cx, cy, size * 0.4, paint);
-    paint.setAlphaf(breathe * 0.6);
-    c.drawCircle(cx, cy, size * 0.3, paint);
-    paint.setAlphaf(breathe);
-    c.drawCircle(cx, cy, size * 0.2, paint);
-
-    // Orbit ring
-    const ringBreath = 0.05 + 0.07 * (0.5 + 0.5 * Math.cos(st * Math.PI * 2 + 1));
-    const shift = Math.sin(st * Math.PI * 2) * 20;
-    const nr = Math.max(0, Math.min(255, Math.round(AURA_R + shift)));
-    const nb = Math.max(0, Math.min(255, Math.round(AURA_B - shift)));
-    paint.setColor(Skia.Color(`rgb(${nr},${AURA_G},${nb})`));
-    paint.setAlphaf(ringBreath);
-    paint.setStyle(1);
-    paint.setStrokeWidth(size * 0.015);
-    c.drawCircle(cx, cy, orbit, paint);
-    paint.setStyle(0);
-    paint.setStrokeWidth(0);
-
-    // Static orbit ring (faint guide)
-    paint.setColor(RING_COLOR);
-    paint.setAlphaf(0.1);
-    paint.setStyle(1);
-    paint.setStrokeWidth(1);
-    c.drawCircle(cx, cy, orbit, paint);
-    paint.setStyle(0);
-
-    // ── Rune particles ──
-    for (let i = 0; i < N; i++) {
-      const angle = (i / N) * Math.PI * 2 + t * Math.PI * 2;
-      const x = cx + Math.cos(angle) * orbit;
-      const y = cy + Math.sin(angle) * orbit;
-      const pulse = 0.3 + 0.7 * Math.max(0, Math.sin(((t * N - i) * Math.PI * 2) / N));
-
-      // Halo
-      paint.setColor(HALO_COLOR);
-      paint.setAlphaf(pulse * 0.2);
-      c.drawCircle(x, y, glyphR * 1.6, paint);
-
-      // Glyph path (stroke)
-      paint.setColor(STROKE_COLOR);
-      paint.setAlphaf(pulse * 0.85);
-      paint.setStyle(1);
-      paint.setStrokeWidth(1.5);
-      drawGlyph(c, GLYPH_ORDER[i]!, x, y, glyphR);
-      paint.setStyle(0);
-
-      // Center dot
-      paint.setColor(DOT_COLOR);
-      paint.setAlphaf(pulse * 0.7);
-      c.drawCircle(x, y, size * 0.006, paint);
-    }
-
-    paint.setAlphaf(1);
-    paint.setStrokeWidth(0);
-    return recorder.finishRecordingAsPicture();
-  });
-
   return (
-    <View style={[styles.wrapper, canvasStyle]}>
-      <ResilientCanvas style={canvasStyle}>
-        <Picture picture={flairPicture} />
-      </ResilientCanvas>
+    <View style={[styles.wrapper, { width: size, height: size }]}>
+      <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={160} g={96} b={224} orbit={ORBIT} />
+        <Circle
+          cx={cx}
+          cy={cy}
+          r={orbit}
+          fill="none"
+          stroke="rgb(160,96,224)"
+          strokeWidth={1}
+          opacity={0.1}
+        />
+        {GLYPH_ORDER.map((g, i) => (
+          <RuneParticle key={i} index={i} glyph={g} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });

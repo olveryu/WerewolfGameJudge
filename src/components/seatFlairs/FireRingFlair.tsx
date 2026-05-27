@@ -1,49 +1,65 @@
 /**
- * FireRingFlair — Ring of Flames (Skia Canvas + Picture)
+ * FireRingFlair — Blazing Ring
  *
- * 8 fire particles orbit the avatar edge in a ring, red->orange->yellow gradient, with trails.
- * Background layer: LegendaryAura multi-layer glow + hue-shifted orbit ring.
- * All drawn imperatively on UI thread via useDerivedValue + Picture;
- * a single Canvas node replaces the original 34 SVG AnimatedCircle nodes.
+ * 8 flame particles orbit along the avatar edge with red→orange→yellow gradient and trails.
+ * react-native-svg + Reanimated useAnimatedProps.
  */
-import { Picture, Skia } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
-import { ResilientCanvas } from './ResilientCanvas';
+import { LegendaryAura } from './legendaryEffects';
+import { AnimatedCircle } from './svgAnimatedPrimitives';
 
 const N = 8;
 const TRAIL = 3;
+const COLORS = [
+  [220, 40, 0],
+  [240, 120, 0],
+  [255, 180, 30],
+  [220, 60, 0],
+  [240, 100, 10],
+  [255, 160, 20],
+  [200, 30, 0],
+  [240, 140, 0],
+] as const;
 
-// ── Pre-allocated Skia resources ──
-const recorder = Skia.PictureRecorder();
-const paint = Skia.Paint();
+interface FireTrailProps {
+  index: number;
+  trailIndex: number;
+  size: number;
+  progress: { value: number };
+}
 
-// Pre-convert particle colors to SkColor (avoids string construction per frame)
-const SKIA_COLORS = [
-  Skia.Color('rgb(220,40,0)'),
-  Skia.Color('rgb(240,120,0)'),
-  Skia.Color('rgb(255,180,30)'),
-  Skia.Color('rgb(220,60,0)'),
-  Skia.Color('rgb(240,100,10)'),
-  Skia.Color('rgb(255,160,20)'),
-  Skia.Color('rgb(200,30,0)'),
-  Skia.Color('rgb(240,140,0)'),
-];
+const FireTrailDot = memo<FireTrailProps>(({ index, trailIndex, size, progress }) => {
+  const [cr, cg, cb] = COLORS[index % COLORS.length]!;
 
-// LegendaryAura constants
-const AURA_BASE = Skia.Color('rgb(240,80,0)');
-const AURA_R = 240;
-const AURA_G = 80;
-const AURA_B = 0;
+  const animatedProps = useAnimatedProps(() => {
+    'worklet';
+    const cx = size / 2;
+    const cy = size / 2;
+    const orbit = size * 0.42;
+    const r = size * 0.02;
+    const baseAngle = (index / N) * Math.PI * 2 + progress.value * Math.PI * 2;
+    const trailAngle = baseAngle - trailIndex * 0.08;
+    const x = cx + Math.cos(trailAngle) * orbit;
+    const y = cy + Math.sin(trailAngle) * orbit;
+    const alphaScale = trailIndex === 0 ? 1 : (1 - trailIndex / (TRAIL + 1)) * 0.5;
+    const rScale = trailIndex === 0 ? 1 : 1 - trailIndex * 0.2;
+    return { cx: x, cy: y, r: r * rScale, opacity: alphaScale * 0.75 } as Record<string, number>;
+  });
+
+  return <AnimatedCircle animatedProps={animatedProps} fill={`rgb(${cr},${cg},${cb})`} />;
+});
+FireTrailDot.displayName = 'FireTrailDot';
 
 export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
@@ -54,66 +70,21 @@ export const FireRingFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
     slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
   }, [progress, slowProgress]);
 
-  const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
-
-  const flairPicture = useDerivedValue(() => {
-    'worklet';
-    const t = progress.value;
-    const st = slowProgress.value;
-    const cx = size / 2;
-    const cy = size / 2;
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-
-    // ── LegendaryAura: multi-layer radial glow (smooth falloff) ──
-    const breathe = 0.03 + 0.07 * (0.5 + 0.5 * Math.sin(st * Math.PI * 2));
-    paint.setColor(AURA_BASE);
-    paint.setAlphaf(breathe * 0.3);
-    c.drawCircle(cx, cy, size * 0.4, paint);
-    paint.setAlphaf(breathe * 0.6);
-    c.drawCircle(cx, cy, size * 0.3, paint);
-    paint.setAlphaf(breathe);
-    c.drawCircle(cx, cy, size * 0.2, paint);
-
-    // ── LegendaryAura: orbit ring with hue shift ──
-    const ringBreath = 0.05 + 0.07 * (0.5 + 0.5 * Math.cos(st * Math.PI * 2 + 1));
-    const shift = Math.sin(st * Math.PI * 2) * 20;
-    const nr = Math.max(0, Math.min(255, Math.round(AURA_R + shift)));
-    const nb = Math.max(0, Math.min(255, Math.round(AURA_B - shift)));
-    paint.setColor(Skia.Color(`rgb(${nr},${AURA_G},${nb})`));
-    paint.setAlphaf(ringBreath);
-    paint.setStyle(1); // Stroke
-    paint.setStrokeWidth(size * 0.015);
-    c.drawCircle(cx, cy, size * 0.42, paint);
-    paint.setStyle(0); // Fill
-    paint.setStrokeWidth(0);
-
-    // ── Fire particles ──
-    const orbit = size * 0.42;
-    const baseR = size * 0.02;
-    for (let i = 0; i < N; i++) {
-      const color = SKIA_COLORS[i % SKIA_COLORS.length]!;
-      paint.setColor(color);
-      const baseAngle = (i / N) * Math.PI * 2 + t * Math.PI * 2;
-      for (let trail = TRAIL; trail >= 0; trail--) {
-        const trailAngle = baseAngle - trail * 0.08;
-        const x = cx + Math.cos(trailAngle) * orbit;
-        const y = cy + Math.sin(trailAngle) * orbit;
-        const alphaScale = trail === 0 ? 1 : (1 - trail / (TRAIL + 1)) * 0.5;
-        const rScale = trail === 0 ? 1 : 1 - trail * 0.2;
-        paint.setAlphaf(alphaScale * 0.75);
-        c.drawCircle(x, y, baseR * rScale, paint);
-      }
+  const elements: React.JSX.Element[] = [];
+  for (let i = 0; i < N; i++) {
+    for (let t = TRAIL; t >= 0; t--) {
+      elements.push(
+        <FireTrailDot key={`${i}-${t}`} index={i} trailIndex={t} size={size} progress={progress} />,
+      );
     }
-
-    paint.setAlphaf(1);
-    return recorder.finishRecordingAsPicture();
-  });
+  }
 
   return (
-    <View style={[styles.wrapper, canvasStyle]}>
-      <ResilientCanvas style={canvasStyle}>
-        <Picture picture={flairPicture} />
-      </ResilientCanvas>
+    <View style={[styles.wrapper, { width: size, height: size }]}>
+      <Svg width={size} height={size}>
+        <LegendaryAura size={size} progress={slowProgress} r={240} g={80} b={0} orbit={0.42} />
+        {elements}
+      </Svg>
     </View>
   );
 });

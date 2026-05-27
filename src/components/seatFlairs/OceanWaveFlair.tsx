@@ -1,109 +1,112 @@
 /**
- * OceanWaveFlair — ocean wave swell (Skia Canvas + Picture)
+ * OceanWaveFlair — Ocean Surge
  *
- * 3 horizontal sine waves surge upward from the bottom with different phases/amplitudes, with crest spray particles.
- * All drawn imperatively on the UI thread via useDerivedValue + Picture.
+ * 3 horizontal sine waves surge upward from bottom with different phases/amplitudes, with crest splash particles.
  */
-import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Easing,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg from 'react-native-svg';
 
 import type { FlairProps } from './FlairProps';
-import { ResilientCanvas } from './ResilientCanvas';
+import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
 
 const WAVE_COUNT = 3;
-const STEPS = 8;
 
-// ── Pre-allocated Skia resources ──
-const recorder = Skia.PictureRecorder();
-const paint = Skia.Paint();
-const path = Skia.Path.Make();
+interface WaveSeed {
+  yBase: number;
+  amplitude: number;
+  phase: number;
+  freq: number;
+}
 
-const WAVE_COLOR = Skia.Color('rgb(60,140,200)');
-const CREST_COLOR = Skia.Color('rgb(180,220,255)');
-const SPRAY_COLOR = Skia.Color('rgb(220,240,255)');
+const WaveParticle = memo<{ seed: WaveSeed; size: number; progress: { value: number } }>(
+  ({ seed, size, progress }) => {
+    const waveProps = useAnimatedProps(() => {
+      'worklet';
+      const t = (progress.value + seed.phase) % 1;
+      const yOff = seed.yBase * size - t * size * 0.05;
+      let d = `M 0 ${yOff}`;
+      const steps = 8;
+      for (let s = 1; s <= steps; s++) {
+        const x = (s / steps) * size;
+        const y =
+          yOff +
+          Math.sin((s / steps) * Math.PI * seed.freq + t * Math.PI * 4) * seed.amplitude * size;
+        d += ` L ${x} ${y}`;
+      }
+      const alpha = 0.15 + Math.sin(t * Math.PI * 2) * 0.05;
+      return { d, opacity: alpha, strokeWidth: size * 0.015 } as {
+        d: string;
+        opacity: number;
+        strokeWidth: number;
+      };
+    });
 
-// Pre-computed seeds
-const SEEDS = Array.from({ length: WAVE_COUNT }, (_, i) => ({
-  yBase: 0.75 + i * 0.08,
-  amplitude: 0.03 + i * 0.01,
-  phase: i / WAVE_COUNT,
-  freq: 2 + i,
-}));
+    const crestProps = useAnimatedProps(() => {
+      'worklet';
+      const t = (progress.value + seed.phase) % 1;
+      const peakX = size * (0.3 + t * 0.4);
+      const peakY = seed.yBase * size - t * size * 0.05 - seed.amplitude * size;
+      const alpha = Math.max(0, Math.sin(t * Math.PI * 4) * 0.4);
+      return { cx: peakX, cy: peakY, r: size * 0.012, opacity: alpha } as Record<string, number>;
+    });
+
+    const sprayProps = useAnimatedProps(() => {
+      'worklet';
+      const t = (progress.value + seed.phase) % 1;
+      const peakX = size * (0.3 + t * 0.4) + size * 0.03;
+      const peakY = seed.yBase * size - t * size * 0.05 - seed.amplitude * size - size * 0.02;
+      const alpha = Math.max(0, Math.sin(t * Math.PI * 4) * 0.25);
+      return { cx: peakX, cy: peakY, r: size * 0.006, opacity: alpha } as Record<string, number>;
+    });
+
+    return (
+      <>
+        <AnimatedPath
+          animatedProps={waveProps}
+          stroke="rgb(60,140,200)"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <AnimatedCircle animatedProps={crestProps} fill="rgb(180,220,255)" />
+        <AnimatedCircle animatedProps={sprayProps} fill="rgb(220,240,255)" />
+      </>
+    );
+  },
+);
+WaveParticle.displayName = 'WaveParticle';
 
 export const OceanWaveFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
   const progress = useSharedValue(0);
-
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
   }, [progress]);
 
-  const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
-
-  const flairPicture = useDerivedValue(() => {
-    'worklet';
-    const t = progress.value;
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-
-    for (let w = 0; w < WAVE_COUNT; w++) {
-      const seed = SEEDS[w]!;
-      const tw = (t + seed.phase) % 1;
-      const yOff = seed.yBase * size - tw * size * 0.05;
-      const alpha = 0.15 + Math.sin(tw * Math.PI * 2) * 0.05;
-
-      // Wave path
-      path.reset();
-      path.moveTo(0, yOff);
-      for (let s = 1; s <= STEPS; s++) {
-        const x = (s / STEPS) * size;
-        const y =
-          yOff +
-          Math.sin((s / STEPS) * Math.PI * seed.freq + tw * Math.PI * 4) * seed.amplitude * size;
-        path.lineTo(x, y);
-      }
-      paint.setColor(WAVE_COLOR);
-      paint.setAlphaf(alpha);
-      paint.setStyle(1);
-      paint.setStrokeWidth(size * 0.015);
-      paint.setStrokeCap(1);
-      c.drawPath(path, paint);
-
-      // Crest
-      const peakX = size * (0.3 + tw * 0.4);
-      const peakY = yOff - seed.amplitude * size;
-      const crestAlpha = Math.max(0, Math.sin(tw * Math.PI * 4) * 0.4);
-      paint.setColor(CREST_COLOR);
-      paint.setAlphaf(crestAlpha);
-      paint.setStyle(0);
-      c.drawCircle(peakX, peakY, size * 0.012, paint);
-
-      // Spray
-      const sprayX = peakX + size * 0.03;
-      const sprayY = peakY - size * 0.02;
-      const sprayAlpha = Math.max(0, Math.sin(tw * Math.PI * 4) * 0.25);
-      paint.setColor(SPRAY_COLOR);
-      paint.setAlphaf(sprayAlpha);
-      c.drawCircle(sprayX, sprayY, size * 0.006, paint);
-    }
-
-    paint.setAlphaf(1);
-    paint.setStyle(0);
-    paint.setStrokeWidth(0);
-    return recorder.finishRecordingAsPicture();
-  });
+  const seeds = useMemo(
+    () =>
+      Array.from({ length: WAVE_COUNT }, (_, i) => ({
+        yBase: 0.75 + i * 0.08,
+        amplitude: 0.03 + i * 0.01,
+        phase: i / WAVE_COUNT,
+        freq: 2 + i,
+      })),
+    [],
+  );
 
   return (
-    <View style={[styles.wrapper, canvasStyle]}>
-      <ResilientCanvas style={canvasStyle}>
-        <Picture picture={flairPicture} />
-      </ResilientCanvas>
+    <View style={[styles.wrapper, { width: size, height: size }]}>
+      <Svg width={size} height={size}>
+        {seeds.map((s, i) => (
+          <WaveParticle key={i} seed={s} size={size} progress={progress} />
+        ))}
+      </Svg>
     </View>
   );
 });

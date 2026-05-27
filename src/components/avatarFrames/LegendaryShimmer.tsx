@@ -1,46 +1,45 @@
 /**
- * LegendaryShimmer — animation layer for the Legendary avatar frame (Skia Canvas + Picture).
+ * LegendaryShimmer — Legendary avatar frame exclusive animation layer
  *
- * Three layered effects:
- * 1. Orbiting arc: gold arcs rotate around the frame at constant speed (two pairs moving in opposite directions)
- * 2. Glow pulse: gold breathing glow (rounded-rect stroke opacity)
- * 3. Corner sparkles: alternating sparkle points at the four corners
+ * Three-layer effect stack:
+ * 1. Orbiting arc: golden arc orbits along frame edge at constant speed (two pairs of light dots moving in opposite directions)
+ * 2. Glow pulse: golden breathing glow (SVG Rect opacity)
+ * 3. Corner sparkles: light dots flickering alternately at four corners (SVG Circle opacity+r)
  *
- * All drawn imperatively on the UI thread via useDerivedValue + Picture,
- * replacing 9 SVG AnimatedComponents. Web and Native behave consistently.
+ * All driven by Reanimated `useAnimatedProps` on SVG numeric attributes (cx/cy/opacity/r),
+ * executed on UI thread without blocking JS thread. Web + Native behavior consistent.
  */
-import { Picture, Skia } from '@shopify/react-native-skia';
-import { memo, useEffect, useMemo } from 'react';
-import {
+import { memo, useEffect, useId } from 'react';
+import Animated, {
   Easing,
   ReduceMotion,
-  useDerivedValue,
+  useAnimatedProps,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
-
-// ── Pre-allocated Skia resources ──
-const recorder = Skia.PictureRecorder();
-const paint = Skia.Paint();
-
-const ORBIT_COLOR = Skia.Color('#FFD700');
-const LEAD_COLOR = Skia.Color('#FFFDE8');
-const SPARKLE_COLOR = Skia.Color('#FFD700');
-const GLOW_GOLD = Skia.Color('#FFD700');
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /** Orbiting arc rotation period (ms) */
 const ORBIT_DURATION = 3000;
-/** Glow pulse period (ms) */
+/** Glow pulse breathing period (ms) */
 const GLOW_DURATION = 3200;
-/** Sparkle flicker period (ms) */
+/** Sparkle twinkle period (ms) */
 const SPARKLE_DURATION = 2400;
 
+interface LegendaryShimmerProps {
+  /** SVG total size (with viewBox expansion, = avatar size * 116/100) */
+  size: number;
+  /** Main border corner radius (viewBox units) */
+  rx: number;
+}
+
 /**
- * Compute the coordinate at a given fractional position along the rectangle perimeter.
- * `t` ∈ [0,1) starts clockwise from the top-left corner (x0,y0).
+ * Calculate coordinates at a proportional position along the rectangular border perimeter.
+ * `t` ∈ [0,1) clockwise starting from top-left corner (x0,y0).
  */
 function perimeterPoint(
   t: number,
@@ -51,24 +50,19 @@ function perimeterPoint(
 ): { x: number; y: number } {
   'worklet';
   const perimeter = 2 * (w + h);
+  // Normalize t to [0,1)
   let d = (((t % 1) + 1) % 1) * perimeter;
-  if (d < w) return { x: x0 + d, y: y0 };
+  if (d < w) return { x: x0 + d, y: y0 }; // top edge
   d -= w;
-  if (d < h) return { x: x0 + w, y: y0 + d };
+  if (d < h) return { x: x0 + w, y: y0 + d }; // right edge
   d -= h;
-  if (d < w) return { x: x0 + w - d, y: y0 + h };
+  if (d < w) return { x: x0 + w - d, y: y0 + h }; // bottom edge
   d -= w;
-  return { x: x0, y: y0 + h - d };
-}
-
-interface LegendaryShimmerProps {
-  /** Total SVG size (includes viewBox extension, = avatar size * 116/100) */
-  size: number;
-  /** Main border corner radius (viewBox units) */
-  rx: number;
+  return { x: x0, y: y0 + h - d }; // left edge
 }
 
 export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
+  // ── Shared values ─────────────────────────────────────────────────────
   const orbit = useSharedValue(0);
   const glow = useSharedValue(0);
   const sparkle = useSharedValue(0);
@@ -97,87 +91,110 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
     );
   }, [orbit, glow, sparkle]);
 
-  const canvasStyle = useMemo(() => ({ width: size, height: size }), [size]);
-  // ViewBox maps 116×116 logical units → size pixels
-  const scale = size / 116;
+  // ── Gradient ID (stable per instance) ─────────────────────────────────
+  const userId = useId();
+  const glowId = `lgw${userId}`;
 
-  const shimmerPicture = useDerivedValue(() => {
+  // ── 1. Orbiting light arc — two pairs of circles chasing along border
+  // Lead circle (bright, warm white)
+  const orbitLeadProps = useAnimatedProps(() => {
     'worklet';
-    const s = scale;
-    const c = recorder.beginRecording(Skia.XYWHRect(0, 0, size, size));
-
-    // ── 1. Orbiting light arcs ──
-    // Perimeter in viewBox coords: rect at (-2,-2) size 104×104, offset by 8 for viewBox origin
-    const periX0 = (-2 + 8) * s;
-    const periY0 = (-2 + 8) * s;
-    const periW = 104 * s;
-    const periH = 104 * s;
-
-    // Trail 1
-    const pt0 = perimeterPoint(orbit.value - 0.04, periX0, periY0, periW, periH);
-    paint.setColor(ORBIT_COLOR);
-    paint.setAlphaf(0.35);
-    c.drawCircle(pt0.x, pt0.y, 3 * s, paint);
-
-    // Lead 1
-    const pt1 = perimeterPoint(orbit.value, periX0, periY0, periW, periH);
-    paint.setColor(LEAD_COLOR);
-    paint.setAlphaf(0.7);
-    c.drawCircle(pt1.x, pt1.y, 4 * s, paint);
-
-    // Trail 2
-    const pt2 = perimeterPoint(orbit.value + 0.46, periX0, periY0, periW, periH);
-    paint.setColor(ORBIT_COLOR);
-    paint.setAlphaf(0.25);
-    c.drawCircle(pt2.x, pt2.y, 2.5 * s, paint);
-
-    // Lead 2
-    const pt3 = perimeterPoint(orbit.value + 0.5, periX0, periY0, periW, periH);
-    paint.setColor(LEAD_COLOR);
-    paint.setAlphaf(0.5);
-    c.drawCircle(pt3.x, pt3.y, 3.5 * s, paint);
-
-    // ── 2. Glow pulse (border stroke) ──
-    const glowAlpha = 0.1 + Math.sin(glow.value * Math.PI * 2) * 0.13;
-    paint.setColor(GLOW_GOLD);
-    paint.setAlphaf(glowAlpha);
-    paint.setStyle(1);
-    paint.setStrokeWidth(5 * s);
-    const rrect = Skia.RRectXY(
-      Skia.XYWHRect((-3 + 8) * s, (-3 + 8) * s, 106 * s, 106 * s),
-      (rx + 2) * s,
-      (rx + 2) * s,
-    );
-    c.drawRRect(rrect, paint);
-    paint.setStyle(0);
-    paint.setStrokeWidth(0);
-
-    // ── 3. Corner sparkles ──
-    const corners = [
-      { cx: (4 + 8) * s, cy: (4 + 8) * s },
-      { cx: (96 + 8) * s, cy: (4 + 8) * s },
-      { cx: (96 + 8) * s, cy: (96 + 8) * s },
-      { cx: (4 + 8) * s, cy: (96 + 8) * s },
-    ];
-    for (let i = 0; i < 4; i++) {
-      const t = (sparkle.value + i * 0.25) % 1;
-      const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
-      const r = (1.2 + Math.sin(t * Math.PI * 2) * 1.0) * s;
-      if (alpha > 0) {
-        paint.setColor(SPARKLE_COLOR);
-        paint.setAlphaf(alpha);
-        c.drawCircle(corners[i]!.cx, corners[i]!.cy, r, paint);
-      }
-    }
-
-    paint.setAlphaf(1);
-    return recorder.finishRecordingAsPicture();
+    const pt = perimeterPoint(orbit.value, -2, -2, 104, 104);
+    return { cx: pt.x, cy: pt.y, opacity: 0.7, r: 4 } as Record<string, number>;
+  });
+  // Trail circle (dimmer gold, slightly behind)
+  const orbitTrailProps = useAnimatedProps(() => {
+    'worklet';
+    const pt = perimeterPoint(orbit.value - 0.04, -2, -2, 104, 104);
+    return { cx: pt.x, cy: pt.y, opacity: 0.35, r: 3 } as Record<string, number>;
+  });
+  // Secondary lead (opposite side, for symmetry)
+  const orbitLead2Props = useAnimatedProps(() => {
+    'worklet';
+    const pt = perimeterPoint(orbit.value + 0.5, -2, -2, 104, 104);
+    return { cx: pt.x, cy: pt.y, opacity: 0.5, r: 3.5 } as Record<string, number>;
+  });
+  // Secondary trail
+  const orbitTrail2Props = useAnimatedProps(() => {
+    'worklet';
+    const pt = perimeterPoint(orbit.value + 0.46, -2, -2, 104, 104);
+    return { cx: pt.x, cy: pt.y, opacity: 0.25, r: 2.5 } as Record<string, number>;
   });
 
+  // ── 2. Glow pulse (outer border opacity) ──────────────────────────────
+  const glowProps = useAnimatedProps(() => {
+    'worklet';
+    const t = glow.value;
+    const alpha = 0.1 + Math.sin(t * Math.PI * 2) * 0.13;
+    return { opacity: alpha, strokeWidth: 5 } as Record<string, number>;
+  });
+
+  // ── 3. Corner sparkles — 4 points, staggered phase ───────────────────
+  const sparkle0Props = useAnimatedProps(() => {
+    'worklet';
+    const t = sparkle.value;
+    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
+    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
+    return { opacity: alpha, r } as Record<string, number>;
+  });
+  const sparkle1Props = useAnimatedProps(() => {
+    'worklet';
+    const t = (sparkle.value + 0.25) % 1;
+    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
+    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
+    return { opacity: alpha, r } as Record<string, number>;
+  });
+  const sparkle2Props = useAnimatedProps(() => {
+    'worklet';
+    const t = (sparkle.value + 0.5) % 1;
+    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
+    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
+    return { opacity: alpha, r } as Record<string, number>;
+  });
+  const sparkle3Props = useAnimatedProps(() => {
+    'worklet';
+    const t = (sparkle.value + 0.75) % 1;
+    const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
+    const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
+    return { opacity: alpha, r } as Record<string, number>;
+  });
+
+  const sparkleAnimProps = [sparkle0Props, sparkle1Props, sparkle2Props, sparkle3Props];
+
   return (
-    <ResilientCanvas style={canvasStyle}>
-      <Picture picture={shimmerPicture} />
-    </ResilientCanvas>
+    <Svg width={size} height={size} viewBox="-8 -8 116 116">
+      <Defs>
+        <LinearGradient id={glowId} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#F5A623" stopOpacity={1} />
+          <Stop offset="0.5" stopColor="#FFD700" stopOpacity={1} />
+          <Stop offset="1" stopColor="#F5A623" stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+
+      {/* Layer 1: Orbiting light arcs — two pairs of circles chasing along border */}
+      <AnimatedCircle animatedProps={orbitTrailProps} fill="#FFD700" />
+      <AnimatedCircle animatedProps={orbitLeadProps} fill="#FFFDE8" />
+      <AnimatedCircle animatedProps={orbitTrail2Props} fill="#FFD700" />
+      <AnimatedCircle animatedProps={orbitLead2Props} fill="#FFFDE8" />
+
+      {/* Layer 2: Glow pulse — animated gold border */}
+      <AnimatedRect
+        animatedProps={glowProps}
+        x={-3}
+        y={-3}
+        width={106}
+        height={106}
+        rx={rx + 2}
+        fill="none"
+        stroke={`url(#${glowId})`}
+      />
+
+      {/* Layer 3: Corner sparkles */}
+      <AnimatedCircle animatedProps={sparkleAnimProps[0]} cx={4} cy={4} fill="#FFD700" />
+      <AnimatedCircle animatedProps={sparkleAnimProps[1]} cx={96} cy={4} fill="#FFD700" />
+      <AnimatedCircle animatedProps={sparkleAnimProps[2]} cx={96} cy={96} fill="#FFD700" />
+      <AnimatedCircle animatedProps={sparkleAnimProps[3]} cx={4} cy={96} fill="#FFD700" />
+    </Svg>
   );
 });
 LegendaryShimmer.displayName = 'LegendaryShimmer';

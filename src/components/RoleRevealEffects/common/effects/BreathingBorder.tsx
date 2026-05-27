@@ -1,13 +1,13 @@
 /**
- * BreathingBorder — Skia pulsing glow border.
+ * BreathingBorder — Skia 脉冲辉光边框
  *
- * After the card flip reveal, renders a diffused energy-field halo around the card (not a simple border line),
- * using Skia RoundedRect stroke + Blur + blendMode.
- * 4 light dots slowly travel along the rectangular edge. Infinite breathing pulse maintains visual presence.
- * `onComplete` fires after `effectDisplayDuration` delay from mount.
- * No service imports, no business logic.
+ * 翻牌揭示后在卡片周围渲染弥散的能量场光晕（而非简单边框线），
+ * 使用 Skia RoundedRect stroke + Blur + blendMode 实现。
+ * 4 颗光点沿矩形边缘缓慢移动。无限呼吸脉动保持视觉存在感。
+ * `onComplete` 在 mount 后经过 `effectDisplayDuration` 延迟触发。
+ * 不 import service，不含业务逻辑。
  */
-import { Blur, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
+import { Blur, Canvas, Group, Paint, Picture, RoundedRect, Skia } from '@shopify/react-native-skia';
 import type React from 'react';
 import { useEffect, useMemo } from 'react';
 import {
@@ -20,7 +20,6 @@ import {
 } from 'react-native-reanimated';
 
 import { CONFIG } from '@/components/RoleRevealEffects/config';
-import { ResilientCanvas } from '@/components/seatFlairs/ResilientCanvas';
 import { borderRadius } from '@/theme';
 
 const { common, alignmentEffects, skia: SK } = CONFIG;
@@ -165,7 +164,7 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
   });
 
   return (
-    <ResilientCanvas style={canvasStyle}>
+    <Canvas style={canvasStyle}>
       {/* Main breathing border — stroke + blur glow */}
       <Group opacity={borderOpacity} blendMode="screen">
         <RoundedRect
@@ -193,6 +192,6 @@ export const BreathingBorder: React.FC<BreathingBorderProps> = ({
       >
         <Picture picture={runnerPicture} />
       </Group>
-    </ResilientCanvas>
+    </Canvas>
   );
 };
