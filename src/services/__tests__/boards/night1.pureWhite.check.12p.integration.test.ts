@@ -1,10 +1,10 @@
 /**
  * Night-1 Integration Test: PureWhite + WolfWitch Check
  *
- * 主题：纯白之女 & 狼巫查验结果（返回具体角色身份）。
+ * Topic: Pure White Lady & Wolf Witch check results (returns specific role identity).
  *
- * 模板：纯白夜影
- * 固定 seat-role assignment:
+ * Template: Pure White Night Shadow
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: wolfWitch
@@ -13,12 +13,12 @@
  *   seat 10: hunter
  *   seat 11: pureWhite
  *
- * 核心规则：
- * - pureWhite 查验返回具体角色身份
- * - wolfWitch 查验返回具体角色身份，且不能查验狼阵营
- * - 结果写入 GameState.pureWhiteReveal / wolfWitchReveal
+ * Core rules:
+ * - pureWhite check returns specific role identity
+ * - wolfWitch check returns specific role identity; cannot check wolf faction
+ * - result written to GameState.pureWhiteReveal / wolfWitchReveal
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -29,7 +29,7 @@ import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './st
 const TEMPLATE_NAME = '纯白夜影';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -56,7 +56,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
   });
 
   // ===========================================================================
-  // PureWhite 查验
+  // PureWhite check
   // ===========================================================================
 
   describe('PureWhite 查验返回具体角色', () => {
@@ -163,7 +163,7 @@ describe('Night-1: PureWhite + WolfWitch Check (12p)', () => {
   });
 
   // ===========================================================================
-  // WolfWitch 查验
+  // WolfWitch check
   // ===========================================================================
 
   describe('WolfWitch 查验返回具体角色（非狼阵营）', () => {

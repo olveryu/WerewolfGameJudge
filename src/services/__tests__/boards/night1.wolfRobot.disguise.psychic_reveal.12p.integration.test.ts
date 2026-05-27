@@ -3,7 +3,7 @@
  *
  * Theme: Wolf Robot disguises identity after learning, Psychic check shows disguised role
  *
- * Template: 机械狼人通灵师
+ * Template: Wolf Robot Psychic
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * OceanDeepFrame — 深海
+ * OceanDeepFrame — Ocean Deep
  *
- * 深海蓝框 · 触手从四角和边缘向外蜷曲 · 气泡链 · 深渊发光点。
+ * Deep-sea blue frame · tentacles curling outward from corners and edges · bubble chains · abyss glow dots.
  */
 export const OceanDeepFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

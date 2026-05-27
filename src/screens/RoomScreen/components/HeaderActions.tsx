@@ -1,10 +1,10 @@
 /**
- * HeaderActions — 房间顶栏右侧操作区
+ * HeaderActions — Right-side action area of the room header
  *
- * 仅一个可见项时直接渲染按钮（如用户头像）；多项时显示 "..." 打开下拉菜单。
- * 菜单项包括：分享房间、音乐设置、用户设置、填充机器人、全员起立等。
+ * Renders a direct button when only one item is visible (e.g., user avatar); shows "..." to open a dropdown menu when there are multiple.
+ * Menu items include: share room, music settings, user settings, fill bots, stand all, etc.
  *
- * Memoized，接收 parent 预创建的 styles。不 import Service / showAlert。
+ * Memoized; accepts parent-created styles. No Service / showAlert imports.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

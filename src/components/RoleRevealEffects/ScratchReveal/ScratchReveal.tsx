@@ -1,10 +1,10 @@
 /**
- * ScratchReveal - 刮刮卡风格揭示动画（Reanimated 4 + Gesture Handler 2 + Skia）
+ * ScratchReveal - Scratch card-style reveal animation (Reanimated 4 + Gesture Handler 2 + Skia).
  *
- * 特点：金属银刮层 + 菱形底纹 + 序列号 + 规则文字，刮痕纹理，金属碎片粒子，
- * 进度里程碑闪光，触觉反馈，"PRIZE"印章，彩纸礼花绽放。
- * 使用 `Gesture.Pan()` 替代 PanResponder，`useSharedValue` 驱动所有动画。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * Features: metallic silver scratch layer + diamond pattern + serial number + rules text, scratch texture, metal shard particles,
+ * progress milestone flashes, haptic feedback, "PRIZE" stamp, confetti burst.
+ * Uses `Gesture.Pan()` instead of PanResponder; `useSharedValue` drives all animations.
+ * Renders animations and haptic feedback. No service imports, no business logic.
  */
 import { Blur, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';

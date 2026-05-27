@@ -1,7 +1,7 @@
 /**
- * GoldSparkFlair — 金星四溅
+ * GoldSparkFlair — Gold Sparks
  *
- * 8 颗四芒星从外围爆发散出后消散，带十字光芒。
+ * 8 four-pointed stars burst outward from the perimeter and fade, each with a cross-shaped gleam.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

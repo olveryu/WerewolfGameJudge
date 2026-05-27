@@ -1,8 +1,8 @@
 /**
- * Schemas Builder — 从 ROLE_SPECS 构建 ActionSchema 注册表
+ * Schemas Builder — builds the ActionSchema registry from ROLE_SPECS
  *
- * 每个 schema 从角色的 nightSteps + abilities 推导。
- * 导出 buildSchemas 纯函数，不依赖 service、不含副作用或 IO。
+ * Each schema is derived from the role's nightSteps + abilities.
+ * Exports the buildSchemas pure function; no service dependencies, no side effects or IO.
  */
 
 import type { ActiveAbility, NightStepUi } from './ability.types';

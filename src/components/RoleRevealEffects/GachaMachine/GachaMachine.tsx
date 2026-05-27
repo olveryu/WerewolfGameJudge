@@ -1,10 +1,10 @@
 /**
- * GachaMachine - 复古日式扭蛋机揭示效果（Reanimated 4 + Skia）
+ * GachaMachine - Retro Japanese gacha machine reveal effect (Reanimated 4 + Skia).
  *
- * 动画流程：旋转灯 + 投币口 → 金币滑入 → 旋转手柄 → 球体翻滚 →
- * 扭蛋从出口滑出 → 裂纹显现 → 打开 → 星星纷飞 + 稀有度标签。
- * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * Animation flow: rotating lights + coin slot → coin slides in → handle turns → ball rolls →
+ * capsule slides out of chute → cracks appear → opens → stars fly + rarity label.
+ * Uses `useSharedValue` to drive all animations; `` switches phases.
+ * Renders animations and haptic feedback. No service imports, no business logic.
  */
 import { Blur, Group, Paint, Picture, Skia } from '@shopify/react-native-skia';
 import type { RoleId } from '@werewolf/game-engine/models/roles';

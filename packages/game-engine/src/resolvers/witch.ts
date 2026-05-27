@@ -1,8 +1,8 @@
 /**
- * Witch Resolver (SERVER-ONLY, 纯函数)
+ * Witch Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验女巫行动（save/poison compound）+ 计算结果，
- * 提供救人/毒人复合行动校验与结果计算。不包含 IO（网络 / 音频 / Alert）。
+ * Validates the witch's compound action (save/poison) and computes results.
+ * Provides save/poison compound action validation and result calculation. No IO (network / audio / Alert).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
@@ -34,8 +34,8 @@ function validateSaveAction(
     return '解药已用完';
   }
 
-  // Night-1-only: 女巫不能自救
-  // 此规则与 schema.witchAction.save.constraints=['notSelf'] 对齐
+  // Night-1-only: witch cannot save herself
+  // Aligned with schema.witchAction.save.constraints=['notSelf']
   if (saveTarget === actorSeat) {
     return '女巫不能自救';
   }
@@ -69,8 +69,8 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   const stepResults = input.stepResults;
 
-  // stepResults 为 undefined 时，视为"不使用技能"（跳过）
-  // 这对应 UI 点击"不使用技能"按钮的场景
+  // When stepResults is undefined, treat as "skip" (no ability used)
+  // Corresponds to the UI "skip ability" button
   const saveTarget = stepResults?.save ?? null;
   const poisonTarget = stepResults?.poison ?? null;
 

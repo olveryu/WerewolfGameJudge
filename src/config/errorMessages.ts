@@ -1,13 +1,13 @@
 /**
- * errorMessages — 统一错误/状态文案常量
+ * errorMessages — unified error/status message constants
  *
- * 集中管理用户可见的错误提示、网络异常、加载状态等文案，
- * 确保全 app 同一类错误的措辞一致。
- * 不含业务逻辑 / 副作用 / 运行时依赖。
+ * Centralizes all user-visible error messages, network errors, and loading state text
+ * to keep wording consistent across the app for the same error types.
+ * No business logic / side effects / runtime dependencies.
  */
 
-// ── 网络 & 服务器错误 ──────────────────────────────────────
-/** 网络不可达 / fetch 异常时的用户提示。 */
+// ── Network & server errors ──────────────────────────────────────
+/** User-facing message for network unreachable / fetch errors. */
 export const NETWORK_ERROR = '网络异常，请检查网络后重试';
-/** 服务端 5xx 或不可用时的用户提示。 */
+/** User-facing message for server 5xx or unavailable errors. */
 export const SERVER_ERROR = '服务暂时不可用，请稍后重试';

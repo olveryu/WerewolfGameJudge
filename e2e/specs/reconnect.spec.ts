@@ -175,7 +175,7 @@ test.describe('Network reconnect during night', () => {
 
         await viewLastNightInfo(pages[0]);
 
-        // With guard + wolf targeting the same villager, should be 平安夜
+        // With guard + wolf targeting the same villager, should be peaceful night
         const peaceful = await isTextVisible(pages[0], '平安夜');
         const death = await isTextVisible(pages[0], '死亡');
         expect(peaceful || death, 'Night result should show').toBe(true);

@@ -1,7 +1,7 @@
 /**
- * FlowerBloomFlair — 繁花盛开
+ * FlowerBloomFlair — Flower Bloom
  *
- * 5 朵小花在外围交替绽放，每朵 5 片花瓣（圆点簇）+ 花心。
+ * 5 small flowers alternately bloom around the perimeter, each with 5 petals (dot clusters) + a center.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect } from 'react';

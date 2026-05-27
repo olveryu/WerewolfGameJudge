@@ -1,5 +1,5 @@
 /**
- * BounceEnter — 弹跳入场
+ * BounceEnter — Bounce entrance
  *
  * Children drop in with a spring bounce and a colored impact ring.
  * Common-tier entrance animation template.

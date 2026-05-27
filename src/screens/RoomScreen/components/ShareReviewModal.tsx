@@ -1,9 +1,9 @@
 /**
- * ShareReviewModal - 分享详细信息座位选择 Modal
+ * ShareReviewModal - Share detail seat-selection modal
  *
- * Host 在 ended 阶段选择允许查看「详细信息」的座位。
- * 纯展示组件：渲染多选座位列表 + 确认/取消按钮，通过回调上报选择结果。
- * 不 import service，不含业务逻辑。
+ * Host selects seats allowed to view 「详细信息」 during the ended phase.
+ * Pure display component: renders a multi-select seat list + confirm/cancel buttons, reports selection via callback.
+ * No service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
@@ -31,7 +31,7 @@ interface SeatInfo {
 interface ShareReviewModalProps {
   visible: boolean;
   seats: SeatInfo[];
-  /** 当前已授权的座位（用于回显） */
+  /** Currently authorized seats (for pre-filling the selection). */
   currentAllowedSeats: readonly number[];
   onConfirm: (selectedSeats: number[]) => void | Promise<void>;
   onClose: () => void;

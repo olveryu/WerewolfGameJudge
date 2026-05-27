@@ -1,10 +1,10 @@
 /**
- * TarotDraw - 塔罗牌占卜揭示效果（Reanimated 4 + Skia）
+ * TarotDraw - Tarot divination reveal effect (Reanimated 4 + Skia).
  *
- * 动画流程：星空+水晶球+蜡烛的占卜场景 → 牌从桌面转盘旋转 →
- * 玩家点选 → 金色光丝拖尾飞向中央 → 六角魔法阵浮现 → 翻转揭示 → 命运之语。
- * 使用 `useSharedValue` 驱动所有动画，`` 切换阶段，无 `setTimeout`。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * Animation flow: starry sky + crystal ball + candle divination scene → cards rotate from the table turntable →
+ * player selects → golden light thread flies to center → hexagonal magic circle appears → flip reveal → fate message.
+ * Uses `useSharedValue` to drive all animations, `` to switch phases, no `setTimeout`.
+ * Renders animations and haptic feedback. No service imports, no business logic.
  */
 import {
   Blur,

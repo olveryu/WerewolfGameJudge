@@ -3,7 +3,7 @@
  *
  * Topic: Eclipse Wolf Queen shelter mechanic - god-role skill target redirect.
  *
- * Template: 永序之轮
+ * Template: Eternal Order
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

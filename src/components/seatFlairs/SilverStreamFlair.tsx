@@ -1,7 +1,7 @@
 /**
- * SilverStreamFlair — 银流蜿蜒
+ * SilverStreamFlair — Silver Stream
  *
- * 2 道银色液流从两侧顶部沿边缘向下流淌，AnimatedPath 弧线 + 波光粒子。
+ * 2 silver liquid streams flow downward from both top sides along the edges, AnimatedPath arcs + shimmer particles.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

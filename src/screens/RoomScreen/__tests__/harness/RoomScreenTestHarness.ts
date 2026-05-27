@@ -206,7 +206,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
   {
     type: 'actionConfirm',
     match: (t, m) => {
-      // Has 确定/取消 buttons implied by confirm dialogs
+      // Has Confirm/Cancel buttons implied by confirm dialogs
       return t.includes('确认') || t.includes('确定') || m.includes('是否') || m.includes('确定要');
     },
   },

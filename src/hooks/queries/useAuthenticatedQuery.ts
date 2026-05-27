@@ -1,8 +1,8 @@
 /**
  * useAuthenticatedQuery — auth-aware base query hook.
  *
- * auth 未完成 / 匿名用户时 enabled=false，不发请求。
- * 所有需要认证用户的 query hook 应通过此 hook 构建。
+ * enabled=false when auth is not yet complete or the user is anonymous; no request is made.
+ * All query hooks that require an authenticated user should be built on this hook.
  */
 
 import {

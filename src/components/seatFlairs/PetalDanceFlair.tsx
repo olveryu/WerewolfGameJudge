@@ -1,7 +1,7 @@
 /**
- * PetalDanceFlair — 花瓣飞舞
+ * PetalDanceFlair — Petal Dance
  *
- * 8 片花瓣以螺旋轨迹从上方飘落，每片花瓣 = 椭圆 AnimatedPath + 旋转摇曳。
+ * 8 petals drift down from above in spiral paths, each rendered as an oval AnimatedPath with rotation sway.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

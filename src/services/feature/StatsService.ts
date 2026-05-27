@@ -1,8 +1,8 @@
 /**
- * StatsService — 用户成长数据客户端 service
+ * StatsService — client service for user growth data
  *
- * 只读查询：获取用户 XP/等级/局数、查看其他玩家公开资料。
- * 使用 cfGet 统一封装（自动注入 token + 超时 + 错误处理）。
+ * Read-only queries: fetch user XP/level/games played, and view other players' public profiles.
+ * Uses cfGet wrapper (auto-injects token + timeout + error handling).
  */
 
 import { cfGet } from '@/services/cloudflare/cfFetch';
@@ -30,19 +30,19 @@ export interface UserPublicProfile {
   unlockedItemCount: number;
 }
 
-/** 获取当前用户的成长数据。 */
+/** Fetches the current user's growth data. */
 export async function fetchUserStats(): Promise<UserStats> {
   statsLog.debug('Fetching user stats');
   return cfGet<UserStats>('/api/user/stats');
 }
 
-/** 获取指定用户的公开资料 */
+/** Fetches the public profile of a specific user. */
 export async function fetchUserProfile(userId: string): Promise<UserPublicProfile> {
   statsLog.debug('Fetching profile', { userId });
   return cfGet<UserPublicProfile>(`/api/user/${encodeURIComponent(userId)}/profile`);
 }
 
-/** 获取指定用户的已解锁物品列表 */
+/** Fetches the list of unlocked items for a specific user. */
 export async function fetchUserUnlocks(
   userId: string,
 ): Promise<{ unlockedItems: readonly string[] }> {

@@ -422,7 +422,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
       harness.expectSeen('wolfVote');
     });
 
-    // Use new harness API: press 确定 on the wolfVote dialog
+    // Use new harness API: press Confirm on the wolfVote dialog
     await act(async () => {
       harness.pressButtonOnType('wolfVote', '确定');
     });

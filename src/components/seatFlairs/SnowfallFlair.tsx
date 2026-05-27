@@ -1,7 +1,7 @@
 /**
- * SnowfallFlair — 纷飞白雪
+ * SnowfallFlair — Snowfall
  *
- * 10 片雪花从上方飘落，每片用 3 条交叉线绘制六角星形，缓慢旋转。
+ * 10 snowflakes drift down from above, each drawn as a 6-pointed star using 3 crossing lines, slowly rotating.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

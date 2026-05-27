@@ -1,7 +1,7 @@
 /**
- * DarkSmokeFlair — 暗烟升腾
+ * DarkSmokeFlair — Dark Smoke
  *
- * 5 缕暗紫烟雾从底部升起，S形路径蜿蜒，不同宽度/透明度。
+ * 5 dark-purple smoke wisps rise from the bottom in S-shaped paths at varying widths and opacity.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

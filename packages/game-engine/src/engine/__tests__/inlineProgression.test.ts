@@ -1,11 +1,11 @@
 /**
  * inlineProgression.test.ts
  *
- * Tests for runInlineProgression — 服务端内联推进纯函数
+ * Tests for runInlineProgression — server-side inline progression pure function
  *
- * 测试策略：
- * - 构建已完成 action 的 GameState
- * - 调用 runInlineProgression 验证：推进步数、audioEffects、finalState
+ * Test strategy:
+ * - Build a GameState with completed actions
+ * - Call runInlineProgression and verify: steps advanced, audioEffects, finalState
  */
 
 import { GameStatus } from '../../models/GameStatus';

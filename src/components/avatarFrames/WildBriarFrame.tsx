@@ -4,12 +4,12 @@ import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-na
 import type { FrameProps } from './FrameProps';
 
 /**
- * WildBriarFrame — 野荆
+ * WildBriarFrame — Wild Briar
  *
- * 缠绕式荆棘: 一条连续的粗干从左下角起步，沿四边缠绕一周（每段不同弯曲）。
- * 四角 = 荆棘打结(tangle knot loop path)。每边有倒钩刺(closed triangle fills)。
- * 浆果簇(3-berry closed-path 填充) + 叶片(tear-drop closed path)。
- * 与 ThornCrown 完全不同: 无 Q-wave vine, 无 rose accent, 采用连续缠绕+结+填充刺。
+ * Winding briars: one continuous thick stem starting from the bottom-left, wrapping around all four sides (each segment with different curves).
+ * Four corners = tangle knot loops. Each side has backward barbs (closed triangle fills).
+ * Berry clusters (3-berry closed-path fills) + leaves (teardrop closed path).
+ * Completely different from ThornCrown: no Q-wave vine, no rose accent; uses continuous wrap + knots + filled barbs.
  */
 export const WildBriarFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,7 +1,7 @@
 /**
- * ObsidianPulseFlair — 黑曜脉动
+ * ObsidianPulseFlair — Obsidian Pulse
  *
- * 4 枚暗色几何菱形从中心向外扩张再收缩，交替呼吸节奏。
+ * 4 dark geometric diamonds expand outward from the center then contract, alternating in a breathing rhythm.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

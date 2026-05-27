@@ -3,7 +3,7 @@
  *
  * Theme: after Magician swaps identities, the Seer's reveal should be based on the swapped identity.
  *
- * Template: 狼王魔术师
+ * Template: Wolf King Magician
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

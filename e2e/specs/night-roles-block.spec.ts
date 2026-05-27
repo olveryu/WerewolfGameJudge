@@ -23,9 +23,9 @@ import { withSetup } from '../helpers/night-setup';
  * - Nightmare blocks guard / seer / witch / wolf / dreamcatcher
  * - Magician swap (basic flow)
  * - Slacker idol choice
- * - Seer & guard voluntary skip (不用技能)
+ * - Seer & guard voluntary skip (skip ability)
  *
- * Covers UI assertions on blocked prompts, 平安夜 / death outcomes.
+ * Covers UI assertions on blocked prompts, peaceful night / death outcomes.
  * Does not modify game state directly or import services/models.
  */
 
@@ -308,7 +308,7 @@ test.describe('Night Roles — Block / Skip', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Nightmare blocks wolf → 平安夜 (wolfKillDisabled)
+  // Nightmare blocks wolf → peaceful night (wolfKillDisabled)
   // --------------------------------------------------------------------------
   test('nightmare blocks wolf → 平安夜 (wolfKillDisabled)', async ({ browser }) => {
     await withSetup(
@@ -372,7 +372,7 @@ test.describe('Night Roles — Block / Skip', () => {
           }
         }
 
-        // Night should end with 平安夜
+        // Night should end with peaceful night
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 

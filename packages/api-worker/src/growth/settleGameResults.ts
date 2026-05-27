@@ -1,11 +1,11 @@
 /**
- * settleGameResults — 有效局结算（D1 写入）
+ * settleGameResults — valid game settlement (D1 write)
  *
- * audioAck() 确认音频播完后异步调用，不阻塞客户端。
- * 有效局条件：status === Ended && ≥9 个不同真人玩家（含匿名）。
- * XP 仅写入注册用户。匿名玩家仅计入有效局人数。
- * 幂等：user_stats.last_room_code 保证不重复写入。
- * 每局获得 1–5 张普通抽奖券（加权随机）；升级额外获得 1–5 张黄金抽奖券（加权随机）。
+ * Called asynchronously after audioAck() confirms audio playback; does not block the client.
+ * Valid game conditions: status === Ended && ≥9 distinct human players (including anonymous).
+ * XP is written only for registered users. Anonymous players count toward the player threshold only.
+ * Idempotent: user_stats.last_room_code prevents duplicate writes.
+ * Each game awards 1–5 standard lottery tickets (weighted random); level-up awards an extra 1–5 golden tickets (weighted random).
  */
 
 import {
@@ -26,7 +26,7 @@ interface SettlementEnv {
   DB: D1Database;
 }
 
-/** 单个玩家的结算结果 */
+/** Settlement result for a single player */
 export interface PlayerSettleResult {
   userId: string;
   xpEarned: number;
@@ -38,9 +38,9 @@ export interface PlayerSettleResult {
 }
 
 /**
- * 结算一局游戏的成长数据。
+ * Settles growth data for a completed game.
  *
- * @returns 每个注册玩家的结算结果（空数组 = 不满足有效局条件）
+ * @returns Settlement results for each registered player (empty array = valid game conditions not met)
  */
 export async function settleGameResults(
   state: GameState,
@@ -51,7 +51,7 @@ export async function settleGameResults(
   const settleKey = `${state.roomCode}:${revision}`;
   const db = createDb(env.DB);
 
-  // 1. 收集非空、非 bot 玩家 userId
+  // 1. Collect non-empty, non-bot player userIds
   const uniqueUserIds = new Set<string>();
   for (const [, player] of Object.entries(state.players)) {
     if (!player || player.isBot || !player.role) continue;
@@ -60,7 +60,7 @@ export async function settleGameResults(
 
   if (uniqueUserIds.size < MIN_PLAYERS) return [];
 
-  // 2. 查 D1 过滤匿名用户
+  // 2. Query D1 to filter out anonymous users
   const userIdList = [...uniqueUserIds];
   const registeredRows = await db
     .select({ id: users.id })
@@ -70,7 +70,7 @@ export async function settleGameResults(
   const registeredUserIds = new Set(registeredRows.map((r) => r.id));
   if (registeredUserIds.size === 0) return [];
 
-  // 3. 遍历注册玩家，结算 XP + 券
+  // 3. Iterate registered players and settle XP + tickets
   const results: PlayerSettleResult[] = [];
 
   for (const userId of registeredUserIds) {

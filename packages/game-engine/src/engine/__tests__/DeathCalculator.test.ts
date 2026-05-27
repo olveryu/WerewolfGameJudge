@@ -5,7 +5,7 @@
  * - Wolf kill basics
  * - Guard protection
  * - Witch save/poison
- * - Double save = death (同守同救必死)
+ * - Double save = death (guard + witch save the same target)
  * - Witcher/dancer/masquerade poison immunity (driven by poisonImmuneSeats)
  * - Wolf Queen link death
  * - Bonded link death (Shadow <-> Avenger)
@@ -142,7 +142,7 @@ describe('DeathCalculator', () => {
   });
 
   // ===========================================================================
-  // 同守同救必死 (Double Save = Death)
+  // Double Save = Death (guard + witch both save the same target)
   // ===========================================================================
 
   describe('Double Save Rule (同守同救必死)', () => {
@@ -805,7 +805,7 @@ describe('DeathCalculator', () => {
   });
 
   // ===========================================================================
-  // Cursed Fox (咒狐)
+  // Cursed Fox
   // ===========================================================================
 
   describe('Cursed Fox (咒狐)', () => {

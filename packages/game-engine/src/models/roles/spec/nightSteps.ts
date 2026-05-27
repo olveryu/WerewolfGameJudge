@@ -1,9 +1,9 @@
 /**
- * Night Steps Registry — 夜晚步骤表
+ * Night Steps Registry — night steps table
  *
- * 从 ROLE_SPECS + NIGHT_STEP_ORDER 动态派生 NIGHT_STEPS 数组和查询函数。
- * 保留 StepSpec 接口，供 stepTransitionHandler / actionGuards / gameControlHandler 消费。
- * 不依赖 service、不含副作用，audioKey 不在 specs 中双写。
+ * Dynamically derives the NIGHT_STEPS array and query functions from ROLE_SPECS + NIGHT_STEP_ORDER.
+ * Exposes the StepSpec interface for consumption by stepTransitionHandler / actionGuards / gameControlHandler.
+ * No service dependencies, no side effects; audioKey is not duplicated in the specs.
  */
 
 import type { StepSpec } from './nightSteps.types';
@@ -47,12 +47,12 @@ export const NIGHT_STEPS: readonly StepSpec[] = buildNightSteps();
 // Helper Functions
 // =============================================================================
 
-/** 通过 stepId 获取 StepSpec */
+/** Get StepSpec by stepId */
 export function getStepSpec(stepId: string): StepSpec | undefined {
   return NIGHT_STEPS.find((s) => s.id === stepId);
 }
 
-/** 强类型版本：调用方传错 stepId 会在编译期报错 */
+/** Strict-typed version: passing a wrong stepId causes a compile-time error */
 export function getStepSpecStrict(stepId: NightStepId): StepSpec {
   const step = getStepSpec(stepId);
   if (!step) {
@@ -61,17 +61,17 @@ export function getStepSpecStrict(stepId: NightStepId): StepSpec {
   return step;
 }
 
-/** 获取所有 stepId（按顺序） */
+/** Get all stepIds (in order) */
 export function getAllStepIds(): SchemaId[] {
   return NIGHT_STEPS.map((s) => s.id);
 }
 
-/** 通过 roleId 获取该角色的步骤 */
+/** Get steps for a given roleId */
 export function getStepsByRole(roleId: string): StepSpec[] {
   return NIGHT_STEPS.filter((s) => s.roleId === roleId);
 }
 
-/** 强类型版本：调用方传错 roleId 会在编译期报错 */
+/** Strict-typed version: passing a wrong roleId causes a compile-time error */
 export function getStepsByRoleStrict(roleId: StepSpec['roleId']): StepSpec[] {
   return getStepsByRole(roleId);
 }

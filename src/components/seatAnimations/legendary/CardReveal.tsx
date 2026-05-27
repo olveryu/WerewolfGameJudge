@@ -1,5 +1,5 @@
 /**
- * CardReveal — 翻牌登场
+ * CardReveal — Card Reveal
  *
  * Legendary entrance: a card flips from back to front in 3D perspective,
  * golden sparkles scatter on flip, card fades to reveal actual avatar.

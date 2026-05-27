@@ -1,7 +1,7 @@
 /**
  * MirrorSeer 12P Board UI Test
  *
- * Board: 灯影预言家
+ * Board: Mirror Seer
  * Roles: 3x villager, 3x wolf, darkWolfKing, seer, mirrorSeer, witch, guard, knight
  *
  * Required UI coverage (getRequiredUiDialogTypes):

@@ -1,7 +1,7 @@
 /**
  * EclipseWolfQueen 12P Board UI Test
  *
- * Board: 永序之轮
+ * Board: Eternal Order
  * Roles: 4x villager, 3x wolf, eclipseWolfQueen, seer, witch, guard, sequencePrince
  *
  * Required UI coverage (getRequiredUiDialogTypes):

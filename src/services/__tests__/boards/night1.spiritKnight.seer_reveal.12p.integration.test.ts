@@ -1,10 +1,10 @@
 /**
- * Night-1 Integration Test: 恶灵骑士 - Seer Reveal
+ * Night-1 Integration Test: Spirit Knight - Seer Reveal
  *
- * 板子：恶灵骑士
- * 主题：预言家查验结果写入 GameState.seerReveal
+ * Board: Spirit Knight
+ * Topic: Seer check result written to GameState.seerReveal
  *
- * 固定 seat-role assignment:
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: spiritKnight
@@ -13,7 +13,7 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -24,7 +24,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '恶灵骑士';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -63,7 +63,7 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 写入 GameState
+      // Core assertion: seerReveal written to GameState
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);
@@ -84,7 +84,7 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：spiritKnight 是狼阵营
+      // Core assertion: spiritKnight is wolf faction
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(7);
@@ -105,7 +105,7 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 无结果
+      // Core assertion: seerReveal has no result
       expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
     });
   });
@@ -123,16 +123,16 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言 1：seerReveal 写入
+      // Core assertion 1: seerReveal written
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(4);
       expect(['wolf', '狼人']).toContain(state.seerReveal!.result);
 
-      // 核心断言 2：guardedSeat 写入
+      // Core assertion 2: guardedSeat written
       expect(state.currentNightResults?.guardedSeat).toBe(8);
 
-      // seer 被守卫抵挡袭击，无人死亡
+      // Guard blocked the wolf attack on seer, no one dies
       expect(result.deaths).toEqual([]);
     });
   });

@@ -1,8 +1,8 @@
 /**
- * AboutSection - 关于卡片（Memoized）
+ * AboutSection - About card (Memoized)
  *
- * 显示应用版本与联系方式。
- * 渲染 UI，不 import service，不包含业务逻辑判断。
+ * Displays app version and contact information.
+ * Renders UI only, no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo, useCallback } from 'react';
@@ -19,7 +19,7 @@ interface AboutSectionProps {
   styles: SettingsScreenStyles;
 }
 
-/** 关于区域。 */
+/** About section. */
 export const AboutSection = memo<AboutSectionProps>(({ styles }) => {
   const handleCopyWechat = useCallback(() => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {

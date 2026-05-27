@@ -1,9 +1,9 @@
 /**
- * @werewolf/game-engine - 纯游戏逻辑共享包
+ * @werewolf/game-engine - Pure shared game logic package
  *
- * 包含模型定义、游戏引擎（handlers + reducer + store）、
- * resolver、协议类型等，可被客户端和服务端同时 import。
- * 导出纯逻辑、类型定义与声明式配置，不依赖 React Native / Expo UI。
+ * Contains model definitions, game engine (handlers + reducer + store),
+ * resolvers, protocol types, etc. Importable by both client and server.
+ * Exports pure logic, type definitions, and declarative config. No dependency on React Native / Expo UI.
  */
 
 // === Utils (platform-agnostic) ===

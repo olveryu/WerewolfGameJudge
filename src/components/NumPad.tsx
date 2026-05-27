@@ -1,8 +1,8 @@
 /**
- * NumPad - 数字键盘组件
+ * NumPad - Numeric keypad component.
  *
- * 用于房间号等 4 位数字输入，支持清除和退格。Memoized。
- * 渲染数字键盘并通过 onValueChange 上报输入。不 import service，不含业务逻辑。
+ * 4-digit numeric input for room codes; supports clear and backspace. Memoized.
+ * Renders the keypad and reports input via onValueChange. No service imports, no business logic.
  */
 import type React from 'react';
 import { memo } from 'react';

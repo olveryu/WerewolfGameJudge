@@ -1,8 +1,8 @@
 /**
- * navigationRef — 组件外导航引用
+ * navigationRef — navigation ref for use outside React components
  *
- * 提供全局 NavigationContainerRef，供非组件代码（如 Toast onPress）调用导航。
- * React Navigation 官方推荐方案。不含业务逻辑。
+ * Provides a global NavigationContainerRef for non-component code (e.g. Toast onPress callbacks).
+ * Official React Navigation recommended approach. No business logic.
  */
 import { createNavigationContainerRef } from '@react-navigation/native';
 

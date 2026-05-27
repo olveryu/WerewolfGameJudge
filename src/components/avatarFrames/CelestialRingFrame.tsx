@@ -14,9 +14,9 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * CelestialRingFrame — 天环
+ * CelestialRingFrame — Celestial Ring
  *
- * 神圣天界之环 · 径向光晕 · 8方向光线 + 菱形宝石 + 圆宝石。
+ * Sacred celestial ring · radial halo · 8-direction rays + diamond gems + round gems.
  */
 export const CelestialRingFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

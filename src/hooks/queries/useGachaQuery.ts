@@ -1,10 +1,10 @@
 /**
- * useGachaQuery — 扭蛋状态查询 + 抽奖 mutation + 每日登录奖励
+ * useGachaQuery — gacha status query + draw mutation + daily login reward
  *
- * useGachaStatusQuery: 查询抽奖券数量/pity/已解锁数/每日奖励状态
- * useDrawMutation: 执行抽奖并自动刷新 gachaStatus + userStats cache
- * useClaimDailyRewardMutation: 领取每日登录奖励
- * useAutoClaimDailyReward: 自动检测并领取每日奖励 + toast 提示
+ * useGachaStatusQuery: queries ticket count/pity/unlocked count/daily reward status
+ * useDrawMutation: performs a draw and auto-invalidates gachaStatus + userStats cache
+ * useClaimDailyRewardMutation: claims the daily login reward
+ * useAutoClaimDailyReward: auto-detects and claims daily reward + shows a toast
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -34,9 +34,9 @@ function getLocalDate(): string {
 }
 
 /**
- * useGachaStatusQuery — 扭蛋状态（抽奖券/pity/已解锁数）。
+ * useGachaStatusQuery — gacha status (ticket count/pity/unlocked count).
  *
- * 匿名用户 / auth 未完成时 enabled=false，不发请求。
+ * enabled=false for anonymous users or when auth is not yet complete; no request is made.
  */
 export function useGachaStatusQuery(options?: { enabled?: boolean }) {
   return useAuthenticatedQuery({
@@ -78,10 +78,10 @@ function useClaimDailyRewardMutation() {
 }
 
 /**
- * useAutoClaimDailyReward — gacha status 加载后自动领取每日奖励。
+ * useAutoClaimDailyReward — auto-claims the daily reward after gacha status loads.
  *
- * 检查 lastLoginRewardAt !== 今天本地日期 → 自动 claim → toast。
- * 一个 session 内只尝试一次（useRef guard）。
+ * Checks lastLoginRewardAt !== today's local date → auto-claim → toast.
+ * Attempts only once per session (useRef guard).
  */
 export function useAutoClaimDailyReward() {
   const { data: status } = useGachaStatusQuery();

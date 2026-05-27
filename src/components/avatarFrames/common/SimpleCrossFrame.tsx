@@ -1,7 +1,7 @@
 /**
- * SimpleCrossFrame — 十字
+ * SimpleCrossFrame — Cross
  *
- * 十字形裁切边框（4 个凹角）。Common 级头像框模板。
+ * Cross-shaped clip border (4 concave corners). Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';

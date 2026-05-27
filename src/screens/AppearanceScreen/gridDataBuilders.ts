@@ -26,7 +26,7 @@ import {
   type SeatAnimationGridItem,
 } from './types';
 
-/** 构建头像网格数据。 */
+/** Build avatar grid data. */
 export function buildAvatarGridData(
   unlockedAvatars: ReadonlySet<string>,
   readOnly: boolean,
@@ -62,7 +62,7 @@ export function buildAvatarGridData(
   return items;
 }
 
-/** 构建框网格数据。 */
+/** Build frame grid data. */
 export function buildFrameGridData(
   unlockedIds: readonly string[],
   currentFrameId: string | null,
@@ -88,7 +88,7 @@ export function buildFrameGridData(
   return [none, ...items];
 }
 
-/** 构建德誉网格数据。 */
+/** Build honor flair grid data. */
 export function buildFlairGridData(
   unlockedIds: readonly string[],
   currentFlairId: string | null,
@@ -114,7 +114,7 @@ export function buildFlairGridData(
   return [none, ...items];
 }
 
-/** 构建名字样式网格数据。 */
+/** Build name style grid data. */
 export function buildNameStyleGridData(
   unlockedIds: readonly string[],
   currentNameStyleId: string | null,
@@ -140,7 +140,7 @@ export function buildNameStyleGridData(
   return [none, ...items];
 }
 
-/** 构建特效网格数据。 */
+/** Build effect grid data. */
 export function buildEffectGridData(
   unlockedIds: readonly string[],
   currentEquippedEffect: string | null,
@@ -180,7 +180,7 @@ export function buildEffectGridData(
   return [none, random, ...items];
 }
 
-/** 按稀有度筛选头像网格。 */
+/** Filter avatar grid by rarity. */
 export function filterAvatarGridData(
   data: AvatarCellItem[],
   rarityFilter: RarityFilter,
@@ -198,7 +198,7 @@ export function filterAvatarGridData(
   return filtered;
 }
 
-/** 构建入座动画网格数据。 */
+/** Build seat animation grid data. */
 export function buildSeatAnimationGridData(
   unlockedIds: readonly string[],
   currentSeatAnimationId: string | null,

@@ -3,7 +3,7 @@
  *
  * Topic: Interaction between Guard's protection and the wolf kill.
  *
- * Template: 狼王守卫
+ * Template: Wolf King Guard
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

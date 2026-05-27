@@ -20,7 +20,7 @@ import {
   typography,
 } from '@/theme';
 
-/** 创建 RoomScreen 样式。 */
+/** Create RoomScreen styles. */
 export function createRoomScreenStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
   return StyleSheet.create({

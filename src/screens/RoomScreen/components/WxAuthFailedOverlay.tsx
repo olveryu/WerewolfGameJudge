@@ -1,8 +1,8 @@
 /**
- * WxAuthFailedOverlay — 微信小程序内登录失败时的提示界面
+ * WxAuthFailedOverlay — Login failure overlay inside the WeChat mini-program
  *
- * 仅在 isMiniProgram() + needsAuth 时渲染。
- * 提供"重新进入"按钮，调用 wx.miniProgram.reLaunch 重走登录流程。
+ * Only renders when isMiniProgram() + needsAuth is true.
+ * Provides a "重新进入" button that calls wx.miniProgram.reLaunch to restart the login flow.
  */
 import type React from 'react';
 import { useMemo } from 'react';

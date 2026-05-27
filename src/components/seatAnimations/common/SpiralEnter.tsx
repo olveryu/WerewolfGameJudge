@@ -1,5 +1,5 @@
 /**
- * SpiralEnter — 螺旋入场
+ * SpiralEnter — Spiral entrance
  *
  * Children spin in along a spiral path while colored particles orbit inward.
  * Rare-tier entrance animation template.

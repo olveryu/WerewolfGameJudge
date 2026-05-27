@@ -14,12 +14,12 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * AshWoodFrame — 灰木
+ * AshWoodFrame — Ash Wood
  *
- * 断裂木板拼合边框。每边 = 2-3 段不连续的厚木条(Rect+Path)，段间留缝隙。
- * 木板上有木纹线条、树节(knothole = 椭圆+年轮)、树皮边缘(bark strip = 不规则 Path)。
- * 角部 = 碳化焦痕(char mark RadialGradient) + 余烬微光。
- * 与 SandStone 完全不同: 无 crack line 网, 无 sand particle, 采用 plank 段+knothole。
+ * Broken plank border. Each side = 2–3 discontinuous thick planks (Rect+Path) with gaps between.
+ * Planks have grain lines, knotholes (oval + growth rings), and bark strips (irregular Path).
+ * Corners = charred marks (RadialGradient) + glowing embers.
+ * Completely different from SandStone: no crack line grid, no sand particles; uses plank segments + knotholes.
  */
 export const AshWoodFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

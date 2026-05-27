@@ -1,8 +1,8 @@
 /**
- * Magician Resolver (SERVER-ONLY, 纯函数)
+ * Magician Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验魔术师交换行动 + 计算交换结果，
- * 提供交换目标校验与结果计算（含跳过交换）。不包含 IO（网络 / 音频 / Alert）。
+ * Validates the magician's swap action and computes swap result.
+ * Provides swap target validation and result calculation (including skip). No IO (network / audio / Alert).
  *
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */

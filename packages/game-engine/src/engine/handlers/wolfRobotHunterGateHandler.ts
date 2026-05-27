@@ -1,15 +1,15 @@
 /**
  * WolfRobot Hunter Gate Handler
  *
- * 处理机械狼人人学到猎人后的"查看状态"gate。
+ * Handles the "view status" gate after Wolf Robot learns the hunter role.
  *
- * 职责：
- * - 校验 gate 条件（host_only、step、learnedRoleId、seat）
- * - 返回 SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
+ * Responsibilities:
+ * - Validate gate conditions (host_only, step, learnedRoleId, seat)
+ * - Return SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
  *
- * 不负责：
- * - 直接修改 state（由 reducer 处理）
- * - broadcast（由 facade 层处理）
+ * Not responsible for:
+ * - Directly mutating state (handled by the reducer)
+ * - Broadcasting (handled by the facade layer)
  */
 
 import { getEngineLogger } from '../../utils/logger';
@@ -21,7 +21,7 @@ import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 const handlerLog = getEngineLogger().extend('WolfRobotHunterGateHandler');
 
 /**
- * Intent 类型：设置机械狼人人查看猎人状态
+ * Intent type: set Wolf Robot hunter status as viewed
  */
 interface SetWolfRobotHunterStatusViewedIntent {
   type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED';
@@ -29,15 +29,15 @@ interface SetWolfRobotHunterStatusViewedIntent {
 }
 
 /**
- * 处理机械狼人人查看猎人状态
+ * Handle Wolf Robot viewing the hunter status
  *
- * 校验：
- * 1. state 存在
+ * Validation:
+ * 1. state exists
  * 2. currentStepId === 'wolfRobotLearn'
  * 3. wolfRobotReveal.learnedRoleId in WOLF_ROBOT_GATE_ROLES
- * 4. seat 对应的 player.role === 'wolfRobot'
+ * 4. player.role at seat === 'wolfRobot'
  *
- * 返回：
+ * Returns:
  * - success: true + actions: [SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED]
  * - success: false + reason
  */
@@ -49,14 +49,14 @@ export function handleSetWolfRobotHunterStatusViewed(
     seat: intent.seat,
   });
 
-  // Gate 1: state 存在
+  // Gate 1: state exists
   const state = ctx.state;
   if (!state) {
     handlerLog.debug('rejected: no_state');
     return handlerError('no_state');
   }
 
-  // Gate 2: 当前 step 必须是 wolfRobotLearn
+  // Gate 2: current step must be wolfRobotLearn
   if (state.currentStepId !== 'wolfRobotLearn') {
     handlerLog.warn('rejected: invalid_step', {
       currentStepId: state.currentStepId,
@@ -65,7 +65,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return handlerError('invalid_step');
   }
 
-  // Gate 3: wolfRobotReveal.learnedRoleId 必须在 gate 触发角色列表中
+  // Gate 3: wolfRobotReveal.learnedRoleId must be in the gate trigger role list
   if (
     !state.wolfRobotReveal?.learnedRoleId ||
     !WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId)
@@ -76,7 +76,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return handlerError('not_learned_hunter');
   }
 
-  // Gate 4: seat 必须是 wolfRobot 的 seat
+  // Gate 4: seat must be the wolfRobot's seat
   const player = state.players[intent.seat];
   if (player?.role !== 'wolfRobot') {
     handlerLog.warn('rejected: invalid_seat', {
@@ -86,7 +86,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return handlerError('invalid_seat');
   }
 
-  // 构建 action
+  // Build action
   const action: SetWolfRobotHunterStatusViewedAction = {
     type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
     payload: { viewed: true },

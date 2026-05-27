@@ -1,5 +1,5 @@
 /**
- * WitchBrew — 女巫熬药
+ * WitchBrew — Witch's Brew
  *
  * Legendary entrance: bubbles rise from bottom, green mist swirls, cauldron glow
  * pulses, then avatar materializes from the brew.

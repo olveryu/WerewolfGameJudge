@@ -14,9 +14,9 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * SakuraDriftFrame — 樱散
+ * SakuraDriftFrame — Sakura Drift
  *
- * 四角五瓣樱花 + 漂落花瓣 + 粉色三层渐变 + 枝条 + 花蕾。
+ * Five-petal sakura flowers at four corners + drifting petals + three-layer pink gradient + branches + buds.
  */
 export const SakuraDriftFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

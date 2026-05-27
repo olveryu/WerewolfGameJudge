@@ -13,12 +13,12 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * SerpentScaleFrame — 蛇鳞
+ * SerpentScaleFrame — Serpent Scale
  *
- * 连续蛇身从左下角起步缠绕一周（不断变粗→变细）。
- * 蛇头 = 右上角(三角头 + 竖瞳 RadialGradient + 分叉舌)。
- * 蛇尾 = 左下角(渐细尖尾)。沿蛇身画鳞片弧(半圆叠瓦)。
- * 与 WraithBone 完全不同: 无 bone joint, 无 skull, 采用连续蛇体缠绕+鳞片纹。
+ * A continuous serpent body starts at the bottom-left and coils around once (gradually thickening then tapering).
+ * Snake head = top-right corner (triangular head + vertical-slit pupil RadialGradient + forked tongue).
+ * Snake tail = bottom-left (tapering pointed tail). Scale arcs drawn along the body (overlapping half-circles).
+ * Completely different from WraithBone: no bone joints, no skulls; uses a continuous serpent body with scale pattern.
  */
 export const SerpentScaleFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

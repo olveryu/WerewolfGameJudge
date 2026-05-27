@@ -56,7 +56,7 @@ interface UseRoomHostDialogsResult {
   isHostActionSubmitting: boolean;
 }
 
-/** Host 操作弹窗 hook（分配/开始/重启）。 */
+/** Host action dialog hook (assign / start / restart). */
 export const useRoomHostDialogs = ({
   gameState,
   assignRoles,

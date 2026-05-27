@@ -1,19 +1,19 @@
 /**
- * Cupid Resolver (SERVER-ONLY, 纯函数)
+ * Cupid Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验情侣选择 + 写入 loverSeats。
- * cupid 在底牌角色之后行动，选择两名玩家成为情侣（可含自己）。
- * 不包含 IO（网络 / 音频 / Alert）。
+ * Validates lover selection and writes loverSeats.
+ * Cupid acts after the deck card role, choosing two players as lovers (may include self).
+ * No IO (network / audio / Alert).
  */
 
 import { formatSeat } from '../utils/formatSeat';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverFn } from './types';
 
-/** 必须选择两名玩家 */
+/** Must choose exactly two players */
 const REJECT_MUST_CHOOSE_TWO = '必须选择两名玩家成为情侣' as const;
 
-/** 不能选择重复的玩家 */
+/** Cannot choose duplicate players */
 const REJECT_DUPLICATE = '不能选择重复的玩家' as const;
 
 export const cupidChooseLoversResolver: ResolverFn = (context, input) => {
@@ -55,8 +55,8 @@ export const cupidChooseLoversResolver: ResolverFn = (context, input) => {
 };
 
 /**
- * cupidLoversReveal — groupConfirm 步骤的 no-op resolver。
- * 此步骤由所有玩家确认（ack），实际确认逻辑由 handler 层处理。
+ * cupidLoversReveal — no-op resolver for the groupConfirm step.
+ * This step is confirmed by all players (ack); actual confirmation logic is handled at the handler layer.
  */
 export const cupidLoversRevealResolver: ResolverFn = () => {
   return { valid: true };

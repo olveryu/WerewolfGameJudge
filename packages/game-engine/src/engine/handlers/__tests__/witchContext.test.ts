@@ -1,8 +1,8 @@
 /**
- * witchContext.ts 单元测试
+ * witchContext.ts unit tests
  *
- * 测试 maybeCreateWitchContextAction 纯函数（公共 API）
- * witchContext 计算逻辑通过公共 API 间接覆盖
+ * Tests the maybeCreateWitchContextAction pure function (public API)
+ * witchContext computation logic is covered indirectly via the public API
  */
 
 import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
@@ -51,7 +51,7 @@ function createOngoingState(overrides: Partial<GameState> = {}): NonNullable<Gam
 // =============================================================================
 
 describe('maybeCreateWitchContextAction', () => {
-  // ---- canSave 计算逻辑 ----
+  // ---- canSave calculation logic ----
 
   describe('canSave calculation', () => {
     it('should set canSave=true when wolf kills someone else (normal case)', () => {
@@ -103,13 +103,13 @@ describe('maybeCreateWitchContextAction', () => {
     });
 
     /**
-     * 边界条件测试：witchSeat === -1
+     * Edge case: witchSeat === -1
      *
-     * 场景：templateRoles 包含 witch，但 players 里没有任何 role === 'witch' 的 seat
-     * 期望：canSave 必须为 false（防御性：禁止救人避免异常态误操作）
+     * Scenario: templateRoles contains witch, but no player in players has role === 'witch'
+     * Expected: canSave must be false (defensive: block save to prevent errors in invalid state)
      */
     it('should set canSave=false when witch seat is not found in players (defensive)', () => {
-      // 构造异常状态：templateRoles 有 witch，但 players 里没有 witch
+      // Build invalid state: templateRoles has witch but players has no witch
       const state = createOngoingState({
         templateRoles: ['wolf', 'witch', 'villager'],
         players: {
@@ -122,13 +122,13 @@ describe('maybeCreateWitchContextAction', () => {
 
       const action = maybeCreateWitchContextAction('witchAction', state);
 
-      // 关键断言：即使有被杀者，witchSeat=-1 时 canSave 必须为 false
+      // Key assertion: even with a killed player, canSave must be false when witchSeat=-1
       expect(action?.payload.killedSeat).toBe(2);
       expect(action?.payload.canSave).toBe(false);
     });
   });
 
-  // ---- canPoison 计算逻辑 ----
+  // ---- canPoison calculation logic ----
 
   describe('canPoison calculation (Night-1 only)', () => {
     it('should always set canPoison=true (Night-1 only project rule)', () => {
@@ -140,7 +140,7 @@ describe('maybeCreateWitchContextAction', () => {
     });
   });
 
-  // ---- 门控逻辑 ----
+  // ---- gate logic ----
 
   it('should return SET_WITCH_CONTEXT action when entering witchAction step', () => {
     const state = createOngoingState({

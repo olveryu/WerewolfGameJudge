@@ -4,7 +4,7 @@
  * Web: CSS background-clip: text + @keyframes animation (injected via <style> tag)
  * Native: solid color + static textShadow style (gradient / animation downgraded to solid color)
  *
- * Usage: <NameStyleText styleId="phoenixRebirth" style={baseStyle}>玩家名</NameStyleText>
+ * Usage: <NameStyleText styleId="phoenixRebirth" style={baseStyle}>PlayerName</NameStyleText>
  * If styleId is invalid or undefined, renders as a plain <Text>.
  */
 

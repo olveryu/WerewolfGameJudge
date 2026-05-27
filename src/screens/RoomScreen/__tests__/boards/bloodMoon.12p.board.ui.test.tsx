@@ -1,7 +1,7 @@
 /**
  * BloodMoon 12P Board UI Test
  *
- * Board: 血月猎魔
+ * Board: Blood Moon Hunter
  * Roles: 4x villager, 4x wolf, bloodMoon, seer, witch, witcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):

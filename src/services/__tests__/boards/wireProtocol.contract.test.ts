@@ -463,13 +463,13 @@ describe('Wire Protocol Contract', () => {
 
       const ctx = createGame(SEER_TEMPLATE, assignment);
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerCheck(ctx);
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       ctx.clearCapturedMessages();
 
-      // seer 查验 seat 1
+      // Seer checks seat 1
       ctx.sendPlayerMessage({
         type: 'ACTION',
         seat: 0,
@@ -483,7 +483,7 @@ describe('Wire Protocol Contract', () => {
       expect(seerMsg).toBeDefined();
       const msg = seerMsg!.message as ActionMessage;
       expect(msg.target).toBe(1);
-      // 不使用 extra
+      // No extra fields used
       expect(msg.extra?.targets).toBeUndefined();
       expect(msg.extra?.stepResults).toBeUndefined();
     });
@@ -494,7 +494,7 @@ describe('Wire Protocol Contract', () => {
 
       const ctx = createGame(SEER_TEMPLATE, assignment);
 
-      // 推进到 seerCheck
+      // Advance to seerCheck
       advanceToSeerCheck(ctx);
 
       ctx.clearCapturedMessages();
@@ -515,14 +515,14 @@ describe('Wire Protocol Contract', () => {
     });
 
     it('guardProtect: target 是单一座位号', () => {
-      // 需要包含 guard 的模板
+      // Template must include guard
       const GUARD_TEMPLATE: RoleId[] = ['guard', 'wolf', 'villager', 'villager'];
       const assignment = new Map<number, RoleId>();
       GUARD_TEMPLATE.forEach((role, idx) => assignment.set(idx, role));
 
       const ctx = createGame(GUARD_TEMPLATE, assignment);
 
-      // 找到 guardProtect 步骤
+      // Advance to guardProtect step
       while (ctx.getGameState().currentStepId !== 'guardProtect') {
         const result = ctx.advanceNight();
         if (!result.success) break;
@@ -568,7 +568,7 @@ describe('Wire Protocol Contract', () => {
       for (const msg of chooseSeatMessages) {
         const actionMsg = msg.message as ActionMessage;
         if (actionMsg.target !== null) {
-          // target 必须是单一座位号，不是 encoded 值
+          // target must be a single seat number, not an encoded value
           expect(actionMsg.target).toBeLessThan(100);
           expect(actionMsg.target).toBeGreaterThanOrEqual(0);
         }

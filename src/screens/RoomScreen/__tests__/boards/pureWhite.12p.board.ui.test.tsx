@@ -1,7 +1,7 @@
 /**
  * PureWhite 12P Board UI Test
  *
- * Board: 纯白夜影
+ * Board: Pure White Night Shadow
  * Roles: 4x villager, 3x wolf, wolfWitch, guard, witch, hunter, pureWhite
  *
  * Required UI coverage (getRequiredUiDialogTypes):

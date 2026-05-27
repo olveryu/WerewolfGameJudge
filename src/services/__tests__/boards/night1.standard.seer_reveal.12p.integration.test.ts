@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 预女猎白 - Seer Reveal
+ * Night-1 Integration Test: SeerWitchHunterIdiot - Seer Reveal
  *
- * Board: 预女猎白
+ * Board: SeerWitchHunterIdiot
  * Theme: Seer check result written to GameState.seerReveal
  *
  * Fixed seat-role assignment:
@@ -101,7 +101,7 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：seerReveal 无结果
+      // Core assertion: seerReveal has no result
       expect(ctx.getGameState().seerReveal?.result).toBeUndefined();
     });
   });
@@ -118,7 +118,7 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：witch 是好人阵营
+      // Core assertion: witch is good faction
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(9);
@@ -136,7 +136,7 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：idiot 是好人阵营
+      // Core assertion: idiot is good faction
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(11);

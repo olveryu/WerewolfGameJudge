@@ -1,7 +1,7 @@
 /**
- * rarityVisual — 稀有度显示元数据（颜色、标签、辉光、chip 阴影、格子样式）。
+ * rarityVisual — rarity display metadata (color, label, glow, chip shadow, grid style).
  *
- * GachaScreen / UnlocksScreen / AppearanceScreen 共用。
+ * Shared by GachaScreen / UnlocksScreen / AppearanceScreen.
  */
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import type { ViewStyle } from 'react-native';
@@ -9,17 +9,17 @@ import type { ViewStyle } from 'react-native';
 import { withAlpha } from '@/theme';
 
 interface RarityVisual {
-  /** 主题色 */
+  /** Theme color */
   color: string;
-  /** Skia 粒子辉光 */
+  /** Skia particle glow */
   glow: string;
-  /** 中文标签 */
+  /** Display label */
   label: string;
-  /** Active chip 的带色 boxShadow（30% 主题色） */
+  /** Colored boxShadow for active chip (30% theme color) */
   chipShadow: string;
 }
 
-/** 从高到低的稀有度显示顺序 */
+/** Rarity display order from highest to lowest */
 export const RARITY_ORDER: Rarity[] = ['legendary', 'epic', 'rare', 'common'];
 
 const mkVisual = (color: string, glow: string, label: string): RarityVisual => ({

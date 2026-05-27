@@ -1,5 +1,5 @@
 /**
- * BoardCard — 单张板子卡片（展开/折叠 + 阵营统计 + 关键角色 chip）
+ * BoardCard — Single board card (expand/collapse + faction stats + key role chips)
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getPlayerCount, type PresetTemplate } from '@werewolf/game-engine/models/Template';
@@ -38,7 +38,7 @@ interface BoardCardProps {
   showSelectButton?: boolean;
 }
 
-/** 板子卡片组件。 */
+/** Board card component. */
 export const BoardCard = React.memo<BoardCardProps>(
   ({
     template,

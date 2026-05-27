@@ -218,12 +218,12 @@ function dismissWebSplash() {
   if (bar) bar.style.width = '100%';
   if (pctEl) pctEl.textContent = '100%';
 
-  // 切换 body 背景到主题色（splash 是 z-index:9999 全覆盖，切换时用户看不到）
+  // Switch body background to theme color (splash is z-index:9999 full-cover, user won't see the switch)
   const themeBg = document.documentElement.style.getPropertyValue('--theme-bg') || '#F2F2F7';
   document.documentElement.style.backgroundColor = themeBg;
   document.body.style.backgroundColor = themeBg;
 
-  // 等一帧让浏览器完成背景渲染，再淡出 splash，避免闪色
+  // Wait one frame for the browser to finish background rendering before fading out the splash, avoiding a color flash
   requestAnimationFrame(() => {
     setTimeout(() => {
       splash.classList.add('hidden');
@@ -300,7 +300,7 @@ function AppContent() {
     setAlertConfig(null);
   }, []);
 
-  // 小程序需要微信登录 → 显示登录入口页（替代正常 UI）
+  // Mini-program requires WeChat login → show login entry screen (replaces normal UI)
   if (needsWechatLogin) {
     return (
       <>
@@ -338,8 +338,8 @@ function AppContent() {
 export default function App() {
   appLog.debug('render');
 
-  // Composition root: 通过 ServiceRegistry 创建所有 service 实例
-  // useState lazy init 保证仅创建一次
+  // Composition root: create all service instances via ServiceRegistry
+  // useState lazy init ensures services are created only once
   const [{ services, facade }] = useState(() => createAllServices());
 
   return (

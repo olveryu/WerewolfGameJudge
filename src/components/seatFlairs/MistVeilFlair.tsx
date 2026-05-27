@@ -1,7 +1,7 @@
 /**
- * MistVeilFlair — 迷雾面纱
+ * MistVeilFlair — Mist Veil
  *
- * 5 团大尺寸半透明雾团漂浮经过，带内层亮核。
+ * 5 large semi-transparent mist clouds drift past, each with a bright inner core.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

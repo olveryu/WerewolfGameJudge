@@ -1,5 +1,5 @@
 /**
- * DawnBreak — 破晓黎明
+ * DawnBreak — Dawn Break
  *
  * Legendary entrance: golden light rays expand from bottom, warm glow rises,
  * light particles scatter, avatar emerges from the dawn.

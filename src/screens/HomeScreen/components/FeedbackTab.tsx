@@ -1,8 +1,8 @@
 /**
- * FeedbackTab — 意见反馈双向对话 UI
+ * FeedbackTab — Two-way feedback conversation UI
  *
- * 三个子视图：历史列表 → 对话详情 → 提交新反馈。
- * 管理员回复左对齐，用户消息右对齐，聊天气泡风格。
+ * Three sub-views: history list → conversation detail → submit new feedback.
+ * Admin replies are left-aligned, user messages right-aligned, chat-bubble style.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

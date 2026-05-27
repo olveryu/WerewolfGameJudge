@@ -1,9 +1,9 @@
 /**
- * ChooseBottomCardModal — 底牌选择弹窗（盗宝大师 / 盗贼共用）
+ * ChooseBottomCardModal — Bottom card selection modal (shared by Treasure Master / Thief)
  *
- * 纯展示组件：调用方通过 disabledIndices 控制哪些卡牌灰色 disabled。
- * 点击可选牌后弹出确认对话框，确认后通过 onChoose(cardIndex) 回调提交。
- * 不 import service，不含业务逻辑判断。
+ * Pure display component: caller controls which cards are greyed-out via disabledIndices.
+ * Tapping a selectable card shows a confirmation dialog; on confirm, submits via onChoose(cardIndex) callback.
+ * No service imports, no business logic.
  */
 import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
 import type React from 'react';

@@ -1,10 +1,10 @@
 /**
- * RoleRevealEffects/types - 揭示动画共享类型与阵营配色工厂
+ * RoleRevealEffects/types - Shared types and faction color factory for reveal animations.
  *
- * 所有揭示动画组件的公共接口定义。
- * 导出类型、接口、枚举定义，以及 `createAlignmentThemes` 工厂函数
- * （基于 ThemeColors token 派生 glow / particle / gradient 色）。
- * 不 import service。
+ * Public interface definitions shared by all reveal animation components.
+ * Exports types, interfaces, enum definitions, and the `createAlignmentThemes` factory function
+ * (derives glow / particle / gradient colors from ThemeColors tokens).
+ * No service imports.
  */
 import type { ThemeColors } from '@/theme';
 import { darken, lighten } from '@/theme/colorUtils';

@@ -1,7 +1,7 @@
 /**
  * ThiefCupid 12P Board UI Test
  *
- * Board: 盗贼丘比特
+ * Board: Thief Cupid
  * Roles: 5x villager, 3x wolf, seer, witch, hunter, idiot,
  *        thief, cupid (14 roles -> 12 players + 2 bottom cards)
  *

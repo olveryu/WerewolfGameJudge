@@ -1,37 +1,37 @@
 /**
- * Reason Codes - 座位操作拒绝原因常量
+ * Reason Codes - Seat operation rejection reason constants
  *
- * 分为两类：
- * 1. Business Reason - 业务逻辑拒绝（来自 handler）
- * 2. Transport Reason - 传输层原因（来自 Facade transport）
+ * Two categories:
+ * 1. Business Reason - business logic rejection (from handler)
+ * 2. Transport Reason - transport layer reason (from Facade transport)
  */
 
 // ============================================================
-// Business Reason Codes (来自 handler)
+// Business Reason Codes (from handler)
 // ============================================================
 
-/** 未认证 */
+/** Not authenticated */
 export const REASON_NOT_AUTHENTICATED = 'not_authenticated' as const;
 
-/** 没有游戏状态（store 未初始化） */
+/** No game state (store not initialized) */
 export const REASON_NO_STATE = 'no_state' as const;
 
-/** 座位号无效 */
+/** Invalid seat number */
 export const REASON_INVALID_SEAT = 'invalid_seat' as const;
 
-/** 座位已被占用 */
+/** Seat already taken */
 export const REASON_SEAT_TAKEN = 'seat_taken' as const;
 
-/** 游戏进行中，不允许操作 */
+/** Game in progress; action not allowed */
 export const REASON_GAME_IN_PROGRESS = 'game_in_progress' as const;
 
-/** 玩家未入座 */
+/** Player not seated */
 export const REASON_NOT_SEATED = 'not_seated' as const;
 
-/** 非 Host 不允许操作 */
+/** Non-host action not allowed */
 export const REASON_NOT_HOST = 'not_host' as const;
 
-/** 目标座位为空 */
+/** Target seat is empty */
 export const REASON_SEAT_EMPTY = 'seat_empty' as const;
 
 // ============================================================

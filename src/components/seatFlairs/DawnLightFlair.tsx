@@ -1,7 +1,7 @@
 /**
- * DawnLightFlair — 曙光微照
+ * DawnLightFlair — Dawn Light
  *
- * 4 道水平光带从底部向上缓慢扫过，金色渐变色调，带微光粒子。
+ * 4 horizontal light bands slowly sweep upward from the bottom in golden gradient tones, with glimmer particles.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

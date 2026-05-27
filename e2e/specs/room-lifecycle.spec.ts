@@ -122,7 +122,7 @@ test.describe('Room Lifecycle', () => {
       const config = new ConfigPage(page);
       await config.waitForCreateMode();
 
-      // Default 预女猎白: 4w + seer + witch + hunter + idiot + 4v = 12
+      // Default Seer-Witch-Hunter-Villager board: 4w + seer + witch + hunter + idiot + 4v = 12
       // Deselect all special roles
       await config.deselectRoles(['seer', 'witch', 'hunter', 'idiot']);
       // Decrease villager count 4 → 0

@@ -1,8 +1,8 @@
 /**
- * V2 Role Specs Registry — 全部 46 角色声明式定义
+ * V2 Role Specs Registry — declarative definitions for all 46 roles
  *
- * Single source of truth: 角色固有属性 + 行为（abilities / effects）+ 夜间步骤 + UI 元数据
- * 合并了 V1 的 ROLE_SPECS + SCHEMAS + NIGHT_STEPS 三表。
+ * Single source of truth: role intrinsic properties + behavior (abilities / effects) + night steps + UI metadata
+ * Merges the three V1 tables: ROLE_SPECS + SCHEMAS + NIGHT_STEPS.
  *
  * 46 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
@@ -14,7 +14,7 @@
  *   eclipseWolfQueen, hiddenWolf (15)
  * - Third-party: slacker, wildChild, piper, shadow, avenger, thief, cupid, treasureMaster, cursedFox (9)
  *
- * 纯数据，JSON-serializable。不含业务逻辑、副作用、平台依赖。
+ * Pure data, JSON-serializable. No business logic, side effects, or platform dependencies.
  */
 
 import { TargetConstraint } from './ability.types';

@@ -369,7 +369,7 @@ export async function driveWolfVote(
 }
 
 /**
- * Drive all wolves to vote 放弃袭击 (empty kill).
+ * Drive all wolves to vote skip attack (empty kill).
  * Clicks the "放弃袭击" button in the bottom action panel for each wolf.
  */
 export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): Promise<void> {
@@ -384,7 +384,7 @@ export async function driveWolfEmptyVote(pages: Page[], wolfIndices: number[]): 
       .locator('[data-testid="action-message"]')
       .waitFor({ state: 'visible', timeout: 10_000 });
 
-    // Click 放弃袭击 button
+    // Click skip attack button
     const panel = wPage.locator('[data-testid="bottom-action-panel"]');
     const emptyBtn = panel.getByText('放弃袭击', { exact: true }).first();
     await emptyBtn.waitFor({ state: 'visible', timeout: 5000 });

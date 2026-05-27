@@ -1,7 +1,7 @@
 /**
- * RoomsTab — Admin 房间列表
+ * RoomsTab — Admin room list
  *
- * 分页房间卡片，点击展开参与者列表。使用 Pagination + AdminEmptyState 共享组件。
+ * Paginated room cards; tap to expand the participant list. Uses the shared Pagination + AdminEmptyState components.
  */
 
 import type React from 'react';

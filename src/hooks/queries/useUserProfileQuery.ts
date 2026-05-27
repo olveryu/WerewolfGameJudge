@@ -3,8 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { userProfileOptions } from './queryOptions';
 
 /**
- * useUserProfileQuery — 指定用户的公开资料。
- * `enabled` 默认要求 userId 非空。
+ * useUserProfileQuery — public profile for a given user.
+ * `enabled` defaults to requiring a non-empty userId.
  */
 export function useUserProfileQuery(userId: string, options?: { enabled?: boolean }) {
   return useQuery({

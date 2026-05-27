@@ -1,11 +1,11 @@
 /**
  * Night-1 Shadow & Avenger Integration Test (12p)
  *
- * 覆盖：shadowChooseMimic + avengerConfirm 步骤
+ * Coverage: shadowChooseMimic + avengerConfirm steps
  * - shadowChooseMimic: chooseSeat schema (notSelf constraint)
  * - avengerConfirm: confirm schema (displays faction)
  *
- * 板子：影子复仇者 12 人
+ * Board: Shadow Avenger 12p
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

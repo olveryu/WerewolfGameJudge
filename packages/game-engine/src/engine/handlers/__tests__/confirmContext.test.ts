@@ -87,7 +87,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- darkWolfKing canShoot 正确性 ----
+  // ---- darkWolfKing canShoot correctness ----
 
   it('狼王被毒 → canShoot = false', () => {
     const state = createOngoingState({
@@ -131,11 +131,11 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- 异常态 ----
+  // ---- invalid state ----
 
   it('角色不在 players 中（异常态）→ canShoot = false（fail-closed）', () => {
     const state = createOngoingState({
-      // templateRoles 仍包含 hunter，但 players 里没有
+      // templateRoles still contains hunter, but players does not
       players: {
         0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
         1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'villager' },
@@ -149,7 +149,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- 门控逻辑 ----
+  // ---- gate logic ----
 
   it('进入非 confirm 步骤 → 返回 null', () => {
     const state = createOngoingState();
@@ -161,12 +161,12 @@ describe('maybeCreateConfirmStatusAction', () => {
   it('模板没有该角色 → 返回 null', () => {
     const state = createOngoingState({
       templateRoles: ['wolf', 'wolf', 'villager', 'villager', 'seer', 'witch'],
-      // 没有 hunter
+      // no hunter
     });
     expect(maybeCreateConfirmStatusAction('hunterConfirm', state)).toBeNull();
   });
 
-  // ---- 殉情不能开枪 ----
+  // ---- lover suicide cannot shoot ----
 
   it('猎人殉情（搭档被狼刀）→ canShoot = false', () => {
     const state = createOngoingState({
@@ -205,7 +205,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- 摄梦连锁不能开枪 ----
+  // ---- dreamcatcher chain cannot shoot ----
 
   it('摄梦人摄猎人 + 摄梦人被狼刀 → canShoot = false', () => {
     const state = createOngoingState({
@@ -301,7 +301,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- 狼美人魅惑连锁不能开枪 ----
+  // ---- wolf queen charm chain cannot shoot ----
 
   it('狼美人魅惑猎人 + 狼美人被毒杀 → canShoot = false', () => {
     const state = createOngoingState({
@@ -345,7 +345,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  // ---- avenger 阵营计算 ----
+  // ---- avenger faction calculation ----
 
   it('影子模仿好人 → 复仇者为狼人阵营 (faction = wolf)', () => {
     const state = createOngoingState({
@@ -497,7 +497,7 @@ describe('maybeCreateConfirmStatusAction', () => {
 });
 
 // =============================================================================
-// computeCanShootForSeat — 供 wolfRobot handler 层复用
+// computeCanShootForSeat — shared with wolfRobot handler layer
 // =============================================================================
 
 describe('computeCanShootForSeat', () => {
@@ -572,7 +572,7 @@ describe('computeCanShootForSeat', () => {
 });
 
 // =============================================================================
-// hiddenWolf — wolfTeammates 确认
+// hiddenWolf — wolfTeammates confirmation
 // =============================================================================
 
 describe('maybeCreateConfirmStatusAction - hiddenWolf', () => {

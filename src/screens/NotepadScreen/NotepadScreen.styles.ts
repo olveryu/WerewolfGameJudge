@@ -17,7 +17,7 @@ import {
   withAlpha,
 } from '@/theme';
 
-/** 创建记事本屏幕样式。 */
+/** Create notepad screen styles. */
 export function createNotepadScreenStyles(colors: ThemeColors) {
   const styles = StyleSheet.create({
     // ── Screen chrome ────────────────────────────────

@@ -13,7 +13,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 import type { IntentExecutor } from './types';
 
-/** 切换多选座位。 */
+/** Toggle a seat in multi-select. */
 export const multiSelectToggleExecutor: IntentExecutor = (intent, ctx) => {
   const { currentSchema, multiSelectedSeats, setMultiSelectedSeats } = ctx;
 
@@ -32,7 +32,7 @@ export const multiSelectToggleExecutor: IntentExecutor = (intent, ctx) => {
   }
 };
 
-/** 确认多选目标并提交。 */
+/** Confirm multi-select targets and submit. */
 export const multiSelectConfirmExecutor: IntentExecutor = async (intent, ctx) => {
   const { currentSchema, proceedWithAction, setMultiSelectedSeats, actionDialogs } = ctx;
 

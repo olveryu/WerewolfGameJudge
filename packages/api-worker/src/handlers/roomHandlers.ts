@@ -1,13 +1,13 @@
 /**
- * handlers/roomHandlers — 房间 CRUD Hono routes（Workers 版）
+ * handlers/roomHandlers — room CRUD Hono routes (Workers)
  *
- * /room/create、/room/get、/room/delete — D1 元数据操作。
- * /room/state、/room/revision — 从 DO 读取游戏状态。
- * create/delete 需要与 DO 双向同步。
+ * /room/create, /room/get, /room/delete — D1 metadata operations.
+ * /room/state, /room/revision — read game state from the DO.
+ * create/delete require bidirectional sync with the DO.
  *
- * @throws 401 — requireAuth 未通过
- * @throws 400 — zod 校验失败 / 房间不存在 / 房间已存在
- * @throws 503/429 — callDO 检测 DO retryable/overloaded
+ * @throws 401 — requireAuth failed
+ * @throws 400 — zod validation failed / room not found / room already exists
+ * @throws 503/429 — callDO detected DO retryable/overloaded
  */
 
 import type { GameState } from '@werewolf/game-engine/protocol/types';
@@ -24,7 +24,7 @@ import { getGameRoomStub, jsonBody } from './shared';
 
 const log = createLogger('room');
 
-/** 房间管理路由（创建/加入/状态）。 */
+/** Room management routes (create / join / state). */
 export const roomRoutes = new Hono<AppEnv>();
 
 // ── POST /room/create ───────────────────────────────────────────────────────
@@ -141,7 +141,7 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
 });
 
 // ── POST /room/state ────────────────────────────────────────────────────────
-// 从 DO 读取完整 state + revision
+// Read full state + revision from the DO
 roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
   const parsed = c.req.valid('json');
 
@@ -162,7 +162,7 @@ roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
 });
 
 // ── POST /room/revision ─────────────────────────────────────────────────────
-// 轻量级：只读 revision 数字（从 DO 读取）
+// Lightweight: read revision number only (from the DO)
 roomRoutes.post('/revision', jsonBody(roomCodeBodySchema), async (c) => {
   const parsed = c.req.valid('json');
 

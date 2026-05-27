@@ -1,13 +1,13 @@
 /**
  * normalizeState Round-Trip Integration Test
  *
- * 验证 normalizeState 在真实 Night-1 board state 上的幂等性：
- * 在每步 action 后取 getGameState()，通过 normalizeState 再做一次归一化，
- * 确保结果等价（round-trip）。
+ * Verifies idempotency of normalizeState on real Night-1 board states:
+ * after each action, take getGameState(), run normalizeState again,
+ * and assert the result is equivalent (round-trip).
  *
- * 捕获的 bug：
- * - 新增 GameState 字段未同步到 normalizeState → 静默丢失
- * - seat-key 规范化引入数据变形
+ * Bugs caught by this test:
+ * - New GameState fields not synced to normalizeState → silently lost
+ * - seat-key normalization introducing data distortion
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
@@ -47,11 +47,11 @@ function createRoleAssignment(): Map<number, RoleId> {
 // =============================================================================
 
 /**
- * 比较两个 GameState 的 key 集合。
+ * Compares the key sets of two GameState objects.
  *
- * normalizeState 总是输出所有字段（包括 undefined），而 raw state 可能省略 undefined key。
- * 关键断言：raw 中的所有 key 必须出现在 normalized 中（不能丢失字段）。
- * normalized 多出的 key（undefined 字段被显式写出）是 expected behavior。
+ * normalizeState always outputs all fields (including undefined), while raw state may omit undefined keys.
+ * Key assertion: every key in raw must appear in normalized (no fields lost).
+ * Extra keys in normalized (undefined fields written explicitly) are expected behavior.
  */
 function assertNoKeysLost(
   original: Record<string, unknown> | object,
@@ -187,7 +187,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     const once = normalizeState(state);
     const twice = normalizeState(once);
 
-    // 二次归一化结果应完全相同
+    // Second normalization result must be identical
     expect(twice).toEqual(once);
   });
 });

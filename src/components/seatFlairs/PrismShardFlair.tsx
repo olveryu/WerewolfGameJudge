@@ -1,8 +1,8 @@
 /**
- * PrismShardFlair — 棱镜碎片 (Skia Canvas + Picture)
+ * PrismShardFlair — Prism Shards (Skia Canvas + Picture)
  *
- * 6 块彩色三角碎片在外围旋转漂浮，颜色随时间偏移，带顶部高光点。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 6 colorful triangular shards rotate and float around the perimeter, shifting color over time, each with a top highlight dot.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

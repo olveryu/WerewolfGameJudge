@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * StarForgeFrame — 星锻
+ * StarForgeFrame — Star Forge
  *
- * 深紫星空框 · 四角八芒星徽章 · 星轨弧线连接 · 星点散布。
+ * Deep-purple starfield frame · eight-pointed star emblems at four corners · orbital arc connections · scattered star dots.
  */
 export const StarForgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

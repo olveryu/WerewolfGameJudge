@@ -23,9 +23,9 @@ export enum Faction {
 /**
  * Team for display purposes (seer result, camp display)
  *
- * - Wolf: 狼人 (seer sees "狼人")
- * - Good: 好人 (god + villager, seer sees "好人")
- * - Third: 第三方 (slacker before choosing idol, seer sees "好人")
+ * - Wolf: Wolf (seer sees "狼人")
+ * - Good: Good (god + villager, seer sees "好人")
+ * - Third: Third party (slacker before choosing idol, seer sees "好人")
  *
  * NOTE: For seer check, Third is treated same as Good → "好人"
  */

@@ -1,13 +1,13 @@
 /**
  * Mock Shape Contract Test
  *
- * 验证 createGameRoomMock 返回值的 key 集合与 useGameRoom 返回值一致。
- * 如果 useGameRoom 新增了字段但 createGameRoomMock 没跟上，这个测试会 fail。
+ * Verifies that the key set of createGameRoomMock's return value matches useGameRoom's return value.
+ * If useGameRoom adds a field that createGameRoomMock does not include, this test will fail.
  *
- * 实现方式：从 useGameRoom 源码提取返回值 key 列表（通过 AST-like regex），
- * 与 createGameRoomMock 实际产出的 key 对比。
+ * Implementation: extracts the return-value key list from useGameRoom source (via AST-like regex),
+ * and compares it against the keys actually produced by createGameRoomMock.
  *
- * 注意：这是 contract test，不是功能测试。只检查 key 集合，不检查值。
+ * Note: this is a contract test, not a functional test. Only the key set is checked, not values.
  */
 
 import * as fs from 'fs';
@@ -20,8 +20,8 @@ import { createGameRoomMock } from '../harness/boardTestUtils';
 // =============================================================================
 
 /**
- * 从 useGameRoom.ts 源码的 return {} 块中提取字段名。
- * 匹配模式：`key:` 或 `key,` 开头的行（跳过注释行）。
+ * Extracts field names from the return {} block in useGameRoom.ts source.
+ * Match pattern: lines starting with `key:` or `key,` (comment lines are skipped).
  */
 function extractReturnKeys(source: string): string[] {
   // Find the LAST `return {` block in the file (the hook's actual return value).

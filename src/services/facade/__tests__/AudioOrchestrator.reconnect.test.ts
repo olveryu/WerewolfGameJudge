@@ -1,7 +1,7 @@
 /**
- * AudioOrchestrator — ack 重试 + online retry 上限单元测试
+ * AudioOrchestrator — unit tests for ack retry + online retry limit
  *
- * 覆盖：L2 status listener ack 重试、online retry 达上限停止、dispose 清理。
+ * Covers: L2 status listener ack retry, stopping when online retry limit is reached, dispose cleanup.
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';

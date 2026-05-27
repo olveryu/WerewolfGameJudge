@@ -1,7 +1,7 @@
 /**
- * Night-1 Integration Test: 血月猎魔 - Seer Reveal
+ * Night-1 Integration Test: Blood Moon Hunter - Seer Reveal
  *
- * Board: 血月猎魔
+ * Board: Blood Moon Hunter
  * Theme: Seer check result writes to GameState.seerReveal
  *
  * Fixed seat-role assignment:
@@ -119,7 +119,7 @@ describe('Night-1: 血月猎魔 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：witcher 是好人阵营
+      // core assertion: witcher is good faction
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(11);

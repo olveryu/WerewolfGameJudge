@@ -22,11 +22,11 @@ import { withSetup } from '../helpers/night-setup';
  *
  * Tests roles that produce kills or confirm kill-related status:
  * - Witch poison → double death
- * - Wolf empty kill (放弃袭击) → 平安夜
+ * - Wolf empty kill (skip attack) → peaceful night
  * - Hunter / DarkWolfKing canShoot confirmation
  * - WolfQueen charm
  * - Hunter poisoned → cannotShoot
- * - Bonded link death (shadow mimics avenger → 同生共死)
+ * - Bonded link death (shadow mimics avenger → bonded link death)
  *
  * Covers UI assertions on death/status text.
  * Does not modify game state directly or import services/models.
@@ -91,7 +91,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
-        // Verify deaths: should see "玩家死亡" (not 平安夜)
+        // Verify deaths: should see "玩家死亡" (not peaceful night)
         await viewLastNightInfo(pages[0]!);
         const hasDeath = await isTextVisible(pages[0]!, '死亡');
         const peaceful = await isTextVisible(pages[0]!, '平安夜');
@@ -151,7 +151,7 @@ test.describe('Night Roles — Kill / Status', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Wolf empty kill → 平安夜
+  // Wolf empty kill → peaceful night
   // --------------------------------------------------------------------------
   test('wolf empty kill (放弃袭击) → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -170,10 +170,10 @@ test.describe('Night Roles — Kill / Status', () => {
         const wolfTurn = await waitForRoleTurn(pages[wolfIdx]!, ['袭击', '选择'], pages, 120);
         expect(wolfTurn).toBe(true);
 
-        // Choose 放弃袭击
+        // Choose skip attack
         await driveWolfEmptyVote(pages, wolfIndices);
 
-        // Night should end with 平安夜
+        // Night should end with peaceful night
         const ended = await waitForNightEnd(pages, 80);
         expect(ended).toBe(true);
 
@@ -351,7 +351,7 @@ test.describe('Night Roles — Kill / Status', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Shadow mimics avenger → bonded link death (同生共死)
+  // Shadow mimics avenger → bonded link death
   // --------------------------------------------------------------------------
   test('shadow mimics avenger → wolf kills shadow → both die (bonded link)', async ({
     browser,
@@ -424,7 +424,7 @@ test.describe('Night Roles — Kill / Status', () => {
           avengerSeatDisplay,
         );
 
-        // Should not be 平安夜
+        // Should not be peaceful night
         const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(peaceful, 'Should not be 平安夜 with bonded deaths').toBe(false);
       },
@@ -432,7 +432,7 @@ test.describe('Night Roles — Kill / Status', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Wolf kills cursedFox → silent immunity → 平安夜
+  // Wolf kills cursedFox → silent immunity → peaceful night
   // --------------------------------------------------------------------------
   test('wolf kills cursedFox → silent immunity → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -463,7 +463,7 @@ test.describe('Night Roles — Kill / Status', () => {
         const ended = await waitForNightEnd(pages, 80);
         expect(ended).toBe(true);
 
-        // Verify: 平安夜 (cursedFox immune, no other kills)
+        // Verify: peaceful night (cursedFox immune, no other kills)
         await viewLastNightInfo(pages[0]!);
         const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(peaceful, 'Should be 平安夜 — wolf kill silently fails on cursedFox').toBe(true);

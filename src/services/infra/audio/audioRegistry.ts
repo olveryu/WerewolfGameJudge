@@ -243,7 +243,7 @@ export const SEER_LABEL_AUDIO: Record<string, AudioAsset> = {
   seer_2: seer2Begin,
 };
 
-/** 多预言家场景的开眼结束音频映射。 */
+/** End-of-reveal audio map for multi-seer scenarios. */
 export const SEER_LABEL_AUDIO_END: Record<string, AudioAsset> = {
   seer_1: seer1End,
   seer_2: seer2End,
@@ -276,9 +276,9 @@ export const STEP_AUDIO: Record<string, RoleAudioEntry> = {
 // Night flow audio
 // ---------------------------------------------------------------------------
 
-/** “天黑请闭眼” 音频。 */
+/** “天黑请闭眼” audio clip. */
 export const NIGHT_AUDIO: AudioAsset = nightBegin;
-/** “天亮请睁眼” 音频。 */
+/** “天亮请睁眼” audio clip. */
 export const NIGHT_END_AUDIO: AudioAsset = nightEndBegin;
 
 // ---------------------------------------------------------------------------
@@ -292,9 +292,9 @@ export type BgmTrackId = 'finale' | 'speakSoftlyLove' | 'theGodfatherWaltz' | 't
 export interface BgmTrackEntry {
   readonly id: BgmTrackId;
   readonly label: string;
-  /** 中文副标题 */
+  /** Chinese subtitle */
   readonly subtitle: string;
-  /** 氛围/风格标签 */
+  /** Mood/style tag */
   readonly mood: string;
   readonly asset: AudioAsset;
 }

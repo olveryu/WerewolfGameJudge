@@ -239,7 +239,7 @@ export class RoomPage {
     await this.page.getByText('确定', { exact: true }).click();
   }
 
-  /** Click "重新开始" (重开) and confirm dialog. */
+  /** Click "重新开始" (restart) and confirm dialog. */
   async restart() {
     const btn = this.page.getByTestId('restart-button');
     await expect(btn).toBeVisible({ timeout: 5000 });

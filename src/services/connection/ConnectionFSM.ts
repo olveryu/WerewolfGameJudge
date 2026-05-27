@@ -1,11 +1,11 @@
 /**
- * ConnectionFSM — 纯函数连接状态机
+ * ConnectionFSM — pure-function connection state machine
  *
- * 输入 (context, event) → 输出 { ctx, effects }。
- * 零依赖（不依赖 React / WebSocket / Timer / 平台 API）。
- * 所有状态转换可通过穷举测试验证。
+ * Input: (context, event) → Output: { ctx, effects }.
+ * Zero dependencies (no React / WebSocket / Timer / platform API).
+ * All state transitions are verifiable via exhaustive tests.
  *
- * Side effects 由 ConnectionManager 执行，FSM 本身不产生任何 IO。
+ * Side effects are executed by ConnectionManager; the FSM itself produces no IO.
  */
 
 import { calculateBackoff } from './backoff';
@@ -23,9 +23,9 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * 创建 FSM 初始上下文。
+ * Creates the initial FSM context.
  *
- * @param overrides - 可覆盖 maxAttempts
+ * @param overrides - optionally override maxAttempts
  */
 export function createInitialContext(
   overrides?: Partial<Pick<FSMContext, 'maxAttempts'>>,
@@ -47,7 +47,7 @@ export function createInitialContext(
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * 纯函数状态转换。
+ * Pure-function state transition.
  *
  * @param ctx - Current FSM context
  * @param event - Incoming event
@@ -165,7 +165,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
       };
     }
     case 'STATE_UPDATE': {
-      // WS broadcast 先于 fetch 到达 — 也可以进入 Connected
+      // WS broadcast arrived before fetch — can also transition to Connected
       const next: FSMContext = {
         ...ctx,
         state: ConnectionState.Connected,
@@ -182,7 +182,7 @@ function handleSyncing(ctx: FSMContext, event: ConnectionEvent): TransitionResul
       };
     }
     case 'FETCH_FAILURE': {
-      // WS 仍然存活，仅 DB fetch 失败 — 原地重试 fetch，不关闭 WS
+      // WS still alive, only DB fetch failed — retry fetch in-place without closing WS
       const nextAttempt = ctx.attempt + 1;
       if (nextAttempt >= ctx.maxAttempts) {
         const next: FSMContext = { ...ctx, state: ConnectionState.Failed, attempt: nextAttempt };
@@ -499,7 +499,7 @@ function handleDisconnected(ctx: FSMContext, event: ConnectionEvent): Transition
 function handleReconnecting(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
   switch (event.type) {
     case 'WS_OPEN': {
-      // 保留 attempt — 仅在 FETCH_SUCCESS/STATE_UPDATE 到达 Connected 时才清零
+      // Preserve attempt — only reset to 0 when FETCH_SUCCESS/STATE_UPDATE transitions to Connected
       const next: FSMContext = { ...ctx, state: ConnectionState.Syncing };
       return {
         ctx: next,

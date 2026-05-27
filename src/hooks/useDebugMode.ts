@@ -7,8 +7,8 @@
  * - isDebugMode flag
  * - fillWithBots / markAllBotsViewed actions
  *
- * 派生 effectiveSeat/effectiveRole，调用 facade debug API。
- * 不直接修改 GameState，不跳过 facade 操作游戏。
+ * Derives effectiveSeat/effectiveRole and calls facade debug API.
+ * Does not directly modify GameState or bypass facade game operations.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

@@ -36,14 +36,14 @@ export { isBottomCardActorOverride } from './actionGuards';
 export { handleViewedRole } from './viewedRoleHandler';
 
 /**
- * 构建 Resolver 上下文
+ * Build resolver context
  */
 function buildResolverContext(
   state: NonNullState,
   actorSeat: number,
   actorRoleId: RoleId,
 ): ResolverContext {
-  // 构建 players: seat -> role
+  // Build players: seat -> role
   const players = buildSeatRoleMap(state.players);
 
   // FAIL-FAST: currentNightResults must exist when status === GameStatus.Ongoing
@@ -74,7 +74,7 @@ function buildResolverContext(
 }
 
 /**
- * 构建 ActionInput
+ * Build ActionInput
  */
 function buildActionInput(
   schemaId: SchemaId,
@@ -97,11 +97,11 @@ function getActionTimestamp(extra?: Record<string, unknown>): number {
 }
 
 /**
- * 蚀时狼妃放逐重定向 — 神职对被放逐者的技能目标改为使用者自身
+ * Eclipse Wolf Queen shelter redirect — redirects a god-role's skill target from the sheltered player to the actor
  *
- * 在 resolver 调用前统一重写 ActionInput 中所有 target 字段。
- * 由于 buildSuccessResult 也使用同一个 effectiveTarget，
- * ProtocolAction.targetSeat 与 resolver 结果保持一致。
+ * Rewrites all target fields in ActionInput before the resolver is called.
+ * Since buildSuccessResult uses the same effectiveTarget,
+ * ProtocolAction.targetSeat stays consistent with the resolver result.
  */
 function applyShelterRedirect(
   input: ActionInput,
@@ -139,10 +139,10 @@ function applyShelterRedirect(
 }
 
 /**
- * 处理提交行动（PR4: SUBMIT_ACTION）
+ * Handle submit action (PR4: SUBMIT_ACTION)
  *
- * Resolver-first：所有业务校验由 resolver 完成
- * Reject 也 broadcast：防 UI pending 卡死
+ * Resolver-first: all business validation is handled by the resolver
+ * Rejections are also broadcast: prevents the UI from getting stuck in a pending state
  */
 export function handleSubmitAction(
   intent: SubmitActionIntent,
@@ -150,21 +150,21 @@ export function handleSubmitAction(
 ): HandlerResult {
   const { seat, role, target, extra } = intent.payload;
 
-  // 验证前置条件（完整 gate 链）
+  // Validate preconditions (full gate chain)
   const validation = validateActionPreconditions(context.state, seat, role);
   if (!validation.valid) {
     return (validation as { valid: false; result: HandlerResult }).result;
   }
   const { schemaId, state, schema } = validation;
 
-  // 构建 ActionInput（先构建，用于 nightmare guard 和 resolver）
+  // Build ActionInput (built first, used by nightmare guard and resolver)
   let actionInput = buildActionInput(
     schemaId,
     target,
     extra as Record<string, unknown> | undefined,
   );
 
-  // 蚀时狼妃放逐重定向（在 nightmare guard 和 resolver 之前）
+  // Eclipse Wolf Queen shelter redirect (applied before nightmare guard and resolver)
   const shelteredSeat = state.currentNightResults?.shelteredSeat;
   actionInput = applyShelterRedirect(actionInput, seat, role, shelteredSeat);
   const effectiveTarget = actionInput.target ?? null;
@@ -180,7 +180,7 @@ export function handleSubmitAction(
     return buildRejectionResult(schemaId, blockRejectReason, state, seat);
   }
 
-  // 获取 resolver
+  // Get resolver
   const resolver = RESOLVERS[schemaId]!;
 
   // Bottom card actor override: when acting on the chosen card's step,
@@ -192,18 +192,18 @@ export function handleSubmitAction(
     resolverRole = state.thiefChosenCard as RoleId;
   }
 
-  // 构建上下文
+  // Build context
   const resolverContext = buildResolverContext(state, seat, resolverRole);
 
-  // 调用 resolver（resolver-first）
+  // Call resolver (resolver-first)
   let result = resolver(resolverContext, actionInput);
 
   if (!result.valid) {
     return buildRejectionResult(schemaId, result.rejectReason, state, seat);
   }
 
-  // wolfRobot 学到猎人时，resolver 仅标记 canShootAsHunter=true（不含完整死因信息），
-  // 此处用完整 GameState 做权威覆盖（与 confirmContext 猎人/狼王共用同一逻辑）。
+  // When wolfRobot learns hunter, the resolver only flags canShootAsHunter=true (without full death cause info);
+  // authoritative override using the full GameState here (shares logic with confirmContext for hunter/wolfKing).
   if (result.result?.canShootAsHunter !== undefined) {
     result = {
       ...result,
@@ -211,7 +211,7 @@ export function handleSubmitAction(
     };
   }
 
-  // 构建成功结果
+  // Build success result
   const handlerResult = buildSuccessResult(
     schemaId,
     seat,
@@ -221,9 +221,9 @@ export function handleSubmitAction(
     extra as Record<string, unknown> | undefined,
   );
 
-  // Wolf vote timer: wolfVote 步骤提交后，管理 stepDeadline
+  // Wolf vote timer: manages stepDeadline after a wolfVote step is submitted
   if (schema.kind === 'wolfVote' && handlerResult.kind === 'success') {
-    // 临时 reduce 所有 actions 以获取投票最新状态
+    // Temporarily reduce all actions to get the latest vote state
     let tempState = state;
     for (const action of handlerResult.actions) {
       tempState = gameReducer(tempState, action);
@@ -250,7 +250,7 @@ export function handleSubmitAction(
 }
 
 /**
- * 构建拒绝结果
+ * Build rejection result
  */
 function buildRejectionResult(
   schemaId: SchemaId,
@@ -280,7 +280,7 @@ function buildRejectionResult(
 }
 
 /**
- * 构建成功结果
+ * Build success result
  */
 function buildSuccessResult(
   schemaId: SchemaId,
@@ -313,9 +313,9 @@ function buildSuccessResult(
       payload: revealPayload,
     });
 
-    // 如果 schema 定义了 revealKind，且 reveal payload 包含实际数据，添加 pending ack 阻塞推进
-    // ackKey 使用 schemaId 作为稳定标识符（避免 revealKind 文案变更导致问题）
-    // 条件检查 payload 是否有 reveal 数据（shadow 仅在模仿复仇者时才有 reveal）
+    // If the schema defines revealKind and the reveal payload contains actual data, add a pending ack to block progression
+    // ackKey uses schemaId as the stable identifier (avoids breakage if revealKind text changes)
+    // Condition checks whether the payload has reveal data (shadow only has reveal when mimicking avenger)
     const schema = SCHEMAS[schemaId];
     const revealKind = (schema?.ui as { revealKind?: string } | undefined)?.revealKind;
     if (revealKind) {

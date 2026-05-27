@@ -1,7 +1,7 @@
 /**
  * Contract tests for leaveRoom listener lifecycle
  *
- * 验证离开房间后不会有残留的 store listeners 导致内存/逻辑泄漏
+ * Verifies that leaving a room leaves no residual store listeners that could cause memory/logic leaks.
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
@@ -61,43 +61,43 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
   it('should have zero listeners after leaveRoom when all subscribers have unsubscribed', async () => {
     const facade = createTestFacade();
 
-    // 初始状态应该没有 listeners
+    // Initial state should have no listeners
     expect(facade.getListenerCount()).toBe(0);
 
-    // 模拟 React 组件订阅
+    // Simulate React component subscriptions
     const unsubscribe1 = facade.addListener(() => {});
     const unsubscribe2 = facade.addListener(() => {});
     const unsubscribe3 = facade.addListener(() => {});
 
     expect(facade.getListenerCount()).toBe(3);
 
-    // 模拟组件 unmount 时的 cleanup（正确行为）
+    // Simulate cleanup on component unmount (correct behavior)
     unsubscribe1();
     unsubscribe2();
     unsubscribe3();
 
     expect(facade.getListenerCount()).toBe(0);
 
-    // 调用 leaveRoom（此时 listeners 已清理）
+    // Call leaveRoom (listeners already cleaned up at this point)
     await facade.leaveRoom();
 
-    // 验证：listener 数量仍为 0
+    // Verify: listener count is still 0
     expect(facade.getListenerCount()).toBe(0);
   });
 
   it('should preserve listeners after leaveRoom (store.reset does not clear listeners)', async () => {
     const facade = createTestFacade();
 
-    // 订阅但不取消（模拟 Web 上 screen 不 unmount 的场景）
+    // Subscribe without unsubscribing (simulates a Web screen that does not unmount)
     facade.addListener(() => {});
     facade.addListener(() => {});
 
     expect(facade.getListenerCount()).toBe(2);
 
-    // 调用 leaveRoom
+    // Call leaveRoom
     await facade.leaveRoom();
 
-    // store.reset() 不清除 listeners — React 组件生命周期（useFocusEffect）自行管理
+    // store.reset() does not clear listeners — React component lifecycle (useFocusEffect) manages them
     expect(facade.getListenerCount()).toBe(2);
   });
 
@@ -107,11 +107,11 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
     const unsubscribe = facade.addListener(() => {});
     expect(facade.getListenerCount()).toBe(1);
 
-    // 第一次取消订阅
+    // First unsubscribe
     unsubscribe();
     expect(facade.getListenerCount()).toBe(0);
 
-    // 重复调用应该是安全的（no-op）
+    // Repeated calls should be safe (no-op)
     unsubscribe();
     unsubscribe();
     expect(facade.getListenerCount()).toBe(0);
@@ -123,12 +123,12 @@ describe('GameFacade.leaveRoom() listener lifecycle contract', () => {
 
     facade.addListener(listener);
 
-    // 清除之前的调用（如果有）
+    // Clear any previous calls
     listener.mockClear();
 
     await facade.leaveRoom();
 
-    // store.reset() 通知 listeners state 变为 null
+    // store.reset() notifies listeners that state has become null
     expect(listener).toHaveBeenCalledWith(null);
   });
 });

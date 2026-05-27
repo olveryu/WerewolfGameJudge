@@ -14,10 +14,10 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * SpectralEdgeFrame — 幽灵之刃
+ * SpectralEdgeFrame — Spectral Edge
  *
- * 半透明幽灵白。断裂 "碎片" 边框段(不连续的 Rect 段) + 游荡魂链(链环 Path) +
- * 以太涟漪(RadialGradient 扩散圈) + 锁魂符文 Line 符号 + 亡魂幽火 core/halo。
+ * Semi-transparent ghost white. Broken "shard" border segments (discontinuous Rect pieces) + wandering soul chains (link-ring Path) +
+ * ether ripples (RadialGradient expanding circles) + soul-lock rune Line symbols + wraith fire core/halo.
  */
 export const SpectralEdgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

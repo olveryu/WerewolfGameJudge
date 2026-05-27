@@ -3,7 +3,7 @@
  *
  * Topic: Witch save/poison constraints and effects.
  *
- * Template: 狼王魔术师
+ * Template: Wolf King Magician
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

@@ -1,11 +1,11 @@
 /**
- * handlers/gameControl — 游戏生命周期 Hono routes (Workers 版)
+ * handlers/gameControl — game lifecycle Hono routes (Workers)
  *
- * Thin router 层：zod 校验 → DO RPC → 错误处理 → 返回响应。
- * 游戏逻辑在 DO (GameRoom) 内部执行。
+ * Thin router layer: zod validation → DO RPC → error handling → return response.
+ * Game logic executes inside the DO (GameRoom).
  *
- * @throws 400 — zod 校验失败或 DO 返回 success:false
- * @throws 503/429 — callDO 检测 DO retryable/overloaded
+ * @throws 400 — zod validation failed or DO returned success:false
+ * @throws 503/429 — callDO detected DO retryable/overloaded
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -27,7 +27,7 @@ import {
 } from '../schemas/game';
 import { callDO, getGameRoomStub, jsonBody, resultToStatus } from './shared';
 
-/** 游戏控制路由（分配/重启/bot 等）。 */
+/** Game control routes (assign / restart / bot, etc.). */
 export const gameRoutes = new Hono<AppEnv>();
 
 // ── Simple no-arg handlers (roomCode only) ──────────────────────────────────

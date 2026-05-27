@@ -4,9 +4,9 @@ import Svg, { Defs, G, Line, LinearGradient, Path, Rect, Stop } from 'react-nati
 import type { FrameProps } from './FrameProps';
 
 /**
- * JadeSealFrame — 玉印
+ * JadeSealFrame — Jade Seal
  *
- * 温润古玉 · 如意云纹角饰 · 厚实翠框 + 篆刻印章 + 玉光泽。
+ * Warm ancient jade · ruyi cloud-pattern corner pieces · thick jade frame + seal carvings + jade luster.
  */
 export const JadeSealFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

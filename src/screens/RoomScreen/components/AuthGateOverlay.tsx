@@ -1,10 +1,10 @@
 /**
- * AuthGateOverlay — 首次通过直连 URL 进入房间时的登录选择界面
+ * AuthGateOverlay — Login selection overlay shown when entering a room via direct URL for the first time
  *
- * 导航到 AuthLogin modal screen 处理全部登录/注册/忘记密码流程。
- * 仅当 needsAuth=true 时由 RoomScreen 渲染。
- * 登录成功后 auth screen goBack() → RoomScreen focus → onSuccess()。
- * 不含游戏业务逻辑，不 import service 层。
+ * Navigates to the AuthLogin modal screen to handle all login/register/forgot-password flows.
+ * Only rendered by RoomScreen when needsAuth=true.
+ * After login, auth screen goBack() → RoomScreen focus → onSuccess().
+ * No game business logic, no service-layer imports.
  */
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';

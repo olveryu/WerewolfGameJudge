@@ -205,7 +205,7 @@ describe('V2 faction/team consistency', () => {
   it('third-party roles should have team=Third (except thief/cupid which have dynamic teams)', () => {
     // thief and cupid are Special faction but start as Team.Good:
     // - thief: identity changes to chosen card (effective team is chosen role's team)
-    // - cupid: seer查验=好人, effective team computed from lover composition
+    // - cupid: seer check result = '好人', effective team computed from lover composition
     const DYNAMIC_TEAM_SPECIALS: RoleId[] = ['thief', 'cupid'];
     const thirdRoles = allIds.filter(
       (id) =>

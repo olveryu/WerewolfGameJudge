@@ -1,13 +1,13 @@
 /**
- * AvatarWithFrame — 头像 + 可选装饰框包装组件
+ * AvatarWithFrame — Avatar + optional decorative frame wrapper component.
  *
- * `size` 始终表示 avatar 尺寸。无 frame 时行为完全等同 Avatar。
- * 有 frame 时，frame SVG 按 viewBox "-8 -8 116 116" 渲染——
- * SVG 实际尺寸略大于 avatar，通过负偏移精确对齐：viewBox 坐标
- * 0-100 的主边框恰好覆盖 avatar 边缘，-8~0 / 100~108 的装饰
- * 向外溢出。不依赖 overflow:visible 的 SVG 行为。
- * 传说框额外叠加 LegendaryShimmer 动效层（流光 + 辉光脉冲 + 星尘）。
- * Memoized 以避免不必要重渲染。不 import service，不含业务逻辑。
+ * `size` always refers to the avatar size. Without a frame, behaves exactly like Avatar.
+ * With a frame, the frame SVG renders at viewBox "-8 -8 116 116" —
+ * the SVG is slightly larger than the avatar, aligned via negative offsets: viewBox coords
+ * 0–100 cover the avatar edges; decorations at -8~0 / 100~108
+ * overflow outward. Does not rely on overflow:visible SVG behavior.
+ * Legendary frames additionally overlay a LegendaryShimmer layer (shimmer + glow pulse + stardust).
+ * Memoized to avoid unnecessary re-renders. No service imports, no business logic.
  */
 import { LEGENDARY_FRAME_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
 import type React from 'react';
@@ -29,11 +29,11 @@ const VB_TOTAL = 100 + VB_PAD * 2; // 116
 
 interface AvatarWithFrameProps {
   value: string;
-  /** Avatar 尺寸（px）。有无 frame 含义不变。 */
+  /** Avatar size in px. Meaning unchanged with or without a frame. */
   size: number;
   avatarUrl?: string | null;
   borderRadius?: number;
-  /** 头像框 ID。null / undefined = 无框。 */
+  /** Frame ID. null / undefined = no frame. */
   frameId?: string | null;
 }
 

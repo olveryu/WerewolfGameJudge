@@ -1,8 +1,8 @@
 /**
- * SimpleRoundFrame — 圆环
+ * SimpleRoundFrame — Round Ring
  *
- * 单色圆形边框 + 微弱外发光。Common 级头像框模板。
- * 接受 FrameProps + color 参数，由工厂传入颜色生成变体。
+ * Solid-color circular border + subtle outer glow. Common-tier avatar frame template.
+ * Accepts FrameProps + color; color variants are injected by the factory.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';

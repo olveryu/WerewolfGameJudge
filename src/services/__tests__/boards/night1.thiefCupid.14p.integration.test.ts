@@ -1,5 +1,5 @@
 /**
- * Night-1 Integration Test: Thief + Cupid (盗贼丘比特)
+ * Night-1 Integration Test: Thief + Cupid (Thief & Cupid)
  *
  * Theme: Thief picks identity from 2 deck cards, Cupid links lovers; verifies card selection, lover linking, full-night flow.
  *

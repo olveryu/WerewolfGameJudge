@@ -1,8 +1,8 @@
 /**
- * BoardInfoCard - 角色配置信息卡片（可折叠，Memoized）
+ * BoardInfoCard - Role configuration info card (collapsible, Memoized)
  *
- * 显示角色配置概览（狼/神/民数量）。点击角色名可查看该角色技能。
- * 渲染 UI、处理折叠交互并通过回调上报 onRolePress intent，不 import service，不包含业务逻辑判断。
+ * Displays a role configuration overview (wolf/god/villager counts). Tap a role name to view its skills.
+ * Renders UI, handles collapse interaction, and reports onRolePress intent via callback; no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

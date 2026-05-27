@@ -1,10 +1,10 @@
 /**
- * Night-1 Integration Test: 狼王摄梦人 - Dreamcatcher Dream
+ * Night-1 Integration Test: Wolf King Dreamcatcher - Dreamcatcher Dream
  *
- * 板子：狼王摄梦人
- * 主题：摄梦人的守护与链接死亡
+ * Board: Wolf King Dreamcatcher
+ * Topic: Dreamcatcher's protect and linked death
  *
- * 固定 seat-role assignment:
+ * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf
  *   seat 7: darkWolfKing
@@ -13,11 +13,11 @@
  *   seat 10: hunter
  *   seat 11: dreamcatcher
  *
- * 核心规则：
- * - 摄梦人守护的目标免疫夜晚死亡
- * - 摄梦人死亡时，被守护者也死亡（链接死亡）
+ * Core rules:
+ * - Dreamcatcher's protected target is immune to night death
+ * - When Dreamcatcher dies, the protected target also dies (linked death)
  *
- * 架构：intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → GameState
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -28,7 +28,7 @@ import { executeFullNight } from './stepByStepRunner';
 const TEMPLATE_NAME = '狼王摄梦人';
 
 /**
- * 固定 seat-role assignment
+ * Fixed seat-role assignment
  */
 function createRoleAssignment(): Map<number, RoleId> {
   const map = new Map<number, RoleId>();
@@ -67,14 +67,14 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：dreamcatcherDream action 写入 state.actions
+      // Core assertion: dreamcatcherDream action written to state.actions
       const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.actorSeat).toBe(11); // dreamcatcher 在 seat 11
       expect(dreamAction!.targetSeat).toBe(0); // 守护 seat 0
 
-      // 被袭击的 seat 1 死亡
+      // attacked seat 1 dies
       expect(result.deaths).toEqual([1]);
     });
 
@@ -90,13 +90,13 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：action 记录
+      // Core assertion: action recorded
       const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction).toBeDefined();
       expect(dreamAction!.targetSeat).toBe(1);
 
-      // 被守护者免疫袭击，无人死亡
+      // protected target is immune to the attack; no deaths
       expect(result.deaths).toEqual([]);
     });
   });
@@ -114,7 +114,7 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：空选时 action 的 targetSeat 为 undefined 或无该 action
+      // Core assertion: when no target selected, action's targetSeat is undefined or the action is absent
       const state = ctx.getGameState();
       const dreamAction = state.actions?.find((a) => a.schemaId === 'dreamcatcherDream');
       expect(dreamAction?.targetSeat).toBeUndefined();
@@ -136,7 +136,7 @@ describe('Night-1: 狼王摄梦人 - Dreamcatcher (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // 核心断言：dreamcatcher(11) 和被守护者(0) 都死亡
+      // Core assertion: both dreamcatcher(11) and the protected target(0) die
       expect([...result.deaths].sort((a, b) => a - b)).toEqual([0, 11]);
     });
   });

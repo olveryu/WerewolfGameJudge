@@ -1,18 +1,18 @@
 /**
- * EmojiTokens — 保留的 Emoji 语义 Token
+ * EmojiTokens — retained emoji semantic tokens
  *
- * 仅包含无法替换为 Ionicons 的场景：
- * - ACTION：夜间行动前缀（密集文本行锚点，嵌入 Ionicons 复杂度高收益低）
- * - STATUS（余留）：出现在纯字符串模板中（NightReview / useSpeakingOrder），无法嵌入 JSX
- * - CELEBRATION_EMOJIS：粒子特效（Text 渲染，非 Ionicons 组件）
+ * Contains only cases that cannot be replaced with Ionicons:
+ * - ACTION: night action prefixes (dense text line anchors; embedding Ionicons is high-cost/low-gain)
+ * - STATUS (residual): appears in plain string templates (NightReview / useSpeakingOrder), cannot be embedded in JSX
+ * - CELEBRATION_EMOJIS: particle effects (rendered as Text, not Ionicons components)
  *
- * 已迁移至 Ionicons 的 token 见 iconTokens.ts（UI_ICONS / STATUS_ICONS）。
- * 角色 emoji 仍由 specs.ts 的 emoji 字段定义。
- * 不含业务逻辑 / 副作用 / 运行时依赖。
+ * Tokens migrated to Ionicons are in iconTokens.ts (UI_ICONS / STATUS_ICONS).
+ * Role emojis are still defined by the emoji field in specs.ts.
+ * No business logic / side effects / runtime dependencies.
  */
 
 // ── Night action prefixes ────────────────────────────────────
-/** 夜间行动前缀 emoji，用于密集文本行锚点。 */ export const ACTION = {
+/** Night action prefix emojis, used as dense text line anchors. */ export const ACTION = {
   CHECK: '🔍',
   KILL: '💀',
   SAVE: '💊',
@@ -25,9 +25,9 @@
   SHOOT: '🏹',
 } as const;
 
-// ── Game / system status（仅保留纯字符串模板中使用的条目）─────
+// ── Game / system status (only entries used in plain string templates) ─────
 
-/** 游戏/系统状态 emoji，仅用于纯字符串模板（NightReview / useSpeakingOrder）。 */
+/** Game/system status emojis, used only in plain string templates (NightReview / useSpeakingOrder). */
 export const STATUS = {
   PEACEFUL_NIGHT: '🌙',
   DEATH: '💀',
@@ -36,5 +36,5 @@ export const STATUS = {
 
 // ── Visual effects (shared across role reveal animations) ────
 
-/** 庆祝粒子特效用 emoji 集合（Text 渲染，非 Ionicons）。 */
+/** Emoji collection for celebration particle effects (rendered as Text, not Ionicons). */
 export const CELEBRATION_EMOJIS = ['⭐', '✨', '🎉', '🎊', '💫', '🌟', '🏆'] as const;

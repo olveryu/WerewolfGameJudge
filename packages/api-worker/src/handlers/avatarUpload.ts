@@ -1,14 +1,14 @@
 /**
- * handlers/avatarUpload — R2 头像 Hono routes
+ * handlers/avatarUpload — R2 avatar Hono routes
  *
- * POST /avatar/upload — 接收 multipart/form-data，
- * 压缩后存入 R2，返回公开可访问的 URL。
- * 上传前自动清理用户旧头像。
- * GET /avatar/:userId/:filename — 从 R2 提供头像文件。
+ * POST /avatar/upload — accepts multipart/form-data,
+ * compresses and stores in R2, returns a publicly accessible URL.
+ * Automatically cleans up the user's previous avatar before uploading.
+ * GET /avatar/:userId/:filename — serves avatar files from R2.
  *
- * @throws 401 — requireAuth 未通过（仅 POST）
- * @throws 400 — 缺少 file 字段 / 文件超过大小限制 / 格式不支持
- * @throws 404 — GET 时头像不存在
+ * @throws 401 — requireAuth failed (POST only)
+ * @throws 400 — missing file field / file exceeds size limit / unsupported format
+ * @throws 404 — avatar not found (GET)
  */
 
 import { eq, sql } from 'drizzle-orm';
@@ -20,7 +20,7 @@ import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 
 /**
- * 生成随机 hex 字符串
+ * Generate a random hex string
  */
 function randomHex(bytes: number): string {
   const buf = new Uint8Array(bytes);
@@ -28,10 +28,10 @@ function randomHex(bytes: number): string {
   return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** 头像上传路由。 */
+/** Avatar upload routes. */
 export const avatarRoutes = new Hono<AppEnv>();
 
-// POST /avatar/upload — R2 头像上传
+// POST /avatar/upload — upload avatar to R2
 avatarRoutes.post('/upload', requireAuth, async (c) => {
   const env = c.env;
   if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
@@ -98,7 +98,7 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   return c.json({ url: avatarUrlStr }, 200);
 });
 
-// GET /avatar/:userId/:filename — 从 R2 提供头像文件
+// GET /avatar/:userId/:filename — serve avatar file from R2
 avatarRoutes.get('/:userId/:filename', async (c) => {
   const env = c.env;
   if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);

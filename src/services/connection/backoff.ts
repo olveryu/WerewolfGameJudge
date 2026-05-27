@@ -1,14 +1,14 @@
 /**
- * calculateBackoff — 指数退避 + jitter
+ * calculateBackoff — exponential backoff + jitter
  *
- * 社区标准实现：exponential backoff with equal jitter。
- * 纯函数，无副作用，可穷举测试。
+ * Standard community implementation: exponential backoff with equal jitter.
+ * Pure function, no side effects, exhaustively testable.
  *
- * @param attempt - 当前重试次数（0-based）
- * @param baseMs - 基础延迟（默认 1000ms）
- * @param maxMs - 最大延迟上限（默认 30000ms）
- * @param random - 随机数生成器（0~1），默认 Math.random，测试时可注入
- * @returns 带 jitter 的延迟毫秒数
+ * @param attempt - current retry count (0-based)
+ * @param baseMs - base delay (default 1000ms)
+ * @param maxMs - maximum delay cap (default 30000ms)
+ * @param random - random number generator (0~1); defaults to Math.random; injectable for testing
+ * @returns jitter-adjusted delay in milliseconds
  */
 export function calculateBackoff(
   attempt: number,

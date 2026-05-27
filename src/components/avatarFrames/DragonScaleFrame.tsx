@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-na
 import type { FrameProps } from './FrameProps';
 
 /**
- * DragonScaleFrame — 龙鳞
+ * DragonScaleFrame — Dragon Scale
  *
- * 苍绿龙鳞甲 · 金色鳞弧四边 · 双叉龙角 + 宝石眼 + 利爪。
+ * Blue-green dragon scale armor · golden scale arcs on all four sides · bifurcated dragon horns + gem eyes + claws.
  */
 export const DragonScaleFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

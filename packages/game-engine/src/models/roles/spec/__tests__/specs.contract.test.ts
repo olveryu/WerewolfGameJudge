@@ -48,8 +48,8 @@ describe('ROLE_SPECS contract', () => {
 
   describe('witch spec', () => {
     it('witch save action should have notSelf constraint and confirmTarget kind in schema', () => {
-      // Night-1-only: 女巫不能自救规则定义在 witchAction.steps[0].constraints
-      // save 是 confirmTarget 类型：目标是固定的（被杀的人），用户只需确认
+      // Night-1-only: witch cannot self-save rule is defined in witchAction.steps[0].constraints
+      // save is confirmTarget kind: the target is fixed (the killed player), user only confirms
       const witchSchema = SCHEMAS.witchAction as CompoundSchema;
       expect(witchSchema.kind).toBe('compound');
       const saveStep = witchSchema.steps.find((s) => s.key === 'save');
@@ -242,7 +242,7 @@ describe('ROLE_SPECS contract', () => {
       const wolfRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.Wolf);
       for (const roleId of wolfRoles) {
         if (roleId === 'hiddenWolf') {
-          // 隐狼查验为好人 — 设计意图
+          // hiddenWolf checks as Good — design intent
           expect(ROLE_SPECS[roleId].team).toBe(Team.Good);
         } else {
           expect(ROLE_SPECS[roleId].team).toBe(Team.Wolf);

@@ -1,7 +1,7 @@
 /**
- * StormSurgeFlair — 风暴潮涌
+ * StormSurgeFlair — Storm Surge
  *
- * 雨丝 + 浪花组合：4 道倾斜 AnimatedLine 雨线 + 底部 2 道浪峰 AnimatedPath。
+ * Rain + wave combo: 4 diagonal AnimatedLine rain streaks + 2 wave crests at the bottom via AnimatedPath.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

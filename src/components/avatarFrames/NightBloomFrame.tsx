@@ -13,12 +13,12 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * NightBloomFrame — 夜花
+ * NightBloomFrame — Night Bloom
  *
- * 四角各一朵完整盛开花(6-8 petal closed paths)，每朵不同花型(旋转/大小不同)。
- * 花芯 = RadialGradient 暖光 stamen。花瓣散落在边缘(drift petals)。
- * 纤细藤蔓(single thin line)沿四边连接花朵。花粉微粒(biolight dots)。
- * 与原版完全不同: 原版只有 3-4 个 bezier petal + Circle, 新版是完整盛开花。
+ * One fully blooming flower (6–8 petal closed paths) at each corner, each with a different shape (rotation/size).
+ * Flower center = RadialGradient warm-light stamen. Drift petals scattered along the edges.
+ * Thin vines (single thin line) connect flowers along the four sides. Pollen particles (biolight dots).
+ * Completely different from the original: original had 3–4 bezier petals + Circle; new version has fully blooming flowers.
  */
 export const NightBloomFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,8 +1,8 @@
 /**
- * ShadowClawFlair — 暗影之爪 (Skia Canvas + Picture)
+ * ShadowClawFlair — Shadow Claw (Skia Canvas + Picture)
  *
- * 4 组三道紫色爪痕从四角向内抓入，带脉冲动画和尖端火花。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 4 sets of three purple claw marks scratch inward from the four corners, with pulse animation and tip sparks.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

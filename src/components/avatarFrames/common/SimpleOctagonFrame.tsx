@@ -1,7 +1,7 @@
 /**
- * SimpleOctagonFrame — 八角
+ * SimpleOctagonFrame — Octagon
  *
- * 八边形边框裁切。Common 级头像框模板。
+ * Octagonal border clip. Common-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
@@ -13,7 +13,7 @@ interface ColoredFrameProps extends FrameProps {
   colors: FrameColorSet;
 }
 
-/** 生成八边形路径（viewBox 100×100，切角 = rx 相关） */
+/** Generate the octagon path (viewBox 100×100; corner cut size is rx-related). */
 function octagonPath(cut: number): string {
   return [
     `M ${cut} 0`,

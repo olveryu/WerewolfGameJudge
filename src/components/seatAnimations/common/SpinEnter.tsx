@@ -1,5 +1,5 @@
 /**
- * SpinEnter — 旋转入场
+ * SpinEnter — Spin entrance
  *
  * Children rotate 360° while fading in with a colored arc sweep behind.
  * Common-tier entrance animation template.

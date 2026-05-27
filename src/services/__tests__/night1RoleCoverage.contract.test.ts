@@ -1,15 +1,15 @@
 /**
  * Night-1 Role Coverage Contract Test (PR8)
  *
- * 确保 NIGHT_STEPS 中每个 step 都有：
- * - 对应的 schema 定义
- * - 对应的 resolver 实现
- * - 非空的 audioKey
+ * Ensures every step in NIGHT_STEPS has:
+ * - a corresponding schema definition
+ * - a corresponding resolver implementation
+ * - a non-empty audioKey
  *
- * 这个测试防止：
- * - 新增角色但忘记加 schema
- * - 新增 step 但忘记加 resolver
- * - audioKey 遗漏导致音频不播放
+ * This test guards against:
+ * - adding a role without a schema
+ * - adding a step without a resolver
+ * - missing audioKey causing audio to not play
  */
 
 import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
@@ -66,14 +66,14 @@ describe('Night-1 Role Coverage Contract', () => {
 
   describe('Resolver invocability (smoke test)', () => {
     /**
-     * 对每个 resolver 做 smoke 测试：确保调用不会 throw
-     * 使用最小化的 context/input，只测试 resolver 存在且可调用
+     * Smoke-tests each resolver: ensures invocation does not throw
+     * Uses minimal context/input; only verifies the resolver exists and is callable
      */
     it.each(NIGHT_STEPS)('resolver for $id should be invocable without throwing', (step) => {
       const resolver = RESOLVERS[step.id];
       expect(resolver).toBeDefined();
 
-      // 最小化的 context 和 input
+      // Minimal context and input
       const minimalContext = {
         actorSeat: 0,
         actorRoleId: step.roleId,
@@ -88,7 +88,7 @@ describe('Night-1 Role Coverage Contract', () => {
         target: undefined,
       };
 
-      // 调用 resolver 不应该 throw（可能返回 valid: false，但不应该抛异常）
+      // Invoking the resolver should not throw (it may return valid: false, but must not throw)
       expect(() => {
         resolver!(
           minimalContext as unknown as import('@werewolf/game-engine/resolvers/types').ResolverContext,
@@ -105,7 +105,7 @@ describe('Night-1 Role Coverage Contract', () => {
       const stepsWithResolver = NIGHT_STEPS.filter((s) => RESOLVERS[s.id]).length;
       const stepsWithAudio = NIGHT_STEPS.filter((s) => s.audioKey).length;
 
-      // 100% 覆盖率要求
+      // 100% coverage requirement
       expect(stepsWithSchema).toBe(totalSteps);
       expect(stepsWithResolver).toBe(totalSteps);
       expect(stepsWithAudio).toBe(totalSteps);

@@ -1,10 +1,10 @@
 /**
- * GachaScreen — 扭蛋抽奖主界面
+ * GachaScreen — Gacha main screen
  *
- * 上半区：Skia CapsuleMachine 动画（28 球物理 + 搅拌 + 掉落 + 碎裂）。
- * 下半区：TicketTabBar（双面板切换） + 大数字/pity + 抽奖按钮（primary/secondary）。
- * 单抽结果：SingleResultReveal（4 级稀有度分层演出）。
- * 10 连抽结果：TenResultOverlay（高稀有度延迟亮起 + 发光边框）。
+ * Top half: Skia CapsuleMachine animation (28-ball physics + stirring + drop + shatter).
+ * Bottom half: TicketTabBar (dual-panel toggle) + large count/pity + draw buttons (primary/secondary).
+ * Single draw result: SingleResultReveal (4-tier rarity reveal).
+ * 10-pull result: TenResultOverlay (high-rarity delayed highlight + glow border).
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -49,7 +49,7 @@ import { PHASE } from './gachaConstants';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Gacha'>;
 
-/** 扭蛋抽奖主屏幕。 */
+/** Gacha main screen. */
 export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -132,7 +132,7 @@ export function GachaScreen({ navigation }: Props) {
           onError: (error: Error) => {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
-            // 业务拒绝（券不足、已收集完）仅 warn；其余错误由 MutationCache.onError 统一报 Sentry
+            // Business rejection (insufficient tickets, collection complete) is warn-only; other errors are reported to Sentry via MutationCache.onError
             const reason = 'reason' in error ? (error as { reason: string }).reason : '';
             const isExpected =
               reason === 'INSUFFICIENT_DRAWS' ||

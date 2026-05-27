@@ -1,15 +1,15 @@
 /**
- * gameActions.test.ts — callGameControlApi 核心逻辑 + thin wrapper 契约
+ * gameActions.test.ts — callGameControlApi core logic + thin wrapper contracts
  *
- * 重点测试 callGameControlApi 的高 bug 密度分支：
- * 1. 成功路径 + snapshot apply
- * 2. 服务端拒绝
- * 3. CONFLICT_RETRY → 客户端透明重试（最多 2 次）→ 重试耗尽
- * 4. Non-JSON 502/503 错误页 → 不抛 SyntaxError
- * 5. 网络错误（TypeError from fetch）→ NETWORK_ERROR
- * 6. ReferenceError → 直接 rethrow（编程错误）
+ * Focuses on high-bug-density branches of callGameControlApi:
+ * 1. Success path + snapshot apply
+ * 2. Server rejection
+ * 3. CONFLICT_RETRY → transparent client retry (up to 2 times) → retries exhausted
+ * 4. Non-JSON 502/503 error pages → no SyntaxError thrown
+ * 5. Network error (TypeError from fetch) → NETWORK_ERROR
+ * 6. ReferenceError → rethrow directly (programming error)
  *
- * thin wrapper（assignRoles 等）只测 NOT_CONNECTED 路径 + 正常调用转发。
+ * Thin wrappers (assignRoles etc.) only test the NOT_CONNECTED path + normal call forwarding.
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';

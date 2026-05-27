@@ -353,7 +353,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       return base;
     }
 
-    // 已投票：检查倒计时
+    // Already voted: check countdown
     const deadline = gameState?.stepDeadline;
     if (deadline != null) {
       const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
@@ -430,7 +430,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
 
     // Schema-driven: compound schema (witch two-phase flow)
     if (currentSchema?.kind === 'compound') {
-      // ANTI-CHEAT: 仅在 WitchContext 到达后才弹 prompt（避免没有 killedSeat 时误导 UI）。
+      // ANTI-CHEAT: only show prompt after WitchContext arrives (prevents misleading UI when killedSeat is absent).
       const witchCtx = getWitchContext();
       if (!witchCtx) return null;
       return { type: 'actionPrompt', targetSeat: -1 };

@@ -54,7 +54,7 @@ describe('wolfKillResolver', () => {
 
       const result = wolfKillResolver(ctx, input);
 
-      // 放弃袭击是允许的 (schema.meeting.allowEmptyVote: true)
+      // Skipping attack is allowed (schema.meeting.allowEmptyVote: true)
       expect(result.valid).toBe(true);
       expect(result.result).toEqual({}); // No kill target
     });
@@ -172,14 +172,14 @@ describe('wolfKillResolver', () => {
       const result = wolfKillResolver(ctx, input);
 
       expect(result.valid).toBe(true);
-      // actorSeat=2 的 key 应被删除
+      // The key for actorSeat=2 should be removed
       expect(result.updates?.wolfVotesBySeat).not.toHaveProperty('2');
-      // 其他狼的 key 应保留
+      // Keys for other wolves should be retained
       expect(result.updates?.wolfVotesBySeat?.['3']).toBe(1);
     });
 
     it('target=-2 后再投票应正常写入', () => {
-      // 先撤回
+      // First withdraw
       const ctx1 = createContext({
         currentNightResults: {
           wolfVotesBySeat: { '2': 0, '3': 1 },
@@ -189,7 +189,7 @@ describe('wolfKillResolver', () => {
       expect(withdrawResult.valid).toBe(true);
       expect(withdrawResult.updates?.wolfVotesBySeat).not.toHaveProperty('2');
 
-      // 再投票（用 withdraw 的 updates 作为新 context）
+      // Then vote (using withdraw's updates as the new context)
       const ctx2 = createContext({
         currentNightResults: {
           wolfVotesBySeat: withdrawResult.updates?.wolfVotesBySeat,

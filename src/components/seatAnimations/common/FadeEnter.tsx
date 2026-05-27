@@ -1,5 +1,5 @@
 /**
- * FadeEnter — 淡入
+ * FadeEnter — Fade in
  *
  * Children fade from transparent to opaque with a subtle colored glow ring behind.
  * Common-tier entrance animation template.

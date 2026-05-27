@@ -1,7 +1,7 @@
 /**
- * ServiceRegistry - 服务工厂，实例化 Cloudflare Workers 基础服务
+ * ServiceRegistry - service factory that instantiates Cloudflare Workers foundation services
  *
- * 由 App.tsx composition root 调用一次，不含业务逻辑。
+ * Called once by the App.tsx composition root; contains no business logic.
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
@@ -19,8 +19,8 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 import { log } from '@/utils/logger';
 
 /**
- * 顶层入口：创建全部 services + facade。
- * App.tsx composition root 调用一次。
+ * Top-level entry point: creates all services and the facade.
+ * Called once by the App.tsx composition root.
  */
 export function createAllServices(): {
   services: ServiceContextValue;

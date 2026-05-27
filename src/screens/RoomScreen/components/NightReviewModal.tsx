@@ -1,8 +1,8 @@
 /**
- * NightReviewModal - 夜晚行动回顾 Modal（裁判/观战者用）
+ * NightReviewModal - Night action review modal (for judge/spectator)
  *
- * 显示第一天晚上所有行动摘要及全员真实身份。
- * 渲染 Modal UI 并接收预构建的数据，不 import service，不含业务逻辑。
+ * Displays a summary of all night-1 actions and the true identity of every player.
+ * Renders Modal UI with pre-built data; no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

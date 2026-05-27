@@ -1,8 +1,8 @@
 /**
- * ThunderClapFlair — 惊雷一击
+ * ThunderClapFlair — Thunder Clap
  *
- * 单道大型闪电从顶部劈至底部，三层叠加(外晕/中/芯) + 4 spark 散射。
- * 周期性闪现：快闪→余光→暗→repeat。
+ * A single large lightning bolt strikes from top to bottom in three layers (outer halo / mid / core) + 4 scattered sparks.
+ * Periodic flash cycle: quick flash → afterglow → dark → repeat.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,11 +1,11 @@
 /**
- * PressableScale - iOS 风格按压缩放组件
+ * PressableScale - iOS-style press-to-scale component.
  *
- * 按压时 scale(0.97) + opacity(0.9) 弹簧动画，松开回弹。
- * 可选触觉反馈（via triggerHaptic）。兼容 ActionButton 的 meta 回调模式。
- * 使用 react-native-reanimated 实现跨平台动画。
+ * Press springs to scale(0.97) + opacity(0.9) and bounces back on release.
+ * Optional haptic feedback (via triggerHaptic). Compatible with ActionButton meta callback mode.
+ * Uses react-native-reanimated for cross-platform animation.
  *
- * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
+ * Renders UI and reports user intent. No service imports, no business logic.
  */
 import type React from 'react';
 import { memo, useCallback } from 'react';
@@ -16,7 +16,7 @@ import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/** 弹簧配置：快速响应、轻微回弹 */
+/** Spring config: fast response, slight bounce. */
 const SPRING_CONFIG = {
   damping: 15,
   stiffness: 300,
@@ -24,15 +24,15 @@ const SPRING_CONFIG = {
 } as const;
 
 interface PressableScaleProps {
-  /** 按压回调。兼容 ActionButton meta 模式和普通 () => void */
+  /** Press callback. Compatible with ActionButton meta mode and plain () => void. */
   onPress: ((meta: { disabled: boolean }) => void) | (() => void);
-  /** 视觉禁用（默认阻断 onPress，除非 fireWhenDisabled=true） */
+  /** Visually disabled (blocks onPress by default unless fireWhenDisabled=true). */
   disabled?: boolean;
-  /** 禁用时仍触发 onPress 并传递 meta（ActionButton 模式）。默认 false */
+  /** Still fires onPress with meta when disabled (ActionButton mode). Defaults to false. */
   fireWhenDisabled?: boolean;
-  /** 按压时缩放比例 (default: 0.97) */
+  /** Scale factor on press (default: 0.97). */
   activeScale?: number;
-  /** 是否触发触觉反馈 (default: false) */
+  /** Whether to trigger haptic feedback (default: false). */
   haptic?: boolean;
   style?: StyleProp<ViewStyle>;
   children: React.ReactNode;
@@ -77,7 +77,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
     if (haptic) {
       void triggerHaptic('light');
     }
-    // 兼容 meta 回调模式：始终传 { disabled }，let callers decide
+    // Meta callback compatibility: always pass { disabled }, let callers decide
     (onPress as (meta: { disabled: boolean }) => void)({ disabled });
   }, [haptic, onPress, disabled, fireWhenDisabled]);
 

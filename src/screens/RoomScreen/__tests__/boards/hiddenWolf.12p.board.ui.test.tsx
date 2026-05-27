@@ -1,7 +1,7 @@
 /**
  * HiddenWolf 12P Board UI Test
  *
- * Board: 隐狼乌鸦
+ * Board: Hidden Wolf Crow
  * Roles: 4x villager, 3x wolf, hiddenWolf, seer, witch, hunter, crow
  *
  * Required UI coverage (getRequiredUiDialogTypes):

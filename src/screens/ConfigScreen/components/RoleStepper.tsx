@@ -1,8 +1,8 @@
 /**
- * RoleStepper - 角色数量步进器（Memoized）
+ * RoleStepper - Role count stepper (Memoized)
  *
- * 用于普通狼人/村民等批量角色的 [-] count [+] 控件。
- * 渲染 UI 并通过回调上报 onCountChange，不 import service，不包含业务逻辑判断。
+ * [-] count [+] control for bulk roles such as plain wolf / villager.
+ * Renders UI and reports onCountChange via callback; no service imports, no business logic.
  */
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

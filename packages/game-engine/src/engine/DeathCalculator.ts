@@ -144,7 +144,7 @@ export interface RoleSeatMap {
 
   /**
    * Couple link seats (cupid lovers). null = no lovers.
-   * When active, if either seat dies, the other dies too (殉情).
+   * When active, if either seat dies, the other dies too (lover suicide).
    */
   coupleLinkSeats: readonly [number, number] | null;
 }
@@ -218,7 +218,7 @@ export function calculateDeathsDetailed(
   // 3.5. Process bonded link death (shadow ↔ avenger)
   processBondedLink(roleSeatMap, deaths, reasons);
 
-  // 3.6. Process couple link death (cupid lovers 殉情)
+  // 3.6. Process couple link death (cupid lovers — lover suicide)
   processCoupleLink(roleSeatMap, deaths, reasons);
 
   // 4. Process dreamcatcher effect (protection + link death)
@@ -264,7 +264,7 @@ function isBlockedByNightmare(roleSeat: number, nightmareBlock: number | undefin
  * Rules:
  * - Wolf kills target
  * - Guard protection OR witch save can prevent death
- * - BUT: 同守同救必死 (if both guard and witch save the same target, target dies)
+ * - BUT: if both guard and witch save the same target, the target still dies
  * - Nightmare block:
  *   - If guard is blocked, guard protection is nullified
  *   - If witch is blocked, witch save is nullified
@@ -307,7 +307,7 @@ function processWolfKill(
   const effectiveWitchSave = isWitchBlocked ? undefined : witchSaveTarget;
   const isSaved = effectiveWitchSave === wolfKill;
 
-  // 同守同救必死: if BOTH guard and witch (effectively) save, target still dies
+  // If BOTH guard and witch (effectively) save, target still dies
   // Otherwise: either guard OR witch can save
   const diesFromWolf = (isSaved && isGuarded) || (!isSaved && !isGuarded);
 
@@ -426,10 +426,10 @@ function processBondedLink(
 }
 
 /**
- * Process couple link death (cupid lovers 殉情).
+ * Process couple link death (cupid lovers — lover suicide).
  *
  * Rules:
- * - If either lover dies, the other dies too (殉情)
+ * - If either lover dies, the other dies too (lover suicide)
  * - Bidirectional: same logic as bonded link
  * - Only active when coupleLinkSeats is non-null (cupid chose lovers)
  */

@@ -1,7 +1,7 @@
 /**
- * StarlightFlair — 星光点缀
+ * StarlightFlair — Starlight
  *
- * 6 颗四芒星在头像周围漂浮，十字+对角光芒+光晕+中心点。
+ * 6 four-pointed stars float around the avatar with cross + diagonal rays + glow halo + center dot.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

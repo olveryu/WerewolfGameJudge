@@ -1,9 +1,9 @@
 /**
- * RoleRevealAnimator - 角色揭示动画统一入口
+ * RoleRevealAnimator - Unified entry point for role reveal animations.
  *
- * 根据 effectType 分发到对应的揭示动画组件（flip/scratch/tarot/gacha/roulette）。
- * 所有效果在动画中直接显示完整 RoleCardContent 样式。
- * 渲染动画并按 effectType 分发到对应效果组件。不 import service，不含业务逻辑。
+ * Dispatches to the corresponding reveal animation component based on effectType (flip/scratch/tarot/gacha/roulette).
+ * All effects display the full RoleCardContent style directly within the animation.
+ * Renders the animation and dispatches to the appropriate effect component by effectType. No service imports, no business logic.
  */
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,10 +28,10 @@ import { TarotDraw } from './TarotDraw';
 import type { RevealEffectType, RoleData, RoleRevealAnimatorProps } from './types';
 import { VortexCollapse } from './VortexCollapse';
 
-/** 自动播放的效果类型（无需手动操作） */
+/** Effect types that play automatically (no user interaction required). */
 const AUTO_EFFECTS: ReadonlySet<RevealEffectType> = new Set(['filmRewind']);
 
-/** 根据效果类型选择标题：手动操作类引导用户操作，自动类告知即将揭晓 */
+/** Selects the prompt title based on effect type: interactive types guide the user; auto types announce the upcoming reveal. */
 function getTitleForEffect(effectType: RevealEffectType): string {
   return AUTO_EFFECTS.has(effectType) ? '🎭 你的身份即将揭晓' : '🎭 完成下方操作，揭晓你的身份';
 }

@@ -1,16 +1,16 @@
 /**
- * FeedbackService — 用户反馈提交 + 历史查询 + 追问 + 未读
+ * FeedbackService — user feedback submission + history queries + follow-up replies + unread
  *
- * POST /api/feedback — 提交新反馈
- * GET  /api/feedback/history — 获取历史反馈及回复
- * POST /api/feedback/:feedbackId/reply — 追问
- * GET  /api/feedback/unread-count — 未读管理员回复数
- * POST /api/feedback/mark-read — 标记已读
+ * POST /api/feedback — submit new feedback
+ * GET  /api/feedback/history — fetch feedback history with replies
+ * POST /api/feedback/:feedbackId/reply — add a follow-up reply
+ * GET  /api/feedback/unread-count — count of unread admin replies
+ * POST /api/feedback/mark-read — mark as read
  */
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
-/** 单条回复 */
+/** A single reply entry. */
 export interface FeedbackReply {
   id: string;
   isAdmin: number;
@@ -50,10 +50,10 @@ interface UnreadCountResponse {
 }
 
 /**
- * 提交新反馈。
+ * Submits new feedback.
  *
- * @param content - 反馈正文
- * @param appVersion - 当前 app 版本号
+ * @param content - feedback body
+ * @param appVersion - current app version
  */
 export async function submitFeedback(
   content: string,
@@ -63,37 +63,37 @@ export async function submitFeedback(
   return { feedbackId: res.feedbackId, githubIssueNumber: res.githubIssueNumber };
 }
 
-/** 获取当前用户的历史反馈列表（含回复）。 */
+/** Fetches the current user's feedback history (including replies). */
 export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
   const res = await cfGet<FeedbackHistoryResponse>('/api/feedback/history');
   return res.feedbacks;
 }
 
 /**
- * 对已有反馈追加回复。
+ * Appends a follow-up reply to an existing feedback item.
  *
- * @param feedbackId - 反馈 ID
- * @param content - 回复内容
+ * @param feedbackId - feedback ID
+ * @param content - reply body
  */
 export async function replyToFeedback(feedbackId: string, content: string): Promise<void> {
   await cfPost(`/api/feedback/${feedbackId}/reply`, { content });
 }
 
-/** 获取未读管理员回复数。 */
+/** Fetches the count of unread admin replies. */
 export async function getUnreadFeedbackCount(): Promise<number> {
   const res = await cfGet<UnreadCountResponse>('/api/feedback/unread-count');
   return res.count;
 }
 
-/** 标记指定反馈的回复为已读。 */
+/** Marks replies for the specified feedback as read. */
 export async function markFeedbackRead(feedbackId: string): Promise<void> {
   await cfPost('/api/feedback/mark-read', { feedbackId });
 }
 
 /**
- * 解决或重开反馈。
+ * Resolves or reopens a feedback item.
  *
- * @param feedbackId - 反馈 ID
+ * @param feedbackId - feedback ID
  * @param action - 'resolve' | 'reopen'
  */
 export async function resolveFeedback(

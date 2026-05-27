@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * MoonGateFrame — 月门
+ * MoonGateFrame — Moon Gate
  *
- * 银白月拱门 · 四角新月弯钩向外延伸 · 星点散布 · 月晕弧光。
+ * Silver-white moon arch · crescent hooks extending outward at four corners · scattered star dots · moon halo arcs.
  */
 export const MoonGateFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

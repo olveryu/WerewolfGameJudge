@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-na
 import type { FrameProps } from './FrameProps';
 
 /**
- * EmberAshFrame — 余烬
+ * EmberAshFrame — Ember Ash
  *
- * 燃尽灰烬 · 橙色裂纹发光 · 底部热浪 + 余烬粒子 + 焦痕。
+ * Burned-out ash · glowing orange cracks · heat shimmer at the bottom + ember particles + char marks.
  */
 export const EmberAshFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,7 +1,7 @@
 /**
- * GhostWispFlair — 幽灵鬼火
+ * GhostWispFlair — Ghost Wisps
  *
- * 5 团蓝白色鬼火在外围不规则游走，带 3 节拖尾和辉光晕。
+ * 5 blue-white ghost wisps drift erratically around the perimeter, each with a 3-segment trail and glow halo.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

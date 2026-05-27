@@ -1,7 +1,7 @@
 /**
  * DarkWolfKing 12P Board UI Test
  *
- * Board: 狼王守卫
+ * Board: Wolf King Guard
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

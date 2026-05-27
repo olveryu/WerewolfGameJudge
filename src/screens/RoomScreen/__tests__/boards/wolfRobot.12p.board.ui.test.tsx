@@ -1,7 +1,7 @@
 /**
  * WolfRobot 12P Board UI Test
  *
- * Board: 机械狼人通灵师
+ * Board: Wolf Robot Psychic
  * Roles: 4x villager, 3x wolf, wolfRobot, psychic, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

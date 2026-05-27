@@ -1,5 +1,5 @@
 /**
- * appReady — App 初始化完成信号
+ * appReady — app initialization completion signal
  *
  * `signalAppReady()` is called after SplashScreen hides to signal app readiness.
  */
@@ -9,7 +9,7 @@ void new Promise<void>((r) => {
   resolve = r;
 });
 
-/** 标记 App 初始化完成（SplashScreen 隐藏后调用）。 */
+/** Signal that app initialization is complete (called after SplashScreen hides). */
 export function signalAppReady(): void {
   resolve();
 }

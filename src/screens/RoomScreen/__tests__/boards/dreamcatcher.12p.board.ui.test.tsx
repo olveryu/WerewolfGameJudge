@@ -1,7 +1,7 @@
 /**
  * Dreamcatcher 12P Board UI Test
  *
- * Board: 狼王摄梦人
+ * Board: Wolf King Dreamcatcher
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, dreamcatcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):

@@ -15,11 +15,11 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E - EclipseWolfQueen (蚀时狼妃) shelter redirect coverage.
+ * Night Roles E2E - EclipseWolfQueen (Eclipse Wolf Queen) shelter redirect coverage.
  *
  * Tests eclipseWolfQueen's core mechanic:
- * - Banish a player -> seer check redirects to caster (reveals 好人)
- * - Skip banish -> normal night flow (seer sees 狼人)
+ * - Banish a player -> seer check redirects to caster (reveals Good)
+ * - Skip banish -> normal night flow (seer sees Wolf)
  * - Banish a player -> witch poison redirects to caster (witch dies)
  *
  * Template: 4p custom (eclipseWolfQueen + wolf + seer/witch + villager)
@@ -34,7 +34,7 @@ test.setTimeout(180_000);
 
 test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
   // --------------------------------------------------------------------------
-  // eclipseWolfQueen banishes wolf, seer checks banished wolf -> 好人 (redirect)
+  // eclipseWolfQueen banishes wolf, seer checks banished wolf -> Good (redirect)
   // --------------------------------------------------------------------------
   test('eclipseWolfQueen banishes wolf, seer checks banished target → redirect reveals 好人', async ({
     browser,
@@ -82,7 +82,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
           await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
           // Redirect: seer checked the banished wolf, but the check is
-          // redirected to the seer themselves -> reveal should show 好人
+          // redirected to the seer themselves -> reveal should show Good
           const revealText = await readAlertText(pages[seerIdx]!);
           expect(revealText).toContain('好人');
           await dismissAlert(pages[seerIdx]!);
@@ -97,7 +97,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
   });
 
   // --------------------------------------------------------------------------
-  // eclipseWolfQueen skips -> seer checks wolf -> 狼人 (no redirect)
+  // eclipseWolfQueen skips -> seer checks wolf -> Wolf (no redirect)
   // --------------------------------------------------------------------------
   test('eclipseWolfQueen skips → seer checks wolf → reveals 狼人', async ({ browser }) => {
     await withSetup(
@@ -145,7 +145,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
           expect(seerTurn, 'Seer turn should be detected').toBe(true);
           await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
-          // No redirect active -> checking wolf shows 狼人
+          // No redirect active -> checking wolf shows Wolf
           const revealText = await readAlertText(pages[seerIdx]!);
           expect(revealText).toContain('狼人');
           await dismissAlert(pages[seerIdx]!);
@@ -155,7 +155,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
           const ended = await waitForNightEnd(pages, 120);
           expect(ended, 'Night should end').toBe(true);
 
-          // Villager was killed -> should not be 平安夜
+          // Villager was killed -> should not be peaceful night
           await viewLastNightInfo(pages[0]!);
           const alertText = await readAlertText(pages[0]!);
           expect(alertText).not.toContain('平安夜');
@@ -228,7 +228,7 @@ test.describe('Night Roles — EclipseWolfQueen Shelter Redirect', () => {
 
           await viewLastNightInfo(pages[0]!);
           const alertText = await readAlertText(pages[0]!);
-          // Should NOT be 平安夜 — wolf + witch die
+          // Should NOT be peaceful night — wolf + witch die
           expect(alertText).not.toContain('平安夜');
           // Assert specific seats died
           const wolfSeatDisplay = formatSeat(wolfSeat);

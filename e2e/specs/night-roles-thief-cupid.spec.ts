@@ -16,12 +16,12 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E — Thief (盗贼) & Cupid (丘比特) coverage.
+ * Night Roles E2E — Thief & Cupid coverage.
  *
  * Single comprehensive test covering the full thief + cupid night flow:
  * - Thief picks a bottom card
  * - Cupid links two players as lovers → groupConfirm reveal
- * - Wolf kills one of the lovers → couple death (殉情)
+ * - Wolf kills one of the lovers → couple death (lover suicide)
  * - Seer checks the thief → reveal shows "好人"
  *
  * Uses a 5-player custom template:
@@ -260,7 +260,7 @@ test.describe('Night Roles — Thief & Cupid (盗贼丘比特)', () => {
           }
         });
 
-        // === Step 4: Wolf's turn — kill a lover to trigger 殉情 ===
+        // === Step 4: Wolf's turn — kill a lover to trigger lover suicide ===
         await test.step('wolf kills a lover', async () => {
           const wolfTurn = await waitForRoleTurn(
             pages[wolfIndices[0]!]!,

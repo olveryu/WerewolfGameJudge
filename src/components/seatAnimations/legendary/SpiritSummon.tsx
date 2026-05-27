@@ -1,5 +1,5 @@
 /**
- * SpiritSummon — 灵魂召唤
+ * SpiritSummon — Spirit Summon
  *
  * Legendary entrance: ghostly wisps circle inward, summoning circle glows,
  * spirit energy converges, avatar materializes from spirit realm.

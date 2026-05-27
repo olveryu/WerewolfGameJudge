@@ -236,7 +236,7 @@ async function executeAction(
     return false;
   }
 
-  // Strategy: try within bottom-action-panel first (for buttons like 放弃袭击),
+  // Strategy: try within bottom-action-panel first (for buttons like skip-attack),
   // then try page-level getByText.
   // RN Web renders Text as <div>, so locator('text=') may not work with exact match.
   const panel = page.locator('[data-testid="bottom-action-panel"]');
@@ -387,7 +387,7 @@ async function tryAdvanceNight(
     // which would reset the 5-second countdown and cause an infinite loop.
     // Just dismiss the alert and let the countdown expire naturally.
     if (isWolfVoteConfirm && state.wolfVotedPages.has(pageLabel)) {
-      // Dismiss by pressing Escape or clicking outside (don't click 确定)
+      // Dismiss by pressing Escape or clicking outside (don't click Confirm)
       await page.keyboard.press('Escape').catch(() => {});
       return false;
     }

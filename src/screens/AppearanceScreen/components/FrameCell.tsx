@@ -25,7 +25,7 @@ interface FrameCellProps {
   styles: AppearanceScreenStyles;
 }
 
-/** 框网格单元格。 */
+/** Frame grid cell. */
 export const FrameCell = memo<FrameCellProps>(
   ({ item, selectedFrame, previewAvatarUrl, userId, onPress, styles }) => {
     const handlePress = useCallback(() => onPress(item.id), [onPress, item.id]);

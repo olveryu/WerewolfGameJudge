@@ -1,11 +1,11 @@
 /**
- * AtmosphericBackground — 环境粒子氛围层
+ * AtmosphericBackground — Ambient particle atmosphere layer.
  *
- * 在各揭示动画交互阶段提供低调的背景粒子/光晕运动感，
- * 增强沉浸感但不喧宾夺主。使用 Reanimated Animated.View 实现
- * （替代原 Skia Canvas + Picture API，减少同屏 Canvas 数量）。
- * 接受阵营主色，自动生成环境粒子。
- * 不 import service，不含业务逻辑。
+ * Provides subtle background particle/halo motion during reveal animation interaction phases,
+ * enhancing immersion without overwhelming the foreground. Uses Reanimated Animated.View,
+ * (replacing the original Skia Canvas + Picture API to reduce the number of on-screen Canvases).
+ * Accepts a faction primary color and auto-generates ambient particles.
+ * No service imports, no business logic.
  */
 import React, { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';

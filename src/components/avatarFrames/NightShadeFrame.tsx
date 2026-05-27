@@ -14,10 +14,10 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * NightShadeFrame — 夜影
+ * NightShadeFrame — Night Shade
  *
- * 深紫星空夜幕。RadialGradient 月晕角饰 · 星座连线 · 流星划痕 · 星云雾气 Path。
- * 结构：3 gradient (2 linear + 1 radial) · 4 moon-halo radial spots ·
+ * Deep purple starry night sky. RadialGradient moon-halo corners · constellation lines · meteor scratches · nebula mist Path.
+ * Structure: 3 gradients (2 linear + 1 radial) · 4 moon-halo radial spots ·
  *   constellation lines · shooting star paths · nebula fog curves。
  */
 export const NightShadeFrame = memo<FrameProps>(({ size, rx }) => {

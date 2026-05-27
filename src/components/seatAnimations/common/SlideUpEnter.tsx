@@ -1,5 +1,5 @@
 /**
- * SlideUpEnter — 从下方滑入
+ * SlideUpEnter — Slide in from below
  *
  * Children slide up from below the tile with a subtle colored trail line.
  * Common-tier entrance animation template.

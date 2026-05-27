@@ -57,7 +57,7 @@ const seatKickSchema = z.object({
   level: z.coerce.number().int().min(0).optional(),
 });
 
-/** 座位操作统一 schema（入座/离座/踢人）。 */
+/** Unified seat action schema (take seat / unseat / kick). */
 export const seatActionSchema = z.discriminatedUnion('action', [
   seatSitSchema,
   seatStandupSchema,
@@ -66,8 +66,8 @@ export const seatActionSchema = z.discriminatedUnion('action', [
 
 /**
  * Seat action params — Zod output minus `roomCode`.
- * GameRoom.seat() 直接接受此类型，路由层 `{ roomCode, ...params }` 透传。
- * 新增字段只改 schema + intent + handler，路由层零改动。
+ * GameRoom.seat() accepts this type directly; the route layer passes `{ roomCode, ...params }` through as-is.
+ * Adding a new field only requires updating the schema + intent + handler — no route changes needed.
  */
 export type SeatActionParams = Omit<z.infer<typeof seatActionSchema>, 'roomCode'>;
 

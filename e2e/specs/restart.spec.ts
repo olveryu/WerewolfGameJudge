@@ -8,7 +8,7 @@ import { RoomPage } from '../pages/RoomPage';
 /**
  * Restart & Settings E2E Tests
  *
- * - restart: After first night -> 重新开始 -> second night completes
+ * - restart: After first night -> restart -> second night completes
  * - settings: Template change via settings affects seat count
  */
 

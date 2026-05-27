@@ -102,7 +102,7 @@ const ROLE_UI_DIALOG_REQUIREMENTS: Partial<Record<RoleId, DialogType[]>> = {
   // Gargoyle: chooseSeat confirm + skip
   gargoyle: ['actionConfirm', 'skipConfirm'],
 
-  // AwakenedGargoyle: chooseSeat confirm only (canSkip: false, 强制发动)
+  // AwakenedGargoyle: chooseSeat confirm only (canSkip: false, forced activation)
   awakenedGargoyle: ['actionConfirm'],
 
   // Psychic: chooseSeat confirm + skip

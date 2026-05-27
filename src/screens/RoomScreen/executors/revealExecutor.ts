@@ -21,7 +21,7 @@ import { roomScreenLog } from '@/utils/logger';
 import { getRevealDataFromState } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
-/** 处理 reveal 意图（查验结果展示 + ack）。 */
+/** Handle reveal intent (display check result + ack). */
 export const revealExecutor: IntentExecutor = (intent, ctx) => {
   const { gameState, gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
   const { revealAckMutation, actionDialogs } = ctx;

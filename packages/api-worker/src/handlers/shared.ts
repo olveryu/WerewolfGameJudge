@@ -1,8 +1,8 @@
 /**
- * handlers/shared — 通用工具函数（Workers 版）
+ * handlers/shared — shared utility functions (Workers)
  *
- * 提供 Worker handler 共用的 Hono 校验、DO stub 获取、错误处理工具。
- * game-engine 相关的 buildHandlerContext/extractAudioActions 已迁移到 gameProcessor.ts。
+ * Provides Hono validation, DO stub retrieval, and error-handling utilities shared across Worker handlers.
+ * Game-engine utilities buildHandlerContext/extractAudioActions have been moved to gameProcessor.ts.
  */
 
 import type { Context } from 'hono';
@@ -36,12 +36,12 @@ type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoom>>;
 const log = createLogger('do');
 
 /**
- * Hono validator middleware — JSON body 解析 + zod 校验。
+ * Hono validator middleware — JSON body parsing + zod validation.
  *
- * 校验失败返回 400（{ success: false, reason: 'VALIDATION_ERROR', detail }），
- * 格式与原 parseBody 一致。JSON 解析失败由 app.onError 统一处理。
+ * On validation failure returns 400 ({ success: false, reason: 'VALIDATION_ERROR', detail }),
+ * matching the format of the original parseBody. JSON parse errors are handled centrally by app.onError.
  *
- * @throws 400 — body 不符合 schema 时直接返回 400 JSON response（非 throw）
+ * @throws 400 — returns a 400 JSON response directly when the body does not match the schema (not thrown)
  */
 export function jsonBody<T extends z.ZodType>(schema: T) {
   return validator('json', (value: unknown, c: Context) => {
@@ -67,7 +67,7 @@ export function isValidSeat(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
-/** HTTP 状态码映射 */
+/** HTTP status code mapping */
 export function resultToStatus(result: { success: boolean; reason?: string }): 200 | 400 | 500 {
   if (result.success) return 200;
   return result.reason === 'INTERNAL_ERROR' ? 500 : 400;
@@ -117,11 +117,11 @@ export function getWeChatAuthStub(env: Env): DurableObjectStub<WeChatAuthProxy> 
 type CfRequest = Request & { cf?: IncomingRequestCfProperties };
 
 /**
- * 包装 DO RPC 调用，处理 DO 特有的错误属性。
+ * Wraps a DO RPC call and handles DO-specific error properties.
  *
- * @throws HTTPException 503 — err.retryable === true（DO 暂不可用，客户端可重试）
- * @throws HTTPException 429 — err.overloaded === true（DO 超载，客户端应退避）
- * @throws 原始异常 — 非 DO 特有错误原样抛出，由 app.onError 处理
+ * @throws HTTPException 503 — err.retryable === true (DO temporarily unavailable; client may retry)
+ * @throws HTTPException 429 — err.overloaded === true (DO overloaded; client should back off)
+ * @throws original error — non-DO errors are re-thrown as-is for app.onError to handle
  */
 export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
   try {

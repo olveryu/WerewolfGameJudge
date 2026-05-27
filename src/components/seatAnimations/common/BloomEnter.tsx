@@ -1,5 +1,5 @@
 /**
- * BloomEnter — 花开入场
+ * BloomEnter — Bloom entrance
  *
  * Colored petals bloom outward from center, revealing children inside.
  * Rare-tier entrance animation template.

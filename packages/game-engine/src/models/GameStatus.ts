@@ -1,8 +1,8 @@
 /**
- * GameStatus - 游戏状态枚举
+ * GameStatus - Game status enum
  *
- * 定义游戏生命周期的所有阶段：unseated → seated → assigned → ready → ongoing → ended。
- * 仅包含枚举值定义，不依赖 service、不含副作用或业务逻辑。
+ * Defines all phases of the game lifecycle: unseated → seated → assigned → ready → ongoing → ended.
+ * Contains only enum value definitions. No service dependency, no side effects or business logic.
  */
 
 // =============================================================================

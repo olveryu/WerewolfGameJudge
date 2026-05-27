@@ -1,8 +1,8 @@
 /**
  * errorUtils - Shared error handling helpers
  *
- * 提供跨模块复用的错误处理工具函数，消除重复的 error-to-message 提取和 fire-and-forget 模式。
- * 纯函数工具，不引入 React / service / 游戏状态。
+ * Shared error handling utilities for cross-module reuse, eliminating duplicate error-to-message extraction and fire-and-forget patterns.
+ * Pure function utilities — no React / service / game state dependencies.
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -119,7 +119,7 @@ export function fireAndForget(
   });
 }
 
-/** 服务端 reason code → 中文友好文案 */
+/** Server reason code → user-friendly Chinese message map */
 const REASON_CODE_MAP: Record<string, string> = {
   // ── Auth ──────────────────────────────────────────────────────────────────
   EMAIL_ALREADY_REGISTERED: '该邮箱已注册',
@@ -208,7 +208,7 @@ const REASON_CODE_MAP: Record<string, string> = {
 /**
  * Translate a server reason code to a user-friendly Chinese message.
  *
- * 如果 reason 为 undefined/null 或不在映射表中，返回 fallback。
+ * Returns fallback if reason is undefined/null or not in the map.
  */
 export function translateReasonCode(
   reason: string | undefined | null,

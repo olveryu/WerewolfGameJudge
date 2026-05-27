@@ -1,14 +1,14 @@
 /**
  * id - Platform-agnostic unique ID generation for game-engine
  *
- * 使用标准 Web Crypto API（Node 19+ / 所有现代浏览器原生支持）。
- * 不依赖 expo-crypto。导出 randomHex / requestId / rejectionId。
- * 不使用 Math.random()，不 import 平台依赖。
+ * Uses the standard Web Crypto API (Node 19+ / all modern browsers natively).
+ * No dependency on expo-crypto. Exports randomHex / requestId / rejectionId.
+ * Does not use Math.random(); no platform imports.
  */
 
 /**
- * 生成随机十六进制字符串
- * 使用 Web Crypto API（Node 19+ / 浏览器原生支持）
+ * Generate a random hexadecimal string
+ * Uses the Web Crypto API (Node 19+ / native browser support)
  */
 export function randomHex(length: number): string {
   const bytes = new Uint8Array(Math.ceil(length / 2));
@@ -20,7 +20,7 @@ export function randomHex(length: number): string {
 }
 
 /**
- * 生成唯一 Request ID（用于 RPC/ACK 关联）
+ * Generate a unique Request ID (for RPC/ACK correlation)
  */
 export function newRequestId(): string {
   if (typeof crypto.randomUUID === 'function') {
@@ -30,9 +30,9 @@ export function newRequestId(): string {
 }
 
 /**
- * 生成唯一 Rejection ID（用于 action rejection 去重）
+ * Generate a unique Rejection ID (for action rejection deduplication)
  *
- * 格式: `{timestamp}:{random}`
+ * Format: `{timestamp}:{random}`
  */
 export function newRejectionId(): string {
   return `${Date.now()}:${randomHex(8)}`;

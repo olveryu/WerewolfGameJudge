@@ -1,11 +1,11 @@
 /**
- * useConnectionStatus — 订阅 facade 连接状态
+ * useConnectionStatus — subscribes to facade connection status
  *
- * 替代 useConnectionSync：精简版 hook，仅订阅 ConnectionStatus
- * 并追踪 lastStateReceivedAt / stateRevision。
- * 所有重连/ping/pong/revision-poll 逻辑已移入 ConnectionManager。
+ * Replaces useConnectionSync: a minimal hook that only subscribes to ConnectionStatus
+ * and tracks lastStateReceivedAt / stateRevision.
+ * All reconnect/ping/pong/revision-poll logic has been moved into ConnectionManager.
  *
- * 不直接修改游戏状态，不包含业务校验逻辑。
+ * Does not directly mutate game state or contain business validation logic.
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';

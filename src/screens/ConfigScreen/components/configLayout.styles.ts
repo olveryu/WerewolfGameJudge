@@ -26,7 +26,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     overflow: 'hidden', // Ensures flex children respect height constraints on web
   } satisfies ViewStyle,
 
-  // ── Header row: ← | 预女猎白▾ 12人 | ⋯ ────────────
+  // ── Header row: ← | Seer-Witch-Hunter-Villager▾ 12p | ⋯ ────────────
   header: {
     flexDirection: 'row',
     alignItems: 'center',

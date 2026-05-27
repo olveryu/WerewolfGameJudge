@@ -1,8 +1,8 @@
 /**
- * GemFrame — 宝石
+ * GemFrame — Gem
  *
  * Border with small diamond-shaped decorations at the 4 midpoints of each edge.
- * Rare 级头像框模板.
+ * Rare-tier avatar frame template.
  */
 import { memo, useId } from 'react';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';

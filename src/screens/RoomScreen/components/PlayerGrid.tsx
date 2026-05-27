@@ -1,9 +1,9 @@
 /**
- * PlayerGrid - 座位网格组件
+ * PlayerGrid - Seat grid component
  *
- * 纯 UI，接收 SeatViewModel[] + 单个回调。
- * Styles 创建一次后传入所有 SeatTile。
- * 渲染 UI 并通过回调上报 onSeatPress，不 import service / showAlert，不包含业务逻辑判断。
+ * Pure UI: accepts SeatViewModel[] + a single callback.
+ * Styles are created once and passed to all SeatTile instances.
+ * Renders UI and reports onSeatPress via callback; no service/showAlert imports, no business logic.
  */
 import type React from 'react';
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';

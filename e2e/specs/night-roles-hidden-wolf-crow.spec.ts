@@ -85,11 +85,11 @@ test.describe('Night Roles — HiddenWolf + Crow', () => {
         const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn, 'Seer turn should be detected').toBe(true);
 
-        // Seer checks the hiddenWolf → should reveal 好人
+        // Seer checks the hiddenWolf → should reveal Good
         const checkSeat = roleMap.get(hiddenWolfIdx)!.seat;
         await clickSeatAndConfirm(pages[seerIdx]!, checkSeat);
 
-        // Read reveal — hiddenWolf should show as 好人
+        // Read reveal — hiddenWolf should show as Good
         const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain(`${checkSeat + 1}号`);
         expect(revealText).toContain('好人');

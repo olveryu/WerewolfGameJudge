@@ -1,8 +1,8 @@
 /**
- * ButterflyFlair — 蝶影翩翩 (Skia Canvas + Picture)
+ * ButterflyFlair — Butterfly Dance (Skia Canvas + Picture)
  *
- * 6 只蝴蝶在外围环绕飞舞，翅膀扇动（双圆模拟），带身体圆点。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 6 butterflies circle and flutter around the perimeter, wings simulated with two circles each, plus body dots.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

@@ -3,7 +3,7 @@
  *
  * Theme: Eclipse Wolf Queen charm behavior and linked death.
  *
- * Template: 狼美守卫
+ * Template: Wolf Queen Guard
  * Fixed seat-role assignment:
  *   seat 0-3: villager
  *   seat 4-6: wolf

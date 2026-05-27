@@ -1,17 +1,17 @@
 /**
- * gameProcessor — DO 内部的读-算-写核心流程
+ * gameProcessor — core read-compute-write pipeline inside a DO
  *
- * 替代旧 gameStateManager.ts 的 processGameAction。
- * DO 单线程序列化保证无并发冲突，无需 optimistic lock retry。
- * SQLite sql.exec 是同步的，多条 SQL 自动 coalesce 为原子事务。
- * 广播在同实例内完成，零网络开销。
+ * Replaces processGameAction from the old gameStateManager.ts.
+ * DO single-thread serialization guarantees no concurrency conflicts; no optimistic lock retry needed.
+ * SQLite sql.exec is synchronous; multiple SQL statements automatically coalesce into an atomic transaction.
+ * Broadcast is performed within the same instance with zero network overhead.
  *
- * @remarks 管道顺序：
- *   1. 读 SQLite（同步）
+ * @remarks Pipeline order:
+ *   1. Read SQLite (synchronous)
  *   2. processFn(state, revision) → HandlerResult
- *   3. 如果 success: reduce actions → newState → inlineProgression(optional) → extractAudio
- *   4. 写 SQLite（同步，单次 exec 原子）
- *   5. 调用方执行 broadcast
+ *   3. If success: reduce actions → newState → inlineProgression(optional) → extractAudio
+ *   4. Write SQLite (synchronous, single exec atomic)
+ *   5. Caller performs broadcast
  */
 
 import type { HandlerResult, SideEffect } from '@werewolf/game-engine/engine/handlers/types';
@@ -23,7 +23,7 @@ import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 
-/** processAction 的最终返回值（与旧 GameActionResult 等价） */
+/** Final return value of processAction (equivalent to the old GameActionResult) */
 export type GameActionResult =
   | {
       success: true;
@@ -36,7 +36,7 @@ export type GameActionResult =
 
 interface InlineProgressionOptions {
   enabled: boolean;
-  /** Unix timestamp (ms)。用于 stepDeadline 检查。默认 Date.now()。 */
+  /** Unix timestamp (ms). Used for stepDeadline checks. Defaults to Date.now(). */
   nowMs?: number;
 }
 
@@ -75,19 +75,19 @@ export function extractAudioActions(sideEffects: readonly SideEffect[] | undefin
 }
 
 /**
- * 核心读-算-写流程（DO 内部方法）
+ * Core read-compute-write pipeline (DO internal method)
  *
- * 与旧 processGameAction 语义完全一致，但：
- * - 无 retry 循环（DO 单线程保证无并发冲突）
- * - SQLite sql.exec 是同步的，多条 SQL 自动 coalesce 为原子事务
- * - 广播由调用方在返回后执行
+ * Semantically equivalent to the old processGameAction, but:
+ * - No retry loop (DO single-thread guarantees no concurrency conflicts)
+ * - SQLite sql.exec is synchronous; multiple SQL statements automatically coalesce into an atomic transaction
+ * - Broadcast is performed by the caller after this function returns
  */
 export function processAction(
   sql: DurableObjectState['storage']['sql'],
   processFn: (state: GameState, revision: number) => HandlerResult,
   inlineProgression?: InlineProgressionOptions,
 ): GameActionResult {
-  // 1. 读 SQLite（同步，零网络）
+  // 1. Read SQLite (synchronous, zero network)
   const rows = sql.exec('SELECT game_state, revision FROM room_state WHERE id = 1').toArray();
 
   if (rows.length === 0) {
@@ -97,18 +97,18 @@ export function processAction(
   const state = JSON.parse(rows[0].game_state as string) as GameState;
   const revision = rows[0].revision as number;
 
-  // 2. 调用 game-engine 纯函数
+  // 2. Call game-engine pure function
   const result = processFn(state, revision);
 
-  // error: 前置条件/基础设施失败 → 不持久化
+  // error: precondition / infrastructure failure → do not persist
   if (result.kind === 'error') {
     return { success: false, reason: result.reason };
   }
 
-  // success | rejection: 都有 actions 需要 apply + persist + broadcast
+  // success | rejection: both have actions to apply + persist + broadcast
   const isSuccess = result.kind === 'success';
 
-  // 3. apply actions → 新 state
+  // 3. Apply actions → new state
   let newState = state;
   let totalActionsApplied = 0;
   for (const action of result.actions) {
@@ -116,7 +116,7 @@ export function processAction(
     totalActionsApplied++;
   }
 
-  // 3.5. inline progression（可选，仅 success 时）
+  // 3.5. Inline progression (optional, success only)
   if (isSuccess && inlineProgression?.enabled) {
     const prog = runInlineProgression(newState, newState.hostUserId, inlineProgression.nowMs);
     for (const action of prog.actions) {
@@ -135,7 +135,7 @@ export function processAction(
   newState = normalizeState(newState);
   const newRevision = revision + 1;
 
-  // 4. 写 SQLite（与上面的 read 自动 coalesce 为原子事务）
+  // 4. Write SQLite (automatically coalesces with the read above into an atomic transaction)
   sql.exec(
     'UPDATE room_state SET game_state = ?, revision = ? WHERE id = 1',
     JSON.stringify(newState),

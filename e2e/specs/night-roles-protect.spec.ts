@@ -19,8 +19,8 @@ import { withSetup } from '../helpers/night-setup';
  * Night Roles E2E — Protection / Immunity effect coverage.
  *
  * Tests all roles that prevent or modify night deaths:
- * - Guard protect -> 平安夜
- * - Witch save -> 平安夜, Witch self-save rejection
+ * - Guard protect -> peaceful night
+ * - Witch save -> peaceful night, Witch self-save rejection
  * - Dreamcatcher hit/miss/link death
  * - SpiritKnight wolf-kill immunity, poison reflection
  *
@@ -36,7 +36,7 @@ test.setTimeout(180_000);
 
 test.describe('Night Roles — Protection / Immunity', () => {
   // --------------------------------------------------------------------------
-  // Guard protects -> 平安夜
+  // Guard protects -> peaceful night
   // --------------------------------------------------------------------------
   test('guard protects wolf target → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -72,7 +72,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(wolfTurn, 'Wolf turn should be detected').toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
-        // Night should end with 平安夜
+        // Night should end with peaceful night
         const ended = await waitForNightEnd(pages, 120);
         expect(ended, 'Night should have ended').toBe(true);
 
@@ -84,7 +84,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Witch saves -> 平安夜
+  // Witch saves -> peaceful night
   // --------------------------------------------------------------------------
   test('witch saves wolf-killed player → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -145,7 +145,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         await confirmModal.waitFor({ state: 'visible', timeout: 5000 });
         await dismissAlert(pages[witchIdx]!);
 
-        // Night should end with 平安夜
+        // Night should end with peaceful night
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
@@ -157,7 +157,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Dreamcatcher dreams wolf target -> immune (平安夜)
+  // Dreamcatcher dreams wolf target -> immune (peaceful night)
   // --------------------------------------------------------------------------
   test('dreamcatcher dreams wolf target → 平安夜', async ({ browser }) => {
     await withSetup(
@@ -195,7 +195,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], targetSeat);
 
-        // Night should end with 平安夜 (dreamcatcher immunity)
+        // Night should end with peaceful night (dreamcatcher immunity)
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 
@@ -243,7 +243,7 @@ test.describe('Night Roles — Protection / Immunity', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
-        // Night ends with death (not 平安夜)
+        // Night ends with death (not peaceful night)
         const ended = await waitForNightEnd(pages, 120);
         expect(ended).toBe(true);
 

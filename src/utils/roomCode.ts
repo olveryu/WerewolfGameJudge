@@ -1,19 +1,19 @@
 /**
  * roomCode - Room code generation utilities
  *
- * 统一的房间号生成入口，生成 4 位房间号，确保所有创建房间路径使用相同的生成逻辑。
- * 全链路使用安全随机，复用 random.ts 的 secureRng。
- * 不引入 React 或 service，禁止使用 Math.random() 或自建 crypto 降级逻辑。
+ * Single entry point for room code generation — produces a 4-digit code and ensures all room-creation paths share the same logic.
+ * Uses secure randomness throughout, reusing secureRng from random.ts.
+ * No React or service dependencies. Math.random() and custom crypto fallbacks are forbidden.
  */
 
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
 /**
- * 生成 4 位房间号（1000-9999）
+ * Generate a 4-digit room code (1000–9999).
  *
- * 复用 secureRng（标准 Web Crypto API）
+ * Reuses secureRng (standard Web Crypto API).
  *
- * @returns 4 位数字字符串，范围 1000-9999
+ * @returns 4-digit numeric string in the range 1000–9999
  */
 export function generateRoomCode(): string {
   const range = 9000; // 9999 - 1000 + 1 = 9000 种可能

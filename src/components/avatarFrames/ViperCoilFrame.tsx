@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * ViperCoilFrame — 蝰蛇
+ * ViperCoilFrame — Viper Coil
  *
- * 蛇鳞绿框 · 蛇身从四角蜿蜒而出 · 三角蛇头 · 红色蛇眼 · 鳞片纹理。
+ * Snake-scale green frame · serpent bodies winding outward from each corner · triangular snake heads · red snake eyes · scale texture.
  */
 export const ViperCoilFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

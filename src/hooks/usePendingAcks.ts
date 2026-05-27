@@ -12,5 +12,5 @@
 
 import { useIsMutating } from '@tanstack/react-query';
 
-/** 任何协议 ack mutation 正在进行时返回 true，用于 RoomInteractionPolicy 门控。 */
+/** Returns true when any protocol ack mutation is in flight; used as a gate in RoomInteractionPolicy. */
 export const usePendingAcks = (): boolean => useIsMutating({ mutationKey: ['ack'] }) > 0;

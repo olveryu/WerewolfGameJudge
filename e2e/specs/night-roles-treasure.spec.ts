@@ -11,7 +11,7 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E — TreasureMaster (盗宝大师)
+ * Night Roles E2E — TreasureMaster (Treasure Master)
  *
  * Verifies the treasureMaster bottom-card selection flow and subsequent
  * unchosen-bottom-card step auto-skip. Uses a 4-player template:

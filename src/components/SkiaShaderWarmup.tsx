@@ -83,7 +83,7 @@ function warmupShaders() {
   paint.setColor(Skia.Color('rgb(128,128,128)'));
   canvas.drawCircle(2, 2, 1, paint);
 
-  // ── 10. drawLine — ShadowClaw/ThunderBolt 线段 ──
+  // ── 10. drawLine — ShadowClaw/ThunderBolt line segment ──
   paint.setStrokeCap(1); // Round cap
   paint.setStyle(1);
   paint.setStrokeWidth(2);
@@ -91,11 +91,11 @@ function warmupShaders() {
   paint.setStrokeCap(0);
   paint.setStyle(0);
 
-  // ── 11. drawRRect fill — LegendaryShimmer 圆角矩形 ──
+  // ── 11. drawRRect fill — LegendaryShimmer rounded rect ──
   paint.setColor(Skia.Color('#FFD700'));
   canvas.drawRRect(rrect, paint);
 
-  // ── 12. RadialGradient shader — WolfReveal fog 雾气 ──
+  // ── 12. RadialGradient shader — WolfReveal fog ──
   const shader = Skia.Shader.MakeRadialGradient(
     { x: 2, y: 2 },
     2,
@@ -111,7 +111,7 @@ function warmupShaders() {
   surface.flush();
 }
 
-/** 在 app 启动时执行 Skia shader 预编译。不渲染任何 UI。 */
+/** Runs Skia shader pre-compilation at app startup. Renders no UI. */
 export function useSkiaShaderWarmup(): void {
   useEffect(() => {
     runOnUI(warmupShaders)();

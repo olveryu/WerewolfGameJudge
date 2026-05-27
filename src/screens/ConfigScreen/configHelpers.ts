@@ -25,15 +25,13 @@ import { buildInitialSelection, FACTION_GROUPS } from './configData';
 // ─────────────────────────────────────────────────────────────────────────────
 // Selection helpers
 // ─────────────────────────────────────────────────────────────────────────────
-/** 获取默认勾选（基础狼人+村民）。 */ export const getInitialSelection = (): Record<
-  string,
-  boolean
-> => buildInitialSelection();
+/** Get default selection (base wolves + villagers). */ export const getInitialSelection =
+  (): Record<string, boolean> => buildInitialSelection();
 
 /** All roles off — used when entering ConfigScreen via "从零开始自定义". */
 export const getEmptySelection = (): Record<string, boolean> => buildInitialSelection([]);
 
-/** 将勾选转换为 RoleId 数组。 */
+/** Convert selection to a RoleId array. */
 export const selectionToRoles = (
   selection: Record<string, boolean>,
   variantOverrides?: Record<string, string>,

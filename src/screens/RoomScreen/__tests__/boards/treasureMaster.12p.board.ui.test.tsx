@@ -1,7 +1,7 @@
 /**
  * TreasureMaster 12P Board UI Test
  *
- * Board: 盗宝大师
+ * Board: Treasure Master
  * Roles: 5x villager, 3x wolf, darkWolfKing, psychic, poisoner, hunter,
  *        dreamcatcher, crow, treasureMaster (15 roles -> 12 players + 3 bottom cards)
  *

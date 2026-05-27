@@ -137,7 +137,7 @@ export function useRoomInit({
     };
 
     void initRoom();
-    // retryKey 变化时也会触发重试
+    // retryKey change also triggers a retry
   }, [isInitialized, retryKey, isHostParam, template, roomCode, initializeRoom, joinRoom]);
 
   // Loading timeout — two-phase: soft hint at 8s, hard retry at 15s
@@ -162,9 +162,9 @@ export function useRoomInit({
     const retryTimeout = setTimeout(() => {
       if (!isInitialized || !hasGameState) {
         setShowRetryButton(true);
-        // 区分两种超时场景：
-        // - 已加入频道但没收到 state → 房主可能不在线
-        // - 初始化本身失败 → 通用加载超时
+        // Distinguish two timeout scenarios:
+        // - Joined channel but no state received → host may be offline
+        // - Init itself failed → generic load timeout
         if (isInitialized && !hasGameState) {
           roomScreenLog.warn('Loading timeout — waiting for host state', {
             isInitialized,
@@ -193,7 +193,7 @@ export function useRoomInit({
     setShowRetryButton(false);
     initInProgressRef.current = false;
     setLoadingMessage('重试中');
-    // 递增 retryKey 强制触发 useEffect 重试（即使 isInitialized 已经是 false）
+    // Increment retryKey to force useEffect retry (even when isInitialized is already false)
     setRetryKey((prev) => prev + 1);
   }, []);
 

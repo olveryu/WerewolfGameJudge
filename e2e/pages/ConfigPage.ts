@@ -112,7 +112,7 @@ export class ConfigPage {
 
   /**
    * Switch to a faction tab.
-   * @param faction - Tab key: 'Villager' (好人阵营), 'Wolf' (狼人阵营), 'Special' (第三方阵营)
+   * @param faction - Tab key: 'Villager' (good faction), 'Wolf' (wolf faction), 'Special' (third-party faction)
    */
   async switchToFactionTab(faction: 'Villager' | 'Wolf' | 'Special') {
     const tab = this.page.locator(`[data-testid="config-faction-tab-${faction}"]`);
@@ -216,9 +216,9 @@ export class ConfigPage {
   /**
    * Configure a 2-player template (1 wolf + 1 villager).
    *
-   * Starting from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12):
-   * - 好人阵营 tab: deselect seer/witch/hunter/idiot chips, reduce villager 4→1
-   * - 狼人阵营 tab: reduce wolf 4→1
+   * Starting from default Seer-Witch-Hunter-Villager (4w + seer + witch + hunter + idiot + 4v = 12):
+   * - Good faction tab: deselect seer/witch/hunter/idiot chips, reduce villager 4→1
+   * - Wolf faction tab: reduce wolf 4→1
    */
   async configure2Player() {
     // good faction tab is active by default
@@ -233,9 +233,9 @@ export class ConfigPage {
   /**
    * Configure a 6-player template (2w + seer + witch + hunter + 1v = 6).
    *
-   * Starting from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12):
-   * - 好人阵营 tab: deselect idiot chip, reduce villager 4→1
-   * - 狼人阵营 tab: reduce wolf 4→2
+   * Starting from default Seer-Witch-Hunter-Villager (4w + seer + witch + hunter + idiot + 4v = 12):
+   * - Good faction tab: deselect idiot chip, reduce villager 4→1
+   * - Wolf faction tab: reduce wolf 4→2
    */
   async configure6Player() {
     // good faction tab is active by default
@@ -252,7 +252,7 @@ export class ConfigPage {
   // ---------------------------------------------------------------------------
 
   /**
-   * Configure a custom template from default 预女猎白 (4w + seer + witch + hunter + idiot + 4v = 12).
+   * Configure a custom template from default Seer-Witch-Hunter-Villager (4w + seer + witch + hunter + idiot + 4v = 12).
    *
    * Deselects all default special roles, zeros out wolf/villager steppers,
    * then adds the requested roles.
@@ -312,7 +312,7 @@ export class ConfigPage {
       }
     }
 
-    // --- 第三方阵营 (if needed) ---
+    // --- Third-party faction (if needed) ---
     if (specialRoles.length > 0) {
       await this.switchToFactionTab('Special');
       for (const roleId of specialRoles) {

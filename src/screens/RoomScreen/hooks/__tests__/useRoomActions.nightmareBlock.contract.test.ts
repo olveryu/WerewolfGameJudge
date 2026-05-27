@@ -115,12 +115,12 @@ describe('A) Schema-driven intents - UI 总是返回 schema-driven intent', () =
         currentSchema: getSchema('hunterConfirm'),
         actorRole: 'hunter',
         currentActionRole: 'hunter',
-        // 未被 block（没有设置 blockedSeat）
+        // Not blocked (no blockedSeat set)
       });
 
       const { result } = renderHook(() => useRoomActions(ctx, defaultDeps));
 
-      // server-authoritative design: 未 blocked 时只显示 confirm，无 skip 选项
+      // server-authoritative design: when not blocked, only confirm is shown — no skip option
       const bottomAction = result.current.getBottomAction();
       expect(bottomAction.buttons).toHaveLength(1);
       expect(bottomAction.buttons[0]!.key).toBe('confirm');

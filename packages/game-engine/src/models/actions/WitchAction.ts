@@ -6,7 +6,7 @@
  * - Poison potion: kill a player
  *
  * This is a discriminated union type for type-safe handling.
- * 导出类型定义、type guard 纯函数及工厂函数，不依赖 service、不含副作用或业务逻辑。
+ * Exports type definitions, type guard pure functions, and factory functions. No service dependency, no side effects or business logic.
  */
 
 // =============================================================================

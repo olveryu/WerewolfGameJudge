@@ -57,9 +57,9 @@ function resolveAvatarPrefetchUrl(avatarUrl: string | null | undefined): string 
 const FONT_TIMEOUT_MS = 5_000;
 
 /**
- * 跟踪应用启动进度（auth + 头像预加载 + 字体加载）。
+ * Tracks app boot progress (auth + avatar prefetch + font loading).
  *
- * 全部完成后 ready=true，允许隐藏 SplashScreen。
+ * Sets ready=true when all steps complete, allowing SplashScreen to hide.
  */
 export function useBootProgress(): BootProgress {
   const { user, loading: authLoading, error: authError, retryInit } = useAuthContext();

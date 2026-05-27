@@ -1,8 +1,8 @@
 /**
- * Night Plan Types - 夜晚行动序列类型定义
+ * Night Plan Types - night action sequence type definitions
  *
  * Table-driven night action sequence.
- * 导出 NightPlan / NightPlanStep / NightPlanBuildError 类型定义，不依赖 service、不含副作用。
+ * Exports NightPlan / NightPlanStep / NightPlanBuildError type definitions; no service dependencies, no side effects.
  */
 
 import type { SchemaId } from './schemas';
@@ -47,10 +47,10 @@ export interface NightPlan {
 }
 
 /**
- * NightPlanBuildError — buildNightPlan 遇到无效输入时抛出。
+ * NightPlanBuildError — thrown by buildNightPlan when it receives invalid input.
  *
- * 何时抛出：模板中包含未注册的 roleId 或无效配置。
- * 如何 catch：`instanceof NightPlanBuildError` —— 读取 .invalidRoleIds 展示具体问题角色。
+ * When thrown: template contains an unregistered roleId or invalid configuration.
+ * How to catch: `instanceof NightPlanBuildError` — read .invalidRoleIds to surface the problematic roles.
  */
 export class NightPlanBuildError extends Error {
   constructor(

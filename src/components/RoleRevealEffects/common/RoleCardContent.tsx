@@ -1,10 +1,10 @@
 /**
- * RoleCardContent - 角色卡片内容区域（无 Modal 包裹）
+ * RoleCardContent - Role card content area (no Modal wrapper).
  *
- * 所有角色卡片 UI 的唯一 source of truth。
- * RoleCardSimple（静态模态框）和各动画效果组件均复用此组件。
- * 长描述自动缩小字号以完整显示在卡片内。
- * 渲染角色卡片内容 UI，通过 children 插槽扩展底部按钮。不 import service，不含业务逻辑。
+ * The single source of truth for all role card UI.
+ * Reused by RoleCardSimple (static modal) and all animation effect components.
+ * Long descriptions automatically scale down to fit within the card.
+ * Renders the role card content UI; extends the bottom button area via children slot. No service imports, no business logic.
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import {
@@ -39,7 +39,7 @@ const AE = CONFIG.alignmentEffects;
 /** White text color for badges/overlays on colored backgrounds */
 const BADGE_TEXT_WHITE = '#fff';
 
-// 阵营颜色（从主题 token 取色）
+// Faction color (from theme tokens)
 const getFactionColor = (roleId: RoleId, colors: ThemeColors): string => {
   if (isWolfRole(roleId)) return colors.wolf;
   const spec = getRoleSpec(roleId);
@@ -62,41 +62,41 @@ interface RoleCardContentProps {
   /** Optional bottom slot (e.g. confirm button) rendered below description */
   children?: React.ReactNode;
   /**
-   * 为 true 时跳过 displayAs 映射，显示角色真实身份。
-   * 用于裁判视角的技能预览（角色配置 chip）。默认 false（玩家翻牌看伪装身份）。
+   * When true, skips displayAs mapping and shows the role's real identity.
+   * Used for judge-perspective ability previews (role config chips). Defaults to false (players see the disguised identity when flipping).
    */
   showRealIdentity?: boolean;
   /**
-   * 双预言家编号（1 或 2），由 seerLabelMap 派生。
-   * 存在时角色名显示为 "X号预言家"。仅 seer+mirrorSeer 共存配置使用。
+   * Dual-seer index (1 or 2), derived from seerLabelMap.
+   * When present, the role name displays as "X号预言家". Only used in seer+mirrorSeer coexistence configs.
    */
   seerLabel?: number;
   /**
-   * 动画揭牌模式。为 true 时卡片使用暗色阵营背景 + 亮色文字，匹配 HTML demo 视觉。
-   * 仅在 RoleRevealAnimator 的 6 个动画组件中传入 true；
-   * RoleCardSimple（静态卡片 + "我知道了"按钮）不传此 prop，保持默认白底。
+   * Animation reveal mode. When true, the card uses a dark faction background + light text, matching the HTML demo visual.
+   * Only passed as true in the 6 animation components of RoleRevealAnimator;
+   * RoleCardSimple (static card + "我知道了" button) does not pass this prop, keeping the default white background.
    */
   revealMode?: boolean;
   /**
-   * Reveal-mode 3-stop 渐变背景色（来自 AlignmentTheme.revealGradient）。
-   * 匹配 HTML demo v2 的 `linear-gradient(160deg, edge, center, edge)` 模式。
-   * 仅在 revealMode=true 时生效。
+   * Reveal-mode 3-stop gradient background color (from AlignmentTheme.revealGradient).
+   * Matches the HTML demo v2 `linear-gradient(160deg, edge, center, edge)` pattern.
+   * Only applied when revealMode=true.
    */
   revealGradient?: readonly [string, string, string];
   /**
-   * Reveal-mode 边框透明度（匹配 HTML demo 半透明边框）。
-   * 仅在 revealMode=true 时生效。默认 0.5。
+   * Reveal-mode border opacity (matching the HTML demo semi-transparent border).
+   * Only applied when revealMode=true. Defaults to 0.5.
    */
   revealBorderOpacity?: number;
   /**
-   * 触发入场动画（emoji 弹出、角色名/描述滑入、狼人震颤）。
+   * Triggers entrance animations (emoji pop, role name/description slide-in, wolf tremor).
    *
-   * 三态语义：
-   * - `undefined`（不传）— 内容立即可见，无入场动画（ScratchReveal 透视孔卡片）。
-   * - `false` — 内容**隐藏**，等待触发（卡片翻转前的正面，防止翻转时内容闪现）。
-   * - `true` — 从隐藏态播放入场动画（卡片翻转完成后设置）。
+   * Three-state semantics:
+   * - `undefined` (not passed) — content is immediately visible, no entrance animation (ScratchReveal peek-hole card).
+   * - `false` — content is **hidden**, waiting to be triggered (the card face before flip, preventing content flash during flip).
+   * - `true` — plays entrance animation from hidden state (set after card flip completes).
    *
-   * 与 revealMode 独立：revealMode 控制视觉样式，animateEntrance 控制入场动画生命周期。
+   * Independent of revealMode: revealMode controls visual style; animateEntrance controls entrance animation lifecycle.
    */
   animateEntrance?: boolean;
 }
@@ -119,8 +119,8 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 
   const spec = getRoleSpec(roleId);
 
-  // mirrorSeer 等有 displayAs 字段的角色：玩家看到的是目标角色的外观
-  // showRealIdentity=true 时跳过伪装，用于裁判视角的技能预览
+  // Roles with displayAs (e.g. mirrorSeer): players see the appearance of the target role
+  // showRealIdentity=true skips the disguise, used for judge-perspective ability previews
   const displayRoleId = showRealIdentity ? roleId : (getRoleDisplayAs(roleId) ?? roleId);
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : spec;
   const baseRoleName = displaySpec?.displayName || roleId;

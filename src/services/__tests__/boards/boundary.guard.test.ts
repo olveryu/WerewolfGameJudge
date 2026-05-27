@@ -1,7 +1,7 @@
 /**
  * Boundary Guard Tests
  *
- * 确保 harness 不会 import legacy 代码
+ * Ensure harness does not import legacy code
  */
 
 import * as fs from 'fs';

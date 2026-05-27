@@ -1,7 +1,7 @@
 /**
  * Masquerade 12P Board UI Test
  *
- * Board: 假面舞会
+ * Board: Masquerade
  * Roles: 4x villager, 3x wolf, masquerade, seer, witch, dancer, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):

@@ -1,14 +1,14 @@
 /**
  * Night-1 Full Role Alignment Contract Test
  *
- * 全量对齐测试：验证 NIGHT_STEPS ↔ SCHEMAS ↔ RESOLVERS 三层一致性
+ * Full alignment test: verifies consistency across NIGHT_STEPS ↔ SCHEMAS ↔ RESOLVERS
  *
- * 测试项：
- * 1. audioKey === roleId（音频文件命名规范）
- * 2. Schema constraints ↔ Resolver 校验对齐
- * 3. revealKind 存在 ⇔ resolver 返回对应 result 字段
- * 4. Nightmare blocking 逻辑统一
- * 5. canSkip 行为对齐
+ * Test cases:
+ * 1. audioKey === roleId (audio file naming convention)
+ * 2. Schema constraints ↔ Resolver validation alignment
+ * 3. revealKind present ⇔ resolver returns the corresponding result field
+ * 4. Nightmare blocking logic consistency
+ * 5. canSkip behavior alignment
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -186,7 +186,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 
       const result = resolver!(context, input);
 
-      // 袭击是中立的，可以袭击任意座位
+      // Attack is neutral: any seat can be targeted
       expect(result.valid).toBe(true);
     });
   });
@@ -195,7 +195,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
 // === 3. revealKind ↔ Resolver result field alignment ===
 
 describe('revealKind ↔ Resolver result field alignment', () => {
-  // 这些 schema 有 revealKind 需要返回 reveal 结果
+  // These schemas have revealKind and must return reveal results
   const schemasWithReveal = [
     {
       schemaId: 'seerCheck' as SchemaId,
@@ -365,7 +365,7 @@ describe('Nightmare blocking behavior', () => {
   /**
    * Wolf kill when wolfKillOverride:
    * - Non-empty vote (target) → REJECTED
-   * - Empty vote (放弃袭击) → allowed
+   * - Empty vote (skip attack) → allowed
    */
   describe('wolfKillOverride behavior', () => {
     it('wolfKillOverride + non-empty vote → valid=false', () => {

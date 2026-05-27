@@ -39,7 +39,7 @@ function emitChange(): void {
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
-/** Debug 日志外部 store，兼容 useSyncExternalStore 的 subscribe/getSnapshot API。 */ export const debugLogStore =
+/** External debug log store, compatible with useSyncExternalStore's subscribe/getSnapshot API. */ export const debugLogStore =
   {
     /** useSyncExternalStore subscribe */
     subscribe(listener: () => void): () => void {

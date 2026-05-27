@@ -1,8 +1,8 @@
 /**
- * MagmaFloatFlair — 熔岩浮石 (Skia Canvas + Picture)
+ * MagmaFloatFlair — Magma Float (Skia Canvas + Picture)
  *
- * 6 块不规则熔岩球在外围浮动，由重叠圆组成，带底部热辉光。
- * 全部通过 useDerivedValue + Picture 在 UI 线程 imperative 绘制。
+ * 6 irregular magma blobs float around the perimeter, composed of overlapping circles with a bottom heat glow.
+ * All drawn imperatively on the UI thread via useDerivedValue + Picture.
  */
 import { Picture, Skia } from '@shopify/react-native-skia';
 import { memo, useEffect, useMemo } from 'react';

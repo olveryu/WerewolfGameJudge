@@ -14,7 +14,7 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E — Awakened Gargoyle (觉醒石像鬼) coverage.
+ * Night Roles E2E — Awakened Gargoyle coverage.
  *
  * Tests chooseSeat convert and groupConfirm reveal:
  * - Gargoyle converts adjacent non-wolf -> all players ack -> night ends

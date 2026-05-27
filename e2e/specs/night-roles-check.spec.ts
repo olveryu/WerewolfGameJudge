@@ -21,7 +21,7 @@ import { withSetup } from '../helpers/night-setup';
  * Night Roles E2E — Check / Reveal effect coverage.
  *
  * Tests all roles that produce a reveal result during Night-1:
- * - Seer (好人/狼人), Psychic (exact role), Gargoyle (exact role)
+ * - Seer (Good/Wolf), Psychic (exact role), Gargoyle (exact role)
  * - WolfRobot learn + hunter gate
  * - Magician swap × check role interactions
  * - SpiritKnight seer reflection
@@ -38,7 +38,7 @@ test.setTimeout(180_000);
 
 test.describe('Night Roles — Check / Reveal', () => {
   // --------------------------------------------------------------------------
-  // Seer checks good player → 好人
+  // Seer checks good player → Good
   // --------------------------------------------------------------------------
   test('seer checks villager → reveal shows 好人', async ({ browser }) => {
     await withSetup(
@@ -287,12 +287,12 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
-        // Seer checks the wolf's ORIGINAL seat — after swap, villager is there → 好人
+        // Seer checks the wolf's ORIGINAL seat — after swap, villager is there → Good
         const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
         await clickSeatAndConfirm(pages[seerIdx]!, wolfSeat);
 
-        // Reveal should show 好人 (because villager was swapped to that seat)
+        // Reveal should show Good (because villager was swapped to that seat)
         const revealText = await readAlertText(pages[seerIdx]!);
         expect(revealText).toContain('好人');
         await dismissAlert(pages[seerIdx]!);
@@ -351,7 +351,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killTargetSeat);
 
-        // Gargoyle checks wolf's ORIGINAL seat → villager is there after swap → 普通村民
+        // Gargoyle checks wolf's ORIGINAL seat → villager is there after swap → Villager
         const gargTurn = await waitForRoleTurn(pages[gargoyleIdx]!, ['查验'], pages, 120);
         expect(gargTurn).toBe(true);
         await clickSeatAndConfirm(pages[gargoyleIdx]!, wolfSeat);
@@ -406,7 +406,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killTargetSeat);
 
-        // Psychic checks wolf's ORIGINAL seat → villager is there → 普通村民
+        // Psychic checks wolf's ORIGINAL seat → villager is there → Villager
         const psychicTurn = await waitForRoleTurn(pages[psychicIdx]!, ['通灵', '选择'], pages, 120);
         expect(psychicTurn).toBe(true);
         await clickSeatAndConfirm(pages[psychicIdx]!, wolfSeat);
@@ -422,7 +422,7 @@ test.describe('Night Roles — Check / Reveal', () => {
   });
 
   // --------------------------------------------------------------------------
-  // SpiritKnight — seer check reflects → seer dies, still sees 狼人
+  // SpiritKnight — seer check reflects → seer dies, still sees Wolf
   // --------------------------------------------------------------------------
   test('seer checks spiritKnight → sees 狼人 → seer dies from reflection', async ({ browser }) => {
     await withSetup(
@@ -464,7 +464,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, allWolfIndices, killSeat);
 
-        // Seer checks spiritKnight → should still see 狼人 (check resolves before reflect)
+        // Seer checks spiritKnight → should still see Wolf (check resolves before reflect)
         const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
         await clickSeatAndConfirm(pages[seerIdx]!, skSeat);
@@ -658,7 +658,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         // Learn the hunter
         await clickSeatAndConfirm(pages[wrIdx]!, hunterSeat);
 
-        // Read learn reveal — should contain 猎人
+        // Read learn reveal — should contain Hunter
         const revealText = await readAlertText(pages[wrIdx]!);
         expect(revealText).toContain('猎人');
         await dismissAlert(pages[wrIdx]!);
@@ -680,7 +680,7 @@ test.describe('Night Roles — Check / Reveal', () => {
   });
 
   // --------------------------------------------------------------------------
-  // WolfRobot learns hunter while poisoned → hunter gate shows 不可发动技能
+  // WolfRobot learns hunter while poisoned → hunter gate shows cannot-activate-ability
   // --------------------------------------------------------------------------
   test('wolfRobot learns hunter while poisoned → gate shows 不可发动技能', async ({ browser }) => {
     await withSetup(
@@ -720,7 +720,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         await driveWolfVote(pages, wolfIndices, killSeat);
 
         // Witch turn — witch acts before wolfRobot (NIGHT_STEP_ORDER: witchAction < wolfRobotLearn).
-        // Skip save (don't click 用解药), poison the wolfRobot via seat tap (compound step:
+        // Skip save (don't click use-antidote), poison the wolfRobot via seat tap (compound step:
         // seat tap is always poison selection — see useRoomActions.ts).
         const witchTurn = await waitForRoleTurn(
           pages[witchIdx]!,
@@ -754,7 +754,7 @@ test.describe('Night Roles — Check / Reveal', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Seer checks cursedFox → sees 好人 → cursedFox dies from check
+  // Seer checks cursedFox → sees Good → cursedFox dies from check
   // --------------------------------------------------------------------------
   test('seer checks cursedFox → sees 好人 → cursedFox dies', async ({ browser }) => {
     await withSetup(
@@ -788,7 +788,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         expect(wolfTurn).toBe(true);
         await driveWolfVote(pages, [wolfIdx], killSeat);
 
-        // Seer checks cursedFox → should see 好人 (Team.Third → 好人)
+        // Seer checks cursedFox → should see Good (Team.Third → Good)
         const seerTurn = await waitForRoleTurn(pages[seerIdx]!, ['查验', '选择'], pages, 120);
         expect(seerTurn).toBe(true);
         await clickSeatAndConfirm(pages[seerIdx]!, cursedFoxSeat);
@@ -807,7 +807,7 @@ test.describe('Night Roles — Check / Reveal', () => {
         const nightInfo = await readAlertText(pages[0]!);
         expect(nightInfo).toContain(formatSeat(cursedFoxSeat));
 
-        // Should not be 平安夜 (villager wolf-killed + cursedFox check-killed)
+        // Should not be peaceful night (villager wolf-killed + cursedFox check-killed)
         const peaceful = await isTextVisible(pages[0]!, '平安夜');
         expect(peaceful, 'Should not be 平安夜 with cursedFox check death').toBe(false);
       },

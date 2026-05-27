@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * MysticRuneFrame — 秘文
+ * MysticRuneFrame — Mystic Rune
  *
- * 深蓝底框 · 四角发光符文圆盘 · 边缘符文刻线 · 神秘蓝光脉冲。
+ * Deep-blue base frame · four-corner glowing rune discs · edge rune engravings · mysterious blue light pulse.
  */
 export const MysticRuneFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -256,7 +256,7 @@ export const CONFIG = {
     /** Number of spark fragments (matches HTML demo: 24 sparks) */
     wolfSparkCount: 24,
 
-    // ── Third (第三方) — 神秘系 ──
+    // ── Third-party — Mystery group ──
     /** Outer rune ring rotation cycle (ms) */
     thirdRuneRotationDuration: 12000,
     /** Number of rune symbols */
@@ -268,7 +268,7 @@ export const CONFIG = {
     /** Number of spiral particles (matches HTML demo: 30 canvas particles) */
     thirdParticleCount: 30,
 
-    // ── Villager (村民) — 宁静系 ──
+    // ── Villager — Peaceful group ──
     /** Number of floating firefly particles */
     villagerFireflyCount: 16,
     /** Firefly upward drift cycle (ms) */
@@ -355,7 +355,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Meteor Strike (流星坠落)
+  // Meteor Strike (Meteor Fall)
   // =====================================================
   meteorStrike: {
     /** Atmosphere intro duration before meteor appears (ms) */
@@ -389,7 +389,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Film Rewind (胶片倒放)
+  // Film Rewind (Film Strip Rewind)
   // =====================================================
   filmRewind: {
     /** Atmosphere intro duration (ms) */
@@ -415,7 +415,7 @@ export const CONFIG = {
   },
 
   // =====================================================
-  // Vortex Collapse (虚空坍缩)
+  // Vortex Collapse (Void Collapse)
   // =====================================================
   vortexCollapse: {
     /** Atmosphere intro duration (ms) */

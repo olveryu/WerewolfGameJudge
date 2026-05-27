@@ -1,7 +1,7 @@
 /**
  * Nightmare 12P Board UI Test
  *
- * Board: 噩梦之影守卫
+ * Board: Nightmare Guard
  * Roles: 4x villager, 3x wolf, nightmare, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

@@ -1,7 +1,7 @@
 /**
  * Slacker 12P Board UI Test
  *
- * Board: 预女猎白混
+ * Board: Seer-Witch-Hunter-Villager-Slacker
  * Roles: 3x villager, 4x wolf, slacker, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):

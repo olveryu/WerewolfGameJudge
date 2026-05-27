@@ -1,7 +1,7 @@
 /**
  * WolfQueen 12P Board UI Test
  *
- * Board: 狼美守卫
+ * Board: Wolf Queen Guard
  * Roles: 4x villager, 3x wolf, wolfQueen, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

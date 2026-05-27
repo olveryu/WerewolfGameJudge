@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * SunForgeFrame — 日锻
+ * SunForgeFrame — Sun Forge
  *
- * 黄金日轮框 · 四角火焰日冕向外喷射 · 光芒线条 · 太阳纹章。
+ * Golden sun-ring frame · four-corner flame coronas flaring outward · ray lines · sun crest.
  */
 export const SunForgeFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

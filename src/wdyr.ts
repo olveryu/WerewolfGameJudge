@@ -1,12 +1,12 @@
 /**
- * why-did-you-render — 开发环境无效 re-render 检测
+ * why-did-you-render — detects unnecessary re-renders in development
  *
- * 必须在 index.ts 最顶部、React import 之前引入。
- * 生产环境 __DEV__ 为 false，不会执行任何逻辑，零开销。
+ * Must be imported at the very top of index.ts, before any React imports.
+ * In production __DEV__ is false, no logic runs — zero overhead.
  *
- * 使用方式：
- * 1. 全局自动追踪所有 React.memo / PureComponent（已开启 trackAllPureComponents）
- * 2. 对普通函数组件，在组件定义后标记：
+ * Usage:
+ * 1. Automatically tracks all React.memo / PureComponent globally (trackAllPureComponents enabled).
+ * 2. For plain function components, mark the component after its definition:
  *    MyComponent.whyDidYouRender = true;
  *
  * @see https://github.com/welldone-software/why-did-you-render

@@ -1,12 +1,12 @@
 /**
  * Night-1 Intermediate State Assertions (12P Integration Test)
  *
- * 板子：预女猎白 (4 villager, 4 wolf, seer, witch, hunter, idiot)
+ * Board: SeerWitchHunterIdiot (4 villager, 4 wolf, seer, witch, hunter, idiot)
  *
- * 目的：逐步执行 Night-1，在每一步 action 提交后断言 GameState
- * 的关键字段，确保中间状态正确。填补现有测试只关注最终结果的盲区。
+ * Purpose: step through Night-1 and assert key GameState fields after each action,
+ * ensuring intermediate states are correct. Fills the gap left by tests that only check final results.
  *
- * 步骤顺序 (预女猎白): wolfKill → witchAction → hunterConfirm → seerCheck
+ * Step order (SeerWitchHunterIdiot): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
@@ -54,7 +54,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
   it('逐步断言每个步骤完成后的 GameState', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-    // --- 初始状态 ---
+    // --- Initial state ---
     const s0 = ctx.getGameState();
     expect(s0.status).toBe(GameStatus.Ongoing);
     expect(s0.currentStepId).toBe('wolfKill');

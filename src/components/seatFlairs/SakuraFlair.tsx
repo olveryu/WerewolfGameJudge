@@ -1,8 +1,8 @@
 /**
- * SakuraFlair — 樱花飘落
+ * SakuraFlair — Sakura Petals
  *
- * 6 片樱花花瓣从上方飘落，左右轻摆，到底部渐隐后循环。
- * 每片花瓣用 5 个紧密圆点模拟椭圆形状。
+ * 6 sakura petals drift down from above with gentle side-to-side sway, fading at the bottom and looping.
+ * Each petal is simulated with 5 closely-spaced dots forming an oval.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

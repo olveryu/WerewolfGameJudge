@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * WolfFangFrame — 狼牙
+ * WolfFangFrame — Wolf Fang
  *
- * 深棕兽皮框 · 粗壮狼牙从边缘向外突出 · 四角狼爪印 · 皮革缝合线。
+ * Dark brown hide frame · thick wolf fangs protruding outward from the edges · four-corner wolf paw prints · leather stitching.
  */
 export const WolfFangFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

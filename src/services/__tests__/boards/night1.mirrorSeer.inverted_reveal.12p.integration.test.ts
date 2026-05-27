@@ -1,7 +1,7 @@
 /**
  * Night-1 Integration Test: MirrorSeer / DrunkSeer Reveal
  *
- * Board: 灯影预言家 (seer variant family)
+ * Board: Mirror Seer (seer variant family)
  * Topics:
  *   - MirrorSeer check result writes to GameState.mirrorSeerReveal (inverted)
  *   - DrunkSeer check result writes to GameState.drunkSeerReveal (random)

@@ -1,8 +1,8 @@
 /**
- * SandStormFlairFlair — 沙暴席卷
+ * SandStormFlairFlair — Sandstorm
  *
- * 10 枚沙粒在圆形涡旋轨道中旋转，不同半径/速度，带尘雾拖尾。
- * (文件名双 Flair 因 ID 为 sandStormFlair)
+ * 10 sand particles orbit in a circular vortex at varying radii and speeds, each with a dust trail.
+ * (Double "Flair" in filename because the ID is sandStormFlair)
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

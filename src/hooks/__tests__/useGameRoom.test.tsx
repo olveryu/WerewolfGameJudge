@@ -4,7 +4,7 @@
  * Focus: ACK reason transparency - ensuring takeSeatWithAck/leaveSeatWithAck
  * pass through the reason from facade without modification.
  *
- * PR8: 完全切换到 facade，不再依赖 legacy GameStateService
+ * PR8: fully switched to facade, no longer depends on legacy GameStateService
  */
 
 import { act, renderHook } from '@testing-library/react-native';

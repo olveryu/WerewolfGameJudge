@@ -1,10 +1,10 @@
 /**
  * AppNavigator - Root navigation stack for the app
  *
- * 注册所有 Screen（Home / Config / Room / Settings）并配置导航栏。
- * 通过 `linking` 配置实现 URL ↔ 导航状态双向同步（Web 刷新恢复页面）。
- * 涵盖导航栋定义、Screen 注册、header 样式配置、linking 路由映射。
- * 不包含业务逻辑，不直接调用 service。
+ * Registers all screens (Home / Config / Room / Settings) and configures the navigation header.
+ * URL ↔ navigation state two-way sync via `linking` config (restores page on Web refresh).
+ * Covers navigator definition, screen registration, header style config, and linking route mapping.
+ * No business logic; does not call services directly.
  */
 import {
   getPathFromState as defaultGetPathFromState,
@@ -46,7 +46,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const navLog = log.extend('AppNavigator');
 
 /**
- * URL ↔ Screen 映射。刷新/直接访问 URL 时自动导航到对应页面。
+ * URL ↔ Screen mapping. Navigates to the correct page on refresh or direct URL access.
  *
  * | Screen   | URL                            |
  * |----------|--------------------------------|
@@ -55,7 +55,7 @@ const navLog = log.extend('AppNavigator');
  * | Room     | `/room/:roomCode?isHost=true` |
  * | Settings | `/settings`                    |
  *
- * `template` 是复杂对象且仅创建时需要，不放入 URL（通过 getPathFromState 剥离）。
+ * `template` is a complex object needed only at creation time and is stripped from the URL (via getPathFromState).
  */
 
 /** Params that are programmatic-only and should never appear in the URL. */

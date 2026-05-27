@@ -1,14 +1,14 @@
 /**
  * logger - Platform-agnostic logger abstraction for game-engine
  *
- * 提供最小化的 Logger 接口 + 注入函数。
- * 客户端注入 react-native-logs 实例；服务端注入 console wrapper。
- * 不 import 平台依赖（react-native-logs 等），仅定义接口与注入/获取方法。
+ * Provides a minimal Logger interface and injection functions.
+ * Client injects a react-native-logs instance; server injects a console wrapper.
+ * No platform imports (react-native-logs, etc.); only defines the interface and inject/get methods.
  */
 
 /**
- * 最小化 Logger 接口，与 react-native-logs createLogger 返回值兼容。
- * 只声明 engine 内实际使用的方法。
+ * Minimal Logger interface, compatible with the return value of react-native-logs createLogger.
+ * Declares only the methods actually used within the engine.
  */
 export interface EngineLogger {
   debug(...args: unknown[]): void;
@@ -18,7 +18,7 @@ export interface EngineLogger {
   extend(name: string): EngineLogger;
 }
 
-/** 默认 noop logger — 不丢失日志也不崩溃 */
+/** Default noop logger — neither drops logs nor throws */
 const noopFn = (): void => {};
 const noopLogger: EngineLogger = {
   debug: noopFn,
@@ -31,22 +31,22 @@ const noopLogger: EngineLogger = {
 let _root: EngineLogger = noopLogger;
 
 /**
- * 注入根 logger。App 启动 / 服务端初始化时调用一次。
+ * Inject the root logger. Call once at app startup or server initialization.
  *
  * @example
- * // React Native 客户端
+ * // React Native client
  * import { log } from '@/utils/logger';
  * import { setEngineLogger } from '@werewolf/game-engine';
  * setEngineLogger(log);
  *
- * // Cloudflare Worker 服务端
+ * // Cloudflare Worker server
  * setEngineLogger(consoleLogger);
  */
 export function setEngineLogger(logger: EngineLogger): void {
   _root = logger;
 }
 
-/** 获取根 logger */
+/** Get the root logger */
 export function getEngineLogger(): EngineLogger {
   return _root;
 }

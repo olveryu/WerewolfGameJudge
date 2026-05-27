@@ -310,7 +310,7 @@ export function useActionOrchestrator({
       return;
     }
 
-    // 音频播放中 / 继续游戏弹窗可见时禁止自动触发 intent
+    // Suppress auto-triggering intent while audio is playing or the continue-game overlay is visible
     if (!imActioner || isAudioPlaying || needsContinueOverlay) return;
 
     const autoIntent = getAutoTriggerIntent();

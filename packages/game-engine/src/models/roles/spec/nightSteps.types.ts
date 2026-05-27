@@ -1,25 +1,25 @@
 /**
- * Night Steps Types - 夜晚步骤表类型定义
+ * Night Steps Types - type definitions for the night steps table
  *
- * 定义 StepSpec 接口，描述单个夜晚步骤的结构。
- * 仅包含 StepSpec 类型定义，不依赖 service、不含副作用。
+ * Defines the StepSpec interface, describing the structure of a single night step.
+ * Contains only the StepSpec type definition; no service dependencies, no side effects.
  */
 
 import type { SchemaId } from './schemas';
 import type { RoleId } from './specs';
 
 /**
- * 夜晚步骤规格
+ * Night step specification
  *
- * ⚠️ step.id 即 schemaId（一一对应，无需双字段）
+ * ⚠️ step.id equals schemaId (one-to-one mapping, no need for duplicate fields)
  */
 export interface StepSpec {
-  /** 步骤 ID（同时作为 schemaId） */
+  /** Step ID (also used as schemaId) */
   readonly id: SchemaId;
-  /** 执行此步骤的角色 */
+  /** Role that performs this step */
   readonly roleId: RoleId;
-  /** 开始音频文件名（不含路径和扩展名） */
+  /** Start audio filename (without path or extension) */
   readonly audioKey: string;
-  /** 结束音频文件名（可选，默认使用 audioKey） */
+  /** End audio filename (optional; defaults to audioKey) */
   readonly audioEndKey?: string;
 }

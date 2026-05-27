@@ -1,10 +1,10 @@
 /**
- * BoardNominationModal — 板子建议居中弹窗
+ * BoardNominationModal — Board nomination centered modal
  *
- * 显示所有板子建议，卡片风格与 BoardPickerScreen 展开卡一致（复用 FactionRoleList）。
- * 每张卡片显示板子名 + 提交人 + 阵营统计 badge + 分阵营 FactionChip + 点赞/撤回/采纳按钮。
- * 点击角色名可查看技能说明（复用 RoleCardSimple）。
- * 由 BoardInfoCard 的"查看建议"按钮打开。
+ * Displays all board nominations; card style matches the expanded card in BoardPickerScreen (reuses FactionRoleList).
+ * Each card shows board name + submitter + faction stats badge + per-faction FactionChip + like/withdraw/accept buttons.
+ * Tapping a role name opens the skill description (reuses RoleCardSimple).
+ * Opened by the "查看建议" button in BoardInfoCard.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RoleId } from '@werewolf/game-engine/models/roles';

@@ -1,9 +1,9 @@
 /**
- * AdminScreen — Admin portal 管理面板
+ * AdminScreen — Admin portal dashboard
  *
- * 密码验证 → 5-tab 仪表盘（用户/房间/统计/性能/AI）。
- * 密码缓存在 MMKV，下次进入自动校验。
- * 不走 JWT auth，使用独立 X-Admin-Token 鉴权。
+ * Password verification → 5-tab dashboard (users/rooms/stats/analytics/AI).
+ * Password is cached in MMKV and auto-verified on next entry.
+ * Does not use JWT auth; uses a standalone X-Admin-Token for authentication.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -35,7 +35,7 @@ const TABS: Array<{ id: TabId; label: string; icon: keyof typeof Ionicons.glyphM
   { id: 'ai', label: 'AI', icon: 'sparkles-outline' },
 ];
 
-/** 管理后台屏幕。 */
+/** Admin portal screen. */
 export const AdminScreen: React.FC = () => {
   const navigation = useNavigation();
   const [authenticated, setAuthenticated] = useState(false);

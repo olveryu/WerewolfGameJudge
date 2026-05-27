@@ -1,8 +1,8 @@
 /**
- * TidePoolFlair — 潮汐水洼
+ * TidePoolFlair — Tide Pool
  *
- * 随机位置的涟漪扩散圈：5 个涟漪源在不同时间触发，
- * 每圈 3 层同心圆扩展后消失。
+ * Ripple rings expanding from random positions: 5 ripple sources fire at different times,
+ * each producing 3 concentric rings that expand and fade.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

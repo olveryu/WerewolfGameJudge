@@ -1,7 +1,7 @@
 /**
  * Magician 12P Board UI Test
  *
- * Board: 狼王魔术师
+ * Board: Wolf King Magician
  * Roles: 4x villager, 3x wolf, darkWolfKing, seer, witch, hunter, magician
  *
  * Required UI coverage (getRequiredUiDialogTypes):

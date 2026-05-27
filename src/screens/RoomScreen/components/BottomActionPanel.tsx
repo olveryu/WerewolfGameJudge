@@ -1,9 +1,9 @@
 /**
- * BottomActionPanel - 底部浮动操作面板（Memoized）
+ * BottomActionPanel - Floating bottom action panel (Memoized)
  *
- * 三层布局：primary → secondary → ghost。
- * 接收 BottomLayout（声明式配置驱动），渲染 message + 三层按钮。
- * 纯展示组件，不 import service，不包含业务逻辑判断。
+ * Three-tier layout: primary → secondary → ghost.
+ * Accepts BottomLayout (declarative config-driven), renders message + three-tier buttons.
+ * Pure display component, no service imports, no business logic.
  */
 
 import type React from 'react';

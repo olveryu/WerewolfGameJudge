@@ -1,8 +1,8 @@
 /**
- * Env — Cloudflare Worker 绑定类型定义
+ * Env — Cloudflare Worker binding type definitions
  *
- * 声明 D1、R2、DO 绑定和环境变量，与 wrangler.toml 保持一致。
- * Phase 2/3 解注释后启用 GAME_ROOM / AVATARS。
+ * Declares D1, R2, and DO bindings plus environment variables; kept in sync with wrangler.toml.
+ * Uncomment in Phase 2/3 to enable GAME_ROOM / AVATARS.
  */
 
 export interface Env {

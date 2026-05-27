@@ -1,11 +1,11 @@
 /**
  * Tests for timeout utilities
  *
- * 契约覆盖：
- * 1) 原 promise resolve => 返回值正确、timer 被清理
- * 2) 原 promise reject => 原样 reject、timer 被清理
- * 3) 超时 => reject，错误来自 errorFactory（如果提供）
- * 4) fake timers 场景下不会出现 unhandled rejection
+ * Contract coverage:
+ * 1) original promise resolves => correct return value, timer cleaned up
+ * 2) original promise rejects => propagates rejection, timer cleaned up
+ * 3) timeout => rejects with error from errorFactory (if provided)
+ * 4) no unhandled rejection with fake timers
  */
 
 import { withTimeout } from '@/utils/withTimeout';
@@ -35,7 +35,7 @@ describe('withTimeout', () => {
 
     const resultPromise = withTimeout(slowPromise, 1000, 'slowOp');
 
-    // 先绑定 expect 再推进时间，避免 unhandled rejection
+    // Bind expect before advancing timers to avoid unhandled rejection
     const expectation = expect(resultPromise).rejects.toThrow(/timed out/);
 
     // Fast-forward past the timeout
@@ -52,7 +52,7 @@ describe('withTimeout', () => {
     const customError = () => new Error('自定义超时错误');
     const resultPromise = withTimeout(slowPromise, 500, customError);
 
-    // 先绑定 expect 再推进时间
+    // Bind expect before advancing timers
     const expectation = expect(resultPromise).rejects.toThrow('自定义超时错误');
 
     jest.advanceTimersByTime(501);
@@ -86,7 +86,7 @@ describe('withTimeout', () => {
     const slowPromise = new Promise<void>(() => {});
     const resultPromise = withTimeout(slowPromise, 100);
 
-    // 先绑定 catch 再推进时间
+    // Bind catch before advancing timers
     const catchPromise = resultPromise.catch(() => {
       /* expected rejection */
     });

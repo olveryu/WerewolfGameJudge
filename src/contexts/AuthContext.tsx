@@ -5,8 +5,8 @@
  * useAuth() state that resets on navigation (mount/unmount).
  *
  * Now auth state lives at App level - single subscription, single state.
- * 管理 auth 状态、订阅 onAuthStateChange、提供 login/logout/updateProfile。
- * 不包含游戏业务逻辑，不直接操作游戏状态。
+ * Manages auth state, subscribes to onAuthStateChange, and provides login/logout/updateProfile.
+ * No game business logic; does not directly manipulate game state.
  */
 import * as Sentry from '@sentry/react-native';
 import type React from 'react';
@@ -22,7 +22,7 @@ import {
 } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
-/** 客户端用户信息（从 AuthUser metadata 映射而来）。 */
+/** Client-side user info (mapped from AuthUser metadata). */
 export interface User {
   id: string;
   email: string | null;
@@ -48,7 +48,7 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  /** 小程序内需要用户手动微信登录（App 层根据此值渲染登录入口页） */
+  /** Mini-program requires the user to manually sign in via WeChat (App layer renders the login entry page based on this value) */
   needsWechatLogin: boolean;
   /** Re-fetch current user from service and update local state. */
   refreshUser: () => Promise<void>;
@@ -102,9 +102,9 @@ const toUser = (authUser: AuthUser | null): User | null => {
 };
 
 /**
- * 全局认证状态 Provider。
+ * Global auth state Provider.
  *
- * 在 App 层级维护单一 auth 订阅，避免屏幕切换时状态重置闪烁。
+ * Maintains a single auth subscription at the App level to prevent state-reset flicker on screen transitions.
  */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -185,9 +185,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 /**
- * 获取全局认证状态。
+ * Access global auth state.
  *
- * 必须在 AuthProvider 子树内调用，否则抛出。
+ * Must be called within the AuthProvider tree, otherwise throws.
  */
 export const useAuthContext = (): AuthContextValue => {
   const context = use(AuthContext);

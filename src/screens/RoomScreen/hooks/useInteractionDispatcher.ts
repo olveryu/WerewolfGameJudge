@@ -321,18 +321,18 @@ export function useInteractionDispatcher({
                   effectiveSeat === null ? null : gameState?.players.get(effectiveSeat);
                 const alreadyViewed = effectivePlayer?.hasViewedRole ?? false;
                 if (alreadyViewed) {
-                  // 已看过 → 直接弹卡，无动画，无 POST
+                  // Already viewed → show card directly, no animation, no POST
                   setShouldPlayRevealAnimation(false);
                   setRoleCardVisible(true);
                 } else {
-                  // 首次看牌 → 立即弹 loading → POST 成功后切换为角色卡
+                  // First view → show loading immediately → switch to role card after POST succeeds
                   setIsLoadingRole(true);
                   setRoleCardVisible(true);
                   void (async () => {
                     try {
                       const result = await viewedRole();
                       if (!result.success) {
-                        // handleMutationResult 已在 viewedRole 内处理了用户提示
+                        // handleMutationResult already handles user feedback inside viewedRole
                         setRoleCardVisible(false);
                         setIsLoadingRole(false);
                         return;

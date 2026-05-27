@@ -1,7 +1,7 @@
 /**
  * Warden 12P Board UI Test
  *
- * Board: 孤注一掷
+ * Board: All-in
  * Roles: 4x villager, 3x wolf, warden, seer, witch, hunter, dreamcatcher
  *
  * Required UI coverage (getRequiredUiDialogTypes):

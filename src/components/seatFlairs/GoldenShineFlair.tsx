@@ -1,7 +1,7 @@
 /**
- * GoldenShineFlair — 金色闪耀
+ * GoldenShineFlair — Golden Shine
  *
- * 10 颗金色光点围绕头像随机绽放又消散，模拟 sparkle 效果。
+ * 10 golden light dots randomly bloom and fade around the avatar, simulating a sparkle effect.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

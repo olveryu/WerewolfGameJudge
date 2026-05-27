@@ -1,8 +1,8 @@
 /**
- * AuthResetPasswordScreen — 验证码重置密码
+ * AuthResetPasswordScreen — Reset password with verification code
  *
- * 用户输入 6 位验证码 + 新密码。成功后自动登录并 popToTop() 关闭整个 auth 流。
- * 不含游戏业务逻辑，不 import service 层。
+ * User enters a 6-digit code + new password. On success, logs in automatically and calls popToTop() to close the entire auth flow.
+ * No game business logic, no service-layer imports.
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,7 +26,7 @@ type RouteProp = import('@react-navigation/native').RouteProp<
   'AuthResetPassword'
 >;
 
-/** 重置密码屏幕。 */
+/** Reset password screen. */
 export const AuthResetPasswordScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

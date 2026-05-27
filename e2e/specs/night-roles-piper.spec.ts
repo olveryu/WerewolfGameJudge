@@ -14,7 +14,7 @@ import {
 import { withSetup } from '../helpers/night-setup';
 
 /**
- * Night Roles E2E — Piper (吹笛者) coverage.
+ * Night Roles E2E — Piper coverage.
  *
  * Tests multiChooseSeat hypnotize and groupConfirm reveal:
  * - Piper hypnotizes 1 target → all players confirm → night ends with death
@@ -313,7 +313,7 @@ test.describe('Night Roles — Piper (吹笛者)', () => {
   });
 
   // --------------------------------------------------------------------------
-  // Piper skips (不用技能) → night ends normally
+  // Piper skips (skip ability) → night ends normally
   // --------------------------------------------------------------------------
   test('piper skips → night ends normally', async ({ browser }) => {
     await withSetup(

@@ -1,7 +1,7 @@
 /**
- * RainDropFlair — 细雨绵绵
+ * RainDropFlair — Rainfall
  *
- * 12 道斜向雨滴落下，带尾迹线条，底部溅起小水花圈。
+ * 12 diagonal raindrops fall with trailing streaks and small splash rings at the bottom.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

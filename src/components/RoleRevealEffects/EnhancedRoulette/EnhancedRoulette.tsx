@@ -1,10 +1,10 @@
 /**
- * EnhancedRoulette - 老虎机风格角色揭示动画（Reanimated 4）
+ * EnhancedRoulette - Slot machine-style role reveal animation (Reanimated 4).
  *
- * 特点：金属框架、霓虹灯、转轮滚动、弹跳停止、庆祝粒子。
- * 使用 `useSharedValue` + `withTiming`/`withSequence` 驱动，
- * 无 `setTimeout`（通过 `` 回调驱动阶段切换）。
- * 渲染动画与触觉反馈。不 import service，不含业务逻辑。
+ * Features: metal frame, neon lights, reel spinning, bounce stop, celebration particles.
+ * Driven by `useSharedValue` + `withTiming`/`withSequence`,
+ * no `setTimeout` (phase transitions driven via `` callback).
+ * Renders animations and haptic feedback. No service imports, no business logic.
  */
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';

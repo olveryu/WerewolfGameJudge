@@ -1,8 +1,8 @@
 /**
- * AuthForgotPasswordScreen — 忘记密码（输入邮箱发送验证码）
+ * AuthForgotPasswordScreen — Forgot password (enter email to send a verification code)
  *
- * 发送成功后 navigate 到 AuthResetPassword。
- * 不含游戏业务逻辑，不 import service 层。
+ * Navigates to AuthResetPassword on success.
+ * No game business logic, no service-layer imports.
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,7 +25,7 @@ type RouteProp = import('@react-navigation/native').RouteProp<
   'AuthForgotPassword'
 >;
 
-/** 忘记密码屏幕。 */
+/** Forgot password screen. */
 export const AuthForgotPasswordScreen: React.FC = () => {
   const { width: screenWidth } = useWindowDimensions();
   const styles = useMemo(() => createAuthScreenStyles(colors, screenWidth), [screenWidth]);

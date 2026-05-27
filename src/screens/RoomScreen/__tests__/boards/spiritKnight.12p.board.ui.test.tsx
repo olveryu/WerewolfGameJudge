@@ -1,7 +1,7 @@
 /**
  * SpiritKnight 12P Board UI Test
  *
- * Board: 恶灵骑士
+ * Board: Spirit Knight
  * Roles: 4x villager, 3x wolf, spiritKnight, seer, witch, hunter, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

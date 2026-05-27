@@ -23,7 +23,7 @@ export const BUBBLE_HEIGHT = 56;
 export const BUBBLE_WIDTH = 56;
 export const BUBBLE_MARGIN = 16;
 
-/** 根据屏幕高度动态计算聊天窗口高度（55%，限制 320~600） */
+/** Dynamically compute chat window height based on screen height (55%, clamped to 320–600). */
 export function getChatHeight(screenHeight: number): number {
   return Math.min(600, Math.max(320, Math.round(screenHeight * 0.55)));
 }
@@ -36,7 +36,7 @@ export function getDefaultPosition(screenWidth: number, screenHeight: number) {
   };
 }
 
-// ── DisplayMessage 类型 ─────────────────────────────────
+// ── DisplayMessage type ─────────────────────────────────
 
 export interface DisplayMessage {
   id: string;

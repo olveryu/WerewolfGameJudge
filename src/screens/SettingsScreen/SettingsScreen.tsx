@@ -1,9 +1,9 @@
 /**
- * SettingsScreen - 应用设置与账号管理
+ * SettingsScreen - App settings and account management
  *
- * 性能优化同 HomeScreen：styles factory + useCallback + memoized 子组件。
- * 负责编排子组件、调用 service/navigation/showAlert。
- * 不使用硬编码样式值，不使用 console.*。
+ * Performance optimizations mirror HomeScreen: styles factory + useCallback + memoized child components.
+ * Orchestrates child components and calls service/navigation/showAlert.
+ * No hardcoded style values, no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
@@ -53,7 +53,7 @@ import {
   NameSection,
 } from './components';
 
-/** 设置屏幕。 */
+/** Settings screen. */
 export const SettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   // Create styles once and pass to all sub-components
@@ -72,7 +72,7 @@ export const SettingsScreen: React.FC = () => {
   const gameState = useSyncExternalStore(subscribe, getSnapshot);
   const isInRoom = gameState !== null;
   const isSeated = facade.getMySeat() !== null;
-  // 角色分配后（Assigned/Ready/Ongoing/Ended）禁止切换账号/绑定邮箱
+  // Disable account switch / email binding after role assignment (Assigned/Ready/Ongoing/Ended)
   const canSwitchAccount =
     !isInRoom ||
     gameState?.status === GameStatus.Unseated ||
@@ -189,7 +189,7 @@ export const SettingsScreen: React.FC = () => {
     });
   }, [user?.displayName, updateProfile, refreshUser, facade]);
 
-  /** 匿名用户「绑定邮箱」：直接进入注册模式 */
+  /** Anonymous user "bind email": enter sign-up mode directly. */
   const handleShowUpgradeForm = useCallback(() => {
     navigation.navigate('AuthEmail', {
       mode: 'signUp',
@@ -199,7 +199,7 @@ export const SettingsScreen: React.FC = () => {
     });
   }, [navigation]);
 
-  /** 微信用户「绑定已有账号」：输入已有邮箱+密码，服务端合并账号 */
+  /** WeChat user "bind existing account": enter existing email+password; server merges accounts. */
   const handleBindExistingEmail = useCallback(() => {
     navigation.navigate('AuthEmail', {
       mode: 'signUp',
@@ -210,7 +210,7 @@ export const SettingsScreen: React.FC = () => {
     });
   }, [navigation]);
 
-  /** 微信用户「注册新邮箱」 */
+  /** WeChat user "register new email". */
   const handleBindNewEmail = useCallback(() => {
     navigation.navigate('AuthEmail', {
       mode: 'signUp',
@@ -220,7 +220,7 @@ export const SettingsScreen: React.FC = () => {
     });
   }, [navigation]);
 
-  /** 切换账号：先离座（如在房间内），弹登录表单，登录成功后替换本地 session */
+  /** Switch account: leave seat first (if in a room), show login form, replace local session on success. */
   const handleSwitchAccount = useCallback(() => {
     const doSwitch = async () => {
       try {

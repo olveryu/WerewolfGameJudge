@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Rect, Stop } from 're
 import type { FrameProps } from './FrameProps';
 
 /**
- * ShadowWeaveFrame — 影织
+ * ShadowWeaveFrame — Shadow Weave
  *
- * 暗影编织 · 双层交错波纹 · 凯尔特角结 + 十字缝合。
+ * Shadow weave · dual-layer interlocking ripples · Celtic corner knots + cross stitching.
  */
 export const ShadowWeaveFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

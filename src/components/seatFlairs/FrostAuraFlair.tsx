@@ -1,7 +1,7 @@
 /**
- * FrostAuraFlair — 寒霜气场
+ * FrostAuraFlair — Frost Aura
  *
- * 8 颗冰蓝色雪花粒子围绕头像缓慢飘浮，大小和 opacity 随机脉动。
+ * 8 ice-blue snowflake particles float slowly around the avatar, pulsing in size and opacity at random.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

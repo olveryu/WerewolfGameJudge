@@ -48,7 +48,7 @@ function formatRoomCode(code: string): string {
   return code.split('').join(' ');
 }
 
-/** Format date as relative time: 今天 14:32 / 昨天 20:15 / 05/07 09:30 */
+/** Format date as relative time: today 14:32 / yesterday 20:15 / 05/07 09:30 */
 function formatRelativeTime(date: Date): string {
   const now = new Date();
   const hhmm = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;

@@ -1,8 +1,8 @@
 /**
- * BoardStrategyModal — 板子攻略底部抽屉 Modal
+ * BoardStrategyModal — Board strategy bottom-sheet modal.
  *
- * 从底部滑入的 sheet，展示 BoardStrategyContent。
- * boardName 为 null 时隐藏。被 RoomScreen / BoardPickerScreen / EncyclopediaScreen 共用。
+ * Bottom sheet that slides up to display BoardStrategyContent.
+ * Hidden when boardName is null. Shared by RoomScreen / BoardPickerScreen / EncyclopediaScreen.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

@@ -58,7 +58,7 @@ interface GameRoomLike {
   treasureMasterChosenCard?: RoleId | null;
 }
 
-/** 当前玩家是否为行动者及是否显示狼人队友。 */
+/** Whether the current player is the actioner and whether to show wolf teammates. */
 export interface ActionerState {
   imActioner: boolean;
   showWolves: boolean;
@@ -298,7 +298,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
   const villagerItemMap = new Map<string, RoleDisplayItem>();
   let villagerCount = 0;
 
-  // 角色配置是法官视角，使用真实角色 spec（不走 displayAs 伪装）
+  // Role config is from the judge's perspective — use the real role spec (bypass displayAs masking)
   roles.forEach((role) => {
     const spec = getRoleSpec(role);
     if (!spec) return;
@@ -444,7 +444,7 @@ export function buildSeatViewModels(
 
     // ✅ badge: assigned/ready → "已查看身份"
     // groupConfirm ack → "已确认催眠"
-    // wolfVoteBadge 已包含"已投票"语义，两者互斥
+    // wolfVoteBadge already covers the "已投票" semantic; the two are mutually exclusive
     const hasWolfVoteBadge = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
     const readyBadge =
       !hasWolfVoteBadge &&

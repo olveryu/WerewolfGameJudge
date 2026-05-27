@@ -1,10 +1,10 @@
 /**
- * RandomRoleCard — 翻转角色卡（Y轴 3D 翻牌动画）
+ * RandomRoleCard — Flip role card (Y-axis 3D flip animation)
  *
- * 进入主页时自动播放翻转：背面（"猜猜是谁"）→ 正面（随机角色）。
- * 点击"换一个"翻回背面再翻到正面，展示新角色。
- * 使用 react-native-reanimated withTiming + backfaceVisibility 标准双面翻转。
- * 纯展示组件，不 import service，不包含业务逻辑。
+ * Auto-plays flip on home entry: back face ("猜猜是谁") → front face (random role).
+ * Tapping "换一个" flips back to the back face then to the front, revealing a new role.
+ * Uses react-native-reanimated withTiming + backfaceVisibility for standard two-sided flip.
+ * Pure display component, no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RoleId } from '@werewolf/game-engine/models/roles';

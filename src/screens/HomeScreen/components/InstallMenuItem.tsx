@@ -1,11 +1,11 @@
 /**
- * InstallMenuItem - PWA 安装到主屏幕菜单项 + iOS 引导 Modal
+ * InstallMenuItem - PWA "Add to Home Screen" menu item + iOS guide modal
  *
- * Android/桌面 Chrome：点击直接触发系统安装弹窗。
- * iOS 浏览器（Safari / Chrome）：点击弹出引导 Modal，按浏览器类型显示对应步骤。
- * 微信内置浏览器：HTML 蒙层已拦截（web/index.html），此组件不渲染。
- * 已安装 / 不支持：不渲染。
- * 渲染 UI 并调用 usePWAInstall hook，不 import service，不包含业务逻辑判断。
+ * Android/desktop Chrome: tap triggers the system install prompt directly.
+ * iOS browser (Safari / Chrome): tap opens a guide modal with browser-specific steps.
+ * WeChat in-app browser: blocked by the HTML overlay (web/index.html); this component does not render.
+ * Already installed / not supported: does not render.
+ * Renders UI and calls usePWAInstall hook; no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';

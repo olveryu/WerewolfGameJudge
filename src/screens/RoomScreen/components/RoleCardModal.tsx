@@ -1,14 +1,14 @@
 /**
- * RoleCardModal — 角色身份展示弹窗
+ * RoleCardModal — Role identity reveal modal
  *
- * 根据动画配置决定渲染方式：
- * - 动画为 'none' 或无需播放 → 静态 RoleCardSimple
- * - 首次查看 → RoleRevealAnimator（带揭牌动画）
+ * Chooses render mode based on animation config:
+ * - Animation is 'none' or should not play → static RoleCardSimple
+ * - First view → RoleRevealAnimator (with reveal animation)
  *
- * 渲染 RoleCardSimple 或 RoleRevealAnimator，将 RoleId 转换为 RoleData
- * （alignmentMap + createRoleData），使用 React.memo 优化。不 import
- * services / showAlert / navigation，不在 onPress 里做业务 gate，
- * 不使用 StyleSheet.create（样式由父组件传入或使用共享组件）。
+ * Renders RoleCardSimple or RoleRevealAnimator, converting RoleId to RoleData
+ * (alignmentMap + createRoleData), optimized with React.memo. No
+ * service / showAlert / navigation imports; no business gate in onPress,
+ * no StyleSheet.create (styles passed from parent or via shared components).
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -47,23 +47,23 @@ const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface RoleCardModalProps {
-  /** 是否显示弹窗 */
+  /** Whether the modal is visible. */
   visible: boolean;
-  /** 正在请求服务端确认，显示 loading 动画 */
+  /** Awaiting server confirmation; shows a loading animation. */
   isLoading?: boolean;
-  /** 当前角色（effectiveRole，支持接管模式） */
+  /** Current role (effectiveRole, supports takeover mode). */
   roleId: RoleId;
-  /** Host 解析后的动画类型（不含 random） */
+  /** Animation type resolved by the host (excludes 'random'). */
   resolvedAnimation: ResolvedRoleRevealAnimation;
-  /** 本次打开是否需要播放动画（首次查看 = true） */
+  /** Whether the animation should play for this open (true on first view). */
   shouldPlayAnimation: boolean;
-  /** 全部角色 ID 列表（用于动画中显示所有角色） */
+  /** Full list of role IDs (used to display all roles during the animation). */
   allRoleIds: RoleId[];
-  /** 剩余未查看的牌数（用于 cardPick 动画） */
+  /** Number of cards not yet viewed (used for the cardPick animation). */
   remainingCards: number;
-  /** 关闭回调 */
+  /** Close callback. */
   onClose: () => void;
-  /** seer+mirrorSeer 共存时的编号映射（来自 GameState） */
+  /** Label map for seer+mirrorSeer co-existence scenarios (from GameState). */
   seerLabelMap?: Readonly<Record<string, number>>;
 }
 
@@ -109,7 +109,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     [allRoleIds],
   );
 
-  // ── Loading state：等待服务端确认 ──
+  // ── Loading state: awaiting server confirmation ──
   if (isLoading) {
     return (
       <Modal visible transparent animationType="fade" statusBarTranslucent>
@@ -118,9 +118,9 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     );
   }
 
-  // 如果动画是 none 或不需要播放动画，直接显示静态卡片
-  // 动画播完后也切到静态卡片（带"我知道了"按钮）
-  // 双预言家编号：seerLabelMap 存在时，从 roleId 查找编号
+  // If animation is 'none' or should not play, show the static card directly
+  // Also switch to static card after animation completes (with "我知道了" button)
+  // Dual seer label: look up label from roleId when seerLabelMap is present
   const seerLabel = seerLabelMap?.[roleId];
 
   if (resolvedAnimation === 'none' || !shouldPlayAnimation || animationDone) {
@@ -135,9 +135,9 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     );
   }
 
-  // 首次查看，播放动画
+  // First view: play animation
   const roleSpec = getRoleSpec(roleId);
-  // mirrorSeer 等有 displayAs 的角色：动画使用伪装身份
+  // Roles with displayAs (e.g., mirrorSeer): animation uses the disguised identity
   const displayRoleId = getRoleDisplayAs(roleId) ?? roleId;
   const displaySpec = displayRoleId !== roleId ? getRoleSpec(displayRoleId) : roleSpec;
   const baseName = getRoleDisplayName(displayRoleId);
@@ -148,7 +148,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
     ALIGNMENT_MAP[displaySpec.faction] ?? 'villager',
   );
 
-  // resolvedAnimation 直接作为 effectType（Host 已解析 random → 具体动画）
+  // resolvedAnimation is used directly as effectType (host has already resolved random → specific animation)
   const effectType: RevealEffectType = resolvedAnimation as RevealEffectType;
 
   return (

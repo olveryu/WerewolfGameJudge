@@ -1,9 +1,9 @@
 /**
- * formatSeat — 0-based 座位索引 → 用户可读的 1-based 展示标签
+ * formatSeat — 0-based seat index → user-readable 1-based display label
  *
- * 全局唯一的座位号格式化入口。所有面向用户的文本（UI、弹窗、日志、
- * 错误消息）统一调用此函数，禁止散落 `seat + 1` 手写转换。
- * 引擎内部逻辑保持 0-based，不调用此函数。
+ * Single global entry point for seat number formatting. All user-facing text (UI, alerts, logs,
+ * error messages) must use this function; ad-hoc `seat + 1` conversions are forbidden.
+ * Engine-internal logic stays 0-based and does not call this function.
  */
 
 /** 0-based seat index → "N号" display string (1-indexed). */

@@ -1,7 +1,7 @@
 /**
- * LightPillarFlair — 四柱天光
+ * LightPillarFlair — Four Light Pillars
  *
- * 4 条金色光柱从四角向内延伸（不碰中心），带脉冲明暗。
+ * 4 golden light pillars extend inward from the four corners (not reaching the center), with pulsing brightness.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

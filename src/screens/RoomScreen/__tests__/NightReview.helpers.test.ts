@@ -295,7 +295,7 @@ describe('NightReview.helpers', () => {
       expect(lines).toContainEqual(expect.stringContaining('猎人不能发动技能'));
     });
 
-    // ── P3: Wolf empty kill (空刀) ──
+    // ── P3: Wolf empty kill (empty knife) ──
 
     it('shows wolf empty kill when wolves present but no votes and no override', () => {
       const players = new Map<number, LocalPlayer | null>([
@@ -447,7 +447,7 @@ describe('NightReview.helpers', () => {
       expect(joined).not.toContain('女巫未使用药水');
     });
 
-    // ── P2: 同守同救 warning ──
+    // ── P2: double-save warning ──
 
     it('shows 同守同救 warning when guard and witch both save wolf target', () => {
       const players = new Map<number, LocalPlayer | null>([

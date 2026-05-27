@@ -1,9 +1,9 @@
 /**
- * Wolf Kill Resolver (SERVER-ONLY, 纯函数)
+ * Wolf Kill Resolver (SERVER-ONLY, pure function)
  *
- * 职责：校验袭击行动合法性 + 计算袭击结果，
- * 提供袭击校验与 wolfKillOverride 检查（nightmare 封锁 / poisoner 板子规则）。
- * 不包含 IO（网络 / 音频 / Alert），不添加 notSelf/notWolf 约束（袭击是中立的，可袭击任意座位）。
+ * Validates attack action legality and computes attack result.
+ * Provides attack validation and wolfKillOverride checks (nightmare block / poisoner board rules).
+ * No IO (network / audio / Alert). Does not enforce notSelf/notWolf constraints (attack is neutral; any seat may be targeted).
  *
  * RULE: If wolfKillOverride exists (nightmare / poisoner), non-empty vote is REJECTED.
  */
@@ -15,7 +15,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
   const { players, currentNightResults, actorSeat } = context;
   const target = input.target;
 
-  // 放弃袭击 (empty kill): schema allows this via allowEmptyVote: true
+  // Skip attack (empty kill): schema allows this via allowEmptyVote: true
   // This is always valid, even when wolfKillDisabled
   if (target === undefined || target === null) {
     return {
@@ -30,7 +30,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
     };
   }
 
-  // 撤回（withdraw）：wire sentinel -2，删除该狼的投票记录
+  // Withdraw: wire sentinel -2, removes this wolf's vote record
   if (target === -2) {
     const { [String(actorSeat)]: _removed, ...rest } = currentNightResults.wolfVotesBySeat ?? {};
     return {
@@ -52,7 +52,7 @@ export const wolfKillResolver: ResolverFn = (context, input) => {
   }
 
   // Game rule: immune-to-wolf-kill roles are NOT selectable during wolf meeting.
-  // This is a vote-time forbidden target ("禁选"), not a death-resolution effect.
+  // This is a vote-time forbidden target (blocked seat), not a death-resolution effect.
   // If forbidden, we must reject and NOT record the vote.
   const immuneRoleIds = getWolfKillImmuneRoleIds();
   if (

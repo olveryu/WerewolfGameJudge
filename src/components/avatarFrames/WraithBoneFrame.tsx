@@ -4,9 +4,9 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * WraithBoneFrame — 幽骨
+ * WraithBoneFrame — Wraith Bone
  *
- * 苍白骨骼框 · 四角骷髅面角饰 · 肋骨/骨节突起 · 灵魂绿光点缀。
+ * Pale bone frame · four-corner skull corner pieces · rib/joint protrusions · soul green-light accents.
  */
 export const WraithBoneFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -27,7 +27,7 @@ interface RoleSlot {
   count?: number;
   /**
    * If true, this slot uses a stepper ([-][+]) instead of individual chips.
-   * Typically used for generic roles like 普通狼人/平民.
+   * Typically used for generic roles like Wolf/Villager.
    * @default false
    */
   isBulk?: boolean;

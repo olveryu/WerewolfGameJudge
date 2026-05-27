@@ -1,7 +1,7 @@
 /**
- * ForestLeafFlair — 落叶知秋
+ * ForestLeafFlair — Autumn Leaves
  *
- * 7 片橙褐色树叶从上方旋转飘落，椭圆形状 + 叶脉线。
+ * 7 orange-brown leaves spiral down from above, oval-shaped with leaf vein lines.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

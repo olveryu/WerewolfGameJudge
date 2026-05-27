@@ -1,8 +1,8 @@
 /**
- * Shared API Utilities — DRY 提取
+ * Shared API Utilities — DRY extraction
  *
- * 提供通用 HTTP POST + 错误处理的基础设施，
- * 被 gameActions 和 seatActions 共用。不包含业务逻辑。
+ * Provides common HTTP POST + error-handling infrastructure
+ * shared by gameActions and seatActions. Contains no business logic.
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
@@ -13,23 +13,23 @@ import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
 import { createTimeoutSignal } from '@/utils/abortSignal';
 import { facadeLog } from '@/utils/logger';
 
-/** 标准 API 响应（game control / seat 共用结构） */
+/** Standard API response (shared structure for game control and seat actions) */
 export type ApiResponse =
   | { success: true; reason?: string; state?: Record<string, unknown>; revision?: number }
   | { success: false; reason: string };
 
 /**
- * 执行单次 API POST 调用
+ * Executes a single API POST call
  *
- * - fetchWithRetry 网络层自动重试 + createTimeoutSignal 超时
- * - 处理 non-JSON 错误页（502/503）
- * - 成功时 applySnapshot
- * - 网络错误自动 warn
+ * - fetchWithRetry handles network-layer auto-retry + createTimeoutSignal timeout
+ * - Handles non-JSON error pages (502/503)
+ * - Calls applySnapshot on success
+ * - Network errors are logged as warn automatically
  *
- * @param path - API 路径（如 '/game/assign'）
+ * @param path - API path (e.g. '/game/assign')
  * @param body - JSON body
- * @param label - 日志标签（如 'callGameControlApi'）
- * @param store - GameStore（用于 response apply）
+ * @param label - log label (e.g. 'callGameControlApi')
+ * @param store - GameStore (used for response apply)
  */
 async function callApiOnce(
   path: string,
@@ -68,7 +68,7 @@ async function callApiOnce(
 
     const result = (await res.json()) as ApiResponse;
 
-    // Optimistic Response: HTTP 响应含 state 时立即 apply，不等 broadcast
+    // Optimistic Response: apply immediately when HTTP response contains state, without waiting for broadcast
     if (result.success && result.state && result.revision != null && store) {
       store.applySnapshot(result.state as never, result.revision);
     }
@@ -110,19 +110,19 @@ async function callApiOnce(
 // Retry wrapper (DRY — shared by gameActions & seatActions)
 // =============================================================================
 
-/** 最大客户端重试次数 */
+/** Maximum client retry count */
 const MAX_CLIENT_RETRIES = 2;
 
-/** 总预算：防止 cfFetch 重试 × callApiWithRetry 重试叠加导致等待过长 */
+/** Total budget: prevents excessively long waits from cfFetch retries × callApiWithRetry retries stacking up */
 const CALL_API_TOTAL_BUDGET_MS = 30_000;
 
 /**
- * 带透明重试的 API 调用
+ * API call with transparent retry
  *
- * 封装 callApiOnce + 重试循环，供 gameActions / seatActions 共用。
- * 重试 CONFLICT_RETRY / INTERNAL_ERROR / NETWORK_ERROR / SERVER_ERROR，
- * 不重试 TIMEOUT（请求可能已到达服务端，重发不安全）。
- * 30s 总预算截断防止叠加等待过长。
+ * Wraps callApiOnce with a retry loop; shared by gameActions and seatActions.
+ * Retries on CONFLICT_RETRY / INTERNAL_ERROR / NETWORK_ERROR / SERVER_ERROR;
+ * does not retry TIMEOUT (the request may have already reached the server; resending is unsafe).
+ * 30s total budget cap prevents compounding wait time.
  */
 export async function callApiWithRetry(
   path: string,
@@ -133,7 +133,7 @@ export async function callApiWithRetry(
   const startTime = Date.now();
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {
-    // 总预算检查（首次不检查）
+    // Total budget check (skipped on first attempt)
     if (attempt > 0 && Date.now() - startTime > CALL_API_TOTAL_BUDGET_MS) {
       facadeLog.warn('total budget exceeded', { path, elapsed: Date.now() - startTime });
       break;
@@ -143,10 +143,10 @@ export async function callApiWithRetry(
 
     if (result.success) return result;
 
-    // TIMEOUT 不重试：请求可能已到达服务端，重发不安全
+    // Do not retry TIMEOUT: request may have already reached the server; resending is unsafe
     if (result.reason === 'TIMEOUT') return result;
 
-    // 可重试的 reason
+    // Retryable reason
     const isRetryable =
       result.reason === 'CONFLICT_RETRY' ||
       result.reason === 'INTERNAL_ERROR' ||
@@ -154,7 +154,7 @@ export async function callApiWithRetry(
       result.reason === 'SERVER_ERROR';
 
     if (isRetryable && attempt < MAX_CLIENT_RETRIES) {
-      // cfFetch 层已处理慢网络（1s+2s 退避），业务层退避保持短（面对面游戏不能等太久）
+      // cfFetch layer already handles slow networks (1s+2s backoff); keep business-layer backoff short (face-to-face game can't wait too long)
       const delay = 300 * (attempt + 1) + secureRng() * 100;
       facadeLog.warn('client retrying', { reason: result.reason, path, attempt: attempt + 1 });
       await new Promise((r) => setTimeout(r, delay));
@@ -164,6 +164,6 @@ export async function callApiWithRetry(
     return result;
   }
 
-  // 重试耗尽或预算超限
+  // Retries exhausted or budget exceeded
   return { success: false, reason: 'NETWORK_ERROR' };
 }

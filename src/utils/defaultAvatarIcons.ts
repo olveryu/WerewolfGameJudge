@@ -3,7 +3,7 @@
  *
  * Single wolf paw PNG × 20 tint colors. Each player gets a unique color
  * via FNV-1a hash on userId. The PNG is rendered with React Native `tintColor`.
- * 不引入 React、service，也不发起网络请求。
+ * No React or service imports; no network requests.
  */
 import { type ImageSourcePropType } from 'react-native';
 

@@ -426,9 +426,9 @@ describe('handleSubmitAction', () => {
       // resolver should reject; reason comes from constraintValidator
       const rej = expectRejection(result);
       expect(rej.reason).toContain('不能选择自己');
-      // resolver rejection 产生 ACTION_REJECTED action
+      // resolver rejection produces an ACTION_REJECTED action
       expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
-      // resolver rejection 必须 broadcast
+      // resolver rejection must broadcast
       expect(rej.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     });
 
@@ -442,7 +442,7 @@ describe('handleSubmitAction', () => {
         },
       });
       const context = createContext(state);
-      // wolfRobot (seat 2) 选择 seat 0（非自己）
+      // wolfRobot (seat 2) selects seat 0 (not itself)
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
         payload: { seat: 2, role: 'wolfRobot', target: 0, extra: {} },
@@ -450,7 +450,7 @@ describe('handleSubmitAction', () => {
 
       const result = handleSubmitAction(intent, context);
 
-      // 应该成功
+      // should succeed
       const success = expectSuccess(result);
       expect(success.actions.some((a) => a.type === 'RECORD_ACTION')).toBe(true);
     });
@@ -462,8 +462,8 @@ describe('handleSubmitAction', () => {
 
   describe('nightmare block guard (schema-aware)', () => {
     /**
-     * 要求 1：被 block 的玩家只能 skip，任何非 skip 行动都必须 reject
-     * 要求 2：guard 必须是 schema-aware，不能只判断 target
+     * Requirement 1: a blocked player can only skip; any non-skip action must be rejected
+     * Requirement 2: the guard must be schema-aware and not rely solely on target checks
      */
 
     // --- chooseSeat schema (target-based skip) ---

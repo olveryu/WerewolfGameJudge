@@ -1,9 +1,9 @@
 /**
- * toLocalState - 将 GameState 转换为 UI 期望的 LocalGameState
+ * toLocalState - converts GameState into the LocalGameState expected by the UI
  *
- * Phase 1 适配层，让 UI 可以消费 facade 的状态。只做纯数据格式转换
- * （Record → Map，templateRoles → template）和缺失字段默认值填充。
- * 不包含业务逻辑、副作用或 service 调用。
+ * Phase 1 adapter layer that lets the UI consume facade state. Only performs pure data format conversion
+ * (Record → Map, templateRoles → template) and fills in default values for missing fields.
+ * No business logic, side effects, or service calls.
  */
 
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
@@ -26,7 +26,7 @@ import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/proto
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
 /**
- * 将 Player + RosterEntry 转换为 LocalPlayer
+ * Convert Player + RosterEntry to LocalPlayer
  */
 function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPlayer {
   return {
@@ -47,15 +47,15 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
 }
 
 /**
- * 将 GameStatus 字符串转换为 enum
+ * Convert GameStatus string to enum
  */
 function toGameStatusEnum(status: GameState['status']): GameStatus {
-  // GameState.status 是 string literal union，与 GameStatus enum 值相同
+  // GameState.status is a string literal union whose values match the GameStatus enum
   return status;
 }
 
 /**
- * 将 GameState 转换为 LocalGameState
+ * Convert GameState to LocalGameState
  *
  * Passthrough fields are auto-forwarded via object spread.
  * Only fields that need transformation are destructured and re-mapped.
@@ -83,7 +83,7 @@ export function toLocalState(state: GameState): LocalGameState {
     playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.userId]) : null);
   }
 
-  // 2. templateRoles → template (使用 createTemplateFromRoles)
+  // 2. templateRoles → template (using createTemplateFromRoles)
   const template = createTemplateFromRoles(templateRoles);
 
   // 3. actions: ProtocolAction[]  Map<RoleId, RoleAction>

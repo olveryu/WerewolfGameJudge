@@ -1,16 +1,16 @@
 /**
- * handlers/feedbackHandlers — 用户反馈双向对话 Hono routes
+ * handlers/feedbackHandlers — user feedback two-way conversation Hono routes
  *
- * POST /api/feedback              — 提交反馈（需认证），创建 GitHub Issue + D1 记录
- * GET  /api/feedback/history      — 获取该用户所有反馈及回复
- * POST /api/feedback/:feedbackId/reply — 用户追问（需认证），追加 GitHub Issue 评论
- * GET  /api/feedback/unread-count — 获取未读管理员回复数
- * POST /api/feedback/mark-read    — 标记某 feedback 下管理员回复为已读
- * POST /api/feedback/webhook      — GitHub Webhook 接收管理员回复
+ * POST /api/feedback              — submit feedback (auth required); creates a GitHub Issue + D1 record
+ * GET  /api/feedback/history      — retrieve all feedback and replies for the current user
+ * POST /api/feedback/:feedbackId/reply — user follow-up (auth required); appends a GitHub Issue comment
+ * GET  /api/feedback/unread-count — get the count of unread admin replies
+ * POST /api/feedback/mark-read    — mark admin replies under a feedback as read
+ * POST /api/feedback/webhook      — GitHub Webhook receiver for admin replies
  *
- * @throws 401 — requireAuth 未通过（webhook 除外）
- * @throws 400 — zod 校验失败
- * @throws 500 — GitHub API 调用失败（已 log + Sentry）
+ * @throws 401 — requireAuth failed (except webhook)
+ * @throws 400 — zod validation failed
+ * @throws 500 — GitHub API call failed (logged + Sentry)
  */
 
 import { and, desc, eq, sql } from 'drizzle-orm';
@@ -33,7 +33,7 @@ import { jsonBody } from './shared';
 
 const log = createLogger('feedback');
 
-/** 反馈路由（提交/列表/回复）。 */
+/** Feedback routes (submit / list / reply). */
 export const feedbackRoutes = new Hono<AppEnv>();
 
 /** GitHub repo receiving feedback issues */
@@ -411,7 +411,8 @@ feedbackRoutes.post(
 );
 
 // ── Webhook routes (no requireAuth, separate mount) ─────────────────────────
-/** GitHub webhook 回调路由（无认证）。 */ export const feedbackWebhookRoutes = new Hono<AppEnv>();
+/** GitHub webhook callback routes (no auth). */ export const feedbackWebhookRoutes =
+  new Hono<AppEnv>();
 
 /**
  * Verify GitHub webhook signature using HMAC-SHA256 (timing-safe).

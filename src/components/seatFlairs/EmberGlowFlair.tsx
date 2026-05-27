@@ -1,7 +1,7 @@
 /**
- * EmberGlowFlair — 余烬微光
+ * EmberGlowFlair — Ember Glow
  *
- * 6 颗橙色/琥珀色小圆点从底部缓慢上升，随高度渐灭后重置。
+ * 6 orange/amber dots slowly rise from the bottom, fading as they ascend, then reset.
  * react-native-svg + Reanimated useAnimatedProps。
  */
 import { memo, useEffect, useMemo } from 'react';

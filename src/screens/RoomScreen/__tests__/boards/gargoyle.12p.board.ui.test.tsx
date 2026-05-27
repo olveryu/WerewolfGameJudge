@@ -1,7 +1,7 @@
 /**
  * Gargoyle 12P Board UI Test
  *
- * Board: 石像鬼守墓人
+ * Board: Gargoyle Gravedigger
  * Roles: 4x villager, 3x wolf, gargoyle, seer, witch, hunter, graveyardKeeper
  *
  * Required UI coverage (getRequiredUiDialogTypes):

@@ -1,7 +1,7 @@
 /**
- * ArcticWindFlair — 极地寒风
+ * ArcticWindFlair — Arctic Wind
  *
- * 6 条水平风速线从右向左吹过，带冰粒子偏移。
+ * 6 horizontal wind streaks blow from right to left with ice particle offsets.
  */
 import { memo, useEffect, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

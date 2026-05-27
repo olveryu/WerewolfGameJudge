@@ -1,7 +1,7 @@
 /**
  * Shadow + Avenger 12P Board UI Test
  *
- * Board: 影子复仇者
+ * Board: Shadow Avenger
  * Roles: 3x villager, 3x wolf, shadow, avenger, slacker, seer, witch, guard
  *
  * Required UI coverage (getRequiredUiDialogTypes):

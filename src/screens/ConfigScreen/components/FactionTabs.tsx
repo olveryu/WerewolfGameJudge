@@ -1,8 +1,8 @@
 /**
- * FactionTabs - 阵营分段标签栏（Memoized）
+ * FactionTabs - Faction segmented tab bar (Memoized)
  *
- * 显示阵营标题 + 计数角标，选中态带色下划线。
- * 渲染 UI 并通过回调上报 onTabChange，不 import service，不包含业务逻辑判断。
+ * Displays faction title + count badge; selected tab has a colored underline.
+ * Renders UI and reports onTabChange via callback; no service imports, no business logic.
  */
 import { type Faction } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback } from 'react';

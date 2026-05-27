@@ -63,7 +63,7 @@ export function useNightProgress({
 
     const currentStep = nightPlan.steps[stepIndex];
 
-    // displayAs + seerLabelMap 处理：对玩家隐藏灯影预言家真实身份
+    // displayAs + seerLabelMap: hide the Shadow Seer's true identity from players
     let roleName = currentStep?.displayName;
     if (currentStep) {
       const displayAs = getRoleDisplayAs(currentStep.roleId);
@@ -71,7 +71,7 @@ export function useNightProgress({
         const displaySpec = getRoleSpec(displayAs);
         roleName = displaySpec?.displayName ?? roleName;
       }
-      // 双预言家标签：seerLabelMap存在时显示 "X号预言家"
+      // Dual-seer label: show "X号预言家" when seerLabelMap is present
       const labelMap = gameState.seerLabelMap;
       if (labelMap) {
         const label = labelMap[currentStep.roleId];

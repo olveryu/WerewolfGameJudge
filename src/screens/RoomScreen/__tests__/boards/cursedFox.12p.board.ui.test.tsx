@@ -1,7 +1,7 @@
 /**
  * CursedFox 12P Board UI Test
  *
- * Board: 咒狐乌鸦
+ * Board: Cursed Fox Crow
  * Roles: 4x villager, 2x wolf, darkWolfKing, cursedFox, seer, witch, hunter, crow
  *
  * Required UI coverage (getRequiredUiDialogTypes):

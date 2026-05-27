@@ -1,11 +1,11 @@
 /**
- * Cloudflare Pages Function — /room/:roomCode 动态 OG 预览
+ * Cloudflare Pages Function — /room/:roomCode dynamic OG preview.
  *
- * 对所有 /room/:roomCode 请求，用 HTMLRewriter 将 SPA index.html 中的
- * OG meta 和 <title> 替换为包含动态房间号的版本。
- * 不依赖 UA 检测，所有客户端（爬虫/浏览器）都拿到正确的 OG 标签，
- * 浏览器端 JS 正常接管 SPA 路由。
- * 不含业务逻辑或数据库查询。
+ * For all /room/:roomCode requests, uses HTMLRewriter to replace the
+ * OG meta and <title> in the SPA index.html with versions containing the dynamic room code.
+ * Does not rely on UA detection; all clients (crawlers/browsers) receive correct OG tags,
+ * while browser-side JS takes over SPA routing normally.
+ * No business logic or database queries.
  */
 
 /** Max room code length to prevent abuse in OG output. */

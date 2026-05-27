@@ -13,9 +13,9 @@ import Svg, {
 import type { FrameProps } from './FrameProps';
 
 /**
- * StarNebulaFrame — 星云
+ * StarNebulaFrame — Star Nebula
  *
- * 深空星云 · 双色气体漫射 · 四角星芒 + 星簇 + 粉蓝雾。
+ * Deep-space nebula · dual-color gas diffusion · four-corner star rays + star clusters + pink-blue mist.
  */
 export const StarNebulaFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

@@ -1,5 +1,5 @@
 /**
- * FlipEnter — 翻转入场
+ * FlipEnter — Flip entrance
  *
  * Children flip in along the Y axis (like a card flip) with a colored shimmer line.
  * Common-tier entrance animation template.

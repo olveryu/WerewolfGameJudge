@@ -1,14 +1,14 @@
 /**
- * Shared Resolver Utilities — DRY 提取
+ * Shared Resolver Utilities — DRY extractions
  *
- * 提供通用常量，消除 resolver 间的重复逻辑。
- * 仅包含纯函数和常量，不包含 IO。
+ * Provides common constants, eliminating duplicated logic across resolvers.
+ * Contains only pure functions and constants; no IO.
  */
 
 /**
- * 反转预言家查验结果：'好人' → '狼人'，'狼人' → '好人'
+ * Invert a Seer check result: '好人' → '狼人', '狼人' → '好人'
  *
- * 被 mirrorSeer（固定反转）和 drunkSeer（随机反转）共用。
+ * Used by both mirrorSeer (fixed inversion) and drunkSeer (random inversion).
  */
 export function invertCheckResult(result: '好人' | '狼人'): '好人' | '狼人' {
   return result === '好人' ? '狼人' : '好人';

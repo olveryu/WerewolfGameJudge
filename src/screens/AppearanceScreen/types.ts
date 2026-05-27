@@ -9,13 +9,13 @@ import type { FrameId } from '@/components/avatarFrames';
 import { createRoleData } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
 
-/** 头像网格列数。 */
+/** Number of columns in the avatar grid. */
 export const NUM_COLUMNS = 4;
-/** 框网格列数。 */
+/** Number of columns in the frame grid. */
 export const FRAME_NUM_COLUMNS = 3;
-/** 框网格单元格尺寸。 */
+/** Cell size in the frame grid. */
 export const FRAME_GRID_CELL_SIZE = 72;
-/** 主预览尺寸。 */
+/** Hero preview size. */
 export const HERO_PREVIEW_SIZE = 80;
 
 /** Preview uses a real villager role so RoleCardContent can resolve ROLE_SPECS. */
@@ -31,11 +31,11 @@ export const PREVIEW_ALL_ROLES = [
   createRoleData('guard', '守卫', 'god'),
 ];
 
-/** 当前选中的头像 ID。 */
+/** Currently selected avatar ID. */
 export type Selection = string | null;
-/** 外观选择器页签。 */
+/** Appearance picker tab. */
 export type PickerTab = 'avatar' | 'frame' | 'flair' | 'nameStyle' | 'effect' | 'seatAnimation';
-/** 稀有度筛选。 */
+/** Rarity filter. */
 export type RarityFilter = 'all' | Rarity;
 
 /** Discriminated union for all avatar grid cells. */
@@ -45,7 +45,7 @@ export type AvatarCellItem =
   | { key: string; type: 'avatar'; avatarId: string }
   | { key: string; type: 'placeholder' };
 
-/** 框网格条目。 */
+/** Frame grid item. */
 export interface FrameGridItem {
   id: FrameId | 'none';
   name: string;
@@ -54,7 +54,7 @@ export interface FrameGridItem {
   rarity: Rarity | null;
 }
 
-/** 德誉网格条目。 */
+/** Honor flair grid item. */
 export interface FlairGridItem {
   id: FlairId | 'none';
   name: string;
@@ -63,7 +63,7 @@ export interface FlairGridItem {
   rarity: Rarity | null;
 }
 
-/** 名字样式网格条目。 */
+/** Name style grid item. */
 export interface NameStyleGridItem {
   id: NameStyleId | 'none';
   name: string;
@@ -72,7 +72,7 @@ export interface NameStyleGridItem {
   rarity: Rarity | null;
 }
 
-/** 特效网格条目。 */
+/** Effect grid item. */
 export interface EffectGridItem {
   id: RoleRevealEffectId | 'none' | 'random';
   name: string;
@@ -82,7 +82,7 @@ export interface EffectGridItem {
   rarity: Rarity | null;
 }
 
-/** 入座动画网格条目。 */
+/** Seat animation grid item. */
 export interface SeatAnimationGridItem {
   id: SeatAnimationId | 'none';
   name: string;

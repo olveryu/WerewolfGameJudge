@@ -1,20 +1,20 @@
 /**
- * CFAuthService — Cloudflare Workers JWT 认证服务。
+ * CFAuthService — Cloudflare Workers JWT auth service.
  *
- * 职责：
- * - 实现 IAuthService 接口
- * - 通过 HTTP 调用 Workers /auth/* 端点
- * - 管理 access token（短期 JWT, 1h）+ refresh token（90d, rotation）
- * - Token 持久化在 MMKV
- * - 401 自动 refresh 由 cfFetch 拦截器驱动
+ * Responsibilities:
+ * - Implements the IAuthService interface
+ * - Calls Workers /auth/* endpoints over HTTP
+ * - Manages access token (short-lived JWT, 1h) + refresh token (90d, rotation)
+ * - Persists tokens in MMKV
+ * - Automatic 401 token refresh driven by the cfFetch interceptor
  *
- * 不负责：
- * - 游戏逻辑或房间管理
- * - 微信授权流程细节（由 WeChatAuthProxy DO 处理 code2Session）
+ * Not responsible for:
+ * - Game logic or room management
+ * - WeChat auth flow details (handled by WeChatAuthProxy DO for code2Session)
  *
- * 边界约束：
- * - 构造时同步注册 tokenProvider / refreshHandler / onAuthExpired
- * - initReady() 必须 await 后才可使用其他方法
+ * Boundary constraints:
+ * - Synchronously registers tokenProvider / refreshHandler / onAuthExpired in the constructor
+ * - initReady() must be awaited before calling any other methods
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -40,9 +40,9 @@ const ACCESS_TOKEN_KEY = 'cf_auth_token';
 const REFRESH_TOKEN_KEY = 'cf_refresh_token';
 
 /**
- * CFAuthService — Cloudflare Workers 认证服务实现。
+ * CFAuthService — Cloudflare Workers auth service implementation.
  *
- * 职责：JWT token 管理、匹名/邮箱登录、微信 claim 流程、自动 refresh。
+ * Responsibilities: JWT token management, anonymous/email login, WeChat claim flow, auto refresh.
  */
 export class CFAuthService implements IAuthService {
   #currentUserId: string | null = null;
@@ -79,7 +79,7 @@ export class CFAuthService implements IAuthService {
       }
 
       if (existingUserId && isMiniProgram()) {
-        // 有 session：顺带尝试 nonce claim（bind/upgrade），不自动 reLaunch
+        // Session exists: opportunistically attempt nonce claim (bind/upgrade), no auto reLaunch
         const claimNonce = readClaimNonce();
         if (claimNonce && this.#isAnonymous) {
           const claimed = await this.#tryClaimToken(claimNonce);
@@ -96,7 +96,7 @@ export class CFAuthService implements IAuthService {
       }
 
       if (isMiniProgram()) {
-        // 无 session — 尝试 claim 或显示登录入口
+        // No session — attempt claim or show login entry point
         const claimNonce = readClaimNonce();
         if (claimNonce) {
           const claimed = await this.#tryClaimToken(claimNonce);
@@ -236,8 +236,8 @@ export class CFAuthService implements IAuthService {
   }
 
   /**
-   * 尝试用 nonce 领取小程序原生侧预备的 token。
-   * 成功返回 true 并设置 session，失败返回 false。
+   * Attempts to claim the token prepared by the mini-program native side using a nonce.
+   * Returns true and sets session on success; returns false on failure.
    */
   async #tryClaimToken(nonce: string): Promise<boolean> {
     try {
@@ -255,8 +255,8 @@ export class CFAuthService implements IAuthService {
       Sentry.setUser({ id: data.user.id });
       return true;
     } catch (error: unknown) {
-      // Per /auth/claim contract: 404 CLAIM_NOT_FOUND, 410 CLAIM_EXPIRED 是用户层正常流。
-      // 400 (validation) / 500 / network 走 Sentry。
+      // Per /auth/claim contract: 404 CLAIM_NOT_FOUND and 410 CLAIM_EXPIRED are normal user-layer flows.
+      // 400 (validation) / 500 / network errors go to Sentry.
       handleError(error, {
         label: 'tryClaimToken',
         logger: authLog,
@@ -269,8 +269,8 @@ export class CFAuthService implements IAuthService {
   }
 
   /**
-   * 尝试用 nonce 将微信 openid 绑定到当前已认证用户。
-   * 成功返回 true，失败返回 false（OPENID_ALREADY_BOUND 等）。
+   * Attempts to bind a WeChat openid to the currently authenticated user using a nonce.
+   * Returns true on success; returns false on failure (e.g. OPENID_ALREADY_BOUND).
    */
   async #tryClaimBind(nonce: string): Promise<boolean> {
     try {
@@ -568,8 +568,8 @@ export class CFAuthService implements IAuthService {
       Sentry.setUser({ id: user.id });
       return this.#currentUserId;
     } catch (error: unknown) {
-      // Per /auth/user contract: 401 (revoked/invalid 即使刚 refresh 也可能 race)、404 (USER_NOT_FOUND)
-      // 是已知终态。500 / network 走 Sentry。
+      // Per /auth/user contract: 401 (revoked/invalid — may race even right after refresh) and 404 (USER_NOT_FOUND)
+      // are known terminal states. 500 / network errors go to Sentry.
       handleError(error, {
         label: 'fetchAndCacheUser',
         logger: authLog,

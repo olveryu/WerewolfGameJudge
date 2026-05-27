@@ -1,9 +1,9 @@
 /**
  * AI Chat Service — Gemini (primary) + Workers AI (fallback) via Cloudflare Workers
  *
- * 服务端使用 Gemini API 为主力，地理限制/rate limit 时 fallback Workers AI (@cf/google/gemma-4-26b-a4b-it)。
- * 客户端只负责消息组织、流式解析 SSE 响应。模型选择在服务端。
- * 不直接访问第三方 API，不存储 API key，不操作游戏状态。
+ * The server uses Gemini API as the primary model, falling back to Workers AI (@cf/google/gemma-4-26b-a4b-it) on geo-restrictions/rate limits.
+ * The client is only responsible for message assembly and streaming SSE response parsing. Model selection happens server-side.
+ * Does not access third-party APIs directly, store API keys, or mutate game state.
  */
 
 import * as Sentry from '@sentry/react-native';
@@ -24,42 +24,42 @@ const API_CONFIG = {
   maxTokens: 2048,
 };
 
-// Token 优化配置
+// Token optimization config
 const TOKEN_OPTIMIZATION = {
   maxHistoryRounds: 3, // 最多保留最近 3 轮对话
 };
 
 /**
- * 检查 AI 服务是否就绪
+ * Checks whether the AI service is ready.
  */
 export function isAIChatReady(): boolean {
   return true;
 }
 
 /**
- * 游戏上下文信息（玩家视角，不包含作弊信息）
+ * Game context information (player's perspective, no cheating information included).
  */
 export interface GameContext {
-  /** 是否在游戏房间中 */
+  /** Whether the player is in a game room. */
   inRoom: boolean;
-  /** 房间号 */
+  /** Room code. */
   roomCode?: string;
-  /** 游戏状态 */
+  /** Game state. */
   status?: GameStatus;
-  /** 我的座位号 */
+  /** My seat number. */
   mySeat?: number;
-  /** 我的角色 */
+  /** My role. */
   myRole?: string;
-  /** 我的角色名称 */
+  /** My role name. */
   myRoleName?: string;
-  /** 总人数 */
+  /** Total number of players. */
   totalPlayers?: number;
-  /** 本局每个角色的详细技能描述（公开信息） */
+  /** Detailed skill description of each role in this game (public information). */
   boardRoleDetails?: Array<{ name: string; description: string }>;
 }
 
 /**
- * 构建游戏上下文提示（玩家视角，不泄露其他玩家信息）
+ * Builds the game context prompt (player's perspective, without leaking other players' information).
  */
 function buildGameContextPrompt(context: GameContext): string {
   if (!context.inRoom) {
@@ -96,7 +96,7 @@ function buildGameContextPrompt(context: GameContext): string {
     lines.push(`- 总玩家数: ${context.totalPlayers} 人`);
   }
 
-  // boardRoleDetails 已包含角色名，无需单独的 boardRoles
+  // boardRoleDetails already contains role names; no need for a separate boardRoles list
   if (context.boardRoleDetails && context.boardRoleDetails.length > 0) {
     const uniqueRoles = new Map<string, string>();
     context.boardRoleDetails.forEach((r) => {
@@ -116,9 +116,9 @@ function buildGameContextPrompt(context: GameContext): string {
   return lines.join('\n');
 }
 
-// 优化1: 移除 getRolesDescription，改用角色配置上下文中的角色
+// Opt 1: removed getRolesDescription; use roles from the board context instead
 
-// 优化3+4: 精简 System Prompt，移除跟进问题要求
+// Opt 3+4: simplified System Prompt, removed follow-up question requirement
 const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策略建议、争议裁决。
 
 回答原则：
@@ -126,7 +126,7 @@ const SYSTEM_PROMPT = `你是狼人杀游戏助手。职责：规则解答、策
 - 适当使用 **加粗** 突出关键词、- 列表分条说明、emoji 🐺 增加可读性
 - 本App只处理第一夜，白天在线下进行`;
 
-/** AI 聊天消息结构（与 OpenAI Chat API 对齐）。 */
+/** AI chat message structure (aligned with the OpenAI Chat API). */
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -142,14 +142,14 @@ interface StreamChunk {
 }
 
 /**
- * 流式发送聊天消息到 AI（SSE，通过 Workers 代理）
+ * Streams a chat message to the AI via SSE (proxied through Cloudflare Workers).
  *
- * 使用 Cloudflare Workers 代理 Gemini streaming endpoint，逐 token 返回。
- * 调用者用 `for await (const chunk of streamChatMessage(...))` 消费。
+ * Uses Cloudflare Workers to proxy the Gemini streaming endpoint, returning tokens one at a time.
+ * Callers consume with `for await (const chunk of streamChatMessage(...))`.
  *
- * @param messages 聊天消息历史
- * @param gameContext 可选的游戏上下文
- * @param signal 可选的 AbortSignal
+ * @param messages chat message history
+ * @param gameContext optional game context
+ * @param signal optional AbortSignal
  */
 export async function* streamChatMessage(
   messages: ChatMessage[],

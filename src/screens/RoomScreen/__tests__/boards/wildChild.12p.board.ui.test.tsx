@@ -1,7 +1,7 @@
 /**
  * WildChild 12P Board UI Test
  *
- * Board: 预女猎白野
+ * Board: Seer-Witch-Hunter-Villager-Wild
  * Roles: 4x villager, 3x wolf, wildChild, seer, witch, hunter, idiot
  *
  * Required UI coverage (getRequiredUiDialogTypes):

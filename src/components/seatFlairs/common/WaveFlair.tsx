@@ -1,8 +1,8 @@
 /**
- * WaveFlair — 波纹
+ * WaveFlair — Wave
  *
- * 两条短斜线在座位内部缓慢平移+淡入淡出，模拟玻璃高光扫过。
- * Common 级座位装饰模板。
+ * Two short diagonal lines slowly translate and fade across the seat interior, simulating a glass highlight sweep.
+ * Common-tier seat flair template.
  */
 import { memo, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';

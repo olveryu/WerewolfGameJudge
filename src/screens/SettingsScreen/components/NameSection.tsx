@@ -1,8 +1,8 @@
 /**
- * NameSection - 昵称显示组件（Memoized）
+ * NameSection - Display name component (Memoized)
  *
- * 点击触发 onStartEdit 回调，由父组件弹出 prompt modal 编辑昵称。
- * 渲染 UI 并上报用户 intent，不 import service，不包含业务逻辑判断。
+ * Tap triggers the onStartEdit callback; the parent opens a prompt modal to edit the display name.
+ * Renders UI and reports user intent; no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { memo } from 'react';
@@ -22,7 +22,7 @@ interface NameSectionProps {
   styles: SettingsScreenStyles;
 }
 
-/** 名称显示区域。 */
+/** Display name section. */
 export const NameSection = memo<NameSectionProps>(
   ({ isAnonymous, displayName, nameStyle, onStartEdit, styles }) => {
     if (isAnonymous) {

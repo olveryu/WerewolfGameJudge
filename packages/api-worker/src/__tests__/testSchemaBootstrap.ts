@@ -1,12 +1,12 @@
 /**
- * testSchemaBootstrap — 测试 D1 schema 唯一来源
+ * testSchemaBootstrap — single source of truth for the test D1 schema
  *
- * vitest-pool-workers 使用内存 D1，无法自动跑 migrations。
- * 所有测试通过此模块创建表结构，避免 CREATE TABLE 散布在各测试文件。
- * 新增 migration 后只需更新此文件。
+ * vitest-pool-workers uses an in-memory D1 that cannot run migrations automatically.
+ * All tests create the table structure through this module, avoiding scattered CREATE TABLE statements across test files.
+ * After adding a migration, only this file needs to be updated.
  */
 
-/** CREATE TABLE + INDEX 语句，与 migrations/ 保持同步 */
+/** CREATE TABLE + INDEX statements, kept in sync with migrations/ */
 const SCHEMA_STATEMENTS = [
   // ── users ──
   `CREATE TABLE IF NOT EXISTS users (
@@ -105,10 +105,10 @@ const SCHEMA_STATEMENTS = [
 ] as const;
 
 /**
- * 在 D1 实例上创建所有表 + 索引。
- * 使用 `CREATE TABLE IF NOT EXISTS`，可安全重复调用。
+ * Creates all tables + indexes on a D1 instance.
+ * Uses `CREATE TABLE IF NOT EXISTS`, so it is safe to call multiple times.
  *
- * D1 exec 按换行拆分语句，因此将每条 SQL 压成单行后执行。
+ * D1 exec splits statements by newline, so each SQL statement is collapsed to a single line before execution.
  */
 export async function bootstrapTestSchema(db: D1Database): Promise<void> {
   for (const stmt of SCHEMA_STATEMENTS) {

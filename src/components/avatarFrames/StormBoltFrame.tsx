@@ -4,10 +4,10 @@ import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-nativ
 import type { FrameProps } from './FrameProps';
 
 /**
- * StormBoltFrame — 雷暴
+ * StormBoltFrame — Storm Bolt
  *
- * 深蓝钢框 + 金色闪电锯齿 + 角落多级放电 + 边缘电弧。
- * 阴影层 → 主渐变框 → 内环虚线 → 闪电/电弧 → 火花粒子 → 角落辉光弧。
+ * Deep-blue steel frame + golden lightning serrations + multi-stage corner discharges + edge arcs.
+ * Shadow layer → main gradient frame → inner dashed ring → lightning/arcs → spark particles → corner glow arcs.
  */
 export const StormBoltFrame = memo<FrameProps>(({ size, rx }) => {
   const userId = useId();

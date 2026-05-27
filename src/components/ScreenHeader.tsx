@@ -1,8 +1,8 @@
 /**
- * ScreenHeader — 通用 Screen 头部组件
+ * ScreenHeader — Generic screen header component.
  *
- * 采用 absoluteFill 居中方案（同 RoomScreen），标题始终绝对居中，
- * 不受左右按钮宽度差异影响。左侧默认渲染返回按钮。
+ * Uses absoluteFill centering (same as RoomScreen) so the title is always centered
+ * regardless of left/right button width differences. Left side defaults to a back button.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type React from 'react';
@@ -15,19 +15,19 @@ import { componentSizes, fixed, layout, spacing, typography } from '@/theme/toke
 import { Button } from './Button';
 
 interface ScreenHeaderProps {
-  /** 标题文字 */
+  /** Header title text. */
   title: string;
-  /** 返回按钮回调 */
+  /** Back button callback. */
   onBack: () => void;
-  /** 右侧自定义内容 */
+  /** Custom right-side content. */
   headerRight?: React.ReactNode;
-  /** 安全区顶部偏移（insets.top） */
+  /** Safe area top inset (insets.top). */
   topInset: number;
-  /** 返回按钮 testID */
+  /** Back button testID. */
   backTestID?: string;
-  /** 返回按钮 accessibilityLabel */
+  /** Back button accessibilityLabel. */
   backAccessibilityLabel?: string;
-  /** header 容器额外样式 */
+  /** Additional style for the header container. */
   style?: ViewStyle;
 }
 
