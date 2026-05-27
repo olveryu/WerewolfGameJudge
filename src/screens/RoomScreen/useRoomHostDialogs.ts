@@ -5,6 +5,7 @@
  * RoomScreen only needs to call these returned functions.
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useRef, useState } from 'react';
 
@@ -156,8 +157,8 @@ export const useRoomHostDialogs = ({
   }, [restartGame, markSubmitting]);
 
   const showRestartDialog = useCallback(() => {
-    if (!gameState?.currentNightResults) {
-      // No night data (e.g. game hasn't completed night phase) — plain restart
+    if (gameState?.status !== GameStatus.Ended) {
+      // Game not ended — no complete report to share, plain restart
       showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', handleRestart);
       return;
     }
@@ -175,7 +176,7 @@ export const useRoomHostDialogs = ({
         onPress: handleRestart,
       },
     ]);
-  }, [gameState?.currentNightResults, shareNightReviewReport, handleRestart]);
+  }, [gameState?.status, shareNightReviewReport, handleRestart]);
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Config', { existingRoomCode: roomCode });
