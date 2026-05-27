@@ -11,7 +11,7 @@ import { type RouteProp, useNavigation, useRoute } from '@react-navigation/nativ
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
 import React, { useCallback, useMemo } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -32,6 +32,7 @@ import {
   withAlpha,
 } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
+import { showConfirmAlert } from '@/utils/alertPresets';
 
 import {
   createConfigScreenStyles,
@@ -127,13 +128,11 @@ export const ConfigScreen: React.FC = () => {
     }
     const canProceed = togglePlagueMode();
     if (!canProceed) return;
-    Alert.alert(
+    showConfirmAlert(
       '💀 黑死病模式',
-      '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好"演员"',
-      [
-        { text: '取消', style: 'cancel' },
-        { text: '确认开启', onPress: confirmPlagueMode },
-      ],
+      '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好“演员”',
+      confirmPlagueMode,
+      { confirmText: '确认开启' },
     );
   }, [isPlagueMode, togglePlagueMode, confirmPlagueMode]);
 
@@ -261,8 +260,8 @@ export const ConfigScreen: React.FC = () => {
         <Text style={styles.cardBFooterHint}>
           点击顶部板子名可重新选板{'\n'}点击增减角色 · 长按查看技能 · 粗边框可切换变体
         </Text>
-        {/* Plague Mode Switch (create mode only) */}
-        {!isEditMode && !isNominateMode && (
+        {/* Plague Mode Switch (hidden in nominate mode only) */}
+        {!isNominateMode && (
           <View
             style={[
               plagueStyles.container,

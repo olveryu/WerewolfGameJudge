@@ -34,4 +34,57 @@ describe('validateTemplateRoles', () => {
       expect(result).not.toBeNull();
     }
   });
+
+  describe('treasureMaster bottom card prerequisites', () => {
+    it('rejects treasureMaster without regular wolf', () => {
+      // Has god (seer) + villager, but no wolf
+      const roles: RoleId[] = [
+        'treasureMaster',
+        'seer',
+        'witch',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
+      ];
+      const result = validateTemplateRoles(roles);
+      expect(result).toContain('普通狼人');
+    });
+
+    it('rejects treasureMaster without god faction', () => {
+      // Has wolf + villager, but no god
+      const roles: RoleId[] = [
+        'treasureMaster',
+        'wolf',
+        'villager',
+        'villager',
+        'villager',
+        'villager',
+      ];
+      const result = validateTemplateRoles(roles);
+      expect(result).toContain('神职');
+    });
+
+    it('rejects treasureMaster without villager faction', () => {
+      // Has wolf + god, but no villager
+      const roles: RoleId[] = ['treasureMaster', 'wolf', 'seer', 'witch', 'hunter', 'guard'];
+      const result = validateTemplateRoles(roles);
+      expect(result).toContain('村民');
+    });
+
+    it('accepts treasureMaster with wolf + god + villager', () => {
+      const roles: RoleId[] = [
+        'treasureMaster',
+        'wolf',
+        'wolf',
+        'seer',
+        'witch',
+        'villager',
+        'villager',
+        'villager',
+      ];
+      const result = validateTemplateRoles(roles);
+      expect(result).toBeNull();
+    });
+  });
 });

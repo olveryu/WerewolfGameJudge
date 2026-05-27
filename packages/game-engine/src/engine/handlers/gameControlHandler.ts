@@ -100,11 +100,15 @@ export function handleAssignRoles(
     return handlerError('role_count_mismatch');
   }
 
-  // Plague mode: replace all wolf-faction roles with villager before shuffling
+  // Plague mode: replace all wolf-team roles with villager before shuffling
+  // Includes Faction.Wolf + treasureMaster (Special faction but permanently wolf-team)
   const effectiveRoles: RoleId[] = state.isPlagueMode
     ? state.templateRoles.map((roleId) => {
         const spec = ROLE_SPECS[roleId];
-        return spec?.faction === Faction.Wolf ? ('villager' as RoleId) : roleId;
+        if (spec?.faction === Faction.Wolf || roleId === ('treasureMaster' as RoleId)) {
+          return 'villager' as RoleId;
+        }
+        return roleId;
       })
     : [...state.templateRoles];
 

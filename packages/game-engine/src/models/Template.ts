@@ -4,7 +4,7 @@
  * Defines the GameTemplate interface, template validation, preset templates, and template factories.
  * Exports type definitions, pure-function validators/factories, and preset constants. No service deps, side effects, or IO.
  */
-import { isValidRoleId, type RoleId } from './roles';
+import { Faction, isValidRoleId, ROLE_SPECS, type RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template categories (for grouped display in TemplatePicker)
@@ -58,6 +58,25 @@ export function validateTemplateRoles(roles: RoleId[]): string | null {
   for (const r of roles) {
     if (!isValidRoleId(r)) {
       return '包含无效角色配置，请重新选择';
+    }
+  }
+
+  // Rule 3: treasureMaster bottom card constraint prerequisites
+  // Bottom cards require exactly 1 wolf (regular) + 1 god + 1 villager.
+  // If template cannot provide these, dealing will always fail.
+  if (roles.includes('treasureMaster' as RoleId)) {
+    const otherRoles = roles.filter((r) => r !== ('treasureMaster' as RoleId));
+    const hasRegularWolf = otherRoles.includes('wolf' as RoleId);
+    const hasGod = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.God);
+    const hasVillager = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.Villager);
+    if (!hasRegularWolf) {
+      return '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）';
+    }
+    if (!hasGod) {
+      return '含宝藏猎人时必须有至少 1 名神职（底牌需要）';
+    }
+    if (!hasVillager) {
+      return '含宝藏猎人时必须有至少 1 名村民（底牌需要）';
     }
   }
 
