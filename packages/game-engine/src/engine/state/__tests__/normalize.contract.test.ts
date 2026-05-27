@@ -23,6 +23,7 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   'hostUserId',
   'status',
   'templateRoles',
+  'isPlagueMode',
   'players',
   'roster',
   'currentStepIndex',
@@ -119,6 +120,7 @@ describe('normalizeState contract', () => {
       hostUserId: 'host-uid',
       status: GameStatus.Ongoing,
       templateRoles: ['villager', 'wolf'],
+      isPlagueMode: false,
       players: {
         1: { userId: 'p1', seat: 1, hasViewedRole: true },
       },

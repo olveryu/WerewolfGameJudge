@@ -24,6 +24,7 @@ export function buildInitialGameState(
     hostUserId,
     status: GameStatus.Unseated,
     templateRoles: template.roles,
+    ...(template.isPlagueMode ? { isPlagueMode: true } : {}),
     players,
     roster: {},
     currentStepIndex: -1,

@@ -78,6 +78,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     roomCode: state.roomCode,
     hostUserId: state.hostUserId,
     templateRoles: state.templateRoles,
+    isPlagueMode: state.isPlagueMode,
     debugMode: state.debugMode,
     roster: state.roster,
 

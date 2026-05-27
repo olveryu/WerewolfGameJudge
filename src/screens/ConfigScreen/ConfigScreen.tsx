@@ -10,8 +10,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
-import React, { useMemo } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/Button';
@@ -22,7 +22,15 @@ import { useServices } from '@/contexts/ServiceContext';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  layout,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 
 import {
@@ -34,6 +42,19 @@ import {
 } from './components';
 import { expandSlotToChipEntries, FACTION_COLOR_MAP } from './configHelpers';
 import { useConfigScreenState } from './useConfigScreenState';
+
+const plagueStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: borderRadius.small,
+  },
+  label: {
+    flex: 1,
+    fontSize: typography.secondary,
+    fontWeight: typography.weights.semibold,
+  },
+});
 
 // ============================================
 // Main Component
@@ -80,6 +101,9 @@ export const ConfigScreen: React.FC = () => {
     handleCreateRoom,
     toggleRole,
     handleClearSelection,
+    isPlagueMode,
+    togglePlagueMode,
+    confirmPlagueMode,
     selectedTemplateLabel,
     roleInfoId,
     roleInfoVariantIds,
@@ -95,6 +119,23 @@ export const ConfigScreen: React.FC = () => {
     handleBulkCountChange,
     getFactionAccentColor,
   } = state;
+
+  const handlePlagueModeSwitch = useCallback(() => {
+    if (isPlagueMode) {
+      togglePlagueMode();
+      return;
+    }
+    const canProceed = togglePlagueMode();
+    if (!canProceed) return;
+    Alert.alert(
+      '💀 黑死病模式',
+      '• 发牌时，所有狼人牌将暗中替换为平民\n• 玩家看到的板子配置仍显示有狼\n• 发牌后请由房主担任真人法官主持后续流程\n• 建议提前线下安排好"演员"',
+      [
+        { text: '取消', style: 'cancel' },
+        { text: '确认开启', onPress: confirmPlagueMode },
+      ],
+    );
+  }, [isPlagueMode, togglePlagueMode, confirmPlagueMode]);
 
   return (
     <SafeAreaView
@@ -220,6 +261,31 @@ export const ConfigScreen: React.FC = () => {
         <Text style={styles.cardBFooterHint}>
           点击顶部板子名可重新选板{'\n'}点击增减角色 · 长按查看技能 · 粗边框可切换变体
         </Text>
+        {/* Plague Mode Switch (create mode only) */}
+        {!isEditMode && !isNominateMode && (
+          <View
+            style={[
+              plagueStyles.container,
+              {
+                backgroundColor: withAlpha(colors.warning, isPlagueMode ? 0.1 : 0.05),
+                paddingHorizontal: spacing.medium,
+                paddingVertical: spacing.small,
+                marginBottom: spacing.small,
+              },
+            ]}
+          >
+            <Ionicons name="skull-outline" size={componentSizes.icon.sm} color={colors.warning} />
+            <Text style={[plagueStyles.label, { marginLeft: spacing.small, color: colors.text }]}>
+              黑死病模式
+            </Text>
+            <Switch
+              value={isPlagueMode}
+              onValueChange={handlePlagueModeSwitch}
+              trackColor={{ false: colors.border, true: withAlpha(colors.warning, 0.4) }}
+              thumbColor={isPlagueMode ? colors.warning : colors.textSecondary}
+            />
+          </View>
+        )}
         <Button
           variant="primary"
           onPress={() => {

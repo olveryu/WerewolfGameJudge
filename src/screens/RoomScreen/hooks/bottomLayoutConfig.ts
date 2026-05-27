@@ -125,6 +125,7 @@ export interface LayoutContext {
   isStartingGame: boolean;
   isHostActionSubmitting: boolean;
   nightReviewAllowedSeats: readonly number[];
+  isPlagueMode: boolean;
 }
 
 /** What to put in a button slot. */
@@ -223,6 +224,18 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // Ready
   // ═══════════════════════════════════════════════════════════════════════════
+  {
+    match: {
+      status: GameStatus.Ready,
+      role: 'host',
+      when: (ctx) => ctx.isPlagueMode,
+    },
+    layout: {
+      primary: [{ source: 'static', button: 'viewRole' }],
+      secondary: [],
+      ghost: [{ source: 'static', button: 'restart' }],
+    },
+  },
   {
     match: { status: GameStatus.Ready, role: 'host' },
     layout: {

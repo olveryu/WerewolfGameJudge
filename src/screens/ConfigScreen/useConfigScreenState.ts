@@ -14,6 +14,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
+  getBottomCardRoleId,
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
@@ -101,6 +102,7 @@ export function useConfigScreenState({
   const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>(
     () => presetInitial?.variantOverrides ?? {},
   );
+  const [isPlagueMode, setIsPlagueMode] = useState(false);
 
   const totalCount = useMemo(
     () => computeTotalCount(selection, variantOverrides),
@@ -213,10 +215,24 @@ export function useConfigScreenState({
     });
   }, [navigation, existingRoomCode, nominateMode]);
 
-  const toggleRole = useCallback((key: string) => {
-    setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
-    setSelectedTemplate('__custom__');
-  }, []);
+  const toggleRole = useCallback(
+    (key: string) => {
+      // Intercept: plague mode + adding bottom card role
+      if (isPlagueMode && !selection[key]) {
+        const baseRoleId = key.replace(/\d+$/, '');
+        if (baseRoleId === 'treasureMaster' || baseRoleId === 'thief') {
+          showErrorAlert(
+            '无法添加',
+            '黑死病模式下不支持底牌角色（宝藏猎人/盗贼）。请先关闭黑死病模式。',
+          );
+          return;
+        }
+      }
+      setSelection((prev) => ({ ...prev, [key]: !prev[key] }));
+      setSelectedTemplate('__custom__');
+    },
+    [isPlagueMode, selection],
+  );
 
   const handleClearSelection = useCallback(() => {
     setSelection((prev) => {
@@ -225,6 +241,29 @@ export function useConfigScreenState({
       return cleared;
     });
     setSelectedTemplate('__custom__');
+  }, []);
+
+  /** Toggle plague mode with bottom-card compatibility check */
+  const togglePlagueMode = useCallback((): boolean => {
+    if (isPlagueMode) {
+      setIsPlagueMode(false);
+      return true;
+    }
+    // Check incompatibility: bottom card roles
+    const roles = selectionToRoles(selection, variantOverrides);
+    if (getBottomCardRoleId(roles)) {
+      showErrorAlert(
+        '无法开启黑死病模式',
+        '当前板子含底牌角色（宝藏猎人/盗贼），与黑死病模式不兼容。请先移除底牌角色再开启。',
+      );
+      return false;
+    }
+    return true; // Caller shows confirm dialog, then calls confirmPlagueMode
+  }, [isPlagueMode, selection, variantOverrides]);
+
+  /** Confirm plague mode activation (called after user confirms dialog) */
+  const confirmPlagueMode = useCallback(() => {
+    setIsPlagueMode(true);
   }, []);
 
   const { mutateAsync: createRoom } = useCreateRoom();
@@ -268,6 +307,7 @@ export function useConfigScreenState({
       }
 
       const template = createCustomTemplate(roles);
+      if (isPlagueMode) template.isPlagueMode = true;
 
       await settingsService.setBgmEnabled(bgmEnabled);
 
@@ -325,6 +365,7 @@ export function useConfigScreenState({
     authService,
     createRoom,
     variantOverrides,
+    isPlagueMode,
     user?.displayName,
   ]);
 
@@ -535,6 +576,11 @@ export function useConfigScreenState({
     // Role toggling
     toggleRole,
     handleClearSelection,
+
+    // Plague mode
+    isPlagueMode,
+    togglePlagueMode,
+    confirmPlagueMode,
 
     // Template
     selectedTemplateLabel,

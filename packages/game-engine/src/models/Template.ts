@@ -76,6 +76,8 @@ export interface GameTemplate {
   name: string;
   numberOfPlayers: number;
   roles: RoleId[];
+  /** Plague mode: all wolf-faction roles replaced with villager during dealing */
+  isPlagueMode?: boolean;
 }
 
 /** Treasure Master deck card count */

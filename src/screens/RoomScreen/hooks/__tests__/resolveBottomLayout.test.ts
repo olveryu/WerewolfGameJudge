@@ -21,6 +21,7 @@ function makeCtx(overrides: Partial<LayoutContext> = {}): LayoutContext {
     isStartingGame: false,
     isHostActionSubmitting: false,
     nightReviewAllowedSeats: [],
+    isPlagueMode: false,
     ...overrides,
   };
 }

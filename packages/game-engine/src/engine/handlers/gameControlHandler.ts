@@ -100,13 +100,21 @@ export function handleAssignRoles(
     return handlerError('role_count_mismatch');
   }
 
+  // Plague mode: replace all wolf-faction roles with villager before shuffling
+  const effectiveRoles: RoleId[] = state.isPlagueMode
+    ? state.templateRoles.map((roleId) => {
+        const spec = ROLE_SPECS[roleId];
+        return spec?.faction === Faction.Wolf ? ('villager' as RoleId) : roleId;
+      })
+    : [...state.templateRoles];
+
   let seatedRoles: RoleId[];
   let bottomCards: RoleId[] | undefined;
   let treasureMasterSeat: number | undefined;
   let thiefSeat: number | undefined;
   let cupidSeat: number | undefined;
 
-  if (bottomCardRoleId) {
+  if (bottomCardRoleId && !state.isPlagueMode) {
     // Deck role present: shuffle -> first seatCount assigned to seats + remaining N as deck
     const result = shuffleWithBottomCardConstraints(
       state.templateRoles,
@@ -116,7 +124,7 @@ export function handleAssignRoles(
     seatedRoles = result.seatedRoles;
     bottomCards = result.bottomCards;
   } else {
-    seatedRoles = shuffleArray([...state.templateRoles]);
+    seatedRoles = shuffleArray(effectiveRoles);
   }
 
   // Assign seated roles to seats

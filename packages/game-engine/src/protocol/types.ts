@@ -146,6 +146,8 @@ export interface GameState {
   hostUserId: string;
   status: GameStatus;
   templateRoles: RoleId[];
+  /** Plague mode: all wolf-faction roles replaced with villager during dealing */
+  isPlagueMode?: boolean;
 
   // ⚠️ Phase 1: players remains Record<number, ...> unchanged, consistent with existing implementation
   players: Record<number, Player | null>;
