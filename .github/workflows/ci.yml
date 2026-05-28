@@ -32,6 +32,9 @@ jobs:
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
+      - name: Build game-engine
+        run: pnpm --filter @werewolf/game-engine run build
+
       - name: Lint
         run: pnpm run lint
 
@@ -383,6 +386,9 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Build game-engine (E2E specs import from dist)
+        run: pnpm --filter @werewolf/game-engine run build
 
       # ── Playwright ──────────────────────────────────────
       - name: Get Playwright version
