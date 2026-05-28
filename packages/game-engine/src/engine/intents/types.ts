@@ -93,6 +93,7 @@ export interface UpdateTemplateIntent {
   type: 'UPDATE_TEMPLATE';
   payload: {
     templateRoles: RoleId[];
+    isPlagueMode?: boolean;
   };
 }
 

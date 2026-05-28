@@ -664,7 +664,7 @@ export function useRoomScreenState(
           }
           if (seatedCount === 0) return '等待玩家入座，或分享房间邀请好友';
           if (seatedCount < totalSeats) return `还有 ${totalSeats - seatedCount} 个空位等待入座`;
-          return '全员已就位 → 点击下方「分配角色」';
+          return '全员已就位 → 点击下方「分配角色」｜右上角菜单可清空座位';
         }
         case GameStatus.Assigned: {
           let viewedCount = 0;

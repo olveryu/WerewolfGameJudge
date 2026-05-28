@@ -44,7 +44,7 @@ export const assignRoles = defineGameAction({
 export const updateTemplate = defineGameAction<[GameTemplate]>({
   name: 'updateTemplate',
   path: '/game/update-template',
-  body: (template) => ({ templateRoles: template.roles }),
+  body: (template) => ({ templateRoles: template.roles, isPlagueMode: template.isPlagueMode }),
 });
 
 /** Host: restart game */

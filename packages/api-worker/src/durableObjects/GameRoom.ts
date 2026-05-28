@@ -364,10 +364,13 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     });
   }
 
-  async updateTemplate(templateRoles: RoleId[]): Promise<GameActionResult> {
+  async updateTemplate(templateRoles: RoleId[], isPlagueMode?: boolean): Promise<GameActionResult> {
     return this.#processAction((state) => {
       const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleUpdateTemplate({ type: 'UPDATE_TEMPLATE', payload: { templateRoles } }, ctx);
+      return handleUpdateTemplate(
+        { type: 'UPDATE_TEMPLATE', payload: { templateRoles, isPlagueMode } },
+        ctx,
+      );
     });
   }
 

@@ -22,6 +22,8 @@ import { type ControlledSeatBannerStyles } from './styles';
 interface ControlledSeatBannerProps {
   /** Mode: 'hint' shows takeover hint, 'controlled' shows controlled bot */
   mode: 'hint' | 'controlled';
+  /** Whether to show the "右上角可一键查看身份" extra hint (Assigned stage) */
+  showBulkViewHint?: boolean;
   /** The seat number being controlled (0-indexed, display as 1-indexed) - required when mode='controlled' */
   controlledSeat?: number;
   /** Display name of the bot being controlled - required when mode='controlled' */
@@ -34,6 +36,7 @@ interface ControlledSeatBannerProps {
 
 const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
   mode,
+  showBulkViewHint,
   controlledSeat,
   botDisplayName,
   onRelease,
@@ -44,7 +47,9 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({
       <View style={styles.hintContainer}>
         <Text style={styles.hintText}>
           <Ionicons name={UI_ICONS.HINT} size={typography.secondary} />
-          {' 长按座位可接管机器人'}
+          {showBulkViewHint
+            ? ' 长按座位可接管机器人，右上角菜单可一键查看身份'
+            : ' 长按座位可接管机器人'}
         </Text>
       </View>
     );

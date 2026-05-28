@@ -100,9 +100,12 @@ gameRoutes.post('/start', jsonBody(roomCodeSchema), async (c) => {
 });
 
 gameRoutes.post('/update-template', jsonBody(updateTemplateSchema), async (c) => {
-  const { roomCode, templateRoles } = c.req.valid('json');
+  const { roomCode, templateRoles, isPlagueMode } = c.req.valid('json');
   const result = await callDO(() =>
-    getGameRoomStub(c.env, roomCode, c.req.raw).updateTemplate(templateRoles as RoleId[]),
+    getGameRoomStub(c.env, roomCode, c.req.raw).updateTemplate(
+      templateRoles as RoleId[],
+      isPlagueMode,
+    ),
   );
   return c.json(result, resultToStatus(result));
 });

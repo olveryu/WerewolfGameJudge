@@ -98,7 +98,7 @@ export interface IGameRoomRPC {
    * @pre status === 'Setup'
    * @pre host-only
    */
-  updateTemplate(templateRoles: RoleId[]): Promise<GameActionResult>;
+  updateTemplate(templateRoles: RoleId[], isPlagueMode?: boolean): Promise<GameActionResult>;
 
   /**
    * Update player profile (nickname / avatar / decorations).

@@ -409,7 +409,10 @@ export function handleUpdateTemplate(
 
   const action: UpdateTemplateAction = {
     type: 'UPDATE_TEMPLATE',
-    payload: { templateRoles: intent.payload.templateRoles },
+    payload: {
+      templateRoles: intent.payload.templateRoles,
+      isPlagueMode: intent.payload.isPlagueMode,
+    },
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

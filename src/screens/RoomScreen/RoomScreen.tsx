@@ -576,7 +576,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {isDebugMode &&
         isHost &&
         hasBots &&
-        roomStatus === GameStatus.Ongoing &&
+        roomStatus !== GameStatus.Unseated &&
+        roomStatus !== GameStatus.Seated &&
         (controlledSeat !== null && gameState.players.get(controlledSeat) ? (
           <ControlledSeatBanner
             mode="controlled"
@@ -586,7 +587,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             styles={componentStyles.controlledSeatBanner}
           />
         ) : (
-          <ControlledSeatBanner mode="hint" styles={componentStyles.controlledSeatBanner} />
+          <ControlledSeatBanner
+            mode="hint"
+            showBulkViewHint={roomStatus === GameStatus.Assigned}
+            styles={componentStyles.controlledSeatBanner}
+          />
         ))}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>

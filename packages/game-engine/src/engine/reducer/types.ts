@@ -34,6 +34,7 @@ export interface UpdateTemplateAction {
   type: 'UPDATE_TEMPLATE';
   payload: {
     templateRoles: RoleId[];
+    isPlagueMode?: boolean;
   };
 }
 

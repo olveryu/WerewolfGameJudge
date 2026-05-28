@@ -216,7 +216,7 @@ const HeaderActionsComponent: React.FC<HeaderActionsProps> = ({
                   {showClearAllSeats && (
                     <TouchableOpacity style={styles.menuItem} onPress={handleClearAllSeats}>
                       <Ionicons name="exit-outline" size={MENU_ICON_SIZE} color={colors.text} />
-                      <Text style={styles.menuItemText}>全员起立</Text>
+                      <Text style={styles.menuItemText}>清空座位</Text>
                     </TouchableOpacity>
                   )}
                   {showFillWithBots && (
