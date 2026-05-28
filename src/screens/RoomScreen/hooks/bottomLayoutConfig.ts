@@ -228,7 +228,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ready,
       role: 'host',
-      when: (ctx) => ctx.isPlagueMode && ctx.effectiveSeat !== null,
+      when: (ctx) => ctx.isPlagueMode,
     },
     layout: {
       primary: [{ source: 'static', button: 'viewRole' }],
@@ -237,23 +237,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     },
   },
   {
-    match: {
-      status: GameStatus.Ready,
-      role: 'host',
-      when: (ctx) => ctx.isPlagueMode,
-    },
-    layout: {
-      primary: [],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Ready,
-      role: 'host',
-      when: (ctx) => ctx.effectiveSeat !== null,
-    },
+    match: { status: GameStatus.Ready, role: 'host' },
     layout: {
       primary: [{ source: 'static', button: 'startGame' }],
       secondary: [],
@@ -261,14 +245,6 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
         { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'restart' },
       ],
-    },
-  },
-  {
-    match: { status: GameStatus.Ready, role: 'host' },
-    layout: {
-      primary: [{ source: 'static', button: 'startGame' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
     },
   },
   {
@@ -319,7 +295,7 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
     match: {
       status: GameStatus.Ongoing,
       role: 'host',
-      when: (ctx) => ctx.imActioner && ctx.effectiveSeat !== null,
+      when: (ctx) => ctx.imActioner,
     },
     layout: {
       primary: [{ source: 'schema', tier: 'primary' }],
@@ -328,18 +304,6 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
         { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'restart' },
       ],
-    },
-  },
-  {
-    match: {
-      status: GameStatus.Ongoing,
-      role: 'host',
-      when: (ctx) => ctx.imActioner,
-    },
-    layout: {
-      primary: [{ source: 'schema', tier: 'primary' }],
-      secondary: [{ source: 'schema', tier: 'secondary' }],
-      ghost: [{ source: 'static', button: 'restart' }],
     },
   },
   {
@@ -359,21 +323,9 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // Ongoing — non-actioner
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    match: {
-      status: GameStatus.Ongoing,
-      role: 'host',
-      when: (ctx) => ctx.effectiveSeat !== null,
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'viewRole' }],
-      secondary: [],
-      ghost: [{ source: 'static', button: 'restart' }],
-    },
-  },
-  {
     match: { status: GameStatus.Ongoing, role: 'host' },
     layout: {
-      primary: [],
+      primary: [{ source: 'static', button: 'viewRole' }],
       secondary: [],
       ghost: [{ source: 'static', button: 'restart' }],
     },
@@ -392,27 +344,12 @@ export const LAYOUT_RULES: readonly LayoutRule[] = [
   // Ended
   // ═══════════════════════════════════════════════════════════════════════════
   {
-    match: {
-      status: GameStatus.Ended,
-      role: 'host',
-      when: (ctx) => ctx.effectiveSeat !== null,
-    },
-    layout: {
-      primary: [{ source: 'static', button: 'restart' }],
-      secondary: [],
-      ghost: [
-        { source: 'static', button: 'viewRole' },
-        { source: 'static', button: 'nightReview' },
-        { source: 'static', button: 'lastNightInfo' },
-      ],
-    },
-  },
-  {
     match: { status: GameStatus.Ended, role: 'host' },
     layout: {
       primary: [{ source: 'static', button: 'restart' }],
       secondary: [],
       ghost: [
+        { source: 'static', button: 'viewRole' },
         { source: 'static', button: 'nightReview' },
         { source: 'static', button: 'lastNightInfo' },
       ],

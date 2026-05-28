@@ -127,6 +127,8 @@ function materializeSlots(
 
   for (const slot of slots) {
     if (slot.source === 'static') {
+      // Invariant: viewRole requires a seat (you need a role to view)
+      if (slot.button === 'viewRole' && ctx.effectiveSeat === null) continue;
       result.push(materializeStaticButton(slot.button, tier, ctx));
     } else {
       // Schema slot — pick from classified primary or secondary
