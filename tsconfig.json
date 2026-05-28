@@ -3,7 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "baseUrl": ".",
+    "types": ["jest", "node"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -22,6 +22,7 @@
   ],
   "exclude": [
     "functions",
-    "packages/api-worker"
+    "packages/api-worker",
+    "e2e"
   ]
 }

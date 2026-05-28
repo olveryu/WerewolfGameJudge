@@ -584,13 +584,13 @@ export const FilmRewind: React.FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   absoluteFillNoEvents: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
+  flash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   flickerOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(200, 180, 140, 1)',
     pointerEvents: 'none',
   },
@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
     ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 2, 8),
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   centerContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     pointerEvents: 'none',

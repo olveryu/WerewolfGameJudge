@@ -628,13 +628,13 @@ export const MeteorStrike: React.FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   absoluteFillNoEvents: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
+  flash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

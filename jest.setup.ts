@@ -322,10 +322,7 @@ jest.mock('./src/theme', () => {
 // ---------------------------------------------------------------------------
 // Keep RN's public surface stable in Jest.
 // - Avoid relying on internal RN module paths (they change between RN versions).
-// - Defang NativeAnimatedHelper warnings/noise.
 // - Make TouchableOpacity deterministic to avoid animation side effects.
-
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper', () => ({}), { virtual: true });
 
 // Provide a stable TouchableOpacity implementation without pulling in the full
 // `react-native` entrypoint (which can require unavailable native TurboModules
@@ -350,7 +347,7 @@ jest.mock(
       );
     }
 
-    return TouchableOpacityShim;
+    return { __esModule: true, default: TouchableOpacityShim };
   },
   { virtual: true },
 );

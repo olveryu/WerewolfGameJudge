@@ -772,14 +772,14 @@ export const VortexCollapse: React.FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   absoluteFillNoEvents: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
+  flash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   flashBg: { backgroundColor: 'rgba(150,100,255,0.8)' },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

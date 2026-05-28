@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   woodFrame: {

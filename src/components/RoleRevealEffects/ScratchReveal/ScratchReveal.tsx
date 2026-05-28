@@ -690,11 +690,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   milestoneFlash: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: SCRATCH_COLORS.milestoneFlash,
     pointerEvents: 'none',
   },
@@ -703,10 +703,10 @@ const styles = StyleSheet.create({
     boxShadow: '0px 4px 8px rgba(0,0,0,0.3)',
   },
   roleCardLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   scratchLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'hidden',
   },
   scratchHole: {
@@ -722,7 +722,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   textureOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   scratchMark: {
@@ -733,7 +733,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   hintContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'none',
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   diamondPattern: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.08,

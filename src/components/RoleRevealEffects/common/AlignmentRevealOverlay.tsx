@@ -105,7 +105,7 @@ export const AlignmentRevealOverlay: React.FC<AlignmentRevealOverlayProps> = ({
 
 const styles = StyleSheet.create({
   effectContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     overflow: 'visible',
     pointerEvents: 'none',
   },

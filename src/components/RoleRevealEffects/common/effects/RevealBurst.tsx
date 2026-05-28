@@ -143,7 +143,7 @@ export const RevealBurst: React.FC<RevealBurstProps> = ({
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
 });

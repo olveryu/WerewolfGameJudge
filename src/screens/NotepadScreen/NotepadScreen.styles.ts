@@ -201,7 +201,7 @@ export function createNotepadScreenStyles(colors: ThemeColors) {
       fontWeight: typography.weights.semibold,
     },
     popoverOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlayLight,
       justifyContent: 'center',
       alignItems: 'center',

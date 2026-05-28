@@ -727,15 +727,15 @@ export const FortuneWheel: React.FC<FortuneWheelProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   absoluteFillNoEvents: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
-  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
+  flash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   pedestal: {
     position: 'absolute',
     bottom: 40,
@@ -757,7 +757,7 @@ const styles = StyleSheet.create({
     marginTop: -1,
   },
   victoryArch: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'none',
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   },
 
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

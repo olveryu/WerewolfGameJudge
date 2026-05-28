@@ -142,7 +142,7 @@ export const ScreenFlash: React.FC<ScreenFlashProps> = ({
 
 const styles = StyleSheet.create({
   canvas: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 9999,
     pointerEvents: 'none',
   },

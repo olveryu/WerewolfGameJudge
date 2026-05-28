@@ -108,7 +108,7 @@ export function createSharedStyles(colors: ThemeColors): SharedStyles {
 
     // ── Modal ─────────────────────────────────────────────────────────────
     modalOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlay,
       justifyContent: 'center',
       alignItems: 'center',
@@ -124,7 +124,7 @@ export function createSharedStyles(colors: ThemeColors): SharedStyles {
 
     // ── Sheet ─────────────────────────────────────────────────────────────
     sheetOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlayLight,
     },
     sheetBase: {

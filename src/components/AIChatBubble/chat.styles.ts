@@ -13,13 +13,13 @@ export function createChatStyles(colors: ThemeColors, chatWidth: number) {
   return StyleSheet.create({
     // Modal
     modalContainer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'flex-end',
       alignItems: 'center',
       paddingBottom: spacing.large,
     },
     modalBackdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlayLight,
     },
 

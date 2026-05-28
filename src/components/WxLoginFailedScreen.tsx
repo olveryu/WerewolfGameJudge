@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     backgroundColor: SPLASH_BG,
   },
   bg: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   gradient: {
     position: 'absolute',

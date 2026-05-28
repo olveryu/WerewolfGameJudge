@@ -156,7 +156,7 @@ export const AtmosphericBackground: React.FC<AtmosphericBackgroundProps> = ({ co
 
 const styles = StyleSheet.create({
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   glow: {

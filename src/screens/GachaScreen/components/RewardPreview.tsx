@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   flairAvatarWrap: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
   pointerEventsAuto: { pointerEvents: 'auto' as const },
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   machine: { alignItems: 'center' },
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.8)',
   },
-  domeGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 75 },
+  domeGradient: { ...StyleSheet.absoluteFill, borderRadius: 75 },
   domeHighlight: {
     position: 'absolute',
     top: 15,
@@ -828,7 +828,7 @@ const styles = StyleSheet.create({
     borderColor: GACHA_COLORS.capsuleRingBorder,
   },
 
-  cardWrapper: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
+  cardWrapper: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   cardInner: { alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   glowBorder: { position: 'absolute', top: -4, left: -4 },
   coin: {
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
     color: 'rgba(0,0,0,0.1)',
   },
   crackOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',

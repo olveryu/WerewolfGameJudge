@@ -27,7 +27,7 @@ const GLOW_OUT = EPIC_DURATION * 0.4;
 
 /* eslint-disable react-native/no-color-literals -- intentional camera-flash white, not a theme color */
 const epicStyles = StyleSheet.create({
-  flash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'white' },
+  flash: { ...StyleSheet.absoluteFill, backgroundColor: 'white' },
 });
 /* eslint-enable react-native/no-color-literals */
 

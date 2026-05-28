@@ -386,7 +386,7 @@ function createStyles(colors: ThemeColors, width: number, height: number) {
       paddingTop: 0,
     },
     revealGradientBg: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderRadius: borderRadius.xlarge - fixed.borderWidthHighlight, // Inside border
     },
     factionBadge: {

@@ -145,5 +145,5 @@ VortexSwirlEnter.displayName = 'VortexSwirlEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
 });

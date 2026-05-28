@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   neonBorder: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: SLOT_COLORS.neonPink,
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   bulbGlow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   screw: {
     position: 'absolute',
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   revealedOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   particleContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'none',
@@ -919,7 +919,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   pillarContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 40,

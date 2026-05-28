@@ -144,7 +144,7 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
       boxShadow: 'none',
     },
     pickerItemLockOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
       backgroundColor: withAlpha(colors.background, 0.4),
@@ -162,7 +162,7 @@ export const createAppearanceScreenStyles = (colors: ThemeColors): AppearanceScr
       alignItems: 'center',
     },
     pickerPreviewOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: colors.overlay,
       justifyContent: 'center',
       alignItems: 'center',

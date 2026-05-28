@@ -151,7 +151,7 @@ const CARD_BORDER = 'rgb(180,150,80)';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   card: { position: 'absolute', backfaceVisibility: 'hidden' },
   cardRadius: { borderRadius: 8 },
   cardBack: { flex: 1, backgroundColor: CARD_BACK_BG, borderWidth: 2, borderColor: CARD_BORDER },

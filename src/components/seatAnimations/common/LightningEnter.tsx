@@ -123,7 +123,7 @@ LightningEnter.displayName = 'LightningEnter';
 
 const styles = StyleSheet.create({
   container: { position: 'relative', overflow: 'hidden' },
-  childWrapper: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  childWrapper: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   flash: { justifyContent: 'center', alignItems: 'center' },
   flashInner: { width: '100%', height: '100%', opacity: 0.3 },
 });

@@ -304,7 +304,7 @@ function AppContent() {
   if (needsWechatLogin) {
     return (
       <>
-        <StatusBar style="dark" backgroundColor={colors.background} />
+        <StatusBar style="dark" />
         <WxLoginFailedScreen />
       </>
     );
@@ -317,7 +317,7 @@ function AppContent() {
 
   return (
     <>
-      <StatusBar style="dark" backgroundColor={colors.background} />
+      <StatusBar style="dark" />
       <AppNavigator onReady={handleNavReady} />
       {alertConfig && (
         <AlertModal

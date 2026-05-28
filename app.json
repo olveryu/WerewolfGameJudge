@@ -42,7 +42,9 @@
       "expo-splash-screen",
       "@sentry/react-native",
       "expo-image",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }

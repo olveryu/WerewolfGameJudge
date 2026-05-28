@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import type { ViewStyle } from 'react-native';
 import {
   Easing,
   type SharedValue,
@@ -31,7 +30,7 @@ export function useLoop(duration: number): SharedValue<number> {
  * Float bob animation (translateY -4px).
  * Returns an animated style to apply to an Animated.View wrapper.
  */
-export function useFloat(duration = 2500): { floatStyle: ViewStyle } {
+export function useFloat(duration = 2500) {
   const v = useSharedValue(0);
   useEffect(() => {
     v.value = withRepeat(

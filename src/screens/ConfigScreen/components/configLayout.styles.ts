@@ -48,7 +48,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
     color: colors.text,
   } satisfies TextStyle,
   headerCenter: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -64,7 +64,7 @@ export const createConfigLayoutStyles = (colors: ThemeColors) => ({
 
   // ── Overflow (⋯) popup menu ──────────────────────
   overflowMenuOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 100,
   } satisfies ViewStyle,
   overflowMenu: {

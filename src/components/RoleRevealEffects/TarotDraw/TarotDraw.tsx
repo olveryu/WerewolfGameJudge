@@ -915,7 +915,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#070012',
   },
   fullScreen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   wheel: {

@@ -1161,9 +1161,9 @@ export const SealBreak: FC<RoleRevealEffectProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  flash: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' },
+  flash: { ...StyleSheet.absoluteFill, pointerEvents: 'none' },
   chargeGlow: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: COLORS.chargeGlow,
     pointerEvents: 'none',
   },
@@ -1193,7 +1193,7 @@ const styles = StyleSheet.create({
     ...crossPlatformTextShadow('rgba(0, 0, 0, 0.6)', 0, 1, 6),
   },
   cardWrapper: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
   },

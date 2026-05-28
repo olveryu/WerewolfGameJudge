@@ -1270,7 +1270,7 @@ export const RoleHunt: React.FC<RoleHuntProps> = ({
 // ─── Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   absoluteFillNoEvents: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     pointerEvents: 'none',
   },
   container: {
@@ -1281,7 +1281,7 @@ const styles = StyleSheet.create({
     backgroundColor: SKY_COLORS.top,
   },
   flash: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 8,
     pointerEvents: 'none',
   },
@@ -1309,7 +1309,7 @@ const styles = StyleSheet.create({
     color: HUNT_COLORS.animalName,
   },
   celebrationContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     pointerEvents: 'none',

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "functions",
+    "packages/api-worker",
+    "e2e",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "__mocks__",
+    "jest.setup.ts"
+  ]
+}

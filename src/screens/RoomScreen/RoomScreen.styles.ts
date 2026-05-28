@@ -91,7 +91,7 @@ export function createRoomScreenStyles(colors: ThemeColors) {
       zIndex: 1,
     },
     headerCenter: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
     },

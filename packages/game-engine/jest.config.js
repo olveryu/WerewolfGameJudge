@@ -8,4 +8,7 @@ module.exports = {
     '^@werewolf/game-engine/(.*)$': '<rootDir>/src/$1',
     '^@werewolf/game-engine$': '<rootDir>/src/index.ts',
   },
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
+  },
 };

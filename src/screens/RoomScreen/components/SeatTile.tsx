@@ -562,19 +562,19 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       color: colors.textInverse,
     },
     avatarContainer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'visible' as const,
     },
     avatarOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: withAlpha(colors.primary, 0.302),
       borderRadius: borderRadius.large,
     },
     wolfOverlay: {},
     selectedOverlay: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: withAlpha(colors.primaryDark, 0.35),
       borderRadius: borderRadius.large,
     },
