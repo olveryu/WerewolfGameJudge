@@ -294,13 +294,20 @@ jobs:
           echo "   URL: $CDN_URL"
           exit 1
 
+      # Cloudflare Pages API rejects non-ASCII commit messages.
+      # Our convention: subject line (first line) is always ASCII (Conventional Commits).
+      # Extract it explicitly so deployments stay human-readable + API-safe.
+      - name: Extract commit subject
+        id: commit
+        run: echo "subject=$(git log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           packageManager: pnpm
-          command: pages deploy dist --project-name=werewolfgamejudge
+          command: pages deploy dist --project-name=werewolfgamejudge --commit-message="${{ steps.commit.outputs.subject }}"
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
   deploy-miniapp:
