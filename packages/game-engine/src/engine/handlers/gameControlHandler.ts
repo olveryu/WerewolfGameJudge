@@ -102,11 +102,12 @@ export function handleAssignRoles(
 
   // Plague mode: replace all wolf-team roles with villager before shuffling
   // Includes Faction.Wolf + treasureMaster (Special faction but permanently wolf-team)
-  const effectiveRoles: RoleId[] = state.isPlagueMode
+  const isPlagueMode = state.rules?.isPlagueMode ?? false;
+  const effectiveRoles: RoleId[] = isPlagueMode
     ? state.templateRoles.map((roleId) => {
         const spec = ROLE_SPECS[roleId];
         if (spec?.faction === Faction.Wolf || roleId === ('treasureMaster' as RoleId)) {
-          return 'villager' as RoleId;
+          return 'villager';
         }
         return roleId;
       })
@@ -118,7 +119,7 @@ export function handleAssignRoles(
   let thiefSeat: number | undefined;
   let cupidSeat: number | undefined;
 
-  if (bottomCardRoleId && !state.isPlagueMode) {
+  if (bottomCardRoleId && !isPlagueMode) {
     // Deck role present: shuffle -> first seatCount assigned to seats + remaining N as deck
     const result = shuffleWithBottomCardConstraints(
       state.templateRoles,
@@ -232,7 +233,7 @@ function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean
   if (cards.includes(bottomCardRoleId)) return false;
 
   // Common: cupid must not be in bottom cards
-  if (cards.includes('cupid' as RoleId)) return false;
+  if (cards.includes('cupid')) return false;
 
   if (bottomCardRoleId === 'treasureMaster') {
     return validateTreasureMasterBottomCards(cards);
@@ -333,7 +334,7 @@ export function handleStartNight(
   }
 
   // Witch present: wolves cannot attack on first night (board-level rule)
-  if (state.templateRoles.includes('poisoner' as RoleId)) {
+  if (state.templateRoles.includes('poisoner')) {
     const wolfKillOverrideAction: SetWolfKillOverrideAction = {
       type: 'SET_WOLF_KILL_OVERRIDE',
       payload: {
@@ -411,7 +412,7 @@ export function handleUpdateTemplate(
     type: 'UPDATE_TEMPLATE',
     payload: {
       templateRoles: intent.payload.templateRoles,
-      isPlagueMode: intent.payload.isPlagueMode,
+      rules: intent.payload.rules,
     },
   };
 

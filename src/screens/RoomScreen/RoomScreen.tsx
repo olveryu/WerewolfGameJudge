@@ -314,7 +314,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       isStartingGame,
       isHostActionSubmitting,
       nightReviewAllowedSeats: gameState?.nightReviewAllowedSeats ?? [],
-      isPlagueMode: gameState?.isPlagueMode ?? false,
+      isPlagueMode: gameState?.rules?.isPlagueMode ?? false,
     }),
     [
       roomStatus,
@@ -325,7 +325,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       isStartingGame,
       isHostActionSubmitting,
       gameState?.nightReviewAllowedSeats,
-      gameState?.isPlagueMode,
+      gameState?.rules?.isPlagueMode,
     ],
   );
   const schemaVM = getBottomAction();
@@ -630,7 +630,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* Bottom Action Panel - floating card with three-tier layout */}
       <BottomActionPanel
         message={
-          gameState?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
+          gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
             ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
             : actionMessage
         }
@@ -638,7 +638,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           !isAudioPlaying &&
           (imActioner ||
             roomStatus === GameStatus.Ended ||
-            (gameState?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
+            (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
         }
         layout={bottomLayout}
         onSchemaButtonPress={handleSchemaButtonPress}

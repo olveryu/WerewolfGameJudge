@@ -9,7 +9,7 @@
 
 // ⚠️ Use existing repo export paths as canonical reference
 import type { DeathReason } from '../engine/DeathCalculator';
-import type { GameStatus, RoleId, SchemaId } from '../models';
+import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
 import type { CurrentNightResults } from '../resolvers/types';
@@ -146,8 +146,8 @@ export interface GameState {
   hostUserId: string;
   status: GameStatus;
   templateRoles: RoleId[];
-  /** Plague mode: all wolf-faction roles replaced with villager during dealing */
-  isPlagueMode?: boolean;
+  /** Game rule overrides (plague mode, witch self-heal, etc.) */
+  rules?: GameRuleOverrides;
 
   // ⚠️ Phase 1: players remains Record<number, ...> unchanged, consistent with existing implementation
   players: Record<number, Player | null>;

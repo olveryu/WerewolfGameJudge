@@ -64,9 +64,9 @@ export function validateTemplateRoles(roles: RoleId[]): string | null {
   // Rule 3: treasureMaster bottom card constraint prerequisites
   // Bottom cards require exactly 1 wolf (regular) + 1 god + 1 villager.
   // If template cannot provide these, dealing will always fail.
-  if (roles.includes('treasureMaster' as RoleId)) {
+  if (roles.includes('treasureMaster')) {
     const otherRoles = roles.filter((r) => r !== ('treasureMaster' as RoleId));
-    const hasRegularWolf = otherRoles.includes('wolf' as RoleId);
+    const hasRegularWolf = otherRoles.includes('wolf');
     const hasGod = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.God);
     const hasVillager = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.Villager);
     if (!hasRegularWolf) {
@@ -85,6 +85,18 @@ export function validateTemplateRoles(roles: RoleId[]): string | null {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Game rule overrides (house rules / variant toggles)
+// ---------------------------------------------------------------------------
+
+/** Rule overrides that can be toggled per-room. */
+export interface GameRuleOverrides {
+  /** Plague mode: all wolf-faction roles replaced with villager during dealing */
+  isPlagueMode?: boolean;
+  /** Allow witch to save herself (default: false — witch cannot self-heal) */
+  witchCanSelfHeal?: boolean;
+}
+
 /**
  * GameTemplate - defines the player composition for a game.
  *
@@ -95,8 +107,8 @@ export interface GameTemplate {
   name: string;
   numberOfPlayers: number;
   roles: RoleId[];
-  /** Plague mode: all wolf-faction roles replaced with villager during dealing */
-  isPlagueMode?: boolean;
+  /** Game rule overrides (plague mode, witch self-heal, etc.) */
+  rules?: GameRuleOverrides;
 }
 
 /** Treasure Master deck card count */
@@ -114,7 +126,7 @@ const BOTTOM_CARD_ROLE_IDS = ['treasureMaster', 'thief'] as const;
  */
 export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
   for (const id of BOTTOM_CARD_ROLE_IDS) {
-    if (roles.includes(id as RoleId)) return id as RoleId;
+    if (roles.includes(id)) return id;
   }
   return null;
 }

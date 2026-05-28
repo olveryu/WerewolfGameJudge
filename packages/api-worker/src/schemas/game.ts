@@ -75,7 +75,12 @@ export type SeatActionParams = Omit<z.infer<typeof seatActionSchema>, 'roomCode'
 export const updateTemplateSchema = z.object({
   roomCode: z.string().min(1),
   templateRoles: z.array(z.string().min(1)),
-  isPlagueMode: z.boolean().optional(),
+  rules: z
+    .object({
+      isPlagueMode: z.boolean().optional(),
+      witchCanSelfHeal: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 /** POST /game/view-role */

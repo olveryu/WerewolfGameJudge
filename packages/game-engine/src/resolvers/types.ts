@@ -122,6 +122,8 @@ export interface ResolverContext {
     readonly isNight1: boolean;
     /** Accumulated hypnotized seats (piper) — needed to reject already-hypnotized targets */
     readonly hypnotizedSeats?: readonly number[];
+    /** Whether witch is allowed to save herself (house rule override) */
+    readonly witchCanSelfHeal?: boolean;
   };
 
   /** Bottom-card context (only present when game includes treasureMaster or thief role) */

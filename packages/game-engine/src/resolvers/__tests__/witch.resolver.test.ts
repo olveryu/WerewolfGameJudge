@@ -81,6 +81,19 @@ describe('witchActionResolver', () => {
       expect(result.rejectReason).toContain('自救');
     });
 
+    it('女巫可自救规则开启时应允许自救', () => {
+      const ctx = createContext({
+        currentNightResults: { wolfVotesBySeat: { '1': 5 } }, // witch is killed
+        gameState: { isNight1: true, witchCanSelfHeal: true },
+      });
+      const input = createInput({ save: 5, poison: null });
+
+      const result = witchActionResolver(ctx, input);
+
+      expect(result.valid).toBe(true);
+      expect(result.result?.savedTarget).toBe(5);
+    });
+
     it('应该拒绝解药已用完', () => {
       const ctx = createContext({
         witchState: { canSave: false, canPoison: true },

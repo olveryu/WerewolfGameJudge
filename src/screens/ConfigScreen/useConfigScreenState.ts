@@ -14,6 +14,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
   createCustomTemplate,
+  type GameRuleOverrides,
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
@@ -52,6 +53,7 @@ interface UseConfigScreenStateParams {
   existingRoomCode: string | undefined;
   presetName: string | undefined;
   nominateMode: { roomCode: string } | undefined;
+  updatedRules: GameRuleOverrides | undefined;
   navigation: ConfigNavigationProp;
   facade: IGameFacade;
   settingsService: SettingsService;
@@ -66,6 +68,7 @@ export function useConfigScreenState({
   existingRoomCode,
   presetName,
   nominateMode,
+  updatedRules,
   navigation,
   facade,
   settingsService,
@@ -101,7 +104,7 @@ export function useConfigScreenState({
   const [variantOverrides, setVariantOverrides] = useState<Record<string, string>>(
     () => presetInitial?.variantOverrides ?? {},
   );
-  const [isPlagueMode, setIsPlagueMode] = useState(false);
+  const [rules, setRules] = useState<GameRuleOverrides>({});
 
   const totalCount = useMemo(
     () => computeTotalCount(selection, variantOverrides),
@@ -144,8 +147,8 @@ export function useConfigScreenState({
           setVariantOverrides(restored.variantOverrides);
           setSelectedTemplate(restored.matchedPreset ?? '__custom__');
         }
-        if (state?.isPlagueMode) {
-          setIsPlagueMode(true);
+        if (state?.rules) {
+          setRules(state.rules);
         }
         setBgmEnabled(settingsService.isBgmEnabled());
       } catch (error) {
@@ -171,6 +174,14 @@ export function useConfigScreenState({
       setBgmEnabled(settingsService.isBgmEnabled());
     }
   }, [existingRoomCode, settingsService]);
+
+  // ── Apply rules returned from GameRulesScreen ────────────────────────────
+
+  useEffect(() => {
+    if (updatedRules) {
+      setRules(updatedRules);
+    }
+  }, [updatedRules]);
 
   // ── Reset transient states when screen regains focus ─────────────────────
 
@@ -231,18 +242,14 @@ export function useConfigScreenState({
     setSelectedTemplate('__custom__');
   }, []);
 
-  /** Toggle plague mode with bottom-card compatibility check */
-  const togglePlagueMode = useCallback((): boolean => {
-    if (isPlagueMode) {
-      setIsPlagueMode(false);
-      return true;
-    }
-    return true; // Caller shows confirm dialog, then calls confirmPlagueMode
-  }, [isPlagueMode]);
+  /** Navigate to GameRulesScreen */
+  const handleOpenGameRules = useCallback(() => {
+    navigation.navigate('GameRules', { rules });
+  }, [navigation, rules]);
 
-  /** Confirm plague mode activation (called after user confirms dialog) */
-  const confirmPlagueMode = useCallback(() => {
-    setIsPlagueMode(true);
+  /** Update rules when returning from GameRulesScreen */
+  const updateRules = useCallback((newRules: GameRuleOverrides) => {
+    setRules(newRules);
   }, []);
 
   const { mutateAsync: createRoom } = useCreateRoom();
@@ -286,7 +293,9 @@ export function useConfigScreenState({
       }
 
       const template = createCustomTemplate(roles);
-      if (isPlagueMode) template.isPlagueMode = true;
+      if (Object.values(rules).some(Boolean)) {
+        template.rules = rules;
+      }
 
       await settingsService.setBgmEnabled(bgmEnabled);
 
@@ -344,7 +353,7 @@ export function useConfigScreenState({
     authService,
     createRoom,
     variantOverrides,
-    isPlagueMode,
+    rules,
     user?.displayName,
   ]);
 
@@ -556,10 +565,10 @@ export function useConfigScreenState({
     toggleRole,
     handleClearSelection,
 
-    // Plague mode
-    isPlagueMode,
-    togglePlagueMode,
-    confirmPlagueMode,
+    // Game rules
+    rules,
+    handleOpenGameRules,
+    updateRules,
 
     // Template
     selectedTemplateLabel,

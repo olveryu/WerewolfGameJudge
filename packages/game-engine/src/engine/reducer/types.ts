@@ -4,7 +4,7 @@
  * StateAction is reducer input, describing state mutations
  */
 
-import type { RoleId, SchemaId } from '../../models';
+import type { GameRuleOverrides, RoleId, SchemaId } from '../../models';
 import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
 import type { ConfirmStatus, Player, ProtocolAction, RosterEntry } from '../../protocol/types';
 import type { AudioEffect, BoardNomination } from '../../protocol/types';
@@ -34,7 +34,7 @@ export interface UpdateTemplateAction {
   type: 'UPDATE_TEMPLATE';
   payload: {
     templateRoles: RoleId[];
-    isPlagueMode?: boolean;
+    rules?: GameRuleOverrides;
   };
 }
 

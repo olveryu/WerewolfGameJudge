@@ -61,6 +61,7 @@ function buildResolverContext(
     gameState: {
       isNight1: true, // Night-1 only
       hypnotizedSeats: state.hypnotizedSeats ?? [],
+      witchCanSelfHeal: state.rules?.witchCanSelfHeal ?? false,
     },
     ...(state.bottomCards && (state.treasureMasterSeat != null || state.thiefSeat != null)
       ? {
@@ -153,7 +154,7 @@ export function handleSubmitAction(
   // Validate preconditions (full gate chain)
   const validation = validateActionPreconditions(context.state, seat, role);
   if (!validation.valid) {
-    return (validation as { valid: false; result: HandlerResult }).result;
+    return validation.result;
   }
   const { schemaId, state, schema } = validation;
 

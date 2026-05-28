@@ -28,6 +28,7 @@ import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
+import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
@@ -197,6 +198,11 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
             if (params?.existingRoomCode) return `edit-${params.existingRoomCode}`;
             return undefined;
           }}
+        />
+        <Stack.Screen
+          name="GameRules"
+          component={GameRulesScreen}
+          options={{ title: '游戏规则' }}
         />
         <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
         <Stack.Screen

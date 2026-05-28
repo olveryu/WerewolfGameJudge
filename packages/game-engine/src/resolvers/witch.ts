@@ -29,14 +29,15 @@ function validateSaveAction(
   actorSeat: number,
   wolfKillSeat: number | undefined,
   canSave: boolean,
+  witchCanSelfHeal: boolean,
 ): string | null {
   if (!canSave) {
     return '解药已用完';
   }
 
-  // Night-1-only: witch cannot save herself
+  // Night-1-only: witch cannot save herself (unless house rule overrides)
   // Aligned with schema.witchAction.save.constraints=['notSelf']
-  if (saveTarget === actorSeat) {
+  if (saveTarget === actorSeat && !witchCanSelfHeal) {
     return '女巫不能自救';
   }
 
@@ -84,7 +85,14 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
   // Validate save action
   if (saveTarget !== null) {
     const wolfKillSeat = resolveWolfKillSeatFromVotes(currentNightResults.wolfVotesBySeat);
-    const error = validateSaveAction(saveTarget, actorSeat, wolfKillSeat, witchState.canSave);
+    const witchCanSelfHeal = context.gameState.witchCanSelfHeal ?? false;
+    const error = validateSaveAction(
+      saveTarget,
+      actorSeat,
+      wolfKillSeat,
+      witchState.canSave,
+      witchCanSelfHeal,
+    );
     if (error) {
       return { valid: false, rejectReason: error };
     }

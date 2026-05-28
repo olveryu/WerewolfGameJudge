@@ -71,7 +71,7 @@ export function normalizeState(raw: GameState): GameState {
     hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),
     templateRoles: requireField(raw.templateRoles, 'templateRoles'),
-    isPlagueMode: raw.isPlagueMode,
+    rules: raw.rules,
     // Phase 1: players kept as-is, no key canonicalization
     players: requireField(raw.players, 'players'),
     // Player display info (roster), keyed by userId

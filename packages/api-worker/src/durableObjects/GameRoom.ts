@@ -49,6 +49,7 @@ import type {
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -364,11 +365,14 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     });
   }
 
-  async updateTemplate(templateRoles: RoleId[], isPlagueMode?: boolean): Promise<GameActionResult> {
+  async updateTemplate(
+    templateRoles: RoleId[],
+    rules?: GameRuleOverrides,
+  ): Promise<GameActionResult> {
     return this.#processAction((state) => {
       const ctx = buildHandlerContext(state, state.hostUserId);
       return handleUpdateTemplate(
-        { type: 'UPDATE_TEMPLATE', payload: { templateRoles, isPlagueMode } },
+        { type: 'UPDATE_TEMPLATE', payload: { templateRoles, rules } },
         ctx,
       );
     });

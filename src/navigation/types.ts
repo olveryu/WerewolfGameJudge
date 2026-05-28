@@ -1,4 +1,4 @@
-import { type GameTemplate } from '@werewolf/game-engine/models/Template';
+import { type GameRuleOverrides, type GameTemplate } from '@werewolf/game-engine/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -18,8 +18,11 @@ export type RootStackParamList = {
         // Optional: if provided, ConfigScreen is in "nominate" mode
         // User edits roles and submits as a board nomination
         nominateMode?: { roomCode: string };
+        // Optional: rules returned from GameRulesScreen
+        updatedRules?: GameRuleOverrides;
       }
     | undefined;
+  GameRules: { rules?: GameRuleOverrides } | undefined;
   Room: {
     roomCode: string;
     isHost: boolean;

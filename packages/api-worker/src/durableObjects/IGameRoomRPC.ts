@@ -13,6 +13,7 @@
 
 import type { UpdatePlayerProfileAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SeatActionParams } from '../schemas/game';
@@ -98,7 +99,7 @@ export interface IGameRoomRPC {
    * @pre status === 'Setup'
    * @pre host-only
    */
-  updateTemplate(templateRoles: RoleId[], isPlagueMode?: boolean): Promise<GameActionResult>;
+  updateTemplate(templateRoles: RoleId[], rules?: GameRuleOverrides): Promise<GameActionResult>;
 
   /**
    * Update player profile (nickname / avatar / decorations).

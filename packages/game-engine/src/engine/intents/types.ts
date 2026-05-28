@@ -5,7 +5,7 @@
  * Intent corresponds to PlayerMessage, but more type-safe
  */
 
-import type { RoleId } from '../../models';
+import type { GameRuleOverrides, RoleId } from '../../models';
 
 // =============================================================================
 // Seat-related Intents
@@ -93,7 +93,7 @@ export interface UpdateTemplateIntent {
   type: 'UPDATE_TEMPLATE';
   payload: {
     templateRoles: RoleId[];
-    isPlagueMode?: boolean;
+    rules?: GameRuleOverrides;
   };
 }
 
