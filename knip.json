@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreBinaries": ["miniprogram-ci"],
+  "exclude": ["types"],
   "workspaces": {
     ".": {
       "entry": ["App.tsx!", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
@@ -11,7 +12,6 @@
         "expo-modules-core",
         "expo-updates",
         "expo-system-ui",
-        "expo-asset",
         "html2canvas",
         "jest-environment-jsdom",
         "babel-plugin-transform-define",

@@ -12,18 +12,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@sentry/cloudflare": "^10.51.0",
+    "@sentry/cloudflare": "^10.54.0",
     "@werewolf/game-engine": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.18",
-    "jose": "^6.2.2",
-    "zod": "^4.3.6"
+    "hono": "^4.12.23",
+    "jose": "^6.2.3",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "~0.13.5",
-    "@cloudflare/workers-types": "^4.20260414.1",
-    "vitest": "~4.1.4",
-    "wrangler": "^4.82.2"
+    "@cloudflare/workers-types": "^4.20260528.1",
+    "vitest": "~4.1.7",
+    "wrangler": "^4.95.0"
   }
 }
