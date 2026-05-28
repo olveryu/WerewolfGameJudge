@@ -127,8 +127,9 @@ describe('useRoomHostDialogs', () => {
   });
 
   describe('showRestartDialog', () => {
-    it('should show share-before-restart dialog when night results exist', () => {
+    it('should show share-before-restart dialog when game is ended', () => {
       const gameState = createMockGameState(8);
+      gameState.status = GameStatus.Ended;
 
       const { result } = renderHook(() =>
         useRoomHostDialogs({
@@ -261,6 +262,7 @@ describe('useRoomHostDialogs', () => {
 
     it('showRestartDialog confirm should call restartGame once and reject double press', async () => {
       const gameState = createMockGameState(4);
+      gameState.status = GameStatus.Ended;
       let resolveRestart!: () => void;
       const mockRestartGame = jest.fn(
         () => new Promise<void>((resolve) => (resolveRestart = resolve)),
