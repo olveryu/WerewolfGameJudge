@@ -387,9 +387,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Build game-engine (E2E specs import from dist)
-        run: pnpm --filter @werewolf/game-engine run build
-
       # ── Playwright ──────────────────────────────────────
       - name: Get Playwright version
         id: pw-version

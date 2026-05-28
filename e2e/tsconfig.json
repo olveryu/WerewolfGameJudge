@@ -8,7 +8,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@werewolf/game-engine": ["../packages/game-engine/src/index.ts"],
+      "@werewolf/game-engine/*": ["../packages/game-engine/src/*"]
+    }
   },
   "include": ["**/*.ts"]
 }
