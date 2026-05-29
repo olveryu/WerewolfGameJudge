@@ -62,7 +62,10 @@ export class CFStorageService implements IStorageService {
   #compressImageWithDom(fileUri: string, maxSize: number, quality: number): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Do NOT set crossOrigin here. fileUri is always a same-origin blob URL from
+      // expo-image-picker. Setting crossOrigin='anonymous' switches the request to CORS
+      // mode; restricted WebViews (WeChat Android, iOS WKWebView) reject blob URLs in
+      // CORS mode and fire onerror instead of onload.
 
       img.onload = () => {
         let { width, height } = img;
