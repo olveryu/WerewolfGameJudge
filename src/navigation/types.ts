@@ -22,7 +22,13 @@ export type RootStackParamList = {
         updatedRules?: GameRuleOverrides;
       }
     | undefined;
-  GameRules: { rules?: GameRuleOverrides } | undefined;
+  GameRules:
+    | {
+        rules?: GameRuleOverrides;
+        existingRoomCode?: string;
+        nominateMode?: { roomCode: string };
+      }
+    | undefined;
   Room: {
     roomCode: string;
     isHost: boolean;

@@ -244,8 +244,12 @@ export function useConfigScreenState({
 
   /** Navigate to GameRulesScreen */
   const handleOpenGameRules = useCallback(() => {
-    navigation.navigate('GameRules', { rules });
-  }, [navigation, rules]);
+    navigation.navigate('GameRules', {
+      rules,
+      ...(existingRoomCode ? { existingRoomCode } : {}),
+      ...(nominateMode ? { nominateMode } : {}),
+    });
+  }, [navigation, rules, existingRoomCode, nominateMode]);
 
   /** Update rules when returning from GameRulesScreen */
   const updateRules = useCallback((newRules: GameRuleOverrides) => {

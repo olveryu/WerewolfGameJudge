@@ -2,18 +2,30 @@
  * GameRulesScreen — Game rule overrides (modes + role rules)
  *
  * Displays toggleable house rules grouped by category (game modes vs role-specific rules).
- * Receives current rules via navigation params, returns modified rules on goBack.
+ * Receives current rules via navigation params, returns modified rules via popTo.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
-import React, { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { type FC, useCallback, useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Button } from '@/components/Button';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { type RootStackParamList } from '@/navigation/types';
-import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  fixed,
+  layout,
+  shadows,
+  spacing,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -71,19 +83,33 @@ const ROLE_RULES: RuleItemConfig[] = [
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const GameRulesScreen: React.FC = () => {
+export const GameRulesScreen: FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ScreenRouteProp>();
+  const insets = useSafeAreaInsets();
   const initialRules = route.params?.rules;
+  const existingRoomCode = route.params?.existingRoomCode;
+  const nominateMode = route.params?.nominateMode;
 
   const [rules, setRules] = useState<GameRuleOverrides>(initialRules ?? {});
+
+  const handleGoBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  const handleDone = useCallback(() => {
+    navigation.popTo('Config', {
+      updatedRules: rules,
+      ...(existingRoomCode ? { existingRoomCode } : {}),
+      ...(nominateMode ? { nominateMode } : {}),
+    });
+  }, [navigation, rules, existingRoomCode, nominateMode]);
 
   const handleToggle = useCallback(
     (item: RuleItemConfig) => {
       const currentValue = rules[item.key] ?? false;
 
       if (!currentValue && item.confirmOnEnable) {
-        // Enabling with confirmation
         showConfirmAlert(
           item.confirmOnEnable.title,
           item.confirmOnEnable.message,
@@ -93,23 +119,11 @@ export const GameRulesScreen: React.FC = () => {
           { confirmText: item.confirmOnEnable.confirmText },
         );
       } else {
-        // Direct toggle
         setRules((prev) => ({ ...prev, [item.key]: !currentValue }));
       }
     },
     [rules],
   );
-
-  // Custom header back button: saves rules and navigates back to Config
-  React.useEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.navigate('Config', { updatedRules: rules })}>
-          <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, rules]);
 
   const renderRuleItem = useCallback(
     (item: RuleItemConfig) => {
@@ -140,7 +154,8 @@ export const GameRulesScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['left', 'right']}>
+      <ScreenHeader title="游戏规则" onBack={handleGoBack} topInset={insets.top} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -154,6 +169,11 @@ export const GameRulesScreen: React.FC = () => {
         <Text style={styles.sectionHeader}>角色规则</Text>
         {ROLE_RULES.map(renderRuleItem)}
       </ScrollView>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom || spacing.medium }]}>
+        <Button variant="primary" onPress={handleDone}>
+          完成
+        </Button>
+      </View>
     </SafeAreaView>
   );
 };
@@ -173,6 +193,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: spacing.medium,
     paddingBottom: spacing.xlarge,
+  },
+  bottomBar: {
+    paddingHorizontal: layout.screenPaddingH,
+    paddingVertical: spacing.medium,
+    backgroundColor: colors.surface,
+    borderTopWidth: fixed.borderWidth,
+    borderTopColor: colors.border,
+    ...shadows.lgUpward,
   },
   sectionHeader: {
     fontSize: typography.secondary,
