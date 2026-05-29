@@ -44,7 +44,7 @@ const GlowDot = memo<{
       cy: corner.yFrac * size,
       r: size * 0.04,
       opacity: pulse,
-    } as Record<string, number>;
+    };
   });
   return <AnimatedCircle animatedProps={props} fill={color} />;
 });

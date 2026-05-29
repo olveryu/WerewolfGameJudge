@@ -31,7 +31,7 @@ export const LegendaryAura = memo<{
     'worklet';
     const t = progress.value;
     const breathe = 0.03 + 0.07 * (0.5 + 0.5 * Math.sin(t * Math.PI * 2));
-    return { cx, cy, r: size * 0.35, opacity: breathe } as Record<string, number>;
+    return { cx, cy, r: size * 0.35, opacity: breathe };
   });
 
   const ringProps = useAnimatedProps(() => {
@@ -48,7 +48,7 @@ export const LegendaryAura = memo<{
       opacity: ringBreath,
       stroke: `rgb(${nr},${g},${nb})`,
       strokeWidth: size * 0.015,
-    } as Record<string, number | string>;
+    };
   });
 
   return (

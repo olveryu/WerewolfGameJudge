@@ -24,7 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Avatar } from '@/components/Avatar';
-import { type FrameId, getFrameById } from '@/components/avatarFrames';
+import { getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { CloseButton } from '@/components/CloseButton';
@@ -252,7 +252,7 @@ const EquipmentShowcase: React.FC<{ profile: UserPublicProfile }> = memo(({ prof
           {profile.avatarFrame ? (
             <AvatarWithFrame
               value="equip-preview"
-              frameId={profile.avatarFrame as FrameId}
+              frameId={profile.avatarFrame}
               size={SLOT_PREVIEW_SIZE}
               borderRadius={SLOT_PREVIEW_SIZE / 2}
             />
@@ -423,7 +423,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                   value={targetUserId}
                   size={AVATAR_SIZE}
                   avatarUrl={profile.avatarUrl}
-                  frameId={profile.avatarFrame as FrameId}
+                  frameId={profile.avatarFrame}
                   borderRadius={AVATAR_SIZE / 2}
                 />
                 {FlairComponent && (

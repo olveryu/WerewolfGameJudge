@@ -233,7 +233,8 @@ describe('AIChatService - streamChatMessage', () => {
       expect.any(String),
       expect.objectContaining<RequestInit>({
         method: 'POST',
-        body: expect.stringContaining('游戏状态') as unknown as string,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        body: expect.stringContaining('游戏状态'),
       }),
     );
   });
@@ -259,7 +260,7 @@ describe('AIChatService - streamChatMessage', () => {
 
     // Create 10 messages (5 rounds) — should be trimmed to last 6 (3 rounds)
     const messages: ChatMessage[] = Array.from({ length: 10 }, (_, i) => ({
-      role: (i % 2 === 0 ? 'user' : 'assistant') as ChatMessage['role'],
+      role: i % 2 === 0 ? 'user' : 'assistant',
       content: `message ${i}`,
     }));
 

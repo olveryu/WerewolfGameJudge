@@ -51,7 +51,7 @@ export function makeBaseUseGameRoomReturn({
         seat: i,
         displayName: `P${i + 1}`,
         avatarUrl: undefined,
-        role: i === mySeat ? myRole : ('villager' as RoleId),
+        role: i === mySeat ? myRole : ('villager' satisfies RoleId),
         hasViewedRole: true,
       },
     ]),
@@ -62,7 +62,7 @@ export function makeBaseUseGameRoomReturn({
     template: {
       name: 'test',
       numberOfPlayers,
-      roles: Array.from({ length: numberOfPlayers }).map(() => 'villager' as RoleId),
+      roles: Array.from({ length: numberOfPlayers }).map((): RoleId => 'villager'),
       actionOrder: [currentActionRole],
     },
     players,

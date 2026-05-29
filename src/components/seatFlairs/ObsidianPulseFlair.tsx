@@ -50,11 +50,7 @@ const DiamondShape = memo<{ seed: ShapeSeed; size: number; progress: { value: nu
       };
       const d = `M ${top.x} ${top.y} L ${right.x} ${right.y} L ${bottom.x} ${bottom.y} L ${left.x} ${left.y} Z`;
       const alpha = 0.1 + breathe * 0.15;
-      return { d, opacity: alpha, strokeWidth: size * 0.004 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.004 };
     });
 
     return (

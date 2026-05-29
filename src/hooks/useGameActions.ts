@@ -308,7 +308,7 @@ interface GameActionsDeps {
   // Get curse info — separate from lastNightInfo; returns null when crow is not in template
   const getCurseInfo = useCallback((): string | null => {
     if (!gameState) return null;
-    if (!gameState.template.roles.includes('crow' as RoleId)) return null;
+    if (!gameState.template.roles.includes('crow')) return null;
     const { cursedSeat } = gameState.currentNightResults;
     if (cursedSeat == null) return '乌鸦未诅咒任何人';
     return `${formatSeat(cursedSeat)}被诅咒（放逐+1票）`;

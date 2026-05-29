@@ -36,7 +36,7 @@ function createContext(
 
 function createInput(cardIndex?: number): ActionInput {
   return {
-    schemaId: 'thiefChoose' as ActionInput['schemaId'],
+    schemaId: 'thiefChoose',
     cardIndex,
   };
 }

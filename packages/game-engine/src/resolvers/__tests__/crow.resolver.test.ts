@@ -26,7 +26,7 @@ function createPlayers(): ReadonlyMap<number, RoleId> {
 function createContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   return {
     actorSeat: 0,
-    actorRoleId: 'crow' as RoleId,
+    actorRoleId: 'crow',
     players: createPlayers(),
     currentNightResults: {},
     gameState: { isNight1: true },
@@ -36,7 +36,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
 
 function createInput(target?: number | null): ActionInput {
   return {
-    schemaId: 'crowCurse' as ActionInput['schemaId'],
+    schemaId: 'crowCurse',
     target: target ?? undefined,
   };
 }

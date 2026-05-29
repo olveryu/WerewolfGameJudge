@@ -56,22 +56,22 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
-    map.set(0, 'villager' as RoleId);
-    map.set(1, 'villager' as RoleId);
-    map.set(2, 'villager' as RoleId);
-    map.set(3, 'villager' as RoleId);
-    map.set(4, 'wolf' as RoleId);
-    map.set(5, 'wolf' as RoleId);
-    map.set(6, 'wolf' as RoleId);
-    map.set(7, 'seer' as RoleId);
-    map.set(8, 'witch' as RoleId);
-    map.set(9, 'hunter' as RoleId);
-    map.set(10, 'thief' as RoleId);
-    map.set(11, 'cupid' as RoleId);
+    map.set(0, 'villager');
+    map.set(1, 'villager');
+    map.set(2, 'villager');
+    map.set(3, 'villager');
+    map.set(4, 'wolf');
+    map.set(5, 'wolf');
+    map.set(6, 'wolf');
+    map.set(7, 'seer');
+    map.set(8, 'witch');
+    map.set(9, 'hunter');
+    map.set(10, 'thief');
+    map.set(11, 'cupid');
     return map;
   }
 
-  const BOTTOM_CARDS: RoleId[] = ['villager' as RoleId, 'idiot' as RoleId];
+  const BOTTOM_CARDS: RoleId[] = ['villager', 'idiot'];
 
   let ctx: GameContext;
 

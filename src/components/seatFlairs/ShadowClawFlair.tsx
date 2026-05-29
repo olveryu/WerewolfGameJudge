@@ -45,7 +45,7 @@ const ClawParticle = memo<{ claw: Claw; ci: number; size: number; progress: { va
         y2: ey,
         opacity: pulse * (0.6 - 0 * 0.1),
         strokeWidth: 2 - 0 * 0.4,
-      } as Record<string, number>;
+      };
     });
 
     const scratch1Props = useAnimatedProps(() => {
@@ -64,7 +64,7 @@ const ClawParticle = memo<{ claw: Claw; ci: number; size: number; progress: { va
         y2: ey,
         opacity: pulse * (0.6 - 1 * 0.1),
         strokeWidth: 2 - 1 * 0.4,
-      } as Record<string, number>;
+      };
     });
 
     const scratch2Props = useAnimatedProps(() => {
@@ -84,7 +84,7 @@ const ClawParticle = memo<{ claw: Claw; ci: number; size: number; progress: { va
         y2: ey,
         opacity: pulse * (0.6 - 2 * 0.1),
         strokeWidth: 2 - 2 * 0.4,
-      } as Record<string, number>;
+      };
     });
 
     const sparkProps = useAnimatedProps(() => {
@@ -93,10 +93,7 @@ const ClawParticle = memo<{ claw: Claw; ci: number; size: number; progress: { va
       const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2 + ci * 0.8) * Math.PI));
       const tipX = claw.ox + claw.dx * size * 0.18 * pulse;
       const tipY = claw.oy + claw.dy * size * 0.18 * pulse;
-      return { cx: tipX, cy: tipY, r: size * 0.012, opacity: pulse * 0.6 } as Record<
-        string,
-        number
-      >;
+      return { cx: tipX, cy: tipY, r: size * 0.012, opacity: pulse * 0.6 };
     });
 
     return (

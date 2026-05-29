@@ -20,32 +20,23 @@ export const MeteorBuddyPet = memo<PetProps>(({ size }) => {
   const flame1 = useAnimatedProps(() => {
     'worklet';
     const f = 0.7 + Math.sin(tFlame.value * Math.PI * 2) * 0.3;
-    return { opacity: f, ry: 10 + Math.sin(tFlame.value * Math.PI * 2) * 1.5 } as Record<
-      string,
-      number
-    >;
+    return { opacity: f, ry: 10 + Math.sin(tFlame.value * Math.PI * 2) * 1.5 };
   });
   const flame2 = useAnimatedProps(() => {
     'worklet';
     const f = 0.5 + Math.sin(tFlame.value * Math.PI * 2 + 1) * 0.3;
-    return { opacity: f, ry: 8 + Math.sin(tFlame.value * Math.PI * 2 + 1) * 1.2 } as Record<
-      string,
-      number
-    >;
+    return { opacity: f, ry: 8 + Math.sin(tFlame.value * Math.PI * 2 + 1) * 1.2 };
   });
   const flame3 = useAnimatedProps(() => {
     'worklet';
     const f = 0.4 + Math.sin(tFlame.value * Math.PI * 2 + 2) * 0.3;
-    return { opacity: f, ry: 7 + Math.sin(tFlame.value * Math.PI * 2 + 2) * 1 } as Record<
-      string,
-      number
-    >;
+    return { opacity: f, ry: 7 + Math.sin(tFlame.value * Math.PI * 2 + 2) * 1 };
   });
 
   // Glow ring pulse
   const glowRing = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.2 + Math.sin(tPulse.value * Math.PI * 2) * 0.15 } as Record<string, number>;
+    return { opacity: 0.2 + Math.sin(tPulse.value * Math.PI * 2) * 0.15 };
   });
 
   return (

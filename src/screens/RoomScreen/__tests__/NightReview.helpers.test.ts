@@ -172,7 +172,7 @@ describe('NightReview.helpers', () => {
     it('shows bottom cards composition', () => {
       const lines = buildActionLines(
         makeGameState({
-          bottomCards: ['seer' as RoleId, 'guard' as RoleId, 'villager' as RoleId],
+          bottomCards: ['seer', 'guard', 'villager'],
         }),
       );
       expect(lines).toContainEqual(expect.stringContaining('底牌组成'));
@@ -187,19 +187,25 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows slacker idol choice', () => {
-      const actions = new Map([['slacker' as RoleId, makeActionTarget(3)]]);
+      const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
+        ['slacker', makeActionTarget(3)],
+      ]);
       const lines = buildActionLines(makeGameState({ actions }));
       expect(lines).toContainEqual(expect.stringContaining('混血儿选择了 4号 为榜样'));
     });
 
     it('shows wildChild idol choice', () => {
-      const actions = new Map([['wildChild' as RoleId, makeActionTarget(1)]]);
+      const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
+        ['wildChild', makeActionTarget(1)],
+      ]);
       const lines = buildActionLines(makeGameState({ actions }));
       expect(lines).toContainEqual(expect.stringContaining('野孩子选择了 2号 为榜样'));
     });
 
     it('shows wolfQueen charm', () => {
-      const actions = new Map([['wolfQueen' as RoleId, makeActionTarget(4)]]);
+      const actions: Map<RoleId, ReturnType<typeof makeActionTarget>> = new Map([
+        ['wolfQueen', makeActionTarget(4)],
+      ]);
       const lines = buildActionLines(makeGameState({ actions }));
       expect(lines).toContainEqual(expect.stringContaining('狼美人魅惑了 5号'));
     });
@@ -508,7 +514,7 @@ describe('NightReview.helpers', () => {
         makeGameState({
           players,
           seerReveal: { targetSeat: 1, result: '狼人' },
-        } as Parameters<typeof makeGameState>[0]),
+        }),
       );
       expect(lines).toContainEqual(expect.stringContaining('反伤'));
       expect(lines).toContainEqual(expect.stringContaining('灵骑士'));
@@ -582,9 +588,9 @@ describe('NightReview.helpers', () => {
       ]);
 
       const actions = new Map<RoleId, ReturnType<typeof makeActionTarget>>([
-        ['slacker' as RoleId, makeActionTarget(0)],
-        ['wildChild' as RoleId, makeActionTarget(1)],
-        ['wolfQueen' as RoleId, makeActionTarget(2)],
+        ['slacker', makeActionTarget(0)],
+        ['wildChild', makeActionTarget(1)],
+        ['wolfQueen', makeActionTarget(2)],
       ]);
 
       const gs = {

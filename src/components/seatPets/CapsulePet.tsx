@@ -19,7 +19,7 @@ export const CapsulePet = memo<PetProps>(({ size }) => {
   const lidProps = useAnimatedProps(() => {
     'worklet';
     const rot = Math.sin(t.value * Math.PI * 2) * -8;
-    return { rotation: rot } as Record<string, number>;
+    return { rotation: rot };
   });
 
   return (

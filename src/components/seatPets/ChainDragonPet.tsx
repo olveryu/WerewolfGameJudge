@@ -20,22 +20,22 @@ export const ChainDragonPet = memo<PetProps>(({ size }) => {
   const chainLeft = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2) * 1;
-    return { cx: 22 + dx } as Record<string, number>;
+    return { cx: 22 + dx };
   });
   const chainRight = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2 + 0.4) * 1;
-    return { cx: 50 + dx } as Record<string, number>;
+    return { cx: 50 + dx };
   });
 
   // Wing wobble
   const leftWing = useAnimatedProps(() => {
     'worklet';
-    return { rotation: Math.sin(tSlow.value * Math.PI * 2) * 8 } as Record<string, number>;
+    return { rotation: Math.sin(tSlow.value * Math.PI * 2) * 8 };
   });
   const rightWing = useAnimatedProps(() => {
     'worklet';
-    return { rotation: Math.sin(tSlow.value * Math.PI * 2 + 0.6) * 8 } as Record<string, number>;
+    return { rotation: Math.sin(tSlow.value * Math.PI * 2 + 0.6) * 8 };
   });
 
   return (

@@ -277,10 +277,10 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
     const state2 = ctx.getGameState();
     if (state2.treasureMasterChosenCard === roleId && state2.treasureMasterSeat != null) {
       actorSeat = state2.treasureMasterSeat;
-      actorRole = 'treasureMaster' as RoleId; // Gate 4b/5b requires sending the actual seat's role
+      actorRole = 'treasureMaster'; // Gate 4b/5b requires sending the actual seat's role
     } else if (state2.thiefChosenCard === roleId && state2.thiefSeat != null) {
       actorSeat = state2.thiefSeat;
-      actorRole = 'thief' as RoleId;
+      actorRole = 'thief';
     } else {
       // Role not in template, skip (advanceNight will be called by caller)
       return;
@@ -439,7 +439,7 @@ function submitWitchAction(
   let stepResults = { save: null as number | null, poison: null as number | null };
 
   if (actionValue && typeof actionValue === 'object' && 'save' in actionValue) {
-    stepResults = actionValue as { save: number | null; poison: number | null };
+    stepResults = actionValue;
   } else if (typeof actionValue === 'number') {
     // A single number means save
     stepResults = { save: actionValue, poison: null };

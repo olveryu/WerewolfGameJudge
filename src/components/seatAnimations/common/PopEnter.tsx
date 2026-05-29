@@ -50,7 +50,7 @@ export const PopEnter = memo<ColoredAnimationProps>(
         r: burstProgress.value * size * 0.5,
         opacity: (1 - burstProgress.value) * 0.5,
         strokeWidth: 3 * (1 - burstProgress.value),
-      } as Record<string, number>;
+      };
     });
 
     return (

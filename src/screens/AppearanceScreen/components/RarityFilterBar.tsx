@@ -9,7 +9,7 @@ import type { AppearanceScreenStyles } from './styles';
 
 const FILTER_TABS: { key: RarityFilter; label: string }[] = [
   { key: 'all', label: '全部' },
-  ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
+  ...RARITY_ORDER.map((r) => ({ key: r, label: RARITY_VISUAL[r].label })),
 ];
 
 interface RarityFilterBarProps {

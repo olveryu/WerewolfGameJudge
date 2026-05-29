@@ -55,7 +55,7 @@ describe('maybeCreateUiHintAction', () => {
   });
 
   it('should set blocked_by_nightmare when next actor is blocked', () => {
-    const state = createMinimalState({ nightmareBlockedSeat: 0 } as Partial<NonNullState>);
+    const state = createMinimalState({ nightmareBlockedSeat: 0 });
     const nextStep = step('seer', 'seerCheck', 1);
     const action = maybeCreateUiHintAction(nextStep, state);
     expect(action.payload.currentActorHint).not.toBeNull();
@@ -66,7 +66,7 @@ describe('maybeCreateUiHintAction', () => {
 
   it('should not set blocked hint when a different seat is blocked', () => {
     // seat 2 is blocked, but next actor (seer) is at seat 0
-    const state = createMinimalState({ nightmareBlockedSeat: 2 } as Partial<NonNullState>);
+    const state = createMinimalState({ nightmareBlockedSeat: 2 });
     const nextStep = step('seer', 'seerCheck', 1);
     const action = maybeCreateUiHintAction(nextStep, state);
     expect(action.payload.currentActorHint).toBeNull();

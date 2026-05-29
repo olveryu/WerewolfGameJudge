@@ -57,7 +57,7 @@ const PrismParticle = memo<{
       r: shardR * 0.5,
       opacity: pulse * 0.4,
       fill: `rgb(${rc},${gc},${bc})`,
-    } as Record<string, number | string>;
+    };
   });
 
   const outlineProps = useAnimatedProps(() => {
@@ -84,7 +84,7 @@ const PrismParticle = memo<{
       opacity: pulse * 0.7,
       strokeWidth: 0.8,
       stroke: `rgb(${brc},${bgc},${bbc})`,
-    } as Record<string, number | string>;
+    };
   });
 
   const sparkleProps = useAnimatedProps(() => {
@@ -98,7 +98,7 @@ const PrismParticle = memo<{
     const rot = t * Math.PI * seed.rotSpeed;
     const p0x = x + Math.cos(rot - Math.PI / 2) * shardR;
     const p0y = y + Math.sin(rot - Math.PI / 2) * shardR;
-    return { cx: p0x, cy: p0y, r: size * 0.006, opacity: pulse * 0.6 } as Record<string, number>;
+    return { cx: p0x, cy: p0y, r: size * 0.006, opacity: pulse * 0.6 };
   });
 
   return (

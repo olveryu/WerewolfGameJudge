@@ -41,10 +41,7 @@ const BokehDot = memo<{
     const breath = Math.sin(t * Math.PI * 2);
     const alpha = 0.2 + breath * 0.35;
     const r = size * dot.rFrac * (0.85 + breath * 0.15);
-    return { cx: dot.xFrac * size, cy: dot.yFrac * size, r, opacity: alpha } as Record<
-      string,
-      number
-    >;
+    return { cx: dot.xFrac * size, cy: dot.yFrac * size, r, opacity: alpha };
   });
 
   const haloProps = useAnimatedProps(() => {
@@ -57,7 +54,7 @@ const BokehDot = memo<{
       cy: dot.yFrac * size,
       r: size * dot.rFrac * 1.8,
       opacity: alpha,
-    } as Record<string, number>;
+    };
   });
 
   return (

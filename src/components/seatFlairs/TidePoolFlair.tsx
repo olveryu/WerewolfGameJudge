@@ -49,7 +49,7 @@ const RippleRing = memo<{
       r: Math.max(0, r),
       opacity: Math.max(0, alpha),
       strokeWidth: size * (0.004 - ri * 0.001),
-    } as Record<string, number>;
+    };
   });
   return <AnimatedCircle animatedProps={ringProps} fill="none" stroke="rgb(100,180,220)" />;
 });

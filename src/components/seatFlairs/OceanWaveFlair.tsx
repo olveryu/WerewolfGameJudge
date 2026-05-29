@@ -42,11 +42,7 @@ const WaveParticle = memo<{ seed: WaveSeed; size: number; progress: { value: num
         d += ` L ${x} ${y}`;
       }
       const alpha = 0.15 + Math.sin(t * Math.PI * 2) * 0.05;
-      return { d, opacity: alpha, strokeWidth: size * 0.015 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.015 };
     });
 
     const crestProps = useAnimatedProps(() => {
@@ -55,7 +51,7 @@ const WaveParticle = memo<{ seed: WaveSeed; size: number; progress: { value: num
       const peakX = size * (0.3 + t * 0.4);
       const peakY = seed.yBase * size - t * size * 0.05 - seed.amplitude * size;
       const alpha = Math.max(0, Math.sin(t * Math.PI * 4) * 0.4);
-      return { cx: peakX, cy: peakY, r: size * 0.012, opacity: alpha } as Record<string, number>;
+      return { cx: peakX, cy: peakY, r: size * 0.012, opacity: alpha };
     });
 
     const sprayProps = useAnimatedProps(() => {
@@ -64,7 +60,7 @@ const WaveParticle = memo<{ seed: WaveSeed; size: number; progress: { value: num
       const peakX = size * (0.3 + t * 0.4) + size * 0.03;
       const peakY = seed.yBase * size - t * size * 0.05 - seed.amplitude * size - size * 0.02;
       const alpha = Math.max(0, Math.sin(t * Math.PI * 4) * 0.25);
-      return { cx: peakX, cy: peakY, r: size * 0.006, opacity: alpha } as Record<string, number>;
+      return { cx: peakX, cy: peakY, r: size * 0.006, opacity: alpha };
     });
 
     return (

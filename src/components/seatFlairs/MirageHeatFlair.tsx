@@ -46,11 +46,7 @@ const HeatWave = memo<{ seed: WaveSeed; size: number; progress: { value: number 
         d += ` Q ${cpx} ${cpy} ${sx} ${sy}`;
       }
       const shimmer = 0.06 + Math.sin(t * Math.PI * 2) * 0.04;
-      return { d, opacity: shimmer, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: shimmer, strokeWidth: size * 0.008 };
     });
 
     return (

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { memo, useCallback, useMemo } from 'react';
-import { Image, type ImageSourcePropType, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { RarityCellBg } from '@/components/RarityCellBg';
@@ -57,11 +57,7 @@ export const AvatarCell = memo<AvatarCellProps>(
           borderRadius={borderRadiusToken.medium - fixed.borderWidthThick}
         />
         {imageSource != null ? (
-          <Image
-            source={imageSource as ImageSourcePropType}
-            style={styles.pickerItemImage}
-            resizeMode="cover"
-          />
+          <Image source={imageSource} style={styles.pickerItemImage} resizeMode="cover" />
         ) : (
           <View style={styles.pickerItemGeneratedAvatar}>
             <GeneratedAvatar seed={avatarId} size={componentSizes.avatar.xl} />

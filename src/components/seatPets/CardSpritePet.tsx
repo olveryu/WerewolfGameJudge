@@ -19,24 +19,24 @@ export const CardSpritePet = memo<PetProps>(({ size }) => {
   const leftWing = useAnimatedProps(() => {
     'worklet';
     const rot = Math.sin(t.value * Math.PI * 2) * 8;
-    return { rotation: rot } as Record<string, number>;
+    return { rotation: rot };
   });
   const rightWing = useAnimatedProps(() => {
     'worklet';
     const rot = Math.sin(t.value * Math.PI * 2 + 0.6) * 8;
-    return { rotation: rot } as Record<string, number>;
+    return { rotation: rot };
   });
 
   // Sparkle twinkle
   const sparkle1 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(t.value * Math.PI * 4) * 0.5;
-    return { r: 1.2 * s + 0.3, opacity: s } as Record<string, number>;
+    return { r: 1.2 * s + 0.3, opacity: s };
   });
   const sparkle2 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(t.value * Math.PI * 4 + 1) * 0.5;
-    return { r: 1.0 * s + 0.2, opacity: s } as Record<string, number>;
+    return { r: 1.0 * s + 0.2, opacity: s };
   });
 
   return (

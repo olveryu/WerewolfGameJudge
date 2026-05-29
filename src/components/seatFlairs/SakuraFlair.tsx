@@ -38,7 +38,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const y = t * size;
       const x = seed.xFrac * size + Math.sin(t * Math.PI * 2 * seed.swayFreq) * size * seed.swayAmp;
       const alpha = t < 0.1 ? t / 0.1 : t > 0.8 ? (1 - t) / 0.2 : 0.7;
-      return { cx: x, cy: y, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, opacity: alpha };
     });
 
     const fwdProps = useAnimatedProps(() => {
@@ -50,7 +50,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const a = t * Math.PI;
       const dx = Math.cos(a) * r * 0.6;
       const dy = Math.sin(a) * r * 0.6;
-      return { cx: x + dx, cy: y + dy, opacity: alpha } as Record<string, number>;
+      return { cx: x + dx, cy: y + dy, opacity: alpha };
     });
 
     const bwdProps = useAnimatedProps(() => {
@@ -62,7 +62,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const a = t * Math.PI;
       const dx = Math.cos(a) * r * 0.6;
       const dy = Math.sin(a) * r * 0.6;
-      return { cx: x - dx, cy: y - dy, opacity: alpha } as Record<string, number>;
+      return { cx: x - dx, cy: y - dy, opacity: alpha };
     });
 
     const sideAProps = useAnimatedProps(() => {
@@ -74,7 +74,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const a = t * Math.PI;
       const dx = Math.cos(a) * r * 0.6;
       const dy = Math.sin(a) * r * 0.6;
-      return { cx: x + dy, cy: y - dx, opacity: alpha } as Record<string, number>;
+      return { cx: x + dy, cy: y - dx, opacity: alpha };
     });
 
     const sideBProps = useAnimatedProps(() => {
@@ -86,7 +86,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const a = t * Math.PI;
       const dx = Math.cos(a) * r * 0.6;
       const dy = Math.sin(a) * r * 0.6;
-      return { cx: x - dy, cy: y + dx, opacity: alpha } as Record<string, number>;
+      return { cx: x - dy, cy: y + dx, opacity: alpha };
     });
 
     return (

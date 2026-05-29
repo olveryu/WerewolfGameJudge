@@ -71,7 +71,7 @@ const Creature = memo<{
     return {
       d: creaturePath(config.shape, x, y, s),
       opacity: t < 0.1 ? t * 10 : t > 0.85 ? (1 - t) / 0.15 : 0.8,
-    } as Record<string, string | number>;
+    };
   });
 
   return (

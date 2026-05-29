@@ -54,7 +54,7 @@ const FireTrailDot = memo<FireTrailProps>(({ index, trailIndex, size, progress }
     const y = cy + Math.sin(trailAngle) * orbit;
     const alphaScale = trailIndex === 0 ? 1 : (1 - trailIndex / (TRAIL + 1)) * 0.5;
     const rScale = trailIndex === 0 ? 1 : 1 - trailIndex * 0.2;
-    return { cx: x, cy: y, r: r * rScale, opacity: alphaScale * 0.75 } as Record<string, number>;
+    return { cx: x, cy: y, r: r * rScale, opacity: alphaScale * 0.75 };
   });
 
   return <AnimatedCircle animatedProps={animatedProps} fill={`rgb(${cr},${cg},${cb})`} />;

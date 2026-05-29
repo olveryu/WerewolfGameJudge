@@ -60,24 +60,21 @@ export const SeerVision = memo<SeatAnimationProps>(
         rx: size * 0.35 * eyeOpen.value,
         ry: size * 0.2 * eyeOpen.value,
         opacity: (1 - ripple.value) * 0.5,
-      } as Record<string, number>;
+      };
     });
     const iris = useAnimatedProps(() => {
       'worklet';
       const r = size * 0.12 * (1 - irisFocus.value * 0.4);
-      return { r, opacity: (1 - ripple.value) * 0.8 } as Record<string, number>;
+      return { r, opacity: (1 - ripple.value) * 0.8 };
     });
     const pupil = useAnimatedProps(() => {
       'worklet';
       const r = size * 0.05 * (0.5 + irisFocus.value * 0.5);
-      return { r, opacity: (1 - ripple.value) * 0.9 } as Record<string, number>;
+      return { r, opacity: (1 - ripple.value) * 0.9 };
     });
     const rippleRing = useAnimatedProps(() => {
       'worklet';
-      return { r: ripple.value * size * 0.5, opacity: (1 - ripple.value) * 0.4 } as Record<
-        string,
-        number
-      >;
+      return { r: ripple.value * size * 0.5, opacity: (1 - ripple.value) * 0.4 };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

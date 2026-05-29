@@ -37,7 +37,7 @@ const LightRay = memo<{ index: number; size: number; progress: { value: number }
       return {
         d: `M ${bx - w} ${by} L ${tx} ${ty} L ${bx + w} ${by} Z`,
         opacity: t * (1 - Math.max(0, (t - 0.6) / 0.4)) * 0.5,
-      } as Record<string, string | number>;
+      };
     });
     return <AnimatedPath animatedProps={props} fill="rgb(255,220,100)" />;
   },
@@ -73,7 +73,7 @@ export const DawnBreak = memo<SeatAnimationProps>(
 
     const glowProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.4, opacity: glowProgress.value } as Record<string, number>;
+      return { r: size * 0.4, opacity: glowProgress.value };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

@@ -57,7 +57,7 @@ const SlashLine = memo<{
     return {
       d: `M ${x1} ${y1} L ${x2} ${y2}`,
       opacity: t > 0.1 ? (1 - t) * 0.7 : 0,
-    } as Record<string, string | number>;
+    };
   });
 
   return (

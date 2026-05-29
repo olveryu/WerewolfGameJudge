@@ -135,8 +135,7 @@ export function createGame(
 
   // Bottom card roles (treasureMaster / thief): derive bottomCards and seat
   const hasBottomCardRole =
-    template.roles.includes('treasureMaster' as RoleId) ||
-    template.roles.includes('thief' as RoleId);
+    template.roles.includes('treasureMaster') || template.roles.includes('thief');
   let bottomCards: readonly RoleId[] | undefined;
   let treasureMasterSeat: number | undefined;
   let thiefSeat: number | undefined;
@@ -198,7 +197,7 @@ export function createGame(
   });
 
   // Poisoner present: night-1 wolfKillOverride (consistent with handleStartNight behavior)
-  if (template.roles.includes('poisoner' as RoleId)) {
+  if (template.roles.includes('poisoner')) {
     state = gameReducer(state, {
       type: 'SET_WOLF_KILL_OVERRIDE',
       payload: {
@@ -338,7 +337,7 @@ export function createGame(
             seat: msg.seat,
             role: msg.role,
             target: msg.target,
-            extra: msg.extra as Record<string, unknown> | undefined,
+            extra: msg.extra,
           },
         };
         const result = handleSubmitAction(intent, context);

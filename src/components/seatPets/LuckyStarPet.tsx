@@ -31,19 +31,19 @@ export const LuckyStarPet = memo<PetProps>(({ size }) => {
   // Belly wheel spin
   const wheelProps = useAnimatedProps(() => {
     'worklet';
-    return { rotation: tWheel.value * 360 } as Record<string, number>;
+    return { rotation: tWheel.value * 360 };
   });
 
   // Sparkle twinkle
   const sparkle1 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(tSparkle.value * Math.PI * 4) * 0.5;
-    return { r: 1.5 * s + 0.3, opacity: s } as Record<string, number>;
+    return { r: 1.5 * s + 0.3, opacity: s };
   });
   const sparkle2 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(tSparkle.value * Math.PI * 4 + 1) * 0.5;
-    return { r: 1.0 * s + 0.2, opacity: s } as Record<string, number>;
+    return { r: 1.0 * s + 0.2, opacity: s };
   });
 
   return (

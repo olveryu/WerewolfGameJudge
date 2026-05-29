@@ -40,10 +40,7 @@ const PulseSpot = memo<{
     const pulse = Math.sin(t * Math.PI * 2);
     const alpha = 0.15 + (pulse + 1) * 0.25;
     const r = size * spot.rFrac * (0.7 + (pulse + 1) * 0.3);
-    return { cx: spot.xFrac * size, cy: spot.yFrac * size, r, opacity: alpha } as Record<
-      string,
-      number
-    >;
+    return { cx: spot.xFrac * size, cy: spot.yFrac * size, r, opacity: alpha };
   });
   return <AnimatedCircle animatedProps={props} fill={color} />;
 });

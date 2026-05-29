@@ -69,12 +69,9 @@ function makeCheckResultRevealHandler(
 ) => Pick<ApplyResolverResultAction['payload'], CheckResultRevealKey> {
   return (result, targetSeat) => {
     if (result.result?.checkResult) {
-      return { [key]: { targetSeat, result: result.result.checkResult } } as Pick<
-        ApplyResolverResultAction['payload'],
-        CheckResultRevealKey
-      >;
+      return { [key]: { targetSeat, result: result.result.checkResult } };
     }
-    return {} as Pick<ApplyResolverResultAction['payload'], CheckResultRevealKey>;
+    return {};
   };
 }
 
@@ -86,12 +83,9 @@ function makeIdentityResultRevealHandler(
 ) => Pick<ApplyResolverResultAction['payload'], IdentityResultRevealKey> {
   return (result, targetSeat) => {
     if (result.result?.identityResult) {
-      return { [key]: { targetSeat, result: result.result.identityResult } } as Pick<
-        ApplyResolverResultAction['payload'],
-        IdentityResultRevealKey
-      >;
+      return { [key]: { targetSeat, result: result.result.identityResult } };
     }
-    return {} as Pick<ApplyResolverResultAction['payload'], IdentityResultRevealKey>;
+    return {};
   };
 }
 
@@ -183,7 +177,7 @@ export function buildRevealPayload(
 
   // Look up the corresponding reveal via schema.ui.revealKind (schema is single source of truth)
   const schema = SCHEMAS[schemaId];
-  const revealKind = (schema?.ui as { revealKind?: RevealKind } | undefined)?.revealKind;
+  const revealKind = schema?.ui?.revealKind;
   if (revealKind) {
     const handler = REVEAL_HANDLERS[revealKind];
     if (handler) {

@@ -38,11 +38,7 @@ const ArcParticle = memo<{ index: number; size: number; progress: { value: numbe
       const ex = cx + Math.cos(angle + ARC_SPAN) * r;
       const ey = cy + Math.sin(angle + ARC_SPAN) * r;
       const d = `M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`;
-      return { d, opacity: pulse * 0.5, strokeWidth: 3 - index * 0.5 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: pulse * 0.5, strokeWidth: 3 - index * 0.5 };
     });
 
     const glowProps = useAnimatedProps(() => {
@@ -53,7 +49,7 @@ const ArcParticle = memo<{ index: number; size: number; progress: { value: numbe
       const r = orbit - index * size * 0.02;
       const ex = cx + Math.cos(angle + ARC_SPAN) * r;
       const ey = cy + Math.sin(angle + ARC_SPAN) * r;
-      return { cx: ex, cy: ey, r: size * 0.02, opacity: pulse * 0.7 } as Record<string, number>;
+      return { cx: ex, cy: ey, r: size * 0.02, opacity: pulse * 0.7 };
     });
 
     return (

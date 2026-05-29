@@ -14,7 +14,6 @@ import {
   ROLE_SPECS,
   type RoleId,
   SCHEMAS,
-  type SchemaUi,
 } from '@werewolf/game-engine/models/roles/spec';
 import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 
@@ -133,7 +132,7 @@ describe('buildSchemas ↔ SCHEMAS equivalence', () => {
     }
 
     if (cached.ui) {
-      const v1Ui = cached.ui as SchemaUi;
+      const v1Ui = cached.ui;
 
       it('should have matching ui.revealKind', () => {
         expect(built.ui?.revealKind).toBe(v1Ui.revealKind);

@@ -92,7 +92,7 @@ export async function fetchWithRetry(
       cfFetchLog.debug('fetch network error, retrying', {
         attempt: attempt + 1,
         delay,
-        error: (error as Error).message,
+        error: error.message,
       });
       await new Promise((r) => setTimeout(r, delay));
     }
@@ -275,7 +275,7 @@ export async function cfUpload<T = Record<string, unknown>>(
   return executeRequest<T>({
     method: 'POST',
     path,
-    body: formData as unknown as string, // FormData handled by fetch natively
+    body: formData, // FormData handled by fetch natively
     headers: {}, // No Content-Type — let browser set multipart boundary
     timeoutMs: timeoutMs ?? API_TIMEOUT_MS,
   });

@@ -46,7 +46,7 @@ const EmberParticle = memo<{ seed: EmberSeed; size: number; progress: { value: n
       const x = seed.xFrac * size + Math.sin(t * Math.PI * 2) * size * 0.04;
       const r = seed.rFrac * size;
       const alpha = t < 0.15 ? t / 0.15 : t > 0.7 ? (1 - t) / 0.3 : 1;
-      return { cx: x, cy: y, r, opacity: alpha * 0.8 } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: alpha * 0.8 };
     });
 
     return <AnimatedCircle animatedProps={animatedProps} fill={`rgb(${cr},${cg},${cb})`} />;

@@ -55,7 +55,7 @@ const ShieldSegment = memo<{
     return {
       d: `M ${p1x} ${p1y} L ${p2x} ${p2y} L ${p3x} ${p3y} L ${p4x} ${p4y} Z`,
       opacity: assembleT * (1 - shatterT) * 0.6,
-    } as Record<string, string | number>;
+    };
   });
 
   return (
@@ -103,10 +103,7 @@ export const GuardShield = memo<SeatAnimationProps>(
 
     const glowProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.25, opacity: glow.value * (1 - shatter.value) } as Record<
-        string,
-        number
-      >;
+      return { r: size * 0.25, opacity: glow.value * (1 - shatter.value) };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

@@ -19,23 +19,23 @@ export const FilmBugPet = memo<PetProps>(({ size }) => {
   const legL1 = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2) * -2;
-    return { x2: 24 + dx, y2: 58 + dx } as Record<string, number>;
+    return { x2: 24 + dx, y2: 58 + dx };
   });
   const legL2 = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2) * -2;
-    return { x2: 30 + dx, y2: 58 + dx } as Record<string, number>;
+    return { x2: 30 + dx, y2: 58 + dx };
   });
   // Right legs pull (offset phase)
   const legR1 = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2 + Math.PI) * 2;
-    return { x2: 42 + dx, y2: 58 + dx } as Record<string, number>;
+    return { x2: 42 + dx, y2: 58 + dx };
   });
   const legR2 = useAnimatedProps(() => {
     'worklet';
     const dx = Math.sin(t.value * Math.PI * 2 + Math.PI) * 2;
-    return { x2: 48 + dx, y2: 58 + dx } as Record<string, number>;
+    return { x2: 48 + dx, y2: 58 + dx };
   });
 
   return (

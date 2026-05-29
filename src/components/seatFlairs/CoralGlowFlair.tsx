@@ -43,11 +43,7 @@ const CoralBranch = memo<{ seed: BranchSeed; size: number; progress: { value: nu
       const by = size * 0.95;
       const ty = by - size * 0.35;
       const d = `M ${bx} ${by} L ${bx} ${ty}`;
-      return { d, opacity: pulse * 0.4, strokeWidth: size * 0.012 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: pulse * 0.4, strokeWidth: size * 0.012 };
     });
 
     const leftProps = useAnimatedProps(() => {
@@ -59,11 +55,7 @@ const CoralBranch = memo<{ seed: BranchSeed; size: number; progress: { value: nu
       const tipX = bx - size * 0.06;
       const tipY = forkY - size * 0.12;
       const d = `M ${bx} ${forkY} Q ${bx - size * 0.03} ${forkY - size * 0.06} ${tipX} ${tipY}`;
-      return { d, opacity: pulse * 0.35, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: pulse * 0.35, strokeWidth: size * 0.008 };
     });
 
     const rightProps = useAnimatedProps(() => {
@@ -75,11 +67,7 @@ const CoralBranch = memo<{ seed: BranchSeed; size: number; progress: { value: nu
       const tipX = bx + size * 0.05;
       const tipY = forkY - size * 0.1;
       const d = `M ${bx} ${forkY} Q ${bx + size * 0.03} ${forkY - size * 0.05} ${tipX} ${tipY}`;
-      return { d, opacity: pulse * 0.35, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: pulse * 0.35, strokeWidth: size * 0.008 };
     });
 
     const tipGlowProps = useAnimatedProps(() => {
@@ -88,7 +76,7 @@ const CoralBranch = memo<{ seed: BranchSeed; size: number; progress: { value: nu
       const pulse = Math.max(0, Math.sin(t * Math.PI * 3) * 0.6);
       const bx = seed.xBase * size;
       const tipY = size * 0.95 - size * 0.35;
-      return { cx: bx, cy: tipY, r: size * 0.015, opacity: pulse } as Record<string, number>;
+      return { cx: bx, cy: tipY, r: size * 0.015, opacity: pulse };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

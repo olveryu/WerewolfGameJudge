@@ -113,7 +113,7 @@ describe('validateNightFlowPreconditions', () => {
         learnedRoleId: 'villager',
       },
       wolfRobotHunterStatusViewed: false,
-    } as Partial<NonNullState>);
+    });
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(true);
   });

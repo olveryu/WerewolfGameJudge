@@ -38,7 +38,7 @@ const AmberDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
       // Teardrop: top narrow, bottom round
       const d = `M ${cx} ${y - r * 2} Q ${cx - r} ${y - r} ${cx - r} ${y} A ${r} ${r} 0 1 0 ${cx + r} ${y} Q ${cx + r} ${y - r} ${cx} ${y - r * 2} Z`;
       const alpha = t < 0.05 ? t / 0.05 : t > 0.85 ? (1 - t) / 0.15 : 0.5;
-      return { d, opacity: alpha } as { d: string; opacity: number };
+      return { d, opacity: alpha };
     });
 
     const glintProps = useAnimatedProps(() => {
@@ -53,7 +53,7 @@ const AmberDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
         cy: y - r * 0.3,
         r: r * 0.25,
         opacity: t > 0.1 && t < 0.8 ? 0.6 : 0,
-      } as Record<string, number>;
+      };
     });
 
     return (

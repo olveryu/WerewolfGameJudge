@@ -114,7 +114,7 @@ describe('handleViewedRole', () => {
 
   it('should fail when state is null (no_state)', () => {
     const context: HandlerContext = {
-      state: null as unknown as GameState,
+      state: null,
       myUserId: 'host-1',
       mySeat: 0,
     };
@@ -255,7 +255,7 @@ describe('handleSubmitAction', () => {
 
   it('should fail when state is null (gate: no_state)', () => {
     const context: HandlerContext = {
-      state: null as unknown as GameState,
+      state: null,
       myUserId: 'host-1',
       mySeat: 0,
     };

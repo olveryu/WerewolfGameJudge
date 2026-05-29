@@ -8,33 +8,32 @@ import { type ActionSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/s
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
-const makeGameState = (): LocalGameState =>
-  ({
-    roomCode: 'TEST',
-    hostUserId: 'host-uid',
-    status: GameStatus.Ongoing,
-    template: {
-      name: 'Test Template',
-      numberOfPlayers: 6,
-      roles: ['seer', 'witch', 'wolf', 'wolf', 'villager', 'villager'],
-    },
-    players: new Map([
-      [0, { userId: 'u1', seat: 0, role: 'seer', hasViewedRole: true, displayName: 'P1' }],
-      [1, { userId: 'u2', seat: 1, role: 'witch', hasViewedRole: true, displayName: 'P2' }],
-      [2, { userId: 'u3', seat: 2, role: 'wolf', hasViewedRole: true, displayName: 'P3' }],
-    ]),
-    actions: new Map(),
-    wolfVotes: new Map(),
-    currentStepIndex: 0,
-    isAudioPlaying: false,
-    lastNightDeaths: [],
-    currentNightResults: {},
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    cupidLoversRevealAcks: [],
-  }) as LocalGameState;
+const makeGameState = (): LocalGameState => ({
+  roomCode: 'TEST',
+  hostUserId: 'host-uid',
+  status: GameStatus.Ongoing,
+  template: {
+    name: 'Test Template',
+    numberOfPlayers: 6,
+    roles: ['seer', 'witch', 'wolf', 'wolf', 'villager', 'villager'],
+  },
+  players: new Map([
+    [0, { userId: 'u1', seat: 0, role: 'seer', hasViewedRole: true, displayName: 'P1' }],
+    [1, { userId: 'u2', seat: 1, role: 'witch', hasViewedRole: true, displayName: 'P2' }],
+    [2, { userId: 'u3', seat: 2, role: 'wolf', hasViewedRole: true, displayName: 'P3' }],
+  ]),
+  actions: new Map(),
+  wolfVotes: new Map(),
+  currentStepIndex: 0,
+  isAudioPlaying: false,
+  lastNightDeaths: [],
+  currentNightResults: {},
+  pendingRevealAcks: [],
+  hypnotizedSeats: [],
+  piperRevealAcks: [],
+  conversionRevealAcks: [],
+  cupidLoversRevealAcks: [],
+});
 
 const makeSeerSchema = (): ActionSchema => SCHEMAS.seerCheck;
 

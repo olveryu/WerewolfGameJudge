@@ -38,7 +38,7 @@ export const FloatFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     const cx = size / 2 + Math.sin(t * 3) * amp * 0.8;
     const cy = size / 2 + Math.cos(t * 2) * amp * 0.7;
     const alpha = 0.4 + Math.sin(t * 4) * 0.25;
-    return { cx, cy, r: size * 0.02, opacity: alpha } as Record<string, number>;
+    return { cx, cy, r: size * 0.02, opacity: alpha };
   });
 
   const trailProps = useAnimatedProps(() => {
@@ -47,7 +47,7 @@ export const FloatFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     const amp = size * 0.28;
     const cx = size / 2 + Math.sin(t * 3) * amp * 0.8;
     const cy = size / 2 + Math.cos(t * 2) * amp * 0.7;
-    return { cx, cy, r: size * 0.015, opacity: 0.18 } as Record<string, number>;
+    return { cx, cy, r: size * 0.015, opacity: 0.18 };
   });
 
   return (

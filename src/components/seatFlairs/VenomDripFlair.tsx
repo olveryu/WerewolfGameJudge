@@ -32,40 +32,28 @@ const DropParticle = memo<{ seed: DropSeed; size: number; progress: { value: num
       const t = (progress.value + seed.phase) % 1;
       const y = t * seed.speed * size;
       const alpha = t > 0.85 ? (1 - t) / 0.15 : 0.7;
-      return { cx: seed.xFrac * size, cy: y, r: size * 0.018, opacity: alpha } as Record<
-        string,
-        number
-      >;
+      return { cx: seed.xFrac * size, cy: y, r: size * 0.018, opacity: alpha };
     });
 
     const t1Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const y = Math.max(0, t * seed.speed * size - size * 0.04);
-      return { cx: seed.xFrac * size, cy: y, r: size * 0.012, opacity: 0.4 } as Record<
-        string,
-        number
-      >;
+      return { cx: seed.xFrac * size, cy: y, r: size * 0.012, opacity: 0.4 };
     });
 
     const t2Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const y = Math.max(0, t * seed.speed * size - size * 0.08);
-      return { cx: seed.xFrac * size, cy: y, r: size * 0.008, opacity: 0.2 } as Record<
-        string,
-        number
-      >;
+      return { cx: seed.xFrac * size, cy: y, r: size * 0.008, opacity: 0.2 };
     });
 
     const t3Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const y = Math.max(0, t * seed.speed * size - size * 0.12);
-      return { cx: seed.xFrac * size, cy: y, r: size * 0.005, opacity: 0.1 } as Record<
-        string,
-        number
-      >;
+      return { cx: seed.xFrac * size, cy: y, r: size * 0.005, opacity: 0.1 };
     });
 
     const splashProps = useAnimatedProps(() => {
@@ -77,7 +65,7 @@ const DropParticle = memo<{ seed: DropSeed; size: number; progress: { value: num
         cy: size * 0.92,
         r: size * 0.03 * splashT,
         opacity: (1 - splashT) * 0.3,
-      } as Record<string, number>;
+      };
     });
 
     return (

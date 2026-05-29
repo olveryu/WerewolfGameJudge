@@ -44,7 +44,7 @@ const RainParticle = memo<{ seed: RainSeed; size: number; progress: { value: num
         y2: y - len,
         opacity: alpha * 0.7,
         strokeWidth: 0.8,
-      } as Record<string, number>;
+      };
     });
 
     const splashProps = useAnimatedProps(() => {
@@ -52,17 +52,14 @@ const RainParticle = memo<{ seed: RainSeed; size: number; progress: { value: num
       const t = progress.value;
       const tt = (t * seed.speed + seed.phase) % 1;
       if (tt <= 0.85) {
-        return { cx: 0, cy: 0, r: 0, opacity: 0, strokeWidth: 0.5 } as Record<string, number>;
+        return { cx: 0, cy: 0, r: 0, opacity: 0, strokeWidth: 0.5 };
       }
       const y = tt * size * 1.1 - size * 0.05;
       const x = seed.xFrac * size + tt * size * 0.08;
       const splash = (tt - 0.85) / 0.15;
       const splashAlpha = (1 - splash) * 0.4;
       const splashR = splash * size * 0.02;
-      return { cx: x, cy: y, r: splashR, opacity: splashAlpha, strokeWidth: 0.5 } as Record<
-        string,
-        number
-      >;
+      return { cx: x, cy: y, r: splashR, opacity: splashAlpha, strokeWidth: 0.5 };
     });
 
     return (

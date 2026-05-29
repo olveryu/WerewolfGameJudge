@@ -56,14 +56,14 @@ const RARITY_CELL: Record<Exclude<Rarity, 'common'>, RarityCellConfig> = {
       withAlpha(RARITY_VISUAL.rare.color, 0.03),
       withAlpha(RARITY_VISUAL.rare.color, 0.18),
     ],
-    glow: {} as ViewStyle,
+    glow: {},
   },
   epic: {
     gradientColors: [
       withAlpha(RARITY_VISUAL.epic.color, 0.05),
       withAlpha(RARITY_VISUAL.epic.color, 0.25),
     ],
-    glow: {} as ViewStyle,
+    glow: {},
   },
   legendary: {
     gradientColors: [
@@ -72,7 +72,7 @@ const RARITY_CELL: Record<Exclude<Rarity, 'common'>, RarityCellConfig> = {
     ],
     glow: {
       boxShadow: `0px 0px 10px ${withAlpha(RARITY_VISUAL.legendary.color, 0.25)}`,
-    } as ViewStyle,
+    },
   },
 };
 

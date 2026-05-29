@@ -220,7 +220,7 @@ export async function* streamChatMessage(
     try {
       const parsed: unknown = JSON.parse(errorText);
       if (typeof parsed === 'object' && parsed !== null && 'error' in parsed) {
-        const { error } = parsed as { error: unknown };
+        const { error } = parsed;
         if (typeof error === 'string') errorCode = error;
       }
     } catch {

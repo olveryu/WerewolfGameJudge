@@ -336,10 +336,7 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
       if (input.shelterRedirected) {
         constraintCtx.shelterRedirected = true;
       }
-      const constraintResult = validateConstraints(
-        activeAbility.target.constraints as TargetConstraint[],
-        constraintCtx,
-      );
+      const constraintResult = validateConstraints(activeAbility.target.constraints, constraintCtx);
       if (!constraintResult.valid) {
         return { valid: false, rejectReason: constraintResult.rejectReason };
       }

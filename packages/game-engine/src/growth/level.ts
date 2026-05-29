@@ -24,7 +24,7 @@ export const LEVEL_THRESHOLDS: readonly number[] = /* @__PURE__ */ (() => {
     t.push(t[lv - 1]! + delta);
   }
   return t;
-})() as readonly number[];
+})();
 
 const MAX_LEVEL = LEVEL_THRESHOLDS.length - 1;
 

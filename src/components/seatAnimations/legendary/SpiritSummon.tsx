@@ -36,7 +36,7 @@ const Wisp = memo<{ index: number; total: number; size: number; progress: { valu
         cy: size / 2 + Math.sin(angle) * radius,
         r: size * 0.025 * (1 - t * 0.5),
         opacity: 0.7 * (1 - t * 0.5),
-      } as Record<string, number>;
+      };
     });
     return (
       <AnimatedCircle
@@ -80,11 +80,11 @@ export const SpiritSummon = memo<SeatAnimationProps>(
 
     const glowProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.3, opacity: circleGlow.value } as Record<string, number>;
+      return { r: size * 0.3, opacity: circleGlow.value };
     });
     const outerRing = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.38, opacity: circleGlow.value * 0.4 } as Record<string, number>;
+      return { r: size * 0.38, opacity: circleGlow.value * 0.4 };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

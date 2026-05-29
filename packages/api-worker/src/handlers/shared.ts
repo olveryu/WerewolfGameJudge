@@ -58,7 +58,7 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
         400,
       );
     }
-    return result.data as z.output<T>;
+    return result.data;
   });
 }
 
@@ -99,7 +99,7 @@ export function getGameRoomStub(env: Env, roomCode: string, req?: Request): Game
   const id = env.GAME_ROOM.idFromName(roomCode);
   const cf = (req as CfRequest | undefined)?.cf;
   const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
-  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined) as GameRoomStub;
+  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
 }
 
 /**

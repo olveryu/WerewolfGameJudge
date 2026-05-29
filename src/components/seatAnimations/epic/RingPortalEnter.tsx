@@ -50,7 +50,7 @@ const Ring = memo<{
       r: t * size * (0.3 + index * 0.05),
       opacity: (1 - rawT) * 0.6,
       strokeWidth: 2 + (1 - rawT) * 2,
-    } as Record<string, number>;
+    };
   });
 
   return (
@@ -108,7 +108,7 @@ export const RingPortalEnter = memo<SeatAnimationProps & { config: RingPortalCon
       return {
         r: size * 0.35,
         opacity: glowOpacity.value,
-      } as Record<string, number>;
+      };
     });
 
     const rings = useMemo(

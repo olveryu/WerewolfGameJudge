@@ -39,7 +39,7 @@ const BandParticle = memo<{ seed: BandSeed; size: number; progress: { value: num
         y2: y,
         opacity: alpha,
         strokeWidth: seed.width * size,
-      } as Record<string, number>;
+      };
     });
 
     const glintProps = useAnimatedProps(() => {
@@ -48,7 +48,7 @@ const BandParticle = memo<{ seed: BandSeed; size: number; progress: { value: num
       const y = size * (1 - t);
       const x = size * 0.3 + Math.sin(t * Math.PI * 4) * size * 0.2;
       const alpha = t > 0.3 && t < 0.7 ? 0.5 : 0;
-      return { cx: x, cy: y, r: size * 0.008, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.008, opacity: alpha };
     });
 
     return (

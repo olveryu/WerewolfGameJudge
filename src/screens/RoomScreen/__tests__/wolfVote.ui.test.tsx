@@ -46,7 +46,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     status: GameStatus.Ongoing,
     template: {
       numberOfPlayers: 12,
-      roles: Array.from({ length: 12 }).map(() => 'villager' as RoleId),
+      roles: Array.from({ length: 12 }).map(() => 'villager'),
       // NOTE: RoomScreen's currentActionRole is provided by the hook,
       // but other helpers expect an actionOrder to exist on template.
       actionOrder: ['wolf'],
@@ -60,7 +60,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
           displayName: `P${i + 1}`,
           avatarUrl: undefined,
           // Use a concrete wolf-faction RoleId so isWolfRole() is true.
-          role: (i === 0 ? 'wolfQueen' : 'villager') as RoleId,
+          role: i === 0 ? 'wolfQueen' : 'villager',
           hasViewedRole: true,
         },
       ]),
@@ -307,10 +307,10 @@ describe('RoomScreen wolf vote UI', () => {
           seat: 2,
           displayName: 'P3',
           avatarUrl: undefined,
-          role: 'villager' as RoleId,
+          role: 'villager',
           hasViewedRole: true,
         }),
-        role: 'spiritKnight' as RoleId,
+        role: 'spiritKnight',
       });
       const submitAction = mockSubmitAction;
       submitActionMock = submitAction;

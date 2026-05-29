@@ -86,7 +86,7 @@ export const Dropdown = memo<DropdownProps>(
           <Ionicons
             name="chevron-down"
             size={typography.secondary}
-            color={styles.settingsSelectorArrow.color as string}
+            color={styles.settingsSelectorArrow.color}
           />
         </TouchableOpacity>
 
@@ -108,7 +108,7 @@ export const Dropdown = memo<DropdownProps>(
                   <Ionicons
                     name="close"
                     size={typography.title}
-                    color={styles.modalCloseBtnText.color as string}
+                    color={styles.modalCloseBtnText.color}
                   />
                 </TouchableOpacity>
               </View>

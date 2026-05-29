@@ -39,11 +39,7 @@ const WispParticle = memo<{ seed: WispSeed; size: number; progress: { value: num
       const dx = seed.drift * size * Math.sin(t * Math.PI * 3);
       const d = `M ${base} ${y0} Q ${base + dx} ${y1} ${base - dx * 0.5} ${y2} Q ${base + dx * 0.3} ${y3 + size * 0.05} ${base} ${y3}`;
       const alpha = t < 0.15 ? t / 0.15 : t > 0.75 ? (1 - t) / 0.25 : 1;
-      return { d, opacity: alpha * 0.25, strokeWidth: seed.width * size } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha * 0.25, strokeWidth: seed.width * size };
     });
 
     const headProps = useAnimatedProps(() => {
@@ -53,10 +49,7 @@ const WispParticle = memo<{ seed: WispSeed; size: number; progress: { value: num
       const y = size * (1 - t * 0.8) - size * 0.45;
       const dx = seed.drift * size * Math.sin(t * Math.PI * 3) * 0.3;
       const alpha = t < 0.2 ? 0 : t > 0.8 ? (1 - t) / 0.2 : 0.35;
-      return { cx: base + dx, cy: y, r: seed.width * size * 0.8, opacity: alpha } as Record<
-        string,
-        number
-      >;
+      return { cx: base + dx, cy: y, r: seed.width * size * 0.8, opacity: alpha };
     });
 
     return (

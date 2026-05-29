@@ -48,7 +48,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
         cy: fy + Math.sin(pa) * petalR * 1.2,
         r: petalR * 0.7,
         opacity: bloom * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     const petal1Props = useAnimatedProps(() => {
@@ -68,7 +68,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
         cy: fy + Math.sin(pa) * petalR * 1.2,
         r: petalR * 0.7,
         opacity: bloom * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     const petal2Props = useAnimatedProps(() => {
@@ -88,7 +88,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
         cy: fy + Math.sin(pa) * petalR * 1.2,
         r: petalR * 0.7,
         opacity: bloom * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     const petal3Props = useAnimatedProps(() => {
@@ -108,7 +108,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
         cy: fy + Math.sin(pa) * petalR * 1.2,
         r: petalR * 0.7,
         opacity: bloom * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     const petal4Props = useAnimatedProps(() => {
@@ -128,7 +128,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
         cy: fy + Math.sin(pa) * petalR * 1.2,
         r: petalR * 0.7,
         opacity: bloom * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     const centerProps = useAnimatedProps(() => {
@@ -142,7 +142,7 @@ const FlowerParticle = memo<{ flowerIndex: number; size: number; progress: { val
       const fy = cy + Math.sin(baseAngle + t * Math.PI * 0.5) * dist;
       const bloom = 0.3 + 0.7 * Math.abs(Math.sin((t * 2 + f * 0.8) * Math.PI));
       const petalR = size * 0.015 * bloom;
-      return { cx: fx, cy: fy, r: petalR * 0.4, opacity: bloom * 0.8 } as Record<string, number>;
+      return { cx: fx, cy: fy, r: petalR * 0.4, opacity: bloom * 0.8 };
     });
 
     return (

@@ -42,7 +42,7 @@ export const RippleFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       r,
       opacity: (1 - t) * 0.45,
       strokeWidth: 1.5,
-    } as Record<string, number>;
+    };
   });
 
   const ring2Props = useAnimatedProps(() => {
@@ -55,7 +55,7 @@ export const RippleFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       r,
       opacity: (1 - t) * 0.35,
       strokeWidth: 1,
-    } as Record<string, number>;
+    };
   });
 
   return (

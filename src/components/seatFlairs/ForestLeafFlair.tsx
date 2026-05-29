@@ -56,7 +56,7 @@ const LeafParticle = memo<{
     const r = seed.rFrac * size;
     const dx = Math.cos(rot) * r * 0.3;
     const dy = Math.sin(rot) * r * 0.3;
-    return { cx: x - dx, cy: y - dy, r, opacity: alpha * 0.7 } as Record<string, number>;
+    return { cx: x - dx, cy: y - dy, r, opacity: alpha * 0.7 };
   });
 
   const circle2Props = useAnimatedProps(() => {
@@ -70,7 +70,7 @@ const LeafParticle = memo<{
     const r = seed.rFrac * size;
     const dx = Math.cos(rot) * r * 0.3;
     const dy = Math.sin(rot) * r * 0.3;
-    return { cx: x + dx, cy: y + dy, r: r * 0.8, opacity: alpha * 0.7 } as Record<string, number>;
+    return { cx: x + dx, cy: y + dy, r: r * 0.8, opacity: alpha * 0.7 };
   });
 
   const veinProps = useAnimatedProps(() => {
@@ -91,7 +91,7 @@ const LeafParticle = memo<{
       y2: y + dy * 2,
       opacity: alpha * 0.5,
       strokeWidth: 0.5,
-    } as Record<string, number>;
+    };
   });
 
   return (

@@ -74,7 +74,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
         d: buildD(pts),
         opacity: intensity < 0.01 ? 0 : intensity * 0.25,
         strokeWidth: size * 0.05,
-      } as { d: string; opacity: number; strokeWidth: number };
+      };
     });
 
     const layer2Props = useAnimatedProps(() => {
@@ -85,7 +85,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
         d: buildD(pts),
         opacity: intensity < 0.01 ? 0 : intensity * 0.5,
         strokeWidth: size * 0.025,
-      } as { d: string; opacity: number; strokeWidth: number };
+      };
     });
 
     const layer3Props = useAnimatedProps(() => {
@@ -96,7 +96,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
         d: buildD(pts),
         opacity: intensity < 0.01 ? 0 : intensity * 0.9,
         strokeWidth: size * 0.012,
-      } as { d: string; opacity: number; strokeWidth: number };
+      };
     });
 
     const sparkProps = useAnimatedProps(() => {
@@ -109,7 +109,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
         cy: tip.y,
         r: intensity < 0.01 ? 0 : size * 0.015 * intensity,
         opacity: intensity < 0.01 ? 0 : intensity * 0.7,
-      } as Record<string, number>;
+      };
     });
 
     return (

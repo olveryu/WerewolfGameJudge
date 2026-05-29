@@ -43,7 +43,7 @@ const RainStreak = memo<{ seed: RainSeed; size: number; progress: { value: numbe
         y2: endY,
         opacity: alpha,
         strokeWidth: size * 0.004,
-      } as Record<string, number>;
+      };
     });
     return <AnimatedLine animatedProps={props} stroke="rgb(150,180,210)" strokeLinecap="round" />;
   },
@@ -60,11 +60,7 @@ const WaveCrest = memo<{ layer: number; size: number; progress: { value: number 
       const amp = size * (0.03 - layer * 0.01);
       const d = `M 0 ${baseY + shift} Q ${size * 0.15} ${baseY + shift - amp} ${size * 0.3} ${baseY + shift} T ${size * 0.6} ${baseY + shift} T ${size * 0.9} ${baseY + shift} L ${size} ${baseY + shift}`;
       const alpha = 0.15 - layer * 0.04;
-      return { d, opacity: alpha, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.008 };
     });
     const color = layer === 0 ? 'rgb(80,140,200)' : 'rgb(100,160,220)';
     return <AnimatedPath animatedProps={props} stroke={color} fill="none" strokeLinecap="round" />;

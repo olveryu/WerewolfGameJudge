@@ -58,7 +58,7 @@ export const SpinEnter = memo<ColoredAnimationProps>(
       return {
         d: `M ${cx} ${cy - r} A ${r} ${r} 0 ${angle > Math.PI ? 1 : 0} 1 ${x} ${y}`,
         opacity: (1 - progress.value) * 0.5,
-      } as Record<string, string | number>;
+      };
     });
 
     return (

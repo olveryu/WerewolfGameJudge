@@ -35,7 +35,7 @@ const MistParticle = memo<{ seed: MistSeed; size: number; progress: { value: num
       const x = seed.xFrac * size + Math.sin(t * Math.PI * 3) * size * 0.03;
       const r = seed.maxR * size * (0.3 + t * 0.7);
       const alpha = t < 0.1 ? t / 0.1 : (1 - t) * 0.4;
-      return { cx: x, cy: y, r, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: alpha };
     });
 
     return <AnimatedCircle animatedProps={animatedProps} fill="rgb(42,16,64)" />;

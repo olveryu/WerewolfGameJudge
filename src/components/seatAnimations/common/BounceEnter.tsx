@@ -49,7 +49,7 @@ export const BounceEnter = memo<ColoredAnimationProps>(
       return {
         r: size * 0.1 + ringProgress.value * size * 0.35,
         opacity: (1 - ringProgress.value) * 0.4,
-      } as Record<string, number>;
+      };
     });
 
     return (

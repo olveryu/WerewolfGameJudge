@@ -58,29 +58,20 @@ export const HunterShot = memo<SeatAnimationProps>(
     const crosshairV = useAnimatedProps(() => {
       'worklet';
       const r = size * 0.3 * (2 - aim.value);
-      return { x1: cx, x2: cx, y1: cy - r, y2: cy + r, opacity: (1 - wave.value) * 0.6 } as Record<
-        string,
-        number
-      >;
+      return { x1: cx, x2: cx, y1: cy - r, y2: cy + r, opacity: (1 - wave.value) * 0.6 };
     });
     const crosshairH = useAnimatedProps(() => {
       'worklet';
       const r = size * 0.3 * (2 - aim.value);
-      return { x1: cx - r, x2: cx + r, y1: cy, y2: cy, opacity: (1 - wave.value) * 0.6 } as Record<
-        string,
-        number
-      >;
+      return { x1: cx - r, x2: cx + r, y1: cy, y2: cy, opacity: (1 - wave.value) * 0.6 };
     });
     const flashProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.15 * flash.value, opacity: flash.value * 0.8 } as Record<string, number>;
+      return { r: size * 0.15 * flash.value, opacity: flash.value * 0.8 };
     });
     const waveProps = useAnimatedProps(() => {
       'worklet';
-      return { r: wave.value * size * 0.5, opacity: (1 - wave.value) * 0.4 } as Record<
-        string,
-        number
-      >;
+      return { r: wave.value * size * 0.5, opacity: (1 - wave.value) * 0.4 };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

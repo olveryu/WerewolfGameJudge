@@ -19,29 +19,29 @@ export const VortexEyePet = memo<PetProps>(({ size }) => {
   // Vortex iris spin
   const irisProps = useAnimatedProps(() => {
     'worklet';
-    return { rotation: tSpin.value * 360 } as Record<string, number>;
+    return { rotation: tSpin.value * 360 };
   });
 
   // Tentacle wobble
   const tent1 = useAnimatedProps(() => {
     'worklet';
     const w = Math.sin(tWobble.value * Math.PI * 2) * 3;
-    return { d: `M22 48 Q${18 + w} 56 ${22 + w} 58` } as { d: string };
+    return { d: `M22 48 Q${18 + w} 56 ${22 + w} 58` };
   });
   const tent2 = useAnimatedProps(() => {
     'worklet';
     const w = Math.sin(tWobble.value * Math.PI * 2 + 0.6) * 3;
-    return { d: `M28 50 Q${26 + w} 58 ${30 + w} 60` } as { d: string };
+    return { d: `M28 50 Q${26 + w} 58 ${30 + w} 60` };
   });
   const tent3 = useAnimatedProps(() => {
     'worklet';
     const w = Math.sin(tWobble.value * Math.PI * 2 + 1.2) * 3;
-    return { d: `M44 50 Q${46 + w} 58 ${42 + w} 60` } as { d: string };
+    return { d: `M44 50 Q${46 + w} 58 ${42 + w} 60` };
   });
   const tent4 = useAnimatedProps(() => {
     'worklet';
     const w = Math.sin(tWobble.value * Math.PI * 2 + 1.8) * 3;
-    return { d: `M50 48 Q${54 + w} 56 ${50 + w} 58` } as { d: string };
+    return { d: `M50 48 Q${54 + w} 56 ${50 + w} 58` };
   });
 
   return (

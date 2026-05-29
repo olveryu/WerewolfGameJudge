@@ -38,7 +38,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
 
 function createInput(targets?: readonly number[]): ActionInput {
   return {
-    schemaId: 'cupidChooseLovers' as ActionInput['schemaId'],
+    schemaId: 'cupidChooseLovers',
     targets,
   };
 }

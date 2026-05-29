@@ -53,7 +53,7 @@ const Petal = memo<{
       opacity: 0.7 * (1 - t * 0.8),
       // rotate via transform attribute not animatable via reanimated,
       // so we use rx/ry asymmetry + position to approximate petal shape
-    } as Record<string, number>;
+    };
   });
 
   return <AnimatedEllipse animatedProps={props} fill={color} />;

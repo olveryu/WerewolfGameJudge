@@ -90,10 +90,7 @@ describe('Night-1 Role Coverage Contract', () => {
 
       // Invoking the resolver should not throw (it may return valid: false, but must not throw)
       expect(() => {
-        resolver!(
-          minimalContext as unknown as import('@werewolf/game-engine/resolvers/types').ResolverContext,
-          minimalInput,
-        );
+        resolver!(minimalContext, minimalInput);
       }).not.toThrow();
     });
   });

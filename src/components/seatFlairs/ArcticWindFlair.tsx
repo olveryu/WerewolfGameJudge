@@ -41,7 +41,7 @@ const StreakParticle = memo<{ seed: StreakSeed; size: number; progress: { value:
         y2: y,
         opacity: alpha,
         strokeWidth: size * 0.008,
-      } as Record<string, number>;
+      };
     });
 
     const iceProps = useAnimatedProps(() => {
@@ -50,7 +50,7 @@ const StreakParticle = memo<{ seed: StreakSeed; size: number; progress: { value:
       const x = size * (1.1 - t * 1.3) - seed.length * size * 0.5;
       const y = seed.yFrac * size + Math.sin(t * Math.PI * 3) * size * 0.02 - size * 0.015;
       const alpha = t < 0.15 ? 0 : t > 0.85 ? (1 - t) / 0.15 : 0.45;
-      return { cx: x, cy: y, r: size * 0.006, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.006, opacity: alpha };
     });
 
     return (

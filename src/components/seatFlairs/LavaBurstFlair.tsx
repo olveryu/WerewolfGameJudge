@@ -52,28 +52,28 @@ const BlobParticle = memo<{ seed: BlobSeed; size: number; progress: { value: num
       const t = (progress.value + seed.phase) % 1;
       const { x, y } = getPos(t);
       const alpha = t < 0.1 ? t / 0.1 : t > 0.8 ? (1 - t) / 0.2 : 0.8;
-      return { cx: x, cy: y, r: seed.rFrac * size, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r: seed.rFrac * size, opacity: alpha };
     });
 
     const trail1Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const { x, y } = getPos(Math.max(0, t - 0.04));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.6, opacity: 0.4 } as Record<string, number>;
+      return { cx: x, cy: y, r: seed.rFrac * size * 0.6, opacity: 0.4 };
     });
 
     const trail2Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const { x, y } = getPos(Math.max(0, t - 0.08));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.35, opacity: 0.2 } as Record<string, number>;
+      return { cx: x, cy: y, r: seed.rFrac * size * 0.35, opacity: 0.2 };
     });
 
     const trail3Props = useAnimatedProps(() => {
       'worklet';
       const t = (progress.value + seed.phase) % 1;
       const { x, y } = getPos(Math.max(0, t - 0.12));
-      return { cx: x, cy: y, r: seed.rFrac * size * 0.2, opacity: 0.1 } as Record<string, number>;
+      return { cx: x, cy: y, r: seed.rFrac * size * 0.2, opacity: 0.1 };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

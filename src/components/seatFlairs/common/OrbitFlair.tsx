@@ -38,7 +38,7 @@ export const OrbitFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       cy: size / 2 + Math.sin(angle) * r,
       r: size * 0.018,
       opacity: 0.55,
-    } as Record<string, number>;
+    };
   });
 
   const dot2Props = useAnimatedProps(() => {
@@ -50,7 +50,7 @@ export const OrbitFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       cy: size / 2 + Math.sin(angle) * r,
       r: size * 0.014,
       opacity: 0.4,
-    } as Record<string, number>;
+    };
   });
 
   return (

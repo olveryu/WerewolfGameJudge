@@ -39,7 +39,7 @@ const AshParticle = memo<{ seed: AshSeed; size: number; progress: { value: numbe
       const cx = seed.cx0 * size + seed.driftX * size * t + wobbleX;
       const cy = seed.cy0 * size + seed.driftY * size * t + wobbleY;
       const flicker = 0.08 + Math.sin(t * Math.PI * 5 + seed.phase * 12) * 0.05;
-      return { cx, cy, r: seed.rFrac * size * 2.5, opacity: flicker } as Record<string, number>;
+      return { cx, cy, r: seed.rFrac * size * 2.5, opacity: flicker };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -50,7 +50,7 @@ const AshParticle = memo<{ seed: AshSeed; size: number; progress: { value: numbe
       const cx = seed.cx0 * size + seed.driftX * size * t + wobbleX;
       const cy = seed.cy0 * size + seed.driftY * size * t + wobbleY;
       const flicker = 0.15 + Math.sin(t * Math.PI * 5 + seed.phase * 12) * 0.1;
-      return { cx, cy, r: seed.rFrac * size, opacity: flicker } as Record<string, number>;
+      return { cx, cy, r: seed.rFrac * size, opacity: flicker };
     });
 
     return (

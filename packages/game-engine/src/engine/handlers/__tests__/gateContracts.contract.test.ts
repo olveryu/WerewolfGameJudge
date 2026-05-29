@@ -489,7 +489,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
 
   it('no_state fires before invalid_status', () => {
     const context: HandlerContext = {
-      state: null as unknown as GameState,
+      state: null,
       myUserId: 'host-1',
       mySeat: 0,
     };

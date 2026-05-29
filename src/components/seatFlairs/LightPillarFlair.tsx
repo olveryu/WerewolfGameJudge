@@ -41,7 +41,7 @@ const GlowDot = memo<{
     const frac = step / GLOW_STEPS;
     const y = corner.by + corner.dir * h * frac;
     const alpha = (1 - frac) * pulse * 0.15;
-    return { cx: corner.bx, cy: y, r: size * 0.025, opacity: alpha } as Record<string, number>;
+    return { cx: corner.bx, cy: y, r: size * 0.025, opacity: alpha };
   });
 
   return <AnimatedCircle animatedProps={props} fill="rgb(255,230,130)" />;
@@ -66,17 +66,14 @@ const PillarParticle = memo<{
       y2: corner.by + corner.dir * h * 0.8,
       opacity: pulse * 0.6,
       strokeWidth: 1.5,
-    } as Record<string, number>;
+    };
   });
 
   const sparkProps = useAnimatedProps(() => {
     'worklet';
     const t = progress.value;
     const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 2.5 + cornerIndex * 0.7) * Math.PI));
-    return { cx: corner.bx, cy: corner.by, r: size * 0.012, opacity: pulse * 0.8 } as Record<
-      string,
-      number
-    >;
+    return { cx: corner.bx, cy: corner.by, r: size * 0.012, opacity: pulse * 0.8 };
   });
 
   const glowSteps = useMemo(() => Array.from({ length: GLOW_STEPS }, (_, i) => i), []);

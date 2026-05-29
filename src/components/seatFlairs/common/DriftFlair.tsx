@@ -37,7 +37,7 @@ export const DriftFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     const denom = 1 + Math.sin(t) * Math.sin(t);
     const cx = size / 2 + (a * Math.cos(t)) / denom;
     const cy = size / 2 + (a * Math.sin(t) * Math.cos(t)) / denom;
-    return { cx, cy, r: size * 0.016, opacity: 0.5 } as Record<string, number>;
+    return { cx, cy, r: size * 0.016, opacity: 0.5 };
   });
 
   return (

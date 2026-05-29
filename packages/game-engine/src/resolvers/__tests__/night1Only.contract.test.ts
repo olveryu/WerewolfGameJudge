@@ -31,7 +31,7 @@ function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext 
     currentNightResults: {},
     gameState: { isNight1: true },
     ...overrides,
-  } as ResolverContext;
+  };
 }
 
 describe('Night-1-only resolvers contract', () => {

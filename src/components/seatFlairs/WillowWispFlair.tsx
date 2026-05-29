@@ -51,7 +51,7 @@ const WispParticle = memo<{ seed: WispSeed; size: number; progress: { value: num
       const x = cx + Math.sin(t * Math.PI * 2 * seed.freqX) * seed.ax * size;
       const y = cy + Math.cos(t * Math.PI * 2 * seed.freqY + seed.bx) * seed.ay * size;
       const flicker = 0.4 + Math.sin(t * Math.PI * 6 + seed.by) * 0.25;
-      return { cx: x, cy: y, r: size * 0.025, opacity: flicker * 0.3 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.025, opacity: flicker * 0.3 };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -60,7 +60,7 @@ const WispParticle = memo<{ seed: WispSeed; size: number; progress: { value: num
       const x = cx + Math.sin(t * Math.PI * 2 * seed.freqX) * seed.ax * size;
       const y = cy + Math.cos(t * Math.PI * 2 * seed.freqY + seed.bx) * seed.ay * size;
       const flicker = 0.5 + Math.sin(t * Math.PI * 6 + seed.by) * 0.3;
-      return { cx: x, cy: y, r: size * 0.008, opacity: flicker } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.008, opacity: flicker };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

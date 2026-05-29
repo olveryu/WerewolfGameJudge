@@ -51,7 +51,7 @@ const GrainParticle = memo<{ seed: GrainSeed; size: number; progress: { value: n
         cy: cy + Math.sin(angle) * seed.orbitR * size,
         r: seed.rFrac * size,
         opacity: 0.6,
-      } as Record<string, number>;
+      };
     });
 
     const trailProps = useAnimatedProps(() => {
@@ -63,7 +63,7 @@ const GrainParticle = memo<{ seed: GrainSeed; size: number; progress: { value: n
         cy: cy + Math.sin(angle) * seed.orbitR * size,
         r: seed.rFrac * size * 1.5,
         opacity: 0.12,
-      } as Record<string, number>;
+      };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

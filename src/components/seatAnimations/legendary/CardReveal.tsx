@@ -35,7 +35,7 @@ const Sparkle = memo<{ index: number; size: number; trigger: { value: number } }
         cy: size / 2 + Math.sin(angle) * dist,
         r: size * 0.015 * (1 - t * 0.7),
         opacity: t > 0.05 ? (1 - t) * 0.8 : 0,
-      } as Record<string, number>;
+      };
     });
     return (
       <AnimatedCircle

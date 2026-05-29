@@ -34,7 +34,7 @@ import {
 
 const RARITY_TABS: readonly { key: RarityFilter; label: string }[] = [
   { key: 'all', label: '全部' },
-  ...RARITY_ORDER.map((r) => ({ key: r as RarityFilter, label: RARITY_VISUAL[r].label })),
+  ...RARITY_ORDER.map((r) => ({ key: r, label: RARITY_VISUAL[r].label })),
 ] as const;
 
 /** Unlocked items display screen. */

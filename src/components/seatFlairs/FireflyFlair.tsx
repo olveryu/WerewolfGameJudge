@@ -43,7 +43,7 @@ const FireflyParticle = memo<{ seed: FireflySeed; size: number; progress: { valu
       const y = cy + Math.sin(angle) * dist;
       const blink = Math.max(0, Math.sin((t * 4 + seed.phase * 8) * Math.PI));
       const alpha = 0.1 + blink * 0.7;
-      return { cx: x, cy: y, r: size * 0.03, opacity: alpha * 0.25 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.03, opacity: alpha * 0.25 };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -60,7 +60,7 @@ const FireflyParticle = memo<{ seed: FireflySeed; size: number; progress: { valu
       const y = cy + Math.sin(angle) * dist;
       const blink = Math.max(0, Math.sin((t * 4 + seed.phase * 8) * Math.PI));
       const alpha = 0.1 + blink * 0.7;
-      return { cx: x, cy: y, r: size * 0.012, opacity: alpha * 0.9 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.012, opacity: alpha * 0.9 };
     });
 
     return (

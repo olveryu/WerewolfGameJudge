@@ -43,11 +43,7 @@ const CrystalParticle = memo<{ index: number; size: number; progress: { value: n
         d += h === 0 ? `M ${vx} ${vy}` : ` L ${vx} ${vy}`;
       }
       d += ' Z';
-      return { d, opacity: pulse * 0.7, strokeWidth: 1.2 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: pulse * 0.7, strokeWidth: 1.2 };
     });
 
     const dotProps = useAnimatedProps(() => {
@@ -57,7 +53,7 @@ const CrystalParticle = memo<{ index: number; size: number; progress: { value: n
       const x = cx + Math.cos(angle) * dist;
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 3 + index * 0.5) * Math.PI));
-      return { cx: x, cy: y, r: size * 0.01, opacity: pulse * 0.8 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.01, opacity: pulse * 0.8 };
     });
 
     const lineProps = useAnimatedProps(() => {
@@ -67,10 +63,7 @@ const CrystalParticle = memo<{ index: number; size: number; progress: { value: n
       const x = cx + Math.cos(angle) * dist;
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.3 + 0.7 * Math.abs(Math.sin((t * 3 + index * 0.5) * Math.PI));
-      return { x1: cx, y1: cy, x2: x, y2: y, opacity: pulse * 0.1, strokeWidth: 0.5 } as Record<
-        string,
-        number
-      >;
+      return { x1: cx, y1: cy, x2: x, y2: y, opacity: pulse * 0.1, strokeWidth: 0.5 };
     });
 
     return (

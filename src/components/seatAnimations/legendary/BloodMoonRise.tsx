@@ -63,10 +63,7 @@ export const BloodMoonRise = memo<SeatAnimationProps>(
 
     const moonProps = useAnimatedProps(() => {
       'worklet';
-      return { cy: moonY.value, r: size * 0.12, opacity: (1 - childOpacity.value) * 0.8 } as Record<
-        string,
-        number
-      >;
+      return { cy: moonY.value, r: size * 0.12, opacity: (1 - childOpacity.value) * 0.8 };
     });
     const ringProps = useAnimatedProps(() => {
       'worklet';
@@ -74,11 +71,11 @@ export const BloodMoonRise = memo<SeatAnimationProps>(
         cy: moonY.value,
         r: size * 0.16 * eclipseRing.value,
         opacity: eclipseRing.value * (1 - childOpacity.value) * 0.5,
-      } as Record<string, number>;
+      };
     });
     const mistProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.4, opacity: mistOpacity.value } as Record<string, number>;
+      return { r: size * 0.4, opacity: mistOpacity.value };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

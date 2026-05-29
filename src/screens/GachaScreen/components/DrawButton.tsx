@@ -70,11 +70,9 @@ export function DrawButton({
   }));
 
   const handlePressIn = () => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value
     pressScale.value = withSpring(0.95, { damping: 15, stiffness: 300 });
   };
   const handlePressOut = () => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value
     pressScale.value = withSpring(1, { damping: 15, stiffness: 300 });
   };
 

@@ -49,7 +49,7 @@ export const ZoomOutEnter = memo<ColoredAnimationProps>(
       return {
         r: size * 0.5 - progress.value * size * 0.15,
         opacity: (1 - progress.value) * 0.3,
-      } as Record<string, number>;
+      };
     });
 
     return (

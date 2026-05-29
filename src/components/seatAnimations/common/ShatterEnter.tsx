@@ -49,7 +49,7 @@ const Shard = memo<{
     const y = cy + Math.sin(angle) * dist;
     const half = shardSize * (1 - t * 0.5);
     const d = `M ${x} ${y - half} L ${x + half * 0.7} ${y + half * 0.5} L ${x - half * 0.7} ${y + half * 0.5} Z`;
-    return { d, opacity: 1 - t } as Record<string, string | number>;
+    return { d, opacity: 1 - t };
   });
 
   return <AnimatedPath animatedProps={props} fill={color} />;

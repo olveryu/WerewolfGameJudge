@@ -38,7 +38,7 @@ const Star = memo<{ star: (typeof STARS)[number]; size: number; progress: { valu
         cy: star.y * size,
         r: size * 0.01 * t,
         opacity: t * 0.8,
-      } as Record<string, number>;
+      };
     });
     return <AnimatedCircle animatedProps={props} fill="rgb(255,255,200)" />;
   },
@@ -83,10 +83,7 @@ export const NightFall = memo<SeatAnimationProps>(
     }));
     const moonProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.08, opacity: moonGlow.value * (1 - reveal.value) } as Record<
-        string,
-        number
-      >;
+      return { r: size * 0.08, opacity: moonGlow.value * (1 - reveal.value) };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: reveal.value,

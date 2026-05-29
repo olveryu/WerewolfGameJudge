@@ -128,7 +128,7 @@ export function useRoomDerived(input: UseRoomDerivedInput) {
   const roleStats = useMemo(() => {
     if (!gameState) {
       return {
-        roleCounts: {} as Record<string, number>,
+        roleCounts: {},
         wolfRoles: [] as string[],
         godRoles: [] as string[],
         specialRoles: [] as string[],

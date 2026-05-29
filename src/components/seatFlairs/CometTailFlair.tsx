@@ -45,7 +45,7 @@ const TrailDot = memo<{ j: number; seed: CometSeed; size: number; progress: { va
       const ty = cy + Math.sin(ta) * td;
       const r = j === 0 ? size * 0.02 : Math.max(size * 0.004, size * 0.018 - j * size * 0.002);
       const alpha = j === 0 ? pulse * 0.85 : Math.max(0, pulse * (0.5 - j * 0.05));
-      return { cx: tx, cy: ty, r, opacity: alpha } as Record<string, number>;
+      return { cx: tx, cy: ty, r, opacity: alpha };
     });
 
     return <AnimatedCircle animatedProps={dotProps} fill="rgb(180,200,255)" />;
@@ -66,10 +66,7 @@ const HeadGlow = memo<{ seed: CometSeed; size: number; progress: { value: number
       const pulse = 0.5 + 0.5 * Math.sin((t * 4 + seed.phase * 6) * Math.PI);
       const headX = cx + Math.cos(angle) * orbit;
       const headY = cy + Math.sin(angle) * orbit;
-      return { cx: headX, cy: headY, r: size * 0.03, opacity: pulse * 0.3 } as Record<
-        string,
-        number
-      >;
+      return { cx: headX, cy: headY, r: size * 0.03, opacity: pulse * 0.3 };
     });
 
     return <AnimatedCircle animatedProps={glowProps} fill="rgb(220,235,255)" />;

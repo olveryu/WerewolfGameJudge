@@ -63,12 +63,10 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
   }));
 
   const handlePressIn = useCallback(() => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated SharedValue.value is mutable by design
     scale.value = withSpring(activeScale, SPRING_CONFIG);
   }, [activeScale, scale]);
 
   const handlePressOut = useCallback(() => {
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated SharedValue.value is mutable by design
     scale.value = withSpring(1, SPRING_CONFIG);
   }, [scale]);
 
@@ -78,7 +76,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
       void triggerHaptic('light');
     }
     // Meta callback compatibility: always pass { disabled }, let callers decide
-    (onPress as (meta: { disabled: boolean }) => void)({ disabled });
+    onPress({ disabled });
   }, [haptic, onPress, disabled, fireWhenDisabled]);
 
   return (

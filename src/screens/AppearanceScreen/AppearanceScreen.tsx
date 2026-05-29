@@ -14,7 +14,6 @@ import { useCallback, useMemo } from 'react';
 import {
   FlatList,
   Image,
-  type ImageSourcePropType,
   type ListRenderItemInfo,
   Pressable,
   TouchableOpacity,
@@ -396,7 +395,7 @@ export const AppearanceScreen: React.FC = () => {
             </View>
           ) : (
             <Image
-              source={getHandDrawnImage(state.previewAvatarId) as ImageSourcePropType}
+              source={getHandDrawnImage(state.previewAvatarId)}
               style={styles.pickerPreviewImage}
               resizeMode="cover"
             />

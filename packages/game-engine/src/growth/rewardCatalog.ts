@@ -595,7 +595,7 @@ const AVATAR_RARITY: Record<string, Rarity> = {
   wolfRobot: 'epic',
   hiddenWolf: 'epic',
   // Rare (50) — generated beam variant
-  ...Object.fromEntries(GENERATED_RARE_IDS.map((id) => [id, 'rare' as Rarity])),
+  ...Object.fromEntries(GENERATED_RARE_IDS.map((id) => [id, 'rare'])),
   // Common (100) — generated pixel variant (fallback default)
 };
 

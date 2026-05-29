@@ -48,7 +48,7 @@ export const WaveFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       y2: cy + half,
       opacity: fade * 0.3,
       strokeWidth: 1.5,
-    } as Record<string, number>;
+    };
   });
 
   return (

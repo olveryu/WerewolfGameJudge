@@ -63,7 +63,7 @@ export const ConstellationFlair = memo<ColoredFlairProps>(({ size, colors }) => 
         x2: STARS[link[1]]!.x * size,
         y2: STARS[link[1]]!.y * size,
         opacity: alpha * 0.35,
-      } as Record<string, number>;
+      };
     });
   });
 

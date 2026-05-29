@@ -43,7 +43,7 @@ const WispParticle = memo<{
     const x = cx + Math.cos(angle) * dist;
     const y = cy + Math.sin(angle) * dist;
     const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2.5 + seed.phase * 6) * Math.PI));
-    return { cx: x, cy: y, r: size * 0.04, opacity: pulse * 0.25 } as Record<string, number>;
+    return { cx: x, cy: y, r: size * 0.04, opacity: pulse * 0.25 };
   });
 
   const coreProps = useAnimatedProps(() => {
@@ -57,7 +57,7 @@ const WispParticle = memo<{
     const x = cx + Math.cos(angle) * dist;
     const y = cy + Math.sin(angle) * dist;
     const pulse = 0.35 + 0.65 * Math.abs(Math.sin((t * 2.5 + seed.phase * 6) * Math.PI));
-    return { cx: x, cy: y, r: size * 0.018, opacity: pulse * 0.9 } as Record<string, number>;
+    return { cx: x, cy: y, r: size * 0.018, opacity: pulse * 0.9 };
   });
 
   const tail1Props = useAnimatedProps(() => {
@@ -76,7 +76,7 @@ const WispParticle = memo<{
       cy: cy + Math.sin(ta) * td,
       r: size * 0.011,
       opacity: Math.max(0, pulse * 0.3),
-    } as Record<string, number>;
+    };
   });
 
   const tail2Props = useAnimatedProps(() => {
@@ -95,7 +95,7 @@ const WispParticle = memo<{
       cy: cy + Math.sin(ta) * td,
       r: size * 0.008,
       opacity: Math.max(0, pulse * 0.2),
-    } as Record<string, number>;
+    };
   });
 
   const tail3Props = useAnimatedProps(() => {
@@ -114,7 +114,7 @@ const WispParticle = memo<{
       cy: cy + Math.sin(ta) * td,
       r: size * 0.005,
       opacity: Math.max(0, pulse * 0.1),
-    } as Record<string, number>;
+    };
   });
 
   return (

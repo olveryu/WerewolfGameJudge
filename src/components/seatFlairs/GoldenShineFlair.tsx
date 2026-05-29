@@ -39,7 +39,7 @@ const SparkleParticle = memo<{ seed: SparkleSeed; size: number; progress: { valu
       const x = cx + Math.cos(seed.angle) * d;
       const y = cy + Math.sin(seed.angle) * d;
       const r = seed.rFrac * size * (0.5 + flash);
-      return { cx: x, cy: y, r, opacity: flash < 0.01 ? 0 : flash * 0.9 } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: flash < 0.01 ? 0 : flash * 0.9 };
     });
 
     const glowProps = useAnimatedProps(() => {
@@ -52,10 +52,7 @@ const SparkleParticle = memo<{ seed: SparkleSeed; size: number; progress: { valu
       const x = cx + Math.cos(seed.angle) * d;
       const y = cy + Math.sin(seed.angle) * d;
       const r = seed.rFrac * size * (0.5 + flash);
-      return { cx: x, cy: y, r: r * 2, opacity: flash < 0.01 ? 0 : flash * 0.3 } as Record<
-        string,
-        number
-      >;
+      return { cx: x, cy: y, r: r * 2, opacity: flash < 0.01 ? 0 : flash * 0.3 };
     });
 
     return (

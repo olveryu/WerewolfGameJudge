@@ -124,7 +124,7 @@ const PREVIEW_SIZE = 56;
     const spacers: ExchangeItem[] = Array.from({ length: numColumns - remainder }, (_, i) => ({
       type: activeTab,
       id: `__spacer_${i}`,
-      rarity: 'common' as Rarity,
+      rarity: 'common',
       cost: 0,
       isOwned: false,
     }));

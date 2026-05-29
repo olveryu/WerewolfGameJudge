@@ -50,7 +50,7 @@ const CrystalArm = memo<{
       y2: cy + Math.sin(baseAngle) * len,
       opacity: alpha,
       strokeWidth: size * 0.003,
-    } as Record<string, number>;
+    };
   });
 
   const branchProps = useAnimatedProps(() => {
@@ -71,7 +71,7 @@ const CrystalArm = memo<{
       y2: midY + Math.sin(branchAngle) * branchLen,
       opacity: alpha,
       strokeWidth: size * 0.002,
-    } as Record<string, number>;
+    };
   });
 
   return (
@@ -95,7 +95,7 @@ const CrystalCenter = memo<{
     'worklet';
     const t = (progress.value + seed.phase) % 1;
     const alpha = 0.3 + Math.sin(t * Math.PI * 2) * 0.2;
-    return { cx, cy, r: size * 0.008, opacity: alpha } as Record<string, number>;
+    return { cx, cy, r: size * 0.008, opacity: alpha };
   });
   return <AnimatedCircle animatedProps={centerProps} fill="rgb(220,240,255)" />;
 });

@@ -52,11 +52,7 @@ const ShardParticle = memo<{ seed: ShardSeed; size: number; progress: { value: n
       const hh = seed.shardH * size;
       const d = `M ${px} ${py - hh} L ${px + hw} ${py} L ${px} ${py + hh} L ${px - hw} ${py} Z`;
       const alpha = 0.3 + Math.sin(t * Math.PI * 4) * 0.15;
-      return { d, opacity: alpha, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.008 };
     });
 
     const highlightProps = useAnimatedProps(() => {
@@ -68,11 +64,7 @@ const ShardParticle = memo<{ seed: ShardSeed; size: number; progress: { value: n
       const hh = seed.shardH * size * 0.6;
       const d = `M ${px} ${py - hh} L ${px} ${py + hh}`;
       const alpha = 0.2 + Math.sin(t * Math.PI * 6) * 0.15;
-      return { d, opacity: alpha, strokeWidth: size * 0.005 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.005 };
     });
 
     const sparkProps = useAnimatedProps(() => {
@@ -82,7 +74,7 @@ const ShardParticle = memo<{ seed: ShardSeed; size: number; progress: { value: n
       const px = cx + Math.cos(angle) * seed.orbitR * size;
       const py = cy + Math.sin(angle) * seed.orbitR * size - seed.shardH * size;
       const alpha = Math.max(0, Math.sin(t * Math.PI * 4) * 0.5);
-      return { cx: px, cy: py, r: size * 0.008, opacity: alpha } as Record<string, number>;
+      return { cx: px, cy: py, r: size * 0.008, opacity: alpha };
     });
 
     return (

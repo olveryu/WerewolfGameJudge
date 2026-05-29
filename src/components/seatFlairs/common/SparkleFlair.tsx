@@ -44,7 +44,7 @@ const SparklePoint = memo<{
       cy: seed.y * size,
       r: size * 0.012,
       opacity: alpha,
-    } as Record<string, number>;
+    };
   });
 
   const hLineProps = useAnimatedProps(() => {
@@ -62,7 +62,7 @@ const SparklePoint = memo<{
       y2: cy,
       opacity: alpha,
       strokeWidth: 0.8,
-    } as Record<string, number>;
+    };
   });
 
   const vLineProps = useAnimatedProps(() => {
@@ -80,7 +80,7 @@ const SparklePoint = memo<{
       y2: cy + arm,
       opacity: alpha,
       strokeWidth: 0.8,
-    } as Record<string, number>;
+    };
   });
 
   return (

@@ -63,7 +63,7 @@ const FlameTongue = memo<{
     return {
       d: `M ${bx + perpX} ${by + perpY} Q ${tx} ${ty} ${bx - perpX} ${by - perpY}`,
       opacity: isInward ? 0.7 * (1 - t) : 0.7 * t * (1 - Math.max(0, (t - 0.7) / 0.3)),
-    } as Record<string, string | number>;
+    };
   });
 
   return (

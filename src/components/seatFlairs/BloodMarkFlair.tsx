@@ -36,7 +36,7 @@ const BloodDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
       const y = t * size;
       const r = seed.rFrac * size;
       const alpha = t < 0.1 ? t / 0.1 : t > 0.8 ? (1 - t) / 0.2 : 0.85;
-      return { cx: x, cy: y, r, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: alpha };
     });
 
     const trail1Props = useAnimatedProps(() => {
@@ -51,7 +51,7 @@ const BloodDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
         cy: y - 1 * r * 1.5,
         r: r * (1 - 1 * 0.15),
         opacity: alpha * (1 - 1 / (TRAIL_LEN + 1)) * 0.6,
-      } as Record<string, number>;
+      };
     });
 
     const trail2Props = useAnimatedProps(() => {
@@ -66,7 +66,7 @@ const BloodDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
         cy: y - 2 * r * 1.5,
         r: r * (1 - 2 * 0.15),
         opacity: alpha * (1 - 2 / (TRAIL_LEN + 1)) * 0.6,
-      } as Record<string, number>;
+      };
     });
 
     const trail3Props = useAnimatedProps(() => {
@@ -81,7 +81,7 @@ const BloodDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
         cy: y - 3 * r * 1.5,
         r: r * (1 - 3 * 0.15),
         opacity: alpha * (1 - 3 / (TRAIL_LEN + 1)) * 0.6,
-      } as Record<string, number>;
+      };
     });
 
     return (

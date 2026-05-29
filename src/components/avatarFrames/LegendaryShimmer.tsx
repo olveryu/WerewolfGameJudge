@@ -100,25 +100,25 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
   const orbitLeadProps = useAnimatedProps(() => {
     'worklet';
     const pt = perimeterPoint(orbit.value, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.7, r: 4 } as Record<string, number>;
+    return { cx: pt.x, cy: pt.y, opacity: 0.7, r: 4 };
   });
   // Trail circle (dimmer gold, slightly behind)
   const orbitTrailProps = useAnimatedProps(() => {
     'worklet';
     const pt = perimeterPoint(orbit.value - 0.04, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.35, r: 3 } as Record<string, number>;
+    return { cx: pt.x, cy: pt.y, opacity: 0.35, r: 3 };
   });
   // Secondary lead (opposite side, for symmetry)
   const orbitLead2Props = useAnimatedProps(() => {
     'worklet';
     const pt = perimeterPoint(orbit.value + 0.5, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.5, r: 3.5 } as Record<string, number>;
+    return { cx: pt.x, cy: pt.y, opacity: 0.5, r: 3.5 };
   });
   // Secondary trail
   const orbitTrail2Props = useAnimatedProps(() => {
     'worklet';
     const pt = perimeterPoint(orbit.value + 0.46, -2, -2, 104, 104);
-    return { cx: pt.x, cy: pt.y, opacity: 0.25, r: 2.5 } as Record<string, number>;
+    return { cx: pt.x, cy: pt.y, opacity: 0.25, r: 2.5 };
   });
 
   // ── 2. Glow pulse (outer border opacity) ──────────────────────────────
@@ -126,7 +126,7 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
     'worklet';
     const t = glow.value;
     const alpha = 0.1 + Math.sin(t * Math.PI * 2) * 0.13;
-    return { opacity: alpha, strokeWidth: 5 } as Record<string, number>;
+    return { opacity: alpha, strokeWidth: 5 };
   });
 
   // ── 3. Corner sparkles — 4 points, staggered phase ───────────────────
@@ -135,28 +135,28 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
     const t = sparkle.value;
     const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
     const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r } as Record<string, number>;
+    return { opacity: alpha, r };
   });
   const sparkle1Props = useAnimatedProps(() => {
     'worklet';
     const t = (sparkle.value + 0.25) % 1;
     const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
     const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r } as Record<string, number>;
+    return { opacity: alpha, r };
   });
   const sparkle2Props = useAnimatedProps(() => {
     'worklet';
     const t = (sparkle.value + 0.5) % 1;
     const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
     const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r } as Record<string, number>;
+    return { opacity: alpha, r };
   });
   const sparkle3Props = useAnimatedProps(() => {
     'worklet';
     const t = (sparkle.value + 0.75) % 1;
     const alpha = Math.max(0, Math.sin(t * Math.PI * 2)) * 0.75;
     const r = 1.2 + Math.sin(t * Math.PI * 2) * 1.0;
-    return { opacity: alpha, r } as Record<string, number>;
+    return { opacity: alpha, r };
   });
 
   const sparkleAnimProps = [sparkle0Props, sparkle1Props, sparkle2Props, sparkle3Props];

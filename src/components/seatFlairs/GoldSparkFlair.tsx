@@ -53,7 +53,7 @@ const SparkleParticle = memo<{
       y2: y,
       opacity: tooClose ? 0 : alpha * 0.8,
       strokeWidth: 1.2,
-    } as Record<string, number>;
+    };
   });
 
   const vLineProps = useAnimatedProps(() => {
@@ -76,7 +76,7 @@ const SparkleParticle = memo<{
       y2: y + armLen,
       opacity: tooClose ? 0 : alpha * 0.8,
       strokeWidth: 1.2,
-    } as Record<string, number>;
+    };
   });
 
   const dotProps = useAnimatedProps(() => {
@@ -91,10 +91,7 @@ const SparkleParticle = memo<{
     const y = cy + Math.sin(angle) * burstDist;
     const tooClose = burstDist < size * 0.25;
     const alpha = tt < 0.1 ? tt / 0.1 : (1 - tt) * 0.8;
-    return { cx: x, cy: y, r: size * 0.01, opacity: tooClose ? 0 : alpha * 0.9 } as Record<
-      string,
-      number
-    >;
+    return { cx: x, cy: y, r: size * 0.01, opacity: tooClose ? 0 : alpha * 0.9 };
   });
 
   return (

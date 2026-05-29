@@ -42,7 +42,7 @@ const MagmaParticle = memo<{ seed: MagmaSeed; size: number; progress: { value: n
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
       const r = seed.rFrac * size;
-      return { cx: x, cy: y, r, opacity: pulse * 0.6 } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: pulse * 0.6 };
     });
 
     const lobeProps = useAnimatedProps(() => {
@@ -57,10 +57,7 @@ const MagmaParticle = memo<{ seed: MagmaSeed; size: number; progress: { value: n
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
       const r = seed.rFrac * size;
-      return { cx: x + r * 0.4, cy: y - r * 0.3, r: r * 0.7, opacity: pulse * 0.5 } as Record<
-        string,
-        number
-      >;
+      return { cx: x + r * 0.4, cy: y - r * 0.3, r: r * 0.7, opacity: pulse * 0.5 };
     });
 
     const glowProps = useAnimatedProps(() => {
@@ -75,10 +72,7 @@ const MagmaParticle = memo<{ seed: MagmaSeed; size: number; progress: { value: n
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.4 + 0.6 * Math.abs(Math.sin((t * 3 + seed.phase * 5) * Math.PI));
       const r = seed.rFrac * size;
-      return { cx: x, cy: y + r * 0.5, r: r * 1.3, opacity: pulse * 0.12 } as Record<
-        string,
-        number
-      >;
+      return { cx: x, cy: y + r * 0.5, r: r * 1.3, opacity: pulse * 0.12 };
     });
 
     return (

@@ -8,7 +8,7 @@ jest.mock('@/lib/storage', () => {
   const store: Record<string, string> = {};
   return {
     storage: {
-      getString: jest.fn((key: string) => store[key] as string | undefined),
+      getString: jest.fn((key: string) => store[key]),
       set: jest.fn((key: string, value: string) => {
         store[key] = value;
       }),

@@ -55,7 +55,7 @@ const Petal = memo<{ seed: PetalSeed; size: number; progress: { value: number } 
       const sway = Math.sin(t * Math.PI * 4) * 0.5;
       const d = `M ${x} ${y - h} Q ${x + w + sway * w} ${y} ${x} ${y + h} Q ${x - w - sway * w} ${y} ${x} ${y - h} Z`;
       const alpha = t < 0.05 ? t / 0.05 : t > 0.9 ? (1 - t) / 0.1 : 0.4;
-      return { d, opacity: alpha } as { d: string; opacity: number };
+      return { d, opacity: alpha };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

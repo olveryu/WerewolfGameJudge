@@ -50,7 +50,7 @@ export const SlideDownEnter = memo<ColoredAnimationProps>(
         y1: 0,
         y2: size * (1 - progress.value) * 0.5,
         opacity: (1 - progress.value) * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     return (

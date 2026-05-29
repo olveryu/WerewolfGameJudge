@@ -51,7 +51,7 @@ export const FireflyFlair = memo<ColoredFlairProps>(({ size, colors }) => {
         size * 0.2 + size * 0.6 * (0.5 + 0.5 * Math.cos(t * Math.PI * 2 * freqY + seed * 7));
       const blink = Math.sin(t * Math.PI * 2 * freqBlink + seed * 5);
       const alpha = 0.2 + blink * blink * 0.4; // squared for sharper blink
-      return { cx, cy, r: size * 0.01, opacity: alpha } as Record<string, number>;
+      return { cx, cy, r: size * 0.01, opacity: alpha };
     });
   });
 

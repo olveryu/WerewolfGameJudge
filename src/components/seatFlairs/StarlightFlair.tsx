@@ -42,7 +42,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
       const y = cy + Math.sin(angle) * d;
       const t = (progress.value + seed.phase) % 1;
       const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return { cx: x, cy: y, r: armLen * 0.9, opacity: tw * 0.15 } as Record<string, number>;
+      return { cx: x, cy: y, r: armLen * 0.9, opacity: tw * 0.15 };
     });
 
     const cross1Props = useAnimatedProps(() => {
@@ -60,7 +60,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: y,
         opacity: tw * 0.8,
         strokeWidth: 1.5,
-      } as Record<string, number>;
+      };
     });
 
     const cross2Props = useAnimatedProps(() => {
@@ -78,7 +78,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: y + armLen,
         opacity: tw * 0.8,
         strokeWidth: 1.5,
-      } as Record<string, number>;
+      };
     });
 
     const diag1Props = useAnimatedProps(() => {
@@ -96,7 +96,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: y + diagLen,
         opacity: tw * 0.5,
         strokeWidth: 1,
-      } as Record<string, number>;
+      };
     });
 
     const diag2Props = useAnimatedProps(() => {
@@ -114,7 +114,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: y - diagLen,
         opacity: tw * 0.5,
         strokeWidth: 1,
-      } as Record<string, number>;
+      };
     });
 
     const dotProps = useAnimatedProps(() => {
@@ -125,7 +125,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
       const y = cy + Math.sin(angle) * d;
       const t = (progress.value + seed.phase) % 1;
       const tw = 0.3 + 0.7 * Math.max(0, Math.sin(t * Math.PI * 2));
-      return { cx: x, cy: y, r: size * 0.008, opacity: tw * 0.9 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.008, opacity: tw * 0.9 };
     });
 
     return (

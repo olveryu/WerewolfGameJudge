@@ -44,7 +44,7 @@ const StreamGleam = memo<{
       cy: gy,
       r: size * 0.006,
       opacity: visible ? 0.5 + Math.sin(t * Math.PI * 8 + idx * 2) * 0.3 : 0,
-    } as Record<string, number>;
+    };
   });
   return <AnimatedCircle animatedProps={gleamProps} fill="rgb(240,245,255)" />;
 });
@@ -67,11 +67,7 @@ const StreamFlow = memo<{ seed: StreamSeed; size: number; progress: { value: num
       const wobble = Math.sin(t * Math.PI * 4) * size * 0.015;
       const d = `M ${xEdge} ${y0} Q ${xMid + wobble} ${y1} ${xEdge - wobble} ${y2} Q ${xMid + wobble * 0.5} ${(y2 + y3) / 2} ${xEdge} ${y3}`;
       const alpha = t < 0.05 ? t / 0.05 : t > 0.85 ? (1 - t) / 0.15 : 0.25;
-      return { d, opacity: alpha, strokeWidth: size * 0.012 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.012 };
     });
 
     const gleams = useMemo(

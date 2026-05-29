@@ -41,11 +41,7 @@ const VineParticle = memo<{ seed: VineSeed; size: number; progress: { value: num
       const ey = sy + (seed.endY * size - sy) * growFrac;
       const d = `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`;
       const alpha = t > 0.7 ? (1 - t) / 0.3 : 0.4;
-      return { d, opacity: alpha, strokeWidth: size * 0.012 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.012 };
     });
 
     const thornProps = useAnimatedProps(() => {
@@ -55,10 +51,7 @@ const VineParticle = memo<{ seed: VineSeed; size: number; progress: { value: num
       const midX = seed.startX * size + (seed.ctrlX * size - seed.startX * size) * growFrac * 0.5;
       const midY = seed.startY * size + (seed.ctrlY * size - seed.startY * size) * growFrac * 0.5;
       const alpha = growFrac > 0.3 ? (t > 0.7 ? (1 - t) / 0.3 : 0.5) : 0;
-      return { cx: midX, cy: midY - size * 0.02, r: size * 0.008, opacity: alpha } as Record<
-        string,
-        number
-      >;
+      return { cx: midX, cy: midY - size * 0.02, r: size * 0.008, opacity: alpha };
     });
 
     const tipProps = useAnimatedProps(() => {
@@ -68,7 +61,7 @@ const VineParticle = memo<{ seed: VineSeed; size: number; progress: { value: num
       const ex = seed.startX * size + (seed.endX * size - seed.startX * size) * growFrac;
       const ey = seed.startY * size + (seed.endY * size - seed.startY * size) * growFrac;
       const alpha = growFrac > 0.5 ? (t > 0.7 ? (1 - t) / 0.3 : 0.6) : 0;
-      return { cx: ex, cy: ey, r: size * 0.01, opacity: alpha } as Record<string, number>;
+      return { cx: ex, cy: ey, r: size * 0.01, opacity: alpha };
     });
 
     return (

@@ -40,10 +40,7 @@ const RingParticle = memo<{ seed: RingSeed; size: number; progress: { value: num
       const t = (progress.value + seed.phase) % 1;
       const r = t * size * 0.55;
       const alpha = t < 0.1 ? t / 0.1 : (1 - t) / 0.9;
-      return { cx, cy, r, opacity: alpha * 0.2, strokeWidth: size * 0.015 } as Record<
-        string,
-        number
-      >;
+      return { cx, cy, r, opacity: alpha * 0.2, strokeWidth: size * 0.015 };
     });
 
     const innerProps = useAnimatedProps(() => {
@@ -51,10 +48,7 @@ const RingParticle = memo<{ seed: RingSeed; size: number; progress: { value: num
       const t = (progress.value + seed.phase) % 1;
       const r = t * size * 0.5;
       const alpha = t < 0.1 ? t / 0.1 : (1 - t) / 0.9;
-      return { cx, cy, r, opacity: alpha * 0.4, strokeWidth: size * 0.006 } as Record<
-        string,
-        number
-      >;
+      return { cx, cy, r, opacity: alpha * 0.4, strokeWidth: size * 0.006 };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

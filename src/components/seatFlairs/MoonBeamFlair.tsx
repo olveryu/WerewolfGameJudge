@@ -39,7 +39,7 @@ const BeamParticle = memo<{ seed: BeamSeed; size: number; progress: { value: num
         y2: size,
         opacity: alpha,
         strokeWidth: seed.width * size,
-      } as Record<string, number>;
+      };
     });
 
     const haloProps = useAnimatedProps(() => {
@@ -48,7 +48,7 @@ const BeamParticle = memo<{ seed: BeamSeed; size: number; progress: { value: num
       const x = seed.xPhase * size + Math.sin(t * Math.PI * 2) * size * 0.15;
       const y = size * 0.15 + t * size * 0.1;
       const alpha = 0.12 + Math.sin(t * Math.PI * 4) * 0.08;
-      return { cx: x, cy: y, r: size * 0.04, opacity: alpha } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.04, opacity: alpha };
     });
 
     return (

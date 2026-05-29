@@ -42,7 +42,7 @@ export const CascadeFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       const cx = side ? size * 0.12 : size * 0.88;
       const cy = size * 0.1 + t * size * 0.8;
       const alpha = t < 0.15 ? t / 0.15 : t > 0.85 ? (1 - t) / 0.15 : 1;
-      return { cx, cy, r: size * 0.012, opacity: alpha * 0.45 } as Record<string, number>;
+      return { cx, cy, r: size * 0.012, opacity: alpha * 0.45 };
     });
   });
 

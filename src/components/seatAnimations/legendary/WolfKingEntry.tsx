@@ -56,11 +56,11 @@ export const WolfKingEntry = memo<SeatAnimationProps>(
 
     const leftEye = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.03, opacity: eyeGlow.value * 0.9 } as Record<string, number>;
+      return { r: size * 0.03, opacity: eyeGlow.value * 0.9 };
     });
     const rightEye = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.03, opacity: eyeGlow.value * 0.9 } as Record<string, number>;
+      return { r: size * 0.03, opacity: eyeGlow.value * 0.9 };
     });
     const slash1 = useAnimatedProps(() => {
       'worklet';
@@ -72,7 +72,7 @@ export const WolfKingEntry = memo<SeatAnimationProps>(
       return {
         d: `M ${x1} ${y1} L ${x2} ${y2}`,
         opacity: (1 - waveProgress.value) * 0.7,
-      } as Record<string, string | number>;
+      };
     });
     const slash2 = useAnimatedProps(() => {
       'worklet';
@@ -84,14 +84,14 @@ export const WolfKingEntry = memo<SeatAnimationProps>(
       return {
         d: `M ${x1} ${y1} L ${x2} ${y2}`,
         opacity: (1 - waveProgress.value) * 0.7,
-      } as Record<string, string | number>;
+      };
     });
     const wave = useAnimatedProps(() => {
       'worklet';
       return {
         r: waveProgress.value * size * 0.55,
         opacity: (1 - waveProgress.value) * 0.4,
-      } as Record<string, number>;
+      };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

@@ -18,17 +18,14 @@ export const DicePet = memo<PetProps>(({ size }) => {
   // Eye blink pulse
   const leftEye = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2) * 0.4 } as Record<string, number>;
+    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2) * 0.4 };
   });
 
   // Sparkle twinkle
   const sparkle = useAnimatedProps(() => {
     'worklet';
     const s = 0.8 + Math.sin(t.value * Math.PI * 4) * 0.5;
-    return { r: 1.5 * s, opacity: 0.5 + Math.sin(t.value * Math.PI * 4) * 0.5 } as Record<
-      string,
-      number
-    >;
+    return { r: 1.5 * s, opacity: 0.5 + Math.sin(t.value * Math.PI * 4) * 0.5 };
   });
 
   return (

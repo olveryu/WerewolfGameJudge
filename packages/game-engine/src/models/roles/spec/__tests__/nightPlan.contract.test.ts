@@ -96,13 +96,11 @@ describe('buildNightPlan', () => {
 
   describe('fail-fast validation', () => {
     it('should throw on invalid roleId', () => {
-      expect(() => buildNightPlan(['seer', 'invalidRole' as RoleId])).toThrow(
-        /Invalid roleIds.*invalidRole/,
-      );
+      expect(() => buildNightPlan(['seer', 'invalidRole'])).toThrow(/Invalid roleIds.*invalidRole/);
     });
 
     it('should throw on celebrity (which is not a valid roleId)', () => {
-      expect(() => buildNightPlan(['celebrity' as RoleId])).toThrow(/Invalid roleIds.*celebrity/);
+      expect(() => buildNightPlan(['celebrity'])).toThrow(/Invalid roleIds.*celebrity/);
     });
   });
 

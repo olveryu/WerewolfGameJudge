@@ -42,7 +42,7 @@ export const VortexFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       const cx = size / 2 + Math.cos(angle) * r;
       const cy = size / 2 + Math.sin(angle) * r;
       const alpha = t < 0.1 ? t / 0.1 : 1 - t;
-      return { cx, cy, r: size * 0.01, opacity: alpha * 0.5 } as Record<string, number>;
+      return { cx, cy, r: size * 0.01, opacity: alpha * 0.5 };
     });
   });
 

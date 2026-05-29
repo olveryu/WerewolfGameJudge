@@ -28,7 +28,7 @@ import { type AuthStyles } from './types';
 export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
   return {
     // Layout
-    formContainer: {} as ViewStyle,
+    formContainer: {},
     formTitle: {
       ...textStyles.subtitleSemibold,
       color: colors.text,
@@ -54,7 +54,7 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
       borderWidth: fixed.borderWidth,
       borderColor: colors.border,
       marginBottom: spacing.medium,
-    } as TextStyle,
+    },
     passwordWrapper: {
       flexDirection: 'row',
       alignItems: 'stretch',
@@ -69,10 +69,10 @@ export function createAuthBaseStyles(colors: ThemeColors): AuthStyles {
     passwordWrapperFocused: {
       borderColor: colors.primary,
       borderWidth: 2,
-    } as ViewStyle,
+    },
     passwordInputContainer: {
       flex: 1,
-    } as ViewStyle,
+    },
     passwordInput: {
       flex: 1,
       marginBottom: 0,

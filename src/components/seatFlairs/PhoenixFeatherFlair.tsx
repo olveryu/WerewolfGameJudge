@@ -51,7 +51,7 @@ const FeatherParticle = memo<{ seed: FeatherSeed; size: number; progress: { valu
         y2: y0 + dy,
         opacity: alpha * 0.8,
         strokeWidth: 2,
-      } as Record<string, number>;
+      };
     });
 
     const glowProps = useAnimatedProps(() => {
@@ -63,7 +63,7 @@ const FeatherParticle = memo<{ seed: FeatherSeed; size: number; progress: { valu
       const y0 = cy - tt * size * 0.3;
       const x0 = cx + Math.cos(spiralAngle) * dist * 0.3;
       const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.7 ? (1 - tt) / 0.3 : 0.9;
-      return { cx: x0, cy: y0, r: size * 0.025, opacity: alpha * 0.3 } as Record<string, number>;
+      return { cx: x0, cy: y0, r: size * 0.025, opacity: alpha * 0.3 };
     });
 
     return (

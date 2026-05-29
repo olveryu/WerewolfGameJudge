@@ -70,7 +70,7 @@ const RuneParticle = memo<{
     const y = cy + Math.sin(angle) * orbit;
     const pulse =
       0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
-    return { cx: x, cy: y, r: glyphR * 1.6, opacity: pulse * 0.2 } as Record<string, number>;
+    return { cx: x, cy: y, r: glyphR * 1.6, opacity: pulse * 0.2 };
   });
 
   const glyphProps = useAnimatedProps(() => {
@@ -81,11 +81,7 @@ const RuneParticle = memo<{
     const pulse =
       0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
     const d = buildGlyphD(glyph, x, y, glyphR);
-    return { d, opacity: pulse * 0.85, strokeWidth: 1.5 } as {
-      d: string;
-      opacity: number;
-      strokeWidth: number;
-    };
+    return { d, opacity: pulse * 0.85, strokeWidth: 1.5 };
   });
 
   const dotProps = useAnimatedProps(() => {
@@ -95,7 +91,7 @@ const RuneParticle = memo<{
     const y = cy + Math.sin(angle) * orbit;
     const pulse =
       0.3 + 0.7 * Math.max(0, Math.sin(((progress.value * N - index) * Math.PI * 2) / N));
-    return { cx: x, cy: y, r: size * 0.006, opacity: pulse * 0.7 } as Record<string, number>;
+    return { cx: x, cy: y, r: size * 0.006, opacity: pulse * 0.7 };
   });
 
   return (

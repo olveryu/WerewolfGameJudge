@@ -58,7 +58,7 @@ const ButterflyParticle = memo<{
     const bodyAngle = angle + Math.PI / 2;
     const wdx = Math.cos(bodyAngle) * wingR * 0.5;
     const wdy = Math.sin(bodyAngle) * wingR * 0.5;
-    return { cx: x - wdx, cy: y - wdy, r: wingR, opacity: alpha } as Record<string, number>;
+    return { cx: x - wdx, cy: y - wdy, r: wingR, opacity: alpha };
   });
 
   const wing2Props = useAnimatedProps(() => {
@@ -76,7 +76,7 @@ const ButterflyParticle = memo<{
     const bodyAngle = angle + Math.PI / 2;
     const wdx = Math.cos(bodyAngle) * wingR * 0.5;
     const wdy = Math.sin(bodyAngle) * wingR * 0.5;
-    return { cx: x + wdx, cy: y + wdy, r: wingR, opacity: alpha } as Record<string, number>;
+    return { cx: x + wdx, cy: y + wdy, r: wingR, opacity: alpha };
   });
 
   const bodyProps = useAnimatedProps(() => {
@@ -90,7 +90,7 @@ const ButterflyParticle = memo<{
     const y = cy + Math.sin(angle) * dist;
     const wingFlap = Math.abs(Math.sin(t * Math.PI * 8 + seed.phase * 10));
     const alpha = Math.min(1, 0.4 + 0.4 * wingFlap + 0.2);
-    return { cx: x, cy: y, r: size * 0.005, opacity: alpha } as Record<string, number>;
+    return { cx: x, cy: y, r: size * 0.005, opacity: alpha };
   });
 
   return (

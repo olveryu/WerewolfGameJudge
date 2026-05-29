@@ -458,7 +458,7 @@ export function crossPlatformTextShadow(
       textShadowOffset: { width: offsetX, height: offsetY },
       textShadowRadius: blurRadius,
     },
-  }) as TextStyle;
+  });
 }
 
 /**

@@ -34,7 +34,7 @@ function createPlayers(overrides?: Record<number, RoleId>): ReadonlyMap<number, 
 function createContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   return {
     actorSeat: 0,
-    actorRoleId: 'guard' as RoleId,
+    actorRoleId: 'guard',
     players: createPlayers(),
     currentNightResults: {},
     gameState: { isNight1: true },

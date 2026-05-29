@@ -45,7 +45,7 @@ const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { 
         y2: y + Math.sin(ang) * r,
         opacity: alpha * 0.8,
         strokeWidth: 0.8,
-      } as Record<string, number>;
+      };
     });
 
     const line1Props = useAnimatedProps(() => {
@@ -63,7 +63,7 @@ const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { 
         y2: y + Math.sin(ang) * r,
         opacity: alpha * 0.8,
         strokeWidth: 0.8,
-      } as Record<string, number>;
+      };
     });
 
     const line2Props = useAnimatedProps(() => {
@@ -81,7 +81,7 @@ const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { 
         y2: y + Math.sin(ang) * r,
         opacity: alpha * 0.8,
         strokeWidth: 0.8,
-      } as Record<string, number>;
+      };
     });
 
     const centerProps = useAnimatedProps(() => {
@@ -90,7 +90,7 @@ const SnowflakeParticle = memo<{ seed: SnowflakeSeed; size: number; progress: { 
       const y = tt * size;
       const x = seed.xFrac * size + Math.sin(tt * Math.PI * 4) * size * seed.sway;
       const alpha = tt < 0.05 ? tt / 0.05 : tt > 0.9 ? (1 - tt) / 0.1 : 0.7;
-      return { cx: x, cy: y, r: size * 0.005, opacity: alpha * 0.9 } as Record<string, number>;
+      return { cx: x, cy: y, r: size * 0.005, opacity: alpha * 0.9 };
     });
 
     return (

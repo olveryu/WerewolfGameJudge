@@ -49,11 +49,7 @@ const Tendril = memo<{ seed: TendrilSeed; size: number; progress: { value: numbe
       const amp = seed.amplitude * size;
       const d = `M ${bx} ${by} C ${bx + amp} ${midY1} ${bx - amp * 0.7} ${midY2} ${bx + amp * 0.3} ${topY}`;
       const alpha = rise < 0.1 ? rise / 0.1 : rise > 0.8 ? (1 - rise) / 0.2 : 0.3;
-      return { d, opacity: alpha, strokeWidth: size * 0.012 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: size * 0.012 };
     });
 
     const tipProps = useAnimatedProps(() => {
@@ -70,7 +66,7 @@ const Tendril = memo<{ seed: TendrilSeed; size: number; progress: { value: numbe
         cy: topY,
         r: size * 0.01,
         opacity: alpha,
-      } as Record<string, number>;
+      };
     });
 
     const color = `rgb(${cr},${cg},${cb})`;

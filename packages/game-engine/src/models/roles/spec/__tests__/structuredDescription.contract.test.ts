@@ -5,7 +5,7 @@
  * and that structured content is semantically consistent with the flat description.
  */
 
-import { getAllRoleIds, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles/spec';
+import { getAllRoleIds, ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec';
 import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 import { getRoleStructuredDescription } from '@werewolf/game-engine/models/roles/spec/specs';
@@ -98,7 +98,7 @@ describe('structuredDescription contract', () => {
     });
 
     it('should return multi-field RoleDescription for spiritKnight', () => {
-      const desc = getRoleStructuredDescription('spiritKnight' as RoleId);
+      const desc = getRoleStructuredDescription('spiritKnight');
       expect(desc).toBeDefined();
       expect(desc!.passive).toBeDefined();
       expect(desc!.trigger).toBeDefined();
@@ -106,13 +106,13 @@ describe('structuredDescription contract', () => {
     });
 
     it('should return winCondition for avenger', () => {
-      const desc = getRoleStructuredDescription('avenger' as RoleId);
+      const desc = getRoleStructuredDescription('avenger');
       expect(desc).toBeDefined();
       expect(desc!.winCondition).toContain('屠城');
     });
 
     it('should return winCondition for shadow', () => {
-      const desc = getRoleStructuredDescription('shadow' as RoleId);
+      const desc = getRoleStructuredDescription('shadow');
       expect(desc).toBeDefined();
       expect(desc!.winCondition).toContain('屠城');
     });

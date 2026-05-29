@@ -37,7 +37,7 @@ const Bubble = memo<{
       cy: size * (0.9 - t * 0.7),
       r: size * (0.015 + (index % 3) * 0.008) * (1 - t * 0.3),
       opacity: t * (1 - Math.max(0, (t - 0.7) / 0.3)) * 0.7,
-    } as Record<string, number>;
+    };
   });
   return (
     <AnimatedCircle
@@ -77,7 +77,7 @@ export const WitchBrew = memo<SeatAnimationProps>(
 
     const glowProps = useAnimatedProps(() => {
       'worklet';
-      return { r: size * 0.35, opacity: glowOpacity.value } as Record<string, number>;
+      return { r: size * 0.35, opacity: glowOpacity.value };
     });
     const childStyle = useAnimatedStyle(() => ({
       opacity: childOpacity.value,

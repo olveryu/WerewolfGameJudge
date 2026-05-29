@@ -58,22 +58,22 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
-    map.set(0, 'villager' as RoleId);
-    map.set(1, 'villager' as RoleId);
-    map.set(2, 'villager' as RoleId);
-    map.set(3, 'villager' as RoleId);
-    map.set(4, 'wolf' as RoleId);
-    map.set(5, 'wolf' as RoleId);
-    map.set(6, 'darkWolfKing' as RoleId);
-    map.set(7, 'psychic' as RoleId);
-    map.set(8, 'poisoner' as RoleId);
-    map.set(9, 'hunter' as RoleId);
-    map.set(10, 'dreamcatcher' as RoleId);
-    map.set(11, 'treasureMaster' as RoleId);
+    map.set(0, 'villager');
+    map.set(1, 'villager');
+    map.set(2, 'villager');
+    map.set(3, 'villager');
+    map.set(4, 'wolf');
+    map.set(5, 'wolf');
+    map.set(6, 'darkWolfKing');
+    map.set(7, 'psychic');
+    map.set(8, 'poisoner');
+    map.set(9, 'hunter');
+    map.set(10, 'dreamcatcher');
+    map.set(11, 'treasureMaster');
     return map;
   }
 
-  const BOTTOM_CARDS: RoleId[] = ['wolf' as RoleId, 'crow' as RoleId, 'villager' as RoleId];
+  const BOTTOM_CARDS: RoleId[] = ['wolf', 'crow', 'villager'];
 
   let ctx: GameContext;
 
@@ -181,26 +181,22 @@ describe('Night-1: TreasureMaster (15p) — deck has no wolf', () => {
    */
   function createRoleAssignment(): Map<number, RoleId> {
     const map = new Map<number, RoleId>();
-    map.set(0, 'villager' as RoleId);
-    map.set(1, 'villager' as RoleId);
-    map.set(2, 'villager' as RoleId);
-    map.set(3, 'villager' as RoleId);
-    map.set(4, 'wolf' as RoleId);
-    map.set(5, 'wolf' as RoleId);
-    map.set(6, 'wolf' as RoleId);
-    map.set(7, 'darkWolfKing' as RoleId);
-    map.set(8, 'psychic' as RoleId);
-    map.set(9, 'hunter' as RoleId);
-    map.set(10, 'crow' as RoleId);
-    map.set(11, 'treasureMaster' as RoleId);
+    map.set(0, 'villager');
+    map.set(1, 'villager');
+    map.set(2, 'villager');
+    map.set(3, 'villager');
+    map.set(4, 'wolf');
+    map.set(5, 'wolf');
+    map.set(6, 'wolf');
+    map.set(7, 'darkWolfKing');
+    map.set(8, 'psychic');
+    map.set(9, 'hunter');
+    map.set(10, 'crow');
+    map.set(11, 'treasureMaster');
     return map;
   }
 
-  const BOTTOM_CARDS: RoleId[] = [
-    'poisoner' as RoleId,
-    'dreamcatcher' as RoleId,
-    'villager' as RoleId,
-  ];
+  const BOTTOM_CARDS: RoleId[] = ['poisoner', 'dreamcatcher', 'villager'];
 
   let ctx: GameContext;
 

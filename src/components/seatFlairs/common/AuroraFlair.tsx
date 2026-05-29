@@ -42,7 +42,7 @@ export const AuroraFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     return {
       d: `M 0 ${yBase} C ${w * 0.3} ${cp1y}, ${w * 0.7} ${cp2y}, ${w} ${yBase}`,
       opacity: 0.35 + Math.sin(t * Math.PI * 2) * 0.1,
-    } as Record<string, string | number>;
+    };
   });
 
   const arc2Props = useAnimatedProps(() => {
@@ -56,7 +56,7 @@ export const AuroraFlair = memo<ColoredFlairProps>(({ size, colors }) => {
     return {
       d: `M 0 ${yBase} C ${w * 0.25} ${cp1y}, ${w * 0.75} ${cp2y}, ${w} ${yBase}`,
       opacity: 0.2 + Math.sin(t * Math.PI * 2 + 1) * 0.1,
-    } as Record<string, string | number>;
+    };
   });
 
   return (

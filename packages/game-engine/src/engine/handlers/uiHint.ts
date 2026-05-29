@@ -9,7 +9,7 @@
  */
 
 import { getWolfRoleIds, type NightPlanStep, SCHEMAS } from '../../models';
-import { BLOCKED_UI_DEFAULTS, type SchemaUi } from '../../models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '../../models/roles/spec';
 import { getEngineLogger } from '../../utils/logger';
 import { findSeatByRole } from '../../utils/playerHelpers';
 import type { SetUiHintAction } from '../reducer/types';
@@ -54,7 +54,7 @@ export function maybeCreateUiHintAction(
 
   // Schema-driven blocked UI: prefer per-role override from schema.ui, otherwise use defaults
   // Type assertion needed because SCHEMAS uses as const inference; literal type omits optional blocked* fields
-  const schemaUi = schema?.ui as Partial<SchemaUi> | undefined;
+  const schemaUi = schema?.ui;
   const blockedTitle = schemaUi?.blockedTitle ?? BLOCKED_UI_DEFAULTS.title;
   const blockedMessage = schemaUi?.blockedMessage ?? BLOCKED_UI_DEFAULTS.message;
   const blockedSkipButtonText =

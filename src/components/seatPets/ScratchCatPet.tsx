@@ -20,7 +20,7 @@ export const ScratchCatPet = memo<PetProps>(({ size }) => {
     'worklet';
     const v = t.value;
     const ty = -Math.sin(v * Math.PI * 2) * 3;
-    return { cy: 46 + ty } as Record<string, number>;
+    return { cy: 46 + ty };
   });
 
   return (

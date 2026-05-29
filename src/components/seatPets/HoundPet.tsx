@@ -19,12 +19,12 @@ export const HoundPet = memo<PetProps>(({ size }) => {
   const leftEar = useAnimatedProps(() => {
     'worklet';
     const rot = -15 + Math.sin(t.value * Math.PI * 2) * 10;
-    return { rotation: rot } as Record<string, number>;
+    return { rotation: rot };
   });
   const rightEar = useAnimatedProps(() => {
     'worklet';
     const rot = 15 + Math.sin(t.value * Math.PI * 2 + 0.6) * 10;
-    return { rotation: rot } as Record<string, number>;
+    return { rotation: rot };
   });
 
   // Tail wag
@@ -32,7 +32,7 @@ export const HoundPet = memo<PetProps>(({ size }) => {
     'worklet';
     const wag = Math.sin(t.value * Math.PI * 4) * 6;
     const endX = 56 + wag;
-    return { d: `M52 46 Q58 38 ${endX} 44` } as { d: string };
+    return { d: `M52 46 Q58 38 ${endX} 44` };
   });
 
   return (

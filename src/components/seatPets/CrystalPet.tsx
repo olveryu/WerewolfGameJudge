@@ -18,28 +18,28 @@ export const CrystalPet = memo<PetProps>(({ size }) => {
   // Inner nebula pulse
   const nebula1 = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.1 + Math.sin(t.value * Math.PI * 2) * 0.1 } as Record<string, number>;
+    return { opacity: 0.1 + Math.sin(t.value * Math.PI * 2) * 0.1 };
   });
   const nebula2 = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.08 + Math.sin(t.value * Math.PI * 2 + 2) * 0.08 } as Record<string, number>;
+    return { opacity: 0.08 + Math.sin(t.value * Math.PI * 2 + 2) * 0.08 };
   });
 
   // Star twinkles
   const star1 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(t.value * Math.PI * 4) * 0.5;
-    return { r: 1 * s + 0.5, opacity: s } as Record<string, number>;
+    return { r: 1 * s + 0.5, opacity: s };
   });
   const star2 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(t.value * Math.PI * 4 + 1.4) * 0.5;
-    return { r: 0.8 * s + 0.3, opacity: s } as Record<string, number>;
+    return { r: 0.8 * s + 0.3, opacity: s };
   });
   const star3 = useAnimatedProps(() => {
     'worklet';
     const s = 0.5 + Math.sin(t.value * Math.PI * 4 + 2.8) * 0.5;
-    return { r: 0.6 * s + 0.2, opacity: s } as Record<string, number>;
+    return { r: 0.6 * s + 0.2, opacity: s };
   });
 
   return (

@@ -18,17 +18,17 @@ export const SealBeastPet = memo<PetProps>(({ size }) => {
   // Eye glow pulse
   const leftEye = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2) * 0.4 } as Record<string, number>;
+    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2) * 0.4 };
   });
   const rightEye = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2 + 1) * 0.4 } as Record<string, number>;
+    return { opacity: 0.6 + Math.sin(t.value * Math.PI * 2 + 1) * 0.4 };
   });
 
   // Rune glow
   const runeGlow = useAnimatedProps(() => {
     'worklet';
-    return { opacity: 0.3 + Math.sin(t.value * Math.PI * 2 + 1) * 0.3 } as Record<string, number>;
+    return { opacity: 0.3 + Math.sin(t.value * Math.PI * 2 + 1) * 0.3 };
   });
 
   return (

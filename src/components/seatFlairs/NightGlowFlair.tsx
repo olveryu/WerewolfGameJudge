@@ -53,7 +53,7 @@ const GlowParticle = memo<{ seed: GlowSeed; size: number; progress: { value: num
         cy: cy + Math.sin(angle) * seed.orbitR * size,
         r: size * 0.03 * (0.5 + pulse * 0.5),
         opacity: pulse * 0.15,
-      } as Record<string, number>;
+      };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -66,7 +66,7 @@ const GlowParticle = memo<{ seed: GlowSeed; size: number; progress: { value: num
         cy: cy + Math.sin(angle) * seed.orbitR * size,
         r: size * 0.01 * (0.6 + pulse * 0.4),
         opacity: pulse * 0.7,
-      } as Record<string, number>;
+      };
     });
 
     return (

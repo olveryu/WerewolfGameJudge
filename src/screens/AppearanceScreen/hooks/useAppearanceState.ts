@@ -213,7 +213,7 @@ export function useAppearanceState() {
   const heroEffectUnlocked =
     heroEffectId === 'none' ||
     heroEffectId === 'random' ||
-    isRoleRevealEffectUnlocked(heroEffectId as RoleRevealEffectId, unlockedIds);
+    isRoleRevealEffectUnlocked(heroEffectId, unlockedIds);
   const heroEffectIsEquipped =
     heroEffectId === currentEquippedEffect || (heroEffectId === 'none' && !currentEquippedEffect);
 

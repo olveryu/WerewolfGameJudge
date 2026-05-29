@@ -55,7 +55,7 @@ const SwirlParticle = memo<{
       cy: size / 2 + Math.sin(angle) * radius,
       r: size * 0.02 * (0.5 + (1 - t) * 0.5),
       opacity: 0.8 * (1 - t * 0.7),
-    } as Record<string, number>;
+    };
   });
 
   return (

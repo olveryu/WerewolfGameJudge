@@ -1004,9 +1004,7 @@ export async function coverageChainNightmareBlocked(
         route: { params: { roomCode: '1234', isHost: false } } as React.ComponentProps<
           typeof RoomScreen
         >['route'],
-        navigation: mockNavigation as unknown as React.ComponentProps<
-          typeof RoomScreen
-        >['navigation'],
+        navigation: mockNavigation,
       }),
     );
   });

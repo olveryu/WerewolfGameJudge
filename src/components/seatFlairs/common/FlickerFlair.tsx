@@ -42,7 +42,7 @@ export const FlickerFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       cy: size / 2,
       r,
       opacity: Math.max(0, alpha),
-    } as Record<string, number>;
+    };
   });
 
   const haloProps = useAnimatedProps(() => {
@@ -54,7 +54,7 @@ export const FlickerFlair = memo<ColoredFlairProps>(({ size, colors }) => {
       cy: size / 2,
       r: size * 0.06,
       opacity: Math.max(0, alpha),
-    } as Record<string, number>;
+    };
   });
 
   return (

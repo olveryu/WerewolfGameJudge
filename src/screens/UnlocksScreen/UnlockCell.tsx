@@ -3,9 +3,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import React from 'react';
-import { Image, type ImageSourcePropType, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { type FrameId } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { NameStyleText } from '@/components/nameStyles';
@@ -114,7 +113,7 @@ const AvatarThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocke
 
   return (
     <Image
-      source={thumbSource as ImageSourcePropType}
+      source={thumbSource}
       style={[styles.avatarImage, !unlocked && styles.grayscale]}
       resizeMode="cover"
     />
@@ -128,7 +127,7 @@ const FrameThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocked
     <AvatarWithFrame
       value="preview"
       avatarUrl={null}
-      frameId={id as FrameId}
+      frameId={id}
       size={CELL_SIZE - spacing.small * 2}
     />
   </View>
@@ -187,7 +186,7 @@ const EffectThumb = React.memo<{ id: string; unlocked: boolean }>(({ id, unlocke
         <PetComponent size={EFFECT_PREVIEW_SIZE - 8} />
       ) : (
         <Ionicons
-          name={(opt?.icon ?? 'help-outline') as React.ComponentProps<typeof Ionicons>['name']}
+          name={opt?.icon ?? 'help-outline'}
           size={28}
           color={unlocked ? colors.text : colors.textMuted}
         />

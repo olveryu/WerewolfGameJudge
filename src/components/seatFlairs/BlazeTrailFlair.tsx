@@ -50,11 +50,7 @@ const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }
       const t = (progress.value + seed.phase) % 1;
       const startA = t * Math.PI * 2;
       const d = buildArcD(r, startA, startA + seed.span);
-      return { d, opacity: 0.25, strokeWidth: size * 0.03 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: 0.25, strokeWidth: size * 0.03 };
     });
 
     const midProps = useAnimatedProps(() => {
@@ -62,11 +58,7 @@ const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }
       const t = (progress.value + seed.phase) % 1;
       const startA = t * Math.PI * 2;
       const d = buildArcD(r, startA + seed.span * 0.15, startA + seed.span * 0.85);
-      return { d, opacity: 0.45, strokeWidth: size * 0.015 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: 0.45, strokeWidth: size * 0.015 };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -74,11 +66,7 @@ const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }
       const t = (progress.value + seed.phase) % 1;
       const startA = t * Math.PI * 2;
       const d = buildArcD(r, startA + seed.span * 0.3, startA + seed.span * 0.7);
-      return { d, opacity: 0.65, strokeWidth: size * 0.006 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: 0.65, strokeWidth: size * 0.006 };
     });
 
     const headProps = useAnimatedProps(() => {
@@ -90,7 +78,7 @@ const FlameArc = memo<{ seed: ArcSeed; size: number; progress: { value: number }
         cy: cy + Math.sin(headAngle) * r,
         r: size * 0.012,
         opacity: 0.7,
-      } as Record<string, number>;
+      };
     });
 
     return (

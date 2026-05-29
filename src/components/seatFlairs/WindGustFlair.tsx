@@ -54,7 +54,7 @@ const WindParticle = memo<{
       y2: y + 0.5,
       opacity: tooClose ? 0 : alpha * 0.7,
       strokeWidth: seed.rFrac * size * 2,
-    } as Record<string, number>;
+    };
   });
 
   const dotProps = useAnimatedProps(() => {
@@ -70,10 +70,7 @@ const WindParticle = memo<{
     const dy = y - cy;
     const tooClose = dx * dx + dy * dy < safe * safe;
     const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.85 ? (1 - tt) / 0.15 : 0.5;
-    return { cx: x, cy: y, r: seed.rFrac * size, opacity: tooClose ? 0 : alpha * 0.6 } as Record<
-      string,
-      number
-    >;
+    return { cx: x, cy: y, r: seed.rFrac * size, opacity: tooClose ? 0 : alpha * 0.6 };
   });
 
   return (

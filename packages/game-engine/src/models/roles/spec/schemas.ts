@@ -100,7 +100,7 @@ function buildSchema(
             kind: sub.kind,
             constraints: [...sub.constraints],
             canSkip: sub.canSkip,
-            ui: sub.ui as SchemaUi | undefined,
+            ui: sub.ui,
           }),
         ),
       };

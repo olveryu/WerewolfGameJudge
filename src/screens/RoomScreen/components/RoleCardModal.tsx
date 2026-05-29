@@ -149,7 +149,7 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
   );
 
   // resolvedAnimation is used directly as effectType (host has already resolved random → specific animation)
-  const effectType: RevealEffectType = resolvedAnimation as RevealEffectType;
+  const effectType: RevealEffectType = resolvedAnimation;
 
   return (
     <RoleRevealAnimator

@@ -64,7 +64,7 @@ export function useEpicEnhancers(size: number) {
     return {
       r: size * 0.45,
       opacity: glowOpacity.value,
-    } as Record<string, number>;
+    };
   });
 
   return { flashStyle, glowProps };

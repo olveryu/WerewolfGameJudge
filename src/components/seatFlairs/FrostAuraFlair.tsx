@@ -44,7 +44,7 @@ const FrostParticle = memo<{
     const pulse = 0.5 + 0.5 * Math.sin(progress.value * Math.PI * 4 + index);
     const alpha = 0.3 + pulse * 0.4;
     const r = seed.rFrac * size * (0.8 + pulse * 0.4);
-    return { cx: x, cy: y, r, opacity: alpha } as Record<string, number>;
+    return { cx: x, cy: y, r, opacity: alpha };
   });
 
   return <AnimatedCircle animatedProps={animatedProps} fill="rgb(140,220,255)" />;

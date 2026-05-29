@@ -13,9 +13,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import React from 'react';
-import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
-import { type FrameId, getFrameById } from '@/components/avatarFrames';
+import { getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
@@ -99,7 +99,7 @@ function AvatarPreview({ id, size }: { id: string; size: number }) {
 
   return (
     <Image
-      source={thumbSource as ImageSourcePropType}
+      source={thumbSource}
       style={{ width: size, height: size, borderRadius: borderRadius.medium }}
       resizeMode="cover"
     />
@@ -107,7 +107,7 @@ function AvatarPreview({ id, size }: { id: string; size: number }) {
 }
 
 function FramePreview({ id, size }: { id: string; size: number }) {
-  return <AvatarWithFrame value="preview" frameId={id as FrameId} size={size} />;
+  return <AvatarWithFrame value="preview" frameId={id} size={size} />;
 }
 
 function FlairPreview({ id, size }: { id: string; size: number }) {

@@ -187,7 +187,7 @@ describe('RoleCardSimple', () => {
     it('prefixes role name with seerLabel when provided for mirrorSeer', () => {
       // mirrorSeer displayAs='seer' → shows "预言家", seerLabel → "2号预言家"
       const { getByText } = render(
-        <RoleCardSimple {...defaultProps} roleId={'mirrorSeer' as RoleId} seerLabel={2} />,
+        <RoleCardSimple {...defaultProps} roleId={'mirrorSeer'} seerLabel={2} />,
       );
       expect(getByText('2号预言家')).toBeTruthy();
     });

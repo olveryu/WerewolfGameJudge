@@ -107,7 +107,7 @@ describe('buildNotepadSummary', () => {
       ...emptyState(),
       playerNotes: { 1: '逻辑清晰' },
       handStates: { 1: true },
-      roleGuesses: { 1: 'seer' as RoleId },
+      roleGuesses: { 1: 'seer' },
     };
     const result = buildNotepadSummary(state, 6);
     expect(result).not.toBeNull();

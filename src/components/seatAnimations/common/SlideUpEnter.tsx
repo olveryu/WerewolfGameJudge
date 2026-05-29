@@ -50,7 +50,7 @@ export const SlideUpEnter = memo<ColoredAnimationProps>(
         y1: size * (1 - progress.value * 0.5),
         y2: size,
         opacity: (1 - progress.value) * 0.5,
-      } as Record<string, number>;
+      };
     });
 
     return (

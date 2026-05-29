@@ -166,7 +166,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
               style={[
                 styles.roleBadge,
                 factionKey
-                  ? (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle)
+                  ? (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle) // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
                   : styles.roleBadgeEmpty,
               ]}
             >
@@ -174,7 +174,7 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
                 style={[
                   selectedTag ? styles.roleBadgeText : styles.seatPlaceholder,
                   factionKey &&
-                    (styles[`roleBadgeText${factionKey}` as keyof NotepadStyles] as TextStyle),
+                    (styles[`roleBadgeText${factionKey}` as keyof NotepadStyles] as TextStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
                 ]}
               >
                 {selectedTag ? selectedTag.shortName : '+'}
@@ -237,7 +237,7 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                     style={[
                       styles.popoverTag,
                       isSelected &&
-                        (styles[`popoverTagSelected${fKey}` as keyof NotepadStyles] as ViewStyle),
+                        (styles[`popoverTagSelected${fKey}` as keyof NotepadStyles] as ViewStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
                     ]}
                     activeOpacity={fixed.activeOpacity}
                   >
@@ -245,7 +245,7 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
                       style={[
                         styles.popoverTagText,
                         !isSelected &&
-                          (styles[`popoverTagText${fKey}` as keyof NotepadStyles] as TextStyle),
+                          (styles[`popoverTagText${fKey}` as keyof NotepadStyles] as TextStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
                         isSelected && styles.popoverTagTextSelected,
                       ]}
                     >

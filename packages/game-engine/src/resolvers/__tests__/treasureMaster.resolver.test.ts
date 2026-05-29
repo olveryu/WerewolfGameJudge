@@ -17,20 +17,20 @@ import { computeEffectiveTeam, treasureMasterChooseResolver } from '../treasureM
 // Helpers
 // =============================================================================
 
-const BOTTOM_CARDS: readonly RoleId[] = ['seer' as RoleId, 'wolf' as RoleId, 'villager' as RoleId];
+const BOTTOM_CARDS: readonly RoleId[] = ['seer', 'wolf', 'villager'];
 
 function createPlayers(): ReadonlyMap<number, RoleId> {
   return new Map<number, RoleId>([
-    [0, 'treasureMaster' as RoleId],
-    [1, 'wolf' as RoleId],
-    [2, 'villager' as RoleId],
+    [0, 'treasureMaster'],
+    [1, 'wolf'],
+    [2, 'villager'],
   ]);
 }
 
 function createContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   return {
     actorSeat: 0,
-    actorRoleId: 'treasureMaster' as RoleId,
+    actorRoleId: 'treasureMaster',
     players: createPlayers(),
     currentNightResults: {},
     gameState: { isNight1: true },
@@ -44,7 +44,7 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
 
 function createInput(cardIndex?: number | null): ActionInput {
   return {
-    schemaId: 'treasureMasterChoose' as ActionInput['schemaId'],
+    schemaId: 'treasureMasterChoose',
     cardIndex: cardIndex ?? undefined,
   };
 }
@@ -135,17 +135,17 @@ describe('computeEffectiveTeam', () => {
   });
 
   it('should return Team.Good when 2+ god cards (no wolf)', () => {
-    const cards: RoleId[] = ['seer' as RoleId, 'guard' as RoleId, 'villager' as RoleId];
+    const cards: RoleId[] = ['seer', 'guard', 'villager'];
     expect(computeEffectiveTeam(cards)).toBe(Team.Good);
   });
 
   it('should return Team.Good when 2+ villager cards (no wolf)', () => {
-    const cards: RoleId[] = ['villager' as RoleId, 'villager' as RoleId, 'seer' as RoleId];
+    const cards: RoleId[] = ['villager', 'villager', 'seer'];
     expect(computeEffectiveTeam(cards)).toBe(Team.Good);
   });
 
   it('should return Team.Good for mixed composition (no wolf)', () => {
-    const cards: RoleId[] = ['seer' as RoleId, 'villager' as RoleId, 'slacker' as RoleId];
+    const cards: RoleId[] = ['seer', 'villager', 'slacker'];
     expect(computeEffectiveTeam(cards)).toBe(Team.Good);
   });
 });

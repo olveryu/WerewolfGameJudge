@@ -58,7 +58,7 @@ const BurstParticle = memo<{
     return {
       d: `M ${cx} ${cy - s} L ${cx + s * 0.8} ${cy + s * 0.5} L ${cx - s * 0.8} ${cy + s * 0.5} Z`,
       opacity: (1 - t) * 0.8,
-    } as Record<string, string | number>;
+    };
   });
 
   const circleProps = useAnimatedProps(() => {
@@ -71,7 +71,7 @@ const BurstParticle = memo<{
       cy: size / 2 + Math.sin(angle + spiralOffset) * dist,
       r: size * 0.025 * (1 - t * 0.5),
       opacity: (1 - t) * 0.8,
-    } as Record<string, number>;
+    };
   });
 
   if (isShard) {

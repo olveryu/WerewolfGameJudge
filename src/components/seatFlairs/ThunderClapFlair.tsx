@@ -44,11 +44,7 @@ const BoltLayer = memo<{
             : 0;
     const cx = size * 0.5;
     const d = `M ${cx} 0 L ${cx - size * 0.08} ${size * 0.25} L ${cx + size * 0.05} ${size * 0.35} L ${cx - size * 0.1} ${size * 0.55} L ${cx + size * 0.06} ${size * 0.7} L ${cx - size * 0.04} ${size}`;
-    return { d, opacity: flash * opacityMul, strokeWidth: size * widthMul } as {
-      d: string;
-      opacity: number;
-      strokeWidth: number;
-    };
+    return { d, opacity: flash * opacityMul, strokeWidth: size * widthMul };
   });
   return (
     <AnimatedPath
@@ -70,7 +66,7 @@ const SparkDot = memo<{ seed: SparkSeed; size: number; progress: { value: number
       const flash = t < 0.1 ? t / 0.1 : t < 0.25 ? 1 - (t - 0.1) / 0.15 : 0;
       const cx = size * 0.5 + seed.dx * size * flash;
       const cy = size * 0.5 + seed.dy * size * flash;
-      return { cx, cy, r: size * 0.01 * flash, opacity: flash * 0.6 } as Record<string, number>;
+      return { cx, cy, r: size * 0.01 * flash, opacity: flash * 0.6 };
     });
     return <AnimatedCircle animatedProps={props} fill="rgb(255,255,255)" />;
   },

@@ -8,7 +8,7 @@
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { memo, useMemo } from 'react';
-import { Image, type ImageSourcePropType, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { colors } from '@/theme';
 import { getBuiltinAvatarId, getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
@@ -115,7 +115,7 @@ const AvatarComponent: React.FC<AvatarProps> = ({
     }
     return (
       <Image
-        source={builtinVariant.source as ImageSourcePropType}
+        source={builtinVariant.source}
         style={imageStyle}
         resizeMode="cover"
         accessibilityLabel="头像"

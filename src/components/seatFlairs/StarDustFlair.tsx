@@ -51,7 +51,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: py,
         opacity: alpha * 0.5,
         strokeWidth: size * 0.006,
-      } as Record<string, number>;
+      };
     });
 
     const vLineProps = useAnimatedProps(() => {
@@ -64,7 +64,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: py + arm,
         opacity: alpha * 0.5,
         strokeWidth: size * 0.006,
-      } as Record<string, number>;
+      };
     });
 
     const d1Props = useAnimatedProps(() => {
@@ -78,7 +78,7 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: py + da,
         opacity: alpha * 0.3,
         strokeWidth: size * 0.004,
-      } as Record<string, number>;
+      };
     });
 
     const d2Props = useAnimatedProps(() => {
@@ -92,13 +92,13 @@ const StarParticle = memo<{ seed: StarSeed; size: number; progress: { value: num
         y2: py + da,
         opacity: alpha * 0.3,
         strokeWidth: size * 0.004,
-      } as Record<string, number>;
+      };
     });
 
     const centerProps = useAnimatedProps(() => {
       'worklet';
       const alpha = getAlpha(progress.value);
-      return { cx: px, cy: py, r: size * 0.008, opacity: alpha * 0.8 } as Record<string, number>;
+      return { cx: px, cy: py, r: size * 0.008, opacity: alpha * 0.8 };
     });
 
     return (

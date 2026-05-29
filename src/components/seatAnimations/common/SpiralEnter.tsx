@@ -48,7 +48,7 @@ const SpiralParticle = memo<{
       cy,
       r: size * 0.025 * (1 - t * 0.5),
       opacity: 0.7 * (1 - t),
-    } as Record<string, number>;
+    };
   });
 
   return <AnimatedCircle animatedProps={props} fill={color} />;

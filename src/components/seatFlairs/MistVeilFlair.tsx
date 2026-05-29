@@ -40,7 +40,7 @@ const FogParticle = memo<{ seed: FogSeed; size: number; progress: { value: numbe
         cy: y,
         r: seed.rFrac * size,
         opacity: fadeIn * fadeOut * 0.06,
-      } as Record<string, number>;
+      };
     });
 
     const innerProps = useAnimatedProps(() => {
@@ -55,7 +55,7 @@ const FogParticle = memo<{ seed: FogSeed; size: number; progress: { value: numbe
         cy: y,
         r: seed.rFrac * size * 0.4,
         opacity: fadeIn * fadeOut * 0.12,
-      } as Record<string, number>;
+      };
     });
 
     return (

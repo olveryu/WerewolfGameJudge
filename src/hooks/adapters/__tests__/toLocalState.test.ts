@@ -1,7 +1,6 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId, SchemaId } from '@werewolf/game-engine/models/roles';
 import type { GameState, ProtocolAction } from '@werewolf/game-engine/protocol/types';
-import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
 
 import { toLocalState } from '@/hooks/adapters/toLocalState';
 
@@ -37,7 +36,7 @@ describe('toLocalState', () => {
   it('maps core fields and optional role contexts', () => {
     const state = makeBaseGameState({
       currentStepId: 'seerCheck' as SchemaId,
-      currentNightResults: { wolfVotesBySeat: { '0': 2 } } as CurrentNightResults,
+      currentNightResults: { wolfVotesBySeat: { '0': 2 } },
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       seerReveal: { targetSeat: 0, result: '狼人' },
       actionRejected: {
@@ -73,45 +72,45 @@ describe('toLocalState', () => {
   it('maps GameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
     const state = makeBaseGameState({
       // swap lives in currentNightResults
-      currentNightResults: { swappedSeats: [3, 4], savedSeat: 2 } as CurrentNightResults,
+      currentNightResults: { swappedSeats: [3, 4], savedSeat: 2 },
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
       actions: [
-        { schemaId: 'seerCheck' as SchemaId, actorSeat: 2, targetSeat: 0, timestamp: 1 },
-        { schemaId: 'guardProtect' as SchemaId, actorSeat: 0, targetSeat: 1, timestamp: 2 },
-        { schemaId: 'psychicCheck' as SchemaId, actorSeat: 0, targetSeat: 2, timestamp: 3 },
-        { schemaId: 'dreamcatcherDream' as SchemaId, actorSeat: 0, targetSeat: 1, timestamp: 4 },
-        { schemaId: 'wolfQueenCharm' as SchemaId, actorSeat: 0, targetSeat: 2, timestamp: 5 },
-        { schemaId: 'nightmareBlock' as SchemaId, actorSeat: 0, targetSeat: 1, timestamp: 6 },
-        { schemaId: 'gargoyleCheck' as SchemaId, actorSeat: 0, targetSeat: 0, timestamp: 7 },
-        { schemaId: 'wolfRobotLearn' as SchemaId, actorSeat: 0, targetSeat: 1, timestamp: 8 },
-        { schemaId: 'slackerChooseIdol' as SchemaId, actorSeat: 0, targetSeat: 2, timestamp: 9 },
+        { schemaId: 'seerCheck', actorSeat: 2, targetSeat: 0, timestamp: 1 },
+        { schemaId: 'guardProtect', actorSeat: 0, targetSeat: 1, timestamp: 2 },
+        { schemaId: 'psychicCheck', actorSeat: 0, targetSeat: 2, timestamp: 3 },
+        { schemaId: 'dreamcatcherDream', actorSeat: 0, targetSeat: 1, timestamp: 4 },
+        { schemaId: 'wolfQueenCharm', actorSeat: 0, targetSeat: 2, timestamp: 5 },
+        { schemaId: 'nightmareBlock', actorSeat: 0, targetSeat: 1, timestamp: 6 },
+        { schemaId: 'gargoyleCheck', actorSeat: 0, targetSeat: 0, timestamp: 7 },
+        { schemaId: 'wolfRobotLearn', actorSeat: 0, targetSeat: 1, timestamp: 8 },
+        { schemaId: 'slackerChooseIdol', actorSeat: 0, targetSeat: 2, timestamp: 9 },
         // confirm
-        { schemaId: 'hunterConfirm' as SchemaId, actorSeat: 0, timestamp: 10 },
-        { schemaId: 'darkWolfKingConfirm' as SchemaId, actorSeat: 0, timestamp: 11 },
+        { schemaId: 'hunterConfirm', actorSeat: 0, timestamp: 10 },
+        { schemaId: 'darkWolfKingConfirm', actorSeat: 0, timestamp: 11 },
         // witch compound: choose save by targeting killedSeat.
-        { schemaId: 'witchAction' as SchemaId, actorSeat: 1, targetSeat: 2, timestamp: 12 },
+        { schemaId: 'witchAction', actorSeat: 1, targetSeat: 2, timestamp: 12 },
       ] satisfies ProtocolAction[],
     });
 
     const local = toLocalState(state);
 
-    expect(local.actions.get('seer' as RoleId)).toEqual({ kind: 'target', targetSeat: 0 });
-    expect(local.actions.get('guard' as RoleId)).toEqual({ kind: 'target', targetSeat: 1 });
-    expect(local.actions.get('psychic' as RoleId)).toEqual({ kind: 'target', targetSeat: 2 });
-    expect(local.actions.get('dreamcatcher' as RoleId)).toEqual({ kind: 'target', targetSeat: 1 });
-    expect(local.actions.get('wolfQueen' as RoleId)).toEqual({ kind: 'target', targetSeat: 2 });
-    expect(local.actions.get('nightmare' as RoleId)).toEqual({ kind: 'target', targetSeat: 1 });
-    expect(local.actions.get('gargoyle' as RoleId)).toEqual({ kind: 'target', targetSeat: 0 });
-    expect(local.actions.get('wolfRobot' as RoleId)).toEqual({ kind: 'target', targetSeat: 1 });
-    expect(local.actions.get('slacker' as RoleId)).toEqual({ kind: 'target', targetSeat: 2 });
-    expect(local.actions.get('hunter' as RoleId)).toEqual({ kind: 'none' });
-    expect(local.actions.get('darkWolfKing' as RoleId)).toEqual({ kind: 'none' });
-    expect(local.actions.get('magician' as RoleId)).toEqual({
+    expect(local.actions.get('seer')).toEqual({ kind: 'target', targetSeat: 0 });
+    expect(local.actions.get('guard')).toEqual({ kind: 'target', targetSeat: 1 });
+    expect(local.actions.get('psychic')).toEqual({ kind: 'target', targetSeat: 2 });
+    expect(local.actions.get('dreamcatcher')).toEqual({ kind: 'target', targetSeat: 1 });
+    expect(local.actions.get('wolfQueen')).toEqual({ kind: 'target', targetSeat: 2 });
+    expect(local.actions.get('nightmare')).toEqual({ kind: 'target', targetSeat: 1 });
+    expect(local.actions.get('gargoyle')).toEqual({ kind: 'target', targetSeat: 0 });
+    expect(local.actions.get('wolfRobot')).toEqual({ kind: 'target', targetSeat: 1 });
+    expect(local.actions.get('slacker')).toEqual({ kind: 'target', targetSeat: 2 });
+    expect(local.actions.get('hunter')).toEqual({ kind: 'none' });
+    expect(local.actions.get('darkWolfKing')).toEqual({ kind: 'none' });
+    expect(local.actions.get('magician')).toEqual({
       kind: 'magicianSwap',
       firstSeat: 3,
       secondSeat: 4,
     });
-    expect(local.actions.get('witch' as RoleId)).toEqual({
+    expect(local.actions.get('witch')).toEqual({
       kind: 'witch',
       witchAction: { kind: 'save', targetSeat: 2 },
     });
@@ -119,13 +118,13 @@ describe('toLocalState', () => {
 
   it('maps witchAction as poison when poisonedSeat is set', () => {
     const state = makeBaseGameState({
-      currentNightResults: { poisonedSeat: 0 } as CurrentNightResults,
+      currentNightResults: { poisonedSeat: 0 },
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
-      actions: [{ schemaId: 'witchAction' as SchemaId, actorSeat: 1, targetSeat: 0, timestamp: 1 }],
+      actions: [{ schemaId: 'witchAction', actorSeat: 1, targetSeat: 0, timestamp: 1 }],
     });
 
     const local = toLocalState(state);
-    expect(local.actions.get('witch' as RoleId)).toEqual({
+    expect(local.actions.get('witch')).toEqual({
       kind: 'witch',
       witchAction: { kind: 'poison', targetSeat: 0 },
     });
@@ -134,11 +133,11 @@ describe('toLocalState', () => {
   it('maps witchAction as none when no savedSeat or poisonedSeat', () => {
     const state = makeBaseGameState({
       witchContext: { killedSeat: 2, canSave: true, canPoison: true },
-      actions: [{ schemaId: 'witchAction' as SchemaId, actorSeat: 1, timestamp: 1 }],
+      actions: [{ schemaId: 'witchAction', actorSeat: 1, timestamp: 1 }],
     });
 
     const local = toLocalState(state);
-    expect(local.actions.get('witch' as RoleId)).toEqual({
+    expect(local.actions.get('witch')).toEqual({
       kind: 'witch',
       witchAction: { kind: 'none' },
     });

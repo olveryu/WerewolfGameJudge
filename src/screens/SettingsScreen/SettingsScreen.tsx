@@ -587,7 +587,7 @@ export const SettingsScreen: React.FC = () => {
           <Text style={styles.cardTitle}>
             <Ionicons name="person-outline" size={typography.body} color={colors.text} /> 账户
           </Text>
-          {/* eslint-disable-next-line react-hooks/refs -- wasAuthenticatedRef is intentionally read during render to suppress auth UI flash during transient auth state */}
+          {}
           {renderAuthSection()}
         </View>
 

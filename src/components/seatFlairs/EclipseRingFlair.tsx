@@ -40,10 +40,7 @@ const CoronaLayer = memo<{
     const t = progress.value;
     const pulse = 0.8 + Math.sin(t * Math.PI * 2) * 0.2;
     const r = size * (0.42 + rOff) * pulse;
-    return { cx, cy, r, opacity: opMul * pulse, strokeWidth: size * widthMul } as Record<
-      string,
-      number
-    >;
+    return { cx, cy, r, opacity: opMul * pulse, strokeWidth: size * widthMul };
   });
   return <AnimatedCircle animatedProps={props} fill="none" stroke={color} />;
 });
@@ -65,7 +62,7 @@ const SparkParticle = memo<{ seed: SparkSeed; size: number; progress: { value: n
         cy: cy + Math.sin(angle) * r,
         r: size * 0.008,
         opacity: alpha,
-      } as Record<string, number>;
+      };
     });
     return <AnimatedCircle animatedProps={props} fill="rgb(255,200,80)" />;
   },

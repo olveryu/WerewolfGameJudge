@@ -36,7 +36,7 @@ const BubbleParticle = memo<{ seed: BubbleSeed; size: number; progress: { value:
       const x = seed.xFrac * size + Math.sin(tt * Math.PI * 2) * size * 0.03;
       const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.85 ? (1 - tt) / 0.15 : 0.6;
       const r = seed.rFrac * size * (1 + tt * 0.3);
-      return { cx: x, cy: y, r, opacity: alpha * 0.7 } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: alpha * 0.7 };
     });
 
     const highlightProps = useAnimatedProps(() => {
@@ -46,10 +46,7 @@ const BubbleParticle = memo<{ seed: BubbleSeed; size: number; progress: { value:
       const x = seed.xFrac * size + Math.sin(tt * Math.PI * 2) * size * 0.03;
       const alpha = tt < 0.1 ? tt / 0.1 : tt > 0.85 ? (1 - tt) / 0.15 : 0.6;
       const r = seed.rFrac * size * (1 + tt * 0.3);
-      return { cx: x - r * 0.3, cy: y - r * 0.3, r: r * 0.25, opacity: alpha * 0.5 } as Record<
-        string,
-        number
-      >;
+      return { cx: x - r * 0.3, cy: y - r * 0.3, r: r * 0.25, opacity: alpha * 0.5 };
     });
 
     return (

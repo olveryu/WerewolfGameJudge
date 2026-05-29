@@ -91,7 +91,7 @@ export const PhaseShiftEnter = memo<SeatAnimationProps & { config: PhaseShiftCon
       return {
         r: size * 0.4,
         opacity: (1 - progress.value) * 0.25,
-      } as Record<string, number>;
+      };
     });
 
     return (

@@ -5,7 +5,7 @@
  * Variant chips use thicker borders to differentiate. All chips support long-press to view ability info (variant roles toggle variants in-card).
  */
 import { memo } from 'react';
-import { Text, TouchableOpacity, type ViewStyle } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { TESTIDS } from '@/testids';
 import { fixed } from '@/theme';
@@ -52,7 +52,7 @@ export const RoleChip = memo<RoleChipProps>(
     onInfoPress,
   }) => {
     const selectedStyle = factionColor
-      ? (styles[FACTION_STYLE_MAP[factionColor]] as ViewStyle)
+      ? styles[FACTION_STYLE_MAP[factionColor]]
       : styles.chipSelected;
 
     const handleLongPress = onInfoPress ? () => onInfoPress(id) : undefined;

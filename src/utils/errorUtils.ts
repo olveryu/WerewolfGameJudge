@@ -33,7 +33,7 @@ export function isAbortError(err: unknown): boolean {
   }
   if (err instanceof Error) return err.name === 'AbortError';
   if (err != null && typeof err === 'object' && 'message' in err) {
-    return String((err as { message: unknown }).message).includes('AbortError');
+    return String(err.message).includes('AbortError');
   }
   return false;
 }
@@ -77,7 +77,7 @@ export function isNetworkError(err: unknown): boolean {
     err instanceof Error
       ? err.message.toLowerCase()
       : typeof err === 'object' && 'message' in err
-        ? String((err as { message: unknown }).message).toLowerCase()
+        ? String(err.message).toLowerCase()
         : '';
 
   if (!message) return false;
@@ -232,7 +232,7 @@ export function getUserFacingMessage(error: unknown, fallback = '操作失败，
 
   // Structured error with reason code (API responses)
   if (typeof error === 'object' && 'reason' in error) {
-    const reason = (error as { reason: unknown }).reason;
+    const reason = error.reason;
     if (typeof reason === 'string') {
       const translated = REASON_CODE_MAP[reason];
       if (translated) return translated;
@@ -287,7 +287,7 @@ export function isExpectedError(error: unknown): boolean {
     if (reason && EXPECTED_ERROR_CODES.has(reason)) return true;
   }
   if (error != null && typeof error === 'object' && 'reason' in error) {
-    const reason = (error as { reason: unknown }).reason;
+    const reason = error.reason;
     if (typeof reason === 'string' && EXPECTED_ERROR_CODES.has(reason)) return true;
   }
   return false;

@@ -41,7 +41,7 @@ const MistParticle = memo<{ seed: MistSeed; size: number; progress: { value: num
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
       const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r, opacity: pulse * 0.08 } as Record<string, number>;
+      return { cx: x, cy: y, r, opacity: pulse * 0.08 };
     });
 
     const midProps = useAnimatedProps(() => {
@@ -55,7 +55,7 @@ const MistParticle = memo<{ seed: MistSeed; size: number; progress: { value: num
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
       const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r: r * 0.6, opacity: pulse * 0.15 } as Record<string, number>;
+      return { cx: x, cy: y, r: r * 0.6, opacity: pulse * 0.15 };
     });
 
     const innerProps = useAnimatedProps(() => {
@@ -69,7 +69,7 @@ const MistParticle = memo<{ seed: MistSeed; size: number; progress: { value: num
       const y = cy + Math.sin(angle) * dist;
       const pulse = 0.3 + 0.5 * Math.abs(Math.sin((t * 2 + seed.phase * 4) * Math.PI));
       const r = seed.maxRFrac * size * (0.6 + 0.4 * pulse);
-      return { cx: x, cy: y, r: r * 0.3, opacity: pulse * 0.25 } as Record<string, number>;
+      return { cx: x, cy: y, r: r * 0.3, opacity: pulse * 0.25 };
     });
 
     return (

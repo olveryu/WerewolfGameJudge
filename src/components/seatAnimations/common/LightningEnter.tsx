@@ -77,7 +77,7 @@ export const LightningEnter = memo<ColoredAnimationProps>(
       return {
         d: points.join(' '),
         opacity: 1 - childOpacity.value,
-      } as Record<string, string | number>;
+      };
     });
 
     const flashProps = useAnimatedStyle(() => ({

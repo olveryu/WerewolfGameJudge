@@ -217,7 +217,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
 
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {
-      const newCount = getPlayerCount(roles as RoleId[]);
+      const newCount = getPlayerCount(roles);
       if (newCount !== currentPlayerCount) {
         await clearAllSeats();
       }

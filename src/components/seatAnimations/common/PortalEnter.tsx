@@ -57,7 +57,7 @@ export const PortalEnter = memo<ColoredAnimationProps>(
         rx: size * 0.4 * portalOpen.value,
         ry: size * 0.45 * portalOpen.value,
         opacity: 0.4 * (1 - childProgress.value),
-      } as Record<string, number>;
+      };
     });
 
     const innerRingProps = useAnimatedProps(() => {
@@ -66,7 +66,7 @@ export const PortalEnter = memo<ColoredAnimationProps>(
         rx: size * 0.3 * portalOpen.value,
         ry: size * 0.35 * portalOpen.value,
         opacity: 0.6 * (1 - childProgress.value),
-      } as Record<string, number>;
+      };
     });
 
     const childStyle = useAnimatedStyle(() => ({

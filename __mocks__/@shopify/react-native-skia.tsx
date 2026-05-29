@@ -15,7 +15,7 @@ const createMockComponent = (name: string): React.FC<ViewProps & Record<string, 
     testID,
     ...rest
   }) => (
-    <View testID={testID} {...(rest as ViewProps)}>
+    <View testID={testID} {...rest}>
       {children}
     </View>
   );

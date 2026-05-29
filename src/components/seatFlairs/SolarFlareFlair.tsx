@@ -48,11 +48,7 @@ const FlareParticle = memo<{ seed: FlareSeed; size: number; progress: { value: n
       const intensity = t < 0.3 ? t / 0.3 : t < 0.6 ? 1 : (1 - t) / 0.4;
       const r = baseR + intensity * size * 0.12;
       const d = buildArc(r, seed.arcSpan, seed.angle + t * 0.3);
-      return { d, opacity: intensity * 0.2, strokeWidth: size * 0.04 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: intensity * 0.2, strokeWidth: size * 0.04 };
     });
 
     const midProps = useAnimatedProps(() => {
@@ -61,11 +57,7 @@ const FlareParticle = memo<{ seed: FlareSeed; size: number; progress: { value: n
       const intensity = t < 0.3 ? t / 0.3 : t < 0.6 ? 1 : (1 - t) / 0.4;
       const r = baseR + intensity * size * 0.1;
       const d = buildArc(r, seed.arcSpan * 0.7, seed.angle + t * 0.3);
-      return { d, opacity: intensity * 0.4, strokeWidth: size * 0.02 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: intensity * 0.4, strokeWidth: size * 0.02 };
     });
 
     const coreProps = useAnimatedProps(() => {
@@ -74,11 +66,7 @@ const FlareParticle = memo<{ seed: FlareSeed; size: number; progress: { value: n
       const intensity = t < 0.3 ? t / 0.3 : t < 0.6 ? 1 : (1 - t) / 0.4;
       const r = baseR + intensity * size * 0.08;
       const d = buildArc(r, seed.arcSpan * 0.4, seed.angle + t * 0.3);
-      return { d, opacity: intensity * 0.7, strokeWidth: size * 0.008 } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: intensity * 0.7, strokeWidth: size * 0.008 };
     });
 
     const tipProps = useAnimatedProps(() => {
@@ -92,7 +80,7 @@ const FlareParticle = memo<{ seed: FlareSeed; size: number; progress: { value: n
         cy: cy + Math.sin(tipAngle) * r,
         r: size * 0.012 * intensity,
         opacity: intensity * 0.6,
-      } as Record<string, number>;
+      };
     });
 
     return (

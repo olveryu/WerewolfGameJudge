@@ -42,11 +42,7 @@ const WaveParticle = memo<{ index: number; size: number; progress: { value: numb
         d += s === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
       }
       d += ' Z';
-      return { d, opacity: alpha, strokeWidth: sw } as {
-        d: string;
-        opacity: number;
-        strokeWidth: number;
-      };
+      return { d, opacity: alpha, strokeWidth: sw };
     });
 
     return <AnimatedPath animatedProps={pathProps} stroke="rgb(80,200,180)" fill="none" />;

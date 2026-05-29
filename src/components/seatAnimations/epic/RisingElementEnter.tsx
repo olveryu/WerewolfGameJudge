@@ -63,7 +63,7 @@ const RisingElement = memo<{
     return {
       d,
       opacity: t * (1 - Math.max(0, (progress.value - 0.7) / 0.3)),
-    } as Record<string, string | number>;
+    };
   });
 
   const circleProps = useAnimatedProps(() => {
@@ -78,7 +78,7 @@ const RisingElement = memo<{
       cy: y,
       r: size * 0.02 * (0.5 + t * 0.5),
       opacity: t * (1 - Math.max(0, (progress.value - 0.7) / 0.3)),
-    } as Record<string, number>;
+    };
   });
 
   if (isPath) {
