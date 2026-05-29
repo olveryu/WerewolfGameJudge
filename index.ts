@@ -3,6 +3,20 @@ import './src/wdyr';
 import { registerRootComponent } from 'expo';
 import { Platform } from 'react-native';
 
+// Polyfill crypto.randomUUID for iOS < 15.4 (Safari < 15.4).
+// crypto.getRandomValues is available from iOS 11+.
+if (typeof crypto !== 'undefined' && typeof crypto.randomUUID !== 'function') {
+  crypto.randomUUID = function randomUUID(): `${string}-${string}-${string}-${string}-${string}` {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    // Set version 4 (0100) and variant 1 (10xx)
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+}
+
 /**
  * Entry-point with eager Skia loading on web.
  *
