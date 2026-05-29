@@ -17,6 +17,14 @@ if (typeof crypto !== 'undefined' && typeof crypto.randomUUID !== 'function') {
   };
 }
 
+// Polyfill Array.prototype.at for iOS < 15.4 (Safari < 15.4).
+if (typeof Array.prototype.at !== 'function') {
+  Array.prototype.at = function at<T>(this: T[], index: number): T | undefined {
+    const i = index >= 0 ? index : this.length + index;
+    return this[i];
+  };
+}
+
 /**
  * Entry-point with eager Skia loading on web.
  *
