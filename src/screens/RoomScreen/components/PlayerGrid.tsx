@@ -5,6 +5,7 @@
  * Styles are created once and passed to all SeatTile instances.
  * Renders UI and reports onSeatPress via callback; no service/showAlert imports, no business logic.
  */
+import { useIsFocused } from '@react-navigation/native';
 import type React from 'react';
 import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -55,6 +56,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   const gridColumns = getGridColumns(screenWidth);
   const pixelRatio = PixelRatio.get();
   const isAppVisible = useAppVisibility();
+  const isFocused = useIsFocused();
 
   // Use onLayout to measure real container width (immune to scrollbar width on Web).
   // Fall back to screenWidth minus parent padding so the first render isn't empty.
@@ -136,7 +138,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           wolfVoteBadge={seat.wolfVoteBadge}
           playerLevel={seat.player?.level}
           showLevel={showLevels}
-          isAppVisible={isAppVisible}
+          isAppVisible={isAppVisible && isFocused}
           styles={seatTileStyles}
           onPress={handleSeatPress}
           onLongPress={handleSeatLongPress}
