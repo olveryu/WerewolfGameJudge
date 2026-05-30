@@ -615,31 +615,10 @@
         });
       })();
 
-      // 隐藏启动画面 — 由 React App.tsx 控制。
-      // 这里仅作超时 fallback（5 秒后强制隐藏，防止 JS 加载失败时永久卡 splash）。
-      // 仅在 React 已挂载（#root 有子元素）时移除，否则保留 splash 避免白屏。
-      // 5 秒后若 splash 仍在，显示「刷新页面」按钮（清缓存 + reload）。
+      // 隐藏启动画面 — 完全由 React App.tsx dismissWebSplash() 控制。
+      // 不做超时 auto-dismiss：缓存加载时 React mount 但 boot 未完成会导致白屏。
+      // 8 秒后仍在 splash → 显示「刷新页面」按钮作为 escape hatch。
       window.addEventListener('load', function () {
-        setTimeout(function () {
-          var root = document.getElementById('root');
-          if (!root || root.children.length === 0) return;
-          var splash = document.getElementById('splash-screen');
-          if (splash) {
-            // Set progress to 100% before hiding
-            var bar = splash.querySelector('.progress-bar');
-            var pctEl = document.getElementById('splash-pct');
-            if (bar) bar.style.width = '100%';
-            if (pctEl) pctEl.textContent = '100%';
-            setTimeout(function () {
-              splash.classList.add('hidden');
-              setTimeout(function () {
-                splash.remove();
-              }, 300);
-            }, 200);
-          }
-        }, 5000);
-
-        // 8 秒后 splash 仍显示（React 未接管 / 加载卡住）→ 显示刷新按钮
         setTimeout(function () {
           var splash = document.getElementById('splash-screen');
           if (!splash || splash.classList.contains('hidden')) return;

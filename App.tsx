@@ -274,6 +274,31 @@ function AppContent() {
     }
   }, [bootProgress.isReady]);
 
+  // Web: needsWechatLogin determined → dismiss splash to reveal WxLoginFailedScreen
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (needsWechatLogin) {
+      dismissWebSplash();
+    }
+  }, [needsWechatLogin]);
+
+  // Web: boot error → show error message on splash layer (splash stays visible)
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (!bootProgress.error) return;
+    const splash = document.getElementById('splash-screen');
+    if (!splash || splash.classList.contains('hidden')) return;
+    const hintEl = document.getElementById('splash-network-hint');
+    const refreshBtn = document.getElementById('splash-refresh');
+    if (hintEl) {
+      hintEl.textContent = bootProgress.error;
+      hintEl.style.display = 'block';
+    }
+    if (refreshBtn) {
+      refreshBtn.style.display = 'inline-block';
+    }
+  }, [bootProgress.error]);
+
   // Web: NavigationContainer onReady → first screen has laid out.
   // Icon font is already downloaded during boot (useBootProgress gates isReady
   // on fontLoaded), so icons are available for the first paint.
@@ -300,7 +325,8 @@ function AppContent() {
     setAlertConfig(null);
   }, []);
 
-  // Mini-program requires WeChat login → show login entry screen (replaces normal UI)
+  // Mini-program requires WeChat login → show login entry screen (replaces normal UI).
+  // Splash is already dismissed above via useEffect when needsWechatLogin becomes true.
   if (needsWechatLogin) {
     return (
       <>
@@ -311,6 +337,7 @@ function AppContent() {
   }
 
   // Not ready → render nothing; splash (HTML on web / native) stays visible.
+  // If bootProgress.error is set, the splash layer shows error + refresh button.
   if (!bootProgress.isReady) {
     return null;
   }
