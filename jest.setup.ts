@@ -352,6 +352,23 @@ jest.mock(
   { virtual: true },
 );
 
+// ---------------------------------------------------------------------------
+// @react-navigation/native mock — provides stub hooks globally so components
+// that use useNavigation/useIsFocused/useRoute render without NavigationContainer.
+// Tests that need the real module call jest.unmock('@react-navigation/native').
+// Tests that need custom navigation assertions override with their own jest.mock() factory.
+// ---------------------------------------------------------------------------
+jest.mock('@react-navigation/native', () => ({
+  __esModule: true,
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  useIsFocused: () => true,
+  useRoute: () => ({ params: {} }),
+  createNavigationContainerRef: () => ({
+    isReady: jest.fn(() => false),
+    navigate: jest.fn(),
+  }),
+}));
+
 // Mock navigationRef — prevents createNavigationContainerRef from being called
 // in tests where @react-navigation/native is mocked as empty object.
 jest.mock('./src/navigation/navigationRef', () => ({

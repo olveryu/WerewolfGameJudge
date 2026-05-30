@@ -21,10 +21,6 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
-}));
-
 const mockSubmitAction = jest.fn();
 
 jest.mock('../../../hooks/useGameRoom', () => {

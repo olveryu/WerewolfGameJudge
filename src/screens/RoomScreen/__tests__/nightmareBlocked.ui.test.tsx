@@ -22,10 +22,6 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
-}));
-
 const mockShowAlert = jest.mocked(showAlert);
 
 const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {

@@ -6,10 +6,6 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
 import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
 
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
-}));
-
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
   showAlert: jest.fn(),

@@ -6,6 +6,8 @@
  * this test fails automatically.
  */
 
+jest.unmock('@react-navigation/native');
+
 import { linking } from '../AppNavigator';
 
 const screens = linking.config!.screens as Record<string, string | { path: string }>;
