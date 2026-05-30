@@ -5,8 +5,8 @@ Page({
   data: {
     url: '',
     splashBg: '/images/splash-bg.webp',
-    networkHint: '', // 网络提示文案
-    showRetry: false // 显示重试按钮
+    networkHint: '',
+    showRetry: false
   },
 
   onLoad(options) {
@@ -14,21 +14,44 @@ Page({
 
     wx.setKeepScreenOn({ keepScreenOn: true })
 
-    // 网络状态检测 — 仅使用系统真实信号
-    self._checkNetwork()
+    // 确定目标页面 URL
+    self._targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
+
+    // 网络状态变化 — 断网时阻止加载，恢复时自动加载
     wx.onNetworkStatusChange(function (res) {
       if (!res.isConnected) {
         self.setData({ networkHint: '当前无网络连接，请检查网络设置', showRetry: true })
       } else {
         self.setData({ networkHint: '', showRetry: false })
+        // 网络恢复 + url 未设置 → 自动加载
+        if (!self.data.url) {
+          self._loadWebView(options.nonce)
+        }
       }
     })
 
-    // 1) 确定目标页面 URL — 分享链接走 options.url，否则一律首页
-    var targetUrl = options.url ? decodeURIComponent(options.url) : BASE_URL
+    // 初始网络检测 — 决定是否立即加载
+    wx.getNetworkType({
+      success: function (res) {
+        if (res.networkType === 'none') {
+          self.setData({ networkHint: '当前无网络连接，请检查网络设置', showRetry: true })
+        } else {
+          self._loadWebView(options.nonce)
+        }
+      },
+      fail: function () {
+        // 无法确认网络状态 → 直接尝试加载，让 web 端自己处理
+        self._loadWebView(options.nonce)
+      }
+    })
+  },
 
-    // nonce claim 流程：wx.login + wx.request 预备 token，然后加载裸 URL
-    if (options.nonce) {
+  /** 加载 web-view（仅在网络可用时调用） */
+  _loadWebView(nonce) {
+    var self = this
+    var targetUrl = self._targetUrl
+
+    if (nonce) {
       wx.login({
         success: function (res) {
           if (res.code) {
@@ -36,7 +59,7 @@ Page({
               url: API_URL + '/auth/wechat-claim',
               method: 'POST',
               header: { 'Content-Type': 'application/json' },
-              data: { code: res.code, nonce: options.nonce },
+              data: { code: res.code, nonce: nonce },
               success: function (resp) {
                 if (resp.statusCode === 200) {
                   console.log('wechat-claim success')
@@ -45,13 +68,12 @@ Page({
                 }
                 self.setData({ url: targetUrl })
               },
-              fail: function (err) {
-                console.warn('wechat-claim request failed:', err)
+              fail: function () {
+                // claim 失败不阻止加载 — web 端有独立登录流程
                 self.setData({ url: targetUrl })
               }
             })
           } else {
-            console.warn('wx.login failed:', res.errMsg)
             self.setData({ url: targetUrl })
           }
         },
@@ -60,32 +82,28 @@ Page({
         }
       })
     } else {
-      // 无 nonce（首次打开 / 分享链接）→ 直接加载，web 端显示登录按钮
       self.setData({ url: targetUrl })
     }
   },
 
-  /** 初始网络检测 */
-  _checkNetwork() {
+  /** 重试：检查网络后重新加载 */
+  onRetry() {
     var self = this
+    self.setData({ networkHint: '', showRetry: false })
     wx.getNetworkType({
       success: function (res) {
         if (res.networkType === 'none') {
           self.setData({ networkHint: '当前无网络连接，请检查网络设置', showRetry: true })
+        } else {
+          // 有网络 — 加载或重加载
+          var url = self.data.url || self._targetUrl
+          self.setData({ url: '' })
+          setTimeout(function () {
+            self.setData({ url: url })
+          }, 100)
         }
       }
     })
-  },
-
-  /** 重试：重新加载页面 */
-  onRetry() {
-    this.setData({ networkHint: '', showRetry: false })
-    var url = this.data.url || BASE_URL
-    this.setData({ url: '' })
-    var self = this
-    setTimeout(function () {
-      self.setData({ url: url })
-    }, 100)
   },
 
   onMessage(_e) {
@@ -94,7 +112,6 @@ Page({
 
   onError(e) {
     console.error('web-view load error:', e.detail)
-    // web-view 加载失败 — 回到 splash 显示错误提示
     this.setData({
       url: '',
       networkHint: '页面加载失败，请检查网络后重试',
