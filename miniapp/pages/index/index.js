@@ -106,6 +106,16 @@ Page({
     })
   },
 
+  /** 切后台 — 关闭屏幕常亮，减少功耗 */
+  onHide() {
+    wx.setKeepScreenOn({ keepScreenOn: false })
+  },
+
+  /** 回前台 — 恢复屏幕常亮 */
+  onShow() {
+    wx.setKeepScreenOn({ keepScreenOn: true })
+  },
+
   onMessage(_e) {
     // No-op — lastUrl restoration removed; share links use options.url
   },
