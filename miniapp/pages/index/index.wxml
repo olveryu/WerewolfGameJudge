@@ -1,5 +1,9 @@
 <view wx:if="{{!url}}" class="splash">
   <image class="splash-bg" src="{{splashBg}}" mode="aspectFill" />
   <text class="splash-text">正在进入...</text>
+  <view wx:if="{{networkHint}}" class="network-hint">
+    <text class="network-hint-text">{{networkHint}}</text>
+    <button wx:if="{{showRetry}}" class="retry-btn" bindtap="onRetry">重试</button>
+  </view>
 </view>
 <web-view wx:if="{{url}}" src="{{url}}" bindmessage="onMessage" binderror="onError" />

@@ -25,3 +25,36 @@
   font-size: 14px;
   color: rgba(255, 255, 255, 0.75);
 }
+
+/* 网络提示 — splash 阶段 */
+.network-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 80px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 10;
+}
+
+.network-hint-text {
+  font-size: 13px;
+  color: rgba(255, 200, 100, 0.9);
+  text-align: center;
+  padding: 0 32px;
+}
+
+/* 重试按钮 */
+.retry-btn {
+  margin-top: 16px;
+  padding: 8px 32px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  line-height: 1.5;
+}
