@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml/badge.svg)](https://github.com/olveryu/WerewolfGameJudge/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TS-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Expo](https://img.shields.io/badge/Expo_SDK-55-000020?style=flat-square&logo=expo)](https://expo.dev/)
+[![Expo](https://img.shields.io/badge/Expo_SDK-56-000020?style=flat-square&logo=expo)](https://expo.dev/)
 [![Cloudflare](https://img.shields.io/badge/CF-Workers%20+%20D1-F38020?style=flat-square&logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/olveryu/WerewolfGameJudge?style=flat-square&logo=github)](https://github.com/olveryu/WerewolfGameJudge/stargazers)
@@ -174,7 +174,7 @@ src/
 
 |                  |                                                            |
 | ---------------- | ---------------------------------------------------------- |
-| **Client**       | React Native 0.83 · Expo SDK 55 · TypeScript ~5.9          |
+| **Client**       | React Native 0.85 · Expo SDK 56 · TypeScript ~5.9          |
 | **Server**       | Cloudflare Workers · D1 · R2 · Durable Objects             |
 | **AI**           | Gemini 3.1 Flash Lite (Worker proxy)                       |
 | **Test**         | Jest · Testing Library · Playwright                        |
