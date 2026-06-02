@@ -13,6 +13,7 @@ import type React from 'react';
 import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
+import { navigationRef } from '@/navigation/navigationRef';
 import type { AuthUser } from '@/services/types/IAuthService';
 import {
   getUserFacingMessage,
@@ -21,6 +22,7 @@ import {
   isNetworkError,
 } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
+import { isMiniProgram } from '@/utils/miniProgram';
 
 /** Client-side user info (mapped from AuthUser metadata). */
 export interface User {
@@ -172,6 +174,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     return authService.onAuthExpired(() => {
       updateUserIfChanged(null);
+      // Non-miniProgram: open AuthLogin modal so user can re-authenticate
+      // miniProgram path is handled by App.tsx reading needsWechatLogin=true
+      if (!isMiniProgram() && navigationRef.isReady()) {
+        navigationRef.navigate('AuthLogin', { loginTitle: '会话已过期，请重新登录' });
+      }
     });
   }, [authService, updateUserIfChanged]);
 
