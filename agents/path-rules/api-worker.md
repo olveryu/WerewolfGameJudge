@@ -1,0 +1,104 @@
+---
+name: 'API Worker'
+description: 'Cloudflare Worker standards: Hono routing, Zod validation, DO calls, gacha system, auth middleware. Use when: editing API worker, Hono routes, DO calls, gacha handlers, auth middleware, D1 queries, R2 storage'
+applyTo: 'packages/api-worker/**'
+---
+
+# @werewolf/api-worker Standards
+
+Cloudflare Worker (Durable Objects + D1 + R2). Game API + Auth API.
+Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `hono/factory`).
+
+## Route Organization
+
+- Each handler file exports a Hono sub-router: `export const xxxRoutes = new Hono<AppEnv>()`.
+- `index.ts` mounts via `app.route('/prefix', xxxRoutes)`.
+- CORS is handled uniformly by `hono/cors` middleware (`app.use('*', cors(...))`).
+
+## Request Body Validation
+
+- Use `jsonBody<T>(schema)` middleware (`handlers/shared.ts`, based on `hono/validator`) to validate JSON body.
+- Validation failure returns 400 (`{ success: false, reason: 'VALIDATION_ERROR', detail }`).
+- Handler accesses strongly-typed data via `c.req.valid('json')`. `(await req.json()) as { ... }` is forbidden.
+
+## Zod Schema Files
+
+- Schemas are defined in `src/schemas/`, organized by route module (`auth.ts`, `game.ts`, `night.ts`, `room.ts`, `gemini.ts`, `shareImage.ts`).
+- Project uses **zod 4** (`^4.3`). Key changes:
+  - Top-level format validators (`z.email()`, `z.url()`, etc.) — deprecated method chains (`z.string().email()`) must not be used.
+  - `z.input<typeof schema>` / `z.output<typeof schema>` replace legacy `z.infer<>` (`z.infer` still works but `z.output` is more precise).
+  - Zod 4 implements Standard Schema interface; Hono's built-in `validator('json', zodSchema)` works directly, but this project uses custom `jsonBody(schema)` middleware — because we need unified error response format (`{ success: false, reason: 'VALIDATION_ERROR', detail }`) and structured logging; the built-in validator's error format is uncontrollable.
+- Seat numbers use `z.coerce.number().int().min(0)`. Discriminated unions distinguish by `action` / `type` field.
+- When adding/modifying schemas, the corresponding handler's `jsonBody` call and destructuring must be updated in sync.
+
+## Handler Pattern
+
+```typescript
+// Route with body validation
+xxxRoutes.post('/action', jsonBody(xxxSchema), async (c) => {
+  const { field } = c.req.valid('json');
+  const env = c.env;
+  // ... business logic
+  return c.json(result, resultToStatus(result));
+});
+
+// Route requiring authentication
+xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
+  const userId = c.var.userId;
+  // ...
+});
+```
+
+## Auth Middleware
+
+- `requireAuth` (`lib/auth.ts`, `createMiddleware` from `hono/factory`): verifies Bearer token, sets `c.var.userId` and `c.var.jwtPayload`.
+- Optional auth (e.g., signup) is handled inline in handler via `extractBearerToken` + `verifyToken`.
+
+## Error Handling
+
+- `callDO(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
+- `app.onError` catches `HTTPException`, `SyntaxError` (malformed JSON), and generic errors uniformly.
+- Handlers don't need `try/catch` for DO call errors.
+
+## Shared Utilities (`handlers/shared.ts`)
+
+| Export                    | Purpose                                                                                                                                                                                                             |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `jsonBody<T>(schema)`     | `hono/validator` middleware: JSON parsing + zod validation                                                                                                                                                          |
+| `callDO<T>(fn)`           | DO RPC call + HTTPException error handling. **Note**: `@cloudflare/workers-types` injects `& Disposable` to DO RPC return values, breaking DU narrowing. Call site needs `as Promise<GameActionResult>` (see JSDoc) |
+| `getGameRoomStub(env, c)` | Get DO stub                                                                                                                                                                                                         |
+| `resultToStatus(result)`  | Input `{ success: boolean; reason?: string }` (structural subtype, compatible with `ActionResult` & `GameActionResult`) → `200 \| 400 \| 500`                                                                       |
+| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                              |
+
+## Gacha System
+
+### Routes (`gachaHandlers.ts` → `/api/gacha/*`)
+
+| Method | Path                      | Auth | Body Schema         | Description                                              |
+| ------ | ------------------------- | ---- | ------------------- | -------------------------------------------------------- |
+| `GET`  | `/api/gacha/status`       | ✅   | —                   | Ticket count / pity / unlocked count / lastLoginRewardAt |
+| `POST` | `/api/gacha/draw`         | ✅   | `gachaDrawSchema`   | Draw (drawType: normal\|golden, count: 1-10)             |
+| `POST` | `/api/gacha/daily-reward` | ✅   | `dailyRewardSchema` | Daily login reward (localDate: YYYY-MM-DD)               |
+
+### Concurrency Safety
+
+- OCC (Optimistic Concurrency Control): `user_stats.version` column; draw/daily-reward reads version → writes with `WHERE version = readVersion`, retries on conflict (MAX_DRAW_RETRIES=3)
+- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@werewolf/game-engine`
+
+### Daily Login Reward
+
+- Client sends `localDate` (player's local timezone date); server validates: same day already claimed → `already_claimed`; less than 20h since last → `cooldown`
+- On pass: normalDraws + 1, update `lastLoginRewardAt`
+
+### Settlement (`settleGameResults.ts`)
+
+- Each valid game: +1 normal ticket + XP
+- Each level-up: +1 golden ticket
+- Idempotency key: `${roomCode}:${revision}`
+
+## JSDoc Standards
+
+- **Handler file header** must contain module comment listing routes + `@throws` annotating all possible HTTP error codes and trigger conditions.
+- **DO RPC interface** (`IGameRoomRPC.ts`): each method annotated with `@pre` (e.g., status === 'Ongoing').
+- **Core libs** (auth / shared / gameProcessor): annotate `@remarks` (concurrency strategy, lock mechanism, pipeline order).
+- **DB schema**: every field of every table has inline comment (meaning, unit, null semantics).

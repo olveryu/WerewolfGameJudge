@@ -1,0 +1,76 @@
+---
+name: 'CI & Deploy'
+description: 'CI/CD pipeline, build.sh, CDN publishing, D1 migrations, release process. Use when: editing workflows, build scripts, deploy config, CDN publishing, D1 migrations, release process'
+applyTo: '.github/workflows/**,scripts/build.sh,scripts/release.sh'
+---
+
+# CI/CD & Deployment Standards
+
+## CI Pipeline (`.github/workflows/ci.yml`)
+
+Quality gate → conditional deployment. Only main branch triggers deployment.
+
+```
+quality → deploy-api-worker (main only)
+        → deploy-frontend  (main only)
+```
+
+**quality job order**: typecheck → lint → format → test:all
+
+### deploy-api-worker
+
+1. `pnpm --filter @werewolf/game-engine run build` (Worker depends on game-engine dist/)
+2. `wrangler d1 migrations apply werewolf-db --remote` (**migrations before deployment**)
+3. `wrangler deploy`
+
+### deploy-frontend
+
+1. `bash scripts/build.sh` (Expo export → PWA post-processing)
+2. Rewrite asset URLs → CDN absolute paths (`cdn.npmmirror.com`)
+3. `npm publish werewolf-judge-cdn@0.0.0-<sha8>` (JS bundles + WASM)
+4. Cloudflare Pages publish (HTML references CDN URLs)
+
+## scripts/build.sh
+
+Cloudflare Pages build entry point. Flow:
+
+1. Build game-engine (`pnpm --filter @werewolf/game-engine run build`)
+2. `npx expo export --platform web`
+3. PWA manifest + service worker injection
+4. Font file post-processing
+5. Custom `index.html` template substitution
+
+**Environment variables**: `CF_PAGES_BRANCH` → `EXPO_PUBLIC_DEPLOY_ENV` (production | preview).
+`EXPO_PUBLIC_*` variables are inlined by Metro at bundle time, not read at runtime.
+
+## CDN Publishing Flow
+
+- JS chunks + CanvasKit WASM published as npm package → npmmirror auto-syncs
+- npm token (GitHub secret `NPM_TOKEN`) valid for 90 days; deploy-frontend fails when expired
+- Manual sync trigger: `curl -sX PUT "https://registry-direct.npmmirror.com/-/package/werewolf-judge-cdn/syncs"`
+
+## Release Flow
+
+`scripts/release.sh` (or `pnpm run release`):
+
+1. Bump version (package.json → app.json → `src/config/version.ts`, three files in sync)
+2. Update CHANGELOG.md
+3. Git commit + tag `v<version>` + push
+
+GitHub Actions `release.yml` creates GitHub Release on `v*` tags.
+
+## D1 Migrations
+
+- Local: `pnpm -F @werewolf/api-worker db:migrate:local`
+- Remote (CI): `wrangler d1 migrations apply werewolf-db --remote`
+- After new migration, local must re-migrate or Worker startup reports schema error
+
+## Secrets Inventory
+
+| Secret                  | Purpose             | Renewal Cycle |
+| ----------------------- | ------------------- | ------------- |
+| `CLOUDFLARE_API_TOKEN`  | Wrangler deployment | —             |
+| `CLOUDFLARE_ACCOUNT_ID` | Wrangler account ID | —             |
+| `NPM_TOKEN`             | npm publish CDN pkg | 90 days       |
+| `SENTRY_DSN`            | Frontend Sentry     | —             |
+| `SENTRY_AUTH_TOKEN`     | Source map upload   | —             |

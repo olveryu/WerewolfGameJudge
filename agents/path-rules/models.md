@@ -1,0 +1,27 @@
+---
+name: 'Models'
+description: 'Model layer standards: ROLE_SPECS/SCHEMAS/NIGHT_STEPS three-tier table-driven, pure declarative. Use when: editing models, role specs, schemas, night steps, type definitions, enums'
+applyTo: 'src/models/**'
+---
+
+# Model Layer Standards
+
+Models are defined in `@werewolf/game-engine` (`packages/game-engine/src/models/`). `src/models/` only contains tests (`roles/spec/__tests__/`).
+
+## Rules
+
+- Declarative content (spec / schema / types / enums / constants), pure function queries/factories (`getRoleSpec()`, `makeActionTarget()`, type guard `isActionTarget()`).
+- Importing services / hooks / UI / contexts / navigation is forbidden. Side effects (IO / network / audio / Alert / `console.*`) are forbidden. Runtime business logic (state transitions, resolver calculations, death calculation) is forbidden.
+
+## Three-Tier Table-Driven (Single Source of Truth)
+
+| Tier          | File                 | Responsibility                                      |
+| ------------- | -------------------- | --------------------------------------------------- |
+| `ROLE_SPECS`  | `spec/specs.ts`      | Role intrinsic attributes (don't change per step)   |
+| `SCHEMAS`     | `spec/schemas.ts`    | Action input protocol (constraints/prompts/meeting) |
+| `NIGHT_STEPS` | `spec/nightSteps.ts` | Night-1 step order + audio                          |
+
+- Step id = stable `SchemaId`. UI text as logic key is forbidden. `audioKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden.
+- Input validity is written in `SCHEMAS[*].constraints` (schema-first). Cross-night constraints (`previousActions` / `lastNightTarget` etc.) are forbidden.
+- Attack neutrality: can attack any seat (including self/wolf teammates), no `notSelf` / `notWolf` added.
+- `schema.meeting.canSeeEachOther` (toggle: "when to show teammates") vs `ROLE_SPECS[role].wolfMeeting.canSeeWolves` (filter: "who gets highlighted") — these are not dual-writes.
