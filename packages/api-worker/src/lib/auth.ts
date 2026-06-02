@@ -127,21 +127,29 @@ export async function rotateRefreshToken(
   const tokenHash = await sha256Hex(rawToken);
   const db = createDb(env.DB);
 
-  // Atomic find-and-delete: only one concurrent request can consume the token
+  // Read token data first (D1 does not support DELETE...RETURNING via .get())
   const row = await db
-    .delete(refreshTokens)
-    .where(eq(refreshTokens.tokenHash, tokenHash))
-    .returning({
+    .select({
       id: refreshTokens.id,
       userId: refreshTokens.userId,
       expiresAt: refreshTokens.expiresAt,
     })
+    .from(refreshTokens)
+    .where(eq(refreshTokens.tokenHash, tokenHash))
     .get();
 
   if (!row) return null;
 
-  // Already deleted — just reject if expired
+  // Reject if expired before consuming the token
   if (new Date(row.expiresAt) < new Date()) return null;
+
+  // Atomic delete — meta.changes === 0 means a concurrent request already consumed it
+  const deleteResult = await db
+    .delete(refreshTokens)
+    .where(eq(refreshTokens.tokenHash, tokenHash))
+    .run();
+
+  if (deleteResult.meta.changes === 0) return null;
 
   // Load user to get tokenVersion and claims
   const user = await db
