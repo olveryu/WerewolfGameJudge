@@ -6,6 +6,8 @@ argument-hint: 'Test target description (e.g., guard protection prevents death, 
 
 # New E2E Spec Skill
 
+> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+
 End-to-end addition of a Playwright E2E test, from defining the test target to local pass.
 
 ## When to Use

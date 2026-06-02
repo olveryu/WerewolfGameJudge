@@ -6,6 +6,8 @@ argument-hint: 'Board name + role list (e.g., Wolf King Seer 4villagers 4wolves 
 
 # New Board Skill
 
+> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+
 End-to-end addition of a preset board to `PRESET_TEMPLATES`, from collecting requirements to passing verification.
 
 ## When to Use

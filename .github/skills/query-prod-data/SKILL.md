@@ -6,6 +6,8 @@ argument-hint: 'Query description (e.g., where are players in room 8817 from, re
 
 # Query Production Data Skill
 
+> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+
 Query D1 database and Analytics Engine telemetry data via the wrangler CLI.
 
 ## Prerequisites

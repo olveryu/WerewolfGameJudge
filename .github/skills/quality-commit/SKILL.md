@@ -6,6 +6,8 @@ argument-hint: 'commit message (optional, auto-generated if not provided)'
 
 # quality-commit Skill
 
+> **输出语言：执行本 skill 过程中，所有面向用户的输出（进度报告、询问、完成通知、错误提示）一律使用中文。**
+
 Run the full quality pipeline → auto-fix fixable issues → commit → push, completely hands-free.
 
 ## When to Use
