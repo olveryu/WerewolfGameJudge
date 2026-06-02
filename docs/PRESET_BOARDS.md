@@ -63,7 +63,7 @@ Includes third-party faction roles, adding faction-level strategy.
 
 ## Maintenance Notes
 
-- Update this document when adding new boards (refer to `.github/skills/new-board/SKILL.md`)
+- Update this document when adding new boards (refer to `.agents/skills/new-board/SKILL.md`)
 - Board names do not include player count suffix (player count is derived from `roles.length`)
 - Special roles do not repeat (except `villager` / `wolf`)
 - `treasureMaster` requires 3 additional reserve cards; `thief` requires 2 additional reserve cards

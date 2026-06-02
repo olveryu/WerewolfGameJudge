@@ -1,33 +1,25 @@
-# Claude Code Instructions
+# Claude Code
 
-This project's collaboration standards, architecture constraints, and naming rules are **maintained centrally in GitHub Copilot instruction files**, shared by both Copilot and Claude Code. Changes to these files take effect on both sides.
+> **Do not add rules here.** Edit [`AGENTS.md`](AGENTS.md) and [`agents/path-rules/`](agents/path-rules/).
 
-## Main Instructions (always active, auto-loaded)
+## Main instructions (always on)
 
-@.github/copilot-instructions.md
+@AGENTS.md
 
-## Domain Instructions (activated by `applyTo` path, read on demand)
+## Path rules (read when editing matching paths)
 
-When editing files under the corresponding paths, you must first read the relevant instruction file:
+- [agents/path-rules/api-worker.md](agents/path-rules/api-worker.md)
+- [agents/path-rules/ci-deploy.md](agents/path-rules/ci-deploy.md)
+- [agents/path-rules/game-engine.md](agents/path-rules/game-engine.md)
+- [agents/path-rules/models.md](agents/path-rules/models.md)
+- [agents/path-rules/roomscreen.md](agents/path-rules/roomscreen.md)
+- [agents/path-rules/screens.md](agents/path-rules/screens.md)
+- [agents/path-rules/services.md](agents/path-rules/services.md)
+- [agents/path-rules/tests.md](agents/path-rules/tests.md)
+- [agents/path-rules/typescript.md](agents/path-rules/typescript.md)
 
-- [.github/instructions/typescript.instructions.md](.github/instructions/typescript.instructions.md) — `src/**/*.{ts,tsx}`, `packages/game-engine/src/**/*.ts`: Type safety, hooks hygiene, unused variables
-- [.github/instructions/roomscreen.instructions.md](.github/instructions/roomscreen.instructions.md) — `src/screens/RoomScreen/**`: policy / hooks / executors / seatTap / components / share
-- [.github/instructions/screens.instructions.md](.github/instructions/screens.instructions.md) — `src/screens/**`: Screen-level conventions
-- [.github/instructions/services.instructions.md](.github/instructions/services.instructions.md) — Services layer standards
-- [.github/instructions/game-engine.instructions.md](.github/instructions/game-engine.instructions.md) — `packages/game-engine/**`: Pure game logic shared package
-- [.github/instructions/api-worker.instructions.md](.github/instructions/api-worker.instructions.md) — `packages/api-worker/**`: Worker + DO + D1 + R2
-- [.github/instructions/models.instructions.md](.github/instructions/models.instructions.md) — Data models
-- [.github/instructions/tests.instructions.md](.github/instructions/tests.instructions.md) — Unit / integration / E2E tests
-- [.github/instructions/ci-deploy.instructions.md](.github/instructions/ci-deploy.instructions.md) — CI / deployment / Wrangler / npmmirror CDN
+## Skills
 
-Each file's frontmatter `applyTo` field defines the exact activation path — check it before editing.
+Source: [`.agents/skills/`](.agents/skills/) — use `/skill-name` after `pnpm run agent:install`, or ask Claude to follow a skill file.
 
-## Prompts & Skills
-
-- [.github/prompts/](/.github/prompts/) — Reusable prompt templates (e.g., `delegate-task`)
-- [.github/skills/](/.github/skills/) — Project-specific skills: `new-board`, `new-e2e-spec`, `new-role`, `query-prod-data`, `quality-commit`
-
-## Maintenance Notes
-
-- These instruction files are co-maintained by Copilot and Claude. **When rules are outdated or missing, update the corresponding `.github/instructions/*.md`** — don't duplicate rules in CLAUDE.md.
-- CLAUDE.md serves as an index only. Rule content goes exclusively into `.github/` to avoid dual-write drift.
+See [docs/agent-config.md](docs/agent-config.md).

@@ -26,6 +26,8 @@
 | [avatar-prompts.md](avatar-prompts.md)                           | ⚠️ 历史文档。Leonardo.AI 生成角色头像的 prompt 模板 |
 | [reusable-code-review-prompt.md](reusable-code-review-prompt.md) | 通用 AI 代码审查提示词模板                          |
 | [instruction-maintenance-sop.md](instruction-maintenance-sop.md) | AI Instruction 文件维护 SOP                         |
+| [agent-config.md](agent-config.md)                               | 2026 单源多端 Agent 配置（AGENTS.md + sync）        |
+| [agent-skills.md](agent-skills.md)                               | → 已合并到 agent-config（`gh skill`）               |
 
 ## 部署
 

@@ -313,7 +313,7 @@ If another client creates a room with the same 4-digit code in between, Supabase
 
 ## Flake Reporting Rules
 
-Per `.github/copilot-instructions.md`:
+Per `AGENTS.md`:
 
 > "Re-run and it passed" is NOT evidence. If a test fails during validation:
 >

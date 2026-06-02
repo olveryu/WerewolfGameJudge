@@ -27,6 +27,10 @@
     "dev": "concurrently -n worker,web -c blue,green \"pnpm --filter @werewolf/api-worker run dev\" \"EXPO_PUBLIC_BACKEND=cloudflare EXPO_PUBLIC_CF_API_URL=http://localhost:8787 expo start --web\"",
     "deploy": "bash scripts/deploy.sh",
     "release": "bash scripts/release.sh",
+    "sync:agents": "node scripts/sync-agent-config.mjs",
+    "sync:agent-skills": "pnpm run sync:agents",
+    "agent:install": "node scripts/gh-skill-install.mjs",
+    "agent:publish:dry-run": "gh skill publish --dry-run",
     "badges:generate": "node scripts/generate-badges.mjs",
     "badges:validate": "node scripts/generate-badges.mjs --validate-only",
     "prepare": "husky"
@@ -56,7 +60,10 @@
     ],
     "*.{json,md,yml,yaml}": [
       "prettier --write"
-    ]
+    ],
+    "AGENTS.md": "node scripts/sync-agent-config.mjs",
+    "agents/**/*": "node scripts/sync-agent-config.mjs",
+    ".agents/skills/**/*": "node scripts/sync-agent-config.mjs"
   },
   "dependencies": {
     "@expo/dom-webview": "~56.0.5",

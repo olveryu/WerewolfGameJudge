@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "ignoreBinaries": ["miniprogram-ci"],
+  "ignoreBinaries": ["miniprogram-ci", "gh"],
+  "ignore": [".husky/**"],
   "exclude": ["types"],
   "workspaces": {
     ".": {
@@ -16,7 +17,8 @@
         "jest-environment-jsdom",
         "babel-plugin-transform-define",
         "babel-plugin-react-compiler",
-        "serve"
+        "serve",
+        "lint-staged"
       ]
     },
     "packages/game-engine": {

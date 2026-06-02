@@ -1,44 +1,39 @@
-# AI Instruction Maintenance SOP
+# AI Agent 配置维护 SOP
 
-> One-page workflow: ensure `.github/instructions/*.md` and project docs stay up to date.
+> 单源：`AGENTS.md`、`agents/path-rules/`、`.agents/skills/`。改完后执行 `pnpm run sync:agents`。
 
-## Trigger Conditions → Files That Must Be Updated
+## 触发条件 → 应修改的文件
 
-| Change Type                   | Affected instruction / doc         | Specific Update Items                                                                                                                                               |
-| ----------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Add new role**              | `.github/skills/new-role/SKILL.md` | §Reference role index table, §C2 `CurrentNightResults` field list, `TargetConstraint` enum (if new values), `ResolverResult.result` field list                      |
-|                               | `README.md`                        | Total role count, faction group table                                                                                                                               |
-|                               | `NIGHT1_ROLE_ALIGNMENT_MATRIX.md`  | NIGHT_STEPS table, behavior alignment section, UX-only constraint table, three-tier alignment table, date, test stats                                               |
-| **Modify UI component/modal** | `screens.instructions.md`          | §Overlay/Modal table, §Bottom button mapping, §⋯ Menu items                                                                                                         |
-| **Modify GameState field**    | `services.instructions.md`         | §State management Anti-drift                                                                                                                                        |
-|                               | `game-engine.instructions.md`      | §normalizeState reminder                                                                                                                                            |
-| **Modify Schema Kind**        | `.github/skills/new-role/SKILL.md` | §C4 Schema Kinds list, §Step 2 template                                                                                                                             |
-|                               | `screens.instructions.md`          | §Schema Kind→Interaction mode table                                                                                                                                 |
-| **Modify theme token**        | `screens.instructions.md`          | §Theme Token rules                                                                                                                                                  |
-| **Modify test conventions**   | `tests.instructions.md`            | Corresponding rules                                                                                                                                                 |
-| **Modify deps/scripts/CI**    | `copilot-instructions.md`          | Project Overview / Tech Stack / Quality Commands / Release-Deploy process; ensure consistency with `package.json`, lockfile, `.github/workflows/*.yml`, `scripts/*` |
-|                               | `README.md` / `docs/DEPLOYMENT.md` | Sync dev commands, deploy commands, minimum Node version; match executable config                                                                                   |
-| **Add preset template**       | `README.md`                        | Board UI Tests row count                                                                                                                                            |
+| 变更类型                   | 源文件                                            | 同步项                                                    |
+| -------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| **全局原则 / 命令 / 架构** | `AGENTS.md`                                       | `.github/copilot-instructions.md`、各工具读根 `AGENTS.md` |
+| **某路径下编码规范**       | `agents/path-rules/<area>.md`                     | `.github/instructions/`、`.cursor/rules/`                 |
+| **新增角色**               | `.agents/skills/new-role/SKILL.md`                | 索引表、契约测试；见 skill 内章节                         |
+| **任意 skill**             | `.agents/skills/<name>/SKILL.md`                  | `pnpm run sync:agents`                                    |
+| **委派 prompt**            | `agents/prompts/delegate-expert.md`               | `delegate-expert` skill、`.github/prompts/`               |
+| **修改 UI 组件/modal**     | `agents/path-rules/screens.md`                    |                                                           |
+| **修改 GameState**         | `agents/path-rules/services.md`、`game-engine.md` |                                                           |
+| **修改依赖/CI**            | `AGENTS.md` + `agents/path-rules/ci-deploy.md`    | 对照 `package.json`、workflows                            |
 
-## Verification Methods
+## 验证
 
-1. **Contract tests** (automated): `pnpm run quality` runs `specs.contract.test.ts` to check ROLE_SPECS/NIGHT_STEPS/RESOLVERS alignment; missing new roles will fail in CI.
-2. **Hardcoded number cross-check**: Counts in instructions (e.g., "36 roles", "27 steps", "27 resolvers") derive from assertion values in contract tests (`specs.contract.test.ts` → `toHaveLength(N)`). Both must be updated in sync.
-3. **Authoritative source cross-check**: Versions and commands defer to executable config. Dependencies/runtime → `package.json` and lockfile; CI/deploy → `.github/workflows/*.yml` and `scripts/*`. Instructions/README are sync documentation only — when conflicts arise, fix the docs first.
-4. **Manual checklist** (pre-release/quarterly): Review recent changes against the table above to catch missed doc updates.
+1. `pnpm run sync:agents`
+2. `pnpm run quality`
+3. 契约测试：`specs.contract.test.ts` 等
 
-## Reducing Hardcoded Values
+## 硬编码数字
 
-Annotate the source next to counts in instructions for future maintainers:
+在源文件旁注释权威来源，例如：
 
 ```markdown
-<!-- Derived from specs.contract.test.ts: expect(getAllRoleIds()).toHaveLength(N) -->
-
-Currently 36; increment to 37 after adding a new role
+<!-- 来自 specs.contract.test.ts: toHaveLength(N) -->
 ```
 
-No need to make counts dynamically generated — instructions are static markdown and contract tests already cover consistency. The key is knowing where to update.
+## 不要改
 
-## Historical Document Management
+- `.github/copilot-instructions.md`
+- `.github/instructions/*.md`
+- `.github/skills/`、`skills/`、`.claude/skills/`、`.cursor/skills/`、`.cursor/rules/`
+- 根目录 `CLAUDE.md`、`GEMINI.md`（由 sync 生成）
 
-Completed migration/refactoring proposals: add `> ⚠️ Historical document — for reference only, does not reflect current code state` marker at the top. Do not delete.
+完整说明：[agent-config.md](agent-config.md)
