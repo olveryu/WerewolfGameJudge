@@ -59,13 +59,30 @@ export class CFStorageService implements IStorageService {
     );
   }
 
-  #compressImageWithDom(fileUri: string, maxSize: number, quality: number): Promise<Blob> {
+  /**
+   * Convert a blob: URL to a data: URL via fetch + FileReader.
+   *
+   * WeChat WebView's renderer sandbox blocks blob: URLs when set as img.src, but
+   * fetch() can still read blob: URLs from memory. Converting to a data URL first
+   * lets the <img> element load the image without triggering onerror.
+   */
+  async #blobUrlToDataUrl(blobUrl: string): Promise<string> {
+    const response = await fetch(blobUrl);
+    const blob = await response.blob();
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('图片加载失败，请换一张图片重试'));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async #compressImageWithDom(fileUri: string, maxSize: number, quality: number): Promise<Blob> {
+    // WeChat WebView blocks blob: URLs when used as img.src — convert to data URL first.
+    const imgSrc = fileUri.startsWith('blob:') ? await this.#blobUrlToDataUrl(fileUri) : fileUri;
+
     return new Promise((resolve, reject) => {
       const img = new Image();
-      // Do NOT set crossOrigin here. fileUri is always a same-origin blob URL from
-      // expo-image-picker. Setting crossOrigin='anonymous' switches the request to CORS
-      // mode; restricted WebViews (WeChat Android, iOS WKWebView) reject blob URLs in
-      // CORS mode and fire onerror instead of onload.
 
       img.onload = () => {
         let { width, height } = img;
@@ -105,7 +122,7 @@ export class CFStorageService implements IStorageService {
       };
 
       img.onerror = () => reject(new Error('图片加载失败，请换一张图片重试'));
-      img.src = fileUri;
+      img.src = imgSrc;
     });
   }
 }
