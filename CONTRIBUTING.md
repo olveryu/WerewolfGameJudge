@@ -61,3 +61,33 @@ commit message 会被 `commitlint` 自动校验。
 ## License
 
 贡献的代码将遵循本项目的 [MIT License](LICENSE)。
+
+## Windows 开发者注意事项
+
+- 换行符（EOL）和 Git：Windows 与 Unix 风格的换行符不同，若你在 Windows 上工作且看到大量“未更改但被修改”的文件，通常是 EOL 导致。仓库已添加 `.gitattributes` 来统一处理文本文件（将在仓库内保存为 LF），本地 Git 会根据 `core.autocrlf` 将其转换为适合本机的格式。
+
+- 常见处理步骤（当看到大量文件被标记为修改时）：
+
+```bash
+# 在确保无未提交重要更改的前提下运行：
+git add --renormalize .
+git commit -m "chore: normalize line endings"
+```
+
+- Husky 钩子在不同平台上的注意事项：
+  - 有些钩子可能包含平台专属的 `source` 路径（例如 macOS 上的 `/opt/homebrew/opt/asdf/libexec/asdf.sh`），这会在 Windows 上导致钩子失败并阻止 commit/push。
+  - 解决办法（优先选项）：在钩子脚本中加入存在性检查来优雅降级，例如：
+
+```sh
+if [ -f /opt/homebrew/opt/asdf/libexec/asdf.sh ]; then
+	. /opt/homebrew/opt/asdf/libexec/asdf.sh
+fi
+```
+
+    - 临时绕过（不推荐长期使用）：在本地需要快速提交时可使用 `--no-verify` 跳过钩子，例如 `git commit --no-verify` 或 `git push --no-verify` ——但这会跳过 lint / 测试钩子，请谨慎使用。
+
+- 开发环境建议：
+  - 保持 `pnpm install` 后的钩子依赖（`husky`, `lint-staged`, `commitlint`）可用。
+  - 如果你在 Windows 上开发，建议设置 `git config --global core.autocrlf true`（如习惯 CRLF），并遵循仓库的 `.gitattributes`。
+
+如需我为你的本地环境执行 EOL 规范化或帮你修改本地钩子脚本以兼容 Windows，我可以代劳。

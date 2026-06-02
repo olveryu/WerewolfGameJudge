@@ -1,0 +1,24 @@
+# Auto-detect text files and normalize to LF in the repo; let Git handle CRLF on Windows
+* text=auto
+
+# Force LF for common text/source files to keep CI and tooling consistent
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.jar binary
+
+# Preserve executable bit for scripts on supported platforms
+*.sh eol=lf
