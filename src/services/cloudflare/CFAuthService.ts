@@ -53,6 +53,7 @@ export class CFAuthService implements IAuthService {
   #generatedName: string | null = null;
   #needsWechatLogin = false;
   readonly #initPromise: Promise<void>;
+  readonly #authExpiredCallbacks = new Set<() => void>();
 
   get needsWechatLogin(): boolean {
     return this.#needsWechatLogin;
@@ -63,7 +64,7 @@ export class CFAuthService implements IAuthService {
     setTokenProvider(() => this.#cachedAccessToken);
     // Register refresh handler for 401 interception
     setRefreshHandler(() => this.#refreshTokens());
-    // Register auth expired callback
+    // Register auth expired callback: cfFetch fires this when both tokens are dead
     setOnAuthExpired(() => this.#handleAuthExpired());
 
     this.#initPromise = this.#autoSignIn();
@@ -496,9 +497,9 @@ export class CFAuthService implements IAuthService {
    * Attempt to refresh the access token using the stored refresh token.
    * Returns true if successful (new tokens saved), false otherwise.
    */
-  async #refreshTokens(): Promise<boolean> {
+  async #refreshTokens(): Promise<'refreshed' | 'expired' | 'offline'> {
     const refreshToken = this.#cachedRefreshToken;
-    if (!refreshToken) return false;
+    if (!refreshToken) return 'expired';
 
     try {
       const data = await cfPost<{
@@ -511,27 +512,32 @@ export class CFAuthService implements IAuthService {
       );
       this.#saveTokens(data.access_token, data.refresh_token);
       authLog.debug('Token refresh succeeded');
-      return true;
+      return 'refreshed';
     } catch (error: unknown) {
       const status = (error as { status?: number }).status;
       if (status === 401) {
         // Refresh token is invalid/expired — session is dead
         authLog.warn('Refresh token invalid, clearing session');
-        this.#clearTokens();
-        this.#currentUserId = null;
-        return false;
+        return 'expired';
       }
-      // Network error — don't clear, maybe we're offline
+      // Network error — don't clear tokens, user may be offline
       authLog.warn('Token refresh network error', { status });
-      return false;
+      return 'offline';
     }
   }
 
   #handleAuthExpired(): void {
     authLog.warn('Auth expired — all tokens invalid');
+    this.#needsWechatLogin = isMiniProgram();
     this.#clearTokens();
     this.#currentUserId = null;
     Sentry.setUser(null);
+    this.#authExpiredCallbacks.forEach((cb) => cb());
+  }
+
+  onAuthExpired(callback: () => void): () => void {
+    this.#authExpiredCallbacks.add(callback);
+    return () => this.#authExpiredCallbacks.delete(callback);
   }
 
   /**

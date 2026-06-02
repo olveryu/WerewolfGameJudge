@@ -110,4 +110,10 @@ export interface IAuthService {
 
   /** Generate random Chinese display name (Werewolf meme prefix + role name), cached per session */
   generateDisplayName(): string;
+
+  /**
+   * Subscribe to auth expiry events (both tokens dead, session fully lost).
+   * Returns an unsubscribe function. Call it in useEffect cleanup.
+   */
+  onAuthExpired(callback: () => void): () => void;
 }

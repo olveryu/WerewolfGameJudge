@@ -18,7 +18,7 @@ import { cfFetchLog } from '@/utils/logger';
 let tokenProvider: (() => string | null) | null = null;
 
 /** Callback to execute refresh token -> new token pair (injected by CFAuthService) */
-let refreshHandler: (() => Promise<boolean>) | null = null;
+let refreshHandler: (() => Promise<'refreshed' | 'expired' | 'offline'>) | null = null;
 
 /** Callback when refresh also fails (token fully expired) (injected by CFAuthService) */
 let onAuthExpired: (() => void) | null = null;
@@ -29,7 +29,9 @@ export function setTokenProvider(provider: () => string | null): void {
 }
 
 /** Inject refresh token executor callback (called by CFAuthService). */
-export function setRefreshHandler(handler: () => Promise<boolean>): void {
+export function setRefreshHandler(
+  handler: () => Promise<'refreshed' | 'expired' | 'offline'>,
+): void {
   refreshHandler = handler;
 }
 
@@ -45,17 +47,17 @@ export function getCurrentToken(): string | null {
 
 // ── Refresh lock: ensures only one refresh request at a time ────────────────
 
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<'refreshed' | 'expired' | 'offline'> | null = null;
 
 /**
  * Locked refresh: multiple concurrent 401 requests share the same refresh call.
- * Returns true if refresh succeeded (new token set), false on failure.
+ * Returns 'refreshed' if new token obtained, 'expired' if session dead, 'offline' if network error.
  *
  * @remarks single-flight lock: first 401 triggers refresh, subsequent 401s queue for the same result.
  *   Prevents refresh token from being consumed multiple times (rotation is single-use).
  */
-async function refreshWithLock(): Promise<boolean> {
-  if (!refreshHandler) return false;
+async function refreshWithLock(): Promise<'refreshed' | 'expired' | 'offline'> {
+  if (!refreshHandler) return 'expired';
 
   if (refreshPromise) {
     return refreshPromise;
@@ -137,8 +139,8 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
   // 401 interception: attempt refresh and retry once
   if (res.status === 401 && !opts.skipAuthIntercept && refreshHandler) {
     cfFetchLog.debug('401 received, attempting refresh', { path: opts.path });
-    const refreshed = await refreshWithLock();
-    if (refreshed) {
+    const refreshResult = await refreshWithLock();
+    if (refreshResult === 'refreshed') {
       // Retry with new token
       const retryHeaders = { ...opts.headers };
       const newToken = tokenProvider?.();
@@ -148,8 +150,13 @@ async function executeRequest<T>(opts: RequestOptions): Promise<T> {
       const retryRes = await doFetch(retryHeaders);
       return parseJsonResponse<T>(retryRes, opts.path);
     }
-    // Refresh failed -> trigger auth expired callback
-    onAuthExpired?.();
+    if (refreshResult === 'expired') {
+      // Session fully dead — notify UI and fail fast
+      onAuthExpired?.();
+      throw Object.assign(new Error('AUTH_EXPIRED'), { status: 401, reason: 'AUTH_EXPIRED' });
+    }
+    // refreshResult === 'offline': network error during refresh, don't sign out
+    // Fall through to parseJsonResponse so TanStack Query can retry
   }
 
   return parseJsonResponse<T>(res, opts.path);

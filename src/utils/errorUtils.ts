@@ -275,6 +275,7 @@ const EXPECTED_ERROR_CODES = new Set([
   'INSUFFICIENT_SHARDS',
   'ALREADY_OWNED',
   'NO_STATS',
+  'AUTH_EXPIRED',
 ]);
 
 export function isExpectedError(error: unknown): boolean {

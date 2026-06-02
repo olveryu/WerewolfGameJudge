@@ -168,6 +168,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [authService, updateUserIfChanged]);
 
+  // Session fully expired (both tokens dead) — clear user so UI transitions to login
+  useEffect(() => {
+    return authService.onAuthExpired(() => {
+      updateUserIfChanged(null);
+    });
+  }, [authService, updateUserIfChanged]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
