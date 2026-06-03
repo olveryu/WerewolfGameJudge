@@ -84,7 +84,7 @@ export const createRoleSelectorStyles = (colors: ThemeColors) => ({
     fontWeight: typography.weights.semibold,
   } satisfies TextStyle,
   chipVariant: {
-    borderColor: withAlpha(colors.primary, 0.502),
+    borderColor: colors.text,
     borderWidth: fixed.borderWidthHighlight,
   } satisfies ViewStyle,
   // ── Role stepper ──
