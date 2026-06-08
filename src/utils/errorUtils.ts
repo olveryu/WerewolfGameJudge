@@ -1,13 +1,9 @@
 /**
  * errorUtils - Shared error handling helpers
  *
- * Shared error handling utilities for cross-module reuse, eliminating duplicate error-to-message extraction and fire-and-forget patterns.
- * Pure function utilities — no React / service / game state dependencies.
+ * Shared error handling utilities for cross-module reuse, eliminating duplicate error-to-message extraction.
+ * Pure function utilities — no React / service / game state / Sentry dependencies.
  */
-
-import * as Sentry from '@sentry/react-native';
-
-import type { log as LoggerType } from './logger';
 
 /**
  * Extract a user-friendly error message from an unknown caught value.
@@ -103,40 +99,6 @@ export function isNetworkError(err: unknown): boolean {
   if (!message) return false;
 
   return NETWORK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
-}
-
-/**
- * Fire-and-forget a promise with unified error handling (log + Sentry).
- *
- * Replaces the repetitive pattern:
- * ```ts
- * void someAction().catch((err) => {
- *   log.error(label, err);
- *   Sentry.captureException(err);
- * });
- * ```
- *
- * @param promise - The promise to fire and forget
- * @param label - A descriptive label for logging (e.g., '[submitRevealAck]')
- * @param logger - A logger instance (must have `.error()`)
- */
-export function fireAndForget(
-  promise: Promise<unknown>,
-  label: string,
-  logger: Pick<ReturnType<typeof LoggerType.extend>, 'error' | 'warn'>,
-): void {
-  void promise.catch((err: unknown) => {
-    if (isAbortError(err)) {
-      logger.warn(label, '(aborted)', err);
-      return;
-    }
-    if (isNetworkError(err)) {
-      logger.warn(label, '(network error)', err);
-      return;
-    }
-    logger.error(label, err);
-    Sentry.captureException(err);
-  });
 }
 
 /** Server reason code → user-friendly Chinese message map */

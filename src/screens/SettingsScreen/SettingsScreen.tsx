@@ -8,7 +8,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
@@ -35,6 +34,7 @@ import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { getBuiltinAvatarImage, isBuiltinAvatarUrl } from '@/utils/avatar';
+import { handleError } from '@/utils/errorPipeline';
 import {
   getErrorMessage,
   getUserFacingMessage,
@@ -239,14 +239,13 @@ export const SettingsScreen: React.FC = () => {
           showSuccessOnLogin: true,
         });
       } catch (e: unknown) {
-        const message = getUserFacingMessage(e);
-        if (isExpectedError(e)) {
-          settingsLog.warn('Account switch expected error', { error: e }, e);
-        } else {
-          settingsLog.error('Account switch failed', { error: e }, e);
-          Sentry.captureException(e);
-        }
-        showErrorAlert('切换失败', message);
+        handleError(e, {
+          label: '切换账号',
+          logger: settingsLog,
+          feedback: false,
+          isExpected: isExpectedError,
+        });
+        showErrorAlert('切换失败', getUserFacingMessage(e));
       }
     };
 

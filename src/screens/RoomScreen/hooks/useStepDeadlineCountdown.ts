@@ -18,7 +18,7 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useEffect, useRef, useState } from 'react';
 
-import { fireAndForget } from '@/utils/errorUtils';
+import { fireAndForget } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseStepDeadlineCountdownParams {

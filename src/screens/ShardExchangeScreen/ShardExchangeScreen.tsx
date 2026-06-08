@@ -6,7 +6,6 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
 import { REWARD_POOL, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useCallback, useMemo, useState } from 'react';
@@ -30,6 +29,7 @@ import { useExchangeShardMutation, useGachaStatusQuery } from '@/hooks/queries/u
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
+import { handleError } from '@/utils/errorPipeline';
 import { gachaLog } from '@/utils/logger';
 
 import { getRewardDisplayName, RewardPreview } from '../GachaScreen/components/RewardPreview';
@@ -144,12 +144,14 @@ const PREVIEW_SIZE = 56;
                 toast.success('兑换成功', { description: `获得「${displayName}」` });
               },
               onError: (error: Error) => {
-                const isExpected =
-                  error.message.includes('碎片不足') || error.message.includes('已拥有');
-                if (!isExpected) {
-                  gachaLog.error('Exchange failed', { rewardId: item.id, error });
-                  Sentry.captureException(error);
-                }
+                handleError(error, {
+                  label: '兑换',
+                  logger: gachaLog,
+                  feedback: false,
+                  isExpected: (e) =>
+                    e instanceof Error &&
+                    (e.message.includes('碎片不足') || e.message.includes('已拥有')),
+                });
                 toast.error(error.message || '兑换失败，请稍后重试');
               },
             });

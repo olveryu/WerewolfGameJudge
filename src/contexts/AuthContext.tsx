@@ -8,19 +8,14 @@
  * Manages auth state, subscribes to onAuthStateChange, and provides login/logout/updateProfile.
  * No game business logic; does not directly manipulate game state.
  */
-import * as Sentry from '@sentry/react-native';
 import type React from 'react';
 import { createContext, use, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
 import { navigationRef } from '@/navigation/navigationRef';
 import type { AuthUser } from '@/services/types/IAuthService';
-import {
-  getUserFacingMessage,
-  isAbortError,
-  isExpectedError,
-  isNetworkError,
-} from '@/utils/errorUtils';
+import { handleError } from '@/utils/errorPipeline';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
@@ -138,10 +133,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authLog.info('No stored user');
       }
     } catch (e: unknown) {
-      const friendly = getUserFacingMessage(e);
-      authLog.error('auth error', { label: 'Failed to load user' }, e);
-      if (!isExpectedError(e) && !isAbortError(e) && !isNetworkError(e)) Sentry.captureException(e);
-      setError(friendly);
+      // Classification + Sentry routed through the single pipeline; UI here is
+      // the boot-error `setError` banner, so suppress handleError's own feedback.
+      handleError(e, { label: '加载用户信息', logger: authLog, feedback: false });
+      setError(getUserFacingMessage(e));
     } finally {
       setLoading(false);
     }

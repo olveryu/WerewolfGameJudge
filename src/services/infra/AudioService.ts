@@ -4,11 +4,11 @@
  * Delegates platform-specific TTS playback to AudioPlaybackStrategy,
  * delegates BGM lifecycle to BgmPlayer, exposes a unified public API.
  */
-import * as Sentry from '@sentry/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
+import { handleError } from '@/utils/errorPipeline';
 import { audioLog } from '@/utils/logger';
 
 import {
@@ -89,8 +89,7 @@ export class AudioService {
         document.addEventListener('visibilitychange', this.#visibilityHandler);
       }
     } catch (error) {
-      audioLog.error('Failed to initialize audio', error);
-      Sentry.captureException(error);
+      handleError(error, { label: '音频初始化', logger: audioLog, feedback: false });
     }
   }
 

@@ -14,12 +14,18 @@
  * - load() must be called once at app startup; subsequent reads are synchronous
  * - Silently degrades to in-memory defaults when MMKV is unavailable
  */
-import * as Sentry from '@sentry/react-native';
-
 import { storage } from '@/lib/storage';
+import { handleError } from '@/utils/errorPipeline';
 import { settingsServiceLog } from '@/utils/logger';
 
 const SETTINGS_KEY = '@werewolf_settings';
+
+/**
+ * MMKV access can throw `QuotaExceededError` / `SecurityError` (e.g. private mode,
+ * storage disabled). These are environment limits, not bugs — expected, no Sentry.
+ */
+const isExpectedStorageError = (err: unknown): boolean =>
+  err instanceof Error && (err.name === 'QuotaExceededError' || err.name === 'SecurityError');
 
 import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
 import { BGM_VOLUME, VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
@@ -110,14 +116,12 @@ export class SettingsService {
       this.#loaded = true;
     } catch (e) {
       // If load fails, use defaults
-      const isExpectedStorage =
-        e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
-      if (isExpectedStorage) {
-        settingsServiceLog.warn('Storage access failed while loading settings, using defaults', e);
-      } else {
-        settingsServiceLog.error('Failed to load settings, using defaults', e);
-        Sentry.captureException(e);
-      }
+      handleError(e, {
+        label: '加载设置',
+        logger: settingsServiceLog,
+        feedback: false,
+        isExpected: isExpectedStorageError,
+      });
       this.#settings = { ...DEFAULT_SETTINGS };
       this.#loaded = true;
     }
@@ -131,14 +135,12 @@ export class SettingsService {
       storage.set(SETTINGS_KEY, JSON.stringify(this.#settings));
       this.#notifyListeners();
     } catch (e) {
-      const isExpectedStorage =
-        e instanceof Error && (e.name === 'QuotaExceededError' || e.name === 'SecurityError');
-      if (isExpectedStorage) {
-        settingsServiceLog.warn('Storage access failed while saving settings', e);
-      } else {
-        settingsServiceLog.error('Failed to save settings', e);
-        Sentry.captureException(e);
-      }
+      handleError(e, {
+        label: '保存设置',
+        logger: settingsServiceLog,
+        feedback: false,
+        isExpected: isExpectedStorageError,
+      });
     }
   }
 

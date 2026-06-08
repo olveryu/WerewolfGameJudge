@@ -6,7 +6,6 @@
  * Does not access third-party APIs directly, store API keys, or mutate game state.
  */
 
-import * as Sentry from '@sentry/react-native';
 import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
@@ -14,6 +13,7 @@ import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import { getCurrentToken } from '@/services/cloudflare/cfFetch';
 import { combineSignals, createTimeoutSignal } from '@/utils/abortSignal';
+import { handleError } from '@/utils/errorPipeline';
 import { log } from '@/utils/logger';
 
 const chatLog = log.extend('AIChatService');
@@ -237,8 +237,10 @@ export async function* streamChatMessage(
       chatLog.warn('Upstream unavailable', { status: response.status, error: errorText });
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     } else {
-      chatLog.error('Streaming API error', { status: response.status, error: errorText });
-      Sentry.captureException(new Error(`Streaming API error: HTTP ${response.status}`));
+      handleError(
+        new Error(`Streaming API error: HTTP ${response.status}: ${errorText.slice(0, 200)}`),
+        { label: 'AI 流式请求', logger: chatLog, feedback: false },
+      );
       yield { type: 'error', content: 'AI 服务暂时不可用，请稍后重试' };
     }
     return;

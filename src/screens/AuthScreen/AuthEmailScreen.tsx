@@ -8,7 +8,6 @@
  */
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as Sentry from '@sentry/react-native';
 import React, { useCallback, useMemo } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 
@@ -20,6 +19,7 @@ import { clearRecentRooms } from '@/lib/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isExpectedError } from '@/utils/errorUtils';
 import { authLog } from '@/utils/logger';
 
@@ -94,14 +94,13 @@ export const AuthEmailScreen: React.FC = () => {
         clearRecentRooms();
         await refreshUser();
       } catch (e: unknown) {
-        const message = getUserFacingMessage(e);
-        if (isExpectedError(e)) {
-          authLog.warn('Sign-out before switch expected error', { error: e }, e);
-        } else {
-          authLog.error('Sign-out before switch failed', { error: e }, e);
-          Sentry.captureException(e);
-        }
-        showErrorAlert('切换失败', message);
+        handleError(e, {
+          label: '切换账号',
+          logger: authLog,
+          feedback: false,
+          isExpected: isExpectedError,
+        });
+        showErrorAlert('切换失败', getUserFacingMessage(e));
         return;
       }
     }

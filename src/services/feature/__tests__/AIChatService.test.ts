@@ -5,11 +5,6 @@
  * and the streamChatMessage async generator with mocked fetch.
  */
 
-// Mock Sentry
-jest.mock('@sentry/react-native', () => ({
-  captureException: jest.fn(),
-}));
-
 // Mock logger
 jest.mock('../../../utils/logger', () => ({
   log: { extend: () => ({ debug: jest.fn(), warn: jest.fn(), error: jest.fn() }) },

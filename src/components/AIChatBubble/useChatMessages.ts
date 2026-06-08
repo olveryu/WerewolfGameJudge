@@ -6,7 +6,6 @@
  * Owns message CRUD, AIChatService calls, and haptics. No UI rendering or gesture handling.
  */
 
-import * as Sentry from '@sentry/react-native';
 import { newRequestId } from '@werewolf/game-engine/utils/id';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
@@ -21,6 +20,7 @@ import {
 } from '@/services/feature/AIChatService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
 import { chatLog } from '@/utils/logger';
 
@@ -300,9 +300,8 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
           showErrorAlert('发送失败', NETWORK_ERROR);
           return;
         }
-        // Non-abort errors: log + Sentry + user feedback
-        chatLog.error('sendMessage failed', err);
-        Sentry.captureException(err);
+        // Non-abort errors: route Sentry through the pipeline; custom UI cleanup stays inline
+        handleError(err, { label: '发送消息', logger: chatLog, feedback: false });
         setMessages((prev) => prev.filter((m) => m.id !== assistantId));
         showErrorAlert('发送失败', getUserFacingMessage(err));
       } finally {
