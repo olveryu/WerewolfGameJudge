@@ -23,6 +23,16 @@ import { cfUpload } from './cfFetch';
 const avatarLog = log.extend('CFAvatar');
 
 /**
+ * Extract the URI scheme (e.g. "blob", "data", "https") for diagnostics.
+ * Avoids leaking the full URI into Sentry, which for data: URLs carries the
+ * entire base64 payload.
+ */
+function describeUriScheme(uri: string): string {
+  const idx = uri.indexOf(':');
+  return idx > 0 ? uri.slice(0, idx) : 'unknown';
+}
+
+/**
  * CFStorageService — uploads avatars via Cloudflare R2.
  *
  * Responsibilities: image compression, FormData construction, upload call.
@@ -72,7 +82,15 @@ export class CFStorageService implements IStorageService {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('图片加载失败，请换一张图片重试'));
+      // FileReader.error is a DOMException carrying the real failure reason — pass it as cause.
+      reader.onerror = () =>
+        reject(
+          new Error('图片读取失败，请换一张图片重试', {
+            cause:
+              reader.error ??
+              new Error(`FileReader failed (type=${blob.type || 'unknown'}, size=${blob.size})`),
+          }),
+        );
       reader.readAsDataURL(blob);
     });
   }
@@ -101,7 +119,11 @@ export class CFStorageService implements IStorageService {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          reject(new Error('图片处理失败，请换一张图片重试'));
+          reject(
+            new Error('图片处理失败，请换一张图片重试', {
+              cause: new Error(`Canvas 2D context unavailable (${width}x${height})`),
+            }),
+          );
           return;
         }
 
@@ -113,7 +135,13 @@ export class CFStorageService implements IStorageService {
               avatarLog.debug('Compressed image', { sizeKB: Math.round(blob.size / 1024) });
               resolve(blob);
             } else {
-              reject(new Error('图片压缩失败，请换一张图片重试'));
+              reject(
+                new Error('图片压缩失败，请换一张图片重试', {
+                  cause: new Error(
+                    `canvas.toBlob returned null (${width}x${height}, image/jpeg q=${quality})`,
+                  ),
+                }),
+              );
             }
           },
           'image/jpeg',
@@ -121,7 +149,16 @@ export class CFStorageService implements IStorageService {
         );
       };
 
-      img.onerror = () => reject(new Error('图片加载失败，请换一张图片重试'));
+      // The <img> error event is a bare Event with no detail — synthesize scheme context
+      // (data:/blob:/https:) so Sentry can tell the WeChat blob→dataURL path from direct loads.
+      img.onerror = () =>
+        reject(
+          new Error('图片解码失败，请换一张图片重试', {
+            cause: new Error(
+              `Image decode failed (src=${describeUriScheme(imgSrc)}, origin=${describeUriScheme(fileUri)})`,
+            ),
+          }),
+        );
       img.src = imgSrc;
     });
   }
