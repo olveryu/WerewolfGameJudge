@@ -20,20 +20,40 @@ export function getErrorMessage(e: unknown, fallback = '请稍后重试'): strin
 }
 
 /**
+ * The one confirmed WeChat WKWebView (iOS) abort wording.
+ *
+ * Standard envs throw `AbortError`/`TimeoutError` (DOMException) and are matched
+ * by `name`. WeChat iOS instead rewrites an aborted fetch into a `TypeError`
+ * whose message is `"AbortError: Fetch is aborted"`, losing the standard `name`.
+ * Match only this proven substring — do NOT broaden to speculative variants;
+ * unseen cases should surface in Sentry so we can act on real data.
+ */
+const WECHAT_ABORT_MESSAGE = 'fetch is aborted';
+
+function messageMatchesAbort(message: string): boolean {
+  return message.toLowerCase().includes(WECHAT_ABORT_MESSAGE);
+}
+
+/**
  * Detect fetch AbortError or TimeoutError (user cancel / AbortSignal.timeout / network blip).
  *
- * Handles three shapes:
+ * Handles these shapes:
  * - `DOMException` with `name === 'AbortError'` (user cancel) or `name === 'TimeoutError'` (AbortSignal.timeout)
- * - Standard `Error` instance with `name === 'AbortError'`
- * - Plain object `{ message, code, details, hint }` where `message` contains "AbortError"
+ * - Standard `Error` instance with `name === 'AbortError'`/`'TimeoutError'`, OR the WeChat WKWebView
+ *   wording (it rewrites aborted fetch into `TypeError: AbortError: Fetch is aborted`)
+ * - Plain object `{ message, code, details, hint }` carrying the WeChat abort wording
  */
 export function isAbortError(err: unknown): boolean {
   if (err instanceof DOMException) {
     return err.name === 'AbortError' || err.name === 'TimeoutError';
   }
-  if (err instanceof Error) return err.name === 'AbortError';
+  if (err instanceof Error) {
+    return (
+      err.name === 'AbortError' || err.name === 'TimeoutError' || messageMatchesAbort(err.message)
+    );
+  }
   if (err != null && typeof err === 'object' && 'message' in err) {
-    return String(err.message).includes('AbortError');
+    return messageMatchesAbort(String(err.message));
   }
   return false;
 }

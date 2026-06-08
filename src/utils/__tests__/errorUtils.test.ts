@@ -2,7 +2,12 @@
  * errorUtils Unit Tests — translateReasonCode + getUserFacingMessage + isExpectedError
  */
 
-import { getUserFacingMessage, isExpectedError, translateReasonCode } from '../errorUtils';
+import {
+  getUserFacingMessage,
+  isAbortError,
+  isExpectedError,
+  translateReasonCode,
+} from '../errorUtils';
 
 describe('translateReasonCode', () => {
   it('translates known reason codes to Chinese', () => {
@@ -123,5 +128,39 @@ describe('isExpectedError', () => {
     expect(isExpectedError('INTERNAL_ERROR')).toBe(false);
     expect(isExpectedError('SERVER_ERROR')).toBe(false);
     expect(isExpectedError(new Error('INTERNAL_ERROR'))).toBe(false);
+  });
+});
+
+describe('isAbortError', () => {
+  it('detects DOMException AbortError and TimeoutError', () => {
+    expect(isAbortError(new DOMException('aborted', 'AbortError'))).toBe(true);
+    expect(isAbortError(new DOMException('timed out', 'TimeoutError'))).toBe(true);
+  });
+
+  it('detects standard Error with AbortError/TimeoutError name', () => {
+    const abort = new Error('aborted');
+    abort.name = 'AbortError';
+    expect(isAbortError(abort)).toBe(true);
+
+    const timeout = new Error('timed out');
+    timeout.name = 'TimeoutError';
+    expect(isAbortError(timeout)).toBe(true);
+  });
+
+  it('detects WeChat WKWebView TypeError abort (name=TypeError, message=AbortError)', () => {
+    // WeChat iOS rewrites aborted fetch into a TypeError; name check alone misses it.
+    expect(isAbortError(new TypeError('AbortError: Fetch is aborted'))).toBe(true);
+  });
+
+  it('detects plain object with abort message', () => {
+    expect(isAbortError({ message: 'AbortError: Fetch is aborted' })).toBe(true);
+  });
+
+  it('returns false for unrelated errors', () => {
+    expect(isAbortError(new TypeError('Failed to fetch'))).toBe(false);
+    expect(isAbortError(new Error('INTERNAL_ERROR'))).toBe(false);
+    expect(isAbortError({ reason: 'SERVER_ERROR' })).toBe(false);
+    expect(isAbortError(null)).toBe(false);
+    expect(isAbortError(undefined)).toBe(false);
   });
 });
