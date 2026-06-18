@@ -33,10 +33,11 @@ import { Platform } from 'react-native';
 
 import { audioLog } from '@/utils/logger';
 
+import { ensureAudioContextRunning, getAudioContext } from './AudioContextOwner';
 import { BGM_VOLUME } from './audioRegistry';
 import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
-import { getUnlockedAudioContext, getUnlockedBgmElement } from './webAudioUnlock';
+import { getUnlockedBgmElement } from './webAudioUnlock';
 
 const isWeb = Platform.OS === 'web';
 
@@ -125,7 +126,7 @@ export class BgmPlayer {
     this.#destroyWebPlayer();
     this.#cleanupNativePlayer();
     // Keep #webAudioCtx, #webGainNode, #webElement, and #webSourceNode alive.
-    // AudioContext is a shared singleton from webAudioUnlock — closing or
+    // AudioContext is a shared singleton owned by AudioContextOwner — closing or
     // nulling it poisons the singleton.  The element↔source binding is
     // permanent per spec (createMediaElementSource can only be called once
     // per element); nulling them causes an InvalidStateError on next start().
@@ -151,9 +152,8 @@ export class BgmPlayer {
   resume(): void {
     if (!this.#isPlaying) return;
     if (this.#webElement) {
-      if (this.#webAudioCtx?.state === 'suspended') {
-        void this.#webAudioCtx.resume();
-      }
+      // Ensure shared context is running (covers WebKit suspended + interrupted).
+      void ensureAudioContextRunning();
       this.#webElement.play().catch((e) => {
         audioLog.warn('error resuming web bgm', e);
       });
@@ -194,15 +194,15 @@ export class BgmPlayer {
     const audioUrl = audioAssetToUrl(asset);
 
     // Reuse AudioContext + GainNode + HTMLAudioElement across tracks.
-    // The gesture-authorized AudioContext from webAudioUnlock MUST be available
-    // by the time BGM plays (user already clicked "start game" / play button).
-    // Fail fast instead of creating an unauthorized AudioContext that Chrome
-    // will suspend (causing silent playback failure).
+    // The shared AudioContext from AudioContextOwner MUST be available by the time
+    // BGM plays (user already clicked "start game" / play button). Fail fast instead
+    // of creating an unauthorized AudioContext that Chrome will suspend (causing
+    // silent playback failure).
     if (!this.#webAudioCtx || this.#webAudioCtx.state === 'closed') {
-      const ctx = getUnlockedAudioContext();
+      const ctx = getAudioContext();
       if (!ctx || ctx.state === 'closed') {
         audioLog.error(
-          'BgmPlayer: no unlocked AudioContext available — webAudioUnlock may not have fired',
+          'BgmPlayer: no shared AudioContext available — webAudioUnlock may not have fired',
         );
         return;
       }
@@ -211,11 +211,10 @@ export class BgmPlayer {
       this.#webGainNode.connect(this.#webAudioCtx.destination);
     }
 
-    // Chrome auto-suspends idle AudioContexts. Resume before play so audio
-    // actually routes through the GainNode → destination.
-    if (this.#webAudioCtx.state === 'suspended') {
-      void this.#webAudioCtx.resume();
-    }
+    // Ensure the shared context is running before play so audio routes through the
+    // GainNode → destination. Owner handles resume + iOS-interruption rejection;
+    // fire-and-forget is safe because ensureAudioContextRunning never rejects.
+    void ensureAudioContextRunning();
     const gain = this.#webGainNode!;
     gain.gain.value = this.#volume;
 
@@ -352,7 +351,7 @@ export class BgmPlayer {
    *
    * The HTMLAudioElement, MediaElementAudioSourceNode, AudioContext, and
    * GainNode are intentionally kept alive:
-   * - AudioContext is a shared singleton from webAudioUnlock.
+   * - AudioContext is a shared singleton owned by AudioContextOwner.
    * - createMediaElementSource() permanently binds an element to a source
    *   node (spec §1.22); calling it again on the same element throws
    *   InvalidStateError.  Reuse the binding and swap src instead.
