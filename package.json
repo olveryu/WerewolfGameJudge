@@ -14,7 +14,7 @@
     "e2e": "playwright test --reporter=list",
     "e2e:core": "pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
     "e2e:remote": "E2E_ENV=remote pnpm exec playwright test --workers=1 --reporter=line --trace=on --max-failures=1",
-    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --check",
