@@ -64,18 +64,21 @@ export interface SeatTileStyles {
   tileWrapper: ViewStyle;
   playerTile: ViewStyle;
   mySpotTile: ViewStyle;
-  wolfTile: ViewStyle;
-  wolfTileFramed: ViewStyle;
-  selectedTile: ViewStyle;
-  selectedTileFramed: ViewStyle;
-  controlledTile: ViewStyle;
+  /**
+   * Unified seat highlight rings. A solid colored ring (border + glow) is independent of avatar
+   * opacity, so it stays visible on opaque custom avatars without covering the avatar face.
+   * Framed variants use glow only to avoid clashing with the decorative frame.
+   */
+  wolfRing: ViewStyle;
+  wolfRingFramed: ViewStyle;
+  selectedRing: ViewStyle;
+  selectedRingFramed: ViewStyle;
+  controlledRing: ViewStyle;
+  controlledRingFramed: ViewStyle;
   framedTile: ViewStyle;
   seatNumberBadge: ViewStyle;
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
-  avatarOverlay: ViewStyle;
-  wolfOverlay: ViewStyle;
-  selectedOverlay: ViewStyle;
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
@@ -344,6 +347,18 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   const PetComponent = petConfig?.Component;
   const petSize = Math.round(tileSize * 0.32);
 
+  // Unified seat highlight ring. Priority: controlled (host takeover) > selected (current target) > wolf (faction reveal).
+  // Resolved as a single style so every highlight state shares one avatar-independent indicator.
+  const hasFrame = !!playerAvatarFrame;
+  let highlightRingStyle: ViewStyle | null = null;
+  if (isControlled) {
+    highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
+  } else if (isSelected) {
+    highlightRingStyle = hasFrame ? styles.selectedRingFramed : styles.selectedRing;
+  } else if (isWolf) {
+    highlightRingStyle = hasFrame ? styles.wolfRingFramed : styles.wolfRing;
+  }
+
   return (
     <View style={styles.tileWrapper} testID={TESTIDS.seatTile(seat)}>
       <Animated.View style={tileAnimatedStyle}>
@@ -358,10 +373,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             styles.playerTile,
             !hasPlayer && styles.emptyTile,
             isMySpot && styles.mySpotTile,
-            !!playerAvatarFrame && styles.framedTile,
-            isWolf && (playerAvatarFrame ? styles.wolfTileFramed : styles.wolfTile),
-            isSelected && (playerAvatarFrame ? styles.selectedTileFramed : styles.selectedTile),
-            isControlled && styles.controlledTile,
+            hasFrame && styles.framedTile,
+            highlightRingStyle,
           ]}
           onPress={handlePress}
           onLongPress={handleLongPress}
@@ -409,15 +422,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
                 }
                 frameId={playerAvatarFrame}
               />
-              {(isWolf || isSelected) && (
-                <View
-                  style={[
-                    styles.avatarOverlay,
-                    isWolf && styles.wolfOverlay,
-                    isSelected && styles.selectedOverlay,
-                  ]}
-                />
-              )}
             </Animated.View>
           ) : null}
 
@@ -499,6 +503,19 @@ export const SeatTile = memo(SeatTileComponent);
  * Exported for use by PlayerGrid.
  */
 export function createSeatTileStyles(colors: ThemeColors, tileSize: number): SeatTileStyles {
+  // Unified highlight ring: solid colored border + glow. Independent of avatar opacity, so it stays
+  // visible on opaque custom avatars and never covers the avatar face.
+  const ring = (color: string): ViewStyle => ({
+    borderColor: color,
+    borderWidth: fixed.borderWidthHighlight,
+    boxShadow: `0px 0px 8px ${withAlpha(color, 0.4)}`,
+    elevation: 6,
+  });
+  // Framed variant: glow only, so the ring does not clash with the decorative frame border.
+  const ringFramed = (color: string): ViewStyle => ({
+    boxShadow: `0px 0px 10px ${withAlpha(color, 0.5)}`,
+    elevation: 6,
+  });
   return StyleSheet.create({
     tileWrapper: {
       width: tileSize,
@@ -523,27 +540,12 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       backgroundColor: colors.transparent,
       boxShadow: 'none',
     },
-    wolfTile: {
-      backgroundColor: withAlpha(colors.wolf, 0.08),
-      boxShadow: `0px 0px 8px ${withAlpha(colors.wolf, 0.4)}`,
-      elevation: 6,
-    },
-    wolfTileFramed: {
-      boxShadow: `0px 0px 8px ${withAlpha(colors.wolf, 0.4)}`,
-      elevation: 6,
-    },
-    selectedTile: {
-      backgroundColor: colors.primaryDark,
-      borderColor: colors.primaryDark,
-      boxShadow: `0px 0px 16px ${withAlpha(colors.primaryDark, 0.5)}`,
-    },
-    selectedTileFramed: {
-      boxShadow: `0px 0px 16px ${withAlpha(colors.primaryDark, 0.5)}`,
-    },
-    controlledTile: {
-      borderColor: colors.warning,
-      borderWidth: fixed.borderWidthHighlight,
-    },
+    wolfRing: ring(colors.wolf),
+    wolfRingFramed: ringFramed(colors.wolf),
+    selectedRing: ring(colors.primaryDark),
+    selectedRingFramed: ringFramed(colors.primaryDark),
+    controlledRing: ring(colors.warning),
+    controlledRingFramed: ringFramed(colors.warning),
     seatNumberBadge: {
       position: 'absolute',
       top: -spacing.tight,
@@ -566,17 +568,6 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       justifyContent: 'center',
       alignItems: 'center',
       overflow: 'visible' as const,
-    },
-    avatarOverlay: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: withAlpha(colors.primary, 0.302),
-      borderRadius: borderRadius.large,
-    },
-    wolfOverlay: {},
-    selectedOverlay: {
-      ...StyleSheet.absoluteFill,
-      backgroundColor: withAlpha(colors.primaryDark, 0.35),
-      borderRadius: borderRadius.large,
     },
     mySeatBadge: {
       backgroundColor: colors.success,
