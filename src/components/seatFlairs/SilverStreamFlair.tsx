@@ -3,16 +3,12 @@
  *
  * 2 silver liquid streams flow downward from both top sides along the edges, AnimatedPath arcs + shimmer particles.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -104,10 +100,7 @@ const StreamFlow = memo<{ seed: StreamSeed; size: number; progress: { value: num
 StreamFlow.displayName = 'StreamFlow';
 
 export const SilverStreamFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const seeds = useMemo<StreamSeed[]>(
     () => [

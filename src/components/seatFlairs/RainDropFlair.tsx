@@ -4,16 +4,12 @@
  * 12 diagonal raindrops fall with trailing streaks and small splash rings at the bottom.
  * react-native-svg + Reanimated useAnimatedProps。
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
@@ -73,11 +69,7 @@ const RainParticle = memo<{ seed: RainSeed; size: number; progress: { value: num
 RainParticle.displayName = 'RainParticle';
 
 export const RainDropFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const seeds = useMemo(
     () =>

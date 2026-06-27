@@ -4,16 +4,12 @@
  * Multiple firefly dots that move randomly and blink independently.
  * Rare-tier seat flair template - 6 particles with pseudo-random paths.
  */
-import { memo, useEffect, useRef } from 'react';
+import { memo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
@@ -29,12 +25,8 @@ const FLY_COUNT = 6;
 const SEEDS = [0.13, 0.47, 0.73, 0.29, 0.61, 0.89] as const;
 
 export const FireflyFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
+  const progress = useLoopProgress(7000);
   const seedRef = useRef(SEEDS);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress]);
 
   const flyProps = Array.from({ length: FLY_COUNT }, (_, i) => {
     const seed = seedRef.current[i]!;

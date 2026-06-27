@@ -3,16 +3,12 @@
  *
  * 4 six-armed ice crystals slowly rotate + fade in/out over the avatar area; AnimatedLine draws the symmetric arms.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedLine } from './svgAnimatedPrimitives';
@@ -128,10 +124,7 @@ const IceCrystal = memo<{ seed: CrystalSeed; size: number; progress: { value: nu
 IceCrystal.displayName = 'IceCrystal';
 
 export const LunarFrostFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   const seeds = useMemo<CrystalSeed[]>(
     () => [

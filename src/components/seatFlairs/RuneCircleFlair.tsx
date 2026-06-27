@@ -5,16 +5,12 @@
  * halo layer + rune path layer + center point, with wave-pulse flow.
  * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { LegendaryAura } from './legendaryEffects';
@@ -105,16 +101,11 @@ const RuneParticle = memo<{
 RuneParticle.displayName = 'RuneParticle';
 
 export const RuneCircleFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  const slowProgress = useSharedValue(0);
+  const progress = useLoopProgress(10000);
+  const slowProgress = useLoopProgress(7000);
   const cx = size / 2;
   const cy = size / 2;
   const orbit = ORBIT * size;
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 10000, easing: Easing.linear }), -1);
-    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress, slowProgress]);
 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>

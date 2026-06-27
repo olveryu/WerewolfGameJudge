@@ -4,16 +4,12 @@
  * 3 comets orbit at the periphery, each with 8 fading trail segments.
  * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { LegendaryAura } from './legendaryEffects';
@@ -89,13 +85,8 @@ const CometParticle = memo<{ seed: CometSeed; size: number; progress: { value: n
 CometParticle.displayName = 'CometParticle';
 
 export const CometTailFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  const slowProgress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 5000, easing: Easing.linear }), -1);
-    slowProgress.value = withRepeat(withTiming(1, { duration: 7000, easing: Easing.linear }), -1);
-  }, [progress, slowProgress]);
+  const progress = useLoopProgress(5000);
+  const slowProgress = useLoopProgress(7000);
 
   const seeds = useMemo(
     () =>

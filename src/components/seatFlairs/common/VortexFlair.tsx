@@ -3,16 +3,12 @@
  *
  * Multiple particles spiral inward and fade. Rare-tier seat flair template — 8 particles.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
@@ -25,11 +21,7 @@ interface ColoredFlairProps extends FlairProps {
 const PARTICLE_COUNT = 8;
 
 export const VortexFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const particleProps = Array.from({ length: PARTICLE_COUNT }, (_, i) => {
     const phase = i / PARTICLE_COUNT;

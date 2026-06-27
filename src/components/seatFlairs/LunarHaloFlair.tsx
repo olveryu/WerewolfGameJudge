@@ -4,16 +4,12 @@
  * 3 crescent arc light bands rotating around the avatar, with a glow ball at each endpoint.
  * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -68,11 +64,7 @@ const ArcParticle = memo<{ index: number; size: number; progress: { value: numbe
 ArcParticle.displayName = 'ArcParticle';
 
 export const LunarHaloFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>

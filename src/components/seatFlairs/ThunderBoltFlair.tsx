@@ -4,16 +4,12 @@
  * 6 short jagged lightning bolts strike outward from avatar edge, flashing in turn (flash→afterglow→fade).
  * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -143,11 +139,7 @@ const BoltParticle = memo<{ seed: BoltSeed; size: number; progress: { value: num
 BoltParticle.displayName = 'BoltParticle';
 
 export const ThunderBoltFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const bolts = useMemo(
     () =>

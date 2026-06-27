@@ -44,6 +44,14 @@ export const LoopingSeatAnimation = memo<LoopingSeatAnimationProps>(
       onActiveChange?.(true);
     }, [cycle, onActiveChange]);
 
+    // Clear any pending loop timer on unmount to avoid firing on a dead component
+    useEffect(
+      () => () => {
+        if (timerRef.current != null) clearTimeout(timerRef.current);
+      },
+      [],
+    );
+
     const handleComplete = useCallback(() => {
       onActiveChange?.(false);
       // Clear any pending timer to prevent stacking

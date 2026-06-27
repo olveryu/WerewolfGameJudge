@@ -4,16 +4,12 @@
  * Two short diagonal lines slowly translate and fade across the seat interior, simulating a glass highlight sweep.
  * Common-tier seat flair template.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import { AnimatedLine } from '../svgAnimatedPrimitives';
@@ -27,11 +23,7 @@ interface ColoredFlairProps extends FlairProps {
 const STREAK_LEN = 0.25;
 
 export const WaveFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4200, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4200);
 
   // Single subtle streak: sweeps left→right across center
   const streakProps = useAnimatedProps(() => {

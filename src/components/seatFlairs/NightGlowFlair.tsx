@@ -3,16 +3,12 @@
  *
  * 8 bioluminescent particles slowly drift around the avatar with a breathing pulse (halo + bright core).
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
@@ -80,10 +76,7 @@ const GlowParticle = memo<{ seed: GlowSeed; size: number; progress: { value: num
 GlowParticle.displayName = 'GlowParticle';
 
 export const NightGlowFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   const seeds = useMemo(
     () =>

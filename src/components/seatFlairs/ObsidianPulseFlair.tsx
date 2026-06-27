@@ -3,16 +3,12 @@
  *
  * 4 dark geometric diamonds expand outward from the center then contract, alternating in a breathing rhythm.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedPath } from './svgAnimatedPrimitives';
@@ -66,10 +62,7 @@ const DiamondShape = memo<{ seed: ShapeSeed; size: number; progress: { value: nu
 DiamondShape.displayName = 'DiamondShape';
 
 export const ObsidianPulseFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(3500);
 
   const seeds = useMemo(
     () =>

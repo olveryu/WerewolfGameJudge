@@ -4,16 +4,12 @@
  * A slow-breathing colored arc that sweeps over the top edge.
  * Rare-tier seat flair template — animated path with shifting control points.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import type { FlairColorSet } from './palette';
@@ -25,11 +21,7 @@ interface ColoredFlairProps extends FlairProps {
 }
 
 export const AuroraFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   const arc1Props = useAnimatedProps(() => {
     'worklet';

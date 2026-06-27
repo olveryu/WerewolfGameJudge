@@ -4,16 +4,12 @@
  * 10 ash particles drift slowly through the air in irregular Brownian motion.
  * Each particle = hazy outer halo + solid grain core.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
@@ -64,10 +60,7 @@ const AshParticle = memo<{ seed: AshSeed; size: number; progress: { value: numbe
 AshParticle.displayName = 'AshParticle';
 
 export const AshCloudFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   const seeds = useMemo(
     () =>

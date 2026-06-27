@@ -3,16 +3,12 @@
  *
  * 6 diamond-shaped crystal shards slowly rotate and float around the avatar, with faceted highlight lines.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -93,10 +89,7 @@ const ShardParticle = memo<{ seed: ShardSeed; size: number; progress: { value: n
 ShardParticle.displayName = 'ShardParticle';
 
 export const CrystalShardFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 6000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(6000);
 
   const seeds = useMemo(
     () =>

@@ -3,16 +3,12 @@
  *
  * 4 arc flares erupt from the edge, three layers (outer halo / mid / core) stacked, plus tip particles.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -111,10 +107,7 @@ const FlareParticle = memo<{ seed: FlareSeed; size: number; progress: { value: n
 FlareParticle.displayName = 'FlareParticle';
 
 export const SolarFlareFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4500, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4500);
 
   const seeds = useMemo(
     () =>

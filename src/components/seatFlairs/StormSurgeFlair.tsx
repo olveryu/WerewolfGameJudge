@@ -3,16 +3,12 @@
  *
  * Rain + wave combo: 4 diagonal AnimatedLine rain streaks + 2 wave crests at the bottom via AnimatedPath.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedLine, AnimatedPath } from './svgAnimatedPrimitives';
@@ -69,10 +65,7 @@ const WaveCrest = memo<{ layer: number; size: number; progress: { value: number 
 WaveCrest.displayName = 'WaveCrest';
 
 export const StormSurgeFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(3000);
 
   const rains = useMemo(
     () =>

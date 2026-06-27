@@ -4,16 +4,12 @@
  * Ripple rings expanding from random positions: 5 ripple sources fire at different times,
  * each producing 3 concentric rings that expand and fade.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
@@ -82,10 +78,7 @@ const RippleSource = memo<{ seed: RippleSeed; size: number; progress: { value: n
 RippleSource.displayName = 'RippleSource';
 
 export const TidePoolFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(3500);
 
   const seeds = useMemo<RippleSeed[]>(
     () => [

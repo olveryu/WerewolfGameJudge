@@ -3,16 +3,12 @@
  *
  * 5 amber teardrops sway slowly down in a pendulum arc, with glossy highlight points.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedPath } from './svgAnimatedPrimitives';
@@ -72,10 +68,7 @@ const AmberDrop = memo<{ seed: DropSeed; size: number; progress: { value: number
 AmberDrop.displayName = 'AmberDrop';
 
 export const AmberDropFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4500, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4500);
 
   const seeds = useMemo(
     () =>

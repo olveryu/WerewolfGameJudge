@@ -3,16 +3,12 @@
  *
  * 6 horizontal waves rise and fall to simulate heat distortion, with varying heights / amplitudes / frequencies.
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedPath } from './svgAnimatedPrimitives';
@@ -62,10 +58,7 @@ const HeatWave = memo<{ seed: WaveSeed; size: number; progress: { value: number 
 HeatWave.displayName = 'HeatWave';
 
 export const MirageHeatFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const seeds = useMemo(
     () =>

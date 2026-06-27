@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import {
+  cancelAnimation,
   Easing,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 /** Props for all seat pet animation components */
 export interface PetProps {
@@ -16,15 +18,9 @@ export interface PetProps {
 
 /**
  * Continuous 0→1 loop for driving animations.
- * Returns a SharedValue cycling linearly from 0 to 1 over `duration` ms.
+ * Alias of the shared loop hook — cancels the infinite animation on unmount.
  */
-export function useLoop(duration: number): SharedValue<number> {
-  const v = useSharedValue(0);
-  useEffect(() => {
-    v.value = withRepeat(withTiming(1, { duration, easing: Easing.linear }), -1);
-  }, [v, duration]);
-  return v;
-}
+export const useLoop = useLoopProgress;
 
 /**
  * Float bob animation (translateY -4px).
@@ -38,6 +34,7 @@ export function useFloat(duration = 2500) {
       -1,
       true,
     );
+    return () => cancelAnimation(v);
   }, [v, duration]);
   const floatStyle = useAnimatedStyle(() => {
     'worklet';

@@ -4,16 +4,12 @@
  * A small light point roams inside the seat along a Lissajous curve (not hugging the edge).
  * Common-tier seat flair template.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import { AnimatedCircle } from '../svgAnimatedPrimitives';
@@ -24,11 +20,7 @@ interface ColoredFlairProps extends FlairProps {
 }
 
 export const FloatFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 4000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(4000);
 
   const dotProps = useAnimatedProps(() => {
     'worklet';

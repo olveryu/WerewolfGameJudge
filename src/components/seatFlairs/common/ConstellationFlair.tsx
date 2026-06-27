@@ -4,16 +4,12 @@
  * Fixed dot positions connected by fading lines that appear sequentially.
  * Rare-tier seat flair template — static dots + animated connecting lines.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from '../FlairProps';
 import { AnimatedLine } from '../svgAnimatedPrimitives';
@@ -43,11 +39,7 @@ const LINKS: readonly [number, number][] = [
 ];
 
 export const ConstellationFlair = memo<ColoredFlairProps>(({ size, colors }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 5000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(5000);
 
   const lineProps = LINKS.map((link, i) => {
     const phase = i / LINKS.length;

@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react';
 import { Image, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
+  cancelAnimation,
   FadeIn,
   interpolate,
   ReduceMotion,
@@ -75,6 +76,7 @@ export function LoadingScreen({
       withSequence(withTiming(1.05, { duration: 1000 }), withTiming(1, { duration: 1000 })),
       -1,
     );
+    return () => cancelAnimation(pulseProgress);
   }, [pulseProgress, reducedMotion]);
 
   // ── Indeterminate progress bar (only in message mode, skip for reduced motion) ──
@@ -82,6 +84,7 @@ export function LoadingScreen({
     if (reducedMotion || isStepMode || trackWidth === 0) return;
     progressValue.value = 0;
     progressValue.value = withRepeat(withTiming(1, { duration: PROGRESS_DURATION_MS }), -1);
+    return () => cancelAnimation(progressValue);
   }, [reducedMotion, isStepMode, progressValue, trackWidth]);
 
   const pulseStyle = useAnimatedStyle(() => ({

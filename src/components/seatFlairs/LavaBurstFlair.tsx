@@ -3,16 +3,12 @@
  *
  * 5 lava blobs erupt from the bottom on parabolic trajectories with gravity fall and spark trails (3 trail circles).
  */
-import { memo, useEffect, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle } from './svgAnimatedPrimitives';
@@ -90,10 +86,7 @@ const BlobParticle = memo<{ seed: BlobSeed; size: number; progress: { value: num
 BlobParticle.displayName = 'BlobParticle';
 
 export const LavaBurstFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 3500, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(3500);
 
   const seeds = useMemo(
     () =>

@@ -4,16 +4,12 @@
  * 6 rotating hexagonal ice crystals on the perimeter, pulse-flickering, thin lines connecting to center.
  * react-native-svg + Reanimated useAnimatedProps.
  */
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import {
-  Easing,
-  useAnimatedProps,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
+
+import { useLoopProgress } from '@/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedLine, AnimatedPath } from './svgAnimatedPrimitives';
@@ -80,11 +76,7 @@ CrystalParticle.displayName = 'CrystalParticle';
 const INDICES = Array.from({ length: N }, (_, i) => i);
 
 export const IceCrystalFlair = memo<FlairProps>(({ size, borderRadius: _br }) => {
-  const progress = useSharedValue(0);
-
-  useEffect(() => {
-    progress.value = withRepeat(withTiming(1, { duration: 8000, easing: Easing.linear }), -1);
-  }, [progress]);
+  const progress = useLoopProgress(8000);
 
   return (
     <View style={[styles.wrapper, { width: size, height: size }]}>
