@@ -133,6 +133,8 @@ export interface SeatTileProps {
   showLevel: boolean;
   /** Whether the app is in the foreground (visible). When false, flair/pet animations are unmounted to save CPU/GPU. */
   isAppVisible: boolean;
+  /** Whether seat decorations (entrance animation / flair / pet) render. Disabled during the Ongoing phase to cut continuous CPU/GPU heat & battery drain. */
+  seatDecorationsEnabled: boolean;
   // Styles (created once in PlayerGrid)
   styles: SeatTileStyles;
   onPress: (seat: number, disabledReason?: string) => void;
@@ -166,6 +168,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerLevel,
   showLevel,
   isAppVisible,
+  seatDecorationsEnabled,
   styles,
   onPress,
   onLongPress,
@@ -381,7 +384,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           delayLongPress={500}
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
-          {hasPlayer && isPlayingEntrance && AnimComponent ? (
+          {hasPlayer && seatDecorationsEnabled && isPlayingEntrance && AnimComponent ? (
             <LoopingSeatAnimation
               Component={AnimComponent}
               size={tileSize - spacing.tight}
@@ -425,17 +428,23 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           ) : null}
 
-          {/* Seat flair animation layer — hidden while entrance animation is actively playing or app is in background */}
-          {hasPlayer && isAppVisible && !(isPlayingEntrance && isAnimActive) && FlairComponent && (
-            <FlairComponent size={flairSize} borderRadius={borderRadius.large} />
-          )}
+          {/* Seat flair animation layer — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
+          {hasPlayer &&
+            seatDecorationsEnabled &&
+            isAppVisible &&
+            !(isPlayingEntrance && isAnimActive) &&
+            FlairComponent && <FlairComponent size={flairSize} borderRadius={borderRadius.large} />}
 
-          {/* Seat pet — hidden while entrance animation is actively playing or app is in background */}
-          {hasPlayer && isAppVisible && !(isPlayingEntrance && isAnimActive) && PetComponent && (
-            <View style={styles.petWrapper}>
-              <PetComponent size={petSize} />
-            </View>
-          )}
+          {/* Seat pet — hidden during Ongoing phase, while entrance animation is actively playing, or app is in background */}
+          {hasPlayer &&
+            seatDecorationsEnabled &&
+            isAppVisible &&
+            !(isPlayingEntrance && isAnimActive) &&
+            PetComponent && (
+              <View style={styles.petWrapper}>
+                <PetComponent size={petSize} />
+              </View>
+            )}
 
           {!hasPlayer && <Text style={styles.emptyIndicator}>+</Text>}
 

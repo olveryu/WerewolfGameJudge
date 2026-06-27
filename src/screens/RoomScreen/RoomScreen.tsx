@@ -624,6 +624,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           controlledSeat={controlledSeat}
           showBotRoles={isDebugMode && isHost}
           showLevels={roomStatus !== GameStatus.Ongoing}
+          seatDecorationsEnabled={roomStatus !== GameStatus.Ongoing}
         />
       </ScrollView>
 

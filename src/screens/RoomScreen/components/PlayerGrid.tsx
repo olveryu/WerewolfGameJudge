@@ -40,7 +40,8 @@ interface PlayerGridProps {
   /** Whether to show bot roles (isHost && debugMode?.botsEnabled) */
   showBotRoles?: boolean;
   /** Whether to show player levels on seat tiles (lobby phases only) */
-  showLevels?: boolean;
+  showLevels?: boolean; /** Whether seat decorations (entrance animation / flair / pet) render. Disabled during the Ongoing phase to cut continuous CPU/GPU heat & battery drain. */
+  seatDecorationsEnabled?: boolean;
 }
 
 const PlayerGridComponent: React.FC<PlayerGridProps> = ({
@@ -51,6 +52,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   controlledSeat = null,
   showBotRoles = false,
   showLevels = false,
+  seatDecorationsEnabled = true,
 }) => {
   const { width: screenWidth } = useWindowDimensions();
   const gridColumns = getGridColumns(screenWidth);
@@ -138,6 +140,7 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
           wolfVoteBadge={seat.wolfVoteBadge}
           playerLevel={seat.player?.level}
           showLevel={showLevels}
+          seatDecorationsEnabled={seatDecorationsEnabled}
           isAppVisible={isAppVisible && isFocused}
           styles={seatTileStyles}
           onPress={handleSeatPress}

@@ -1,9 +1,14 @@
 /**
- * LoopingSeatAnimation — Preview wrapper that loops sit-down animations
+ * LoopingSeatAnimation — wrapper that loops one-shot sit-down animations
  *
  * Sit-down animations are designed for one-shot playback (stop after onComplete).
  * This component achieves looping by incrementing a key to trigger React remount,
- * with a configurable interval between cycles. Used in AppearanceScreen / UnlocksScreen grid preview.
+ * with a configurable interval between cycles.
+ *
+ * Used both in the live room seat grid (SeatTile) and in the AppearanceScreen /
+ * UnlocksScreen grid previews. In the live grid the loop is gated off during the
+ * Ongoing phase (see SeatTile `seatDecorationsEnabled`) to cut CPU/GPU heat &
+ * battery drain.
  */
 import { memo, useCallback, useEffect, useReducer, useRef } from 'react';
 import { View } from 'react-native';
