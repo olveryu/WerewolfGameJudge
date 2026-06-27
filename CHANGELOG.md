@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Conventional Commits](https://www.conventionalcommits.org/).
 
+## [2.6.0] - 2026-06-27
+
+- docs(announcements): add v2.6.0 What's New entry
+- fix(roomscreen): render avatar frame outside entrance-animation clip box
+- Revert "Revert "fix(roomscreen): drop avatar frame during ongoing so highlight ring shows""
+- Revert "fix(roomscreen): drop avatar frame during ongoing so highlight ring shows"
+- fix(roomscreen): drop avatar frame during ongoing so highlight ring shows
+- perf(seat-cosmetics): cancel infinite reanimated loops on unmount to stop battery drain
+- perf(roomscreen): disable seat decorations during ongoing phase to cut heat & battery drain
+- fix(roomscreen): unify seat highlight into avatar-independent ring
+- build(typecheck): align quality typecheck with CI/pre-push using root tsconfig
+- test(audio): cover BgmPlayer web path with jsdom
+- feat(AudioContextOwner): implement shared AudioContext lifecycle management and ensure running state
+- fix(CFStorageService): enhance error handling for image processing and loading
+- refactor: replace Sentry error handling with unified errorPipeline in multiple components
+- feat(errorUtils): add isAbortError function to handle WeChat WKWebView abort scenarios
+- style(roleSelector): update chipVariant borderColor to use colors.text
+- docs(github): rename .github/README.md to NOTES.md so root README renders
+- docs(readme): update expo sdk 55→56 and rn 0.83→0.85 version badges
+- chore: add .gitattributes and Windows notes to CONTRIBUTING.md
+- chore(husky): guard asdf in pre-push
+- chore(husky): guard asdf in hooks
+- chore: normalize line endings
+- fix(auth): improve refresh token rotation logic to handle concurrent requests and expired tokens
+- fix(avatar): convert blob URL to data URL before setting img.src in WeChat WebView
+- feat(auth): handle auth expiration by navigating to AuthLogin modal for re-authentication
+- feat(auth): implement auth expiration handling and update related tests
+- docs(skills): add Chinese output directive; translate new-role SKILL.md to English
+- test(navigation): centralize @react-navigation/native mock in jest.setup.ts
+- feat(web): enhance splash screen handling for WeChat login and boot errors
+- fix(PlayerGrid): update isAppVisible to consider focus state
+- feat(index): add onHide and onShow methods to manage screen brightness
+- fix(miniapp): block web-view load when offline instead of just showing hint
+- feat(miniapp,web): add network status detection during loading
+- fix(entry): polyfill Array.prototype.at for iOS < 15.4 webview
+- fix(entry): polyfill crypto.randomUUID for iOS < 15.4 webview
+- fix(avatar): remove crossOrigin from image compression to fix WeChat WebView upload
+- feat(game-rules): enhance GameRules navigation with existingRoomCode and nominateMode parameters
+- fix(lint): remove 597 unnecessary type assertions after TS6 upgrade
+- feat(game-rules): add game rules settings screen end-to-end
+- chore(deps): upgrade @sentry/react-native to v8
+- chore(deps): upgrade commitlint to v21
+- chore(deps): update patch/minor dependencies
+- fix(e2e): add game-engine paths to e2e/tsconfig.json for Playwright resolution
+- ci: add game-engine build step to quality and e2e jobs
+- ci(quality): add game-engine build to quality pipeline
+- fix(game-engine): migrate tsconfig.build to module node16 (TS6 deprecation fix)
+- fix(tsconfig): exclude jest types from build config for fail-fast
+- chore: upgrade expo 55→56, typescript 5→6, react-native 0.76→0.85
+- fix(ci): upgrade wrangler-action and upload-pages-artifact to latest versions
+- fix(ci): pass commit subject only to Cloudflare Pages deploy
+- feat(roomscreen): propagate isPlagueMode in updateTemplate and improve host UX hints
+- refactor(roomscreen): enforce viewRole seat invariant in resolver, simplify layout rules
+- test(roomscreen): align restart dialog tests with status-based condition
+- fix(dialogs): prevent restart dialog when game is not ended
+- fix(config): validate treasureMaster prereqs, fix plague mode toggle/visibility
+- feat(game-engine,config): add plague mode (黑死病) for wolf-free card dealing
+- refactor(i18n): translate Chinese JSDoc comments in RoleRevealEffects and GachaScreen
+- revert(skia): restore SVG+Reanimated for seat flairs/animations, remove ResilientCanvas
+- refactor(i18n): translate remaining source code comments to English
+- refactor(i18n): translate source code comments to English (batch 2)
+- refactor(i18n): translate source code comments to English
+- docs(i18n): add English titles and markers to archive docs
+- docs(i18n): translate remaining design docs to English
+- docs(i18n): translate design docs to English
+- docs(i18n): translate core governance, instruction, and skill files to English
+- fix(skia): prevent WebGL context exhaustion via \_\_destroyWebGLContextAfterRender
+- chore(copilot): align instructions/skills with 2026 customization spec
+- docs(readme): fix stale stats, unify WeChat branding, sync bilingual content
+- docs(jsdoc): add @throws, @pre, @remarks, and field comments across codebase
+- docs: standardize JSDoc for all exported symbols
+- docs: sync all docs/instructions with v2.5.0 codebase
+- fix(skia): recover from WebGL context loss via canvas remount
+
 ## [2.5.0] - 2026-05-24
 
 - fix(seatFlairs): fix lint errors in ResilientCanvas hook ordering
