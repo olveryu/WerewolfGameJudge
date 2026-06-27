@@ -11,7 +11,6 @@
  */
 import { memo, useEffect, useId } from 'react';
 import Animated, {
-  cancelAnimation,
   Easing,
   ReduceMotion,
   useAnimatedProps,
@@ -90,13 +89,6 @@ export const LegendaryShimmer = memo<LegendaryShimmerProps>(({ size, rx }) => {
       undefined,
       ReduceMotion.Never,
     );
-    // Cancel the infinite loops on unmount so they stop ticking on the UI thread
-    // (e.g. when the frame is dropped on entering the Ongoing phase).
-    return () => {
-      cancelAnimation(orbit);
-      cancelAnimation(glow);
-      cancelAnimation(sparkle);
-    };
   }, [orbit, glow, sparkle]);
 
   // ── Gradient ID (stable per instance) ─────────────────────────────────

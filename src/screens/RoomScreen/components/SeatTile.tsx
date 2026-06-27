@@ -352,13 +352,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   // Unified seat highlight ring. Priority: controlled (host takeover) > selected (current target) > wolf (faction reveal).
   // Resolved as a single style so every highlight state shares one avatar-independent indicator.
-  //
-  // During the Ongoing phase the decorative avatar frame is dropped (effectiveFrame = undefined) so
-  // the functional highlight ring uses the solid-border `ring` variant instead of the glow-only
-  // `ringFramed` variant — otherwise the decorative frame border obscures the wolf/selected/controlled
-  // highlight. Dropping the frame also unmounts the LegendaryShimmer animation overlay, cutting CPU/GPU.
-  const effectiveFrame = seatDecorationsEnabled ? playerAvatarFrame : undefined;
-  const hasFrame = !!effectiveFrame;
+  const hasFrame = !!playerAvatarFrame;
   let highlightRingStyle: ViewStyle | null = null;
   if (isControlled) {
     highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
@@ -401,15 +395,17 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               <AvatarWithFrame
                 value={playerUserId}
                 size={
-                  effectiveFrame
+                  playerAvatarFrame
                     ? tileSize - spacing.tight
                     : tileSize - spacing.tight - fixed.borderWidthThick * 2
                 }
                 avatarUrl={playerAvatarUrl}
                 borderRadius={
-                  effectiveFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick
+                  playerAvatarFrame
+                    ? borderRadius.large
+                    : borderRadius.large - fixed.borderWidthThick
                 }
-                frameId={effectiveFrame}
+                frameId={playerAvatarFrame}
               />
             </LoopingSeatAnimation>
           ) : hasPlayer ? (
@@ -417,15 +413,17 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
               <AvatarWithFrame
                 value={playerUserId}
                 size={
-                  effectiveFrame
+                  playerAvatarFrame
                     ? tileSize - spacing.tight
                     : tileSize - spacing.tight - fixed.borderWidthThick * 2
                 }
                 avatarUrl={playerAvatarUrl}
                 borderRadius={
-                  effectiveFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick
+                  playerAvatarFrame
+                    ? borderRadius.large
+                    : borderRadius.large - fixed.borderWidthThick
                 }
-                frameId={effectiveFrame}
+                frameId={playerAvatarFrame}
               />
             </Animated.View>
           ) : null}
