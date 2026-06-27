@@ -16,6 +16,17 @@ interface Announcement {
 
 /** Announcements keyed by version. Key format matches APP_VERSION: `v{major}.{minor}.{patch}` */
 export const ANNOUNCEMENTS: Record<string, Announcement> = {
+  'v2.6.0': {
+    title: 'v2.6.0 更新内容',
+    items: [
+      '新增游戏规则设置（如女巫能否自救）',
+      '登录过期自动跳转重新登录',
+      '切后台/息屏自动管理屏幕亮度',
+      '座位装饰退场更省电，降低发热',
+      '座位高亮升级为独立高亮环',
+      '微信头像上传与离线检测修复',
+    ],
+  },
   'v2.5.0': {
     title: 'v2.5.0 更新内容',
     items: [
