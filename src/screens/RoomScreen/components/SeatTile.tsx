@@ -25,7 +25,9 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
+import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
+import { FrameOverlay } from '@/components/FrameOverlay';
 import { NameStyleText } from '@/components/nameStyles';
 import { getSeatAnimationById } from '@/components/seatAnimations';
 import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAnimation';
@@ -79,6 +81,7 @@ export interface SeatTileStyles {
   seatNumberBadge: ViewStyle;
   seatNumberText: TextStyle;
   avatarContainer: ViewStyle;
+  entranceAvatarBox: ViewStyle;
   mySeatBadge: ViewStyle;
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
@@ -359,6 +362,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   // highlight. Dropping the frame also unmounts the LegendaryShimmer animation overlay, cutting CPU/GPU.
   const effectiveFrame = seatDecorationsEnabled ? playerAvatarFrame : undefined;
   const hasFrame = !!effectiveFrame;
+  // Avatar box geometry. With a frame the avatar fills the tile (the frame overlays it); without a
+  // frame the avatar shrinks by the tile border so it sits inside the visible seat border.
+  const avatarSize = hasFrame
+    ? tileSize - spacing.tight
+    : tileSize - spacing.tight - fixed.borderWidthThick * 2;
+  const avatarRadius = hasFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick;
   let highlightRingStyle: ViewStyle | null = null;
   if (isControlled) {
     highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
@@ -391,40 +400,40 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           activeOpacity={disabled || disabledReason ? 1 : fixed.activeOpacity}
         >
           {hasPlayer && seatDecorationsEnabled && isPlayingEntrance && AnimComponent ? (
-            <LoopingSeatAnimation
-              Component={AnimComponent}
-              size={tileSize - spacing.tight}
-              borderRadius={borderRadius.large}
-              loopDelay={ENTRANCE_LOOP_DELAY_MS}
-              onActiveChange={handleAnimActiveChange}
-            >
-              <AvatarWithFrame
-                value={playerUserId}
-                size={
-                  effectiveFrame
-                    ? tileSize - spacing.tight
-                    : tileSize - spacing.tight - fixed.borderWidthThick * 2
-                }
-                avatarUrl={playerAvatarUrl}
-                borderRadius={
-                  effectiveFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick
-                }
-                frameId={effectiveFrame}
-              />
-            </LoopingSeatAnimation>
+            // Entrance animations clip their children with `overflow: hidden`. Keep only the plain
+            // avatar inside the clip; render the decorative frame as a non-clipped sibling so its
+            // outward decorations are never cut. The frame stays static while the avatar slides in.
+            <View style={styles.entranceAvatarBox}>
+              <LoopingSeatAnimation
+                Component={AnimComponent}
+                size={tileSize - spacing.tight}
+                borderRadius={borderRadius.large}
+                loopDelay={ENTRANCE_LOOP_DELAY_MS}
+                onActiveChange={handleAnimActiveChange}
+              >
+                <Avatar
+                  value={playerUserId}
+                  size={avatarSize}
+                  avatarUrl={playerAvatarUrl}
+                  borderRadius={avatarRadius}
+                  hideBackground={hasFrame}
+                />
+              </LoopingSeatAnimation>
+              {hasFrame && (
+                <FrameOverlay
+                  frameId={effectiveFrame}
+                  size={avatarSize}
+                  borderRadius={avatarRadius}
+                />
+              )}
+            </View>
           ) : hasPlayer ? (
             <Animated.View style={[styles.avatarContainer, avatarAnimatedStyle]}>
               <AvatarWithFrame
                 value={playerUserId}
-                size={
-                  effectiveFrame
-                    ? tileSize - spacing.tight
-                    : tileSize - spacing.tight - fixed.borderWidthThick * 2
-                }
+                size={avatarSize}
                 avatarUrl={playerAvatarUrl}
-                borderRadius={
-                  effectiveFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick
-                }
+                borderRadius={avatarRadius}
                 frameId={effectiveFrame}
               />
             </Animated.View>
@@ -578,6 +587,11 @@ export function createSeatTileStyles(colors: ThemeColors, tileSize: number): Sea
       ...StyleSheet.absoluteFill,
       justifyContent: 'center',
       alignItems: 'center',
+      overflow: 'visible' as const,
+    },
+    entranceAvatarBox: {
+      width: tileSize - spacing.tight,
+      height: tileSize - spacing.tight,
       overflow: 'visible' as const,
     },
     mySeatBadge: {
