@@ -27,6 +27,7 @@ interface MusicSettingsStyles {
   randomRow: ViewStyle;
   randomLabel: TextStyle;
   randomLabelSelected: TextStyle;
+  trackListScroll: ViewStyle;
   radioOuter: ViewStyle;
   radioOuterSelected: ViewStyle;
   radioInner: ViewStyle;
@@ -91,6 +92,11 @@ export const createMusicSettingsStyles = (colors: ThemeColors): MusicSettingsSty
     randomLabelSelected: {
       color: colors.primary,
       fontWeight: typography.weights.semibold,
+    },
+    // Fixed-height scroll viewport for the track list (~4 rows visible).
+    // Keeps the card compact as the track count grows; inner list scrolls.
+    trackListScroll: {
+      maxHeight: 280,
     },
     radioOuter: {
       width: spacing.large,

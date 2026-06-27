@@ -265,19 +265,25 @@ export const MusicSettingsScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
 
-            {/* Individual tracks */}
-            {BGM_TRACKS.map((track) => (
-              <TrackRow
-                key={track.id}
-                track={track}
-                isSelected={bgmTrack === track.id}
-                isPreviewing={previewingTrack === track.id}
-                disabled={!bgmEnabled}
-                onSelect={handleTrackSelect}
-                onPreviewToggle={handlePreviewToggle}
-                colors={colors}
-              />
-            ))}
+            {/* Individual tracks — fixed-height scroll viewport keeps the card compact */}
+            <ScrollView
+              style={styles.trackListScroll}
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              {BGM_TRACKS.map((track) => (
+                <TrackRow
+                  key={track.id}
+                  track={track}
+                  isSelected={bgmTrack === track.id}
+                  isPreviewing={previewingTrack === track.id}
+                  disabled={!bgmEnabled}
+                  onSelect={handleTrackSelect}
+                  onPreviewToggle={handlePreviewToggle}
+                  colors={colors}
+                />
+              ))}
+            </ScrollView>
 
             {/* Now Playing Bar — visible only when previewing */}
             {previewingTrack !== null && (

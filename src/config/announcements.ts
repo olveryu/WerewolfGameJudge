@@ -20,6 +20,7 @@ export const ANNOUNCEMENTS: Record<string, Announcement> = {
     title: 'v2.6.0 更新内容',
     items: [
       '新增游戏规则设置（如女巫能否自救）',
+      '新增 5 首背景音乐，音乐设置列表支持滚动',
       '登录过期自动跳转重新登录',
       '切后台/息屏自动管理屏幕亮度',
       '座位装饰退场更省电，降低发热',

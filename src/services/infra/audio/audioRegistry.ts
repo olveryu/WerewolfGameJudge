@@ -81,7 +81,12 @@ import wolfEnd from '../../../../assets/audio_end/wolf.mp3';
 import wolfQueenEnd from '../../../../assets/audio_end/wolf_queen.mp3';
 import wolfRobotEnd from '../../../../assets/audio_end/wolf_robot.mp3';
 import wolfWitchEnd from '../../../../assets/audio_end/wolf_witch.mp3';
+import bgmBathroomDance from '../../../../assets/bgm/bathroom_dance.m4a';
+import bgmCallMeJoker from '../../../../assets/bgm/call_me_joker.m4a';
+import bgmDefeatedClown from '../../../../assets/bgm/defeated_clown.m4a';
 import bgmFinale from '../../../../assets/bgm/finale.m4a';
+import bgmGustave from '../../../../assets/bgm/gustave.m4a';
+import bgmLumiereALaube from '../../../../assets/bgm/lumiere_a_laube.m4a';
 import bgmSpeakSoftlyLove from '../../../../assets/bgm/speak_softly_love.m4a';
 import bgmTheGodfatherWaltz from '../../../../assets/bgm/the_godfather_waltz.m4a';
 import bgmTheImmigrant from '../../../../assets/bgm/the_immigrant.m4a';
@@ -286,7 +291,16 @@ export const NIGHT_END_AUDIO: AudioAsset = nightEndBegin;
 // ---------------------------------------------------------------------------
 
 /** Available BGM track identifiers. */
-export type BgmTrackId = 'finale' | 'speakSoftlyLove' | 'theGodfatherWaltz' | 'theImmigrant';
+export type BgmTrackId =
+  | 'finale'
+  | 'speakSoftlyLove'
+  | 'theGodfatherWaltz'
+  | 'theImmigrant'
+  | 'gustave'
+  | 'lumiereALaube'
+  | 'defeatedClown'
+  | 'bathroomDance'
+  | 'callMeJoker';
 
 /** BGM track metadata + asset mapping. */
 export interface BgmTrackEntry {
@@ -328,6 +342,41 @@ export const BGM_TRACKS: readonly BgmTrackEntry[] = [
     subtitle: '终曲',
     mood: '紧张宏大',
     asset: bgmFinale,
+  },
+  {
+    id: 'gustave',
+    label: 'Gustave',
+    subtitle: '古斯塔夫',
+    mood: '深情忧伤',
+    asset: bgmGustave,
+  },
+  {
+    id: 'lumiereALaube',
+    label: "Lumière à l'Aube",
+    subtitle: '破晓微光',
+    mood: '空灵静谧',
+    asset: bgmLumiereALaube,
+  },
+  {
+    id: 'defeatedClown',
+    label: 'Defeated Clown',
+    subtitle: '落败小丑',
+    mood: '阴郁沉重',
+    asset: bgmDefeatedClown,
+  },
+  {
+    id: 'bathroomDance',
+    label: 'Bathroom Dance',
+    subtitle: '浴室之舞',
+    mood: '诡谲压抑',
+    asset: bgmBathroomDance,
+  },
+  {
+    id: 'callMeJoker',
+    label: 'Call Me Joker',
+    subtitle: '小丑降临',
+    mood: '癫狂张扬',
+    asset: bgmCallMeJoker,
   },
 ] as const;
 
