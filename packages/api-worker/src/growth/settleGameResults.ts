@@ -14,11 +14,12 @@ import {
   rollNormalDraws,
   rollXp,
 } from '@werewolf/game-engine/growth/level';
+import { getRoleCamp } from '@werewolf/game-engine/models/roles';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
-import { users, userStats } from '../db/schema';
+import { campSettlements, users, userStats } from '../db/schema';
 
 const MIN_PLAYERS = 6;
 
@@ -51,11 +52,13 @@ export async function settleGameResults(
   const settleKey = `${state.roomCode}:${revision}`;
   const db = createDb(env.DB);
 
-  // 1. Collect non-empty, non-bot player userIds
+  // 1. Collect non-empty, non-bot player userIds + their camp (derived from role)
   const uniqueUserIds = new Set<string>();
+  const campByUserId = new Map<string, string>();
   for (const [, player] of Object.entries(state.players)) {
     if (!player || player.isBot || !player.role) continue;
     uniqueUserIds.add(player.userId);
+    campByUserId.set(player.userId, getRoleCamp(player.role));
   }
 
   if (uniqueUserIds.size < MIN_PLAYERS) return [];
@@ -70,7 +73,19 @@ export async function settleGameResults(
   const registeredUserIds = new Set(registeredRows.map((r) => r.id));
   if (registeredUserIds.size === 0) return [];
 
-  // 3. Iterate registered players and settle XP + tickets
+  // 3. Record per-game camp rows for registered players.
+  //    Idempotent via PK (user_id, settle_key); ON CONFLICT DO NOTHING covers settle retries.
+  const now = new Date().toISOString();
+  for (const userId of registeredUserIds) {
+    const camp = campByUserId.get(userId);
+    if (!camp) continue;
+    await db
+      .insert(campSettlements)
+      .values({ userId, settleKey, camp, settledAt: now })
+      .onConflictDoNothing();
+  }
+
+  // 4. Iterate registered players and settle XP + tickets
   const results: PlayerSettleResult[] = [];
 
   for (const userId of registeredUserIds) {
@@ -95,7 +110,6 @@ export async function settleGameResults(
     const newLevel = getLevel(newXp);
     const normalDrawsEarned = rollNormalDraws();
     const goldenDrawsEarned = newLevel > previousLevel ? rollGoldenDraws() : 0;
-    const now = new Date().toISOString();
 
     // Single atomic upsert: XP + level + draws + settleKey + settledAt
     // The setWhere guard ensures this is a no-op on duplicate (race between retries)

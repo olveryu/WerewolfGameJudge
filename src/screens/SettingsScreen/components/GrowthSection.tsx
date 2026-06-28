@@ -17,6 +17,7 @@ import {
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
+import { CampDistributionBar } from '@/components/CampDistributionBar';
 import type { UserStats } from '@/services/feature/StatsService';
 import { colors, componentSizes, fixed } from '@/theme';
 
@@ -78,6 +79,15 @@ export const GrowthSection = memo<GrowthSectionProps>(({ stats, styles, onPressU
         </View>
         <Ionicons name="chevron-forward" size={componentSizes.icon.md} color={colors.textMuted} />
       </TouchableOpacity>
+
+      {/* Camp distribution — 2h-delayed view (same anti-cheat delay as others' view) */}
+      <View style={styles.campSection}>
+        <View style={styles.campHeaderRow}>
+          <Text style={styles.campHeaderTitle}>阵营分布</Text>
+          <Text style={styles.campHeaderCount}>{stats.campStats.total} 局</Text>
+        </View>
+        <CampDistributionBar campStats={stats.campStats} />
+      </View>
     </>
   );
 });

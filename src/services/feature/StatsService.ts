@@ -5,14 +5,24 @@
  * Uses cfGet wrapper (auto-injects token + timeout + error handling).
  */
 
+import type { CampBucket } from '@werewolf/game-engine/models/roles';
+
 import { cfGet } from '@/services/cloudflare/cfFetch';
 import { statsLog } from '@/utils/logger';
+
+/** Per-user camp distribution. `counts` covers all 4 buckets; `total` is the visible game count. */
+export interface CampStats {
+  total: number;
+  counts: Record<CampBucket, number>;
+}
 
 export interface UserStats {
   xp: number;
   level: number;
   gamesPlayed: number;
   unlockedItems: readonly string[];
+  /** Camp distribution (only games settled ≥2h ago are counted — anti-cheat delay). */
+  campStats: CampStats;
 }
 
 export interface UserPublicProfile {
@@ -28,6 +38,8 @@ export interface UserPublicProfile {
   xp: number;
   gamesPlayed: number;
   unlockedItemCount: number;
+  /** Camp distribution (only games settled ≥2h ago are counted — anti-cheat delay). */
+  campStats: CampStats;
 }
 
 /** Fetches the current user's growth data. */

@@ -17,6 +17,12 @@ const roleLog = getEngineLogger().extend('Role');
 // Re-export from spec/
 // ============================================================
 export {
+  // Camp statistics
+  CAMP_ORDER,
+  type CampBucket,
+  getRoleCamp,
+} from './camp';
+export {
   // Night Plan
   buildNightPlan,
   type NightPlan,

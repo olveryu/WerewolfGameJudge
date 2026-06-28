@@ -27,6 +27,7 @@ import { Avatar } from '@/components/Avatar';
 import { getFrameById } from '@/components/avatarFrames';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { BaseCenterModal } from '@/components/BaseCenterModal';
+import { CampDistributionBar } from '@/components/CampDistributionBar';
 import { CloseButton } from '@/components/CloseButton';
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
@@ -480,6 +481,16 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
                 <Text style={styles.statValue}>{profile.unlockedItemCount}</Text>
                 <Text style={[styles.statLabel, styles.statLabelTappable]}>已解锁 ›</Text>
               </PressableScale>
+            </View>
+
+            {/* ── Camp distribution (public — only games settled ≥2h ago) ── */}
+            <View style={styles.equipSection}>
+              <View style={styles.equipDividerRow}>
+                <View style={styles.equipDividerLine} />
+                <Text style={styles.equipDividerLabel}>阵营分布</Text>
+                <View style={styles.equipDividerLine} />
+              </View>
+              <CampDistributionBar campStats={profile.campStats} compact />
             </View>
 
             {/* ── Equipment showcase ── */}

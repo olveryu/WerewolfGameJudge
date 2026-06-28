@@ -121,9 +121,12 @@ export interface SettingsScreenStyles {
   growthProgressBarBg: ViewStyle;
   growthProgressBarFill: ViewStyle;
   growthXpValue: TextStyle;
-}
-
-/** Create settings screen styles. */
+  // Camp distribution
+  campSection: ViewStyle;
+  campHeaderRow: ViewStyle;
+  campHeaderTitle: TextStyle;
+  campHeaderCount: TextStyle;
+} /** Create settings screen styles. */
 export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenStyles =>
   StyleSheet.create<SettingsScreenStyles>({
     container: {
@@ -494,5 +497,25 @@ export const createSettingsScreenStyles = (colors: ThemeColors): SettingsScreenS
       color: colors.textSecondary,
       minWidth: spacing.xxlarge,
       textAlign: 'right',
+    },
+    campSection: {
+      marginBottom: spacing.medium,
+    },
+    campHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing.small,
+    },
+    campHeaderTitle: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      fontWeight: typography.weights.semibold,
+      color: colors.text,
+    },
+    campHeaderCount: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textMuted,
     },
   });

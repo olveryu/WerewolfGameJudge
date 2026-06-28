@@ -102,6 +102,16 @@ const SCHEMA_STATEMENTS = [
     created_at TEXT NOT NULL
   );`,
   `CREATE INDEX IF NOT EXISTS idx_idempotency_keys_created_at ON idempotency_keys(created_at);`,
+
+  // ── camp_settlements ──
+  `CREATE TABLE IF NOT EXISTS camp_settlements (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    settle_key TEXT NOT NULL,
+    camp TEXT NOT NULL,
+    settled_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, settle_key)
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_camp_settlements_user_settled ON camp_settlements(user_id, settled_at);`,
 ] as const;
 
 /**

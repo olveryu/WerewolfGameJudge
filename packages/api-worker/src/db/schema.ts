@@ -185,6 +185,34 @@ export const drawHistory = sqliteTable('draw_history', {
   createdAt: text('created_at').notNull(),
 });
 
+// ── camp_settlements ──────────────────────────────────────────────────────────
+
+/**
+ * Per-game camp history (one row per registered player per settled game).
+ *
+ * Camp probability is computed on read by aggregating these rows. Public reads only
+ * count rows where settled_at <= datetime('now', '-2 hours') (anti-cheat delay); self
+ * reads count all rows. Idempotent under settlement retries via PK (user_id, settle_key).
+ */
+export const campSettlements = sqliteTable(
+  'camp_settlements',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** `${roomCode}:${revision}` — same settle key as user_stats.last_room_code */
+    settleKey: text('settle_key').notNull(),
+    /** Camp bucket: 'wolf' | 'god' | 'villager' | 'third' (CampBucket) */
+    camp: text('camp').notNull(),
+    /** ISO 8601 UTC; the game's settlement timestamp (drives the 2h public delay) */
+    settledAt: text('settled_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.settleKey] }),
+    index('idx_camp_settlements_user_settled').on(table.userId, table.settledAt),
+  ],
+);
+
 // ── room_participants ────────────────────────────────────────────────────────
 
 /** Room participants association table. */

@@ -84,6 +84,7 @@ describe('PlayerProfileCard', () => {
         title: '',
         gamesPlayed: 5,
         unlockedItemCount: 3,
+        campStats: { total: 0, counts: { wolf: 0, god: 0, villager: 0, third: 0 } },
       };
       mockUseUserProfileQuery.mockReturnValue({
         data: mockProfile,
