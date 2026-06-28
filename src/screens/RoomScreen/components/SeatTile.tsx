@@ -48,8 +48,14 @@ import {
 
 const GRID_COLUMNS = 4;
 
-/** Delay between entrance animation loops (ms). */
-const ENTRANCE_LOOP_DELAY_MS = 5000;
+/**
+ * Cooldown between entrance-animation replays (ms).
+ * Entrance effects are one-shot by design; this gap throttles the lobby showcase replay
+ * to cut the per-cycle remount churn (React reconcile + SVG DOM teardown/rebuild) that
+ * drives CPU/heat. Epic tier cycle ≈ 3s anim + this gap. Ongoing phase disables entrance
+ * entirely via `seatDecorationsEnabled`.
+ */
+const ENTRANCE_LOOP_DELAY_MS = 10000;
 
 /** Adaptive column count based on screen width (tablet-friendly). */
 export function getGridColumns(screenWidth: number): number {
