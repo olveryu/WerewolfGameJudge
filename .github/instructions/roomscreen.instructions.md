@@ -2,9 +2,9 @@
 
 ---
 
-name: 'roomscreen'
+name: 'RoomScreen'
 description: 'RoomScreen subdirectory standards: policy/hooks/executors/seatTap/components/share layering. Use when: editing RoomScreen, policy functions, seat tap handlers, night flow executors, share image modules'
-applyTo: '\*_/_'
+applyTo: 'src/screens/RoomScreen/\*\*'
 
 ---
 

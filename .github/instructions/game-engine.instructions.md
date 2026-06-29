@@ -2,8 +2,8 @@
 
 ---
 
-name: 'game-engine'
-description: 'game-engine path rules'
+name: 'Game Engine'
+description: 'Pure game logic shared package: relative paths, zero platform deps, reducer/handler/growth modules. Use when: editing game-engine package, reducers, handlers, growth system, shared game logic, night actions'
 applyTo: 'packages/game-engine/\*\*'
 
 ---

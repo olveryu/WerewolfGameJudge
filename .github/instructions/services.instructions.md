@@ -2,8 +2,8 @@
 
 ---
 
-name: 'services'
-description: 'services path rules'
+name: 'Services'
+description: 'Service layer standards: facade/transport/infra/feature services, resolvers, state management, audio orchestration. Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
 applyTo: 'src/services/\*\*'
 
 ---

@@ -2,8 +2,8 @@
 
 ---
 
-name: 'models'
-description: 'models path rules'
+name: 'Models'
+description: 'Model layer standards: ROLE_SPECS/SCHEMAS/NIGHT_STEPS three-tier table-driven, pure declarative. Use when: editing models, role specs, schemas, night steps, type definitions, enums'
 applyTo: 'src/models/\*\*'
 
 ---

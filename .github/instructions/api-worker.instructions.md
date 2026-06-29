@@ -2,8 +2,8 @@
 
 ---
 
-name: 'api-worker'
-description: 'api-worker path rules'
+name: 'API Worker'
+description: 'Cloudflare Worker standards: Hono routing, Zod validation, DO calls, gacha system, auth middleware. Use when: editing API worker, Hono routes, DO calls, gacha handlers, auth middleware, D1 queries, R2 storage'
 applyTo: 'packages/api-worker/\*\*'
 
 ---

@@ -2,8 +2,8 @@
 
 ---
 
-name: 'screens'
-description: 'screens path rules'
+name: 'Screens & Components'
+description: 'Screen/Component layer standards: Policy-Orchestrator-Presentational three-tier, Theme Tokens, RN performance. Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
 applyTo: 'src/screens/**,src/components/**'
 
 ---

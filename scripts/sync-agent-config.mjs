@@ -8,6 +8,7 @@
  *   - .agents/skills/<name>/SKILL.md
  *   - agents/prompts/*.md (optional; delegate-expert synced into skill)
  */
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -233,12 +234,44 @@ Run \`pnpm run sync:agents\` after edits. See [docs/agent-config.md](docs/agent-
   console.log('Synced CLAUDE.md, GEMINI.md');
 }
 
+/**
+ * Format every generated file with the repo's prettier so the sync output is
+ * already prettier-clean. Without this, `pnpm run format` (prettier --check, part
+ * of `quality`/CI) fails on freshly synced files, and the lint-staged sync task
+ * would race the concurrent `prettier --write` task. `--ignore-unknown` skips
+ * non-parseable outputs (e.g. .cursor/rules/*.mdc) and respects .prettierignore.
+ */
+function formatGenerated() {
+  const prettierBin = path.join(ROOT, 'node_modules', 'prettier', 'bin', 'prettier.cjs');
+  const targets = [
+    '.github/copilot-instructions.md',
+    '.github/instructions',
+    '.github/prompts',
+    'CLAUDE.md',
+    'GEMINI.md',
+    'skills',
+    '.github/skills',
+    '.claude/skills',
+    '.cursor/skills',
+  ];
+  const result = spawnSync(
+    process.execPath,
+    [prettierBin, '--write', '--ignore-unknown', '--log-level', 'warn', ...targets],
+    { cwd: ROOT, stdio: 'inherit' },
+  );
+  if (result.status !== 0) {
+    throw new Error(`prettier failed on generated files (exit ${result.status})`);
+  }
+  console.log('Formatted generated files with prettier');
+}
+
 async function main() {
   await syncAgentsMd();
   await syncPathRules();
   await syncCopilotPrompts();
   await syncSkillMirrors();
   await syncToolEntrypoints();
+  formatGenerated();
   console.log('\nDone. Source: AGENTS.md, agents/path-rules/, .agents/skills/');
 }
 

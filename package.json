@@ -61,9 +61,7 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "AGENTS.md": "node scripts/sync-agent-config.mjs",
-    "agents/**/*": "node scripts/sync-agent-config.mjs",
-    ".agents/skills/**/*": "node scripts/sync-agent-config.mjs"
+    "{AGENTS.md,agents/**/*,.agents/skills/**/*}": "node scripts/sync-agent-config.mjs"
   },
   "dependencies": {
     "@expo/dom-webview": "~56.0.5",

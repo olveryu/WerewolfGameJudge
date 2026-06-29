@@ -243,7 +243,7 @@ Use `src/utils/logger.ts` named logger uniformly. `console.*` is forbidden (ESLi
 
 ## Coding Conventions
 
-- **Git Commit**: `<type>(<scope>): <description>` (Conventional Commits, English lowercase imperative).
+- **Git Commit**: `<type>(<scope>): <description>` (Conventional Commits, English lowercase imperative). Commitlint hard limits (`commitlint.config.js` + config-conventional): header ≤ 100 chars, and **every body/footer line ≤ 100 chars** — wrap long bullets, do not exceed. `--no-verify` is forbidden.
 - **Terminal**: Running tests must not use `| grep` / `| head` / `| tail` to truncate.
 - **JSDoc**: Class/module header comments, first line summary + boundary constraints.
 

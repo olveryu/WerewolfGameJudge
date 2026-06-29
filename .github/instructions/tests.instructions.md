@@ -2,8 +2,8 @@
 
 ---
 
-name: 'tests'
-description: 'tests path rules'
+name: 'Tests'
+description: 'Testing standards: Jest unit/integration, Board UI contract tests, Playwright E2E. Use when: writing tests, Jest unit tests, integration tests, Playwright E2E specs, test utilities, mocking'
 applyTo: '**/\*.test.ts,**/\*.test.tsx,**/**tests**/**,e2e/\*\*'
 
 ---

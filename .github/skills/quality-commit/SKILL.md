@@ -109,5 +109,6 @@ RECOMMENDATION: git pull --rebase then re-run skill
 ## Constraints
 
 - **`--no-verify` is forbidden.** Do not bypass git hooks.
+- **Commitlint line limits.** Header ≤ 100 chars; **every body/footer line ≤ 100 chars** (`commitlint.config.js` + config-conventional). Wrap long bullets across multiple lines — a single bullet over 100 chars fails `commit-msg`. Prefer `git commit -F -` with a heredoc and pre-wrapped lines.
 - **Force push is forbidden.** Do not use `--force` / `--force-with-lease`.
 - **Do not change business logic.** When fixing lint/TS/test issues, only make the minimum change needed to eliminate the issue — no opportunistic refactoring.

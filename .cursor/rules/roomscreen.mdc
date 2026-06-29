@@ -2,7 +2,7 @@
 
 ---
 description: RoomScreen subdirectory standards: policy/hooks/executors/seatTap/components/share layering. Use when: editing RoomScreen, policy functions, seat tap handlers, night flow executors, share image modules
-globs: **/*
+globs: src/screens/RoomScreen/**
 alwaysApply: false
 ---
 

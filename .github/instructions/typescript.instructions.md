@@ -2,8 +2,8 @@
 
 ---
 
-name: 'typescript'
-description: 'typescript path rules'
+name: 'TypeScript & Hooks'
+description: 'Type safety, React Hooks hygiene, unused variable handling standards. Use when: TypeScript type safety, React hooks hygiene, unused variables, type assertions, generic inference, noUncheckedIndexedAccess'
 applyTo: 'src/**/\*.ts,src/**/_.tsx,packages/game-engine/src/\*\*/_.ts'
 
 ---

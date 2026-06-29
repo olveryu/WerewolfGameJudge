@@ -2,8 +2,8 @@
 
 ---
 
-name: 'ci-deploy'
-description: 'ci-deploy path rules'
+name: 'CI & Deploy'
+description: 'CI/CD pipeline, build.sh, CDN publishing, D1 migrations, release process. Use when: editing workflows, build scripts, deploy config, CDN publishing, D1 migrations, release process'
 applyTo: '.github/workflows/\*\*,scripts/build.sh,scripts/release.sh'
 
 ---

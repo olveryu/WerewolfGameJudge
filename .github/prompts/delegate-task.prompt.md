@@ -2,9 +2,9 @@
 
 ---
 
-description: 'Generate delegation prompts for specialists.'
+description: 'Generate delegation prompts for specialists. Use when: writing prompts, delegating tasks, finding experts, delegate, specialist prompt'
 name: 'Delegate Expert Prompt'
-argument-hint: 'Describe what specialist should do...'
+argument-hint: 'Describe what specialist to do what task...'
 
 ---
 
