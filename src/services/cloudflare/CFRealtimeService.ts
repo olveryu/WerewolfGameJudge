@@ -26,7 +26,7 @@ import type {
 } from '@/services/types/IRealtimeTransport';
 import { realtimeLog } from '@/utils/logger';
 
-import { getCurrentToken } from './cfFetch';
+import { ensureFreshToken } from './cfFetch';
 
 /** WebSocket connection timeout (ms) */
 const WS_CONNECT_TIMEOUT_MS = 8_000;
@@ -53,9 +53,24 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#closeWsSilent();
 
     const generation = ++this.#generation;
+    // The WS handshake cannot surface a 401 to the cfFetch refresh interceptor,
+    // so an expired token would loop (401 → close → retry with the same stale token).
+    // Refresh the token up-front, then open the socket.
+    void this.#openSocket(roomCode, generation);
+  }
+
+  async #openSocket(roomCode: string, generation: number): Promise<void> {
+    const token = await ensureFreshToken();
+    // A newer connect()/disconnect() superseded us while refreshing → abort.
+    if (generation !== this.#generation) return;
+    if (!token) {
+      realtimeLog.warn('Transport: no valid token, aborting WS connect');
+      this.#handlers?.onClose(4001, 'no valid token');
+      return;
+    }
+
     const wsBase = API_BASE_URL.replace(/^http/, 'ws');
-    const token = getCurrentToken();
-    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&token=${encodeURIComponent(token ?? '')}`;
+    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&token=${encodeURIComponent(token)}`;
 
     realtimeLog.info('Transport: connecting', { roomCode });
     const ws = new WebSocket(wsUrl);
@@ -80,6 +95,12 @@ export class CFRealtimeService implements IRealtimeTransport {
 
     ws.onmessage = (event) => {
       if (generation !== this.#generation) return;
+      // Heartbeat pong arrives as the literal string "pong" via the DO's
+      // setWebSocketAutoResponse, so it never reaches #parseMessage (JSON path).
+      if (event.data === 'pong') {
+        this.#handlers?.onPong();
+        return;
+      }
       this.#parseMessage(event);
     };
 
@@ -89,7 +110,9 @@ export class CFRealtimeService implements IRealtimeTransport {
       if (this.#ws === ws) {
         this.#ws = null;
       }
-      realtimeLog.info('Transport: WebSocket closed', {
+      // warn (not info): the close code is the key diagnostic for WeChat WebView drops
+      // (1001 = backgrounded, 1006 = abnormal/network, 1000 = normal).
+      realtimeLog.warn('Transport: WebSocket closed', {
         code: event.code,
         reason: event.reason,
       });
@@ -99,7 +122,8 @@ export class CFRealtimeService implements IRealtimeTransport {
     ws.onerror = () => {
       if (generation !== this.#generation) return;
       clearTimeout(timeout);
-      realtimeLog.warn('Transport: WebSocket error');
+      // Detail-less and always followed by onclose (which carries the code) → debug only.
+      realtimeLog.debug('Transport: WebSocket error');
       this.#handlers?.onError(new Error('WebSocket error'));
     };
   }
@@ -167,8 +191,6 @@ export class CFRealtimeService implements IRealtimeTransport {
             goldenDrawsEarned: typeof d.goldenDrawsEarned === 'number' ? d.goldenDrawsEarned : 0,
           });
         }
-      } else if (data.type === 'pong') {
-        this.#handlers?.onPong();
       }
     } catch {
       realtimeLog.warn('Transport: failed to parse WS message');

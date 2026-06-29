@@ -31,6 +31,7 @@ import {
   cfGet,
   cfPost,
   cfPut,
+  isAccessTokenExpired,
   setOnAuthExpired,
   setRefreshHandler,
   setTokenProvider,
@@ -309,7 +310,7 @@ export class CFAuthService implements IAuthService {
 
     // Pre-check: if access token is already expired, skip the doomed GET and
     // go straight to refresh (saves ~200ms RTT on every cold start in WeChat WebView)
-    if (this.#isTokenExpired(accessToken)) {
+    if (isAccessTokenExpired(accessToken)) {
       authLog.debug('initAuth: access token expired locally, skipping GET /auth/user');
       if (refreshToken) {
         const refreshed = await this.#refreshTokens();
@@ -538,23 +539,6 @@ export class CFAuthService implements IAuthService {
   onAuthExpired(callback: () => void): () => void {
     this.#authExpiredCallbacks.add(callback);
     return () => this.#authExpiredCallbacks.delete(callback);
-  }
-
-  /**
-   * Check if a JWT access token is expired (with 30s buffer for clock skew).
-   * Does NOT verify signature — purely local expiry check.
-   */
-  #isTokenExpired(token: string): boolean {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return true; // malformed → treat as expired
-      const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
-      if (typeof payload.exp !== 'number') return true;
-      // 30s buffer: treat as expired if within 30s of actual expiry
-      return payload.exp * 1000 < Date.now() - 30_000;
-    } catch {
-      return true; // decode failure → treat as expired
-    }
   }
 
   /**

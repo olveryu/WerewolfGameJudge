@@ -234,7 +234,7 @@ describe('ConnectionManager', () => {
 
       // Advance to first ping
       jest.advanceTimersByTime(PING_INTERVAL_MS);
-      expect(transport.send).toHaveBeenCalledWith(JSON.stringify({ type: 'ping' }));
+      expect(transport.send).toHaveBeenCalledWith('ping');
 
       // Respond with pong — should not trigger PING_TIMEOUT
       transport.handlers.onPong();

@@ -327,7 +327,9 @@ export class ConnectionManager {
   #startPing(): void {
     this.#stopPing();
     this.#pingInterval = setInterval(() => {
-      this.#deps.transport.send(JSON.stringify({ type: 'ping' }));
+      // Literal 'ping' matches the DO's setWebSocketAutoResponse('ping' → 'pong'),
+      // so the keepalive is answered at the edge without waking the DO.
+      this.#deps.transport.send('ping');
       this.#startPongTimeout();
     }, PING_INTERVAL_MS);
   }

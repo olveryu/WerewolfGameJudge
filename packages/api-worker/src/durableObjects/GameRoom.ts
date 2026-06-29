@@ -671,24 +671,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   // ── Hibernation API callbacks ───────────────────────────────────────────
 
-  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    const data = typeof message === 'string' ? message : new TextDecoder().decode(message);
-
-    try {
-      const parsed: unknown = JSON.parse(data);
-
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        'type' in parsed &&
-        (parsed as { type: string }).type === 'ping'
-      ) {
-        ws.send(JSON.stringify({ type: 'pong', ts: Date.now() }));
-      }
-    } catch {
-      // Non-JSON message — ignore
-    }
-  }
+  // No webSocketMessage handler: the only client → server message is the literal
+  // 'ping' keepalive, answered at the edge by setWebSocketAutoResponse without
+  // waking the DO. All game intents go over HTTP, not the socket.
 
   async webSocketClose(
     ws: WebSocket,

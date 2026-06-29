@@ -70,6 +70,49 @@ async function refreshWithLock(): Promise<'refreshed' | 'expired' | 'offline'> {
   return refreshPromise;
 }
 
+// ── Token freshness (for non-HTTP callers) ──────────────────────────────────
+
+/**
+ * Local JWT expiry check (no signature verification, 30s clock-skew buffer).
+ * Malformed token / missing `exp` → treated as expired.
+ */
+export function isAccessTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split('.');
+    const payloadB64 = parts[1];
+    if (parts.length !== 3 || !payloadB64) return true;
+    const payload = JSON.parse(atob(payloadB64)) as { exp?: number };
+    if (typeof payload.exp !== 'number') return true;
+    return payload.exp * 1000 < Date.now() - 30_000;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Ensure a non-expired access token before a non-HTTP operation (e.g. WebSocket
+ * upgrade) that cannot surface a 401 to the {@link executeRequest} refresh interceptor.
+ *
+ * @returns Fresh token, or `null` if there is no session / the session is dead.
+ * @remarks Reuses the single-flight {@link refreshWithLock}, so a parallel cfFetch 401
+ *   and a WS reconnect share one refresh network call.
+ */
+export async function ensureFreshToken(): Promise<string | null> {
+  const token = tokenProvider?.() ?? null;
+  if (!token) return null;
+  if (!isAccessTokenExpired(token)) return token;
+
+  const result = await refreshWithLock();
+  if (result === 'refreshed') return tokenProvider?.() ?? null;
+  if (result === 'expired') {
+    onAuthExpired?.();
+    return null;
+  }
+  // 'offline': keep the existing token; the WS handshake (and its backoff retry)
+  // may still succeed once the network recovers.
+  return token;
+}
+
 // ── Network-layer retry ─────────────────────────────────────────────────────
 
 /**
