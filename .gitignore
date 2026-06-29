@@ -7,6 +7,10 @@ coverage/
 # dependencies
 node_modules/
 
+# Python virtual env
+.venv/
+**/.venv/
+
 # Expo
 .expo/
 dist/
