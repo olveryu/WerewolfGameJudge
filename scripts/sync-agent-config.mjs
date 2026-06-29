@@ -10,8 +10,11 @@
  */
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BANNER =
@@ -242,7 +245,14 @@ Run \`pnpm run sync:agents\` after edits. See [docs/agent-config.md](docs/agent-
  * non-parseable outputs (e.g. .cursor/rules/*.mdc) and respects .prettierignore.
  */
 function formatGenerated() {
-  const prettierBin = path.join(ROOT, 'node_modules', 'prettier', 'bin', 'prettier.cjs');
+  // Resolve prettier's executable via its declared `bin` field (not a hardcoded
+  // path) so it survives prettier upgrades that move the bin location.
+  const pkgJsonPath = require.resolve('prettier/package.json');
+  const { bin } = require('prettier/package.json');
+  const prettierBin = path.join(
+    path.dirname(pkgJsonPath),
+    typeof bin === 'string' ? bin : bin.prettier,
+  );
   const targets = [
     '.github/copilot-instructions.md',
     '.github/instructions',
