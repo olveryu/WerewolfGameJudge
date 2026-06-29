@@ -75,7 +75,9 @@ export const RoomsTab: React.FC = () => {
               <Text style={styles.cardCode}>#{item.code}</Text>
               <Text style={styles.cardCount}>{item.participantCount}人</Text>
             </View>
-            <Text style={styles.cardDetail}>房主: {item.hostName ?? '未知'}</Text>
+            <Text style={styles.cardDetail}>
+              房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
+            </Text>
             <Text style={styles.cardMeta}>{item.createdAt.replace('T', ' ').slice(0, 16)} UTC</Text>
           </PressableScale>
 
