@@ -16,9 +16,11 @@ import { Hono } from 'hono';
 
 import { createDb } from '../db';
 import { rooms } from '../db/schema';
+import { ENGINE_REGISTRY } from '../durableObjects/engineRegistry';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
+import { CREATE_CONFIG_SCHEMAS } from '../schemas/engineCreate';
 import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
 import { getGameRoomStub, jsonBody } from './shared';
 
@@ -34,6 +36,25 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   const userId = c.var.userId;
   const parsed = c.req.valid('json');
 
+  // Engine path: build the authoritative initial state server-side from a validated config.
+  let engineBlob: unknown;
+  const gameType = parsed.gameType ?? 'werewolf';
+  if (parsed.gameType) {
+    const engine = ENGINE_REGISTRY[parsed.gameType];
+    const cfgSchema = CREATE_CONFIG_SCHEMAS[parsed.gameType];
+    if (!engine || !cfgSchema) {
+      return c.json({ success: false, reason: 'UNKNOWN_GAME_TYPE' }, 400);
+    }
+    const cfg = cfgSchema.safeParse(parsed.config);
+    if (!cfg.success) {
+      return c.json({ success: false, reason: 'INVALID_CONFIG' }, 400);
+    }
+    engineBlob = engine.createInitialState(cfg.data, {
+      roomCode: parsed.roomCode,
+      hostUserId: userId,
+    });
+  }
+
   const now = sql`datetime('now')`;
 
   const inserted = await db
@@ -42,6 +63,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       id: crypto.randomUUID(),
       code: parsed.roomCode,
       hostUserId: userId,
+      gameType,
       createdAt: now,
       updatedAt: now,
     })
@@ -52,15 +74,20 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
     return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
   }
 
-  // Initialize DO state (if initialState provided)
-  if (parsed.initialState) {
+  // Initialize DO state. Engine path → initState(gameType, blob); werewolf legacy → init(blob).
+  if (parsed.gameType || parsed.initialState) {
     try {
       const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
-      await stub.init(parsed.initialState as GameState);
+      if (parsed.gameType) {
+        await stub.initState(parsed.gameType, engineBlob);
+      } else {
+        await stub.init(parsed.initialState as GameState);
+      }
     } catch (err) {
       // DO init failed → rollback D1 record
       log.error('DO init failed, rolling back', {
         roomCode: parsed.roomCode,
+        gameType,
         error: err instanceof Error ? err.message : String(err),
       });
       await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
@@ -73,6 +100,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       room: {
         roomCode: parsed.roomCode,
         hostUserId: userId,
+        gameType,
         createdAt: new Date().toISOString(),
       },
     },
@@ -89,6 +117,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
     .select({
       code: rooms.code,
       hostUserId: rooms.hostUserId,
+      gameType: rooms.gameType,
       createdAt: rooms.createdAt,
     })
     .from(rooms)
@@ -104,6 +133,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
       room: {
         roomCode: row.code,
         hostUserId: row.hostUserId,
+        gameType: row.gameType,
         createdAt: row.createdAt,
       },
     },

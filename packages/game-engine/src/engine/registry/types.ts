@@ -18,7 +18,7 @@
  * (fib uses `FibAction`, never werewolf `StateAction`).
  */
 
-import type { RosterEntry, SideEffect } from '../../protocol/common';
+import type { SideEffect } from '../../protocol/common';
 
 /** Inbound command: a domain action name + its (engine-validated) payload. */
 export interface GameAction {
@@ -30,7 +30,6 @@ export interface GameAction {
 export interface CreateCtx {
   readonly roomCode: string;
   readonly hostUserId: string;
-  readonly hostProfile: RosterEntry;
 }
 
 /**

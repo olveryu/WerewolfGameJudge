@@ -14,7 +14,6 @@ import { createSeededRng } from '@werewolf/game-engine/utils/random';
 const CTX: CreateCtx = {
   roomCode: 'ABCD',
   hostUserId: 'host-1',
-  hostProfile: { displayName: 'Host' },
 };
 
 /** Apply an engine result through reduce + normalize, mirroring processEngineAction. */

@@ -37,6 +37,7 @@ import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
 import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
+import { fibRoutes } from './handlers/fibHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
 import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
@@ -136,6 +137,7 @@ app.get('/ws', async (c) => {
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
 app.route('/room', roomRoutes);
+app.route('/fib', fibRoutes);
 app.route('/game/night', nightRoutes);
 app.route('/game', gameRoutes);
 app.route('/gemini-proxy', geminiRoutes);

@@ -15,17 +15,19 @@ import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
+import {
+  GEMINI_MODEL,
+  GEMINI_OPENAI_BASE,
+  GEMINI_TIMEOUT_MS,
+  WORKERS_AI_MODEL,
+} from '../lib/geminiConfig';
 import { createLogger } from '../lib/logger';
 import { geminiProxySchema } from '../schemas/gemini';
 import { jsonBody } from './shared';
 
 const log = createLogger('ai-chat');
 
-const GEMINI_OPENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai';
-const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 const MAX_TOKENS_CAP = 10240;
-const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
-const GEMINI_TIMEOUT_MS = 15_000;
 
 /**
  * Convert Workers AI SSE stream (`{"response":"..."}` format) to OpenAI-compatible format
