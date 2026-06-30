@@ -78,6 +78,15 @@ export const RoomsTab: React.FC = () => {
             <Text style={styles.cardDetail}>
               房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
             </Text>
+            <Text style={styles.cardDetail}>
+              {item.gamesStarted > 0
+                ? `已开局 ${item.gamesStarted} 次${
+                    item.lastStartedAt
+                      ? ` · 最近 ${item.lastStartedAt.replace('T', ' ').slice(0, 16)} UTC`
+                      : ''
+                  }`
+                : '未开局'}
+            </Text>
             <Text style={styles.cardMeta}>{item.createdAt.replace('T', ' ').slice(0, 16)} UTC</Text>
           </PressableScale>
 

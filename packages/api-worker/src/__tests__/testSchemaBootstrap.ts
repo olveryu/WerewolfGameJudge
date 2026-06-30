@@ -112,6 +112,27 @@ const SCHEMA_STATEMENTS = [
     PRIMARY KEY (user_id, settle_key)
   );`,
   `CREATE INDEX IF NOT EXISTS idx_camp_settlements_user_settled ON camp_settlements(user_id, settled_at);`,
+
+  // ── rooms ──
+  `CREATE TABLE IF NOT EXISTS rooms (
+    id TEXT PRIMARY KEY,
+    code TEXT NOT NULL UNIQUE,
+    host_user_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    games_started INTEGER NOT NULL DEFAULT 0,
+    last_started_at TEXT
+  );`,
+
+  // ── room_participants ──
+  `CREATE TABLE IF NOT EXISTS room_participants (
+    room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (room_code, user_id)
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_room_participants_room_code ON room_participants(room_code);`,
+  `CREATE INDEX IF NOT EXISTS idx_room_participants_user_id ON room_participants(user_id);`,
 ] as const;
 
 /**

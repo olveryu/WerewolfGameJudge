@@ -75,6 +75,8 @@ export interface AdminRoom {
   hostUserId: string;
   hostName: string | null;
   hostCountry: string | null;
+  gamesStarted: number;
+  lastStartedAt: string | null;
   participantCount: number;
   createdAt: string;
 }

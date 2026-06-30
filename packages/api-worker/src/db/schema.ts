@@ -68,6 +68,10 @@ export const rooms = sqliteTable('rooms', {
   hostUserId: text('host_user_id').notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
+  /** Times a game started (startNight succeeded) in this room. Survives DO restart. */
+  gamesStarted: integer('games_started').notNull().default(0),
+  /** ISO 8601 UTC of the most recent game start. null = never started. */
+  lastStartedAt: text('last_started_at'),
 });
 
 // ── password_reset_tokens ───────────────────────────────────────────────────

@@ -167,6 +167,8 @@ adminRoutes.get('/rooms', async (c) => {
       createdAt: rooms.createdAt,
       hostName: users.displayName,
       hostCountry: users.lastCountry,
+      gamesStarted: rooms.gamesStarted,
+      lastStartedAt: rooms.lastStartedAt,
       participantCount: count(roomParticipants.userId),
     })
     .from(rooms)
@@ -184,6 +186,8 @@ adminRoutes.get('/rooms', async (c) => {
       hostUserId: r.hostUserId,
       hostName: r.hostName,
       hostCountry: r.hostCountry,
+      gamesStarted: r.gamesStarted,
+      lastStartedAt: r.lastStartedAt,
       participantCount: r.participantCount,
       createdAt: r.createdAt,
     })),

@@ -9,10 +9,11 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { roomParticipants } from '../db/schema';
+import { roomParticipants, rooms } from '../db/schema';
 import type { AppEnv } from '../env';
 import {
   boardNominateSchema,
@@ -96,6 +97,24 @@ gameRoutes.post('/seat', jsonBody(seatActionSchema), async (c) => {
 gameRoutes.post('/start', jsonBody(roomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
   const result = await callDO(() => getGameRoomStub(c.env, roomCode, c.req.raw).startNight());
+
+  // Record the game start in D1 on the Ready→Ongoing transition (fire-and-forget).
+  // startNight succeeds exactly once per game (re-calls return invalid_status), so this
+  // counter is restart-proof and survives DO state resets.
+  if (result.success) {
+    const db = createDb(c.env.DB);
+    c.executionCtx.waitUntil(
+      db
+        .update(rooms)
+        .set({
+          gamesStarted: sql`${rooms.gamesStarted} + 1`,
+          lastStartedAt: new Date().toISOString(),
+        })
+        .where(eq(rooms.code, roomCode))
+        .execute(),
+    );
+  }
+
   return c.json(result, resultToStatus(result));
 });
 
