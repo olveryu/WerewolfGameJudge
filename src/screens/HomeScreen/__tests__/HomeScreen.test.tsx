@@ -80,7 +80,9 @@ describe('HomeScreen', () => {
 
       const { getByText } = render(<HomeScreen />);
 
+      // Create now opens the game-mode picker first; pick werewolf → BoardPicker.
       fireEvent.press(getByText('创建房间'));
+      fireEvent.press(getByText('狼人杀'));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('BoardPicker');
