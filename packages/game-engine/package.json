@@ -30,6 +30,10 @@
       "types": "./src/engine/*.ts",
       "default": "./dist/engine/*.js"
     },
+    "./fibking/*": {
+      "types": "./src/fibking/*.ts",
+      "default": "./dist/fibking/*.js"
+    },
     "./engine/store": {
       "types": "./src/engine/store/index.ts",
       "default": "./dist/engine/store/index.js"
