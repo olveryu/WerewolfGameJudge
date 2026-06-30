@@ -18,6 +18,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SeatActionParams } from '../schemas/game';
 import type { GameActionResult } from './gameProcessor';
+import type { DispatchResult } from './processEngineAction';
 
 export interface IGameRoomRPC {
   // ── No-arg game control ─────────────────────────────────────────────────
@@ -208,6 +209,18 @@ export interface IGameRoomRPC {
    * @pre Called once in room/create handler only. Idempotent (repeated calls overwrite).
    */
   init(initialState: GameState): Promise<void>;
+
+  /**
+   * Initialize a room for a registered engine (fibking, …): store the engine-built blob
+   * + record engine_type for dispatch routing. Generic, does not grow per game.
+   */
+  initState(engineType: string, blob: unknown): Promise<void>;
+
+  /**
+   * Dispatch an action to the room's engine (read-compute-write-broadcast).
+   * Generic Command entry; the engine is resolved by stored engine_type.
+   */
+  dispatch(actionType: string, payload: unknown): Promise<DispatchResult>;
 
   /**
    * Clear all DO persistent storage (deleteAll).

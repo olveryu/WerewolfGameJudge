@@ -59,6 +59,7 @@ import { createLogger } from '../lib/logger';
 import type { SeatActionParams } from '../schemas/game';
 
 const log = createLogger('GameRoom');
+import { ENGINE_REGISTRY } from './engineRegistry';
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -66,6 +67,7 @@ import {
   processAction,
 } from './gameProcessor';
 import type { IGameRoomRPC } from './IGameRoomRPC';
+import { type DispatchResult, processEngineAction } from './processEngineAction';
 
 interface WebSocketAttachment {
   userId: string;
@@ -115,7 +117,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     return result;
   }
 
-  #broadcast(state: GameState, revision: number, lastAction?: string): void {
+  #broadcast(state: unknown, revision: number, lastAction?: string): void {
     const message = JSON.stringify({
       type: 'STATE_UPDATE',
       state,
@@ -622,6 +624,41 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
       JSON.stringify(initialState),
     );
+  }
+
+  // ── Generic engine path (game-agnostic; selected by engine_type) ────────
+
+  /**
+   * Initialize a room for a registered engine (fibking, …).
+   * Stores the engine-built initial blob + records engine_type for dispatch routing.
+   * Werewolf keeps using `init` above; this path never touches werewolf bespoke logic.
+   */
+  async initState(engineType: string, blob: unknown): Promise<void> {
+    this.ctx.storage.sql.exec(
+      'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
+      JSON.stringify(blob),
+    );
+    await this.ctx.storage.put('engine_type', engineType);
+  }
+
+  /**
+   * Dispatch an action to the room's engine (read-compute-write-broadcast).
+   * Resolves the engine by stored engine_type; unknown engine/action fail fast.
+   */
+  async dispatch(actionType: string, payload: unknown): Promise<DispatchResult> {
+    const engineType = await this.ctx.storage.get<string>('engine_type');
+    if (!engineType) return { success: false, reason: 'ENGINE_NOT_INITIALIZED' };
+    const engine = ENGINE_REGISTRY[engineType];
+    if (!engine) return { success: false, reason: `UNKNOWN_ENGINE:${engineType}` };
+
+    const result = processEngineAction(this.ctx.storage.sql, engine, (state, revision) =>
+      engine.dispatch(state, revision, { actionType, payload }),
+    );
+
+    if (result.success && result.state !== undefined && result.revision != null) {
+      this.#broadcast(result.state, result.revision, actionType);
+    }
+    return result;
   }
 
   async cleanup(): Promise<void> {
