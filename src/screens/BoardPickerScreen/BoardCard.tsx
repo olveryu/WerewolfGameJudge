@@ -209,6 +209,16 @@ export const BoardCard = React.memo<BoardCardProps>(
                 </Button>
               )}
             </View>
+            {showSelectButton && (
+              <Text style={styles.selectHint}>
+                <Ionicons
+                  name="bulb-outline"
+                  size={componentSizes.icon.xs}
+                  color={colors.textMuted}
+                />{' '}
+                选板后仍可自由增减角色
+              </Text>
+            )}
           </View>
         )}
       </View>

@@ -195,12 +195,6 @@ const CATEGORY_TABS: TemplateCategory[] = [
         }
       />
 
-      {/* Subtitle hint */}
-      <View style={styles.headerSubtitleRow}>
-        <Ionicons name="bulb-outline" size={componentSizes.icon.sm} color={colors.textSecondary} />
-        <Text style={styles.headerSubtitle}>选完后还能自由增减角色</Text>
-      </View>
-
       {/* Search Bar */}
       {searchVisible && (
         <FormTextField

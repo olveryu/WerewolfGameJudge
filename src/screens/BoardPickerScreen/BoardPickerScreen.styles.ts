@@ -24,8 +24,6 @@ import {
 export interface BoardPickerStyles {
   // ── Layout ──
   container: ViewStyle;
-  headerSubtitleRow: ViewStyle;
-  headerSubtitle: TextStyle;
   headerRight: ViewStyle;
   // ── Search ──
   searchBar: ViewStyle;
@@ -80,6 +78,8 @@ export interface BoardPickerStyles {
   keyRoleMore: TextStyle;
   // ── Role list hint (expanded) ──
   roleListHint: TextStyle;
+  // ── Select hint (expanded, below select button) ──
+  selectHint: TextStyle;
   // ── Empty state ──
   emptyContainer: ViewStyle;
   emptyText: TextStyle;
@@ -96,18 +96,6 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
   return StyleSheet.create<BoardPickerStyles>({
     // ── Layout ────────────────────────────────────
     container: shared.screenContainer,
-    headerSubtitleRow: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: spacing.tight,
-      paddingBottom: spacing.small,
-    },
-    headerSubtitle: {
-      fontSize: typography.secondary,
-      lineHeight: typography.lineHeights.secondary,
-      color: colors.textSecondary,
-    },
     headerRight: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -398,6 +386,13 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
 
     // ── Role list hint (expanded) ─────────────
     roleListHint: {
+      fontSize: typography.caption,
+      lineHeight: typography.lineHeights.caption,
+      color: colors.textMuted,
+      textAlign: 'center',
+      marginTop: spacing.small,
+    },
+    selectHint: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
