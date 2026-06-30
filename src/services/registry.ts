@@ -5,6 +5,8 @@
  */
 
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import { FibStore } from '@werewolf/game-engine/fibking/store/FibStore';
+import type { FibState } from '@werewolf/game-engine/fibking/types';
 
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
@@ -12,6 +14,7 @@ import { CFRealtimeService } from '@/services/cloudflare/CFRealtimeService';
 import { CFRoomService } from '@/services/cloudflare/CFRoomService';
 import { CFStorageService } from '@/services/cloudflare/CFStorageService';
 import { ConnectionManager } from '@/services/connection/ConnectionManager';
+import { FibFacade } from '@/services/facade/FibFacade';
 import { GameFacade } from '@/services/facade/GameFacade';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
@@ -25,6 +28,7 @@ import { log } from '@/utils/logger';
 export function createAllServices(): {
   services: ServiceContextValue;
   facade: IGameFacade;
+  fibFacade: FibFacade;
 } {
   const authService = new CFAuthService();
   const roomService = new CFRoomService();
@@ -63,7 +67,22 @@ export function createAllServices(): {
     roomService,
   });
 
+  // ── fibking: parallel store + transport + connection (reuses room metadata service) ──
+  const fibStore = new FibStore();
+  const fibTransport = new CFRealtimeService();
+  const fibConnectionManager = new ConnectionManager({
+    transport: fibTransport,
+    // /room/state and /room/revision are game-agnostic; the blob is a FibState at runtime.
+    fetchStateFromDB: (roomCode) => roomService.getGameState(roomCode),
+    getStateRevision: (roomCode) => roomService.getStateRevision(roomCode),
+    onStateUpdate: (state, revision, lastAction) =>
+      fibStore.applySnapshot(state as unknown as FibState, revision, lastAction),
+    onFetchedState: (state, revision) =>
+      fibStore.applySnapshot(state as unknown as FibState, revision),
+  });
+  const fibFacade = new FibFacade({ store: fibStore, connectionManager: fibConnectionManager });
+
   log.info('[init] All services created');
 
-  return { services, facade };
+  return { services, facade, fibFacade };
 }

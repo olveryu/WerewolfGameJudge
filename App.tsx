@@ -17,6 +17,7 @@ import { APP_VERSION } from '@/config/version';
 import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { FibFacadeProvider } from '@/contexts/FibFacadeContext';
 import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
 import { getSentryIntegrations } from '@/lib/sentryIntegrations';
@@ -367,7 +368,7 @@ export default function App() {
 
   // Composition root: create all service instances via ServiceRegistry
   // useState lazy init ensures services are created only once
-  const [{ services, facade }] = useState(() => createAllServices());
+  const [{ services, facade, fibFacade }] = useState(() => createAllServices());
 
   return (
     <ErrorBoundary>
@@ -376,9 +377,11 @@ export default function App() {
           <ServiceProvider services={services}>
             <AuthProvider>
               <GameFacadeProvider facade={facade}>
-                <ModalStackProvider>
-                  <AppContent />
-                </ModalStackProvider>
+                <FibFacadeProvider facade={fibFacade}>
+                  <ModalStackProvider>
+                    <AppContent />
+                  </ModalStackProvider>
+                </FibFacadeProvider>
               </GameFacadeProvider>
             </AuthProvider>
           </ServiceProvider>
