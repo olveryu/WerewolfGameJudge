@@ -16,7 +16,7 @@ export const fibCreateConfigSchema = z.object({
 });
 
 /** Player display info supplied by the client on SIT (face-to-face trust model). */
-export const fibProfileSchema = z.object({
+const fibProfileSchema = z.object({
   displayName: z.string().min(1).max(40),
   avatarUrl: z.string().optional(),
   avatarFrame: z.string().optional(),

@@ -14,7 +14,7 @@ export interface FibWordEntry {
   definition: string;
 }
 
-export const FIB_WORD_BANK: readonly FibWordEntry[] = Object.freeze([
+const FIB_WORD_BANK: readonly FibWordEntry[] = Object.freeze([
   { word: '踟蹰', definition: '徘徊不前,要走不走的样子。' },
   { word: '彳亍', definition: '慢步行走,走走停停的样子。' },
   { word: '氤氲', definition: '烟气、云雾弥漫缭绕的样子。' },
