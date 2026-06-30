@@ -83,7 +83,7 @@
                                 ▼
         GameEngine 接口 (Strategy + Command + Factory)
         { gameType, createSchema, createInitialState,
-          dispatch, reduce, normalize, afterCommit? }
+          dispatch, reduce, normalize }
           ├─ werewolfEngine  —— 未来可选迁移(本期不做,§17);狼人现走 bespoke 方法
           ├─ fibEngine       —— 本期新增,第一个注册的 engine
           └─ drawEngine      —— 你画我猜以后只加这一行
@@ -125,32 +125,26 @@
 
 ---
 
-## 5. GameEngine 接口(Strategy + Command + Factory,完整契约)
+## 5. GameEngine 接口(Strategy + Command + Factory,as-built)
 
-`packages/game-engine/src/engine/registry/types.ts`(新),纯函数、零跨游戏依赖:
+`packages/game-engine/src/engine/registry/types.ts`,纯函数、零跨游戏依赖、**零 zod / 零 Cloudflare `Env`**:
 
 ```ts
-/** 一个游戏的全部权威逻辑 = 一个 Strategy。诞生(Factory)+ 活着(Command/Strategy)+ 终局(钩子)。 */
-interface GameEngine<TState, TConfig> {
+/** 一个游戏的全部权威逻辑 = 一个 Strategy。诞生(Factory)+ 活着(Command/Strategy)。 */
+interface GameEngine<TState, TAction, TConfig> {
   readonly gameType: string;
 
   // ── 诞生:Factory Method ────────────────────────────────
-  /** 建房参数校验(fib: { numberOfPlayers: 4–8 }) */
-  readonly createSchema: ZodType<TConfig>;
   /** 服务端权威构造初始 blob(不信任客户端 POST 整块 state) */
   createInitialState(config: TConfig, ctx: CreateCtx): TState;
 
   // ── 活着:Command 分发 + Strategy 算法 ───────────────────
-  /** 路由 actionType → 该游戏纯 handler,返回 HandlerResult(success/rejection/error) */
-  dispatch(state: TState, revision: number, action: GameAction): HandlerResult;
-  /** 该游戏自己的 reducer(fib ≠ 狼人) */
-  reduce(state: TState, action: StateAction): TState;
+  /** 路由 actionType → 该游戏纯 handler,返回 EngineResult<TAction>(success/rejection/error) */
+  dispatch(state: TState, revision: number, action: GameAction): EngineResult<TAction>;
+  /** 该游戏自己的 reducer(action 用本游戏的 TAction,fib 用 FibAction) */
+  reduce(state: TState, action: TAction): TState;
   /** 该游戏自己的 normalize + Complete 守卫(fib 用 normalizeFibState) */
   normalize(state: TState): TState;
-
-  // ── 终局:可选钩子 ──────────────────────────────────────
-  /** 提交+广播后的副作用(狼人未来迁移时承载 settle;fib 不定义 → 零 settle) */
-  afterCommit?(state: TState, env: Env, revision: number): void;
 }
 
 interface CreateCtx {
@@ -162,9 +156,28 @@ interface GameAction {
   actionType: string;
   payload: unknown;
 }
+type EngineResult<TAction> =
+  | {
+      kind: 'success';
+      actions: readonly TAction[];
+      sideEffects?: readonly SideEffect[];
+      reason?: string;
+    }
+  | {
+      kind: 'rejection';
+      reason: string;
+      actions: readonly TAction[];
+      sideEffects?: readonly SideEffect[];
+    }
+  | { kind: 'error'; reason: string };
 ```
 
-注册表 `packages/api-worker/src/durableObjects/engineRegistry.ts`(新):
+> **实现中的两处精炼(已落地)**:
+>
+> 1. **泛型化 action 类型 `TAction`** —— 狼人 `HandlerResult.actions` 是 `StateAction[]`(狼人专属),fib 不能复用;改用通用 `EngineResult<TAction>`,fib 携带自己的 `FibAction`。
+> 2. **接口保持纯净** —— 不放 `createSchema`(zod):game-engine 零依赖,建房参数校验留在 api-worker 边界(`schemas/fib.ts`),engine 只收已校验的 `TConfig`。不放 `afterCommit`(Cloudflare `Env`):当前无 engine 使用 = dead code(YAGNI),省去后通用 dispatch 路径**根本不含 settle 概念**——这才是 fib 结构上触不到 XP/gacha 的最硬保证。
+
+注册表 `packages/api-worker/src/durableObjects/engineRegistry.ts`:
 
 ```ts
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
@@ -212,7 +225,7 @@ DO 的 `dispatch` 内部(同步,无 `await fetch`):
 读 engine_type → engine = ENGINE_REGISTRY[engineType] (未知→fail-fast)
 → res = processEngineAction(sql, engine, (s, r) => engine.dispatch(s, r, { actionType, payload }))
 → res.success → #broadcast(复用)          ← revision 排序/丢旧(ConnectionFSM)不变
-→ engine.afterCommit?(...)                 ← fib 无,故零 settle
+→ 通用 dispatch 路径无 settle 概念     ← fib 结构上触不到 XP/gacha
 ```
 
 ### 6.3 建房:通用 `/room/create`(Factory Method)
@@ -252,7 +265,7 @@ POST /fib/clear-seats   → dispatch('CLEAR_SEATS', {})            // Lobby-only
 
 - **同步执行**(无 `await fetch`)→ 规避 DO 并发陷阱(§4 #5)。
 - **双击开局**被 fibEngine 对 `'BEGIN_DRAW'` 的相位守卫挡(第二次 phase 已 `Starting` → 拒,无副作用)。
-- **结构性零 settle**:fibEngine 不定义 `afterCommit`,通用 dispatch 路径不调 `#settleIfEnded`/`audioAck`(§4 #3)。
+- **结构性零 settle**:通用 dispatch 路径根本不含 settle 概念,不调 `#settleIfEnded`/`audioAck`(§4 #3)。
 
 ### 6.5 抽词位置(为何在 Worker 而非 DO)
 
@@ -565,23 +578,23 @@ FibRules:  undefined;
 
 ### P0(平台壳改造 / engine 接口 / 前置重构 / 抽词 / D1)
 
-| 文件                                                                                                            | 变更点                                                                                                                 | 风险                         |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `packages/game-engine/src/protocol/common.ts`(新)+ 改 `protocol/types.ts`、`engine/handlers/types.ts` re-export | 迁出 `RosterEntry`/`SideEffect` 到零狼人依赖模块                                                                       | 中;grep 全 consumer 双向核对 |
-| `packages/game-engine/src/engine/registry/types.ts`(新)                                                         | `GameEngine` 接口(create/dispatch/reduce/normalize/afterCommit)                                                        | 低;纯类型                    |
-| `packages/game-engine/src/engine/seating/{types,kernel}.ts`(新)                                                 | 共享座位 CRUD kernel(§8.1)                                                                                             | 低;纯函数                    |
-| 改 `engine/handlers/seatHandler.ts` → 薄 adapter                                                                | 狼人座位委托 kernel,行为不变,不动 reducer/normalize/契约                                                               | 中;既有座位测试须全绿        |
-| `…/fibking/{types,buildInitialFibState,normalizeFibState,assignRoles}.ts`(新)                                   | FibState + phase 判别 normalize + 注入 RNG 分角色                                                                      | 低                           |
-| `…/fibking/engine.ts`(新)                                                                                       | 组装 `fibEngine`(createSchema/createInitialState + dispatch 路由 + normalizeFibState + reducer);**不定义 afterCommit** | 中;fib 动作全集              |
-| `…/fibking/wordGen/{buildWordPrompt,parseWordResponse,FIB_WORD_BANK,blocklist}.ts`(新)                          | prompt/解析/zod/词库/黑名单                                                                                            | 中;需测试覆盖                |
-| `packages/api-worker/src/lib/geminiConfig.ts`(新)+ 改 `geminiProxy.ts`                                          | 抽共享 gemini 常量                                                                                                     | 低                           |
-| `…/services/fibWordSource.ts`(新)                                                                               | `generateFibWord` 三级 fallback(Worker 侧)                                                                             | 中;可注入 mock               |
-| `…/durableObjects/processEngineAction.ts`(新)                                                                   | 通用核心,reduce/normalize 由 engine 注入(同步)                                                                         | 中;不得误用狼人 normalize    |
-| `…/durableObjects/engineRegistry.ts`(新)                                                                        | `ENGINE_REGISTRY = { fibking: fibEngine }`                                                                             | 低                           |
-| `…/durableObjects/GameRoom.ts`                                                                                  | **仅加 `initState` + `dispatch`** 两个通用方法;不动狼人 bespoke / `init`/`#settleIfEnded`                              | 中;新增不触旧路径            |
-| `…/durableObjects/IGameRoomRPC.ts`                                                                              | 加 `initState`+`dispatch` 两个签名                                                                                     | 低                           |
-| 改 `handlers/roomHandlers.ts` `/create` + `schemas/room.ts`                                                     | 带 `gameType` 走 engine Factory(`createSchema`/`createInitialState`/`initState`);否则狼人 legacy;写 `game_type`        | 中;狼人路径须零行为变化      |
-| D1 迁移 `…/db/` + `rooms` 表                                                                                    | 加 `game_type`(默认 'werewolf')+ 回填;`/room/get` 返回 gameType                                                        | 中;迁移脚本                  |
+| 文件                                                                                                            | 变更点                                                                                                          | 风险                         |
+| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `packages/game-engine/src/protocol/common.ts`(新)+ 改 `protocol/types.ts`、`engine/handlers/types.ts` re-export | 迁出 `RosterEntry`/`SideEffect` 到零狼人依赖模块                                                                | 中;grep 全 consumer 双向核对 |
+| `packages/game-engine/src/engine/registry/types.ts`(新)                                                         | `GameEngine` 接口 + `EngineResult`(create/dispatch/reduce/normalize;泛型 TState/TAction/TConfig)                | 低;纯类型                    |
+| `packages/game-engine/src/engine/seating/{types,kernel}.ts`(新)                                                 | 共享座位 CRUD kernel(§8.1)                                                                                      | 低;纯函数                    |
+| 改 `engine/handlers/seatHandler.ts` → 薄 adapter                                                                | 狼人座位委托 kernel,行为不变,不动 reducer/normalize/契约                                                        | 中;既有座位测试须全绿        |
+| `…/fibking/{types,buildInitialFibState,normalizeFibState,assignRoles}.ts`(新)                                   | FibState + phase 判别 normalize + 注入 RNG 分角色                                                               | 低                           |
+| `…/fibking/engine.ts`(新)                                                                                       | 组装 `fibEngine`(createInitialState + dispatch 路由 + normalizeFibState + reducer);engine 纯净,无 settle 钩子   | 中;fib 动作全集              |
+| `…/fibking/wordGen/{buildWordPrompt,parseWordResponse,FIB_WORD_BANK,blocklist}.ts`(新)                          | prompt/解析/zod/词库/黑名单                                                                                     | 中;需测试覆盖                |
+| `packages/api-worker/src/lib/geminiConfig.ts`(新)+ 改 `geminiProxy.ts`                                          | 抽共享 gemini 常量                                                                                              | 低                           |
+| `…/services/fibWordSource.ts`(新)                                                                               | `generateFibWord` 三级 fallback(Worker 侧)                                                                      | 中;可注入 mock               |
+| `…/durableObjects/processEngineAction.ts`(新)                                                                   | 通用核心,reduce/normalize 由 engine 注入(同步)                                                                  | 中;不得误用狼人 normalize    |
+| `…/durableObjects/engineRegistry.ts`(新)                                                                        | `ENGINE_REGISTRY = { fibking: fibEngine }`                                                                      | 低                           |
+| `…/durableObjects/GameRoom.ts`                                                                                  | **仅加 `initState` + `dispatch`** 两个通用方法;不动狼人 bespoke / `init`/`#settleIfEnded`                       | 中;新增不触旧路径            |
+| `…/durableObjects/IGameRoomRPC.ts`                                                                              | 加 `initState`+`dispatch` 两个签名                                                                              | 低                           |
+| 改 `handlers/roomHandlers.ts` `/create` + `schemas/room.ts`                                                     | 带 `gameType` 走 engine Factory(`createSchema`/`createInitialState`/`initState`);否则狼人 legacy;写 `game_type` | 中;狼人路径须零行为变化      |
+| D1 迁移 `…/db/` + `rooms` 表                                                                                    | 加 `game_type`(默认 'werewolf')+ 回填;`/room/get` 返回 gameType                                                 | 中;迁移脚本                  |
 
 ### P1(端点 / facade / store / 组合根)
 
