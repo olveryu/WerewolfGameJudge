@@ -179,7 +179,7 @@ export const BoardCard = React.memo<BoardCardProps>(
                 size={componentSizes.icon.xs}
                 color={colors.textMuted}
               />{' '}
-              点击角色名查看能力说明
+              点击角色名查看能力说明{showSelectButton ? ' · 选板后仍可增减角色' : ''}
             </Text>
             <View style={showSelectButton ? cardActionRowStyle : cardActionRowCenteredStyle}>
               {hasStrategy && (
@@ -209,16 +209,6 @@ export const BoardCard = React.memo<BoardCardProps>(
                 </Button>
               )}
             </View>
-            {showSelectButton && (
-              <Text style={styles.selectHint}>
-                <Ionicons
-                  name="bulb-outline"
-                  size={componentSizes.icon.xs}
-                  color={colors.textMuted}
-                />{' '}
-                选板后仍可自由增减角色
-              </Text>
-            )}
           </View>
         )}
       </View>

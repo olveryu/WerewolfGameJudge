@@ -78,8 +78,6 @@ export interface BoardPickerStyles {
   keyRoleMore: TextStyle;
   // ── Role list hint (expanded) ──
   roleListHint: TextStyle;
-  // ── Select hint (expanded, below select button) ──
-  selectHint: TextStyle;
   // ── Empty state ──
   emptyContainer: ViewStyle;
   emptyText: TextStyle;
@@ -386,13 +384,6 @@ export const createBoardPickerStyles = (colors: ThemeColors): BoardPickerStyles 
 
     // ── Role list hint (expanded) ─────────────
     roleListHint: {
-      fontSize: typography.caption,
-      lineHeight: typography.lineHeights.caption,
-      color: colors.textMuted,
-      textAlign: 'center',
-      marginTop: spacing.small,
-    },
-    selectHint: {
       fontSize: typography.caption,
       lineHeight: typography.lineHeights.caption,
       color: colors.textMuted,
