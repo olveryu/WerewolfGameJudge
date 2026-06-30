@@ -33,8 +33,8 @@ import {
 } from '@/components/RoleRevealEffects';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
+import { getRoleAvatar } from '@/utils/avatar';
 import { log } from '@/utils/logger';
-import { getRoleBadge } from '@/utils/roleBadges';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────
 const ALIGNMENT_MAP: Record<Faction, 'wolf' | 'god' | 'villager' | 'third'> = {
@@ -82,12 +82,12 @@ const RoleCardModalInner: React.FC<RoleCardModalProps> = ({
 }) => {
   const [animationDone, setAnimationDone] = useState(false);
 
-  // Preload role badge image during animation so it's decoded when the card flips
+  // Preload role avatar image during animation so it's decoded when the card flips
   useEffect(() => {
     if (visible) {
       const targetRoleId = getRoleDisplayAs(roleId) ?? roleId;
-      Asset.loadAsync(getRoleBadge(targetRoleId) as number).catch((e) => {
-        log.warn('Failed to preload role badge', e);
+      Asset.loadAsync(getRoleAvatar(targetRoleId)).catch((e) => {
+        log.warn('Failed to preload role avatar', e);
       });
     }
   }, [visible, roleId]);

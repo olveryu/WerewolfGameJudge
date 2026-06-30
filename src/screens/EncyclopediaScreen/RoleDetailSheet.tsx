@@ -39,7 +39,7 @@ import {
 } from '@/theme';
 import { requestAIChatMessage } from '@/utils/aiChatBridge';
 import { showConfirmAlert } from '@/utils/alertPresets';
-import { getRoleBadge } from '@/utils/roleBadges';
+import { getRoleAvatar } from '@/utils/avatar';
 
 import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
 
@@ -121,7 +121,7 @@ export const RoleDetailSheet: React.FC<RoleDetailSheetProps> = ({ visible, roleI
           <ScrollView showsVerticalScrollIndicator contentContainerStyle={styles.scrollContent}>
             {/* Hero section */}
             <View style={[styles.heroSection, { backgroundColor: withAlpha(factionColor, 0.06) }]}>
-              <Image source={getRoleBadge(roleId)} style={styles.heroBadge} />
+              <Image source={getRoleAvatar(roleId)} style={styles.heroBadge} />
               <View style={styles.heroInfo}>
                 <Text style={[styles.heroName, { color: colors.text }]}>{spec.displayName}</Text>
                 {englishName && (

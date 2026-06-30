@@ -32,7 +32,7 @@ import { getFactionName } from '@/components/roleDisplayUtils';
 import { WolfCrackBackground } from '@/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/components/RoleRevealEffects/config';
 import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
-import { getRoleBadge } from '@/utils/roleBadges';
+import { getRoleAvatar } from '@/utils/avatar';
 
 const AE = CONFIG.alignmentEffects;
 
@@ -127,7 +127,7 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
   const roleName = seerLabel != null ? `${seerLabel}号${baseRoleName}` : baseRoleName;
   const description = displaySpec?.description || '无技能描述';
   const structuredDescription = getRoleStructuredDescription(displayRoleId);
-  const badgeSource = getRoleBadge(displayRoleId);
+  const avatarSource = getRoleAvatar(displayRoleId);
   // English subtitle for reveal mode: convert camelCase roleId to UPPERCASE
   const roleSub = displayRoleId.toUpperCase();
   const factionColor = getFactionColor(displayRoleId, colors);
@@ -321,13 +321,13 @@ export const RoleCardContent: React.FC<RoleCardContentProps> = ({
 
       {revealMode ? (
         <Animated.Image
-          source={badgeSource}
+          source={avatarSource}
           resizeMode="contain"
           style={[styles.roleIconImage, styles.roleIconRevealImage, emojiAnimStyle]}
         />
       ) : (
         <Image
-          source={badgeSource}
+          source={avatarSource}
           resizeMode="contain"
           style={styles.roleIconImage}
           testID="role-badge"
