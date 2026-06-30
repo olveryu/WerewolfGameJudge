@@ -42,7 +42,7 @@ export class CFRoomService implements IRoomService {
 
       try {
         const data = await cfPost<{
-          room: { roomCode: string; hostUserId: string; createdAt: string };
+          room: { roomCode: string; hostUserId: string; createdAt: string; gameType?: string };
         }>('/room/create', {
           roomCode: roomCode,
           initialState: buildInitialState ? buildInitialState(roomCode) : undefined,
@@ -56,6 +56,7 @@ export class CFRoomService implements IRoomService {
           roomCode: data.room.roomCode,
           hostUserId: data.room.hostUserId,
           createdAt: new Date(data.room.createdAt),
+          gameType: data.room.gameType ?? 'werewolf',
         };
       } catch (err) {
         const errObj = err as { status?: number; reason?: string };
@@ -75,7 +76,7 @@ export class CFRoomService implements IRoomService {
 
   async getRoom(roomCode: string): Promise<RoomRecord | null> {
     const data = await cfPost<{
-      room: { roomCode: string; hostUserId: string; createdAt: string } | null;
+      room: { roomCode: string; hostUserId: string; createdAt: string; gameType?: string } | null;
     }>('/room/get', { roomCode: roomCode });
 
     if (!data.room) return null;
@@ -84,6 +85,7 @@ export class CFRoomService implements IRoomService {
       roomCode: data.room.roomCode,
       hostUserId: data.room.hostUserId,
       createdAt: new Date(data.room.createdAt),
+      gameType: data.room.gameType ?? 'werewolf',
     };
   }
 

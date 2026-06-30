@@ -10,6 +10,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { FIB_GAME_TYPE } from '@werewolf/game-engine/fibking/types';
 import {
   Faction,
   getAllRoleIds,
@@ -37,6 +38,7 @@ import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { LAST_SEEN_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { useServices } from '@/contexts/ServiceContext';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { getRecentRooms } from '@/lib/recentRooms';
 import { storage } from '@/lib/storage';
@@ -56,6 +58,7 @@ import {
   RandomRoleCard,
   RecentRoomsModal,
 } from './components';
+import { GameModePickerSheet } from './components/GameModePickerSheet';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -68,8 +71,10 @@ export const HomeScreen: React.FC = () => {
 
   const navigation = useNavigation<NavigationProp>();
   const { user, loading: authLoading, error: authError } = useAuth();
+  const { roomService } = useServices();
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [showRecentRooms, setShowRecentRooms] = useState(false);
+  const [showModePicker, setShowModePicker] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [recentRoomCodes, setRecentRoomCodes] = useState<string[]>([]);
 
@@ -177,6 +182,18 @@ export const HomeScreen: React.FC = () => {
     [user, navigation],
   );
 
+  const routeToRoom = useCallback(
+    async (code: string): Promise<void> => {
+      const room = await roomService.getRoom(code);
+      if (room?.gameType === FIB_GAME_TYPE) {
+        navigation.navigate('FibRoom', { roomCode: code, isHost: false });
+      } else {
+        navigation.navigate('Room', { roomCode: code, isHost: false });
+      }
+    },
+    [roomService, navigation],
+  );
+
   const handleJoinRoom = useCallback(async () => {
     if (roomCode.length !== 4) {
       setJoinError('请输入4位房间号');
@@ -189,7 +206,7 @@ export const HomeScreen: React.FC = () => {
 
     try {
       setShowJoinModal(false);
-      navigation.navigate('Room', { roomCode: roomCode, isHost: false });
+      await routeToRoom(roomCode);
       setRoomCode('');
     } catch {
       homeLog.warn('Join failed');
@@ -197,7 +214,7 @@ export const HomeScreen: React.FC = () => {
     } finally {
       setIsJoining(false);
     }
-  }, [roomCode, navigation]);
+  }, [roomCode, routeToRoom]);
 
   const handleShowRecentRooms = useCallback(() => {
     setRecentRoomCodes(getRecentRooms());
@@ -213,9 +230,9 @@ export const HomeScreen: React.FC = () => {
   const handleJoinFromRecent = useCallback(
     (code: string) => {
       homeLog.info('Join from recent rooms', { roomCode: code });
-      navigation.navigate('Room', { roomCode: code, isHost: false });
+      void routeToRoom(code);
     },
-    [navigation],
+    [routeToRoom],
   );
 
   const handleCancelJoin = useCallback(() => {
@@ -227,8 +244,18 @@ export const HomeScreen: React.FC = () => {
 
   const handleCreateRoom = useCallback(() => {
     homeLog.info('Create room');
+    setShowModePicker(true);
+  }, []);
+
+  const handlePickWerewolf = useCallback(() => {
+    setShowModePicker(false);
     setIsCreating(true);
     navigation.navigate('BoardPicker');
+  }, [navigation]);
+
+  const handlePickFib = useCallback(() => {
+    setShowModePicker(false);
+    navigation.navigate('FibConfig');
   }, [navigation]);
 
   const handleShowJoinModal = useCallback(() => {
@@ -598,6 +625,13 @@ export const HomeScreen: React.FC = () => {
         roomCodes={recentRoomCodes}
         onClose={handleCloseRecentRooms}
         onJoin={handleJoinFromRecent}
+      />
+
+      <GameModePickerSheet
+        visible={showModePicker}
+        onClose={() => setShowModePicker(false)}
+        onPickWerewolf={handlePickWerewolf}
+        onPickFib={handlePickFib}
       />
 
       {/* What's New announcement modal */}

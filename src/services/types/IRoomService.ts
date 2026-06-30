@@ -12,6 +12,8 @@ export interface RoomRecord {
   roomCode: string;
   hostUserId: string;
   createdAt: Date;
+  /** Game type for routing (werewolf | fibking | …). Absent/undefined ⇒ werewolf (legacy). */
+  gameType?: string;
 }
 
 /** Room CRUD + game_state read/write interface. */

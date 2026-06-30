@@ -108,7 +108,6 @@ export class FibFacade {
       try {
         await cfPost('/room/create', { roomCode, gameType: FIB_GAME_TYPE, config });
         this.#roomCode = roomCode;
-        await this.#connectionManager.connectAndWait(roomCode, hostUserId);
         return roomCode;
       } catch (err) {
         const e = err as { status?: number };
@@ -120,10 +119,11 @@ export class FibFacade {
     throw lastError instanceof Error ? lastError : new Error('Failed to create fib room');
   }
 
-  /** Connect to an existing room (join or host rejoin). */
+  /** Connect to a room (join or host rejoin). Idempotent for the already-connected room. */
   async connect(roomCode: string, userId: string): Promise<void> {
     facadeLog.info('fib connect', { roomCode });
     this.#myUserId = userId;
+    if (roomCode === this.#roomCode && this.getState()) return; // already connected
     if (roomCode !== this.#roomCode) this.#store.reset();
     this.#roomCode = roomCode;
     await this.#connectionManager.connectAndWait(roomCode, userId);
