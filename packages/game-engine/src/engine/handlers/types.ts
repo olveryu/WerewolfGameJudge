@@ -7,6 +7,7 @@
  * 3. Returning a list of StateAction
  */
 
+import type { SideEffect } from '../../protocol/common';
 import type { StateAction } from '../reducer/types';
 import type { GameState } from '../store/types';
 
@@ -80,29 +81,12 @@ export function handlerError(reason: string): HandlerError {
 }
 
 /**
- * Side effect types
- * Handlers do not execute side effects directly; they return descriptions executed by the outer layer
+ * Side effect types and STANDARD_SIDE_EFFECTS are game-agnostic and now live in
+ * `protocol/common.ts` so non-werewolf engines can reuse them. Re-exported here for
+ * backward compatibility with existing `engine/handlers/types` consumers.
  */
-export type SideEffect =
-  /** Broadcast updated GameState to all connected WebSocket clients */
-  | { type: 'BROADCAST_STATE' }
-  /** Queue audio for Host device playback; isEndAudio=true loads from audio_end/ directory */
-  | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
-  /** Reserved (unused) */
-  | { type: 'SEND_MESSAGE'; message: unknown }
-  /** Persist updated state to SQLite */
-  | { type: 'SAVE_STATE' };
-
-/**
- * Standard side effects: broadcast state + save state
- *
- * Most handler sideEffects are this pair combined.
- * Handlers including PLAY_AUDIO should construct the full list themselves.
- */
-export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
-  { type: 'BROADCAST_STATE' },
-  { type: 'SAVE_STATE' },
-] as const);
+export type { SideEffect } from '../../protocol/common';
+export { STANDARD_SIDE_EFFECTS } from '../../protocol/common';
 
 /**
  * Non-null GameState type (used after handler validation)
