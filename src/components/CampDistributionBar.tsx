@@ -6,6 +6,7 @@
  * Shows an empty-state line when no games are visible (total === 0).
  * Used by SettingsScreen growth section (self) and room PlayerProfileCard (public).
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { CampBucket } from '@werewolf/game-engine/models/roles';
 import { CAMP_ORDER } from '@werewolf/game-engine/models/roles';
 import { memo } from 'react';
@@ -13,7 +14,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { CAMP_VISUAL } from '@/config/campVisual';
 import type { CampStats } from '@/services/feature/StatsService';
-import { borderRadius, colors, spacing, typography, withAlpha } from '@/theme';
+import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 interface CampDistributionBarProps {
   campStats: CampStats;
@@ -30,30 +31,38 @@ const CampDistributionBarComponent: React.FC<CampDistributionBarProps> = ({
   campStats,
   compact = false,
 }) => {
-  if (campStats.total === 0) {
-    return <Text style={styles.emptyText}>暂无阵营数据</Text>;
-  }
-
   return (
     <View style={styles.container}>
-      {CAMP_ORDER.map((bucket: CampBucket) => {
-        const visual = CAMP_VISUAL[bucket];
-        const count = campStats.counts[bucket];
-        const percent = toPercent(count, campStats.total);
-        return (
-          <View key={bucket} style={styles.row}>
-            <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1}>
-              {visual.emoji} {visual.label}
-            </Text>
-            <View style={styles.track}>
-              <View
-                style={[styles.fill, { width: `${percent}%`, backgroundColor: visual.color }]}
-              />
+      {campStats.total === 0 ? (
+        <Text style={styles.emptyText}>暂无阵营数据</Text>
+      ) : (
+        CAMP_ORDER.map((bucket: CampBucket) => {
+          const visual = CAMP_VISUAL[bucket];
+          const count = campStats.counts[bucket];
+          const percent = toPercent(count, campStats.total);
+          return (
+            <View key={bucket} style={styles.row}>
+              <Text style={[styles.label, compact && styles.labelCompact]} numberOfLines={1}>
+                {visual.emoji} {visual.label}
+              </Text>
+              <View style={styles.track}>
+                <View
+                  style={[styles.fill, { width: `${percent}%`, backgroundColor: visual.color }]}
+                />
+              </View>
+              <Text style={styles.percent}>{percent}%</Text>
             </View>
-            <Text style={styles.percent}>{percent}%</Text>
-          </View>
-        );
-      })}
+          );
+        })
+      )}
+      <Text style={styles.delayHint}>
+        <Ionicons
+          name="information-circle-outline"
+          size={componentSizes.icon.xs}
+          color={colors.textMuted}
+        />{' '}
+        仅统计两小时前结束的对局
+      </Text>
     </View>
   );
 };
@@ -102,5 +111,11 @@ const styles = StyleSheet.create({
     fontSize: typography.caption,
     lineHeight: typography.lineHeights.caption,
     color: colors.textMuted,
+  },
+  delayHint: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.textMuted,
+    marginTop: spacing.tight,
   },
 });

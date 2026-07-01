@@ -24,4 +24,13 @@ describe('CampDistributionBar', () => {
     expect(getByText('暂无阵营数据')).toBeTruthy();
     expect(queryByText('0%')).toBeNull();
   });
+
+  it('shows the 2-hour settlement delay hint', () => {
+    const { getByText } = render(
+      <CampDistributionBar
+        campStats={{ total: 10, counts: { wolf: 5, god: 3, villager: 2, third: 0 } }}
+      />,
+    );
+    expect(getByText(/仅统计两小时前结束的对局/)).toBeTruthy();
+  });
 });
