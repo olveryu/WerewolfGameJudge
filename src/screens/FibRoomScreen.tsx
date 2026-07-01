@@ -191,15 +191,22 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
     ]);
   }, [facade, runAction]);
 
+  const handleFillBots = useCallback((): void => {
+    showAlert('填充机器人?', '将用机器人填满空座位', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '填充',
+        onPress: () => void runAction(() => facade.fillBots(), '填充失败'),
+      },
+    ]);
+  }, [facade, runAction]);
+
   const actionItems = useMemo(
     () =>
       createFibHeaderActionItems({
-        isHost,
-        isLobby,
         onShareRoom: share.openQRCode,
-        onOpenSettings: openSettings,
       }),
-    [isHost, isLobby, openSettings, share.openQRCode],
+    [share.openQRCode],
   );
 
   const operationItems = useMemo(
@@ -208,9 +215,11 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
         isHost,
         isLobby,
         filled,
+        isFull,
+        onFillBots: handleFillBots,
         onClearSeats: handleClearSeats,
       }),
-    [filled, handleClearSeats, isHost, isLobby],
+    [filled, handleClearSeats, handleFillBots, isFull, isHost, isLobby],
   );
 
   const seatViewModels = useMemo(

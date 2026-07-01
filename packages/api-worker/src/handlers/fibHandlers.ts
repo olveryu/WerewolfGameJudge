@@ -123,6 +123,15 @@ fibRoutes.post('/clear-seats', requireAuth, jsonBody(fibRoomCodeSchema), async (
   return c.json(result, resultToStatus(result));
 });
 
+fibRoutes.post('/fill-bots', requireAuth, jsonBody(fibRoomCodeSchema), async (c) => {
+  const { roomCode } = c.req.valid('json');
+  const host = await checkHost(c.env, c.var.userId, roomCode);
+  if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
+  const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
+  const result = await callDO(() => stub.engineAction('FILL_BOTS', {}));
+  return c.json(result, resultToStatus(result));
+});
+
 fibRoutes.post('/update-config', requireAuth, jsonBody(fibUpdateConfigSchema), async (c) => {
   const { roomCode, numberOfPlayers } = c.req.valid('json');
   const host = await checkHost(c.env, c.var.userId, roomCode);

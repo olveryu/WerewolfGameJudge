@@ -172,6 +172,10 @@ export class FibFacade {
     return this.#post('/fib/clear-seats', { roomCode: this.#roomCodeOrThrow() });
   }
 
+  fillBots(): Promise<FibActionResult> {
+    return this.#post('/fib/fill-bots', { roomCode: this.#roomCodeOrThrow() });
+  }
+
   updateConfig(numberOfPlayers: number): Promise<FibActionResult> {
     return this.#post('/fib/update-config', {
       roomCode: this.#roomCodeOrThrow(),

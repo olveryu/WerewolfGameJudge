@@ -73,6 +73,8 @@ export function dispatchFib(
       return handleKick(state, action.payload as KickPayload);
     case 'CLEAR_SEATS':
       return handleClearSeats(state);
+    case 'FILL_BOTS':
+      return handleFillBots(state);
     case 'UPDATE_CONFIG':
       return handleUpdateConfig(state, action.payload as UpdateConfigPayload);
     case 'BEGIN_DRAW':
@@ -145,6 +147,27 @@ function handleClearSeats(state: FibState): EngineResult<FibAction> {
   const op = seatClearAll(state.seats);
   if (op.kind === 'error') return engineError(op.reason);
   return engineSuccess<FibAction>([{ type: 'CLEAR_ALL_SEATS' }]);
+}
+
+function createFibBotUserId(seat: number): string {
+  return `bot-${seat}`;
+}
+
+function createFibBotProfile(seat: number): RosterEntry {
+  return { displayName: `机器人${seat + 1}号` };
+}
+
+function handleFillBots(state: FibState): EngineResult<FibAction> {
+  if (!isLobby(state)) return engineError('NOT_LOBBY');
+
+  const actions: FibAction[] = [];
+  for (let seat = 0; seat < state.numberOfPlayers; seat++) {
+    if (state.seats[seat]) continue;
+    const userId = createFibBotUserId(seat);
+    actions.push({ type: 'SET_SEAT', seat, value: { userId, seat } });
+    actions.push({ type: 'SET_ROSTER', userId, entry: createFibBotProfile(seat) });
+  }
+  return engineSuccess<FibAction>(actions);
 }
 
 function handleUpdateConfig(state: FibState, p: UpdateConfigPayload): EngineResult<FibAction> {

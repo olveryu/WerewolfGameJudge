@@ -5,24 +5,20 @@ import type { RoomHeaderActionItem } from '@/components/room/RoomHeaderActions';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 interface CreateFibHeaderActionItemsParams {
-  isHost: boolean;
-  isLobby: boolean;
   onShareRoom: () => void;
-  onOpenSettings: () => void;
 }
 
 interface CreateFibHeaderOperationItemsParams {
   isHost: boolean;
   isLobby: boolean;
   filled: number;
+  isFull: boolean;
+  onFillBots: () => void;
   onClearSeats: () => void;
 }
 
 export function createFibHeaderActionItems({
-  isHost,
-  isLobby,
   onShareRoom,
-  onOpenSettings,
 }: CreateFibHeaderActionItemsParams): RoomHeaderActionItem[] {
   return [
     ...(!isMiniProgram()
@@ -35,17 +31,6 @@ export function createFibHeaderActionItems({
           },
         ]
       : []),
-    ...(isHost && isLobby
-      ? [
-          {
-            key: 'room-settings',
-            label: '房间设置',
-            iconName: 'options-outline' as const,
-            testID: 'fib-settings',
-            onPress: onOpenSettings,
-          },
-        ]
-      : []),
   ];
 }
 
@@ -53,17 +38,31 @@ export function createFibHeaderOperationItems({
   isHost,
   isLobby,
   filled,
+  isFull,
+  onFillBots,
   onClearSeats,
 }: CreateFibHeaderOperationItemsParams): RoomHeaderActionItem[] {
-  if (!isHost || !isLobby || filled === 0) return [];
-  return [
-    {
+  if (!isHost || !isLobby) return [];
+
+  const items: RoomHeaderActionItem[] = [];
+  if (!isFull) {
+    items.push({
+      key: 'fill-bots',
+      label: '填充机器人',
+      iconName: 'people-outline',
+      testID: 'fib-fill-bots',
+      onPress: onFillBots,
+    });
+  }
+  if (filled > 0) {
+    items.push({
       key: 'clear-seats',
       label: '清空座位',
       iconName: 'exit-outline',
       danger: true,
       testID: 'fib-clear-seats',
       onPress: onClearSeats,
-    },
-  ];
+    });
+  }
+  return items;
 }

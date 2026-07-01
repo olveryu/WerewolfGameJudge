@@ -133,6 +133,39 @@ describe('fibEngine seat actions (Lobby-only, fail-fast)', () => {
     expect(result.kind).toBe('error');
     if (result.kind === 'error') expect(result.reason).toBe('BAD_SEAT');
   });
+
+  it('FILL_BOTS fills empty seats without replacing real players', () => {
+    let state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CTX);
+    state = apply(
+      state,
+      dispatchFib(state, 1, {
+        actionType: 'SIT',
+        payload: { userId: 'u0', seat: 0, profile: { displayName: 'Alice' } },
+      }),
+    );
+
+    state = apply(state, dispatchFib(state, 1, { actionType: 'FILL_BOTS', payload: {} }));
+
+    expect(Object.keys(state.seats).map(Number).sort()).toEqual([0, 1, 2, 3]);
+    expect(state.seats[0]).toEqual({ userId: 'u0', seat: 0 });
+    expect(state.roster.u0).toEqual({ displayName: 'Alice' });
+    expect(state.seats[1]).toEqual({ userId: 'bot-1', seat: 1 });
+    expect(state.roster['bot-1']).toEqual({ displayName: '机器人2号' });
+    expect(state.seats[2]).toEqual({ userId: 'bot-2', seat: 2 });
+    expect(state.roster['bot-2']).toEqual({ displayName: '机器人3号' });
+    expect(state.seats[3]).toEqual({ userId: 'bot-3', seat: 3 });
+    expect(state.roster['bot-3']).toEqual({ displayName: '机器人4号' });
+  });
+
+  it('rejects FILL_BOTS outside Lobby', () => {
+    let state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CTX);
+    state = sitAll(state, 4);
+    state = apply(state, dispatchFib(state, 1, { actionType: 'BEGIN_DRAW', payload: {} }));
+    const result = dispatchFib(state, 1, { actionType: 'FILL_BOTS', payload: {} });
+
+    expect(result.kind).toBe('error');
+    if (result.kind === 'error') expect(result.reason).toBe('NOT_LOBBY');
+  });
 });
 
 describe('fibEngine UPDATE_CONFIG shrink guard', () => {

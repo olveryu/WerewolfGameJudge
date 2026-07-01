@@ -262,6 +262,7 @@ POST /fib/next-round    → 同 start-round 两段式(仅 Revealed)
 POST /fib/restart       → engineAction('RESTART', {})                // 任意非 Lobby → Lobby(弃局)
 POST /fib/kick          → engineAction('KICK', { targetSeat })       // Lobby-only
 POST /fib/clear-seats   → engineAction('CLEAR_SEATS', {})            // Lobby-only
+POST /fib/fill-bots     → engineAction('FILL_BOTS', {})              // Lobby-only,填满空座给手测/大房间压测
 ```
 
 - **同步执行**(无 `await fetch`)→ 规避 DO 并发陷阱(§4 #5)。
@@ -505,15 +506,15 @@ FibRules:  undefined;
 
 ## 13. UI 复用矩阵(共享房间基础层 + 每游戏 adapter)
 
-| UI                                              | 复用策略                                                                                                    |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| theme tokens / Toast / showAlert                | **直接共用**                                                                                                |
-| 头像+gacha 外框+名字样式                        | **compose** `AvatarWithFrame`/`NameStyleText`(已被 PlayerProfileCard/Gacha 复用),零改动                     |
-| 房间 Header                                     | 抽共享 `RoomHeaderActions`;狼人 adapter 保留分享/音乐/机器人操作,fib adapter 接分享/房间设置/清空座位       |
-| StatusRibbon / 二维码分享 Modal / JoinRoomModal | `RoomStatusRibbon`/`QRCodeModal` 已进 `src/components/room`;join 后按 gameType 路由                         |
-| 座位单元                                        | `RoomSeatBoard` + `RoomSeatTile` 已进 shared;狼人 adapter 解析 bot role label,fib 只传状态徽章/身份公开规则 |
-| 查看身份卡                                      | **不碰 RoleCardModal**;自建 `FibIdentitySheet`(theme + reanimated)                                          |
-| 底部操作面板 / GameModePickerModal              | 复用 `RoomBottomActionPanel` 三层按钮布局;新增模式弹窗使用现有 Modal 视觉                                   |
+| UI                                              | 复用策略                                                                                                                         |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| theme tokens / Toast / showAlert                | **直接共用**                                                                                                                     |
+| 头像+gacha 外框+名字样式                        | **compose** `AvatarWithFrame`/`NameStyleText`(已被 PlayerProfileCard/Gacha 复用),零改动                                          |
+| 房间 Header                                     | 抽共享 `RoomHeaderActions`;狼人 adapter 保留分享/音乐/机器人操作,fib adapter 接分享/填充机器人/清空座位;fib 设置留在底部主操作区 |
+| StatusRibbon / 二维码分享 Modal / JoinRoomModal | `RoomStatusRibbon`/`QRCodeModal` 已进 `src/components/room`;join 后按 gameType 路由                                              |
+| 座位单元                                        | `RoomSeatBoard` + `RoomSeatTile` 已进 shared;狼人 adapter 解析 bot role label,fib 只传状态徽章/身份公开规则                      |
+| 查看身份卡                                      | **不碰 RoleCardModal**;自建 `FibIdentitySheet`(theme + reanimated)                                                               |
+| 底部操作面板 / GameModePickerModal              | 复用 `RoomBottomActionPanel` 三层按钮布局;新增模式弹窗使用现有 Modal 视觉                                                        |
 
 > **原则**:共享稳定房间基础能力;狼人夜晚业务和 fib 玩法特殊内容各自 adapter,不把不同游戏规则塞进同一个基类。
 
@@ -534,16 +535,17 @@ FibRules:  undefined;
 
 ### 14.2 按钮 ⇄ 触发 + 确认弹窗
 
-| 按钮     | 触发                                                                         | 确认                                |
-| -------- | ---------------------------------------------------------------------------- | ----------------------------------- |
-| 设置     | `navigate('FibConfig',{existingRoomCode})` → `engineAction('UPDATE_CONFIG')` | 无                                  |
-| 开始本轮 | `POST /fib/start-round`(两段式,§6.4)                                         | 无(坐满才启用)                      |
-| 查看身份 | 打开本地 `FibIdentitySheet`(无请求,§14.3)                                    | 无                                  |
-| 公布答案 | `POST /fib/reveal`                                                           | `'公布答案?将公开真词与所有人身份'` |
-| 下一轮   | `POST /fib/next-round`                                                       | 无                                  |
-| 重新开始 | `POST /fib/restart`                                                          | `'重新开始?将弃掉本局回到房间'`     |
-| 清空座位 | `POST /fib/clear-seats`                                                      | `'清空所有座位?'`                   |
-| 移出     | `POST /fib/kick`                                                             | profile card 内 `移出`              |
+| 按钮       | 触发                                                                         | 确认                                |
+| ---------- | ---------------------------------------------------------------------------- | ----------------------------------- |
+| 设置       | `navigate('FibConfig',{existingRoomCode})` → `engineAction('UPDATE_CONFIG')` | 无                                  |
+| 开始本轮   | `POST /fib/start-round`(两段式,§6.4)                                         | 无(坐满才启用)                      |
+| 查看身份   | 打开本地 `FibIdentitySheet`(无请求,§14.3)                                    | 无                                  |
+| 公布答案   | `POST /fib/reveal`                                                           | `'公布答案?将公开真词与所有人身份'` |
+| 下一轮     | `POST /fib/next-round`                                                       | 无                                  |
+| 重新开始   | `POST /fib/restart`                                                          | `'重新开始?将弃掉本局回到房间'`     |
+| 清空座位   | `POST /fib/clear-seats`                                                      | `'清空所有座位?'`                   |
+| 填充机器人 | `POST /fib/fill-bots`                                                        | `'填充机器人?将用机器人填满空座位'` |
+| 移出       | `POST /fib/kick`                                                             | profile card 内 `移出`              |
 
 ### 14.3 FibIdentitySheet(纯客户端读取)
 
@@ -599,14 +601,14 @@ FibRules:  undefined;
 
 ### P1(端点 / facade / store / 组合根)
 
-| 文件                                                                        | 变更点                                                                                                                                       | 风险                  |
-| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `…/schemas/fib.ts`(新)+ `handlers/fibHandlers.ts`(新)+ `index.ts` 挂 `/fib` | 端点 zod + 两段式 start-round 编排(经 `engineAction`)                                                                                        | 中                    |
-| `…/fibking/handlers/*.ts`(新)                                               | sit/leave/kick/clearSeats(委托 kernel)、updateConfig、startRound/reveal/nextRound/restart(纯函数 + phase-guard;由 `fibEngine.dispatch` 路由) | 中                    |
-| `…/fibking/store/FibStore.ts`(新)                                           | 镜像 GameStore,`applySnapshot → normalizeFibState`                                                                                           | 低                    |
-| `src/services/facade/FibFacade.ts`(新)                                      | 复用 transport runtime;当前直接 `cfPost('/fib/*')`,后续再抽通用 action helper                                                                | 中                    |
-| `src/services/registry.ts`、`App.tsx`、`contexts/GameFacadeContext.tsx`     | 按 gameType 解析 facade;join 路由                                                                                                            | 中高;狼人路径须零回归 |
-| `src/navigation/types.ts`、`AppNavigator.tsx`                               | 加 `FibConfig`/`FibRoom`/`FibRules` route + linking                                                                                          | 低                    |
+| 文件                                                                        | 变更点                                                                                                                                                              | 风险                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `…/schemas/fib.ts`(新)+ `handlers/fibHandlers.ts`(新)+ `index.ts` 挂 `/fib` | 端点 zod + 两段式 start-round 编排(经 `engineAction`)                                                                                                               | 中                    |
+| `…/fibking/handlers/*.ts`(新)                                               | sit/leave/kick/clearSeats/fillBots(委托 kernel/共享 bot 命名)、updateConfig、startRound/reveal/nextRound/restart(纯函数 + phase-guard;由 `fibEngine.dispatch` 路由) | 中                    |
+| `…/fibking/store/FibStore.ts`(新)                                           | 镜像 GameStore,`applySnapshot → normalizeFibState`                                                                                                                  | 低                    |
+| `src/services/facade/FibFacade.ts`(新)                                      | 复用 transport runtime;当前直接 `cfPost('/fib/*')`,后续再抽通用 action helper                                                                                       | 中                    |
+| `src/services/registry.ts`、`App.tsx`、`contexts/GameFacadeContext.tsx`     | 按 gameType 解析 facade;join 路由                                                                                                                                   | 中高;狼人路径须零回归 |
+| `src/navigation/types.ts`、`AppNavigator.tsx`                               | 加 `FibConfig`/`FibRoom`/`FibRules` route + linking                                                                                                                 | 低                    |
 
 ### P2(UI / 文案 / 文档 / 测试)
 

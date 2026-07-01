@@ -87,6 +87,32 @@ describe('GameRoom generic engine path (fibking)', () => {
     if (!r.success) expect(r.reason).toBe('UNKNOWN_ACTION:NOPE');
   });
 
+  it('FILL_BOTS fills empty seats through the generic engine path', async () => {
+    const stub = getStub();
+    await initFib(stub, 4);
+
+    const sit = await dispatch(stub, 'SIT', {
+      userId: 'u0',
+      seat: 0,
+      profile: { displayName: 'Alice' },
+    });
+    expect(sit.success).toBe(true);
+
+    const fill = await dispatch(stub, 'FILL_BOTS', {});
+    expect(fill.success).toBe(true);
+
+    const state = await getFibState(stub);
+    expect(Object.keys(state.seats).map(Number).sort()).toEqual([0, 1, 2, 3]);
+    expect(state.seats[0]).toEqual({ userId: 'u0', seat: 0 });
+    expect(state.roster.u0).toEqual({ displayName: 'Alice' });
+    expect(state.seats[1]).toEqual({ userId: 'bot-1', seat: 1 });
+    expect(state.roster['bot-1']).toEqual({ displayName: '机器人2号' });
+    expect(state.seats[2]).toEqual({ userId: 'bot-2', seat: 2 });
+    expect(state.roster['bot-2']).toEqual({ displayName: '机器人3号' });
+    expect(state.seats[3]).toEqual({ userId: 'bot-3', seat: 3 });
+    expect(state.roster['bot-3']).toEqual({ displayName: '机器人4号' });
+  });
+
   it('full round: sit → begin → start → reveal', async () => {
     const stub = getStub();
     await initFib(stub, 4);
