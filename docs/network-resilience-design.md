@@ -995,12 +995,12 @@ App layer renders full-screen error page component based on this state (replacin
 
 ### Phase 4: QueryClient + ConnectionStatusBar
 
-| Commit | File                                                        | Changes                                                                                        |
-| ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 23     | `src/lib/queryClient.ts`                                    | Update config (retry: 2, MutationCache onError)                                                |
-| 24     | `src/screens/RoomScreen/components/ConnectionStatusBar.tsx` | Failed state add manual reconnect button                                                       |
-| 25     | `src/services/connection/ConnectionManager.ts`              | Expose manualReconnect to UI                                                                   |
-| 26     | `src/services/cloudflare/CFAuthService.ts` + App layer      | Mini-program WeChat login failure → wechatLoginFailed state + full-screen error page component |
+| Commit | File                                                   | Changes                                                                                        |
+| ------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| 23     | `src/lib/queryClient.ts`                               | Update config (retry: 2, MutationCache onError)                                                |
+| 24     | `src/components/room/ConnectionStatusBar.tsx`          | Failed state add manual reconnect button                                                       |
+| 25     | `src/services/connection/ConnectionManager.ts`         | Expose manualReconnect to UI                                                                   |
+| 26     | `src/services/cloudflare/CFAuthService.ts` + App layer | Mini-program WeChat login failure → wechatLoginFailed state + full-screen error page component |
 
 **Verification**: `pnpm run quality` + full E2E suite.
 

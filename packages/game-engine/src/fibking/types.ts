@@ -11,7 +11,9 @@ export const FIB_GAME_TYPE = 'fibking' as const;
 
 /** Player count bounds (inclusive). N≥4 guarantees 1 guesser + 1 honest + ≥2 fibber. */
 export const FIB_MIN_PLAYERS = 4;
-export const FIB_MAX_PLAYERS = 8;
+
+/** Default room size for new fibking rooms. Users may raise it without a product cap. */
+export const FIB_DEFAULT_PLAYERS = 8;
 
 /** Ring-buffer cap for per-room used-word dedup. */
 export const FIB_USED_WORDS_CAP = 50;
@@ -39,9 +41,10 @@ export interface FibState {
   roomCode: string;
   hostUserId: string;
   phase: FibPhase;
-  /** Fixed seat count 0..N-1; 4..8. */
+  /** Fixed seat count 0..N-1; N >= FIB_MIN_PLAYERS, no product upper bound. */
   numberOfPlayers: number;
-  seats: Record<number, FibSeat | null>;
+  /** Sparse occupied-seat map. Empty seats are omitted to keep large rooms light. */
+  seats: Record<number, FibSeat>;
   roster: Record<string, RosterEntry>;
   word?: string;
   definition?: string;

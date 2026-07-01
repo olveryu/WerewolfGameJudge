@@ -62,20 +62,26 @@ describe('assignFibRoles', () => {
 });
 
 describe('fibEngine.createInitialState', () => {
-  it('builds a fresh Lobby with empty seats and no round fields', () => {
-    const state = fibEngine.createInitialState({ numberOfPlayers: 5 }, CTX);
+  it('builds a fresh Lobby with sparse seats and no round fields', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 8 }, CTX);
     expect(state).toMatchObject({
       gameType: 'fibking',
       roomCode: 'ABCD',
       hostUserId: 'host-1',
       phase: 'Lobby',
-      numberOfPlayers: 5,
+      numberOfPlayers: 8,
       roster: {},
       usedWords: [],
     });
-    expect(Object.keys(state.seats)).toHaveLength(5);
-    expect(Object.values(state.seats).every((s) => s === null)).toBe(true);
+    expect(state.seats).toEqual({});
     expect(state.word).toBeUndefined();
+    expect(() => normalizeFibState(state)).not.toThrow();
+  });
+
+  it('allows large room sizes without preallocating empty seats', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 100 }, CTX);
+    expect(state.numberOfPlayers).toBe(100);
+    expect(state.seats).toEqual({});
     expect(() => normalizeFibState(state)).not.toThrow();
   });
 });
@@ -94,11 +100,11 @@ describe('fibEngine seat actions (Lobby-only, fail-fast)', () => {
     expect(state.roster.u0).toEqual({ displayName: 'A' });
 
     state = apply(state, dispatchFib(state, 1, { actionType: 'LEAVE', payload: { userId: 'u0' } }));
-    expect(state.seats[0]).toBeNull();
+    expect(state.seats[0]).toBeUndefined();
     expect(state.roster.u0).toBeUndefined();
   });
 
-  it('rejects taking an occupied seat and double-seating', () => {
+  it('rejects taking an occupied seat and allows moving to an empty seat', () => {
     let state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CTX);
     state = sitAll(state, 1);
     const taken = dispatchFib(state, 1, {
@@ -106,11 +112,26 @@ describe('fibEngine seat actions (Lobby-only, fail-fast)', () => {
       payload: { userId: 'uX', seat: 0, profile: { displayName: 'X' } },
     });
     expect(taken.kind).toBe('error');
-    const dbl = dispatchFib(state, 1, {
+    state = apply(
+      state,
+      dispatchFib(state, 1, {
+        actionType: 'SIT',
+        payload: { userId: 'u0', seat: 1, profile: { displayName: 'P0 moved' } },
+      }),
+    );
+    expect(state.seats[0]).toBeUndefined();
+    expect(state.seats[1]).toEqual({ userId: 'u0', seat: 1 });
+    expect(state.roster.u0).toEqual({ displayName: 'P0 moved' });
+  });
+
+  it('rejects seating outside the configured room size', () => {
+    const state = fibEngine.createInitialState({ numberOfPlayers: 4 }, CTX);
+    const result = dispatchFib(state, 1, {
       actionType: 'SIT',
-      payload: { userId: 'u0', seat: 1, profile: { displayName: 'P0' } },
+      payload: { userId: 'u0', seat: 4, profile: { displayName: 'P0' } },
     });
-    expect(dbl.kind).toBe('error');
+    expect(result.kind).toBe('error');
+    if (result.kind === 'error') expect(result.reason).toBe('BAD_SEAT');
   });
 });
 
@@ -133,7 +154,7 @@ describe('fibEngine UPDATE_CONFIG shrink guard', () => {
       dispatchFib(state, 1, { actionType: 'UPDATE_CONFIG', payload: { numberOfPlayers: 4 } }),
     );
     expect(state.numberOfPlayers).toBe(4);
-    expect(Object.keys(state.seats)).toHaveLength(4);
+    expect(Object.keys(state.seats).map(Number).sort()).toEqual([0, 1, 2, 3]);
   });
 });
 
@@ -175,7 +196,7 @@ describe('fibEngine full round lifecycle', () => {
     expect(state.phase).toBe('Lobby');
     expect(state.word).toBeUndefined();
     expect(state.usedWords).toEqual([]);
-    expect(Object.values(state.seats).filter((s) => s !== null)).toHaveLength(4);
+    expect(Object.keys(state.seats)).toHaveLength(4);
   });
 
   it('next-round (BEGIN_DRAW from Revealed) keeps usedWords', () => {

@@ -4,6 +4,7 @@ import { expect, type Page } from '@playwright/test';
 import { createPlayerContexts, type MultiPlayerFixture } from '../fixtures/app.fixture';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
+import { openWerewolfBoardPicker } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 import { enterRoomCodeViaNumPad, extractRoomCode } from './home';
 import { getVisibleText } from './ui';
@@ -216,7 +217,7 @@ export async function setupNPlayerGame(
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room
-  await hostPage.getByText('创建房间').click();
+  await openWerewolfBoardPicker(hostPage);
   const boardPicker = new BoardPickerPage(hostPage);
   await boardPicker.waitForReady();
   await boardPicker.selectDefaultTemplate();
@@ -293,7 +294,7 @@ export async function setupNPlayerGameWithRoles(
   const [hostPage, ...joinerPages] = fixture.pages;
 
   // Step 2: Host creates room
-  await hostPage.getByText('创建房间').click();
+  await openWerewolfBoardPicker(hostPage);
   const boardPicker2 = new BoardPickerPage(hostPage);
   await boardPicker2.waitForReady();
   await boardPicker2.selectDefaultTemplate();

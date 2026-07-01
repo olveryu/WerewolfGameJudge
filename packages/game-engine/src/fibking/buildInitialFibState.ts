@@ -8,16 +8,20 @@
 import type { CreateCtx } from '../engine/registry/types';
 import { emptySeats } from './reducer';
 import type { FibConfig, FibState } from './types';
-import { FIB_GAME_TYPE } from './types';
+import { FIB_GAME_TYPE, FIB_MIN_PLAYERS } from './types';
 
 export function buildInitialFibState(config: FibConfig, ctx: CreateCtx): FibState {
+  if (!Number.isInteger(config.numberOfPlayers) || config.numberOfPlayers < FIB_MIN_PLAYERS) {
+    throw new Error(`buildInitialFibState: numberOfPlayers must be >= ${FIB_MIN_PLAYERS}`);
+  }
+
   return {
     gameType: FIB_GAME_TYPE,
     roomCode: ctx.roomCode,
     hostUserId: ctx.hostUserId,
     phase: 'Lobby',
     numberOfPlayers: config.numberOfPlayers,
-    seats: emptySeats(config.numberOfPlayers),
+    seats: emptySeats(),
     roster: {},
     usedWords: [],
   };

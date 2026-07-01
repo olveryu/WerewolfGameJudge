@@ -1,42 +1,68 @@
 /**
- * BottomActionPanel - Floating bottom action panel (Memoized)
+ * RoomBottomActionPanel - Floating bottom action panel (Memoized)
  *
  * Three-tier layout: primary → secondary → ghost.
  * Accepts BottomLayout (declarative config-driven), renders message + three-tier buttons.
  * Pure display component, no service imports, no business logic.
  */
 
-import type React from 'react';
 import { memo, useEffect, useMemo, useRef } from 'react';
 import { Animated, Platform, View } from 'react-native';
 
 import { Button } from '@/components/Button';
-import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import { TESTIDS } from '@/testids';
 
-import type { BottomLayout, ButtonConfig, StaticButtonId } from '../hooks/bottomLayoutConfig';
-import { type BottomActionPanelStyles } from './styles';
+import type { BottomActionPanelStyles } from './roomComponentStyles';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-interface BottomActionPanelProps {
+export interface RoomButtonConfig<TIntent = never, TStaticAction extends string = string> {
+  key: string;
+  label: string;
+  variant: 'primary' | 'secondary' | 'ghost';
+  size: 'lg' | 'md';
+  /** Schema-driven action intent, resolved by the current game adapter. */
+  intent?: TIntent;
+  /** Static action identifier, resolved by the current game adapter. */
+  action?: TStaticAction;
+  /** Direct callback for room-like games that do not need action orchestration. */
+  onPress?: () => void;
+  testID?: string;
+  disabled?: boolean;
+  fireWhenDisabled?: boolean;
+  /** Text color override (e.g. danger-colored ghost button). */
+  textColor?: string;
+  /** Background color override (e.g. info-colored settings button). */
+  buttonColor?: string;
+}
+
+export interface RoomBottomLayout<TIntent = never, TStaticAction extends string = string> {
+  primary: readonly RoomButtonConfig<TIntent, TStaticAction>[];
+  secondary: readonly RoomButtonConfig<TIntent, TStaticAction>[];
+  ghost: readonly RoomButtonConfig<TIntent, TStaticAction>[];
+}
+
+export interface RoomBottomActionPanelProps<
+  TIntent = never,
+  TStaticAction extends string = string,
+> {
   /** Action message to display (e.g., "请选择要查验的玩家") */
   message?: string;
   /** Whether to show the message section */
   showMessage?: boolean;
   /** Three-tier button layout from useBottomLayout. */
-  layout: BottomLayout;
+  layout: RoomBottomLayout<TIntent, TStaticAction>;
   /** Callback for schema-driven button press (BOTTOM_ACTION intent). */
-  onSchemaButtonPress: (intent: ActionIntent) => void;
+  onSchemaButtonPress: (intent: TIntent) => void;
   /** Callback for static button press (HOST_CONTROL / VIEW_ROLE / etc.). */
-  onStaticButtonPress: (action: StaticButtonId) => void;
+  onStaticButtonPress: (action: TStaticAction) => void;
   /** Pre-created styles from parent */
   styles: BottomActionPanelStyles;
   /** Safe area bottom inset — applied as paddingBottom when > styles.container.paddingBottom */
   bottomInset?: number;
 }
 
-const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
+const RoomBottomActionPanelComponent = <TIntent, TStaticAction extends string>({
   message,
   showMessage = false,
   layout,
@@ -44,7 +70,7 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
   onStaticButtonPress,
   styles,
   bottomInset = 0,
-}) => {
+}: RoomBottomActionPanelProps<TIntent, TStaticAction>) => {
   // C6: Fade-in + slide-up animation when message text changes (native only)
   // On web, RN Animated with useNativeDriver=false applies inline opacity:0 synchronously,
   // which makes the element invisible to Playwright's visibility checks during the 150ms window.
@@ -138,26 +164,39 @@ const BottomActionPanelComponent: React.FC<BottomActionPanelProps> = ({
 // LayoutButton — renders a single ButtonConfig
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface LayoutButtonProps {
-  config: ButtonConfig;
-  onSchemaPress: (intent: ActionIntent) => void;
-  onStaticPress: (action: StaticButtonId) => void;
+interface LayoutButtonProps<TIntent = never, TStaticAction extends string = string> {
+  config: RoomButtonConfig<TIntent, TStaticAction>;
+  onSchemaPress: (intent: TIntent) => void;
+  onStaticPress: (action: TStaticAction) => void;
 }
 
-const LayoutButton: React.FC<LayoutButtonProps> = ({ config, onSchemaPress, onStaticPress }) => {
-  const handlePress = config.intent
-    ? (meta: { disabled: boolean }) => {
-        if (config.fireWhenDisabled || !meta.disabled) {
-          onSchemaPress(config.intent!);
-        }
-      }
-    : config.action
+const LayoutButton = <TIntent, TStaticAction extends string>({
+  config,
+  onSchemaPress,
+  onStaticPress,
+}: LayoutButtonProps<TIntent, TStaticAction>) => {
+  const intent = config.intent;
+  const action = config.action;
+  const handlePress =
+    intent !== undefined
       ? (meta: { disabled: boolean }) => {
           if (config.fireWhenDisabled || !meta.disabled) {
-            onStaticPress(config.action!);
+            onSchemaPress(intent);
           }
         }
-      : undefined;
+      : action !== undefined
+        ? (meta: { disabled: boolean }) => {
+            if (config.fireWhenDisabled || !meta.disabled) {
+              onStaticPress(action);
+            }
+          }
+        : config.onPress
+          ? (meta: { disabled: boolean }) => {
+              if (config.fireWhenDisabled || !meta.disabled) {
+                config.onPress?.();
+              }
+            }
+          : undefined;
 
   return (
     <Button
@@ -175,6 +214,9 @@ const LayoutButton: React.FC<LayoutButtonProps> = ({ config, onSchemaPress, onSt
   );
 };
 
-export const BottomActionPanel = memo(BottomActionPanelComponent);
+const MemoizedRoomBottomActionPanel = memo(RoomBottomActionPanelComponent);
 
-BottomActionPanel.displayName = 'BottomActionPanel';
+MemoizedRoomBottomActionPanel.displayName = 'RoomBottomActionPanel';
+
+export const RoomBottomActionPanel =
+  MemoizedRoomBottomActionPanel as typeof RoomBottomActionPanelComponent;

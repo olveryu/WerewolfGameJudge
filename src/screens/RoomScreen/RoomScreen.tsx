@@ -13,7 +13,7 @@ import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -24,15 +24,19 @@ import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
+import { QRCodeModal } from '@/components/room/QRCodeModal';
+import { RoomBottomActionPanel as BottomActionPanel } from '@/components/room/RoomBottomActionPanel';
+import { createRoomShellStyles as createRoomScreenStyles } from '@/components/room/roomShellStyles';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
+import { useRoomShareActions } from '@/hooks/useRoomShareActions';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
@@ -40,15 +44,12 @@ import { isMiniProgram } from '@/utils/miniProgram';
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
-import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HeaderActions } from './components/HeaderActions';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
-import { PlayerProfileCard } from './components/PlayerProfileCard';
-import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
@@ -59,9 +60,6 @@ import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import type { ActionIntent } from './policy/types';
-import { createRoomScreenStyles } from './RoomScreen.styles';
-import { shareQRCodeImage } from './shareQRCode';
-import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -90,51 +88,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     setStrategyBoardName(null);
   }, []);
 
-  // ─── QR Code Modal state ──────────────────────────────────────────────
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
-  const hasAutoShownQR = useRef(false);
 
   // Ticket count for top bar badge (shared cache via TanStack Query)
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-
-  const handleShareRoom = useCallback(() => {
-    setQrModalVisible(true);
-  }, []);
-
-  const handleCopyLink = useCallback(() => {
-    void shareOrCopyRoomLink(route.params.roomCode)
-      .then((result) => {
-        if (result === 'copied') {
-          toast.success('房间链接已复制');
-        } else if (result === 'failed') {
-          showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
-        }
-        // 'shared' -> system share sheet already provided feedback
-        // 'cancelled' -> user dismissed intentionally, no alert needed
-      })
-      .catch((e) => {
-        handleError(e, {
-          label: '分享链接',
-          logger: roomScreenLog,
-          alertMessage: '无法复制链接，请手动分享房间号',
-        });
-      });
-  }, [route.params.roomCode]);
-
-  const handleShareQRImage = useCallback(
-    (getBase64: () => Promise<string>) => {
-      void shareQRCodeImage(getBase64, route.params.roomCode).catch((e) => {
-        handleError(e, {
-          label: '分享二维码',
-          logger: roomScreenLog,
-          alertMessage: '无法分享二维码图片',
-        });
-      });
-    },
-    [route.params.roomCode],
-  );
 
   const handleAvatarPress = useCallback(() => {
     navigation.navigate('Settings', { roomCode: route.params.roomCode });
@@ -261,6 +219,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     bottomCardSubtitle,
   } = useRoomScreenState(route.params, navigation);
 
+  const roomShare = useRoomShareActions({
+    roomCode,
+    autoShowWhen: isInitialized && gameState !== null && isHost && template !== undefined,
+  });
+
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
 
@@ -369,14 +332,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     },
     [dispatchInteraction, showLastNightInfo, openNightReview],
   );
-
-  // ─── Auto-show QR invite card after room creation ─────────────────────
-  useEffect(() => {
-    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      setQrModalVisible(true);
-    }
-  }, [isInitialized, gameState, isHost, template]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
@@ -553,7 +508,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
             }
             onMusicSettings={handleMusicSettings}
             onUserSettings={handleAvatarPress}
-            onShareRoom={handleShareRoom}
+            onShareRoom={roomShare.openQRCode}
             styles={componentStyles.headerActions}
           />
         </View>
@@ -754,12 +709,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* QR Code Modal -- room QR code share */}
       <QRCodeModal
-        visible={qrModalVisible}
+        visible={roomShare.qrModalVisible}
         roomCode={roomCode}
-        roomUrl={buildRoomUrl(roomCode)}
-        onShareImage={handleShareQRImage}
-        onCopyLink={handleCopyLink}
-        onClose={() => setQrModalVisible(false)}
+        roomUrl={roomShare.roomUrl}
+        onShareImage={roomShare.handleShareQRCode}
+        onCopyLink={roomShare.handleCopyLink}
+        onClose={roomShare.closeQRCode}
       />
 
       {/* Board Nomination Modal -- board suggestion list */}

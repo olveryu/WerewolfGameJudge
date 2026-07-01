@@ -9,21 +9,9 @@
 import type { FibAction, FibSeat, FibState } from './types';
 import { FIB_USED_WORDS_CAP } from './types';
 
-/** Build a fresh empty seat map keyed 0..n-1. */
-export function emptySeats(n: number): Record<number, FibSeat | null> {
-  const seats: Record<number, FibSeat | null> = {};
-  for (let i = 0; i < n; i++) seats[i] = null;
-  return seats;
-}
-
-/** Resize to 0..n-1, keeping existing occupants in range; callers guarantee dropped seats are empty. */
-function resizeSeats(
-  seats: Record<number, FibSeat | null>,
-  n: number,
-): Record<number, FibSeat | null> {
-  const next: Record<number, FibSeat | null> = {};
-  for (let i = 0; i < n; i++) next[i] = seats[i] ?? null;
-  return next;
+/** Build a fresh sparse occupied-seat map. Empty seats are omitted. */
+export function emptySeats(): Record<number, FibSeat> {
+  return {};
 }
 
 /** Append a word, trimming oldest entries beyond the ring-buffer cap. */
@@ -37,8 +25,15 @@ export function fibReducer(state: FibState, action: FibAction): FibState {
     case 'SET_PHASE':
       return { ...state, phase: action.phase };
 
-    case 'SET_SEAT':
-      return { ...state, seats: { ...state.seats, [action.seat]: action.value } };
+    case 'SET_SEAT': {
+      const seats = { ...state.seats };
+      if (action.value === null) {
+        delete seats[action.seat];
+      } else {
+        seats[action.seat] = action.value;
+      }
+      return { ...state, seats };
+    }
 
     case 'SET_ROSTER':
       return { ...state, roster: { ...state.roster, [action.userId]: action.entry } };
@@ -53,11 +48,10 @@ export function fibReducer(state: FibState, action: FibAction): FibState {
       return {
         ...state,
         numberOfPlayers: action.numberOfPlayers,
-        seats: resizeSeats(state.seats, action.numberOfPlayers),
       };
 
     case 'CLEAR_ALL_SEATS':
-      return { ...state, seats: emptySeats(state.numberOfPlayers), roster: {} };
+      return { ...state, seats: emptySeats(), roster: {} };
 
     case 'SET_ROUND':
       return {

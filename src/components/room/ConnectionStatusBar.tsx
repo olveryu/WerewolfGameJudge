@@ -20,7 +20,7 @@ import Animated, {
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
 
-import { type ConnectionStatusBarStyles } from './styles';
+import type { ConnectionStatusBarStyles } from './roomComponentStyles';
 
 interface ConnectionStatusBarProps {
   /** Current connection state */

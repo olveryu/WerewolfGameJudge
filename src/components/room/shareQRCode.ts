@@ -15,6 +15,11 @@ import { shareImageBase64 } from './shareImage';
 export async function shareQRCodeImage(
   getBase64: () => Promise<string>,
   roomCode: string,
+  gameName = '狼人杀',
 ): Promise<void> {
-  await shareImageBase64(getBase64, `room-${roomCode}-qr.png`, `狼人杀房间 ${roomCode} 二维码`);
+  await shareImageBase64(
+    getBase64,
+    `room-${roomCode}-qr.png`,
+    `${gameName}房间 ${roomCode} 二维码`,
+  );
 }

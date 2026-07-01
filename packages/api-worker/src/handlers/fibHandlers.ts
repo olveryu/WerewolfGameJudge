@@ -2,7 +2,7 @@
  * handlers/fibHandlers — fibking REST routes (Workers).
  *
  * Thin, isolated per-game module (not a shared god object): zod-validate → host-check
- * at the boundary → generic DO `dispatch(actionType, payload)`. The two-phase start/next
+ * at the boundary → generic DO `engineAction(actionType, payload)`. The two-phase start/next
  * round draws the word in the Worker (never the DO, never the client) between BEGIN_DRAW
  * and START_ROUND.
  *
@@ -59,7 +59,7 @@ async function runStartRound(
 ): Promise<{ body: unknown; status: 200 | 400 | 500 }> {
   const stub = getGameRoomStub(env, roomCode, req);
 
-  const begin: DispatchResult = await callDO(() => stub.dispatch('BEGIN_DRAW', {}));
+  const begin: DispatchResult = await callDO(() => stub.engineAction('BEGIN_DRAW', {}));
   if (!begin.success) return { body: begin, status: resultToStatus(begin) };
 
   // CF stub return types confuse union narrowing; read the broadcast blob via a direct cast.
@@ -67,7 +67,7 @@ async function runStartRound(
   try {
     const drawn = await generateFibWord(env, { avoid });
     const started: DispatchResult = await callDO(() =>
-      stub.dispatch('START_ROUND', {
+      stub.engineAction('START_ROUND', {
         word: drawn.word,
         definition: drawn.definition,
         source: drawn.source,
@@ -80,7 +80,7 @@ async function runStartRound(
       roomCode,
       error: err instanceof Error ? err.message : String(err),
     });
-    await callDO(() => stub.dispatch('ABORT_DRAW', {}));
+    await callDO(() => stub.engineAction('ABORT_DRAW', {}));
     return { body: { success: false, reason: 'WORD_GEN_FAILED' }, status: 500 };
   }
 }
@@ -90,14 +90,16 @@ async function runStartRound(
 fibRoutes.post('/sit', requireAuth, jsonBody(fibSitSchema), async (c) => {
   const { roomCode, seat, profile } = c.req.valid('json');
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('SIT', { userId: c.var.userId, seat, profile }));
+  const result = await callDO(() =>
+    stub.engineAction('SIT', { userId: c.var.userId, seat, profile }),
+  );
   return c.json(result, resultToStatus(result));
 });
 
 fibRoutes.post('/leave', requireAuth, jsonBody(fibRoomCodeSchema), async (c) => {
   const { roomCode } = c.req.valid('json');
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('LEAVE', { userId: c.var.userId }));
+  const result = await callDO(() => stub.engineAction('LEAVE', { userId: c.var.userId }));
   return c.json(result, resultToStatus(result));
 });
 
@@ -108,7 +110,7 @@ fibRoutes.post('/kick', requireAuth, jsonBody(fibKickSchema), async (c) => {
   const host = await checkHost(c.env, c.var.userId, roomCode);
   if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('KICK', { targetSeat }));
+  const result = await callDO(() => stub.engineAction('KICK', { targetSeat }));
   return c.json(result, resultToStatus(result));
 });
 
@@ -117,7 +119,7 @@ fibRoutes.post('/clear-seats', requireAuth, jsonBody(fibRoomCodeSchema), async (
   const host = await checkHost(c.env, c.var.userId, roomCode);
   if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('CLEAR_SEATS', {}));
+  const result = await callDO(() => stub.engineAction('CLEAR_SEATS', {}));
   return c.json(result, resultToStatus(result));
 });
 
@@ -126,7 +128,7 @@ fibRoutes.post('/update-config', requireAuth, jsonBody(fibUpdateConfigSchema), a
   const host = await checkHost(c.env, c.var.userId, roomCode);
   if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('UPDATE_CONFIG', { numberOfPlayers }));
+  const result = await callDO(() => stub.engineAction('UPDATE_CONFIG', { numberOfPlayers }));
   return c.json(result, resultToStatus(result));
 });
 
@@ -154,7 +156,7 @@ fibRoutes.post('/reveal', requireAuth, jsonBody(fibRoomCodeSchema), async (c) =>
   const host = await checkHost(c.env, c.var.userId, roomCode);
   if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('REVEAL', {}));
+  const result = await callDO(() => stub.engineAction('REVEAL', {}));
   return c.json(result, resultToStatus(result));
 });
 
@@ -163,6 +165,6 @@ fibRoutes.post('/restart', requireAuth, jsonBody(fibRoomCodeSchema), async (c) =
   const host = await checkHost(c.env, c.var.userId, roomCode);
   if (!host.ok) return c.json({ success: false, reason: host.reason }, host.status);
   const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
-  const result = await callDO(() => stub.dispatch('RESTART', {}));
+  const result = await callDO(() => stub.engineAction('RESTART', {}));
   return c.json(result, resultToStatus(result));
 });

@@ -10,8 +10,8 @@ import { TESTIDS } from '../../src/testids';
  * - Selecting a preset template by name
  * - Navigating to custom config
  *
- * The BoardPicker is the intermediate screen between Home and Config.
- * After clicking "创建房间", users land here to browse / select a preset.
+ * The BoardPicker is the intermediate screen between the 狼人杀 mode card and Config.
+ * After choosing 狼人杀, users land here to browse / select a preset.
  */
 export class BoardPickerPage {
   constructor(private readonly page: Page) {}

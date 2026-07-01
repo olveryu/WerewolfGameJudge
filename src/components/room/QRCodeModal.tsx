@@ -69,7 +69,7 @@ const QR_LOGO_SIZE = 44;
 const QR_LOGO_MARGIN = 4;
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset
-const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
+const appLogo = require('../../../assets/pwa/icon-192.png') as number;
 
 const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
   visible,

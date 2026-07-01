@@ -12,12 +12,19 @@
 
 import type { EngineResult, GameAction } from '../engine/registry/types';
 import { engineError, engineSuccess } from '../engine/registry/types';
+import { seatClearAll, seatJoin, seatKick, seatLeave } from '../engine/seating/kernel';
+import {
+  SEAT_KERNEL_INVALID_SEAT,
+  SEAT_KERNEL_NOT_SEATED,
+  SEAT_KERNEL_SEAT_EMPTY,
+  SEAT_KERNEL_SEAT_TAKEN,
+} from '../engine/seating/types';
 import type { RosterEntry } from '../protocol/common';
 import type { Rng } from '../utils/random';
 import { secureRng } from '../utils/random';
 import { assignFibRoles } from './assignRoles';
 import type { FibAction, FibState, FibWordSource } from './types';
-import { FIB_MAX_PLAYERS, FIB_MIN_PLAYERS } from './types';
+import { FIB_MIN_PLAYERS } from './types';
 
 interface SitPayload {
   userId: string;
@@ -45,16 +52,7 @@ export interface FibDispatchDeps {
 }
 
 function seatedSeats(state: FibState): number[] {
-  return Object.entries(state.seats)
-    .filter(([, occupant]) => occupant !== null)
-    .map(([seat]) => Number(seat));
-}
-
-function findSeatByUserId(state: FibState, userId: string): number | null {
-  for (const [seat, occupant] of Object.entries(state.seats)) {
-    if (occupant && occupant.userId === userId) return Number(seat);
-  }
-  return null;
+  return Object.keys(state.seats).map(Number);
 }
 
 const isLobby = (state: FibState): boolean => state.phase === 'Lobby';
@@ -94,51 +92,70 @@ export function dispatchFib(
 
 function handleSit(state: FibState, p: SitPayload): EngineResult<FibAction> {
   if (!isLobby(state)) return engineError('NOT_LOBBY');
-  if (!Number.isInteger(p.seat) || p.seat < 0 || p.seat >= state.numberOfPlayers) {
-    return engineError('BAD_SEAT');
+  const op = seatJoin(state.seats, state.numberOfPlayers, p.seat, p.userId, (seat) => ({
+    userId: p.userId,
+    seat,
+  }));
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_INVALID_SEAT) return engineError('BAD_SEAT');
+    if (op.reason === SEAT_KERNEL_SEAT_TAKEN) return engineError('SEAT_TAKEN');
+    return engineError(op.reason);
   }
-  if (state.seats[p.seat]) return engineError('SEAT_TAKEN');
-  if (findSeatByUserId(state, p.userId) !== null) return engineError('ALREADY_SEATED');
   return engineSuccess<FibAction>([
-    { type: 'SET_SEAT', seat: p.seat, value: { userId: p.userId, seat: p.seat } },
+    ...op.changes.map(
+      (change): FibAction => ({ type: 'SET_SEAT', seat: change.seat, value: change.value }),
+    ),
     { type: 'SET_ROSTER', userId: p.userId, entry: p.profile },
   ]);
 }
 
 function handleLeave(state: FibState, p: LeavePayload): EngineResult<FibAction> {
   if (!isLobby(state)) return engineError('NOT_LOBBY');
-  const seat = findSeatByUserId(state, p.userId);
-  if (seat === null) return engineError('NOT_SEATED');
+  const op = seatLeave(state.seats, p.userId);
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_NOT_SEATED) return engineError('NOT_SEATED');
+    return engineError(op.reason);
+  }
   return engineSuccess<FibAction>([
-    { type: 'SET_SEAT', seat, value: null },
+    ...op.changes.map(
+      (change): FibAction => ({ type: 'SET_SEAT', seat: change.seat, value: null }),
+    ),
     { type: 'REMOVE_ROSTER', userId: p.userId },
   ]);
 }
 
 function handleKick(state: FibState, p: KickPayload): EngineResult<FibAction> {
   if (!isLobby(state)) return engineError('NOT_LOBBY');
-  const occupant = state.seats[p.targetSeat];
-  if (!occupant) return engineError('SEAT_EMPTY');
-  return engineSuccess<FibAction>([
-    { type: 'SET_SEAT', seat: p.targetSeat, value: null },
-    { type: 'REMOVE_ROSTER', userId: occupant.userId },
-  ]);
+  const op = seatKick(state.seats, state.numberOfPlayers, p.targetSeat);
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_INVALID_SEAT) return engineError('BAD_SEAT');
+    if (op.reason === SEAT_KERNEL_SEAT_EMPTY) return engineError('SEAT_EMPTY');
+    return engineError(op.reason);
+  }
+  const actions: FibAction[] = [];
+  for (const change of op.changes) {
+    actions.push({ type: 'SET_SEAT', seat: change.seat, value: null });
+    if (change.previous) actions.push({ type: 'REMOVE_ROSTER', userId: change.previous.userId });
+  }
+  return engineSuccess<FibAction>(actions);
 }
 
 function handleClearSeats(state: FibState): EngineResult<FibAction> {
   if (!isLobby(state)) return engineError('NOT_LOBBY');
+  const op = seatClearAll(state.seats);
+  if (op.kind === 'error') return engineError(op.reason);
   return engineSuccess<FibAction>([{ type: 'CLEAR_ALL_SEATS' }]);
 }
 
 function handleUpdateConfig(state: FibState, p: UpdateConfigPayload): EngineResult<FibAction> {
   if (!isLobby(state)) return engineError('NOT_LOBBY');
   const n = p.numberOfPlayers;
-  if (!Number.isInteger(n) || n < FIB_MIN_PLAYERS || n > FIB_MAX_PLAYERS) {
+  if (!Number.isInteger(n) || n < FIB_MIN_PLAYERS) {
     return engineError('BAD_PLAYER_COUNT');
   }
   // Shrinking is only allowed when every seat being removed (index ≥ n) is empty.
-  for (const [seat, occupant] of Object.entries(state.seats)) {
-    if (Number(seat) >= n && occupant) return engineError('SEAT_OCCUPIED_ABOVE_LIMIT');
+  for (const seat of Object.keys(state.seats)) {
+    if (Number(seat) >= n) return engineError('SEAT_OCCUPIED_ABOVE_LIMIT');
   }
   if (n === state.numberOfPlayers) return engineSuccess<FibAction>([]); // no-op
   return engineSuccess<FibAction>([{ type: 'RESIZE_SEATS', numberOfPlayers: n }]);

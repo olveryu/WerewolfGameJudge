@@ -86,15 +86,13 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     super(ctx, env);
     // Auto-reply pong to ping without waking the DO from hibernation
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
-    void ctx.blockConcurrencyWhile(async () => {
-      this.ctx.storage.sql.exec(`
-        CREATE TABLE IF NOT EXISTS room_state (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
-          game_state TEXT NOT NULL,
-          revision INTEGER NOT NULL DEFAULT 0
-        )
-      `);
-    });
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS room_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        game_state TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0
+      )
+    `);
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
@@ -107,7 +105,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
 
     // Broadcast — output gate ensures send only after write is persisted
-    if (result.success && result.state && result.revision != null) {
+    if (result.state && result.revision != null) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
         this.#broadcast(result.state, result.revision, lastAction);
@@ -645,7 +643,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
    * Dispatch an action to the room's engine (read-compute-write-broadcast).
    * Resolves the engine by stored engine_type; unknown engine/action fail fast.
    */
-  async dispatch(actionType: string, payload: unknown): Promise<DispatchResult> {
+  async engineAction(actionType: string, payload: unknown): Promise<DispatchResult> {
     const engineType = await this.ctx.storage.get<string>('engine_type');
     if (!engineType) return { success: false, reason: 'ENGINE_NOT_INITIALIZED' };
     const engine = ENGINE_REGISTRY[engineType];
@@ -655,8 +653,11 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       engine.dispatch(state, revision, { actionType, payload }),
     );
 
-    if (result.success && result.state !== undefined && result.revision != null) {
-      this.#broadcast(result.state, result.revision, actionType);
+    if (result.state !== undefined && result.revision != null) {
+      const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
+      if (shouldBroadcast) {
+        this.#broadcast(result.state, result.revision, actionType);
+      }
     }
     return result;
   }

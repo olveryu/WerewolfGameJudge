@@ -1,5 +1,5 @@
 /**
- * SeatTile.memo.test.tsx - Verify SeatTile memo optimization
+ * RoomSeatTile.memo.test.tsx - Verify SeatTile memo optimization
  *
  * Tests that SeatTile only re-renders when its specific props change,
  * not when unrelated state updates in parent.
@@ -17,7 +17,7 @@ import {
   SeatTile,
   type SeatTileProps,
   type SeatTileStyles,
-} from '@/screens/RoomScreen/components/SeatTile';
+} from '@/components/room/RoomSeatTile';
 import { colors } from '@/theme';
 
 // Create mock styles once (simulating what PlayerGrid does)
@@ -48,7 +48,7 @@ describe('SeatTile memo optimization', () => {
     isSelected: false,
     isBot: false,
     isControlled: false,
-    roleId: null,
+    botRoleLabel: undefined,
     showBotRole: false,
     showReadyBadge: false,
     playerUserId: 'user-1',
@@ -143,7 +143,7 @@ describe('SeatTile memo logic', () => {
       isWolf: false,
       isBot: false,
       isControlled: false,
-      roleId: null,
+      botRoleLabel: undefined,
       showBotRole: false,
       showReadyBadge: false,
       isSelected: false,
@@ -179,7 +179,7 @@ describe('SeatTile memo logic', () => {
       isWolf: false,
       isBot: false,
       isControlled: false,
-      roleId: null,
+      botRoleLabel: undefined,
       showBotRole: false,
       showReadyBadge: false,
       isSelected: false,
@@ -253,7 +253,7 @@ describe('createSeatTileStyles optimization', () => {
     isWolf: false,
     isBot: false,
     isControlled: false,
-    roleId: null,
+    botRoleLabel: undefined,
     showBotRole: false,
     showReadyBadge: false,
     isSelected: false,

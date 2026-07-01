@@ -19,13 +19,20 @@ export function buildRoomUrl(roomCode: string): string {
   return `${SITE_URL}/room/${roomCode}`;
 }
 
+interface ShareRoomOptions {
+  gameName?: string;
+}
+
 /** Result of a share/copy attempt. */
 type ShareResult = 'shared' | 'copied' | 'cancelled' | 'failed';
 
 /** Attempt to share or copy the room link. */
-export async function shareOrCopyRoomLink(roomCode: string): Promise<ShareResult> {
+export async function shareOrCopyRoomLink(
+  roomCode: string,
+  options: ShareRoomOptions = {},
+): Promise<ShareResult> {
   const url = buildRoomUrl(roomCode);
-  const text = `加入狼人杀房间 ${roomCode}`;
+  const text = `加入${options.gameName ?? '狼人杀'}房间 ${roomCode}`;
 
   // Native: use RN Share API
   if (Platform.OS !== 'web') {

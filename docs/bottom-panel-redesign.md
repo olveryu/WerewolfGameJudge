@@ -226,9 +226,9 @@ Tier is not declared in game-engine spec; it's derived by the UI layer in `resol
 | `src/screens/RoomScreen/hooks/resolveBottomLayout.test.ts` | **New**       | `it.each` assertions for each phase×role combination                                      |
 | `src/screens/RoomScreen/hooks/useBottomLayout.ts`          | **New**       | Hook wrapper                                                                              |
 | `src/screens/RoomScreen/hooks/bottomActionBuilder.ts`      | **No change** | Called by `resolveBottomLayout`                                                           |
-| `src/screens/RoomScreen/components/BottomActionPanel.tsx`  | **Modify**    | Interface changed to `layout: BottomLayout`, three-zone render                            |
+| `src/components/room/RoomBottomActionPanel.tsx`            | **Modify**    | Interface changed to `layout: BottomLayout`, three-zone render                            |
 | `src/screens/RoomScreen/components/styles.ts`              | **Modify**    | `BottomActionPanelStyles` add `ghostRow`                                                  |
-| `src/screens/RoomScreen/components/statusPanels.styles.ts` | **Modify**    | `buttonRow` → `flexDirection: 'column'` + `alignItems: 'stretch'`; add `ghostRow`         |
+| `src/components/room/roomStatusPanelStyles.ts`             | **Modify**    | `buttonRow` → `flexDirection: 'column'` + `alignItems: 'stretch'`; add `ghostRow`         |
 | `src/screens/RoomScreen/RoomScreen.tsx`                    | **Modify**    | Remove ~110 lines of button JSX, replace with `useBottomLayout` + `layout={bottomLayout}` |
 | `src/screens/RoomScreen/components/HostControlButtons.tsx` | **Delete**    | Logic merged into `LAYOUT_RULES` + `STATIC_BUTTONS`                                       |
 

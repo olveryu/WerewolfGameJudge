@@ -13,7 +13,7 @@ import { Text, View } from 'react-native';
 import { UI_ICONS } from '@/config/iconTokens';
 import { typography } from '@/theme';
 
-import type { HostGuideBannerStyles } from './styles';
+import type { HostGuideBannerStyles } from './roomComponentStyles';
 
 interface HostGuideBannerProps {
   /** Guide message to display. Component renders nothing when null/empty. */

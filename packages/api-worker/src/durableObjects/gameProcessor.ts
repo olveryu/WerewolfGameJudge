@@ -32,7 +32,13 @@ export type GameActionResult =
       revision?: number;
       sideEffects?: readonly SideEffect[];
     }
-  | { success: false; reason: string };
+  | {
+      success: false;
+      reason: string;
+      state?: GameState;
+      revision?: number;
+      sideEffects?: readonly SideEffect[];
+    };
 
 interface InlineProgressionOptions {
   enabled: boolean;
@@ -150,5 +156,11 @@ export function processAction(
         revision: newRevision,
         sideEffects: result.sideEffects,
       }
-    : { success: false as const, reason: result.reason ?? 'REJECTED' };
+    : {
+        success: false as const,
+        reason: result.reason ?? 'REJECTED',
+        state: newState,
+        revision: newRevision,
+        sideEffects: result.sideEffects,
+      };
 }

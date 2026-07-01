@@ -1,8 +1,7 @@
 import { render } from '@testing-library/react-native';
 
+import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
 import type { UserPublicProfile } from '@/services/feature/StatsService';
-
-import { PlayerProfileCard } from '../PlayerProfileCard';
 
 const mockUseUserProfileQuery = jest.fn<unknown, unknown[]>();
 jest.mock('@/hooks/queries/useUserProfileQuery', () => ({

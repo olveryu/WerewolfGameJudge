@@ -7,7 +7,7 @@ import { HomePage } from '../pages/HomePage';
  * Config Screen E2E Tests
  *
  * Verifies:
- * - BoardPicker accessible via "创建房间", then Config via template selection
+ * - BoardPicker accessible via "创建房间" → "狼人杀", then Config via template selection
  * - Template selection works (via BoardPicker navigation)
  * - Config screen displays selected template
  */

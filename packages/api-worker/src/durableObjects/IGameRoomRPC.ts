@@ -220,7 +220,7 @@ export interface IGameRoomRPC {
    * Dispatch an action to the room's engine (read-compute-write-broadcast).
    * Generic Command entry; the engine is resolved by stored engine_type.
    */
-  dispatch(actionType: string, payload: unknown): Promise<DispatchResult>;
+  engineAction(actionType: string, payload: unknown): Promise<DispatchResult>;
 
   /**
    * Clear all DO persistent storage (deleteAll).

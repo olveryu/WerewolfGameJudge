@@ -20,15 +20,15 @@ import type {
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
   HostGuideBannerStyles,
-  StatusRibbonStyles,
-} from './styles';
+  RoomStatusRibbonStyles,
+} from './roomComponentStyles';
 
-export function createStatusPanelStyles(colors: ThemeColors): {
+export function createRoomStatusPanelStyles(colors: ThemeColors): {
   bottomActionPanel: BottomActionPanelStyles;
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
   hostGuideBanner: HostGuideBannerStyles;
-  statusRibbon: StatusRibbonStyles;
+  statusRibbon: RoomStatusRibbonStyles;
 } {
   return {
     bottomActionPanel: StyleSheet.create<BottomActionPanelStyles>({
@@ -193,7 +193,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
     }),
 
-    statusRibbon: StyleSheet.create<StatusRibbonStyles>({
+    statusRibbon: StyleSheet.create<RoomStatusRibbonStyles>({
       speakingOrderContainer: {
         flexDirection: 'row',
         alignItems: 'flex-start',

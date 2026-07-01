@@ -7,7 +7,7 @@ import { expect, test } from '../fixtures/app.fixture';
  *   Home → 创建房间 → 模式卡(瞎掰王) → FibConfig(选人数) → 创建房间 → FibRoom Lobby.
  *
  * The full multi-player round (4 seats → start → reveal) requires the multi-client
- * harness and is covered separately; this spec gates the single-client entry + create.
+ * harness and is intentionally deferred; this spec gates the single-client entry + create.
  */
 test.describe('Fibking entry', () => {
   test('create via mode picker → fib config → fib room lobby', async ({ app }) => {
@@ -21,16 +21,17 @@ test.describe('Fibking entry', () => {
     await page.getByTestId('mode-fibking').click();
     await expect(page.getByTestId('fib-config-confirm')).toBeVisible({ timeout: 5000 });
 
-    // Bump player count once (5 → 6) and create.
+    // Default player count is 8; bump once to prove there is no 8-player cap.
+    await expect(page.getByTestId('fib-count')).toHaveValue('8');
     await page.getByTestId('fib-count-inc').click();
-    await expect(page.getByTestId('fib-count')).toHaveText('6');
+    await expect(page.getByTestId('fib-count')).toHaveValue('9');
     await page.getByTestId('fib-config-confirm').click();
 
     // FibRoom Lobby: host primary button + rules link visible.
     await expect(page.getByTestId('fib-start-round')).toBeVisible({ timeout: 20000 });
     await expect(page.getByText('玩法说明 ⓘ')).toBeVisible();
-    // 6 seats rendered (0..5).
+    // 9 seats rendered (0..8).
     await expect(page.getByTestId('fib-seat-0')).toBeVisible();
-    await expect(page.getByTestId('fib-seat-5')).toBeVisible();
+    await expect(page.getByTestId('fib-seat-8')).toBeVisible();
   });
 });

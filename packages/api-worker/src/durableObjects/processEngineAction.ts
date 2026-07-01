@@ -10,11 +10,24 @@
  */
 
 import type { EngineResult, GameEngine } from '@werewolf/game-engine/engine/registry/types';
+import type { SideEffect } from '@werewolf/game-engine/protocol/common';
 
 /** Result of a generic engine action. `state` is the broadcast blob (engine-typed). */
 export type EngineActionResult<S> =
-  | { success: true; reason?: string; state?: S; revision?: number }
-  | { success: false; reason: string };
+  | {
+      success: true;
+      reason?: string;
+      state?: S;
+      revision?: number;
+      sideEffects?: readonly SideEffect[];
+    }
+  | {
+      success: false;
+      reason: string;
+      state?: S;
+      revision?: number;
+      sideEffects?: readonly SideEffect[];
+    };
 
 /** DO-facing dispatch result (state is an opaque blob across all engines). */
 export type DispatchResult = EngineActionResult<unknown>;
@@ -54,7 +67,7 @@ export function processEngineAction<S, A>(
   // No-op guard (e.g. UPDATE_CONFIG to the same value): nothing to persist
   if (applied === 0) {
     return isSuccess
-      ? { success: true, reason: result.reason, state, revision }
+      ? { success: true, reason: result.reason, state, revision, sideEffects: result.sideEffects }
       : { success: false, reason: result.reason ?? 'REJECTED' };
   }
 
@@ -69,6 +82,18 @@ export function processEngineAction<S, A>(
   );
 
   return isSuccess
-    ? { success: true, reason: result.reason, state: newState, revision: newRevision }
-    : { success: false, reason: result.reason ?? 'REJECTED' };
+    ? {
+        success: true,
+        reason: result.reason,
+        state: newState,
+        revision: newRevision,
+        sideEffects: result.sideEffects,
+      }
+    : {
+        success: false,
+        reason: result.reason ?? 'REJECTED',
+        state: newState,
+        revision: newRevision,
+        sideEffects: result.sideEffects,
+      };
 }

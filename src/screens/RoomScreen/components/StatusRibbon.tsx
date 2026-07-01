@@ -14,12 +14,11 @@ import type React from 'react';
 import { memo } from 'react';
 import { Text, View } from 'react-native';
 
+import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
 import { STATUS_ICONS } from '@/config/iconTokens';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { type ConnectionStatus } from '@/services/types/IGameFacade';
 import { typography } from '@/theme';
 
-import { ConnectionStatusBar } from './ConnectionStatusBar';
-import { HostGuideBanner } from './HostGuideBanner';
 import { NightProgressIndicator } from './NightProgressIndicator';
 import type {
   ConnectionStatusBarStyles,
@@ -51,22 +50,9 @@ const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
   nightProgressIndicatorStyles,
   hostGuideBannerStyles,
 }) => {
-  const isDisconnected = connectionStatus !== ConnectionStatus.Live;
-
-  // Priority 1: Connection status (always overrides everything)
-  if (isDisconnected) {
-    return (
-      <ConnectionStatusBar
-        status={connectionStatus}
-        onManualReconnect={onManualReconnect}
-        styles={connectionStatusBarStyles}
-      />
-    );
-  }
-
-  // Priority 2: Night progress (Ongoing phase)
+  let content: React.ReactNode = null;
   if (nightProgress) {
-    return (
+    content = (
       <NightProgressIndicator
         currentStep={nightProgress.current}
         totalSteps={nightProgress.total}
@@ -74,11 +60,8 @@ const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
         styles={nightProgressIndicatorStyles}
       />
     );
-  }
-
-  // Priority 3: Speaking order (Ended, transient)
-  if (speakingOrderText != null) {
-    return (
+  } else if (speakingOrderText != null) {
+    content = (
       <View style={styles.speakingOrderContainer}>
         <Ionicons
           name={STATUS_ICONS.SPEAKING}
@@ -93,12 +76,16 @@ const StatusRibbonComponent: React.FC<StatusRibbonProps> = ({
     );
   }
 
-  // Priority 4: Host guide
-  if (guideMessage) {
-    return <HostGuideBanner message={guideMessage} styles={hostGuideBannerStyles} />;
-  }
-
-  return null;
+  return (
+    <RoomStatusRibbon
+      connectionStatus={connectionStatus}
+      onManualReconnect={onManualReconnect}
+      content={content}
+      guideMessage={guideMessage}
+      connectionStatusBarStyles={connectionStatusBarStyles}
+      hostGuideBannerStyles={hostGuideBannerStyles}
+    />
+  );
 };
 
 export const StatusRibbon = memo(StatusRibbonComponent);

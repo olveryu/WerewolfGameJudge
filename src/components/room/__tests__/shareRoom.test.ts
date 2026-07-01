@@ -11,7 +11,7 @@ import { Platform, Share } from 'react-native';
 const origNavigator = global.navigator;
 const origWindow = global.window;
 
-import { shareOrCopyRoomLink } from '../shareRoom';
+import { shareOrCopyRoomLink } from '@/components/room/shareRoom';
 
 describe('shareOrCopyRoomLink', () => {
   beforeEach(() => {

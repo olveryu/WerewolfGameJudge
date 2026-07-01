@@ -176,7 +176,7 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
   'src/screens/HomeScreen/components/UserAvatar.tsx': 1,
 
   // TODO: Phase 1 — fontSize: 14 → typography.secondary
-  'src/screens/RoomScreen/components/SeatTile.tsx': 0,
+  'src/components/room/RoomSeatTile.tsx': 0,
 
   // statusDot borderRadius: 3 — exempt per instructions (statusDot 6×6)
   'src/screens/SettingsScreen/components/styles.ts': 1,

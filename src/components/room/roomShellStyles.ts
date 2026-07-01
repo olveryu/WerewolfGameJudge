@@ -1,7 +1,7 @@
 /**
- * RoomScreen.styles.ts - Styles factory for RoomScreen
+ * roomShellStyles — shared styles factory for room screens.
  *
- * Defines all RoomScreen styles via createStyles factory using theme tokens
+ * Defines shared room shell styles via a factory using theme tokens
  * exclusively (colors, spacing, typography, etc.). Does not import services
  * or game logic, does not use hardcoded style values, and does not create
  * per-component StyleSheets (styles are passed via props).
@@ -20,8 +20,8 @@ import {
   typography,
 } from '@/theme';
 
-/** Create RoomScreen styles. */
-export function createRoomScreenStyles(colors: ThemeColors) {
+/** Create shared room shell styles. */
+export function createRoomShellStyles(colors: ThemeColors) {
   const shared = createSharedStyles(colors);
   return StyleSheet.create({
     container: {

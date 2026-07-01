@@ -20,6 +20,7 @@ import {
   type HandDrawnAvatarId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 
@@ -149,6 +150,11 @@ export function isBuiltinAvatarUrl(url: string): boolean {
 /** Extract the avatar ID from a builtin:// URL (e.g. "builtin://seer" -> "seer") */
 export function getBuiltinAvatarId(url: string): string {
   return url.slice(BUILTIN_AVATAR_PREFIX.length);
+}
+
+/** Resolve a builtin avatar ID to the user-facing equipment slot name. */
+export function getBuiltinAvatarDisplayName(avatarId: string): string {
+  return getRoleDisplayName(avatarId);
 }
 
 /**

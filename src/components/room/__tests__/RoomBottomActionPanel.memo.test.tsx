@@ -1,7 +1,7 @@
 /**
- * BottomActionPanel Memo Performance Tests
+ * RoomBottomActionPanel Memo Performance Tests
  *
- * Verifies that BottomActionPanel (memo'd) does not re-render
+ * Verifies that RoomBottomActionPanel (memo'd) does not re-render
  * when props are shallowly equal. Key scenarios:
  * 1. Same message + showMessage ⇒ no re-render
  * 2. message text changes ⇒ re-render
@@ -11,17 +11,19 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { BottomActionPanel } from '@/screens/RoomScreen/components/BottomActionPanel';
+import {
+  RoomBottomActionPanel as BottomActionPanel,
+  type RoomBottomLayout as BottomLayout,
+} from '@/components/room/RoomBottomActionPanel';
 import {
   type BottomActionPanelStyles,
-  createRoomScreenComponentStyles,
-} from '@/screens/RoomScreen/components/styles';
-import type { BottomLayout } from '@/screens/RoomScreen/hooks/bottomLayoutConfig';
+  createRoomComponentStyles,
+} from '@/components/room/roomComponentStyles';
 import { colors } from '@/theme';
 
 // ─── Setup ──────────────────────────────────────────────────────────────────────────
 
-const componentStyles = createRoomScreenComponentStyles(colors);
+const componentStyles = createRoomComponentStyles(colors);
 const panelStyles: BottomActionPanelStyles = componentStyles.bottomActionPanel;
 
 const NOOP = () => {};
@@ -30,7 +32,7 @@ let renderCount = 0;
 
 /**
  * Wrapper that tracks render count.
- * BottomActionPanel is already memo'd, so we wrap the *inner* component
+ * RoomBottomActionPanel is already memo'd, so we wrap the *inner* component
  * by creating an identical-shaped component that bumps a counter.
  */
 const TrackedPanel: React.FC<{
@@ -171,7 +173,7 @@ describe('BottomActionPanel memo optimization', () => {
   });
 
   it('should use same styles reference across re-renders (parent pattern)', () => {
-    // Simulate what RoomScreen does: create styles once, pass the same reference
+    // Simulate what a room shell does: create styles once, pass the same reference
     const styles1 = panelStyles;
     const styles2 = panelStyles;
 

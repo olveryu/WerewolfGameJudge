@@ -3,6 +3,12 @@ import { expect, type Page } from '@playwright/test';
 import { TESTIDS } from '../../src/testids';
 import { getVisibleText } from '../helpers/ui';
 
+export async function openWerewolfBoardPicker(page: Page): Promise<void> {
+  await page.locator(`[data-testid="${TESTIDS.homeCreateRoomButton}"]`).click();
+  await expect(page.getByTestId('mode-werewolf')).toBeVisible({ timeout: 5000 });
+  await page.getByTestId('mode-werewolf').click();
+}
+
 /**
  * HomePage Page Object
  *
@@ -46,7 +52,7 @@ export class HomePage {
   // ---------------------------------------------------------------------------
 
   async clickCreateRoom() {
-    await this.page.getByText('创建房间').click();
+    await openWerewolfBoardPicker(this.page);
   }
 
   async clickJoinRoom() {

@@ -21,8 +21,6 @@ import {
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { Avatar } from '@/components/Avatar';
@@ -129,13 +127,17 @@ export interface SeatTileProps {
   playerDisplayName: string | null;
   /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
   isPlayerAnonymous: boolean;
-  // Role info for bot display (debug mode only)
-  roleId: RoleId | null;
+  // Role info for bot display (debug mode only), resolved by the game-specific adapter.
+  botRoleLabel?: string;
   showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
   /** Pre-formatted wolf vote badge text. Visible to wolf-faction only. */
   wolfVoteBadge?: string;
+  /** Game-agnostic public badge text (e.g. exposed role in party games). */
+  statusBadgeText?: string;
+  /** Background color for statusBadgeText. */
+  statusBadgeColor?: string;
   /** Player level (from growth system). */
   playerLevel?: number;
   /** Whether to show the level label below the player name (lobby phases only). */
@@ -170,10 +172,12 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerNameStyle,
   playerDisplayName,
   isPlayerAnonymous,
-  roleId,
+  botRoleLabel,
   showBotRole,
   showReadyBadge,
   wolfVoteBadge,
+  statusBadgeText,
+  statusBadgeColor,
   playerLevel,
   showLevel,
   isAppVisible,
@@ -343,8 +347,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     transform: [{ scale: selectedScale }],
   };
 
-  // Get role display name for bot (debug mode only)
-  const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
+  // Game-specific adapters resolve this label so the shared tile does not import game roles.
+  const botRoleDisplayName = showBotRole ? (botRoleLabel ?? null) : null;
 
   // Resolve seat flair component
   const flairConfig = useMemo(() => getFlairById(playerSeatFlair), [playerSeatFlair]);
@@ -477,8 +481,15 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             </Animated.View>
           )}
 
-          {wolfVoteBadge != null && hasPlayer && (
-            <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
+          {(statusBadgeText != null || wolfVoteBadge != null) && hasPlayer && (
+            <Text
+              style={[
+                styles.wolfVoteBadge,
+                statusBadgeColor ? { backgroundColor: statusBadgeColor } : null,
+              ]}
+            >
+              {statusBadgeText ?? wolfVoteBadge}
+            </Text>
           )}
 
           {showLevel && playerLevel != null && hasPlayer && !botRoleDisplayName && (

@@ -5,9 +5,10 @@
  * Edit mode (existingRoomCode): host changes player count in Lobby → updateConfig.
  */
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@werewolf/game-engine/fibking/types';
 import type React from 'react';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -16,9 +17,8 @@ import { useFibFacade } from '@/contexts/FibFacadeContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 import { showAlert } from '@/utils/alert';
-
-const MIN = 4;
-const MAX = 8;
+import { handleError } from '@/utils/errorPipeline';
+import { configLog } from '@/utils/logger';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FibConfig'>;
 
@@ -27,13 +27,23 @@ const FibConfigScreen: React.FC<Props> = ({ navigation, route }) => {
   const facade = useFibFacade();
   const { user } = useAuthContext();
   const existingRoomCode = route.params?.existingRoomCode;
-  const [count, setCount] = useState<number>(
-    existingRoomCode ? (facade.getState()?.numberOfPlayers ?? 5) : 5,
+  const [countText, setCountText] = useState<string>(
+    String(
+      existingRoomCode
+        ? (facade.getState()?.numberOfPlayers ?? FIB_DEFAULT_PLAYERS)
+        : FIB_DEFAULT_PLAYERS,
+    ),
   );
   const [busy, setBusy] = useState(false);
 
   const onConfirm = async (): Promise<void> => {
     if (busy) return;
+    const count = Number(countText);
+    if (!Number.isInteger(count) || count < FIB_MIN_PLAYERS) {
+      showAlert('人数无效', `至少需要 ${FIB_MIN_PLAYERS} 人`);
+      return;
+    }
+
     setBusy(true);
     try {
       if (existingRoomCode) {
@@ -51,11 +61,21 @@ const FibConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         const roomCode = await facade.createRoom({ numberOfPlayers: count }, user.id);
         navigation.replace('FibRoom', { roomCode, isHost: true });
       }
-    } catch {
-      showAlert('创建失败', '请稍后重试');
+    } catch (err) {
+      handleError(err, {
+        label: existingRoomCode ? '修改人数' : '创建房间',
+        logger: configLog,
+        alertMessage: '请稍后重试',
+      });
     } finally {
       setBusy(false);
     }
+  };
+
+  const stepCount = (delta: number): void => {
+    const parsed = Number(countText);
+    const base = Number.isInteger(parsed) ? parsed : FIB_MIN_PLAYERS;
+    setCountText(String(Math.max(FIB_MIN_PLAYERS, base + delta)));
   };
 
   return (
@@ -69,24 +89,27 @@ const FibConfigScreen: React.FC<Props> = ({ navigation, route }) => {
         <Text style={styles.label}>玩家人数</Text>
         <View style={styles.stepper}>
           <Pressable
-            style={[styles.stepBtn, count <= MIN && styles.stepBtnDisabled]}
-            onPress={() => setCount((c) => Math.max(MIN, c - 1))}
+            style={[styles.stepBtn, Number(countText) <= FIB_MIN_PLAYERS && styles.stepBtnDisabled]}
+            onPress={() => stepCount(-1)}
             testID="fib-count-dec"
           >
             <Text style={styles.stepBtnText}>−</Text>
           </Pressable>
-          <Text style={styles.count} testID="fib-count">
-            {count}
-          </Text>
-          <Pressable
-            style={[styles.stepBtn, count >= MAX && styles.stepBtnDisabled]}
-            onPress={() => setCount((c) => Math.min(MAX, c + 1))}
-            testID="fib-count-inc"
-          >
+          <TextInput
+            value={countText}
+            onChangeText={(text) => setCountText(text.replace(/\D/g, ''))}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            style={styles.count}
+            testID="fib-count"
+          />
+          <Pressable style={styles.stepBtn} onPress={() => stepCount(1)} testID="fib-count-inc">
             <Text style={styles.stepBtnText}>＋</Text>
           </Pressable>
         </View>
-        <Text style={styles.hint}>4–8 人,推荐 5–6 人。每轮 1 大聪明 + 1 老实人 + 其余瞎掰王。</Text>
+        <Text style={styles.hint}>
+          至少 {FIB_MIN_PLAYERS} 人,无人数上限。每轮 1 大聪明 + 1 老实人 + 其余瞎掰王。
+        </Text>
       </View>
       <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.medium }]}>
         <Pressable
@@ -125,10 +148,13 @@ const styles = StyleSheet.create({
   stepBtnText: { fontSize: typography.heading, color: colors.primary },
   count: {
     minWidth: 64,
+    paddingVertical: spacing.tight,
     textAlign: 'center',
     fontSize: typography.display,
     fontWeight: typography.weights.bold,
     color: colors.text,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   hint: {
     fontSize: typography.secondary,

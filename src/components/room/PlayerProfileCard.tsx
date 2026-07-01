@@ -13,7 +13,6 @@ import {
   LEVEL_THRESHOLDS,
 } from '@werewolf/game-engine/growth/level';
 import { getItemRarity, type Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -42,7 +41,11 @@ import { queryClient } from '@/lib/queryClient';
 import { type RootStackParamList } from '@/navigation/types';
 import type { UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
-import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';
+import {
+  getBuiltinAvatarDisplayName,
+  getBuiltinAvatarId,
+  isBuiltinAvatarUrl,
+} from '@/utils/avatar';
 
 interface PlayerProfileCardProps {
   visible: boolean;
@@ -120,7 +123,7 @@ function resolveAvatarSlot(avatarUrl: string | undefined): SlotInfo {
       const name = id.startsWith('genR') ? `光环 ${id.slice(4)}` : `像素 ${id.slice(4)}`;
       return { name, rarity: getItemRarity(id), typeLabel: '头像' };
     }
-    return { name: getRoleDisplayName(id), rarity: getItemRarity(id), typeLabel: '头像' };
+    return { name: getBuiltinAvatarDisplayName(id), rarity: getItemRarity(id), typeLabel: '头像' };
   }
   return { name: '自定义', rarity: null, typeLabel: '头像' };
 }

@@ -1,129 +1,239 @@
 /**
- * FibRoomScreen — 瞎掰王 房间 (Lobby / Starting / Playing / Revealed).
+ * FibRoomScreen — fibking adapter over the shared room shell.
  *
- * Subscribes to FibFacade state, renders the seat grid + phase-specific bottom actions,
- * and the local 「查看身份」 sheet. Seat taps follow the Lobby-only policy (sit/leave/kick).
- * Server is the sole authority; every button is an HTTP action.
+ * Shared hooks own connection, sharing, seat operations, and profile-card state.
+ * Fib-specific files derive seat view models, header items, summary copy, and bottom actions.
  */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { FibState } from '@werewolf/game-engine/fibking/types';
-import type { RosterEntry } from '@werewolf/game-engine/protocol/common';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useMemo, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { useAuthContext, type User } from '@/contexts/AuthContext';
+import { Button } from '@/components/Button';
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
+import { QRCodeModal } from '@/components/room/QRCodeModal';
+import { RoomBottomActionPanel } from '@/components/room/RoomBottomActionPanel';
+import { createRoomComponentStyles } from '@/components/room/roomComponentStyles';
+import { RoomHeaderActions } from '@/components/room/RoomHeaderActions';
+import { RoomSeatBoard } from '@/components/room/RoomSeatBoard';
+import { RoomSeatConfirmModal } from '@/components/room/RoomSeatConfirmModal';
+import { createRoomShellStyles } from '@/components/room/roomShellStyles';
+import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useFibFacade } from '@/contexts/FibFacadeContext';
+import { usePlayerProfileController } from '@/hooks/usePlayerProfileController';
+import { useRoomActionRunner } from '@/hooks/useRoomActionRunner';
+import { useRoomConnectionLifecycle } from '@/hooks/useRoomConnectionLifecycle';
+import { type RoomSeatOperation, useRoomSeatOperations } from '@/hooks/useRoomSeatOperations';
+import { useRoomShareActions } from '@/hooks/useRoomShareActions';
 import type { RootStackParamList } from '@/navigation/types';
-import type { FibActionResult } from '@/services/facade/FibFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
-import { borderRadius, colors, spacing, typography } from '@/theme';
+import { TESTIDS } from '@/testids';
+import { borderRadius, colors, componentSizes, spacing, textStyles, typography } from '@/theme';
 import { showAlert } from '@/utils/alert';
+import { handleError } from '@/utils/errorPipeline';
+import { isExpectedError } from '@/utils/errorUtils';
+import { roomScreenLog } from '@/utils/logger';
 
+import { createFibBottomLayout } from './fibRoom/fibBottomLayout';
+import {
+  createFibHeaderActionItems,
+  createFibHeaderOperationItems,
+} from './fibRoom/fibHeaderItems';
 import { FibIdentitySheet } from './fibRoom/FibIdentitySheet';
-import { FibSeatCell } from './fibRoom/FibSeatCell';
+import {
+  countFibSeatedPlayers,
+  createFibSeatViewModels,
+  findFibSeatByUserId,
+  getFibDisplayName,
+  getFibReasonMessage,
+  getFibSummaryBody,
+  getFibSummaryTitle,
+  userToFibRosterProfile,
+} from './fibRoom/fibRoomView';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FibRoom'>;
-
-function userToProfile(user: User): RosterEntry {
-  return {
-    displayName: user.displayName ?? '玩家',
-    avatarUrl: user.customAvatarUrl ?? user.avatarUrl ?? undefined,
-    avatarFrame: user.avatarFrame ?? undefined,
-    seatFlair: user.seatFlair ?? undefined,
-    nameStyle: user.nameStyle ?? undefined,
-    roleRevealEffect: user.equippedEffect ?? undefined,
-    seatAnimation: user.seatAnimation ?? undefined,
-  };
-}
-
-function seatedCount(state: FibState): number {
-  return Object.values(state.seats).filter((s) => s !== null).length;
-}
 
 const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const facade = useFibFacade();
   const { user } = useAuthContext();
   const { roomCode } = route.params;
+  const myUserId = user?.id ?? null;
+  const styles = useMemo(() => createRoomShellStyles(colors), []);
+  const componentStyles = useMemo(() => createRoomComponentStyles(colors), []);
+  const [identityOpen, setIdentityOpen] = useState(false);
 
-  const state = useSyncExternalStore(
-    useCallback((cb: () => void) => facade.subscribe(cb), [facade]),
-    useCallback(() => facade.getState(), [facade]),
+  const handleConnectError = useCallback((err: unknown): void => {
+    handleError(err, {
+      label: '连接房间',
+      logger: roomScreenLog,
+      alertMessage: '无法连接房间，请稍后重试',
+    });
+  }, []);
+
+  const handleLeaveError = useCallback((err: unknown): void => {
+    handleError(err, {
+      label: '离开房间',
+      logger: roomScreenLog,
+      feedback: false,
+    });
+  }, []);
+
+  const { state, connectionStatus, manualReconnect } = useRoomConnectionLifecycle({
+    facade,
+    roomCode,
+    userId: myUserId,
+    onConnectError: handleConnectError,
+    onLeaveError: handleLeaveError,
+  });
+
+  const isHost = myUserId !== null && state?.hostUserId === myUserId;
+  const mySeat = useMemo(() => findFibSeatByUserId(state, myUserId), [state, myUserId]);
+
+  const runAction = useRoomActionRunner({
+    reasonToMessage: getFibReasonMessage,
+    logger: roomScreenLog,
+    isExpectedError,
+  });
+
+  const runSeatOperation = useCallback(
+    async (operation: RoomSeatOperation): Promise<boolean> => {
+      switch (operation.kind) {
+        case 'enter':
+        case 'move':
+          if (!user) {
+            showAlert('入座失败', '请先登录');
+            return false;
+          }
+          return runAction(
+            () => facade.sit(operation.seat, userToFibRosterProfile(user)),
+            '入座失败',
+          );
+        case 'leave':
+          return runAction(() => facade.leaveSeat(), '离座失败');
+        case 'kick':
+          return runAction(() => facade.kick(operation.seat), '移出失败');
+        default: {
+          const _exhaustive: never = operation.kind;
+          throw new Error(`FibRoomScreen: unsupported seat operation ${_exhaustive}`);
+        }
+      }
+    },
+    [facade, runAction, user],
   );
 
-  const [conn, setConn] = useState<ConnectionStatus>(ConnectionStatus.Connecting);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const connectedRef = useRef(false);
+  const {
+    operation: seatOperation,
+    isSubmitting: isSeatSubmitting,
+    openOperation,
+    cancelOperation,
+    confirmOperation,
+  } = useRoomSeatOperations({ runOperation: runSeatOperation });
 
-  useEffect(() => facade.addConnectionStatusListener(setConn), [facade]);
-
-  useEffect(() => {
-    if (!user?.id || connectedRef.current) return;
-    connectedRef.current = true;
-    void facade.connect(roomCode, user.id);
-  }, [facade, roomCode, user?.id]);
-
-  useEffect(() => () => void facade.leave(), [facade]);
-
-  const myUserId = user?.id ?? null;
-  const isHost = myUserId !== null && state?.hostUserId === myUserId;
-
-  const mySeat = useMemo<number | null>(() => {
-    if (!state || !myUserId) return null;
-    for (const [seat, occupant] of Object.entries(state.seats)) {
-      if (occupant?.userId === myUserId) return Number(seat);
-    }
-    return null;
-  }, [state, myUserId]);
-
-  const run = useCallback(
-    async (fn: () => Promise<FibActionResult>, failTitle: string): Promise<void> => {
-      const result = await fn();
-      if (!result.success) showAlert(failTitle, result.reason ?? '请稍后重试');
+  const openKickOperation = useCallback(
+    (seat: number): void => {
+      openOperation({ kind: 'kick', seat });
     },
-    [],
+    [openOperation],
+  );
+
+  const openLeaveOperation = useCallback(
+    (seat: number): void => {
+      openOperation({ kind: 'leave', seat });
+    },
+    [openOperation],
+  );
+
+  const getProfileDisplayName = useCallback(
+    (seat: number, userId: string): string => {
+      if (!state) throw new Error('FibRoomScreen.getProfileDisplayName: missing state');
+      return getFibDisplayName(state, seat, userId);
+    },
+    [state],
+  );
+
+  const profile = usePlayerProfileController({
+    myUserId,
+    getDisplayName: getProfileDisplayName,
+    onKickSeat: openKickOperation,
+    onLeaveSeat: openLeaveOperation,
+  });
+
+  const filled = state ? countFibSeatedPlayers(state) : 0;
+  const isFull = state ? filled === state.numberOfPlayers : false;
+  const isLobby = state?.phase === 'Lobby';
+
+  const share = useRoomShareActions({
+    roomCode,
+    gameName: '瞎掰王',
+    autoShowWhen: state !== null && isHost && route.params.isHost,
+  });
+
+  const openSettings = useCallback((): void => {
+    navigation.navigate('FibConfig', { existingRoomCode: roomCode });
+  }, [navigation, roomCode]);
+
+  const handleClearSeats = useCallback((): void => {
+    showAlert('清空所有座位?', undefined, [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '清空',
+        style: 'destructive',
+        onPress: () => void runAction(() => facade.clearSeats(), '清空失败'),
+      },
+    ]);
+  }, [facade, runAction]);
+
+  const actionItems = useMemo(
+    () =>
+      createFibHeaderActionItems({
+        isHost,
+        isLobby,
+        onShareRoom: share.openQRCode,
+        onOpenSettings: openSettings,
+      }),
+    [isHost, isLobby, openSettings, share.openQRCode],
+  );
+
+  const operationItems = useMemo(
+    () =>
+      createFibHeaderOperationItems({
+        isHost,
+        isLobby,
+        filled,
+        onClearSeats: handleClearSeats,
+      }),
+    [filled, handleClearSeats, isHost, isLobby],
+  );
+
+  const seatViewModels = useMemo(
+    () => (state ? createFibSeatViewModels(state, mySeat) : []),
+    [mySeat, state],
   );
 
   const onSeatPress = useCallback(
     (seat: number): void => {
-      if (!state || state.phase !== 'Lobby' || !user?.id) return; // locked outside Lobby
-      const occupant = state.seats[seat];
-      if (!occupant) {
-        if (mySeat !== null) return; // already seated elsewhere
-        showAlert(`坐到 ${seat + 1} 号位?`, undefined, [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '入座',
-            onPress: () => void run(() => facade.sit(seat, userToProfile(user)), '入座失败'),
-          },
-        ]);
-      } else if (occupant.userId === myUserId) {
-        showAlert('离座?', undefined, [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '离座',
-            style: 'destructive',
-            onPress: () => void run(() => facade.leaveSeat(), '离座失败'),
-          },
-        ]);
-      } else if (isHost) {
-        showAlert('移出该玩家?', undefined, [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '移出',
-            style: 'destructive',
-            onPress: () => void run(() => facade.kick(seat), '移出失败'),
-          },
-        ]);
+      if (!state) throw new Error('FibRoomScreen.onSeatPress: missing state');
+      const occupant = state.seats[seat] ?? null;
+      if (occupant) {
+        profile.openProfile(seat, occupant.userId);
+        return;
       }
+      if (state.phase !== 'Lobby') return;
+      if (!user) {
+        showAlert('入座失败', '请先登录');
+        return;
+      }
+      openOperation({ kind: mySeat === null ? 'enter' : 'move', seat });
     },
-    [state, user, mySeat, myUserId, isHost, facade, run],
+    [mySeat, openOperation, profile, state, user],
   );
 
-  const onBack = useCallback((): void => {
+  const handleBack = useCallback((): void => {
     if (state && state.phase !== 'Lobby') {
       showAlert('退出房间?', '本局进行中', [
         { text: '取消', style: 'cancel' },
@@ -132,284 +242,211 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     navigation.goBack();
-  }, [state, navigation]);
+  }, [navigation, state]);
 
-  if (!state) {
+  const bottomLayout = useMemo(() => {
+    if (!state) return { primary: [], secondary: [], ghost: [] };
+    return createFibBottomLayout({
+      state,
+      isHost,
+      isFull,
+      mySeat,
+      onOpenSettings: openSettings,
+      onOpenIdentity: () => setIdentityOpen(true),
+      onStartRound: () => void runAction(() => facade.startRound(), '开始失败'),
+      onReveal: () => void runAction(() => facade.reveal(), '公布失败'),
+      onRestart: () => void runAction(() => facade.restart(), '重新开始失败'),
+      onNextRound: () => void runAction(() => facade.nextRound(), '开始失败'),
+    });
+  }, [facade, isFull, isHost, mySeat, openSettings, runAction, state]);
+
+  const listHeader = useMemo(() => {
+    if (!state) return null;
     return (
-      <View style={styles.container}>
-        <ScreenHeader title="瞎掰王" onBack={() => navigation.goBack()} topInset={insets.top} />
-        <View style={styles.centered}>
-          <Text style={styles.muted}>连接中…</Text>
+      <View style={fibStyles.listHeader}>
+        <TouchableOpacity onPress={() => navigation.navigate('FibRules')} testID="fib-rules-link">
+          <Text style={fibStyles.rulesLink}>玩法说明 ⓘ</Text>
+        </TouchableOpacity>
+        <View style={fibStyles.summaryPanel}>
+          <Text style={fibStyles.summaryTitle}>{getFibSummaryTitle(state, filled)}</Text>
+          <Text style={fibStyles.summaryBody}>{getFibSummaryBody(state)}</Text>
         </View>
-      </View>
-    );
-  }
-
-  const filled = seatedCount(state);
-  const isFull = filled === state.numberOfPlayers;
-  const revealed = state.phase === 'Revealed';
-  const guesserSeat =
-    state.roleBySeat && Object.entries(state.roleBySeat).find(([, r]) => r === 'guesser')?.[0];
-
-  const connText =
-    conn === ConnectionStatus.Live
-      ? `已连接 · ${filled}/${state.numberOfPlayers} 人就座`
-      : conn === ConnectionStatus.Disconnected || conn === ConnectionStatus.Failed
-        ? '重连中…'
-        : '连接中…';
-
-  return (
-    <View style={styles.container}>
-      <ScreenHeader
-        title={`瞎掰王 · ${roomCode}`}
-        onBack={onBack}
-        topInset={insets.top}
-        headerRight={
-          isHost && state.phase === 'Lobby' ? (
-            <Pressable
-              onPress={() => navigation.navigate('FibConfig', { existingRoomCode: roomCode })}
-              testID="fib-settings"
-            >
-              <Text style={styles.headerAction}>设置</Text>
-            </Pressable>
-          ) : undefined
-        }
-      />
-
-      <Text style={styles.ribbon}>● {connText}</Text>
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <Pressable onPress={() => navigation.navigate('FibRules')} testID="fib-rules-link">
-          <Text style={styles.rulesLink}>玩法说明 ⓘ</Text>
-        </Pressable>
-
-        {state.phase === 'Starting' ? (
-          <Text style={styles.starting}>⟳ 出题中…（正在抽生僻词并分配身份）</Text>
-        ) : null}
-
-        {state.phase === 'Playing' && guesserSeat !== undefined ? (
-          <Text style={styles.playingHint}>本轮进行中 · 大聪明:{Number(guesserSeat) + 1} 号</Text>
-        ) : null}
-
-        <View style={styles.grid}>
-          {Array.from({ length: state.numberOfPlayers }, (_, seat) => (
-            <FibSeatCell
-              key={seat}
-              seat={seat}
-              occupant={state.seats[seat] ?? null}
-              roster={state.seats[seat] ? state.roster[state.seats[seat].userId] : undefined}
-              role={state.roleBySeat?.[seat]}
-              revealed={revealed}
-              isMe={mySeat === seat}
-              onPress={() => onSeatPress(seat)}
-            />
-          ))}
-        </View>
-
-        {revealed ? (
-          <View style={styles.answer}>
-            <Text style={styles.answerTitle}>本轮答案</Text>
-            <Text style={styles.answerWord}>{state.word}</Text>
-            <Text style={styles.answerDef}>{state.definition}</Text>
+        {state.phase === 'Revealed' ? (
+          <View style={fibStyles.answerPanel}>
+            <Text style={fibStyles.answerTitle}>本轮答案</Text>
+            <Text style={fibStyles.answerWord}>{state.word}</Text>
+            <Text style={fibStyles.answerDef}>{state.definition}</Text>
           </View>
         ) : null}
-      </ScrollView>
+      </View>
+    );
+  }, [filled, navigation, state]);
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.small }]}>
-        {renderActions()}
+  if (!state) {
+    return <LoadingScreen message="连接中…" />;
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['left', 'right']} testID="fib-room-screen">
+      <View style={[styles.header, { paddingTop: insets.top + spacing.small }]}>
+        <View style={styles.headerLeft}>
+          <Button
+            variant="icon"
+            onPress={handleBack}
+            style={styles.backButton}
+            testID={TESTIDS.roomBackButton}
+          >
+            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+          </Button>
+        </View>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>房间 {roomCode}</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <RoomHeaderActions
+            visible
+            user={user}
+            ticketCount={null}
+            showUserSettings
+            actionItems={actionItems}
+            operationItems={operationItems}
+            onUserSettings={() => navigation.navigate('Settings', { roomCode })}
+            styles={componentStyles.headerActions}
+            menuButtonTestID="fib-room-menu"
+          />
+        </View>
       </View>
 
+      <RoomStatusRibbon
+        connectionStatus={connectionStatus}
+        onManualReconnect={manualReconnect}
+        guideMessage={
+          connectionStatus === ConnectionStatus.Live
+            ? `瞎掰王 · ${filled}/${state.numberOfPlayers} 人就座`
+            : null
+        }
+        connectionStatusBarStyles={componentStyles.connectionStatusBar}
+        hostGuideBannerStyles={componentStyles.hostGuideBanner}
+      />
+
+      <RoomSeatBoard
+        seats={seatViewModels}
+        onSeatPress={onSeatPress}
+        virtualized
+        listHeaderComponent={listHeader}
+        contentContainerStyle={fibStyles.content}
+        seatTestIDPrefix="fib-seat-{seat}"
+      />
+
+      <RoomBottomActionPanel
+        layout={bottomLayout}
+        onSchemaButtonPress={() => {
+          throw new Error('FibRoomScreen: unexpected schema intent');
+        }}
+        onStaticButtonPress={(action) => {
+          throw new Error(`FibRoomScreen: unexpected static action ${action}`);
+        }}
+        styles={componentStyles.bottomActionPanel}
+        bottomInset={insets.bottom + spacing.medium}
+      />
+
       <FibIdentitySheet
-        visible={sheetOpen}
+        visible={identityOpen}
         role={mySeat !== null ? state.roleBySeat?.[mySeat] : undefined}
         word={state.word}
         definition={state.definition}
-        onClose={() => setSheetOpen(false)}
+        onClose={() => setIdentityOpen(false)}
       />
-    </View>
+
+      {seatOperation ? (
+        <RoomSeatConfirmModal
+          visible
+          kind={seatOperation.kind}
+          seat={seatOperation.seat}
+          isSubmitting={isSeatSubmitting}
+          onConfirm={() => void confirmOperation()}
+          onCancel={cancelOperation}
+          styles={componentStyles.seatConfirmModal}
+        />
+      ) : null}
+
+      {profile.target ? (
+        <PlayerProfileCard
+          visible
+          onClose={profile.closeProfile}
+          targetUserId={profile.target.userId}
+          targetSeat={profile.target.seat}
+          isHost={isHost}
+          rosterName={profile.target.displayName}
+          isSelf={profile.target.isSelf}
+          onKick={profile.handleKick}
+          onLeaveSeat={profile.handleLeaveSeat}
+        />
+      ) : null}
+
+      <QRCodeModal
+        visible={share.qrModalVisible}
+        roomCode={roomCode}
+        roomUrl={share.roomUrl}
+        onShareImage={share.handleShareQRCode}
+        onCopyLink={share.handleCopyLink}
+        onClose={share.closeQRCode}
+      />
+    </SafeAreaView>
   );
-
-  function renderActions(): React.ReactNode {
-    if (!state) return null;
-    const primary = (
-      label: string,
-      onPress: () => void,
-      testID: string,
-      disabled = false,
-    ): React.ReactNode => (
-      <Pressable
-        style={[styles.primaryBtn, disabled && styles.btnDisabled]}
-        onPress={disabled ? () => {} : onPress}
-        testID={testID}
-      >
-        <Text style={styles.primaryBtnText}>{label}</Text>
-      </Pressable>
-    );
-    const ghost = (label: string, onPress: () => void, testID: string): React.ReactNode => (
-      <Pressable style={styles.ghostBtn} onPress={onPress} testID={testID}>
-        <Text style={styles.ghostBtnText}>{label}</Text>
-      </Pressable>
-    );
-
-    switch (state.phase) {
-      case 'Lobby':
-        if (isHost) {
-          return (
-            <View style={styles.actionRow}>
-              {primary(
-                isFull ? '开始本轮' : '还有空位未入座',
-                () => void run(() => facade.startRound(), '开始失败'),
-                'fib-start-round',
-                !isFull,
-              )}
-            </View>
-          );
-        }
-        return (
-          <Text style={styles.waiting}>{mySeat !== null ? '等待房主开始' : '点座位入座'}</Text>
-        );
-
-      case 'Starting':
-        return <Text style={styles.waiting}>出题中…</Text>;
-
-      case 'Playing':
-        return (
-          <View style={styles.actionRow}>
-            {mySeat !== null
-              ? ghost('查看身份', () => setSheetOpen(true), 'fib-view-identity')
-              : null}
-            {isHost
-              ? primary(
-                  '公布答案',
-                  () =>
-                    showAlert('公布答案?', '将公开真词与所有人身份', [
-                      { text: '取消', style: 'cancel' },
-                      { text: '公布', onPress: () => void run(() => facade.reveal(), '公布失败') },
-                    ]),
-                  'fib-reveal',
-                )
-              : null}
-          </View>
-        );
-
-      case 'Revealed':
-        return (
-          <View style={styles.actionRow}>
-            {isHost ? (
-              primary(
-                '下一轮',
-                () => void run(() => facade.nextRound(), '开始失败'),
-                'fib-next-round',
-              )
-            ) : (
-              <Text style={styles.waiting}>等待房主</Text>
-            )}
-            {isHost
-              ? ghost(
-                  '重新开始',
-                  () =>
-                    showAlert('重新开始?', '将弃掉本局回到房间', [
-                      { text: '取消', style: 'cancel' },
-                      {
-                        text: '重新开始',
-                        style: 'destructive',
-                        onPress: () => void run(() => facade.restart(), '重新开始失败'),
-                      },
-                    ]),
-                  'fib-restart',
-                )
-              : null}
-          </View>
-        );
-    }
-  }
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  muted: { fontSize: typography.body, color: colors.textMuted },
-  headerAction: { fontSize: typography.body, color: colors.primary },
-  ribbon: {
-    paddingHorizontal: spacing.screenH,
-    paddingVertical: spacing.tight,
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-  },
+const fibStyles = StyleSheet.create({
   content: {
-    paddingHorizontal: spacing.screenH,
-    paddingBottom: spacing.large,
+    padding: spacing.medium,
+    paddingBottom: spacing.xxlarge + spacing.xlarge,
+  },
+  listHeader: {
     gap: spacing.medium,
+    marginBottom: spacing.medium,
   },
-  rulesLink: { fontSize: typography.secondary, color: colors.primary },
-  starting: {
-    fontSize: typography.subtitle,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    paddingVertical: spacing.large,
+  rulesLink: {
+    ...textStyles.secondarySemibold,
+    color: colors.primary,
   },
-  playingHint: { fontSize: typography.secondary, color: colors.textSecondary },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    gap: spacing.small,
-  },
-  answer: {
+  summaryPanel: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.large,
-    padding: spacing.medium,
     borderWidth: 1,
     borderColor: colors.borderLight,
+    padding: spacing.medium,
     gap: spacing.tight,
   },
-  answerTitle: { fontSize: typography.caption, color: colors.textMuted },
+  summaryTitle: {
+    ...textStyles.titleBold,
+    color: colors.text,
+  },
+  summaryBody: {
+    fontSize: typography.secondary,
+    lineHeight: typography.lineHeights.secondary,
+    color: colors.textSecondary,
+  },
+  answerPanel: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.large,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: spacing.medium,
+    gap: spacing.tight,
+  },
+  answerTitle: {
+    fontSize: typography.caption,
+    color: colors.textMuted,
+  },
   answerWord: {
     fontSize: typography.heading,
     fontWeight: typography.weights.bold,
     color: colors.text,
-    letterSpacing: 4,
   },
   answerDef: {
     fontSize: typography.body,
-    color: colors.textSecondary,
     lineHeight: typography.lineHeights.body,
-  },
-  footer: {
-    paddingHorizontal: spacing.screenH,
-    paddingTop: spacing.small,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    backgroundColor: colors.surface,
-  },
-  actionRow: { flexDirection: 'row', gap: spacing.small, alignItems: 'center' },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.large,
-    paddingVertical: spacing.medium,
-    alignItems: 'center',
-  },
-  btnDisabled: { opacity: 0.45 },
-  primaryBtnText: {
-    fontSize: typography.subtitle,
-    fontWeight: typography.weights.semibold,
-    color: colors.textInverse,
-  },
-  ghostBtn: {
-    paddingVertical: spacing.medium,
-    paddingHorizontal: spacing.large,
-    borderRadius: borderRadius.large,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  ghostBtnText: { fontSize: typography.body, color: colors.textSecondary },
-  waiting: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: typography.body,
-    color: colors.textMuted,
-    paddingVertical: spacing.small,
+    color: colors.textSecondary,
   },
 });
 

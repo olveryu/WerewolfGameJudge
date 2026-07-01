@@ -58,7 +58,7 @@ import {
   RandomRoleCard,
   RecentRoomsModal,
 } from './components';
-import { GameModePickerSheet } from './components/GameModePickerSheet';
+import { GameModePickerModal } from './components/GameModePickerModal';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -627,7 +627,7 @@ export const HomeScreen: React.FC = () => {
         onJoin={handleJoinFromRecent}
       />
 
-      <GameModePickerSheet
+      <GameModePickerModal
         visible={showModePicker}
         onClose={() => setShowModePicker(false)}
         onPickWerewolf={handlePickWerewolf}

@@ -7,11 +7,20 @@
  */
 import type { TextStyle, ViewStyle } from 'react-native';
 
+import {
+  type BottomActionPanelStyles,
+  type ConnectionStatusBarStyles,
+  type ControlledSeatBannerStyles,
+  createRoomComponentStyles,
+  type HostGuideBannerStyles,
+  type RoomComponentStyles,
+  type RoomHeaderActionsStyles,
+  type RoomSeatConfirmModalStyles,
+  type RoomStatusRibbonStyles,
+} from '@/components/room/roomComponentStyles';
 import type { ThemeColors } from '@/theme';
 
 import { createBoardInfoStyles } from './boardInfo.styles';
-import { createModalMenuStyles } from './modalMenu.styles';
-import { createStatusPanelStyles } from './statusPanels.styles';
 
 // ─── Per-component style interfaces ─────────────────────────────────────────
 
@@ -33,59 +42,15 @@ export interface BoardInfoCardStyles {
   nominationBtnText: TextStyle;
 }
 
-export interface BottomActionPanelStyles {
-  container: ViewStyle;
-  message: TextStyle;
-  buttonRow: ViewStyle;
-  ghostRow: ViewStyle;
-}
-
-export interface ConnectionStatusBarStyles {
-  container: ViewStyle;
-  text: TextStyle;
-  progressBarTrack: ViewStyle;
-  progressBar: ViewStyle;
-  failedRow: ViewStyle;
-  reconnectButton: ViewStyle;
-  reconnectText: TextStyle;
-}
-
-export interface ControlledSeatBannerStyles {
-  container: ViewStyle;
-  hintContainer: ViewStyle;
-  text: TextStyle;
-  hintText: TextStyle;
-  releaseButton: ViewStyle;
-  releaseButtonText: TextStyle;
-}
-
-export interface HostGuideBannerStyles {
-  container: ViewStyle;
-  icon: TextStyle;
-  text: TextStyle;
-}
-
-export interface StatusRibbonStyles {
-  speakingOrderContainer: ViewStyle;
-  speakingOrderIcon: TextStyle;
-  speakingOrderTextContainer: ViewStyle;
-  speakingOrderText: TextStyle;
-  speakingOrderSubText: TextStyle;
-}
-
-export interface HeaderActionsStyles {
-  triggerButton: ViewStyle;
-  triggerText: TextStyle;
-  modalOverlay: ViewStyle;
-  menuArrow: ViewStyle;
-  menuContainer: ViewStyle;
-  menuItem: ViewStyle;
-  menuItemText: TextStyle;
-  menuItemDanger: ViewStyle;
-  menuItemTextDanger: TextStyle;
-  sectionGap: ViewStyle;
-  headerRightContainer: ViewStyle;
-}
+export type {
+  BottomActionPanelStyles,
+  ConnectionStatusBarStyles,
+  ControlledSeatBannerStyles,
+  HostGuideBannerStyles,
+};
+export type HeaderActionsStyles = RoomHeaderActionsStyles;
+export type SeatConfirmModalStyles = RoomSeatConfirmModalStyles;
+export type StatusRibbonStyles = RoomStatusRibbonStyles;
 
 export interface NightProgressIndicatorStyles {
   container: ViewStyle;
@@ -96,37 +61,18 @@ export interface NightProgressIndicatorStyles {
   progressBarFill: ViewStyle;
 }
 
-export interface SeatConfirmModalStyles {
-  modalOverlay: ViewStyle;
-  modalContent: ViewStyle;
-  modalTitle: TextStyle;
-  modalMessage: TextStyle;
-  modalButtons: ViewStyle;
-  modalButton: ViewStyle;
-}
-
 // ─── Combined styles container ──────────────────────────────────────────────
 
-interface RoomScreenComponentStyles {
+interface RoomScreenComponentStyles extends RoomComponentStyles {
   boardInfoCard: BoardInfoCardStyles;
-  bottomActionPanel: BottomActionPanelStyles;
-  connectionStatusBar: ConnectionStatusBarStyles;
-  controlledSeatBanner: ControlledSeatBannerStyles;
-  hostGuideBanner: HostGuideBannerStyles;
-  headerActions: HeaderActionsStyles;
   nightProgressIndicator: NightProgressIndicatorStyles;
-  seatConfirmModal: SeatConfirmModalStyles;
-  statusRibbon: StatusRibbonStyles;
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
 
 export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
-  const statusPanels = createStatusPanelStyles(colors);
   return {
     ...createBoardInfoStyles(colors),
-    ...statusPanels,
-    ...createModalMenuStyles(colors),
-    statusRibbon: statusPanels.statusRibbon,
+    ...createRoomComponentStyles(colors),
   };
 }

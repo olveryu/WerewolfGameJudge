@@ -15,16 +15,16 @@ import {
   typography,
 } from '@/theme';
 
-import type { HeaderActionsStyles, SeatConfirmModalStyles } from './styles';
+import type { RoomHeaderActionsStyles, RoomSeatConfirmModalStyles } from './roomComponentStyles';
 
-export function createModalMenuStyles(colors: ThemeColors): {
-  headerActions: HeaderActionsStyles;
-  seatConfirmModal: SeatConfirmModalStyles;
+export function createRoomModalMenuStyles(colors: ThemeColors): {
+  headerActions: RoomHeaderActionsStyles;
+  seatConfirmModal: RoomSeatConfirmModalStyles;
 } {
   const shared = createSharedStyles(colors);
 
   return {
-    headerActions: StyleSheet.create<HeaderActionsStyles>({
+    headerActions: StyleSheet.create<RoomHeaderActionsStyles>({
       headerRightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -91,7 +91,7 @@ export function createModalMenuStyles(colors: ThemeColors): {
       },
     }),
 
-    seatConfirmModal: StyleSheet.create<SeatConfirmModalStyles>({
+    seatConfirmModal: StyleSheet.create<RoomSeatConfirmModalStyles>({
       modalOverlay: {
         flex: 1,
         backgroundColor: colors.overlay,

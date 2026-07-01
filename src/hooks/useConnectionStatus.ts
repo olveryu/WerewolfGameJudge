@@ -10,9 +10,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { IGameFacade } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { connectionLog } from '@/utils/logger';
+
+export interface ConnectionStatusSource {
+  addConnectionStatusListener(fn: (status: ConnectionStatus) => void): () => void;
+}
 
 interface ConnectionStatusState {
   connectionStatus: ConnectionStatus;
@@ -27,7 +30,7 @@ interface ConnectionStatusState {
 /**
  * Tracks connection status via facade listener.
  */
-export function useConnectionStatus(facade: IGameFacade): ConnectionStatusState {
+export function useConnectionStatus(facade: ConnectionStatusSource): ConnectionStatusState {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
     ConnectionStatus.Disconnected,
   );

@@ -20,7 +20,7 @@ import {
   REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
 } from '../../protocol/reasonCodes';
-import { forEachSeatedPlayer } from '../../utils/playerHelpers';
+import type { Player } from '../../protocol/types';
 import type {
   ClearAllSeatsIntent,
   JoinSeatIntent,
@@ -33,6 +33,13 @@ import type {
   PlayerLeaveAction,
   UpdatePlayerProfileAction,
 } from '../reducer/types';
+import { seatClearAll, seatJoin, seatKick, seatLeave } from '../seating/kernel';
+import {
+  SEAT_KERNEL_INVALID_SEAT,
+  SEAT_KERNEL_NOT_SEATED,
+  SEAT_KERNEL_SEAT_EMPTY,
+  SEAT_KERNEL_SEAT_TAKEN,
+} from '../seating/types';
 import type { HandlerContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
@@ -65,15 +72,22 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     return handlerError(REASON_NOT_AUTHENTICATED);
   }
 
-  // Validate: seat exists
-  if (!(seat in state.players)) {
-    return handlerError(REASON_INVALID_SEAT);
-  }
-
-  // Validate: seat is not already taken (by another player)
-  const existingPlayer = state.players[seat]!;
-  if (existingPlayer !== null && existingPlayer.userId !== userId) {
-    return handlerError(REASON_SEAT_TAKEN);
+  const op = seatJoin<Player>(
+    state.players,
+    Object.keys(state.players).length,
+    seat,
+    userId,
+    (seatNum) => ({
+      userId,
+      seat: seatNum,
+      role: null,
+      hasViewedRole: false,
+    }),
+  );
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_INVALID_SEAT) return handlerError(REASON_INVALID_SEAT);
+    if (op.reason === SEAT_KERNEL_SEAT_TAKEN) return handlerError(REASON_SEAT_TAKEN);
+    return handlerError(op.reason);
   }
 
   // Validate: game status allows joining
@@ -82,45 +96,33 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
   }
 
   const actions: (PlayerJoinAction | PlayerLeaveAction)[] = [];
-
-  // Check if player is already in another seat (seat-change scenario)
-  for (const [seatKey, player] of Object.entries(state.players)) {
-    const seatNum = Number(seatKey);
-    if (player?.userId === userId && seatNum !== seat) {
-      // Leave the old seat first
-      const leaveAction: PlayerLeaveAction = {
+  for (const change of op.changes) {
+    if (change.value === null) {
+      actions.push({
         type: 'PLAYER_LEAVE',
-        payload: { seat: seatNum },
-      };
-      actions.push(leaveAction);
-      break; // There can be only one old seat
+        payload: { seat: change.seat },
+      });
+      continue;
     }
-  }
 
-  // Join the new seat
-  const joinAction: PlayerJoinAction = {
-    type: 'PLAYER_JOIN',
-    payload: {
-      seat,
-      player: {
-        userId,
-        seat: seat,
-        role: null,
-        hasViewedRole: false,
+    actions.push({
+      type: 'PLAYER_JOIN',
+      payload: {
+        seat: change.seat,
+        player: change.value,
+        rosterEntry: {
+          displayName,
+          avatarUrl,
+          avatarFrame,
+          seatFlair,
+          nameStyle,
+          roleRevealEffect,
+          seatAnimation,
+          level,
+        },
       },
-      rosterEntry: {
-        displayName,
-        avatarUrl,
-        avatarFrame,
-        seatFlair,
-        nameStyle,
-        roleRevealEffect,
-        seatAnimation,
-        level,
-      },
-    },
-  };
-  actions.push(joinAction);
+    });
+  }
 
   return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }
@@ -152,18 +154,23 @@ export function handleLeaveMySeat(
   if (mySeat === null) {
     return handlerError(REASON_NOT_SEATED);
   }
+  const op = seatLeave(state.players, userId);
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_NOT_SEATED) return handlerError(REASON_NOT_SEATED);
+    return handlerError(op.reason);
+  }
 
   // Validate: game status allows leaving (only Unseated/Seated allowed)
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  const action: PlayerLeaveAction = {
+  const actions: PlayerLeaveAction[] = op.changes.map((change) => ({
     type: 'PLAYER_LEAVE',
-    payload: { seat: mySeat },
-  };
+    payload: { seat: change.seat },
+  }));
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }
 
 /**
@@ -186,10 +193,11 @@ export function handleClearAllSeats(
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  const actions: PlayerLeaveAction[] = [];
-  forEachSeatedPlayer(state.players, (seat) => {
-    actions.push({ type: 'PLAYER_LEAVE', payload: { seat } });
-  });
+  const op = seatClearAll(state.players);
+  const actions: PlayerLeaveAction[] =
+    op.kind === 'success'
+      ? op.changes.map((change) => ({ type: 'PLAYER_LEAVE', payload: { seat: change.seat } }))
+      : [];
 
   return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }
@@ -269,20 +277,17 @@ export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerConte
     return handlerError(REASON_GAME_IN_PROGRESS);
   }
 
-  // Validate: seat is valid
-  if (!(targetSeat in state.players)) {
-    return handlerError(REASON_INVALID_SEAT);
+  const op = seatKick(state.players, Object.keys(state.players).length, targetSeat);
+  if (op.kind === 'error') {
+    if (op.reason === SEAT_KERNEL_INVALID_SEAT) return handlerError(REASON_INVALID_SEAT);
+    if (op.reason === SEAT_KERNEL_SEAT_EMPTY) return handlerError(REASON_SEAT_EMPTY);
+    return handlerError(op.reason);
   }
 
-  // Validate: seat is not empty
-  if (state.players[targetSeat] === null) {
-    return handlerError(REASON_SEAT_EMPTY);
-  }
-
-  const action: PlayerLeaveAction = {
+  const actions: PlayerLeaveAction[] = op.changes.map((change) => ({
     type: 'PLAYER_LEAVE',
-    payload: { seat: targetSeat },
-  };
+    payload: { seat: change.seat },
+  }));
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
 }

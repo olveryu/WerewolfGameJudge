@@ -6,7 +6,8 @@
  */
 
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
-import type { FibState } from '@werewolf/game-engine/fibking/types';
+import { FIB_DEFAULT_PLAYERS, type FibState } from '@werewolf/game-engine/fibking/types';
+import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 
@@ -18,7 +19,10 @@ function getStub(): DurableObjectStub<GameRoom> {
   return env.GAME_ROOM!.get(id);
 }
 
-async function initFib(stub: DurableObjectStub<GameRoom>, numberOfPlayers = 4): Promise<void> {
+async function initFib(
+  stub: DurableObjectStub<GameRoom>,
+  numberOfPlayers = FIB_DEFAULT_PLAYERS,
+): Promise<void> {
   const blob = fibEngine.createInitialState(
     { numberOfPlayers },
     { roomCode: 'TEST', hostUserId: 'host' },
@@ -31,7 +35,7 @@ function dispatch(
   actionType: string,
   payload: unknown,
 ): Promise<DispatchResult> {
-  return stub.dispatch(actionType, payload);
+  return stub.engineAction(actionType, payload);
 }
 
 async function getFibState(stub: DurableObjectStub<GameRoom>): Promise<FibState> {
@@ -54,7 +58,9 @@ async function sitAll(stub: DurableObjectStub<GameRoom>, count: number): Promise
 describe('GameRoom generic engine path (fibking)', () => {
   it('dispatch before initState fails fast', async () => {
     const stub = getStub();
-    const r = await dispatch(stub, 'SIT', { userId: 'u', seat: 0, profile: { displayName: 'A' } });
+    const r = await runInDurableObject(stub, async (instance) =>
+      instance.engineAction('SIT', { userId: 'u', seat: 0, profile: { displayName: 'A' } }),
+    );
     expect(r.success).toBe(false);
     if (!r.success) expect(r.reason).toBe('ENGINE_NOT_INITIALIZED');
   });

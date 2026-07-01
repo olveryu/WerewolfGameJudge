@@ -4,14 +4,10 @@
  * Performance: Memoized with default shallow compare, receives pre-created styles from parent.
  * Only imports types, styles, and UI components. Does not import Service singletons or showAlert.
  */
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import type React from 'react';
 import { memo } from 'react';
-import { Text, View } from 'react-native';
 
-import { Modal } from '@/components/AppModal';
-import { Button } from '@/components/Button';
-import { TESTIDS } from '@/testids';
+import { RoomSeatConfirmModal } from '@/components/room/RoomSeatConfirmModal';
 
 import { type SeatConfirmModalStyles } from './styles';
 
@@ -43,51 +39,16 @@ const SeatConfirmModalComponent: React.FC<SeatConfirmModalProps> = ({
   onCancel,
   styles,
 }) => {
-  const title = modalType === 'enter' ? '入座' : '离座';
-  const seatLabel = formatSeat(seat);
-  const message =
-    modalType === 'enter' ? `确定在${seatLabel}位入座？` : `确定从${seatLabel}位离座？`;
-  const confirmText = isSubmitting
-    ? modalType === 'enter'
-      ? '入座中'
-      : '离座中'
-    : modalType === 'enter'
-      ? '入座'
-      : '离座';
-
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onCancel}>
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent} testID={TESTIDS.seatConfirmModal}>
-          <Text style={styles.modalTitle} testID={TESTIDS.seatConfirmTitle}>
-            {title}
-          </Text>
-          <Text style={styles.modalMessage} testID={TESTIDS.seatConfirmMessage}>
-            {message}
-          </Text>
-          <View style={styles.modalButtons}>
-            <Button
-              variant="secondary"
-              onPress={onCancel}
-              disabled={isSubmitting}
-              testID={TESTIDS.seatConfirmCancel}
-              style={styles.modalButton}
-            >
-              取消
-            </Button>
-            <Button
-              variant="primary"
-              onPress={onConfirm}
-              loading={isSubmitting}
-              testID={TESTIDS.seatConfirmOk}
-              style={styles.modalButton}
-            >
-              {confirmText}
-            </Button>
-          </View>
-        </View>
-      </View>
-    </Modal>
+    <RoomSeatConfirmModal
+      visible={visible}
+      kind={modalType}
+      seat={seat}
+      isSubmitting={isSubmitting}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+      styles={styles}
+    />
   );
 };
 
