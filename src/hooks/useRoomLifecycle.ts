@@ -1,8 +1,8 @@
 /**
- * useRoomLifecycle - Room creation, joining, leaving, and seat management
+ * useRoomLifecycle - Room connection, joining, leaving, and seat management
  *
  * Manages the full room lifecycle:
- * - Host room initialization (facade only, no DB)
+ * - Host connects to an already-created room
  * - Player joining (with host rejoin detection)
  * - Leaving room + state cleanup
  * - Seat take/leave (with and without ACK)
@@ -14,8 +14,8 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import { useCallback, useState } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
@@ -50,7 +50,7 @@ interface RoomLifecycleState {
   clearLastSeatError: () => void;
 
   // Room actions
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
 
@@ -96,10 +96,10 @@ interface RoomLifecycleDeps {
   // Room lifecycle
   // =========================================================================
 
-  // Initialize room: facade only, no DB creation.
+  // Initialize room: connect to the room already created by /room/create.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomCode.
   const initializeRoom = useCallback(
-    async (roomCode: string, template: GameTemplate): Promise<RoomInitResult> => {
+    async (roomCode: string): Promise<RoomInitResult> => {
       setLoading(true);
       setError(null);
 
@@ -113,10 +113,26 @@ interface RoomLifecycleDeps {
           return { success: false, error: 'needs_auth' };
         }
 
-        // Set roomRecord for connection sync & leaveRoom cleanup
-        setRoomRecord({ roomCode, hostUserId, createdAt: new Date() });
+        const record = await joinRoomAsync(roomCode);
+        if (!record) {
+          const msg = '房间不存在';
+          setError(msg);
+          return { success: false, error: msg };
+        }
+        if (record.gameType !== WEREWOLF_GAME_TYPE) {
+          const msg = '房间类型不匹配';
+          setError(msg);
+          return { success: false, error: msg };
+        }
+        if (record.hostUserId !== hostUserId) {
+          const msg = '房主身份不匹配';
+          setError(msg);
+          return { success: false, error: msg };
+        }
 
-        await facade.createRoom(roomCode, hostUserId, template);
+        setRoomRecord(record);
+
+        await facade.connectCreatedRoom(roomCode, hostUserId);
         addRecentRoom(roomCode);
 
         return { success: true };
@@ -143,7 +159,7 @@ interface RoomLifecycleDeps {
         setLoading(false);
       }
     },
-    [facade, authService, setRoomRecord],
+    [facade, authService, joinRoomAsync, setRoomRecord],
   );
 
   // Join an existing room as player

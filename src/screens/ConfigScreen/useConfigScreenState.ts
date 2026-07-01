@@ -9,7 +9,6 @@
  */
 
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
@@ -18,6 +17,7 @@ import {
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
@@ -323,8 +323,8 @@ export function useConfigScreenState({
           return;
         }
         const record = await createRoom({
-          hostUserId,
-          buildInitialState: (roomCode) => buildInitialGameState(roomCode, hostUserId, template),
+          gameType: WEREWOLF_GAME_TYPE,
+          config: { template },
         });
         const roomCode = record.roomCode;
         addRecentRoom(roomCode);

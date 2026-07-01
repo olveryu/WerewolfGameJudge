@@ -12,8 +12,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useFibFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useFibFacade } from '@/contexts/FibFacadeContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 import { showAlert } from '@/utils/alert';

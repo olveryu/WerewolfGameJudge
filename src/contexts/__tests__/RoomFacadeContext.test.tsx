@@ -2,7 +2,7 @@ import { render } from '@testing-library/react-native';
 import type React from 'react';
 import { Text } from 'react-native';
 
-import { GameFacadeProvider, useGameFacade } from '@/contexts/GameFacadeContext';
+import { RoomFacadeProvider, useGameFacade } from '@/contexts/RoomFacadeContext';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
 function createFakeFacade(): IGameFacade {
@@ -16,7 +16,7 @@ function createFakeFacade(): IGameFacade {
     getStateRevision: () => 0,
     consumeLastAction: () => null,
     addSettleResultListener: () => () => {},
-    createRoom: async () => {},
+    connectCreatedRoom: async () => {},
     joinRoom: async () => ({ success: true }),
     leaveRoom: async () => {},
     takeSeat: async () => true,
@@ -58,19 +58,19 @@ const Consumer: React.FC = () => {
   return <Text testID="userId">{facade.getMyUserId() ?? 'null'}</Text>;
 };
 
-describe('GameFacadeProvider / useGameFacade', () => {
+describe('RoomFacadeProvider / useGameFacade', () => {
   it('throws when used without provider', () => {
     expect(() => render(<Consumer />)).toThrow(
-      '[useGameFacade] Missing <GameFacadeProvider> in component tree',
+      '[useGameFacade] Missing <RoomFacadeProvider> in component tree',
     );
   });
 
   it('provides the explicit facade prop', () => {
     const facade = createFakeFacade();
     const ui = render(
-      <GameFacadeProvider facade={facade}>
+      <RoomFacadeProvider werewolf={facade}>
         <Consumer />
-      </GameFacadeProvider>,
+      </RoomFacadeProvider>,
     );
 
     expect(ui.getByTestId('userId').props.children).toBe('u1');

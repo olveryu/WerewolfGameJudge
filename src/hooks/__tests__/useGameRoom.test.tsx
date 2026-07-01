@@ -4,15 +4,16 @@
  * Focus: ACK reason transparency - ensuring takeSeatWithAck/leaveSeatWithAck
  * pass through the reason from facade without modification.
  *
- * PR8: fully switched to facade, no longer depends on legacy GameStateService
+ * PR8: fully switched to facade, no longer depends on GameStateService
  */
 
 import { act, renderHook } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import type React from 'react';
 
-import { GameFacadeProvider } from '@/contexts';
+import { RoomFacadeProvider } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -38,7 +39,7 @@ describe('useGameRoom - ACK reason transparency', () => {
     getMyUserId: jest.fn().mockReturnValue('player-uid'),
     getMySeat: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
-    createRoom: jest.fn().mockResolvedValue(undefined),
+    connectCreatedRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue(true),
@@ -89,9 +90,12 @@ describe('useGameRoom - ACK reason transparency', () => {
       },
       roomService: {
         createRoom: jest.fn(),
-        getRoom: jest
-          .fn()
-          .mockResolvedValue({ roomCode: '1234', hostUserId: 'test-uid', createdAt: new Date() }),
+        getRoom: jest.fn().mockResolvedValue({
+          roomCode: '1234',
+          hostUserId: 'test-uid',
+          createdAt: new Date(),
+          gameType: WEREWOLF_GAME_TYPE,
+        }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -116,7 +120,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -145,7 +149,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -166,7 +170,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -185,7 +189,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -206,7 +210,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -227,7 +231,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -246,7 +250,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -265,7 +269,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       const mockFacade = createMockFacade();
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -298,7 +302,7 @@ describe('useGameRoom - ACK reason transparency', () => {
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+        <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
       );
 
       const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -331,7 +335,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     getStateRevision: jest.fn().mockReturnValue(1),
     consumeLastAction: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
-    createRoom: jest.fn().mockResolvedValue(undefined),
+    connectCreatedRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue(true),
@@ -380,9 +384,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
       },
       roomService: {
         createRoom: jest.fn(),
-        getRoom: jest
-          .fn()
-          .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
+        getRoom: jest.fn().mockResolvedValue({
+          roomCode: '1234',
+          hostUserId: 'host-uid',
+          createdAt: new Date(),
+          gameType: WEREWOLF_GAME_TYPE,
+        }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -442,7 +449,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -513,7 +520,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -568,7 +575,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -599,7 +606,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     getStateRevision: jest.fn().mockReturnValue(0),
     consumeLastAction: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
-    createRoom: jest.fn().mockResolvedValue(undefined),
+    connectCreatedRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue(true),
@@ -648,9 +655,12 @@ describe('useGameRoom - rejoin continue overlay', () => {
       },
       roomService: {
         createRoom: jest.fn(),
-        getRoom: jest
-          .fn()
-          .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
+        getRoom: jest.fn().mockResolvedValue({
+          roomCode: '1234',
+          hostUserId: 'host-uid',
+          createdAt: new Date(),
+          gameType: WEREWOLF_GAME_TYPE,
+        }),
         deleteRoom: jest.fn(),
       },
       settingsService: {
@@ -701,7 +711,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -721,7 +731,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -739,7 +749,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -757,7 +767,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });
@@ -784,7 +794,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     });
 
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <GameFacadeProvider facade={mockFacade}>{children}</GameFacadeProvider>
+      <RoomFacadeProvider werewolf={mockFacade}>{children}</RoomFacadeProvider>
     );
 
     const { result } = renderHook(() => useGameRoom(), { wrapper });

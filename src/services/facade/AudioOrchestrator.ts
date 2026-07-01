@@ -73,7 +73,7 @@ export class AudioOrchestrator {
   /**
    * Set to true when postAudioAck fails during disconnect.
    * Auto-retries postAudioAck after reconnect (status -> live) if still Host.
-   * Reset on leaveRoom / createRoom / joinRoom.
+   * Reset on leaveRoom / connectCreatedRoom / joinRoom.
    */
   #pendingAudioAckRetry = false;
 
@@ -141,7 +141,7 @@ export class AudioOrchestrator {
     this.#wasAudioInterrupted = value;
   }
 
-  /** Reset for new room (createRoom / joinRoom) */
+  /** Reset for new room (connectCreatedRoom / joinRoom) */
   reset(): void {
     this.#isPlayingEffects = false;
     this.#wasAudioInterrupted = false;

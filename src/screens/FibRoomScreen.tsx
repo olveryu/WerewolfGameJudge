@@ -13,8 +13,10 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { ControlledSeatBanner } from '@/components/room/ControlledSeatBanner';
 import { usePlayerProfileController } from '@/components/room/hooks/usePlayerProfileController';
 import { useRoomActionRunner } from '@/components/room/hooks/useRoomActionRunner';
+import { useRoomBotControl } from '@/components/room/hooks/useRoomBotControl';
 import { useRoomConnectionLifecycle } from '@/components/room/hooks/useRoomConnectionLifecycle';
 import {
   type RoomSeatOperation,
@@ -22,6 +24,7 @@ import {
 } from '@/components/room/hooks/useRoomSeatOperations';
 import { useRoomShareActions } from '@/components/room/hooks/useRoomShareActions';
 import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
+import { getRoomSeatPressResult } from '@/components/room/policy/roomSeatInteraction';
 import { QRCodeModal } from '@/components/room/QRCodeModal';
 import { RoomBottomActionPanel } from '@/components/room/RoomBottomActionPanel';
 import { createRoomComponentStyles } from '@/components/room/roomComponentStyles';
@@ -30,12 +33,20 @@ import { RoomSeatBoard } from '@/components/room/RoomSeatBoard';
 import { RoomSeatConfirmModal } from '@/components/room/RoomSeatConfirmModal';
 import { createRoomShellStyles } from '@/components/room/roomShellStyles';
 import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
+import { useFibFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useFibFacade } from '@/contexts/FibFacadeContext';
 import type { RootStackParamList } from '@/navigation/types';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
-import { borderRadius, colors, componentSizes, spacing, textStyles, typography } from '@/theme';
+import {
+  borderRadius,
+  colors,
+  componentSizes,
+  spacing,
+  textStyles,
+  typography,
+  withAlpha,
+} from '@/theme';
 import { showAlert } from '@/utils/alert';
 import { handleError } from '@/utils/errorPipeline';
 import { isExpectedError } from '@/utils/errorUtils';
@@ -47,6 +58,7 @@ import {
   createFibHeaderOperationItems,
 } from './fibRoom/fibHeaderItems';
 import { FibIdentitySheet } from './fibRoom/FibIdentitySheet';
+import { getFibRoomLifecycle } from './fibRoom/fibRoomLifecycle';
 import {
   countFibSeatedPlayers,
   createFibSeatViewModels,
@@ -55,6 +67,8 @@ import {
   getFibReasonMessage,
   getFibSummaryBody,
   getFibSummaryTitle,
+  isFibBotUserId,
+  shouldShowFibAnswerPanel,
   userToFibRosterProfile,
 } from './fibRoom/fibRoomView';
 
@@ -168,7 +182,35 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const filled = state ? countFibSeatedPlayers(state) : 0;
   const isFull = state ? filled === state.numberOfPlayers : false;
-  const isLobby = state?.phase === 'Lobby';
+  const hasFibBots = useMemo(
+    () => (state ? Object.values(state.seats).some((seat) => isFibBotUserId(seat.userId)) : false),
+    [state],
+  );
+
+  const lifecycle = useMemo(
+    () => (state ? getFibRoomLifecycle({ state, filled, isHost, hasBots: hasFibBots }) : null),
+    [filled, hasFibBots, isHost, state],
+  );
+  const roomStatus = lifecycle?.status;
+  const roomCapabilities = lifecycle?.capabilities;
+
+  const isFibBotSeat = useCallback(
+    (seat: number): boolean => {
+      if (!state) return false;
+      const occupant = state.seats[seat] ?? null;
+      return occupant !== null && isFibBotUserId(occupant.userId);
+    },
+    [state],
+  );
+
+  const { activeControlledSeat, effectiveSeat, releaseControlledSeat, toggleControlledSeat } =
+    useRoomBotControl({
+      enabled: roomCapabilities?.canTakeOverBots ?? false,
+      mySeat,
+      isBotSeat: isFibBotSeat,
+    });
+  const controlledSeatOccupant =
+    state && activeControlledSeat !== null ? (state.seats[activeControlledSeat] ?? null) : null;
 
   const share = useRoomShareActions({
     roomCode,
@@ -212,14 +254,13 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
   const operationItems = useMemo(
     () =>
       createFibHeaderOperationItems({
-        isHost,
-        isLobby,
         filled,
         isFull,
+        canManageSeats: roomCapabilities?.canManageSeats ?? false,
         onFillBots: handleFillBots,
         onClearSeats: handleClearSeats,
       }),
-    [filled, handleClearSeats, handleFillBots, isFull, isHost, isLobby],
+    [filled, handleClearSeats, handleFillBots, isFull, roomCapabilities?.canManageSeats],
   );
 
   const seatViewModels = useMemo(
@@ -230,23 +271,58 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
   const onSeatPress = useCallback(
     (seat: number): void => {
       if (!state) throw new Error('FibRoomScreen.onSeatPress: missing state');
-      const occupant = state.seats[seat] ?? null;
-      if (occupant) {
-        profile.openProfile(seat, occupant.userId);
-        return;
+      const occupantUserId = state.seats[seat]?.userId ?? null;
+      const result = getRoomSeatPressResult({
+        status: roomStatus,
+        seat,
+        occupantUserId,
+        mySeat,
+        myUserId,
+      });
+
+      switch (result.kind) {
+        case 'VIEW_PROFILE':
+          profile.openProfile(result.seat, result.targetUserId);
+          return;
+        case 'OPEN_SEAT_OPERATION':
+          openOperation({ kind: result.operationKind, seat: result.seat });
+          return;
+        case 'AUTH_REQUIRED':
+          showAlert('入座失败', '请先登录');
+          return;
+        case 'NOOP':
+          return;
+        default: {
+          const _exhaustive: never = result;
+          throw new Error(`FibRoomScreen.onSeatPress: unhandled result ${_exhaustive}`);
+        }
       }
-      if (state.phase !== 'Lobby') return;
-      if (!user) {
-        showAlert('入座失败', '请先登录');
-        return;
-      }
-      openOperation({ kind: mySeat === null ? 'enter' : 'move', seat });
     },
-    [mySeat, openOperation, profile, state, user],
+    [mySeat, myUserId, openOperation, profile, roomStatus, state],
+  );
+
+  const onSeatLongPress = useCallback(
+    (seat: number): void => {
+      const result = toggleControlledSeat(seat);
+      switch (result.kind) {
+        case 'controlled':
+        case 'released':
+        case 'ignored':
+          return;
+        case 'invalid_target':
+          showAlert('无法接管', '只能接管机器人座位');
+          return;
+        default: {
+          const _exhaustive: never = result;
+          throw new Error(`FibRoomScreen.onSeatLongPress: unhandled result ${_exhaustive}`);
+        }
+      }
+    },
+    [toggleControlledSeat],
   );
 
   const handleBack = useCallback((): void => {
-    if (state && state.phase !== 'Lobby') {
+    if (roomCapabilities?.shouldConfirmExit === true) {
       showAlert('退出房间?', '本局进行中', [
         { text: '取消', style: 'cancel' },
         { text: '退出', style: 'destructive', onPress: () => navigation.goBack() },
@@ -254,7 +330,7 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
     navigation.goBack();
-  }, [navigation, state]);
+  }, [navigation, roomCapabilities?.shouldConfirmExit]);
 
   const bottomLayout = useMemo(() => {
     if (!state) return { primary: [], secondary: [], ghost: [] };
@@ -262,7 +338,7 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
       state,
       isHost,
       isFull,
-      mySeat,
+      mySeat: effectiveSeat,
       onOpenSettings: openSettings,
       onOpenIdentity: () => setIdentityOpen(true),
       onStartRound: () => void runAction(() => facade.startRound(), '开始失败'),
@@ -270,20 +346,38 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
       onRestart: () => void runAction(() => facade.restart(), '重新开始失败'),
       onNextRound: () => void runAction(() => facade.nextRound(), '开始失败'),
     });
-  }, [facade, isFull, isHost, mySeat, openSettings, runAction, state]);
+  }, [effectiveSeat, facade, isFull, isHost, openSettings, runAction, state]);
 
   const listHeader = useMemo(() => {
     if (!state) return null;
     return (
       <View style={fibStyles.listHeader}>
-        <TouchableOpacity onPress={() => navigation.navigate('FibRules')} testID="fib-rules-link">
-          <Text style={fibStyles.rulesLink}>玩法说明 ⓘ</Text>
+        <TouchableOpacity
+          style={fibStyles.rulesEntry}
+          activeOpacity={0.75}
+          onPress={() => navigation.navigate('FibRules')}
+          testID="fib-rules-link"
+        >
+          <Ionicons
+            name="help-circle-outline"
+            size={componentSizes.icon.sm}
+            color={colors.primary}
+          />
+          <View style={fibStyles.rulesEntryText}>
+            <Text style={fibStyles.rulesEntryTitle}>玩法说明</Text>
+            <Text style={fibStyles.rulesEntrySubtitle}>身份、流程、手机查看规则</Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={componentSizes.icon.sm}
+            color={colors.textSecondary}
+          />
         </TouchableOpacity>
         <View style={fibStyles.summaryPanel}>
           <Text style={fibStyles.summaryTitle}>{getFibSummaryTitle(state, filled)}</Text>
           <Text style={fibStyles.summaryBody}>{getFibSummaryBody(state)}</Text>
         </View>
-        {state.phase === 'Revealed' ? (
+        {shouldShowFibAnswerPanel(state) ? (
           <View style={fibStyles.answerPanel}>
             <Text style={fibStyles.answerTitle}>本轮答案</Text>
             <Text style={fibStyles.answerWord}>{state.word}</Text>
@@ -341,9 +435,30 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
         hostGuideBannerStyles={componentStyles.hostGuideBanner}
       />
 
+      {roomCapabilities?.canTakeOverBots === true ? (
+        activeControlledSeat !== null && controlledSeatOccupant ? (
+          <ControlledSeatBanner
+            mode="controlled"
+            controlledSeat={activeControlledSeat}
+            botDisplayName={getFibDisplayName(
+              state,
+              activeControlledSeat,
+              controlledSeatOccupant.userId,
+            )}
+            onRelease={releaseControlledSeat}
+            styles={componentStyles.controlledSeatBanner}
+          />
+        ) : (
+          <ControlledSeatBanner mode="hint" styles={componentStyles.controlledSeatBanner} />
+        )
+      ) : null}
+
       <RoomSeatBoard
         seats={seatViewModels}
         onSeatPress={onSeatPress}
+        onSeatLongPress={roomCapabilities?.canTakeOverBots === true ? onSeatLongPress : undefined}
+        controlledSeat={activeControlledSeat}
+        showBotRoles={roomCapabilities?.canShowBotRoles === true}
         virtualized
         listHeaderComponent={listHeader}
         contentContainerStyle={fibStyles.content}
@@ -364,7 +479,7 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
 
       <FibIdentitySheet
         visible={identityOpen}
-        role={mySeat !== null ? state.roleBySeat?.[mySeat] : undefined}
+        role={effectiveSeat !== null ? state.roleBySeat?.[effectiveSeat] : undefined}
         word={state.word}
         definition={state.definition}
         onClose={() => setIdentityOpen(false)}
@@ -391,8 +506,10 @@ const FibRoomScreen: React.FC<Props> = ({ navigation, route }) => {
           isHost={isHost}
           rosterName={profile.target.displayName}
           isSelf={profile.target.isSelf}
-          onKick={profile.handleKick}
-          onLeaveSeat={profile.handleLeaveSeat}
+          onKick={roomCapabilities?.canManageSeats === true ? profile.handleKick : undefined}
+          onLeaveSeat={
+            roomCapabilities?.canManageSeats === true ? profile.handleLeaveSeat : undefined
+          }
         />
       ) : null}
 
@@ -417,9 +534,29 @@ const fibStyles = StyleSheet.create({
     gap: spacing.medium,
     marginBottom: spacing.medium,
   },
-  rulesLink: {
-    ...textStyles.secondarySemibold,
-    color: colors.primary,
+  rulesEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.small,
+    borderRadius: borderRadius.small,
+    backgroundColor: withAlpha(colors.primary, 0.05),
+    paddingHorizontal: spacing.medium,
+    paddingVertical: spacing.small,
+  },
+  rulesEntryText: {
+    flex: 1,
+    gap: spacing.micro,
+    minWidth: 0,
+  },
+  rulesEntryTitle: {
+    fontSize: typography.secondary,
+    fontWeight: typography.weights.semibold,
+    color: colors.text,
+  },
+  rulesEntrySubtitle: {
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.textSecondary,
   },
   summaryPanel: {
     backgroundColor: colors.surface,

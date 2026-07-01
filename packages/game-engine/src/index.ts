@@ -74,6 +74,7 @@ export {
 } from './models/Template';
 
 // === Protocol ===
+export { WEREWOLF_GAME_TYPE } from './protocol/gameTypes';
 export {
   type AudioEffect,
   type BoardNomination,

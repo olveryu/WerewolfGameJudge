@@ -7,6 +7,7 @@
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { FibStore } from '@werewolf/game-engine/fibking/store/FibStore';
 import type { FibState } from '@werewolf/game-engine/fibking/types';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
@@ -38,13 +39,13 @@ export function createAllServices(): {
   const avatarUploadService = new CFStorageService();
 
   const store = new GameStore();
-  const transport = new CFRealtimeService();
+  const transport = new CFRealtimeService<GameState>();
 
   // onSettleResult callback reads `facade` via closure at call time (not declaration time),
   // so the forward reference is safe — facade is initialized before any WS message arrives.
-  const connectionManager = new ConnectionManager({
+  const connectionManager = new ConnectionManager<GameState>({
     transport,
-    fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
+    fetchStateFromDB: async (roomCode) => roomService.getGameState<GameState>(roomCode),
     getStateRevision: async (roomCode) => roomService.getStateRevision(roomCode),
     onStateUpdate: (state, revision, lastAction) =>
       store.applySnapshot(state, revision, lastAction),
@@ -67,20 +68,23 @@ export function createAllServices(): {
     roomService,
   });
 
-  // ── fibking: parallel store + transport + connection (reuses room metadata service) ──
+  // ── fibking: typed room adapter over the shared connection stack ──
   const fibStore = new FibStore();
-  const fibTransport = new CFRealtimeService();
-  const fibConnectionManager = new ConnectionManager({
+  const fibTransport = new CFRealtimeService<FibState>();
+  const fibConnectionManager = new ConnectionManager<FibState>({
     transport: fibTransport,
     // /room/state and /room/revision are game-agnostic; the blob is a FibState at runtime.
-    fetchStateFromDB: (roomCode) => roomService.getGameState(roomCode),
+    fetchStateFromDB: (roomCode) => roomService.getGameState<FibState>(roomCode),
     getStateRevision: (roomCode) => roomService.getStateRevision(roomCode),
     onStateUpdate: (state, revision, lastAction) =>
-      fibStore.applySnapshot(state as unknown as FibState, revision, lastAction),
-    onFetchedState: (state, revision) =>
-      fibStore.applySnapshot(state as unknown as FibState, revision),
+      fibStore.applySnapshot(state, revision, lastAction),
+    onFetchedState: (state, revision) => fibStore.applySnapshot(state, revision),
   });
-  const fibFacade = new FibFacade({ store: fibStore, connectionManager: fibConnectionManager });
+  const fibFacade = new FibFacade({
+    store: fibStore,
+    connectionManager: fibConnectionManager,
+    roomService,
+  });
 
   log.info('[init] All services created');
 

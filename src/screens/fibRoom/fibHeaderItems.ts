@@ -9,8 +9,7 @@ interface CreateFibHeaderActionItemsParams {
 }
 
 interface CreateFibHeaderOperationItemsParams {
-  isHost: boolean;
-  isLobby: boolean;
+  canManageSeats: boolean;
   filled: number;
   isFull: boolean;
   onFillBots: () => void;
@@ -35,14 +34,13 @@ export function createFibHeaderActionItems({
 }
 
 export function createFibHeaderOperationItems({
-  isHost,
-  isLobby,
+  canManageSeats,
   filled,
   isFull,
   onFillBots,
   onClearSeats,
 }: CreateFibHeaderOperationItemsParams): RoomHeaderActionItem[] {
-  if (!isHost || !isLobby) return [];
+  if (!canManageSeats) return [];
 
   const items: RoomHeaderActionItem[] = [];
   if (!isFull) {

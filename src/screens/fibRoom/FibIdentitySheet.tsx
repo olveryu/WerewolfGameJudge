@@ -2,7 +2,7 @@
  * FibIdentitySheet — 「查看身份」 card (pure client read, no request).
  *
  * Content comes entirely from the already-broadcast FibState. Three states by role:
- * honest (word + real definition), fibber (word only), guesser (no word).
+ * honest (word + real definition), fibber (word only), guesser (word only).
  */
 import type { FibRole } from '@werewolf/game-engine/fibking/types';
 import type React from 'react';
@@ -43,7 +43,7 @@ const SPEC: Record<FibRole, Spec> = {
     emoji: '🔍',
     title: '大聪明',
     accent: colors.primary,
-    hint: '听完后,口头指认你认为的老实人。',
+    hint: '看着词听大家解释,最后口头指认你认为的老实人。',
   },
 };
 
@@ -66,23 +66,19 @@ export const FibIdentitySheet: React.FC<FibIdentitySheetProps> = ({
           </Text>
           <View style={styles.divider} />
 
-          {role === 'guesser' ? (
-            <Text style={styles.guesserBody}>
-              你看不到词,也看不到释义。仔细听每个人给的「释义」,找出谁在讲真话 = 老实人。
-            </Text>
-          ) : (
+          <Text style={styles.fieldLabel}>词</Text>
+          <Text style={styles.word}>{word ?? ''}</Text>
+          {role === 'honest' ? (
             <>
-              <Text style={styles.fieldLabel}>词</Text>
-              <Text style={styles.word}>{word ?? ''}</Text>
-              {role === 'honest' ? (
-                <>
-                  <Text style={styles.fieldLabel}>真实释义</Text>
-                  <Text style={styles.definition}>{definition ?? ''}</Text>
-                </>
-              ) : (
-                <Text style={styles.placeholder}>( 没有释义 —— 临场编一个 )</Text>
-              )}
+              <Text style={styles.fieldLabel}>真实释义</Text>
+              <Text style={styles.definition}>{definition ?? ''}</Text>
             </>
+          ) : (
+            <Text style={styles.placeholder}>
+              {role === 'guesser'
+                ? '( 没有释义 —— 听大家解释后指认老实人 )'
+                : '( 没有释义 —— 临场编一个 )'}
+            </Text>
           )}
 
           <View style={styles.divider} />
@@ -130,12 +126,6 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeights.body,
   },
   placeholder: { fontSize: typography.body, color: colors.textMuted },
-  guesserBody: {
-    fontSize: typography.body,
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: typography.lineHeights.body,
-  },
   hint: { fontSize: typography.secondary, color: colors.textSecondary, textAlign: 'center' },
   closeBtn: {
     marginTop: spacing.small,

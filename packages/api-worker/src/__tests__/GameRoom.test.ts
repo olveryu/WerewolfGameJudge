@@ -9,6 +9,7 @@ import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildI
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles/spec/specs';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
@@ -25,6 +26,13 @@ function createTemplate(roles: RoleId[]): GameTemplate {
 function getStub(): DurableObjectStub<GameRoom> {
   const id = env.GAME_ROOM!.newUniqueId();
   return env.GAME_ROOM!.get(id);
+}
+
+/** Test helper for werewolf room snapshots. */
+function assertGameStateSnapshot(
+  result: { state: unknown; revision: number } | null,
+): asserts result is { state: GameState; revision: number } {
+  if (!result) throw new Error('Expected GameState snapshot');
 }
 
 /** Narrows a GameActionResult to the success branch; throws if failed. */
@@ -87,20 +95,22 @@ describe('GameRoom lifecycle', () => {
     const template = createTemplate(['villager', 'wolf', 'seer']);
     const initialState = buildInitialGameState('ROOM1', 'host-uid', template);
 
-    await stub.init(initialState);
+    await stub.initState(WEREWOLF_GAME_TYPE, initialState);
 
     const result = await stub.getState();
-    expect(result).not.toBeNull();
-    expect(result!.state.roomCode).toBe('ROOM1');
-    expect(result!.state.hostUserId).toBe('host-uid');
-    expect(result!.state.status).toBe(GameStatus.Unseated);
-    expect(result!.revision).toBe(1);
+    assertGameStateSnapshot(result);
+    expect(result.state).toMatchObject({
+      roomCode: 'ROOM1',
+      hostUserId: 'host-uid',
+      status: GameStatus.Unseated,
+    });
+    expect(result.revision).toBe(1);
   });
 
   it('getRevision returns 1 after init', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('R2', 'host', template));
+    await stub.initState(WEREWOLF_GAME_TYPE, buildInitialGameState('R2', 'host', template));
 
     const revision = await stub.getRevision();
     expect(revision).toBe(1);
@@ -109,7 +119,7 @@ describe('GameRoom lifecycle', () => {
   it('cleanup completes without error', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('R3', 'host', template));
+    await stub.initState(WEREWOLF_GAME_TYPE, buildInitialGameState('R3', 'host', template));
 
     // cleanup() calls deleteAll() which wipes SQLite.
     // In production the DO instance is evicted after this; no further RPC calls.
@@ -123,7 +133,10 @@ describe('GameRoom seat management', () => {
   async function initRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('SEAT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('SEAT-ROOM', 'host-uid', template),
+    );
     return stub;
   }
 
@@ -170,7 +183,10 @@ describe('GameRoom game flow', () => {
     const stub = getStub();
     const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
-    await stub.init(buildInitialGameState('FLOW-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('FLOW-ROOM', 'host-uid', template),
+    );
 
     // Seat all players (host + 2 others)
     await sit(stub, 'host-uid', 0, 'Host');
@@ -196,7 +212,10 @@ describe('GameRoom game flow', () => {
   it('fillWithBots fills empty seats', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('BOT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('BOT-ROOM', 'host-uid', template),
+    );
     // Only seat the host
     await sit(stub, 'host-uid', 0, 'Host');
 
@@ -222,7 +241,10 @@ describe('GameRoom game flow', () => {
   it('updateTemplate changes template roles', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('TPL-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('TPL-ROOM', 'host-uid', template),
+    );
 
     const result = (await stub.updateTemplate(['villager', 'wolf', 'witch'])) as GameActionResult;
 
@@ -233,7 +255,10 @@ describe('GameRoom game flow', () => {
   it('revision increments with each state change', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('REV-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('REV-ROOM', 'host-uid', template),
+    );
     expect(await stub.getRevision()).toBe(1);
 
     await sit(stub, 'host-uid', 0, 'Host');
@@ -259,7 +284,10 @@ describe('GameRoom error handling', () => {
   it('startNight fails when not all roles viewed', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('ERR-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('ERR-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
@@ -282,7 +310,10 @@ describe('GameRoom internal SQLite', () => {
   it('SQLite table is properly initialized', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('SQL-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('SQL-ROOM', 'host-uid', template),
+    );
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
       const rows = state.storage.sql
@@ -305,7 +336,10 @@ describe('GameRoom night flow', () => {
     const stub = getStub();
     const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
-    await stub.init(buildInitialGameState('NIGHT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('NIGHT-ROOM', 'host-uid', template),
+    );
 
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
@@ -323,8 +357,9 @@ describe('GameRoom night flow', () => {
   it('viewRole transitions all-viewed to Ready', async () => {
     const stub = await initReadyRoom();
     const result = await stub.getState();
+    assertGameStateSnapshot(result);
 
-    expect(result!.state.status).toBe(GameStatus.Ready);
+    expect(result.state).toMatchObject({ status: GameStatus.Ready });
   });
 
   it('startNight transitions to Ongoing after all roles viewed', async () => {
@@ -340,7 +375,7 @@ describe('GameRoom night flow', () => {
   it('viewRole non-host cannot view another seat', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('VR-ERR', 'host-uid', template));
+    await stub.initState(WEREWOLF_GAME_TYPE, buildInitialGameState('VR-ERR', 'host-uid', template));
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
@@ -356,7 +391,7 @@ describe('GameRoom night flow', () => {
   it('viewRole succeeds for own seat', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('VR-OK', 'host-uid', template));
+    await stub.initState(WEREWOLF_GAME_TYPE, buildInitialGameState('VR-OK', 'host-uid', template));
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
@@ -375,7 +410,10 @@ describe('GameRoom clearAllSeats', () => {
   it('clears all players from seats', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('CLEAR-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('CLEAR-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
 
@@ -392,7 +430,10 @@ describe('GameRoom clearAllSeats', () => {
   it('clearAllSeats fails during game', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('CLEAR-ERR', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('CLEAR-ERR', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
@@ -411,7 +452,10 @@ describe('GameRoom board nomination', () => {
   async function initUnseatRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('NOM-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('NOM-ROOM', 'host-uid', template),
+    );
     return stub;
   }
 
@@ -493,7 +537,10 @@ describe('GameRoom markAllBotsViewed', () => {
   it('marks bot roles as viewed', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('BOTV-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialGameState('BOTV-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await stub.fillWithBots();
     await stub.assignRoles();

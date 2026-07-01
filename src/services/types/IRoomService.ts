@@ -12,25 +12,21 @@ export interface RoomRecord {
   roomCode: string;
   hostUserId: string;
   createdAt: Date;
-  /** Game type for routing (werewolf | fibking | …). Absent/undefined ⇒ werewolf (legacy). */
-  gameType?: string;
+  /** Game type for routing (werewolf | fibking | …). */
+  gameType: string;
+}
+
+export interface CreateRoomParams<TConfig = unknown> {
+  gameType: string;
+  initialRoomNumber?: string;
+  maxRetries?: number;
+  config: TConfig;
 }
 
 /** Room CRUD + game_state read/write interface. */
 export interface IRoomService {
-  /**
-   * Create room (optimistic insert + conflict retry).
-   * @param hostUserId - Host user ID
-   * @param initialRoomNumber - Initial room number to try
-   * @param maxRetries - Conflict retry limit (default 5)
-   * @param buildInitialState - Optional initial state builder
-   */
-  createRoom(
-    hostUserId: string,
-    initialRoomNumber?: string,
-    maxRetries?: number,
-    buildInitialState?: (roomCode: string) => GameState,
-  ): Promise<RoomRecord>;
+  /** Create room (optimistic insert + conflict retry). */
+  createRoom<TConfig = unknown>(params: CreateRoomParams<TConfig>): Promise<RoomRecord>;
 
   /** Query room record, returns null if not found */
   getRoom(roomCode: string): Promise<RoomRecord | null>;
@@ -44,6 +40,8 @@ export interface IRoomService {
   /** Read state_revision (lightweight polling) */
   getStateRevision(roomCode: string): Promise<number | null>;
 
-  /** Read full game_state + revision */
-  getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null>;
+  /** Read full room state + revision. Callers choose the state type at their adapter boundary. */
+  getGameState<TState = GameState>(
+    roomCode: string,
+  ): Promise<{ state: TState; revision: number } | null>;
 }

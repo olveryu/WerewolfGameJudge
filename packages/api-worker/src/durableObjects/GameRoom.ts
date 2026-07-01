@@ -59,7 +59,7 @@ import { createLogger } from '../lib/logger';
 import type { SeatActionParams } from '../schemas/game';
 
 const log = createLogger('GameRoom');
-import { ENGINE_REGISTRY } from './engineRegistry';
+import { getRegisteredEngine } from './engineRegistry';
 import {
   buildHandlerContext,
   extractAudioActions,
@@ -597,13 +597,13 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   // ── (D) Read-only RPC methods ───────────────────────────────────────────
 
-  async getState(): Promise<{ state: GameState; revision: number } | null> {
+  async getState(): Promise<{ state: unknown; revision: number } | null> {
     const rows = this.ctx.storage.sql
       .exec('SELECT game_state, revision FROM room_state WHERE id = 1')
       .toArray();
     if (rows.length === 0) return null;
     return {
-      state: JSON.parse(rows[0].game_state as string) as GameState,
+      state: JSON.parse(rows[0].game_state as string),
       revision: rows[0].revision as number,
     };
   }
@@ -617,37 +617,29 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   // ── (E) Lifecycle RPC methods ───────────────────────────────────────────
 
-  async init(initialState: GameState): Promise<void> {
-    this.ctx.storage.sql.exec(
-      'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
-      JSON.stringify(initialState),
-    );
-  }
-
-  // ── Generic engine path (game-agnostic; selected by engine_type) ────────
+  // ── Registered game state ───────────────────────────────────────────────
 
   /**
-   * Initialize a room for a registered engine (fibking, …).
-   * Stores the engine-built initial blob + records engine_type for dispatch routing.
-   * Werewolf keeps using `init` above; this path never touches werewolf bespoke logic.
+   * Initialize a room for a gameType.
+   * Stores the server-built initial blob + records game_type for routing.
    */
-  async initState(engineType: string, blob: unknown): Promise<void> {
+  async initState(gameType: string, blob: unknown): Promise<void> {
     this.ctx.storage.sql.exec(
       'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
       JSON.stringify(blob),
     );
-    await this.ctx.storage.put('engine_type', engineType);
+    await this.ctx.storage.put('game_type', gameType);
   }
 
   /**
    * Dispatch an action to the room's engine (read-compute-write-broadcast).
-   * Resolves the engine by stored engine_type; unknown engine/action fail fast.
+   * Resolves the engine by stored game_type; unknown game/action fail fast.
    */
   async engineAction(actionType: string, payload: unknown): Promise<DispatchResult> {
-    const engineType = await this.ctx.storage.get<string>('engine_type');
-    if (!engineType) return { success: false, reason: 'ENGINE_NOT_INITIALIZED' };
-    const engine = ENGINE_REGISTRY[engineType];
-    if (!engine) return { success: false, reason: `UNKNOWN_ENGINE:${engineType}` };
+    const gameType = await this.ctx.storage.get<string>('game_type');
+    if (!gameType) return { success: false, reason: 'GAME_NOT_INITIALIZED' };
+    const engine = getRegisteredEngine(gameType);
+    if (!engine) return { success: false, reason: `UNKNOWN_GAME_TYPE:${gameType}` };
 
     const result = processEngineAction(this.ctx.storage.sql, engine, (state, revision) =>
       engine.dispatch(state, revision, { actionType, payload }),

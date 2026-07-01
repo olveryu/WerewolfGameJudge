@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import { RoomFacadeProvider } from '@/contexts/RoomFacadeContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 
@@ -79,7 +79,7 @@ const createMockFacade = (): IGameFacade =>
 
 const renderWithFacade = (ui: React.ReactElement) => {
   const mockFacade = createMockFacade();
-  return render(<GameFacadeProvider facade={mockFacade}>{ui}</GameFacadeProvider>);
+  return render(<RoomFacadeProvider werewolf={mockFacade}>{ui}</RoomFacadeProvider>);
 };
 
 describe('ConfigScreen', () => {

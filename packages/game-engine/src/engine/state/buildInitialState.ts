@@ -9,6 +9,10 @@
 import { GameStatus, type GameTemplate } from '../../models';
 import type { GameState } from '../../protocol/types';
 
+export interface WerewolfCreateConfig {
+  template: GameTemplate;
+}
+
 export function buildInitialGameState(
   roomCode: string,
   hostUserId: string,
@@ -36,4 +40,12 @@ export function buildInitialGameState(
     conversionRevealAcks: [],
     cupidLoversRevealAcks: [],
   };
+}
+
+export function buildInitialWerewolfState(
+  roomCode: string,
+  hostUserId: string,
+  config: WerewolfCreateConfig,
+): GameState {
+  return buildInitialGameState(roomCode, hostUserId, config.template);
 }

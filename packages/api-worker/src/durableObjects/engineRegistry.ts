@@ -7,8 +7,13 @@
 import type { GameEngine } from '@werewolf/game-engine/engine/registry/types';
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- registry holds heterogeneous engines; selection narrows per gameType
-export const ENGINE_REGISTRY: Record<string, GameEngine<any, any, any>> = {
+export type RegisteredGameEngine = GameEngine<unknown, unknown, unknown>;
+
+const ENGINE_REGISTRY: Record<string, RegisteredGameEngine> = {
   [fibEngine.gameType]: fibEngine,
   // pictionary: drawEngine,   // ★ a future game registers here; DO stays unchanged
 };
+
+export function getRegisteredEngine(gameType: string): RegisteredGameEngine | undefined {
+  return ENGINE_REGISTRY[gameType];
+}

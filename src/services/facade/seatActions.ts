@@ -52,9 +52,7 @@ async function callSeatApi(
 // Public API
 // =============================================================================
 
-/**
- * Sit (returns boolean, compatible with legacy API)
- */
+/** Sit and return a boolean result for UI flows that do not need the failure reason. */
 export async function takeSeat(
   ctx: SeatActionsContext,
   seat: number,
@@ -98,9 +96,7 @@ export async function takeSeatWithAck(
   );
 }
 
-/**
- * Unseat (returns boolean, compatible with legacy API)
- */
+/** Unseat and return a boolean result for UI flows that do not need the failure reason. */
 export async function leaveSeat(ctx: SeatActionsContext): Promise<boolean> {
   const result = await leaveSeatWithAck(ctx);
   return result.success;

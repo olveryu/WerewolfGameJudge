@@ -6,7 +6,11 @@
  */
 
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
-import { FIB_DEFAULT_PLAYERS, type FibState } from '@werewolf/game-engine/fibking/types';
+import {
+  FIB_DEFAULT_PLAYERS,
+  FIB_GAME_TYPE,
+  type FibState,
+} from '@werewolf/game-engine/fibking/types';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
@@ -27,7 +31,7 @@ async function initFib(
     { numberOfPlayers },
     { roomCode: 'TEST', hostUserId: 'host' },
   );
-  await stub.initState('fibking', blob);
+  await stub.initState(FIB_GAME_TYPE, blob);
 }
 
 function dispatch(
@@ -55,14 +59,14 @@ async function sitAll(stub: DurableObjectStub<GameRoom>, count: number): Promise
   }
 }
 
-describe('GameRoom generic engine path (fibking)', () => {
+describe('GameRoom registered game path (fibking)', () => {
   it('dispatch before initState fails fast', async () => {
     const stub = getStub();
     const r = await runInDurableObject(stub, async (instance) =>
       instance.engineAction('SIT', { userId: 'u', seat: 0, profile: { displayName: 'A' } }),
     );
     expect(r.success).toBe(false);
-    if (!r.success) expect(r.reason).toBe('ENGINE_NOT_INITIALIZED');
+    if (!r.success) expect(r.reason).toBe('GAME_NOT_INITIALIZED');
   });
 
   it('initState + SIT persists and broadcasts new state', async () => {
@@ -87,7 +91,7 @@ describe('GameRoom generic engine path (fibking)', () => {
     if (!r.success) expect(r.reason).toBe('UNKNOWN_ACTION:NOPE');
   });
 
-  it('FILL_BOTS fills empty seats through the generic engine path', async () => {
+  it('FILL_BOTS fills empty seats through the registered game path', async () => {
     const stub = getStub();
     await initFib(stub, 4);
 

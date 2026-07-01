@@ -7,6 +7,7 @@
  * and drops stale revisions.
  */
 
+import { SnapshotStore } from '../../engine/store/SnapshotStore';
 import { getEngineLogger } from '../../utils/logger';
 import { normalizeFibState } from '../normalizeFibState';
 import type { FibState } from '../types';
@@ -16,61 +17,40 @@ const fibStoreLog = getEngineLogger().extend('FibStore');
 export type FibStoreListener = (state: FibState | null, revision: number) => void;
 
 export class FibStore {
-  #state: FibState | null = null;
-  #revision = 0;
-  readonly #listeners = new Set<FibStoreListener>();
-  #lastAction: string | null = null;
+  readonly #store = new SnapshotStore<FibState>({
+    normalize: normalizeFibState,
+    logger: fibStoreLog,
+    label: 'FibStore',
+  });
 
   getState(): FibState | null {
-    return this.#state;
+    return this.#store.getState();
   }
 
   getRevision(): number {
-    return this.#revision;
+    return this.#store.getRevision();
   }
 
   subscribe(listener: FibStoreListener): () => void {
-    this.#listeners.add(listener);
-    return () => {
-      this.#listeners.delete(listener);
-    };
+    return this.#store.subscribe(listener);
   }
 
   getListenerCount(): number {
-    return this.#listeners.size;
+    return this.#store.getListenerCount();
   }
 
   /** Apply a broadcast/fetched snapshot. Only applies when incoming revision > local. */
   applySnapshot(state: FibState, revision: number, lastAction?: string): void {
-    if (revision <= this.#revision) return;
-    this.#state = normalizeFibState(state);
-    this.#revision = revision;
-    this.#lastAction = lastAction ?? null;
-    this.#notify();
+    this.#store.applySnapshot(state, revision, lastAction);
   }
 
   /** One-shot read of the lastAction carried by the most recent snapshot. */
   consumeLastAction(): string | null {
-    const action = this.#lastAction;
-    this.#lastAction = null;
-    return action;
+    return this.#store.consumeLastAction();
   }
 
   /** Clear state (e.g. on leave / room switch); retains listeners. */
   reset(): void {
-    this.#state = null;
-    this.#revision = 0;
-    this.#lastAction = null;
-    this.#notify();
-  }
-
-  #notify(): void {
-    for (const listener of this.#listeners) {
-      try {
-        listener(this.#state, this.#revision);
-      } catch (err) {
-        fibStoreLog.error('listener error', err);
-      }
-    }
+    this.#store.reset();
   }
 }

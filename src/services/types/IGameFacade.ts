@@ -96,10 +96,12 @@ export interface IGameFacade {
 
   // === Room Lifecycle ===
   /**
-   * Host: create new room
-   * Initialize store + join broadcast channel
+   * Host: connect to a room already created by /room/create.
+   *
+   * The server builds the authoritative initial GameState; facade only connects
+   * and applies the snapshot fetched by ConnectionManager.
    */
-  createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void>;
+  connectCreatedRoom(roomCode: string, hostUserId: string): Promise<void>;
 
   /**
    * Join existing room (unified entry for Host rejoin + Player join)

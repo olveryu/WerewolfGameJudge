@@ -146,7 +146,7 @@ export function createFibBottomLayout({
           }),
         ],
     secondary: [],
-    ghost: isHost ? [createRestartButton(onRestart)] : [],
+    ghost: [],
   };
 }
 

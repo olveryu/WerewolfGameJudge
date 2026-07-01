@@ -1,3 +1,3 @@
 export { AuthProvider } from './AuthContext';
-export { GameFacadeProvider, useGameFacade } from './GameFacadeContext';
+export { RoomFacadeProvider, useFibFacade, useGameFacade } from './RoomFacadeContext';
 export { ServiceProvider } from './ServiceContext';

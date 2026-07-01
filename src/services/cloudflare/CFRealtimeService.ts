@@ -17,8 +17,6 @@
  * - Connection timeout is controlled by WS_CONNECT_TIMEOUT_MS (8s)
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
-
 import { API_BASE_URL } from '@/config/api';
 import type {
   IRealtimeTransport,
@@ -37,13 +35,13 @@ const WS_CONNECT_TIMEOUT_MS = 8_000;
  * Responsibilities: URL construction, WS creation/teardown, message parsing, connection timeout.
  * Does not include reconnect/backoff logic.
  */
-export class CFRealtimeService implements IRealtimeTransport {
+export class CFRealtimeService<TState = unknown> implements IRealtimeTransport<TState> {
   #ws: WebSocket | null = null;
-  #handlers: TransportEventHandlers | null = null;
+  #handlers: TransportEventHandlers<TState> | null = null;
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
 
-  setEventHandlers(handlers: TransportEventHandlers): void {
+  setEventHandlers(handlers: TransportEventHandlers<TState>): void {
     this.#handlers = handlers;
   }
 
@@ -168,7 +166,7 @@ export class CFRealtimeService implements IRealtimeTransport {
 
       if (data.type === 'STATE_UPDATE' && 'state' in data && 'revision' in data) {
         const { state, revision, lastAction } = data as {
-          state: GameState;
+          state: TState;
           revision: number;
           lastAction?: string;
         };

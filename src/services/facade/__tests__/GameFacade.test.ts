@@ -10,6 +10,7 @@
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -48,13 +49,20 @@ jest.mock('@/services/cloudflare/cfFetch', () => ({
   fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
 }));
 
-// Mock RoomService (DB state persistence)
-const mockRoomService = () =>
+type MockGameStateRoomService = IRoomService & {
+  getGameState: jest.Mock<Promise<{ state: GameState; revision: number } | null>, [string]>;
+};
+
+// Mock RoomService (server snapshot persistence)
+const mockRoomService = (stateFactory?: (roomCode: string) => GameState | null) =>
   ({
     getGameState: jest
       .fn<Promise<{ state: GameState; revision: number } | null>, [string]>()
-      .mockResolvedValue(null),
-  }) as unknown as IRoomService;
+      .mockImplementation(async (roomCode) => {
+        const state = stateFactory?.(roomCode) ?? null;
+        return state ? { state, revision: 1 } : null;
+      }),
+  }) as MockGameStateRoomService;
 
 /** Helper: build a complete GameState with sensible defaults for tests */
 function buildTestState(overrides: Partial<GameState> = {}): GameState {
@@ -85,7 +93,7 @@ function buildTestState(overrides: Partial<GameState> = {}): GameState {
 const createMockConnectionManager = (
   store?: GameStore,
   roomService?: {
-    getGameState: jest.Mock<Promise<{ state: GameState; revision: number } | null>, [string]>;
+    getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null>;
   },
 ) => ({
   connectAndWait: jest
@@ -97,6 +105,7 @@ const createMockConnectionManager = (
       }
     }),
   connect: jest.fn<void, [string, string]>(),
+  disconnect: jest.fn<void, []>(),
   dispose: jest.fn<void, []>(),
   manualReconnect: jest.fn<void, []>(),
   addStateListener: jest.fn<() => void, [(...args: unknown[]) => void]>().mockReturnValue(() => {}),
@@ -127,28 +136,17 @@ describe('GameFacade', () => {
   };
 
   beforeEach(() => {
-    // Setup mock ConnectionManager
-    mockConnectionManager = {
-      connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
-      connect: jest.fn<void, [string, string]>(),
-      disconnect: jest.fn<void, []>(),
-      dispose: jest.fn<void, []>(),
-      manualReconnect: jest.fn<void, []>(),
-      addStateListener: jest
-        .fn<() => void, [(...args: unknown[]) => void]>()
-        .mockReturnValue(() => {}),
-      updateRevision: jest.fn<void, [number]>(),
-      getState: jest.fn<string, []>().mockReturnValue('Idle'),
-      getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
-    };
-
     // DI: inject mock directly, no singleton needed
     testStore = new GameStore();
+    const roomService = mockRoomService((roomCode) =>
+      buildInitialGameState(roomCode, 'host-uid', mockTemplate),
+    );
+    mockConnectionManager = createMockConnectionManager(testStore, roomService);
     facade = new GameFacade({
       store: testStore,
       connectionManager: mockConnectionManager as unknown as ConnectionManager,
       audioService: mockAudioServiceInstance as unknown as AudioService,
-      roomService: mockRoomService(),
+      roomService,
     });
   });
 
@@ -185,9 +183,9 @@ describe('GameFacade', () => {
     return state;
   };
 
-  describe('Host: createRoom', () => {
-    it('should initialize store with correct state', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+  describe('Host: connectCreatedRoom', () => {
+    it('should apply the server snapshot from ConnectionManager', async () => {
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
 
       expect(facade.isHostPlayer()).toBe(true);
       expect(facade.getMyUserId()).toBe('host-uid');
@@ -195,7 +193,7 @@ describe('GameFacade', () => {
     });
 
     it('should connect via ConnectionManager with correct params', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
 
       expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith('ABCD', 'host-uid');
     });
@@ -205,7 +203,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -251,7 +249,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -528,7 +526,7 @@ describe('GameFacade', () => {
 
   describe('leaveRoom', () => {
     it('should clean up state when leaving', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
       await facade.leaveRoom();
 
       expect(mockConnectionManager.disconnect).toHaveBeenCalled();
@@ -541,7 +539,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -577,7 +575,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -616,7 +614,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -698,7 +696,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -817,7 +815,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -916,7 +914,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('TEST', 'host-uid');
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
 
@@ -972,7 +970,7 @@ describe('GameFacade', () => {
   describe('setAudioPlaying (PR7)', () => {
     const origFetch = global.fetch;
     beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
+      await facade.connectCreatedRoom('TEST', 'host-uid');
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
     afterEach(() => {
@@ -1115,10 +1113,24 @@ describe('GameFacade', () => {
     });
 
     it('should return no_db_state when no DB state and no template', async () => {
-      const result = await facade.joinRoom('REJN', 'host-uid', true);
+      const emptyStore = new GameStore();
+      const emptyRoomService = {
+        getGameState: jest.fn().mockResolvedValue(null),
+      };
+      const facadeWithoutDb = new GameFacade({
+        store: emptyStore,
+        connectionManager: createMockConnectionManager(
+          emptyStore,
+          emptyRoomService,
+        ) as unknown as ConnectionManager,
+        audioService: mockAudioServiceInstance as unknown as AudioService,
+        roomService: emptyRoomService as unknown as IRoomService,
+      });
+
+      const result = await facadeWithoutDb.joinRoom('REJN', 'host-uid', true);
 
       expect(result).toEqual({ success: false, reason: 'no_db_state' });
-      expect(facade.isHostPlayer()).toBe(false);
+      expect(facadeWithoutDb.isHostPlayer()).toBe(false);
     });
   });
 
@@ -1290,8 +1302,29 @@ describe('GameFacade', () => {
 
     const setupRetryFacade = async () => {
       statusListeners = [];
+      retryStore = new GameStore();
+      const retryInitialState = buildTestState({
+        roomCode: 'RTRY',
+        status: GameStatus.Ongoing,
+        currentStepId: 'wolfKill',
+        currentStepIndex: 0,
+        isAudioPlaying: true,
+        pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+        seerLabelMap: {},
+      });
+      const retryRoomService = {
+        getGameState: jest
+          .fn<Promise<{ state: GameState; revision: number }>, []>()
+          .mockResolvedValue({
+            state: retryInitialState,
+            revision: 10,
+          }),
+      };
       retryConnectionManager = {
-        connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
+        connectAndWait: jest.fn<Promise<void>, [string, string]>().mockImplementation(async () => {
+          const dbState = await retryRoomService.getGameState();
+          retryStore.applySnapshot(dbState.state, dbState.revision);
+        }),
         connect: jest.fn<void, [string, string]>(),
         disconnect: jest.fn<void, []>(),
         dispose: jest.fn<void, []>(),
@@ -1309,27 +1342,13 @@ describe('GameFacade', () => {
         getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
       };
 
-      retryStore = new GameStore();
       const f = new GameFacade({
         store: retryStore,
         connectionManager: retryConnectionManager as unknown as ConnectionManager,
         audioService: mockAudioServiceInstance as unknown as AudioService,
-        roomService: {
-          getGameState: jest.fn().mockResolvedValue({
-            state: buildTestState({
-              roomCode: 'RTRY',
-              status: GameStatus.Ongoing,
-              currentStepId: 'wolfKill',
-              currentStepIndex: 0,
-              isAudioPlaying: true,
-              pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
-              seerLabelMap: {},
-            }),
-            revision: 10,
-          }),
-        } as unknown as IRoomService,
+        roomService: retryRoomService as unknown as IRoomService,
       });
-      await f.createRoom('RTRY', 'host-uid', mockTemplate);
+      await f.connectCreatedRoom('RTRY', 'host-uid');
       return f;
     };
 

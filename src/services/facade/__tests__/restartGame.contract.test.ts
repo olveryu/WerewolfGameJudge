@@ -12,7 +12,10 @@
  * 6. Server handles state reset; postgres_changes pushes new state to all clients
  */
 
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { GameFacade } from '@/services/facade/GameFacade';
@@ -50,16 +53,19 @@ describe('restartGame Contract (HTTP API)', () => {
 
   const originalFetch = global.fetch;
 
-  const mockTemplate = {
-    id: 'test-template',
+  const mockTemplate: GameTemplate = {
     name: 'Test Template',
     numberOfPlayers: 4,
-    roles: ['wolf', 'wolf', 'seer', 'villager'] as ('wolf' | 'seer' | 'villager')[],
+    roles: ['wolf', 'wolf', 'seer', 'villager'] as RoleId[],
   };
 
   beforeEach(async () => {
+    const store = new GameStore();
+    const initialState = buildInitialGameState('1234', 'host-uid', mockTemplate);
     mockConnectionManager = {
-      connectAndWait: jest.fn().mockResolvedValue(undefined),
+      connectAndWait: jest.fn().mockImplementation(async () => {
+        store.applySnapshot(initialState, 1);
+      }),
       connect: jest.fn(),
       dispose: jest.fn(),
       manualReconnect: jest.fn(),
@@ -71,7 +77,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
     // DI: inject mock directly
     facade = new GameFacade({
-      store: new GameStore(),
+      store,
       connectionManager: mockConnectionManager as unknown as ConnectionManager,
       audioService: {
         playNightAudio: jest.fn().mockResolvedValue(undefined),
@@ -85,11 +91,11 @@ describe('restartGame Contract (HTTP API)', () => {
         stopBgm: jest.fn(),
       } as unknown as AudioService,
       roomService: {
-        getGameState: jest.fn().mockResolvedValue(null),
+        getGameState: jest.fn().mockResolvedValue({ state: initialState, revision: 1 }),
       } as unknown as IRoomService,
     });
 
-    await facade.createRoom('1234', 'host-uid', mockTemplate);
+    await facade.connectCreatedRoom('1234', 'host-uid');
   });
 
   afterEach(() => {

@@ -14,7 +14,6 @@
 import type { UpdatePlayerProfileAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SeatActionParams } from '../schemas/game';
 import type { GameActionResult } from './gameProcessor';
@@ -196,8 +195,11 @@ export interface IGameRoomRPC {
 
   // ── Read-only ───────────────────────────────────────────────────────────
 
-  /** Read current game state + revision. Returns null if room not initialized. */
-  getState(): Promise<{ state: GameState; revision: number } | null>;
+  /**
+   * Read current room state + revision. The state blob is game-typed by the room's
+   * engine/werewolf path; callers must interpret it at their boundary.
+   */
+  getState(): Promise<{ state: unknown; revision: number } | null>;
 
   /** Read current revision number only (for lightweight polling). Returns null if room not initialized. */
   getRevision(): Promise<number | null>;
@@ -205,20 +207,14 @@ export interface IGameRoomRPC {
   // ── Lifecycle ───────────────────────────────────────────────────────────
 
   /**
-   * Initialize DO state (INSERT OR REPLACE).
-   * @pre Called once in room/create handler only. Idempotent (repeated calls overwrite).
+   * Initialize a room for a gameType: store the server-built state blob
+   * + record game_type for routing. Generic, does not grow per game.
    */
-  init(initialState: GameState): Promise<void>;
-
-  /**
-   * Initialize a room for a registered engine (fibking, …): store the engine-built blob
-   * + record engine_type for dispatch routing. Generic, does not grow per game.
-   */
-  initState(engineType: string, blob: unknown): Promise<void>;
+  initState(gameType: string, blob: unknown): Promise<void>;
 
   /**
    * Dispatch an action to the room's engine (read-compute-write-broadcast).
-   * Generic Command entry; the engine is resolved by stored engine_type.
+   * Generic Command entry; the engine is resolved by stored game_type.
    */
   engineAction(actionType: string, payload: unknown): Promise<DispatchResult>;
 

@@ -19,7 +19,7 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useGameFacade } from '@/contexts/RoomFacadeContext';
 import {
   useChangePassword,
   useSignInAnonymously,

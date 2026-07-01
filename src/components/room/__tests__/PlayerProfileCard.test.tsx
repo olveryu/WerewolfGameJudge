@@ -72,6 +72,20 @@ describe('PlayerProfileCard', () => {
 
       expect(queryByText('移出座位')).toBeNull();
     });
+
+    it('hides kick button when host has no kick handler', () => {
+      const { queryByText } = render(
+        <PlayerProfileCard
+          {...baseProps}
+          targetUserId="bot-2"
+          rosterName="机器人3号"
+          isHost
+          onKick={undefined}
+        />,
+      );
+
+      expect(queryByText('移出座位')).toBeNull();
+    });
   });
 
   describe('real player', () => {

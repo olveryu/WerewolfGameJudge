@@ -21,7 +21,7 @@ import type { RevealEffectType } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useGameFacade } from '@/contexts/RoomFacadeContext';
 import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
 import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';

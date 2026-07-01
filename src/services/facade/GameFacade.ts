@@ -15,7 +15,7 @@
  *
  * Boundary constraints:
  * - Created by composition root (App.tsx) via constructor DI
- * - Injected into component tree via GameFacadeContext
+ * - Injected into component tree via RoomFacadeContext
  * - Sub-module split: gameActions / seatActions / AudioOrchestrator / ConnectionManager
  *
  * @remarks leaveRoom cleanup order: (1) #aborted=true (2) audio stop (3) WS disconnect (4) store reset.
@@ -23,7 +23,6 @@
  *   Subsequent async callbacks (audio ack, WS event handlers) check #aborted to decide whether to drop.
  */
 
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { type GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -254,8 +253,8 @@ export class GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void> {
-    facadeLog.info('createRoom', { roomCode });
+  async connectCreatedRoom(roomCode: string, hostUserId: string): Promise<void> {
+    facadeLog.info('connectCreatedRoom', { roomCode });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
@@ -263,12 +262,12 @@ export class GameFacade implements IGameFacade {
     this.#myUserId = hostUserId;
     this.#roomCode = roomCode;
 
-    // Initialize store (using shared buildInitialGameState)
-    const initialState = buildInitialGameState(roomCode, hostUserId, template);
-    this.#store.initialize(initialState);
-
     // Connect WS + wait for Connected (FSM: Idle -> Connecting -> Syncing -> Connected)
     await this.#connectionManager.connectAndWait(roomCode, hostUserId);
+
+    if (!this.#store.getState()) {
+      throw new Error('created_room_snapshot_missing');
+    }
   }
 
   /**

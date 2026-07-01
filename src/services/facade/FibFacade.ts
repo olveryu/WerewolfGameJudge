@@ -1,8 +1,8 @@
 /**
- * FibFacade — single entry point for the fibking UI (parallel to GameFacade).
+ * FibFacade — single entry point for the fibking UI.
  *
  * Reuses the game-agnostic transport (ConnectionManager + CFRealtimeService) and the
- * generic /fib/* + /room/create endpoints. No audio, no settlement, no progression —
+ * generic /fib/* endpoints and the shared room service. No audio, no settlement, no progression —
  * fibking is a judge/assistant only.
  *
  * The server is the sole authority: every action is an HTTP POST; state arrives via the
@@ -13,21 +13,24 @@ import type { FibStore } from '@werewolf/game-engine/fibking/store/FibStore';
 import { FIB_GAME_TYPE, type FibConfig, type FibState } from '@werewolf/game-engine/fibking/types';
 import type { RosterEntry } from '@werewolf/game-engine/protocol/common';
 
-import { cfPost } from '@/services/cloudflare/cfFetch';
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
 import { ConnectionState } from '@/services/connection/types';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { IRoomService } from '@/services/types/IRoomService';
 import { facadeLog } from '@/utils/logger';
-import { generateRoomCode } from '@/utils/roomCode';
 
-export interface FibActionResult {
-  success: boolean;
-  reason?: string;
-}
+import {
+  defineRoomAction,
+  type RoomActionContext,
+  type RoomActionResult,
+} from './defineRoomAction';
+
+export type FibActionResult = RoomActionResult;
 
 export interface FibFacadeDeps {
   store: FibStore;
-  connectionManager: ConnectionManager;
+  connectionManager: ConnectionManager<FibState>;
+  roomService: IRoomService;
 }
 
 function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
@@ -48,15 +51,73 @@ function mapConnectionStatus(state: ConnectionState): ConnectionStatus {
   }
 }
 
+const sitAction = defineRoomAction<[seat: number, profile: RosterEntry]>({
+  name: 'fib.sit',
+  path: '/fib/sit',
+  body: (seat, profile) => ({ seat, profile }),
+});
+
+const leaveSeatAction = defineRoomAction<[]>({
+  name: 'fib.leaveSeat',
+  path: '/fib/leave',
+});
+
+const kickAction = defineRoomAction<[targetSeat: number]>({
+  name: 'fib.kick',
+  path: '/fib/kick',
+  body: (targetSeat) => ({ targetSeat }),
+});
+
+const clearSeatsAction = defineRoomAction<[]>({
+  name: 'fib.clearSeats',
+  path: '/fib/clear-seats',
+});
+
+const fillBotsAction = defineRoomAction<[]>({
+  name: 'fib.fillBots',
+  path: '/fib/fill-bots',
+});
+
+const updateConfigAction = defineRoomAction<[numberOfPlayers: number]>({
+  name: 'fib.updateConfig',
+  path: '/fib/update-config',
+  body: (numberOfPlayers) => ({ numberOfPlayers }),
+});
+
+const startRoundAction = defineRoomAction<[]>({
+  name: 'fib.startRound',
+  path: '/fib/start-round',
+});
+
+const nextRoundAction = defineRoomAction<[]>({
+  name: 'fib.nextRound',
+  path: '/fib/next-round',
+});
+
+const revealAction = defineRoomAction<[]>({
+  name: 'fib.reveal',
+  path: '/fib/reveal',
+});
+
+const restartAction = defineRoomAction<[]>({
+  name: 'fib.restart',
+  path: '/fib/restart',
+});
+
 export class FibFacade {
   readonly #store: FibStore;
-  readonly #connectionManager: ConnectionManager;
+  readonly #connectionManager: ConnectionManager<FibState>;
+  readonly #roomService: IRoomService;
+  readonly #roomActionContext: RoomActionContext = {
+    getRoomCode: () => this.#roomCodeOrThrow(),
+  };
   #myUserId: string | null = null;
   #roomCode: string | null = null;
 
   constructor(deps: FibFacadeDeps) {
     this.#store = deps.store;
     this.#connectionManager = deps.connectionManager;
+    this.#roomService = deps.roomService;
   }
 
   // ── State access ──────────────────────────────────────────────────────────
@@ -92,7 +153,7 @@ export class FibFacade {
 
   // ── Room lifecycle ────────────────────────────────────────────────────────
 
-  /** Create a fibking room (server builds the authoritative initial state) and connect. */
+  /** Create a fibking room; FibRoomScreen connects after navigation. */
   async createRoom(
     config: FibConfig,
     hostUserId: string,
@@ -100,23 +161,14 @@ export class FibFacade {
   ): Promise<string> {
     facadeLog.info('fib createRoom', { numberOfPlayers: config.numberOfPlayers });
     this.#myUserId = hostUserId;
-    const maxRetries = 5;
-    let lastError: unknown;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const roomCode = attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
-      try {
-        await cfPost('/room/create', { roomCode, gameType: FIB_GAME_TYPE, config });
-        this.#roomCode = roomCode;
-        return roomCode;
-      } catch (err) {
-        const e = err as { status?: number };
-        if (e.status === 409 && attempt < maxRetries) continue;
-        lastError = err;
-        break;
-      }
-    }
-    throw lastError instanceof Error ? lastError : new Error('Failed to create fib room');
+    const record = await this.#roomService.createRoom<FibConfig>({
+      gameType: FIB_GAME_TYPE,
+      initialRoomNumber,
+      maxRetries: 5,
+      config,
+    });
+    this.#roomCode = record.roomCode;
+    return record.roomCode;
   }
 
   /** Connect to a room (join or host rejoin). Idempotent for the already-connected room. */
@@ -145,57 +197,43 @@ export class FibFacade {
     return roomCode;
   }
 
-  async #post(path: string, body: Record<string, unknown>): Promise<FibActionResult> {
-    try {
-      await cfPost(path, body);
-      return { success: true };
-    } catch (err) {
-      const e = err as { reason?: string };
-      facadeLog.warn('fib action failed', { path, reason: e.reason });
-      return { success: false, reason: e.reason ?? 'REQUEST_FAILED' };
-    }
-  }
-
   sit(seat: number, profile: RosterEntry): Promise<FibActionResult> {
-    return this.#post('/fib/sit', { roomCode: this.#roomCodeOrThrow(), seat, profile });
+    return sitAction(this.#roomActionContext, seat, profile);
   }
 
   leaveSeat(): Promise<FibActionResult> {
-    return this.#post('/fib/leave', { roomCode: this.#roomCodeOrThrow() });
+    return leaveSeatAction(this.#roomActionContext);
   }
 
   kick(targetSeat: number): Promise<FibActionResult> {
-    return this.#post('/fib/kick', { roomCode: this.#roomCodeOrThrow(), targetSeat });
+    return kickAction(this.#roomActionContext, targetSeat);
   }
 
   clearSeats(): Promise<FibActionResult> {
-    return this.#post('/fib/clear-seats', { roomCode: this.#roomCodeOrThrow() });
+    return clearSeatsAction(this.#roomActionContext);
   }
 
   fillBots(): Promise<FibActionResult> {
-    return this.#post('/fib/fill-bots', { roomCode: this.#roomCodeOrThrow() });
+    return fillBotsAction(this.#roomActionContext);
   }
 
   updateConfig(numberOfPlayers: number): Promise<FibActionResult> {
-    return this.#post('/fib/update-config', {
-      roomCode: this.#roomCodeOrThrow(),
-      numberOfPlayers,
-    });
+    return updateConfigAction(this.#roomActionContext, numberOfPlayers);
   }
 
   startRound(): Promise<FibActionResult> {
-    return this.#post('/fib/start-round', { roomCode: this.#roomCodeOrThrow() });
+    return startRoundAction(this.#roomActionContext);
   }
 
   nextRound(): Promise<FibActionResult> {
-    return this.#post('/fib/next-round', { roomCode: this.#roomCodeOrThrow() });
+    return nextRoundAction(this.#roomActionContext);
   }
 
   reveal(): Promise<FibActionResult> {
-    return this.#post('/fib/reveal', { roomCode: this.#roomCodeOrThrow() });
+    return revealAction(this.#roomActionContext);
   }
 
   restart(): Promise<FibActionResult> {
-    return this.#post('/fib/restart', { roomCode: this.#roomCodeOrThrow() });
+    return restartAction(this.#roomActionContext);
   }
 }

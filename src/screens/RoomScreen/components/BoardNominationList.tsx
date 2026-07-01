@@ -20,7 +20,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useGameFacade } from '@/contexts/RoomFacadeContext';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,

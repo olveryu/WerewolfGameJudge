@@ -3,3 +3,4 @@
  */
 
 export { GameStore } from './GameStore';
+export { SnapshotStore, type SnapshotStoreListener } from './SnapshotStore';

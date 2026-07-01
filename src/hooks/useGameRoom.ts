@@ -2,7 +2,7 @@
  * useGameRoom - Composition hook for game room management
  *
  * Orchestrates 6 sub-hooks into a single flat interface:
- * - useRoomLifecycle: room creation/joining/leaving + seat management
+ * - useRoomLifecycle: room connection/joining/leaving + seat management
  * - useGameActions: game control + night actions
  * - useConnectionStatus: connection status subscription (FSM-driven)
  * - useBgmControl: BGM state management
@@ -18,7 +18,6 @@ import { useIsFocused } from '@react-navigation/native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
@@ -93,7 +92,7 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seat: number) => Promise<boolean>;

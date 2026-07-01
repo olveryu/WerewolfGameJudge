@@ -19,30 +19,30 @@
 
 import { getEngineLogger } from '../../utils/logger';
 import { normalizeState } from '../state/normalize';
+import { SnapshotStore } from './SnapshotStore';
 import type { GameState, IWritableGameStore, StoreStateListener } from './types';
 
 const gameStoreLog = getEngineLogger().extend('GameStore');
 
 export class GameStore implements IWritableGameStore {
-  #state: GameState | null = null;
-  #revision: number = 0;
-  readonly #listeners: Set<StoreStateListener> = new Set();
-
-  /** Action type carried by the most recent broadcast (consumed once) */
-  #lastAction: string | null = null;
+  readonly #store = new SnapshotStore<GameState>({
+    normalize: normalizeState,
+    logger: gameStoreLog,
+    label: 'GameStore',
+  });
 
   /**
    * Get current state
    */
   getState(): GameState | null {
-    return this.#state;
+    return this.#store.getState();
   }
 
   /**
    * Get current revision
    */
   getRevision(): number {
-    return this.#revision;
+    return this.#store.getRevision();
   }
 
   /**
@@ -50,10 +50,7 @@ export class GameStore implements IWritableGameStore {
    * @returns unsubscribe function
    */
   subscribe(listener: StoreStateListener): () => void {
-    this.#listeners.add(listener);
-    return () => {
-      this.#listeners.delete(listener);
-    };
+    return this.#store.subscribe(listener);
   }
 
   /**
@@ -62,16 +59,7 @@ export class GameStore implements IWritableGameStore {
    * Applies normalizeState to ensure Host/Player shape consistency (anti-drift)
    */
   applySnapshot(state: GameState, revision: number, lastAction?: string): void {
-    if (revision <= this.#revision) {
-      // Drop older revision
-      return;
-    }
-
-    this.#state = normalizeState(state);
-    this.#revision = revision;
-    this.#lastAction = lastAction ?? null;
-
-    this.#notifyListeners();
+    this.#store.applySnapshot(state, revision, lastAction);
   }
 
   /**
@@ -79,9 +67,7 @@ export class GameStore implements IWritableGameStore {
    * Auto-increments revision and normalizes
    */
   setState(state: GameState): void {
-    this.#state = normalizeState(state);
-    this.#revision += 1;
-    this.#notifyListeners();
+    this.#store.setState(state);
   }
 
   /**
@@ -89,21 +75,17 @@ export class GameStore implements IWritableGameStore {
    * @param updater state updater function
    */
   updateState(updater: (state: GameState) => GameState): void {
-    if (!this.#state) {
+    if (!this.#store.getState()) {
       throw new Error('Cannot update state: no state initialized');
     }
-
-    const newState = updater(this.#state);
-    this.setState(newState);
+    this.#store.updateState(updater);
   }
 
   /**
    * Initialize state (when host creates the room)
    */
   initialize(state: GameState): void {
-    this.#state = normalizeState(state);
-    this.#revision = 1;
-    this.#notifyListeners();
+    this.#store.initialize(state);
   }
 
   /**
@@ -111,18 +93,7 @@ export class GameStore implements IWritableGameStore {
    * Used for scenarios like leaveRoom
    */
   reset(): void {
-    this.#state = null;
-    this.#revision = 0;
-    this.#lastAction = null;
-    // Note: do not clear listeners — React useEffect listener lifecycle is independent of the store
-    // Notify listeners that state has become null
-    for (const listener of this.#listeners) {
-      try {
-        listener(null, 0);
-      } catch (error) {
-        gameStoreLog.error('Listener error in reset', { error });
-      }
-    }
+    this.#store.reset();
   }
 
   /**
@@ -130,41 +101,20 @@ export class GameStore implements IWritableGameStore {
    * Only used for test isolation
    */
   destroy(): void {
-    this.#state = null;
-    this.#revision = 0;
-    this.#lastAction = null;
-    this.#listeners.clear();
+    this.#store.destroy();
   }
 
   /**
    * Consume the lastAction carried by the most recent broadcast (read once, clears after read)
    */
   consumeLastAction(): string | null {
-    const action = this.#lastAction;
-    this.#lastAction = null;
-    return action;
+    return this.#store.consumeLastAction();
   }
 
   /**
    * Get current listener count (only for testing/debugging)
    */
   getListenerCount(): number {
-    return this.#listeners.size;
-  }
-
-  /**
-   * Notify all subscribers
-   */
-  #notifyListeners(): void {
-    if (!this.#state) return;
-
-    for (const listener of this.#listeners) {
-      try {
-        listener(this.#state, this.#revision);
-      } catch (error) {
-        // Prevent a single listener error from affecting other subscribers
-        gameStoreLog.error('Listener error', { error });
-      }
-    }
+    return this.#store.getListenerCount();
   }
 }

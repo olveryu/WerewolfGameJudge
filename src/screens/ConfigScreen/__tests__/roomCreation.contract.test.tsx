@@ -7,9 +7,10 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 
 import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
-import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import { RoomFacadeProvider } from '@/contexts/RoomFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import type { IGameFacade } from '@/services/types/IGameFacade';
@@ -90,6 +91,7 @@ describe('Room creation → navigation roomCode contract', () => {
       roomCode: '7777', // The confirmed DB roomCode
       hostUserId: 'host-uid',
       createdAt: new Date(),
+      gameType: WEREWOLF_GAME_TYPE,
     });
 
     // Override global ServiceContext mock with test-specific services
@@ -119,9 +121,9 @@ describe('Room creation → navigation roomCode contract', () => {
   it('should navigate with the roomCode returned by createRoomRecord, not a pre-generated code', async () => {
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </RoomFacadeProvider>,
     );
 
     // Press the create room button (default template has roles pre-selected)
@@ -143,6 +145,12 @@ describe('Room creation → navigation roomCode contract', () => {
     expect(navArgs[1].roomCode).toBe('7777');
     expect(navArgs[1].isHost).toBe(true);
     expect(navArgs[1].template).toBeDefined();
+    expect(mockCreateRoomMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gameType: WEREWOLF_GAME_TYPE,
+        config: { template: navArgs[1].template },
+      }),
+    );
   });
 
   it('should NOT navigate when createRoomRecord fails', async () => {
@@ -151,9 +159,9 @@ describe('Room creation → navigation roomCode contract', () => {
 
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </RoomFacadeProvider>,
     );
 
     const createButton = getByText('创建房间');
@@ -173,9 +181,9 @@ describe('Room creation → navigation roomCode contract', () => {
     storage.getString.mockReturnValue(undefined);
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </RoomFacadeProvider>,
     );
 
     const createButton = getByText('创建房间');

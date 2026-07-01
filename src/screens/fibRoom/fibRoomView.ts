@@ -62,6 +62,10 @@ export function findFibSeatByUserId(state: FibState | null, userId: string | nul
   return null;
 }
 
+export function isFibBotUserId(userId: string): boolean {
+  return userId.startsWith('bot-');
+}
+
 function getFibGuesserSeat(state: FibState): number | null {
   if (!state.roleBySeat) return null;
   for (const [seat, role] of Object.entries(state.roleBySeat)) {
@@ -96,6 +100,8 @@ export function createFibSeatViewModels(
             seatAnimation: roster?.seatAnimation,
             nameStyle: roster?.nameStyle,
             roleRevealEffect: roster?.roleRevealEffect,
+            isBot: isFibBotUserId(occupant.userId),
+            botRoleLabel: role !== undefined ? ROLE_LABEL[role] : undefined,
           }
         : null,
       isMySpot: mySeat === seat,
@@ -120,4 +126,8 @@ export function getFibSummaryBody(state: FibState): string {
   if (state.phase === 'Starting') return '正在抽生僻词并分配身份。';
   if (state.phase === 'Playing') return '轮流口头解释词义，大聪明听完后指认老实人。';
   return '查看真词、真释义和全部身份。';
+}
+
+export function shouldShowFibAnswerPanel(state: FibState): boolean {
+  return state.phase === 'Revealed';
 }

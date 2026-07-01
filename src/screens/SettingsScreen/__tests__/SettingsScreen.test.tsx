@@ -47,8 +47,8 @@ jest.mock('../../../utils/defaultAvatarIcons', () => ({
   })),
 }));
 
-// Mock GameFacadeContext — SettingsScreen calls facade methods for room state and profile sync
-jest.mock('../../../contexts/GameFacadeContext', () => ({
+// Mock RoomFacadeContext — SettingsScreen calls facade methods for room state and profile sync
+jest.mock('../../../contexts/RoomFacadeContext', () => ({
   useGameFacade: () => ({
     getState: jest.fn().mockReturnValue(null),
     getMySeat: jest.fn().mockReturnValue(null),

@@ -14,10 +14,9 @@ import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
-import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
+import { AuthProvider, RoomFacadeProvider, ServiceProvider } from '@/contexts';
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { FibFacadeProvider } from '@/contexts/FibFacadeContext';
 import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
 import { getSentryIntegrations } from '@/lib/sentryIntegrations';
@@ -376,13 +375,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ServiceProvider services={services}>
             <AuthProvider>
-              <GameFacadeProvider facade={facade}>
-                <FibFacadeProvider facade={fibFacade}>
-                  <ModalStackProvider>
-                    <AppContent />
-                  </ModalStackProvider>
-                </FibFacadeProvider>
-              </GameFacadeProvider>
+              <RoomFacadeProvider werewolf={facade} fibking={fibFacade}>
+                <ModalStackProvider>
+                  <AppContent />
+                </ModalStackProvider>
+              </RoomFacadeProvider>
             </AuthProvider>
           </ServiceProvider>
         </QueryClientProvider>
