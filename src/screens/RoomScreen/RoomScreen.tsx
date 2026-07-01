@@ -24,6 +24,7 @@ import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { useRoomShareActions } from '@/components/room/hooks/useRoomShareActions';
 import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
 import { QRCodeModal } from '@/components/room/QRCodeModal';
 import { RoomBottomActionPanel as BottomActionPanel } from '@/components/room/RoomBottomActionPanel';
@@ -31,7 +32,6 @@ import { createRoomShellStyles as createRoomScreenStyles } from '@/components/ro
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { useRoomShareActions } from '@/hooks/useRoomShareActions';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';

@@ -15,7 +15,7 @@
 - 大聪明(guesser)身份**公开**;老实人 / 瞎掰王身份**隐藏**,仅 reveal 时公开。
 - 查看身份用**按钮**(非长按)。
 - fib 调人数走 Config 屏,房内可复用 Config 改人数。
-- UI:抽共享房间基础层(shared controller hooks + `src/components/room/*` 的 header/seat/bottom/status/profile/QR/shell styles),狼人和 fib 分别接 adapter;fib 只保留玩法特殊 UI。
+- UI:抽共享房间基础层(`src/components/room/*` 的 header/seat/bottom/status/profile/QR/shell styles + `src/components/room/hooks/*` controller hooks),狼人和 fib 分别接 adapter;fib 只保留玩法特殊 UI。
 - 服务端架构:**engine registry**(本文 §3),fib 是第一个 engine,狼人保留 bespoke 方法。
 - 建房:**服务端权威构造**初始状态(engine 的 `createInitialState`,客户端只 POST 最小 config),对齐「服务端唯一权威」铁律(§6.3)。
 

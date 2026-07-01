@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 
-import { type ConnectionStatusSource, useConnectionStatus } from './useConnectionStatus';
+import { type ConnectionStatusSource, useConnectionStatus } from '@/hooks/useConnectionStatus';
 
 export interface RoomConnectionLifecycleFacade<TState> extends ConnectionStatusSource {
   subscribe(onChange: () => void): () => void;

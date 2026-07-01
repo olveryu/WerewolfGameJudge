@@ -13,6 +13,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { usePlayerProfileController } from '@/components/room/hooks/usePlayerProfileController';
+import { useRoomActionRunner } from '@/components/room/hooks/useRoomActionRunner';
+import { useRoomConnectionLifecycle } from '@/components/room/hooks/useRoomConnectionLifecycle';
+import {
+  type RoomSeatOperation,
+  useRoomSeatOperations,
+} from '@/components/room/hooks/useRoomSeatOperations';
+import { useRoomShareActions } from '@/components/room/hooks/useRoomShareActions';
 import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
 import { QRCodeModal } from '@/components/room/QRCodeModal';
 import { RoomBottomActionPanel } from '@/components/room/RoomBottomActionPanel';
@@ -24,11 +32,6 @@ import { createRoomShellStyles } from '@/components/room/roomShellStyles';
 import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useFibFacade } from '@/contexts/FibFacadeContext';
-import { usePlayerProfileController } from '@/hooks/usePlayerProfileController';
-import { useRoomActionRunner } from '@/hooks/useRoomActionRunner';
-import { useRoomConnectionLifecycle } from '@/hooks/useRoomConnectionLifecycle';
-import { type RoomSeatOperation, useRoomSeatOperations } from '@/hooks/useRoomSeatOperations';
-import { useRoomShareActions } from '@/hooks/useRoomShareActions';
 import type { RootStackParamList } from '@/navigation/types';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { TESTIDS } from '@/testids';
