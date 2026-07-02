@@ -63,6 +63,23 @@ export class RoomPage {
     });
   }
 
+  /** Click an empty seat while already seated and confirm the "换座" dialog. */
+  async switchSeatTo(seat: number) {
+    await this.getSeatTile(seat).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('换座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
+    // Wait for seat broadcast to arrive: the target seat should become occupied.
+    await expect
+      .poll(() => this.collectSeatState(seat + 1).then((state) => state.hasPlayerName), {
+        timeout: 10_000,
+        intervals: [250],
+        message: `Seat ${seat + 1} did not become occupied after switch within 10s`,
+      })
+      .toBeTruthy();
+  }
+
   /** Click own seat → profile card opens → click "离座" button and confirm. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();

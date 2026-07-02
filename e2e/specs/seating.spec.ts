@@ -321,7 +321,7 @@ test.describe('Seating', () => {
       expect(joinerSeat2.hasPlayerName, 'Joiner seated at seat 2').toBe(true);
 
       // Switch to seat 5
-      await roomB.seatAt(4);
+      await roomB.switchSeatTo(4);
 
       // Poll for seat switch to propagate (broadcast round-trip)
       const joinerSeat5 = await pollSeatOccupied(roomB, 5);
