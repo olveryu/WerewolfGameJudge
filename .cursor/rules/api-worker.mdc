@@ -14,6 +14,8 @@ Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `
 
 ## Route Organization
 
+- Cross-cutting product handlers live in `src/handlers/*`.
+- Game-specific handlers live under `src/games/<game>/handlers/*`.
 - Each handler file exports a Hono sub-router: `export const xxxRoutes = new Hono<AppEnv>()`.
 - `index.ts` mounts via `app.route('/prefix', xxxRoutes)`.
 - CORS is handled uniformly by `hono/cors` middleware (`app.use('*', cors(...))`).
@@ -26,7 +28,10 @@ Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `
 
 ## Zod Schema Files
 
-- Schemas are defined in `src/schemas/`, organized by route module (`auth.ts`, `game.ts`, `night.ts`, `room.ts`, `gemini.ts`, `shareImage.ts`).
+- Cross-cutting schemas are defined in `src/schemas/`, organized by route module
+  (`auth.ts`, `room.ts`, `gemini.ts`, `shareImage.ts`, etc.).
+- Game-specific schemas live next to their game route tree:
+  `src/games/werewolf/schemas/*` and `src/games/fibking/schemas/*`.
 - Project uses **zod 4** (`^4.3`). Key changes:
   - Top-level format validators (`z.email()`, `z.url()`, etc.) — deprecated method chains (`z.string().email()`) must not be used.
   - `z.input<typeof schema>` / `z.output<typeof schema>` replace legacy `z.infer<>` (`z.infer` still works but `z.output` is more precise).
@@ -72,6 +77,17 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 | `getGameRoomStub(env, c)` | Get DO stub                                                                                                                                                                                                         |
 | `resultToStatus(result)`  | Input `{ success: boolean; reason?: string }` (structural subtype, compatible with `ActionResult` & `GameActionResult`) → `200 \| 400 \| 500`                                                                       |
 | `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                              |
+
+## Game-Specific Worker Modules
+
+| Game     | Routes                                             | Schemas                                      | Other game-owned Worker code                      |
+| -------- | -------------------------------------------------- | -------------------------------------------- | ------------------------------------------------- |
+| Werewolf | `src/games/werewolf/handlers/gameControlRoutes.ts` | `src/games/werewolf/schemas/gameSchemas.ts`  | DO effects in `src/durableObjects/effects/*`      |
+| Werewolf | `src/games/werewolf/handlers/nightRoutes.ts`       | `src/games/werewolf/schemas/nightSchemas.ts` |                                                   |
+| FibKing  | `src/games/fibking/handlers/fibRoutes.ts`          | `src/games/fibking/schemas/fibSchemas.ts`    | `lib/fibWordBank.ts`, `services/fibWordSource.ts` |
+
+Adding another game must create `src/games/<game>/...` modules and register only the route group
+in `index.ts`; do not add generic `handlers/game*.ts` or `schemas/game*.ts` files for one game.
 
 ## Gacha System
 
