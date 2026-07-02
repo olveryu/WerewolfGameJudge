@@ -10,14 +10,14 @@
  */
 
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import type { MutableRefObject } from 'react';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { ActionIntent, ActionIntentType } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 type AckResult = ActionResult;
 
@@ -27,8 +27,8 @@ type AckResult = ActionResult;
 
 export interface ExecutorContext {
   // ── Game state (readonly snapshots) ──
-  gameState: LocalGameState | null;
-  gameStateRef: MutableRefObject<LocalGameState | null>;
+  gameState: LocalWerewolfState | null;
+  gameStateRef: MutableRefObject<LocalWerewolfState | null>;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
 

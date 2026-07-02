@@ -13,10 +13,10 @@
  *   seat 10: hunter
  *   seat 11: magician
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
@@ -173,7 +173,7 @@ describe('Night-1: Magician Swap affects Seer Reveal (12p)', () => {
     });
   });
 
-  describe('Swap targets written to GameState', () => {
+  describe('Swap targets written to WerewolfState', () => {
     it('swappedSeats should correctly record the two swapped seats', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 

@@ -75,7 +75,7 @@ const PressableScaleComponent: React.FC<PressableScaleProps> = ({
     if (haptic) {
       void triggerHaptic('light');
     }
-    // Meta callback compatibility: always pass { disabled }, let callers decide
+    // Callback contract: always pass { disabled }, let callers decide.
     onPress({ disabled });
   }, [haptic, onPress, disabled, fireWhenDisabled]);
 

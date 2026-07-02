@@ -10,7 +10,7 @@
  * 5. Event Routing
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import { getInteractionResult } from '@/screens/RoomScreen/policy/RoomInteractionPolicy';
 import type { InteractionContext, InteractionEvent } from '@/screens/RoomScreen/policy/types';

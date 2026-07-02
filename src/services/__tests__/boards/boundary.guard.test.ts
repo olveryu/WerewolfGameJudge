@@ -1,7 +1,7 @@
 /**
  * Boundary Guard Tests
  *
- * Ensure harness does not import legacy code
+ * Ensure harness imports only the current Werewolf runtime.
  */
 
 import * as fs from 'fs';
@@ -40,8 +40,8 @@ function checkForbiddenImports(
 }
 
 describe('Boundary Guard', () => {
-  describe('boards harness 禁止 import legacy', () => {
-    it('gameFactory.ts 不应 import legacy 代码', () => {
+  describe('boards harness 禁止 import removed runtime', () => {
+    it('gameFactory.ts 不应 import removed runtime', () => {
       const harnessPath = path.join(BOARDS_DIR, 'gameFactory.ts');
       const content = fs.readFileSync(harnessPath, 'utf-8');
 
@@ -65,7 +65,7 @@ describe('Boundary Guard', () => {
       expect(violations).toEqual([]);
     });
 
-    it('__tests__/boards 目录下所有文件不应 import legacy', () => {
+    it('__tests__/boards 目录下所有文件不应 import removed runtime', () => {
       const files = getAllTsFiles(BOARDS_DIR);
 
       const forbiddenPatterns = [
@@ -87,13 +87,13 @@ describe('Boundary Guard', () => {
         const errorMsg = allViolations
           .map((v) => `${v.file}:\n  ${v.violations.join('\n  ')}`)
           .join('\n\n');
-        fail(`Legacy imports found in boards:\n${errorMsg}`);
+        throw new Error(`Removed runtime imports found in boards:\n${errorMsg}`);
       }
     });
   });
 
-  describe('核心目录禁止 import legacy', () => {
-    it('handlers 不应 import legacy', () => {
+  describe('核心目录禁止 import removed runtime', () => {
+    it('handlers 不应 import removed runtime', () => {
       const handlersDir = path.join(ROOT_DIR, 'handlers');
       if (!fs.existsSync(handlersDir)) {
         return;
@@ -111,7 +111,7 @@ describe('Boundary Guard', () => {
       expect(allViolations).toEqual([]);
     });
 
-    it('reducer 不应 import legacy', () => {
+    it('reducer 不应 import removed runtime', () => {
       const reducerDir = path.join(ROOT_DIR, 'reducer');
       if (!fs.existsSync(reducerDir)) {
         return;

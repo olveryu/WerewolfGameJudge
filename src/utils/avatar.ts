@@ -19,8 +19,8 @@ import {
   HAND_DRAWN_AVATAR_IDS,
   type HandDrawnAvatarId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 

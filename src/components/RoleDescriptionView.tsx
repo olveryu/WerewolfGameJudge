@@ -6,7 +6,7 @@
  * Chinese semicolons auto-split into bullet list. No business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleDescription } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
+import type { RoleDescription } from '@werewolf/game-engine/werewolf/models/roles/spec/roleSpec.types';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useMemo } from 'react';

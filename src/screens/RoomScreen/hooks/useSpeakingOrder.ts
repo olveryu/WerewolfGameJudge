@@ -7,19 +7,19 @@
  * Uses a ref for gameState to avoid cancelling the 60s timer on every broadcast.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { createSeededRng } from '@werewolf/game-engine/utils/random';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import { useEffect, useRef, useState } from 'react';
 
 import { STATUS } from '@/config/emojiTokens';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 import { generateSpeakOrder } from '../useRoomHostDialogs';
 
 interface UseSpeakingOrderParams {
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
 }
 
 /**

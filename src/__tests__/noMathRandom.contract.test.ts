@@ -4,7 +4,7 @@
  * Rules (see docs/random-and-id-guidelines.md):
  * 1. ID/nonce generation -> use src/utils/id.ts (randomHex, newRequestId, newRejectionId)
  * 2. Testable randomness -> use src/utils/random.ts (secureRng + Rng injection)
- * 3. Cross-client consistent randomness -> server-resolved + GameState broadcast
+ * 3. Cross-client consistent randomness -> server-resolved + WerewolfState broadcast
  *
  * Exceptions (Math.random allowed):
  * - __tests__/ test files
@@ -102,7 +102,7 @@ describe('Math.random() 禁止规则', () => {
           `- ID/nonce 生成 → import { randomHex } from '@werewolf/game-engine/utils/id'\n` +
           `- 可测试随机 → import { secureRng, randomIntInclusive, randomPick } from '@werewolf/game-engine/utils/random'\n` +
           `- 数组打乱 → import { shuffleArray } from '@werewolf/game-engine/utils/shuffle'\n` +
-          `- 跨客户端一致 → 服务端解析并通过 GameState 广播\n` +
+          `- 跨客户端一致 → 服务端解析并通过 WerewolfState 广播\n` +
           `- 详见 docs/random-and-id-guidelines.md`,
       );
     }

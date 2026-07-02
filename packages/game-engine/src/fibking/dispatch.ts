@@ -7,7 +7,7 @@
  *
  * Payloads arrive already validated by the api-worker zod boundary, so handlers cast
  * `action.payload` to the expected shape (single trusted-boundary cast, like the DO's
- * existing `blob as GameState`). Host-only authorization is enforced at the REST layer.
+ * existing `blob as WerewolfState`). Host-only authorization is enforced at the REST layer.
  */
 
 import type { EngineResult, GameAction } from '../engine/registry/types';

@@ -2,7 +2,7 @@
  * architecture.contract — Layer boundary guard
  *
  * Enforces the project's unidirectional dependency rules:
- *   UI (screens/components) → Application (services/facade) → Domain (game-engine)
+ *   UI (screens/components) → Application (services/games/* + services/room) → Domain (game-engine)
  *   UI → Application → Infrastructure (services/infra, services/transport)
  *
  * Forbidden directions:

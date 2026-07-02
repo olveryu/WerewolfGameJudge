@@ -1,19 +1,19 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * Calls useGameRoom init APIs (initializeRoom, joinRoom), manages local
+ * Calls useWerewolfRoom init APIs (initializeRoom, joinRoom), manages local
  * loading/retry UI state. Error messages come from RoomInitResult.error
  * (synchronous return, not async state).
  * Does not control night phase or push game actions, does not import services
- * or business logic, does not access or modify GameState fields, does not
+ * or business logic, does not access or modify WerewolfState fields, does not
  * contain night flow / audio / policy logic, and does not create room record
  * in DB (that's done in ConfigScreen before navigation).
  */
 
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { RoomInitResult } from '@/hooks/useRoomLifecycle';
+import type { RoomInitResult } from '@/hooks/werewolf/useWerewolfRoomLifecycle';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {
@@ -23,9 +23,9 @@ interface UseRoomInitParams {
   isHostParam: boolean;
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
-  /** From useGameRoom: connect to the already-created room */
+  /** From useWerewolfRoom: connect to the already-created room */
   initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
-  /** From useGameRoom: join existing room */
+  /** From useWerewolfRoom: join existing room */
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   /** Check if we have received game state */
   hasGameState: boolean;

@@ -137,7 +137,7 @@ export const configLog = log.extend('Config');
 export const roomScreenLog = log.extend('RoomScreen');
 /** HomeScreen log */
 export const homeLog = log.extend('Home');
-/** GameFacade log */
+/** Room facade log */
 export const facadeLog = log.extend('Facade');
 /** Settings page log */
 export const settingsLog = log.extend('Settings');

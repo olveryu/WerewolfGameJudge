@@ -2,7 +2,7 @@
  * Night-1 Integration Test: SeerWitchHunterIdiot - Seer Reveal
  *
  * Board: SeerWitchHunterIdiot
- * Theme: Seer check result written to GameState.seerReveal
+ * Theme: Seer check result written to WerewolfState.seerReveal
  *
  * Fixed seat-role assignment:
  *   seat 0-3: villager
@@ -12,10 +12,10 @@
  *   seat 10: hunter
  *   seat 11: idiot
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
@@ -61,7 +61,7 @@ describe('Night-1: 预女猎白 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written to GameState
+      // Core assertion: seerReveal written to WerewolfState
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);

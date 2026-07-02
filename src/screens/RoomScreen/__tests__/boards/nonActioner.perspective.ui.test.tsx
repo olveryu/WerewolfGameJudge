@@ -66,8 +66,8 @@ jest.mock('../../hooks/useActionerState', () => ({
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 // =============================================================================

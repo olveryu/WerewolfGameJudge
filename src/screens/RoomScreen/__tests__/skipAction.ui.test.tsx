@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { ChooseSeatSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { ChooseSeatSchema } from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 import type React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
@@ -27,7 +27,7 @@ let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema => {
   // Use the real schema as source-of-truth, then override the one test-specific knob.
   const { getSchema } =
-    require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
+    require('@werewolf/game-engine/werewolf/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/werewolf/models/roles/spec/schemas');
   const schema = getSchema(schemaId as SchemaId);
   if (schema.kind !== 'chooseSeat') {
     throw new Error(`Expected chooseSeat schema for ${schemaId}`);
@@ -39,10 +39,10 @@ const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema
 };
 
 // Minimal RoomScreen runtime: we only care that pressing "不用技能" triggers submitAction(null)
-jest.mock('../../../hooks/useGameRoom', () => {
+jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => {
   const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
-    useGameRoom: () => {
+    useWerewolfRoom: () => {
       const gameState = {
         status: GameStatus.Ongoing,
         template: {
@@ -79,12 +79,12 @@ jest.mock('../../../hooks/useGameRoom', () => {
         gameState,
 
         connectionStatus: (
-          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
+          require('@/services/room/ConnectionStatus') as typeof import('@/services/room/ConnectionStatus')
         ).ConnectionStatus.Live,
 
         isHost: false,
         roomStatus: (
-          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+          require('@werewolf/game-engine/werewolf/models/GameStatus') as typeof import('@werewolf/game-engine/werewolf/models/GameStatus')
         ).GameStatus.Ongoing,
 
         currentActionRole: 'seer',

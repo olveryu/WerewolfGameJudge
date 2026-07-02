@@ -6,9 +6,9 @@
  * or advance game phase.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import { useMemo } from 'react';
 
 import {

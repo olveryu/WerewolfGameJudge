@@ -6,7 +6,7 @@
 import type React from 'react';
 import { memo } from 'react';
 
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 
 import { ConnectionStatusBar } from './ConnectionStatusBar';
 import { HostGuideBanner } from './HostGuideBanner';

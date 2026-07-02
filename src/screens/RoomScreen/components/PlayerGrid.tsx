@@ -6,7 +6,7 @@
  * Renders UI and reports onSeatPress via callback; no service/showAlert imports, no business logic.
  */
 import { useIsFocused } from '@react-navigation/native';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 

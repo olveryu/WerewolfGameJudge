@@ -11,11 +11,11 @@
  * 5. The single source of advanceNightOrThrow is ctx.advanceNightOrThrow() (in gameFactory.ts)
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/werewolf/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import type { PlayerMessage } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type { GameContext } from './gameContext';
 
@@ -146,7 +146,7 @@ export function executeStepsUntil(
 /**
  * Continue from current step to end of Night-1
  *
- * Semantics: continue step-by-step from current `GameState.currentStepId` until Night-1 ends.
+ * Semantics: continue step-by-step from current `WerewolfState.currentStepId` until Night-1 ends.
  * Supports calling `executeStepsUntil` to a step first, then invoking this to finish the rest.
  *
  * Hard requirements (MUST follow):

@@ -2,11 +2,12 @@
  * RoomScreen.helpers.test.ts - Unit tests for pure helper functions
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { TargetConstraint } from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import {
   buildSeatViewModels,
   determineActionerState,
@@ -14,7 +15,6 @@ import {
   getWolfVoteSummary,
   toGameRoomLike,
 } from '@/screens/RoomScreen/RoomScreen.helpers';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 // =============================================================================
 // determineActionerState
@@ -272,8 +272,8 @@ describe('determineActionerState', () => {
 // =============================================================================
 
 describe('toGameRoomLike', () => {
-  it('should extract required fields from LocalGameState', () => {
-    const mockState: LocalGameState = {
+  it('should extract required fields from LocalWerewolfState', () => {
+    const mockState: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: {
@@ -312,7 +312,7 @@ describe('toGameRoomLike', () => {
 
 describe('buildSeatViewModels', () => {
   it('should build view models from game state', () => {
-    const mockState: LocalGameState = {
+    const mockState: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: {
@@ -376,7 +376,7 @@ describe('buildSeatViewModels', () => {
   });
 
   it('should highlight only visible wolves when showWolves=true (gargoyle/wolfRobot hidden)', () => {
-    const mockState: LocalGameState = {
+    const mockState: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: {
@@ -452,7 +452,7 @@ describe('buildSeatViewModels', () => {
 
   it('should highlight based on assigned player.role (not template.roles ordering)', () => {
     // This reproduces the "2号是狼人但1号标红" style bug caused by seat/template mismatch.
-    const mockState: LocalGameState = {
+    const mockState: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: {
@@ -504,7 +504,7 @@ describe('buildSeatViewModels', () => {
 
   describe('schemaConstraints option (UX early rejection)', () => {
     it('notSelf constraint disables own seat with reason', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -571,7 +571,7 @@ describe('buildSeatViewModels', () => {
     });
 
     it('no constraint means own seat is selectable', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -640,7 +640,7 @@ describe('buildSeatViewModels', () => {
   describe('wolfVoteBadge', () => {
     const createWolfVoteState = (
       wolfVotesBySeat: Record<string, number> | undefined,
-    ): LocalGameState => ({
+    ): LocalWerewolfState => ({
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: {
@@ -732,7 +732,7 @@ describe('buildSeatViewModels', () => {
 
   describe('showReadyBadge option (assigned phase)', () => {
     it('should show ready badge for players who have viewed their role', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -796,7 +796,7 @@ describe('buildSeatViewModels', () => {
     });
 
     it('should not show ready badge when player slot is null', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -827,7 +827,7 @@ describe('buildSeatViewModels', () => {
     });
 
     it('should not show ready badge when showReadyBadges is not set', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -868,7 +868,7 @@ describe('buildSeatViewModels', () => {
 
   describe('secondSelectedSeat option', () => {
     it('should mark secondSelectedSeat as isSelected', () => {
-      const mockState: LocalGameState = {
+      const mockState: LocalWerewolfState = {
         roomCode: 'TEST',
         hostUserId: 'host1',
         template: {
@@ -996,12 +996,12 @@ describe('getWolfVoteSummary', () => {
 });
 
 // =============================================================================
-// toGameRoomLike — legacy wolfVotes fallback
+// toGameRoomLike — persisted wolfVotes fallback
 // =============================================================================
 
-describe('toGameRoomLike — legacy wolfVotes fallback', () => {
+describe('toGameRoomLike — persisted wolfVotes fallback', () => {
   it('should use currentNightResults.wolfVotesBySeat when present', () => {
-    const state: LocalGameState = {
+    const state: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
@@ -1024,16 +1024,17 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
     expect(result.wolfVotes.get(0)).toBe(1);
   });
 
-  it('should convert plain object wolfVotes (legacy) to Map', () => {
-    // Simulate legacy data where wolfVotes is a plain object instead of Map
-    const legacyState = {
+  it('should use LocalWerewolfState.wolfVotes when broadcast wolfVotesBySeat is absent', () => {
+    const state: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },
       players: new Map(),
       actions: new Map(),
-      // A legacy plain object that wasn't deserialized to Map
-      wolfVotes: { '0': 1, '2': 3 } as unknown as Map<number, number>,
+      wolfVotes: new Map([
+        [0, 1],
+        [2, 3],
+      ]),
       currentStepIndex: 0,
       isAudioPlaying: false,
       lastNightDeaths: [],
@@ -1044,16 +1045,16 @@ describe('toGameRoomLike — legacy wolfVotes fallback', () => {
       conversionRevealAcks: [],
       cupidLoversRevealAcks: [],
       status: GameStatus.Ongoing,
-    } as LocalGameState;
+    };
 
-    const result = toGameRoomLike(legacyState);
+    const result = toGameRoomLike(state);
     expect(result.wolfVotes).toBeInstanceOf(Map);
     expect(result.wolfVotes.get(0)).toBe(1);
     expect(result.wolfVotes.get(2)).toBe(3);
   });
 
   it('should return empty Map when no wolfVotes sources exist', () => {
-    const state: LocalGameState = {
+    const state: LocalWerewolfState = {
       roomCode: 'TEST',
       hostUserId: 'host1',
       template: { name: 'T', numberOfPlayers: 2, roles: ['wolf', 'villager'] as RoleId[] },

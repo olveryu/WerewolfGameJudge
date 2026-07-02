@@ -10,8 +10,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { findClosestPresetName } from '@werewolf/game-engine/werewolf/models/Template';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -24,6 +24,7 @@ import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { ControlledSeatBanner } from '@/components/room/ControlledSeatBanner';
 import { useRoomShareActions } from '@/components/room/hooks/useRoomShareActions';
 import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
 import { QRCodeModal } from '@/components/room/QRCodeModal';
@@ -45,7 +46,6 @@ import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
-import { ControlledSeatBanner } from './components/ControlledSeatBanner';
 import { HeaderActions } from './components/HeaderActions';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';

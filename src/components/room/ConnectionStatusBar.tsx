@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { TESTIDS } from '@/testids';
 
 import type { ConnectionStatusBarStyles } from './roomComponentStyles';

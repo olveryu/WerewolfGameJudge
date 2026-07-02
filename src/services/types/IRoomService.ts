@@ -5,7 +5,7 @@
  * Does not validate game logic, does not handle realtime transport.
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 /** Room record (consumer-facing abstraction) */
 export interface RoomRecord {
@@ -41,7 +41,7 @@ export interface IRoomService {
   getStateRevision(roomCode: string): Promise<number | null>;
 
   /** Read full room state + revision. Callers choose the state type at their adapter boundary. */
-  getGameState<TState = GameState>(
+  getGameState<TState = WerewolfState>(
     roomCode: string,
   ): Promise<{ state: TState; revision: number } | null>;
 }

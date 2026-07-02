@@ -6,10 +6,10 @@
  * Template: 14 roles = 12 players + 2 deck cards
  *   Seer + Witch + Hunter + Idiot + Wolf x3 + Villager x5 + Thief + Cupid
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';

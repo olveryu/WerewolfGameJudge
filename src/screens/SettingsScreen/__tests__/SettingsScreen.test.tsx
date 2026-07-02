@@ -49,7 +49,7 @@ jest.mock('../../../utils/defaultAvatarIcons', () => ({
 
 // Mock RoomFacadeContext — SettingsScreen calls facade methods for room state and profile sync
 jest.mock('../../../contexts/RoomFacadeContext', () => ({
-  useGameFacade: () => ({
+  useWerewolfFacade: () => ({
     getState: jest.fn().mockReturnValue(null),
     getMySeat: jest.fn().mockReturnValue(null),
     subscribe: jest.fn().mockReturnValue(() => {}),

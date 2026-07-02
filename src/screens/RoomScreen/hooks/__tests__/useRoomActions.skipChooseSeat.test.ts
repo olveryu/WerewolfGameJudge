@@ -1,4 +1,4 @@
-import type { ChooseSeatSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import type { ChooseSeatSchema } from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
 
 import { deriveSkipIntentFromSchema } from '@/screens/RoomScreen/hooks/useRoomActions';
 

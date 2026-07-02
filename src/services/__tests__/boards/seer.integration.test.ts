@@ -9,8 +9,8 @@
  * Uses harness (createGame)
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import { createGame } from './gameFactory';
 
@@ -62,7 +62,7 @@ describe('Seer Integration', () => {
   }
 
   describe('seerReveal Single Source of Truth', () => {
-    it('should write seerReveal to GameState when seer checks wolf', () => {
+    it('should write seerReveal to WerewolfState when seer checks wolf', () => {
       const ctx = createGame(SEER_TEMPLATE, createRoleAssignment());
 
       // Advance to seerCheck

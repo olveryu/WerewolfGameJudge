@@ -8,7 +8,7 @@
  * Pure data — no React, no hooks, no side effects.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import type { RoomBottomLayout, RoomButtonConfig } from '@/components/room/RoomBottomActionPanel';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';

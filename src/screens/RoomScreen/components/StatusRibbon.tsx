@@ -16,7 +16,7 @@ import { Text, View } from 'react-native';
 
 import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
 import { STATUS_ICONS } from '@/config/iconTokens';
-import { type ConnectionStatus } from '@/services/types/IGameFacade';
+import { type ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { typography } from '@/theme';
 
 import { NightProgressIndicator } from './NightProgressIndicator';

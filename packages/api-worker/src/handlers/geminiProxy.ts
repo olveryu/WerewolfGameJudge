@@ -85,6 +85,12 @@ function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
 export const geminiRoutes = new Hono<AppEnv>();
 
 type Message = { role: string; content: string };
+type WorkersAIRole = 'user' | 'assistant';
+type WorkersAIMessage = { role: WorkersAIRole; content: string };
+
+function toWorkersAIRole(role: string): WorkersAIRole {
+  return role === 'assistant' ? 'assistant' : 'user';
+}
 
 /**
  * Transform OpenAI-style messages for Workers AI (Gemma) compatibility:
@@ -92,9 +98,9 @@ type Message = { role: string; content: string };
  * 2. Enforce strict user→assistant→user alternation by merging consecutive same-role messages
  * 3. Ensure conversation starts with "user" and ends with "user"
  */
-function toWorkersAIMessages(messages: Message[]): Message[] {
+function toWorkersAIMessages(messages: Message[]): WorkersAIMessage[] {
   // Step 1: Merge system into next user message
-  const merged: Message[] = [];
+  const merged: WorkersAIMessage[] = [];
   let pendingSystem = '';
   for (const msg of messages) {
     if (msg.role === 'system') {
@@ -109,7 +115,7 @@ function toWorkersAIMessages(messages: Message[]): Message[] {
           merged.push({ role: 'user', content: pendingSystem });
           pendingSystem = '';
         }
-        merged.push({ role: msg.role, content: msg.content });
+        merged.push({ role: toWorkersAIRole(msg.role), content: msg.content });
       }
     }
   }
@@ -118,7 +124,7 @@ function toWorkersAIMessages(messages: Message[]): Message[] {
   }
 
   // Step 2: Enforce alternation — merge consecutive same-role messages
-  const alternated: Message[] = [];
+  const alternated: WorkersAIMessage[] = [];
   for (const msg of merged) {
     const last = alternated[alternated.length - 1];
     if (last && last.role === msg.role) {
@@ -234,22 +240,30 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   const workersMessages = toWorkersAIMessages(messages);
 
   try {
-    const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
-      messages: workersMessages,
-      stream,
-      temperature,
-      max_tokens: maxTokens,
-    });
-
-    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
     if (stream) {
-      return new Response(toOpenAIStream(aiResponse as unknown as ReadableStream), {
+      const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
+        messages: workersMessages,
+        stream: true,
+        temperature,
+        max_tokens: maxTokens,
+      });
+
+      writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
+      return new Response(toOpenAIStream(aiResponse), {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
         },
       });
     }
+
+    const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
+      messages: workersMessages,
+      temperature,
+      max_tokens: maxTokens,
+    });
+
+    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
     return Response.json(aiResponse);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);

@@ -9,15 +9,15 @@
  */
 
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { Faction } from '@werewolf/game-engine/models/roles';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles';
 import {
   createCustomTemplate,
   type GameRuleOverrides,
   PRESET_TEMPLATES,
   validateTemplateRoles,
-} from '@werewolf/game-engine/models/Template';
-import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+} from '@werewolf/game-engine/werewolf/models/Template';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { toast } from 'sonner-native';
 
@@ -26,8 +26,8 @@ import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
 import { addRecentRoom } from '@/lib/recentRooms';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
 import type { IAuthService } from '@/services/types/IAuthService';
-import type { IGameFacade } from '@/services/types/IGameFacade';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -55,7 +55,7 @@ interface UseConfigScreenStateParams {
   nominateMode: { roomCode: string } | undefined;
   updatedRules: GameRuleOverrides | undefined;
   navigation: ConfigNavigationProp;
-  facade: IGameFacade;
+  facade: IWerewolfFacade;
   settingsService: SettingsService;
   authService: IAuthService;
 }

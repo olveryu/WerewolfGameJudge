@@ -13,7 +13,8 @@ import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
 import { RoomFacadeProvider } from '@/contexts/RoomFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
+import { createFibFacadeTestDouble } from '@/testing/roomFacadeTestDoubles';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -54,7 +55,7 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-const createMockFacade = (): IGameFacade =>
+const createMockFacade = (): IWerewolfFacade =>
   ({
     addListener: jest.fn(() => jest.fn()),
     subscribe: jest.fn(() => jest.fn()),
@@ -80,7 +81,7 @@ const createMockFacade = (): IGameFacade =>
     setAudioPlaying: jest.fn(),
     requestSnapshot: jest.fn(),
     addConnectionStatusListener: jest.fn(() => jest.fn()),
-  }) as unknown as IGameFacade;
+  }) as unknown as IWerewolfFacade;
 
 describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
@@ -121,7 +122,7 @@ describe('Room creation → navigation roomCode contract', () => {
   it('should navigate with the roomCode returned by createRoomRecord, not a pre-generated code', async () => {
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <RoomFacadeProvider werewolf={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade} fibking={createFibFacadeTestDouble()}>
         <ConfigScreen />
       </RoomFacadeProvider>,
     );
@@ -159,7 +160,7 @@ describe('Room creation → navigation roomCode contract', () => {
 
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <RoomFacadeProvider werewolf={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade} fibking={createFibFacadeTestDouble()}>
         <ConfigScreen />
       </RoomFacadeProvider>,
     );
@@ -181,7 +182,7 @@ describe('Room creation → navigation roomCode contract', () => {
     storage.getString.mockReturnValue(undefined);
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <RoomFacadeProvider werewolf={mockFacade}>
+      <RoomFacadeProvider werewolf={mockFacade} fibking={createFibFacadeTestDouble()}>
         <ConfigScreen />
       </RoomFacadeProvider>,
     );

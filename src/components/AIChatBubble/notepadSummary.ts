@@ -6,9 +6,9 @@
  * Does not call services, does not mutate state.
  */
 
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
 
-import type { NotepadState } from '@/hooks/useNotepad';
+import type { NotepadState } from '@/hooks/werewolf/useWerewolfNotepad';
 
 /** Max total text length (truncates public note section) */
 const MAX_SUMMARY_LENGTH = 1500;

@@ -9,12 +9,13 @@
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
   getInteractionResult,
@@ -22,7 +23,6 @@ import {
   type InteractionEvent,
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
@@ -33,7 +33,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseInteractionDispatcherParams {
   // ── Game state ──
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
   isHost: boolean;

@@ -5,7 +5,7 @@
  * UI instructions; callers execute alerts, modals, or profile cards.
  */
 
-import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import { isRoomSeatingStatus } from './roomLifecycle';
 

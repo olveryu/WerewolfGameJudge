@@ -7,20 +7,20 @@
 import type React from 'react';
 import { createContext, use, useMemo } from 'react';
 
-import type { FibFacade } from '@/services/facade/FibFacade';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IFibFacade } from '@/services/games/fibking/IFibFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
 
 type RoomFacadeContextValue = {
-  werewolf: IGameFacade;
-  fibking?: FibFacade;
+  werewolf: IWerewolfFacade;
+  fibking: IFibFacade;
 };
 
 const RoomFacadeContext = createContext<RoomFacadeContextValue | null>(null);
 
 interface RoomFacadeProviderProps {
   children: React.ReactNode;
-  werewolf: IGameFacade;
-  fibking?: FibFacade;
+  werewolf: IWerewolfFacade;
+  fibking: IFibFacade;
 }
 
 export const RoomFacadeProvider: React.FC<RoomFacadeProviderProps> = ({
@@ -32,21 +32,18 @@ export const RoomFacadeProvider: React.FC<RoomFacadeProviderProps> = ({
   return <RoomFacadeContext value={value}>{children}</RoomFacadeContext>;
 };
 
-export const useGameFacade = (): IGameFacade => {
+export const useWerewolfFacade = (): IWerewolfFacade => {
   const ctx = use(RoomFacadeContext);
   if (!ctx) {
-    throw new Error('[useGameFacade] Missing <RoomFacadeProvider> in component tree');
+    throw new Error('[useWerewolfFacade] Missing <RoomFacadeProvider> in component tree');
   }
   return ctx.werewolf;
 };
 
-export const useFibFacade = (): FibFacade => {
+export const useFibFacade = (): IFibFacade => {
   const ctx = use(RoomFacadeContext);
   if (!ctx) {
     throw new Error('[useFibFacade] Missing <RoomFacadeProvider> in component tree');
-  }
-  if (!ctx.fibking) {
-    throw new Error('[useFibFacade] Missing fibking facade in <RoomFacadeProvider>');
   }
   return ctx.fibking;
 };

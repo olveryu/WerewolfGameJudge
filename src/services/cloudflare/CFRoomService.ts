@@ -15,7 +15,7 @@
  * - Depends on cfPost for token injection and error interception
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type { CreateRoomParams, IRoomService, RoomRecord } from '@/services/types/IRoomService';
 import { roomLog } from '@/utils/logger';
@@ -109,7 +109,7 @@ export class CFRoomService implements IRoomService {
     return data.revision;
   }
 
-  async getGameState<TState = GameState>(
+  async getGameState<TState = WerewolfState>(
     roomCode: string,
   ): Promise<{ state: TState; revision: number } | null> {
     roomLog.debug('getGameState', { roomCode });

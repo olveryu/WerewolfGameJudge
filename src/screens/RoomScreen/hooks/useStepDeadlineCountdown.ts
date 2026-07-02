@@ -1,7 +1,7 @@
 /**
  * useStepDeadlineCountdown — Deadline-driven progression timer hook
  *
- * Manages a per-second countdown tick driven by `stepDeadline` on GameState.
+ * Manages a per-second countdown tick driven by `stepDeadline` on WerewolfState.
  * This unified deadline covers both:
  * - wolf vote countdown (wolfKill step: all voted → 5s countdown)
  * - vacant bottom card step auto-skip (random 5–10s delay)
@@ -15,7 +15,7 @@
  * (e.g. `useRoomActions.getBottomAction` countdown display).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import { useEffect, useRef, useState } from 'react';
 
 import { fireAndForget } from '@/utils/errorPipeline';

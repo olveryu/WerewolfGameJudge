@@ -7,7 +7,7 @@
  *
  * Pure config file: no React / service / side effects.
  */
-import type { RoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import type { RoleRevealAnimation } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 
 // ---------------------------------------------------------------------------
 // Types

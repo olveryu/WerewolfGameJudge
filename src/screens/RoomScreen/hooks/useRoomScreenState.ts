@@ -7,19 +7,19 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
+import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles/spec/specs';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useGameRoom } from '@/hooks/useGameRoom';
-import { getNotepadStorageKey } from '@/hooks/useNotepad';
+import { getNotepadStorageKey } from '@/hooks/werewolf/useWerewolfNotepad';
+import { useWerewolfRoom } from '@/hooks/werewolf/useWerewolfRoom';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
@@ -159,10 +159,10 @@ export function useRoomScreenState(
     resumeAfterRejoin,
     needsContinueOverlay,
     dismissContinueOverlay,
-  } = useGameRoom();
+  } = useWerewolfRoom();
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Personal role reveal animation (from GameState roster, already resolved)
+  // Personal role reveal animation (from WerewolfState roster, already resolved)
   // ═══════════════════════════════════════════════════════════════════════════
 
   const resolvedRoleRevealAnimation: ResolvedRoleRevealAnimation = useMemo(() => {
@@ -799,7 +799,7 @@ export function useRoomScreenState(
     roomCode,
     template,
 
-    // ── Game state (from useGameRoom) ──
+    // ── Game state (from useWerewolfRoom) ──
     gameState,
     isHost,
     roomStatus,

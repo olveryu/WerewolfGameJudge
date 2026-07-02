@@ -9,7 +9,7 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import {
   createGameRoomMock,
@@ -66,8 +66,8 @@ jest.mock('../../hooks/useActionerState', () => ({
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 describe('Cancel Paths (cross-board)', () => {

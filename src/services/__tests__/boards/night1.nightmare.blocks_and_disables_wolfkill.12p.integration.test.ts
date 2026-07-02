@@ -18,10 +18,10 @@
  * - **Blocked player submits skip (target: null) -> valid but has no effect**
  * - If nightmare selects a wolf-faction player: wolfKillDisabled === true, kill invalidated
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeStepsUntil } from './stepByStepRunner';
@@ -150,7 +150,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(guardResult.success).toBe(false);
       expect(guardResult.reason).toContain('噩梦之影封锁');
 
-      // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
+      // Verify ACTION_REJECTED is applied to WerewolfState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
       expect(state.actionRejected!.reason).toContain('噩梦之影封锁');
@@ -190,7 +190,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(seerResult.success).toBe(false);
       expect(seerResult.reason).toContain('噩梦之影封锁');
 
-      // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
+      // Verify ACTION_REJECTED is applied to WerewolfState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
       expect(state.actionRejected!.reason).toContain('噩梦之影封锁');
@@ -230,7 +230,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       expect(witchResult.success).toBe(false);
       expect(witchResult.reason).toContain('噩梦之影封锁');
 
-      // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
+      // Verify ACTION_REJECTED is applied to WerewolfState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
       expect(state.actionRejected!.reason).toContain('噩梦之影封锁');

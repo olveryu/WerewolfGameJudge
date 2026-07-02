@@ -6,7 +6,7 @@
  * No React components or game state.
  */
 
-import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { buildRolePlayGuidePrompt } from '@/components/AIChatBubble/rolePlayGuide';
 import { showConfirmAlert } from '@/utils/alertPresets';

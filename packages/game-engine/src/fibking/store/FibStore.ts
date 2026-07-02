@@ -1,7 +1,7 @@
 /**
  * FibStore — fibking client state holder (player-side).
  *
- * Mirrors GameStore but for FibState: holds the normalized broadcast state, tracks revision,
+ * Mirrors WerewolfStore but for FibState: holds the normalized broadcast state, tracks revision,
  * and notifies subscribers. The server is the sole authority, so the client only ever
  * applySnapshot()s (never setState). applySnapshot normalizes via normalizeFibState (anti-drift)
  * and drops stale revisions.

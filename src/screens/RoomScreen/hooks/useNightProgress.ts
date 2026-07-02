@@ -7,12 +7,16 @@
  * (gates are in useActionOrchestrator).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { SchemaId } from '@werewolf/game-engine/models/roles';
-import { buildNightPlan, getRoleDisplayAs, getRoleSpec } from '@werewolf/game-engine/models/roles';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  buildNightPlan,
+  getRoleDisplayAs,
+  getRoleSpec,
+} from '@werewolf/game-engine/werewolf/models/roles';
 import { useMemo } from 'react';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -31,7 +35,7 @@ interface UseNightProgressParams {
   /** Current night step id (null when not in night phase) */
   currentStepId: SchemaId | null;
   /** Game state (for status + template.roles to build night plan) */
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
 }
 
 interface UseNightProgressResult {

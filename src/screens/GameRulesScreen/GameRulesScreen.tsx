@@ -7,7 +7,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
+import type { GameRuleOverrides } from '@werewolf/game-engine/werewolf/models/Template';
 import { type FC, useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';

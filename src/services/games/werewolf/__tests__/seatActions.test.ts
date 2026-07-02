@@ -1,0 +1,360 @@
+/**
+ * seatActions Unit Tests (HTTP API version)
+ *
+ * Tests seat operation orchestration layer (post-migration):
+ * - Unified HTTP API calls (Host / Player no longer distinguished)
+ * - takeSeat / takeSeatWithAck -> fetch POST /game/seat
+ * - leaveSeat / leaveSeatWithAck -> fetch POST /game/seat
+ * - NOT_CONNECTED guard (when roomCode / userId missing)
+ * - NETWORK_ERROR handling
+ *
+ * Via mock fetch (HTTP calls), only verifies orchestration logic; does not mock handler (server logic is elsewhere).
+ */
+
+import type { SeatActionsContext } from '@/services/games/werewolf/seatActions';
+import {
+  leaveSeat,
+  leaveSeatWithAck,
+  takeSeat,
+  takeSeatWithAck,
+} from '@/services/games/werewolf/seatActions';
+
+jest.mock('@/utils/logger', () => ({
+  facadeLog: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
+// fetchWithRetry passthrough: tests mock global.fetch directly,
+// so bypass network-layer retry to avoid delays and timer interference.
+jest.mock('@/services/cloudflare/cfFetch', () => ({
+  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
+    '@/services/cloudflare/cfFetch',
+  ),
+  fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
+}));
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+function createMockCtx(overrides?: Partial<SeatActionsContext>): SeatActionsContext {
+  return {
+    myUserId: 'test-uid',
+    getRoomCode: () => 'ABCD',
+    ...overrides,
+  };
+}
+
+/** Create mock fetch response */
+function mockFetchSuccess(body: Record<string, unknown> = { success: true }): jest.Mock {
+  return jest.fn().mockResolvedValue({
+    ok: true,
+    headers: { get: () => 'application/json' },
+    json: () => Promise.resolve(body),
+  });
+}
+
+function mockFetchFailure(reason: string): jest.Mock {
+  return jest.fn().mockResolvedValue({
+    ok: true,
+    headers: { get: () => 'application/json' },
+    json: () => Promise.resolve({ success: false, reason }),
+  });
+}
+
+function mockFetchNetworkError(): jest.Mock {
+  return jest.fn().mockRejectedValue(new Error('Network request failed'));
+}
+
+// =============================================================================
+// Tests
+// =============================================================================
+
+describe('seatActions (HTTP API)', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  // ===========================================================================
+  // takeSeatWithAck
+  // ===========================================================================
+
+  describe('takeSeatWithAck', () => {
+    it('should call fetch with correct params', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx();
+
+      const result = await takeSeatWithAck(ctx, 2, {
+        displayName: 'Alice',
+        avatarUrl: 'https://avatar.url',
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/game/seat'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'x-region': 'us-west-1',
+            'x-request-id': expect.any(String) as string,
+          }) as Record<string, string>,
+          body: JSON.stringify({
+            roomCode: 'ABCD',
+            action: 'sit',
+            userId: 'test-uid',
+            seat: 2,
+            displayName: 'Alice',
+            avatarUrl: 'https://avatar.url',
+          }),
+        }),
+      );
+    });
+
+    it('should return reason on server rejection', async () => {
+      global.fetch = mockFetchFailure('seat_taken');
+      const ctx = createMockCtx();
+
+      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'seat_taken' });
+    });
+
+    it('should return NOT_CONNECTED when roomCode is null', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx({ getRoomCode: () => null });
+
+      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should return NOT_CONNECTED when myUserId is null', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx({ myUserId: null });
+
+      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = mockFetchNetworkError();
+      const ctx = createMockCtx();
+
+      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'NETWORK_ERROR' });
+    });
+
+    it('should handle game_in_progress reason', async () => {
+      global.fetch = mockFetchFailure('game_in_progress');
+      const ctx = createMockCtx();
+
+      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'game_in_progress' });
+    });
+
+    it('should handle invalid_seat reason', async () => {
+      global.fetch = mockFetchFailure('invalid_seat');
+      const ctx = createMockCtx();
+
+      const result = await takeSeatWithAck(ctx, 999, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: false, reason: 'invalid_seat' });
+    });
+
+    it('should send displayName and omit optional avatarUrl when not provided', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx();
+
+      await takeSeatWithAck(ctx, 1, { displayName: 'Alice' });
+
+      const body = JSON.parse(
+        (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
+      ) as Record<string, unknown>;
+      expect(body.displayName).toBe('Alice');
+      expect(body.avatarUrl).toBeUndefined();
+    });
+  });
+
+  // ===========================================================================
+  // takeSeat (boolean wrapper)
+  // ===========================================================================
+
+  describe('takeSeat', () => {
+    it('should return true on success', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx();
+
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false on failure', async () => {
+      global.fetch = mockFetchFailure('seat_taken');
+      const ctx = createMockCtx();
+
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false on NOT_CONNECTED', async () => {
+      const ctx = createMockCtx({ getRoomCode: () => null });
+
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // leaveSeatWithAck
+  // ===========================================================================
+
+  describe('leaveSeatWithAck', () => {
+    it('should call fetch with standup action', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx();
+
+      const result = await leaveSeatWithAck(ctx);
+
+      expect(result).toEqual({ success: true });
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/game/seat'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            roomCode: 'ABCD',
+            action: 'standup',
+            userId: 'test-uid',
+          }),
+        }),
+      );
+    });
+
+    it('should return reason on server rejection', async () => {
+      global.fetch = mockFetchFailure('game_in_progress');
+      const ctx = createMockCtx();
+
+      const result = await leaveSeatWithAck(ctx);
+
+      expect(result).toEqual({ success: false, reason: 'game_in_progress' });
+    });
+
+    it('should return NOT_CONNECTED when roomCode is null', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx({ getRoomCode: () => null });
+
+      const result = await leaveSeatWithAck(ctx);
+
+      expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+      expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('should return NETWORK_ERROR on fetch failure', async () => {
+      global.fetch = mockFetchNetworkError();
+      const ctx = createMockCtx();
+
+      const result = await leaveSeatWithAck(ctx);
+
+      expect(result).toEqual({ success: false, reason: 'NETWORK_ERROR' });
+    });
+  });
+
+  // ===========================================================================
+  // leaveSeat (boolean wrapper)
+  // ===========================================================================
+
+  describe('leaveSeat', () => {
+    it('should return true on success', async () => {
+      global.fetch = mockFetchSuccess();
+      const ctx = createMockCtx();
+
+      const result = await leaveSeat(ctx);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false on failure', async () => {
+      global.fetch = mockFetchFailure('not_seated');
+      const ctx = createMockCtx();
+
+      const result = await leaveSeat(ctx);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // Server Response (store.applySnapshot)
+  // ===========================================================================
+
+  describe('server response (store.applySnapshot)', () => {
+    function createMockStore(currentState: Record<string, unknown> | null = null) {
+      return {
+        getState: jest.fn().mockReturnValue(currentState),
+        applySnapshot: jest.fn(),
+      };
+    }
+
+    it('should call store.applySnapshot when response contains state + revision', async () => {
+      const mockState = { roomCode: 'ABCD', players: {} };
+      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 5 });
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
+
+      await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+
+      expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 5);
+    });
+
+    it('should NOT call applySnapshot when response has no state', async () => {
+      global.fetch = mockFetchSuccess({ success: true });
+      const mockStore = createMockStore({ roomCode: 'ABCD', players: {} });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
+
+      await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+
+      expect(mockStore.applySnapshot).not.toHaveBeenCalled();
+    });
+
+    it('should NOT crash when ctx has no store', async () => {
+      global.fetch = mockFetchSuccess({ success: true, state: { roomCode: 'X' }, revision: 1 });
+      const ctx = createMockCtx(); // no store
+
+      const result = await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+
+      expect(result).toEqual({ success: true, state: { roomCode: 'X' }, revision: 1 });
+    });
+
+    it('should call store.applySnapshot on leaveSeatWithAck response', async () => {
+      const mockState = { roomCode: 'ABCD', players: {} };
+      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
+      const mockStore = createMockStore({
+        roomCode: 'ABCD',
+        players: { 1: { userId: 'test-uid', seat: 1 } },
+      });
+      const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
+
+      await leaveSeatWithAck(ctx);
+
+      expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
+    });
+  });
+});

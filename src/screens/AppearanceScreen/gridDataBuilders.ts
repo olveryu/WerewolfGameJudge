@@ -1,3 +1,4 @@
+import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import {
   isFlairUnlocked,
   isFrameUnlocked,
@@ -5,7 +6,7 @@ import {
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
 } from '@werewolf/game-engine/growth/frameUnlock';
-import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';

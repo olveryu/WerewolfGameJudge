@@ -5,7 +5,7 @@
  * depending on whether the schema is confirm, compound, or simple.
  */
 
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import { roomScreenLog } from '@/utils/logger';
 

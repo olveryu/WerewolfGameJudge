@@ -6,7 +6,7 @@
  */
 
 import type { FibState } from '@werewolf/game-engine/fibking/types';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import {
   getRoomLifecycleCapabilities,

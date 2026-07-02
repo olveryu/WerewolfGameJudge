@@ -9,8 +9,8 @@
  * 2. SERVER-DATA-REQUIRED: Reveal dialogs requiring server broadcast data (covered by integration tests)
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/werewolf/models/Template';
 
 import type { DialogType } from './RoomScreenTestHarness';
 

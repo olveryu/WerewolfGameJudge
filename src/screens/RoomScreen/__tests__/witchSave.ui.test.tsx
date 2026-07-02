@@ -9,9 +9,9 @@
  */
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import type { CompoundSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
@@ -55,8 +55,8 @@ const makeMock = (overrides?: { canSave?: boolean; killedSeat?: number }) =>
 
 let mockUseGameRoomReturn: ReturnType<typeof makeMock>;
 
-jest.mock('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 describe('RoomScreen witch save UI (contract)', () => {

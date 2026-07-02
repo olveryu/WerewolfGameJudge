@@ -1,0 +1,294 @@
+/**
+ * Role Specs Contract Tests
+ *
+ * Validates the ROLE_SPECS registry against the authoritative requirements.
+ */
+
+import {
+  getAllRoleIds,
+  getRoleSpec,
+  isValidRoleId,
+  NIGHT_STEPS,
+  ROLE_SPECS,
+  type RoleId,
+} from '@werewolf/game-engine/werewolf/models/roles/spec';
+import type { RoleSpec } from '@werewolf/game-engine/werewolf/models/roles/spec/roleSpec.types';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
+import { Faction, Team } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
+
+describe('ROLE_SPECS contract', () => {
+  it('should have exactly 43 roles', () => {
+    expect(getAllRoleIds()).toHaveLength(46);
+  });
+
+  it('every role should have required fields', () => {
+    for (const [id, spec] of Object.entries(ROLE_SPECS) as [RoleId, RoleSpec][]) {
+      expect(spec.id).toBe(id);
+      expect(spec.displayName).toBeTruthy();
+      expect(spec.faction).toBeDefined();
+      expect(Object.values(Team)).toContain(spec.team);
+    }
+  });
+
+  it('roles with nightSteps should appear at least once in NIGHT_STEPS', () => {
+    const rolesWithSteps = getAllRoleIds().filter(
+      (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
+    );
+    const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
+
+    for (const roleId of rolesWithSteps) {
+      const count = rolesInSteps.filter((r) => r === roleId).length;
+      expect(count).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  describe('witch spec', () => {
+    it('witch save action should have notSelf constraint and confirmTarget kind in schema', () => {
+      // Night-1-only: witch cannot self-save rule is defined in witchAction.steps[0].constraints
+      // save is confirmTarget kind: the target is fixed (the killed player), user only confirms
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      expect(witchSchema.kind).toBe('compound');
+      const saveStep = witchSchema.steps.find((s) => s.key === 'save');
+      expect(saveStep).toBeDefined();
+      expect(saveStep!.kind).toBe('confirmTarget'); // Fixed target, user confirms
+      expect(saveStep!.constraints).toContain(TargetConstraint.NotSelf);
+    });
+
+    it('witch poison action should have chooseSeat kind', () => {
+      const witchSchema = SCHEMAS.witchAction as CompoundSchema;
+      const poisonStep = witchSchema.steps.find((s) => s.key === 'poison');
+      expect(poisonStep).toBeDefined();
+      expect(poisonStep!.kind).toBe('chooseSeat'); // User selects target
+    });
+  });
+
+  describe('spiritKnight spec', () => {
+    it('should have recognition with canSeeWolves=true and participatesInWolfVote=true', () => {
+      expect(ROLE_SPECS.spiritKnight.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.spiritKnight.recognition?.participatesInWolfVote).toBe(true);
+    });
+
+    it('should have wolfAttack, poison, and nightDamage immunities', () => {
+      const kinds = ROLE_SPECS.spiritKnight.immunities?.map((i) => i.kind) ?? [];
+      expect(kinds).toContain('wolfAttack');
+      expect(kinds).toContain('poison');
+      expect(kinds).toContain('nightDamage');
+    });
+  });
+
+  describe('gargoyle and wolfRobot specs', () => {
+    it('gargoyle should not see wolves and not participate in vote', () => {
+      expect(ROLE_SPECS.gargoyle.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.gargoyle.recognition?.participatesInWolfVote).toBe(false);
+    });
+
+    it('awakenedGargoyle should see wolves and participate in vote', () => {
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.awakenedGargoyle.recognition?.participatesInWolfVote).toBe(true);
+    });
+
+    it('wolfRobot should not see wolves and not participate in vote', () => {
+      expect(ROLE_SPECS.wolfRobot.recognition?.canSeeWolves).toBe(false);
+      expect(ROLE_SPECS.wolfRobot.recognition?.participatesInWolfVote).toBe(false);
+    });
+  });
+
+  describe('dreamcatcher spec', () => {
+    it('dreamcatcher step should use audioKey "dreamcatcher" in NIGHT_STEPS', () => {
+      const step = NIGHT_STEPS.find((s) => s.roleId === 'dreamcatcher');
+      expect(step?.audioKey).toBe('dreamcatcher');
+    });
+
+    it('should NOT have a "celebrity" key in ROLE_SPECS', () => {
+      expect(isValidRoleId('celebrity')).toBe(false);
+    });
+  });
+
+  describe('nightmare spec', () => {
+    // NOTE: actsSolo test removed - visibility is now derived from schema.meeting
+    // Nightmare acts solo because nightmareBlock is kind='chooseSeat', not 'wolfVote'
+
+    it('should participate in wolf meeting (canSeeWolves=true, participatesInWolfVote=true)', () => {
+      expect(ROLE_SPECS.nightmare.recognition?.canSeeWolves).toBe(true);
+      expect(ROLE_SPECS.nightmare.recognition?.participatesInWolfVote).toBe(true);
+    });
+
+    it('nightmare should come before wolf in NIGHT_STEPS', () => {
+      const roleOrder = NIGHT_STEPS.map((s) => s.roleId);
+      expect(roleOrder.indexOf('nightmare')).toBeLessThan(roleOrder.indexOf('wolf'));
+    });
+  });
+
+  describe('night-1 action roles', () => {
+    const expectedNight1Roles: RoleId[] = [
+      'thief', // first to act (bottom card)
+      'magician', // -2
+      'slacker', // -1
+      'wildChild', // -1
+      'shadow', // -0.5
+      'avenger', // -0.4
+      'cupid', // after bottom card, before special roles
+      'wolfRobot', // 0
+      'dreamcatcher', // 1
+      'gargoyle', // 1
+      'awakenedGargoyle', // new
+      'eclipseWolfQueen', // before nightmare
+      'nightmare', // 2
+      'guard', // 3
+      'silenceElder', // 3.5
+      'votebanElder', // 3.6
+      'crow', // 4
+      'wolf', // 5
+      'wolfQueen', // 6
+      'hiddenWolf', // confirm (after wolfQueenCharm)
+      'witch', // 10
+      'poisoner', // 11
+      'wolfWitch', // 14
+      'seer', // 15
+      'mirrorSeer', // 15.5
+      'drunkSeer', // 15.6
+      'pureWhite', // 16
+      'psychic', // 16
+      'hunter', // 20
+      'darkWolfKing', // 25
+      'piper', // 30
+      'treasureMaster', // 0 (first to act)
+    ];
+
+    it('should have correct night-1 action roles', () => {
+      const actualNight1Roles = getAllRoleIds().filter(
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) > 0,
+      );
+      const sortedActual = [...actualNight1Roles].sort((a, b) => a.localeCompare(b));
+      const sortedExpected = [...expectedNight1Roles].sort((a, b) => a.localeCompare(b));
+      expect(sortedActual).toEqual(sortedExpected);
+    });
+  });
+
+  describe('no night-1 action roles', () => {
+    const expectedNoActionRoles: RoleId[] = [
+      'villager',
+      'idiot',
+      'knight',
+      'witcher',
+      'graveyardKeeper',
+      'wolfKing',
+      'bloodMoon',
+      'spiritKnight',
+      'dancer',
+      'masquerade',
+      'warden',
+      'maskedMan',
+      'sequencePrince',
+      'cursedFox',
+    ];
+
+    it('should have correct no-action roles', () => {
+      const actualNoActionRoles = getAllRoleIds().filter(
+        (id: RoleId) => ((ROLE_SPECS[id] as RoleSpec).nightSteps?.length ?? 0) === 0,
+      );
+      const sortedActual = [...actualNoActionRoles].sort((a, b) => a.localeCompare(b));
+      const sortedExpected = [...expectedNoActionRoles].sort((a, b) => a.localeCompare(b));
+      expect(sortedActual).toEqual(sortedExpected);
+    });
+
+    it('graveyardKeeper should have no nightSteps (no info on night-1)', () => {
+      expect((ROLE_SPECS.graveyardKeeper as RoleSpec).nightSteps).toBeUndefined();
+    });
+
+    it('witcher should have no nightSteps (starts from night-2)', () => {
+      expect((ROLE_SPECS.witcher as RoleSpec).nightSteps).toBeUndefined();
+    });
+  });
+
+  describe('wolf meeting configuration', () => {
+    const wolfPackMembers: RoleId[] = [
+      'wolf',
+      'wolfQueen',
+      'wolfKing',
+      'darkWolfKing',
+      'nightmare',
+      'bloodMoon',
+      'spiritKnight',
+      'wolfWitch',
+      'awakenedGargoyle',
+    ];
+
+    const loneWolves: RoleId[] = ['gargoyle', 'wolfRobot'];
+
+    it('wolf pack members should see wolves and participate in vote', () => {
+      for (const roleId of wolfPackMembers) {
+        const spec: RoleSpec = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(true);
+        expect(spec.recognition?.participatesInWolfVote).toBe(true);
+      }
+    });
+
+    it('lone wolves should not see wolves and not participate in vote', () => {
+      for (const roleId of loneWolves) {
+        const spec: RoleSpec = ROLE_SPECS[roleId];
+        expect(spec.recognition?.canSeeWolves).toBe(false);
+        expect(spec.recognition?.participatesInWolfVote).toBe(false);
+      }
+    });
+  });
+
+  describe('seer check rule (team field)', () => {
+    it('all wolf-faction roles should have team=Team.Wolf (except hiddenWolf)', () => {
+      const wolfRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.Wolf);
+      for (const roleId of wolfRoles) {
+        if (roleId === 'hiddenWolf') {
+          // hiddenWolf checks as Good — design intent
+          expect(ROLE_SPECS[roleId].team).toBe(Team.Good);
+        } else {
+          expect(ROLE_SPECS[roleId].team).toBe(Team.Wolf);
+        }
+      }
+    });
+
+    it('slacker should have team=Team.Third (for UI display)', () => {
+      expect(ROLE_SPECS.slacker.team).toBe(Team.Third);
+    });
+
+    it('god roles should have team=Team.Good', () => {
+      const godRoles = getAllRoleIds().filter((id) => ROLE_SPECS[id].faction === Faction.God);
+      for (const roleId of godRoles) {
+        expect(ROLE_SPECS[roleId].team).toBe(Team.Good);
+      }
+    });
+  });
+
+  describe('nightSteps ↔ NIGHT_STEPS alignment (M3c contract)', () => {
+    it('nightSteps presence should match NIGHT_STEPS presence for all roles', () => {
+      const stepsRoleIds = new Set(NIGHT_STEPS.map((s) => s.roleId));
+
+      for (const roleId of getAllRoleIds()) {
+        const spec: RoleSpec = ROLE_SPECS[roleId];
+        const hasStepInNightSteps = stepsRoleIds.has(roleId);
+        const hasNightSteps = (spec.nightSteps?.length ?? 0) > 0;
+        expect(hasNightSteps).toBe(hasStepInNightSteps);
+      }
+    });
+  });
+
+  describe('helper functions', () => {
+    it('getRoleSpec should return correct spec', () => {
+      const seerSpec = getRoleSpec('seer');
+      expect(seerSpec.displayName).toBe('预言家');
+    });
+
+    it('isValidRoleId should return true for valid IDs', () => {
+      expect(isValidRoleId('seer')).toBe(true);
+      expect(isValidRoleId('witch')).toBe(true);
+    });
+
+    it('isValidRoleId should return false for invalid IDs', () => {
+      expect(isValidRoleId('celebrity')).toBe(false);
+      expect(isValidRoleId('unknown')).toBe(false);
+    });
+  });
+});

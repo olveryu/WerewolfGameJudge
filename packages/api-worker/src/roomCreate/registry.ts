@@ -1,19 +1,18 @@
-import {
-  buildInitialWerewolfState,
-  type WerewolfCreateConfig,
-} from '@werewolf/game-engine/engine/state/buildInitialState';
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
-import { FIB_GAME_TYPE } from '@werewolf/game-engine/fibking/types';
-import { isValidRoleId } from '@werewolf/game-engine/models/roles';
+import { FIB_GAME_TYPE, WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import { isValidRoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import {
   type GameTemplate,
   getPlayerCount,
   validateTemplateRoles,
-} from '@werewolf/game-engine/models/Template';
-import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+} from '@werewolf/game-engine/werewolf/models/Template';
+import {
+  buildInitialWerewolfState,
+  type WerewolfCreateConfig,
+} from '@werewolf/game-engine/werewolf/state/buildInitialWerewolfState';
 import { z } from 'zod';
 
-import { fibCreateConfigSchema } from '../schemas/fib';
+import { fibCreateConfigSchema } from '../games/fibking/schemas/fibSchemas';
 
 interface CreateStateContext {
   roomCode: string;

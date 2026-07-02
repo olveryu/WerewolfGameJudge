@@ -2,8 +2,7 @@
  * roomCreateRegistry — per-gameType create config contracts.
  */
 
-import { FIB_GAME_TYPE } from '@werewolf/game-engine/fibking/types';
-import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import { FIB_GAME_TYPE, WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
 import { createInitialRoomState } from '../roomCreate/registry';

@@ -8,7 +8,7 @@
  * - NightFlowController (night flow state machine)
  * - DeathCalculator (death calculation)
  *
- * UI/hooks should only interact via GameFacade or transport layer.
+ * UI/hooks should only interact via WerewolfFacade or transport layer.
  */
 
 import fs from 'node:fs';
@@ -72,8 +72,8 @@ describe('Server authority import boundary', () => {
     /from\s+['"][.\/]+services\/engine\/resolveWolfVotes/,
     // eslint-disable-next-line no-useless-escape
     /from\s+['"][.\/]+services\/night\/resolvers/,
-    // Direct imports from gameReducer
-    /from\s+['"].*gameReducer/,
+    // Direct imports from werewolfReducer
+    /from\s+['"].*werewolfReducer/,
     // Direct imports from resolvers index
     /from\s+['"].*resolvers.*['"]\s*;?\s*$/m,
   ];
@@ -97,10 +97,10 @@ describe('Server authority import boundary', () => {
     for (const pattern of forbiddenPatterns) {
       const match = content.match(pattern);
       if (match) {
-        fail(
+        throw new Error(
           `File ${filePath} imports server-authority module: "${match[0]}"\n` +
             'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
-            'Use GameFacade or transport layer instead.',
+            'Use WerewolfFacade or transport layer instead.',
         );
       }
     }

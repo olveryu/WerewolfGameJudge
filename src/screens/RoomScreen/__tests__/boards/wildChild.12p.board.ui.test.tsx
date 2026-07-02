@@ -18,8 +18,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import {
   chainConfirmTrigger,
@@ -91,8 +91,8 @@ const _board = getBoardByName(BOARD_NAME)!;
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 // =============================================================================

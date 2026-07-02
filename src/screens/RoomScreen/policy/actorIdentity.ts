@@ -16,20 +16,20 @@
  * Does not provide default values (null means fail-fast at caller).
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 /**
  * Input for actor identity calculation.
- * All fields come from useGameRoom.
+ * All fields come from useWerewolfRoom.
  */
 interface ActorIdentityInput {
   /** My real seat number (null if not seated) */
   mySeat: number | null;
   /** My real role (null if no role assigned) */
   myRole: RoleId | null;
-  /** Effective seat (= controlledSeat ?? mySeat, computed by useGameRoom) */
+  /** Effective seat (= controlledSeat ?? mySeat, computed by useWerewolfRoom) */
   effectiveSeat: number | null;
-  /** Effective role (= role of effectiveSeat, computed by useGameRoom) */
+  /** Effective role (= role of effectiveSeat, computed by useWerewolfRoom) */
   effectiveRole: RoleId | null;
   /** Currently controlled bot seat (null if not controlling) */
   controlledSeat: number | null;
@@ -71,7 +71,7 @@ interface ActorIdentity {
  * - Delegating: use bot identity (effectiveSeat, effectiveRole)
  *   with consistency check (effectiveSeat must equal controlledSeat)
  *
- * @param input - Identity fields from useGameRoom
+ * @param input - Identity fields from useWerewolfRoom
  * @returns Actor identity for UI, with null values if invalid/inconsistent
  */
 export function getActorIdentity(input: ActorIdentityInput): ActorIdentity {

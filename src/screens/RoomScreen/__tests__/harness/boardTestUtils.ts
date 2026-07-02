@@ -6,20 +6,20 @@
  */
 
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import { getSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { getSchema, SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
+import { Team } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
+import type { ConfirmStatus } from '@werewolf/game-engine/werewolf/protocol/types';
 import React from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 
+import type { LocalWerewolfPlayer } from '@/hooks/adapters/werewolfStateTypes';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { TESTIDS } from '@/testids';
-import type { LocalPlayer } from '@/types/GameStateTypes';
 
 import { type RoomScreenTestHarness } from './RoomScreenTestHarness';
 
@@ -132,8 +132,8 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   } = options;
 
   // Build players map
-  const players = new Map<number, LocalPlayer>(
-    Array.from({ length: numberOfPlayers }).map((_, i): [number, LocalPlayer] => {
+  const players = new Map<number, LocalWerewolfPlayer>(
+    Array.from({ length: numberOfPlayers }).map((_, i): [number, LocalWerewolfPlayer] => {
       const role = roleAssignments?.get(i) ?? (i === mySeat ? myRole : 'villager');
       return [
         i,
@@ -183,7 +183,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   };
 
   return {
-    // Facade stub — useNotepad (called via useRoomScreenState) only needs getState()
+    // Facade stub — useWerewolfNotepad (called via useRoomScreenState) only needs getState()
     facade: { getState: () => gameState },
 
     gameState,

@@ -42,7 +42,7 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 
 describe('hard gates (contract)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
-  const facadeRoot = path.join(repoRoot, 'src/services/facade');
+  const werewolfServiceRoot = path.join(repoRoot, 'src/services/games/werewolf');
   const engineRoot = path.join(repoRoot, 'packages/game-engine/src/engine');
 
   it('forbids dynamic require() in game-engine/engine/** (non-tests)', () => {
@@ -53,16 +53,16 @@ describe('hard gates (contract)', () => {
     expect(matches).toEqual([]);
   });
 
-  it('forbids Facade-level progression evaluators (no evaluateAndExecuteProgression)', () => {
-    const matches = scanDirForNeedle(facadeRoot, 'evaluateAndExecuteProgression');
+  it('forbids client-level progression evaluators (no evaluateAndExecuteProgression)', () => {
+    const matches = scanDirForNeedle(werewolfServiceRoot, 'evaluateAndExecuteProgression');
     expect(matches).toEqual([]);
   });
 
-  it('forbids progression-controller symbols in facade (tracker/controller must be in handlers)', () => {
+  it('forbids progression-controller symbols in client services (tracker/controller must be in handlers)', () => {
     const forbiddenNeedles = ['progressionTracker', 'tryAdvanceNight'];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(facadeRoot, needle).filter(
+      scanDirForNeedle(werewolfServiceRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );
@@ -70,9 +70,9 @@ describe('hard gates (contract)', () => {
     expect(matches).toEqual([]);
   });
 
-  it('forbids facade from implementing chained/conditional advance/end-night orchestration', () => {
-    // Hard gate: facade must not implement auto-advance logic (even under different names).
-    // Allow facade to expose simple methods that forward to gameActions, but disallow
+  it('forbids client services from implementing chained/conditional advance/end-night orchestration', () => {
+    // Hard gate: client services must not implement auto-advance logic (even under different names).
+    // Allow WerewolfFacade to expose simple methods that forward to gameActions, but disallow
     // any conditional/recursive orchestration around those calls.
     const forbiddenNeedles = [
       'if (decision.action',
@@ -81,14 +81,14 @@ describe('hard gates (contract)', () => {
       'await advanceNight(',
       'await endNight(',
       'return tryAdvanceNight',
-      // facade is allowed to *call* handleNightProgression once as a pure forwarder,
+      // client services may *call* handleNightProgression once as a pure forwarder,
       // but is not allowed to use its return value to orchestrate additional progress.
       // We can't reliably enforce "only once" with simple string scans, so we enforce
       // the known dangerous orchestration patterns above.
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(facadeRoot, needle).filter(
+      scanDirForNeedle(werewolfServiceRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );

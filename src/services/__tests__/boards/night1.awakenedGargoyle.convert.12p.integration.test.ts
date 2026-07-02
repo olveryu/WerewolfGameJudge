@@ -17,13 +17,13 @@
  * Core rules:
  * - awakenedGargoyleConvert: chooseSeat (AdjacentToWolfFaction constraint)
  * - target must be adjacent to a wolf faction seat (swap-aware)
- * - conversion result written to GameState.convertedSeat
+ * - conversion result written to WerewolfState.convertedSeat
  * - awakenedGargoyleConvertReveal: groupConfirm (auto-completes)
  *
- * Architecture: intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';

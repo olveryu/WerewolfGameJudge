@@ -1,4 +1,4 @@
-import { type RoleId } from '@werewolf/game-engine/models/roles';
+import { type RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 // Mock logger
 const mockAudioLogWarn = jest.fn();
@@ -98,7 +98,7 @@ jest.mock('../../../../assets/audio_end/seer_1.mp3', () => 'seer_1-end-audio', {
 jest.mock('../../../../assets/audio_end/seer_2.mp3', () => 'seer_2-end-audio', { virtual: true });
 
 // Now import AudioService after mocks are set up
-import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+import { NIGHT_STEPS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 import {
@@ -318,7 +318,7 @@ describe('AudioService - Stop current player', () => {
 
     // Second call should have paused the first player (player kept for reuse on iOS Safari)
     expect(mockPause).toHaveBeenCalled();
-    // Note: remove() is no longer called - player is reused for iOS Safari compatibility
+    // Note: remove() is no longer called - player is reused for iOS Safari.
     expect(createAudioPlayer).toHaveBeenCalledTimes(2);
 
     // Consume pending timers to avoid open handles

@@ -2,15 +2,12 @@
  * fibking generic-engine DO path — integration tests.
  *
  * Exercises GameRoom.initState + dispatch through the real Durable Object (Workers runtime),
- * proving the engine registry wiring end-to-end and that werewolf bespoke methods are untouched.
+ * proving the engine registry wiring end-to-end across game types.
  */
 
 import { fibEngine } from '@werewolf/game-engine/fibking/engine';
-import {
-  FIB_DEFAULT_PLAYERS,
-  FIB_GAME_TYPE,
-  type FibState,
-} from '@werewolf/game-engine/fibking/types';
+import { FIB_DEFAULT_PLAYERS, type FibState } from '@werewolf/game-engine/fibking/types';
+import { FIB_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';

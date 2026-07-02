@@ -6,8 +6,8 @@
  * no `setTimeout` (phase transitions driven via `` callback).
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';

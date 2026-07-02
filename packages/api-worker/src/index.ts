@@ -32,16 +32,16 @@ export { GameRoom } from './durableObjects/GameRoom';
 export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 
 // Route groups
+import { fibRoutes } from './games/fibking/handlers/fibRoutes';
+import { gameRoutes } from './games/werewolf/handlers/gameControlRoutes';
+import { nightRoutes } from './games/werewolf/handlers/nightRoutes';
 import { adminRoutes } from './handlers/adminHandlers';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
 import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
-import { fibRoutes } from './handlers/fibHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
-import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
-import { nightRoutes } from './handlers/night';
 import { roomRoutes } from './handlers/roomHandlers';
 import { callDO, getGameRoomStub } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';

@@ -10,25 +10,45 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
-    "./models/*": {
-      "types": "./src/models/*.ts",
-      "default": "./dist/models/*.js"
-    },
-    "./models/roles": {
-      "types": "./src/models/roles/index.ts",
-      "default": "./dist/models/roles/index.js"
-    },
-    "./models/roles/*": {
-      "types": "./src/models/roles/*.ts",
-      "default": "./dist/models/roles/*.js"
-    },
-    "./models/actions/*": {
-      "types": "./src/models/actions/*.ts",
-      "default": "./dist/models/actions/*.js"
-    },
     "./engine/*": {
       "types": "./src/engine/*.ts",
       "default": "./dist/engine/*.js"
+    },
+    "./werewolf/*": {
+      "types": "./src/werewolf/*.ts",
+      "default": "./dist/werewolf/*.js"
+    },
+    "./werewolf/store": {
+      "types": "./src/werewolf/store/index.ts",
+      "default": "./dist/werewolf/store/index.js"
+    },
+    "./werewolf/store/*": {
+      "types": "./src/werewolf/store/*.ts",
+      "default": "./dist/werewolf/store/*.js"
+    },
+    "./werewolf/protocol/*": {
+      "types": "./src/werewolf/protocol/*.ts",
+      "default": "./dist/werewolf/protocol/*.js"
+    },
+    "./werewolf/models/*": {
+      "types": "./src/werewolf/models/*.ts",
+      "default": "./dist/werewolf/models/*.js"
+    },
+    "./werewolf/models/roles": {
+      "types": "./src/werewolf/models/roles/index.ts",
+      "default": "./dist/werewolf/models/roles/index.js"
+    },
+    "./werewolf/models/roles/*": {
+      "types": "./src/werewolf/models/roles/*.ts",
+      "default": "./dist/werewolf/models/roles/*.js"
+    },
+    "./werewolf/models/actions/*": {
+      "types": "./src/werewolf/models/actions/*.ts",
+      "default": "./dist/werewolf/models/actions/*.js"
+    },
+    "./werewolf/resolvers/*": {
+      "types": "./src/werewolf/resolvers/*.ts",
+      "default": "./dist/werewolf/resolvers/*.js"
     },
     "./fibking/*": {
       "types": "./src/fibking/*.ts",
@@ -42,25 +62,13 @@
       "types": "./src/engine/store/*.ts",
       "default": "./dist/engine/store/*.js"
     },
-    "./engine/state/*": {
-      "types": "./src/engine/state/*.ts",
-      "default": "./dist/engine/state/*.js"
-    },
-    "./engine/reducer/*": {
-      "types": "./src/engine/reducer/*.ts",
-      "default": "./dist/engine/reducer/*.js"
-    },
     "./protocol/*": {
       "types": "./src/protocol/*.ts",
       "default": "./dist/protocol/*.js"
     },
-    "./types/*": {
-      "types": "./src/types/*.ts",
-      "default": "./dist/types/*.js"
-    },
-    "./resolvers/*": {
-      "types": "./src/resolvers/*.ts",
-      "default": "./dist/resolvers/*.js"
+    "./cosmetics/*": {
+      "types": "./src/cosmetics/*.ts",
+      "default": "./dist/cosmetics/*.js"
     },
     "./utils/*": {
       "types": "./src/utils/*.ts",

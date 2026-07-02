@@ -9,7 +9,7 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
@@ -44,8 +44,8 @@ const makeBlockedPlayerMock = (overrides: Record<string, unknown> = {}) => {
 type MockReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
 let mockUseGameRoomReturn: MockReturn;
 
-jest.mock('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 describe('Nightmare Blocked UI (server-authoritative)', () => {

@@ -6,14 +6,14 @@
  * Long descriptions automatically scale down to fit within the card.
  * Renders the role card content UI; extends the bottom button area via children slot. No service imports, no business logic.
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import {
   getRoleDisplayAs,
   getRoleSpec,
   getRoleStructuredDescription,
   isWolfRole,
-} from '@werewolf/game-engine/models/roles';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+} from '@werewolf/game-engine/werewolf/models/roles';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useEffect, useMemo } from 'react';

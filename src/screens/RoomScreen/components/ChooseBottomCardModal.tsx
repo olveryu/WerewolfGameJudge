@@ -5,7 +5,7 @@
  * Tapping a selectable card shows a confirmation dialog; on confirm, submits via onChoose(cardIndex) callback.
  * No service imports, no business logic.
  */
-import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName, type RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 import {

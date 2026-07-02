@@ -5,9 +5,9 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
 import {
   useActionerState,

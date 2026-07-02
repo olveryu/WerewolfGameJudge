@@ -7,14 +7,14 @@
  * 3. Button only appears for wolfRobot step
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
+import { createTemplateFromRoles } from '@werewolf/game-engine/werewolf/models/Template';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 // Helper to create minimal game state
-function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState {
+function createMinimalState(overrides?: Partial<LocalWerewolfState>): LocalWerewolfState {
   return {
     roomCode: 'TEST',
     hostUserId: 'HOST',
@@ -43,7 +43,7 @@ function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState
 
 // Pure function to determine bottom action (extracted from useRoomActions logic)
 function getWolfRobotHunterGateBottomAction(
-  gameState: LocalGameState,
+  gameState: LocalWerewolfState,
   currentSchemaId: string | undefined,
 ): { showButton: boolean; buttonKey?: string; buttonLabel?: string } {
   if (!currentSchemaId) return { showButton: false };

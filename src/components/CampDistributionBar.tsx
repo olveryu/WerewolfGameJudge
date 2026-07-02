@@ -7,8 +7,8 @@
  * Used by SettingsScreen growth section (self) and room PlayerProfileCard (public).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { CampBucket } from '@werewolf/game-engine/models/roles';
-import { CAMP_ORDER } from '@werewolf/game-engine/models/roles';
+import type { CampBucket } from '@werewolf/game-engine/werewolf/models/roles';
+import { CAMP_ORDER } from '@werewolf/game-engine/werewolf/models/roles';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

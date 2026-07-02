@@ -3,7 +3,6 @@
  *
  * Single source of truth for types shared by EVERY game engine (werewolf, fibking, …).
  * This module must stay free of any game-specific imports (no RoleId / Team / GameStatus).
- * `protocol/types.ts` and `engine/handlers/types.ts` re-export from here for backward compatibility.
  *
  * ⚠️ Type-only definitions + frozen constants. No game logic, no game-specific imports.
  */

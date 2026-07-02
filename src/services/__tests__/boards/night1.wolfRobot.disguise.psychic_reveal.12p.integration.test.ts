@@ -17,10 +17,10 @@
  * - After wolfRobot learns a role, psychic check on wolfRobot shows disguisedRole
  * - When not learned, psychic check returns wolfRobot itself
  *
- * Architecture: intents -> handlers -> resolver(resolveRoleForChecks) -> GameState
+ * Architecture: intents -> handlers -> resolver(resolveRoleForChecks) -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

@@ -6,7 +6,7 @@
  * beyond the diagnostic log.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { useEffect, useMemo } from 'react';
 
 import { roomScreenLog } from '@/utils/logger';
@@ -22,9 +22,9 @@ interface UseRoomIdentityInput {
   mySeat: number | null;
   /** My real role (null if no role assigned) */
   myRole: RoleId | null;
-  /** Effective seat (= controlledSeat ?? mySeat, computed by useGameRoom) */
+  /** Effective seat (= controlledSeat ?? mySeat, computed by useWerewolfRoom) */
   effectiveSeat: number | null;
-  /** Effective role (= role of effectiveSeat, computed by useGameRoom) */
+  /** Effective role (= role of effectiveSeat, computed by useWerewolfRoom) */
   effectiveRole: RoleId | null;
   /** Currently controlled bot seat (null if not controlling) */
   controlledSeat: number | null;

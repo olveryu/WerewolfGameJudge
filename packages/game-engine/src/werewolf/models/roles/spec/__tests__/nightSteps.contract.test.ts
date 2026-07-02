@@ -1,0 +1,150 @@
+/**
+ * Night Steps Contract Tests
+ *
+ * Validates NIGHT_STEPS as the single source of truth for night action order.
+ */
+
+import { isValidRoleId, ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  getAllStepIds,
+  getStepsByRole,
+  getStepsByRoleStrict,
+  getStepSpec,
+  getStepSpecStrict,
+  NIGHT_STEPS,
+} from '@werewolf/game-engine/werewolf/models/roles/spec/nightSteps';
+import type { RoleSpec } from '@werewolf/game-engine/werewolf/models/roles/spec/roleSpec.types';
+import { isValidSchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
+
+describe('NIGHT_STEPS contract', () => {
+  describe('uniqueness', () => {
+    it('stepId should be unique', () => {
+      const stepIds = NIGHT_STEPS.map((s) => s.id);
+      const uniqueIds = new Set(stepIds);
+      expect(uniqueIds.size).toBe(stepIds.length);
+    });
+
+    it('array order should be stable (snapshot)', () => {
+      const stepIds = getAllStepIds();
+      expect(stepIds).toMatchSnapshot();
+    });
+  });
+
+  describe('reference validity', () => {
+    it('every roleId should be a valid RoleId', () => {
+      for (const step of NIGHT_STEPS) {
+        expect(isValidRoleId(step.roleId)).toBe(true);
+      }
+    });
+
+    it('step.id should be a valid SchemaId', () => {
+      // step.id serves as schemaId (single field design)
+      for (const step of NIGHT_STEPS) {
+        expect(isValidSchemaId(step.id)).toBe(true);
+      }
+    });
+
+    it('audioKey should be non-empty', () => {
+      for (const step of NIGHT_STEPS) {
+        expect(step.audioKey).toBeTruthy();
+      }
+    });
+
+    it('audioKey should match roleId for single-step roles, first step for multi-step roles', () => {
+      // AudioService.playRoleBeginningAudio/playRoleEndingAudio uses audioKey to look up audio
+      // Single-step roles: audioKey must match roleId
+      // Multi-step roles (e.g. piper): first step's audioKey must match roleId; subsequent steps may differ
+      const stepsByRole = new Map<
+        string,
+        typeof NIGHT_STEPS extends readonly (infer T)[] ? T[] : never
+      >();
+      for (const step of NIGHT_STEPS) {
+        const existing = stepsByRole.get(step.roleId) ?? [];
+        existing.push(step);
+        stepsByRole.set(step.roleId, existing);
+      }
+
+      for (const [roleId, steps] of stepsByRole) {
+        // First step must have audioKey === roleId
+        expect(steps[0]!.audioKey).toBe(roleId);
+        // Subsequent steps may have different audioKey (e.g. piperHypnotizedReveal)
+      }
+    });
+  });
+
+  describe('Night-1-only red line', () => {
+    it('should NOT contain cross-night fields', () => {
+      for (const step of NIGHT_STEPS) {
+        // Disallowed at TypeScript layer; runtime assertion here
+        const stepAny = step as unknown as Record<string, unknown>;
+        expect(stepAny.previousNight).toBeUndefined();
+        expect(stepAny.lastNight).toBeUndefined();
+        expect(stepAny.night2).toBeUndefined();
+      }
+    });
+  });
+
+  describe('alignment with ROLE_SPECS', () => {
+    it('every step.roleId must have nightSteps defined in ROLE_SPECS', () => {
+      for (const step of NIGHT_STEPS) {
+        const roleSpec: RoleSpec = ROLE_SPECS[step.roleId];
+        expect(roleSpec.nightSteps?.length ?? 0).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('every role with nightSteps should appear at least once in NIGHT_STEPS', () => {
+      const rolesWithSteps = (Object.entries(ROLE_SPECS) as [string, RoleSpec][])
+        .filter(([_, spec]) => (spec.nightSteps?.length ?? 0) > 0)
+        .map(([id]) => id);
+
+      const rolesInSteps = NIGHT_STEPS.map((s) => s.roleId);
+
+      // Each role with nightSteps should appear at least once
+      for (const roleId of rolesWithSteps) {
+        const count = rolesInSteps.filter((r) => r === roleId).length;
+        expect(count).toBeGreaterThanOrEqual(1);
+      }
+
+      // All unique roles in NIGHT_STEPS must have nightSteps defined
+      const uniqueRolesInSteps = [...new Set(rolesInSteps)];
+      expect(uniqueRolesInSteps.length).toBe(rolesWithSteps.length);
+    });
+  });
+
+  // NOTE: visibility contract was removed as part of schema-driven refactoring.
+  // Wolf meeting visibility is now derived from schema.kind === 'wolfVote' && schema.meeting.canSeeEachOther.
+
+  describe('helper functions', () => {
+    it('getStepSpec should return correct step', () => {
+      const seerStep = getStepSpec('seerCheck');
+      expect(seerStep?.roleId).toBe('seer');
+    });
+
+    it('getStepSpec should return undefined for invalid stepId', () => {
+      expect(getStepSpec('invalid')).toBeUndefined();
+    });
+
+    it('getStepSpecStrict should return correct step', () => {
+      const step = getStepSpecStrict('seerCheck');
+      expect(step.roleId).toBe('seer');
+    });
+
+    it('getStepsByRole should return steps for a role', () => {
+      const wolfSteps = getStepsByRole('wolf');
+      expect(wolfSteps).toHaveLength(1);
+      expect(wolfSteps[0]!.id).toBe('wolfKill');
+    });
+
+    it('getStepsByRoleStrict should return steps for a role', () => {
+      const wolfSteps = getStepsByRoleStrict('wolf');
+      expect(wolfSteps).toHaveLength(1);
+      expect(wolfSteps[0]!.id).toBe('wolfKill');
+    });
+
+    it('getAllStepIds should return all stepIds in order', () => {
+      const stepIds = getAllStepIds();
+      expect(stepIds.length).toBe(NIGHT_STEPS.length);
+      expect(stepIds[0]).toBe('thiefChoose');
+    });
+  });
+});

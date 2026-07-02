@@ -20,6 +20,7 @@
  * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
 
+import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import {
   isFlairUnlocked,
   isFrameUnlocked,
@@ -28,7 +29,7 @@ import {
   isSeatAnimationUnlocked,
 } from '@werewolf/game-engine/growth/frameUnlock';
 import { getLevel } from '@werewolf/game-engine/growth/level';
-import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 

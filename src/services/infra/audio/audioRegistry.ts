@@ -7,7 +7,7 @@
  * Contains only `require()` statements and data declarations — zero runtime logic.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import avengerBegin from '../../../../assets/audio/avenger.mp3';
 import awakenedGargoyleBegin from '../../../../assets/audio/awakened_gargoyle.mp3';

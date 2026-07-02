@@ -6,12 +6,12 @@
  * Pure functions, shared by client and server.
  */
 
+import { FREE_ROLE_REVEAL_EFFECT_IDS } from '../cosmetics/roleRevealEffects';
 import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
-  FREE_ROLE_REVEAL_EFFECT_IDS,
   FREE_SEAT_ANIMATION_IDS,
   REWARD_POOL,
   REWARD_POOL_BY_ID,

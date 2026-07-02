@@ -1,7 +1,7 @@
+import type { RoleRevealEffectId } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import type {
   NameStyleId,
   Rarity,
-  RoleRevealEffectId,
   SeatAnimationId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 

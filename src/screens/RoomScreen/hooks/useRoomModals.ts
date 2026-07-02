@@ -6,7 +6,7 @@
  * Excludes seat dialogs (managed by useRoomSeatDialogs) and action dialogs (managed by useRoomActionDialogs).
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { useCallback, useRef, useState } from 'react';
 
 import { DISMISS_BUTTON, showAlert } from '@/utils/alert';

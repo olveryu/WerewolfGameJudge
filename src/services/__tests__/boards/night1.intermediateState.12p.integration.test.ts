@@ -3,15 +3,15 @@
  *
  * Board: SeerWitchHunterIdiot (4 villager, 4 wolf, seer, witch, hunter, idiot)
  *
- * Purpose: step through Night-1 and assert key GameState fields after each action,
+ * Purpose: step through Night-1 and assert key WerewolfState fields after each action,
  * ensuring intermediate states are correct. Fills the gap left by tests that only check final results.
  *
  * Step order (SeerWitchHunterIdiot): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';
@@ -51,7 +51,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     cleanupGame();
   });
 
-  it('逐步断言每个步骤完成后的 GameState', () => {
+  it('逐步断言每个步骤完成后的 WerewolfState', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // --- Initial state ---

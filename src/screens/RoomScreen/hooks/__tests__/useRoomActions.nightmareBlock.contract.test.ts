@@ -12,24 +12,24 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import {
   type ActionDeps,
   type GameContext,
   useRoomActions,
 } from '@/screens/RoomScreen/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 // =============================================================================
 // Test Helpers
 // =============================================================================
 
-function makeGameState(): LocalGameState {
+function makeGameState(): LocalWerewolfState {
   return {
     template: { roles: ['wolf', 'wolf', 'seer'] },
-  } as unknown as LocalGameState;
+  } as unknown as LocalWerewolfState;
 }
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {

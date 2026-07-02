@@ -10,14 +10,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FIB_GAME_TYPE } from '@werewolf/game-engine/fibking/types';
+import { FIB_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import {
   Faction,
   getAllRoleIds,
   getRoleSpec,
   isWolfRole,
-} from '@werewolf/game-engine/models/roles';
-import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
+} from '@werewolf/game-engine/werewolf/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';

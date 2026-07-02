@@ -7,12 +7,12 @@
  */
 
 import type { GameEngine } from '../engine/registry/types';
+import { FIB_GAME_TYPE } from '../protocol/gameTypes';
 import { buildInitialFibState } from './buildInitialFibState';
 import { dispatchFib } from './dispatch';
 import { normalizeFibState } from './normalizeFibState';
 import { fibReducer } from './reducer';
 import type { FibAction, FibConfig, FibState } from './types';
-import { FIB_GAME_TYPE } from './types';
 
 export const fibEngine: GameEngine<FibState, FibAction, FibConfig> = {
   gameType: FIB_GAME_TYPE,

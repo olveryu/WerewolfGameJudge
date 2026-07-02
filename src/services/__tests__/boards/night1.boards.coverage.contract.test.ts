@@ -10,7 +10,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import { NIGHT_STEPS } from '@werewolf/game-engine/werewolf/models/roles/spec/nightSteps';
 
 // =============================================================================
 // Authoritative list: 10 12-player boards (from PRESET_TEMPLATES)

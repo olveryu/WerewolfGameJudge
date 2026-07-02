@@ -10,7 +10,7 @@
  * - Does NOT: reconnect, backoff, ping/pong timer, state management, platform event listeners
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Handlers (transport → ConnectionManager)
@@ -27,7 +27,7 @@ export interface SettleResultMessage {
 }
 
 /** Transport-layer event callbacks (transport -> ConnectionManager). */
-export interface TransportEventHandlers<TState = GameState> {
+export interface TransportEventHandlers<TState = WerewolfState> {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
@@ -41,7 +41,7 @@ export interface TransportEventHandlers<TState = GameState> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** WebSocket transport layer interface — atomic operation contract, no reconnect logic. */
-export interface IRealtimeTransport<TState = GameState> {
+export interface IRealtimeTransport<TState = WerewolfState> {
   /**
    * Establish WebSocket connection.
    * Built-in 8s connect timeout. Timeout/failure is signaled via handlers.onClose / handlers.onError.

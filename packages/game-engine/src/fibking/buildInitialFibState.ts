@@ -6,9 +6,10 @@
  */
 
 import type { CreateCtx } from '../engine/registry/types';
+import { FIB_GAME_TYPE } from '../protocol/gameTypes';
 import { emptySeats } from './reducer';
 import type { FibConfig, FibState } from './types';
-import { FIB_GAME_TYPE, FIB_MIN_PLAYERS } from './types';
+import { FIB_MIN_PLAYERS } from './types';
 
 export function buildInitialFibState(config: FibConfig, ctx: CreateCtx): FibState {
   if (!Number.isInteger(config.numberOfPlayers) || config.numberOfPlayers < FIB_MIN_PLAYERS) {

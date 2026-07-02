@@ -9,8 +9,8 @@
  * - RoleSlot with `count` > 1 generates multiple selection keys (e.g. wolf, wolf1, wolf2...)
  * - RoleSlot with `count` = 1 (default) generates a single key matching the roleId
  */
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 
 // ============================================
 // Types

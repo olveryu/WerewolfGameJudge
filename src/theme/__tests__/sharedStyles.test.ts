@@ -62,8 +62,8 @@ describe('createSharedStyles', () => {
     expect(styles.screenContainer.backgroundColor).toBe(colors.background);
   });
 
-  // ── iconButton backward compat ────────────────────────────────────────
-  it('iconButton matches legacy shape', () => {
+  // ── iconButton stable shape ───────────────────────────────────────────
+  it('iconButton keeps a stable square shape', () => {
     expect(styles.iconButton.width).toBeGreaterThan(0);
     expect(styles.iconButton.height).toBe(styles.iconButton.width);
     expect(styles.iconButton.borderRadius).toBeGreaterThan(0);

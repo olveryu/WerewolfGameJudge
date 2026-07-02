@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleRevealEffectId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { RoleRevealEffectId } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import type React from 'react';
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';

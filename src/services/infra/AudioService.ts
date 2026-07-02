@@ -4,7 +4,7 @@
  * Delegates platform-specific TTS playback to AudioPlaybackStrategy,
  * delegates BGM lifecycle to BgmPlayer, exposes a unified public API.
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
@@ -33,7 +33,7 @@ const isWeb = Platform.OS === 'web';
  * Responsibilities:
  * - Delegate platform-specific TTS playback to AudioPlaybackStrategy
  * - Delegate BGM lifecycle to BgmPlayer
- * - Provide a unified public API for GameFacade / gameActions to consume
+ * - Provide a unified public API for WerewolfFacade / gameActions to consume
  * - Manage pause/resume on Web visibility change
  *
  * Not responsible for:

@@ -6,13 +6,13 @@
  * Pure display component, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { getRoleSpec } from '@werewolf/game-engine/models/roles';
+import { getRoleSpec } from '@werewolf/game-engine/werewolf/models/roles';
 import {
   PRESET_TEMPLATES,
   type PresetTemplate,
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
-} from '@werewolf/game-engine/models/Template';
+} from '@werewolf/game-engine/werewolf/models/Template';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import {

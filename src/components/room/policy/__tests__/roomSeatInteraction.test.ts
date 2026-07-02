@@ -1,4 +1,4 @@
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import { getRoomSeatPressResult } from '../roomSeatInteraction';
 

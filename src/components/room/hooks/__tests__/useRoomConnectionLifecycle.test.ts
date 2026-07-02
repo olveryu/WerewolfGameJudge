@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 
 import type { RoomConnectionLifecycleFacade } from '../useRoomConnectionLifecycle';
 import { useRoomConnectionLifecycle } from '../useRoomConnectionLifecycle';

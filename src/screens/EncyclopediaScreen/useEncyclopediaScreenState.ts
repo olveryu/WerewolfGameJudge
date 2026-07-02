@@ -11,7 +11,7 @@ import {
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
-} from '@werewolf/game-engine/models/roles';
+} from '@werewolf/game-engine/werewolf/models/roles';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';

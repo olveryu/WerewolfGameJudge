@@ -1,13 +1,12 @@
 /**
  * Fib King (瞎掰王) state & action types — the fibking engine's own state machine.
  *
- * Fully independent of werewolf GameState: separate phases, separate roles, separate
+ * Fully independent of werewolf WerewolfState: separate phases, separate roles, separate
  * action union. Imports only the game-agnostic `RosterEntry` from protocol/common.
  */
 
 import type { RosterEntry } from '../protocol/common';
-
-export const FIB_GAME_TYPE = 'fibking' as const;
+import { type FIB_GAME_TYPE } from '../protocol/gameTypes';
 
 /** Player count bounds (inclusive). N≥4 guarantees 1 guesser + 1 honest + ≥2 fibber. */
 export const FIB_MIN_PLAYERS = 4;

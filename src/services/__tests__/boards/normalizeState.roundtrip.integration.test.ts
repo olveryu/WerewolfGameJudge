@@ -1,18 +1,18 @@
 /**
- * normalizeState Round-Trip Integration Test
+ * normalizeWerewolfState Round-Trip Integration Test
  *
- * Verifies idempotency of normalizeState on real Night-1 board states:
- * after each action, take getGameState(), run normalizeState again,
+ * Verifies idempotency of normalizeWerewolfState on real Night-1 board states:
+ * after each action, take getGameState(), run normalizeWerewolfState again,
  * and assert the result is equivalent (round-trip).
  *
  * Bugs caught by this test:
- * - New GameState fields not synced to normalizeState → silently lost
+ * - New WerewolfState fields not synced to normalizeWerewolfState → silently lost
  * - seat-key normalization introducing data distortion
  */
 
-import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/werewolf/models/roles';
+import { normalizeWerewolfState } from '@werewolf/game-engine/werewolf/state/normalizeWerewolfState';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';
@@ -47,9 +47,9 @@ function createRoleAssignment(): Map<number, RoleId> {
 // =============================================================================
 
 /**
- * Compares the key sets of two GameState objects.
+ * Compares the key sets of two WerewolfState objects.
  *
- * normalizeState always outputs all fields (including undefined), while raw state may omit undefined keys.
+ * normalizeWerewolfState always outputs all fields (including undefined), while raw state may omit undefined keys.
  * Key assertion: every key in raw must appear in normalized (no fields lost).
  * Extra keys in normalized (undefined fields written explicitly) are expected behavior.
  */
@@ -67,15 +67,15 @@ function assertNoKeysLost(
 // Tests
 // =============================================================================
 
-describe('normalizeState round-trip (integration with real board state)', () => {
+describe('normalizeWerewolfState round-trip (integration with real board state)', () => {
   afterEach(() => {
     cleanupGame();
   });
 
-  it('初始 ongoing 状态 → normalizeState 幂等', () => {
+  it('初始 ongoing 状态 → normalizeWerewolfState 幂等', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = normalizeWerewolfState(state);
 
     assertNoKeysLost(state, normalized);
     // Core fields should match exactly
@@ -86,7 +86,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     expect(normalized.hostUserId).toBe(state.hostUserId);
   });
 
-  it('wolfKill 后 → normalizeState 保留 wolfVotesBySeat', () => {
+  it('wolfKill 后 → normalizeWerewolfState 保留 wolfVotesBySeat', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
@@ -104,7 +104,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     );
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = normalizeWerewolfState(state);
 
     assertNoKeysLost(state, normalized);
     // wolfVotesBySeat keys should be string-canonicalized
@@ -116,7 +116,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     }
   });
 
-  it('seerReveal 后 → normalizeState 保留 seerReveal + pendingRevealAcks', () => {
+  it('seerReveal 后 → normalizeWerewolfState 保留 seerReveal + pendingRevealAcks', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
     // Walk to seerCheck: wolfKill → witchAction → hunterConfirm → seerCheck
@@ -160,32 +160,32 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     );
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = normalizeWerewolfState(state);
 
     assertNoKeysLost(state, normalized);
     expect(normalized.seerReveal).toEqual(state.seerReveal);
     expect(normalized.pendingRevealAcks).toEqual(state.pendingRevealAcks);
   });
 
-  it('全流程 executeFullNight 后 → normalizeState 幂等', () => {
+  it('全流程 executeFullNight 后 → normalizeWerewolfState 幂等', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = normalizeWerewolfState(state);
 
     assertNoKeysLost(state, normalized);
     expect(normalized.status).toBe(state.status);
     expect(normalized.actions).toEqual(state.actions);
   });
 
-  it('normalizeState 二次应用 → 结果不变（严格幂等）', () => {
+  it('normalizeWerewolfState 二次应用 → 结果不变（严格幂等）', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     executeFullNight(ctx);
 
     const state = ctx.getGameState();
-    const once = normalizeState(state);
-    const twice = normalizeState(once);
+    const once = normalizeWerewolfState(state);
+    const twice = normalizeWerewolfState(once);
 
     // Second normalization result must be identical
     expect(twice).toEqual(once);

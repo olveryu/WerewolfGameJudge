@@ -1,13 +1,13 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
+import type { LocalWerewolfPlayer } from '@/hooks/adapters/werewolfStateTypes';
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { TESTIDS } from '@/testids';
-import type { LocalPlayer } from '@/types/GameStateTypes';
 // We assert on showAlert calls (RoomScreen uses this wrapper)
 import { showAlert } from '@/utils/alert';
 
@@ -33,9 +33,12 @@ const mockRequestSnapshot = jest.fn();
 type UseGameRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
 let mockUseGameRoomImpl: () => UseGameRoomReturn;
 
-jest.mock<{ useGameRoom: () => UseGameRoomReturn }>('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomImpl(),
-}));
+jest.mock<{ useWerewolfRoom: () => UseGameRoomReturn }>(
+  '../../../hooks/werewolf/useWerewolfRoom',
+  () => ({
+    useWerewolfRoom: () => mockUseGameRoomImpl(),
+  }),
+);
 
 function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
   const gameState = {
@@ -47,8 +50,8 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
       // but other helpers expect an actionOrder to exist on template.
       actionOrder: ['wolf'],
     },
-    players: new Map<number, LocalPlayer>(
-      Array.from({ length: 12 }).map((_, i): [number, LocalPlayer] => [
+    players: new Map<number, LocalWerewolfPlayer>(
+      Array.from({ length: 12 }).map((_, i): [number, LocalWerewolfPlayer] => [
         i,
         {
           userId: `p${i}`,
@@ -295,7 +298,7 @@ describe('RoomScreen wolf vote UI', () => {
     // Override just the players map: seat 3 (index 2) is spiritKnight (server will reject).
     mockUseGameRoomImpl = () => {
       const base = makeBaseUseGameRoomReturn();
-      const players = new Map<number, LocalPlayer>(base.gameState.players);
+      const players = new Map<number, LocalWerewolfPlayer>(base.gameState.players);
       const target = players.get(2);
       players.set(2, {
         ...(target ?? {

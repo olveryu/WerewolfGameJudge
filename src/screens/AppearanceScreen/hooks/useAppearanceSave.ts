@@ -1,8 +1,5 @@
-import type {
-  NameStyleId,
-  RoleRevealEffectId,
-  SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+import type { RoleRevealEffectId } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
+import type { NameStyleId, SeatAnimationId } from '@werewolf/game-engine/growth/rewardCatalog';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useRef, useState } from 'react';
 import { Linking } from 'react-native';
@@ -10,7 +7,7 @@ import { toast } from 'sonner-native';
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -34,7 +31,7 @@ interface UseAppearanceSaveParams {
   updateProfile: (patch: Record<string, string>) => Promise<unknown>;
   uploadAvatar: (uri: string) => Promise<string>;
   refreshUser: () => Promise<void>;
-  facade: IGameFacade;
+  facade: IWerewolfFacade;
   isInRoom: boolean;
   goBack: () => void;
 }
@@ -76,7 +73,9 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           if (p.isInRoom) {
             p.facade
               .updatePlayerProfile(undefined, url)
-              .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed', err));
+              .catch((err: unknown) =>
+                settingsLog.warn('Avatar sync to WerewolfState failed', err),
+              );
           }
 
           p.goBack();
@@ -166,7 +165,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         await p.refreshUser();
       }
 
-      // Sync to GameState only when in a room (otherwise no GameState exists)
+      // Sync to WerewolfState only when in a room (otherwise no WerewolfState exists)
       let gameStateSyncFailed = false;
       if (
         p.isInRoom &&
@@ -188,7 +187,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         );
         if (!result.success) {
           gameStateSyncFailed = true;
-          settingsLog.warn('Cosmetic sync to GameState failed', {
+          settingsLog.warn('Cosmetic sync to WerewolfState failed', {
             reason: result.reason,
           });
         }
@@ -225,7 +224,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       await p.updateProfile({ equippedEffect: value });
       await p.refreshUser();
 
-      // Sync roleRevealEffect to GameState so other players see the change
+      // Sync roleRevealEffect to WerewolfState so other players see the change
       if (p.isInRoom) {
         const result = await p.facade.updatePlayerProfile(
           undefined,
@@ -237,7 +236,7 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           undefined,
         );
         if (!result.success) {
-          settingsLog.warn('Effect sync to GameState failed', { reason: result.reason });
+          settingsLog.warn('Effect sync to WerewolfState failed', { reason: result.reason });
         }
       }
 

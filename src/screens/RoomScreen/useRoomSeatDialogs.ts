@@ -7,8 +7,8 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import { type GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';

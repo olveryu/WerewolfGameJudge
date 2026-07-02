@@ -5,12 +5,12 @@
  * based on game state and player seat.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { Player, WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import { generateQuickQuestions } from '@/components/AIChatBubble/quickQuestions';
 
-function makeMinimalState(overrides: Partial<GameState> = {}): GameState {
+function makeMinimalState(overrides: Partial<WerewolfState> = {}): WerewolfState {
   return {
     phase: 'night',
     currentStep: null,
@@ -19,7 +19,7 @@ function makeMinimalState(overrides: Partial<GameState> = {}): GameState {
     wolfVotes: {},
     lastNightDeaths: [],
     ...overrides,
-  } as unknown as GameState;
+  } as unknown as WerewolfState;
 }
 
 describe('generateQuickQuestions', () => {

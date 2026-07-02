@@ -6,35 +6,35 @@
  * Does not import services, navigation, or React.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import {
-  canRoleSeeWolves,
-  doesRoleParticipateInWolfVote,
-  getRoleSpec,
-  isWolfRole,
-} from '@werewolf/game-engine/models/roles';
-import {
-  type ActionSchema,
-  SCHEMAS,
-  TargetConstraint,
-} from '@werewolf/game-engine/models/roles/spec';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import {
   getBottomCardEffectiveRole,
   isBottomCardWolfVoteExcluded,
 } from '@werewolf/game-engine/utils/playerHelpers';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
+  getRoleSpec,
+  isWolfRole,
+} from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  type ActionSchema,
+  SCHEMAS,
+  TargetConstraint,
+} from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 // =============================================================================
 // Types
 // =============================================================================
 
 /**
- * Common interface for Room-like objects (supports both Room and LocalGameState).
+ * Common interface for Room-like objects (supports both Room and LocalWerewolfState).
  * Used by getWolfVoteSummary and toGameRoomLike.
  */
 interface GameRoomLike {
@@ -219,21 +219,15 @@ function handleWolfTeamTurn(
 }
 
 /**
- * Convert LocalGameState to GameRoomLike for Room.ts helper functions
- * The types are compatible - LocalPlayer matches GameRoomLike's player type
+ * Convert LocalWerewolfState to GameRoomLike for Room.ts helper functions
+ * The types are compatible - LocalWerewolfPlayer matches GameRoomLike's player type
  */
-export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
+export function toGameRoomLike(gameState: LocalWerewolfState): GameRoomLike {
   const wolfVotes: Map<number, number> = (() => {
-    const raw =
-      gameState.currentNightResults?.wolfVotesBySeat ??
-      // legacy fallback
-      ((gameState as unknown as Record<string, unknown>).wolfVotes as
-        | Map<number, number>
-        | undefined);
-    if (!raw) return new Map<number, number>();
-    if (raw instanceof Map) return raw;
+    const raw = gameState.currentNightResults?.wolfVotesBySeat;
+    if (!raw) return gameState.wolfVotes;
     const map = new Map<number, number>();
-    for (const [k, v] of Object.entries(raw as Record<string, number>)) {
+    for (const [k, v] of Object.entries(raw)) {
       map.set(Number.parseInt(k, 10), v);
     }
     return map;
@@ -375,7 +369,7 @@ export function getRoleStats(roles: RoleId[]): RoleStats {
  * @param actorSeat - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
  */
 export function buildSeatViewModels(
-  gameState: LocalGameState,
+  gameState: LocalWerewolfState,
   actorSeat: number | null,
   showWolves: boolean,
   selectedSeat: number | null,

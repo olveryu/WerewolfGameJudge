@@ -1,6 +1,6 @@
 /** Zod schemas for /auth/* endpoints */
 
-import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import { z } from 'zod';
 
 /** Sign-up request validation. */

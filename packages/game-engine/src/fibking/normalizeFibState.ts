@@ -7,8 +7,9 @@
  *     here becomes a compile error (never silently dropped).
  */
 
+import { FIB_GAME_TYPE } from '../protocol/gameTypes';
 import type { FibState } from './types';
-import { FIB_GAME_TYPE, FIB_MIN_PLAYERS } from './types';
+import { FIB_MIN_PLAYERS } from './types';
 
 /** Local, game-agnostic completeness helper (mirrors werewolf normalize.ts). */
 type Complete<T> = Record<keyof T, unknown>;

@@ -1,7 +1,7 @@
 import { TESTIDS } from '@/testids';
 
-describe('testids.ts contract (stability + legacy compatibility)', () => {
-  it('keeps legacy seatTile testID unchanged', () => {
+describe('testids.ts contract (stability)', () => {
+  it('keeps seatTile testID unchanged', () => {
     expect(TESTIDS.seatTile(0)).toBe('seat-tile-0');
     expect(TESTIDS.seatTile(7)).toBe('seat-tile-7');
   });

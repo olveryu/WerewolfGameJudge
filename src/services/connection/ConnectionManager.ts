@@ -21,7 +21,7 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
@@ -48,7 +48,7 @@ import {
 type ConnectionStateListener = (state: ConnectionState) => void;
 
 /** ConnectionManager dependency injection interface. */
-export interface ConnectionManagerDeps<TState = GameState> {
+export interface ConnectionManagerDeps<TState = WerewolfState> {
   /** WebSocket transport layer (IRealtimeTransport) */
   transport: IRealtimeTransport<TState>;
   /** Fetch full game state from DB (used by both Host and Player) */
@@ -79,7 +79,7 @@ export interface ConnectionManagerDeps<TState = GameState> {
  *   ping/pong keepalive: sends ping every PING_INTERVAL_MS; missing pong within PONG_TIMEOUT_MS is treated as disconnect.
  *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
  */
-export class ConnectionManager<TState = GameState> {
+export class ConnectionManager<TState = WerewolfState> {
   #ctx: FSMContext;
   readonly #deps: ConnectionManagerDeps<TState>;
   readonly #stateListeners = new Set<ConnectionStateListener>();
@@ -154,7 +154,7 @@ export class ConnectionManager<TState = GameState> {
   /**
    * Connect and wait until Connected state (or timeout/failure).
    *
-   * Used by GameFacade.createRoom / joinRoom to synchronously wait for
+   * Used by room facades to synchronously wait for
    * WS connection + initial DB fetch before proceeding with game logic.
    *
    * @param roomCode - Room to connect to

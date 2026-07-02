@@ -1,5 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import type React from 'react';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
@@ -23,10 +23,10 @@ const mockNavigation = {
 
 const mockSubmitAction = jest.fn();
 
-jest.mock('../../../hooks/useGameRoom', () => {
+jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => {
   const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
-    useGameRoom: () => {
+    useWerewolfRoom: () => {
       const gameState = {
         status: GameStatus.Ongoing,
         template: {
@@ -62,18 +62,18 @@ jest.mock('../../../hooks/useGameRoom', () => {
         gameState,
 
         connectionStatus: (
-          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
+          require('@/services/room/ConnectionStatus') as typeof import('@/services/room/ConnectionStatus')
         ).ConnectionStatus.Live,
 
         isHost: false,
         roomStatus: (
-          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+          require('@werewolf/game-engine/werewolf/models/GameStatus') as typeof import('@werewolf/game-engine/werewolf/models/GameStatus')
         ).GameStatus.Ongoing,
 
         currentActionRole: 'magician',
         currentSchema: (() => {
           const { getSchema } =
-            require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
+            require('@werewolf/game-engine/werewolf/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/werewolf/models/roles/spec/schemas');
           return getSchema('magicianSwap');
         })(),
 

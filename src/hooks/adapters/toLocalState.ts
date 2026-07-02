@@ -1,34 +1,42 @@
 /**
- * toLocalState - converts GameState into the LocalGameState expected by the UI
+ * toLocalState - converts WerewolfState into the LocalWerewolfState expected by the UI
  *
  * Phase 1 adapter layer that lets the UI consume facade state. Only performs pure data format conversion
  * (Record → Map, templateRoles → template) and fills in default values for missing fields.
  * No business logic, side effects, or service calls.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
 import {
   makeActionMagicianSwap,
   makeActionTarget,
   makeActionWitch,
-} from '@werewolf/game-engine/models/actions/RoleAction';
+} from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
 import {
   makeWitchNone,
   makeWitchPoison,
   makeWitchSave,
-} from '@werewolf/game-engine/models/actions/WitchAction';
-import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
-import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
+} from '@werewolf/game-engine/werewolf/models/actions/WitchAction';
+import { type GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { createTemplateFromRoles } from '@werewolf/game-engine/werewolf/models/Template';
+import type {
+  Player,
+  RosterEntry,
+  WerewolfState,
+} from '@werewolf/game-engine/werewolf/protocol/types';
 
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalWerewolfPlayer, LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 /**
- * Convert Player + RosterEntry to LocalPlayer
+ * Convert Player + RosterEntry to LocalWerewolfPlayer
  */
-function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPlayer {
+function toLocalWerewolfPlayer(
+  bp: Player,
+  seat: number,
+  roster?: RosterEntry,
+): LocalWerewolfPlayer {
   return {
     userId: bp.userId,
     seat,
@@ -49,19 +57,19 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
 /**
  * Convert GameStatus string to enum
  */
-function toGameStatusEnum(status: GameState['status']): GameStatus {
-  // GameState.status is a string literal union whose values match the GameStatus enum
+function toGameStatusEnum(status: WerewolfState['status']): GameStatus {
+  // WerewolfState.status is a string literal union whose values match the GameStatus enum
   return status;
 }
 
 /**
- * Convert GameState to LocalGameState
+ * Convert WerewolfState to LocalWerewolfState
  *
  * Passthrough fields are auto-forwarded via object spread.
  * Only fields that need transformation are destructured and re-mapped.
- * Adding a new GameState field is automatically passed through.
+ * Adding a new WerewolfState field is automatically passed through.
  */
-export function toLocalState(state: GameState): LocalGameState {
+export function toLocalState(state: WerewolfState): LocalWerewolfState {
   // =========================================================================
   // Destructure fields that need transformation; rest auto-passthrough.
   // =========================================================================
@@ -77,22 +85,22 @@ export function toLocalState(state: GameState): LocalGameState {
   } = state;
 
   // 1. players: Record<number, ...> → Map<number, ...>
-  const playersMap = new Map<number, LocalPlayer | null>();
+  const playersMap = new Map<number, LocalWerewolfPlayer | null>();
   for (const [seatStr, bp] of Object.entries(protocolPlayers)) {
     const seat = Number.parseInt(seatStr, 10);
-    playersMap.set(seat, bp ? toLocalPlayer(bp, seat, roster?.[bp.userId]) : null);
+    playersMap.set(seat, bp ? toLocalWerewolfPlayer(bp, seat, roster?.[bp.userId]) : null);
   }
 
   // 2. templateRoles → template (using createTemplateFromRoles)
   const template = createTemplateFromRoles(templateRoles);
 
   // 3. actions: ProtocolAction[]  Map<RoleId, RoleAction>
-  // This is an adapter-only mapping so the existing UI can keep reading
-  // LocalGameState.actions (legacy-compatible) while the on-wire source of truth
-  // remains GameState.actions.
+  // This is an adapter-only mapping so the local UI can read
+  // LocalWerewolfState.actions while the on-wire source of truth remains
+  // WerewolfState.actions.
   //
   // NOTE:
-  // - This mapping is adapter-only (UI compatibility). Game logic must NOT depend on it.
+  // - This mapping is adapter-only. Game logic must NOT depend on it.
   // - Some schemas are better represented via other broadcast fields:
   //   - magicianSwap: uses currentNightResults.swappedSeats (authoritative resolver output)
   //   - witchAction: uses witchContext + recorded ProtocolAction target
@@ -117,7 +125,7 @@ export function toLocalState(state: GameState): LocalGameState {
 
   // ---------------------------------------------------------------------------
   // Confirm schemas - derived from NIGHT_STEPS + SCHEMAS SSOT.
-  // Representing as "none" is enough for most UI compatibility.
+  // Representing as "none" is enough for the local UI adapter.
   // (The actual effect is provided via confirmStatus broadcast fields.)
   // ---------------------------------------------------------------------------
   for (const step of NIGHT_STEPS) {
@@ -166,7 +174,7 @@ export function toLocalState(state: GameState): LocalGameState {
   }
 
   return {
-    // Auto-passthrough: all GameState fields not in TransformedKeys
+    // Auto-passthrough: all WerewolfState fields not in TransformedKeys
     // (new optional fields are forwarded automatically — no manual sync needed)
     ...passthroughFields,
 
@@ -177,7 +185,7 @@ export function toLocalState(state: GameState): LocalGameState {
     lastNightDeaths: lastNightDeaths ?? [],
     currentNightResults: nightResults ?? {},
 
-    // Local-only fields (derived from GameState data)
+    // Local-only fields (derived from WerewolfState data)
     actions: actionsMap,
     wolfVotes: wolfVotesMap,
   };

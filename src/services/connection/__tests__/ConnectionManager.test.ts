@@ -1,4 +1,4 @@
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type {
   IRealtimeTransport,
@@ -44,7 +44,7 @@ function createMockTransport(): IRealtimeTransport & {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_STATE = { revision: 1 } as unknown as GameState;
+const MOCK_STATE = { revision: 1 } as unknown as WerewolfState;
 
 function createDeps(overrides?: Partial<ConnectionManagerDeps>) {
   const transport = createMockTransport();
@@ -365,7 +365,7 @@ describe('ConnectionManager', () => {
       await promise;
 
       // Simulate broadcast
-      const newState = { revision: 5 } as unknown as GameState;
+      const newState = { revision: 5 } as unknown as WerewolfState;
       transport.handlers.onStateUpdate(newState, 5);
 
       expect(deps.onStateUpdate).toHaveBeenCalledWith(newState, 5, undefined);

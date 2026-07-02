@@ -180,16 +180,16 @@ WerewolfGameJudge/
 
 #### 0.4 App 端需更新 import 的文件
 
-| 原 import 路径                | 新 import 路径                                    | 影响文件数 |
-| ----------------------------- | ------------------------------------------------- | ---------- |
-| `@/models/roles`              | `@werewolf/game-engine/models/roles`              | ~30        |
-| `@/models/GameStatus`         | `@werewolf/game-engine/models/GameStatus`         | 15         |
-| `@/models/Template`           | `@werewolf/game-engine/models/Template`           | 13         |
-| `@/services/protocol/`        | `@werewolf/game-engine/protocol`                  | 12         |
-| `@/types/RoleRevealAnimation` | `@werewolf/game-engine/types/RoleRevealAnimation` | 11         |
-| `@/services/engine/`          | `@werewolf/game-engine/engine`                    | 4          |
-| `@/services/night/`           | `@werewolf/game-engine/resolvers`                 | 1          |
-| `@/models/actions/`           | `@werewolf/game-engine/models/actions`            | 1          |
+| 原 import 路径                | 新 import 路径                                     | 影响文件数 |
+| ----------------------------- | -------------------------------------------------- | ---------- |
+| `@/models/roles`              | `@werewolf/game-engine/werewolf/models/roles`      | ~30        |
+| `@/models/GameStatus`         | `@werewolf/game-engine/werewolf/models/GameStatus` | 15         |
+| `@/models/Template`           | `@werewolf/game-engine/werewolf/models/Template`   | 13         |
+| `@/services/protocol/`        | `@werewolf/game-engine/protocol`                   | 12         |
+| `@/types/RoleRevealAnimation` | `@werewolf/game-engine/types/RoleRevealAnimation`  | 11         |
+| `@/services/engine/`          | `@werewolf/game-engine/engine`                     | 4          |
+| `@/services/night/`           | `@werewolf/game-engine/werewolf/resolvers`         | 1          |
+| `@/models/actions/`           | `@werewolf/game-engine/werewolf/models/actions`    | 1          |
 
 **热点文件**（import ≥3 个候选模块）：
 
@@ -1720,21 +1720,21 @@ interface AudioEffect {
 
 #### 8.1 已完成的清理（3 commits）
 
-| Commit            | 内容                                                                                                                                                                      | 文件变更  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| B1: `f429acc7`    | 删除 23 个 engine/resolver proxy re-export stubs（`src/services/engine/`、`src/services/protocol/reasonCodes.ts`）                                                        | 64 files  |
-| B2+B3: `36a58dda` | 删除 16 个 models/protocol/resolver proxy stubs + `src/types/RoleRevealAnimation.ts`；~200 文件 import 路径批量更新 `@/models/` → `@werewolf/game-engine/models/` 等      | 198 files |
-| B4                | 删除 13 个冗余 resolver 源文件（`src/services/night/resolvers/*.ts`，与 game-engine 仅 import 路径不同）+ 14 个测试文件 import 更新 + 删除空目录 `src/services/protocol/` | 28 files  |
+| Commit            | 内容                                                                                                                                                                          | 文件变更  |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| B1: `f429acc7`    | 删除 23 个 engine/resolver proxy re-export stubs（`src/services/engine/`、`src/services/protocol/reasonCodes.ts`）                                                            | 64 files  |
+| B2+B3: `36a58dda` | 删除 16 个 models/protocol/resolver proxy stubs + `src/types/RoleRevealAnimation.ts`；~200 文件 import 路径批量更新 `@/models/` → `@werewolf/game-engine/werewolf/models/` 等 | 198 files |
+| B4                | 删除 13 个冗余 resolver 源文件（`src/services/night/resolvers/*.ts`，与 game-engine 仅 import 路径不同）+ 14 个测试文件 import 更新 + 删除空目录 `src/services/protocol/`     | 28 files  |
 
 #### 8.2 清理总结
 
-| 类别                     | 数量     | 说明                                                   |
-| ------------------------ | -------- | ------------------------------------------------------ |
-| 删除的 proxy stub 文件   | 39       | `export * from '@werewolf/game-engine/...'` 一行式转发 |
-| 删除的冗余 resolver 副本 | 13       | 逻辑完全相同，仅 import 路径不同                       |
-| 删除的空目录             | 1        | `src/services/protocol/`                               |
-| 更新的 import 路径       | ~400+    | `@/models/*` → `@werewolf/game-engine/models/*` 等     |
-| import + require 模式    | 均已覆盖 | 含 Jest `require()` mock 路径                          |
+| 类别                     | 数量     | 说明                                                        |
+| ------------------------ | -------- | ----------------------------------------------------------- |
+| 删除的 proxy stub 文件   | 39       | `export * from '@werewolf/game-engine/...'` 一行式转发      |
+| 删除的冗余 resolver 副本 | 13       | 逻辑完全相同，仅 import 路径不同                            |
+| 删除的空目录             | 1        | `src/services/protocol/`                                    |
+| 更新的 import 路径       | ~400+    | `@/models/*` → `@werewolf/game-engine/werewolf/models/*` 等 |
+| import + require 模式    | 均已覆盖 | 含 Jest `require()` mock 路径                               |
 
 #### 8.3 最终目录状态
 

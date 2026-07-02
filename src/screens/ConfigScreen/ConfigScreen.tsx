@@ -9,7 +9,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +17,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useGameFacade } from '@/contexts';
+import { useWerewolfFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
@@ -96,7 +96,7 @@ export const ConfigScreen: React.FC = () => {
   const nominateMode = route.params?.nominateMode;
   const updatedRules = route.params?.updatedRules;
 
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
   const { settingsService, authService } = useServices();
 
   const state = useConfigScreenState({

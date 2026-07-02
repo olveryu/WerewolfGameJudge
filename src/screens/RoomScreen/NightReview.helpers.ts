@@ -1,19 +1,23 @@
 /**
- * NightReview.helpers - Pure functions: extract night action summary and full identity table from LocalGameState
+ * NightReview.helpers - Pure functions: extract night action summary and full identity table from LocalWerewolfState
  *
  * First section: convert currentNightResults / lastNightDeaths / all check reveals to Chinese description list.
  * Second section: output each player's real role by seat number.
  * No service / hook / React imports; relies only on game-engine types and getRoleDisplayName.
  */
 
-import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, getRoleEmoji, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import type { DeathReason } from '@werewolf/game-engine/werewolf/DeathCalculator';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  getRoleDisplayName,
+  getRoleEmoji,
+  ROLE_SPECS,
+} from '@werewolf/game-engine/werewolf/models/roles';
+import { Team } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalWerewolfPlayer, LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels
@@ -37,7 +41,7 @@ const DEATH_REASON_LABELS: Record<DeathReason, string> = {
 
 /** Find the seat of a player with the given role (0-based), or undefined. */
 function findSeatByRole(
-  players: Map<number, LocalPlayer | null>,
+  players: Map<number, LocalWerewolfPlayer | null>,
   roleId: RoleId,
 ): number | undefined {
   for (const [seat, player] of players) {
@@ -50,7 +54,7 @@ function findSeatByRole(
  * Whether the seat will die tonight (wolf-killed without save, or poisoned).
  * Used as a sub-condition for chain-death determination.
  */
-function willDieTonight(seat: number, gameState: LocalGameState): boolean {
+function willDieTonight(seat: number, gameState: LocalWerewolfState): boolean {
   const nr = gameState.currentNightResults;
 
   if (nr.poisonedSeat === seat) return true;
@@ -70,7 +74,7 @@ function willDieTonight(seat: number, gameState: LocalGameState): boolean {
  * Can only trigger when wolf-killed or exile-voted out.
  * Cannot shoot on abnormal night death (poison / lover suicide / dreamcatcher chain / charm chain).
  */
-function canShootForSeat(seat: number, gameState: LocalGameState): boolean {
+function canShootForSeat(seat: number, gameState: LocalWerewolfState): boolean {
   const nr = gameState.currentNightResults;
 
   // Poisoned
@@ -142,7 +146,7 @@ export interface NightReviewData {
 /**
  * Build action summary lines from night results + reveal fields.
  */
-export function buildActionLines(gameState: LocalGameState): string[] {
+export function buildActionLines(gameState: LocalWerewolfState): string[] {
   const lines: string[] = [];
   const nr = gameState.currentNightResults;
 
@@ -526,7 +530,7 @@ export function buildActionLines(gameState: LocalGameState): string[] {
 /**
  * Build per-seat identity lines: "1号: 狼人" etc.
  */
-export function buildIdentityLines(players: Map<number, LocalPlayer | null>): string[] {
+export function buildIdentityLines(players: Map<number, LocalWerewolfPlayer | null>): string[] {
   const lines: string[] = [];
   const seats = Array.from(players.keys()).sort((a, b) => a - b);
 
@@ -550,7 +554,7 @@ export function buildIdentityLines(players: Map<number, LocalPlayer | null>): st
 /**
  * Build full night review data from game state.
  */
-export function buildNightReviewData(gameState: LocalGameState): NightReviewData {
+export function buildNightReviewData(gameState: LocalWerewolfState): NightReviewData {
   return {
     actionLines: buildActionLines(gameState),
     identityLines: buildIdentityLines(gameState.players),

@@ -6,6 +6,11 @@
  * Adding a new avatar/frame requires only appending here + adding the corresponding image/component on the client.
  */
 
+import {
+  FREE_ROLE_REVEAL_EFFECT_IDS,
+  ROLE_REVEAL_EFFECT_IDS,
+} from '../cosmetics/roleRevealEffects';
+
 /** Unlockable item type. */
 export type RewardType =
   | 'avatar'
@@ -396,23 +401,6 @@ export const NAME_STYLE_IDS = [
   'lustrousAzure', 'lustrousIndigo', 'lustrousViolet', 'lustrousRose', 'lustrousSlate',
 ] as const;
 
-/** All role-reveal effect IDs (1:1 with RandomizableAnimation in RoleRevealAnimation). */
-// prettier-ignore
-export const ROLE_REVEAL_EFFECT_IDS = [
-  'roulette',
-  'roleHunt',
-  'scratch',
-  'tarot',
-  'gachaMachine',
-  'cardPick',
-  'sealBreak',
-  'chainShatter',
-  'fortuneWheel',
-  'meteorStrike',
-  'filmRewind',
-  'vortexCollapse',
-] as const;
-
 /** All seat-animation IDs (1:1 with `seatAnimations/index.ts` component registry). */
 // prettier-ignore
 export const SEAT_ANIMATION_IDS = [
@@ -520,9 +508,6 @@ export type FlairId = (typeof SEAT_FLAIR_IDS)[number];
 /** Name style ID literal union */
 export type NameStyleId = (typeof NAME_STYLE_IDS)[number];
 
-/** Role-reveal effect ID literal union */
-export type RoleRevealEffectId = (typeof ROLE_REVEAL_EFFECT_IDS)[number];
-
 /** Seat-animation ID literal union */
 export type SeatAnimationId = (typeof SEAT_ANIMATION_IDS)[number];
 
@@ -537,9 +522,6 @@ export const FREE_FLAIR_IDS: ReadonlySet<string> = new Set<string>();
 
 /** Free name style IDs granted on registration (none) */
 export const FREE_NAME_STYLE_IDS: ReadonlySet<string> = new Set<string>();
-
-/** Free role-reveal effect IDs granted on registration (none) */
-export const FREE_ROLE_REVEAL_EFFECT_IDS: ReadonlySet<string> = new Set<string>();
 
 /** Free seat-animation IDs granted on registration (none) */
 export const FREE_SEAT_ANIMATION_IDS: ReadonlySet<string> = new Set<string>();

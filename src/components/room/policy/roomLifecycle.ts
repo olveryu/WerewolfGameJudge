@@ -5,7 +5,7 @@
  * for capabilities. This keeps screens from branching on per-game phase names.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 export interface RoomLifecycleCapabilities {
   canSeat: boolean;

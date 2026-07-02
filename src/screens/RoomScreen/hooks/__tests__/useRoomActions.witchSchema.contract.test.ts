@@ -11,8 +11,8 @@
 import {
   type CompoundSchema,
   TargetConstraint,
-} from '@werewolf/game-engine/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+} from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
 const witchSchema = SCHEMAS.witchAction as CompoundSchema;
 

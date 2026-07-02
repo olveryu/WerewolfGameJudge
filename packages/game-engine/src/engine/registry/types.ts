@@ -9,10 +9,8 @@
  * Deliberately game-agnostic and dependency-free:
  *   - No zod here. Request-body validation lives at the api-worker boundary; an engine
  *     receives an already-typed `TConfig`.
- *   - No Cloudflare `Env` here. A post-commit/settlement hook would couple this package to
- *     the Worker runtime for zero current benefit, so it is intentionally omitted (YAGNI).
- *     The generic dispatch path therefore has no settlement concept at all — that is the
- *     structural reason fib can never touch werewolf XP/gacha.
+ *   - No Cloudflare `Env` here. Runtime effects such as XP settlement live in the Worker
+ *     effect registry and run only after the authoritative state is committed.
  *
  * The action type is a type parameter so each engine carries its OWN action union
  * (fib uses `FibAction`, never werewolf `StateAction`).
@@ -41,35 +39,53 @@ export interface CreateCtx {
  * - `rejection`: business rejection; has actions (e.g. mark rejected) to persist + broadcast
  * - `error`:     precondition/infra failure; no actions, mapped to an error result
  */
-export type EngineResult<TAction> =
-  | {
-      readonly kind: 'success';
-      readonly actions: readonly TAction[];
-      readonly sideEffects?: readonly SideEffect[];
-      readonly reason?: string;
-    }
-  | {
-      readonly kind: 'rejection';
-      readonly reason: string;
-      readonly actions: readonly TAction[];
-      readonly sideEffects?: readonly SideEffect[];
-    }
-  | { readonly kind: 'error'; readonly reason: string };
+export interface EngineSuccess<TAction> {
+  readonly kind: 'success';
+  readonly actions: readonly TAction[];
+  readonly sideEffects?: readonly SideEffect[];
+  readonly reason?: string;
+  /** `undefined` = platform default; `null` = broadcast without lastAction. */
+  readonly broadcastAction?: string | null;
+}
+
+export interface EngineRejection<TAction> {
+  readonly kind: 'rejection';
+  readonly reason: string;
+  readonly actions: readonly TAction[];
+  readonly sideEffects?: readonly SideEffect[];
+  /** `undefined` = platform default; `null` = broadcast without lastAction. */
+  readonly broadcastAction?: string | null;
+}
+
+export interface EngineError {
+  readonly kind: 'error';
+  readonly reason: string;
+}
+
+export type EngineResult<TAction> = EngineSuccess<TAction> | EngineRejection<TAction> | EngineError;
+
+export interface AfterReduceContext<TAction> {
+  readonly trigger: GameAction;
+  readonly result: EngineSuccess<TAction>;
+  readonly nowMs: number;
+}
 
 export function engineSuccess<TAction>(
   actions: readonly TAction[],
   sideEffects?: readonly SideEffect[],
   reason?: string,
+  broadcastAction?: string | null,
 ): EngineResult<TAction> {
-  return { kind: 'success', actions, sideEffects, reason };
+  return { kind: 'success', actions, sideEffects, reason, broadcastAction };
 }
 
 export function engineRejection<TAction>(
   reason: string,
   actions: readonly TAction[] = [],
   sideEffects?: readonly SideEffect[],
+  broadcastAction?: string | null,
 ): EngineResult<TAction> {
-  return { kind: 'rejection', reason, actions, sideEffects };
+  return { kind: 'rejection', reason, actions, sideEffects, broadcastAction };
 }
 
 export function engineError<TAction = never>(reason: string): EngineResult<TAction> {
@@ -91,6 +107,9 @@ export interface GameEngine<TState, TAction, TConfig> {
 
   /** Command: route an inbound action to this game's pure handlers. */
   dispatch(state: TState, revision: number, action: GameAction): EngineResult<TAction>;
+
+  /** Optional same-transaction pure follow-up after the initial actions reduce. */
+  afterReduce?(state: TState, context: AfterReduceContext<TAction>): readonly TAction[];
 
   /** Strategy: this game's own reducer (pure, total). */
   reduce(state: TState, action: TAction): TState;

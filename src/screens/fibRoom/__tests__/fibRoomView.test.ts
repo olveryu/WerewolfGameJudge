@@ -1,4 +1,5 @@
-import { FIB_GAME_TYPE, type FibState } from '@werewolf/game-engine/fibking/types';
+import type { FibState } from '@werewolf/game-engine/fibking/types';
+import { FIB_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
 
 import { createFibSeatViewModels, isFibBotUserId } from '../fibRoomView';
 

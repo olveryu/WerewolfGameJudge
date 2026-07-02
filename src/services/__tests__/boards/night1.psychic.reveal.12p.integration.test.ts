@@ -14,13 +14,13 @@
  *   seat 11: guard
  *
  * Core rules:
- * - Psychic check result writes to GameState.psychicReveal
+ * - Psychic check result writes to WerewolfState.psychicReveal
  * - Result based on target's faction (good/wolf)
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';
@@ -80,7 +80,7 @@ describe('Night-1: Psychic Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: psychicReveal written to GameState
+      // Core assertion: psychicReveal written to WerewolfState
       const state = ctx.getGameState();
       expect(state.psychicReveal).toBeDefined();
       expect(state.psychicReveal!.targetSeat).toBe(0);

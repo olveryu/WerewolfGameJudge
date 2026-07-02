@@ -7,8 +7,8 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import type { WerewolfCreateConfig } from '@werewolf/game-engine/engine/state/buildInitialState';
 import type { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import type { WerewolfCreateConfig } from '@werewolf/game-engine/werewolf/state/buildInitialWerewolfState';
 
 import { useServices } from '@/contexts/ServiceContext';
 

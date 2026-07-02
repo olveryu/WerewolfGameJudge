@@ -8,7 +8,7 @@
  */
 
 // Use the re-export from models/Room for consistency
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import {
   getSeatTapResult,

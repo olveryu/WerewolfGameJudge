@@ -4,7 +4,7 @@
  * Displays faction title + count badge; selected tab has a colored underline.
  * Renders UI and reports onTabChange via callback; no service imports, no business logic.
  */
-import { type Faction } from '@werewolf/game-engine/models/roles';
+import { type Faction } from '@werewolf/game-engine/werewolf/models/roles';
 import { memo, useCallback } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 

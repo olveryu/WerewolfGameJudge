@@ -2,10 +2,11 @@ import { render } from '@testing-library/react-native';
 import type React from 'react';
 import { Text } from 'react-native';
 
-import { RoomFacadeProvider, useGameFacade } from '@/contexts/RoomFacadeContext';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import { RoomFacadeProvider, useWerewolfFacade } from '@/contexts/RoomFacadeContext';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
+import { createFibFacadeTestDouble } from '@/testing/roomFacadeTestDoubles';
 
-function createFakeFacade(): IGameFacade {
+function createFakeFacade(): IWerewolfFacade {
   return {
     addListener: () => () => {},
     subscribe: () => () => {},
@@ -54,21 +55,21 @@ function createFakeFacade(): IGameFacade {
 }
 
 const Consumer: React.FC = () => {
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
   return <Text testID="userId">{facade.getMyUserId() ?? 'null'}</Text>;
 };
 
-describe('RoomFacadeProvider / useGameFacade', () => {
+describe('RoomFacadeProvider / useWerewolfFacade', () => {
   it('throws when used without provider', () => {
     expect(() => render(<Consumer />)).toThrow(
-      '[useGameFacade] Missing <RoomFacadeProvider> in component tree',
+      '[useWerewolfFacade] Missing <RoomFacadeProvider> in component tree',
     );
   });
 
   it('provides the explicit facade prop', () => {
     const facade = createFakeFacade();
     const ui = render(
-      <RoomFacadeProvider werewolf={facade}>
+      <RoomFacadeProvider werewolf={facade} fibking={createFibFacadeTestDouble()}>
         <Consumer />
       </RoomFacadeProvider>,
     );

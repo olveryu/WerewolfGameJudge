@@ -36,7 +36,7 @@ import { RoomStatusRibbon } from '@/components/room/RoomStatusRibbon';
 import { useFibFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import type { RootStackParamList } from '@/navigation/types';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,

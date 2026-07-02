@@ -3,8 +3,8 @@
  *
  * Board: Mirror Seer (seer variant family)
  * Topics:
- *   - MirrorSeer check result writes to GameState.mirrorSeerReveal (inverted)
- *   - DrunkSeer check result writes to GameState.drunkSeerReveal (random)
+ *   - MirrorSeer check result writes to WerewolfState.mirrorSeerReveal (inverted)
+ *   - DrunkSeer check result writes to WerewolfState.drunkSeerReveal (random)
  *
  * MirrorSeer fixed seat-role assignment:
  *   seat 0-2: villager
@@ -18,11 +18,11 @@
  *
  * DrunkSeer additional seat-role assignment (knight -> drunkSeer) below.
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 import * as randomModule from '@werewolf/game-engine/utils/random';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
@@ -313,10 +313,10 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
     it('板子同时包含 seer + mirrorSeer 时 gameControlHandler 会生成 seerLabelMap', () => {
       // seerLabelMap is injected by handleAssignRoles (gameControlHandler) into the
       // ASSIGN_ROLES action payload; gameFactory uses it directly.
-      // gameReducer does not go through the handler layer, so manually inject here to verify reducer behavior.
+      // werewolfReducer does not go through the handler layer, so manually inject here to verify reducer behavior.
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // gameFactory calls gameReducer(ASSIGN_ROLES) directly;
+      // gameFactory calls werewolfReducer(ASSIGN_ROLES) directly;
       // seerLabelMap is injected by handler layer -> here we verify reducer stores it correctly
       // (handler layer tests are in gameControlHandler.test.ts)
       // This integration test focuses on mirrorSeerReveal inversion logic; seerLabelMap generation

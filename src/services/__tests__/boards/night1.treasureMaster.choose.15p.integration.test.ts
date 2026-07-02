@@ -7,11 +7,11 @@
  * Template: 15 roles = 12 players + 3 deck cards
  *   Psychic + Poisoner + Hunter + Dreamcatcher + Crow + WolfKing + Wolf×3 + TreasureMaster + Villager×5
  *
- * Architecture: intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { Team } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

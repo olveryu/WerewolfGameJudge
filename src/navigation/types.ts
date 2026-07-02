@@ -1,4 +1,7 @@
-import { type GameRuleOverrides, type GameTemplate } from '@werewolf/game-engine/models/Template';
+import {
+  type GameRuleOverrides,
+  type GameTemplate,
+} from '@werewolf/game-engine/werewolf/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
