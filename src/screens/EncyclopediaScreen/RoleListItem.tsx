@@ -5,7 +5,11 @@
  * flex: 1 with parent gridRow yields a 2-column equal-width layout.
  * Pure presentational component; no service imports, no business logic.
  */
-import { ROLE_SPECS, type RoleAbilityTag, type RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  ROLE_SPECS,
+  type RoleAbilityTag,
+  type RoleId,
+} from '@werewolf/game-engine/werewolf/models/roles';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 

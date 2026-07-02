@@ -5,10 +5,10 @@
  * avoiding manual Number.parseInt(seatStr, 10) key conversion every time.
  * Pure functions only, no IO.
  */
-import type { RoleId } from '../models';
-import type { GameState } from '../protocol/types';
+import type { RoleId } from '../werewolf/models';
+import type { WerewolfState } from '../werewolf/protocol/types';
 
-type Players = GameState['players'];
+type Players = WerewolfState['players'];
 
 /** Builds a seat -> RoleId map (only seats with assigned roles) */
 export function buildSeatRoleMap(players: Players): Map<number, RoleId> {

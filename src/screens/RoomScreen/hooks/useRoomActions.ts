@@ -9,22 +9,26 @@
  * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import {
-  doesRoleParticipateInWolfVote,
-  isWolfRole,
-  type RoleId,
-} from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import {
   getBottomCardEffectiveRole,
   isBottomCardWolfVoteExcluded,
 } from '@werewolf/game-engine/utils/playerHelpers';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import {
+  doesRoleParticipateInWolfVote,
+  isWolfRole,
+  type RoleId,
+} from '@werewolf/game-engine/werewolf/models/roles';
+import type {
+  ActionSchema,
+  RevealKind,
+  SchemaId,
+} from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import { useCallback, useMemo } from 'react';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 import { type BottomActionVM, buildBottomAction } from './bottomActionBuilder';
 
@@ -37,7 +41,7 @@ export type { ActionIntent };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface GameContext {
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null; // Phase 3: schema for current action role
@@ -306,7 +310,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       const confirmText = currentSchema?.ui?.confirmText;
 
       // Hardcore schema-driven UI contract:
-      // confirm copy must come from schema.ui.confirmText (no role/legacy/dev fallback).
+      // confirm copy must come from schema.ui.confirmText (no role/dev fallback).
       // NOTE: compound schemas don't confirm directly (they delegate to stepSchemaId);
       // for those, confirmText is not required here.
       if (currentSchema?.kind !== 'compound') {
@@ -318,7 +322,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
       }
 
       // NOTE: seat/firstSwapSeat are not used in the confirm copy (schema-driven).
-      // They're kept in the signature for interface compatibility.
+      // They stay in the signature because every seat-action builder receives the same input.
       // Non-compound schemas throw above if confirmText is missing, so this is safe.
       return confirmText as string;
     },

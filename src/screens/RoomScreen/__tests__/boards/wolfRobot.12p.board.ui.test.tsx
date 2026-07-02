@@ -20,9 +20,9 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
 import {
   chainConfirmTrigger,
@@ -85,17 +85,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
     imActioner: true,
@@ -113,8 +102,8 @@ const _board = getBoardByName(BOARD_NAME)!;
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 // =============================================================================

@@ -7,20 +7,20 @@
  * Opened by the "查看建议" button in BoardInfoCard.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import {
   createCustomTemplate,
   findMatchingPresetName,
   getPlayerCount,
-} from '@werewolf/game-engine/models/Template';
-import type { BoardNomination } from '@werewolf/game-engine/protocol/types';
+} from '@werewolf/game-engine/werewolf/models/Template';
+import type { BoardNomination } from '@werewolf/game-engine/werewolf/protocol/types';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useWerewolfFacade } from '@/contexts/RoomFacadeContext';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
@@ -213,7 +213,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
   clearAllSeats,
   onClose,
 }: BoardNominationModalProps) {
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
 
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {

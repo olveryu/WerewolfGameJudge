@@ -21,7 +21,7 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';
@@ -48,17 +48,17 @@ import {
 type ConnectionStateListener = (state: ConnectionState) => void;
 
 /** ConnectionManager dependency injection interface. */
-export interface ConnectionManagerDeps {
+export interface ConnectionManagerDeps<TState = WerewolfState> {
   /** WebSocket transport layer (IRealtimeTransport) */
-  transport: IRealtimeTransport;
+  transport: IRealtimeTransport<TState>;
   /** Fetch full game state from DB (used by both Host and Player) */
-  fetchStateFromDB: (roomCode: string) => Promise<{ state: GameState; revision: number } | null>;
+  fetchStateFromDB: (roomCode: string) => Promise<{ state: TState; revision: number } | null>;
   /** Lightweight revision comparison: read state_revision from DB */
   getStateRevision: (roomCode: string) => Promise<number | null>;
   /** Callback when WS broadcast receives STATE_UPDATE */
-  onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
+  onStateUpdate: (state: TState, revision: number, lastAction?: string) => void;
   /** Callback after fetch or WS broadcast yields new state (used for store.applySnapshot) */
-  onFetchedState: (state: GameState, revision: number) => void;
+  onFetchedState: (state: TState, revision: number) => void;
   /** Settle-result unicast callback (optional) */
   onSettleResult?: (result: SettleResultMessage) => void;
 }
@@ -79,9 +79,9 @@ export interface ConnectionManagerDeps {
  *   ping/pong keepalive: sends ping every PING_INTERVAL_MS; missing pong within PONG_TIMEOUT_MS is treated as disconnect.
  *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
  */
-export class ConnectionManager {
+export class ConnectionManager<TState = WerewolfState> {
   #ctx: FSMContext;
-  readonly #deps: ConnectionManagerDeps;
+  readonly #deps: ConnectionManagerDeps<TState>;
   readonly #stateListeners = new Set<ConnectionStateListener>();
 
   // Timers
@@ -105,10 +105,10 @@ export class ConnectionManager {
 
   // Prefetch: fire HTTP fetch in parallel with WS handshake to avoid serial bottleneck.
   // The HTTP call also wakes the DO, so subsequent WS handshake hits a warm DO.
-  #prefetchPromise: Promise<{ state: GameState; revision: number } | null> | null = null;
+  #prefetchPromise: Promise<{ state: TState; revision: number } | null> | null = null;
   #prefetchGeneration = 0;
 
-  constructor(deps: ConnectionManagerDeps) {
+  constructor(deps: ConnectionManagerDeps<TState>) {
     this.#deps = deps;
     this.#ctx = createInitialContext();
 
@@ -154,7 +154,7 @@ export class ConnectionManager {
   /**
    * Connect and wait until Connected state (or timeout/failure).
    *
-   * Used by GameFacade.createRoom / joinRoom to synchronously wait for
+   * Used by room facades to synchronously wait for
    * WS connection + initial DB fetch before proceeding with game logic.
    *
    * @param roomCode - Room to connect to
@@ -409,7 +409,7 @@ export class ConnectionManager {
       const prefetch = this.#prefetchPromise;
       this.#prefetchPromise = null;
 
-      let result: { state: GameState; revision: number } | null = null;
+      let result: { state: TState; revision: number } | null = null;
 
       if (prefetch) {
         result = await Promise.race([

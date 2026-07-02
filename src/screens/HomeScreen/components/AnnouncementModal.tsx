@@ -7,7 +7,10 @@
  * Tab 3 "Feedback": two-way conversation system (FeedbackTab component).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { PRESET_TEMPLATES, TEMPLATE_CATEGORY_LABELS } from '@werewolf/game-engine/models/Template';
+import {
+  PRESET_TEMPLATES,
+  TEMPLATE_CATEGORY_LABELS,
+} from '@werewolf/game-engine/werewolf/models/Template';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';

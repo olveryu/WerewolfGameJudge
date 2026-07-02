@@ -27,6 +27,9 @@ import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordS
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
+import FibConfigScreen from '@/screens/FibConfigScreen/FibConfigScreen';
+import FibRoomScreen from '@/screens/FibRoomScreen/FibRoomScreen';
+import FibRulesScreen from '@/screens/FibRulesScreen/FibRulesScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
 import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
@@ -83,6 +86,19 @@ export const linking: LinkingOptions<RootStackParamList> = {
       },
       Settings: 'settings/:roomCode?',
       MusicSettings: 'settings/music/:roomCode?',
+      FibConfig: 'fib/config',
+      FibRoom: {
+        path: 'fib/room/:roomCode',
+        parse: {
+          roomCode: (roomCode: string) => roomCode,
+          isHost: (isHost: string) => isHost === 'true',
+        },
+        stringify: {
+          roomCode: (roomCode: string) => roomCode,
+          isHost: (isHost: boolean) => (isHost ? 'true' : 'false'),
+        },
+      },
+      FibRules: 'fib/rules',
       Encyclopedia: 'encyclopedia/:roomCode?',
       Notepad: 'notepad/:roomCode',
       Appearance: 'appearance',
@@ -205,6 +221,21 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           options={{ title: '游戏规则' }}
         />
         <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
+        <Stack.Screen
+          name="FibConfig"
+          component={FibConfigScreen}
+          options={{ title: '瞎掰王', animation: 'slide_from_bottom', headerShown: false }}
+        />
+        <Stack.Screen
+          name="FibRoom"
+          component={FibRoomScreen}
+          options={{ title: '瞎掰王', headerShown: false }}
+        />
+        <Stack.Screen
+          name="FibRules"
+          component={FibRulesScreen}
+          options={{ title: '玩法说明', animation: 'slide_from_bottom', headerShown: false }}
+        />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}

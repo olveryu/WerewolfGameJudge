@@ -11,7 +11,7 @@
  */
 
 import { getLevelTitle } from '@werewolf/game-engine/growth/level';
-import { CAMP_ORDER, type CampBucket } from '@werewolf/game-engine/models/roles';
+import { CAMP_ORDER, type CampBucket } from '@werewolf/game-engine/werewolf/models/roles';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 

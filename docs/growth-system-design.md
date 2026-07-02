@@ -77,7 +77,7 @@ Range [50, 70], expected ~60. Early: 1 game/level, later: 2 games/level.
 
 ### Flow
 
-1. `endNight()` handler broadcasts `END_NIGHT`, then `ctx.waitUntil(settleGameResults(state, env))`
+1. `AUDIO_ACK` reaches ended state, then `werewolfSettlementEffects` runs `settleGameResults(state, env)`
 2. Collects non-empty non-bot player UIDs, checks `≥ MIN_PLAYERS`
 3. Queries D1 (via Drizzle ORM) to filter anonymous users
 4. Per registered player: `rollXp()` → Drizzle upsert (`onConflictDoUpdate` + `last_room_code` idempotency guard)
@@ -89,15 +89,15 @@ Range [50, 70], expected ~60. Early: 1 game/level, later: 2 games/level.
 
 ### WebSocket Unicast
 
-`GameRoom.#sendSettleResults(results)` iterates connected WebSockets, `deserializeAttachment()` reads userId, matches then sends `{ type: 'SETTLE_RESULT', xpEarned, newXp, newLevel, previousLevel }`.
+`werewolfSettlementEffects.sendSettleResults(results)` iterates connected WebSockets, `deserializeAttachment()` reads userId, matches then sends `{ type: 'SETTLE_RESULT', xpEarned, newXp, newLevel, previousLevel }`.
 
 ---
 
 ## 4. Client Receive Chain
 
 ```
-GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
-  → ConnectionManager.onSettleResult → GameFacade.handleSettleResult
+GameRoom DO settlement effect → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
+  → ConnectionManager.onSettleResult → WerewolfFacade.handleSettleResult
   → #settleResultListeners → useSettleToast → sonner-native toast
 ```
 

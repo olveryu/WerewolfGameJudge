@@ -63,6 +63,8 @@ export const TESTIDS = {
   // ActionMessage / BottomActionPanel
   actionMessage: 'action-message',
   bottomActionPanel: 'bottom-action-panel',
+  chooseBottomCardModal: 'choose-bottom-card-modal',
+  chooseBottomCardOption: (index: number) => `choose-bottom-card-option-${index}`,
 
   // SeatConfirmModal
   seatConfirmModal: 'seat-confirm-modal',

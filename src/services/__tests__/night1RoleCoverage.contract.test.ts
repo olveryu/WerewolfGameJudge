@@ -12,8 +12,8 @@
  * - missing audioKey causing audio to not play
  */
 
-import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import { RESOLVERS } from '@werewolf/game-engine/resolvers';
+import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import { RESOLVERS } from '@werewolf/game-engine/werewolf/resolvers';
 
 describe('Night-1 Role Coverage Contract', () => {
   describe('NIGHT_STEPS completeness', () => {

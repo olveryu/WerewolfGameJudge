@@ -73,11 +73,12 @@ Introduce gacha mechanism:
 
 ```
 Game ends
-  → GameRoom DO #settleIfEnded()
+  → GameRoom engineAction(AUDIO_ACK) post-commit effect
+    → werewolfSettlementEffects.runWerewolfPostCommitEffects()
     → settleGameResults() [packages/api-worker/src/growth/settleGameResults.ts]
       → per player: rollXp() → Drizzle upsert → check level up → pickRandomReward()
-    → #sendSettleResults() — WebSocket unicast SETTLE_RESULT
-    → #updateRosterLevels() — broadcast UPDATE_ROSTER_LEVELS action
+    → sendSettleResults() — WebSocket unicast SETTLE_RESULT
+    → updateRosterLevels() — broadcast UPDATE_ROSTER_LEVELS action
 
 Client
   → CFRealtimeService parses SETTLE_RESULT
@@ -488,7 +489,7 @@ export interface PlayerSettleResult {
 }
 ```
 
-**`#sendSettleResults` changes**: WebSocket message adds `normalDrawsEarned` / `goldenDrawsEarned` fields.
+**`sendSettleResults` changes**: WebSocket message adds `normalDrawsEarned` / `goldenDrawsEarned` fields.
 
 ### 6.2 New Gacha API: `gachaHandlers.ts`
 
@@ -915,7 +916,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 **Changed files**:
 
 - `packages/api-worker/src/growth/settleGameResults.ts` — Remove `pickRandomReward` call, replace with ticket accumulation
-- `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` adds fields
+- `packages/api-worker/src/durableObjects/effects/werewolfSettlementEffects.ts` — `sendSettleResults` adds fields
 - `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` replaced with ticket count fields (remove `reward`)
 - `src/services/cloudflare/CFRealtimeService.ts` — Parse new fields
 - `src/hooks/useSettleToast.ts` — Display changed to ticket notification
@@ -923,7 +924,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 **Impact analysis**:
 
 - `PlayerSettleResult` interface change: `reward` → `normalDrawsEarned` / `goldenDrawsEarned`
-- Consumers: `#sendSettleResults`, `#updateRosterLevels` — former needs change, latter unaffected
+- Consumers: `sendSettleResults`, `updateRosterLevels` — former needs change, latter unaffected
 - `getRewardDisplayName` function no longer needed (delete)
 - `useSettleToast`'s `showSettleToast` logic rewritten
 

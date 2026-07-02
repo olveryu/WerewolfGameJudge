@@ -19,10 +19,10 @@
  * - When not learned, Seer check returns "狼人" (wolfRobot itself is wolf faction)
  * - After magician swap, Seer check still follows resolveRoleForChecks logic
  *
- * Architecture: intents → handlers → resolver(resolveRoleForChecks) → GameState
+ * Architecture: intents → handlers → resolver(resolveRoleForChecks) → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

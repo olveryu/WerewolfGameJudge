@@ -6,6 +6,7 @@ import { getVisibleText } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
+import { openWerewolfBoardPicker } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -90,7 +91,7 @@ test.describe('Seating', () => {
 
     try {
       const home = page;
-      await home.getByText('创建房间').click();
+      await openWerewolfBoardPicker(home);
       const bp = new BoardPickerPage(page);
       await bp.waitForReady();
       await bp.selectDefaultTemplate();
@@ -132,7 +133,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await openWerewolfBoardPicker(pageA);
       const bp1 = new BoardPickerPage(pageA);
       await bp1.waitForReady();
       await bp1.selectDefaultTemplate();
@@ -185,7 +186,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await openWerewolfBoardPicker(pageA);
       const bp2 = new BoardPickerPage(pageA);
       await bp2.waitForReady();
       await bp2.selectDefaultTemplate();
@@ -242,7 +243,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await openWerewolfBoardPicker(pageA);
       const bp3 = new BoardPickerPage(pageA);
       await bp3.waitForReady();
       await bp3.selectDefaultTemplate();
@@ -291,7 +292,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await openWerewolfBoardPicker(pageA);
       const bp4 = new BoardPickerPage(pageA);
       await bp4.waitForReady();
       await bp4.selectDefaultTemplate();
@@ -320,7 +321,7 @@ test.describe('Seating', () => {
       expect(joinerSeat2.hasPlayerName, 'Joiner seated at seat 2').toBe(true);
 
       // Switch to seat 5
-      await roomB.seatAt(4);
+      await roomB.switchSeatTo(4);
 
       // Poll for seat switch to propagate (broadcast round-trip)
       const joinerSeat5 = await pollSeatOccupied(roomB, 5);
@@ -349,7 +350,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await openWerewolfBoardPicker(pageA);
       const bp5 = new BoardPickerPage(pageA);
       await bp5.waitForReady();
       await bp5.selectDefaultTemplate();

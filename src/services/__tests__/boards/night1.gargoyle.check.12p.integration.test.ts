@@ -16,12 +16,12 @@
  * Core rules:
  * - gargoyle check returns specific role (not faction)
  * - Check result based on post-swap identity
- * - Result written to GameState.gargoyleReveal
+ * - Result written to WerewolfState.gargoyleReveal
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';

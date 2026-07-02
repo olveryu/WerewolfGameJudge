@@ -3,15 +3,15 @@
  *
  * Standalone screen, navigated to from RoomScreen's BoardInfoCard "笔记" button (modal presentation).
  * Shows a single-column notepad panel + public note area + faction legend.
- * Uses useGameFacade() to get the facade -> useNotepad manages pure-client notepad state.
- * Does not call services directly (notepad persistence is handled inside useNotepad via AsyncStorage).
+ * Uses useWerewolfFacade() to get the facade -> useWerewolfNotepad manages pure-client notepad state.
+ * Does not call services directly (notepad persistence is handled inside useWerewolfNotepad via AsyncStorage).
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -22,8 +22,8 @@ import { Button } from '@/components/Button';
 import { NotepadPanel } from '@/components/NotepadPanel';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
-import { useGameFacade } from '@/contexts';
-import { useNotepad } from '@/hooks/useNotepad';
+import { useWerewolfFacade } from '@/contexts';
+import { useWerewolfNotepad } from '@/hooks/werewolf/useWerewolfNotepad';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { colors, componentSizes, fixed, typography } from '@/theme';
@@ -39,8 +39,8 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
 
-  const facade = useGameFacade();
-  const notepad = useNotepad(facade);
+  const facade = useWerewolfFacade();
+  const notepad = useWerewolfNotepad(facade);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {

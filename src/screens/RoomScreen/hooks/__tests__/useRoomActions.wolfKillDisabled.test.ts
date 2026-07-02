@@ -10,16 +10,16 @@
  * This test now verifies normal wolf vote behavior without block-related fields.
  */
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
-    gameState: { template: { roles: [] } } as unknown as LocalGameState,
+    gameState: { template: { roles: [] } } as unknown as LocalWerewolfState,
     roomStatus: GameStatus.Ongoing,
     currentActionRole: 'wolf',
     currentSchema: getSchema('wolfKill'),

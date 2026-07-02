@@ -6,12 +6,12 @@
  * no side-effects, no service calls.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import { useMemo } from 'react';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 import { buildSeatViewModels, getRoleStats } from '../RoomScreen.helpers';
 
@@ -20,7 +20,7 @@ import { buildSeatViewModels, getRoleStats } from '../RoomScreen.helpers';
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface UseRoomDerivedInput {
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
   roomStatus: GameStatus;
@@ -41,7 +41,7 @@ interface UseRoomDerivedInput {
 const WOLF_HINT_KINDS = new Set(['wolf_unanimity_required', 'wolf_tie_random']);
 
 function getWolfHintLine(
-  hint: NonNullable<LocalGameState['ui']>['currentActorHint'],
+  hint: NonNullable<LocalWerewolfState['ui']>['currentActorHint'],
   effectiveRole: RoleId | null,
 ): string | null {
   if (!hint || !effectiveRole) return null;

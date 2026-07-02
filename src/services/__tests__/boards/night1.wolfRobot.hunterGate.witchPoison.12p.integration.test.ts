@@ -23,10 +23,10 @@
  * Test style: execute every step in NightPlan order; skip nothing
  * Use the unified runner (stepByStepRunner.ts); no custom runners
  *
- * Architecture: intents -> handlers -> resolver -> GameState
+ * Architecture: intents -> handlers -> resolver -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';

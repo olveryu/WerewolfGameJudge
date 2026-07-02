@@ -7,7 +7,8 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import type { GameState } from '@werewolf/game-engine';
+import type { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import type { WerewolfCreateConfig } from '@werewolf/game-engine/werewolf/state/buildInitialWerewolfState';
 
 import { useServices } from '@/contexts/ServiceContext';
 
@@ -15,17 +16,11 @@ export function useCreateRoom() {
   const { roomService } = useServices();
   return useMutation({
     mutationFn: (params: {
-      hostUserId: string;
+      gameType: typeof WEREWOLF_GAME_TYPE;
       initialRoomNumber?: string;
       maxRetries?: number;
-      buildInitialState?: (roomCode: string) => GameState;
-    }) =>
-      roomService.createRoom(
-        params.hostUserId,
-        params.initialRoomNumber,
-        params.maxRetries,
-        params.buildInitialState,
-      ),
+      config: WerewolfCreateConfig;
+    }) => roomService.createRoom(params),
   });
 }
 

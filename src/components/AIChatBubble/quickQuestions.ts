@@ -6,9 +6,9 @@
  * Reads gameState for question matching. Does not call services or modify state.
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { randomPick } from '@werewolf/game-engine/utils/random';
 import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 // ── Question pool ───────────────────────────────────────
 
@@ -640,7 +640,10 @@ const ROLE_QUESTIONS: Record<string, string[]> = {
 /**
  * Generate quick questions (4 total) based on game context and chat history
  */
-export function generateQuickQuestions(state: GameState | null, mySeat: number | null): string[] {
+export function generateQuickQuestions(
+  state: WerewolfState | null,
+  mySeat: number | null,
+): string[] {
   const questions: string[] = [];
   const used = new Set<string>();
 

@@ -3,8 +3,8 @@
  *
  * Starts empty; executors are registered by C09/C10 commits.
  * `dispatchIntent` is the entry point: looks up the registry,
- * returns true if handled, false if the caller should fall through
- * to the existing switch.
+ * returns true if handled, false if the caller should use the remaining
+ * inline action switch.
  */
 
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
@@ -44,7 +44,7 @@ export function registerExecutor(type: ActionIntent['type'], executor: IntentExe
  * Attempt to dispatch an intent via the executor registry.
  *
  * @returns `true` if an executor handled the intent, `false` if no executor
- *          was registered (caller should fall through to legacy switch).
+ *          was registered (caller should use the remaining inline switch).
  */
 export async function dispatchIntent(intent: ActionIntent, ctx: ExecutorContext): Promise<boolean> {
   const executor = executors[intent.type];

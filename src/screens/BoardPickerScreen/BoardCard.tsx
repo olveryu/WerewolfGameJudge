@@ -2,7 +2,10 @@
  * BoardCard — Single board card (expand/collapse + faction stats + key role chips)
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { getPlayerCount, type PresetTemplate } from '@werewolf/game-engine/models/Template';
+import {
+  getPlayerCount,
+  type PresetTemplate,
+} from '@werewolf/game-engine/werewolf/models/Template';
 import React, { useCallback, useMemo } from 'react';
 import { LayoutAnimation, Text, TouchableOpacity, View } from 'react-native';
 

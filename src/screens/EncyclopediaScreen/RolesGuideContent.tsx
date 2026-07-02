@@ -7,7 +7,12 @@
  * State is passed in by the parent via props (the hook is called at the shell layer).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Faction, getRoleSpec, isWolfRole, type RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  Faction,
+  getRoleSpec,
+  isWolfRole,
+  type RoleId,
+} from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import { Pressable, SectionList, type SectionListData, Text, View } from 'react-native';

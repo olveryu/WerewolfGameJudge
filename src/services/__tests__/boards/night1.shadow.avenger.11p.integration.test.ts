@@ -8,8 +8,8 @@
  * Board: Shadow Avenger 12p
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { Team } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';

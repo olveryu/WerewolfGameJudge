@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
@@ -63,13 +63,34 @@ export class RoomPage {
     });
   }
 
-  /** Click own seat → profile card opens → click "离座" button. No second confirm. */
+  /** Click an empty seat while already seated and confirm the "换座" dialog. */
+  async switchSeatTo(seat: number) {
+    await this.getSeatTile(seat).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('换座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
+    // Wait for seat broadcast to arrive: the target seat should become occupied.
+    await expect
+      .poll(() => this.collectSeatState(seat + 1).then((state) => state.hasPlayerName), {
+        timeout: 10_000,
+        intervals: [250],
+        message: `Seat ${seat + 1} did not become occupied after switch within 10s`,
+      })
+      .toBeTruthy();
+  }
+
+  /** Click own seat → profile card opens → click "离座" button and confirm. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
     // Profile card should appear (self-profile)
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
     // Click "离座" button inside the profile card
     await this.page.getByText('离座', { exact: true }).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('离座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
       timeout: 5000,

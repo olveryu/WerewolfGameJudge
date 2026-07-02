@@ -4,13 +4,13 @@
  * Renders a player card list: each row has seat number (tap to select role) + role badge + hand-up tag + note input.
  * Tapping the seat number opens a role-picker popover; selection shows a role badge next to the seat number.
  * Card background color follows the role guess (4-color distinction: wolf / god / villager / third party).
- * Receives notepad state and action callbacks (from useNotepad), plus a styles prop.
+ * Receives notepad state and action callbacks (from useWerewolfNotepad), plus a styles prop.
  * Does not directly call service / AsyncStorage / game-engine.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,
@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
-import type { NotepadState, RoleTagInfo } from '@/hooks/useNotepad';
+import type { NotepadState, RoleTagInfo } from '@/hooks/werewolf/useWerewolfNotepad';
 import { fixed } from '@/theme';
 
 // ── NotepadStyles (NotepadPanel depends on this type) ─────────────

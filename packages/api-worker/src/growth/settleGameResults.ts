@@ -14,8 +14,8 @@ import {
   rollNormalDraws,
   rollXp,
 } from '@werewolf/game-engine/growth/level';
-import { getRoleCamp } from '@werewolf/game-engine/models/roles';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { getRoleCamp } from '@werewolf/game-engine/werewolf/models/roles';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
@@ -44,7 +44,7 @@ export interface PlayerSettleResult {
  * @returns Settlement results for each registered player (empty array = valid game conditions not met)
  */
 export async function settleGameResults(
-  state: GameState,
+  state: WerewolfState,
   env: SettlementEnv,
   revision: number,
 ): Promise<PlayerSettleResult[]> {

@@ -4,6 +4,7 @@
  * Data fetching (self / other user unlocks), tab/filter switching,
  * item list computation, progress stats.
  */
+import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import {
   AVATAR_IDS,
   FRAME_IDS,
@@ -12,11 +13,10 @@ import {
   getItemRarity,
   NAME_STYLE_IDS,
   type Rarity,
-  ROLE_REVEAL_EFFECT_IDS,
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 

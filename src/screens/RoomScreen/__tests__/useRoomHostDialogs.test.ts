@@ -2,12 +2,12 @@
  * Tests for useRoomHostDialogs hook
  */
 import { act, renderHook } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
+import type { LocalWerewolfPlayer, LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import { useRoomHostDialogs } from '@/screens/RoomScreen/useRoomHostDialogs';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 import { showAlert } from '@/utils/alert';
 
 // Mock showAlert
@@ -25,8 +25,8 @@ const mockNavigation = {
 } as unknown as Parameters<typeof useRoomHostDialogs>[0]['navigation'];
 
 // Create mock game state
-const createMockGameState = (playerCount: number): LocalGameState => {
-  const players = new Map<number, LocalPlayer | null>();
+const createMockGameState = (playerCount: number): LocalWerewolfState => {
+  const players = new Map<number, LocalWerewolfPlayer | null>();
   for (let i = 1; i <= playerCount; i++) {
     players.set(i, {
       userId: `test-uid-${i}`,

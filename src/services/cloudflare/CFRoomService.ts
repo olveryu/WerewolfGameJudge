@@ -15,9 +15,9 @@
  * - Depends on cfPost for token injection and error interception
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
-import type { IRoomService, RoomRecord } from '@/services/types/IRoomService';
+import type { CreateRoomParams, IRoomService, RoomRecord } from '@/services/types/IRoomService';
 import { roomLog } from '@/utils/logger';
 import { generateRoomCode } from '@/utils/roomCode';
 
@@ -29,23 +29,25 @@ import { cfPost } from './cfFetch';
  * Responsibilities: create/query/delete rooms (optimistic insert + conflict retry).
  */
 export class CFRoomService implements IRoomService {
-  async createRoom(
-    hostUserId: string,
-    initialRoomNumber?: string,
-    maxRetries: number = 5,
-    buildInitialState?: (roomCode: string) => GameState,
-  ): Promise<RoomRecord> {
+  async createRoom<TConfig = unknown>({
+    gameType,
+    initialRoomNumber,
+    maxRetries,
+    config,
+  }: CreateRoomParams<TConfig>): Promise<RoomRecord> {
     let lastError: Error | undefined;
+    const retryLimit = maxRetries ?? 5;
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    for (let attempt = 1; attempt <= retryLimit; attempt++) {
       const roomCode = attempt === 1 && initialRoomNumber ? initialRoomNumber : generateRoomCode();
 
       try {
         const data = await cfPost<{
-          room: { roomCode: string; hostUserId: string; createdAt: string };
+          room: { roomCode: string; hostUserId: string; createdAt: string; gameType: string };
         }>('/room/create', {
           roomCode: roomCode,
-          initialState: buildInitialState ? buildInitialState(roomCode) : undefined,
+          gameType,
+          config,
         });
 
         if (attempt > 1) {
@@ -56,12 +58,13 @@ export class CFRoomService implements IRoomService {
           roomCode: data.room.roomCode,
           hostUserId: data.room.hostUserId,
           createdAt: new Date(data.room.createdAt),
+          gameType: data.room.gameType,
         };
       } catch (err) {
         const errObj = err as { status?: number; reason?: string };
         const isConflict = errObj.status === 409;
 
-        if (isConflict && attempt < maxRetries) {
+        if (isConflict && attempt < retryLimit) {
           roomLog.debug('Room code conflict, retrying', { roomCode, attempt });
           continue;
         }
@@ -75,7 +78,7 @@ export class CFRoomService implements IRoomService {
 
   async getRoom(roomCode: string): Promise<RoomRecord | null> {
     const data = await cfPost<{
-      room: { roomCode: string; hostUserId: string; createdAt: string } | null;
+      room: { roomCode: string; hostUserId: string; createdAt: string; gameType: string } | null;
     }>('/room/get', { roomCode: roomCode });
 
     if (!data.room) return null;
@@ -84,6 +87,7 @@ export class CFRoomService implements IRoomService {
       roomCode: data.room.roomCode,
       hostUserId: data.room.hostUserId,
       createdAt: new Date(data.room.createdAt),
+      gameType: data.room.gameType,
     };
   }
 
@@ -105,10 +109,12 @@ export class CFRoomService implements IRoomService {
     return data.revision;
   }
 
-  async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
+  async getGameState<TState = WerewolfState>(
+    roomCode: string,
+  ): Promise<{ state: TState; revision: number } | null> {
     roomLog.debug('getGameState', { roomCode });
     const data = await cfPost<{
-      state: GameState | null;
+      state: TState | null;
       revision?: number;
     }>('/room/state', { roomCode });
 

@@ -18,7 +18,7 @@ import {
   isAIChatReady,
   streamChatMessage,
 } from '@/services/feature/AIChatService';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
@@ -59,7 +59,7 @@ export interface UseChatMessagesReturn {
  * @param facade Game facade (used to build player context)
  * @param isOpen Whether the chat window is open (abort request on close)
  */
-export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMessagesReturn {
+export function useChatMessages(facade: IWerewolfFacade, isOpen: boolean): UseChatMessagesReturn {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);

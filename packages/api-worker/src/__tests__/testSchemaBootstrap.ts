@@ -120,6 +120,7 @@ const SCHEMA_STATEMENTS = [
     host_user_id TEXT NOT NULL,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
+    game_type TEXT NOT NULL DEFAULT 'werewolf',
     games_started INTEGER NOT NULL DEFAULT 0,
     last_started_at TEXT
   );`,

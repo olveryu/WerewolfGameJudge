@@ -17,7 +17,7 @@ import {
   LinearGradient as SkiaLinearGradient,
   vec,
 } from '@shopify/react-native-skia';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';

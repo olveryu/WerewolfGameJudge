@@ -27,14 +27,14 @@ export {
   makeActionTarget,
   makeActionWitch,
   type RoleAction,
-} from './models/actions/RoleAction';
+} from './werewolf/models/actions/RoleAction';
 export {
   makeWitchNone,
   makeWitchPoison,
   makeWitchSave,
   type WitchAction,
-} from './models/actions/WitchAction';
-export { GameStatus } from './models/GameStatus';
+} from './werewolf/models/actions/WitchAction';
+export { GameStatus } from './werewolf/models/GameStatus';
 export {
   type ActionSchema,
   buildNightPlan,
@@ -57,7 +57,7 @@ export {
   type RoleId,
   type SchemaId,
   SCHEMAS,
-} from './models/roles';
+} from './werewolf/models/roles';
 export {
   BOTTOM_CARD_COUNT,
   createCustomTemplate,
@@ -71,37 +71,52 @@ export {
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
   validateTemplateRoles,
-} from './models/Template';
+} from './werewolf/models/Template';
 
 // === Protocol ===
+export {
+  FIB_GAME_TYPE,
+  GAME_TYPES,
+  type GameType,
+  isGameType,
+  WEREWOLF_GAME_TYPE,
+} from './protocol/gameTypes';
 export {
   type AudioEffect,
   type BoardNomination,
   type ConfirmStatus,
   type FactionConfirmStatus,
-  type GameState,
   type Player,
   type PlayerMessage,
   type ProtocolAction,
   type RosterEntry,
   type ShootConfirmStatus,
-} from './protocol/types';
+  type WerewolfState,
+} from './werewolf/protocol/types';
 
-// === Types ===
-export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './types/RoleRevealAnimation';
+// === Cosmetics ===
+export {
+  FREE_ROLE_REVEAL_EFFECT_IDS,
+  RANDOMIZABLE_ANIMATIONS,
+  type ResolvedRoleRevealAnimation,
+  resolveRandomAnimation,
+  ROLE_REVEAL_EFFECT_IDS,
+  type RoleRevealAnimation,
+  type RoleRevealEffectId,
+} from './cosmetics/roleRevealEffects';
 
 // === Resolvers ===
-export { RESOLVERS } from './resolvers';
+export { RESOLVERS } from './werewolf/resolvers';
 export {
   type ActionInput,
   type CurrentNightResults,
   type ResolverContext,
   resolveRoleForChecks,
-} from './resolvers/types';
+} from './werewolf/resolvers/types';
 
 // === Engine ===
-export type { DeathReason, DeathsDetailed } from './engine/DeathCalculator';
-export { handleSubmitAction, handleViewedRole } from './engine/handlers/actionHandler';
+export type { DeathReason, DeathsDetailed } from './werewolf/DeathCalculator';
+export { handleSubmitAction, handleViewedRole } from './werewolf/handlers/actionHandler';
 export {
   handleAssignRoles,
   handleBoardNominate,
@@ -113,31 +128,35 @@ export {
   handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
-} from './engine/handlers/gameControlHandler';
+} from './werewolf/handlers/gameControlHandler';
 export {
   decideWolfVoteTimerAction,
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
-} from './engine/handlers/progressionEvaluator';
+} from './werewolf/handlers/progressionEvaluator';
 export {
   handleClearAllSeats,
   handleJoinSeat,
   handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
-} from './engine/handlers/seatHandler';
+} from './werewolf/handlers/seatHandler';
 export {
   handleAdvanceNight,
   handleEndNight,
   handleSetAudioPlaying,
-} from './engine/handlers/stepTransitionHandler';
-export { type HandlerContext, type HandlerResult, type SideEffect } from './engine/handlers/types';
-export { handleSetWolfRobotHunterStatusViewed } from './engine/handlers/wolfRobotHunterGateHandler';
+} from './werewolf/handlers/stepTransitionHandler';
+export {
+  type HandlerContext,
+  type HandlerResult,
+  type SideEffect,
+} from './werewolf/handlers/types';
+export { handleSetWolfRobotHunterStatusViewed } from './werewolf/handlers/wolfRobotHunterGateHandler';
 export {
   AUTO_SKIP_DELAY_MAX_MS,
   AUTO_SKIP_DELAY_MIN_MS,
   runInlineProgression,
-} from './engine/inlineProgression';
+} from './werewolf/inlineProgression';
 export type {
   BoardNominateIntent,
   BoardUpvoteIntent,
@@ -148,13 +167,13 @@ export type {
   SetAudioPlayingIntent,
   SubmitActionIntent,
   UpdatePlayerProfileIntent,
-} from './engine/intents/types';
-export { gameReducer } from './engine/reducer';
-export type { StateAction } from './engine/reducer/types';
-export { resolveWolfVotes } from './engine/resolveWolfVotes';
-export { buildInitialGameState } from './engine/state/buildInitialState';
-export { normalizeState } from './engine/state/normalize';
-export { GameStore } from './engine/store';
+} from './werewolf/intents/types';
+export { werewolfReducer } from './werewolf/reducer';
+export type { StateAction } from './werewolf/reducer/types';
+export { resolveWolfVotes } from './werewolf/resolveWolfVotes';
+export { buildInitialWerewolfStateFromTemplate } from './werewolf/state/buildInitialWerewolfState';
+export { normalizeWerewolfState } from './werewolf/state/normalizeWerewolfState';
+export { WerewolfStore } from './werewolf/store';
 
 // === Growth ===
 export {

@@ -5,10 +5,13 @@
  * No hooks, no side effects, no closure captures.
  */
 
-import type { RevealKind } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { RevealKind } from '@werewolf/game-engine/werewolf/models/roles';
+import type {
+  ActionSchema,
+  InlineSubStepSchema,
+} from '@werewolf/game-engine/werewolf/models/roles/spec';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -20,20 +23,20 @@ interface WitchStepResultsExtra {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Reveal: GameState field access
+// Reveal: WerewolfState field access
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Read reveal data from GameState for a given RevealKind.
+ * Read reveal data from WerewolfState for a given RevealKind.
  *
- * GameState field naming convention: `${kind}Reveal` (e.g. seerReveal, psychicReveal).
+ * WerewolfState field naming convention: `${kind}Reveal` (e.g. seerReveal, psychicReveal).
  */
 export function getRevealDataFromState(
-  state: LocalGameState,
+  state: LocalWerewolfState,
   kind: RevealKind,
 ): { targetSeat: number; result: string } | undefined {
   const key = `${kind}Reveal`;
-  // LocalGameState has no index signature — cast via unknown to access by dynamic key.
+  // LocalWerewolfState has no index signature — cast via unknown to access by dynamic key.
   return (state as unknown as Record<string, unknown>)[key] as
     | { targetSeat: number; result: string }
     | undefined;

@@ -5,7 +5,7 @@
  * Uses cfGet wrapper (auto-injects token + timeout + error handling).
  */
 
-import type { CampBucket } from '@werewolf/game-engine/models/roles';
+import type { CampBucket } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cfGet } from '@/services/cloudflare/cfFetch';
 import { statsLog } from '@/utils/logger';

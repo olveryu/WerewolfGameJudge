@@ -18,104 +18,36 @@
  */
 
 import * as Sentry from '@sentry/cloudflare';
-import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
-import {
-  handleAssignRoles,
-  handleBoardNominate,
-  handleBoardUpvote,
-  handleBoardWithdraw,
-  handleFillWithBots,
-  handleMarkAllBotsViewed,
-  handleRestartGame,
-  handleShareNightReview,
-  handleStartNight,
-  handleUpdateTemplate,
-} from '@werewolf/game-engine/engine/handlers/gameControlHandler';
-import {
-  handleClearAllSeats,
-  handleJoinSeat,
-  handleKickPlayer,
-  handleLeaveMySeat,
-  handleUpdatePlayerProfile,
-} from '@werewolf/game-engine/engine/handlers/seatHandler';
-import { handleSetAudioPlaying } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
-import { handlerError, handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
-import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
-import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type {
-  StateAction,
-  UpdatePlayerProfileAction,
-} from '@werewolf/game-engine/engine/reducer/types';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../env';
-import { type PlayerSettleResult, settleGameResults } from '../growth/settleGameResults';
 import { createLogger } from '../lib/logger';
-import type { SeatActionParams } from '../schemas/game';
+import { runEngineAlarm, runEnginePostCommitEffects } from './effects/engineEffectRegistry';
+import type { EngineEffectContext } from './effects/types';
+import { getRegisteredEngine } from './engineRegistry';
+import type { IGameRoomRPC } from './IGameRoomRPC';
+import { type DispatchResult, processEngineAction } from './processEngineAction';
+import type { WebSocketAttachment } from './webSocketAttachment';
 
 const log = createLogger('GameRoom');
-import {
-  buildHandlerContext,
-  extractAudioActions,
-  type GameActionResult,
-  processAction,
-} from './gameProcessor';
-import type { IGameRoomRPC } from './IGameRoomRPC';
-
-interface WebSocketAttachment {
-  userId: string;
-  roomCode: string;
-  /** Date.now() at WS accept (epoch ms) */
-  connectedAt: number;
-}
 
 class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
-  /** Max settle retries */
-  static readonly SETTLE_MAX_RETRIES = 3;
-  /** Retry interval (ms) */
-  static readonly SETTLE_RETRY_DELAY_MS = 30_000;
-
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
     // Auto-reply pong to ping without waking the DO from hibernation
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
-    void ctx.blockConcurrencyWhile(async () => {
-      this.ctx.storage.sql.exec(`
-        CREATE TABLE IF NOT EXISTS room_state (
-          id INTEGER PRIMARY KEY CHECK (id = 1),
-          game_state TEXT NOT NULL,
-          revision INTEGER NOT NULL DEFAULT 0
-        )
-      `);
-    });
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS room_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        game_state TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0
+      )
+    `);
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────
 
-  #processAction(
-    processFn: Parameters<typeof processAction>[1],
-    inlineProgression?: Parameters<typeof processAction>[2],
-    lastAction?: string,
-  ): GameActionResult {
-    const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
-
-    // Broadcast — output gate ensures send only after write is persisted
-    if (result.success && result.state && result.revision != null) {
-      const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
-      if (shouldBroadcast) {
-        this.#broadcast(result.state, result.revision, lastAction);
-      }
-    }
-
-    return result;
-  }
-
-  #broadcast(state: GameState, revision: number, lastAction?: string): void {
+  #broadcast(state: unknown, revision: number, lastAction?: string): void {
     const message = JSON.stringify({
       type: 'STATE_UPDATE',
       state,
@@ -123,488 +55,67 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       ...(lastAction && { lastAction }),
     });
 
-    const sockets = this.ctx.getWebSockets();
-    for (const ws of sockets) {
+    for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.send(message);
-      } catch {
-        // Socket already closed — will be cleaned up in webSocketClose
-      }
-    }
-  }
-
-  /** If game just ended (status === Ended), asynchronously trigger growth settlement */
-  #settleIfEnded(result: GameActionResult): void {
-    if (result.success && result.state?.status === GameStatus.Ended) {
-      const revision = result.revision!;
-      this.ctx.waitUntil(
-        this.#runSettle(result.state, revision).catch((err) => {
-          log.error('settleGameResults failed, scheduling retry', {
-            error: err instanceof Error ? err.message : String(err),
-          });
-          this.#scheduleSettleRetry(revision, 0);
-        }),
-      );
-    }
-  }
-
-  /** Run settlement and broadcast results + update roster levels */
-  async #runSettle(state: GameState, revision: number): Promise<void> {
-    const settleResults = await settleGameResults(state, this.env, revision);
-    this.#sendSettleResults(settleResults);
-    this.#updateRosterLevels(settleResults);
-  }
-
-  /**
-   * Schedule alarm to retry settlement.
-   * @remarks Retries up to SETTLE_MAX_RETRIES=3 times at SETTLE_RETRY_DELAY_MS=30s intervals.
-   *   Gives up and logs error after exhausted.
-   */
-  #scheduleSettleRetry(revision: number, attempt: number): void {
-    if (attempt >= GameRoom.SETTLE_MAX_RETRIES) {
-      log.error('settle retries exhausted', { revision, attempt });
-      return;
-    }
-    void this.ctx.storage.put('settle_pending', { revision, attempt });
-    void this.ctx.storage.setAlarm(Date.now() + GameRoom.SETTLE_RETRY_DELAY_MS);
-  }
-
-  /**
-   * DO Alarm callback — retries incomplete settlement.
-   * @remarks CF DO guarantees only one alarm is executing at a time (single-threaded).
-   *   If state is no longer Ended (already restarted), skip settlement and clear pending flag.
-   */
-  async alarm(): Promise<void> {
-    const pending = await this.ctx.storage.get<{ revision: number; attempt: number }>(
-      'settle_pending',
-    );
-    if (!pending) return;
-
-    const rows = this.ctx.storage.sql
-      .exec('SELECT game_state FROM room_state WHERE id = 1')
-      .toArray();
-    if (rows.length === 0) {
-      await this.ctx.storage.delete('settle_pending');
-      return;
-    }
-
-    const state = JSON.parse(rows[0].game_state as string) as GameState;
-    if (state.status !== GameStatus.Ended) {
-      await this.ctx.storage.delete('settle_pending');
-      return;
-    }
-
-    try {
-      await this.#runSettle(state, pending.revision);
-      await this.ctx.storage.delete('settle_pending');
-    } catch (err) {
-      log.error('settle retry failed', {
-        revision: pending.revision,
-        attempt: pending.attempt,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      this.#scheduleSettleRetry(pending.revision, pending.attempt + 1);
-    }
-  }
-
-  /** After settlement, update roster level via processAction and broadcast */
-  #updateRosterLevels(results: PlayerSettleResult[]): void {
-    if (results.length === 0) return;
-
-    const levels: Record<string, number> = {};
-    for (const r of results) {
-      levels[r.userId] = r.newLevel;
-    }
-
-    this.#processAction((_state) => {
-      return handlerSuccess([{ type: 'UPDATE_ROSTER_LEVELS' as const, payload: { levels } }]);
-    });
-  }
-
-  /** Unicast settlement result to each connected registered player */
-  #sendSettleResults(results: PlayerSettleResult[]): void {
-    if (results.length === 0) return;
-    const resultByUid = new Map(results.map((r) => [r.userId, r]));
-    const sockets = this.ctx.getWebSockets();
-    for (const ws of sockets) {
-      try {
-        const attachment = (
-          ws as unknown as { deserializeAttachment(): WebSocketAttachment }
-        ).deserializeAttachment();
-        const settle = resultByUid.get(attachment.userId);
-        if (settle) {
-          ws.send(
-            JSON.stringify({
-              type: 'SETTLE_RESULT',
-              xpEarned: settle.xpEarned,
-              newXp: settle.newXp,
-              newLevel: settle.newLevel,
-              previousLevel: settle.previousLevel,
-              normalDrawsEarned: settle.normalDrawsEarned,
-              goldenDrawsEarned: settle.goldenDrawsEarned,
-            }),
-          );
-        }
-      } catch {
-        // Socket already closed
-      }
-    }
-  }
-
-  // ── (A) No-arg RPC methods ──────────────────────────────────────────────
-
-  async assignRoles(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx);
-      },
-      undefined,
-      'ASSIGN_ROLES',
-    );
-  }
-
-  async restartGame(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleRestartGame({ type: 'RESTART_GAME' }, ctx);
-      },
-      undefined,
-      'RESTART_GAME',
-    );
-  }
-
-  async clearAllSeats(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleClearAllSeats({ type: 'CLEAR_ALL_SEATS' }, ctx);
-      },
-      undefined,
-      'CLEAR_ALL_SEATS',
-    );
-  }
-
-  async fillWithBots(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleFillWithBots({ type: 'FILL_WITH_BOTS' }, ctx);
-    });
-  }
-
-  async markAllBotsViewed(): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleMarkAllBotsViewed({ type: 'MARK_ALL_BOTS_VIEWED' }, ctx);
-    });
-  }
-
-  // ── (B) Parameterized RPC methods ───────────────────────────────────────
-
-  async seat(params: SeatActionParams): Promise<GameActionResult> {
-    const { action, userId } = params;
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, userId);
-        if (action === 'sit') {
-          return handleJoinSeat(
-            {
-              type: 'JOIN_SEAT',
-              payload: {
-                seat: params.seat!,
-                userId,
-                displayName: params.displayName ?? '',
-                avatarUrl: params.avatarUrl,
-                avatarFrame: params.avatarFrame,
-                seatFlair: params.seatFlair,
-                nameStyle: params.nameStyle,
-                roleRevealEffect: params.roleRevealEffect,
-                seatAnimation: params.seatAnimation,
-                level: params.level,
-              },
-            },
-            ctx,
-          );
-        }
-        if (action === 'kick') {
-          return handleKickPlayer(
-            { type: 'KICK_PLAYER', payload: { targetSeat: params.targetSeat! } },
-            ctx,
-          );
-        }
-        return handleLeaveMySeat({ type: 'LEAVE_MY_SEAT', payload: { userId } }, ctx);
-      },
-      undefined,
-      action === 'kick' ? 'KICK_PLAYER' : undefined,
-    );
-  }
-
-  async submitAction(
-    seatNum: number,
-    role: RoleId,
-    target: number | null,
-    extra?: unknown,
-  ): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleSubmitAction(
-          { type: 'SUBMIT_ACTION', payload: { seat: seatNum, role, target, extra } },
-          ctx,
-        );
-      },
-      { enabled: true },
-    );
-  }
-
-  async viewRole(userId: string, seatNum: number): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, userId);
-      return handleViewedRole({ type: 'VIEWED_ROLE', payload: { seat: seatNum } }, ctx);
-    });
-  }
-
-  async updateTemplate(
-    templateRoles: RoleId[],
-    rules?: GameRuleOverrides,
-  ): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleUpdateTemplate(
-        { type: 'UPDATE_TEMPLATE', payload: { templateRoles, rules } },
-        ctx,
-      );
-    });
-  }
-
-  async updateProfile(payload: UpdatePlayerProfileAction['payload']): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, payload.userId);
-      return handleUpdatePlayerProfile({ type: 'UPDATE_PLAYER_PROFILE', payload }, ctx);
-    });
-  }
-
-  async shareReview(allowedSeats: number[]): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleShareNightReview({ type: 'SHARE_NIGHT_REVIEW', allowedSeats }, ctx);
-    });
-  }
-
-  // ── (D) Board Nomination RPC methods ────────────────────────────────────
-
-  async boardNominate(
-    userId: string,
-    displayName: string,
-    roles: RoleId[],
-  ): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, userId);
-      return handleBoardNominate(
-        { type: 'BOARD_NOMINATE', payload: { userId, displayName, roles } },
-        ctx,
-      );
-    });
-  }
-
-  async boardUpvote(voterUid: string, targetUserId: string): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, voterUid);
-      return handleBoardUpvote({ type: 'BOARD_UPVOTE', payload: { targetUserId, voterUid } }, ctx);
-    });
-  }
-
-  async boardWithdraw(userId: string): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, userId);
-      return handleBoardWithdraw({ type: 'BOARD_WITHDRAW', payload: { userId } }, ctx);
-    });
-  }
-
-  // ── (C) Night RPC methods with post-processing ──────────────────────────
-
-  async startNight(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
-        if (result.kind === 'error') return result;
-
-        const extraActions = extractAudioActions(result.sideEffects);
-        if (extraActions.length > 0) {
-          return handlerSuccess([...result.actions, ...extraActions], result.sideEffects);
-        }
-        return result;
-      },
-      undefined,
-      'START_NIGHT',
-    );
-  }
-
-  async audioAck(): Promise<GameActionResult> {
-    const result = this.#processAction(
-      (state) => {
-        if (
-          !state.isAudioPlaying &&
-          (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
-        ) {
-          return handlerSuccess([]);
-        }
-        return handlerSuccess([
-          { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
-          { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
-        ]);
-      },
-      { enabled: true },
-    );
-    this.#settleIfEnded(result);
-    return result;
-  }
-
-  async audioGate(isPlaying: boolean): Promise<GameActionResult> {
-    return this.#processAction((state) => {
-      const ctx = buildHandlerContext(state, state.hostUserId);
-      return handleSetAudioPlaying({ type: 'SET_AUDIO_PLAYING', payload: { isPlaying } }, ctx);
-    });
-  }
-
-  async progression(): Promise<GameActionResult> {
-    const result = this.#processAction(
-      (state) => {
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        return handlerSuccess([]);
-      },
-      { enabled: true },
-    );
-    // Settlement is triggered by the last audioAck (after audio finishes); do not settle here
-    return result;
-  }
-
-  async revealAck(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
-          return handlerError('no_pending_acks');
-        }
-        return handlerSuccess(
-          [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-          [{ type: 'BROADCAST_STATE' as const }],
-        );
-      },
-      { enabled: true },
-    );
-  }
-
-  async wolfRobotViewed(seatNum: number): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleSetWolfRobotHunterStatusViewed(ctx, {
-          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: seatNum,
+      } catch (err) {
+        log.warn('broadcast send failed', {
+          error: err instanceof Error ? err.message : String(err),
         });
-      },
-      { enabled: true },
-    );
+      }
+    }
   }
 
-  async groupConfirmAck(seatNum: number, userId: string): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        const stepId = state.currentStepId;
-        if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId];
-        if (!schema || schema.kind !== 'groupConfirm') {
-          return handlerError('not_group_confirm_step');
-        }
-        const player = state.players[seatNum];
-        if (!player) return handlerError('no_player_at_seat');
-        if (player.userId !== userId && userId !== state.hostUserId) {
-          return handlerError('userId_mismatch');
-        }
-
-        const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
-        const isCupidLoversReveal = stepId === 'cupidLoversReveal';
-        const acks = isConversionReveal
-          ? (state.conversionRevealAcks ?? [])
-          : isCupidLoversReveal
-            ? (state.cupidLoversRevealAcks ?? [])
-            : (state.piperRevealAcks ?? []);
-        if (acks.includes(seatNum)) return handlerSuccess([]);
-
-        const actions: StateAction[] = isConversionReveal
-          ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat: seatNum } }]
-          : isCupidLoversReveal
-            ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat: seatNum } }]
-            : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat: seatNum } }];
-
-        return handlerSuccess(actions);
-      },
-      { enabled: true },
-    );
+  #effectContext(): EngineEffectContext {
+    return {
+      storage: this.ctx.storage,
+      env: this.env,
+      getWebSockets: () => this.ctx.getWebSockets(),
+      broadcast: (state: unknown, revision: number, lastAction?: string) =>
+        this.#broadcast(state, revision, lastAction),
+    };
   }
 
-  async markBotsGroupConfirmed(): Promise<GameActionResult> {
-    return this.#processAction(
-      (state) => {
-        if (!state.debugMode?.botsEnabled) {
-          return handlerError('debug_not_enabled');
-        }
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        const stepId = state.currentStepId;
-        if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId];
-        if (!schema || schema.kind !== 'groupConfirm') {
-          return handlerError('not_group_confirm_step');
-        }
-
-        const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
-        const isCupidLoversReveal = stepId === 'cupidLoversReveal';
-        const existingAcks = isConversionReveal
-          ? (state.conversionRevealAcks ?? [])
-          : isCupidLoversReveal
-            ? (state.cupidLoversRevealAcks ?? [])
-            : (state.piperRevealAcks ?? []);
-
-        const actions: StateAction[] = [];
-        for (const [seatStr, player] of Object.entries(state.players)) {
-          if (!player?.isBot) continue;
-          const seat = Number.parseInt(seatStr, 10);
-          if (existingAcks.includes(seat)) continue;
-
-          if (isConversionReveal) {
-            actions.push({ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } });
-          } else if (isCupidLoversReveal) {
-            actions.push({ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } });
-          } else {
-            actions.push({ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } });
-          }
-        }
-
-        return handlerSuccess(actions);
-      },
-      { enabled: true },
-    );
+  #resolveBroadcastAction(
+    actionType: string,
+    broadcastAction: string | null | undefined,
+  ): string | undefined {
+    if (broadcastAction === null) return undefined;
+    return broadcastAction ?? actionType;
   }
 
-  // ── (D) Read-only RPC methods ───────────────────────────────────────────
+  #parseStateJson(value: unknown): unknown {
+    if (typeof value !== 'string') {
+      throw new Error('[FAIL-FAST] room_state.game_state must be a JSON string');
+    }
+    return JSON.parse(value);
+  }
 
-  async getState(): Promise<{ state: GameState; revision: number } | null> {
+  #parseRevision(value: unknown): number {
+    if (typeof value !== 'number') {
+      throw new Error('[FAIL-FAST] room_state.revision must be a number');
+    }
+    return value;
+  }
+
+  async alarm(): Promise<void> {
+    const gameType = await this.ctx.storage.get<string>('game_type');
+    if (!gameType) {
+      throw new Error('[FAIL-FAST] GameRoom alarm requires initialized game_type');
+    }
+    await runEngineAlarm(gameType, this.#effectContext());
+  }
+
+  // ── Read-only RPC methods ───────────────────────────────────────────────
+
+  async getState(): Promise<{ state: unknown; revision: number } | null> {
     const rows = this.ctx.storage.sql
       .exec('SELECT game_state, revision FROM room_state WHERE id = 1')
       .toArray();
     if (rows.length === 0) return null;
     return {
-      state: JSON.parse(rows[0].game_state as string) as GameState,
-      revision: rows[0].revision as number,
+      state: this.#parseStateJson(rows[0].game_state),
+      revision: this.#parseRevision(rows[0].revision),
     };
   }
 
@@ -612,16 +123,54 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     const rows = this.ctx.storage.sql
       .exec('SELECT revision FROM room_state WHERE id = 1')
       .toArray();
-    return rows.length > 0 ? (rows[0].revision as number) : null;
+    return rows.length > 0 ? this.#parseRevision(rows[0].revision) : null;
   }
 
   // ── (E) Lifecycle RPC methods ───────────────────────────────────────────
 
-  async init(initialState: GameState): Promise<void> {
+  // ── Registered game state ───────────────────────────────────────────────
+
+  /**
+   * Initialize a room for a gameType.
+   * Stores the server-built initial blob + records game_type for routing.
+   */
+  async initState(gameType: string, blob: unknown): Promise<void> {
     this.ctx.storage.sql.exec(
       'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
-      JSON.stringify(initialState),
+      JSON.stringify(blob),
     );
+    await this.ctx.storage.put('game_type', gameType);
+  }
+
+  /**
+   * Dispatch an action to the room's engine (read-compute-write-broadcast).
+   * Resolves the engine by stored game_type; unknown game/action fail fast.
+   */
+  async engineAction(actionType: string, payload: unknown): Promise<DispatchResult> {
+    const gameType = await this.ctx.storage.get<string>('game_type');
+    if (!gameType) return { success: false, reason: 'GAME_NOT_INITIALIZED' };
+    const engine = getRegisteredEngine(gameType);
+    if (!engine) return { success: false, reason: `UNKNOWN_GAME_TYPE:${gameType}` };
+
+    const trigger = { actionType, payload };
+    const result = processEngineAction(this.ctx.storage.sql, engine, trigger);
+
+    if (result.state !== undefined && result.revision != null) {
+      const shouldBroadcast =
+        result.sideEffects?.some((effect) => effect.type === 'BROADCAST_STATE') === true;
+      if (shouldBroadcast) {
+        this.#broadcast(
+          result.state,
+          result.revision,
+          this.#resolveBroadcastAction(actionType, result.broadcastAction),
+        );
+      }
+    }
+    await runEnginePostCommitEffects(gameType, result, {
+      ...this.#effectContext(),
+      trigger,
+    });
+    return result;
   }
 
   async cleanup(): Promise<void> {
@@ -659,9 +208,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     };
 
     this.ctx.acceptWebSocket(server, [roomCode]);
-    (server as unknown as { serializeAttachment(a: unknown): void }).serializeAttachment(
-      attachment,
-    );
+    server.serializeAttachment(attachment);
 
     return new Response(null, {
       status: 101,

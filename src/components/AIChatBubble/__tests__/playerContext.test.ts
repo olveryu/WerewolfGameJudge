@@ -1,17 +1,17 @@
 /**
  * playerContext.test - Unit tests for buildPlayerContext
  *
- * Verifies the pure function that maps GameState + seat → GameContext.
+ * Verifies the pure function that maps WerewolfState + seat → GameContext.
  * Ensures only player-visible info is included (no cheating data).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { Player, WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import { buildPlayerContext } from '../playerContext';
 
-function makeState(overrides: Partial<GameState> = {}): GameState {
+function makeState(overrides: Partial<WerewolfState> = {}): WerewolfState {
   return {
     roomCode: 'ABCD',
     status: GameStatus.Ongoing,
@@ -22,7 +22,7 @@ function makeState(overrides: Partial<GameState> = {}): GameState {
     wolfVotes: {},
     lastNightDeaths: [],
     ...overrides,
-  } as GameState;
+  } as WerewolfState;
 }
 
 function makePlayer(overrides: Partial<Player> = {}): Player {

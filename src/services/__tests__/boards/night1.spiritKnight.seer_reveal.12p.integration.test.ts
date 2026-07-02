@@ -2,7 +2,7 @@
  * Night-1 Integration Test: Spirit Knight - Seer Reveal
  *
  * Board: Spirit Knight
- * Topic: Seer check result written to GameState.seerReveal
+ * Topic: Seer check result written to WerewolfState.seerReveal
  *
  * Fixed seat-role assignment:
  *   seat 0-3: villager
@@ -13,10 +13,10 @@
  *   seat 10: hunter
  *   seat 11: guard
  *
- * Architecture: intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
@@ -63,7 +63,7 @@ describe('Night-1: 恶灵骑士 - Seer Reveal (12p)', () => {
 
       expect(result.completed).toBe(true);
 
-      // Core assertion: seerReveal written to GameState
+      // Core assertion: seerReveal written to WerewolfState
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
       expect(state.seerReveal!.targetSeat).toBe(0);

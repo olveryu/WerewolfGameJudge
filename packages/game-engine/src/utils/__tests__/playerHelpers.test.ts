@@ -5,8 +5,8 @@
  *         getBottomCardEffectiveRole, isBottomCardWolfVoteExcluded
  */
 
-import type { RoleId } from '../../models';
-import type { GameState } from '../../protocol/types';
+import type { RoleId } from '../../werewolf/models';
+import type { WerewolfState } from '../../werewolf/protocol/types';
 import {
   buildSeatRoleMap,
   findSeatByRole,
@@ -15,7 +15,7 @@ import {
   isBottomCardWolfVoteExcluded,
 } from '../playerHelpers';
 
-type Players = GameState['players'];
+type Players = WerewolfState['players'];
 
 // ---------------------------------------------------------------------------
 // Helpers

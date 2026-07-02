@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import { useGameFacade } from '@/contexts';
+import { useWerewolfFacade } from '@/contexts';
 import { setAIChatBridgeListener } from '@/utils/aiChatBridge';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
@@ -56,7 +56,7 @@ interface UseAIChatReturn {
 // ══════════════════════════════════════════════════════════
 
 export function useAIChat(): UseAIChatReturn {
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
 
   // ── Open/close state ─────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);

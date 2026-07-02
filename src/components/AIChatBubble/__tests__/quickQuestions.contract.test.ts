@@ -5,7 +5,7 @@
  * in ROLE_QUESTIONS, so newly added roles are never silently skipped
  * by the AI assistant's suggested questions.
  */
-import { getAllRoleIds } from '@werewolf/game-engine/models/roles';
+import { getAllRoleIds } from '@werewolf/game-engine/werewolf/models/roles';
 // ROLE_QUESTIONS is not exported, so we test via generateQuickQuestions behavior.
 // We import the module source to read ROLE_QUESTIONS via a static-analysis approach.
 import * as fs from 'fs';

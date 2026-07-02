@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import {
   type ActionDeps,
   type GameContext,
   useRoomActions,
 } from '@/screens/RoomScreen/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 function makeContext(partial: Partial<GameContext>): GameContext {
   return {
@@ -64,7 +64,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
       actorRole: 'wolf',
       actorSeat: 2,
       currentSchema: { kind: 'wolfVote' } as ActionSchema,
-      gameState: {} as LocalGameState,
+      gameState: {} as LocalWerewolfState,
     });
     const deps = makeDeps({
       hasWolfVoted: () => false,
@@ -80,7 +80,7 @@ describe('useRoomActions.getWolfStatusLine (UI-only)', () => {
       actorRole: 'wolf',
       actorSeat: 1,
       currentSchema: { kind: 'wolfVote' } as ActionSchema,
-      gameState: {} as LocalGameState,
+      gameState: {} as LocalWerewolfState,
     });
     const deps = makeDeps({
       hasWolfVoted: () => true,

@@ -5,7 +5,7 @@
  * Colors reference the shared theme camp palette (colors.wolf / god / villager / third),
  * keeping camp coloring consistent with the encyclopedia and seat UI.
  */
-import type { CampBucket } from '@werewolf/game-engine/models/roles';
+import type { CampBucket } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { colors } from '@/theme';
 

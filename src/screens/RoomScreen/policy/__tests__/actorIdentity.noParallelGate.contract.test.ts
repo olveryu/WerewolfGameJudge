@@ -123,7 +123,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
   });
 
   describe('Night steps single source of truth', () => {
-    it('should not have any ACTION_ORDER definition (legacy pattern)', () => {
+    it('should not have any ACTION_ORDER definition outside NIGHT_STEPS', () => {
       const files = findFiles('src', /\.tsx?$/, [/__tests__/, /\.test\./, /node_modules/]);
 
       const violations: string[] = [];
@@ -154,7 +154,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('should have exactly one NIGHT_STEPS export', () => {
       const nightStepsFile = readFileContent(
-        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+        'packages/game-engine/src/werewolf/models/roles/spec/nightSteps.ts',
       );
 
       // Count export statements for NIGHT_STEPS
@@ -165,7 +165,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('NIGHT_STEPS should derive audioKey from ROLE_SPECS (no independent definitions)', () => {
       const nightStepsContent = readFileContent(
-        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+        'packages/game-engine/src/werewolf/models/roles/spec/nightSteps.ts',
       );
 
       // nightSteps.ts should NOT hardcode audioKey string literals — it derives them from ROLE_SPECS.

@@ -164,12 +164,12 @@ describe('Delegation Seat Identity Contract', () => {
     });
   });
 
-  describe('useGameRoom submit functions should use effectiveSeat', () => {
+  describe('useWerewolfRoom submit functions should use effectiveSeat', () => {
     /**
      * submitAction must use effectiveSeat, not mySeat
      */
     it('submitAction should use effectiveSeat', () => {
-      const content = readFileContent('src/hooks/useGameActions.ts');
+      const content = readFileContent('src/hooks/werewolf/useWerewolfActions.ts');
 
       // Find submitAction definition
       const submitActionRegex = /const\s+submitAction\s*=\s*useCallback/g;
@@ -192,7 +192,7 @@ describe('Delegation Seat Identity Contract', () => {
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */
     it('sendWolfRobotHunterStatusViewed must accept seat param (caller passes effectiveSeat)', () => {
-      const content = readFileContent('src/hooks/useGameActions.ts');
+      const content = readFileContent('src/hooks/werewolf/useWerewolfActions.ts');
 
       // Find sendWolfRobotHunterStatusViewed definition
       const regex = /const\s+sendWolfRobotHunterStatusViewed\s*=\s*useCallback/g;
@@ -504,11 +504,12 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).not.toMatch(/\.mutate\(mySeat/);
     });
 
-    /**\n     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param
+    /**
+     * Contract: IWerewolfFacade.sendWolfRobotHunterStatusViewed must accept seat as param
      * (not derive it internally) — this is the API contract for debug takeover support.
      */
-    it('IGameFacade.sendWolfRobotHunterStatusViewed takes seat parameter', () => {
-      const content = readFileContent('src/services/types/IGameFacade.ts');
+    it('IWerewolfFacade.sendWolfRobotHunterStatusViewed takes seat parameter', () => {
+      const content = readFileContent('src/services/games/werewolf/IWerewolfFacade.ts');
 
       // Find the method signature
       const regex = /sendWolfRobotHunterStatusViewed\s*\(\s*seat\s*:\s*number\s*\)/;

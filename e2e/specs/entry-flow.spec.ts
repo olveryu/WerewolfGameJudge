@@ -11,6 +11,7 @@ import { gotoWithRetry } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
 import { ConfigPage } from '../pages/ConfigPage';
+import { openWerewolfBoardPicker } from '../pages/HomePage';
 import { RoomPage } from '../pages/RoomPage';
 
 /**
@@ -130,7 +131,7 @@ test.describe('Enter room via join flow', () => {
     const [hostPage] = fixture.pages;
     const joinerPage = fixture.pages[1]!;
 
-    await hostPage.getByText('创建房间').click();
+    await openWerewolfBoardPicker(hostPage);
     const boardPicker = new BoardPickerPage(hostPage);
     await boardPicker.waitForReady();
     await boardPicker.selectDefaultTemplate();
@@ -177,7 +178,7 @@ test.describe('Direct room URL', () => {
     fixture = await createPlayerContexts(browser, 1);
     const [hostPage] = fixture.pages;
 
-    await hostPage.getByText('创建房间').click();
+    await openWerewolfBoardPicker(hostPage);
     const boardPicker1 = new BoardPickerPage(hostPage);
     await boardPicker1.waitForReady();
     await boardPicker1.selectDefaultTemplate();
@@ -217,7 +218,7 @@ test.describe('Direct room URL', () => {
     fixture = await createPlayerContexts(browser, 1);
     const [hostPage] = fixture.pages;
 
-    await hostPage.getByText('创建房间').click();
+    await openWerewolfBoardPicker(hostPage);
     const boardPicker2 = new BoardPickerPage(hostPage);
     await boardPicker2.waitForReady();
     await boardPicker2.selectDefaultTemplate();

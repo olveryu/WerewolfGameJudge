@@ -8,11 +8,11 @@ import type { RefObject } from 'react';
 import { Dimensions, Platform, type View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
+import { shareImageBase64 } from '@/components/room/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
 
 import type { NightReviewData } from './NightReview.helpers';
-import { shareImageBase64 } from './shareImage';
 
 type ShareNightReviewResult = 'shared' | 'cancelled' | 'failed';
 

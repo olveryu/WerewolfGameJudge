@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "esModuleInterop": true,
-    "baseUrl": ".",
     "paths": {
       "@werewolf/game-engine/*": ["../game-engine/src/*"],
       "@werewolf/game-engine": ["../game-engine/src/index.ts"]

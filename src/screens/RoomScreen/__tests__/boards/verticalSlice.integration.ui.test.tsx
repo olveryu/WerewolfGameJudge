@@ -1,22 +1,22 @@
 /**
  * Vertical Slice Board Test
  *
- * Drives RoomScreen UI rendering from real GameState produced by gameFactory.
+ * Drives RoomScreen UI rendering from real WerewolfState produced by gameFactory.
  * Purpose: verify the full pipeline from integration state -> UI rendering,
  * catching UI behavior differences caused by mock vs. real-state shape mismatches.
  *
  * Strategy:
  * 1. gameFactory creates the game and advances to witchAction step
- * 2. Convert the real snapshot to useGameRoom mock format
+ * 2. Convert the real snapshot to useWerewolfRoom mock format
  * 3. Render RoomScreen and verify the correct dialog appears
  */
 
 import { render, waitFor } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/werewolf/models/roles';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import { toLocalState } from '@/hooks/adapters/toLocalState';
 import {
@@ -29,7 +29,7 @@ import {
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { cleanupGame, createGame } from '@/services/__tests__/boards/gameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================
@@ -47,17 +47,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
     showStartGameDialog: jest.fn(),
     showRestartDialog: jest.fn(),
     handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
   }),
 }));
 
@@ -96,18 +85,18 @@ function createRoleAssignment(): Map<number, RoleId> {
 }
 
 /**
- * Convert GameState (protocol format) to the gameState format used in the useGameRoom mock.
+ * Convert WerewolfState (protocol format) to the gameState format used in the useWerewolfRoom mock.
  * Uses the real toLocalState adapter (matches the production code path).
  */
-function toMockGameState(state: GameState) {
+function toMockGameState(state: WerewolfState) {
   return toLocalState(state);
 }
 
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: Record<string, unknown>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 // =============================================================================
@@ -148,7 +137,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     // 2. Get real broadcast state at witchAction
     const realState = ctx.getGameState();
 
-    // 3. Build useGameRoom mock from real state
+    // 3. Build useWerewolfRoom mock from real state
     const currentSchema = getSchema('witchAction');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
@@ -186,8 +175,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       initializeRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
-      takeSeat: jest.fn(),
-      leaveSeat: jest.fn(),
       takeSeatWithAck: jest.fn(),
       leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
@@ -201,8 +188,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       // BGM
@@ -298,8 +283,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       initializeRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
-      takeSeat: jest.fn(),
-      leaveSeat: jest.fn(),
       takeSeatWithAck: jest.fn(),
       leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
@@ -313,8 +296,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       isBgmEnabled: false,

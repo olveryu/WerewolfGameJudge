@@ -1,10 +1,10 @@
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId, SchemaId } from '@werewolf/game-engine/models/roles';
-import type { GameState, ProtocolAction } from '@werewolf/game-engine/protocol/types';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId, SchemaId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ProtocolAction, WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import { toLocalState } from '@/hooks/adapters/toLocalState';
 
-function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
+function makeBaseGameState(overrides: Partial<WerewolfState> = {}): WerewolfState {
   return {
     roomCode: 'ROOM',
     hostUserId: 'HOST',
@@ -69,7 +69,7 @@ describe('toLocalState', () => {
     });
   });
 
-  it('maps GameState.actions into LocalGameState.actions (all Night-1 schemas)', () => {
+  it('maps WerewolfState.actions into LocalWerewolfState.actions (all Night-1 schemas)', () => {
     const state = makeBaseGameState({
       // swap lives in currentNightResults
       currentNightResults: { swappedSeats: [3, 4], savedSeat: 2 },

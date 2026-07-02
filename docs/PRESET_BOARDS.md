@@ -1,6 +1,6 @@
 # Preset Board Reference
 
-> **Authoritative source**: [`packages/game-engine/src/models/Template.ts`](../packages/game-engine/src/models/Template.ts) — `PRESET_TEMPLATES`
+> **Authoritative source**: [`packages/game-engine/src/werewolf/models/Template.ts`](../packages/game-engine/src/werewolf/models/Template.ts) — `PRESET_TEMPLATES`
 >
 > Currently **25** preset boards in total, all 12-player configurations (Treasure Master / Thief+Cupid / Cursed Fox+Crow include bottom/reserve cards).
 

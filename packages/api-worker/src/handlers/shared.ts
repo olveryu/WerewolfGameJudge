@@ -2,15 +2,16 @@
  * handlers/shared — shared utility functions (Workers)
  *
  * Provides Hono validation, DO stub retrieval, and error-handling utilities shared across Worker handlers.
- * Game-engine utilities buildHandlerContext/extractAudioActions have been moved to gameProcessor.ts.
  */
 
+import type { SideEffect } from '@werewolf/game-engine/protocol/common';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validator } from 'hono/validator';
 import type { z } from 'zod';
 
-import type { GameRoom } from '../durableObjects/GameRoom';
+import type { IGameRoomRPC } from '../durableObjects/IGameRoomRPC';
+import type { DispatchResult } from '../durableObjects/processEngineAction';
 import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
@@ -31,7 +32,7 @@ type CleanRpcMethods<DO> = {
 };
 
 /** GameRoom stub with clean RPC return types (Disposable stripped). */
-type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoom>>;
+type GameRoomStub = CleanRpcMethods<DurableObjectStub<IGameRoomRPC>>;
 
 const log = createLogger('do');
 
@@ -90,7 +91,7 @@ const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
  * Get a typed DO stub for the given room code.
  *
  * Returns a GameRoomStub with clean RPC types (Disposable stripped),
- * eliminating the need for `as Promise<GameActionResult>` at every call site.
+ * eliminating per-call RPC return casts at Worker handler call sites.
  *
  * Optionally accepts the incoming Request to extract cf.continent
  * and pass a locationHint, co-locating the DO near the first requester.
@@ -100,6 +101,20 @@ export function getGameRoomStub(env: Env, roomCode: string, req?: Request): Game
   const cf = (req as CfRequest | undefined)?.cf;
   const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
   return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
+}
+
+/** Dispatch a room command through GameRoom and validate the RPC result shape. */
+export async function dispatchEngineAction(
+  env: Env,
+  roomCode: string,
+  req: Request,
+  actionType: string,
+  payload: unknown,
+): Promise<DispatchResult> {
+  const raw = await callDO(() =>
+    getGameRoomStub(env, roomCode, req).engineAction(actionType, payload),
+  );
+  return parseDispatchResult(raw);
 }
 
 /**
@@ -138,4 +153,100 @@ export async function callDO<T>(fn: () => Promise<T>): Promise<T> {
     }
     throw err;
   }
+}
+
+function parseDispatchResult(value: unknown): DispatchResult {
+  if (!isRecord(value) || typeof value.success !== 'boolean') {
+    throw new Error('[FAIL-FAST] GameRoom.engineAction returned invalid DispatchResult');
+  }
+
+  const result: DispatchResult = value.success
+    ? { success: true }
+    : { success: false, reason: readRequiredString(value, 'reason') };
+
+  if ('reason' in value) result.reason = readOptionalString(value, 'reason');
+  if ('state' in value) result.state = value.state;
+  if ('revision' in value) result.revision = readOptionalNumber(value, 'revision');
+  if ('broadcastAction' in value) {
+    result.broadcastAction = readOptionalStringOrNull(value, 'broadcastAction');
+  }
+  if (value.success) {
+    result.sideEffects = readSideEffects(value.sideEffects);
+  } else if ('sideEffects' in value) {
+    result.sideEffects = readSideEffects(value.sideEffects);
+  }
+
+  return result;
+}
+
+function readSideEffects(value: unknown): readonly SideEffect[] {
+  if (!Array.isArray(value)) {
+    throw new Error('[FAIL-FAST] DispatchResult.sideEffects must be an array');
+  }
+  return value.map(readSideEffect);
+}
+
+function readSideEffect(value: unknown): SideEffect {
+  if (!isRecord(value)) {
+    throw new Error('[FAIL-FAST] DispatchResult.sideEffects item must be an object');
+  }
+
+  switch (value.type) {
+    case 'BROADCAST_STATE':
+      return { type: 'BROADCAST_STATE' };
+    case 'SAVE_STATE':
+      return { type: 'SAVE_STATE' };
+    case 'PLAY_AUDIO':
+      return {
+        type: 'PLAY_AUDIO',
+        audioKey: readRequiredString(value, 'audioKey'),
+        ...(typeof value.isEndAudio === 'boolean' ? { isEndAudio: value.isEndAudio } : {}),
+      };
+    case 'SEND_MESSAGE':
+      return { type: 'SEND_MESSAGE', message: value.message };
+    default:
+      throw new Error('[FAIL-FAST] Unknown DispatchResult sideEffect type');
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function readRequiredString(value: Record<string, unknown>, key: string): string {
+  const field = value[key];
+  if (typeof field !== 'string') {
+    throw new Error(`[FAIL-FAST] DispatchResult.${key} must be a string`);
+  }
+  return field;
+}
+
+function readOptionalString(value: Record<string, unknown>, key: string): string | undefined {
+  const field = value[key];
+  if (field === undefined) return undefined;
+  if (typeof field !== 'string') {
+    throw new Error(`[FAIL-FAST] DispatchResult.${key} must be a string`);
+  }
+  return field;
+}
+
+function readOptionalStringOrNull(
+  value: Record<string, unknown>,
+  key: string,
+): string | null | undefined {
+  const field = value[key];
+  if (field === undefined || field === null) return field;
+  if (typeof field !== 'string') {
+    throw new Error(`[FAIL-FAST] DispatchResult.${key} must be a string or null`);
+  }
+  return field;
+}
+
+function readOptionalNumber(value: Record<string, unknown>, key: string): number | undefined {
+  const field = value[key];
+  if (field === undefined) return undefined;
+  if (typeof field !== 'number') {
+    throw new Error(`[FAIL-FAST] DispatchResult.${key} must be a number`);
+  }
+  return field;
 }

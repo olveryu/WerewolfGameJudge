@@ -10,7 +10,7 @@
  */
 
 import { render, waitFor } from '@testing-library/react-native';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { getSchema } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
 import {
   createGameRoomMock,
@@ -42,17 +42,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
     imActioner: true,
@@ -67,8 +56,8 @@ jest.mock('../../hooks/useActionerState', () => ({
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 describe('Audio Guard (isAudioPlaying=true)', () => {

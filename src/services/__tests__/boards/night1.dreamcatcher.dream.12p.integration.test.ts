@@ -17,10 +17,10 @@
  * - Dreamcatcher's protected target is immune to night death
  * - When Dreamcatcher dies, the protected target also dies (linked death)
  *
- * Architecture: intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

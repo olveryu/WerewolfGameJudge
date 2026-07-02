@@ -1,5 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RoleRevealEffectId } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import { getUnlockedAvatars } from '@werewolf/game-engine/growth/frameUnlock';
 import {
   isFlairUnlocked,
@@ -11,7 +12,6 @@ import {
 import {
   getItemRarity,
   type NameStyleId,
-  type RoleRevealEffectId,
   type SeatAnimationId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
 import { useCallback, useMemo, useState } from 'react';
@@ -21,13 +21,13 @@ import type { RevealEffectType } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useWerewolfFacade } from '@/contexts/RoomFacadeContext';
 import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
 import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useConnectionStatus } from '@/hooks/useConnectionStatus';
 import type { RootStackParamList } from '@/navigation/types';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 import { showAlert } from '@/utils/alert';
 import { BUILTIN_AVATAR_PREFIX, isBuiltinAvatarUrl, makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
@@ -50,7 +50,7 @@ export function useAppearanceState() {
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: uploadAvatar } = useUploadAvatar();
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
   const { connectionStatus } = useConnectionStatus(facade);
   const isInRoom = connectionStatus === ConnectionStatus.Live;
 

@@ -1,4 +1,7 @@
-import { type GameRuleOverrides, type GameTemplate } from '@werewolf/game-engine/models/Template';
+import {
+  type GameRuleOverrides,
+  type GameTemplate,
+} from '@werewolf/game-engine/werewolf/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -34,6 +37,18 @@ export type RootStackParamList = {
     isHost: boolean;
     template?: GameTemplate;
   };
+  // ── fibking (瞎掰王) ──
+  FibConfig:
+    | {
+        /** If provided, update an existing fib room's player count instead of creating. */
+        existingRoomCode?: string;
+      }
+    | undefined;
+  FibRoom: {
+    roomCode: string;
+    isHost: boolean;
+  };
+  FibRules: undefined;
   Settings: { roomCode?: string } | undefined;
   MusicSettings: { roomCode?: string } | undefined;
   Encyclopedia: { roomCode?: string; roleId?: string; initialTab?: 'roles' | 'boards' } | undefined;

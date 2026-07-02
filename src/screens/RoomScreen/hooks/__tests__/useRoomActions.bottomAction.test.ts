@@ -8,16 +8,16 @@
  * - Server handles all blocking via ACTION_REJECTED
  */
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { GameContext } from '@/screens/RoomScreen/hooks/useRoomActions';
 import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {
-    gameState: { template: { roles: [] } } as unknown as LocalGameState,
+    gameState: { template: { roles: [] } } as unknown as LocalWerewolfState,
     roomStatus: GameStatus.Ongoing,
     currentActionRole: null,
     currentSchema: null,
@@ -192,7 +192,7 @@ describe('useRoomActions.getActionIntent (server-authoritative)', () => {
     };
 
     const ctx: GameContext = {
-      gameState: { template: { roles: [] } } as unknown as LocalGameState,
+      gameState: { template: { roles: [] } } as unknown as LocalWerewolfState,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,
@@ -235,7 +235,7 @@ describe('useRoomActions.getActionIntent (server-authoritative)', () => {
     };
 
     const ctx: GameContext = {
-      gameState: { template: { roles: [] } } as unknown as LocalGameState,
+      gameState: { template: { roles: [] } } as unknown as LocalWerewolfState,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',
       currentSchema: chooseSeatSchema,

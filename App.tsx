@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
@@ -14,8 +14,8 @@ import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
-import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
-import { useGameFacade } from '@/contexts';
+import { AuthProvider, RoomFacadeProvider, ServiceProvider } from '@/contexts';
+import { useWerewolfFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
@@ -234,7 +234,7 @@ function dismissWebSplash() {
 
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
 
   // Compute triggerPulse: true when game has progressed past Unseated/Seated
   const [triggerPulse, setTriggerPulse] = useState(() => {
@@ -367,7 +367,7 @@ export default function App() {
 
   // Composition root: create all service instances via ServiceRegistry
   // useState lazy init ensures services are created only once
-  const [{ services, facade }] = useState(() => createAllServices());
+  const [{ services, werewolfFacade, fibFacade }] = useState(() => createAllServices());
 
   return (
     <ErrorBoundary>
@@ -375,11 +375,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ServiceProvider services={services}>
             <AuthProvider>
-              <GameFacadeProvider facade={facade}>
+              <RoomFacadeProvider werewolf={werewolfFacade} fibking={fibFacade}>
                 <ModalStackProvider>
                   <AppContent />
                 </ModalStackProvider>
-              </GameFacadeProvider>
+              </RoomFacadeProvider>
             </AuthProvider>
           </ServiceProvider>
         </QueryClientProvider>

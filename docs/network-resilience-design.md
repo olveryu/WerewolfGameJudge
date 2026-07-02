@@ -322,7 +322,7 @@ export async function cfPost<T = Record<string, unknown>>(
 
 ### 3.3 Layer 2: apiUtils — callApiOnce Injects fetchWithRetry
 
-**File**: `src/services/facade/apiUtils.ts`
+**File**: `src/services/games/werewolf/apiUtils.ts`
 
 **Before**: `callApiOnce` implements its own fetch + AbortController + JSON parsing, zero network retry.
 **After**: **Keep independent fetch path** (not switching to cfPost), only replace `fetch()` with `fetchWithRetry()`.
@@ -338,7 +338,7 @@ async function callApiOnce(
   path: string,
   body: Record<string, unknown>,
   label: string,
-  store?: GameStore,
+  store?: WerewolfStore,
 ): Promise<ApiResponse> {
   try {
     const requestId = crypto.randomUUID?.() ?? `req_${Date.now()}`;
@@ -671,7 +671,7 @@ export function useCreateRoom() {
       hostUserId: string;
       initialRoomNumber?: string;
       maxRetries?: number;
-      buildInitialState?: (roomCode: string) => GameState;
+      buildInitialWerewolfState?: (roomCode: string) => WerewolfState;
     }) =>
       roomService.createRoom(
         params.hostUserId,
@@ -699,8 +699,8 @@ export function useJoinRoom() {
 
 Game actions use `defineGameAction` → `callApiWithRetry`, which is fundamentally incompatible with TanStack Query's cache model:
 
-1. **Different state management model** — Game state is managed by GameStore (local mirror of authoritative server state), driven by WebSocket snapshot updates, not HTTP responses. TanStack Query cache manages client-side cache of server state — these are different data flows
-2. **Callers are outside the React tree** — Game actions are called by `GameFacade` and `AudioOrchestrator` classes; useMutation is a React hook and cannot be used inside classes
+1. **Different state management model** — Werewolf room state is managed by WerewolfStore (local mirror of authoritative server state), driven by WebSocket snapshot updates, not HTTP responses. TanStack Query cache manages client-side cache of server state — these are different data flows
+2. **Callers are outside the React tree** — Werewolf actions are called by `WerewolfFacade` and `AudioOrchestrator` classes; useMutation is a React hook and cannot be used inside classes
 3. **20+ actions share `defineGameAction` factory** — Unified guard → build body → callApi → after hook flow; switching to useMutation requires rewriting the entire factory pattern
 
 This is the standard 2026 game client layering: meta-game (lobby/account/store) uses TanStack Query, core-game (real-time actions) uses dedicated state store + WebSocket.
@@ -954,7 +954,7 @@ App layer renders full-screen error page component based on this state (replacin
 | 1      | `src/config/api.ts`                           | Timeout 8s→12s, add `FETCH_RETRY_COUNT` constant                                                                                                 |
 | 2      | `src/services/cloudflare/cfFetch.ts`          | Add `fetchWithRetry` (exported), used internally by cfPost/cfGet/cfPut, cfPost adds `options` (extraHeaders, timeoutMs, noRetry), add `cfUpload` |
 | 3      | `src/utils/errorUtils.ts`                     | `isAbortError()` expanded to cover `TimeoutError` (AbortSignal.timeout error type)                                                               |
-| 4      | `src/services/facade/apiUtils.ts`             | `callApiOnce` `fetch()` → `fetchWithRetry()` + catch adapts to TimeoutError, `callApiWithRetry` supports network error retry + 30s total budget  |
+| 4      | `src/services/games/werewolf/apiUtils.ts`     | `callApiOnce` `fetch()` → `fetchWithRetry()` + catch adapts to TimeoutError, `callApiWithRetry` supports network error retry + 30s total budget  |
 | 5      | `src/services/cloudflare/CFAuthService.ts`    | `initAuth` remove manual retry loop                                                                                                              |
 | 6      | `src/services/cloudflare/CFStorageService.ts` | `uploadAvatar` switch to `cfUpload`                                                                                                              |
 | 7      | `src/services/feature/GachaService.ts`        | `performDraw` add `{ noRetry: true }`                                                                                                            |
@@ -977,7 +977,7 @@ App layer renders full-screen error page component based on this state (replacin
 | 17     | `src/components/AuthGateOverlay.tsx`                            | AuthContext consumer adaptation                          |
 
 > **All AuthContext consumers** (~28 `useAuthContext` usages): Above commits cover all auth mutation consumers.
-> Files that only consume `user` / `isAuthenticated` (e.g. `useGameRoom.ts`, `RoomScreen.tsx`) are unaffected since AuthContext still exposes these fields.
+> Files that only consume `user` / `isAuthenticated` (e.g. `src/hooks/werewolf/useWerewolfRoom.ts`, `RoomScreen.tsx`) are unaffected since AuthContext still exposes these fields.
 
 **Verification**: Login/register/forgot-password E2E flows.
 
@@ -987,7 +987,7 @@ App layer renders full-screen error page component based on this state (replacin
 | ------ | ------------------------------------------------------- | -------------------------------------------------- |
 | 18     | `src/hooks/mutations/useRoomMutations.ts`               | New                                                |
 | 19     | `src/screens/ConfigScreen/useConfigScreenState.ts`      | createRoom switch to useCreateRoom                 |
-| 20     | `src/hooks/useRoomLifecycle.ts`                         | joinRoom switch to mutation                        |
+| 20     | `src/hooks/werewolf/useWerewolfRoomLifecycle.ts`        | joinRoom switch to mutation                        |
 | 21     | `src/screens/SettingsScreen/SettingsScreen.tsx`         | updateProfile / changePassword switch to mutations |
 | 22     | `src/screens/AvatarPickerScreen/AvatarPickerScreen.tsx` | uploadAvatar / updateProfile switch to mutations   |
 
@@ -995,12 +995,12 @@ App layer renders full-screen error page component based on this state (replacin
 
 ### Phase 4: QueryClient + ConnectionStatusBar
 
-| Commit | File                                                        | Changes                                                                                        |
-| ------ | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| 23     | `src/lib/queryClient.ts`                                    | Update config (retry: 2, MutationCache onError)                                                |
-| 24     | `src/screens/RoomScreen/components/ConnectionStatusBar.tsx` | Failed state add manual reconnect button                                                       |
-| 25     | `src/services/connection/ConnectionManager.ts`              | Expose manualReconnect to UI                                                                   |
-| 26     | `src/services/cloudflare/CFAuthService.ts` + App layer      | Mini-program WeChat login failure → wechatLoginFailed state + full-screen error page component |
+| Commit | File                                                   | Changes                                                                                        |
+| ------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| 23     | `src/lib/queryClient.ts`                               | Update config (retry: 2, MutationCache onError)                                                |
+| 24     | `src/components/room/ConnectionStatusBar.tsx`          | Failed state add manual reconnect button                                                       |
+| 25     | `src/services/connection/ConnectionManager.ts`         | Expose manualReconnect to UI                                                                   |
+| 26     | `src/services/cloudflare/CFAuthService.ts` + App layer | Mini-program WeChat login failure → wechatLoginFailed state + full-screen error page component |
 
 **Verification**: `pnpm run quality` + full E2E suite.
 
@@ -1021,13 +1021,13 @@ TanStack Query community convention: mutations default to `retry: 0`, network re
 
 ## 6. Parts Not Changed
 
-| Part                                                         | Reason                                                                                                                                                                          |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defineGameAction` + `callApiWithRetry` keep current pattern | Architecture model mismatch: game state driven by GameStore + WebSocket, not HTTP response cache; callers are in classes (GameFacade/AudioOrchestrator), cannot use React hooks |
-| `AIChatService.streamChat`                                   | SSE streaming not suitable for retry                                                                                                                                            |
-| WebSocket (ConnectionFSM/ConnectionManager)                  | Already complete, not in this scope                                                                                                                                             |
-| `useDrawMutation` / `useClaimDailyRewardMutation`            | Already correctly using useMutation ✅                                                                                                                                          |
-| `useQuery` hooks (stats/profile/unlocks/gacha)               | Already correctly using useQuery ✅                                                                                                                                             |
+| Part                                                         | Reason                                                                                                                                                                                         |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defineGameAction` + `callApiWithRetry` keep current pattern | Architecture model mismatch: Werewolf state is driven by WerewolfStore + WebSocket, not HTTP response cache; callers are in classes (WerewolfFacade/AudioOrchestrator), cannot use React hooks |
+| `AIChatService.streamChat`                                   | SSE streaming not suitable for retry                                                                                                                                                           |
+| WebSocket (ConnectionFSM/ConnectionManager)                  | Already complete, not in this scope                                                                                                                                                            |
+| `useDrawMutation` / `useClaimDailyRewardMutation`            | Already correctly using useMutation ✅                                                                                                                                                         |
+| `useQuery` hooks (stats/profile/unlocks/gacha)               | Already correctly using useQuery ✅                                                                                                                                                            |
 
 ### 6.1 networkMode Evaluation
 

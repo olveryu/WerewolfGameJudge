@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import type { IGameFacade } from '@/services/types/IGameFacade';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 
 import { useConnectionStatus } from '../useConnectionStatus';
 
@@ -11,7 +11,7 @@ import { useConnectionStatus } from '../useConnectionStatus';
 
 type StatusListener = (status: ConnectionStatus) => void;
 
-function createMockFacade(): IGameFacade & {
+function createMockFacade(): IWerewolfFacade & {
   listeners: Set<StatusListener>;
   simulateStatus: (status: ConnectionStatus) => void;
 } {
@@ -25,7 +25,7 @@ function createMockFacade(): IGameFacade & {
       listeners.add(listener);
       return () => listeners.delete(listener);
     }),
-    // Stubs for unused IGameFacade methods
+    // Stubs for unused IWerewolfFacade methods
     addListener: jest.fn().mockReturnValue(() => {}),
     subscribe: jest.fn().mockReturnValue(() => {}),
     getState: jest.fn().mockReturnValue(null),
@@ -62,7 +62,7 @@ function createMockFacade(): IGameFacade & {
     manualReconnect: jest.fn(),
     updateMyUserId: jest.fn(),
     updatePlayerProfile: jest.fn(),
-  } as unknown as IGameFacade & {
+  } as unknown as IWerewolfFacade & {
     listeners: Set<StatusListener>;
     simulateStatus: (status: ConnectionStatus) => void;
   };

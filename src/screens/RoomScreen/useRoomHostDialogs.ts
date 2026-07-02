@@ -5,12 +5,12 @@
  * RoomScreen only needs to call these returned functions.
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import { useCallback, useRef, useState } from 'react';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { RootStackParamList } from '@/navigation/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -35,7 +35,7 @@ export function generateSpeakOrder(
 }
 
 interface UseRoomHostDialogsParams {
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;

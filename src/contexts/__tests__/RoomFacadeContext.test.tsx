@@ -1,0 +1,79 @@
+import { render } from '@testing-library/react-native';
+import type React from 'react';
+import { Text } from 'react-native';
+
+import { RoomFacadeProvider, useWerewolfFacade } from '@/contexts/RoomFacadeContext';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
+import { createFibFacadeTestDouble } from '@/testing/roomFacadeTestDoubles';
+
+function createFakeFacade(): IWerewolfFacade {
+  return {
+    addListener: () => () => {},
+    subscribe: () => () => {},
+    getState: () => null,
+    isHostPlayer: () => false,
+    getMyUserId: () => 'u1',
+    getMySeat: () => null,
+    getStateRevision: () => 0,
+    consumeLastAction: () => null,
+    addSettleResultListener: () => () => {},
+    connectCreatedRoom: async () => {},
+    joinRoom: async () => ({ success: true }),
+    leaveRoom: async () => {},
+    takeSeat: async () => true,
+    takeSeatWithAck: async () => ({ success: true }),
+    leaveSeat: async () => true,
+    leaveSeatWithAck: async () => ({ success: true }),
+    assignRoles: async () => ({ success: true }),
+    updateTemplate: async () => ({ success: true }),
+    startNight: async () => ({ success: true }),
+    restartGame: async () => ({ success: true }),
+    fillWithBots: async () => ({ success: true }),
+    markAllBotsViewed: async () => ({ success: true }),
+    markAllBotsGroupConfirmed: async () => ({ success: true }),
+    clearAllSeats: async () => ({ success: true }),
+    markViewedRole: async () => ({ success: true }),
+    submitAction: async () => ({ success: true }),
+    submitRevealAck: async () => ({ success: true }),
+    submitGroupConfirmAck: async () => ({ success: true }),
+    setAudioPlaying: async () => ({ success: true }),
+    postProgression: async () => ({ success: true }),
+    fetchStateFromDB: async () => true,
+    sendWolfRobotHunterStatusViewed: async () => ({ success: true }),
+    addConnectionStatusListener: () => () => {},
+    wasAudioInterrupted: false,
+    resumeAfterRejoin: async () => {},
+    shareNightReview: async () => ({ success: true }),
+    manualReconnect: () => {},
+    updateMyUserId: () => {},
+    updatePlayerProfile: async () => ({ success: true }),
+    kickPlayer: async () => ({ success: true }),
+    boardNominate: async () => ({ success: true }),
+    boardUpvote: async () => ({ success: true }),
+    boardWithdraw: async () => ({ success: true }),
+  };
+}
+
+const Consumer: React.FC = () => {
+  const facade = useWerewolfFacade();
+  return <Text testID="userId">{facade.getMyUserId() ?? 'null'}</Text>;
+};
+
+describe('RoomFacadeProvider / useWerewolfFacade', () => {
+  it('throws when used without provider', () => {
+    expect(() => render(<Consumer />)).toThrow(
+      '[useWerewolfFacade] Missing <RoomFacadeProvider> in component tree',
+    );
+  });
+
+  it('provides the explicit facade prop', () => {
+    const facade = createFakeFacade();
+    const ui = render(
+      <RoomFacadeProvider werewolf={facade} fibking={createFibFacadeTestDouble()}>
+        <Consumer />
+      </RoomFacadeProvider>,
+    );
+
+    expect(ui.getByTestId('userId').props.children).toBe('u1');
+  });
+});

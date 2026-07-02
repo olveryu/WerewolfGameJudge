@@ -1,6 +1,9 @@
 import { render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import {
+  getAllSchemaIds,
+  getSchema,
+} from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
@@ -13,8 +16,8 @@ jest.mock('../../../utils/alert', () => ({
 
 let mockUseGameRoomImpl: () => ReturnType<typeof makeBaseUseGameRoomReturn>;
 
-jest.mock('../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomImpl(),
+jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomImpl(),
 }));
 
 jest.mock('../hooks/useActionerState', () => ({
@@ -41,17 +44,6 @@ jest.mock('../useRoomHostDialogs', () => ({
     showStartGameDialog: jest.fn(),
     showRestartDialog: jest.fn(),
     handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
   }),
 }));
 

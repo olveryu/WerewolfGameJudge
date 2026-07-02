@@ -7,7 +7,11 @@
  * Renders Modal and button. Does not import services, contains no business logic, and does not duplicate card UI.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { isValidRoleId, ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  isValidRoleId,
+  ROLE_SPECS,
+  type RoleId,
+} from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
 import { useCallback } from 'react';
 import {

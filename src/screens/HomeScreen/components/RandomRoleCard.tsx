@@ -7,7 +7,7 @@
  * Pure display component, no service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type RoleId } from '@werewolf/game-engine/models/roles';
+import { type RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 import { memo, useCallback, useEffect, useRef } from 'react';
 import { Image, Text, View } from 'react-native';
 import Animated, {

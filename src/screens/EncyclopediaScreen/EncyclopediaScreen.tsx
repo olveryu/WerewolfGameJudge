@@ -7,8 +7,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { getAllRoleIds } from '@werewolf/game-engine/models/roles';
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+import { getAllRoleIds } from '@werewolf/game-engine/werewolf/models/roles';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/werewolf/models/Template';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';

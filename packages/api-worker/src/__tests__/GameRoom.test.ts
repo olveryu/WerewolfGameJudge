@@ -5,18 +5,19 @@
  * Runs inside the Workers runtime (@cloudflare/vitest-pool-workers).
  */
 
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles/spec/specs';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { WEREWOLF_GAME_TYPE } from '@werewolf/game-engine/protocol/gameTypes';
+import { WEREWOLF_ACTION } from '@werewolf/game-engine/werewolf/actions';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles/spec/specs';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
+import { buildInitialWerewolfStateFromTemplate } from '@werewolf/game-engine/werewolf/state/buildInitialWerewolfState';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 
-import type { GameActionResult } from '../durableObjects/gameProcessor';
 import type { GameRoom } from '../durableObjects/GameRoom';
-import type { SeatActionParams } from '../schemas/game';
+import type { DispatchResult } from '../durableObjects/processEngineAction';
 
 function createTemplate(roles: RoleId[]): GameTemplate {
   return { name: 'Test', numberOfPlayers: roles.length, roles };
@@ -27,13 +28,54 @@ function getStub(): DurableObjectStub<GameRoom> {
   return env.GAME_ROOM!.get(id);
 }
 
-/** Narrows a GameActionResult to the success branch; throws if failed. */
-function assertSuccess(
-  result: GameActionResult,
-): asserts result is Extract<GameActionResult, { success: true }> {
+/** Test helper for werewolf room snapshots. */
+function assertGameStateSnapshot(
+  result: { state: unknown; revision: number } | null,
+): asserts result is { state: WerewolfState; revision: number } {
+  if (!result) throw new Error('Expected WerewolfState snapshot');
+  if (!isGameState(result.state)) throw new Error('Expected snapshot state to be WerewolfState');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isGameState(value: unknown): value is WerewolfState {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.roomCode === 'string' &&
+    typeof value.hostUserId === 'string' &&
+    isRecord(value.players) &&
+    isRecord(value.roster) &&
+    Array.isArray(value.templateRoles)
+  );
+}
+
+/** Narrows a DispatchResult to the success branch; throws if failed. */
+function assertSuccess(result: DispatchResult): asserts result is Extract<
+  DispatchResult,
+  { success: true }
+> & {
+  state: WerewolfState;
+  revision: number;
+} {
   if (!result.success) {
     throw new Error(`Expected success but got failure: ${result.reason}`);
   }
+  if (!isGameState(result.state)) {
+    throw new Error('Expected success result to include WerewolfState');
+  }
+  if (typeof result.revision !== 'number') {
+    throw new Error('Expected success result to include revision');
+  }
+}
+
+function action(
+  stub: DurableObjectStub<GameRoom>,
+  actionType: string,
+  payload: unknown = {},
+): Promise<DispatchResult> {
+  return stub.engineAction(actionType, payload);
 }
 
 /** Shorthand: sit a player with displayName only (most common case). */
@@ -42,20 +84,20 @@ function sit(
   userId: string,
   seat: number,
   displayName: string,
-  extra?: Partial<SeatActionParams>,
-): Promise<GameActionResult> {
-  return stub.seat({
+  extra?: Record<string, unknown>,
+): Promise<DispatchResult> {
+  return action(stub, WEREWOLF_ACTION.SEAT, {
     action: 'sit',
     userId,
     seat,
     displayName,
     ...extra,
-  }) as Promise<GameActionResult>;
+  });
 }
 
 /** Shorthand: standup. */
-function standup(stub: DurableObjectStub<GameRoom>, userId: string): Promise<GameActionResult> {
-  return stub.seat({ action: 'standup', userId }) as Promise<GameActionResult>;
+function standup(stub: DurableObjectStub<GameRoom>, userId: string): Promise<DispatchResult> {
+  return action(stub, WEREWOLF_ACTION.SEAT, { action: 'standup', userId });
 }
 
 /** Shorthand: kick. */
@@ -63,8 +105,12 @@ function kick(
   stub: DurableObjectStub<GameRoom>,
   hostUserId: string,
   targetSeat: number,
-): Promise<GameActionResult> {
-  return stub.seat({ action: 'kick', userId: hostUserId, targetSeat }) as Promise<GameActionResult>;
+): Promise<DispatchResult> {
+  return action(stub, WEREWOLF_ACTION.SEAT, {
+    action: 'kick',
+    userId: hostUserId,
+    targetSeat,
+  });
 }
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -85,22 +131,27 @@ describe('GameRoom lifecycle', () => {
   it('init + getState round-trip preserves state', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    const initialState = buildInitialGameState('ROOM1', 'host-uid', template);
+    const initialState = buildInitialWerewolfStateFromTemplate('ROOM1', 'host-uid', template);
 
-    await stub.init(initialState);
+    await stub.initState(WEREWOLF_GAME_TYPE, initialState);
 
     const result = await stub.getState();
-    expect(result).not.toBeNull();
-    expect(result!.state.roomCode).toBe('ROOM1');
-    expect(result!.state.hostUserId).toBe('host-uid');
-    expect(result!.state.status).toBe(GameStatus.Unseated);
-    expect(result!.revision).toBe(1);
+    assertGameStateSnapshot(result);
+    expect(result.state).toMatchObject({
+      roomCode: 'ROOM1',
+      hostUserId: 'host-uid',
+      status: GameStatus.Unseated,
+    });
+    expect(result.revision).toBe(1);
   });
 
   it('getRevision returns 1 after init', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('R2', 'host', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('R2', 'host', template),
+    );
 
     const revision = await stub.getRevision();
     expect(revision).toBe(1);
@@ -109,7 +160,10 @@ describe('GameRoom lifecycle', () => {
   it('cleanup completes without error', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('R3', 'host', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('R3', 'host', template),
+    );
 
     // cleanup() calls deleteAll() which wipes SQLite.
     // In production the DO instance is evicted after this; no further RPC calls.
@@ -123,7 +177,10 @@ describe('GameRoom seat management', () => {
   async function initRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('SEAT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('SEAT-ROOM', 'host-uid', template),
+    );
     return stub;
   }
 
@@ -134,8 +191,8 @@ describe('GameRoom seat management', () => {
 
     assertSuccess(result);
     expect(result.state?.players[0]).toBeTruthy();
-    expect(result.state!.players[0]!.userId).toBe('p1');
-    expect(result.state!.roster['p1'].displayName).toBe('Player1');
+    expect(result.state.players[0]!.userId).toBe('p1');
+    expect(result.state.roster['p1'].displayName).toBe('Player1');
     expect(result.revision).toBe(2);
   });
 
@@ -170,7 +227,10 @@ describe('GameRoom game flow', () => {
     const stub = getStub();
     const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
-    await stub.init(buildInitialGameState('FLOW-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('FLOW-ROOM', 'host-uid', template),
+    );
 
     // Seat all players (host + 2 others)
     await sit(stub, 'host-uid', 0, 'Host');
@@ -183,36 +243,39 @@ describe('GameRoom game flow', () => {
   it('assignRoles transitions to Assigned status', async () => {
     const stub = await initSeatedRoom();
 
-    const result = (await stub.assignRoles()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
     assertSuccess(result);
     expect(result.state?.status).toBe(GameStatus.Assigned);
     // All players should have roles assigned
     for (let i = 0; i < 3; i++) {
-      expect(result.state!.players[i]!.role).toBeTruthy();
+      expect(result.state.players[i]!.role).toBeTruthy();
     }
   });
 
   it('fillWithBots fills empty seats', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('BOT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('BOT-ROOM', 'host-uid', template),
+    );
     // Only seat the host
     await sit(stub, 'host-uid', 0, 'Host');
 
-    const result = (await stub.fillWithBots()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.FILL_WITH_BOTS);
 
     assertSuccess(result);
     // Remaining seats should be bots
-    expect(result.state!.players[1]?.isBot).toBe(true);
-    expect(result.state!.players[2]?.isBot).toBe(true);
+    expect(result.state.players[1]?.isBot).toBe(true);
+    expect(result.state.players[2]?.isBot).toBe(true);
   });
 
   it('restartGame resets to Seated (players keep seats)', async () => {
     const stub = await initSeatedRoom();
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
-    const result = (await stub.restartGame()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.RESTART_GAME);
 
     assertSuccess(result);
     // Players are still seated -> status is Seated, not Unseated
@@ -222,9 +285,14 @@ describe('GameRoom game flow', () => {
   it('updateTemplate changes template roles', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('TPL-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('TPL-ROOM', 'host-uid', template),
+    );
 
-    const result = (await stub.updateTemplate(['villager', 'wolf', 'witch'])) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.UPDATE_TEMPLATE, {
+      templateRoles: ['villager', 'wolf', 'witch'],
+    });
 
     assertSuccess(result);
     expect(result.state?.templateRoles).toEqual(['villager', 'wolf', 'witch']);
@@ -233,7 +301,10 @@ describe('GameRoom game flow', () => {
   it('revision increments with each state change', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('REV-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('REV-ROOM', 'host-uid', template),
+    );
     expect(await stub.getRevision()).toBe(1);
 
     await sit(stub, 'host-uid', 0, 'Host');
@@ -250,23 +321,26 @@ describe('GameRoom error handling', () => {
   it('RPC method returns error before init', async () => {
     const stub = getStub();
 
-    const result = (await stub.assignRoles()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
     expect(result.success).toBe(false);
-    expect(result.reason).toBe('ROOM_NOT_FOUND');
+    expect(result.reason).toBe('GAME_NOT_INITIALIZED');
   });
 
   it('startNight fails when not all roles viewed', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('ERR-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('ERR-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
     // Don't view roles -> startNight should fail
 
-    const result = (await stub.startNight()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.START_NIGHT);
 
     expect(result.success).toBe(false);
   });
@@ -282,7 +356,10 @@ describe('GameRoom internal SQLite', () => {
   it('SQLite table is properly initialized', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('SQL-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('SQL-ROOM', 'host-uid', template),
+    );
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
       const rows = state.storage.sql
@@ -291,7 +368,14 @@ describe('GameRoom internal SQLite', () => {
       expect(rows).toHaveLength(1);
       expect(rows[0].revision).toBe(1);
 
-      const parsedState = JSON.parse(rows[0].game_state as string) as GameState;
+      const gameStateJson = rows[0].game_state;
+      if (typeof gameStateJson !== 'string') {
+        throw new Error('Expected game_state JSON string');
+      }
+      const parsedState: unknown = JSON.parse(gameStateJson);
+      if (!isGameState(parsedState)) {
+        throw new Error('Expected parsed WerewolfState');
+      }
       expect(parsedState.roomCode).toBe('SQL-ROOM');
     });
   });
@@ -305,17 +389,20 @@ describe('GameRoom night flow', () => {
     const stub = getStub();
     const roles: RoleId[] = ['villager', 'wolf', 'seer'];
     const template = createTemplate(roles);
-    await stub.init(buildInitialGameState('NIGHT-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('NIGHT-ROOM', 'host-uid', template),
+    );
 
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
     // Host views all roles (host can mark any seat)
-    await stub.viewRole('host-uid', 0);
-    await stub.viewRole('host-uid', 1);
-    await stub.viewRole('host-uid', 2);
+    await action(stub, WEREWOLF_ACTION.VIEW_ROLE, { userId: 'host-uid', seat: 0 });
+    await action(stub, WEREWOLF_ACTION.VIEW_ROLE, { userId: 'host-uid', seat: 1 });
+    await action(stub, WEREWOLF_ACTION.VIEW_ROLE, { userId: 'host-uid', seat: 2 });
 
     return stub;
   }
@@ -323,14 +410,15 @@ describe('GameRoom night flow', () => {
   it('viewRole transitions all-viewed to Ready', async () => {
     const stub = await initReadyRoom();
     const result = await stub.getState();
+    assertGameStateSnapshot(result);
 
-    expect(result!.state.status).toBe(GameStatus.Ready);
+    expect(result.state).toMatchObject({ status: GameStatus.Ready });
   });
 
   it('startNight transitions to Ongoing after all roles viewed', async () => {
     const stub = await initReadyRoom();
 
-    const result = (await stub.startNight()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.START_NIGHT);
 
     assertSuccess(result);
     expect(result.state?.status).toBe(GameStatus.Ongoing);
@@ -340,14 +428,17 @@ describe('GameRoom night flow', () => {
   it('viewRole non-host cannot view another seat', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('VR-ERR', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('VR-ERR', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
     // p1 tries to view seat 2 (not their seat)
-    const result = (await stub.viewRole('p1', 2)) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.VIEW_ROLE, { userId: 'p1', seat: 2 });
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('not_my_seat');
@@ -356,13 +447,16 @@ describe('GameRoom night flow', () => {
   it('viewRole succeeds for own seat', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('VR-OK', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('VR-OK', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
-    const result = (await stub.viewRole('p1', 1)) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.VIEW_ROLE, { userId: 'p1', seat: 1 });
 
     assertSuccess(result);
     expect(result.state?.players[1]?.hasViewedRole).toBe(true);
@@ -375,30 +469,36 @@ describe('GameRoom clearAllSeats', () => {
   it('clears all players from seats', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('CLEAR-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('CLEAR-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
 
-    const result = (await stub.clearAllSeats()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.CLEAR_ALL_SEATS);
 
     assertSuccess(result);
     // All seats should be null
     for (let i = 0; i < 3; i++) {
-      expect(result.state!.players[i]).toBeNull();
+      expect(result.state.players[i]).toBeNull();
     }
-    expect(result.state!.status).toBe(GameStatus.Unseated);
+    expect(result.state.status).toBe(GameStatus.Unseated);
   });
 
   it('clearAllSeats fails during game', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('CLEAR-ERR', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('CLEAR-ERR', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
     await sit(stub, 'p1', 1, 'P1');
     await sit(stub, 'p2', 2, 'P2');
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
-    const result = (await stub.clearAllSeats()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.CLEAR_ALL_SEATS);
 
     expect(result.success).toBe(false);
     expect(result.reason).toBe('game_in_progress');
@@ -411,52 +511,68 @@ describe('GameRoom board nomination', () => {
   async function initUnseatRoom(): Promise<DurableObjectStub<GameRoom>> {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('NOM-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('NOM-ROOM', 'host-uid', template),
+    );
     return stub;
   }
 
   it('boardNominate adds a nomination', async () => {
     const stub = await initUnseatRoom();
 
-    const result = (await stub.boardNominate('p1', 'Player1', [
-      'wolf',
-      'seer',
-      'villager',
-      'witch',
-    ])) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p1',
+      displayName: 'Player1',
+      roles: ['wolf', 'seer', 'villager', 'witch'],
+    });
 
     assertSuccess(result);
     expect(result.state?.boardNominations).toBeTruthy();
-    expect(result.state!.boardNominations!['p1']).toBeTruthy();
+    expect(result.state.boardNominations!['p1']).toBeTruthy();
   });
 
   it('boardUpvote votes for existing nomination', async () => {
     const stub = await initUnseatRoom();
-    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager', 'witch']);
+    await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p1',
+      displayName: 'Player1',
+      roles: ['wolf', 'seer', 'villager', 'witch'],
+    });
 
-    const result = (await stub.boardUpvote('p2', 'p1')) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_UPVOTE, {
+      voterUid: 'p2',
+      targetUserId: 'p1',
+    });
 
     assertSuccess(result);
-    const nomination = result.state!.boardNominations!['p1'];
+    const nomination = result.state.boardNominations!['p1'];
     expect(nomination.upvoters).toContain('p2');
   });
 
   it('boardWithdraw removes own nomination', async () => {
     const stub = await initUnseatRoom();
-    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager', 'witch']);
+    await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p1',
+      displayName: 'Player1',
+      roles: ['wolf', 'seer', 'villager', 'witch'],
+    });
 
-    const result = (await stub.boardWithdraw('p1')) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_WITHDRAW, { userId: 'p1' });
 
     assertSuccess(result);
     // After withdraw, the nomination should be removed
-    const noms = result.state!.boardNominations ?? {};
+    const noms = result.state.boardNominations ?? {};
     expect(noms['p1']).toBeUndefined();
   });
 
   it('boardUpvote fails for nonexistent nomination', async () => {
     const stub = await initUnseatRoom();
 
-    const result = (await stub.boardUpvote('p2', 'nobody')) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_UPVOTE, {
+      voterUid: 'p2',
+      targetUserId: 'nobody',
+    });
 
     expect(result.success).toBe(false);
   });
@@ -464,24 +580,32 @@ describe('GameRoom board nomination', () => {
   it('boardNominate deduplicates identical role sets', async () => {
     const stub = await initUnseatRoom();
     // p1 nominates [wolf, seer, villager]
-    await stub.boardNominate('p1', 'Player1', ['wolf', 'seer', 'villager']);
+    await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p1',
+      displayName: 'Player1',
+      roles: ['wolf', 'seer', 'villager'],
+    });
     // p2 nominates same roles in different order -> should deduplicate
-    const result = (await stub.boardNominate('p2', 'Player2', [
-      'seer',
-      'villager',
-      'wolf',
-    ])) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p2',
+      displayName: 'Player2',
+      roles: ['seer', 'villager', 'wolf'],
+    });
 
     assertSuccess(result);
     // p2's nomination should be an upvote on p1's, not a separate entry
-    const p1Nom = result.state!.boardNominations!['p1'];
+    const p1Nom = result.state.boardNominations!['p1'];
     expect(p1Nom.upvoters).toContain('p2');
   });
 
   it('boardNominate fails with empty roles', async () => {
     const stub = await initUnseatRoom();
 
-    const result = (await stub.boardNominate('p1', 'Player1', [])) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.BOARD_NOMINATE, {
+      userId: 'p1',
+      displayName: 'Player1',
+      roles: [],
+    });
 
     expect(result.success).toBe(false);
   });
@@ -493,16 +617,19 @@ describe('GameRoom markAllBotsViewed', () => {
   it('marks bot roles as viewed', async () => {
     const stub = getStub();
     const template = createTemplate(['villager', 'wolf', 'seer']);
-    await stub.init(buildInitialGameState('BOTV-ROOM', 'host-uid', template));
+    await stub.initState(
+      WEREWOLF_GAME_TYPE,
+      buildInitialWerewolfStateFromTemplate('BOTV-ROOM', 'host-uid', template),
+    );
     await sit(stub, 'host-uid', 0, 'Host');
-    await stub.fillWithBots();
-    await stub.assignRoles();
+    await action(stub, WEREWOLF_ACTION.FILL_WITH_BOTS);
+    await action(stub, WEREWOLF_ACTION.ASSIGN_ROLES);
 
-    const result = (await stub.markAllBotsViewed()) as GameActionResult;
+    const result = await action(stub, WEREWOLF_ACTION.MARK_ALL_BOTS_VIEWED);
 
     assertSuccess(result);
     // Bot seats (1, 2) should have viewed roles
-    expect(result.state!.players[1]?.hasViewedRole).toBe(true);
-    expect(result.state!.players[2]?.hasViewedRole).toBe(true);
+    expect(result.state.players[1]?.hasViewedRole).toBe(true);
+    expect(result.state.players[2]?.hasViewedRole).toBe(true);
   });
 });

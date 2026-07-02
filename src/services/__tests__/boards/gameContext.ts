@@ -5,12 +5,12 @@
  * Contains only type/interface, no implementation code.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import type { NightPlan } from '@werewolf/game-engine/werewolf/models/roles/spec/plan';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
+import type { PlayerMessage, WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 // =============================================================================
 // Types
@@ -33,8 +33,8 @@ export interface CapturedMessage {
  * Implementation lives in gameFactory.ts createGame().
  */
 export interface GameContext {
-  /** Get current GameState */
-  getGameState: () => GameState;
+  /** Get current WerewolfState */
+  getGameState: () => WerewolfState;
   /** Get current revision */
   getRevision: () => number;
   /** Get NightPlan */

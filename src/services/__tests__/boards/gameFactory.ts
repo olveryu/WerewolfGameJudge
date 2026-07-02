@@ -2,42 +2,42 @@
  * Game Factory for Integration Tests
  *
  * Fully based on the architecture:
- * - intents -> handlers -> reducer -> GameState
- * - No import of legacy GameStateService / NightFlowController
+ * - intents -> handlers -> reducer -> WerewolfState
+ * - No import of removed GameStateService / NightFlowController
  * - No encoded target protocol
  *
- * Single source of truth: GameState
+ * Single source of truth: WerewolfState
  */
 
-import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import { handleSubmitAction } from '@werewolf/game-engine/werewolf/handlers/actionHandler';
 import {
   handleAdvanceNight,
   handleEndNight,
-} from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
-import type { HandlerContext, HandlerResult } from '@werewolf/game-engine/engine/handlers/types';
-import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
-import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
-import { gameReducer } from '@werewolf/game-engine/engine/reducer';
-import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
-import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
+} from '@werewolf/game-engine/werewolf/handlers/stepTransitionHandler';
+import type { HandlerContext, HandlerResult } from '@werewolf/game-engine/werewolf/handlers/types';
+import { handlerSuccess } from '@werewolf/game-engine/werewolf/handlers/types';
+import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/werewolf/handlers/wolfRobotHunterGateHandler';
+import type { SubmitActionIntent } from '@werewolf/game-engine/werewolf/intents/types';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec';
+import type { NightPlan } from '@werewolf/game-engine/werewolf/models/roles/spec/plan';
+import { buildNightPlan } from '@werewolf/game-engine/werewolf/models/roles/spec/plan';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/werewolf/models/roles/spec/schema.types';
 import {
   createTemplateFromRoles,
   type GameTemplate,
   getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
-} from '@werewolf/game-engine/models/Template';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+} from '@werewolf/game-engine/werewolf/models/Template';
+import type { PlayerMessage, WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
+import { werewolfReducer } from '@werewolf/game-engine/werewolf/reducer';
+import type { StateAction } from '@werewolf/game-engine/werewolf/reducer/types';
+import { normalizeWerewolfState } from '@werewolf/game-engine/werewolf/state/normalizeWerewolfState';
 
-// Re-export types from gameContext.ts for backward compatibility
+// Re-export board test context type from its source module.
 export type { GameContext } from './gameContext';
 import type { CapturedMessage, GameContext } from './gameContext';
 
@@ -46,7 +46,7 @@ import type { CapturedMessage, GameContext } from './gameContext';
 // =============================================================================
 
 interface InternalState {
-  state: GameState;
+  state: WerewolfState;
   revision: number;
   nightPlan: NightPlan;
   template: GameTemplate;
@@ -54,11 +54,11 @@ interface InternalState {
   capturedMessages: CapturedMessage[];
 }
 
-function applyActions(current: GameState, actions: StateAction[]): GameState {
-  return actions.reduce((s, action) => gameReducer(s, action), current);
+function applyActions(current: WerewolfState, actions: StateAction[]): WerewolfState {
+  return actions.reduce((s, action) => werewolfReducer(s, action), current);
 }
 
-function createContext(state: GameState): HandlerContext {
+function createContext(state: WerewolfState): HandlerContext {
   return {
     state,
     myUserId: 'host-uid',
@@ -89,7 +89,7 @@ export function createGame(
     template = createTemplateFromRoles(templateNameOrRoles);
   }
 
-  const initialPlayers: Record<number, GameState['players'][number]> = {};
+  const initialPlayers: Record<number, WerewolfState['players'][number]> = {};
   const roster: Record<string, { displayName: string }> = {};
   for (let i = 0; i < template.numberOfPlayers; i++) {
     initialPlayers[i] = {
@@ -101,7 +101,7 @@ export function createGame(
     roster[`player_${i}`] = { displayName: `Player ${i + 1}` };
   }
 
-  let state: GameState = {
+  let state: WerewolfState = {
     roomCode: 'TEST01',
     hostUserId: 'host-uid',
     status: GameStatus.Seated,
@@ -170,13 +170,13 @@ export function createGame(
     }
   }
 
-  state = gameReducer(state, {
+  state = werewolfReducer(state, {
     type: 'ASSIGN_ROLES',
     payload: { assignments, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat },
   });
 
   for (let i = 0; i < template.numberOfPlayers; i++) {
-    state = gameReducer(state, {
+    state = werewolfReducer(state, {
       type: 'PLAYER_VIEWED_ROLE',
       payload: { seat: i },
     });
@@ -188,7 +188,7 @@ export function createGame(
     throw new Error('Night plan has no steps');
   }
 
-  state = gameReducer(state, {
+  state = werewolfReducer(state, {
     type: 'START_NIGHT',
     payload: {
       currentStepIndex: 0,
@@ -198,7 +198,7 @@ export function createGame(
 
   // Poisoner present: night-1 wolfKillOverride (consistent with handleStartNight behavior)
   if (template.roles.includes('poisoner')) {
-    state = gameReducer(state, {
+    state = werewolfReducer(state, {
       type: 'SET_WOLF_KILL_OVERRIDE',
       payload: {
         override: {
@@ -218,7 +218,7 @@ export function createGame(
     capturedMessages: [],
   };
 
-  const getGameState = (): GameState => internal.state;
+  const getGameState = (): WerewolfState => internal.state;
   const getRevision = (): number => internal.revision;
   const getNightPlan = (): NightPlan => internal.nightPlan;
   const getCapturedMessages = (): readonly CapturedMessage[] => internal.capturedMessages;
@@ -252,7 +252,7 @@ export function createGame(
     }
     // 'success' | 'rejection': apply actions (mirror production gameStateManager)
     // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
-    internal.state = normalizeState(applyActions(internal.state, result.actions));
+    internal.state = normalizeWerewolfState(applyActions(internal.state, result.actions));
     internal.revision++;
     if (result.kind === 'rejection') {
       return { success: false, reason: result.reason };
@@ -298,7 +298,7 @@ export function createGame(
    * Mid-flight calls throw because they violate NightFlow invariants.
    *
    * Reuses production handleEndNight handler — does not fabricate deaths.
-   * Goes through unified executeHandler pipeline (applyActions + normalizeState).
+   * Goes through unified executeHandler pipeline (applyActions + normalizeWerewolfState).
    */
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state);

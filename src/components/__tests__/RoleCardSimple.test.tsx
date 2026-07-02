@@ -2,7 +2,7 @@
  * RoleCardSimple.test.tsx - Tests for the no-animation role card modal
  */
 import { fireEvent, render } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 

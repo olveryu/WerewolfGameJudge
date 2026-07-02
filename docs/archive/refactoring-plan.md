@@ -103,12 +103,12 @@
 
 ### Issue 8: Deep Import 绕过 Barrel
 
-| 维度         | 详情                                                                                  |
-| ------------ | ------------------------------------------------------------------------------------- |
-| **证据**     | 161 处 deep import（`from '@werewolf/game-engine/models/roles'`），0 处 barrel import |
-| **根因**     | `package.json` 的 `exports` 字段未配置子路径导出，消费者直接引用内部路径              |
-| **影响范围** | game-engine 内部重组时，所有 161 处 deep import 都是 breaking change                  |
-| **不改代价** | game-engine 内部文件移动成本极高                                                      |
+| 维度         | 详情                                                                                           |
+| ------------ | ---------------------------------------------------------------------------------------------- |
+| **证据**     | 161 处 deep import（`from '@werewolf/game-engine/werewolf/models/roles'`），0 处 barrel import |
+| **根因**     | `package.json` 的 `exports` 字段未配置子路径导出，消费者直接引用内部路径                       |
+| **影响范围** | game-engine 内部重组时，所有 161 处 deep import 都是 breaking change                           |
+| **不改代价** | game-engine 内部文件移动成本极高                                                               |
 
 Deep import sub-module 分布：
 

@@ -1,23 +1,23 @@
-import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
-import { makeActionTarget } from '@werewolf/game-engine/models/actions/RoleAction';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
-import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
-import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
+import type { DeathReason } from '@werewolf/game-engine/werewolf/DeathCalculator';
+import { makeActionTarget } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getRoleDisplayName, ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
+import { NIGHT_STEPS } from '@werewolf/game-engine/werewolf/models/roles/spec/nightSteps';
+import type { RoleSpec } from '@werewolf/game-engine/werewolf/models/roles/spec/roleSpec.types';
 
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalWerewolfPlayer, LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 
 import { buildActionLines, buildIdentityLines, buildNightReviewData } from '../NightReview.helpers';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-/** Build a minimal LocalGameState-like object for testing */
+/** Build a minimal LocalWerewolfState-like object for testing */
 function makeGameState(
   overrides: Partial<{
-    currentNightResults: LocalGameState['currentNightResults'];
+    currentNightResults: LocalWerewolfState['currentNightResults'];
     lastNightDeaths: number[];
     deathReasons: Record<number, DeathReason>;
-    players: Map<number, LocalPlayer | null>;
+    players: Map<number, LocalWerewolfPlayer | null>;
     actions: Map<RoleId, ReturnType<typeof makeActionTarget>>;
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     wolfRobotReveal: { targetSeat: number; result: string; learnedRoleId: string };
@@ -27,7 +27,7 @@ function makeGameState(
     witchContext: { killedSeat: number; canSave: boolean; canPoison: boolean };
     loverSeats: readonly [number, number];
   }> = {},
-): LocalGameState {
+): LocalWerewolfState {
   return {
     currentNightResults: overrides.currentNightResults ?? {},
     lastNightDeaths: overrides.lastNightDeaths ?? [],
@@ -41,14 +41,14 @@ function makeGameState(
     treasureMasterChosenCard: overrides.treasureMasterChosenCard,
     witchContext: overrides.witchContext,
     loverSeats: overrides.loverSeats,
-  } as unknown as LocalGameState;
+  } as unknown as LocalWerewolfState;
 }
 
-function makePlayer(seat: number, role: string | null): LocalPlayer {
+function makePlayer(seat: number, role: string | null): LocalWerewolfPlayer {
   return {
     userId: `uid-${seat}`,
     seat: seat,
-    role: role as LocalPlayer['role'],
+    role: role as LocalWerewolfPlayer['role'],
     hasViewedRole: true,
   };
 }
@@ -211,7 +211,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter can shoot when not poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolf')],
       ]);
@@ -220,7 +220,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolf')],
       ]);
@@ -231,13 +231,17 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows darkWolfKing can shoot when not poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
+      const players = new Map<number, LocalWerewolfPlayer | null>([
+        [2, makePlayer(2, 'darkWolfKing')],
+      ]);
       const lines = buildActionLines(makeGameState({ players }));
       expect(lines).toContainEqual(expect.stringContaining('狼王可以发动技能'));
     });
 
     it('shows darkWolfKing cannot shoot when poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([[2, makePlayer(2, 'darkWolfKing')]]);
+      const players = new Map<number, LocalWerewolfPlayer | null>([
+        [2, makePlayer(2, 'darkWolfKing')],
+      ]);
       const lines = buildActionLines(
         makeGameState({ players, currentNightResults: { poisonedSeat: 2 } }),
       );
@@ -245,7 +249,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when dream-linked death (dreamcatcher killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'dreamcatcher')],
       ]);
@@ -259,7 +263,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter can shoot when dream target but dreamcatcher alive', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'dreamcatcher')],
       ]);
@@ -273,7 +277,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when wolfQueen charm victim (wolfQueen killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'wolfQueen')],
       ]);
@@ -287,7 +291,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows hunter cannot shoot when couple death (partner wolf-killed)', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'hunter')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -304,7 +308,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Wolf empty kill (empty knife) ──
 
     it('shows wolf empty kill when wolves present but no votes and no override', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -313,7 +317,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show wolf empty kill when wolfKillOverride is present', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -334,7 +338,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show wolf empty kill when no wolves in game', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'villager')],
         [1, makePlayer(1, 'seer')],
       ]);
@@ -346,7 +350,7 @@ describe('NightReview.helpers', () => {
     // ── P2: Nightmare block role name ──
 
     it('shows nightmare block with role name', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -361,7 +365,7 @@ describe('NightReview.helpers', () => {
     // ── P1: Guard "did nothing" ──
 
     it('shows guard did nothing when guard present but not guarding', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -370,7 +374,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show guard did nothing when guard is blocked by nightmare', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'guard')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -384,7 +388,7 @@ describe('NightReview.helpers', () => {
     // ── P1: Witch "did nothing" ──
 
     it('shows witch did nothing when witch present and used neither potion', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -393,7 +397,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows witch did not use save when witch saved nothing but poisoned', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -406,7 +410,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows witch did not use poison when witch saved but did not poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -419,7 +423,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show witch did nothing when witch is blocked by nightmare', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'nightmare')],
       ]);
@@ -431,7 +435,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows poisoner did nothing when poisoner present but did not poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'poisoner')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -440,7 +444,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('witch does not show poison unused when poisoner owns the poison', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'poisoner')],
       ]);
@@ -456,7 +460,7 @@ describe('NightReview.helpers', () => {
     // ── P2: double-save warning ──
 
     it('shows 同守同救 warning when guard and witch both save wolf target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'guard')],
         [2, makePlayer(2, 'witch')],
@@ -480,7 +484,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Poison immunity warning ──
 
     it('shows poison immunity warning when poisoned target is immune', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'witcher')],
       ]);
@@ -492,7 +496,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('does not show poison immunity for non-immune target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'witch')],
         [1, makePlayer(1, 'villager')],
       ]);
@@ -506,7 +510,7 @@ describe('NightReview.helpers', () => {
     // ── P3: Damage reflection warning ──
 
     it('shows reflection warning when seer checks a reflectsDamage target', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'seer')],
         [1, makePlayer(1, 'spiritKnight')],
       ]);
@@ -527,7 +531,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('builds identity list sorted by seat', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [2, makePlayer(2, 'seer')],
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'villager')],
@@ -539,7 +543,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows empty seat', () => {
-      const players = new Map<number, LocalPlayer | null>([[0, null]]);
+      const players = new Map<number, LocalWerewolfPlayer | null>([[0, null]]);
       expect(buildIdentityLines(players)).toEqual(['1号: 空座']);
     });
 
@@ -552,7 +556,7 @@ describe('NightReview.helpers', () => {
   describe('contract: every NIGHT_STEPS role produces a line with its displayName', () => {
     it('buildActionLines covers all night-action roles', () => {
       // Build a maximal game state with ALL roles' night actions populated
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'nightmare')],
         [2, makePlayer(2, 'guard')],
@@ -624,7 +628,7 @@ describe('NightReview.helpers', () => {
         treasureMasterChosenCard: 'seer',
         thiefChosenCard: 'villager',
         loverSeats: [28, 29],
-      } as unknown as LocalGameState;
+      } as unknown as LocalWerewolfState;
 
       const lines = buildActionLines(gs);
       const joined = lines.join('\n');
@@ -655,7 +659,7 @@ describe('NightReview.helpers', () => {
       expect(canSkipRoleIds.length).toBeGreaterThanOrEqual(15);
 
       // Build players map with all canSkip roles, each on a separate seat
-      const players = new Map<number, LocalPlayer | null>();
+      const players = new Map<number, LocalWerewolfPlayer | null>();
       canSkipRoleIds.forEach((roleId, idx) => {
         players.set(idx, makePlayer(idx, roleId));
       });
@@ -678,7 +682,7 @@ describe('NightReview.helpers', () => {
 
   describe('buildNightReviewData', () => {
     it('returns both sections', () => {
-      const players = new Map<number, LocalPlayer | null>([
+      const players = new Map<number, LocalWerewolfPlayer | null>([
         [0, makePlayer(0, 'werewolf')],
         [1, makePlayer(1, 'seer')],
       ]);

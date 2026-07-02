@@ -6,14 +6,14 @@
  * No hooks, no side effects.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { getBottomCardEffectiveRole } from '@werewolf/game-engine/utils/playerHelpers';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -31,7 +31,7 @@ export interface BottomButton {
 }
 
 interface BottomActionContext {
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
   currentSchema: ActionSchema | null;

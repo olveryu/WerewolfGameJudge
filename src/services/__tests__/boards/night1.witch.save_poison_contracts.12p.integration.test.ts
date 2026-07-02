@@ -18,10 +18,10 @@
  * - save can only target players attacked by wolves
  * - Cannot use save and poison in the same night
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
@@ -151,7 +151,7 @@ describe('Night-1: Witch Save/Poison Contracts (12p)', () => {
     });
   });
 
-  describe('witchContext 写入 GameState', () => {
+  describe('witchContext 写入 WerewolfState', () => {
     it('袭击目标写入 witchContext.killedSeat（验证最终状态）', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 

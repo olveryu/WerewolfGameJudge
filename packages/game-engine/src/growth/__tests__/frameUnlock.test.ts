@@ -1,4 +1,8 @@
 import {
+  FREE_ROLE_REVEAL_EFFECT_IDS,
+  ROLE_REVEAL_EFFECT_IDS,
+} from '../../cosmetics/roleRevealEffects';
+import {
   getUnlockedAvatars,
   getUnlockedFlairs,
   getUnlockedFrames,
@@ -17,11 +21,9 @@ import {
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
   FREE_NAME_STYLE_IDS,
-  FREE_ROLE_REVEAL_EFFECT_IDS,
   FREE_SEAT_ANIMATION_IDS,
   NAME_STYLE_IDS,
   REWARD_POOL,
-  ROLE_REVEAL_EFFECT_IDS,
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '../rewardCatalog';

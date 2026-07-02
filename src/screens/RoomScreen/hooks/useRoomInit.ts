@@ -1,19 +1,19 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * Calls useGameRoom init APIs (initializeRoom, joinRoom), manages local
+ * Calls useWerewolfRoom init APIs (initializeRoom, joinRoom), manages local
  * loading/retry UI state. Error messages come from RoomInitResult.error
  * (synchronous return, not async state).
  * Does not control night phase or push game actions, does not import services
- * or business logic, does not access or modify GameState fields, does not
+ * or business logic, does not access or modify WerewolfState fields, does not
  * contain night flow / audio / policy logic, and does not create room record
  * in DB (that's done in ConfigScreen before navigation).
  */
 
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Template';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { RoomInitResult } from '@/hooks/useRoomLifecycle';
+import type { RoomInitResult } from '@/hooks/werewolf/useWerewolfRoomLifecycle';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {
@@ -23,9 +23,9 @@ interface UseRoomInitParams {
   isHostParam: boolean;
   /** Template for room creation (host only) */
   template: GameTemplate | undefined;
-  /** From useGameRoom: initialize room (facade only, no DB) */
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
-  /** From useGameRoom: join existing room */
+  /** From useWerewolfRoom: connect to the already-created room */
+  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
+  /** From useWerewolfRoom: join existing room */
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   /** Check if we have received game state */
   hasGameState: boolean;
@@ -44,7 +44,7 @@ interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: initializeRoom → initialized
+ * Host after create: initializeRoom(connect) → initialized
  * Player: joinRoom → initialized
  *
  * Note: DB room creation is done in ConfigScreen BEFORE navigation.
@@ -91,14 +91,14 @@ export function useRoomInit({
         Array.isArray(template.roles);
 
       if (hasValidTemplate) {
-        // Host initializes room (DB record already created before navigation)
+        // Host connects to the room (DB + DO state already created before navigation)
         setLoadingMessage('正在加载房间');
         roomScreenLog.debug('Host initializing room', {
           roomCode,
           playerCount: template.numberOfPlayers,
           totalRoles: template.roles.length,
         });
-        const result = await initializeRoom(roomCode, template);
+        const result = await initializeRoom(roomCode);
 
         if (!result.success) {
           initInProgressRef.current = false;

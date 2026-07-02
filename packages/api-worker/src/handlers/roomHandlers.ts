@@ -10,7 +10,6 @@
  * @throws 503/429 — callDO detected DO retryable/overloaded
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -19,6 +18,7 @@ import { rooms } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
+import { createInitialRoomState } from '../roomCreate/registry';
 import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
 import { getGameRoomStub, jsonBody } from './shared';
 
@@ -34,6 +34,15 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   const userId = c.var.userId;
   const parsed = c.req.valid('json');
 
+  const gameType = parsed.gameType;
+  const createdState = createInitialRoomState(gameType, parsed.config, {
+    roomCode: parsed.roomCode,
+    hostUserId: userId,
+  });
+  if (!createdState.success) {
+    return c.json({ success: false, reason: createdState.reason }, 400);
+  }
+
   const now = sql`datetime('now')`;
 
   const inserted = await db
@@ -42,6 +51,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       id: crypto.randomUUID(),
       code: parsed.roomCode,
       hostUserId: userId,
+      gameType,
       createdAt: now,
       updatedAt: now,
     })
@@ -52,20 +62,20 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
     return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
   }
 
-  // Initialize DO state (if initialState provided)
-  if (parsed.initialState) {
-    try {
-      const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
-      await stub.init(parsed.initialState as GameState);
-    } catch (err) {
-      // DO init failed → rollback D1 record
-      log.error('DO init failed, rolling back', {
-        roomCode: parsed.roomCode,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
-      throw err;
-    }
+  // Initialize DO state. Schema guarantees exactly one path; D1 rows never exist
+  // without a matching Durable Object snapshot.
+  try {
+    const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
+    await stub.initState(gameType, createdState.state);
+  } catch (err) {
+    // DO init failed → rollback D1 record
+    log.error('DO init failed, rolling back', {
+      roomCode: parsed.roomCode,
+      gameType,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
+    throw err;
   }
 
   return c.json(
@@ -73,6 +83,7 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
       room: {
         roomCode: parsed.roomCode,
         hostUserId: userId,
+        gameType,
         createdAt: new Date().toISOString(),
       },
     },
@@ -89,6 +100,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
     .select({
       code: rooms.code,
       hostUserId: rooms.hostUserId,
+      gameType: rooms.gameType,
       createdAt: rooms.createdAt,
     })
     .from(rooms)
@@ -104,6 +116,7 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
       room: {
         roomCode: row.code,
         hostUserId: row.hostUserId,
+        gameType: row.gameType,
         createdAt: row.createdAt,
       },
     },
@@ -146,19 +159,13 @@ roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
   const parsed = c.req.valid('json');
 
   const stub = getGameRoomStub(c.env, parsed.roomCode, c.req.raw);
-  const result = await stub.getState();
+  const result: { state: unknown; revision: number } | null = await stub.getState();
 
   if (!result) {
     return c.json({ state: null }, 200);
   }
 
-  return c.json(
-    {
-      state: result.state,
-      revision: result.revision,
-    },
-    200,
-  );
+  return c.json(result, 200);
 });
 
 // ── POST /room/revision ─────────────────────────────────────────────────────

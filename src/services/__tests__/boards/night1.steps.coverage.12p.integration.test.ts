@@ -9,7 +9,7 @@
  * - No bypassing the handler
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
@@ -59,7 +59,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   it('should reach slackerChooseIdol / wildChildChooseIdol / wolfWitchCheck / gargoyleCheck / pureWhiteCheck / psychicCheck steps', () => {
     const ctx = createGame(CUSTOM_ROLES);
 
-    // Theme assertion (not just deaths): include a real GameState field assertion.
+    // Theme assertion (not just deaths): include a real WerewolfState field assertion.
     // Contract gate looks for patterns like `.actions??.` so we assert with optional chaining.
     expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
 
@@ -147,7 +147,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   // Full integration test with 15-role template deferred to dedicated test file.
   it('treasureMasterChoose step exists in NIGHT_STEPS', () => {
     const { NIGHT_STEPS } =
-      require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');
+      require('@werewolf/game-engine/werewolf/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/werewolf/models/roles/spec/nightSteps');
     const step = NIGHT_STEPS.find((s) => s.id === 'treasureMasterChoose');
     expect(step).toBeDefined();
     // Pattern recognized by boards coverage contract (stepId === '...')
@@ -159,7 +159,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   // Full integration test with the Hidden Wolf + Crow template deferred to a dedicated test file.
   it('hiddenWolfReveal step exists in NIGHT_STEPS', () => {
     const { NIGHT_STEPS } =
-      require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');
+      require('@werewolf/game-engine/werewolf/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/werewolf/models/roles/spec/nightSteps');
     const step = NIGHT_STEPS.find((s) => s.id === 'hiddenWolfReveal');
     expect(step).toBeDefined();
     // Pattern recognized by boards coverage contract (stepId === '...')

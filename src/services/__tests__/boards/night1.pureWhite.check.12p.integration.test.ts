@@ -16,12 +16,12 @@
  * Core rules:
  * - pureWhite check returns specific role identity
  * - wolfWitch check returns specific role identity; cannot check wolf faction
- * - result written to GameState.pureWhiteReveal / wolfWitchReveal
+ * - result written to WerewolfState.pureWhiteReveal / wolfWitchReveal
  *
- * Architecture: intents → handlers → reducer → GameState
+ * Architecture: intents → handlers → reducer → WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight, executeRemainingSteps, executeStepsUntil } from './stepByStepRunner';

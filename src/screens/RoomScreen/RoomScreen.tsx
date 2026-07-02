@@ -10,10 +10,10 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type NativeStackScreenProps } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import { findClosestPresetName } from '@werewolf/game-engine/werewolf/models/Template';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -24,6 +24,14 @@ import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { ControlledSeatBanner } from '@/components/room/ControlledSeatBanner';
+import { useRoomShareActions } from '@/components/room/hooks/useRoomShareActions';
+import { PlayerProfileCard } from '@/components/room/PlayerProfileCard';
+import { QRCodeModal } from '@/components/room/QRCodeModal';
+import { RoomBottomActionPanel as BottomActionPanel } from '@/components/room/RoomBottomActionPanel';
+import { RoomHeaderActions } from '@/components/room/RoomHeaderActions';
+import { RoomSeatConfirmModal } from '@/components/room/RoomSeatConfirmModal';
+import { createRoomShellStyles as createRoomScreenStyles } from '@/components/room/roomShellStyles';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
@@ -32,7 +40,6 @@ import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
@@ -40,17 +47,11 @@ import { isMiniProgram } from '@/utils/miniProgram';
 import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
-import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
-import { ControlledSeatBanner } from './components/ControlledSeatBanner';
-import { HeaderActions } from './components/HeaderActions';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerGrid } from './components/PlayerGrid';
-import { PlayerProfileCard } from './components/PlayerProfileCard';
-import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
-import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { StatusRibbon } from './components/StatusRibbon';
 import { createRoomScreenComponentStyles } from './components/styles';
@@ -59,9 +60,10 @@ import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import type { ActionIntent } from './policy/types';
-import { createRoomScreenStyles } from './RoomScreen.styles';
-import { shareQRCodeImage } from './shareQRCode';
-import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
+import {
+  createWerewolfHeaderActionItems,
+  createWerewolfHeaderOperationItems,
+} from './werewolfHeaderItems';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
@@ -90,51 +92,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     setStrategyBoardName(null);
   }, []);
 
-  // ─── QR Code Modal state ──────────────────────────────────────────────
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
-  const hasAutoShownQR = useRef(false);
 
   // Ticket count for top bar badge (shared cache via TanStack Query)
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-
-  const handleShareRoom = useCallback(() => {
-    setQrModalVisible(true);
-  }, []);
-
-  const handleCopyLink = useCallback(() => {
-    void shareOrCopyRoomLink(route.params.roomCode)
-      .then((result) => {
-        if (result === 'copied') {
-          toast.success('房间链接已复制');
-        } else if (result === 'failed') {
-          showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
-        }
-        // 'shared' -> system share sheet already provided feedback
-        // 'cancelled' -> user dismissed intentionally, no alert needed
-      })
-      .catch((e) => {
-        handleError(e, {
-          label: '分享链接',
-          logger: roomScreenLog,
-          alertMessage: '无法复制链接，请手动分享房间号',
-        });
-      });
-  }, [route.params.roomCode]);
-
-  const handleShareQRImage = useCallback(
-    (getBase64: () => Promise<string>) => {
-      void shareQRCodeImage(getBase64, route.params.roomCode).catch((e) => {
-        handleError(e, {
-          label: '分享二维码',
-          logger: roomScreenLog,
-          alertMessage: '无法分享二维码图片',
-        });
-      });
-    },
-    [route.params.roomCode],
-  );
 
   const handleAvatarPress = useCallback(() => {
     navigation.navigate('Settings', { roomCode: route.params.roomCode });
@@ -219,14 +181,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     isStartingGame,
     isHostActionSubmitting,
     isActionSubmitting,
-    // Seat modal
-    seatModalVisible,
-    pendingSeat,
-    modalType,
+    // Seat operation modal
+    seatOperation,
     isSeatSubmitting,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
+    confirmSeatOperation,
+    cancelSeatOperation,
     // Role card modal
     roleCardVisible,
     shouldPlayRevealAnimation,
@@ -260,6 +219,104 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     bottomCardDisabledHint,
     bottomCardSubtitle,
   } = useRoomScreenState(route.params, navigation);
+
+  const roomShare = useRoomShareActions({
+    roomCode,
+    autoShowWhen: isInitialized && gameState !== null && isHost && template !== undefined,
+  });
+
+  const seatedCount = useMemo(
+    () => (gameState ? Array.from(gameState.players.values()).filter((p) => p !== null).length : 0),
+    [gameState],
+  );
+
+  const handleFillWithBots = useCallback(() => {
+    void fillWithBots().catch((err) => {
+      handleError(err, {
+        label: 'fillWithBots',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [fillWithBots]);
+
+  const handleMarkAllBotsViewed = useCallback(() => {
+    void markAllBotsViewed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsViewed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsViewed]);
+
+  const handleMarkAllBotsGroupConfirmed = useCallback(() => {
+    void markAllBotsGroupConfirmed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsGroupConfirmed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsGroupConfirmed]);
+
+  const handleClearAllSeats = useCallback(() => {
+    void clearAllSeats().catch((err) => {
+      handleError(err, {
+        label: 'clearAllSeats',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [clearAllSeats]);
+
+  const headerActionItems = useMemo(
+    () =>
+      createWerewolfHeaderActionItems({
+        showShareRoom:
+          !isMiniProgram() &&
+          (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated),
+        showMusicSettings:
+          isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing,
+        onShareRoom: roomShare.openQRCode,
+        onMusicSettings: handleMusicSettings,
+      }),
+    [handleMusicSettings, isAudioPlaying, isHost, isStartingGame, roomShare.openQRCode, roomStatus],
+  );
+
+  const headerOperationItems = useMemo(
+    () =>
+      createWerewolfHeaderOperationItems({
+        canFillBots: isHost && roomStatus === GameStatus.Unseated,
+        canClearSeats:
+          isHost &&
+          (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
+          seatedCount > 0,
+        showMarkAllBotsViewed: isHost && isDebugMode && roomStatus === GameStatus.Assigned,
+        showMarkAllBotsGroupConfirmed:
+          isHost &&
+          isDebugMode &&
+          !isAudioPlaying &&
+          roomStatus === GameStatus.Ongoing &&
+          currentSchema?.kind === 'groupConfirm',
+        onFillBots: handleFillWithBots,
+        onClearSeats: handleClearAllSeats,
+        onMarkAllBotsViewed: handleMarkAllBotsViewed,
+        onMarkAllBotsGroupConfirmed: handleMarkAllBotsGroupConfirmed,
+      }),
+    [
+      currentSchema?.kind,
+      handleClearAllSeats,
+      handleFillWithBots,
+      handleMarkAllBotsGroupConfirmed,
+      handleMarkAllBotsViewed,
+      isAudioPlaying,
+      isDebugMode,
+      isHost,
+      roomStatus,
+      seatedCount,
+    ],
+  );
 
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -369,14 +426,6 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     },
     [dispatchInteraction, showLastNightInfo, openNightReview],
   );
-
-  // ─── Auto-show QR invite card after room creation ─────────────────────
-  useEffect(() => {
-    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
-      hasAutoShownQR.current = true;
-      setQrModalVisible(true);
-    }
-  }, [isInitialized, gameState, isHost, template]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
@@ -488,73 +537,16 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           >
             <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
           </Button>
-          <HeaderActions
+          <RoomHeaderActions
             visible
             user={user}
             ticketCount={ticketCount}
             showUserSettings
-            showShareRoom={
-              !isMiniProgram() &&
-              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
-            }
-            showMusicSettings={
-              isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
-            }
-            showFillWithBots={isHost && roomStatus === GameStatus.Unseated}
-            showMarkAllBotsViewed={isHost && isDebugMode && roomStatus === GameStatus.Assigned}
-            showMarkAllBotsGroupConfirmed={
-              isHost &&
-              isDebugMode &&
-              !isAudioPlaying &&
-              roomStatus === GameStatus.Ongoing &&
-              currentSchema?.kind === 'groupConfirm'
-            }
-            showClearAllSeats={
-              isHost &&
-              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
-              !!gameState &&
-              Array.from(gameState.players.values()).some((p) => p !== null)
-            }
-            onFillWithBots={() =>
-              void fillWithBots().catch((err) => {
-                handleError(err, {
-                  label: 'fillWithBots',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMarkAllBotsViewed={() =>
-              void markAllBotsViewed().catch((err) => {
-                handleError(err, {
-                  label: 'markAllBotsViewed',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMarkAllBotsGroupConfirmed={() =>
-              void markAllBotsGroupConfirmed().catch((err) => {
-                handleError(err, {
-                  label: 'markAllBotsGroupConfirmed',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onClearAllSeats={() =>
-              void clearAllSeats().catch((err) => {
-                handleError(err, {
-                  label: 'clearAllSeats',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMusicSettings={handleMusicSettings}
+            actionItems={headerActionItems}
+            operationItems={headerOperationItems}
             onUserSettings={handleAvatarPress}
-            onShareRoom={handleShareRoom}
             styles={componentStyles.headerActions}
+            menuButtonTestID={TESTIDS.roomMenuButton}
           />
         </View>
       </View>
@@ -658,18 +650,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
       />
 
       {/* Seat Confirmation Modal */}
-      {/* Seat Confirmation Modal - only render when pendingSeat is set */}
-      {pendingSeat !== null && (
-        <SeatConfirmModal
-          visible={seatModalVisible}
-          modalType={modalType}
-          seat={pendingSeat}
+      {seatOperation ? (
+        <RoomSeatConfirmModal
+          visible
+          kind={seatOperation.kind}
+          seat={seatOperation.seat}
           isSubmitting={isSeatSubmitting}
-          onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
-          onCancel={handleCancelSeat}
+          onConfirm={() => void confirmSeatOperation()}
+          onCancel={cancelSeatOperation}
           styles={componentStyles.seatConfirmModal}
         />
-      )}
+      ) : null}
 
       {/* Role Card Modal */}
       {(roleCardVisible || isLoadingRole) && effectiveRole && (
@@ -754,12 +745,12 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* QR Code Modal -- room QR code share */}
       <QRCodeModal
-        visible={qrModalVisible}
+        visible={roomShare.qrModalVisible}
         roomCode={roomCode}
-        roomUrl={buildRoomUrl(roomCode)}
-        onShareImage={handleShareQRImage}
-        onCopyLink={handleCopyLink}
-        onClose={() => setQrModalVisible(false)}
+        roomUrl={roomShare.roomUrl}
+        onShareImage={roomShare.handleShareQRCode}
+        onCopyLink={roomShare.handleCopyLink}
+        onClose={roomShare.closeQRCode}
       />
 
       {/* Board Nomination Modal -- board suggestion list */}

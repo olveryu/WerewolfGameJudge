@@ -9,12 +9,14 @@
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
+import { usePlayerProfileController } from '@/components/room/hooks/usePlayerProfileController';
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
   getInteractionResult,
@@ -22,8 +24,7 @@ import {
   type InteractionEvent,
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
-import { showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -33,13 +34,14 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseInteractionDispatcherParams {
   // ── Game state ──
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
   isHost: boolean;
   imActioner: boolean;
 
   // ── Identity ──
+  myUserId: string | null;
   mySeat: number | null;
   myRole: RoleId | null;
   actorSeatForUi: number | null;
@@ -58,13 +60,13 @@ interface UseInteractionDispatcherParams {
   // ── Dialog callbacks ──
   showEnterSeatDialog: (seat: number) => void;
   showLeaveSeatDialog: (seat: number) => void;
+  kickSeatFromProfile: (seat: number) => void;
   handleLeaveRoom: () => void;
 
   // ── Modal state (guard against duplicate opens) ──
   seatModalVisible: boolean;
 
   // ── Seat operations (raw API) ──
-  leaveSeat: () => Promise<void>;
   viewedRole: () => Promise<ActionResult>;
 
   // ── Host dialogs ──
@@ -75,7 +77,6 @@ interface UseInteractionDispatcherParams {
 
   // ── Submission callbacks ──
   setControlledSeat: (seat: number | null) => void;
-  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
 
   // ── Role card state setters (owned by RoomScreen) ──
   setRoleCardVisible: (v: boolean) => void;
@@ -116,6 +117,7 @@ export function useInteractionDispatcher({
   isAudioPlaying,
   isHost,
   imActioner,
+  myUserId,
   mySeat,
   myRole,
   actorSeatForUi,
@@ -128,66 +130,78 @@ export function useInteractionDispatcher({
   getActionIntent,
   showEnterSeatDialog,
   showLeaveSeatDialog,
+  kickSeatFromProfile: runProfileKick,
   handleLeaveRoom,
   seatModalVisible,
-  leaveSeat,
   viewedRole,
   handleSettingsPress,
   showPrepareToFlipDialog,
   showStartGameDialog,
   showRestartDialog,
   setControlledSeat,
-  kickPlayer,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
   setIsLoadingRole,
 }: UseInteractionDispatcherParams): UseInteractionDispatcherResult {
   // ─── Profile card state ──────────────────────────────────────────────────
 
-  const [profileCardVisible, setProfileCardVisible] = useState(false);
-  const [profileCardTargetUserId, setProfileCardTargetUserId] = useState('');
-  const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
-  const [profileCardRosterName, setProfileCardRosterName] = useState('');
-  const [profileCardIsSelf, setProfileCardIsSelf] = useState(false);
-
-  const closeProfileCard = useCallback(() => {
-    setProfileCardVisible(false);
-  }, []);
-
   const canKick = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
 
-  const handleProfileKick = useMemo(
-    () =>
-      canKick
-        ? (seat: number) => {
-            roomScreenLog.debug('handleProfileKick', { seat });
-            setProfileCardVisible(false);
-            void kickPlayer(seat).catch((err) => {
-              handleError(err, {
-                label: '移出',
-                logger: roomScreenLog,
-              });
-            });
-          }
-        : undefined,
-    [canKick, kickPlayer],
+  const getProfileDisplayName = useCallback(
+    (seat: number, userId: string): string => {
+      if (!gameState) {
+        throw new Error('useInteractionDispatcher.getProfileDisplayName: missing gameState');
+      }
+
+      const player = gameState.players.get(seat);
+      if (!player) {
+        throw new Error(
+          `useInteractionDispatcher.getProfileDisplayName: missing player at seat ${seat}`,
+        );
+      }
+      if (player.userId !== userId) {
+        throw new Error(
+          `useInteractionDispatcher.getProfileDisplayName: user mismatch at seat ${seat}`,
+        );
+      }
+
+      return player.displayName ?? '';
+    },
+    [gameState],
   );
 
+  const handleKickSeatFromProfile = useCallback(
+    (seat: number) => {
+      roomScreenLog.debug('handleProfileKick', { seat });
+      runProfileKick(seat);
+    },
+    [runProfileKick],
+  );
+
+  const leaveSeatFromProfile = useCallback(
+    (seat: number) => {
+      roomScreenLog.debug('handleProfileLeaveSeat', { seat });
+      showLeaveSeatDialog(seat);
+    },
+    [showLeaveSeatDialog],
+  );
+
+  const profile = usePlayerProfileController({
+    myUserId,
+    getDisplayName: getProfileDisplayName,
+    onKickSeat: handleKickSeatFromProfile,
+    onLeaveSeat: leaveSeatFromProfile,
+  });
+
+  const profileTarget = profile.target;
+  const closeProfileCard = profile.closeProfile;
+  const handleProfileKick = useMemo(
+    () => (canKick ? profile.handleKick : undefined),
+    [canKick, profile.handleKick],
+  );
   const handleProfileLeaveSeat = useMemo(
-    () =>
-      canKick
-        ? (_seat: number) => {
-            roomScreenLog.debug('handleProfileLeaveSeat', { seat: _seat });
-            setProfileCardVisible(false);
-            void leaveSeat().catch((err) => {
-              handleError(err, {
-                label: '离座',
-                logger: roomScreenLog,
-              });
-            });
-          }
-        : undefined,
-    [canKick, leaveSeat],
+    () => (canKick ? profile.handleLeaveSeat : undefined),
+    [canKick, profile.handleLeaveSeat],
   );
 
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
@@ -422,43 +436,12 @@ export function useInteractionDispatcher({
           setControlledSeat(null);
           return;
 
-        case 'KICK_CONFIRM': {
-          const kickSeat = result.seat;
-          const player = gameState?.players.get(kickSeat);
-          const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
-          roomScreenLog.debug('dispatchInteraction KICK_CONFIRM', { seat: kickSeat });
-          showDestructiveAlert(
-            '移出座位',
-            `确定要将 ${playerName} 移出座位吗？`,
-            '移出',
-            async () => {
-              await kickPlayer(kickSeat).catch((err) => {
-                handleError(err, {
-                  label: 'kickPlayer',
-                  logger: roomScreenLog,
-                  feedback: 'toast',
-                });
-                throw err;
-              });
-            },
-          );
-          return;
-        }
-
         case 'VIEW_PROFILE': {
-          const targetPlayer = gameState?.players.get(result.seat);
-          const isSelf = result.seat === mySeat;
           roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
             targetUserId: result.targetUserId,
-            rosterName: targetPlayer?.displayName,
-            isSelf,
           });
-          setProfileCardTargetUserId(result.targetUserId);
-          setProfileCardTargetSeat(result.seat);
-          setProfileCardRosterName(targetPlayer?.displayName ?? '');
-          setProfileCardIsSelf(isSelf);
-          setProfileCardVisible(true);
+          profile.openProfile(result.seat, result.targetUserId);
           return;
         }
 
@@ -483,10 +466,9 @@ export function useInteractionDispatcher({
       showStartGameDialog,
       showRestartDialog,
       setControlledSeat,
-      kickPlayer,
       effectiveSeat,
-      mySeat,
       gameState,
+      profile,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,
       setIsLoadingRole,
@@ -514,11 +496,11 @@ export function useInteractionDispatcher({
     onSeatTapped,
     onSeatLongPressed,
     interactionContext,
-    profileCardVisible,
-    profileCardTargetUserId,
-    profileCardTargetSeat,
-    profileCardRosterName,
-    profileCardIsSelf,
+    profileCardVisible: profileTarget !== null,
+    profileCardTargetUserId: profileTarget?.userId ?? '',
+    profileCardTargetSeat: profileTarget?.seat ?? 0,
+    profileCardRosterName: profileTarget?.displayName ?? '',
+    profileCardIsSelf: profileTarget?.isSelf ?? false,
     closeProfileCard,
     handleProfileKick,
     handleProfileLeaveSeat,

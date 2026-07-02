@@ -8,7 +8,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -19,7 +19,7 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useWerewolfFacade } from '@/contexts/RoomFacadeContext';
 import {
   useChangePassword,
   useSignInAnonymously,
@@ -64,7 +64,7 @@ export const SettingsScreen: React.FC = () => {
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: changePassword } = useChangePassword();
-  const facade = useGameFacade();
+  const facade = useWerewolfFacade();
 
   // Room context: subscribe to facade state for reactive canSwitchAccount
   const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
@@ -87,7 +87,7 @@ export const SettingsScreen: React.FC = () => {
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : 0;
 
-  // Track anonymous→email upgrade: sync new displayName to GameState
+  // Track anonymous→email upgrade: sync new displayName to WerewolfState
   const wasAnonymousRef = useRef(user?.isAnonymous);
   // Suppress LoginOptions flash during transient auth state (e.g. updateUser → onAuthStateChange)
   const wasAuthenticatedRef = useRef(isAuthenticated);
@@ -95,11 +95,11 @@ export const SettingsScreen: React.FC = () => {
   useEffect(() => {
     const isAnonymous = user?.isAnonymous;
     if (wasAnonymousRef.current && user && !isAnonymous) {
-      // Just upgraded from anonymous → email; sync profile to GameState if in room
-      settingsLog.info('Anonymous→email upgrade detected, syncing profile to GameState');
+      // Just upgraded from anonymous → email; sync profile to WerewolfState if in room
+      settingsLog.info('Anonymous→email upgrade detected, syncing profile to WerewolfState');
       facade
         .updatePlayerProfile(user.displayName ?? undefined, user.avatarUrl ?? undefined)
-        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed', err));
+        .catch((err: unknown) => settingsLog.warn('Profile sync to WerewolfState failed', err));
     }
     wasAnonymousRef.current = isAnonymous;
     if (isAuthenticated) wasAuthenticatedRef.current = true;
@@ -178,7 +178,7 @@ export const SettingsScreen: React.FC = () => {
             toast.success('昵称已更新');
             facade
               .updatePlayerProfile(trimmed, undefined)
-              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed', err));
+              .catch((err: unknown) => settingsLog.warn('Name sync to WerewolfState failed', err));
           } catch (e: unknown) {
             const message = getErrorMessage(e);
             settingsLog.error('Update name failed', { message }, e);

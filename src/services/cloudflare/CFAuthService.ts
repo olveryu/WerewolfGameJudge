@@ -18,7 +18,7 @@
  */
 
 import * as Sentry from '@sentry/react-native';
-import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
+import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';

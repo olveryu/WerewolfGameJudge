@@ -57,10 +57,10 @@ Client  ──POST /game/*──▶  Worker (thin router: param validation + DO 
 
 ### 3.1 Migrate to DO Internal (21 handlers)
 
-| Category     | Handler                                                                                                                                         | Current File              |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| Game Control | assign, seat, start, restart, clear-seats, fill-bots, mark-bots-viewed, set-animation, view-role, update-template, update-profile, share-review | `handlers/gameControl.ts` |
-| Night        | action, audio-ack, audio-gate, end, progression, reveal-ack, wolf-robot-viewed, group-confirm-ack, mark-bots-group-confirmed                    | `handlers/night.ts`       |
+| Category     | Handler                                                                                                                                         | Current File                                   |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Game Control | assign, seat, start, restart, clear-seats, fill-bots, mark-bots-viewed, set-animation, view-role, update-template, update-profile, share-review | `games/werewolf/handlers/gameControlRoutes.ts` |
+| Night        | action, audio-ack, audio-gate, end, progression, reveal-ack, wolf-robot-viewed, group-confirm-ack, mark-bots-group-confirmed                    | `games/werewolf/handlers/nightRoutes.ts`       |
 
 ### 3.2 Stays in D1 (Not Migrated)
 
@@ -369,7 +369,7 @@ RPC and `fetch()` can coexist on the same DO class. WebSocket upgrade still goes
 Worker handler becomes a thin router: param validation → DO RPC → error handling → return response.
 
 ```typescript
-// handlers/gameControl.ts — handleSeat after migration
+// games/werewolf/handlers/gameControlRoutes.ts — handleSeat after migration
 
 export const handleSeat: HandlerFn = async (req, env, _ctx) => {
   const body = (await req.json()) as {
@@ -571,16 +571,16 @@ export async function handleGetRevision(request: Request, env: Env): Promise<Res
 
 ### Modified Files
 
-| File                         | Changes                                                                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `durableObjects/GameRoom.ts` | Extends `DurableObject<Env>`; add typed RPC methods; preserve WebSocket fetch handler                                     |
-| `handlers/gameControl.ts`    | All handlers changed to DO RPC calls (param validation preserved, processGameAction/broadcastIfNeeded removed)            |
-| `handlers/night.ts`          | Same as above                                                                                                             |
-| `handlers/shared.ts`         | `createSimpleHandler` changed to receive `(stub) => stub.xxx()` lambda; add `getGameRoomStub` + `callDO`                  |
-| `handlers/roomHandlers.ts`   | `handleCreateRoom` adds DO init + rollback; `handleDeleteRoom` adds DO cleanup; read paths changed to DO RPC              |
-| `env.ts`                     | Unchanged (GAME_ROOM binding already exists)                                                                              |
-| `index.ts`                   | Unchanged (route table unchanged)                                                                                         |
-| `wrangler.toml`              | Unchanged (migration tag "v1" + `new_sqlite_classes` already exist; CREATE IF NOT EXISTS in constructor needs no new tag) |
+| File                                           | Changes                                                                                                                   |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `durableObjects/GameRoom.ts`                   | Extends `DurableObject<Env>`; add typed RPC methods; preserve WebSocket fetch handler                                     |
+| `games/werewolf/handlers/gameControlRoutes.ts` | All handlers changed to DO RPC calls (param validation preserved, processGameAction/broadcastIfNeeded removed)            |
+| `games/werewolf/handlers/nightRoutes.ts`       | Same as above                                                                                                             |
+| `handlers/shared.ts`                           | `createSimpleHandler` changed to receive `(stub) => stub.xxx()` lambda; add `getGameRoomStub` + `callDO`                  |
+| `handlers/roomHandlers.ts`                     | `handleCreateRoom` adds DO init + rollback; `handleDeleteRoom` adds DO cleanup; read paths changed to DO RPC              |
+| `env.ts`                                       | Unchanged (GAME_ROOM binding already exists)                                                                              |
+| `index.ts`                                     | Unchanged (route table unchanged)                                                                                         |
+| `wrangler.toml`                                | Unchanged (migration tag "v1" + `new_sqlite_classes` already exist; CREATE IF NOT EXISTS in constructor needs no new tag) |
 
 ### Phase 2 Deletions
 
@@ -635,7 +635,7 @@ export async function handleGetRevision(request: Request, env: Env): Promise<Res
 ### 7.1 Existing Tests Unchanged
 
 - `game-engine` unit tests: pure functions, no I/O dependency, 100% preserved
-- Client `GameFacade` / `seatActions` tests: mock HTTP API, interface unchanged, 100% preserved
+- Client `WerewolfFacade` / `seatActions` tests: mock HTTP API, interface unchanged, 100% preserved
 - E2E tests (Playwright): HTTP paths + response format unchanged, 100% preserved
 
 ### 7.2 New Tests

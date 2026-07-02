@@ -7,9 +7,9 @@
  *
  * Role emoji is consolidated into RoleSpec.emoji (SSOT), accessed via getRoleEmoji().
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/models/roles';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getRoleSpec, isWolfRole } from '@werewolf/game-engine/werewolf/models/roles';
+import { Faction } from '@werewolf/game-engine/werewolf/models/roles/spec/types';
 
 /** Get Chinese faction name from roleId */
 export const getFactionName = (roleId: RoleId): string => {

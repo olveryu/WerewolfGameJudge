@@ -1,13 +1,13 @@
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema, type SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
+import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import { getSchema, type SchemaId } from '@werewolf/game-engine/werewolf/models/roles/spec/schemas';
+import type { CurrentNightResults } from '@werewolf/game-engine/werewolf/resolvers/types';
 import type React from 'react';
 
+import type { LocalWerewolfPlayer } from '@/hooks/adapters/werewolfStateTypes';
 import type { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
-import type { LocalPlayer } from '@/types/GameStateTypes';
+import { ConnectionStatus } from '@/services/room/ConnectionStatus';
 
 type RoomScreenProps = React.ComponentProps<typeof RoomScreen>;
 
@@ -43,7 +43,7 @@ export function makeBaseUseGameRoomReturn({
   overrides,
   gameStateOverrides,
 }: MakeUseGameRoomArgs) {
-  const players = new Map<number, LocalPlayer>(
+  const players = new Map<number, LocalWerewolfPlayer>(
     Array.from({ length: numberOfPlayers }).map((_, i) => [
       i,
       {
@@ -113,8 +113,6 @@ export function makeBaseUseGameRoomReturn({
 
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     initializeRoom: jest.fn().mockResolvedValue({ success: true }),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
@@ -125,9 +123,6 @@ export function makeBaseUseGameRoomReturn({
     getWolfVoteSummary: () => '0/0 狼人已确认',
     requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
-
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
 
     getLastNightInfo: jest.fn().mockReturnValue(''),
 

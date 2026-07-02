@@ -1,20 +1,23 @@
 /**
  * playerContext - build the player-perspective AI context from game state
  *
- * Pure function, no side effects. Maps GameState to GameContext,
+ * Pure function, no side effects. Maps WerewolfState to GameContext,
  * containing only information the player should know (no cheating).
  * Reads gameState and ROLE_SPECS. Does not modify state or call services.
  */
 
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { ROLE_SPECS } from '@werewolf/game-engine/werewolf/models/roles';
+import type { WerewolfState } from '@werewolf/game-engine/werewolf/protocol/types';
 
 import type { GameContext } from '@/services/feature/AIChatService';
 
 /**
  * Build the player-perspective context from game state (no cheating info)
  */
-export function buildPlayerContext(state: GameState | null, mySeat: number | null): GameContext {
+export function buildPlayerContext(
+  state: WerewolfState | null,
+  mySeat: number | null,
+): GameContext {
   if (!state) {
     return { inRoom: false };
   }

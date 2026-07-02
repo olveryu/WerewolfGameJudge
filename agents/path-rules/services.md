@@ -1,6 +1,6 @@
 ---
 name: 'Services'
-description: 'Service layer standards: facade/transport/infra/feature services, resolvers, state management, audio orchestration. Use when: editing services, audio orchestration, connection management, game facade, realtime transport'
+description: 'Service layer standards: shared room services, per-game facades, connection management, audio orchestration, feature services. Use when: editing services, room facades, audio orchestration, connection management, realtime transport'
 applyTo: 'src/services/**'
 ---
 
@@ -8,7 +8,12 @@ applyTo: 'src/services/**'
 
 ## Source Code Location
 
-Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). Client services: `facade/`, `transport/`, `infra/`, `feature/`.
+Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). Client services are split by boundary:
+
+- `src/services/room/`: shared room-facing helpers and UI connection status.
+- `src/services/games/werewolf/`: Werewolf facade, action callers, audio orchestration.
+- `src/services/games/fibking/`: FibKing facade.
+- `src/services/cloudflare/`, `src/services/connection/`, `src/services/infra/`, `src/services/feature/`: shared infrastructure and product services.
 
 ## Feature Services
 
@@ -25,13 +30,13 @@ High-level facades combining infra/transport services to provide business capabi
 
 - Resolvers / calculators / validators are pure functions. IO/UI is forbidden.
 - Server-side business logic (night flow / death calc / state transition / reducer) is executed by Cloudflare Worker (Durable Objects).
-- Client facade handles: HTTP API submission + Realtime receive + audio orchestration. Client running resolvers / reducers / death calculation is forbidden.
-- Facade methods return `Promise<ActionResult>` (imported from `@werewolf/game-engine/protocol/ActionResult`). Returning bare `boolean` or loose `{ success: boolean; reason?: string }` type is forbidden.
+- Per-game facade handles: HTTP API submission + Realtime receive + game-specific orchestration. Client running resolvers / reducers / death calculation is forbidden.
+- Werewolf facade methods return `Promise<ActionResult>` (imported from `@werewolf/game-engine/protocol/ActionResult`) unless a method intentionally exposes an older boolean UI convenience. New methods must return `ActionResult`.
 - Infra services may use platform APIs (MMKV / Platform / expo-audio etc.).
-- Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
+- Pure cross-cutting service type files (`src/services/types/**`) may be `import type`'d by any layer. Per-game facade contracts live under `src/services/games/<game>/`.
 - Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.
 - SRP ~400 line split signal (see `screens.instructions.md`). When exceeding threshold, first evaluate whether independent reuse/test/modification scenarios exist — don't mechanically apply.
-- Wire protocol (`PlayerMessage` / `GameState`) must maintain compatibility.
+- Wire protocol (`PlayerMessage` / per-game public state) must keep stable external contracts.
 
 ## Resolver Standards
 
@@ -42,8 +47,8 @@ High-level facades combining infra/transport services to provide business capabi
 
 ## State Management & Anti-drift
 
-- `GameState` is the single source of truth. `HostOnlyState` or non-broadcast fields are forbidden. Host/Player state shape is completely identical.
-- New fields must sync `normalizeState` (see `game-engine.instructions.md` Handler Rules).
+- Per-game public state is the single source of truth. `HostOnlyState` or non-broadcast fields are forbidden. Host/Player state shape is completely identical.
+- New Werewolf fields must sync `normalizeWerewolfState` (see `game-engine.instructions.md` Handler Rules).
 - Derived fields calculated from same state copy or written only once. Dual-write/drift is forbidden.
 
 ## Night Flow
@@ -75,10 +80,10 @@ UI state loaded from MMKV / DB (coordinates, enums, config values) must validate
 
 ## Audio Orchestration
 
-Single orchestration source: Handler declares → Facade executes → UI read-only.
+Single orchestration source: Handler declares → WerewolfFacade executes → UI read-only.
 
 - **Handler** (server-side): writes `pendingAudioEffects`, `audioKey` / `audioEndKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden. Audio IO is forbidden.
-- **Facade** (client-side): reactively watches store's `pendingAudioEffects` → plays → `postAudioAck` releases gate. Wolf vote deadline expires → `postProgression` triggers advancement (one-time guard prevents re-entry).
+- **WerewolfFacade** (client-side): reactively watches store's `pendingAudioEffects` → plays → `postAudioAck` releases gate. Wolf vote deadline expires → `postProgression` triggers advancement (one-time guard prevents re-entry).
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
 - **Rejoin recovery**: `joinRoom(isHost=true)` recovers from DB → continue game AlertModal user gesture (Web autoplay needs gesture unlock) → `resumeAfterRejoin()` replays current step audio → `postAudioAck`. useEffect auto-triggering is forbidden.

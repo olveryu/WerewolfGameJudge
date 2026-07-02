@@ -40,17 +40,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 // KEY DIFFERENCE: imActioner = false, showWolves = false
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
@@ -66,8 +55,8 @@ jest.mock('../../hooks/useActionerState', () => ({
 let harness: RoomScreenTestHarness;
 let mockUseGameRoomReturn: ReturnType<typeof createGameRoomMock>;
 
-jest.mock('../../../../hooks/useGameRoom', () => ({
-  useGameRoom: () => mockUseGameRoomReturn,
+jest.mock('../../../../hooks/werewolf/useWerewolfRoom', () => ({
+  useWerewolfRoom: () => mockUseGameRoomReturn,
 }));
 
 // =============================================================================

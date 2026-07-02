@@ -8,8 +8,9 @@
  * Pure data — no React, no hooks, no side effects.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
+import type { RoomBottomLayout, RoomButtonConfig } from '@/components/room/RoomBottomActionPanel';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
@@ -17,32 +18,6 @@ import { colors } from '@/theme';
 // ─────────────────────────────────────────────────────────────────────────────
 // Output types
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Fully resolved button ready for rendering. */
-export interface ButtonConfig {
-  key: string;
-  label: string;
-  variant: 'primary' | 'secondary' | 'ghost';
-  size: 'lg' | 'md';
-  /** Schema-driven action intent (for BOTTOM_ACTION dispatch). */
-  intent?: ActionIntent;
-  /** Static button identifier (for HOST_CONTROL / VIEW_ROLE dispatch). */
-  action?: StaticButtonId;
-  testID?: string;
-  disabled?: boolean;
-  fireWhenDisabled?: boolean;
-  /** Text color override (e.g. danger-colored ghost button). */
-  textColor?: string;
-  /** Background color override (e.g. info-colored settings button). */
-  buttonColor?: string;
-}
-
-/** The three-tier layout produced by resolveBottomLayout. */
-export interface BottomLayout {
-  primary: readonly ButtonConfig[];
-  secondary: readonly ButtonConfig[];
-  ghost: readonly ButtonConfig[];
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static button IDs
@@ -58,6 +33,12 @@ export type StaticButtonId =
   | 'restart'
   | 'lastNightInfo'
   | 'nightReview';
+
+/** Fully resolved button ready for rendering. */
+export type ButtonConfig = RoomButtonConfig<ActionIntent, StaticButtonId>;
+
+/** The three-tier layout produced by resolveBottomLayout. */
+export type BottomLayout = RoomBottomLayout<ActionIntent, StaticButtonId>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static button definitions

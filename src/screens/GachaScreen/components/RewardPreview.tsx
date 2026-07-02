@@ -11,7 +11,7 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 

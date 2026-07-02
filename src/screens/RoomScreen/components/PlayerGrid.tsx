@@ -6,21 +6,12 @@
  * Renders UI and reports onSeatPress via callback; no service/showAlert imports, no business logic.
  */
 import { useIsFocused } from '@react-navigation/native';
+import { getRoleDisplayName } from '@werewolf/game-engine/werewolf/models/roles';
 import type React from 'react';
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  type LayoutChangeEvent,
-  PixelRatio,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { memo, useMemo } from 'react';
 
-import { useAppVisibility } from '@/hooks/useAppVisibility';
+import { RoomSeatBoard, type RoomSeatViewModel } from '@/components/room/RoomSeatBoard';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
-import { colors, spacing } from '@/theme';
-
-import { createSeatTileStyles, getGridColumns, SeatTile } from './SeatTile';
 
 interface PlayerGridProps {
   /** Array of seat view models (pre-computed from game state) */
@@ -54,111 +45,43 @@ const PlayerGridComponent: React.FC<PlayerGridProps> = ({
   showLevels = false,
   seatDecorationsEnabled = true,
 }) => {
-  const { width: screenWidth } = useWindowDimensions();
-  const gridColumns = getGridColumns(screenWidth);
-  const pixelRatio = PixelRatio.get();
-  const isAppVisible = useAppVisibility();
   const isFocused = useIsFocused();
-
-  // Use onLayout to measure real container width (immune to scrollbar width on Web).
-  // Fall back to screenWidth minus parent padding so the first render isn't empty.
-  const [containerWidth, setContainerWidth] = useState(0);
-  const effectiveWidth = containerWidth || screenWidth - spacing.medium * 2;
-
-  const handleLayout = useCallback((e: LayoutChangeEvent) => {
-    setContainerWidth(e.nativeEvent.layout.width);
-  }, []);
-
-  // Floor to nearest device pixel to prevent sub-pixel rounding overflow
-  // (roundToNearestPixel can round UP, causing the last column to wrap)
-  const gridGap = spacing.small + spacing.tight;
-  const tileSize =
-    Math.floor(((effectiveWidth - gridGap * (gridColumns - 1)) / gridColumns) * pixelRatio) /
-    pixelRatio;
-
-  // Create SeatTile styles once and pass to all tiles (performance optimization)
-  // This avoids each SeatTile calling StyleSheet.create independently
-  const seatTileStyles = useMemo(() => createSeatTileStyles(colors, tileSize), [tileSize]);
-
-  // Use ref to always call the latest onSeatPress callback.
-  // This is necessary because SeatTile is memoized and won't re-render
-  // when parent re-renders with a new callback reference.
-  // By keeping the latest callback in a ref and using a stable wrapper,
-  // SeatTile can stay memoized but still call the latest callback.
-  const onSeatPressRef = useRef(onSeatPress);
-  useLayoutEffect(() => {
-    onSeatPressRef.current = onSeatPress;
-  });
-
-  // Stable callback reference that uses ref internally
-  const handleSeatPress = useCallback(
-    (seat: number, disabledReason?: string) => {
-      onSeatPressRef.current(seat, disabledReason);
-    },
-    [], // No dependencies - callback is stable, always uses ref
-  );
-
-  // Use ref for long press callback as well
-  const onSeatLongPressRef = useRef(onSeatLongPress);
-  useLayoutEffect(() => {
-    onSeatLongPressRef.current = onSeatLongPress;
-  });
-
-  const handleSeatLongPress = useCallback(
-    (seat: number) => {
-      onSeatLongPressRef.current?.(seat);
-    },
-    [], // No dependencies - callback is stable, always uses ref
+  const roomSeats = useMemo<RoomSeatViewModel[]>(
+    () =>
+      seats.map((seat) => ({
+        seat: seat.seat,
+        player: seat.player
+          ? {
+              ...seat.player,
+              botRoleLabel:
+                showBotRoles && seat.player.isBot === true && seat.player.role
+                  ? getRoleDisplayName(seat.player.role)
+                  : undefined,
+            }
+          : null,
+        isMySpot: seat.isMySpot,
+        isWolf: seat.isWolf,
+        isSelected: seat.isSelected,
+        disabledReason: seat.disabledReason,
+        showReadyBadge: seat.showReadyBadge,
+        statusBadgeText: seat.wolfVoteBadge,
+      })),
+    [seats, showBotRoles],
   );
 
   return (
-    <View style={styles.gridContainer} onLayout={handleLayout}>
-      {seats.map((seat) => (
-        <SeatTile
-          key={`seat-${seat.seat}`}
-          seat={seat.seat}
-          tileSize={tileSize}
-          disabled={disabled}
-          disabledReason={seat.disabledReason}
-          isMySpot={seat.isMySpot}
-          isWolf={seat.isWolf}
-          isSelected={seat.isSelected}
-          isBot={seat.player?.isBot === true}
-          isControlled={controlledSeat === seat.seat}
-          playerUserId={seat.player?.userId ?? null}
-          playerAvatarUrl={seat.player?.avatarUrl}
-          playerAvatarFrame={seat.player?.avatarFrame}
-          playerSeatFlair={seat.player?.seatFlair}
-          playerSeatAnimation={seat.player?.seatAnimation}
-          playerRoleRevealEffect={seat.player?.roleRevealEffect}
-          playerNameStyle={seat.player?.nameStyle}
-          playerDisplayName={seat.player?.displayName ?? null}
-          isPlayerAnonymous={!!seat.player && !seat.player.avatarUrl}
-          roleId={seat.player?.role ?? null}
-          showBotRole={showBotRoles && seat.player?.isBot === true}
-          showReadyBadge={seat.showReadyBadge === true}
-          wolfVoteBadge={seat.wolfVoteBadge}
-          playerLevel={seat.player?.level}
-          showLevel={showLevels}
-          seatDecorationsEnabled={seatDecorationsEnabled}
-          isAppVisible={isAppVisible && isFocused}
-          styles={seatTileStyles}
-          onPress={handleSeatPress}
-          onLongPress={handleSeatLongPress}
-        />
-      ))}
-    </View>
+    <RoomSeatBoard
+      seats={roomSeats}
+      onSeatPress={onSeatPress}
+      onSeatLongPress={onSeatLongPress}
+      disabled={disabled}
+      controlledSeat={controlledSeat}
+      showBotRoles={showBotRoles}
+      showLevels={showLevels}
+      seatDecorationsEnabled={seatDecorationsEnabled && isFocused}
+    />
   );
 };
 
 // Memoize to prevent re-renders when parent updates but props haven't changed
 export const PlayerGrid = memo(PlayerGridComponent);
-
-const styles = StyleSheet.create({
-  gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    gap: spacing.small + spacing.tight,
-  },
-});

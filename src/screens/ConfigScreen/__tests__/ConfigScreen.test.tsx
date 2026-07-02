@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import { RoomFacadeProvider } from '@/contexts/RoomFacadeContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
+import { createFibFacadeTestDouble } from '@/testing/roomFacadeTestDoubles';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -40,7 +41,7 @@ jest.mock('../../../utils/alert', () => ({
 // Services are injected via DI (ServiceContext), no concrete mocks needed here.
 
 // Mock facade for testing
-const createMockFacade = (): IGameFacade =>
+const createMockFacade = (): IWerewolfFacade =>
   ({
     addListener: jest.fn(() => jest.fn()),
     subscribe: jest.fn(() => jest.fn()),
@@ -75,11 +76,15 @@ const createMockFacade = (): IGameFacade =>
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
     addConnectionStatusListener: jest.fn(() => jest.fn()),
-  }) as unknown as IGameFacade;
+  }) as unknown as IWerewolfFacade;
 
 const renderWithFacade = (ui: React.ReactElement) => {
   const mockFacade = createMockFacade();
-  return render(<GameFacadeProvider facade={mockFacade}>{ui}</GameFacadeProvider>);
+  return render(
+    <RoomFacadeProvider werewolf={mockFacade} fibking={createFibFacadeTestDouble()}>
+      {ui}
+    </RoomFacadeProvider>,
+  );
 };
 
 describe('ConfigScreen', () => {

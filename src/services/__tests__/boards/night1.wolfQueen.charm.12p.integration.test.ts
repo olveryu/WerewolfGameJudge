@@ -17,10 +17,10 @@
  * - wolfQueen charm target recorded via action (targetSeat)
  * - charmed target linked to wolfQueen (linked death handled in DeathCalculator)
  *
- * Architecture: intents -> handlers -> reducer -> GameState
+ * Architecture: intents -> handlers -> reducer -> WerewolfState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

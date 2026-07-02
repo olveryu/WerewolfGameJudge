@@ -13,19 +13,19 @@
  * Does not import services directly (all actions come via params), does not
  * contain policy / interaction dispatch logic (that's useInteractionDispatcher),
  * does not render UI or hold JSX, does not own seat tap / interaction context,
- * and does not modify GameState directly.
+ * and does not modify WerewolfState directly.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
+import type { ActionSchema } from '@werewolf/game-engine/werewolf/models/roles/spec';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import { useAckMutation } from '@/hooks/useAckMutation';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { UseRoomActionDialogsResult } from '@/screens/RoomScreen/useRoomActionDialogs';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 
@@ -38,7 +38,7 @@ import { dispatchIntent } from '../executors';
 
 interface UseActionOrchestratorParams {
   // ── Game state ──
-  gameState: LocalGameState | null;
+  gameState: LocalWerewolfState | null;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null;
@@ -130,7 +130,7 @@ export function useActionOrchestrator({
   );
 
   // ─── Refs ────────────────────────────────────────────────────────────────
-  const gameStateRef = useRef<LocalGameState | null>(null);
+  const gameStateRef = useRef<LocalWerewolfState | null>(null);
   const lastAutoIntentKeyRef = useRef<string | null>(null);
   const lastRejectedKeyRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
