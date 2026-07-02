@@ -566,7 +566,7 @@ describe('useWerewolfRoom - effectiveSeat/effectiveRole for debug bot control', 
     expect(sendWolfRobotHunterStatusViewedMock).not.toHaveBeenCalledWith(0);
   });
 
-  it('effectiveRole should be null when effectiveSeat has no player', async () => {
+  it('setControlledSeat should fail fast when target seat is empty', () => {
     // Use GameStatus.Assigned status to avoid triggering nightPlan logic in hook
     // Players must be Record<number, ...> for toLocalState adapter
     const mockState = {
@@ -589,6 +589,7 @@ describe('useWerewolfRoom - effectiveSeat/effectiveRole for debug bot control', 
       isAudioPlaying: false,
       actions: [],
       pendingRevealAcks: [],
+      debugMode: { botsEnabled: true },
       currentNightResults: {},
     };
 
@@ -605,13 +606,13 @@ describe('useWerewolfRoom - effectiveSeat/effectiveRole for debug bot control', 
 
     const { result } = renderHook(() => useWerewolfRoom(), { wrapper });
 
-    // Set controlledSeat to empty seat 1
-    await act(async () => {
-      result.current.setControlledSeat(1);
-    });
-
-    expect(result.current.effectiveSeat).toBe(1);
-    expect(result.current.effectiveRole).toBeNull();
+    expect(() => {
+      act(() => {
+        result.current.setControlledSeat(1);
+      });
+    }).toThrow('seat 1 is not a bot');
+    expect(result.current.effectiveSeat).toBe(0);
+    expect(result.current.effectiveRole).toBe('villager');
   });
 });
 

@@ -96,14 +96,10 @@ interface UseWerewolfRoomResult {
   initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
-  takeSeat: (seat: number) => Promise<boolean>;
-  leaveSeat: () => Promise<void>;
   takeSeatWithAck: (seat: number) => Promise<ActionResult>;
   leaveSeatWithAck: () => Promise<ActionResult>;
   kickPlayer: (targetSeat: number) => Promise<ActionResult>;
   requestSnapshot: () => Promise<boolean>;
-  lastSeatError: { seat: number; reason: 'seat_taken' } | null;
-  clearLastSeatError: () => void;
   needsAuth: boolean;
   clearNeedsAuth: () => void;
 
@@ -369,14 +365,10 @@ interface UseWerewolfRoomResult {
     initializeRoom: lifecycle.initializeRoom,
     joinRoom: lifecycle.joinRoom,
     leaveRoom: lifecycle.leaveRoom,
-    takeSeat: lifecycle.takeSeat,
-    leaveSeat: lifecycle.leaveSeat,
     takeSeatWithAck: lifecycle.takeSeatWithAck,
     leaveSeatWithAck: lifecycle.leaveSeatWithAck,
     kickPlayer: lifecycle.kickPlayer,
     requestSnapshot: lifecycle.requestSnapshot,
-    lastSeatError: lifecycle.lastSeatError,
-    clearLastSeatError: lifecycle.clearLastSeatError,
     needsAuth: lifecycle.needsAuth,
     clearNeedsAuth: lifecycle.clearNeedsAuth,
     // Game actions

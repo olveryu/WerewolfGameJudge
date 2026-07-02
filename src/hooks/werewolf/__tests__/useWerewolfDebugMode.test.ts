@@ -51,6 +51,7 @@ function makeGameState(
     seat: 2,
     role: 'seer',
     hasViewedRole: false,
+    isBot: true,
   });
   return {
     players,
@@ -72,7 +73,9 @@ describe('useWerewolfDebugMode', () => {
 
   it('effectiveSeat uses controlledSeat when set', () => {
     const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, makeGameState()));
+    const { result } = renderHook(() =>
+      useWerewolfDebugMode(facade, 1, makeGameState({ debugMode: { botsEnabled: true } })),
+    );
 
     act(() => {
       result.current.setControlledSeat(2);
@@ -80,6 +83,34 @@ describe('useWerewolfDebugMode', () => {
 
     expect(result.current.effectiveSeat).toBe(2);
     expect(result.current.effectiveRole).toBe('seer');
+  });
+
+  it('setControlledSeat fails fast when debug mode is disabled', () => {
+    const facade = createMockFacade();
+    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, makeGameState()));
+
+    expect(() => {
+      act(() => {
+        result.current.setControlledSeat(2);
+      });
+    }).toThrow('debug mode is disabled');
+    expect(result.current.controlledSeat).toBeNull();
+    expect(result.current.effectiveSeat).toBe(1);
+  });
+
+  it('setControlledSeat fails fast for non-bot seats', () => {
+    const facade = createMockFacade();
+    const { result } = renderHook(() =>
+      useWerewolfDebugMode(facade, 1, makeGameState({ debugMode: { botsEnabled: true } })),
+    );
+
+    expect(() => {
+      act(() => {
+        result.current.setControlledSeat(1);
+      });
+    }).toThrow('seat 1 is not a bot');
+    expect(result.current.controlledSeat).toBeNull();
+    expect(result.current.effectiveSeat).toBe(1);
   });
 
   it('effectiveRole is null when gameState is null', () => {

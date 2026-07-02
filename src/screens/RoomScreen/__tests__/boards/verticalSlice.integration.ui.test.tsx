@@ -50,17 +50,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 // imActioner=true so we can verify action dialogs appear
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
@@ -186,8 +175,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       initializeRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
-      takeSeat: jest.fn(),
-      leaveSeat: jest.fn(),
       takeSeatWithAck: jest.fn(),
       leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
@@ -201,8 +188,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       // BGM
@@ -298,8 +283,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       initializeRoom: jest.fn(),
       joinRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
-      takeSeat: jest.fn(),
-      leaveSeat: jest.fn(),
       takeSeatWithAck: jest.fn(),
       leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
@@ -313,8 +296,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       isBgmEnabled: false,

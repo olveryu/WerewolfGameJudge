@@ -92,8 +92,6 @@ jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => {
         setControlledSeat: jest.fn(),
 
         joinRoom: jest.fn().mockResolvedValue({ success: true }),
-        takeSeat: jest.fn(),
-        leaveSeat: jest.fn(),
         assignRoles: jest.fn(),
         startGame: jest.fn(),
         restartGame: jest.fn(),
@@ -103,9 +101,6 @@ jest.mock('../../../hooks/werewolf/useWerewolfRoom', () => {
         hasWolfVoted: () => false,
         requestSnapshot: jest.fn(),
         viewedRole: jest.fn(),
-
-        lastSeatError: null,
-        clearLastSeatError: jest.fn(),
 
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
@@ -168,17 +163,6 @@ jest.mock('../useRoomHostDialogs', () => ({
     showStartGameDialog: jest.fn(),
     showRestartDialog: jest.fn(),
     handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
   }),
 }));
 

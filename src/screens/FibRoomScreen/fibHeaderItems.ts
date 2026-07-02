@@ -2,6 +2,10 @@
  * fibHeaderItems — Fib adapter for the shared room header menu.
  */
 import type { RoomHeaderActionItem } from '@/components/room/RoomHeaderActions';
+import {
+  createRoomHeaderActionItems,
+  createRoomHeaderOperationItems,
+} from '@/components/room/roomHeaderItems';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 interface CreateFibHeaderActionItemsParams {
@@ -19,18 +23,10 @@ interface CreateFibHeaderOperationItemsParams {
 export function createFibHeaderActionItems({
   onShareRoom,
 }: CreateFibHeaderActionItemsParams): RoomHeaderActionItem[] {
-  return [
-    ...(!isMiniProgram()
-      ? [
-          {
-            key: 'share-room',
-            label: '分享房间',
-            iconName: 'share-outline' as const,
-            onPress: onShareRoom,
-          },
-        ]
-      : []),
-  ];
+  return createRoomHeaderActionItems({
+    canShareRoom: !isMiniProgram(),
+    onShareRoom,
+  });
 }
 
 export function createFibHeaderOperationItems({
@@ -40,27 +36,11 @@ export function createFibHeaderOperationItems({
   onFillBots,
   onClearSeats,
 }: CreateFibHeaderOperationItemsParams): RoomHeaderActionItem[] {
-  if (!canManageSeats) return [];
-
-  const items: RoomHeaderActionItem[] = [];
-  if (!isFull) {
-    items.push({
-      key: 'fill-bots',
-      label: '填充机器人',
-      iconName: 'people-outline',
-      testID: 'fib-fill-bots',
-      onPress: onFillBots,
-    });
-  }
-  if (filled > 0) {
-    items.push({
-      key: 'clear-seats',
-      label: '清空座位',
-      iconName: 'exit-outline',
-      danger: true,
-      testID: 'fib-clear-seats',
-      onPress: onClearSeats,
-    });
-  }
-  return items;
+  return createRoomHeaderOperationItems({
+    canFillBots: canManageSeats && !isFull,
+    canClearSeats: canManageSeats && filled > 0,
+    onFillBots,
+    onClearSeats,
+    testIdPrefix: 'fib',
+  });
 }

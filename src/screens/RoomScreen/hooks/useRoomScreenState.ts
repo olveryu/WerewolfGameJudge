@@ -9,6 +9,8 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
 import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/cosmetics/roleRevealEffects';
+import { REASON_SEAT_TAKEN } from '@werewolf/game-engine/protocol/reasonCodes';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import type { RoleAction } from '@werewolf/game-engine/werewolf/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
@@ -18,13 +20,18 @@ import type { GameTemplate } from '@werewolf/game-engine/werewolf/models/Templat
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
+import {
+  type RoomSeatOperation,
+  useRoomSeatOperations,
+} from '@/components/room/hooks/useRoomSeatOperations';
 import { getNotepadStorageKey } from '@/hooks/werewolf/useWerewolfNotepad';
 import { useWerewolfRoom } from '@/hooks/werewolf/useWerewolfRoom';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
 import { colors } from '@/theme';
-import { showErrorAlert } from '@/utils/alertPresets';
+import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
@@ -37,7 +44,6 @@ import {
 } from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
-import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
@@ -63,6 +69,13 @@ const EMPTY_ACKS: readonly number[] = [];
 
 /** Errors that cannot be recovered by retrying — auto-redirect to Home */
 const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
+
+function getTakeSeatFailureMessage(reason: string, seat: number): string {
+  if (reason === REASON_SEAT_TAKEN) {
+    return `${formatSeat(seat)}座位已被占用，请选择其他位置。`;
+  }
+  return getUserFacingMessage({ reason }, '请稍后重试');
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -115,8 +128,8 @@ export function useRoomScreenState(
     initializeRoom,
     joinRoom,
     leaveRoom,
-    takeSeat,
-    leaveSeat,
+    takeSeatWithAck,
+    leaveSeatWithAck,
     assignRoles,
     startGame,
     restartGame,
@@ -127,8 +140,6 @@ export function useRoomScreenState(
     hasWolfVoted,
     getLastNightInfo: getLastNightInfoFn,
     getCurseInfo: getCurseInfoFn,
-    lastSeatError,
-    clearLastSeatError,
     needsAuth,
     clearNeedsAuth,
     requestSnapshot,
@@ -194,9 +205,6 @@ export function useRoomScreenState(
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
   const [multiSelectedSeats, setMultiSelectedSeats] = useState<readonly number[]>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
-  const [seatModalVisible, setSeatModalVisible] = useState(false);
-  const [pendingSeat, setPendingSeat] = useState<number | null>(null);
-  const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
@@ -288,15 +296,6 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
   // Side effects
   // ═══════════════════════════════════════════════════════════════════════════
-
-  // Show alert when seat request is rejected
-  useEffect(() => {
-    if (lastSeatError) {
-      roomScreenLog.warn('Seat error received', { lastSeatError });
-      showErrorAlert('入座失败', '该座位已被占用，请选择其他位置。');
-      clearLastSeatError();
-    }
-  }, [lastSeatError, clearLastSeatError]);
 
   // Reset UI state when game restarts
   useEffect(() => {
@@ -390,27 +389,86 @@ export function useRoomScreenState(
     void leaveRoom();
   }, [leaveRoom]);
 
-  const seatDialogs = useRoomSeatDialogs({
-    pendingSeat,
-    setPendingSeat,
-    setSeatModalVisible,
-    setModalType,
-    takeSeat,
-    leaveSeat,
-    roomStatus,
-    navigation,
-    onLeaveRoom: handleLeaveRoomCleanup,
-  });
+  const runSeatOperation = useCallback(
+    async (operation: RoomSeatOperation): Promise<boolean> => {
+      switch (operation.kind) {
+        case 'enter':
+        case 'move': {
+          roomScreenLog.debug('Taking seat', { seat: operation.seat, kind: operation.kind });
+          const result = await takeSeatWithAck(operation.seat);
+          if (!result.success) {
+            roomScreenLog.warn('takeSeatWithAck failed', {
+              seat: operation.seat,
+              reason: result.reason,
+            });
+            showErrorAlert('入座失败', getTakeSeatFailureMessage(result.reason, operation.seat));
+          }
+          return result.success;
+        }
+        case 'leave': {
+          roomScreenLog.debug('Leaving seat', { seat: operation.seat });
+          const result = await leaveSeatWithAck();
+          if (!result.success) {
+            roomScreenLog.warn('leaveSeatWithAck failed', {
+              seat: operation.seat,
+              reason: result.reason,
+            });
+            showErrorAlert('离座失败', getUserFacingMessage(result, '请稍后重试'));
+          }
+          return result.success;
+        }
+        case 'kick': {
+          roomScreenLog.debug('Kicking seat', { seat: operation.seat });
+          const result = await kickPlayer(operation.seat);
+          if (!result.success) {
+            showErrorAlert('移出失败', getUserFacingMessage(result, '请稍后重试'));
+          }
+          return result.success;
+        }
+        default: {
+          const _exhaustive: never = operation.kind;
+          throw new Error(`useRoomScreenState.runSeatOperation: unknown operation ${_exhaustive}`);
+        }
+      }
+    },
+    [kickPlayer, leaveSeatWithAck, takeSeatWithAck],
+  );
 
   const {
-    showEnterSeatDialog,
-    showLeaveSeatDialog,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
-    handleLeaveRoom,
-    isSeatSubmitting,
-  } = seatDialogs;
+    operation: seatOperation,
+    isSubmitting: isSeatSubmitting,
+    openOperation: openSeatOperation,
+    cancelOperation: cancelSeatOperation,
+    confirmOperation: confirmSeatOperation,
+  } = useRoomSeatOperations({ runOperation: runSeatOperation });
+
+  const showEnterSeatDialog = useCallback(
+    (seat: number): void => {
+      openSeatOperation({ kind: mySeat === null ? 'enter' : 'move', seat });
+    },
+    [mySeat, openSeatOperation],
+  );
+
+  const showLeaveSeatDialog = useCallback(
+    (seat: number): void => {
+      openSeatOperation({ kind: 'leave', seat });
+    },
+    [openSeatOperation],
+  );
+
+  const showKickSeatDialog = useCallback(
+    (seat: number): void => {
+      openSeatOperation({ kind: 'kick', seat });
+    },
+    [openSeatOperation],
+  );
+
+  const handleLeaveRoom = useCallback(() => {
+    showConfirmAlert('离开房间？', '', () => {
+      handleLeaveRoomCleanup();
+      navigation.navigate('Home');
+    });
+  }, [handleLeaveRoomCleanup, navigation]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card modal state (declared before orchestrator so openChooseCardModal
@@ -602,6 +660,7 @@ export function useRoomScreenState(
     isAudioPlaying,
     isHost,
     imActioner,
+    myUserId,
     mySeat,
     myRole,
     effectiveSeat,
@@ -614,8 +673,8 @@ export function useRoomScreenState(
     getActionIntent,
     showEnterSeatDialog,
     showLeaveSeatDialog,
-    seatModalVisible,
-    leaveSeat,
+    showKickSeatDialog,
+    seatModalVisible: seatOperation !== null,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,
     setRoleCardVisible,
@@ -626,7 +685,6 @@ export function useRoomScreenState(
     showPrepareToFlipDialog,
     showStartGameDialog,
     showRestartDialog,
-    kickPlayer,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -870,14 +928,11 @@ export function useRoomScreenState(
     isHostActionSubmitting,
     isActionSubmitting,
 
-    // ── Seat modal ──
-    seatModalVisible,
-    pendingSeat,
-    modalType,
+    // ── Seat operation modal ──
+    seatOperation,
     isSeatSubmitting,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
+    confirmSeatOperation,
+    cancelSeatOperation,
 
     // ── Role card modal ──
     roleCardVisible,

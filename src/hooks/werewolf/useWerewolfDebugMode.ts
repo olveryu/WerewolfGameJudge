@@ -13,8 +13,9 @@
 
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { RoleId } from '@werewolf/game-engine/werewolf/models/roles';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
+import { useRoomBotControl } from '@/components/room/hooks/useRoomBotControl';
 import type { LocalWerewolfState } from '@/hooks/adapters/werewolfStateTypes';
 import type { IWerewolfFacade } from '@/services/games/werewolf/IWerewolfFacade';
 import { gameRoomLog } from '@/utils/logger';
@@ -46,19 +47,47 @@ export function useWerewolfDebugMode(
   mySeat: number | null,
   gameState: LocalWerewolfState | null,
 ): DebugModeState {
-  const [controlledSeat, setControlledSeat] = useState<number | null>(null);
+  // Whether debug bot mode is active
+  const isDebugMode = gameState?.debugMode?.botsEnabled === true;
 
-  // effectiveSeat = controlledSeat ?? mySeat
-  const effectiveSeat = controlledSeat ?? mySeat;
+  const isBotSeat = useCallback(
+    (seat: number): boolean => gameState?.players.get(seat)?.isBot === true,
+    [gameState],
+  );
+
+  const {
+    activeControlledSeat,
+    effectiveSeat,
+    releaseControlledSeat,
+    setControlledSeat: setRoomControlledSeat,
+  } = useRoomBotControl({
+    enabled: isDebugMode,
+    mySeat,
+    isBotSeat,
+  });
+
+  const setControlledSeat = useCallback(
+    (seat: number | null) => {
+      if (seat === null) {
+        releaseControlledSeat();
+        return;
+      }
+      if (!isDebugMode) {
+        throw new Error('useWerewolfDebugMode.setControlledSeat: debug mode is disabled');
+      }
+      if (!isBotSeat(seat)) {
+        throw new Error(`useWerewolfDebugMode.setControlledSeat: seat ${seat} is not a bot`);
+      }
+      setRoomControlledSeat(seat);
+    },
+    [isBotSeat, isDebugMode, releaseControlledSeat, setRoomControlledSeat],
+  );
 
   // effectiveRole = role of effectiveSeat
   const effectiveRole =
     effectiveSeat !== null && gameState
       ? (gameState.players.get(effectiveSeat)?.role ?? null)
       : null;
-
-  // Whether debug bot mode is active
-  const isDebugMode = gameState?.debugMode?.botsEnabled === true;
 
   // Fill all empty seats with bots
   const fillWithBots = useCallback(async (): Promise<ActionResult> => {
@@ -94,7 +123,7 @@ export function useWerewolfDebugMode(
   }, [facade]);
 
   return {
-    controlledSeat,
+    controlledSeat: activeControlledSeat,
     setControlledSeat,
     effectiveSeat,
     effectiveRole,

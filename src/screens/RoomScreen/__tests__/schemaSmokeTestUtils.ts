@@ -113,8 +113,6 @@ export function makeBaseUseGameRoomReturn({
 
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     initializeRoom: jest.fn().mockResolvedValue({ success: true }),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
@@ -125,9 +123,6 @@ export function makeBaseUseGameRoomReturn({
     getWolfVoteSummary: () => '0/0 狼人已确认',
     requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
-
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
 
     getLastNightInfo: jest.fn().mockReturnValue(''),
 

@@ -221,8 +221,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     initializeRoom: jest.fn().mockResolvedValue({ success: true }),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn(),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
     takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
     requestSnapshot: jest.fn(),
@@ -246,8 +244,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
 
     // Error plumbing
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
 
     // Auth gate
     needsAuth: false,

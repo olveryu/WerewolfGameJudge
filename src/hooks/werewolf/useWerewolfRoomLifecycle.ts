@@ -5,9 +5,8 @@
  * - Host connects to an already-created room
  * - Player joining (with host rejoin detection)
  * - Leaving room + state cleanup
- * - Seat take/leave (with and without ACK)
+ * - Seat take/leave with ACK
  * - Snapshot requests (force sync)
- * - Seat error tracking
  *
  * Manages rooms/seats via facade, using authService/roomService.
  * Does not bypass facade to mutate game state.
@@ -45,18 +44,12 @@ interface RoomLifecycleState {
   needsAuth: boolean;
   clearNeedsAuth: () => void;
 
-  // Seat error (BUG-2 fix)
-  lastSeatError: { seat: number; reason: 'seat_taken' } | null;
-  clearLastSeatError: () => void;
-
   // Room actions
   initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
 
   // Seat actions
-  takeSeat: (seat: number) => Promise<boolean>;
-  leaveSeat: () => Promise<void>;
   takeSeatWithAck: (seat: number) => Promise<ActionResult>;
   leaveSeatWithAck: () => Promise<ActionResult>;
   kickPlayer: (targetSeat: number) => Promise<ActionResult>;
@@ -87,10 +80,6 @@ interface RoomLifecycleDeps {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
-  const [lastSeatError, setLastSeatError] = useState<{
-    seat: number;
-    reason: 'seat_taken';
-  } | null>(null);
 
   // =========================================================================
   // Room lifecycle
@@ -250,56 +239,6 @@ interface RoomLifecycleDeps {
   // Seat actions
   // =========================================================================
 
-  // Take a seat (unified API)
-  const takeSeat = useCallback(
-    async (seat: number): Promise<boolean> => {
-      try {
-        const displayName = authUser?.displayName ?? authService.generateDisplayName();
-        const level = authUser?.isAnonymous
-          ? undefined
-          : await queryClient
-              .ensureQueryData(userStatsOptions())
-              .then((s) => s.level)
-              .catch((err: unknown) => {
-                gameRoomLog.warn('failed to fetch user level for takeSeat', {
-                  error: err instanceof Error ? err.message : String(err),
-                });
-                return undefined;
-              });
-
-        return await facade.takeSeat(seat, {
-          displayName,
-          avatarUrl: authUser?.avatarUrl ?? undefined,
-          avatarFrame: authUser?.avatarFrame ?? undefined,
-          seatFlair: authUser?.seatFlair ?? undefined,
-          nameStyle: authUser?.nameStyle ?? undefined,
-          level,
-          roleRevealEffect: authUser?.equippedEffect ?? undefined,
-          seatAnimation: authUser?.seatAnimation ?? undefined,
-        });
-      } catch (err) {
-        handleError(err, {
-          label: '入座',
-          logger: gameRoomLog,
-        });
-        return false;
-      }
-    },
-    [facade, authService, authUser, queryClient],
-  );
-
-  // Leave seat (unified API)
-  const leaveSeat = useCallback(async (): Promise<void> => {
-    try {
-      await facade.leaveSeat();
-    } catch (err) {
-      handleError(err, {
-        label: '离座',
-        logger: gameRoomLog,
-      });
-    }
-  }, [facade]);
-
   // Take seat with ack (unified API)
   const takeSeatWithAck = useCallback(
     async (seat: number): Promise<ActionResult> => {
@@ -317,7 +256,7 @@ interface RoomLifecycleDeps {
                 return undefined;
               });
 
-        const result = await facade.takeSeatWithAck(seat, {
+        return await facade.takeSeatWithAck(seat, {
           displayName,
           avatarUrl: authUser?.avatarUrl ?? undefined,
           avatarFrame: authUser?.avatarFrame ?? undefined,
@@ -327,13 +266,6 @@ interface RoomLifecycleDeps {
           roleRevealEffect: authUser?.equippedEffect ?? undefined,
           seatAnimation: authUser?.seatAnimation ?? undefined,
         });
-
-        // Wire up seat error for downstream consumers (e.g., showAlert in useRoomScreenState)
-        if (!result.success && result.reason === 'seat_taken') {
-          setLastSeatError({ seat: seat, reason: 'seat_taken' });
-        }
-
-        return result;
       } catch (err) {
         handleError(err, { label: '入座(ack)', logger: gameRoomLog, feedback: false });
         return { success: false, reason: String(err) };
@@ -379,11 +311,6 @@ interface RoomLifecycleDeps {
     }
   }, [facade]);
 
-  // Clear seat error (BUG-2 fix)
-  const clearLastSeatError = useCallback(() => {
-    setLastSeatError(null);
-  }, []);
-
   const clearNeedsAuth = useCallback(() => {
     setNeedsAuth(false);
   }, []);
@@ -393,13 +320,9 @@ interface RoomLifecycleDeps {
     error,
     needsAuth,
     clearNeedsAuth,
-    lastSeatError,
-    clearLastSeatError,
     initializeRoom,
     joinRoom,
     leaveRoom,
-    takeSeat,
-    leaveSeat,
     takeSeatWithAck,
     leaveSeatWithAck,
     kickPlayer,

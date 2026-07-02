@@ -14,8 +14,6 @@ import {
   createRoomComponentStyles,
   type HostGuideBannerStyles,
   type RoomComponentStyles,
-  type RoomHeaderActionsStyles,
-  type RoomSeatConfirmModalStyles,
   type RoomStatusRibbonStyles,
 } from '@/components/room/roomComponentStyles';
 import type { ThemeColors } from '@/theme';
@@ -48,8 +46,6 @@ export type {
   ControlledSeatBannerStyles,
   HostGuideBannerStyles,
 };
-export type HeaderActionsStyles = RoomHeaderActionsStyles;
-export type SeatConfirmModalStyles = RoomSeatConfirmModalStyles;
 export type StatusRibbonStyles = RoomStatusRibbonStyles;
 
 export interface NightProgressIndicatorStyles {

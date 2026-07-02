@@ -187,12 +187,6 @@ export interface InteractionResultReleaseBotSeat {
   kind: 'RELEASE_BOT_SEAT';
 }
 
-/** Host kick confirmation */
-export interface InteractionResultKickConfirm {
-  kind: 'KICK_CONFIRM';
-  seat: number;
-}
-
 /** View player profile card */
 export interface InteractionResultViewProfile {
   kind: 'VIEW_PROFILE';
@@ -210,7 +204,6 @@ export type InteractionResult =
   | InteractionResultHostControl
   | InteractionResultTakeoverBotSeat
   | InteractionResultReleaseBotSeat
-  | InteractionResultKickConfirm
   | InteractionResultViewProfile;
 
 // =============================================================================

@@ -106,8 +106,6 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
 
     // Actions used by RoomScreen
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
@@ -117,8 +115,6 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     viewedRole: jest.fn(),
 
     // Error plumbing
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),
@@ -147,17 +143,6 @@ jest.mock('../useRoomHostDialogs', () => ({
 }));
 
 // Avoid seat dialogs complexity
-jest.mock('../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 // NOTE:
 // We intentionally do NOT mock useRoomActionDialogs/useActionerState.
 // This is an end-to-end interaction test (seat tap -> intent -> alert).
