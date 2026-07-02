@@ -27,9 +27,9 @@ import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordS
 import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
-import FibConfigScreen from '@/screens/FibConfigScreen';
-import FibRoomScreen from '@/screens/FibRoomScreen';
-import FibRulesScreen from '@/screens/FibRulesScreen';
+import FibConfigScreen from '@/screens/FibConfigScreen/FibConfigScreen';
+import FibRoomScreen from '@/screens/FibRoomScreen/FibRoomScreen';
+import FibRulesScreen from '@/screens/FibRulesScreen/FibRulesScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
 import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
