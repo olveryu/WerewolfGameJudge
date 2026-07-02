@@ -170,7 +170,11 @@ function parseDispatchResult(value: unknown): DispatchResult {
   if ('broadcastAction' in value) {
     result.broadcastAction = readOptionalStringOrNull(value, 'broadcastAction');
   }
-  if ('sideEffects' in value) result.sideEffects = readSideEffects(value.sideEffects);
+  if (value.success) {
+    result.sideEffects = readSideEffects(value.sideEffects);
+  } else if ('sideEffects' in value) {
+    result.sideEffects = readSideEffects(value.sideEffects);
+  }
 
   return result;
 }

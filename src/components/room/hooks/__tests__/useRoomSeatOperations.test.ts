@@ -27,14 +27,14 @@ describe('useRoomSeatOperations', () => {
     const { result } = renderHook(() => useRoomSeatOperations({ runOperation }));
 
     act(() => {
-      result.current.openOperation({ kind: 'kick', seat: 5 });
+      result.current.openOperation({ kind: 'leave', seat: 5 });
     });
 
     await act(async () => {
       await result.current.confirmOperation();
     });
 
-    expect(result.current.operation).toEqual({ kind: 'kick', seat: 5 });
+    expect(result.current.operation).toEqual({ kind: 'leave', seat: 5 });
     expect(result.current.isSubmitting).toBe(false);
   });
 

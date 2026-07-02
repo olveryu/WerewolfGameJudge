@@ -6,6 +6,12 @@ describe('testids.ts contract (stability)', () => {
     expect(TESTIDS.seatTile(7)).toBe('seat-tile-7');
   });
 
+  it('keeps bottom-card modal testIDs unchanged', () => {
+    expect(TESTIDS.chooseBottomCardModal).toBe('choose-bottom-card-modal');
+    expect(TESTIDS.chooseBottomCardOption(0)).toBe('choose-bottom-card-option-0');
+    expect(TESTIDS.chooseBottomCardOption(2)).toBe('choose-bottom-card-option-2');
+  });
+
   it('new readiness gates are stable non-empty strings', () => {
     const stableIds: Array<[string, string]> = [
       ['homeScreenRoot', TESTIDS.homeScreenRoot],

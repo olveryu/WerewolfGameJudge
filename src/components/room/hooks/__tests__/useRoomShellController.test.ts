@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/werewolf/models/GameStatus';
 
 import { getRoomLifecycleCapabilities } from '@/components/room/policy/roomLifecycle';
@@ -59,6 +59,7 @@ function createFacade(state: TestState): RoomConnectionLifecycleFacade<TestState
 function renderController(state: TestState) {
   const sit = jest.fn().mockResolvedValue({ success: true });
   const leaveSeat = jest.fn().mockResolvedValue({ success: true });
+  const kick = jest.fn().mockResolvedValue({ success: true });
   const facade = createFacade(state);
   const user: TestUser = { id: 'u1', displayName: '玩家1' };
 
@@ -76,7 +77,7 @@ function renderController(state: TestState) {
         toRosterProfile: (input) => ({ displayName: input.displayName }),
         sit,
         leaveSeat,
-        kick: jest.fn().mockResolvedValue({ success: true }),
+        kick,
         clearSeats: jest.fn().mockResolvedValue({ success: true }),
         fillBots: jest.fn().mockResolvedValue({ success: true }),
       },
@@ -123,7 +124,7 @@ function renderController(state: TestState) {
     }),
   );
 
-  return { ...rendered, sit, leaveSeat };
+  return { ...rendered, sit, leaveSeat, kick };
 }
 
 describe('useRoomShellController', () => {
@@ -167,6 +168,32 @@ describe('useRoomShellController', () => {
     });
 
     expect(sit).toHaveBeenCalledWith(1, { displayName: '玩家1' });
+    expect(result.current.seatOperation).toBeNull();
+  });
+
+  it('routes profile kick directly without opening a seat confirmation operation', async () => {
+    const { result, kick } = renderController({
+      hostUserId: 'u1',
+      numberOfPlayers: 2,
+      seats: {
+        0: { userId: 'u1' },
+        1: { userId: 'u2' },
+      },
+    });
+
+    act(() => result.current.onSeatPress(1));
+
+    expect(result.current.profile.target).toMatchObject({
+      seat: 1,
+      userId: 'u2',
+      isSelf: false,
+    });
+
+    act(() => result.current.profile.handleKick(1));
+
+    await waitFor(() => {
+      expect(kick).toHaveBeenCalledWith(1);
+    });
     expect(result.current.seatOperation).toBeNull();
   });
 });

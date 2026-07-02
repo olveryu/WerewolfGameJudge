@@ -6,8 +6,8 @@ import type { SideEffect } from '../protocol/common';
 import type { AudioEffect } from './protocol/types';
 import type { StateAction } from './reducer/types';
 
-export function extractAudioActions(sideEffects: readonly SideEffect[] | undefined): StateAction[] {
-  const audioEffects: AudioEffect[] = (sideEffects ?? [])
+export function extractAudioActions(sideEffects: readonly SideEffect[]): StateAction[] {
+  const audioEffects: AudioEffect[] = sideEffects
     .filter(
       (effect): effect is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
         effect.type === 'PLAY_AUDIO',

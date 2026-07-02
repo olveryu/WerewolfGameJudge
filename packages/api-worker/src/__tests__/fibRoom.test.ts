@@ -75,6 +75,10 @@ describe('GameRoom registered game path (fibking)', () => {
       profile: { displayName: 'Alice' },
     });
     expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+      expect(r.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    }
     const state = await getFibState(stub);
     expect(state.seats[0]).toEqual({ userId: 'u0', seat: 0 });
     expect(state.roster.u0).toEqual({ displayName: 'Alice' });

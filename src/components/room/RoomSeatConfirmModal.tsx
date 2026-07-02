@@ -19,7 +19,7 @@ export interface RoomSeatConfirmModalStyles {
   modalButton: StyleProp<ViewStyle>;
 }
 
-type RoomSeatConfirmKind = 'enter' | 'move' | 'leave' | 'kick';
+type RoomSeatConfirmKind = 'enter' | 'move' | 'leave';
 
 interface RoomSeatConfirmModalProps {
   visible: boolean;
@@ -35,15 +35,13 @@ const COPY: Record<RoomSeatConfirmKind, { title: string; confirm: string; danger
   enter: { title: '入座', confirm: '入座' },
   move: { title: '换座', confirm: '换座' },
   leave: { title: '离座', confirm: '离座', danger: true },
-  kick: { title: '移出座位', confirm: '移出', danger: true },
 };
 
 function messageFor(kind: RoomSeatConfirmKind, seat: number): string {
   const seatLabel = formatSeat(seat);
   if (kind === 'enter') return `确定在${seatLabel}位入座？`;
   if (kind === 'move') return `确定换到${seatLabel}位？`;
-  if (kind === 'leave') return `确定从${seatLabel}位离座？`;
-  return `确定将该玩家移出${seatLabel}位？`;
+  return `确定从${seatLabel}位离座？`;
 }
 
 const RoomSeatConfirmModalComponent: React.FC<RoomSeatConfirmModalProps> = ({

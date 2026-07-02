@@ -7,7 +7,7 @@
  * 3. Returning a list of StateAction
  */
 
-import type { SideEffect } from '../../protocol/common';
+import { type SideEffect, STANDARD_SIDE_EFFECTS } from '../../protocol/common';
 import type { StateAction } from '../reducer/types';
 import type { WerewolfState } from '../store/types';
 
@@ -41,7 +41,7 @@ export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
-  readonly sideEffects?: readonly SideEffect[];
+  readonly sideEffects: readonly SideEffect[];
   /** Optional metadata (e.g., 'DEDUPLICATED'); does not affect success semantics, used by client toast */
   readonly reason?: string;
 }
@@ -50,7 +50,7 @@ export interface HandlerRejection {
   readonly kind: 'rejection';
   readonly reason: string;
   readonly actions: StateAction[];
-  readonly sideEffects?: readonly SideEffect[];
+  readonly sideEffects: readonly SideEffect[];
 }
 
 export interface HandlerError {
@@ -62,7 +62,7 @@ export interface HandlerError {
 
 export function handlerSuccess(
   actions: StateAction[],
-  sideEffects?: readonly SideEffect[],
+  sideEffects: readonly SideEffect[] = STANDARD_SIDE_EFFECTS,
   reason?: string,
 ): HandlerSuccess {
   return { kind: 'success', actions, sideEffects, reason };
@@ -71,7 +71,7 @@ export function handlerSuccess(
 export function handlerRejection(
   reason: string,
   actions: StateAction[],
-  sideEffects?: readonly SideEffect[],
+  sideEffects: readonly SideEffect[] = STANDARD_SIDE_EFFECTS,
 ): HandlerRejection {
   return { kind: 'rejection', reason, actions, sideEffects };
 }

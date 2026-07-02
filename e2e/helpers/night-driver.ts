@@ -1,5 +1,6 @@
-import { type Page } from '@playwright/test';
+import { type Locator, type Page } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import type { CapturedRole } from './multi-player';
 import { ensureConnected } from './waits';
 
@@ -466,6 +467,53 @@ export async function clickBottomButton(
     await page.waitForTimeout(300);
   }
   return false;
+}
+
+async function isAriaDisabled(option: Locator): Promise<boolean> {
+  return option
+    .evaluate((element) => element.getAttribute('aria-disabled') === 'true')
+    .catch(() => false);
+}
+
+/**
+ * Choose the first enabled bottom card matching one of the candidate display names.
+ * Selection is scoped to the active bottom-card modal so hidden screens cannot win
+ * a global text lookup.
+ */
+export async function chooseEnabledBottomCard(
+  page: Page,
+  candidateNames: readonly string[],
+): Promise<string | null> {
+  const modal = page.locator(`[data-testid="${TESTIDS.chooseBottomCardModal}"]`);
+  await modal.waitFor({ state: 'visible', timeout: 5000 });
+
+  const options = modal.locator('[data-testid^="choose-bottom-card-option-"]');
+  await options.first().waitFor({ state: 'visible', timeout: 5000 });
+  const optionCount = await options.count();
+
+  for (const candidateName of candidateNames) {
+    for (let index = 0; index < optionCount; index++) {
+      const optionTestID = TESTIDS.chooseBottomCardOption(index);
+      const option = modal.locator(`[data-testid="${optionTestID}"]`);
+      const hasCandidateName = await option
+        .getByText(candidateName, { exact: true })
+        .isVisible()
+        .catch(() => false);
+      if (!hasCandidateName) continue;
+      if (await isAriaDisabled(option)) continue;
+
+      await option.click();
+
+      const alertModal = page.locator(`[data-testid="${TESTIDS.alertModal}"]`);
+      await alertModal.waitFor({ state: 'visible', timeout: 5000 });
+      const confirmButton = alertModal.getByText('确定', { exact: true }).first();
+      await confirmButton.waitFor({ state: 'visible', timeout: 5000 });
+      await confirmButton.click();
+      return candidateName;
+    }
+  }
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------

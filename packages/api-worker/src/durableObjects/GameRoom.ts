@@ -156,7 +156,8 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     const result = processEngineAction(this.ctx.storage.sql, engine, trigger);
 
     if (result.state !== undefined && result.revision != null) {
-      const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
+      const shouldBroadcast =
+        result.sideEffects?.some((effect) => effect.type === 'BROADCAST_STATE') === true;
       if (shouldBroadcast) {
         this.#broadcast(
           result.state,

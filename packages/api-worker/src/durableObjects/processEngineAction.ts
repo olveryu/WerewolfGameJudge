@@ -10,7 +10,7 @@
  */
 
 import type { GameAction, GameEngine } from '@werewolf/game-engine/engine/registry/types';
-import type { SideEffect } from '@werewolf/game-engine/protocol/common';
+import { type SideEffect, STANDARD_SIDE_EFFECTS } from '@werewolf/game-engine/protocol/common';
 
 /** Result of a generic engine action. `state` is the broadcast blob (engine-typed). */
 export type EngineActionResult<S> =
@@ -19,7 +19,7 @@ export type EngineActionResult<S> =
       reason?: string;
       state?: S;
       revision?: number;
-      sideEffects?: readonly SideEffect[];
+      sideEffects: readonly SideEffect[];
       broadcastAction?: string | null;
     }
   | {
@@ -92,6 +92,7 @@ export function processEngineAction<S, A>(
       : {
           success: false,
           reason: result.reason ?? 'REJECTED',
+          sideEffects: result.sideEffects,
           broadcastAction: result.broadcastAction,
         };
   }
@@ -139,7 +140,7 @@ export function applyEngineActions<S, A>(
   const revision = rows[0].revision as number;
 
   if (actions.length === 0) {
-    return { success: true, state, revision };
+    return { success: true, state, revision, sideEffects: [] };
   }
 
   let newState = state;
@@ -156,5 +157,10 @@ export function applyEngineActions<S, A>(
     newRevision,
   );
 
-  return { success: true, state: newState, revision: newRevision };
+  return {
+    success: true,
+    state: newState,
+    revision: newRevision,
+    sideEffects: STANDARD_SIDE_EFFECTS,
+  };
 }

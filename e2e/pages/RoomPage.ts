@@ -63,13 +63,17 @@ export class RoomPage {
     });
   }
 
-  /** Click own seat → profile card opens → click "离座" button. No second confirm. */
+  /** Click own seat → profile card opens → click "离座" button and confirm. */
   async standUp(seat: number) {
     await this.getSeatTile(seat).click();
     // Profile card should appear (self-profile)
     await expect(this.page.getByTestId('player-profile-card')).toBeVisible({ timeout: 5000 });
     // Click "离座" button inside the profile card
     await this.page.getByText('离座', { exact: true }).click();
+    await expect(this.page.getByTestId('seat-confirm-title')).toHaveText('离座', {
+      timeout: 5000,
+    });
+    await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
     await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
       timeout: 5000,

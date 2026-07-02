@@ -111,7 +111,7 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent(0), ctx);
     const success = expectSuccess(result);
     expect(success.sideEffects).toBeDefined();
-    const types = success.sideEffects!.map((se) => se.type);
+    const types = success.sideEffects.map((se) => se.type);
     expect(types).toContain('BROADCAST_STATE');
     expect(types).toContain('SAVE_STATE');
   });

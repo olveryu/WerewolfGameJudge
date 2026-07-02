@@ -417,21 +417,13 @@ export function useRoomScreenState(
           }
           return result.success;
         }
-        case 'kick': {
-          roomScreenLog.debug('Kicking seat', { seat: operation.seat });
-          const result = await kickPlayer(operation.seat);
-          if (!result.success) {
-            showErrorAlert('移出失败', getUserFacingMessage(result, '请稍后重试'));
-          }
-          return result.success;
-        }
         default: {
           const _exhaustive: never = operation.kind;
           throw new Error(`useRoomScreenState.runSeatOperation: unknown operation ${_exhaustive}`);
         }
       }
     },
-    [kickPlayer, leaveSeatWithAck, takeSeatWithAck],
+    [leaveSeatWithAck, takeSeatWithAck],
   );
 
   const {
@@ -456,11 +448,16 @@ export function useRoomScreenState(
     [openSeatOperation],
   );
 
-  const showKickSeatDialog = useCallback(
+  const kickSeatFromProfile = useCallback(
     (seat: number): void => {
-      openSeatOperation({ kind: 'kick', seat });
+      roomScreenLog.debug('Kicking seat', { seat });
+      void kickPlayer(seat).then((result) => {
+        if (!result.success) {
+          showErrorAlert('移出失败', getUserFacingMessage(result, '请稍后重试'));
+        }
+      });
     },
-    [openSeatOperation],
+    [kickPlayer],
   );
 
   const handleLeaveRoom = useCallback(() => {
@@ -673,7 +670,7 @@ export function useRoomScreenState(
     getActionIntent,
     showEnterSeatDialog,
     showLeaveSeatDialog,
-    showKickSeatDialog,
+    kickSeatFromProfile,
     seatModalVisible: seatOperation !== null,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,

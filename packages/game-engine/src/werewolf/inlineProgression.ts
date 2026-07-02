@@ -150,8 +150,7 @@ function evaluateProgression(
 /**
  * Extract AudioEffect[] from sideEffects
  */
-function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): AudioEffect[] {
-  if (!sideEffects) return [];
+function extractAudioEffects(sideEffects: readonly SideEffect[]): AudioEffect[] {
   return sideEffects
     .filter(
       (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>

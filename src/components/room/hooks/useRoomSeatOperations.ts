@@ -6,7 +6,7 @@
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-export type RoomSeatOperationKind = 'enter' | 'move' | 'leave' | 'kick';
+export type RoomSeatOperationKind = 'enter' | 'move' | 'leave';
 
 export interface RoomSeatOperation {
   kind: RoomSeatOperationKind;

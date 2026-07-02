@@ -16,7 +16,7 @@
  * (fib uses `FibAction`, never werewolf `StateAction`).
  */
 
-import type { SideEffect } from '../../protocol/common';
+import { type SideEffect, STANDARD_SIDE_EFFECTS } from '../../protocol/common';
 
 /** Inbound command: a domain action name + its (engine-validated) payload. */
 export interface GameAction {
@@ -38,11 +38,15 @@ export interface CreateCtx {
  * - `success`:   completed; has actions to apply + persist + broadcast
  * - `rejection`: business rejection; has actions (e.g. mark rejected) to persist + broadcast
  * - `error`:     precondition/infra failure; no actions, mapped to an error result
+ *
+ * Omitted/undefined `sideEffects` at the factory boundary means the platform default:
+ * broadcast the committed state and mark it persisted. Pass `[]` only for an explicitly
+ * effect-free result.
  */
 export interface EngineSuccess<TAction> {
   readonly kind: 'success';
   readonly actions: readonly TAction[];
-  readonly sideEffects?: readonly SideEffect[];
+  readonly sideEffects: readonly SideEffect[];
   readonly reason?: string;
   /** `undefined` = platform default; `null` = broadcast without lastAction. */
   readonly broadcastAction?: string | null;
@@ -52,7 +56,7 @@ export interface EngineRejection<TAction> {
   readonly kind: 'rejection';
   readonly reason: string;
   readonly actions: readonly TAction[];
-  readonly sideEffects?: readonly SideEffect[];
+  readonly sideEffects: readonly SideEffect[];
   /** `undefined` = platform default; `null` = broadcast without lastAction. */
   readonly broadcastAction?: string | null;
 }
@@ -72,7 +76,7 @@ export interface AfterReduceContext<TAction> {
 
 export function engineSuccess<TAction>(
   actions: readonly TAction[],
-  sideEffects?: readonly SideEffect[],
+  sideEffects: readonly SideEffect[] = STANDARD_SIDE_EFFECTS,
   reason?: string,
   broadcastAction?: string | null,
 ): EngineResult<TAction> {
@@ -82,7 +86,7 @@ export function engineSuccess<TAction>(
 export function engineRejection<TAction>(
   reason: string,
   actions: readonly TAction[] = [],
-  sideEffects?: readonly SideEffect[],
+  sideEffects: readonly SideEffect[] = STANDARD_SIDE_EFFECTS,
   broadcastAction?: string | null,
 ): EngineResult<TAction> {
   return { kind: 'rejection', reason, actions, sideEffects, broadcastAction };

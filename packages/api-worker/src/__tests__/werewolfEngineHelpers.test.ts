@@ -87,7 +87,6 @@ describe('buildHandlerContext', () => {
 
 describe('extractAudioActions', () => {
   it('returns empty array when no side effects', () => {
-    expect(extractAudioActions(undefined)).toEqual([]);
     expect(extractAudioActions([])).toEqual([]);
   });
 

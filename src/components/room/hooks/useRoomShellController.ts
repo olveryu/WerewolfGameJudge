@@ -182,8 +182,6 @@ export function useRoomShellController<TState, TUser, TProfile, TBottomContext>(
           );
         case 'leave':
           return runAction(() => operations.leaveSeat(), copy.leaveFailureTitle);
-        case 'kick':
-          return runAction(() => operations.kick(operation.seat), copy.kickFailureTitle);
         default: {
           const _exhaustive: never = operation.kind;
           throw new Error(`useRoomShellController: unsupported seat operation ${_exhaustive}`);
@@ -201,11 +199,11 @@ export function useRoomShellController<TState, TUser, TProfile, TBottomContext>(
     confirmOperation,
   } = useRoomSeatOperations({ runOperation: runSeatOperation });
 
-  const openKickOperation = useCallback(
+  const kickSeatFromProfile = useCallback(
     (seat: number): void => {
-      openOperation({ kind: 'kick', seat });
+      void runAction(() => operations.kick(seat), copy.kickFailureTitle);
     },
-    [openOperation],
+    [copy.kickFailureTitle, operations, runAction],
   );
 
   const openLeaveOperation = useCallback(
@@ -226,7 +224,7 @@ export function useRoomShellController<TState, TUser, TProfile, TBottomContext>(
   const profile = usePlayerProfileController({
     myUserId,
     getDisplayName: getProfileDisplayName,
-    onKickSeat: openKickOperation,
+    onKickSeat: kickSeatFromProfile,
     onLeaveSeat: openLeaveOperation,
   });
 

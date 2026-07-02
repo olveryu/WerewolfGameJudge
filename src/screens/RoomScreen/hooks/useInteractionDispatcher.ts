@@ -60,7 +60,7 @@ interface UseInteractionDispatcherParams {
   // ── Dialog callbacks ──
   showEnterSeatDialog: (seat: number) => void;
   showLeaveSeatDialog: (seat: number) => void;
-  showKickSeatDialog: (seat: number) => void;
+  kickSeatFromProfile: (seat: number) => void;
   handleLeaveRoom: () => void;
 
   // ── Modal state (guard against duplicate opens) ──
@@ -130,7 +130,7 @@ export function useInteractionDispatcher({
   getActionIntent,
   showEnterSeatDialog,
   showLeaveSeatDialog,
-  showKickSeatDialog,
+  kickSeatFromProfile: runProfileKick,
   handleLeaveRoom,
   seatModalVisible,
   viewedRole,
@@ -170,12 +170,12 @@ export function useInteractionDispatcher({
     [gameState],
   );
 
-  const kickSeatFromProfile = useCallback(
+  const handleKickSeatFromProfile = useCallback(
     (seat: number) => {
       roomScreenLog.debug('handleProfileKick', { seat });
-      showKickSeatDialog(seat);
+      runProfileKick(seat);
     },
-    [showKickSeatDialog],
+    [runProfileKick],
   );
 
   const leaveSeatFromProfile = useCallback(
@@ -189,7 +189,7 @@ export function useInteractionDispatcher({
   const profile = usePlayerProfileController({
     myUserId,
     getDisplayName: getProfileDisplayName,
-    onKickSeat: kickSeatFromProfile,
+    onKickSeat: handleKickSeatFromProfile,
     onLeaveSeat: leaveSeatFromProfile,
   });
 

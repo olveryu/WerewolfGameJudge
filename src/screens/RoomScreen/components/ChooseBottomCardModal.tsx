@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
+import { TESTIDS } from '@/testids';
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { getRoleBadge } from '@/utils/roleBadges';
@@ -151,7 +152,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={styles.container} testID={TESTIDS.chooseBottomCardModal}>
           <Text style={styles.title}>选择底牌</Text>
           <Text style={styles.teamSubtitle}>{subtitle}</Text>
           <ScrollView
@@ -166,6 +167,9 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                   key={`${card.roleId}-${index}`}
                   style={[styles.card, isDisabled && styles.cardDisabled]}
                   disabled={isDisabled}
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: isDisabled }}
+                  testID={TESTIDS.chooseBottomCardOption(index)}
                   activeOpacity={0.7}
                   onPress={() => handleCardPress(index, card)}
                 >
