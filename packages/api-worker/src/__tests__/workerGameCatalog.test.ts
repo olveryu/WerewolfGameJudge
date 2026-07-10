@@ -1,15 +1,21 @@
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import { type WerewolfCommand, werewolfEngine } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  werewolfEngine,
+  type WerewolfInternalCommand,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine/games/werewolf/public';
 import { describe, expect, it } from 'vitest';
 
 import { WORKER_GAME_CATALOG } from '../games/catalog';
+import { werewolfEffectSchema } from '../games/werewolf/effects';
 import {
-  WEREWOLF_COMMAND_SCHEMA_OPTION_COUNT,
-  werewolfCommandSchema,
+  WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT,
   werewolfCreateConfigSchema,
+  werewolfInternalCommandSchema,
+  werewolfPublicCommandSchema,
 } from '../games/werewolf/schemas';
 
-const VALID_COMMANDS = [
+const VALID_PUBLIC_COMMANDS = [
   { type: 'room.seat.take', seat: 0, profile: { displayName: '玩家' } },
   { type: 'room.seat.leave' },
   { type: 'room.seat.kick', seat: 0 },
@@ -38,8 +44,12 @@ const VALID_COMMANDS = [
   { type: 'werewolf.wolfRobot.ackHunterStatus' },
   { type: 'werewolf.groupConfirm.ack' },
   { type: 'werewolf.groupConfirm.ackBots' },
-  { type: 'werewolf.growth.applyRosterLevels', levels: { 'user-1': 3 } },
-] as const satisfies readonly WerewolfCommand[];
+] as const satisfies readonly WerewolfPublicCommand[];
+
+const VALID_INTERNAL_COMMAND = {
+  type: 'werewolf.growth.applyRosterLevels',
+  levels: { 'user-1': 3 },
+} as const satisfies WerewolfInternalCommand;
 
 describe('Worker game catalog', () => {
   it('binds the concrete Werewolf engine, codec, and schemas', () => {
@@ -48,7 +58,9 @@ describe('Worker game catalog', () => {
     expect(module.gameType).toBe('werewolf');
     expect(module.engine).toBe(werewolfEngine);
     expect(module.createConfigSchema).toBe(werewolfCreateConfigSchema);
-    expect(module.commandSchema).toBe(werewolfCommandSchema);
+    expect(module.publicCommandSchema).toBe(werewolfPublicCommandSchema);
+    expect(module.internalCommandSchema).toBe(werewolfInternalCommandSchema);
+    expect(module.effectSchema).toBe(werewolfEffectSchema);
 
     const state = buildInitialGameState('1234', 'host', {
       name: 'test',
@@ -58,24 +70,29 @@ describe('Worker game catalog', () => {
     expect(module.stateCodec.parse(state)).toEqual(state);
   });
 
-  it('parses every registered command discriminant through strict schemas', () => {
-    expect(WEREWOLF_COMMAND_SCHEMA_OPTION_COUNT).toBe(25);
-    expect(VALID_COMMANDS).toHaveLength(25);
+  it('keeps all public command discriminants separate from the internal schema', () => {
+    expect(WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT).toBe(24);
+    expect(VALID_PUBLIC_COMMANDS).toHaveLength(24);
 
-    for (const command of VALID_COMMANDS) {
-      expect(werewolfCommandSchema.parse(command)).toEqual(command);
+    for (const command of VALID_PUBLIC_COMMANDS) {
+      expect(werewolfPublicCommandSchema.parse(command)).toEqual(command);
     }
+    expect(werewolfInternalCommandSchema.parse(VALID_INTERNAL_COMMAND)).toEqual(
+      VALID_INTERNAL_COMMAND,
+    );
+    expect(() => werewolfPublicCommandSchema.parse(VALID_INTERNAL_COMMAND)).toThrow();
+    expect(() => werewolfInternalCommandSchema.parse(VALID_PUBLIC_COMMANDS[0])).toThrow();
   });
 
   it('rejects unknown command fields and malformed role IDs', () => {
     expect(() =>
-      werewolfCommandSchema.parse({
+      werewolfPublicCommandSchema.parse({
         type: 'werewolf.board.withdraw',
         userId: 'client-supplied-identity',
       }),
     ).toThrow();
     expect(() =>
-      werewolfCommandSchema.parse({
+      werewolfPublicCommandSchema.parse({
         type: 'werewolf.config.update',
         templateRoles: ['not-a-role'],
       }),

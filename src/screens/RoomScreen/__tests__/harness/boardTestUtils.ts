@@ -467,7 +467,7 @@ export async function chainWolfVoteConfirm(
   // Chain: press "确定" → submitAction called
   harness.pressButtonOnType('wolfVote', '确定');
   expect(submitAction).toHaveBeenCalledTimes(1);
-  expect(submitAction).toHaveBeenCalledWith(targetSeat);
+  expect(submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
 
   result.unmount();
   return submitAction;
@@ -685,7 +685,7 @@ export async function coverageChainWolfVote(
   // Chain: press "确定" on wolfVote dialog
   harness.pressPrimaryOnType('wolfVote');
   expect(submitAction).toHaveBeenCalledTimes(1);
-  expect(submitAction).toHaveBeenCalledWith(targetSeat);
+  expect(submitAction).toHaveBeenCalledWith({ kind: 'target', target: targetSeat });
 
   result.unmount();
   return { submitAction };
@@ -1111,7 +1111,7 @@ export async function coverageChainWolfVoteEmpty(
   // Chain: press "确定" → submitAction(null) called (empty knife)
   harness.pressPrimaryOnType('wolfVoteEmpty');
   expect(submitAction).toHaveBeenCalledTimes(1);
-  expect(submitAction).toHaveBeenCalledWith(null);
+  expect(submitAction).toHaveBeenCalledWith({ kind: 'target', target: null });
 
   result.unmount();
   return { submitAction };

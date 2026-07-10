@@ -681,7 +681,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [7, 'nightmare'],
         ]),
       );
-      expect(emptyVote).toHaveBeenCalledWith(null);
+      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
 
       // Use literal coverage requirements
       harness.assertCoverage([

@@ -12,6 +12,7 @@
  * Does not modify GameState directly and does not bypass the facade.
  */
 
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -80,10 +81,10 @@ interface GameActionsState {
 
   // Player night actions
   viewedRole: () => Promise<ActionResult>;
-  submitAction: (target: number | null, extra?: unknown) => Promise<void>;
+  submitAction: (input: WerewolfActionInput) => Promise<void>;
   submitRevealAck: () => Promise<ActionResult>;
   submitGroupConfirmAck: () => Promise<ActionResult>;
-  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
+  sendWolfRobotHunterStatusViewed: () => Promise<void>;
   /** Host: triggers server progression after wolf vote deadline. Returns success status (used for retry guard). */
   postProgression: () => Promise<boolean>;
 
@@ -195,51 +196,46 @@ interface GameActionsDeps {
   const viewedRole = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.controlledSeat ?? mySeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
-    const result = await facade.markViewedRole(seat);
+    const result = await facade.markViewedRole(debug.controlledSeat);
     handleMutationResult(result, '查看身份', toastError);
     return result;
   }, [debug.controlledSeat, mySeat, facade]);
 
-  // Submit action (uses effectiveSeat/effectiveRole for debug bot control)
+  // Submit action. effectiveSeat is a UI eligibility check; only controlledSeat crosses the wire.
   // Business rejection UX is handled by the state-driven actionRejected effect
   // in useActionOrchestrator. Network/server errors handled by handleMutationResult.
   const submitAction = useCallback(
-    async (target: number | null, extra?: unknown): Promise<void> => {
-      const seat = debug.effectiveSeat;
-      const role = debug.effectiveRole;
-      if (seat === null || !role) return;
-      const result = await facade.submitAction(seat, role, target, extra);
+    async (input: WerewolfActionInput): Promise<void> => {
+      if (debug.effectiveSeat === null) return;
+      const result = await facade.submitAction(input, debug.controlledSeat);
       handleMutationResult(result, '提交行动');
     },
-    [debug.effectiveSeat, debug.effectiveRole, facade],
+    [debug.controlledSeat, debug.effectiveSeat, facade],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<ActionResult> => {
-    const result = await facade.submitRevealAck();
+    const result = await facade.submitRevealAck(debug.controlledSeat);
     handleMutationResult(result, '确认揭示', toastError);
     return result;
-  }, [facade]);
+  }, [debug.controlledSeat, facade]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
   const submitGroupConfirmAck = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.effectiveSeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
-    const result = await facade.submitGroupConfirmAck(seat);
+    const result = await facade.submitGroupConfirmAck(debug.controlledSeat);
     handleMutationResult(result, '确认催眠', toastError);
     return result;
-  }, [debug.effectiveSeat, facade]);
+  }, [debug.controlledSeat, debug.effectiveSeat, facade]);
 
   // WolfRobot hunter status viewed gate
-  // The seat parameter is passed by caller as effectiveSeat to support debug bot takeover mode
-  const sendWolfRobotHunterStatusViewed = useCallback(
-    async (seat: number): Promise<void> => {
-      const result = await facade.sendWolfRobotHunterStatusViewed(seat);
-      handleMutationResult(result, '确认猎人状态', toastError);
-    },
-    [facade],
-  );
+  const sendWolfRobotHunterStatusViewed = useCallback(async (): Promise<void> => {
+    if (debug.effectiveSeat === null) return;
+    const result = await facade.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
+    handleMutationResult(result, '确认猎人状态', toastError);
+  }, [debug.controlledSeat, debug.effectiveSeat, facade]);
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {

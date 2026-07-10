@@ -13,12 +13,13 @@ import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomService';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
 // Mock useCreateRoom mutation hook
-const mockCreateRoomMutateAsync = jest.fn();
+const mockCreateRoomMutateAsync = jest.fn<Promise<RoomRecord>, [CreateRoomRequest]>();
 jest.mock('@/hooks/mutations/useRoomMutations', () => ({
   useCreateRoom: () => ({
     mutateAsync: mockCreateRoomMutateAsync,
@@ -27,7 +28,10 @@ jest.mock('@/hooks/mutations/useRoomMutations', () => ({
 }));
 
 // Mock navigation
-const mockNavigate = jest.fn();
+const mockNavigate = jest.fn<
+  void,
+  [string, { roomCode: string; isHost: boolean; template: unknown }]
+>();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
@@ -133,14 +137,19 @@ describe('Room creation → navigation roomCode contract', () => {
     // CRITICAL CONTRACT: The roomCode passed to navigation MUST be the one
     // returned by createRoomMutation.mutateAsync (the confirmed DB record), not a
     // locally pre-generated code.
-    const navArgs = mockNavigate.mock.calls[0] as [
-      string,
-      { roomCode: string; isHost: boolean; template: unknown },
-    ];
+    const navArgs = mockNavigate.mock.calls[0];
+    if (navArgs === undefined) throw new Error('Missing room navigation call');
     expect(navArgs[0]).toBe('Room');
     expect(navArgs[1].roomCode).toBe('7777');
     expect(navArgs[1].isHost).toBe(true);
     expect(navArgs[1].template).toBeDefined();
+    const createRequest = mockCreateRoomMutateAsync.mock.calls[0]?.[0];
+    if (createRequest === undefined) throw new Error('Missing create-room request');
+    expect(createRequest.expectedHostUserId).toBe('host-uid');
+    expect(createRequest.gameType).toBe('werewolf');
+    expect(Array.isArray(createRequest.config.templateRoles)).toBe(true);
+    expect(createRequest).not.toHaveProperty('buildInitialState');
+    expect(createRequest).not.toHaveProperty('initialState');
   });
 
   it('should NOT navigate when createRoomRecord fails', async () => {

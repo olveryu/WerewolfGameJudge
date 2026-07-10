@@ -390,10 +390,13 @@ interface GameEngineDefinition<
   派生确定性 RNG。`commandId` 只负责幂等，不能兼任随机源。
 - `commit` 表示命令已被权威 engine 接受并进入 command receipt/effect transaction；幂等 no-op 可以是
   零 event，只有 state event 时才增加 state revision。
+- Worker runtime 必须显式保留 `hasStateEvents`，并校验它和 `broadcast === 'state'` 完全一致。revision
+  按已提交 state event 递增，不能通过比较序列化 JSON 猜测；同值 profile update 仍是一条已接受的
+  state event，必须产生新 revision，避免客户端收到旧 revision 后关闭 socket。
 - `commit + domainRejected` 是明确的 domain transition：例如写入只对目标玩家可见的
   `actionRejected` event。它会提交 event，但 command response 仍携带稳定的业务拒绝 reason。
-- `reject` 表示权限、phase 或参数前置条件失败；它没有 event/effect，不写 command receipt 的成功结果，
-  不增加 revision。
+- `reject` 表示权限、phase 或参数前置条件失败；它没有 event/effect，不增加 revision，但 platform 会写
+  绑定 actor/request 的 terminal rejection receipt，保证 retry 不会在新 state 上重新解释同一命令。
 - 不允许用 `reject` 表示已经修改状态的命令，也不允许 Worker 在 engine 返回后补写 rejection state。
 - 所有 event evolve 完成后统一执行 `normalize`，发现损坏直接抛错。
 - State version 显式存在；不支持的版本直接失败或走正式 migration，不猜默认值。
@@ -548,6 +551,8 @@ DO 在同一个 SQLite row 存 routing 和 state：
 ```sql
 CREATE TABLE room_state (
   id INTEGER PRIMARY KEY CHECK (id = 1),
+  creation_id TEXT NOT NULL UNIQUE,
+  initialization_json TEXT NOT NULL,
   game_type TEXT NOT NULL,
   state_version INTEGER NOT NULL,
   game_state TEXT NOT NULL,
@@ -558,6 +563,9 @@ CREATE TABLE room_state (
 ```
 
 不再使用 `storage.put('game_type', ...)`。engine selection、state、state version 和 revision 来自同一次读取、同一个 transaction。
+`initialization_json` 保存经过 game module schema 解析后的 canonical initialization command，用于
+`creationId` replay 校验；它不是第二份 game state。`roomCode` 和 `hostUserId` 只以 typed state 为权威，
+不在同一 row 再复制一份可能漂移的列。
 
 ### 12.2 初始化
 
@@ -635,12 +643,14 @@ Dispatch 时客户端不发送 `gameType`。DO 从不可变的持久化 room row
 4. 读取原子 room row。
 5. 按持久化 `game_type` 解析 Worker game module。
 6. 使用 module 的 runtime schema 解析 command。
-7. 检查 `commandId` 是否已经完成。
+7. 检查 `commandId` 是否已经完成，并验证 receipt 绑定的 actor、controlled seat 和 request JSON。
 8. 首次执行时生成并持久化 server `randomSeed`，调用 typed engine `decide`，传入 actor context。
-9. `reject` decision 不写入。
+9. `reject` decision 不写 state/event/effect，但写入绑定请求的 terminal rejection receipt；否则相同
+   `commandId` 在 state 改变后重试可能变成一条新动作。
 10. 在内存中 evolve 全部 event。
 11. normalize 新 state。
-12. 在一个 SQLite transaction 中更新 state/revision、保存 command receipt、写入 effect outbox。
+12. 在一个 Durable Object storage transaction 中更新 state/revision、保存 command receipt、写入
+    effect outbox，并通过 `setAlarm()` 安装最早调度；任一步失败则全部回滚。
 13. decision 要求广播时，广播已提交 state。
 14. 返回 committed revision 和 domain result。
 15. effect 独立 drain，不能改变已提交命令的返回语义。
@@ -652,14 +662,29 @@ HTTP retry 和连接恢复可能重复发送 command。`commandId` 是结构性�
 ```sql
 CREATE TABLE command_receipts (
   command_id TEXT PRIMARY KEY,
+  game_type TEXT NOT NULL,
+  state_version INTEGER NOT NULL,
+  actor_kind TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  controlled_seat INTEGER,
+  command_type TEXT NOT NULL,
+  request_json TEXT NOT NULL,
+  decision_kind TEXT NOT NULL,
   revision INTEGER NOT NULL,
   random_seed TEXT NOT NULL,
   result_json TEXT NOT NULL,
-  created_at INTEGER NOT NULL
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
 );
 ```
 
-相同 ID 返回存储结果，新 ID 才按当前 state 执行。旧 receipt 使用确定的 bounded policy 清理。
+相同 ID 且 actor/request 完全相同才返回存储结果；相同 ID 配另一 actor 或 body 返回
+`command_id_conflict`。新 ID 才按当前 state 执行。当前 bounded policy 是七天，并且只清理没有任何
+outbox row 引用的过期 receipt；terminal failed effect 的 origin receipt 会继续保留。
+
+客户端一个用户意图只 prepare 一次 immutable command envelope。普通 HTTP retry、401 refresh、连接恢复
+都重发同一个 envelope。音频 gate 这类跨连接 acknowledgement 由 orchestrator 持有 prepared command，
+只有观察到成功 receipt 或 terminal rejection 才释放；网络、timeout、5xx 和 overload 结果不能生成新 ID。
 
 ### 13.4 Result model
 
@@ -668,32 +693,40 @@ CREATE TABLE command_receipts (
 ```ts
 type RoomCommandResult<TState> =
   | {
-      success: true;
+      kind: 'committed';
+      commandId: string;
       snapshot: RoomSnapshot<TState>;
-      reason?: string;
+      outcome: { kind: 'success'; reason?: string } | { kind: 'domainRejected'; reason: string };
     }
   | {
-      success: false;
+      kind: 'rejected';
+      commandId: string;
       reason: string;
     };
 ```
 
-- 成功结果必须携带 committed snapshot；零 event 的幂等命令返回当前 revision 的 snapshot。
+- `committed` 必须携带 snapshot；零 event 的幂等命令返回当前 revision 的 snapshot。
+- `rejected` 表示没有 state transition，但对应 actor/request 的 terminal receipt 已持久化。
 - `sideEffects`、event、outbox row 和 engine decision 都是 Worker/DO 内部数据，禁止序列化到公共 HTTP 响应。
 - Worker encoder 和客户端 decoder 必须引用 `platform/protocol/commandResult.ts` 的同一个 contract。
 - 客户端在应用 snapshot 后只把 domain outcome 交给 UI，UI 不读取 transport metadata。
+- 客户端必须验证 response `commandId` 等于 immutable prepared command 的 ID。
 - 未知字段、缺失 snapshot、非法 state 或 revision 都是协议错误，直接 fail fast，不改写成 domain rejection。
 
 预期业务拒绝返回稳定 reason code：
 
-- `room.not_initialized`
-- `room.game_type_mismatch`
-- `room.seat.taken`
-- `room.seat.invalid`
-- `room.seat.locked`
-- `room.host_required`
-- `fib.round.not_full`
-- `fib.round.already_ongoing`
+- `no_state`
+- `room_code_mismatch`
+- `command_id_conflict`
+- `seat_taken`
+- `invalid_seat`
+- `game_in_progress`
+- `not_host`
+- `fib_round_not_full`
+- `fib_round_already_ongoing`
+
+Reason code 全仓使用 lower snake case；Worker、engine、client translation 和测试引用同一常量，不允许同一含义
+再出现 `ROOM_NOT_FOUND`、点分名或游戏自造别名。
 
 持久化损坏、未注册 module、非法 persisted JSON、unsupported state version 直接抛错并上报 Sentry，不在 domain 层转换成笼统的“请稍后重试”。
 
@@ -729,13 +762,21 @@ D1 和 DO 不能共享 transaction。因此建房必须使用显式 saga，不�
 type RoomDirectoryStatus = 'creating' | 'active' | 'deleting' | 'failed';
 ```
 
-D1 room row 保存 `game_type`、`host_user_id`、`creation_id` 和 status。
+D1 room row 保存不可复用的 `room_instance_id`、`game_type`、`host_user_id`、`creation_id` 和
+status。四位 `roomCode` 只是可复用的公开目录 key，不能同时充当 Durable Object identity：目录 row
+消失后，旧 DO storage 仍可能存在；若新房继续按 room code 路由，就会把两个房间错误地绑定到同一个
+authoritative state。
+
+新 room instance 使用 `GAME_ROOM.newUniqueId()` 分配，字符串形式持久化到 D1；command、state、revision、
+delete 和 WebSocket upgrade 都先解析 active directory row，再用 `idFromString()` 取得同一个 stub。任何
+绕过目录、直接按 room code 构造 DO ID 的路径都属于架构错误。
 
 ### 15.2 Create flow
 
 1. 解析显式 `gameType` 和通用 create envelope。
-2. 以 `creating` 状态插入唯一 room code 和 `creationId`。
-3. 使用相同 `creationId` 调用 DO `initializeRoom`。
+2. 分配不可复用的 room instance ID，以 `creating` 状态插入唯一 room code、instance ID 和
+   `creationId`。
+3. 使用该 instance ID 路由 DO，并以相同 `creationId` 调用 `initializeRoom`。
 4. DO 成功后把 D1 标记为 `active`。
 5. 正常 get/join 只返回 active room。
 6. 请求 retry 时按 `creationId` 恢复，不创建第二个房间。
@@ -796,11 +837,14 @@ Accepted decision 在写 state/revision 的同一个 SQL transaction 中写 effe
 ```sql
 CREATE TABLE effect_outbox (
   id TEXT PRIMARY KEY,
+  origin_command_id TEXT NOT NULL,
+  scope TEXT NOT NULL,
   game_type TEXT NOT NULL,
   effect_type TEXT NOT NULL,
+  business_key TEXT NOT NULL,
   payload_json TEXT NOT NULL,
   status TEXT NOT NULL,
-  attempt INTEGER NOT NULL,
+  attempt_count INTEGER NOT NULL,
   available_at INTEGER NOT NULL,
   created_revision INTEGER NOT NULL
 );
@@ -813,9 +857,16 @@ Effect 以 outbox ID 和 game-specific business key 保证 idempotent。Alarm ha
 ### 17.3 Commit 语义
 
 - State 一旦 commit，effect delivery 失败也不能把 command response 改成失败。
-- Effect 失败记录 attempt 并安排 retry。
+- 每次投递前原子增加 `attempt_count`、把 `available_at` 移到 watchdog 时间并安装 alarm；Worker 在外部
+  I/O 中断时，watchdog 会重新取得该 row。
+- Effect 失败记录错误和指数 backoff，再安排同一个 row；不创建第二套 retry key。
 - Retry 用尽后保留 failed outbox row 和 telemetry，不静默删除。
 - Effect handler 可以发送 internal idempotent command，但不能绕过 command pipeline 直接改 state。
+
+狼人杀 growth effect 使用 D1 `game_settlement_results(effect_id, user_id)` 保存精确 XP、等级和票券结果。
+奖励 RNG 从 `effectId + userId + rewardType` 确定性派生；stats、阵营记录和结果 ledger 在一个 D1
+`batch()` transaction 内提交。DO 在重试时读取原结果，使用稳定 internal command ID 更新 roster，并以
+`settlementId + endedRevision` 发送可去重的 realtime 消息，禁止重新抽奖。
 
 ## 18. 瞎掰王出题 workflow
 
@@ -1642,26 +1693,26 @@ pnpm run e2e
 
 ## 31. 架构决策汇总
 
-| 主题               | 决策                                                       |
-| ------------------ | ---------------------------------------------------------- |
-| Game ID            | 一个 canonical `GameType` union                            |
-| Engine API         | 每个游戏完整 typed strategy                                |
-| Runtime validation | Worker game module schema                                  |
-| Registration       | 每个 runtime 一个 exhaustive catalog                       |
-| DO routing         | game type 与 state 同一个 SQL row                          |
-| Dispatch           | 一个 authenticated generic command endpoint                |
-| Authorization      | Engine 用真实 actor + authoritative state 判断             |
-| Request retry      | Idempotent `commandId` receipt                             |
-| Effect             | Transactional outbox + generic alarm scheduler             |
-| Client transport   | 一个 generic `RoomSession`                                 |
-| Shared UI          | 一个真实 `RoomShell` + focused controllers                 |
-| UI permission      | Game-derived explicit capabilities                         |
-| Navigation         | Catalog-driven host + 单一 room resolver URL               |
-| Seat command       | 同一命名 + seating kernel                                  |
-| Fib scale          | Sparse humans + implicit bots + compact roles + lazy seats |
-| Fib 出题           | Recoverable outbox workflow                                |
-| Compatibility      | 同 release migration 后删除                                |
-| Future game        | Vertical game module，不在 platform 加条件                 |
+| 主题               | 决策                                                                       |
+| ------------------ | -------------------------------------------------------------------------- |
+| Game ID            | 一个 canonical `GameType` union                                            |
+| Engine API         | 每个游戏完整 typed strategy                                                |
+| Runtime validation | Worker game module schema                                                  |
+| Registration       | 每个 runtime 一个 exhaustive catalog                                       |
+| DO routing         | D1 room code → immutable instance ID；game type 与 state 同一个 DO SQL row |
+| Dispatch           | 一个 authenticated generic command endpoint                                |
+| Authorization      | Engine 用真实 actor + authoritative state 判断                             |
+| Request retry      | Idempotent `commandId` receipt                                             |
+| Effect             | Transactional outbox + generic alarm scheduler                             |
+| Client transport   | 一个 generic `RoomSession`                                                 |
+| Shared UI          | 一个真实 `RoomShell` + focused controllers                                 |
+| UI permission      | Game-derived explicit capabilities                                         |
+| Navigation         | Catalog-driven host + 单一 room resolver URL                               |
+| Seat command       | 同一命名 + seating kernel                                                  |
+| Fib scale          | Sparse humans + implicit bots + compact roles + lazy seats                 |
+| Fib 出题           | Recoverable outbox workflow                                                |
+| Compatibility      | 同 release migration 后删除                                                |
+| Future game        | Vertical game module，不在 platform 加条件                                 |
 
 ## 32. Definition of Done
 
@@ -1691,22 +1742,47 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                   | 尚未完成                                                               |
-| --------- | ------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Phase 0   | 进行中 | `main` 行为 contract、room/seat/DO characterization test、架构边界测试   | 当前分支完整 Werewolf E2E gate                                         |
-| Phase 1   | 进行中 | canonical game identity、版本化 Werewolf codec、snapshot/result envelope | client game-owned 目录迁移、全部边界 exception 清零                    |
-| Phase 2   | 待 E2E | concrete `werewolfEngine`、exhaustive catalogs、Worker schema 静态绑定   | 推送后的完整 Werewolf Playwright gate                                  |
-| Phase 3-8 | 未开始 | -                                                                        | generic pipeline、creation saga、shared room、Fib vertical slice、清理 |
+| 阶段      | 状态   | 已完成                                                                 | 尚未完成                                                             |
+| --------- | ------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard   | -                                                                    |
+| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope    | client game-owned 目录迁移、全部边界 exception 清零                  |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E | -                                                                    |
+| Phase 3   | 待 E2E | generic command、atomic DO storage、receipt/outbox、client cutover     | 当前提交完整 Werewolf Playwright gate                                |
+| Phase 4-8 | 未开始 | -                                                                      | creation saga、单一 deep link、shared room、Fib vertical slice、清理 |
 
-### 当前提交：authoritative Werewolf engine 与 exhaustive catalogs
+Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
+Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
+不改变四个测试 shard 的通过事实；后续单独修 CI 配置，不把它混进游戏架构提交。
 
-- 新增 concrete `werewolfEngine`，25 个 canonical command 通过 exhaustive switch 映射到唯一规则实现；actor identity、host authority 和 bot takeover seat 均从 `CommandContext.actor` 与权威 state 推导。
-- 五类 action input 只携带玩法输入，seat、role 和 reveal acknowledgement owner 由 engine 从当前 state 解析；非法 schema/input 组合显式拒绝，状态不变量破坏时 fail fast。
-- 把 audio ack、progression、reveal ack、group confirm、bot group confirm、roster level 六组规则移入 game-owned pure handlers；当前 DO 与新 engine 调用同一实现，不复制规则。
-- 新增 exhaustive engine catalog 与 Worker catalog；Zod 4 strict schemas 的 output type 与具体 engine config/command 静态绑定，不公开 `GameEngine<unknown, unknown, unknown>`。
-- `SAVE_STATE`/`BROADCAST_STATE` 留作 platform commit 行为，`PLAY_AUDIO` 转为 state event，未建模的 `SEND_MESSAGE` 直接 fail fast。
-- 定向验证：game-engine 3 个 suites、88 条测试通过；Worker catalog 4 条测试通过。
-- 迁移边界：狼人杀专用 RPC 和 `gameProcessor` 仍是当前生产入口，将在 Phase 3 generic pipeline 接通后于同一个 deployable change 删除；不保留 compatibility route。
-- 提交门禁：完整 `pnpm run quality` 通过；root 183 个 suites、4818 条测试，game-engine 78 个 suites、2313 条测试，api-worker 10 个 files、94 条测试。
-- 阶段状态：代码与本地 quality 退出条件已完成；推送后由 CI 执行完整 Werewolf Playwright gate，通过后 Phase 2 才标记完成。
-- 下一步：Phase 3 新增 atomic room row、command receipt 与 generic dispatch，再原子删除旧 RPC/HTTP action path。
+### 当前提交：generic command pipeline 与 transactional outbox
+
+- 新增 generic `GameRoom`、atomic `room_state`、one-way 旧 SQL migration、严格 initialization replay；
+  持久化 game type、state version、state、revision 和 canonical initialization，不保留第二份 room identity。
+- 所有 public command 从 JWT actor 进入同一 pipeline；receipt 绑定 game/version、actor、controlled seat、
+  command type 和 canonical request。accepted 与 engine rejection 都持久化，ID 换 actor/body 直接冲突。
+- state、receipt、outbox row 与最早 alarm 在一个 DO storage transaction 提交；delivery claim 使用 watchdog
+  lease，失败按同一 row backoff，达到上限保留 failed row。旧 `settle_pending` 原子迁入 outbox。
+- 狼人杀结束 effect 使用 D1 精确 settlement ledger 与确定性 reward RNG；stats、camp 和 reward result 在一个
+  D1 batch 提交，重试读取原结果，再用稳定 internal command ID 更新 roster。
+- 删除狼人杀专用 `GameRoom`、public RPC、`gameProcessor`、`/game/*` 与 night routes；建房只发送
+  `gameType + config + creationId`，客户端不再构造或上传初始 state。
+- 客户端所有狼人杀 action 改走 authenticated `/room/command`，玩法 input 不携带 actor seat/role；response
+  校验 exact command ID，committed snapshot 先应用再返回 domain outcome，协议损坏直接失败。
+- 音频 ack 在首次发送与 reconnect/online recovery 间复用同一个 prepared envelope；收到 terminal result
+  后才释放。房主进入新房只接受 connection sync 的服务端快照，缺失或 identity 不符立即失败。
+- Worker runtime 以 committed state event 推进 revision，即使 event 的最终 JSON 值相同；同时强制 state
+  event 与 broadcast 一致，防止同 revision 广播触发客户端 protocol close。
+- 公共 room code 与 DO identity 已分离：D1 `rooms.id` 保存 `newUniqueId()`，所有 HTTP/WS 路径先查目录再
+  `idFromString()` 路由。`0034_room_instance_identity_cutover.sql` 明确使旧 routing model 的 active room
+  失效，不保留按 room code 访问旧 DO 的兼容分支。
+- Realtime 对每个 socket 要求 revision 严格递增；settlement 用 `settlementId` 验证重复 payload 并在内存中
+  bounded dedupe，payload 同 ID 变化直接关闭协议连接。
+- 提交门禁：完整 `pnpm run quality` 通过；root 183 个 suites/4808 条测试、game-engine 78 个
+  suites/2339 条测试、api-worker 9 个 files/72 条测试，typecheck、build、knip、lint 和 format 全部通过。
+- 额外定向验证：client facade/transport/audio 107 条、Config/RoomScreen 22 条通过；Worker 9 个 files/73
+  条通过，并覆盖目录 row 丢失后同一公开房号路由到新 DO。此前本地并发 E2E 暴露 room code 误作 DO
+  identity，修复后原失败 broadcast 场景以 `1 worker` 通过；本地关键 E2E 与推送后完整 Playwright shard
+  仍按 Phase 3 退出条件执行。
+- 阶段状态：Phase 3 代码切换完成但不提前宣告退出；完整 Werewolf E2E 通过后才能标记完成。
+- 下一步：Phase 4 用 D1 status 与 reconciliation 实现 create/delete saga，再加入唯一
+  `/room/:roomCode` resolver；不在 Phase 3 的 catch-delete 上伪装跨存储原子性。

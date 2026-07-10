@@ -36,6 +36,7 @@ import { ensureFreshToken } from './cfFetch';
 
 /** WebSocket connection timeout (ms) */
 const WS_CONNECT_TIMEOUT_MS = 8_000;
+const SETTLEMENT_DEDUPE_LIMIT = 128;
 
 /**
  * CFRealtimeService — WebSocket transport layer implementation.
@@ -49,6 +50,8 @@ export class CFRealtimeService implements IRealtimeTransport {
   readonly #stateCodec: GameStateCodec<GameState>;
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
+  #lastSocketRevision = 0;
+  readonly #settlementFingerprints = new Map<string, string>();
 
   constructor(stateCodec: GameStateCodec<GameState>) {
     this.#stateCodec = stateCodec;
@@ -75,6 +78,7 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#closeWsSilent();
 
     const generation = ++this.#generation;
+    this.#lastSocketRevision = 0;
     // The WS handshake cannot surface a 401 to the cfFetch refresh interceptor,
     // so an expired token would loop (401 → close → retry with the same stale token).
     // Refresh the token up-front, then open the socket.
@@ -195,10 +199,36 @@ export class CFRealtimeService implements IRealtimeTransport {
 
       if (data.type === 'STATE_UPDATE') {
         const message = parseStateUpdateMessage(data, this.#stateCodec);
+        if (message.revision <= this.#lastSocketRevision) {
+          throw new Error(
+            `STATE_UPDATE revision ${message.revision} did not advance from ${this.#lastSocketRevision}`,
+          );
+        }
+        this.#lastSocketRevision = message.revision;
         realtimeLog.debug('Transport: STATE_UPDATE', { revision: message.revision });
         this.#requireHandlers().onStateUpdate(message);
       } else if (data.type === 'SETTLE_RESULT') {
-        this.#requireHandlers().onSettleResult(parseSettleResultMessage(data));
+        const message = parseSettleResultMessage(data);
+        const fingerprint = JSON.stringify(message);
+        const previousFingerprint = this.#settlementFingerprints.get(message.settlementId);
+        if (previousFingerprint !== undefined) {
+          if (previousFingerprint !== fingerprint) {
+            throw new Error(`SETTLE_RESULT ${message.settlementId} changed across deliveries`);
+          }
+          realtimeLog.debug('Transport: duplicate settlement skipped', {
+            settlementId: message.settlementId,
+          });
+          return;
+        }
+        this.#settlementFingerprints.set(message.settlementId, fingerprint);
+        if (this.#settlementFingerprints.size > SETTLEMENT_DEDUPE_LIMIT) {
+          const oldestSettlementId = this.#settlementFingerprints.keys().next().value;
+          if (oldestSettlementId === undefined) {
+            throw new Error('Settlement dedupe index lost insertion order');
+          }
+          this.#settlementFingerprints.delete(oldestSettlementId);
+        }
+        this.#requireHandlers().onSettleResult(message);
       } else {
         throw new Error(`Unsupported realtime message type: ${data.type}`);
       }
@@ -220,25 +250,69 @@ function isWsObject(data: unknown): data is Record<string, unknown> & { type: st
 }
 
 function isRecord(data: unknown): data is Record<string, unknown> {
-  return typeof data === 'object' && data !== null;
+  return typeof data === 'object' && data !== null && !Array.isArray(data);
 }
 
-function requireNumber(value: unknown, fieldName: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`${fieldName} must be a finite number`);
+function requireNonNegativeInteger(value: unknown, fieldName: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${fieldName} must be a non-negative integer`);
   }
   return value;
+}
+
+function requireNonEmptyString(value: unknown, fieldName: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${fieldName} must be a non-empty string`);
+  }
+  return value;
+}
+
+function requirePositiveInteger(value: unknown, fieldName: string): number {
+  const parsed = requireNonNegativeInteger(value, fieldName);
+  if (parsed === 0) throw new Error(`${fieldName} must be positive`);
+  return parsed;
 }
 
 function parseSettleResultMessage(
   data: Record<string, unknown> & { type: string },
 ): SettleResultMessage {
+  const expectedKeys = [
+    'type',
+    'gameType',
+    'settlementId',
+    'endedRevision',
+    'xpEarned',
+    'newXp',
+    'newLevel',
+    'previousLevel',
+    'normalDrawsEarned',
+    'goldenDrawsEarned',
+  ];
+  const actualKeys = Object.keys(data);
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    !expectedKeys.every((key) => actualKeys.includes(key))
+  ) {
+    throw new Error('SETTLE_RESULT contains unsupported fields');
+  }
+  if (data.gameType !== 'werewolf') {
+    throw new Error(`SETTLE_RESULT gameType is invalid: ${String(data.gameType)}`);
+  }
   return {
-    xpEarned: requireNumber(data.xpEarned, 'SETTLE_RESULT.xpEarned'),
-    newXp: requireNumber(data.newXp, 'SETTLE_RESULT.newXp'),
-    newLevel: requireNumber(data.newLevel, 'SETTLE_RESULT.newLevel'),
-    previousLevel: requireNumber(data.previousLevel, 'SETTLE_RESULT.previousLevel'),
-    normalDrawsEarned: requireNumber(data.normalDrawsEarned, 'SETTLE_RESULT.normalDrawsEarned'),
-    goldenDrawsEarned: requireNumber(data.goldenDrawsEarned, 'SETTLE_RESULT.goldenDrawsEarned'),
+    gameType: data.gameType,
+    settlementId: requireNonEmptyString(data.settlementId, 'SETTLE_RESULT.settlementId'),
+    endedRevision: requirePositiveInteger(data.endedRevision, 'SETTLE_RESULT.endedRevision'),
+    xpEarned: requireNonNegativeInteger(data.xpEarned, 'SETTLE_RESULT.xpEarned'),
+    newXp: requireNonNegativeInteger(data.newXp, 'SETTLE_RESULT.newXp'),
+    newLevel: requireNonNegativeInteger(data.newLevel, 'SETTLE_RESULT.newLevel'),
+    previousLevel: requireNonNegativeInteger(data.previousLevel, 'SETTLE_RESULT.previousLevel'),
+    normalDrawsEarned: requireNonNegativeInteger(
+      data.normalDrawsEarned,
+      'SETTLE_RESULT.normalDrawsEarned',
+    ),
+    goldenDrawsEarned: requireNonNegativeInteger(
+      data.goldenDrawsEarned,
+      'SETTLE_RESULT.goldenDrawsEarned',
+    ),
   };
 }

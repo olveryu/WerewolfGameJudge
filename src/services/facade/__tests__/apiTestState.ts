@@ -30,6 +30,20 @@ export function buildApiTestState(overrides: Partial<GameState> = {}): GameState
 export function buildApiCommandSuccess(
   state: GameState = buildApiTestState(),
   revision = 1,
+  commandId = 'test-command-id',
 ): RoomCommandResult<GameState> {
-  return createRoomCommandResult({ success: true, state, revision });
+  return createRoomCommandResult({
+    kind: 'committed',
+    commandId,
+    state,
+    revision,
+    outcome: { kind: 'success' },
+  });
+}
+
+export function buildApiCommandRejected(
+  reason: string,
+  commandId = 'test-command-id',
+): RoomCommandResult<GameState> {
+  return createRoomCommandResult({ kind: 'rejected', commandId, reason });
 }

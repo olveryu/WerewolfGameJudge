@@ -1,7 +1,10 @@
 /** Pure contracts implemented by every game engine. */
 
+import type { CommittedCommandOutcome } from '../protocol/commandResult';
 import type { GameType } from '../protocol/gameTypes';
 import type { BaseGameState } from '../protocol/roomSnapshot';
+
+export type { CommittedCommandOutcome } from '../protocol/commandResult';
 
 export type CommonGameLifecycle = 'setup' | 'ongoing' | 'ended';
 
@@ -43,10 +46,6 @@ export type CommandContext =
       readonly actor: Extract<CommandActor, { readonly kind: 'system' }>;
       readonly controlledSeat: null;
     });
-
-export type CommittedCommandOutcome =
-  | { readonly kind: 'success'; readonly reason?: string }
-  | { readonly kind: 'domainRejected'; readonly reason: string };
 
 export type Decision<TEvent extends GameEvent, TEffect extends GameEffect> =
   | {

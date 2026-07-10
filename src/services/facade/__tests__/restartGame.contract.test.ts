@@ -4,9 +4,9 @@
  * Phase 2: restartGame has been migrated to HTTP API
  *
  * Acceptance criteria:
- * 1. Calls the correct API endpoint (/game/restart)
- * 2. Passes the correct request body (roomCode)
- * 3. Permission check: only Host can call (facade-level gate)
+ * 1. Calls the authenticated /room/command endpoint
+ * 2. Sends the canonical werewolf.game.restart command
+ * 3. Permission check remains server-authoritative
  * 4. Returns the API response
  * 5. Network error handling
  * 6. Server handles state reset; postgres_changes pushes new state to all clients
@@ -19,7 +19,22 @@ import { GameFacade } from '@/services/facade/GameFacade';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IRoomService } from '@/services/types/IRoomService';
 
-import { buildApiCommandSuccess, buildApiTestState } from './apiTestState';
+import { buildApiCommandRejected, buildApiCommandSuccess, buildApiTestState } from './apiTestState';
+
+jest.mock('@werewolf/game-engine', () => ({
+  ...jest.requireActual<typeof import('@werewolf/game-engine')>('@werewolf/game-engine'),
+  newRequestId: () => 'test-command-id',
+}));
+
+jest.mock('@/utils/logger', () => {
+  const logger = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return { cfFetchLog: logger, facadeLog: logger };
+});
 
 // P0-1: Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
@@ -52,19 +67,15 @@ describe('restartGame Contract (HTTP API)', () => {
 
   const originalFetch = global.fetch;
 
-  const mockTemplate = {
-    id: 'test-template',
-    name: 'Test Template',
-    numberOfPlayers: 4,
-    roles: ['wolf', 'wolf', 'seer', 'villager'] as ('wolf' | 'seer' | 'villager')[],
-  };
-
   const commandSuccess = () =>
     buildApiCommandSuccess(buildApiTestState({ roomCode: '1234', hostUserId: 'host-uid' }));
 
   beforeEach(async () => {
+    const store = new GameStore();
     mockConnectionManager = {
-      connectAndWait: jest.fn().mockResolvedValue(undefined),
+      connectAndWait: jest.fn().mockImplementation(async () => {
+        store.applySnapshot(buildApiTestState({ roomCode: '1234', hostUserId: 'host-uid' }), 1);
+      }),
       connect: jest.fn(),
       dispose: jest.fn(),
       manualReconnect: jest.fn(),
@@ -76,7 +87,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
     // DI: inject mock directly
     facade = new GameFacade({
-      store: new GameStore(),
+      store,
       connectionManager: mockConnectionManager as unknown as ConnectionManager,
       audioService: {
         playNightAudio: jest.fn().mockResolvedValue(undefined),
@@ -94,7 +105,7 @@ describe('restartGame Contract (HTTP API)', () => {
       } as unknown as IRoomService,
     });
 
-    await facade.createRoom('1234', 'host-uid', mockTemplate);
+    await facade.createRoom('1234', 'host-uid');
   });
 
   afterEach(() => {
@@ -106,7 +117,7 @@ describe('restartGame Contract (HTTP API)', () => {
   // ===========================================================================
 
   describe('API Call', () => {
-    it('should call /game/restart with roomCode', async () => {
+    it('should send the canonical restart command', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -116,10 +127,10 @@ describe('restartGame Contract (HTTP API)', () => {
       await facade.restartGame();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/restart'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"1234"') as string,
+          body: expect.stringContaining('"type":"werewolf.game.restart"') as string,
         }),
       );
     });
@@ -140,7 +151,7 @@ describe('restartGame Contract (HTTP API)', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'host_only' }),
+        json: () => Promise.resolve(buildApiCommandRejected('host_only')),
       });
 
       const result = await facade.restartGame();
@@ -170,12 +181,10 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Permission Check', () => {
     it('non-host calls are now rejected server-side (no client gate)', async () => {
-      // Phase 7: client no longer gates by isHost; server rejects via state.hostUserId check
-      (facade as unknown as { isHost: boolean }).isHost = false;
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'forbidden' }),
+        json: () => Promise.resolve(buildApiCommandRejected('forbidden')),
       });
 
       const result = await facade.restartGame();
@@ -193,7 +202,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Network Error', () => {
     it('should handle network errors gracefully', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       const result = await facade.restartGame();
 
@@ -208,7 +217,7 @@ describe('restartGame Contract (HTTP API)', () => {
 
   describe('Server-side behavior (documented, not tested here)', () => {
     it('NOTE: restart is handled server-side, state pushed via postgres_changes', () => {
-      // Server-side /game/restart is responsible for:
+      // Server-side werewolf.game.restart is responsible for:
       // 1. Calling handleRestartGame handler
       // 2. Writing to DB -> postgres_changes pushes new state to all clients
       // These behaviors are verified by API route tests, not in facade tests

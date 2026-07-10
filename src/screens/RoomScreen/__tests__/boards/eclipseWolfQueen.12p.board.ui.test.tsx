@@ -291,7 +291,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         ]),
         1,
       );
-      expect(wolfVoteAction).toHaveBeenCalledWith(1);
+      expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
 
       // Step 3: witchSavePrompt
       await coverageChainWitchSavePrompt(harness, setMock, renderRoom, 9);
@@ -338,7 +338,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [7, 'eclipseWolfQueen'],
         ]),
       );
-      expect(emptyVote).toHaveBeenCalledWith(null);
+      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
 
       // Final: literal coverage requirements
       harness.assertCoverage([

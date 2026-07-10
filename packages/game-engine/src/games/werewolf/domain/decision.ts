@@ -12,6 +12,7 @@ import {
   reject,
 } from '../../../platform/engine';
 import type { AudioEffect, GameState } from '../../../protocol/types';
+import type { WerewolfEffect } from '../effects/types';
 
 interface HandlerDecisionOptions {
   readonly progressAfterSuccess?: boolean;
@@ -55,7 +56,7 @@ export function handlerResultToDecision(
   result: HandlerResult,
   context: CommandContext,
   options: HandlerDecisionOptions = {},
-): Decision<StateAction, never> {
+): Decision<StateAction, WerewolfEffect> {
   if (result.kind === 'error') {
     return reject(result.reason);
   }
@@ -66,7 +67,7 @@ export function handlerResultToDecision(
   ];
 
   if (result.kind === 'rejection') {
-    return commitDomainRejection(result.reason, {
+    return commitDomainRejection<StateAction, WerewolfEffect>(result.reason, {
       events,
       broadcast: events.length === 0 ? 'none' : 'state',
     });
@@ -80,7 +81,7 @@ export function handlerResultToDecision(
     events.push(...runInlineProgression(stateAfterHandler, state.hostUserId, context).actions);
   }
 
-  return commit({
+  return commit<StateAction, WerewolfEffect>({
     events,
     broadcast: events.length === 0 ? 'none' : 'state',
     ...(result.reason === undefined ? {} : { reason: result.reason }),

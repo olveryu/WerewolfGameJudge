@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
@@ -27,7 +28,7 @@ const mockNavigation = {
 };
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
-const mockSubmitAction = jest.fn<void, [number]>();
+const mockSubmitAction = jest.fn<void, [WerewolfActionInput]>();
 const mockRequestSnapshot = jest.fn();
 
 type UseGameRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
@@ -221,7 +222,7 @@ describe('RoomScreen wolf vote UI', () => {
     dialogs.showWolfVoteDialog(
       '1号狼人',
       2,
-      () => mockSubmitAction(2),
+      () => mockSubmitAction({ kind: 'target', target: 2 }),
       undefined,
       getSchema('wolfKill'),
     );
@@ -239,7 +240,7 @@ describe('RoomScreen wolf vote UI', () => {
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
     confirmBtn?.onPress?.();
-    expect(mockSubmitAction).toHaveBeenCalledWith(2);
+    expect(mockSubmitAction).toHaveBeenCalledWith({ kind: 'target', target: 2 });
   });
 
   it('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
@@ -280,7 +281,7 @@ describe('RoomScreen wolf vote UI', () => {
     const confirmBtn = buttons.find((b) => b.text === '确定');
     expect(confirmBtn).toBeDefined();
     confirmBtn?.onPress?.();
-    expect(mockSubmitAction).toHaveBeenCalledWith(2);
+    expect(mockSubmitAction).toHaveBeenCalledWith({ kind: 'target', target: 2 });
   });
 
   it('forbidden target role is NOT disabled in UI; still opens confirm dialog and submits vote intent', async () => {
@@ -371,7 +372,7 @@ describe('RoomScreen wolf vote UI', () => {
 
     expect(submitActionMock).not.toBeNull();
     const submitActionSpy = submitActionMock as unknown as jest.Mock;
-    expect(submitActionSpy).toHaveBeenCalledWith(2);
+    expect(submitActionSpy).toHaveBeenCalledWith({ kind: 'target', target: 2 });
   });
 });
 
@@ -421,8 +422,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
       harness.pressButtonOnType('wolfVote', '确定');
     });
 
-    // submitAction should be called with the target seat index
-    expect(mockSubmitAction).toHaveBeenCalledWith(2);
+    expect(mockSubmitAction).toHaveBeenCalledWith({ kind: 'target', target: 2 });
   });
 
   it('tap seat → wolfVote dialog → press 取消 → submitAction NOT called', async () => {

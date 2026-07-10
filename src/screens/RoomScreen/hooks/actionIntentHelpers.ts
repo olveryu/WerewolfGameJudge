@@ -5,19 +5,11 @@
  * No hooks, no side effects, no closure captures.
  */
 
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { RevealKind } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
 
 import type { LocalGameState } from '@/types/GameStateTypes';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Wire payload shape for witch step results (save / poison targets). */
-interface WitchStepResultsExtra {
-  stepResults: { save: number | null; poison: number | null };
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reveal: GameState field access
@@ -56,11 +48,15 @@ export function getSubStepByKey(
 }
 
 /**
- * Build witch action extra with stepResults protocol.
+ * Build the canonical Witch action input.
  */
-export function buildWitchStepResults(opts: {
+export function buildWitchActionInput(opts: {
   saveTarget: number | null;
   poisonTarget: number | null;
-}): WitchStepResultsExtra {
-  return { stepResults: { save: opts.saveTarget, poison: opts.poisonTarget } };
+}): Extract<WerewolfActionInput, { kind: 'witch' }> {
+  return {
+    kind: 'witch',
+    saveTarget: opts.saveTarget,
+    poisonTarget: opts.poisonTarget,
+  };
 }

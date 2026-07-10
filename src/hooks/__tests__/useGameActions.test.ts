@@ -6,6 +6,7 @@
  */
 
 import { act, renderHook } from '@testing-library/react-native';
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import type { BgmControlState } from '@/hooks/useBgmControl';
@@ -49,14 +50,19 @@ function createMockFacade(overrides: Partial<MockFacade> = {}): MockFacade {
       .fn<Promise<MutationResult>, [boolean]>()
       .mockResolvedValue({ success: true }),
     markViewedRole: jest
-      .fn<Promise<MutationResult>, [number]>()
+      .fn<Promise<MutationResult>, [number | null]>()
       .mockResolvedValue({ success: true }),
     submitAction: jest
-      .fn<Promise<MutationResult>, [number, string, number | null, unknown]>()
+      .fn<Promise<MutationResult>, [WerewolfActionInput, number | null]>()
       .mockResolvedValue({ success: true }),
-    submitRevealAck: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
+    submitRevealAck: jest
+      .fn<Promise<MutationResult>, [number | null]>()
+      .mockResolvedValue({ success: true }),
+    submitGroupConfirmAck: jest
+      .fn<Promise<MutationResult>, [number | null]>()
+      .mockResolvedValue({ success: true }),
     sendWolfRobotHunterStatusViewed: jest
-      .fn<Promise<MutationResult>, [number]>()
+      .fn<Promise<MutationResult>, [number | null]>()
       .mockResolvedValue({ success: true }),
     postProgression: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
     ...overrides,
@@ -276,7 +282,7 @@ describe('useGameActions - player night actions', () => {
 
     await act(() => result.current.viewedRole());
 
-    expect(deps.facade.markViewedRole).toHaveBeenCalledWith(3);
+    expect(deps.facade.markViewedRole).toHaveBeenCalledWith(null);
   });
 
   it('viewedRole should use debug.controlledSeat when set', async () => {
@@ -300,22 +306,22 @@ describe('useGameActions - player night actions', () => {
     expect(deps.facade.markViewedRole).not.toHaveBeenCalled();
   });
 
-  it('submitAction should use effectiveSeat and effectiveRole', async () => {
+  it('submitAction should send typed input and null controlledSeat for self', async () => {
     const deps = createDeps({
       debug: createMockDebug({ effectiveSeat: 2, effectiveRole: 'seer' }),
     });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.submitAction(4));
+    await act(() => result.current.submitAction({ kind: 'target', target: 4 }));
 
-    expect(deps.facade.submitAction).toHaveBeenCalledWith(2, 'seer', 4, undefined);
+    expect(deps.facade.submitAction).toHaveBeenCalledWith({ kind: 'target', target: 4 }, null);
   });
 
   it('submitAction should skip when effectiveSeat is null', async () => {
     const deps = createDeps({ debug: createMockDebug({ effectiveSeat: null }) });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.submitAction(4));
+    await act(() => result.current.submitAction({ kind: 'target', target: 4 }));
 
     expect(deps.facade.submitAction).not.toHaveBeenCalled();
   });
@@ -326,14 +332,27 @@ describe('useGameActions - player night actions', () => {
 
     await act(() => result.current.submitRevealAck());
 
-    expect(deps.facade.submitRevealAck).toHaveBeenCalled();
+    expect(deps.facade.submitRevealAck).toHaveBeenCalledWith(null);
   });
 
-  it('sendWolfRobotHunterStatusViewed should call facade with seat', async () => {
-    const deps = createDeps();
+  it('reveal and group-confirm acks pass the controlled bot seat', async () => {
+    const deps = createDeps({
+      debug: createMockDebug({ controlledSeat: 6, effectiveSeat: 6 }),
+    });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.sendWolfRobotHunterStatusViewed(7));
+    await act(() => result.current.submitRevealAck());
+    await act(() => result.current.submitGroupConfirmAck());
+
+    expect(deps.facade.submitRevealAck).toHaveBeenCalledWith(6);
+    expect(deps.facade.submitGroupConfirmAck).toHaveBeenCalledWith(6);
+  });
+
+  it('sendWolfRobotHunterStatusViewed should pass controlledSeat from debug state', async () => {
+    const deps = createDeps({ debug: createMockDebug({ controlledSeat: 7, effectiveSeat: 7 }) });
+    const { result } = renderHook(() => useGameActions(deps));
+
+    await act(() => result.current.sendWolfRobotHunterStatusViewed());
 
     expect(deps.facade.sendWolfRobotHunterStatusViewed).toHaveBeenCalledWith(7);
   });
@@ -471,7 +490,7 @@ describe('useGameActions - handleMutationResult', () => {
     });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.submitAction(2));
+    await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
     expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '网络异常，请检查网络后重试');
   });
@@ -486,7 +505,7 @@ describe('useGameActions - handleMutationResult', () => {
     });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.submitAction(2));
+    await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
     expect(mockShowAlert).toHaveBeenCalledWith('提交行动失败', '服务暂时不可用，请稍后重试');
   });
@@ -501,7 +520,7 @@ describe('useGameActions - handleMutationResult', () => {
     });
     const { result } = renderHook(() => useGameActions(deps));
 
-    await act(() => result.current.submitAction(2));
+    await act(() => result.current.submitAction({ kind: 'target', target: 2 }));
 
     expect(mockShowAlert).not.toHaveBeenCalled();
   });

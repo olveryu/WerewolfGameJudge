@@ -2,21 +2,17 @@
  * handlers/shared — shared utility functions (Workers)
  *
  * Provides Hono validation, DO stub retrieval, and error-handling utilities shared across Worker handlers.
- * Game-engine utilities buildHandlerContext/extractAudioActions have been moved to gameProcessor.ts.
  */
 
-import { createRoomCommandResult, type RoomCommandResult } from '@werewolf/game-engine';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validator } from 'hono/validator';
 import type { z } from 'zod';
 
-import type { GameActionResult } from '../durableObjects/gameProcessor';
-import type { GameRoom } from '../durableObjects/GameRoom';
 import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
+import type { GameRoom } from '../platform/room/GameRoom';
 
 /**
  * Strip the `& Disposable` intersection that @cloudflare/workers-types adds
@@ -65,22 +61,6 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
   });
 }
 
-/** Validate that a value is a valid seat number (finite non-negative integer). */
-export function isValidSeat(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
-}
-
-/** HTTP status code mapping */
-export function resultToStatus(result: { success: boolean; reason?: string }): 200 | 400 | 500 {
-  if (result.success) return 200;
-  return result.reason === 'INTERNAL_ERROR' ? 500 : 400;
-}
-
-/** Remove DO-only execution metadata before crossing the public HTTP boundary. */
-export function toPublicCommandResult(result: GameActionResult): RoomCommandResult<GameState> {
-  return createRoomCommandResult(result);
-}
-
 /**
  * Maps CF continent codes to DO location hints.
  * Only affects the first get() for a new DO — subsequent calls ignore the hint.
@@ -95,7 +75,7 @@ const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
 };
 
 /**
- * Get a typed DO stub for the given room code.
+ * Get a typed DO stub for a persisted room instance ID.
  *
  * Returns a GameRoomStub with clean RPC types (Disposable stripped),
  * eliminating the need for `as Promise<GameActionResult>` at every call site.
@@ -103,8 +83,8 @@ const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
  * Optionally accepts the incoming Request to extract cf.continent
  * and pass a locationHint, co-locating the DO near the first requester.
  */
-export function getGameRoomStub(env: Env, roomCode: string, req?: Request): GameRoomStub {
-  const id = env.GAME_ROOM.idFromName(roomCode);
+export function getGameRoomStub(env: Env, roomInstanceId: string, req?: Request): GameRoomStub {
+  const id = env.GAME_ROOM.idFromString(roomInstanceId);
   const cf = (req as CfRequest | undefined)?.cf;
   const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
   return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);

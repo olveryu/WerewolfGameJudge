@@ -74,6 +74,23 @@ export const rooms = sqliteTable('rooms', {
   lastStartedAt: text('last_started_at'),
 });
 
+/** Idempotency ledger for committed setup-to-ongoing room transitions. */
+export const roomGameStarts = sqliteTable(
+  'room_game_starts',
+  {
+    effectId: text('effect_id').primaryKey(),
+    roomCode: text('room_code')
+      .notNull()
+      .references(() => rooms.code, { onDelete: 'cascade' }),
+    startedRevision: integer('started_revision').notNull(),
+    startedAt: text('started_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('idx_room_game_starts_room_revision').on(table.roomCode, table.startedRevision),
+    index('idx_room_game_starts_room_started').on(table.roomCode, table.startedAt),
+  ],
+);
+
 // ── password_reset_tokens ───────────────────────────────────────────────────
 
 /** Password reset tokens table. */
@@ -204,7 +221,7 @@ export const campSettlements = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    /** `${roomCode}:${revision}` — same settle key as user_stats.last_room_code */
+    /** Game-ended effect ID; shared with game_settlement_results.effect_id. */
     settleKey: text('settle_key').notNull(),
     /** Camp bucket: 'wolf' | 'god' | 'villager' | 'third' (CampBucket) */
     camp: text('camp').notNull(),
@@ -214,6 +231,35 @@ export const campSettlements = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.userId, table.settleKey] }),
     index('idx_camp_settlements_user_settled').on(table.userId, table.settledAt),
+  ],
+);
+
+// ── game_settlement_results ─────────────────────────────────────────────────
+
+/** Exact per-player rewards committed for an at-least-once game-ended effect. */
+export const gameSettlementResults = sqliteTable(
+  'game_settlement_results',
+  {
+    effectId: text('effect_id').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    roomCode: text('room_code').notNull(),
+    participantFingerprint: text('participant_fingerprint').notNull(),
+    camp: text('camp').notNull(),
+    previousXp: integer('previous_xp').notNull(),
+    xpEarned: integer('xp_earned').notNull(),
+    newXp: integer('new_xp').notNull(),
+    previousLevel: integer('previous_level').notNull(),
+    newLevel: integer('new_level').notNull(),
+    normalDrawsEarned: integer('normal_draws_earned').notNull(),
+    goldenDrawsEarned: integer('golden_draws_earned').notNull(),
+    statsApplied: integer('stats_applied').notNull().default(0),
+    settledAt: text('settled_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.effectId, table.userId] }),
+    index('idx_game_settlement_results_user_settled').on(table.userId, table.settledAt),
   ],
 );
 

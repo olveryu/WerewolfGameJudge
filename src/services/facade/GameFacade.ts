@@ -23,7 +23,7 @@
  *   Subsequent async callbacks (audio ack, WS event handlers) check #aborted to decide whether to drop.
  */
 
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import { type GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -254,7 +254,7 @@ export class GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void> {
+  async createRoom(roomCode: string, hostUserId: string): Promise<void> {
     facadeLog.info('createRoom', { roomCode });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
@@ -263,12 +263,18 @@ export class GameFacade implements IGameFacade {
     this.#myUserId = hostUserId;
     this.#roomCode = roomCode;
 
-    // Initialize store (using shared buildInitialGameState)
-    const initialState = buildInitialGameState(roomCode, hostUserId, template);
-    this.#store.initialize(initialState);
+    this.#store.reset();
 
     // Connect WS + wait for Connected (FSM: Idle -> Connecting -> Syncing -> Connected)
     await this.#connectionManager.connectAndWait(roomCode, hostUserId);
+
+    const state = this.#store.getState();
+    if (state === null) {
+      throw new Error('[FAIL-FAST] Created room connection completed without a server snapshot');
+    }
+    if (state.roomCode !== roomCode || state.hostUserId !== hostUserId) {
+      throw new Error('[FAIL-FAST] Created room snapshot identity does not match the room');
+    }
   }
 
   /**
@@ -377,11 +383,11 @@ export class GameFacade implements IGameFacade {
   // Seating (delegated to seatActions)
   // =========================================================================
 
-  async takeSeat(seat: number, profile?: SeatProfile): Promise<ActionResult> {
+  async takeSeat(seat: number, profile: SeatProfile): Promise<ActionResult> {
     return seatActions.takeSeat(
       this.#getSeatActionsContext(),
       seat,
-      profile && this.#resolveProfileEffect(profile),
+      this.#resolveProfileEffect(profile),
     );
   }
 
@@ -405,9 +411,8 @@ export class GameFacade implements IGameFacade {
     return gameActions.updateTemplate(this.#getActionsContext(), template);
   }
 
-  async markViewedRole(seat: number): Promise<ActionResult> {
-    // Host and Player both use HTTP API uniformly
-    return gameActions.markViewedRole(this.#getActionsContext(), seat);
+  async markViewedRole(controlledSeat: number | null): Promise<ActionResult> {
+    return gameActions.markViewedRole(this.#getActionsContext(), controlledSeat);
   }
 
   async startNight(): Promise<ActionResult> {
@@ -533,12 +538,10 @@ export class GameFacade implements IGameFacade {
    * Progression triggered internally by gameActions.submitAction (Host only).
    */
   async submitAction(
-    seat: number,
-    role: RoleId,
-    target: number | null,
-    extra?: unknown,
+    input: WerewolfActionInput,
+    controlledSeat: number | null,
   ): Promise<ActionResult> {
-    return gameActions.submitAction(this.#getActionsContext(), seat, role, target, extra);
+    return gameActions.submitAction(this.#getActionsContext(), input, controlledSeat);
   }
 
   /**
@@ -546,8 +549,8 @@ export class GameFacade implements IGameFacade {
    *
    * Host/Player both call HTTP API uniformly
    */
-  async submitRevealAck(): Promise<ActionResult> {
-    return gameActions.clearRevealAcks(this.#getActionsContext());
+  async submitRevealAck(controlledSeat: number | null): Promise<ActionResult> {
+    return gameActions.submitRevealAck(this.#getActionsContext(), controlledSeat);
   }
 
   /**
@@ -555,8 +558,8 @@ export class GameFacade implements IGameFacade {
    *
    * Any player can call. Server auto-progresses step after receiving all player acks.
    */
-  async submitGroupConfirmAck(seat: number): Promise<ActionResult> {
-    return gameActions.submitGroupConfirmAck(this.#getActionsContext(), seat);
+  async submitGroupConfirmAck(controlledSeat: number | null): Promise<ActionResult> {
+    return gameActions.submitGroupConfirmAck(this.#getActionsContext(), controlledSeat);
   }
 
   // =========================================================================
@@ -568,10 +571,10 @@ export class GameFacade implements IGameFacade {
    *
    * Host/Player both call HTTP API uniformly
    *
-   * @param seat - wolfRobot's seat number (caller passes effectiveSeat to support debug bot takeover)
+   * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  async sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult> {
-    return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), seat);
+  async sendWolfRobotHunterStatusViewed(controlledSeat: number | null): Promise<ActionResult> {
+    return gameActions.setWolfRobotHunterStatusViewed(this.#getActionsContext(), controlledSeat);
   }
 
   /**
@@ -619,16 +622,12 @@ export class GameFacade implements IGameFacade {
   #getActionsContext(): GameActionsContext {
     return {
       store: this.#store,
-      myUserId: this.#myUserId,
-      getMySeat: () => this.getMySeat(),
       audioService: this.#audioService,
     };
   }
 
   #getSeatActionsContext(): SeatActionsContext {
     return {
-      myUserId: this.#myUserId,
-      getRoomCode: () => this.#store.getState()?.roomCode ?? null,
       store: this.#store,
     };
   }

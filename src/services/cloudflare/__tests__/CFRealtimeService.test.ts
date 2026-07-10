@@ -120,4 +120,85 @@ describe('CFRealtimeService protocol', () => {
     expect(handlers.onError).toHaveBeenCalledWith(expect.any(Error));
     expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
   });
+
+  it('rejects a non-increasing revision on one socket', async () => {
+    const { handlers, socket } = await connectService();
+    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    socket.onmessage?.({
+      data: JSON.stringify(
+        createStateUpdateMessage(createRoomSnapshot(state, 4), 'room.seat.take'),
+      ),
+    } as MessageEvent);
+    socket.onmessage?.({
+      data: JSON.stringify(
+        createStateUpdateMessage(createRoomSnapshot(state, 3), 'room.seat.leave'),
+      ),
+    } as MessageEvent);
+
+    expect(handlers.onStateUpdate).toHaveBeenCalledTimes(1);
+    const revisionError = handlers.onError.mock.calls[0]?.[0];
+    if (!(revisionError instanceof Error)) throw new Error('Expected revision protocol error');
+    expect(revisionError.message).toContain('did not advance');
+    expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
+  });
+
+  it('delivers one strict settlement result and skips an identical retry', async () => {
+    const { handlers, socket } = await connectService();
+    const message = {
+      type: 'SETTLE_RESULT',
+      gameType: 'werewolf',
+      settlementId: 'settlement-1',
+      endedRevision: 12,
+      xpEarned: 15,
+      newXp: 40,
+      newLevel: 2,
+      previousLevel: 1,
+      normalDrawsEarned: 2,
+      goldenDrawsEarned: 1,
+    };
+
+    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
+    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
+
+    expect(handlers.onSettleResult).toHaveBeenCalledTimes(1);
+    expect(handlers.onSettleResult).toHaveBeenCalledWith({
+      gameType: 'werewolf',
+      settlementId: 'settlement-1',
+      endedRevision: 12,
+      xpEarned: 15,
+      newXp: 40,
+      newLevel: 2,
+      previousLevel: 1,
+      normalDrawsEarned: 2,
+      goldenDrawsEarned: 1,
+    });
+  });
+
+  it('treats a changed settlement retry as a protocol error', async () => {
+    const { handlers, socket } = await connectService();
+    const message = {
+      type: 'SETTLE_RESULT',
+      gameType: 'werewolf',
+      settlementId: 'settlement-2',
+      endedRevision: 12,
+      xpEarned: 15,
+      newXp: 40,
+      newLevel: 2,
+      previousLevel: 1,
+      normalDrawsEarned: 2,
+      goldenDrawsEarned: 1,
+    };
+    socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
+    socket.onmessage?.({
+      data: JSON.stringify({ ...message, xpEarned: 16 }),
+    } as MessageEvent);
+
+    expect(handlers.onSettleResult).toHaveBeenCalledTimes(1);
+    const settlementError = handlers.onError.mock.calls[0]?.[0];
+    if (!(settlementError instanceof Error)) {
+      throw new Error('Expected settlement protocol error');
+    }
+    expect(settlementError.message).toContain('changed across deliveries');
+    expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
+  });
 });

@@ -11,6 +11,7 @@
 import { createRoomCommandResult, WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
+import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -23,6 +24,21 @@ import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IRoomService } from '@/services/types/IRoomService';
+
+jest.mock('@werewolf/game-engine', () => ({
+  ...jest.requireActual<typeof import('@werewolf/game-engine')>('@werewolf/game-engine'),
+  newRequestId: () => 'test-command-id',
+}));
+
+jest.mock('@/utils/logger', () => {
+  const logger = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return { cfFetchLog: logger, facadeLog: logger };
+});
 
 // P0-1: Mock AudioService
 const mockAudioServiceInstance = {
@@ -39,15 +55,6 @@ const mockAudioServiceInstance = {
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
   AudioService: jest.fn(() => mockAudioServiceInstance),
-}));
-
-// fetchWithRetry passthrough: tests mock global.fetch directly,
-// so bypass network-layer retry to avoid delays and timer interference.
-jest.mock('@/services/cloudflare/cfFetch', () => ({
-  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
-    '@/services/cloudflare/cfFetch',
-  ),
-  fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
 }));
 
 // Mock RoomService (DB state persistence)
@@ -88,7 +95,29 @@ function createCommandSuccess(
   state: GameState = buildTestState({ roomCode: 'ABCD' }),
   revision = 1,
 ) {
-  return createRoomCommandResult({ success: true, state, revision });
+  return createRoomCommandResult({
+    kind: 'committed',
+    commandId: 'test-command-id',
+    state,
+    revision,
+    outcome: { kind: 'success' },
+  });
+}
+
+function createCommandRejection(reason: string) {
+  return createRoomCommandResult({
+    kind: 'rejected',
+    commandId: 'test-command-id',
+    reason,
+  });
+}
+
+function getFirstRequestBody(): string {
+  const firstCall = jest.mocked(global.fetch).mock.calls[0];
+  if (firstCall === undefined || typeof firstCall[1]?.body !== 'string') {
+    throw new Error('Expected a JSON fetch request');
+  }
+  return firstCall[1].body;
 }
 
 /**
@@ -166,6 +195,13 @@ describe('GameFacade', () => {
     });
   });
 
+  async function connectCreatedRoom(roomCode: string, hostUserId: string): Promise<void> {
+    mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {
+      testStore.applySnapshot(buildInitialGameState(roomCode, hostUserId, mockTemplate), 1);
+    });
+    await facade.createRoom(roomCode, hostUserId);
+  }
+
   // ===========================================================================
   // Shared Helper: fill all seats via PLAYER_JOIN actions + reducer
   // ===========================================================================
@@ -200,18 +236,37 @@ describe('GameFacade', () => {
   };
 
   describe('Host: createRoom', () => {
-    it('should initialize store with correct state', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+    it('should load the authoritative server snapshot', async () => {
+      await connectCreatedRoom('ABCD', 'host-uid');
 
       expect(facade.isHostPlayer()).toBe(true);
       expect(facade.getMyUserId()).toBe('host-uid');
       expect(facade.getStateRevision()).toBe(1);
+      expect(facade.getState()?.roomCode).toBe('ABCD');
     });
 
     it('should connect via ConnectionManager with correct params', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
 
       expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith('ABCD', 'host-uid');
+    });
+
+    it('fails fast when connection completes without a server snapshot', async () => {
+      mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {});
+
+      await expect(facade.createRoom('ABCD', 'host-uid')).rejects.toThrow(
+        '[FAIL-FAST] Created room connection completed without a server snapshot',
+      );
+    });
+
+    it('fails fast when the server snapshot identity differs', async () => {
+      mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {
+        testStore.applySnapshot(buildInitialGameState('OTHER', 'host-uid', mockTemplate), 1);
+      });
+
+      await expect(facade.createRoom('ABCD', 'host-uid')).rejects.toThrow(
+        '[FAIL-FAST] Created room snapshot identity does not match the room',
+      );
     });
   });
 
@@ -219,7 +274,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -240,10 +295,10 @@ describe('GameFacade', () => {
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/seat'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"sit"') as string,
+          body: expect.stringContaining('"type":"room.seat.take"') as string,
         }),
       );
     });
@@ -252,10 +307,10 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_seat' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_seat')),
       });
 
-      const result = await facade.takeSeat(999);
+      const result = await facade.takeSeat(999, { displayName: 'Host Player' });
 
       expect(result).toEqual({ success: false, reason: 'invalid_seat' });
     });
@@ -265,7 +320,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -288,7 +343,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'not_seated' }),
+        json: () => Promise.resolve(createCommandRejection('not_seated')),
       });
 
       const result = await facade.leaveSeat();
@@ -343,10 +398,10 @@ describe('GameFacade', () => {
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/seat'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"action":"sit"') as string,
+          body: expect.stringContaining('"type":"room.seat.take"') as string,
         }),
       );
     });
@@ -355,7 +410,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
+        json: () => Promise.resolve(createCommandRejection('seat_taken')),
       });
 
       const result = await facade.takeSeat(1, { displayName: 'Player One' });
@@ -457,7 +512,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'seat_taken' }),
+        json: () => Promise.resolve(createCommandRejection('seat_taken')),
       });
 
       const result = await facade.takeSeat(1, { displayName: 'Player One' });
@@ -469,7 +524,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'game_in_progress' }),
+        json: () => Promise.resolve(createCommandRejection('game_in_progress')),
       });
 
       const result = await facade.takeSeat(1, { displayName: 'Player One' });
@@ -478,7 +533,7 @@ describe('GameFacade', () => {
     });
 
     it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       const result = await facade.takeSeat(1, { displayName: 'Player One' });
 
@@ -523,7 +578,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'game_in_progress' }),
+        json: () => Promise.resolve(createCommandRejection('game_in_progress')),
       });
 
       const result = await facade.leaveSeat();
@@ -534,7 +589,7 @@ describe('GameFacade', () => {
 
   describe('leaveRoom', () => {
     it('should clean up state when leaving', async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
       await facade.leaveRoom();
 
       expect(mockConnectionManager.disconnect).toHaveBeenCalled();
@@ -547,7 +602,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -570,7 +625,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_seat' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_seat')),
       });
 
       const result = await facade.takeSeat(999, { displayName: 'Host Player' });
@@ -583,7 +638,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -606,7 +661,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'not_seated' }),
+        json: () => Promise.resolve(createCommandRejection('not_seated')),
       });
 
       const result = await facade.leaveSeat();
@@ -622,7 +677,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -639,10 +694,10 @@ describe('GameFacade', () => {
       await facade.assignRoles();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/assign'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"ABCD"') as string,
+          body: expect.stringContaining('"type":"werewolf.roles.assign"') as string,
         }),
       );
     });
@@ -663,7 +718,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_status')),
       });
 
       const result = await facade.assignRoles();
@@ -688,7 +743,7 @@ describe('GameFacade', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       const result = await facade.assignRoles();
 
@@ -704,14 +759,14 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
       global.fetch = originalFetch;
     });
 
-    it('should call view-role API with userId and seat', async () => {
+    it('should send controlledSeat without userId or claimed actor seat', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
@@ -721,18 +776,15 @@ describe('GameFacade', () => {
       await facade.markViewedRole(2);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/view-role'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"seat":2') as string,
+          body: expect.stringContaining('"controlledSeat":2') as string,
         }),
       );
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.stringContaining('"userId":"host-uid"') as string,
-        }),
-      );
+      const requestBody = getFirstRequestBody();
+      expect(requestBody).not.toContain('"userId"');
+      expect(requestBody).not.toContain('"role"');
     });
 
     it('should call view-role API for player (unified HTTP path, no PlayerMessage)', async () => {
@@ -767,12 +819,12 @@ describe('GameFacade', () => {
         json: () => Promise.resolve(createCommandSuccess()),
       });
 
-      const result = await playerFacade.markViewedRole(0);
+      const result = await playerFacade.markViewedRole(null);
 
       expect(result.success).toBe(true);
       // Should use HTTP API (unified path)
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/view-role'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -784,7 +836,7 @@ describe('GameFacade', () => {
         json: () => Promise.resolve(createCommandSuccess()),
       });
 
-      const result = await facade.markViewedRole(0);
+      const result = await facade.markViewedRole(null);
 
       expect(result.success).toBe(true);
     });
@@ -793,19 +845,19 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_status')),
       });
 
-      const result = await facade.markViewedRole(0);
+      const result = await facade.markViewedRole(null);
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
     });
 
     it('should handle network errors gracefully', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
-      const result = await facade.markViewedRole(0);
+      const result = await facade.markViewedRole(null);
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('NETWORK_ERROR');
@@ -819,7 +871,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('ABCD', 'host-uid', mockTemplate);
+      await connectCreatedRoom('ABCD', 'host-uid');
     });
 
     afterEach(() => {
@@ -836,10 +888,10 @@ describe('GameFacade', () => {
       await facade.startNight();
 
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/start'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"roomCode":"ABCD"') as string,
+          body: expect.stringContaining('"type":"werewolf.night.start"') as string,
         }),
       );
     });
@@ -874,7 +926,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_status')),
       });
 
       const result = await facade.startNight();
@@ -901,7 +953,7 @@ describe('GameFacade', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       const result = await facade.startNight();
 
@@ -918,7 +970,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
+      await connectCreatedRoom('TEST', 'host-uid');
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
 
@@ -933,35 +985,38 @@ describe('GameFacade', () => {
         json: () => Promise.resolve(createCommandSuccess()),
       });
 
-      const result = await facade.submitAction(2, 'seer', 0);
+      const result = await facade.submitAction({ kind: 'target', target: 0 }, null);
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/action'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({
           method: 'POST',
-          body: expect.stringContaining('"role":"seer"') as string,
+          body: expect.stringContaining('"kind":"target"') as string,
         }),
       );
+      const requestBody = getFirstRequestBody();
+      expect(requestBody).not.toContain('"role"');
+      expect(requestBody).not.toContain('"userId"');
     });
 
     it('should return failure reason from API', async () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_status')),
       });
 
-      const result = await facade.submitAction(2, 'seer', 0);
+      const result = await facade.submitAction({ kind: 'target', target: 0 }, null);
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('invalid_status');
     });
 
     it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
-      const result = await facade.submitAction(2, 'seer', 0);
+      const result = await facade.submitAction({ kind: 'target', target: 0 }, null);
 
       expect(result.success).toBe(false);
       expect(result.reason).toBe('NETWORK_ERROR');
@@ -974,7 +1029,7 @@ describe('GameFacade', () => {
   describe('setAudioPlaying (PR7)', () => {
     const origFetch = global.fetch;
     beforeEach(async () => {
-      await facade.createRoom('TEST', 'host-uid', mockTemplate);
+      await connectCreatedRoom('TEST', 'host-uid');
       fillAllSeatsViaReducer(facade, mockTemplate);
     });
     afterEach(() => {
@@ -992,7 +1047,7 @@ describe('GameFacade', () => {
 
       expect(result.success).toBe(true);
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/audio-gate'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1013,7 +1068,7 @@ describe('GameFacade', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'invalid_status' }),
+        json: () => Promise.resolve(createCommandRejection('invalid_status')),
       });
 
       const result = await facade.setAudioPlaying(true);
@@ -1023,7 +1078,7 @@ describe('GameFacade', () => {
     });
 
     it('should return NETWORK_ERROR on fetch failure', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('network'));
+      global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
 
       const result = await facade.setAudioPlaying(true);
 
@@ -1199,7 +1254,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
       // Should call audio-ack API to release gate + trigger progression
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/audio-ack'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1215,7 +1270,7 @@ describe('GameFacade', () => {
 
       // Gate should still be released via finally → postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/audio-ack'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1266,7 +1321,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).not.toHaveBeenCalled();
       // Gate released via postAudioAck → HTTP API
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/audio-ack'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1283,8 +1338,13 @@ describe('GameFacade', () => {
 
     const setupRetryFacade = async () => {
       statusListeners = [];
+      retryStore = new GameStore();
       retryConnectionManager = {
-        connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
+        connectAndWait: jest
+          .fn<Promise<void>, [string, string]>()
+          .mockImplementation(async (roomCode, hostUserId) => {
+            retryStore.applySnapshot(buildInitialGameState(roomCode, hostUserId, mockTemplate), 1);
+          }),
         connect: jest.fn<void, [string, string]>(),
         disconnect: jest.fn<void, []>(),
         dispose: jest.fn<void, []>(),
@@ -1302,7 +1362,6 @@ describe('GameFacade', () => {
         getContext: jest.fn().mockReturnValue({ state: 'Idle', attempt: 0, lastRevision: 0 }),
       };
 
-      retryStore = new GameStore();
       const f = new GameFacade({
         store: retryStore,
         connectionManager: retryConnectionManager as unknown as ConnectionManager,
@@ -1324,11 +1383,11 @@ describe('GameFacade', () => {
           ),
         } as unknown as IRoomService,
       });
-      await f.createRoom('RTRY', 'host-uid', mockTemplate);
+      await f.createRoom('RTRY', 'host-uid');
       return f;
     };
 
-    it('should set #pendingAudioAckRetry when postAudioAck fails during playback', async () => {
+    it('should retain the prepared audio ack when delivery fails during playback', async () => {
       jest.useFakeTimers();
       // Mock fetch to simulate network error on audio-ack
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
@@ -1350,8 +1409,8 @@ describe('GameFacade', () => {
         20,
       );
 
-      // Advance past callApiWithRetry NETWORK_ERROR retry delays
-      await jest.advanceTimersByTimeAsync(1500);
+      // Advance past cfFetch network retry delays (1s + 2s).
+      await jest.advanceTimersByTimeAsync(3_100);
 
       // Now simulate reconnect — mock fetch to succeed this time
       global.fetch = jest.fn().mockResolvedValue({
@@ -1373,7 +1432,7 @@ describe('GameFacade', () => {
       expect(mockAudioServiceInstance.playRoleBeginningAudio).toHaveBeenCalledWith('wolf');
       // Should have retried postAudioAck
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/game/night/audio-ack'),
+        expect.stringContaining('/room/command'),
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -1415,7 +1474,7 @@ describe('GameFacade', () => {
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
-    it('should reset #pendingAudioAckRetry on leaveRoom', async () => {
+    it('should clear the pending prepared audio ack on leaveRoom', async () => {
       jest.useFakeTimers();
       global.fetch = jest.fn().mockRejectedValue(new TypeError('Load failed'));
       const f = await setupRetryFacade();
@@ -1433,8 +1492,8 @@ describe('GameFacade', () => {
         }),
         20,
       );
-      // Advance past callApiWithRetry NETWORK_ERROR retries
-      await jest.advanceTimersByTimeAsync(1500);
+      // Advance past cfFetch network retry delays (1s + 2s).
+      await jest.advanceTimersByTimeAsync(3_100);
 
       // Leave room resets the flag
       await f.leaveRoom();
@@ -1513,7 +1572,7 @@ describe('GameFacade', () => {
         onlineListeners.forEach((fn) => fn(new Event('online')));
       };
 
-      /** Helper: trigger ack failure to set #pendingAudioAckRetry + register online listener */
+      /** Trigger an unknown ack delivery and register the online retry listener. */
       const triggerAckFailureAndSettle = async () => {
         retryStore.applySnapshot(
           buildTestState({
@@ -1527,8 +1586,8 @@ describe('GameFacade', () => {
           }),
           20,
         );
-        // Advance past callApiWithRetry NETWORK_ERROR retry delays + online listener registration
-        await jest.advanceTimersByTimeAsync(1500);
+        // Advance past cfFetch network retries and online-listener registration.
+        await jest.advanceTimersByTimeAsync(3_100);
       };
 
       it('should retry postAudioAck via online event when status listener does not fire', async () => {
@@ -1552,7 +1611,7 @@ describe('GameFacade', () => {
 
         // Should have retried postAudioAck
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/game/night/audio-ack'),
+          expect.stringContaining('/room/command'),
           expect.objectContaining({ method: 'POST' }),
         );
       });
@@ -1566,8 +1625,8 @@ describe('GameFacade', () => {
 
         // First online event — retry still fails → should re-register
         fireOnlineEvent();
-        // Advance past callApiWithRetry NETWORK_ERROR retries
-        await jest.advanceTimersByTimeAsync(1500);
+        // Advance past cfFetch network retry delays (1s + 2s).
+        await jest.advanceTimersByTimeAsync(3_100);
 
         // 1 re-registered ack retry listener
         expect(onlineListeners.size).toBe(1);
@@ -1584,7 +1643,7 @@ describe('GameFacade', () => {
         jest.useRealTimers();
 
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/game/night/audio-ack'),
+          expect.stringContaining('/room/command'),
           expect.objectContaining({ method: 'POST' }),
         );
       });
@@ -1605,7 +1664,7 @@ describe('GameFacade', () => {
         await jest.advanceTimersByTimeAsync(50);
 
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/game/night/audio-ack'),
+          expect.stringContaining('/room/command'),
           expect.objectContaining({ method: 'POST' }),
         );
         (global.fetch as jest.Mock).mockClear();
@@ -1672,9 +1731,8 @@ describe('GameFacade', () => {
           }),
           20,
         );
-        // Advance to let audio play + ack fail (including callApiWithRetry
-        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry (timer path)
-        await jest.advanceTimersByTimeAsync(1500);
+        // Let audio play, exhaust cfFetch network retries, and register the timer retry.
+        await jest.advanceTimersByTimeAsync(3_100);
 
         // No ack retry online listener (timer path — onLine=true skips addEventListener)
         expect(onlineListeners.size).toBe(0);
@@ -1693,7 +1751,7 @@ describe('GameFacade', () => {
 
         // Should have retried postAudioAck via timer (not online event)
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/game/night/audio-ack'),
+          expect.stringContaining('/room/command'),
           expect.objectContaining({ method: 'POST' }),
         );
       });
@@ -1719,9 +1777,8 @@ describe('GameFacade', () => {
           }),
           20,
         );
-        // Advance to let audio play + ack fail (including callApiWithRetry
-        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry
-        await jest.advanceTimersByTimeAsync(1500);
+        // Let audio play, exhaust cfFetch network retries, and register online recovery.
+        await jest.advanceTimersByTimeAsync(3_100);
 
         // 1 ack retry online listener
         expect(onlineListeners.size).toBe(1);
@@ -1745,7 +1802,7 @@ describe('GameFacade', () => {
 
         // Poll fallback should have triggered ack retry
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('/game/night/audio-ack'),
+          expect.stringContaining('/room/command'),
           expect.objectContaining({ method: 'POST' }),
         );
       });
@@ -1769,9 +1826,8 @@ describe('GameFacade', () => {
           }),
           20,
         );
-        // Advance to let audio play + ack fail (including callApiWithRetry
-        // NETWORK_ERROR retry delays ~1000ms) + registerOnlineRetry
-        await jest.advanceTimersByTimeAsync(1500);
+        // Let audio play, exhaust cfFetch network retries, and register online recovery.
+        await jest.advanceTimersByTimeAsync(3_100);
 
         // 1 ack retry online listener
         expect(onlineListeners.size).toBe(1);

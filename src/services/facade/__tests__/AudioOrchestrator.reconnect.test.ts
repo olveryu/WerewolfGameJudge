@@ -11,16 +11,32 @@ import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 import type { AudioOrchestratorDeps } from '../AudioOrchestrator';
 import { AudioOrchestrator } from '../AudioOrchestrator';
+import type { PreparedAudioAck } from '../gameActions';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
-const mockPostAudioAck = jest.fn<Promise<ActionResult>, unknown[]>();
-mockPostAudioAck.mockResolvedValue({ success: true });
+const mockPrepareAudioAck = jest.fn<PreparedAudioAck | null, unknown[]>();
+const mockDispatchPreparedAudioAck = jest.fn<Promise<ActionResult>, unknown[]>();
+
+const mockPreparedAudioAckA: PreparedAudioAck = Object.freeze({
+  roomCode: 'ROOM',
+  commandId: 'audio-ack-a',
+  command: Object.freeze({ type: 'werewolf.audio.ack' }),
+  controlledSeat: null,
+});
+
+const mockPreparedAudioAckB: PreparedAudioAck = Object.freeze({
+  roomCode: 'ROOM',
+  commandId: 'audio-ack-b',
+  command: Object.freeze({ type: 'werewolf.audio.ack' }),
+  controlledSeat: null,
+});
 
 jest.mock('../gameActions', () => ({
-  postAudioAck: (...args: unknown[]) => mockPostAudioAck(...args),
+  prepareAudioAck: (...args: unknown[]) => mockPrepareAudioAck(...args),
+  dispatchPreparedAudioAck: (...args: unknown[]) => mockDispatchPreparedAudioAck(...args),
 }));
 
 jest.mock('../../../utils/logger', () => ({
@@ -97,6 +113,8 @@ function createOrchestrator(overrides?: Partial<AudioOrchestratorDeps>): {
 describe('AudioOrchestrator reconnect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrepareAudioAck.mockReturnValue(mockPreparedAudioAckA);
+    mockDispatchPreparedAudioAck.mockResolvedValue({ success: true });
     jest.useFakeTimers();
   });
 
@@ -109,11 +127,13 @@ describe('AudioOrchestrator reconnect', () => {
   // =========================================================================
 
   describe('L2: ack retry on Live', () => {
-    it('retries postAudioAck when pendingAudioAckRetry and status transitions to Live', async () => {
+    it('reuses the exact prepared command when status transitions to Live', async () => {
       const { emitStatus, mockStore, triggerStoreSubscriber } = createOrchestrator();
 
-      // Step 1: Make postAudioAck fail → sets pendingAudioAckRetry = true internally
-      mockPostAudioAck.mockResolvedValueOnce({ success: false, reason: 'network' });
+      mockDispatchPreparedAudioAck.mockResolvedValueOnce({
+        success: false,
+        reason: 'NETWORK_ERROR',
+      });
       mockStore.getState.mockReturnValue({
         pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
       });
@@ -127,15 +147,39 @@ describe('AudioOrchestrator reconnect', () => {
       await jest.advanceTimersByTimeAsync(100);
 
       // Step 2: Emit Live — should trigger L2 retry since ack failed
-      mockPostAudioAck.mockResolvedValue({ success: true });
+      mockDispatchPreparedAudioAck.mockResolvedValue({ success: true });
       mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
       emitStatus(ConnectionStatus.Live);
 
       // Let pending promises resolve
       await jest.advanceTimersByTimeAsync(100);
 
-      // postAudioAck should have been called: once for initial (failed) + once for retry
-      expect(mockPostAudioAck).toHaveBeenCalledTimes(2);
+      expect(mockPrepareAudioAck).toHaveBeenCalledTimes(1);
+      expect(mockDispatchPreparedAudioAck).toHaveBeenCalledTimes(2);
+      expect(mockDispatchPreparedAudioAck.mock.calls[0]?.[1]).toBe(mockPreparedAudioAckA);
+      expect(mockDispatchPreparedAudioAck.mock.calls[1]?.[1]).toBe(mockPreparedAudioAckA);
+    });
+
+    it('mints a new prepared command only after the prior ack is confirmed', async () => {
+      const { mockStore, triggerStoreSubscriber } = createOrchestrator();
+      mockPrepareAudioAck
+        .mockReturnValueOnce(mockPreparedAudioAckA)
+        .mockReturnValueOnce(mockPreparedAudioAckB);
+      mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
+
+      triggerStoreSubscriber({
+        pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+      });
+      await jest.advanceTimersByTimeAsync(100);
+
+      triggerStoreSubscriber({
+        pendingAudioEffects: [{ audioKey: 'seer', isEndAudio: false }],
+      });
+      await jest.advanceTimersByTimeAsync(100);
+
+      expect(mockPrepareAudioAck).toHaveBeenCalledTimes(2);
+      expect(mockDispatchPreparedAudioAck.mock.calls[0]?.[1]).toBe(mockPreparedAudioAckA);
+      expect(mockDispatchPreparedAudioAck.mock.calls[1]?.[1]).toBe(mockPreparedAudioAckB);
     });
 
     it('does not retry when not host', () => {
@@ -145,7 +189,8 @@ describe('AudioOrchestrator reconnect', () => {
 
       emitStatus(ConnectionStatus.Live);
       // No ack retry since not host (and pendingAudioAckRetry would be false anyway)
-      expect(mockPostAudioAck).not.toHaveBeenCalled();
+      expect(mockPrepareAudioAck).not.toHaveBeenCalled();
+      expect(mockDispatchPreparedAudioAck).not.toHaveBeenCalled();
     });
   });
 
@@ -185,7 +230,10 @@ describe('AudioOrchestrator reconnect', () => {
       const { mockStore, triggerStoreSubscriber } = createOrchestrator();
 
       // Make ack keep failing → triggers registerOnlineRetry
-      mockPostAudioAck.mockResolvedValue({ success: false, reason: 'network' });
+      mockDispatchPreparedAudioAck.mockResolvedValue({
+        success: false,
+        reason: 'NETWORK_ERROR',
+      });
       mockStore.getState.mockReturnValue({
         pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
       });

@@ -5,7 +5,7 @@
  * - save step is confirmTarget (no seat tapping to select target)
  * - save action uses killedSeat from witchContext
  * - when canSave=false, save should not submit
- * - protocol: submitAction(actorSeat, { stepResults: { save, poison } })
+ * - protocol: submitAction({ kind: 'witch', saveTarget, poisonTarget })
  */
 
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
@@ -106,7 +106,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     expect(mockSubmitAction).not.toHaveBeenCalled();
   });
 
-  it('save button -> confirm -> submitAction(actorSeat, { stepResults: { save: killedSeat, poison: null } })', async () => {
+  it('save button -> confirm -> submits canonical witch input', async () => {
     // killedSeat = 2, mySeat = 0
     const killedSeat = 2;
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
@@ -146,9 +146,10 @@ describe('RoomScreen witch save UI (contract)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeat=0), target in stepResults
-    expect(mockSubmitAction).toHaveBeenCalledWith(0, {
-      stepResults: { save: killedSeat, poison: null },
+    expect(mockSubmitAction).toHaveBeenCalledWith({
+      kind: 'witch',
+      saveTarget: killedSeat,
+      poisonTarget: null,
     });
   });
 

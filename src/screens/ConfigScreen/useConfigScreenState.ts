@@ -9,7 +9,6 @@
  */
 
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { Faction } from '@werewolf/game-engine/models/roles';
 import {
@@ -323,8 +322,12 @@ export function useConfigScreenState({
           return;
         }
         const record = await createRoom({
-          hostUserId,
-          buildInitialState: (roomCode) => buildInitialGameState(roomCode, hostUserId, template),
+          expectedHostUserId: hostUserId,
+          gameType: 'werewolf',
+          config: {
+            templateRoles: template.roles,
+            ...(template.rules === undefined ? {} : { rules: template.rules }),
+          },
         });
         const roomCode = record.roomCode;
         addRecentRoom(roomCode);

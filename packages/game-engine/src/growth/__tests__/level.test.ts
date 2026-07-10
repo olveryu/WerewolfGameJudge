@@ -2,6 +2,8 @@ import {
   getLevel,
   getLevelProgress,
   LEVEL_THRESHOLDS,
+  rollGoldenDraws,
+  rollNormalDraws,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,
@@ -103,6 +105,36 @@ describe('level', () => {
         expect(xp).toBeGreaterThanOrEqual(XP_BASE);
         expect(xp).toBeLessThanOrEqual(XP_BASE + XP_RANDOM_BASE + level);
       }
+    });
+
+    it('uses the supplied RNG deterministically', () => {
+      expect(rollXp(0, () => 0)).toBe(XP_BASE);
+      expect(rollXp(0, () => 0.999_999)).toBe(XP_BASE + XP_RANDOM_BASE);
+      expect(rollXp(30, () => 0.5)).toBe(75);
+    });
+  });
+
+  describe('draw rewards', () => {
+    it.each([
+      [0, 1],
+      [0.299_999, 1],
+      [0.3, 2],
+      [0.65, 3],
+      [0.85, 4],
+      [0.95, 5],
+    ])('maps normal draw RNG value %s to %s draws', (rngValue, expected) => {
+      expect(rollNormalDraws(() => rngValue)).toBe(expected);
+    });
+
+    it.each([
+      [0, 1],
+      [0.349_999, 1],
+      [0.35, 2],
+      [0.7, 3],
+      [0.88, 4],
+      [0.96, 5],
+    ])('maps golden draw RNG value %s to %s draws', (rngValue, expected) => {
+      expect(rollGoldenDraws(() => rngValue)).toBe(expected);
     });
   });
 });

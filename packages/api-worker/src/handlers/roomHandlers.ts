@@ -1,17 +1,12 @@
-/**
- * handlers/roomHandlers — room CRUD Hono routes (Workers)
- *
- * /room/create, /room/get, /room/delete — D1 metadata operations.
- * /room/state, /room/revision — read game state from the DO.
- * create/delete require bidirectional sync with the DO.
- *
- * @throws 401 — requireAuth failed
- * @throws 400 — zod validation failed / room not found / room already exists
- * @throws 503/429 — callDO detected DO retryable/overloaded
- */
+/** Authenticated generic room creation, command, read, and deletion routes. */
 
-import { parseWerewolfState } from '@werewolf/game-engine';
-import { and, eq, sql } from 'drizzle-orm';
+import {
+  REASON_COMMAND_ID_CONFLICT,
+  REASON_NO_STATE,
+  REASON_ROOM_CODE_CONFLICT,
+  REASON_ROOM_INITIALIZATION_CONFLICT,
+} from '@werewolf/game-engine/platform/protocol/reasons';
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
@@ -19,72 +14,106 @@ import { rooms } from '../db/schema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
-import { createRoomSchema, roomCodeBodySchema } from '../schemas/room';
-import { getGameRoomStub, jsonBody } from './shared';
+import { createRoomInstanceId, findRoomInstance } from '../platform/room/roomDirectory';
+import { createRoomSchema, roomCodeBodySchema, roomCommandSchema } from '../schemas/room';
+import { callDO, getGameRoomStub, jsonBody } from './shared';
 
 const log = createLogger('room');
 
-/** Room management routes (create / join / state). */
+/** Room management and the single public game-command endpoint. */
 export const roomRoutes = new Hono<AppEnv>();
 
-// ── POST /room/create ───────────────────────────────────────────────────────
 roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) => {
-  const env = c.env;
-  const db = createDb(env.DB);
-  const userId = c.var.userId;
-  const parsed = c.req.valid('json');
-
-  const now = sql`datetime('now')`;
+  const db = createDb(c.env.DB);
+  const hostUserId = c.var.userId;
+  const input = c.req.valid('json');
+  const createdAt = new Date().toISOString();
+  const roomInstanceId = createRoomInstanceId(c.env);
 
   const inserted = await db
     .insert(rooms)
     .values({
-      id: crypto.randomUUID(),
-      code: parsed.roomCode,
-      hostUserId: userId,
-      createdAt: now,
-      updatedAt: now,
+      id: roomInstanceId,
+      code: input.roomCode,
+      hostUserId,
+      createdAt,
+      updatedAt: createdAt,
     })
     .onConflictDoNothing({ target: rooms.code })
     .returning({ id: rooms.id });
-
   if (inserted.length === 0) {
-    return c.json({ success: false, reason: 'ROOM_CODE_CONFLICT' }, 409);
+    return c.json({ success: false, reason: REASON_ROOM_CODE_CONFLICT }, 409);
   }
 
-  // Initialize DO state (if initialState provided)
-  if (parsed.initialState !== undefined) {
-    try {
-      const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
-      await stub.init(parseWerewolfState(parsed.initialState));
-    } catch (err) {
-      // DO init failed → rollback D1 record
-      log.error('DO init failed, rolling back', {
-        roomCode: parsed.roomCode,
-        error: err instanceof Error ? err.message : String(err),
-      });
-      await db.delete(rooms).where(eq(rooms.code, parsed.roomCode));
-      throw err;
+  try {
+    const stub = getGameRoomStub(c.env, roomInstanceId, c.req.raw);
+    const initialized = await callDO(() =>
+      stub.initializeRoom({
+        roomCode: input.roomCode,
+        gameType: input.gameType,
+        hostUserId,
+        config: input.config,
+        creationId: input.creationId,
+      }),
+    );
+    if (!initialized.success) {
+      await db.delete(rooms).where(eq(rooms.code, input.roomCode));
+      const status = initialized.reason === REASON_ROOM_INITIALIZATION_CONFLICT ? 409 : 400;
+      return c.json(initialized, status);
     }
-  }
 
-  return c.json(
-    {
-      room: {
-        roomCode: parsed.roomCode,
-        hostUserId: userId,
-        createdAt: new Date().toISOString(),
+    return c.json(
+      {
+        room: {
+          roomCode: input.roomCode,
+          gameType: input.gameType,
+          hostUserId,
+          createdAt,
+        },
+        snapshot: initialized.snapshot,
       },
-    },
-    200,
-  );
+      200,
+    );
+  } catch (error) {
+    log.error('room initialization failed; removing uninitialized directory row', {
+      roomCode: input.roomCode,
+      creationId: input.creationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    await db.delete(rooms).where(eq(rooms.code, input.roomCode));
+    throw error;
+  }
 });
 
-// ── POST /room/get ──────────────────────────────────────────────────────────
+roomRoutes.post('/command', requireAuth, jsonBody(roomCommandSchema), async (c) => {
+  const input = c.req.valid('json');
+  const room = await findRoomInstance(c.env, input.roomCode);
+  if (room === null) {
+    return c.json(
+      { kind: 'rejected' as const, commandId: input.commandId, reason: REASON_NO_STATE },
+      200,
+    );
+  }
+  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
+  const dispatched = await callDO(() =>
+    stub.dispatchUserCommand({
+      roomCode: input.roomCode,
+      commandId: input.commandId,
+      actorUserId: c.var.userId,
+      controlledSeat: input.controlledSeat,
+      command: input.command,
+    }),
+  );
+  const status =
+    dispatched.result.kind === 'rejected' && dispatched.result.reason === REASON_COMMAND_ID_CONFLICT
+      ? 409
+      : 200;
+  return c.json(dispatched.result, status);
+});
+
 roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
   const db = createDb(c.env.DB);
-  const parsed = c.req.valid('json');
-
+  const { roomCode } = c.req.valid('json');
   const row = await db
     .select({
       code: rooms.code,
@@ -92,76 +121,61 @@ roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
       createdAt: rooms.createdAt,
     })
     .from(rooms)
-    .where(eq(rooms.code, parsed.roomCode))
+    .where(eq(rooms.code, roomCode))
     .get();
-
-  if (!row) {
-    return c.json({ room: null }, 200);
-  }
 
   return c.json(
     {
-      room: {
-        roomCode: row.code,
-        hostUserId: row.hostUserId,
-        createdAt: row.createdAt,
-      },
+      room:
+        row === undefined
+          ? null
+          : {
+              roomCode: row.code,
+              hostUserId: row.hostUserId,
+              createdAt: row.createdAt,
+            },
     },
     200,
   );
 });
 
-// ── POST /room/delete ───────────────────────────────────────────────────────
 roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) => {
-  const env = c.env;
-  const db = createDb(env.DB);
-  const userId = c.var.userId;
-  const parsed = c.req.valid('json');
+  const { roomCode } = c.req.valid('json');
+  const room = await findRoomInstance(c.env, roomCode);
+  if (room === null) {
+    return c.json({ success: false as const, reason: REASON_NO_STATE }, 404);
+  }
+  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
+  const deletedRoom = await callDO(() => stub.deleteRoom(c.var.userId));
+  if (!deletedRoom.success) {
+    const status = deletedRoom.reason === REASON_NO_STATE ? 404 : 403;
+    return c.json(deletedRoom, status);
+  }
 
-  // Only the room host can delete the room
-  const result = await db
+  const deletedDirectoryRows = await createDb(c.env.DB)
     .delete(rooms)
-    .where(and(eq(rooms.code, parsed.roomCode), eq(rooms.hostUserId, userId)))
+    .where(eq(rooms.code, roomCode))
     .returning({ id: rooms.id });
-
-  if (result.length === 0) {
-    return c.json({ success: false, reason: 'ROOM_NOT_FOUND' }, 403);
+  if (deletedDirectoryRows.length !== 1) {
+    throw new Error(`Deleted room ${roomCode} had no matching directory row`);
   }
-
-  // Clean up DO storage (non-critical path, failure does not block)
-  try {
-    const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
-    await stub.cleanup();
-  } catch {
-    // DO cleanup failure does not affect delete result.
-    // Stale DO storage will be cleaned up by cron.
-  }
-
   return c.json({ success: true }, 200);
 });
 
-// ── POST /room/state ────────────────────────────────────────────────────────
-// Read full state + revision from the DO
 roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
-  const parsed = c.req.valid('json');
-
-  const stub = getGameRoomStub(c.env, parsed.roomCode, c.req.raw);
-  const result = await stub.getState();
-
-  if (!result) {
-    return c.json({ snapshot: null }, 200);
-  }
-
-  return c.json({ snapshot: result }, 200);
+  const { roomCode } = c.req.valid('json');
+  const room = await findRoomInstance(c.env, roomCode);
+  if (room === null) return c.json({ snapshot: null }, 200);
+  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
+  const snapshot = await callDO(() => stub.getSnapshot());
+  return c.json({ snapshot }, 200);
 });
 
-// ── POST /room/revision ─────────────────────────────────────────────────────
-// Lightweight: read revision number only (from the DO)
 roomRoutes.post('/revision', jsonBody(roomCodeBodySchema), async (c) => {
-  const parsed = c.req.valid('json');
-
-  const stub = getGameRoomStub(c.env, parsed.roomCode, c.req.raw);
-  const revision = await stub.getRevision();
-
+  const { roomCode } = c.req.valid('json');
+  const room = await findRoomInstance(c.env, roomCode);
+  if (room === null) return c.json({ revision: null }, 200);
+  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
+  const revision = await callDO(() => stub.getRevision());
   return c.json({ revision }, 200);
 });

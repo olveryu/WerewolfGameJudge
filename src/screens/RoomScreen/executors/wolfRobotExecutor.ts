@@ -2,7 +2,8 @@
  * wolfRobotExecutor — Handles 'wolfRobotViewHunterStatus' ActionIntent
  *
  * Shows hunter shoot-status dialog for wolfRobot disguise phase, then
- * triggers hunterStatusAckMutation.mutate(seat) after the user dismisses.
+ * triggers hunterStatusAckMutation after the user dismisses. Bot authority is
+ * carried separately as controlledSeat by the facade action hook.
  *
  * Re-entry across the in-flight HTTP window is guarded upstream:
  * - Auto-trigger path: lastAutoIntentKeyRef in useActionOrchestrator dedupes
@@ -18,7 +19,7 @@ import type { IntentExecutor } from './types';
 
 /** Wolf robot executor for viewing hunter status. */
 export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) => {
-  const { gameState, effectiveSeat, currentSchema, hunterStatusAckMutation, actionDialogs } = ctx;
+  const { gameState, currentSchema, hunterStatusAckMutation, actionDialogs } = ctx;
 
   if (!gameState?.wolfRobotReveal) return;
 
@@ -42,14 +43,8 @@ export const wolfRobotViewHunterStatusExecutor: IntentExecutor = (_intent, ctx) 
   const statusMessage = canShoot ? canShootText : cannotShootText;
 
   actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, () => {
-    if (effectiveSeat === null) {
-      roomScreenLog.warn(
-        '[wolfRobotViewHunterStatus] Cannot submit without seat (effectiveSeat is null)',
-      );
-      return;
-    }
     return new Promise<void>((resolve, reject) => {
-      hunterStatusAckMutation.mutate(effectiveSeat, {
+      hunterStatusAckMutation.mutate(undefined, {
         onSuccess: () => resolve(),
         onError: (error) => {
           handleError(error, {

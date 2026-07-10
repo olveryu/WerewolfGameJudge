@@ -1,12 +1,14 @@
 /** Strict external schemas for the Werewolf Worker module. */
 
 import type {
-  WerewolfCommand,
   WerewolfConfig,
+  WerewolfInternalCommand,
   WerewolfProfileUpdate,
+  WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from '@werewolf/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
+import { validateTemplateRoles } from '@werewolf/game-engine/models/Template';
 import { z } from 'zod';
 
 const roleIdSchema = z.custom<RoleId>(
@@ -39,20 +41,27 @@ const profileUpdateSchema: z.ZodType<WerewolfProfileUpdate> = z.strictObject({
   seatAnimation: z.string().optional(),
 });
 
-export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z.strictObject({
-  templateRoles: z.array(roleIdSchema),
-  rules: ruleOverridesSchema.optional(),
-});
+export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
+  .strictObject({
+    templateRoles: z.array(roleIdSchema),
+    rules: ruleOverridesSchema.optional(),
+  })
+  .superRefine((config, context) => {
+    const reason = validateTemplateRoles(config.templateRoles);
+    if (reason !== null) {
+      context.addIssue({ code: 'custom', path: ['templateRoles'], message: reason });
+    }
+  });
 
-function defineWerewolfCommandOptions<const TOptions extends readonly z.ZodType[]>(
+function defineWerewolfPublicCommandOptions<const TOptions extends readonly z.ZodType[]>(
   options: TOptions &
-    ([WerewolfCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
-    ([z.output<TOptions[number]>] extends [WerewolfCommand] ? unknown : never),
+    ([WerewolfPublicCommand] extends [z.output<TOptions[number]>] ? unknown : never) &
+    ([z.output<TOptions[number]>] extends [WerewolfPublicCommand] ? unknown : never),
 ): TOptions {
   return options;
 }
 
-const commandOptions = defineWerewolfCommandOptions([
+const publicCommandOptions = defineWerewolfPublicCommandOptions([
   z.strictObject({
     type: z.literal('room.seat.take'),
     seat: z.number().int().nonnegative(),
@@ -120,15 +129,16 @@ const commandOptions = defineWerewolfCommandOptions([
   z.strictObject({ type: z.literal('werewolf.wolfRobot.ackHunterStatus') }),
   z.strictObject({ type: z.literal('werewolf.groupConfirm.ack') }),
   z.strictObject({ type: z.literal('werewolf.groupConfirm.ackBots') }),
-  z.strictObject({
-    type: z.literal('werewolf.growth.applyRosterLevels'),
-    levels: z.record(z.string().min(1), z.number().int().nonnegative()),
-  }),
 ]);
 
-export const werewolfCommandSchema: z.ZodType<WerewolfCommand> = z.discriminatedUnion(
+export const werewolfPublicCommandSchema: z.ZodType<WerewolfPublicCommand> = z.discriminatedUnion(
   'type',
-  commandOptions,
+  publicCommandOptions,
 );
 
-export const WEREWOLF_COMMAND_SCHEMA_OPTION_COUNT = commandOptions.length;
+export const werewolfInternalCommandSchema: z.ZodType<WerewolfInternalCommand> = z.strictObject({
+  type: z.literal('werewolf.growth.applyRosterLevels'),
+  levels: z.record(z.string().min(1), z.number().int().nonnegative()),
+});
+
+export const WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT = publicCommandOptions.length;

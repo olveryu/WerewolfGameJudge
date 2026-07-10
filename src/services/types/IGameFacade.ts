@@ -5,6 +5,7 @@
  * Facade only orchestrates, no business logic.
  */
 
+import type { WerewolfActionInput, WerewolfSeatProfile } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -12,17 +13,8 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
 
-/** Player profile info carried when taking a seat */
-export interface SeatProfile {
-  displayName?: string;
-  avatarUrl?: string;
-  avatarFrame?: string;
-  seatFlair?: string;
-  nameStyle?: string;
-  level?: number;
-  roleRevealEffect?: string;
-  seatAnimation?: string;
-}
+/** Canonical Werewolf profile carried by a room.seat.take command. */
+export type SeatProfile = WerewolfSeatProfile;
 
 /** Connection status for UI display (re-exported from RealtimeService) */
 export enum ConnectionStatus {
@@ -97,9 +89,9 @@ export interface IGameFacade {
   // === Room Lifecycle ===
   /**
    * Host: create new room
-   * Initialize store + join broadcast channel
+   * Join the broadcast channel and require the authoritative server snapshot
    */
-  createRoom(roomCode: string, hostUserId: string, template: GameTemplate): Promise<void>;
+  createRoom(roomCode: string, hostUserId: string): Promise<void>;
 
   /**
    * Join existing room (unified entry for Host rejoin + Player join)
@@ -121,7 +113,7 @@ export interface IGameFacade {
    * Take seat
    * Unified HTTP API, server-processed
    */
-  takeSeat(seat: number, profile?: SeatProfile): Promise<ActionResult>;
+  takeSeat(seat: number, profile: SeatProfile): Promise<ActionResult>;
   /**
    * Leave seat
    * Unified HTTP API, server-processed
@@ -218,34 +210,29 @@ export interface IGameFacade {
   /**
    * Player confirms role viewed
    */
-  markViewedRole(seat: number): Promise<ActionResult>;
+  markViewedRole(controlledSeat: number | null): Promise<ActionResult>;
 
   /**
    * Submit night action
    */
-  submitAction(
-    seat: number,
-    role: RoleId,
-    target: number | null,
-    extra?: unknown,
-  ): Promise<ActionResult>;
+  submitAction(input: WerewolfActionInput, controlledSeat: number | null): Promise<ActionResult>;
 
   /**
    * Submit reveal confirmation (seer/psychic/gargoyle/wolfRobot)
    */
-  submitRevealAck(): Promise<ActionResult>;
+  submitRevealAck(controlledSeat: number | null): Promise<ActionResult>;
 
   /**
    * Submit groupConfirm ack (hypnotize confirmation "I understand")
-   * @param seat - player seat number (caller must pass effectiveSeat to support debug bot takeover)
+   * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  submitGroupConfirmAck(seat: number): Promise<ActionResult>;
+  submitGroupConfirmAck(controlledSeat: number | null): Promise<ActionResult>;
 
   /**
    * Submit wolfRobot hunter status view confirmation
-   * @param seat - wolfRobot seat number (caller must pass effectiveSeat to support debug bot takeover)
+   * @param controlledSeat - bot seat controlled by Host, or null for the authenticated player
    */
-  sendWolfRobotHunterStatusViewed(seat: number): Promise<ActionResult>;
+  sendWolfRobotHunterStatusViewed(controlledSeat: number | null): Promise<ActionResult>;
 
   // === Night Flow (Host-only) ===
   /**

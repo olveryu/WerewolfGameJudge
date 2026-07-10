@@ -21,6 +21,7 @@
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
@@ -29,8 +30,9 @@ import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
-import type { GameActionsContext } from './gameActions';
+import type { GameActionsContext, PreparedAudioAck } from './gameActions';
 import * as gameActions from './gameActions';
+import { isRoomCommandDeliveryUnknown } from './roomCommandTransport';
 
 /** AudioOrchestrator injectable dependencies */
 export interface AudioOrchestratorDeps {
@@ -70,12 +72,8 @@ export class AudioOrchestrator {
    */
   #wasAudioInterrupted = false;
 
-  /**
-   * Set to true when postAudioAck fails during disconnect.
-   * Auto-retries postAudioAck after reconnect (status -> live) if still Host.
-   * Reset on leaveRoom / createRoom / joinRoom.
-   */
-  #pendingAudioAckRetry = false;
+  /** Exact command retained until its receipt or a terminal rejection is observed. */
+  #pendingAudioAck: PreparedAudioAck | null = null;
 
   /** Browser 'online' event handler: retry postAudioAck on network restore (Web platform fallback when SDK doesn't fire Live event) */
   #onlineRetryHandler: (() => void) | null = null;
@@ -116,9 +114,8 @@ export class AudioOrchestrator {
     this.#unsubscribeStatus = deps.addStatusListener((status) => {
       if (status !== ConnectionStatus.Live) return;
       if (!deps.isHost()) return;
-      if (!this.#pendingAudioAckRetry) return;
+      if (this.#pendingAudioAck === null) return;
       this.#unregisterOnlineRetry();
-      this.#pendingAudioAckRetry = false;
       this.#onlineRetryAttempt = 0;
 
       facadeLog.info('SDK reconnected: retrying pending audio ack', { layer: 'L2' });
@@ -145,7 +142,7 @@ export class AudioOrchestrator {
   reset(): void {
     this.#isPlayingEffects = false;
     this.#wasAudioInterrupted = false;
-    this.#pendingAudioAckRetry = false;
+    this.#pendingAudioAck = null;
     this.#onlineRetryAttempt = 0;
     this.#unregisterOnlineRetry();
   }
@@ -153,6 +150,7 @@ export class AudioOrchestrator {
   /** Cleanup all handlers/timers (leaveRoom) */
   dispose(): void {
     this.#unregisterOnlineRetry();
+    this.#pendingAudioAck = null;
     this.#unsubscribeStore?.();
     this.#unsubscribeStore = null;
     this.#unsubscribeStatus?.();
@@ -219,7 +217,7 @@ export class AudioOrchestrator {
   }
 
   // =========================================================================
-  // Shared: postAudioAck with retry fallback
+  // Shared: prepared audio ack with retry fallback
   // =========================================================================
 
   /**
@@ -228,13 +226,59 @@ export class AudioOrchestrator {
    * the same retry semantics as #playPendingAudioEffects.
    */
   async #postAudioAckWithRetry(): Promise<void> {
-    const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
-    if (!ackResult.success) {
-      facadeLog.warn('postAudioAck failed in resumeAfterRejoin, will retry on reconnect', {
-        reason: ackResult.reason,
+    await this.#dispatchAudioAck('resumeAfterRejoin');
+  }
+
+  #getOrPrepareAudioAck(): PreparedAudioAck {
+    if (this.#pendingAudioAck !== null) return this.#pendingAudioAck;
+
+    const prepared = gameActions.prepareAudioAck(this.#deps.getActionsContext());
+    if (prepared === null) {
+      throw new Error('[FAIL-FAST] Cannot prepare audio ack without an authoritative room state');
+    }
+    this.#pendingAudioAck = prepared;
+    return prepared;
+  }
+
+  #clearPendingAudioAck(): void {
+    this.#pendingAudioAck = null;
+    this.#onlineRetryAttempt = 0;
+    this.#unregisterOnlineRetry();
+  }
+
+  async #dispatchAudioAck(source: string): Promise<ActionResult> {
+    const prepared = this.#getOrPrepareAudioAck();
+
+    try {
+      const result = await gameActions.dispatchPreparedAudioAck(
+        this.#deps.getActionsContext(),
+        prepared,
+      );
+      if (result.success) {
+        this.#clearPendingAudioAck();
+        return result;
+      }
+
+      if (isRoomCommandDeliveryUnknown(result)) {
+        facadeLog.warn('Audio ack delivery is unknown; retaining the prepared command', {
+          source,
+          commandId: prepared.commandId,
+          reason: result.reason,
+        });
+        this.#registerOnlineRetry();
+        return result;
+      }
+
+      this.#clearPendingAudioAck();
+      facadeLog.warn('Audio ack was terminally rejected', {
+        source,
+        commandId: prepared.commandId,
+        reason: result.reason,
       });
-      this.#pendingAudioAckRetry = true;
-      this.#registerOnlineRetry();
+      return result;
+    } catch (error) {
+      this.#clearPendingAudioAck();
+      throw error;
     }
   }
 
@@ -298,13 +342,8 @@ export class AudioOrchestrator {
 
         // POST audio-ack releases gate
         if (!this.#deps.isAborted()) {
-          const ackResult = await gameActions.postAudioAck(this.#deps.getActionsContext());
+          const ackResult = await this.#dispatchAudioAck('playback');
           if (!ackResult.success) {
-            facadeLog.warn('postAudioAck failed during playback, will retry on reconnect', {
-              reason: ackResult.reason,
-            });
-            this.#pendingAudioAckRetry = true;
-            this.#registerOnlineRetry();
             break; // ack failed, no re-check (wait for retry path to recover)
           }
         }
@@ -336,13 +375,12 @@ export class AudioOrchestrator {
   /**
    * Retry pending audio ack after reconnect: check pendingAudioEffects -> replay or direct postAudioAck.
    *
-   * Caller (L2 status listener / L3a online handler) is responsible for clearing #pendingAudioAckRetry
-   * and online retry registration. This method only executes retry logic.
-   *
    * @param trigger - log identifier for trigger source
-   * @param onRetryFailed - callback when ack direct retry fails (lets caller decide whether to re-register online retry)
    */
-  #retryPendingAudioAck(trigger: string, onRetryFailed?: () => void): void {
+  #retryPendingAudioAck(trigger: string): void {
+    if (this.#pendingAudioAck === null) {
+      throw new Error('[FAIL-FAST] Audio ack retry started without a prepared command');
+    }
     const state = this.#deps.store.getState();
     const effects = state?.pendingAudioEffects;
     if (effects && effects.length > 0) {
@@ -354,23 +392,7 @@ export class AudioOrchestrator {
       void this.#playPendingAudioEffects(effects);
     } else {
       facadeLog.info('Retrying postAudioAck (no effects to replay)', { trigger });
-      void gameActions
-        .postAudioAck(this.#deps.getActionsContext())
-        .then((result) => {
-          if (!result.success) {
-            facadeLog.warn('postAudioAck retry failed, will retry', {
-              trigger,
-              reason: result.reason,
-            });
-            this.#pendingAudioAckRetry = true;
-            onRetryFailed?.();
-          }
-        })
-        .catch((err) => {
-          facadeLog.error('postAudioAck retry threw', { trigger }, err);
-          this.#pendingAudioAckRetry = true;
-          onRetryFailed?.();
-        });
+      void this.#dispatchAudioAck(trigger);
     }
   }
 
@@ -397,7 +419,7 @@ export class AudioOrchestrator {
     if (typeof globalThis.window?.addEventListener !== 'function') return;
 
     const doRetry = () => {
-      if (!this.#pendingAudioAckRetry || !this.#deps.isHost() || this.#deps.isAborted()) return;
+      if (this.#pendingAudioAck === null || !this.#deps.isHost() || this.#deps.isAborted()) return;
 
       // Exponential backoff cap: stop after max retry count to avoid infinite HTTP polling
       if (this.#onlineRetryAttempt >= AudioOrchestrator.#maxOnlineRetries) {
@@ -414,9 +436,7 @@ export class AudioOrchestrator {
         attempt: this.#onlineRetryAttempt,
       });
       this.#unregisterOnlineRetry();
-      this.#pendingAudioAckRetry = false;
-
-      this.#retryPendingAudioAck('online event', () => this.#registerOnlineRetry());
+      this.#retryPendingAudioAck('online event');
     };
 
     // Check: already online -> exponential backoff delay retry (avoid synchronous recursion + yield to event loop)
@@ -447,7 +467,7 @@ export class AudioOrchestrator {
     if (this.#onlineRetryTimer !== null) return;
 
     this.#onlineRetryPollTimer = setInterval(() => {
-      if (!this.#pendingAudioAckRetry || !this.#deps.isHost() || this.#deps.isAborted()) {
+      if (this.#pendingAudioAck === null || !this.#deps.isHost() || this.#deps.isAborted()) {
         this.#unregisterOnlineRetry();
         return;
       }

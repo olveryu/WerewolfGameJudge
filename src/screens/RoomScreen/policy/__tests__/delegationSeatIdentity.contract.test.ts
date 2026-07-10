@@ -1,15 +1,14 @@
 /**
  * delegationSeatIdentity.contract.test.ts
  *
- * Contract test to prevent regression: in delegation mode (bot takeover),
- * action submission must use effectiveSeat, NOT mySeat.
+ * Contract test to prevent regression: bot takeover authority crosses the
+ * client boundary only as controlledSeat. Action inputs never claim actor seat
+ * or role; effective identity remains UI-only.
  *
  * Root cause: When Host takes over a bot, mySeat may be null (Host has no seat),
  * but effectiveSeat = controlledSeat (the bot's seat).
  *
- * This test ensures:
- * 1. handleActionIntent compound/skip/confirmTrigger paths use effectiveSeat
- * 2. No action submission path uses mySeat directly
+ * This test ensures canonical inputs and controlledSeat remain separate.
  */
 
 import * as fs from 'node:fs';
@@ -34,7 +33,7 @@ const PROMPT_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/promptExecutor.ts
 const WOLF_ROBOT_EXECUTOR_PATH = 'src/screens/RoomScreen/executors/wolfRobotExecutor.ts';
 
 describe('Delegation Seat Identity Contract', () => {
-  describe('handleActionIntent must use effectiveSeat for action submission', () => {
+  describe('action executors must build canonical inputs without actor authority', () => {
     /**
      * P0 Contract: compound action (witch save/poison) must use effectiveSeat
      *
@@ -42,67 +41,29 @@ describe('Delegation Seat Identity Contract', () => {
      * compound action was checking mySeat === null and returning early,
      * causing witch actions to fail silently.
      */
-    it('compound action (witch) should use effectiveSeat, not mySeat', () => {
+    it('compound action builds witch input without actor seat', () => {
       const content = readFileContent(ACTION_SUBMIT_EXECUTOR_PATH);
-
-      // Find the compound action block (now in actionSubmitExecutor.ts)
-      const compoundBlockRegex = /if\s*\(\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
-      const matches = [...content.matchAll(compoundBlockRegex)];
-
-      expect(matches.length).toBeGreaterThan(0);
-
-      // For each compound block, verify it uses effectiveSeat
-      for (const match of matches) {
-        const startIndex = match.index;
-        // Get next 500 chars to capture the block
-        const block = content.substring(startIndex, startIndex + 500);
-
-        // Should check effectiveSeat === null, NOT mySeat === null
-        if (block.includes('null')) {
-          expect(block).toMatch(/effectiveSeat\s*===\s*null/);
-          expect(block).not.toMatch(/mySeat\s*===\s*null/);
-        }
-
-        // Should assign targetToSubmit = effectiveSeat, NOT mySeat
-        if (block.includes('targetToSubmit')) {
-          expect(block).toMatch(/targetToSubmit\s*=\s*effectiveSeat/);
-          expect(block).not.toMatch(/targetToSubmit\s*=\s*mySeat/);
-        }
-      }
+      expect(content).toMatch(/buildWitchActionInput/);
+      expect(content).not.toMatch(/targetToSubmit/);
+      expect(content).not.toMatch(/proceedWithAction\(effectiveSeat/);
+      expect(content).not.toMatch(/proceedWithAction\(mySeat/);
     });
 
     /**
      * P0 Contract: skip action (compound) must use effectiveSeat
      */
-    it('skip action (compound) should use effectiveSeat, not mySeat', () => {
+    it('compound skip builds witch input without actor seat', () => {
       const content = readFileContent(SKIP_EXECUTOR_PATH);
-
-      // Find the skip compound block (now in skipExecutor.ts)
-      const skipCompoundRegex =
-        /if\s*\(\s*intent\.stepKey\s*===\s*['"]skipAll['"]\s*\|\|\s*currentSchema\?\.kind\s*===\s*['"]compound['"]\s*\)/g;
-      const match = skipCompoundRegex.exec(content);
-
-      expect(match).toBeTruthy();
-
-      if (match) {
-        const startIndex = match.index;
-        // Get next 800 chars to capture the compound skip block including skipSeat assignment
-        const block = content.substring(startIndex, startIndex + 800);
-
-        // Should check effectiveSeat === null, NOT mySeat === null
-        expect(block).toMatch(/effectiveSeat\s*===\s*null/);
-        expect(block).not.toMatch(/mySeat\s*===\s*null/);
-
-        // Should assign skipSeat = effectiveSeat, NOT mySeat
-        expect(block).toMatch(/skipSeat\s*=\s*effectiveSeat/);
-        expect(block).not.toMatch(/skipSeat\s*=\s*mySeat/);
-      }
+      expect(content).toMatch(/buildWitchActionInput/);
+      expect(content).not.toMatch(/skipSeat/);
+      expect(content).not.toMatch(/effectiveSeat/);
+      expect(content).not.toMatch(/mySeat/);
     });
 
     /**
      * P0 Contract: confirmTrigger (hunter/darkWolfKing) must use effectiveSeat
      */
-    it('confirmTrigger should use effectiveSeat, not mySeat', () => {
+    it('confirmTrigger submits confirm input without actor seat', () => {
       // confirmTrigger logic now lives in promptExecutor.ts
       const content = readFileContent(PROMPT_EXECUTOR_PATH);
 
@@ -110,8 +71,8 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).toMatch(/effectiveSeat\s*===\s*null/);
       expect(content).not.toMatch(/mySeat\s*===\s*null/);
 
-      // Should use effectiveSeat in proceedWithAction, NOT mySeat
-      expect(content).toMatch(/proceedWithAction\(effectiveSeat/);
+      expect(content).toMatch(/proceedWithAction\(\{\s*kind:\s*['"]confirm['"]/);
+      expect(content).not.toMatch(/proceedWithAction\(effectiveSeat/);
       expect(content).not.toMatch(/proceedWithAction\(mySeat/);
     });
   });
@@ -164,11 +125,11 @@ describe('Delegation Seat Identity Contract', () => {
     });
   });
 
-  describe('useGameRoom submit functions should use effectiveSeat', () => {
+  describe('useGameRoom submit functions must isolate controlledSeat authority', () => {
     /**
      * submitAction must use effectiveSeat, not mySeat
      */
-    it('submitAction should use effectiveSeat', () => {
+    it('submitAction passes typed input and controlledSeat only', () => {
       const content = readFileContent('src/hooks/useGameActions.ts');
 
       // Find submitAction definition
@@ -181,9 +142,9 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 300);
 
-        // Should use effectiveSeat (may be prefixed with debug. after sub-hook extraction)
-        expect(block).toMatch(/seat\s*=\s*(debug\.)?effectiveSeat/);
-        expect(block).not.toMatch(/seat\s*=\s*mySeat/);
+        expect(block).toMatch(/facade\.submitAction\(input,\s*debug\.controlledSeat\)/);
+        expect(block).not.toMatch(/facade\.submitAction\([^)]*effectiveRole/);
+        expect(block).not.toMatch(/facade\.submitAction\([^)]*effectiveSeat/);
       }
     });
 
@@ -191,7 +152,7 @@ describe('Delegation Seat Identity Contract', () => {
      * P0 Contract: sendWolfRobotHunterStatusViewed takes seat param directly
      * (caller must pass effectiveSeat). Verify JSDoc / comment signals this.
      */
-    it('sendWolfRobotHunterStatusViewed must accept seat param (caller passes effectiveSeat)', () => {
+    it('sendWolfRobotHunterStatusViewed derives controlledSeat from debug state', () => {
       const content = readFileContent('src/hooks/useGameActions.ts');
 
       // Find sendWolfRobotHunterStatusViewed definition
@@ -204,10 +165,8 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 300);
 
-        // Must take seat as a parameter (not derive it internally from mySeat)
-        expect(block).toMatch(/async\s*\(\s*seat:\s*number\s*\)/);
-        // Must delegate seat to facade
-        expect(block).toMatch(/facade\.sendWolfRobotHunterStatusViewed\(seat\)/);
+        expect(block).toMatch(/async\s*\(\s*\)/);
+        expect(block).toMatch(/facade\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/);
       }
     });
   });
@@ -485,33 +444,22 @@ describe('Delegation Seat Identity Contract', () => {
   });
 
   describe('wolfRobot hunter gate with controlledSeat (debug takeover)', () => {
-    /**
-     * P0 Contract: Executor must call hunterStatusAckMutation.mutate with
-     * effectiveSeat (not mySeat) so debug takeover routes ack through the
-     * controlled seat. In-flight de-dup is delegated to the policy gate
-     * (usePendingAcks) and lastAutoIntentKeyRef — no executor-local guard.
-     */
-    it('orchestrator wolfRobotViewHunterStatus mutates with effectiveSeat', () => {
+    /** The executor triggers an ack; useGameActions owns controlledSeat routing. */
+    it('wolfRobot executor does not pass an actor seat through the mutation', () => {
       const content = readFileContent(WOLF_ROBOT_EXECUTOR_PATH);
 
-      // Must use the ack mutation (the canonical pending tracker)
       expect(content).toMatch(/hunterStatusAckMutation/);
-
-      // Must call mutate(effectiveSeat) — debug takeover correctness
-      expect(content).toMatch(/hunterStatusAckMutation\.mutate\(effectiveSeat/);
-
-      // Must NOT use mySeat (would break debug takeover)
+      expect(content).toMatch(/hunterStatusAckMutation\.mutate\(undefined/);
+      expect(content).not.toMatch(/\.mutate\(effectiveSeat/);
       expect(content).not.toMatch(/\.mutate\(mySeat/);
     });
 
-    /**\n     * Contract: IGameFacade.sendWolfRobotHunterStatusViewed must accept seat as param
-     * (not derive it internally) — this is the API contract for debug takeover support.
-     */
-    it('IGameFacade.sendWolfRobotHunterStatusViewed takes seat parameter', () => {
+    /** The facade accepts only the explicit takeover discriminator. */
+    it('IGameFacade.sendWolfRobotHunterStatusViewed takes controlledSeat', () => {
       const content = readFileContent('src/services/types/IGameFacade.ts');
 
-      // Find the method signature
-      const regex = /sendWolfRobotHunterStatusViewed\s*\(\s*seat\s*:\s*number\s*\)/;
+      const regex =
+        /sendWolfRobotHunterStatusViewed\s*\(\s*controlledSeat\s*:\s*number\s*\|\s*null\s*\)/;
       expect(content).toMatch(regex);
     });
   });

@@ -1,211 +1,296 @@
 /**
- * Game Actions — Game HTTP API business orchestration (declarative)
+ * Canonical Werewolf command builders.
  *
- * Uses the defineGameAction factory to replace the previously manual
- * debug-log -> guard -> callApi pattern with declarative definitions.
- * Each action only declares name / path / optional body / after.
- *
- * Responsibilities same as defineGameAction.ts.
- * Forbidden: business logic/validation rules (all in handler / server), direct state mutation.
+ * This module maps facade operations to protocol commands only. The Worker is
+ * responsible for actor resolution, authorization, validation, and game rules.
  */
 
+import {
+  WEREWOLF_STATE_CODEC,
+  type WerewolfActionInput,
+  type WerewolfProfileUpdate,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
 
-import { defineGameAction } from './defineGameAction';
+import {
+  dispatchPreparedRoomCommand,
+  dispatchRoomCommand,
+  type PreparedRoomCommand,
+  prepareRoomCommand,
+} from './roomCommandTransport';
 
-/**
- * Context interface required by gameActions
- * (injected from Facade to avoid circular dependencies)
- */
+const NOT_CONNECTED: ActionResult = { success: false, reason: 'NOT_CONNECTED' };
+
 export interface GameActionsContext {
   readonly store: GameStore;
-  myUserId: string | null;
-  getMySeat: () => number | null;
-  /** AudioService instance (for direct calls like preload) */
-  audioService: AudioService;
+  readonly audioService: AudioService;
 }
 
-// =============================================================================
-// Host-only: room / template management
-// =============================================================================
+type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
 
-/** Host: assign roles */
-export const assignRoles = defineGameAction({
-  name: 'assignRoles',
-  path: '/game/assign',
-});
+/** Audio ack envelope retained by the orchestrator until one receipt is observed. */
+export type PreparedAudioAck = PreparedRoomCommand<AudioAckCommand>;
 
-/** Host: update template */
-export const updateTemplate = defineGameAction<[GameTemplate]>({
-  name: 'updateTemplate',
-  path: '/game/update-template',
-  body: (template) => ({ templateRoles: template.roles, rules: template.rules }),
-});
+async function dispatchWerewolfCommand(
+  ctx: GameActionsContext,
+  command: WerewolfPublicCommand,
+  controlledSeat: number | null,
+  label: string,
+): Promise<ActionResult> {
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (roomCode === undefined) return NOT_CONNECTED;
 
-/** Host: restart game */
-export const restartGame = defineGameAction({
-  name: 'restartGame',
-  path: '/game/restart',
-});
+  return dispatchRoomCommand({
+    roomCode,
+    command,
+    controlledSeat,
+    codec: WEREWOLF_STATE_CODEC,
+    store: ctx.store,
+    label,
+  });
+}
 
-/** Host: unseat all */
-export const clearAllSeats = defineGameAction({
-  name: 'clearAllSeats',
-  path: '/game/clear-seats',
-});
+function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
+  switch (input.kind) {
+    case 'target':
+      return { kind: 'target', target: input.target };
+    case 'multiTarget':
+      return { kind: 'multiTarget', targets: [...input.targets] };
+    case 'confirm':
+      return { kind: 'confirm', confirmed: input.confirmed };
+    case 'witch':
+      return {
+        kind: 'witch',
+        saveTarget: input.saveTarget,
+        poisonTarget: input.poisonTarget,
+      };
+    case 'card':
+      return { kind: 'card', cardIndex: input.cardIndex };
+  }
+}
 
-// =============================================================================
-// Role viewing
-// =============================================================================
+export function assignRoles(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.roles.assign' }, null, 'assignRoles');
+}
 
-/** Host/Player: mark a seat as having viewed role */
-export const markViewedRole = defineGameAction<[number]>({
-  name: 'markViewedRole',
-  path: '/game/view-role',
-  needsUserId: true,
-  body: (seat) => ({ seat }),
-});
+export function updateTemplate(
+  ctx: GameActionsContext,
+  template: GameTemplate,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    {
+      type: 'werewolf.config.update',
+      templateRoles: [...template.roles],
+      rules: template.rules === undefined ? undefined : { ...template.rules },
+    },
+    null,
+    'updateTemplate',
+  );
+}
 
-// =============================================================================
-// Night flow
-// =============================================================================
+export function restartGame(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.game.restart' }, null, 'restartGame');
+}
 
-/** Host: start night (preload audio on success) */
-export const startNight = defineGameAction({
-  name: 'startNight',
-  path: '/game/start',
-  after: (ctx, result) => {
-    if (!result.success) return;
-    const stateAfterStart = ctx.store.getState();
-    if (stateAfterStart?.templateRoles) {
-      ctx.audioService.preloadForRoles(stateAfterStart.templateRoles).catch((err: unknown) => {
-        facadeLog.warn('preloadForRoles failed (non-critical)', err);
-      });
-    }
-  },
-});
+export function clearAllSeats(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(ctx, { type: 'room.seat.clear' }, null, 'clearAllSeats');
+}
 
-/** Host: share night review with specific seats */
-export const shareNightReview = defineGameAction<[number[]]>({
-  name: 'shareNightReview',
-  path: '/game/share-review',
-  body: (allowedSeats) => ({ allowedSeats }),
-});
+export function markViewedRole(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.role.view' },
+    controlledSeat,
+    'markViewedRole',
+  );
+}
 
-/** Submit night action */
-export const submitAction = defineGameAction<[number, RoleId, number | null, unknown?]>({
-  name: 'submitAction',
-  path: '/game/night/action',
-  body: (seat, role, target, extra) => ({ seat, role, target, extra }),
-  after: (_ctx, result, seat, role, target) => {
-    if (!result.success) {
-      facadeLog.warn('submitAction failed', { reason: result.reason, seat, role, target });
-    }
-  },
-});
+export async function startNight(ctx: GameActionsContext): Promise<ActionResult> {
+  const result = await dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.night.start' },
+    null,
+    'startNight',
+  );
+  if (!result.success) return result;
 
-/** Host: set audio playback state */
-export const setAudioPlaying = defineGameAction<[boolean]>({
-  name: 'setAudioPlaying',
-  path: '/game/night/audio-gate',
-  body: (isPlaying) => ({ isPlaying }),
-});
+  const stateAfterStart = ctx.store.getState();
+  if (stateAfterStart === null) {
+    throw new Error('[FAIL-FAST] Successful night start did not leave a committed state');
+  }
+  ctx.audioService.preloadForRoles(stateAfterStart.templateRoles).catch((error: unknown) => {
+    facadeLog.warn('preloadForRoles failed (non-critical)', error);
+  });
+  return result;
+}
 
-// =============================================================================
-// Reveal / Group-Confirm Ack
-// =============================================================================
+export function shareNightReview(
+  ctx: GameActionsContext,
+  allowedSeats: readonly number[],
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.review.share', allowedSeats: [...allowedSeats] },
+    null,
+    'shareNightReview',
+  );
+}
 
-/** Host: clear pending reveal acks and progress */
-export const clearRevealAcks = defineGameAction({
-  name: 'clearRevealAcks',
-  path: '/game/night/reveal-ack',
-  after: (_ctx, result) => {
-    if (!result.success) {
-      facadeLog.warn('clearRevealAcks failed', { reason: result.reason });
-    }
-  },
-});
+export async function submitAction(
+  ctx: GameActionsContext,
+  input: WerewolfActionInput,
+  controlledSeat: number | null,
+): Promise<ActionResult> {
+  const result = await dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.action.submit', input: copyActionInput(input) },
+    controlledSeat,
+    'submitAction',
+  );
+  if (!result.success) {
+    facadeLog.warn('submitAction failed', {
+      reason: result.reason,
+      inputKind: input.kind,
+      controlledSeat,
+    });
+  }
+  return result;
+}
 
-/** Player: submit groupConfirm ack */
-export const submitGroupConfirmAck = defineGameAction<[number]>({
-  name: 'submitGroupConfirmAck',
-  path: '/game/night/group-confirm-ack',
-  needsUserId: true,
-  body: (seat) => ({ seat }),
-  after: (_ctx, result, seat) => {
-    if (!result.success) {
-      facadeLog.warn('submitGroupConfirmAck failed', { reason: result.reason, seat });
-    }
-  },
-});
+export function setAudioPlaying(
+  ctx: GameActionsContext,
+  isPlaying: boolean,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.audio.gate', isPlaying },
+    null,
+    'setAudioPlaying',
+  );
+}
 
-/** Host/Player: Wolf Robot viewed Hunter status */
-export const setWolfRobotHunterStatusViewed = defineGameAction<[number]>({
-  name: 'setWolfRobotHunterStatusViewed',
-  path: '/game/night/wolf-robot-viewed',
-  body: (seat) => ({ seat }),
-  after: (_ctx, result, seat) => {
-    if (!result.success) {
-      facadeLog.warn('setWolfRobotHunterStatusViewed failed', { reason: result.reason, seat });
-    }
-  },
-});
+export function submitRevealAck(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.reveal.ack' },
+    controlledSeat,
+    'submitRevealAck',
+  );
+}
 
-// =============================================================================
-// Audio Ack & Progression
-// =============================================================================
+export function submitGroupConfirmAck(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.groupConfirm.ack' },
+    controlledSeat,
+    'submitGroupConfirmAck',
+  );
+}
 
-/** Host: ack after audio playback completes */
-export const postAudioAck = defineGameAction({
-  name: 'postAudioAck',
-  path: '/game/night/audio-ack',
-});
+export function setWolfRobotHunterStatusViewed(
+  ctx: GameActionsContext,
+  controlledSeat: number | null,
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.wolfRobot.ackHunterStatus' },
+    controlledSeat,
+    'setWolfRobotHunterStatusViewed',
+  );
+}
 
-/** Host: trigger server-side progression */
-export const postProgression = defineGameAction({
-  name: 'postProgression',
-  path: '/game/night/progression',
-});
+/** Prepare one audio ack command for its initial send and any later recovery sends. */
+export function prepareAudioAck(ctx: GameActionsContext): PreparedAudioAck | null {
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (roomCode === undefined) return null;
 
-// =============================================================================
-// Debug Mode
-// =============================================================================
+  return prepareRoomCommand({
+    roomCode,
+    command: { type: 'werewolf.audio.ack' },
+    controlledSeat: null,
+  });
+}
 
-/** Host: fill seats with bots (Debug-only) */
-export const fillWithBots = defineGameAction({
-  name: 'fillWithBots',
-  path: '/game/fill-bots',
-});
+/** Dispatch the exact prepared audio ack without minting a new command id. */
+export async function dispatchPreparedAudioAck(
+  ctx: GameActionsContext,
+  prepared: PreparedAudioAck,
+): Promise<ActionResult> {
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (roomCode === undefined) return NOT_CONNECTED;
+  if (roomCode !== prepared.roomCode) {
+    throw new Error(
+      `[FAIL-FAST] Prepared audio ack belongs to room ${prepared.roomCode}, not ${roomCode}`,
+    );
+  }
 
-/** Host: mark all bots as having viewed role (Debug-only) */
-export const markAllBotsViewed = defineGameAction({
-  name: 'markAllBotsViewed',
-  path: '/game/mark-bots-viewed',
-});
+  return dispatchPreparedRoomCommand({
+    prepared,
+    codec: WEREWOLF_STATE_CODEC,
+    store: ctx.store,
+    label: 'postAudioAck',
+  });
+}
 
-/** Host: mark all bots as having confirmed groupConfirm step (Debug-only) */
-export const markAllBotsGroupConfirmed = defineGameAction({
-  name: 'markAllBotsGroupConfirmed',
-  path: '/game/night/mark-bots-group-confirmed',
-});
+export function postProgression(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.progress.request' },
+    null,
+    'postProgression',
+  );
+}
 
-// =============================================================================
-// Player profile sync
-// =============================================================================
+export function fillWithBots(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(ctx, { type: 'room.seat.fillBots' }, null, 'fillWithBots');
+}
 
-/** Sync player profile to GameState (any seated player) */
-export const updatePlayerProfile = defineGameAction<
-  [string?, string?, string?, string?, string?, string?, string?]
->({
-  name: 'updatePlayerProfile',
-  path: '/game/update-profile',
-  needsUserId: true,
-  body: (
+export function markAllBotsViewed(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.bots.markRolesViewed' },
+    null,
+    'markAllBotsViewed',
+  );
+}
+
+export function markAllBotsGroupConfirmed(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.groupConfirm.ackBots' },
+    null,
+    'markAllBotsGroupConfirmed',
+  );
+}
+
+export function updatePlayerProfile(
+  ctx: GameActionsContext,
+  displayName?: string,
+  avatarUrl?: string,
+  avatarFrame?: string,
+  seatFlair?: string,
+  nameStyle?: string,
+  roleRevealEffect?: string,
+  seatAnimation?: string,
+): Promise<ActionResult> {
+  const profile: WerewolfProfileUpdate = {
     displayName,
     avatarUrl,
     avatarFrame,
@@ -213,40 +298,37 @@ export const updatePlayerProfile = defineGameAction<
     nameStyle,
     roleRevealEffect,
     seatAnimation,
-  ) => ({
-    displayName,
-    avatarUrl,
-    avatarFrame,
-    seatFlair,
-    nameStyle,
-    roleRevealEffect,
-    seatAnimation,
-  }),
-});
+  };
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'room.profile.update', profile },
+    null,
+    'updatePlayerProfile',
+  );
+}
 
-// =============================================================================
-// Board suggestions
-// =============================================================================
+export function boardNominate(
+  ctx: GameActionsContext,
+  displayName: string,
+  roles: readonly RoleId[],
+): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.board.nominate', displayName, roles: [...roles] },
+    null,
+    'boardNominate',
+  );
+}
 
-/** Submit board suggestion (any connected player, max one per person) */
-export const boardNominate = defineGameAction<[string, RoleId[]]>({
-  name: 'boardNominate',
-  path: '/game/board-nominate',
-  needsUserId: true,
-  body: (displayName, roles) => ({ displayName, roles }),
-});
+export function boardUpvote(ctx: GameActionsContext, targetUserId: string): Promise<ActionResult> {
+  return dispatchWerewolfCommand(
+    ctx,
+    { type: 'werewolf.board.upvote', targetUserId },
+    null,
+    'boardUpvote',
+  );
+}
 
-/** Upvote board suggestion (any connected player) */
-export const boardUpvote = defineGameAction<[string]>({
-  name: 'boardUpvote',
-  path: '/game/board-upvote',
-  needsUserId: true,
-  body: (targetUserId) => ({ targetUserId }),
-});
-
-/** Withdraw board suggestion (submitter only) */
-export const boardWithdraw = defineGameAction({
-  name: 'boardWithdraw',
-  path: '/game/board-withdraw',
-  needsUserId: true,
-});
+export function boardWithdraw(ctx: GameActionsContext): Promise<ActionResult> {
+  return dispatchWerewolfCommand(ctx, { type: 'werewolf.board.withdraw' }, null, 'boardWithdraw');
+}

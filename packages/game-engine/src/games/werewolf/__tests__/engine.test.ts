@@ -4,6 +4,7 @@ import { buildInitialGameState } from '../../../engine/state/buildInitialState';
 import { GameStatus, type GameTemplate, type RoleId } from '../../../models';
 import type { CommandContext, CreateGameContext } from '../../../platform/engine';
 import {
+  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_NOT_HOST,
   REASON_SEAT_EMPTY,
@@ -343,6 +344,33 @@ describe('Werewolf engine definition and catalog', () => {
     ).toEqual({ kind: 'reject', reason: REASON_SYSTEM_ACTOR_REQUIRED });
   });
 
+  it('allows controlledSeat only for the five seat-owned commands', () => {
+    const allowedTypes = new Set<WerewolfCommand['type']>([
+      'werewolf.action.submit',
+      'werewolf.role.view',
+      'werewolf.reveal.ack',
+      'werewolf.wolfRobot.ackHunterStatus',
+      'werewolf.groupConfirm.ack',
+    ]);
+
+    for (const command of Object.values(commandByType)) {
+      if (command.type === 'werewolf.growth.applyRosterLevels') continue;
+      const decision = werewolfEngine.decide(createState(), command, userContext('host', 2));
+
+      if (allowedTypes.has(command.type)) {
+        expect(decision).not.toEqual({
+          kind: 'reject',
+          reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+        });
+      } else {
+        expect(decision).toEqual({
+          kind: 'reject',
+          reason: REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+        });
+      }
+    }
+  });
+
   it('creates identified state from config and fails fast on invalid config', () => {
     const context: CreateGameContext = {
       roomCode: '9876',
@@ -377,6 +405,79 @@ describe('Werewolf engine definition and catalog', () => {
     [GameStatus.Ended, 'ended'],
   ] as const)('derives %s as %s lifecycle', (status, lifecycle) => {
     expect(getWerewolfLifecycle(createState({ status }))).toBe(lifecycle);
+  });
+
+  it('emits one game-ended effect with every occupied participant on the ended transition', () => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: undefined,
+      currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+      isAudioPlaying: false,
+    });
+
+    const decision = werewolfEngine.decide(
+      state,
+      commandByType['werewolf.progress.request'],
+      userContext('host'),
+    );
+    if (decision.kind === 'reject') {
+      throw new Error(`Expected ended transition commit, received ${decision.reason}`);
+    }
+
+    expect(decision.effects).toEqual([
+      {
+        type: 'werewolf.game.ended',
+        payload: {
+          roomCode: '1234',
+          participants: [
+            { userId: 'host', role: 'wolf', isBot: false },
+            { userId: 'user-1', role: 'seer', isBot: false },
+            { userId: 'bot-2', role: 'hunter', isBot: true },
+          ],
+        },
+      },
+    ]);
+  });
+
+  it('does not emit the game-ended effect for rejected, non-transitioning, or ended commands', () => {
+    const rejected = werewolfEngine.decide(
+      createState(),
+      commandByType['room.seat.clear'],
+      userContext('user-1'),
+    );
+    expect(rejected).toEqual({ kind: 'reject', reason: REASON_NOT_HOST });
+    expect(rejected).not.toHaveProperty('effects');
+
+    const noTransition = werewolfEngine.decide(
+      createState({ status: GameStatus.Ongoing, currentStepId: 'seerCheck' }),
+      commandByType['werewolf.progress.request'],
+      userContext('host'),
+    );
+    expect(noTransition).toMatchObject({ kind: 'commit', effects: [] });
+
+    const alreadyEnded = werewolfEngine.decide(
+      createState({ status: GameStatus.Ended }),
+      commandByType['werewolf.review.share'],
+      userContext('host'),
+    );
+    expect(alreadyEnded).toMatchObject({ kind: 'commit', effects: [] });
+  });
+
+  it('fails fast when an occupied seat has no role at the ended transition', () => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: undefined,
+      currentNightResults: { wolfVotesBySeat: { '0': 1 } },
+      isAudioPlaying: false,
+      players: {
+        ...createState().players,
+        1: { userId: 'user-1', seat: 1, hasViewedRole: true },
+      },
+    });
+
+    expect(() =>
+      werewolfEngine.decide(state, commandByType['werewolf.progress.request'], userContext('host')),
+    ).toThrow('[FAIL-FAST] Ended Werewolf game has no assigned role for occupied seat 1');
   });
 
   it('is deterministic for identical state, command, and execution context', () => {

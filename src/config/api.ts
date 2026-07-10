@@ -17,14 +17,6 @@ export const API_BASE_URL: string =
   process.env.EXPO_PUBLIC_CF_API_URL ?? 'https://api.werewolfjudge.eu.org';
 
 /**
- * Edge Function region routing header value.
- *
- * - Can be overridden via EXPO_PUBLIC_API_REGION (e.g. `ap-southeast-1`)
- * - Default keeps existing production config
- */
-export const API_REGION: string = process.env.EXPO_PUBLIC_API_REGION ?? 'us-west-1';
-
-/**
  * API request timeout (milliseconds).
  *
  * - Can be overridden via EXPO_PUBLIC_API_TIMEOUT_MS

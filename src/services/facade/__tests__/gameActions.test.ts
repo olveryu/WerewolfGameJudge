@@ -1,436 +1,256 @@
-/**
- * gameActions.test.ts — callGameControlApi core logic + thin wrapper contracts
- *
- * Focuses on high-bug-density branches of callGameControlApi:
- * 1. Success path + snapshot apply
- * 2. Server rejection
- * 3. CONFLICT_RETRY → transparent client retry (up to 2 times) → retries exhausted
- * 4. Non-JSON 502/503 error pages → no SyntaxError thrown
- * 5. Network error (TypeError from fetch) → NETWORK_ERROR
- * 6. ReferenceError → rethrow directly (programming error)
- *
- * Thin wrappers (assignRoles etc.) only test the NOT_CONNECTED path + normal call forwarding.
- */
-
+import {
+  WEREWOLF_STATE_CODEC,
+  type WerewolfActionInput,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/engine/store/types';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-
-// Mock dependencies before importing
-jest.mock('@sentry/react-native', () => ({
-  captureException: jest.fn(),
-  withScope: jest.fn((callback: (scope: unknown) => void) =>
-    callback({
-      setTag: jest.fn(),
-      setFingerprint: jest.fn(),
-    }),
-  ),
-}));
-
-jest.mock('@werewolf/game-engine/utils/random', () => ({
-  secureRng: () => 0.5, // deterministic for delay calc
-}));
-
-jest.mock('../../infra/AudioService', () => ({
-  AudioService: jest.fn(),
-}));
-
-// fetchWithRetry passthrough: tests mock global.fetch directly,
-// so bypass network-layer retry to avoid delays and timer interference.
-jest.mock('@/services/cloudflare/cfFetch', () => ({
-  ...jest.requireActual<typeof import('@/services/cloudflare/cfFetch')>(
-    '@/services/cloudflare/cfFetch',
-  ),
-  fetchWithRetry: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init),
-}));
-
-// Import after mocks
-import * as Sentry from '@sentry/react-native';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 
 import type { GameActionsContext } from '@/services/facade/gameActions';
 import {
   assignRoles,
+  boardNominate,
+  boardUpvote,
+  boardWithdraw,
   clearAllSeats,
-  clearRevealAcks,
+  dispatchPreparedAudioAck,
   fillWithBots,
   markAllBotsGroupConfirmed,
   markAllBotsViewed,
-  postAudioAck,
+  markViewedRole,
   postProgression,
+  prepareAudioAck,
   restartGame,
   setAudioPlaying,
   setWolfRobotHunterStatusViewed,
   shareNightReview,
   startNight,
   submitAction,
+  submitGroupConfirmAck,
+  submitRevealAck,
+  updatePlayerProfile,
   updateTemplate,
 } from '@/services/facade/gameActions';
+import {
+  dispatchPreparedRoomCommand,
+  dispatchRoomCommand,
+  type PreparedRoomCommand,
+  prepareRoomCommand,
+} from '@/services/facade/roomCommandTransport';
 
-import { buildApiCommandSuccess, buildApiTestState } from './apiTestState';
+jest.mock('@/services/facade/roomCommandTransport', () => ({
+  dispatchPreparedRoomCommand: jest.fn(),
+  dispatchRoomCommand: jest.fn(),
+  prepareRoomCommand: jest.fn(),
+}));
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const dispatchMock = jest.mocked(dispatchRoomCommand);
+const dispatchPreparedMock = jest.mocked(dispatchPreparedRoomCommand);
+const prepareMock = jest.mocked(prepareRoomCommand);
 
-const DEFAULT_STATE: Partial<GameState> = {
-  roomCode: 'ABCD',
-  hostUserId: 'host-1',
-  players: {
-    0: {
-      userId: 'host-1',
-      seat: 0,
-      role: 'wolf',
-      hasViewedRole: false,
-      displayName: 'P0',
-    } as unknown as GameState['players'][number],
-    1: {
-      userId: 'p2',
-      seat: 1,
-      role: 'seer',
-      hasViewedRole: false,
-      displayName: 'P1',
-    } as unknown as GameState['players'][number],
-    2: {
-      userId: 'p3',
-      seat: 2,
-      role: 'villager',
-      hasViewedRole: false,
-      displayName: 'P2',
-    } as unknown as GameState['players'][number],
-  },
-};
+const PREPARED_AUDIO_ACK: PreparedRoomCommand<{ readonly type: 'werewolf.audio.ack' }> =
+  Object.freeze({
+    roomCode: 'ABCD',
+    commandId: 'audio-ack-command',
+    command: Object.freeze({ type: 'werewolf.audio.ack' }),
+    controlledSeat: null,
+  });
 
-function createMockStore(state: Partial<GameState> | null = DEFAULT_STATE): GameStore {
-  let currentState = state as GameState | null;
+function createContext(roomCode: string | null = 'ABCD'): GameActionsContext {
+  const state = roomCode === null ? null : { roomCode, templateRoles: ['wolf', 'seer'] };
   return {
-    getState: jest.fn(() => currentState),
-    applySnapshot: jest.fn((s: GameState, _rev: number) => {
-      currentState = s;
-    }),
-  } as unknown as GameStore;
-}
-
-function createMockCtx(storeState?: Partial<GameState> | null) {
-  return {
-    store: createMockStore(storeState),
-    myUserId: 'host-1',
-    getMySeat: () => 0,
+    store: {
+      getState: jest.fn(() => state),
+      applySnapshot: jest.fn(),
+    } as unknown as GameStore,
     audioService: {
       preloadForRoles: jest.fn().mockResolvedValue(undefined),
     } as unknown as GameActionsContext['audioService'],
   };
 }
 
-function mockFetchSuccess(result: Record<string, unknown> = buildApiCommandSuccess()) {
-  return jest.fn().mockResolvedValue({
-    ok: true,
-    headers: { get: () => 'application/json' },
-    json: () => Promise.resolve(result),
-  });
+function expectCommand(command: WerewolfPublicCommand, controlledSeat: number | null): void {
+  expect(dispatchMock).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      roomCode: 'ABCD',
+      command,
+      controlledSeat,
+    }),
+  );
 }
 
-// ─── Tests ──────────────────────────────────────────────────────────────────
-
-describe('callGameControlApi (via assignRoles wrapper)', () => {
-  const originalFetch = global.fetch;
-
+describe('canonical Werewolf command builders', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    dispatchMock.mockReset().mockResolvedValue({ success: true });
+    dispatchPreparedMock.mockReset().mockResolvedValue({ success: true });
+    prepareMock.mockReset().mockReturnValue(PREPARED_AUDIO_ACK);
   });
 
-  afterEach(() => {
-    global.fetch = originalFetch;
-    jest.restoreAllMocks();
-  });
-
-  // =========================================================================
-  // Success paths
-  // =========================================================================
-
-  it('should return success on 200 JSON response', async () => {
-    global.fetch = mockFetchSuccess();
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('should apply snapshot when response contains state + revision', async () => {
-    const newState = buildApiTestState({ status: GameStatus.Assigned });
-    global.fetch = mockFetchSuccess(buildApiCommandSuccess(newState, 5));
-    const ctx = createMockCtx();
+  it('maps host and room operations exhaustively', async () => {
+    const ctx = createContext();
+    const template: GameTemplate = {
+      name: 'Test',
+      numberOfPlayers: 2,
+      roles: ['wolf', 'villager'],
+      rules: { witchCanSelfHeal: true },
+    };
 
     await assignRoles(ctx);
-
-    expect(ctx.store.applySnapshot).toHaveBeenCalledWith(newState, 5);
-  });
-
-  it('should fail fast when a successful response contains invalid state', async () => {
-    global.fetch = mockFetchSuccess({
-      success: true,
-      snapshot: {
-        gameType: 'werewolf',
-        stateVersion: 1,
-        revision: 5,
-        state: { gameType: 'werewolf', stateVersion: 1 },
+    expectCommand({ type: 'werewolf.roles.assign' }, null);
+    await updateTemplate(ctx, template);
+    expectCommand(
+      {
+        type: 'werewolf.config.update',
+        templateRoles: ['wolf', 'villager'],
+        rules: { witchCanSelfHeal: true },
       },
-    });
-    const ctx = createMockCtx();
-
-    await expect(assignRoles(ctx)).rejects.toThrow('RoomCommandResult contains invalid snapshot');
-    expect(ctx.store.applySnapshot).not.toHaveBeenCalled();
-  });
-
-  // =========================================================================
-  // Server rejection → rollback
-  // =========================================================================
-
-  it('should return failure reason on server rejection', async () => {
-    global.fetch = mockFetchSuccess({ success: false, reason: 'INVALID_STATUS' });
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('INVALID_STATUS');
-  });
-
-  // =========================================================================
-  // Non-JSON error (502/503 gateway error)
-  // =========================================================================
-
-  it('should handle non-JSON 502 error without throwing SyntaxError', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 502,
-      headers: { get: () => 'text/html' },
-      json: () => {
-        throw new SyntaxError('Unexpected token < in JSON');
-      },
-    });
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('SERVER_ERROR');
-    // Should NOT call .json()
-  });
-
-  it('should return SERVER_ERROR on non-JSON 503', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 503,
-      headers: { get: () => 'text/html' },
-    });
-
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('SERVER_ERROR');
-  });
-
-  // =========================================================================
-  // CONFLICT_RETRY → client retry
-  // =========================================================================
-
-  it('should retry on CONFLICT_RETRY and succeed on second attempt', async () => {
-    jest.useFakeTimers();
-
-    const conflictResponse = () =>
-      Promise.resolve({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: false, reason: 'CONFLICT_RETRY' }),
-      });
-    const successResponse = () =>
-      Promise.resolve({
-        ok: true,
-        headers: { get: () => 'application/json' },
-        json: () => Promise.resolve(buildApiCommandSuccess()),
-      });
-
-    global.fetch = jest
-      .fn()
-      .mockImplementationOnce(conflictResponse)
-      .mockImplementationOnce(successResponse);
-
-    const ctx = createMockCtx();
-    const resultPromise = assignRoles(ctx);
-
-    // Advance timers for retry delay
-    await jest.advanceTimersByTimeAsync(500);
-
-    const result = await resultPromise;
-    expect(result.success).toBe(true);
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-
-    jest.useRealTimers();
-  });
-
-  it('should return CONFLICT_RETRY after exhausting max retries', async () => {
-    jest.useFakeTimers();
-
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ success: false, reason: 'CONFLICT_RETRY' }),
-    });
-
-    const ctx = createMockCtx();
-    const resultPromise = assignRoles(ctx);
-
-    // Advance past all retry delays
-    await jest.advanceTimersByTimeAsync(2000);
-
-    const result = await resultPromise;
-    // After 3 attempts (0, 1, 2), last CONFLICT_RETRY is returned as-is
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('CONFLICT_RETRY');
-    // 3 attempts total: initial + 2 retries (the 3rd CONFLICT_RETRY is on the last attempt)
-    expect(global.fetch).toHaveBeenCalledTimes(3);
-
-    jest.useRealTimers();
-  });
-
-  it('should return NETWORK_ERROR after retry exhaustion', async () => {
-    jest.useFakeTimers();
-
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      headers: { get: () => 'application/json' },
-      json: () => Promise.resolve({ success: false, reason: 'CONFLICT_RETRY' }),
-    });
-
-    const ctx = createMockCtx();
-    const resultPromise = assignRoles(ctx);
-
-    await jest.advanceTimersByTimeAsync(2000);
-    const result = await resultPromise;
-
-    expect(result.success).toBe(false);
-
-    jest.useRealTimers();
-  });
-
-  // =========================================================================
-  // Network errors (TypeError from fetch)
-  // =========================================================================
-
-  it('should return NETWORK_ERROR on fetch TypeError (network failure)', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new TypeError('Failed to fetch'));
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('NETWORK_ERROR');
-    // Network errors are expected — should NOT report to Sentry
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should return TIMEOUT on AbortError', async () => {
-    const abortError = Object.assign(new Error('The operation was aborted.'), {
-      name: 'AbortError',
-    });
-    global.fetch = jest.fn().mockRejectedValue(abortError);
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('TIMEOUT');
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-  });
-
-  it('should return NETWORK_ERROR on network failure', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new TypeError('network error'));
-    const ctx = createMockCtx();
-
-    const result = await assignRoles(ctx);
-
-    expect(result.success).toBe(false);
-    expect(result.reason).toBe('NETWORK_ERROR');
-  });
-
-  // =========================================================================
-  // ReferenceError → rethrow (programming bug)
-  // =========================================================================
-
-  it('should rethrow ReferenceError (programming bug, not network)', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new ReferenceError('x is not defined'));
-    const ctx = createMockCtx();
-
-    await expect(assignRoles(ctx)).rejects.toThrow(ReferenceError);
-  });
-});
-
-// =============================================================================
-// Thin wrappers: NOT_CONNECTED guard + correct API path
-// =============================================================================
-
-describe('gameActions thin wrappers — NOT_CONNECTED guard', () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-  });
-
-  it.each([
-    ['assignRoles', (ctx: GameActionsContext) => assignRoles(ctx)],
-    ['startNight', (ctx: GameActionsContext) => startNight(ctx)],
-    ['restartGame', (ctx: GameActionsContext) => restartGame(ctx)],
-    [
-      'updateTemplate',
-      (ctx: GameActionsContext) =>
-        updateTemplate(ctx, { roles: ['wolf', 'villager'] } as unknown as GameTemplate),
-    ],
-    ['shareNightReview', (ctx: GameActionsContext) => shareNightReview(ctx, [1, 2])],
-    ['fillWithBots', (ctx: GameActionsContext) => fillWithBots(ctx)],
-    ['markAllBotsViewed', (ctx: GameActionsContext) => markAllBotsViewed(ctx)],
-    ['markAllBotsGroupConfirmed', (ctx: GameActionsContext) => markAllBotsGroupConfirmed(ctx)],
-    ['clearAllSeats', (ctx: GameActionsContext) => clearAllSeats(ctx)],
-  ] as const)('%s should return NOT_CONNECTED when roomCode is null', async (_name, fn) => {
-    const ctx = createMockCtx(null);
-    const result = await fn(ctx);
-    expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
-  });
-
-  it.each([
-    ['submitAction', (ctx: GameActionsContext) => submitAction(ctx, 0, 'wolf', 1)],
-    ['setAudioPlaying', (ctx: GameActionsContext) => setAudioPlaying(ctx, true)],
-    ['clearRevealAcks', (ctx: GameActionsContext) => clearRevealAcks(ctx)],
-    [
-      'setWolfRobotHunterStatusViewed',
-      (ctx: GameActionsContext) => setWolfRobotHunterStatusViewed(ctx, 0),
-    ],
-    ['postAudioAck', (ctx: GameActionsContext) => postAudioAck(ctx)],
-    ['postProgression', (ctx: GameActionsContext) => postProgression(ctx)],
-  ] as const)('%s should return NOT_CONNECTED when state is null', async (_name, fn) => {
-    const ctx = createMockCtx(null);
-    const result = await fn(ctx);
-    expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
-  });
-});
-
-describe('startNight — preloads audio on success', () => {
-  const originalFetch = global.fetch;
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-  });
-
-  it('should fire-and-forget preloadForRoles after successful start', async () => {
-    global.fetch = mockFetchSuccess(
-      buildApiCommandSuccess(buildApiTestState({ templateRoles: ['wolf', 'seer', 'villager'] })),
+      null,
     );
+    await restartGame(ctx);
+    expectCommand({ type: 'werewolf.game.restart' }, null);
+    await clearAllSeats(ctx);
+    expectCommand({ type: 'room.seat.clear' }, null);
+    await shareNightReview(ctx, [1, 3]);
+    expectCommand({ type: 'werewolf.review.share', allowedSeats: [1, 3] }, null);
+    await setAudioPlaying(ctx, true);
+    expectCommand({ type: 'werewolf.audio.gate', isPlaying: true }, null);
+    await postProgression(ctx);
+    expectCommand({ type: 'werewolf.progress.request' }, null);
+    await fillWithBots(ctx);
+    expectCommand({ type: 'room.seat.fillBots' }, null);
+    await markAllBotsViewed(ctx);
+    expectCommand({ type: 'werewolf.bots.markRolesViewed' }, null);
+    await markAllBotsGroupConfirmed(ctx);
+    expectCommand({ type: 'werewolf.groupConfirm.ackBots' }, null);
+    await boardNominate(ctx, 'Board', ['wolf', 'seer']);
+    expectCommand(
+      { type: 'werewolf.board.nominate', displayName: 'Board', roles: ['wolf', 'seer'] },
+      null,
+    );
+    await boardUpvote(ctx, 'target-user');
+    expectCommand({ type: 'werewolf.board.upvote', targetUserId: 'target-user' }, null);
+    await boardWithdraw(ctx);
+    expectCommand({ type: 'werewolf.board.withdraw' }, null);
+  });
 
-    const ctx = createMockCtx({ roomCode: 'ABCD', hostUserId: 'host-1' });
-    const result = await startNight(ctx);
+  it('passes controlledSeat only for bot-capable player commands', async () => {
+    const ctx = createContext();
 
-    expect(result.success).toBe(true);
+    await markViewedRole(ctx, 4);
+    expectCommand({ type: 'werewolf.role.view' }, 4);
+    await submitRevealAck(ctx, 4);
+    expectCommand({ type: 'werewolf.reveal.ack' }, 4);
+    await submitGroupConfirmAck(ctx, 4);
+    expectCommand({ type: 'werewolf.groupConfirm.ack' }, 4);
+    await setWolfRobotHunterStatusViewed(ctx, 4);
+    expectCommand({ type: 'werewolf.wolfRobot.ackHunterStatus' }, 4);
+
+    for (const call of dispatchMock.mock.calls) {
+      const options = call[0];
+      expect(options.command).not.toHaveProperty('userId');
+      expect(options.command).not.toHaveProperty('seat');
+      expect(options.command).not.toHaveProperty('role');
+    }
+  });
+
+  it.each<WerewolfActionInput>([
+    { kind: 'target', target: 2 },
+    { kind: 'multiTarget', targets: [1, 3] },
+    { kind: 'confirm', confirmed: false },
+    { kind: 'witch', saveTarget: 2, poisonTarget: null },
+    { kind: 'card', cardIndex: 1 },
+  ])('maps $kind input without actor seat or role authority', async (input) => {
+    const ctx = createContext();
+
+    await submitAction(ctx, input, 5);
+
+    expectCommand({ type: 'werewolf.action.submit', input }, 5);
+    const command = dispatchMock.mock.calls[0]?.[0].command;
+    expect(command).not.toHaveProperty('userId');
+    expect(command).not.toHaveProperty('seat');
+    expect(command).not.toHaveProperty('role');
+  });
+
+  it('maps the canonical profile update object without userId', async () => {
+    const ctx = createContext();
+
+    await updatePlayerProfile(ctx, 'Alice', 'avatar', 'frame', 'flair', 'style', 'effect', 'seat');
+
+    expectCommand(
+      {
+        type: 'room.profile.update',
+        profile: {
+          displayName: 'Alice',
+          avatarUrl: 'avatar',
+          avatarFrame: 'frame',
+          seatFlair: 'flair',
+          nameStyle: 'style',
+          roleRevealEffect: 'effect',
+          seatAnimation: 'seat',
+        },
+      },
+      null,
+    );
+  });
+
+  it('preloads audio only after a successful night start', async () => {
+    const ctx = createContext();
+
+    await startNight(ctx);
+
+    expectCommand({ type: 'werewolf.night.start' }, null);
+    expect(ctx.audioService.preloadForRoles).toHaveBeenCalledWith(['wolf', 'seer']);
+
+    dispatchMock.mockResolvedValueOnce({ success: false, reason: 'invalid_status' });
+    jest.mocked(ctx.audioService.preloadForRoles).mockClear();
+    await startNight(ctx);
+    expect(ctx.audioService.preloadForRoles).not.toHaveBeenCalled();
+  });
+
+  it('prepares one typed audio ack envelope and dispatches that exact object', async () => {
+    const ctx = createContext();
+
+    const prepared = prepareAudioAck(ctx);
+    if (prepared === null) throw new Error('Expected a prepared audio ack');
+
+    expect(prepareMock).toHaveBeenCalledWith({
+      roomCode: 'ABCD',
+      command: { type: 'werewolf.audio.ack' },
+      controlledSeat: null,
+    });
+
+    await dispatchPreparedAudioAck(ctx, prepared);
+
+    expect(dispatchPreparedMock).toHaveBeenCalledWith({
+      prepared,
+      codec: WEREWOLF_STATE_CODEC,
+      store: ctx.store,
+      label: 'postAudioAck',
+    });
+    expect(dispatchPreparedMock.mock.calls[0]?.[0].prepared).toBe(prepared);
+  });
+
+  it('fails fast when a prepared audio ack is dispatched in another room', async () => {
+    const ctx = createContext('WXYZ');
+
+    await expect(dispatchPreparedAudioAck(ctx, PREPARED_AUDIO_ACK)).rejects.toThrow(
+      '[FAIL-FAST] Prepared audio ack belongs to room ABCD, not WXYZ',
+    );
+    expect(dispatchPreparedMock).not.toHaveBeenCalled();
+  });
+
+  it('returns NOT_CONNECTED before transport when room state is absent', async () => {
+    const ctx = createContext(null);
+    const result = await assignRoles(ctx);
+
+    expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
+    expect(dispatchMock).not.toHaveBeenCalled();
+    expect(prepareAudioAck(ctx)).toBeNull();
+    await expect(dispatchPreparedAudioAck(ctx, PREPARED_AUDIO_ACK)).resolves.toEqual({
+      success: false,
+      reason: 'NOT_CONNECTED',
+    });
+    expect(prepareMock).not.toHaveBeenCalled();
+    expect(dispatchPreparedMock).not.toHaveBeenCalled();
   });
 });

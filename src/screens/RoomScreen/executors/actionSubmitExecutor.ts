@@ -2,13 +2,14 @@
  * actionSubmitExecutor — Handles 'magicianFirst' and 'actionConfirm' ActionIntents
  *
  * 'magicianFirst': Records the first magician swap target, shows first-pick alert.
- * 'actionConfirm': Shows confirmation dialog, then submits action with typed extra
- * (witch step results for compound, swap targets for magician, plain target for simple).
+ * 'actionConfirm': Shows confirmation dialog, then submits one canonical action input.
  */
+
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 
 import { roomScreenLog } from '@/utils/logger';
 
-import { buildWitchStepResults, getSubStepByKey } from '../hooks/actionIntentHelpers';
+import { buildWitchActionInput, getSubStepByKey } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
 export const magicianFirstExecutor: IntentExecutor = (intent, ctx) => {
@@ -22,7 +23,6 @@ export const magicianFirstExecutor: IntentExecutor = (intent, ctx) => {
 export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
   const {
     effectiveRole,
-    effectiveSeat,
     firstSwapSeat,
     setFirstSwapSeat,
     setSecondSeat,
@@ -33,7 +33,6 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
 
   roomScreenLog.debug('actionConfirm Processing', {
     effectiveRole,
-    effectiveSeat,
     firstSwapSeat,
     schemaKind: currentSchema?.kind,
     schemaId: currentSchema?.id,
@@ -53,7 +52,7 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
         async () => {
           setFirstSwapSeat(null);
           setSecondSeat(null);
-          await proceedWithAction(null, { targets: swapTargets });
+          await proceedWithAction({ kind: 'multiTarget', targets: swapTargets });
         },
         () => {
           setFirstSwapSeat(null);
@@ -63,44 +62,37 @@ export const actionConfirmExecutor: IntentExecutor = (intent, ctx) => {
     }, 0);
   } else {
     const stepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-    let extra: ReturnType<typeof buildWitchStepResults> | undefined;
-    let targetToSubmit: number | null;
+    let actionInput: WerewolfActionInput;
 
     if (currentSchema?.kind === 'compound') {
-      if (effectiveSeat === null) {
-        roomScreenLog.warn(
-          '[actionConfirm] Cannot submit compound action without seat (effectiveSeat is null)',
-        );
-        return;
-      }
-      targetToSubmit = effectiveSeat;
       if (stepSchema?.key === 'save') {
-        extra = buildWitchStepResults({
+        actionInput = buildWitchActionInput({
           saveTarget: intent.targetSeat,
           poisonTarget: null,
         });
       } else if (stepSchema?.key === 'poison') {
-        extra = buildWitchStepResults({
+        actionInput = buildWitchActionInput({
           saveTarget: null,
           poisonTarget: intent.targetSeat,
         });
+      } else {
+        throw new Error(`[FAIL-FAST] Unknown compound action step: ${String(stepSchema?.key)}`);
       }
     } else {
-      targetToSubmit = intent.targetSeat;
+      actionInput = { kind: 'target', target: intent.targetSeat };
     }
 
     roomScreenLog.debug('actionConfirm Submitting', {
       schemaKind: currentSchema?.kind,
-      targetToSubmit,
       'intent.targetSeat': intent.targetSeat,
-      extra,
+      inputKind: actionInput.kind,
     });
 
     actionDialogs.showConfirmDialog(
       stepSchema?.ui?.confirmTitle ?? currentSchema!.ui!.confirmTitle!,
       stepSchema?.ui?.confirmText ?? intent.message ?? '',
       async () => {
-        await proceedWithAction(targetToSubmit, extra);
+        await proceedWithAction(actionInput);
       },
     );
   }

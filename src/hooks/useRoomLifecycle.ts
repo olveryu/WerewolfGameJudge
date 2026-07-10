@@ -14,7 +14,6 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useState } from 'react';
 
@@ -46,7 +45,7 @@ interface RoomLifecycleState {
   clearNeedsAuth: () => void;
 
   // Room actions
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
 
@@ -89,7 +88,7 @@ interface RoomLifecycleDeps {
   // Initialize room: facade only, no DB creation.
   // RoomScreen/useRoomInit calls this AFTER navigation with the confirmed roomCode.
   const initializeRoom = useCallback(
-    async (roomCode: string, template: GameTemplate): Promise<RoomInitResult> => {
+    async (roomCode: string): Promise<RoomInitResult> => {
       setLoading(true);
       setError(null);
 
@@ -106,7 +105,7 @@ interface RoomLifecycleDeps {
         // Set roomRecord for connection sync & leaveRoom cleanup
         setRoomRecord({ roomCode, hostUserId, createdAt: new Date() });
 
-        await facade.createRoom(roomCode, hostUserId, template);
+        await facade.createRoom(roomCode, hostUserId);
         addRecentRoom(roomCode);
 
         return { success: true };

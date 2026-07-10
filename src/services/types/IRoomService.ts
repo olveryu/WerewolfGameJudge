@@ -1,48 +1,35 @@
-/**
- * IRoomService - Room record + game state persistence interface
- *
- * Defines public API contract for room CRUD and game_state read/write.
- * Does not validate game logic, does not handle realtime transport.
- */
+/** Room directory and authoritative snapshot service contract. */
 
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-/** Room record (consumer-facing abstraction) */
+/** Room directory record consumed by the current Werewolf room flow. */
 export interface RoomRecord {
   roomCode: string;
   hostUserId: string;
   createdAt: Date;
 }
 
-/** Room CRUD + game_state read/write interface. */
+export interface CreateRoomRequest {
+  readonly expectedHostUserId: string;
+  readonly gameType: GameType;
+  readonly config: Readonly<Record<string, unknown>>;
+  readonly initialRoomCode?: string;
+  readonly maxAttempts?: number;
+}
+
+export interface CreatedRoom extends RoomRecord {
+  readonly gameType: GameType;
+  readonly snapshot: RoomSnapshot<GameState>;
+}
+
+/** Room directory CRUD plus authoritative state reads. */
 export interface IRoomService {
-  /**
-   * Create room (optimistic insert + conflict retry).
-   * @param hostUserId - Host user ID
-   * @param initialRoomNumber - Initial room number to try
-   * @param maxRetries - Conflict retry limit (default 5)
-   * @param buildInitialState - Optional initial state builder
-   */
-  createRoom(
-    hostUserId: string,
-    initialRoomNumber?: string,
-    maxRetries?: number,
-    buildInitialState?: (roomCode: string) => GameState,
-  ): Promise<RoomRecord>;
-
-  /** Query room record, returns null if not found */
+  createRoom(request: CreateRoomRequest): Promise<CreatedRoom>;
   getRoom(roomCode: string): Promise<RoomRecord | null>;
-
-  /** Check whether room exists */
   roomExists(roomCode: string): Promise<boolean>;
-
-  /** Delete room */
   deleteRoom(roomCode: string): Promise<void>;
-
-  /** Read state_revision (lightweight polling) */
   getStateRevision(roomCode: string): Promise<number | null>;
-
-  /** Read full game_state + revision */
   getGameState(roomCode: string): Promise<RoomSnapshot<GameState> | null>;
 }

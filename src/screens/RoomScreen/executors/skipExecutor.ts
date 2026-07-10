@@ -5,40 +5,32 @@
  * depending on whether the schema is confirm, compound, or simple.
  */
 
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
 
-import { roomScreenLog } from '@/utils/logger';
-
-import { buildWitchStepResults, getSubStepByKey } from '../hooks/actionIntentHelpers';
+import { buildWitchActionInput, getSubStepByKey } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';
 
 /** Skip-action executor. */
 export const skipExecutor: IntentExecutor = (intent, ctx) => {
-  const { currentSchema, effectiveSeat, proceedWithAction, actionDialogs } = ctx;
+  const { currentSchema, proceedWithAction, actionDialogs } = ctx;
 
   if (currentSchema?.kind === 'confirm') {
     actionDialogs.showConfirmDialog(
       '跳过本次行动？',
       intent.message || BLOCKED_UI_DEFAULTS.skipButtonText,
       async () => {
-        await proceedWithAction(null, { confirmed: false });
+        await proceedWithAction({ kind: 'confirm', confirmed: false });
       },
     );
     return;
   }
 
   const skipStepSchema = getSubStepByKey(currentSchema, intent.stepKey);
-  let skipExtra: ReturnType<typeof buildWitchStepResults> | undefined;
-  let skipSeat: number | null = null;
-
-  if (intent.stepKey === 'skipAll' || currentSchema?.kind === 'compound') {
-    if (effectiveSeat === null) {
-      roomScreenLog.warn('Cannot submit compound skip without seat (effectiveSeat is null)');
-      return;
-    }
-    skipExtra = buildWitchStepResults({ saveTarget: null, poisonTarget: null });
-    skipSeat = effectiveSeat;
-  }
+  const actionInput: WerewolfActionInput =
+    currentSchema?.kind === 'compound'
+      ? buildWitchActionInput({ saveTarget: null, poisonTarget: null })
+      : { kind: 'target', target: null };
 
   const skipConfirmText = skipStepSchema?.ui?.confirmText || intent.message;
   if (!skipConfirmText) {
@@ -46,6 +38,6 @@ export const skipExecutor: IntentExecutor = (intent, ctx) => {
   }
 
   actionDialogs.showConfirmDialog('跳过本次行动？', skipConfirmText, async () => {
-    await proceedWithAction(skipSeat, skipExtra);
+    await proceedWithAction(actionInput);
   });
 };

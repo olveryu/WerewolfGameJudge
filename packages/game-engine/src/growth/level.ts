@@ -6,6 +6,8 @@
  * Pure function, no side effects.
  */
 
+import { type Rng, secureRng } from '../utils/random';
+
 /** XP base value */
 export const XP_BASE = 50;
 
@@ -63,12 +65,10 @@ export function getLevelTitle(level: number): string {
   return '传奇';
 }
 
-/** Roll an XP value (server-side). 50 + random(0 ~ 20 + level). */
-export function rollXp(level: number): number {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
+/** Roll an XP value. 50 + random(0 ~ 20 + level). */
+export function rollXp(level: number, rng: Rng = secureRng): number {
   const range = XP_RANDOM_BASE + level;
-  return XP_BASE + (array[0]! % (range + 1));
+  return XP_BASE + Math.floor(rng() * (range + 1));
 }
 
 // ─── Per-game normal draw reward ────────────────────────────────────────
@@ -92,15 +92,20 @@ const NORMAL_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[
   { draws: 5, cumulativeWeight: 100 },
 ];
 
-/** Roll per-game normal ticket count (server-side). 1–5, weighted random. */
-export function rollNormalDraws(): number {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const roll = array[0]! % 100; // 0–99
-  for (const { draws, cumulativeWeight } of NORMAL_DRAW_WEIGHTS) {
+function rollWeightedDraws(
+  weights: readonly { draws: number; cumulativeWeight: number }[],
+  rng: Rng,
+): number {
+  const roll = Math.floor(rng() * 100);
+  for (const { draws, cumulativeWeight } of weights) {
     if (roll < cumulativeWeight) return draws;
   }
-  return 1; // unreachable — satisfies TypeScript
+  throw new Error('[FAIL-FAST] Draw reward weights do not cover the RNG range');
+}
+
+/** Roll per-game normal ticket count. 1–5, weighted random. */
+export function rollNormalDraws(rng: Rng = secureRng): number {
+  return rollWeightedDraws(NORMAL_DRAW_WEIGHTS, rng);
 }
 
 // ─── Level-up golden draw reward ───────────────────────────────────────
@@ -124,13 +129,7 @@ const GOLDEN_DRAW_WEIGHTS: readonly { draws: number; cumulativeWeight: number }[
   { draws: 5, cumulativeWeight: 100 },
 ];
 
-/** Roll level-up golden ticket count (server-side). 1–5, weighted random. */
-export function rollGoldenDraws(): number {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  const roll = array[0]! % 100; // 0–99
-  for (const { draws, cumulativeWeight } of GOLDEN_DRAW_WEIGHTS) {
-    if (roll < cumulativeWeight) return draws;
-  }
-  return 1; // unreachable — satisfies TypeScript
+/** Roll level-up golden ticket count. 1–5, weighted random. */
+export function rollGoldenDraws(rng: Rng = secureRng): number {
+  return rollWeightedDraws(GOLDEN_DRAW_WEIGHTS, rng);
 }

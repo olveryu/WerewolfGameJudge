@@ -10,6 +10,7 @@
  */
 
 import type { UseMutationResult } from '@tanstack/react-query';
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -48,7 +49,7 @@ export interface ExecutorContext {
   setMultiSelectedSeats: (v: readonly number[]) => void;
 
   // ── Submission helpers ──
-  proceedWithAction: (targetSeat: number | null, extra?: unknown) => Promise<boolean>;
+  proceedWithAction: (input: WerewolfActionInput) => Promise<boolean>;
   confirmThenAct: (
     targetSeat: number,
     onAccepted: () => Promise<void> | void,
@@ -58,8 +59,8 @@ export interface ExecutorContext {
   // ── Server-ack mutations (TanStack — owns isPending lifecycle) ──
   /** reveal-ack roundtrip; mutate() called after user dismisses reveal dialog */
   revealAckMutation: UseMutationResult<AckResult, Error, void>;
-  /** wolfRobot hunter-status-viewed roundtrip; mutate(seat) after gate dialog */
-  hunterStatusAckMutation: UseMutationResult<void, Error, number>;
+  /** wolfRobot hunter-status-viewed roundtrip; controlledSeat is captured by the hook */
+  hunterStatusAckMutation: UseMutationResult<void, Error, void>;
   /** groupConfirm-ack roundtrip; mutate() after user confirms group reveal */
   groupConfirmAckMutation: UseMutationResult<AckResult, Error, void>;
 

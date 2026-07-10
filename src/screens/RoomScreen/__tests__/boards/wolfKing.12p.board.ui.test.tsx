@@ -324,7 +324,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
         ]),
         1,
       );
-      expect(wolfVoteAction).toHaveBeenCalledWith(1);
+      expect(wolfVoteAction).toHaveBeenCalledWith({ kind: 'target', target: 1 });
 
       // Step 3: confirmTrigger (hunter only - wolfKing has no night confirm)
       await coverageChainConfirmTrigger(
@@ -382,7 +382,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
           [7, 'wolfKing'],
         ]),
       );
-      expect(emptyVote).toHaveBeenCalledWith(null);
+      expect(emptyVote).toHaveBeenCalledWith({ kind: 'target', target: null });
 
       // Final: literal coverage requirements
       harness.assertCoverage([

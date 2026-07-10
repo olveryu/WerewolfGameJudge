@@ -10,7 +10,6 @@
  * in DB (that's done in ConfigScreen before navigation).
  */
 
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { RoomInitResult } from '@/hooks/useRoomLifecycle';
@@ -21,10 +20,8 @@ interface UseRoomInitParams {
   roomCode: string;
   /** Whether this client is creating the room (host) */
   isHostParam: boolean;
-  /** Template for room creation (host only) */
-  template: GameTemplate | undefined;
   /** From useGameRoom: initialize room (facade only, no DB) */
-  initializeRoom: (roomCode: string, template: GameTemplate) => Promise<RoomInitResult>;
+  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
   /** From useGameRoom: join existing room */
   joinRoom: (roomCode: string) => Promise<RoomInitResult>;
   /** Check if we have received game state */
@@ -55,7 +52,6 @@ interface UseRoomInitResult {
 export function useRoomInit({
   roomCode,
   isHostParam,
-  template,
   initializeRoom,
   joinRoom,
   hasGameState,
@@ -82,23 +78,11 @@ export function useRoomInit({
     const initRoom = async () => {
       setLoadingMessage('正在加载房间');
 
-      // Guard: template must be a real GameTemplate object, not a URL-parsed string.
-      // On refresh, URL params may produce isHost=true + template="[object Object]".
-      const hasValidTemplate =
-        isHostParam &&
-        template != null &&
-        typeof template === 'object' &&
-        Array.isArray(template.roles);
-
-      if (hasValidTemplate) {
+      if (isHostParam) {
         // Host initializes room (DB record already created before navigation)
         setLoadingMessage('正在加载房间');
-        roomScreenLog.debug('Host initializing room', {
-          roomCode,
-          playerCount: template.numberOfPlayers,
-          totalRoles: template.roles.length,
-        });
-        const result = await initializeRoom(roomCode, template);
+        roomScreenLog.debug('Host initializing room', { roomCode });
+        const result = await initializeRoom(roomCode);
 
         if (!result.success) {
           initInProgressRef.current = false;
@@ -138,7 +122,7 @@ export function useRoomInit({
 
     void initRoom();
     // retryKey change also triggers a retry
-  }, [isInitialized, retryKey, isHostParam, template, roomCode, initializeRoom, joinRoom]);
+  }, [isInitialized, retryKey, isHostParam, roomCode, initializeRoom, joinRoom]);
 
   // Loading timeout — two-phase: soft hint at 8s, hard retry at 15s
   useEffect(() => {

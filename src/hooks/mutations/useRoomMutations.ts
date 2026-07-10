@@ -7,25 +7,14 @@
  */
 
 import { useMutation } from '@tanstack/react-query';
-import type { GameState } from '@werewolf/game-engine';
 
 import { useServices } from '@/contexts/ServiceContext';
+import type { CreateRoomRequest } from '@/services/types/IRoomService';
 
 export function useCreateRoom() {
   const { roomService } = useServices();
   return useMutation({
-    mutationFn: (params: {
-      hostUserId: string;
-      initialRoomNumber?: string;
-      maxRetries?: number;
-      buildInitialState?: (roomCode: string) => GameState;
-    }) =>
-      roomService.createRoom(
-        params.hostUserId,
-        params.initialRoomNumber,
-        params.maxRetries,
-        params.buildInitialState,
-      ),
+    mutationFn: (request: CreateRoomRequest) => roomService.createRoom(request),
   });
 }
 

@@ -126,12 +126,9 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
   }
 
   if (effectiveSeat === null) {
-    roomScreenLog.warn(
-      '[confirmTrigger] Cannot submit confirm action without seat (effectiveSeat is null)',
-    );
-    return;
+    throw new Error('[FAIL-FAST] confirmTrigger requires an effective actor seat');
   }
   actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
-    await proceedWithAction(effectiveSeat, { confirmed: true });
+    await proceedWithAction({ kind: 'confirm', confirmed: true });
   });
 };

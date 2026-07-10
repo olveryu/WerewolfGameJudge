@@ -6,7 +6,7 @@
  *
  * @throws HTTP error codes thrown/returned by each route:
  * - POST /auth/anonymous — no special errors
- * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 409 ROOM_CODE_CONFLICT (merge) | 500 ACCOUNT_MERGE_FAILED
+ * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 500 ACCOUNT_MERGE_FAILED
  * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS (10/15min) | 401 INVALID_CREDENTIALS
  * - GET /auth/user — 401 token missing/invalid/revoked | 404 user deleted
  * - PUT /auth/profile — 403 equipped item not unlocked

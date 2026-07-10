@@ -122,7 +122,10 @@ const REASON_CODE_MAP: Record<string, string> = {
   INVALID_REFRESH_TOKEN: '登录已过期，请重新登录',
   WECHAT_ALREADY_BOUND: '该微信已绑定其他账号',
   // ── Room / Avatar / Share ─────────────────────────────────────────────────
-  ROOM_CODE_CONFLICT: '房间号冲突，请重试',
+  room_code_conflict: '房间号冲突，请重试',
+  room_initialization_conflict: '房间初始化冲突，请重新创建',
+  room_code_mismatch: '房间信息不一致，请重新进入',
+  command_id_conflict: '操作标识冲突，请重试',
   STORAGE_NOT_CONFIGURED: '存储服务未配置',
   FILE_REQUIRED: '请选择文件',
   INVALID_FILE_TYPE: '文件类型无效，仅支持 JPEG/PNG/WebP',
@@ -147,13 +150,15 @@ const REASON_CODE_MAP: Record<string, string> = {
   invalid_seat: '座位不存在',
   seat_taken: '座位已被占用',
   not_seated: '你还没有入座',
+  not_host: '仅房主可以执行此操作',
+  seat_empty: '该座位没有玩家',
+  controlled_seat_not_allowed: '当前操作不支持接管座位',
+  controlled_seat_not_bot: '只能接管机器人座位',
   // Game control
   invalid_status: '当前状态不允许此操作',
   role_count_mismatch: '角色数量与座位数不匹配',
   forbidden_while_audio_playing: '请等待语音播放完毕',
-  // Transport (processGameAction)
-  CONFLICT_RETRY: '操作冲突，请重试',
-  ROOM_NOT_FOUND: '房间不存在或已解散',
+  // Transport
   INTERNAL_ERROR: '服务器内部错误',
   // Client API layer
   NETWORK_ERROR: '网络异常，请检查网络后重试',

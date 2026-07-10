@@ -13,8 +13,7 @@
  *   POST /auth/signout            -- sign out
  *   POST /auth/forgot-password    -- send password reset code
  *   POST /auth/reset-password     -- reset password with code
- *   POST /game/{assign,seat,...}  -- game control API
- *   POST /game/night/{action,...} -- night flow API
+ *   POST /room/command            -- authenticated game command API
  *   POST /gemini-proxy            -- Gemini AI proxy
  *   GET  /health                  -- health check
  */
@@ -26,10 +25,11 @@ import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv, Env } from './env';
 import { createLogger } from './lib/logger';
+import { findRoomInstance } from './platform/room/roomDirectory';
 
 // Re-export Durable Object class for wrangler
-export { GameRoom } from './durableObjects/GameRoom';
 export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
+export { GameRoom } from './platform/room/GameRoom';
 
 // Route groups
 import { adminRoutes } from './handlers/adminHandlers';
@@ -38,9 +38,7 @@ import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCleanup } from './handlers/cronHandlers';
 import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
-import { gameRoutes } from './handlers/gameControl';
 import { geminiRoutes } from './handlers/geminiProxy';
-import { nightRoutes } from './handlers/night';
 import { roomRoutes } from './handlers/roomHandlers';
 import { callDO, getGameRoomStub } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
@@ -123,7 +121,11 @@ app.get('/ws', async (c) => {
     return c.json({ error: 'unauthorized' }, 401);
   }
 
-  const stub = getGameRoomStub(c.env, roomCode, c.req.raw);
+  const room = await findRoomInstance(c.env, roomCode);
+  if (room === null) {
+    return c.json({ error: 'room not found' }, 404);
+  }
+  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
   const doUrl = new URL(c.req.url);
   doUrl.pathname = '/websocket';
   // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
@@ -136,8 +138,6 @@ app.get('/ws', async (c) => {
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
 app.route('/room', roomRoutes);
-app.route('/game/night', nightRoutes);
-app.route('/game', gameRoutes);
 app.route('/gemini-proxy', geminiRoutes);
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);

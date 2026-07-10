@@ -16,6 +16,7 @@
  * and does not modify GameState directly.
  */
 
+import type { WerewolfActionInput } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
@@ -62,9 +63,9 @@ interface UseActionOrchestratorParams {
   setSecondSeat: (v: number | null) => void;
 
   // ── Submission callbacks ──
-  submitAction: (targetSeat: number | null, extra?: unknown) => Promise<void>;
+  submitAction: (input: WerewolfActionInput) => Promise<void>;
   submitRevealAck: () => Promise<ActionResult>;
-  sendWolfRobotHunterStatusViewed: (seat: number) => Promise<void>;
+  sendWolfRobotHunterStatusViewed: () => Promise<void>;
   submitGroupConfirmAck: () => Promise<ActionResult>;
 
   // ── Multi-select state (owned by RoomScreen, passed in + out) ──
@@ -122,8 +123,8 @@ export function useActionOrchestrator({
   // mutationKey ['ack', name] aggregates into usePendingAcks for the policy gate.
   // retry: 0 — UI controls re-show on failure (see executor onSuccess branches).
   const revealAckMutation = useAckMutation<void, ActionResult>('reveal', () => submitRevealAck());
-  const hunterStatusAckMutation = useAckMutation<number, void>('hunterStatus', (seat) =>
-    sendWolfRobotHunterStatusViewed(seat),
+  const hunterStatusAckMutation = useAckMutation<void, void>('hunterStatus', () =>
+    sendWolfRobotHunterStatusViewed(),
   );
   const groupConfirmAckMutation = useAckMutation<void, ActionResult>('groupConfirm', () =>
     submitGroupConfirmAck(),
@@ -158,21 +159,15 @@ export function useActionOrchestrator({
   }, []);
 
   const proceedWithAction = useCallback(
-    async (targetSeat: number | null, extra?: unknown): Promise<boolean> => {
+    async (input: WerewolfActionInput): Promise<boolean> => {
       if (actionSubmittingRef.current) {
         roomScreenLog.debug('proceedWithAction Skipped: already submitting');
         return false;
       }
       markActionSubmitting(true);
-      roomScreenLog.debug('proceedWithAction Submitting', { targetSeat });
+      roomScreenLog.debug('proceedWithAction Submitting', { inputKind: input.kind });
       try {
-        // Only pass extra when defined to preserve call-site arity for consumers
-        // that distinguish submitAction(seat) from submitAction(seat, undefined).
-        if (extra !== undefined) {
-          await submitAction(targetSeat, extra);
-        } else {
-          await submitAction(targetSeat);
-        }
+        await submitAction(input);
         // Submission success/failure UX is handled by the state-driven
         // `gameState.actionRejected` effect below.
         return true;
@@ -201,7 +196,7 @@ export function useActionOrchestrator({
       const message = opts?.message ?? currentSchema?.ui?.confirmText ?? '执行此操作？';
 
       actionDialogs.showConfirmDialog(title, message, async () => {
-        const accepted = await proceedWithAction(targetSeat);
+        const accepted = await proceedWithAction({ kind: 'target', target: targetSeat });
         if (!accepted) return;
         await onAccepted();
       });

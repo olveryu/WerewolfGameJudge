@@ -453,15 +453,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     expect(result.current.effectiveSeat).toBe(1);
     expect(result.current.effectiveRole).toBe('wolf');
 
-    // Submit action - should use effectiveSeat=1 and effectiveRole='wolf'
+    // Submit action - bot authority is carried only by controlledSeat.
     await act(async () => {
-      await result.current.submitAction(5); // target seat 5
+      await result.current.submitAction({ kind: 'target', target: 5 });
     });
 
-    // Verify facade.submitAction was called with bot's seat and role
-    expect(submitActionMock).toHaveBeenCalledWith(1, 'wolf', 5, undefined);
-    // NOT called with Host's seat and role
-    expect(submitActionMock).not.toHaveBeenCalledWith(0, 'villager', 5, undefined);
+    expect(submitActionMock).toHaveBeenCalledWith({ kind: 'target', target: 5 }, 1);
   });
 
   it('sendWolfRobotHunterStatusViewed should use effectiveSeat when controlledSeat is set', async () => {
@@ -518,12 +515,12 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     // effectiveSeat should now be 1
     expect(result.current.effectiveSeat).toBe(1);
 
-    // Call sendWolfRobotHunterStatusViewed with effectiveSeat
+    // The hook reads controlledSeat directly; callers cannot claim an actor seat.
     await act(async () => {
-      await result.current.sendWolfRobotHunterStatusViewed(result.current.effectiveSeat!);
+      await result.current.sendWolfRobotHunterStatusViewed();
     });
 
-    // Verify facade was called with bot's seat (effectiveSeat=1), NOT Host's seat
+    // Verify facade was called with the takeover seat, not the Host seat.
     expect(sendWolfRobotHunterStatusViewedMock).toHaveBeenCalledWith(1);
     expect(sendWolfRobotHunterStatusViewedMock).not.toHaveBeenCalledWith(0);
   });

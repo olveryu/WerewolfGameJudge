@@ -9,22 +9,36 @@ import {
   type RoomSnapshot,
 } from './roomSnapshot';
 
+export type CommittedCommandOutcome =
+  | { readonly kind: 'success'; readonly reason?: string }
+  | { readonly kind: 'domainRejected'; readonly reason: string };
+
 export type RoomCommandResult<TState extends BaseGameState<GameType>> =
   | {
-      readonly success: true;
+      readonly kind: 'committed';
+      readonly commandId: string;
       readonly snapshot: RoomSnapshot<TState>;
-      readonly reason?: string;
+      readonly outcome: CommittedCommandOutcome;
     }
-  | { readonly success: false; readonly reason: string };
+  | {
+      readonly kind: 'rejected';
+      readonly commandId: string;
+      readonly reason: string;
+    };
 
 type RoomCommandResultSource<TState extends BaseGameState<GameType>> =
   | {
-      readonly success: true;
+      readonly kind: 'committed';
+      readonly commandId: string;
       readonly state: TState;
       readonly revision: number;
-      readonly reason?: string;
+      readonly outcome: CommittedCommandOutcome;
     }
-  | { readonly success: false; readonly reason: string };
+  | {
+      readonly kind: 'rejected';
+      readonly commandId: string;
+      readonly reason: string;
+    };
 
 export class RoomCommandProtocolError extends Error {
   readonly cause: unknown;
@@ -47,33 +61,77 @@ function parseRecord(value: unknown): Record<string, unknown> {
   return value;
 }
 
-function assertAllowedKeys(value: Record<string, unknown>, allowedKeys: readonly string[]): void {
+function assertAllowedKeys(
+  value: Record<string, unknown>,
+  allowedKeys: readonly string[],
+  subject: string,
+): void {
   const allowed = new Set(allowedKeys);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) {
-      throw new RoomCommandProtocolError(`RoomCommandResult contains unknown field: ${key}`);
+      throw new RoomCommandProtocolError(`${subject} contains unknown field: ${key}`);
     }
   }
 }
 
-function parseReason(value: unknown): string {
+function parseReason(value: unknown, subject = 'RoomCommandResult reason'): string {
   if (typeof value !== 'string' || value.length === 0) {
-    throw new RoomCommandProtocolError('RoomCommandResult reason must be a non-empty string');
+    throw new RoomCommandProtocolError(`${subject} must be a non-empty string`);
   }
   return value;
+}
+
+function parseCommandId(value: unknown): string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 200) {
+    throw new RoomCommandProtocolError(
+      'RoomCommandResult commandId must contain between 1 and 200 characters',
+    );
+  }
+  return value;
+}
+
+function parseCommittedCommandOutcome(value: unknown): CommittedCommandOutcome {
+  if (!isRecord(value)) {
+    throw new RoomCommandProtocolError('RoomCommandResult outcome must be an object');
+  }
+
+  switch (value.kind) {
+    case 'success':
+      assertAllowedKeys(value, ['kind', 'reason'], 'RoomCommandResult outcome');
+      return 'reason' in value
+        ? {
+            kind: 'success',
+            reason: parseReason(value.reason, 'RoomCommandResult outcome reason'),
+          }
+        : { kind: 'success' };
+    case 'domainRejected':
+      assertAllowedKeys(value, ['kind', 'reason'], 'RoomCommandResult outcome');
+      return {
+        kind: 'domainRejected',
+        reason: parseReason(value.reason, 'RoomCommandResult outcome reason'),
+      };
+    default:
+      throw new RoomCommandProtocolError(
+        'RoomCommandResult outcome kind must be success or domainRejected',
+      );
+  }
 }
 
 export function createRoomCommandResult<TState extends BaseGameState<GameType>>(
   result: RoomCommandResultSource<TState>,
 ): RoomCommandResult<TState> {
-  if (!result.success) {
-    return { success: false, reason: parseReason(result.reason) };
+  const commandId = parseCommandId(result.commandId);
+  if (result.kind === 'rejected') {
+    return { kind: 'rejected', commandId, reason: parseReason(result.reason) };
   }
 
   const snapshot = createRoomSnapshot(result.state, result.revision);
-  return result.reason === undefined
-    ? { success: true, snapshot }
-    : { success: true, snapshot, reason: parseReason(result.reason) };
+  return {
+    kind: 'committed',
+    commandId,
+    snapshot,
+    outcome: parseCommittedCommandOutcome(result.outcome),
+  };
 }
 
 export function parseRoomCommandResult<TState extends BaseGameState<GameType>>(
@@ -82,24 +140,32 @@ export function parseRoomCommandResult<TState extends BaseGameState<GameType>>(
 ): RoomCommandResult<TState> {
   const raw = parseRecord(value);
 
-  if (raw.success === false) {
-    assertAllowedKeys(raw, ['success', 'reason']);
-    return { success: false, reason: parseReason(raw.reason) };
+  if (raw.kind === 'rejected') {
+    assertAllowedKeys(raw, ['kind', 'commandId', 'reason'], 'RoomCommandResult');
+    return {
+      kind: 'rejected',
+      commandId: parseCommandId(raw.commandId),
+      reason: parseReason(raw.reason),
+    };
   }
 
-  if (raw.success !== true) {
-    throw new RoomCommandProtocolError('RoomCommandResult success must be a boolean');
+  if (raw.kind !== 'committed') {
+    throw new RoomCommandProtocolError('RoomCommandResult kind must be committed or rejected');
   }
-  assertAllowedKeys(raw, ['success', 'snapshot', 'reason']);
+  assertAllowedKeys(raw, ['kind', 'commandId', 'snapshot', 'outcome'], 'RoomCommandResult');
   if (!('snapshot' in raw)) {
-    throw new RoomCommandProtocolError('Successful RoomCommandResult must contain snapshot');
+    throw new RoomCommandProtocolError('Committed RoomCommandResult must contain snapshot');
   }
+  if (!('outcome' in raw)) {
+    throw new RoomCommandProtocolError('Committed RoomCommandResult must contain outcome');
+  }
+
+  const commandId = parseCommandId(raw.commandId);
+  const outcome = parseCommittedCommandOutcome(raw.outcome);
 
   try {
     const snapshot = parseRoomSnapshot(raw.snapshot, codec);
-    return raw.reason === undefined
-      ? { success: true, snapshot }
-      : { success: true, snapshot, reason: parseReason(raw.reason) };
+    return { kind: 'committed', commandId, snapshot, outcome };
   } catch (error) {
     if (error instanceof RoomCommandProtocolError) throw error;
     throw new RoomCommandProtocolError('RoomCommandResult contains invalid snapshot', error);

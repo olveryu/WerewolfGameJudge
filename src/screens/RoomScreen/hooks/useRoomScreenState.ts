@@ -213,7 +213,6 @@ export function useRoomScreenState(
   const init = useRoomInit({
     roomCode,
     isHostParam,
-    template,
     initializeRoom,
     joinRoom,
     hasGameState: !!gameState,
@@ -737,7 +736,7 @@ export function useRoomScreenState(
   const handleChooseCard = useCallback(
     async (cardIndex: number) => {
       closeChooseCardModal();
-      await submitAction(null, { cardIndex });
+      await submitAction({ kind: 'card', cardIndex });
     },
     [closeChooseCardModal, submitAction],
   );

@@ -122,10 +122,7 @@ export async function ensureFreshToken(): Promise<string | null> {
  * @throws {TypeError} Still fails after FETCH_RETRY_COUNT retries
  * @throws {DOMException} AbortError/TimeoutError — thrown immediately, no retry
  */
-export async function fetchWithRetry(
-  input: RequestInfo | URL,
-  init?: RequestInit,
-): Promise<Response> {
+async function fetchWithRetry(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   for (let attempt = 0; attempt <= FETCH_RETRY_COUNT; attempt++) {
     try {
       return await fetch(input, init);

@@ -8,6 +8,12 @@ export type {
   WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from './commands/types';
+export { createWerewolfGameEndedEffect } from './effects/gameEnded';
+export type {
+  WerewolfEffect,
+  WerewolfGameEndedEffect,
+  WerewolfGameEndedParticipant,
+} from './effects/types';
 export {
   decideWerewolfCommand,
   getWerewolfLifecycle,

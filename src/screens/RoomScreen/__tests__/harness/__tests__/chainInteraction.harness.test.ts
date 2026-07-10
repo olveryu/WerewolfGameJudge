@@ -207,7 +207,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
       {
         text: '确定',
         onPress: () => {
-          submitAction(2); // seat index 2 = player 3
+          submitAction({ kind: 'target', target: 2 });
         },
       },
     ]);
@@ -216,7 +216,7 @@ describe('RoomScreenTestHarness enhanced button API', () => {
     harness.pressButtonOnType('wolfVote', '确定');
 
     // Assert: submitAction was called with correct target
-    expect(submitAction).toHaveBeenCalledWith(2);
+    expect(submitAction).toHaveBeenCalledWith({ kind: 'target', target: 2 });
   });
 
   it('chain: witch save prompt → press 知道了 → next prompt appears', () => {

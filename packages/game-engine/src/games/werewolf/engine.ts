@@ -44,6 +44,7 @@ import {
   reject,
 } from '../../platform/engine';
 import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
 import type { GameState } from '../../protocol/types';
 import type { WerewolfCommand } from './commands/types';
 import { resolveSubmitActionIntent } from './domain/actionInput';
@@ -63,6 +64,8 @@ import {
   handleProgressionRequest,
   handleRevealAck,
 } from './domain/handlers/commandHandlers';
+import { createWerewolfGameEndedEffect } from './effects/gameEnded';
+import type { WerewolfEffect } from './effects/types';
 import { WEREWOLF_STATE_VERSION } from './state/version';
 
 export interface WerewolfConfig {
@@ -70,7 +73,41 @@ export interface WerewolfConfig {
   readonly rules?: Readonly<GameRuleOverrides>;
 }
 
-type WerewolfDecision = Decision<StateAction, never>;
+type WerewolfDecision = Decision<StateAction, WerewolfEffect>;
+
+function commandAllowsControlledSeat(command: WerewolfCommand): boolean {
+  switch (command.type) {
+    case 'werewolf.action.submit':
+    case 'werewolf.role.view':
+    case 'werewolf.reveal.ack':
+    case 'werewolf.wolfRobot.ackHunterStatus':
+    case 'werewolf.groupConfirm.ack':
+      return true;
+    case 'room.seat.take':
+    case 'room.seat.leave':
+    case 'room.seat.kick':
+    case 'room.seat.clear':
+    case 'room.seat.fillBots':
+    case 'room.profile.update':
+    case 'werewolf.roles.assign':
+    case 'werewolf.game.restart':
+    case 'werewolf.bots.markRolesViewed':
+    case 'werewolf.config.update':
+    case 'werewolf.review.share':
+    case 'werewolf.board.nominate':
+    case 'werewolf.board.upvote':
+    case 'werewolf.board.withdraw':
+    case 'werewolf.night.start':
+    case 'werewolf.audio.ack':
+    case 'werewolf.audio.gate':
+    case 'werewolf.progress.request':
+    case 'werewolf.groupConfirm.ackBots':
+    case 'werewolf.growth.applyRosterLevels':
+      return false;
+  }
+  const exhaustive: never = command;
+  return exhaustive;
+}
 
 function decideHandler(
   state: GameState,
@@ -125,11 +162,15 @@ export function getWerewolfLifecycle(state: GameState): CommonGameLifecycle {
   return exhaustive;
 }
 
-export function decideWerewolfCommand(
+function decideWerewolfCommandRules(
   state: GameState,
   command: WerewolfCommand,
   context: CommandContext,
 ): WerewolfDecision {
+  if (context.controlledSeat !== null && !commandAllowsControlledSeat(command)) {
+    return reject(REASON_CONTROLLED_SEAT_NOT_ALLOWED);
+  }
+
   switch (command.type) {
     case 'room.seat.take': {
       const actor = resolveUncontrolledUserActor(state, context);
@@ -424,6 +465,29 @@ export function decideWerewolfCommand(
   return exhaustive;
 }
 
+function finalizeWerewolfDecision(state: GameState, decision: WerewolfDecision): WerewolfDecision {
+  if (decision.kind === 'reject' || state.status === GameStatus.Ended) return decision;
+
+  let nextState = state;
+  for (const event of decision.events) {
+    nextState = gameReducer(nextState, event);
+  }
+  if (nextState.status !== GameStatus.Ended) return decision;
+
+  return {
+    ...decision,
+    effects: [...decision.effects, createWerewolfGameEndedEffect(nextState)],
+  };
+}
+
+export function decideWerewolfCommand(
+  state: GameState,
+  command: WerewolfCommand,
+  context: CommandContext,
+): WerewolfDecision {
+  return finalizeWerewolfDecision(state, decideWerewolfCommandRules(state, command, context));
+}
+
 export const werewolfEngine = {
   gameType: WEREWOLF_GAME_TYPE,
   stateVersion: WEREWOLF_STATE_VERSION,
@@ -438,7 +502,7 @@ export const werewolfEngine = {
   WerewolfConfig,
   WerewolfCommand,
   StateAction,
-  never
+  WerewolfEffect
 >;
 
 export type WerewolfEngine = typeof werewolfEngine;

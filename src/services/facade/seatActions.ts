@@ -1,132 +1,57 @@
-/**
- * Seat Actions - Seat operation orchestration (HTTP API)
- *
- * All seat operations (sit/unseat) go through HTTP to the server API.
- * Server handles handler -> reducer -> DB write -> Realtime broadcast.
- * Host and Player are no longer distinguished. Handles HTTP calls and result parsing.
- * Contains no business logic/validation rules (all in server handler), does not mutate state directly (all in server reducer).
- */
+/** Canonical shared room-seat command builders for the Werewolf facade. */
 
+import { WEREWOLF_STATE_CODEC, type WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { facadeLog } from '@/utils/logger';
 
 import type { SeatProfile } from '../types/IGameFacade';
-import { callApiWithRetry } from './apiUtils';
+import { dispatchRoomCommand } from './roomCommandTransport';
 
-/**
- * Context interface required by Seat Actions
- *
- * After migration only needs roomCode + userId; no longer requires store / realtimeService etc.
- */
-/** Context interface required by Seat Actions. */
+const NOT_CONNECTED: ActionResult = { success: false, reason: 'NOT_CONNECTED' };
+
 export interface SeatActionsContext {
-  myUserId: string | null;
-  getRoomCode: () => string | null;
-  /** GameStore instance (for HTTP response immediate applySnapshot) */
-  readonly store?: GameStore;
+  readonly store: GameStore;
 }
 
-/**
- * Call seat API (with built-in client retry)
- *
- * Seat operations do not use client optimistic updates: low-frequency operations (click once and wait),
- * rely on applySnapshot from HTTP response for immediate render (~100-300ms latency acceptable).
- * Optimistic updates previously caused client state drift when server rejected / broadcast race.
- *
- * Transient server errors (CONFLICT_RETRY / INTERNAL_ERROR) are retried transparently up to 2 times.
- */
-async function callSeatApi(
-  roomCode: string,
-  body: Record<string, unknown>,
-  store?: GameStore,
+async function dispatchSeatCommand(
+  ctx: SeatActionsContext,
+  command: WerewolfPublicCommand,
+  label: string,
 ): Promise<ActionResult> {
-  return callApiWithRetry('/game/seat', { roomCode, ...body }, 'callSeatApi', store);
+  const roomCode = ctx.store.getState()?.roomCode;
+  if (roomCode === undefined) return NOT_CONNECTED;
+
+  return dispatchRoomCommand({
+    roomCode,
+    command,
+    controlledSeat: null,
+    codec: WEREWOLF_STATE_CODEC,
+    store: ctx.store,
+    label,
+  });
 }
 
-// =============================================================================
-// Public API
-// =============================================================================
-
-/**
- * Sit and return the authoritative command outcome.
- */
-export async function takeSeat(
+export function takeSeat(
   ctx: SeatActionsContext,
   seat: number,
-  profile?: SeatProfile,
+  profile: SeatProfile,
 ): Promise<ActionResult> {
-  const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUserId) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
-
-  facadeLog.debug('takeSeat', { seat: seat, userId: ctx.myUserId });
-
-  return callSeatApi(
-    roomCode,
-    {
-      action: 'sit',
-      userId: ctx.myUserId,
-      seat: seat,
-      displayName: profile?.displayName,
-      avatarUrl: profile?.avatarUrl,
-      avatarFrame: profile?.avatarFrame,
-      seatFlair: profile?.seatFlair,
-      nameStyle: profile?.nameStyle,
-      roleRevealEffect: profile?.roleRevealEffect,
-      seatAnimation: profile?.seatAnimation,
-      level: profile?.level,
-    },
-    ctx.store,
+  facadeLog.debug('takeSeat', { seat });
+  return dispatchSeatCommand(
+    ctx,
+    { type: 'room.seat.take', seat, profile: { ...profile } },
+    'takeSeat',
   );
 }
 
-/**
- * Leave the current seat and return the authoritative command outcome.
- */
-export async function leaveSeat(ctx: SeatActionsContext): Promise<ActionResult> {
-  const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUserId) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
-
-  facadeLog.debug('leaveSeat', { userId: ctx.myUserId });
-
-  const userId = ctx.myUserId;
-
-  return callSeatApi(
-    roomCode,
-    {
-      action: 'standup',
-      userId,
-    },
-    ctx.store,
-  );
+export function leaveSeat(ctx: SeatActionsContext): Promise<ActionResult> {
+  facadeLog.debug('leaveSeat');
+  return dispatchSeatCommand(ctx, { type: 'room.seat.leave' }, 'leaveSeat');
 }
 
-/**
- * Kick player from seat (Host-only)
- */
-export async function kickPlayer(
-  ctx: SeatActionsContext,
-  targetSeat: number,
-): Promise<ActionResult> {
-  const roomCode = ctx.getRoomCode();
-  if (!roomCode || !ctx.myUserId) {
-    return { success: false, reason: 'NOT_CONNECTED' };
-  }
-
-  facadeLog.debug('kickPlayer', { targetSeat, userId: ctx.myUserId });
-
-  return callSeatApi(
-    roomCode,
-    {
-      action: 'kick',
-      userId: ctx.myUserId,
-      targetSeat,
-    },
-    ctx.store,
-  );
+export function kickPlayer(ctx: SeatActionsContext, targetSeat: number): Promise<ActionResult> {
+  facadeLog.debug('kickPlayer', { targetSeat });
+  return dispatchSeatCommand(ctx, { type: 'room.seat.kick', seat: targetSeat }, 'kickPlayer');
 }

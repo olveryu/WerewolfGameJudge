@@ -1,0 +1,182 @@
+/** Generic authenticated command pipeline shared by every registered room game. */
+
+import type { CommandContext, GameEffect } from '@werewolf/game-engine/platform/engine';
+import {
+  createRoomCommandResult,
+  type RoomCommandResult,
+} from '@werewolf/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import {
+  REASON_COMMAND_ID_CONFLICT,
+  REASON_NO_STATE,
+  REASON_ROOM_CODE_MISMATCH,
+} from '@werewolf/game-engine/platform/protocol/reasons';
+import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+
+import type { RuntimeCommittedDecision } from '../../games/workerModule';
+import { derivePlatformRoomEffects } from './platformEffects';
+import {
+  getCommittedRevision,
+  getWorkerGameModule,
+  type NewOutboxEffect,
+  type RoomRepository,
+  serializeCommandRequest,
+} from './roomRepository';
+import type { DispatchRoomCommand, DispatchRoomResult, StoredRoomRow } from './types';
+
+export interface PipelineDispatchResult {
+  readonly rpc: DispatchRoomResult;
+  readonly broadcast: 'state' | 'none';
+  readonly commandType: string | null;
+}
+
+function createRejectedResult(
+  commandId: string,
+  reason: string,
+): RoomCommandResult<BaseGameState<GameType>> {
+  return createRoomCommandResult({ kind: 'rejected', commandId, reason });
+}
+
+function createCommandContext(
+  request: DispatchRoomCommand,
+  nowMs: number,
+  randomSeed: string,
+): CommandContext {
+  if (request.actor.kind === 'system' && request.controlledSeat !== null) {
+    throw new Error('System commands cannot specify controlledSeat');
+  }
+  return {
+    actor: request.actor,
+    controlledSeat: request.controlledSeat,
+    nowMs,
+    commandId: request.commandId,
+    randomSeed,
+  };
+}
+
+function buildOutboxEffects(
+  room: StoredRoomRow,
+  request: DispatchRoomCommand,
+  decision: RuntimeCommittedDecision,
+  nowMs: number,
+): readonly NewOutboxEffect[] {
+  const actorUserId = request.actor.kind === 'user' ? request.actor.userId : null;
+  const platformEffects = derivePlatformRoomEffects({
+    roomCode: room.roomCode,
+    actorUserId,
+    commandType: decision.commandType,
+    outcomeKind: decision.outcome.kind,
+    previousLifecycle: decision.previousLifecycle,
+    lifecycle: decision.lifecycle,
+    committedRevision: getCommittedRevision(room, decision.hasStateEvents),
+    nowMs,
+  });
+  const scopedEffects: readonly {
+    readonly scope: 'platform' | 'game';
+    readonly effect: GameEffect;
+  }[] = [
+    ...platformEffects.map((effect) => ({ scope: 'platform' as const, effect })),
+    ...decision.effects.map((effect) => ({ scope: 'game' as const, effect })),
+  ];
+  return scopedEffects.map(({ scope, effect }, index) => {
+    const id = `${room.roomCode}:${request.commandId}:${index}`;
+    return {
+      id,
+      businessKey: id,
+      scope,
+      gameType: room.gameType,
+      effect,
+    };
+  });
+}
+
+function rejectedPipelineResult(commandId: string, reason: string): PipelineDispatchResult {
+  return {
+    rpc: { result: createRejectedResult(commandId, reason), isReplay: false },
+    broadcast: 'none',
+    commandType: null,
+  };
+}
+
+/** Execute one command and atomically persist its receipt, state, effects, and alarm. */
+export async function dispatchRoomCommand(
+  repository: RoomRepository,
+  request: DispatchRoomCommand,
+  nowMs: number,
+): Promise<PipelineDispatchResult> {
+  const room = repository.readRoom();
+  if (room === null) {
+    return rejectedPipelineResult(request.commandId, REASON_NO_STATE);
+  }
+  if (request.roomCode !== room.roomCode) {
+    return rejectedPipelineResult(request.commandId, REASON_ROOM_CODE_MISMATCH);
+  }
+
+  repository.deleteExpiredReceipts(nowMs);
+  const module = getWorkerGameModule(room.gameType);
+  const requestJson = serializeCommandRequest(request);
+  const receipt = repository.readReceipt(request, requestJson, room, module);
+  if (receipt === 'conflict') {
+    return rejectedPipelineResult(request.commandId, REASON_COMMAND_ID_CONFLICT);
+  }
+  if (receipt !== null) {
+    return {
+      rpc: { result: receipt.result, isReplay: true },
+      broadcast: 'none',
+      commandType: null,
+    };
+  }
+
+  const randomSeed = crypto.randomUUID();
+  const context = createCommandContext(request, nowMs, randomSeed);
+  const decision =
+    request.actor.kind === 'user'
+      ? module.decidePublic(room.state, request.command, context)
+      : module.decideInternal(room.state, request.command, context);
+  if (decision.kind === 'reject') {
+    const result = createRejectedResult(request.commandId, decision.reason);
+    await repository.persist({
+      previous: room,
+      state: room.state,
+      request,
+      requestJson,
+      randomSeed,
+      result,
+      hasStateEvents: false,
+      effects: [],
+      decidedAt: nowMs,
+    });
+    return {
+      rpc: { result, isReplay: false },
+      broadcast: 'none',
+      commandType: null,
+    };
+  }
+
+  const revision = getCommittedRevision(room, decision.hasStateEvents);
+  const result = createRoomCommandResult({
+    kind: 'committed',
+    commandId: request.commandId,
+    state: decision.state,
+    revision,
+    outcome: decision.outcome,
+  });
+  const effects = buildOutboxEffects(room, request, decision, nowMs);
+  await repository.persist({
+    previous: room,
+    state: decision.state,
+    request,
+    requestJson,
+    randomSeed,
+    result,
+    hasStateEvents: decision.hasStateEvents,
+    effects,
+    decidedAt: nowMs,
+  });
+
+  return {
+    rpc: { result, isReplay: false },
+    broadcast: decision.broadcast,
+    commandType: decision.commandType,
+  };
+}

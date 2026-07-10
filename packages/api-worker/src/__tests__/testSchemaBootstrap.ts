@@ -113,6 +113,27 @@ const SCHEMA_STATEMENTS = [
   );`,
   `CREATE INDEX IF NOT EXISTS idx_camp_settlements_user_settled ON camp_settlements(user_id, settled_at);`,
 
+  // ── game_settlement_results ──
+  `CREATE TABLE IF NOT EXISTS game_settlement_results (
+    effect_id TEXT NOT NULL,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    room_code TEXT NOT NULL,
+    participant_fingerprint TEXT NOT NULL,
+    camp TEXT NOT NULL CHECK (camp IN ('wolf', 'god', 'villager', 'third')),
+    previous_xp INTEGER NOT NULL CHECK (previous_xp >= 0),
+    xp_earned INTEGER NOT NULL CHECK (xp_earned >= 0),
+    new_xp INTEGER NOT NULL CHECK (new_xp = previous_xp + xp_earned),
+    previous_level INTEGER NOT NULL CHECK (previous_level >= 0),
+    new_level INTEGER NOT NULL CHECK (new_level >= previous_level),
+    normal_draws_earned INTEGER NOT NULL CHECK (normal_draws_earned >= 0),
+    golden_draws_earned INTEGER NOT NULL CHECK (golden_draws_earned >= 0),
+    stats_applied INTEGER NOT NULL DEFAULT 0 CHECK (stats_applied IN (0, 1)),
+    settled_at TEXT NOT NULL,
+    PRIMARY KEY (effect_id, user_id)
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_game_settlement_results_user_settled
+    ON game_settlement_results(user_id, settled_at);`,
+
   // ── rooms ──
   `CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
@@ -123,6 +144,18 @@ const SCHEMA_STATEMENTS = [
     games_started INTEGER NOT NULL DEFAULT 0,
     last_started_at TEXT
   );`,
+
+  // ── room_game_starts ──
+  `CREATE TABLE IF NOT EXISTS room_game_starts (
+    effect_id TEXT PRIMARY KEY,
+    room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+    started_revision INTEGER NOT NULL CHECK (started_revision > 0),
+    started_at TEXT NOT NULL
+  );`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_room_game_starts_room_revision
+    ON room_game_starts(room_code, started_revision);`,
+  `CREATE INDEX IF NOT EXISTS idx_room_game_starts_room_started
+    ON room_game_starts(room_code, started_at);`,
 
   // ── room_participants ──
   `CREATE TABLE IF NOT EXISTS room_participants (

@@ -18,10 +18,10 @@ const mockNavigation = {
 };
 
 // Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
-// and confirmation submits submitAction(target, { poison: true }).
+// and confirmation submits a canonical Witch action input.
 const mockSubmitAction = jest.fn();
 
-// Witch poison phase: seat tap should open poison confirm -> confirm submits submitAction(target, {poison:true})
+// Witch poison phase: seat tap opens poison confirm and submits poisonTarget.
 jest.mock('../../../hooks/useGameRoom', () => {
   const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
   return {
@@ -184,7 +184,7 @@ describe('RoomScreen witch poison UI (smoke)', () => {
     jest.clearAllMocks();
   });
 
-  it('tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
+  it('tap seat -> poison confirm -> submits canonical witch input', async () => {
     const route = {
       params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
     } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
@@ -215,13 +215,16 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeat=0), target in stepResults
-    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
+    expect(mockSubmitAction).toHaveBeenCalledWith({
+      kind: 'witch',
+      saveTarget: null,
+      poisonTarget: 2,
+    });
   });
 
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
   // (phase field removed; seat taps always mean poison under new UX.)
-  it('canSave=true still tap seat -> poison confirm -> submitAction(target, {poison:true})', async () => {
+  it('canSave=true still tap seat -> poison confirm -> submits poisonTarget', async () => {
     const route = {
       params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
     } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
@@ -250,7 +253,10 @@ describe('RoomScreen witch poison UI (smoke)', () => {
       confirmBtn?.onPress?.();
     });
 
-    // protocol: seat = actorSeat (mySeat=0), target in stepResults
-    expect(mockSubmitAction).toHaveBeenCalledWith(0, { stepResults: { save: null, poison: 2 } });
+    expect(mockSubmitAction).toHaveBeenCalledWith({
+      kind: 'witch',
+      saveTarget: null,
+      poisonTarget: 2,
+    });
   });
 });

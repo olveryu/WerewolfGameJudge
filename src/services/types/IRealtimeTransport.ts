@@ -10,6 +10,7 @@
  * - Does NOT: reconnect, backoff, ping/pong timer, state management, platform event listeners
  */
 
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type { StateUpdateMessage } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -19,6 +20,9 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** Game settle result unicast message. */
 export interface SettleResultMessage {
+  readonly gameType: GameType;
+  readonly settlementId: string;
+  readonly endedRevision: number;
   xpEarned: number;
   newXp: number;
   newLevel: number;
