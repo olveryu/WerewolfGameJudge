@@ -2,7 +2,7 @@
  * settleGameResults — valid game settlement (D1 write)
  *
  * Called asynchronously after audioAck() confirms audio playback; does not block the client.
- * Valid game conditions: status === Ended && ≥9 distinct human players (including anonymous).
+ * Valid game conditions: status === Ended && at least 6 distinct human players (including anonymous).
  * XP is written only for registered users. Anonymous players count toward the player threshold only.
  * Idempotent: user_stats.last_room_code prevents duplicate writes.
  * Each game awards 1–5 standard lottery tickets (weighted random); level-up awards an extra 1–5 golden tickets (weighted random).
