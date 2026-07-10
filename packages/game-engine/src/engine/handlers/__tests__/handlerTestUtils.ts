@@ -5,7 +5,19 @@
  * `.actions`, `.reason`, `.sideEffects` without manual type guards.
  */
 
-import type { HandlerError, HandlerRejection, HandlerResult, HandlerSuccess } from '../types';
+import type {
+  HandlerError,
+  HandlerExecutionContext,
+  HandlerRejection,
+  HandlerResult,
+  HandlerSuccess,
+} from '../types';
+
+export const TEST_HANDLER_EXECUTION: HandlerExecutionContext = Object.freeze({
+  nowMs: 1_000_000,
+  commandId: 'test-command',
+  randomSeed: 'test-random-seed',
+});
 
 /** Assert result is a success and narrow the type. */
 export function expectSuccess(result: HandlerResult): HandlerSuccess {

@@ -28,9 +28,10 @@ function createContext(
       [2, 'wolf'],
     ]),
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     bottomCardContext: { bottomCards, actorSeat: 0 },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 

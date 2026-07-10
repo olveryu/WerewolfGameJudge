@@ -15,8 +15,12 @@
  */
 
 import { parseWerewolfState } from '@werewolf/game-engine';
-import type { HandlerResult, SideEffect } from '@werewolf/game-engine/engine/handlers/types';
-import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
+import type {
+  HandlerContext,
+  HandlerExecutionContext,
+  HandlerResult,
+  SideEffect,
+} from '@werewolf/game-engine/engine/handlers/types';
 import { runInlineProgression } from '@werewolf/game-engine/engine/inlineProgression';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
@@ -37,8 +41,6 @@ export type GameActionResult =
 
 interface InlineProgressionOptions {
   enabled: boolean;
-  /** Unix timestamp (ms). Used for stepDeadline checks. Defaults to Date.now(). */
-  nowMs?: number;
 }
 
 /** Find seat number by UID */
@@ -86,6 +88,7 @@ export function extractAudioActions(sideEffects: readonly SideEffect[] | undefin
 export function processAction(
   sql: DurableObjectState['storage']['sql'],
   processFn: (state: GameState, revision: number) => HandlerResult,
+  execution: HandlerExecutionContext,
   inlineProgression?: InlineProgressionOptions,
 ): GameActionResult {
   // 1. Read SQLite (synchronous, zero network)
@@ -126,7 +129,7 @@ export function processAction(
 
   // 3.5. Inline progression (optional, success only)
   if (isSuccess && inlineProgression?.enabled) {
-    const prog = runInlineProgression(newState, newState.hostUserId, inlineProgression.nowMs);
+    const prog = runInlineProgression(newState, newState.hostUserId, execution);
     for (const action of prog.actions) {
       newState = gameReducer(newState, action);
       totalActionsApplied++;

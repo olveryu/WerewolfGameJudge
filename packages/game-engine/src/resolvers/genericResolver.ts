@@ -26,7 +26,6 @@ import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
 import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
-import { secureRng } from '../utils/random';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
 import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';
@@ -160,7 +159,7 @@ function processFactionCheck(
     checkResult = invertCheckResult(normalResult);
   } else if (effect.transformer === 'random') {
     // 50% chance to invert
-    const shouldInvert = secureRng() < 0.5;
+    const shouldInvert = context.rng() < 0.5;
     if (shouldInvert) {
       checkResult = invertCheckResult(normalResult);
     }

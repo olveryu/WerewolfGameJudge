@@ -37,8 +37,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'guard',
     players: createPlayers(),
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 
@@ -309,11 +310,26 @@ describe('genericResolver: check effect', () => {
   describe('drunkSeer (random faction check)', () => {
     const resolver = createGenericResolver('drunkSeer');
 
-    it('should return a valid check result (好人 or 狼人)', () => {
-      const ctx = createContext({ actorSeat: 1, actorRoleId: 'drunkSeer' as RoleId });
-      const result = resolver(ctx, createInput('drunkSeerCheck', 4)); // villager
-      expect(result.valid).toBe(true);
-      expect(['好人', '狼人']).toContain(result.result?.checkResult);
+    it('uses the command-scoped random source', () => {
+      const normal = resolver(
+        createContext({
+          actorSeat: 1,
+          actorRoleId: 'drunkSeer' as RoleId,
+          rng: () => 0.75,
+        }),
+        createInput('drunkSeerCheck', 4),
+      );
+      const inverted = resolver(
+        createContext({
+          actorSeat: 1,
+          actorRoleId: 'drunkSeer' as RoleId,
+          rng: () => 0.25,
+        }),
+        createInput('drunkSeerCheck', 4),
+      );
+
+      expect(normal.result?.checkResult).toBe('好人');
+      expect(inverted.result?.checkResult).toBe('狼人');
     });
   });
 

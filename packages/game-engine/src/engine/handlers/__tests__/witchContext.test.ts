@@ -5,9 +5,17 @@
  * witchContext computation logic is covered indirectly via the public API
  */
 
-import { maybeCreateWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
+import type { NonNullState } from '@werewolf/game-engine/engine/handlers/types';
+import { maybeCreateWitchContextAction as createWitchContextAction } from '@werewolf/game-engine/engine/handlers/witchContext';
+import type { SchemaId } from '@werewolf/game-engine/models';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+
+const TEST_RNG = () => 0.75;
+
+function maybeCreateWitchContextAction(nextStepId: SchemaId, state: NonNullState) {
+  return createWitchContextAction(nextStepId, state, TEST_RNG);
+}
 
 // =============================================================================
 // Test Helpers

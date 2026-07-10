@@ -14,6 +14,7 @@
 
 import type { SchemaId } from '../../models/roles/spec';
 import { findSeatByRole } from '../../utils/playerHelpers';
+import type { Rng } from '../../utils/random';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { NonNullState } from './types';
@@ -29,7 +30,10 @@ import type { NonNullState } from './types';
  * @param state current game state
  * @returns witchContext payload
  */
-function computeWitchContext(state: NonNullState): {
+function computeWitchContext(
+  state: NonNullState,
+  rng: Rng,
+): {
   killedSeat: number;
   canSave: boolean;
   canPoison: boolean;
@@ -47,6 +51,7 @@ function computeWitchContext(state: NonNullState): {
     }
     const resolved = resolveWolfVotes(votes, {
       requireUnanimity: state.templateRoles.includes('cupid'),
+      rng,
     });
     if (typeof resolved === 'number') {
       killedSeat = resolved;
@@ -82,6 +87,7 @@ function computeWitchContext(state: NonNullState): {
 export function maybeCreateWitchContextAction(
   nextStepId: SchemaId,
   state: NonNullState,
+  rng: Rng,
 ): SetWitchContextAction | null {
   const hasWitch = state.templateRoles.includes('witch');
 
@@ -92,6 +98,6 @@ export function maybeCreateWitchContextAction(
 
   return {
     type: 'SET_WITCH_CONTEXT',
-    payload: computeWitchContext(state),
+    payload: computeWitchContext(state, rng),
   };
 }

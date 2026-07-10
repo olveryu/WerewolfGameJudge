@@ -75,12 +75,13 @@ describe('Night-1 Role Coverage Contract', () => {
 
       // Minimal context and input
       const minimalContext = {
+        rng: () => 0.75,
         actorSeat: 0,
         actorRoleId: step.roleId,
         players: new Map([[0, step.roleId]]),
         currentNightResults: {},
         witchState: { canSave: true, canPoison: true },
-        gameState: { isNight1: true },
+        gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
       };
 
       const minimalInput = {

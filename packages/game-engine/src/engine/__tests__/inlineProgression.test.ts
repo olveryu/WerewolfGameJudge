@@ -12,7 +12,8 @@ import { WEREWOLF_STATE_IDENTITY } from '../../games/werewolf/state/version';
 import { GameStatus } from '../../models/GameStatus';
 import { buildNightPlan } from '../../models/roles/spec/plan';
 import type { GameState } from '../../protocol/types';
-import { runInlineProgression } from '../inlineProgression';
+import { TEST_HANDLER_EXECUTION } from '../handlers/__tests__/handlerTestUtils';
+import { runInlineProgression as executeInlineProgression } from '../inlineProgression';
 
 // =============================================================================
 // Test Helpers
@@ -20,6 +21,14 @@ import { runInlineProgression } from '../inlineProgression';
 
 const TEMPLATE_2P: GameState['templateRoles'] = ['wolf', 'villager'];
 const TEMPLATE_5P: GameState['templateRoles'] = ['wolf', 'wolf', 'seer', 'witch', 'villager'];
+
+function runInlineProgression(
+  state: GameState,
+  hostUserId: string,
+  nowMs: number = TEST_HANDLER_EXECUTION.nowMs,
+) {
+  return executeInlineProgression(state, hostUserId, { ...TEST_HANDLER_EXECUTION, nowMs });
+}
 
 function make2PlayerState(overrides: Partial<GameState> = {}): GameState {
   const plan = buildNightPlan(TEMPLATE_2P);

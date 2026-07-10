@@ -4,7 +4,7 @@
 
 import {
   checkNightmareBlockGuard,
-  handleSubmitAction,
+  handleSubmitAction as executeSubmitAction,
   handleViewedRole,
   isSkipAction,
 } from '@werewolf/game-engine/engine/handlers/actionHandler';
@@ -19,7 +19,12 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
-import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
+import {
+  expectError,
+  expectRejection,
+  expectSuccess,
+  TEST_HANDLER_EXECUTION,
+} from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -54,6 +59,10 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
     mySeat: 0,
     ...overrides,
   };
+}
+
+function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext) {
+  return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
 }
 
 describe('handleViewedRole', () => {

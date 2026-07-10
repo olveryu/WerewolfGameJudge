@@ -29,8 +29,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'eclipseWolfQueen',
     players: createPlayers(),
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 

@@ -12,6 +12,7 @@
 import type { RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
+import type { Rng } from '../utils/random';
 
 /**
  * Current night's accumulated results.
@@ -96,6 +97,9 @@ export interface CurrentNightResults {
 
 /** Context passed to resolvers */
 export interface ResolverContext {
+  /** Command-scoped deterministic random source supplied by the engine. */
+  readonly rng: Rng;
+
   /** Current player's seat (0-based) */
   readonly actorSeat: number;
 
@@ -120,6 +124,7 @@ export interface ResolverContext {
   /** Game state flags shared across all resolvers */
   readonly gameState: {
     readonly isNight1: boolean;
+    readonly isWolfVoteUnanimityRequired: boolean;
     /** Accumulated hypnotized seats (piper) — needed to reject already-hypnotized targets */
     readonly hypnotizedSeats?: readonly number[];
     /** Whether witch is allowed to save herself (house rule override) */

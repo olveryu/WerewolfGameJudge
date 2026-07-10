@@ -33,6 +33,7 @@ export type {
 export {
   type CommandActor,
   type CommandContext,
+  type CommandExecutionContext,
   type CommandOf,
   commit,
   commitDomainRejection,

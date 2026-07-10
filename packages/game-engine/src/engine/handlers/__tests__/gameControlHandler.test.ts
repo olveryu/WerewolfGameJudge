@@ -3,10 +3,10 @@
  */
 
 import {
-  handleAssignRoles,
-  handleRestartGame,
+  handleAssignRoles as executeAssignRoles,
+  handleRestartGame as executeRestartGame,
   handleShareNightReview,
-  handleStartNight,
+  handleStartNight as executeStartNight,
   handleUpdateTemplate,
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
@@ -21,7 +21,7 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-import { expectError, expectSuccess } from './handlerTestUtils';
+import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
@@ -51,6 +51,18 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
     mySeat: 0,
     ...overrides,
   };
+}
+
+function handleAssignRoles(intent: AssignRolesIntent, context: HandlerContext) {
+  return executeAssignRoles(intent, context, TEST_HANDLER_EXECUTION);
+}
+
+function handleStartNight(intent: StartNightIntent, context: HandlerContext) {
+  return executeStartNight(intent, context, TEST_HANDLER_EXECUTION);
+}
+
+function handleRestartGame(intent: RestartGameIntent, context: HandlerContext) {
+  return executeRestartGame(intent, context, TEST_HANDLER_EXECUTION);
 }
 
 // =============================================================================
@@ -93,6 +105,13 @@ describe('handleAssignRoles', () => {
       const sortedRoles = [...assignedRoles].sort((a, b) => a.localeCompare(b));
       expect(sortedRoles).toEqual(['seer', 'villager', 'wolf']);
     }
+  });
+
+  it('produces identical assignments for the same server random seed', () => {
+    const context = createContext(seatedState);
+    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
+
+    expect(handleAssignRoles(intent, context)).toEqual(handleAssignRoles(intent, context));
   });
 
   it('should fail when status is not seated (edge case)', () => {
@@ -359,6 +378,9 @@ describe('handleRestartGame', () => {
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
     expect(success.actions[0]!.type).toBe('RESTART_GAME');
+    if (success.actions[0]!.type === 'RESTART_GAME') {
+      expect(success.actions[0].nonce).toBe(TEST_HANDLER_EXECUTION.randomSeed);
+    }
   });
 
   it('should include side effects', () => {

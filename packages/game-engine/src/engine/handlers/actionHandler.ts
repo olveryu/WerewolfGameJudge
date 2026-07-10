@@ -14,8 +14,8 @@ import { ROLE_SPECS, type RoleId, type SchemaId, SCHEMAS, Team } from '../../mod
 import type { ProtocolAction } from '../../protocol/types';
 import { RESOLVERS } from '../../resolvers';
 import type { ActionInput, ResolverContext, ResolverResult } from '../../resolvers/types';
-import { newRejectionId } from '../../utils/id';
 import { buildSeatRoleMap } from '../../utils/playerHelpers';
+import { createSeededRng, type Rng } from '../../utils/random';
 import type { SubmitActionIntent } from '../intents/types';
 import { gameReducer } from '../reducer/gameReducer';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
@@ -27,7 +27,7 @@ import {
 import { computeCanShootForSeat } from './confirmContext';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload } from './revealPayload';
-import type { HandlerContext, HandlerResult, NonNullState } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult, NonNullState } from './types';
 import { handlerRejection, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 
 // Re-export moved symbols for backward compatibility
@@ -42,6 +42,7 @@ function buildResolverContext(
   state: NonNullState,
   actorSeat: number,
   actorRoleId: RoleId,
+  rng: Rng,
 ): ResolverContext {
   // Build players: seat -> role
   const players = buildSeatRoleMap(state.players);
@@ -52,6 +53,7 @@ function buildResolverContext(
   }
 
   return {
+    rng,
     actorSeat,
     actorRoleId,
     players,
@@ -60,6 +62,7 @@ function buildResolverContext(
     witchState: state.witchContext,
     gameState: {
       isNight1: true, // Night-1 only
+      isWolfVoteUnanimityRequired: state.templateRoles.includes('cupid'),
       hypnotizedSeats: state.hypnotizedSeats ?? [],
       witchCanSelfHeal: state.rules?.witchCanSelfHeal ?? false,
     },
@@ -90,11 +93,6 @@ function buildActionInput(
     stepResults: extra?.stepResults as Record<string, number | null> | undefined,
     cardIndex: extra?.cardIndex as number | undefined,
   };
-}
-
-function getActionTimestamp(extra?: Record<string, unknown>): number {
-  const maybe = extra?.timestamp;
-  return typeof maybe === 'number' ? maybe : Date.now();
 }
 
 /**
@@ -148,6 +146,7 @@ function applyShelterRedirect(
 export function handleSubmitAction(
   intent: SubmitActionIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const { seat, role, target, extra } = intent.payload;
 
@@ -178,7 +177,7 @@ export function handleSubmitAction(
     state.currentNightResults?.blockedSeat,
   );
   if (blockRejectReason) {
-    return buildRejectionResult(schemaId, blockRejectReason, state, seat);
+    return buildRejectionResult(schemaId, blockRejectReason, state, seat, execution.commandId);
   }
 
   // Get resolver
@@ -194,13 +193,18 @@ export function handleSubmitAction(
   }
 
   // Build context
-  const resolverContext = buildResolverContext(state, seat, resolverRole);
+  const resolverContext = buildResolverContext(
+    state,
+    seat,
+    resolverRole,
+    createSeededRng(`${execution.randomSeed}:resolver:${schemaId}:${seat}`),
+  );
 
   // Call resolver (resolver-first)
   let result = resolver(resolverContext, actionInput);
 
   if (!result.valid) {
-    return buildRejectionResult(schemaId, result.rejectReason, state, seat);
+    return buildRejectionResult(schemaId, result.rejectReason, state, seat, execution.commandId);
   }
 
   // When wolfRobot learns hunter, the resolver only flags canShootAsHunter=true (without full death cause info);
@@ -219,7 +223,7 @@ export function handleSubmitAction(
     effectiveTarget,
     role,
     result,
-    extra as Record<string, unknown> | undefined,
+    execution.nowMs,
   );
 
   // Wolf vote timer: manages stepDeadline after a wolfVote step is submitted
@@ -231,7 +235,7 @@ export function handleSubmitAction(
     }
     const allVoted = isWolfVoteAllComplete(tempState);
     const hasExistingTimer = tempState.stepDeadline != null;
-    const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, Date.now());
+    const timerAction = decideWolfVoteTimerAction(allVoted, hasExistingTimer, execution.nowMs);
 
     const extraActions: StateAction[] = [];
     if (timerAction.type === 'set') {
@@ -258,6 +262,7 @@ function buildRejectionResult(
   rejectReason: string | undefined,
   state: NonNullState,
   seat: number,
+  rejectionId: string,
 ): HandlerResult {
   const rejectAction: ActionRejectedAction = {
     type: 'ACTION_REJECTED',
@@ -269,7 +274,7 @@ function buildRejectionResult(
         (() => {
           throw new Error(`[FAIL-FAST] ACTION_REJECTED: no player at seat ${seat}`);
         })(),
-      rejectionId: newRejectionId(),
+      rejectionId,
     },
   };
 
@@ -289,13 +294,13 @@ function buildSuccessResult(
   target: number | null,
   role: RoleId,
   result: ResolverResult,
-  extra?: Record<string, unknown>,
+  timestamp: number,
 ): HandlerResult {
   const protocolAction: ProtocolAction = {
     schemaId,
     actorSeat: seat,
     targetSeat: target ?? undefined,
-    timestamp: getActionTimestamp(extra),
+    timestamp,
   };
 
   const recordAction: RecordActionAction = {

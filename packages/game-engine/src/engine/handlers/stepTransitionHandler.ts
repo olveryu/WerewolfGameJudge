@@ -26,6 +26,7 @@ import { buildNightPlan, getStepSpec } from '../../models/roles/spec';
 import { Team } from '../../models/roles/spec/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { getEngineLogger } from '../../utils/logger';
+import { createSeededRng } from '../../utils/random';
 import { calculateDeathsDetailed } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import type {
@@ -46,7 +47,7 @@ import {
   validateNightFlowPreconditions,
   validateSetAudioPlayingPreconditions,
 } from './stepTransitionGuards';
-import type { HandlerContext, HandlerResult, SideEffect } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult, SideEffect } from './types';
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
@@ -74,6 +75,7 @@ const nightFlowLog = getEngineLogger().extend('NightFlow');
 export function handleAdvanceNight(
   _intent: AdvanceNightIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const validation = validateNightFlowPreconditions(context);
   if (!validation.valid) {
@@ -107,7 +109,13 @@ export function handleAdvanceNight(
 
   // Unified entry: if about to enter witchAction, set witchContext
   // Guard: nextStepId must exist (undefined at night end — should not set witchContext)
-  const witchContextAction = nextStepId ? maybeCreateWitchContextAction(nextStepId, state) : null;
+  const witchContextAction = nextStepId
+    ? maybeCreateWitchContextAction(
+        nextStepId,
+        state,
+        createSeededRng(`${execution.randomSeed}:wolf-vote`),
+      )
+    : null;
   if (witchContextAction) {
     actions.push(witchContextAction);
   }
@@ -181,7 +189,11 @@ export function handleAdvanceNight(
  * - Call calculateDeaths to compute deaths
  * - Return END_NIGHT action
  */
-export function handleEndNight(_intent: EndNightIntent, context: HandlerContext): HandlerResult {
+export function handleEndNight(
+  _intent: EndNightIntent,
+  context: HandlerContext,
+  execution: HandlerExecutionContext,
+): HandlerResult {
   const validation = validateNightFlowPreconditions(context);
   if (!validation.valid) {
     return validation.result;
@@ -200,7 +212,10 @@ export function handleEndNight(_intent: EndNightIntent, context: HandlerContext)
   }
 
   // Build NightActions
-  const nightActions = buildNightActions(state);
+  const nightActions = buildNightActions(
+    state,
+    createSeededRng(`${execution.randomSeed}:wolf-vote`),
+  );
 
   // Build effective role → seat mapping (shared with buildRoleSeatMap + buildReflectionSources)
   const effectiveMap = buildEffectiveRoleSeatMap(state);

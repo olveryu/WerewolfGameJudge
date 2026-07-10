@@ -10,12 +10,16 @@
  */
 
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
-  handleAdvanceNight,
-  handleEndNight,
+  handleAdvanceNight as executeAdvanceNight,
+  handleEndNight as executeEndNight,
 } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
-import type { HandlerContext, HandlerResult } from '@werewolf/game-engine/engine/handlers/types';
+import type {
+  HandlerContext,
+  HandlerExecutionContext,
+  HandlerResult,
+} from '@werewolf/game-engine/engine/handlers/types';
 import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
@@ -67,6 +71,12 @@ function createContext(state: GameState): HandlerContext {
   };
 }
 
+const TEST_EXECUTION: HandlerExecutionContext = Object.freeze({
+  nowMs: 1_000_000,
+  commandId: 'board-test-command',
+  randomSeed: 'board-test-seed',
+});
+
 // =============================================================================
 // Factory Function
 // =============================================================================
@@ -74,6 +84,8 @@ function createContext(state: GameState): HandlerContext {
 interface CreateGameOptions {
   /** Treasure Master deck cards (3 cards), required only for 15-role templates */
   bottomCards?: readonly RoleId[];
+  /** Server-generated random seed used by deterministic engine decisions. */
+  randomSeed?: string;
 }
 
 export function createGame(
@@ -81,6 +93,10 @@ export function createGame(
   roleAssignment?: Map<number, RoleId>,
   options?: CreateGameOptions,
 ): GameContext {
+  const execution: HandlerExecutionContext = {
+    ...TEST_EXECUTION,
+    randomSeed: options?.randomSeed ?? TEST_EXECUTION.randomSeed,
+  };
   let template: GameTemplate;
   if (typeof templateNameOrRoles === 'string') {
     const preset = PRESET_TEMPLATES.find((t) => t.name === templateNameOrRoles);
@@ -264,7 +280,7 @@ export function createGame(
 
   const advanceNight = (): ActionResult => {
     const context = createContext(internal.state);
-    const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, context);
+    const result = executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, context, execution);
     return executeHandler(result);
   };
 
@@ -304,7 +320,7 @@ export function createGame(
    */
   const endNight = (): { success: boolean; deaths: number[] } => {
     const context = createContext(internal.state);
-    const result = handleEndNight({ type: 'END_NIGHT' }, context);
+    const result = executeEndNight({ type: 'END_NIGHT' }, context, execution);
     if (result.kind !== 'success') {
       // FAIL-FAST: night_not_complete means test code tried to endNight mid-flight, an architectural violation
       if (result.kind === 'error' && result.reason === 'night_not_complete') {
@@ -342,7 +358,7 @@ export function createGame(
             extra: msg.extra,
           },
         };
-        const result = handleSubmitAction(intent, context);
+        const result = executeSubmitAction(intent, context, execution);
         return executeHandler(result);
       }
 
@@ -356,7 +372,7 @@ export function createGame(
             extra: {},
           },
         };
-        const result = handleSubmitAction(intent, context);
+        const result = executeSubmitAction(intent, context, execution);
         return executeHandler(result);
       }
 

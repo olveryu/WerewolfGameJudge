@@ -14,7 +14,7 @@
 
 import {
   checkNightmareBlockGuard,
-  handleSubmitAction,
+  handleSubmitAction as executeSubmitAction,
 } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
@@ -25,7 +25,12 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
-import { expectError, expectRejection, expectSuccess } from './handlerTestUtils';
+import {
+  expectError,
+  expectRejection,
+  expectSuccess,
+  TEST_HANDLER_EXECUTION,
+} from './handlerTestUtils';
 
 // =============================================================================
 // Helpers
@@ -64,6 +69,10 @@ function createContext(state: GameState, overrides?: Partial<HandlerContext>): H
     mySeat: 0,
     ...overrides,
   };
+}
+
+function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext) {
+  return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
 }
 
 // =============================================================================
@@ -164,6 +173,7 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     );
     expect(rejectedAction).toBeTruthy();
     expect(rejectedAction!.payload.reason).toBe(BLOCKED_UI_DEFAULTS.message);
+    expect(rejectedAction!.payload.rejectionId).toBe(TEST_HANDLER_EXECUTION.commandId);
   });
 
   /**

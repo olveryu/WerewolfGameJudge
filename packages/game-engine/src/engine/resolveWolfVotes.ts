@@ -4,14 +4,14 @@
  * @param votes - Map of wolf seat → target seat (-1 = abstain)
  * @param options.requireUnanimity - When true, all non-abstain votes must target
  *   the same seat; any disagreement results in no kill. Used when cupid is in the template.
- * @param options.rng - Optional random number generator for tie-breaking (testing).
+ * @param options.rng - Command-scoped random number generator for tie-breaking.
  */
 
-import { randomPick, type Rng, secureRng } from '../utils/random';
+import { randomPick, type Rng } from '../utils/random';
 
 export function resolveWolfVotes(
   votes: Map<number, number>,
-  options?: { requireUnanimity?: boolean; rng?: Rng },
+  options: { requireUnanimity: boolean; rng: Rng },
 ): number | null {
   // Convention in this codebase: -1 means "abstain / no-kill".
   // It should not participate in majority/tie calculations.
@@ -47,7 +47,7 @@ export function resolveWolfVotes(
 
   // Unanimity mode (cupid board): ALL non-abstain votes must be the same target.
   // Tie or disagreement => no kill.
-  if (options?.requireUnanimity) {
+  if (options.requireUnanimity) {
     if (maxTargets.length !== 1) return null;
     return maxCount === nonAbstainVotes.length ? maxTargets[0]! : null;
   }
@@ -56,6 +56,5 @@ export function resolveWolfVotes(
   if (maxTargets.length === 1) {
     return maxTargets[0]!;
   }
-  const rng = options?.rng ?? secureRng;
-  return randomPick(maxTargets, rng);
+  return randomPick(maxTargets, options.rng);
 }

@@ -28,8 +28,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     players: defaultPlayers,
     currentNightResults: { wolfVotesBySeat: { '2': 0 } },
     witchState: { canSave: true, canPoison: true },
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 
@@ -84,7 +85,11 @@ describe('witchActionResolver', () => {
     it('女巫可自救规则开启时应允许自救', () => {
       const ctx = createContext({
         currentNightResults: { wolfVotesBySeat: { '1': 5 } }, // witch is killed
-        gameState: { isNight1: true, witchCanSelfHeal: true },
+        gameState: {
+          isNight1: true,
+          isWolfVoteUnanimityRequired: false,
+          witchCanSelfHeal: true,
+        },
       });
       const input = createInput({ save: 5, poison: null });
 
@@ -128,6 +133,18 @@ describe('witchActionResolver', () => {
 
       expect(result.valid).toBe(true);
       expect(result.result?.savedTarget).toBe(0);
+    });
+
+    it('Cupid board rejects a save when wolf votes are not unanimous', () => {
+      const ctx = createContext({
+        currentNightResults: { wolfVotesBySeat: { '2': 0, '3': 1 } },
+        gameState: { isNight1: true, isWolfVoteUnanimityRequired: true },
+      });
+
+      const result = witchActionResolver(ctx, createInput({ save: 0, poison: null }));
+
+      expect(result.valid).toBe(false);
+      expect(result.rejectReason).toContain('被狼人袭击');
     });
   });
 

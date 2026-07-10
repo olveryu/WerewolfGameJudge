@@ -22,7 +22,6 @@
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import * as randomModule from '@werewolf/game-engine/utils/random';
 
 import { cleanupGame, createGame, type GameContext } from './gameFactory';
 import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
@@ -101,12 +100,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
   });
 
   describe('drunkSeerReveal 随机查验写入', () => {
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('drunkSeer 查验 villager(0)，secureRng>=0.5 时 result 为 "好人"（正确）', () => {
-      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.5);
+    it('drunkSeer 查验 villager(0)，server seed 对应值 >=0.5 时 result 为 "好人"', () => {
       ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
       // Advance to drunkSeerCheck step
@@ -136,9 +130,10 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       expect(state.drunkSeerReveal!.result).toBe('好人');
     });
 
-    it('drunkSeer 查验 villager(0)，secureRng<0.5 时 result 为 "狼人"（反转）', () => {
-      jest.spyOn(randomModule, 'secureRng').mockReturnValue(0.3);
-      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
+    it('drunkSeer 查验 villager(0)，server seed 对应值 <0.5 时 result 为 "狼人"', () => {
+      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment(), {
+        randomSeed: 'seed-2',
+      });
 
       const reached = executeStepsUntil(ctx, 'drunkSeerCheck', {
         wolf: 1,

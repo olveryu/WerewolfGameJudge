@@ -15,7 +15,7 @@
  * that goes through the compound path and is out of scope here.
  */
 
-import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { ApplyResolverResultAction } from '@werewolf/game-engine/engine/reducer/types';
@@ -27,7 +27,11 @@ import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import { BLOCKED_UI_DEFAULTS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
 
-import { expectRejection, expectSuccess } from './handlerTestUtils';
+import { expectRejection, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
+
+function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext) {
+  return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
+}
 
 // =============================================================================
 // Test Data

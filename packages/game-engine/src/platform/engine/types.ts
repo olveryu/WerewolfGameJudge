@@ -24,7 +24,7 @@ export interface CreateGameContext {
   readonly commandId: string;
 }
 
-interface CommandExecutionContext {
+export interface CommandExecutionContext {
   readonly nowMs: number;
   readonly commandId: string;
   readonly randomSeed: string;

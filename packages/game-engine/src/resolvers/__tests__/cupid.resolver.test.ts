@@ -31,8 +31,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
       [4, 'hunter'],
     ]),
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 

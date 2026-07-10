@@ -8,10 +8,13 @@
  */
 
 import { resolveWolfVotes } from '../engine/resolveWolfVotes';
+import type { Rng } from '../utils/random';
 import type { ResolverFn, ResolverResult } from './types';
 
 function resolveWolfKillSeatFromVotes(
   wolfVotesBySeat: Readonly<Record<string, number>> | undefined,
+  isWolfVoteUnanimityRequired: boolean,
+  rng: Rng,
 ): number | undefined {
   if (!wolfVotesBySeat) return undefined;
   const votes = new Map<number, number>();
@@ -20,7 +23,10 @@ function resolveWolfKillSeatFromVotes(
     if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
     votes.set(seat, targetSeat);
   }
-  const resolved = resolveWolfVotes(votes);
+  const resolved = resolveWolfVotes(votes, {
+    requireUnanimity: isWolfVoteUnanimityRequired,
+    rng,
+  });
   return typeof resolved === 'number' ? resolved : undefined;
 }
 
@@ -84,7 +90,11 @@ export const witchActionResolver: ResolverFn = (context, input): ResolverResult 
 
   // Validate save action
   if (saveTarget !== null) {
-    const wolfKillSeat = resolveWolfKillSeatFromVotes(currentNightResults.wolfVotesBySeat);
+    const wolfKillSeat = resolveWolfKillSeatFromVotes(
+      currentNightResults.wolfVotesBySeat,
+      context.gameState.isWolfVoteUnanimityRequired,
+      context.rng,
+    );
     const witchCanSelfHeal = context.gameState.witchCanSelfHeal ?? false;
     const error = validateSaveAction(
       saveTarget,

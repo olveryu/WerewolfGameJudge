@@ -2,7 +2,7 @@
  * ActionHandler Tests
  */
 
-import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
+import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
 import type {
@@ -12,7 +12,7 @@ import type {
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
-import { expectSuccess } from './handlerTestUtils';
+import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
 const baseContext: HandlerContext = {
   myUserId: 'HOST',
@@ -40,6 +40,10 @@ const baseContext: HandlerContext = {
     currentNightResults: {},
   },
 };
+
+function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext) {
+  return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
+}
 
 jest.mock('@werewolf/game-engine/resolvers', () => ({
   RESOLVERS: {
@@ -74,7 +78,7 @@ describe('handleSubmitAction', () => {
     expect(apply!.payload.seerReveal).toBeUndefined();
   });
 
-  it('uses injected timestamp when provided', () => {
+  it('uses the server execution timestamp instead of a client field', () => {
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
       payload: { seat: 0, role: 'seer', target: 1, extra: { timestamp: 123 } },
@@ -84,6 +88,6 @@ describe('handleSubmitAction', () => {
     const success = expectSuccess(result);
     const record = success.actions.find((a): a is RecordActionAction => a.type === 'RECORD_ACTION');
     expect(record).toBeDefined();
-    expect(record!.payload.action.timestamp).toBe(123);
+    expect(record!.payload.action.timestamp).toBe(TEST_HANDLER_EXECUTION.nowMs);
   });
 });

@@ -40,7 +40,12 @@ import {
   handleUpdatePlayerProfile,
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
 import { handleSetAudioPlaying } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
-import { handlerError, handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
+import {
+  handlerError,
+  type HandlerExecutionContext,
+  type HandlerResult,
+  handlerSuccess,
+} from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
 import type {
@@ -119,11 +124,25 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   // ── Private helpers ─────────────────────────────────────────────────────
 
   #processAction(
-    processFn: Parameters<typeof processAction>[1],
-    inlineProgression?: Parameters<typeof processAction>[2],
+    processFn: (
+      state: GameState,
+      revision: number,
+      execution: HandlerExecutionContext,
+    ) => HandlerResult,
+    inlineProgression?: Parameters<typeof processAction>[3],
     lastCommandType?: string,
   ): GameActionResult {
-    const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
+    const execution: HandlerExecutionContext = {
+      nowMs: Date.now(),
+      commandId: crypto.randomUUID(),
+      randomSeed: crypto.randomUUID(),
+    };
+    const result = processAction(
+      this.ctx.storage.sql,
+      (state, revision) => processFn(state, revision, execution),
+      execution,
+      inlineProgression,
+    );
 
     // Broadcast — output gate ensures send only after write is persisted
     if (result.success && result.state && result.revision != null) {
@@ -273,9 +292,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async assignRoles(): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
+      (state, _revision, execution) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx);
+        return handleAssignRoles({ type: 'ASSIGN_ROLES' }, ctx, execution);
       },
       undefined,
       'ASSIGN_ROLES',
@@ -284,9 +303,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async restartGame(): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
+      (state, _revision, execution) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
-        return handleRestartGame({ type: 'RESTART_GAME' }, ctx);
+        return handleRestartGame({ type: 'RESTART_GAME' }, ctx, execution);
       },
       undefined,
       'RESTART_GAME',
@@ -365,11 +384,12 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     extra?: unknown,
   ): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
+      (state, _revision, execution) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
         return handleSubmitAction(
           { type: 'SUBMIT_ACTION', payload: { seat: seatNum, role, target, extra } },
           ctx,
+          execution,
         );
       },
       { enabled: true },
@@ -444,9 +464,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async startNight(): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
+      (state, _revision, execution) => {
         const ctx = buildHandlerContext(state, state.hostUserId);
-        const result = handleStartNight({ type: 'START_NIGHT' }, ctx);
+        const result = handleStartNight({ type: 'START_NIGHT' }, ctx, execution);
         if (result.kind === 'error') return result;
 
         const extraActions = extractAudioActions(result.sideEffects);

@@ -16,14 +16,21 @@
  * Facade security validation tests should go in gameActions unit tests.
  */
 
-import { handleAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
+import { handleAdvanceNight as executeAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
-import { expectError, expectSuccess } from './handlerTestUtils';
+import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
+
+function handleAdvanceNight(
+  intent: Parameters<typeof executeAdvanceNight>[0],
+  context: HandlerContext,
+) {
+  return executeAdvanceNight(intent, context, TEST_HANDLER_EXECUTION);
+}
 
 // Create minimal state for testing
 function createTestState(overrides?: Partial<GameState>): GameState {

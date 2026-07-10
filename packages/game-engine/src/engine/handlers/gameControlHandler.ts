@@ -20,7 +20,7 @@ import { getBottomCardCount, getBottomCardRoleId, getPlayerCount } from '../../m
 import type { Player, RosterEntry } from '../../protocol/types';
 import { resolveSeerAudioKey } from '../../utils/audioKeyOverride';
 import { formatSeat } from '../../utils/formatSeat';
-import { randomHex } from '../../utils/id';
+import { createSeededRng, type Rng } from '../../utils/random';
 import { shuffleArray } from '../../utils/shuffle';
 import type {
   AssignRolesIntent,
@@ -51,7 +51,7 @@ import type {
 } from '../reducer/types';
 import type { GameState } from '../store/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import type { HandlerContext, HandlerResult, SideEffect } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult, SideEffect } from './types';
 import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
 
@@ -80,10 +80,12 @@ function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {
 export function handleAssignRoles(
   _intent: AssignRolesIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const guard = requireState(context);
   if (!guard.ok) return guard.result;
   const { state } = guard;
+  const rng = createSeededRng(`${execution.randomSeed}:roles`);
 
   // Gate: game status must be GameStatus.Seated
   if (state.status !== GameStatus.Seated) {
@@ -125,11 +127,12 @@ export function handleAssignRoles(
       state.templateRoles,
       seatCount,
       bottomCardRoleId,
+      rng,
     );
     seatedRoles = result.seatedRoles;
     bottomCards = result.bottomCards;
   } else {
-    seatedRoles = shuffleArray(effectiveRoles);
+    seatedRoles = shuffleArray(effectiveRoles, rng);
   }
 
   // Assign seated roles to seats
@@ -172,7 +175,10 @@ export function handleAssignRoles(
   ];
   let seerLabelMap: Readonly<Record<string, number>> | undefined;
   if (seerLikeRoles.length >= 2) {
-    const labels = shuffleArray(Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1));
+    const labels = shuffleArray(
+      Array.from({ length: seerLikeRoles.length }, (_, i) => i + 1),
+      rng,
+    );
     seerLabelMap = Object.fromEntries(seerLikeRoles.map((r, i) => [r, labels[i]!]));
   }
 
@@ -208,9 +214,10 @@ function shuffleWithBottomCardConstraints(
   templateRoles: readonly RoleId[],
   seatCount: number,
   bottomCardRoleId: RoleId,
+  rng: Rng,
 ): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
   for (let attempt = 0; attempt < MAX_SHUFFLE_RETRIES; attempt++) {
-    const shuffled = shuffleArray([...templateRoles]);
+    const shuffled = shuffleArray([...templateRoles], rng);
     const seated = shuffled.slice(0, seatCount);
     const bottom = shuffled.slice(seatCount);
 
@@ -286,6 +293,7 @@ function validateThiefBottomCards(cards: RoleId[]): boolean {
 export function handleStartNight(
   _intent: StartNightIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const guard = requireState(context);
   if (!guard.ok) return guard.result;
@@ -322,7 +330,11 @@ export function handleStartNight(
   actions.push(startNightAction);
 
   // Use unified function to check if witchContext needs to be set (no-wolf board where first step is witchAction)
-  const witchContextAction = maybeCreateWitchContextAction(firstStepId, state);
+  const witchContextAction = maybeCreateWitchContextAction(
+    firstStepId,
+    state,
+    createSeededRng(`${execution.randomSeed}:wolf-vote`),
+  );
   if (witchContextAction) {
     actions.push(witchContextAction);
   }
@@ -373,13 +385,14 @@ export function handleStartNight(
 export function handleRestartGame(
   _intent: RestartGameIntent,
   context: HandlerContext,
+  execution: HandlerExecutionContext,
 ): HandlerResult {
   const guard = requireState(context);
   if (!guard.ok) return guard.result;
 
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
-    nonce: randomHex(8),
+    nonce: execution.randomSeed,
   };
 
   return handlerSuccess([action], STANDARD_SIDE_EFFECTS);

@@ -29,12 +29,13 @@ function createContext(actorSeat: number, actorRoleId: RoleId): ResolverContext 
   players.set(actorSeat, actorRoleId);
 
   return {
+    rng: () => 0.75,
     actorSeat,
     actorRoleId,
     players,
     currentNightResults: {},
     witchState: { canSave: true, canPoison: true },
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
   };
 }
 
@@ -161,12 +162,13 @@ describe('Schema notSelf constraint - single source of truth', () => {
           [2, 'villager'],
         ]);
         const context: ResolverContext = {
+          rng: () => 0.75,
           actorSeat,
           actorRoleId: roleId,
           players,
           currentNightResults: {},
           witchState: { canSave: true, canPoison: true },
-          gameState: { isNight1: true },
+          gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
         };
         const input: ActionInput = { schemaId, target: wolfTargetSeat };
 

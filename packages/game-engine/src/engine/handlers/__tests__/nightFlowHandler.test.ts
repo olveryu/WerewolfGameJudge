@@ -15,8 +15,8 @@
  */
 
 import {
-  handleAdvanceNight,
-  handleEndNight,
+  handleAdvanceNight as executeAdvanceNight,
+  handleEndNight as executeEndNight,
   handleSetAudioPlaying,
 } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
@@ -32,8 +32,18 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
 import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
 import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import { createSeededRng } from '@werewolf/game-engine/utils/random';
 
-import { expectError, expectSuccess } from './handlerTestUtils';
+import { maybeCreateWitchContextAction } from '../witchContext';
+import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
+
+function handleAdvanceNight(intent: AdvanceNightIntent, context: HandlerContext) {
+  return executeAdvanceNight(intent, context, TEST_HANDLER_EXECUTION);
+}
+
+function handleEndNight(intent: EndNightIntent, context: HandlerContext) {
+  return executeEndNight(intent, context, TEST_HANDLER_EXECUTION);
+}
 
 /**
  * Create a complete player object
@@ -405,6 +415,33 @@ describe('nightFlowHandler', () => {
           // Tie = randomly pick one to kill
           expect(action.payload.deaths).toHaveLength(1);
           expect([4, 5]).toContain(action.payload.deaths[0]);
+        }
+      });
+
+      it('uses the same tied wolf target for witch context and final settlement', () => {
+        const state = createOngoingState({
+          currentStepId: undefined,
+          currentNightResults: { wolfVotesBySeat: { '0': 4, '1': 5 } },
+        });
+        const witchContextAction = maybeCreateWitchContextAction(
+          'witchAction',
+          state,
+          createSeededRng(`${TEST_HANDLER_EXECUTION.randomSeed}:wolf-vote`),
+        );
+        const context: HandlerContext = {
+          state,
+          myUserId: 'host-uid',
+          mySeat: null,
+        };
+
+        const result = executeEndNight({ type: 'END_NIGHT' }, context, TEST_HANDLER_EXECUTION);
+        const success = expectSuccess(result);
+        const endNightAction = success.actions[0];
+
+        expect(witchContextAction).not.toBeNull();
+        expect(endNightAction?.type).toBe('END_NIGHT');
+        if (witchContextAction && endNightAction?.type === 'END_NIGHT') {
+          expect(endNightAction.payload.deaths).toContain(witchContextAction.payload.killedSeat);
         }
       });
 

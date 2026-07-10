@@ -40,8 +40,9 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'awakenedGargoyle',
     players: defaultPlayers,
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 

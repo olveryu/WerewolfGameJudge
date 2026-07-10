@@ -33,12 +33,13 @@ function createContext(overrides: Partial<ResolverContext> = {}): ResolverContex
     actorRoleId: 'treasureMaster',
     players: createPlayers(),
     currentNightResults: {},
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
     bottomCardContext: {
       bottomCards: BOTTOM_CARDS,
       actorSeat: 0,
     },
     ...overrides,
+    rng: overrides?.rng ?? (() => 0.75),
   };
 }
 

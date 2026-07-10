@@ -55,11 +55,12 @@ function createContext(
   currentNightResults: CurrentNightResults = {},
 ): ResolverContext {
   return {
+    rng: () => 0.75,
     actorSeat,
     actorRoleId,
     players,
     currentNightResults,
-    gameState: { isNight1: true },
+    gameState: { isNight1: true, isWolfVoteUnanimityRequired: false },
   };
 }
 

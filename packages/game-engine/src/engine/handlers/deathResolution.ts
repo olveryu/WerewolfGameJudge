@@ -28,6 +28,7 @@ import { ROLE_SPECS } from '../../models/roles/spec/specs';
 import type { ProtocolAction } from '../../protocol/types';
 import { getRoleAfterSwap } from '../../resolvers/types';
 import { buildSeatRoleMap } from '../../utils/playerHelpers';
+import type { Rng } from '../../utils/random';
 import type { NightActions, ReflectionSource, RoleSeatMap } from '../DeathCalculator';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { NonNullState } from './types';
@@ -268,7 +269,7 @@ function extractWitchAction(currentNightResults?: {
  *
  * All seat numbers are physical seats (0-based), consistent coordinate space.
  */
-export function buildNightActions(state: NonNullState): NightActions {
+export function buildNightActions(state: NonNullState, rng: Rng): NightActions {
   const actions = state.actions;
   const nightActions: NightActions = {};
 
@@ -290,6 +291,7 @@ export function buildNightActions(state: NonNullState): NightActions {
 
     const resolved = resolveWolfVotes(votes, {
       requireUnanimity: state.templateRoles.includes('cupid'),
+      rng,
     });
     if (typeof resolved === 'number') {
       nightActions.wolfKill = resolved;

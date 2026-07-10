@@ -3,6 +3,7 @@ export { commit, commitDomainRejection, reject } from './decision';
 export type {
   CommandActor,
   CommandContext,
+  CommandExecutionContext,
   CommandOf,
   CommittedCommandOutcome,
   CommonGameLifecycle,

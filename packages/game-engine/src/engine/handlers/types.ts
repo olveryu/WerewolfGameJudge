@@ -7,8 +7,11 @@
  * 3. Returning a list of StateAction
  */
 
+import type { CommandExecutionContext } from '../../platform/engine';
 import type { StateAction } from '../reducer/types';
 import type { GameState } from '../store/types';
+
+export type HandlerExecutionContext = CommandExecutionContext;
 
 /**
  * Handler context

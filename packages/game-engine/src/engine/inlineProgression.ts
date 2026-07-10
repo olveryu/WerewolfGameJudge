@@ -20,10 +20,10 @@ import { GameStatus, type SchemaId, SCHEMAS } from '../models';
 import { getStepSpec } from '../models/roles/spec/nightSteps';
 import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
-import { randomIntInclusive } from '../utils/random';
+import { createSeededRng, randomIntInclusive } from '../utils/random';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
-import type { HandlerContext, SideEffect } from './handlers/types';
+import type { HandlerContext, HandlerExecutionContext, SideEffect } from './handlers/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 
@@ -170,13 +170,13 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  *
  * @param state - state after action processing
  * @param hostUserId - Host UID (used to build HandlerContext)
- * @param nowMs - current timestamp (used for stepDeadline check, defaults to Date.now())
+ * @param execution - command-scoped time and deterministic random seed
  * @returns progression result (actions + audioEffects + finalState)
  */
 export function runInlineProgression(
   state: GameState,
   hostUserId: string,
-  nowMs: number = Date.now(),
+  execution: HandlerExecutionContext,
 ): InlineProgressionResult {
   const allActions: StateAction[] = [];
   const allAudioEffects: AudioEffect[] = [];
@@ -184,7 +184,7 @@ export function runInlineProgression(
   let stepsAdvanced = 0;
 
   for (let i = 0; i < MAX_PROGRESSION_LOOPS; i++) {
-    const decision = evaluateProgression(currentState, nowMs);
+    const decision = evaluateProgression(currentState, execution.nowMs);
 
     if (decision === 'none') break;
 
@@ -195,7 +195,7 @@ export function runInlineProgression(
     };
 
     if (decision === 'advance') {
-      const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx);
+      const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx, execution);
       if (result.kind === 'error') {
         log.warn('Inline advance failed', { reason: result.reason });
         break;
@@ -214,7 +214,7 @@ export function runInlineProgression(
     }
 
     if (decision === 'end_night') {
-      const result = handleEndNight({ type: 'END_NIGHT' }, ctx);
+      const result = handleEndNight({ type: 'END_NIGHT' }, ctx, execution);
       if (result.kind === 'error') {
         log.warn('Inline endNight failed', { reason: result.reason });
         break;
@@ -242,7 +242,13 @@ export function runInlineProgression(
     currentState.stepDeadline == null &&
     allAudioEffects.length === 0
   ) {
-    const deadline = nowMs + randomIntInclusive(AUTO_SKIP_DELAY_MIN_MS, AUTO_SKIP_DELAY_MAX_MS);
+    const deadline =
+      execution.nowMs +
+      randomIntInclusive(
+        AUTO_SKIP_DELAY_MIN_MS,
+        AUTO_SKIP_DELAY_MAX_MS,
+        createSeededRng(`${execution.randomSeed}:auto-skip:${String(currentState.currentStepId)}`),
+      );
     const setDeadlineAction: StateAction = {
       type: 'SET_STEP_DEADLINE',
       payload: { deadline },
