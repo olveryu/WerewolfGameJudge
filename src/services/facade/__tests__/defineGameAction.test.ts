@@ -29,6 +29,7 @@ jest.mock('../../infra/AudioService', () => ({
 import type { GameActionsContext } from '@/services/facade/gameActions';
 
 import { defineGameAction } from '../defineGameAction';
+import { buildApiCommandSuccess } from './apiTestState';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ function createMockCtx(
   };
 }
 
-function mockFetchSuccess(result: Record<string, unknown> = { success: true }) {
+function mockFetchSuccess(result: Record<string, unknown> = buildApiCommandSuccess()) {
   return jest.fn().mockResolvedValue({
     ok: true,
     headers: { get: () => 'application/json' },
@@ -156,7 +157,7 @@ describe('defineGameAction', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   it('calls after hook with result on success', async () => {
-    global.fetch = mockFetchSuccess({ success: true });
+    global.fetch = mockFetchSuccess();
     const afterFn = jest.fn();
     const action = defineGameAction({ name: 'test', path: '/game/test', after: afterFn });
     const ctx = createMockCtx();

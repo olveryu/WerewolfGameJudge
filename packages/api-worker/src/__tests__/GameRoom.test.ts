@@ -134,8 +134,8 @@ describe('GameRoom seat management', () => {
 
     assertSuccess(result);
     expect(result.state?.players[0]).toBeTruthy();
-    expect(result.state!.players[0]!.userId).toBe('p1');
-    expect(result.state!.roster['p1'].displayName).toBe('Player1');
+    expect(result.state.players[0]!.userId).toBe('p1');
+    expect(result.state.roster['p1'].displayName).toBe('Player1');
     expect(result.revision).toBe(2);
   });
 
@@ -189,7 +189,7 @@ describe('GameRoom game flow', () => {
     expect(result.state?.status).toBe(GameStatus.Assigned);
     // All players should have roles assigned
     for (let i = 0; i < 3; i++) {
-      expect(result.state!.players[i]!.role).toBeTruthy();
+      expect(result.state.players[i]!.role).toBeTruthy();
     }
   });
 
@@ -204,8 +204,8 @@ describe('GameRoom game flow', () => {
 
     assertSuccess(result);
     // Remaining seats should be bots
-    expect(result.state!.players[1]?.isBot).toBe(true);
-    expect(result.state!.players[2]?.isBot).toBe(true);
+    expect(result.state.players[1]?.isBot).toBe(true);
+    expect(result.state.players[2]?.isBot).toBe(true);
   });
 
   it('restartGame resets to Seated (players keep seats)', async () => {
@@ -384,9 +384,9 @@ describe('GameRoom clearAllSeats', () => {
     assertSuccess(result);
     // All seats should be null
     for (let i = 0; i < 3; i++) {
-      expect(result.state!.players[i]).toBeNull();
+      expect(result.state.players[i]).toBeNull();
     }
-    expect(result.state!.status).toBe(GameStatus.Unseated);
+    expect(result.state.status).toBe(GameStatus.Unseated);
   });
 
   it('clearAllSeats fails during game', async () => {
@@ -427,7 +427,7 @@ describe('GameRoom board nomination', () => {
 
     assertSuccess(result);
     expect(result.state?.boardNominations).toBeTruthy();
-    expect(result.state!.boardNominations!['p1']).toBeTruthy();
+    expect(result.state.boardNominations!['p1']).toBeTruthy();
   });
 
   it('boardUpvote votes for existing nomination', async () => {
@@ -437,7 +437,7 @@ describe('GameRoom board nomination', () => {
     const result = (await stub.boardUpvote('p2', 'p1')) as GameActionResult;
 
     assertSuccess(result);
-    const nomination = result.state!.boardNominations!['p1'];
+    const nomination = result.state.boardNominations!['p1'];
     expect(nomination.upvoters).toContain('p2');
   });
 
@@ -449,7 +449,7 @@ describe('GameRoom board nomination', () => {
 
     assertSuccess(result);
     // After withdraw, the nomination should be removed
-    const noms = result.state!.boardNominations ?? {};
+    const noms = result.state.boardNominations ?? {};
     expect(noms['p1']).toBeUndefined();
   });
 
@@ -474,7 +474,7 @@ describe('GameRoom board nomination', () => {
 
     assertSuccess(result);
     // p2's nomination should be an upvote on p1's, not a separate entry
-    const p1Nom = result.state!.boardNominations!['p1'];
+    const p1Nom = result.state.boardNominations!['p1'];
     expect(p1Nom.upvoters).toContain('p2');
   });
 
@@ -502,7 +502,7 @@ describe('GameRoom markAllBotsViewed', () => {
 
     assertSuccess(result);
     // Bot seats (1, 2) should have viewed roles
-    expect(result.state!.players[1]?.hasViewedRole).toBe(true);
-    expect(result.state!.players[2]?.hasViewedRole).toBe(true);
+    expect(result.state.players[1]?.hasViewedRole).toBe(true);
+    expect(result.state.players[2]?.hasViewedRole).toBe(true);
   });
 });

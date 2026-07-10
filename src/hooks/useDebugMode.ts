@@ -17,7 +17,6 @@ import { useCallback, useState } from 'react';
 
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { gameRoomLog } from '@/utils/logger';
 
 export interface DebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */
@@ -67,12 +66,8 @@ export function useDebugMode(
     }
     // If Host is seated, leave seat first so the seat can be filled with a bot
     if (facade.getMySeat() !== null) {
-      try {
-        await facade.leaveSeat();
-      } catch (err) {
-        gameRoomLog.warn('Failed to leave seat before filling bots', err);
-        return { success: false, reason: `failed_to_leave_seat: ${String(err)}` };
-      }
+      const leaveResult = await facade.leaveSeat();
+      if (!leaveResult.success) return leaveResult;
     }
     return facade.fillWithBots();
   }, [facade]);

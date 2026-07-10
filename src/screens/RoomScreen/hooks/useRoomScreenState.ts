@@ -127,8 +127,6 @@ export function useRoomScreenState(
     hasWolfVoted,
     getLastNightInfo: getLastNightInfoFn,
     getCurseInfo: getCurseInfoFn,
-    lastSeatError,
-    clearLastSeatError,
     needsAuth,
     clearNeedsAuth,
     requestSnapshot,
@@ -288,15 +286,6 @@ export function useRoomScreenState(
   // ═══════════════════════════════════════════════════════════════════════════
   // Side effects
   // ═══════════════════════════════════════════════════════════════════════════
-
-  // Show alert when seat request is rejected
-  useEffect(() => {
-    if (lastSeatError) {
-      roomScreenLog.warn('Seat error received', { lastSeatError });
-      showErrorAlert('入座失败', '该座位已被占用，请选择其他位置。');
-      clearLastSeatError();
-    }
-  }, [lastSeatError, clearLastSeatError]);
 
   // Reset UI state when game restarts
   useEffect(() => {

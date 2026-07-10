@@ -5,9 +5,13 @@
  * shared by gameActions and seatActions. Contains no business logic.
  */
 
-import { parseWerewolfState } from '@werewolf/game-engine';
+import {
+  parseRoomCommandResult,
+  RoomCommandProtocolError,
+  WEREWOLF_STATE_CODEC,
+} from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { secureRng } from '@werewolf/game-engine/utils/random';
 
 import { API_BASE_URL, API_REGION, API_TIMEOUT_MS } from '@/config/api';
@@ -15,84 +19,6 @@ import { fetchWithRetry } from '@/services/cloudflare/cfFetch';
 import { createTimeoutSignal } from '@/utils/abortSignal';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
-
-/** Standard API response (shared structure for game control and seat actions) */
-export type ApiResponse =
-  | { success: true; reason?: string; state?: GameState; revision?: number }
-  | { success: false; reason: string };
-
-class ApiProtocolError extends Error {
-  readonly cause: unknown;
-
-  constructor(message: string, cause?: unknown) {
-    super(message);
-    this.name = 'ApiProtocolError';
-    this.cause = cause;
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parseOptionalString(value: unknown, fieldName: string): string | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string') {
-    throw new ApiProtocolError(`${fieldName} must be a string`);
-  }
-  return value;
-}
-
-function parseApiResponse(value: unknown): ApiResponse {
-  if (!isRecord(value)) {
-    throw new ApiProtocolError('Game API response must be an object');
-  }
-  const allowedKeys = new Set(['success', 'reason', 'state', 'revision']);
-  for (const key of Object.keys(value)) {
-    if (!allowedKeys.has(key)) {
-      throw new ApiProtocolError(`Game API response contains unknown field: ${key}`);
-    }
-  }
-
-  if (value.success === false) {
-    if (typeof value.reason !== 'string' || value.reason.length === 0) {
-      throw new ApiProtocolError('Failed game API response must contain a reason');
-    }
-    if (value.state !== undefined || value.revision !== undefined) {
-      throw new ApiProtocolError('Failed game API response cannot contain state');
-    }
-    return { success: false, reason: value.reason };
-  }
-  if (value.success !== true) {
-    throw new ApiProtocolError('Game API response success must be a boolean');
-  }
-
-  const reason = parseOptionalString(value.reason, 'Game API response reason');
-  const hasState = value.state !== undefined;
-  const hasRevision = value.revision !== undefined;
-  if (hasState !== hasRevision) {
-    throw new ApiProtocolError('Successful game API response must pair state with revision');
-  }
-  if (!hasState) {
-    return reason === undefined ? { success: true } : { success: true, reason };
-  }
-  if (
-    typeof value.revision !== 'number' ||
-    !Number.isSafeInteger(value.revision) ||
-    value.revision < 1
-  ) {
-    throw new ApiProtocolError('Game API response revision must be a positive safe integer');
-  }
-
-  try {
-    const state = parseWerewolfState(value.state);
-    return reason === undefined
-      ? { success: true, state, revision: value.revision }
-      : { success: true, reason, state, revision: value.revision };
-  } catch (error) {
-    throw new ApiProtocolError('Game API response contains invalid Werewolf state', error);
-  }
-}
 
 /**
  * Executes a single API POST call
@@ -112,7 +38,7 @@ async function callApiOnce(
   body: Record<string, unknown>,
   label: string,
   store?: GameStore,
-): Promise<ApiResponse> {
+): Promise<ActionResult> {
   try {
     const requestId =
       typeof globalThis.crypto?.randomUUID === 'function'
@@ -143,18 +69,22 @@ async function callApiOnce(
     }
 
     const payload: unknown = await res.json();
-    const result = parseApiResponse(payload);
+    const result = parseRoomCommandResult(payload, WEREWOLF_STATE_CODEC);
 
-    // Optimistic Response: apply immediately when HTTP response contains state, without waiting for broadcast
-    if (result.success && result.state && result.revision != null && store) {
-      store.applySnapshot(result.state, result.revision);
+    // Apply the committed snapshot immediately instead of waiting for the realtime broadcast.
+    if (result.success && store) {
+      store.applySnapshot(result.snapshot.state, result.snapshot.revision);
     }
 
-    return result;
+    return result.success
+      ? result.reason === undefined
+        ? { success: true }
+        : { success: true, reason: result.reason }
+      : result;
   } catch (e) {
     // Rethrow programming errors (ReferenceError = always a code bug).
     // TypeError is NOT rethrown because fetch() throws TypeError for network failures.
-    if (e instanceof ReferenceError || e instanceof ApiProtocolError) {
+    if (e instanceof ReferenceError || e instanceof RoomCommandProtocolError) {
       handleError(e, { label, logger: facadeLog, feedback: false });
       throw e;
     }
@@ -208,7 +138,7 @@ export async function callApiWithRetry(
   body: Record<string, unknown>,
   label: string,
   store?: GameStore,
-): Promise<ApiResponse> {
+): Promise<ActionResult> {
   const startTime = Date.now();
 
   for (let attempt = 0; attempt <= MAX_CLIENT_RETRIES; attempt++) {

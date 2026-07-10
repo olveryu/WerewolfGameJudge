@@ -3,8 +3,7 @@
  *
  * Tests seat operation orchestration layer (post-migration):
  * - Unified HTTP API calls (Host / Player no longer distinguished)
- * - takeSeat / takeSeatWithAck -> fetch POST /game/seat
- * - leaveSeat / leaveSeatWithAck -> fetch POST /game/seat
+ * - takeSeat / leaveSeat -> fetch POST /game/seat with reason-preserving results
  * - NOT_CONNECTED guard (when roomCode / userId missing)
  * - NETWORK_ERROR handling
  *
@@ -12,14 +11,9 @@
  */
 
 import type { SeatActionsContext } from '@/services/facade/seatActions';
-import {
-  leaveSeat,
-  leaveSeatWithAck,
-  takeSeat,
-  takeSeatWithAck,
-} from '@/services/facade/seatActions';
+import { leaveSeat, takeSeat } from '@/services/facade/seatActions';
 
-import { buildApiTestState } from './apiTestState';
+import { buildApiCommandSuccess, buildApiTestState } from './apiTestState';
 
 jest.mock('../../../utils/logger', () => ({
   facadeLog: {
@@ -52,7 +46,7 @@ function createMockCtx(overrides?: Partial<SeatActionsContext>): SeatActionsCont
 }
 
 /** Create mock fetch response */
-function mockFetchSuccess(body: Record<string, unknown> = { success: true }): jest.Mock {
+function mockFetchSuccess(body: Record<string, unknown> = buildApiCommandSuccess()): jest.Mock {
   return jest.fn().mockResolvedValue({
     ok: true,
     headers: { get: () => 'application/json' },
@@ -88,15 +82,15 @@ describe('seatActions (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // takeSeatWithAck
+  // takeSeat
   // ===========================================================================
 
-  describe('takeSeatWithAck', () => {
+  describe('takeSeat', () => {
     it('should call fetch with correct params', async () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx();
 
-      const result = await takeSeatWithAck(ctx, 2, {
+      const result = await takeSeat(ctx, 2, {
         displayName: 'Alice',
         avatarUrl: 'https://avatar.url',
       });
@@ -127,7 +121,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchFailure('seat_taken');
       const ctx = createMockCtx();
 
-      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'seat_taken' });
     });
@@ -136,7 +130,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx({ getRoomCode: () => null });
 
-      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
       expect(global.fetch).not.toHaveBeenCalled();
@@ -146,7 +140,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx({ myUserId: null });
 
-      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
       expect(global.fetch).not.toHaveBeenCalled();
@@ -156,7 +150,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchNetworkError();
       const ctx = createMockCtx();
 
-      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'NETWORK_ERROR' });
     });
@@ -165,7 +159,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchFailure('game_in_progress');
       const ctx = createMockCtx();
 
-      const result = await takeSeatWithAck(ctx, 0, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'game_in_progress' });
     });
@@ -174,7 +168,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchFailure('invalid_seat');
       const ctx = createMockCtx();
 
-      const result = await takeSeatWithAck(ctx, 999, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 999, { displayName: 'Alice' });
 
       expect(result).toEqual({ success: false, reason: 'invalid_seat' });
     });
@@ -183,7 +177,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx();
 
-      await takeSeatWithAck(ctx, 1);
+      await takeSeat(ctx, 1);
 
       const body = JSON.parse(
         (jest.mocked(global.fetch).mock.calls[0]![1] as RequestInit).body as string,
@@ -194,47 +188,15 @@ describe('seatActions (HTTP API)', () => {
   });
 
   // ===========================================================================
-  // takeSeat (boolean wrapper)
+  // leaveSeat
   // ===========================================================================
 
-  describe('takeSeat', () => {
-    it('should return true on success', async () => {
-      global.fetch = mockFetchSuccess();
-      const ctx = createMockCtx();
-
-      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false on failure', async () => {
-      global.fetch = mockFetchFailure('seat_taken');
-      const ctx = createMockCtx();
-
-      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false on NOT_CONNECTED', async () => {
-      const ctx = createMockCtx({ getRoomCode: () => null });
-
-      const result = await takeSeat(ctx, 0, { displayName: 'Alice' });
-
-      expect(result).toBe(false);
-    });
-  });
-
-  // ===========================================================================
-  // leaveSeatWithAck
-  // ===========================================================================
-
-  describe('leaveSeatWithAck', () => {
+  describe('leaveSeat', () => {
     it('should call fetch with standup action', async () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx();
 
-      const result = await leaveSeatWithAck(ctx);
+      const result = await leaveSeat(ctx);
 
       expect(result).toEqual({ success: true });
       expect(global.fetch).toHaveBeenCalledWith(
@@ -254,7 +216,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchFailure('game_in_progress');
       const ctx = createMockCtx();
 
-      const result = await leaveSeatWithAck(ctx);
+      const result = await leaveSeat(ctx);
 
       expect(result).toEqual({ success: false, reason: 'game_in_progress' });
     });
@@ -263,7 +225,7 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchSuccess();
       const ctx = createMockCtx({ getRoomCode: () => null });
 
-      const result = await leaveSeatWithAck(ctx);
+      const result = await leaveSeat(ctx);
 
       expect(result).toEqual({ success: false, reason: 'NOT_CONNECTED' });
       expect(global.fetch).not.toHaveBeenCalled();
@@ -273,33 +235,9 @@ describe('seatActions (HTTP API)', () => {
       global.fetch = mockFetchNetworkError();
       const ctx = createMockCtx();
 
-      const result = await leaveSeatWithAck(ctx);
+      const result = await leaveSeat(ctx);
 
       expect(result).toEqual({ success: false, reason: 'NETWORK_ERROR' });
-    });
-  });
-
-  // ===========================================================================
-  // leaveSeat (boolean wrapper)
-  // ===========================================================================
-
-  describe('leaveSeat', () => {
-    it('should return true on success', async () => {
-      global.fetch = mockFetchSuccess();
-      const ctx = createMockCtx();
-
-      const result = await leaveSeat(ctx);
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false on failure', async () => {
-      global.fetch = mockFetchFailure('not_seated');
-      const ctx = createMockCtx();
-
-      const result = await leaveSeat(ctx);
-
-      expect(result).toBe(false);
     });
   });
 
@@ -317,45 +255,47 @@ describe('seatActions (HTTP API)', () => {
 
     it('should call store.applySnapshot when response contains state + revision', async () => {
       const mockState = buildApiTestState();
-      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 5 });
+      global.fetch = mockFetchSuccess(buildApiCommandSuccess(mockState, 5));
       const mockStore = createMockStore({ roomCode: 'ABCD', players: { 1: null } });
       const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
-      await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+      await takeSeat(ctx, 2, { displayName: 'Alice' });
 
       expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 5);
     });
 
-    it('should NOT call applySnapshot when response has no state', async () => {
+    it('should fail fast when a successful response omits its snapshot', async () => {
       global.fetch = mockFetchSuccess({ success: true });
       const mockStore = createMockStore({ roomCode: 'ABCD', players: {} });
       const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
-      await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+      await expect(takeSeat(ctx, 2, { displayName: 'Alice' })).rejects.toThrow(
+        'Successful RoomCommandResult must contain snapshot',
+      );
 
       expect(mockStore.applySnapshot).not.toHaveBeenCalled();
     });
 
     it('should NOT crash when ctx has no store', async () => {
       const state = buildApiTestState({ roomCode: 'X' });
-      global.fetch = mockFetchSuccess({ success: true, state, revision: 1 });
+      global.fetch = mockFetchSuccess(buildApiCommandSuccess(state));
       const ctx = createMockCtx(); // no store
 
-      const result = await takeSeatWithAck(ctx, 2, { displayName: 'Alice' });
+      const result = await takeSeat(ctx, 2, { displayName: 'Alice' });
 
-      expect(result).toEqual({ success: true, state, revision: 1 });
+      expect(result).toEqual({ success: true });
     });
 
-    it('should call store.applySnapshot on leaveSeatWithAck response', async () => {
+    it('should call store.applySnapshot on leaveSeat response', async () => {
       const mockState = buildApiTestState();
-      global.fetch = mockFetchSuccess({ success: true, state: mockState, revision: 3 });
+      global.fetch = mockFetchSuccess(buildApiCommandSuccess(mockState, 3));
       const mockStore = createMockStore({
         roomCode: 'ABCD',
         players: { 1: { userId: 'test-uid', seat: 1 } },
       });
       const ctx = createMockCtx({ store: mockStore as unknown as SeatActionsContext['store'] });
 
-      await leaveSeatWithAck(ctx);
+      await leaveSeat(ctx);
 
       expect(mockStore.applySnapshot).toHaveBeenCalledWith(mockState, 3);
     });

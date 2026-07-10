@@ -23,8 +23,9 @@ import {
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { showDestructiveAlert, showDismissAlert } from '@/utils/alertPresets';
+import { showDestructiveAlert, showDismissAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,7 +65,7 @@ interface UseInteractionDispatcherParams {
   seatModalVisible: boolean;
 
   // ── Seat operations (raw API) ──
-  leaveSeat: () => Promise<void>;
+  leaveSeat: () => Promise<ActionResult>;
   viewedRole: () => Promise<ActionResult>;
 
   // ── Host dialogs ──
@@ -179,12 +180,19 @@ export function useInteractionDispatcher({
         ? (_seat: number) => {
             roomScreenLog.debug('handleProfileLeaveSeat', { seat: _seat });
             setProfileCardVisible(false);
-            void leaveSeat().catch((err) => {
-              handleError(err, {
-                label: '离座',
-                logger: roomScreenLog,
+            void leaveSeat()
+              .then((result) => {
+                if (!result.success) {
+                  showErrorAlert('离座失败', getUserFacingMessage(result));
+                }
+              })
+              .catch((err) => {
+                handleError(err, {
+                  label: '离座',
+                  logger: roomScreenLog,
+                  alertMessage: '房间响应异常，请重新进入房间后重试。',
+                });
               });
-            });
           }
         : undefined,
     [canKick, leaveSeat],

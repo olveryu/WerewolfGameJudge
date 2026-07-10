@@ -19,6 +19,8 @@ import { GameFacade } from '@/services/facade/GameFacade';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IRoomService } from '@/services/types/IRoomService';
 
+import { buildApiCommandSuccess, buildApiTestState } from './apiTestState';
+
 // P0-1: Mock AudioService
 jest.mock('../../infra/AudioService', () => ({
   __esModule: true,
@@ -56,6 +58,9 @@ describe('restartGame Contract (HTTP API)', () => {
     numberOfPlayers: 4,
     roles: ['wolf', 'wolf', 'seer', 'villager'] as ('wolf' | 'seer' | 'villager')[],
   };
+
+  const commandSuccess = () =>
+    buildApiCommandSuccess(buildApiTestState({ roomCode: '1234', hostUserId: 'host-uid' }));
 
   beforeEach(async () => {
     mockConnectionManager = {
@@ -105,7 +110,7 @@ describe('restartGame Contract (HTTP API)', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve(commandSuccess()),
       });
 
       await facade.restartGame();
@@ -123,7 +128,7 @@ describe('restartGame Contract (HTTP API)', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve(commandSuccess()),
       });
 
       const result = await facade.restartGame();
@@ -148,7 +153,7 @@ describe('restartGame Contract (HTTP API)', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve(commandSuccess()),
       });
 
       const result1 = await facade.restartGame();

@@ -188,8 +188,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
-      takeSeatWithAck: jest.fn(),
-      leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
       updateTemplate: jest.fn(),
       assignRoles: jest.fn(),
@@ -201,8 +199,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       // BGM
@@ -300,8 +296,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
-      takeSeatWithAck: jest.fn(),
-      leaveSeatWithAck: jest.fn(),
       requestSnapshot: jest.fn(),
       updateTemplate: jest.fn(),
       assignRoles: jest.fn(),
@@ -313,8 +307,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
       sendWolfRobotHunterStatusViewed: jest.fn().mockResolvedValue(undefined),
       getLastNightInfo: jest.fn().mockReturnValue(''),
-      lastSeatError: null,
-      clearLastSeatError: jest.fn(),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       isBgmEnabled: false,

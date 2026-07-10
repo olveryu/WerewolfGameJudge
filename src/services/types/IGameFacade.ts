@@ -121,26 +121,12 @@ export interface IGameFacade {
    * Take seat
    * Unified HTTP API, server-processed
    */
-  takeSeat(seat: number, profile?: SeatProfile): Promise<boolean>;
-
-  /**
-   * Take seat (with ACK wait)
-   * Unified HTTP API, waits for server response
-   * @returns success + reason (passthrough of server rejection reason)
-   */
-  takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult>;
+  takeSeat(seat: number, profile?: SeatProfile): Promise<ActionResult>;
   /**
    * Leave seat
    * Unified HTTP API, server-processed
    */
-  leaveSeat(): Promise<boolean>;
-
-  /**
-   * Leave seat (with ACK wait)
-   * Unified HTTP API, waits for server response
-   * @returns success + reason (passthrough of server rejection reason)
-   */
-  leaveSeatWithAck(): Promise<ActionResult>;
+  leaveSeat(): Promise<ActionResult>;
 
   /**
    * Kick player from seat (Host-only)

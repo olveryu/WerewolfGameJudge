@@ -1,7 +1,7 @@
 /**
  * Tests for useGameRoom hook
  *
- * Focus: ACK reason transparency - ensuring takeSeatWithAck/leaveSeatWithAck
+ * Focus: seat result transparency - ensuring takeSeat/leaveSeat
  * pass through the reason from facade without modification.
  *
  * PR8: fully switched to facade, no longer depends on legacy GameStateService
@@ -23,12 +23,12 @@ import type { IGameFacade } from '@/services/types/IGameFacade';
 const mockUseServices = useServices as jest.Mock;
 
 /**
- * Tests for useGameRoom ACK reason transparency
+ * Tests for useGameRoom seat reason transparency
  *
- * These tests verify that takeSeatWithAck/leaveSeatWithAck pass through
+ * These tests verify that takeSeat/leaveSeat pass through
  * the reason from facade without modification.
  */
-describe('useGameRoom - ACK reason transparency', () => {
+describe('useGameRoom - seat reason transparency', () => {
   // Create a mock facade for testing
   const createMockFacade = (overrides: Partial<IGameFacade> = {}): IGameFacade => ({
     addListener: jest.fn().mockReturnValue(() => {}),
@@ -41,10 +41,8 @@ describe('useGameRoom - ACK reason transparency', () => {
     createRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
-    takeSeat: jest.fn().mockResolvedValue(true),
-    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
-    leaveSeat: jest.fn().mockResolvedValue(true),
-    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    takeSeat: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeat: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
@@ -109,10 +107,10 @@ describe('useGameRoom - ACK reason transparency', () => {
     });
   });
 
-  describe('takeSeatWithAck reason transparency', () => {
+  describe('takeSeat reason transparency', () => {
     it('should return { success: true, reason: undefined } when facade returns success', async () => {
       const mockFacade = createMockFacade({
-        takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+        takeSeat: jest.fn().mockResolvedValue({ success: true }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -123,11 +121,11 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.takeSeatWithAck(1);
+        ackResult = await result.current.takeSeat(1);
       });
 
-      expect(ackResult).toEqual({ success: true, reason: undefined });
-      expect(mockFacade.takeSeatWithAck).toHaveBeenCalledWith(1, {
+      expect(ackResult).toEqual({ success: true });
+      expect(mockFacade.takeSeat).toHaveBeenCalledWith(1, {
         displayName: 'TestPlayer',
         avatarUrl: undefined,
         avatarFrame: undefined,
@@ -141,7 +139,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through seat_taken reason from facade', async () => {
       const mockFacade = createMockFacade({
-        takeSeatWithAck: jest.fn().mockResolvedValue({ success: false, reason: 'seat_taken' }),
+        takeSeat: jest.fn().mockResolvedValue({ success: false, reason: 'seat_taken' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -152,7 +150,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.takeSeatWithAck(1);
+        ackResult = await result.current.takeSeat(1);
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'seat_taken' });
@@ -160,9 +158,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through game_in_progress reason from facade', async () => {
       const mockFacade = createMockFacade({
-        takeSeatWithAck: jest
-          .fn()
-          .mockResolvedValue({ success: false, reason: 'game_in_progress' }),
+        takeSeat: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -173,7 +169,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.takeSeatWithAck(1);
+        ackResult = await result.current.takeSeat(1);
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'game_in_progress' });
@@ -181,7 +177,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through invalid_seat reason from facade', async () => {
       const mockFacade = createMockFacade({
-        takeSeatWithAck: jest.fn().mockResolvedValue({ success: false, reason: 'invalid_seat' }),
+        takeSeat: jest.fn().mockResolvedValue({ success: false, reason: 'invalid_seat' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -192,17 +188,17 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.takeSeatWithAck(999);
+        ackResult = await result.current.takeSeat(999);
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'invalid_seat' });
     });
   });
 
-  describe('leaveSeatWithAck reason transparency', () => {
+  describe('leaveSeat reason transparency', () => {
     it('should return { success: true, reason: undefined } when facade returns success', async () => {
       const mockFacade = createMockFacade({
-        leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+        leaveSeat: jest.fn().mockResolvedValue({ success: true }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -213,17 +209,15 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.leaveSeatWithAck();
+        ackResult = await result.current.leaveSeat();
       });
 
-      expect(ackResult).toEqual({ success: true, reason: undefined });
+      expect(ackResult).toEqual({ success: true });
     });
 
     it('should pass through game_in_progress reason from facade', async () => {
       const mockFacade = createMockFacade({
-        leaveSeatWithAck: jest
-          .fn()
-          .mockResolvedValue({ success: false, reason: 'game_in_progress' }),
+        leaveSeat: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -234,7 +228,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.leaveSeatWithAck();
+        ackResult = await result.current.leaveSeat();
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'game_in_progress' });
@@ -242,7 +236,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
     it('should pass through not_seated reason from facade', async () => {
       const mockFacade = createMockFacade({
-        leaveSeatWithAck: jest.fn().mockResolvedValue({ success: false, reason: 'not_seated' }),
+        leaveSeat: jest.fn().mockResolvedValue({ success: false, reason: 'not_seated' }),
       });
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -253,7 +247,7 @@ describe('useGameRoom - ACK reason transparency', () => {
 
       let ackResult: ActionResult | undefined;
       await act(async () => {
-        ackResult = await result.current.leaveSeatWithAck();
+        ackResult = await result.current.leaveSeat();
       });
 
       expect(ackResult).toEqual({ success: false, reason: 'not_seated' });
@@ -334,10 +328,8 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     createRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
-    takeSeat: jest.fn().mockResolvedValue(true),
-    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
-    leaveSeat: jest.fn().mockResolvedValue(true),
-    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    takeSeat: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeat: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),
@@ -602,10 +594,8 @@ describe('useGameRoom - rejoin continue overlay', () => {
     createRoom: jest.fn().mockResolvedValue(undefined),
     joinRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
-    takeSeat: jest.fn().mockResolvedValue(true),
-    takeSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
-    leaveSeat: jest.fn().mockResolvedValue(true),
-    leaveSeatWithAck: jest.fn().mockResolvedValue({ success: true }),
+    takeSeat: jest.fn().mockResolvedValue({ success: true }),
+    leaveSeat: jest.fn().mockResolvedValue({ success: true }),
     assignRoles: jest.fn().mockResolvedValue({ success: true }),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn().mockResolvedValue({ success: true }),

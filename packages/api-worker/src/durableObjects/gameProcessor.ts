@@ -33,8 +33,8 @@ export type GameActionResult =
   | {
       success: true;
       reason?: string;
-      state?: GameState;
-      revision?: number;
+      state: GameState;
+      revision: number;
       sideEffects?: readonly SideEffect[];
     }
   | { success: false; reason: string };

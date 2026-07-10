@@ -8,11 +8,14 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 import { useCallback, useRef, useState } from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomSeatDialogsParams {
@@ -23,8 +26,8 @@ interface UseRoomSeatDialogsParams {
   setModalType: React.Dispatch<React.SetStateAction<'enter' | 'leave'>>;
 
   // Seat operations (execution layer)
-  takeSeat: (seat: number) => Promise<boolean>;
-  leaveSeat: () => Promise<void>;
+  takeSeat: (seat: number) => Promise<ActionResult>;
+  leaveSeat: () => Promise<ActionResult>;
 
   // Leave room
   roomStatus: GameStatus;
@@ -101,23 +104,33 @@ export function useRoomSeatDialogs({
     const seat = pendingSeat;
     roomScreenLog.debug('Taking seat', { seat });
 
-    void takeSeat(seat)
-      .then((success) => {
-        if (success) {
-          // Success -> close modal
-          setSeatModalVisible(false);
-          setPendingSeat(null);
-        } else {
-          roomScreenLog.warn('takeSeat failed (occupied)', { seat });
-          setSeatModalVisible(false);
-          setPendingSeat(null);
-          showErrorAlert('入座失败', `${formatSeat(seat)}座位已被占用，请选择其他位置。`);
+    void (async () => {
+      try {
+        const result = await takeSeat(seat);
+        setSeatModalVisible(false);
+        setPendingSeat(null);
+
+        if (!result.success) {
+          roomScreenLog.warn('takeSeat rejected', { seat, reason: result.reason });
+          const message =
+            result.reason === 'seat_taken'
+              ? `${formatSeat(seat)}座位已被占用，请选择其他位置。`
+              : getUserFacingMessage(result);
+          showErrorAlert('入座失败', message);
         }
-      })
-      .finally(() => {
+      } catch (error) {
+        setSeatModalVisible(false);
+        setPendingSeat(null);
+        handleError(error, {
+          label: '入座',
+          logger: roomScreenLog,
+          alertMessage: '房间响应异常，请重新进入房间后重试。',
+        });
+      } finally {
         submittingRef.current = false;
         setIsSeatSubmitting(false);
-      });
+      }
+    })();
   }, [pendingSeat, takeSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -140,16 +153,29 @@ export function useRoomSeatDialogs({
     setIsSeatSubmitting(true);
     roomScreenLog.debug('Leaving seat', { seat: pendingSeat });
 
-    void leaveSeat()
-      .then(() => {
-        // Success -> close modal
+    void (async () => {
+      try {
+        const result = await leaveSeat();
         setSeatModalVisible(false);
         setPendingSeat(null);
-      })
-      .finally(() => {
+
+        if (!result.success) {
+          roomScreenLog.warn('leaveSeat rejected', { reason: result.reason });
+          showErrorAlert('离座失败', getUserFacingMessage(result));
+        }
+      } catch (error) {
+        setSeatModalVisible(false);
+        setPendingSeat(null);
+        handleError(error, {
+          label: '离座',
+          logger: roomScreenLog,
+          alertMessage: '房间响应异常，请重新进入房间后重试。',
+        });
+      } finally {
         submittingRef.current = false;
         setIsSeatSubmitting(false);
-      });
+      }
+    })();
   }, [pendingSeat, leaveSeat, setSeatModalVisible, setPendingSeat]);
 
   // ─────────────────────────────────────────────────────────────────────────

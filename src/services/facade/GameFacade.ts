@@ -377,7 +377,7 @@ export class GameFacade implements IGameFacade {
   // Seating (delegated to seatActions)
   // =========================================================================
 
-  async takeSeat(seat: number, profile?: SeatProfile): Promise<boolean> {
+  async takeSeat(seat: number, profile?: SeatProfile): Promise<ActionResult> {
     return seatActions.takeSeat(
       this.#getSeatActionsContext(),
       seat,
@@ -385,20 +385,8 @@ export class GameFacade implements IGameFacade {
     );
   }
 
-  async takeSeatWithAck(seat: number, profile?: SeatProfile): Promise<ActionResult> {
-    return seatActions.takeSeatWithAck(
-      this.#getSeatActionsContext(),
-      seat,
-      profile && this.#resolveProfileEffect(profile),
-    );
-  }
-
-  async leaveSeat(): Promise<boolean> {
+  async leaveSeat(): Promise<ActionResult> {
     return seatActions.leaveSeat(this.#getSeatActionsContext());
-  }
-
-  async leaveSeatWithAck(): Promise<ActionResult> {
-    return seatActions.leaveSeatWithAck(this.#getSeatActionsContext());
   }
 
   async kickPlayer(targetSeat: number): Promise<ActionResult> {

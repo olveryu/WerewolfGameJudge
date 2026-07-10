@@ -26,7 +26,7 @@ function createMockFacade(overrides: Partial<{ [K in keyof MockFacade]: MockFaca
   return {
     isHostPlayer: jest.fn<boolean, []>(() => true),
     getMySeat: jest.fn<number | null, []>(() => 1),
-    leaveSeat: jest.fn<Promise<boolean>, []>().mockResolvedValue(true),
+    leaveSeat: jest.fn().mockResolvedValue({ success: true }),
     fillWithBots: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsViewed: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsGroupConfirmed: jest
@@ -165,10 +165,10 @@ describe('useDebugMode', () => {
     expect(facade.leaveSeat).not.toHaveBeenCalled();
   });
 
-  it('fillWithBots handles leaveSeat failure', async () => {
+  it('fillWithBots returns the leave-seat rejection without filling bots', async () => {
     const facade = createMockFacade({
       getMySeat: jest.fn<number | null, []>(() => 1),
-      leaveSeat: jest.fn<Promise<boolean>, []>().mockRejectedValue(new Error('leave failed')),
+      leaveSeat: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
     });
     const { result } = renderHook(() => useDebugMode(facade, 1, null));
 
@@ -177,8 +177,19 @@ describe('useDebugMode', () => {
       res = await result.current.fillWithBots();
     });
 
-    expect(res!.success).toBe(false);
-    expect(res!.reason).toContain('failed_to_leave_seat');
+    expect(res).toEqual({ success: false, reason: 'game_in_progress' });
+    expect(facade.fillWithBots).not.toHaveBeenCalled();
+  });
+
+  it('fillWithBots propagates an unexpected leave-seat exception', async () => {
+    const facade = createMockFacade({
+      getMySeat: jest.fn<number | null, []>(() => 1),
+      leaveSeat: jest.fn().mockRejectedValue(new Error('leave failed')),
+    });
+    const { result } = renderHook(() => useDebugMode(facade, 1, null));
+
+    await expect(result.current.fillWithBots()).rejects.toThrow('leave failed');
+    expect(facade.fillWithBots).not.toHaveBeenCalled();
   });
 
   // --- markAllBotsViewed ---

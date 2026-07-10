@@ -106,9 +106,6 @@ jest.mock('../../../hooks/useGameRoom', () => {
         requestSnapshot: jest.fn(),
         viewedRole: jest.fn(),
 
-        lastSeatError: null,
-        clearLastSeatError: jest.fn(),
-
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
         submitRevealAck: jest.fn().mockResolvedValue({ success: true }),

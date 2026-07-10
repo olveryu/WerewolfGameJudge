@@ -145,7 +145,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     );
 
     // Broadcast — output gate ensures send only after write is persisted
-    if (result.success && result.state && result.revision != null) {
+    if (result.success) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
         this.#broadcast(result.state, result.revision, lastCommandType);
@@ -171,8 +171,8 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   /** If game just ended (status === Ended), asynchronously trigger growth settlement */
   #settleIfEnded(result: GameActionResult): void {
-    if (result.success && result.state?.status === GameStatus.Ended) {
-      const revision = result.revision!;
+    if (result.success && result.state.status === GameStatus.Ended) {
+      const revision = result.revision;
       this.ctx.waitUntil(
         this.#runSettle(result.state, revision).catch((err) => {
           log.error('settleGameResults failed, scheduling retry', {

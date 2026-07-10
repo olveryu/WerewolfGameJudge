@@ -13,7 +13,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { facadeLog } from '@/utils/logger';
 
 import type { SeatProfile } from '../types/IGameFacade';
-import { type ApiResponse, callApiWithRetry } from './apiUtils';
+import { callApiWithRetry } from './apiUtils';
 
 /**
  * Context interface required by Seat Actions
@@ -28,9 +28,6 @@ export interface SeatActionsContext {
   readonly store?: GameStore;
 }
 
-/** Seat operation API response (alias for readability within this file) */
-type SeatApiResponse = ApiResponse;
-
 /**
  * Call seat API (with built-in client retry)
  *
@@ -44,7 +41,7 @@ async function callSeatApi(
   roomCode: string,
   body: Record<string, unknown>,
   store?: GameStore,
-): Promise<SeatApiResponse> {
+): Promise<ActionResult> {
   return callApiWithRetry('/game/seat', { roomCode, ...body }, 'callSeatApi', store);
 }
 
@@ -53,21 +50,9 @@ async function callSeatApi(
 // =============================================================================
 
 /**
- * Sit (returns boolean, compatible with legacy API)
+ * Sit and return the authoritative command outcome.
  */
 export async function takeSeat(
-  ctx: SeatActionsContext,
-  seat: number,
-  profile?: SeatProfile,
-): Promise<boolean> {
-  const result = await takeSeatWithAck(ctx, seat, profile);
-  return result.success;
-}
-
-/**
- * Sit and return full result (including reason)
- */
-export async function takeSeatWithAck(
   ctx: SeatActionsContext,
   seat: number,
   profile?: SeatProfile,
@@ -77,7 +62,7 @@ export async function takeSeatWithAck(
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('takeSeatWithAck', { seat: seat, userId: ctx.myUserId });
+  facadeLog.debug('takeSeat', { seat: seat, userId: ctx.myUserId });
 
   return callSeatApi(
     roomCode,
@@ -99,23 +84,15 @@ export async function takeSeatWithAck(
 }
 
 /**
- * Unseat (returns boolean, compatible with legacy API)
+ * Leave the current seat and return the authoritative command outcome.
  */
-export async function leaveSeat(ctx: SeatActionsContext): Promise<boolean> {
-  const result = await leaveSeatWithAck(ctx);
-  return result.success;
-}
-
-/**
- * Unseat and return full result (including reason)
- */
-export async function leaveSeatWithAck(ctx: SeatActionsContext): Promise<ActionResult> {
+export async function leaveSeat(ctx: SeatActionsContext): Promise<ActionResult> {
   const roomCode = ctx.getRoomCode();
   if (!roomCode || !ctx.myUserId) {
     return { success: false, reason: 'NOT_CONNECTED' };
   }
 
-  facadeLog.debug('leaveSeatWithAck', { userId: ctx.myUserId });
+  facadeLog.debug('leaveSeat', { userId: ctx.myUserId });
 
   const userId = ctx.myUserId;
 

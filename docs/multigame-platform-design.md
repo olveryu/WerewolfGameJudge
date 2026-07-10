@@ -663,6 +663,27 @@ CREATE TABLE command_receipts (
 
 ### 13.4 Result model
 
+公共 HTTP 边界只返回一个由 platform protocol 编解码的结果 envelope：
+
+```ts
+type RoomCommandResult<TState> =
+  | {
+      success: true;
+      snapshot: RoomSnapshot<TState>;
+      reason?: string;
+    }
+  | {
+      success: false;
+      reason: string;
+    };
+```
+
+- 成功结果必须携带 committed snapshot；零 event 的幂等命令返回当前 revision 的 snapshot。
+- `sideEffects`、event、outbox row 和 engine decision 都是 Worker/DO 内部数据，禁止序列化到公共 HTTP 响应。
+- Worker encoder 和客户端 decoder 必须引用 `platform/protocol/commandResult.ts` 的同一个 contract。
+- 客户端在应用 snapshot 后只把 domain outcome 交给 UI，UI 不读取 transport metadata。
+- 未知字段、缺失 snapshot、非法 state 或 revision 都是协议错误，直接 fail fast，不改写成 domain rejection。
+
 预期业务拒绝返回稳定 reason code：
 
 - `room.not_initialized`

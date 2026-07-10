@@ -114,8 +114,6 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     viewedRole: jest.fn(),
 
     // Error plumbing
-    lastSeatError: null,
-    clearLastSeatError: jest.fn(),
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),

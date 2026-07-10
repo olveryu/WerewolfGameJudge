@@ -67,7 +67,7 @@ import {
   updateTemplate,
 } from '@/services/facade/gameActions';
 
-import { buildApiTestState } from './apiTestState';
+import { buildApiCommandSuccess, buildApiTestState } from './apiTestState';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -120,7 +120,7 @@ function createMockCtx(storeState?: Partial<GameState> | null) {
   };
 }
 
-function mockFetchSuccess(result: Record<string, unknown> = { success: true }) {
+function mockFetchSuccess(result: Record<string, unknown> = buildApiCommandSuccess()) {
   return jest.fn().mockResolvedValue({
     ok: true,
     headers: { get: () => 'application/json' },
@@ -147,7 +147,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
   // =========================================================================
 
   it('should return success on 200 JSON response', async () => {
-    global.fetch = mockFetchSuccess({ success: true });
+    global.fetch = mockFetchSuccess();
     const ctx = createMockCtx();
 
     const result = await assignRoles(ctx);
@@ -158,7 +158,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
 
   it('should apply snapshot when response contains state + revision', async () => {
     const newState = buildApiTestState({ status: GameStatus.Assigned });
-    global.fetch = mockFetchSuccess({ success: true, state: newState, revision: 5 });
+    global.fetch = mockFetchSuccess(buildApiCommandSuccess(newState, 5));
     const ctx = createMockCtx();
 
     await assignRoles(ctx);
@@ -169,14 +169,16 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
   it('should fail fast when a successful response contains invalid state', async () => {
     global.fetch = mockFetchSuccess({
       success: true,
-      state: { gameType: 'werewolf', stateVersion: 1 },
-      revision: 5,
+      snapshot: {
+        gameType: 'werewolf',
+        stateVersion: 1,
+        revision: 5,
+        state: { gameType: 'werewolf', stateVersion: 1 },
+      },
     });
     const ctx = createMockCtx();
 
-    await expect(assignRoles(ctx)).rejects.toThrow(
-      'Game API response contains invalid Werewolf state',
-    );
+    await expect(assignRoles(ctx)).rejects.toThrow('RoomCommandResult contains invalid snapshot');
     expect(ctx.store.applySnapshot).not.toHaveBeenCalled();
   });
 
@@ -248,7 +250,7 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
       Promise.resolve({
         ok: true,
         headers: { get: () => 'application/json' },
-        json: () => Promise.resolve({ success: true }),
+        json: () => Promise.resolve(buildApiCommandSuccess()),
       });
 
     global.fetch = jest
@@ -422,11 +424,9 @@ describe('startNight — preloads audio on success', () => {
   });
 
   it('should fire-and-forget preloadForRoles after successful start', async () => {
-    global.fetch = mockFetchSuccess({
-      success: true,
-      state: buildApiTestState({ templateRoles: ['wolf', 'seer', 'villager'] }),
-      revision: 1,
-    });
+    global.fetch = mockFetchSuccess(
+      buildApiCommandSuccess(buildApiTestState({ templateRoles: ['wolf', 'seer', 'villager'] })),
+    );
 
     const ctx = createMockCtx({ roomCode: 'ABCD', hostUserId: 'host-1' });
     const result = await startNight(ctx);

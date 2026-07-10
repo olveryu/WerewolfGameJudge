@@ -226,7 +226,7 @@ export const SettingsScreen: React.FC = () => {
       try {
         // If seated in a room, leave seat first (simplifies all edge cases)
         if (isInRoom && isSeated) {
-          const result = await facade.leaveSeatWithAck();
+          const result = await facade.leaveSeat();
           if (!result.success) {
             showErrorAlert('离座失败', translateReasonCode(result.reason));
             return;

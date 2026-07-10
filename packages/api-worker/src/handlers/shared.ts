@@ -5,11 +5,14 @@
  * Game-engine utilities buildHandlerContext/extractAudioActions have been moved to gameProcessor.ts.
  */
 
+import { createRoomCommandResult, type RoomCommandResult } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { validator } from 'hono/validator';
 import type { z } from 'zod';
 
+import type { GameActionResult } from '../durableObjects/gameProcessor';
 import type { GameRoom } from '../durableObjects/GameRoom';
 import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
@@ -71,6 +74,11 @@ export function isValidSeat(value: unknown): value is number {
 export function resultToStatus(result: { success: boolean; reason?: string }): 200 | 400 | 500 {
   if (result.success) return 200;
   return result.reason === 'INTERNAL_ERROR' ? 500 : 400;
+}
+
+/** Remove DO-only execution metadata before crossing the public HTTP boundary. */
+export function toPublicCommandResult(result: GameActionResult): RoomCommandResult<GameState> {
+  return createRoomCommandResult(result);
 }
 
 /**

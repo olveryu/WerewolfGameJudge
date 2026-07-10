@@ -52,6 +52,12 @@ export {
   reject,
   type StateOf,
 } from './platform/engine';
+export {
+  createRoomCommandResult,
+  parseRoomCommandResult,
+  RoomCommandProtocolError,
+  type RoomCommandResult,
+} from './platform/protocol/commandResult';
 export type { RoomProfileUpdateCommand, RoomSeatCommand } from './platform/protocol/commands';
 export {
   decideClearSeats,

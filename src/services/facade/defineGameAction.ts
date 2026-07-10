@@ -11,7 +11,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { facadeLog } from '@/utils/logger';
 
-import { type ApiResponse, callApiWithRetry } from './apiUtils';
+import { callApiWithRetry } from './apiUtils';
 import type { GameActionsContext } from './gameActions';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ async function callGameControlApi(
   path: string,
   body: Record<string, unknown>,
   store?: GameStore,
-): Promise<ApiResponse> {
+): Promise<ActionResult> {
   return callApiWithRetry(path, body, 'callGameControlApi', store);
 }
 

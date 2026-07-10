@@ -11,6 +11,7 @@
  */
 import { act, renderHook } from '@testing-library/react-native';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { useRoomSeatDialogs } from '@/screens/RoomScreen/useRoomSeatDialogs';
 import { showAlert } from '@/utils/alert';
@@ -116,8 +117,8 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetSeatModalVisible).not.toHaveBeenCalled();
     });
 
-    it('should close modal immediately and call takeSeat (fire-and-forget)', async () => {
-      mockTakeSeat.mockResolvedValue(true);
+    it('should close the modal after takeSeat succeeds', async () => {
+      mockTakeSeat.mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
@@ -148,7 +149,7 @@ describe('useRoomSeatDialogs', () => {
     });
 
     it('should show alert when takeSeat fails (seat occupied)', async () => {
-      mockTakeSeat.mockResolvedValue(false);
+      mockTakeSeat.mockResolvedValue({ success: false, reason: 'seat_taken' });
 
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
@@ -175,6 +176,18 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
       expect(result.current.isSeatSubmitting).toBe(false);
       expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '5号座位已被占用，请选择其他位置。');
+    });
+
+    it('should preserve a non-occupancy rejection reason', async () => {
+      mockTakeSeat.mockResolvedValue({ success: false, reason: 'game_in_progress' });
+      const { result } = renderHook(() => useRoomSeatDialogs(createHookParams({ pendingSeat: 4 })));
+
+      act(() => result.current.handleConfirmSeat());
+      await act(async () => {
+        await mockTakeSeat.mock.results[0]!.value;
+      });
+
+      expect(mockShowAlert).toHaveBeenCalledWith('入座失败', '游戏进行中，无法操作');
     });
   });
 
@@ -224,7 +237,7 @@ describe('useRoomSeatDialogs', () => {
     });
 
     it('should close modal after leaveSeat succeeds', async () => {
-      mockLeaveSeat.mockResolvedValue(undefined);
+      mockLeaveSeat.mockResolvedValue({ success: true });
 
       const { result } = renderHook(() =>
         useRoomSeatDialogs(
@@ -250,6 +263,18 @@ describe('useRoomSeatDialogs', () => {
       expect(mockSetSeatModalVisible).toHaveBeenCalledWith(false);
       expect(mockSetPendingSeatIndex).toHaveBeenCalledWith(null);
       expect(result.current.isSeatSubmitting).toBe(false);
+    });
+
+    it('should show the server reason when leaveSeat is rejected', async () => {
+      mockLeaveSeat.mockResolvedValue({ success: false, reason: 'game_in_progress' });
+      const { result } = renderHook(() => useRoomSeatDialogs(createHookParams({ pendingSeat: 2 })));
+
+      act(() => result.current.handleConfirmLeave());
+      await act(async () => {
+        await mockLeaveSeat.mock.results[0]!.value;
+      });
+
+      expect(mockShowAlert).toHaveBeenCalledWith('离座失败', '游戏进行中，无法操作');
     });
   });
 
@@ -420,9 +445,9 @@ describe('useRoomSeatDialogs', () => {
 
   describe('double-click protection', () => {
     it('handleConfirmSeat should reject second call while first is in-flight', async () => {
-      let resolveTakeSeat!: (v: boolean) => void;
+      let resolveTakeSeat!: (result: ActionResult) => void;
       mockTakeSeat.mockImplementation(
-        () => new Promise<boolean>((resolve) => (resolveTakeSeat = resolve)),
+        () => new Promise<ActionResult>((resolve) => (resolveTakeSeat = resolve)),
       );
 
       const { result, rerender } = renderHook(
@@ -447,15 +472,15 @@ describe('useRoomSeatDialogs', () => {
 
       // Resolve first
       await act(async () => {
-        resolveTakeSeat(true);
+        resolveTakeSeat({ success: true });
         await mockTakeSeat.mock.results[0]!.value;
       });
     });
 
     it('handleConfirmLeave should reject second call while first is in-flight', async () => {
-      let resolveLeaveSeat!: () => void;
+      let resolveLeaveSeat!: (result: ActionResult) => void;
       mockLeaveSeat.mockImplementation(
-        () => new Promise<void>((resolve) => (resolveLeaveSeat = resolve)),
+        () => new Promise<ActionResult>((resolve) => (resolveLeaveSeat = resolve)),
       );
 
       const { result, rerender } = renderHook(
@@ -480,7 +505,7 @@ describe('useRoomSeatDialogs', () => {
 
       // Resolve first
       await act(async () => {
-        resolveLeaveSeat();
+        resolveLeaveSeat({ success: true });
         await mockLeaveSeat.mock.results[0]!.value;
       });
     });

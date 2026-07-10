@@ -1,5 +1,6 @@
 /** Room HTTP routes — metadata and Durable Object consistency contracts. */
 
+import { parseRoomCommandResult, WEREWOLF_STATE_CODEC } from '@werewolf/game-engine';
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
@@ -123,5 +124,35 @@ describe('POST /room/create', () => {
     const stateBody = await stateResponse.json<RoomStateResponse>();
     expect(stateBody.snapshot?.state.hostUserId).toBe(firstAuth.user.id);
     expect(stateBody.snapshot?.state.hostUserId).not.toBe(secondAuth.user.id);
+  });
+});
+
+describe('POST /game/seat', () => {
+  it('returns the public command envelope without DO side effects', async () => {
+    const auth = await createAnonymousUser();
+    const roomCode = 'SEAT-RESULT-CONTRACT';
+    const initialState = buildInitialGameState(roomCode, auth.user.id, TEMPLATE);
+    const createResponse = await postJson(
+      '/room/create',
+      { roomCode, initialState },
+      auth.access_token,
+    );
+    expect(createResponse.status).toBe(200);
+
+    const seatResponse = await postJson('/game/seat', {
+      roomCode,
+      action: 'sit',
+      userId: auth.user.id,
+      seat: 0,
+      displayName: '测试玩家',
+    });
+
+    expect(seatResponse.status).toBe(200);
+    const payload: unknown = await seatResponse.json();
+    const result = parseRoomCommandResult(payload, WEREWOLF_STATE_CODEC);
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error(`Expected success, received ${result.reason}`);
+    expect(result.snapshot.revision).toBe(2);
+    expect(result.snapshot.state.players[0]?.userId).toBe(auth.user.id);
   });
 });
