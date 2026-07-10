@@ -14,6 +14,7 @@
 import type { UpdatePlayerProfileAction } from '@werewolf/game-engine/engine/reducer/types';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SeatActionParams } from '../schemas/game';
@@ -196,7 +197,7 @@ export interface IGameRoomRPC {
   // ── Read-only ───────────────────────────────────────────────────────────
 
   /** Read current game state + revision. Returns null if room not initialized. */
-  getState(): Promise<{ state: GameState; revision: number } | null>;
+  getState(): Promise<RoomSnapshot<GameState> | null>;
 
   /** Read current revision number only (for lightweight polling). Returns null if room not initialized. */
   getRevision(): Promise<number | null>;

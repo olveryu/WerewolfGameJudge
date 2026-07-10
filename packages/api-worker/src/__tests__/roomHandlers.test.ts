@@ -2,6 +2,7 @@
 
 import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { env, SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -22,8 +23,7 @@ interface CreateRoomResponse {
 }
 
 interface RoomStateResponse {
-  state: GameState | null;
-  revision?: number;
+  snapshot: RoomSnapshot<GameState> | null;
 }
 
 const TEMPLATE: GameTemplate = {
@@ -85,8 +85,8 @@ describe('POST /room/create', () => {
     const stateResponse = await postJson('/room/state', { roomCode });
     expect(stateResponse.status).toBe(200);
     const stateBody = await stateResponse.json<RoomStateResponse>();
-    expect(stateBody.revision).toBe(1);
-    expect(stateBody.state).toMatchObject({
+    expect(stateBody.snapshot?.revision).toBe(1);
+    expect(stateBody.snapshot?.state).toMatchObject({
       roomCode,
       hostUserId: auth.user.id,
       templateRoles: TEMPLATE.roles,
@@ -121,7 +121,7 @@ describe('POST /room/create', () => {
 
     const stateResponse = await postJson('/room/state', { roomCode });
     const stateBody = await stateResponse.json<RoomStateResponse>();
-    expect(stateBody.state?.hostUserId).toBe(firstAuth.user.id);
-    expect(stateBody.state?.hostUserId).not.toBe(secondAuth.user.id);
+    expect(stateBody.snapshot?.state.hostUserId).toBe(firstAuth.user.id);
+    expect(stateBody.snapshot?.state.hostUserId).not.toBe(secondAuth.user.id);
   });
 });

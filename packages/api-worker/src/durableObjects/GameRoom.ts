@@ -18,6 +18,7 @@
  */
 
 import * as Sentry from '@sentry/cloudflare';
+import { parseWerewolfState } from '@werewolf/game-engine';
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
   handleAssignRoles,
@@ -46,10 +47,16 @@ import type {
   StateAction,
   UpdatePlayerProfileAction,
 } from '@werewolf/game-engine/engine/reducer/types';
+import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
+import {
+  createRoomSnapshot,
+  createStateUpdateMessage,
+  type RoomSnapshot,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { DurableObject } from 'cloudflare:workers';
 
@@ -72,6 +79,20 @@ interface WebSocketAttachment {
   roomCode: string;
   /** Date.now() at WS accept (epoch ms) */
   connectedAt: number;
+}
+
+function parseStoredGameState(value: unknown): GameState {
+  if (typeof value !== 'string') {
+    throw new Error('room_state.game_state must be text');
+  }
+  return parseWerewolfState(JSON.parse(value));
+}
+
+function parseStoredRevision(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw new Error('room_state.revision must be a positive safe integer');
+  }
+  return value;
 }
 
 class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
@@ -100,7 +121,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   #processAction(
     processFn: Parameters<typeof processAction>[1],
     inlineProgression?: Parameters<typeof processAction>[2],
-    lastAction?: string,
+    lastCommandType?: string,
   ): GameActionResult {
     const result = processAction(this.ctx.storage.sql, processFn, inlineProgression);
 
@@ -108,20 +129,16 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     if (result.success && result.state && result.revision != null) {
       const shouldBroadcast = result.sideEffects?.some((e) => e.type === 'BROADCAST_STATE') ?? true;
       if (shouldBroadcast) {
-        this.#broadcast(result.state, result.revision, lastAction);
+        this.#broadcast(result.state, result.revision, lastCommandType);
       }
     }
 
     return result;
   }
 
-  #broadcast(state: GameState, revision: number, lastAction?: string): void {
-    const message = JSON.stringify({
-      type: 'STATE_UPDATE',
-      state,
-      revision,
-      ...(lastAction && { lastAction }),
-    });
+  #broadcast(state: GameState, revision: number, lastCommandType?: string): void {
+    const snapshot = createRoomSnapshot(state, revision);
+    const message = JSON.stringify(createStateUpdateMessage(snapshot, lastCommandType ?? null));
 
     const sockets = this.ctx.getWebSockets();
     for (const ws of sockets) {
@@ -183,12 +200,13 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     const rows = this.ctx.storage.sql
       .exec('SELECT game_state FROM room_state WHERE id = 1')
       .toArray();
-    if (rows.length === 0) {
+    const row = rows[0];
+    if (!row) {
       await this.ctx.storage.delete('settle_pending');
       return;
     }
 
-    const state = JSON.parse(rows[0].game_state as string) as GameState;
+    const state = parseStoredGameState(row.game_state);
     if (state.status !== GameStatus.Ended) {
       await this.ctx.storage.delete('settle_pending');
       return;
@@ -597,15 +615,14 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   // ── (D) Read-only RPC methods ───────────────────────────────────────────
 
-  async getState(): Promise<{ state: GameState; revision: number } | null> {
+  async getState(): Promise<RoomSnapshot<GameState> | null> {
     const rows = this.ctx.storage.sql
       .exec('SELECT game_state, revision FROM room_state WHERE id = 1')
       .toArray();
-    if (rows.length === 0) return null;
-    return {
-      state: JSON.parse(rows[0].game_state as string) as GameState,
-      revision: rows[0].revision as number,
-    };
+    const row = rows[0];
+    if (!row) return null;
+    const state = parseStoredGameState(row.game_state);
+    return createRoomSnapshot(state, parseStoredRevision(row.revision));
   }
 
   async getRevision(): Promise<number | null> {
@@ -618,9 +635,10 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   // ── (E) Lifecycle RPC methods ───────────────────────────────────────────
 
   async init(initialState: GameState): Promise<void> {
+    const normalizedState = normalizeState(initialState);
     this.ctx.storage.sql.exec(
       'INSERT OR REPLACE INTO room_state (id, game_state, revision) VALUES (1, ?, 1)',
-      JSON.stringify(initialState),
+      JSON.stringify(normalizedState),
     );
   }
 

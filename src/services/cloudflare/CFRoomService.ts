@@ -15,6 +15,11 @@
  * - Depends on cfPost for token injection and error interception
  */
 
+import {
+  type GameStateCodec,
+  parseRoomSnapshot,
+  type RoomSnapshot,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { IRoomService, RoomRecord } from '@/services/types/IRoomService';
@@ -29,6 +34,12 @@ import { cfPost } from './cfFetch';
  * Responsibilities: create/query/delete rooms (optimistic insert + conflict retry).
  */
 export class CFRoomService implements IRoomService {
+  readonly #stateCodec: GameStateCodec<GameState>;
+
+  constructor(stateCodec: GameStateCodec<GameState>) {
+    this.#stateCodec = stateCodec;
+  }
+
   async createRoom(
     hostUserId: string,
     initialRoomNumber?: string,
@@ -105,18 +116,19 @@ export class CFRoomService implements IRoomService {
     return data.revision;
   }
 
-  async getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null> {
+  async getGameState(roomCode: string): Promise<RoomSnapshot<GameState> | null> {
     roomLog.debug('getGameState', { roomCode });
-    const data = await cfPost<{
-      state: GameState | null;
-      revision?: number;
-    }>('/room/state', { roomCode });
+    const data: unknown = await cfPost<unknown>('/room/state', { roomCode });
 
-    if (!data.state) return null;
+    if (!isRecord(data) || Object.keys(data).length !== 1 || !('snapshot' in data)) {
+      throw new Error('Invalid /room/state response envelope');
+    }
+    if (data.snapshot === null) return null;
 
-    return {
-      state: data.state,
-      revision: data.revision ?? 0,
-    };
+    return parseRoomSnapshot(data.snapshot, this.#stateCodec);
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

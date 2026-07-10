@@ -19,6 +19,12 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 // Mock dependencies before importing
 jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
+  withScope: jest.fn((callback: (scope: unknown) => void) =>
+    callback({
+      setTag: jest.fn(),
+      setFingerprint: jest.fn(),
+    }),
+  ),
 }));
 
 jest.mock('@werewolf/game-engine/utils/random', () => ({
@@ -60,6 +66,8 @@ import {
   submitAction,
   updateTemplate,
 } from '@/services/facade/gameActions';
+
+import { buildApiTestState } from './apiTestState';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,6 +133,10 @@ function mockFetchSuccess(result: Record<string, unknown> = { success: true }) {
 describe('callGameControlApi (via assignRoles wrapper)', () => {
   const originalFetch = global.fetch;
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   afterEach(() => {
     global.fetch = originalFetch;
     jest.restoreAllMocks();
@@ -145,13 +157,27 @@ describe('callGameControlApi (via assignRoles wrapper)', () => {
   });
 
   it('should apply snapshot when response contains state + revision', async () => {
-    const newState = { roomCode: 'ABCD', status: GameStatus.Assigned };
+    const newState = buildApiTestState({ status: GameStatus.Assigned });
     global.fetch = mockFetchSuccess({ success: true, state: newState, revision: 5 });
     const ctx = createMockCtx();
 
     await assignRoles(ctx);
 
     expect(ctx.store.applySnapshot).toHaveBeenCalledWith(newState, 5);
+  });
+
+  it('should fail fast when a successful response contains invalid state', async () => {
+    global.fetch = mockFetchSuccess({
+      success: true,
+      state: { gameType: 'werewolf', stateVersion: 1 },
+      revision: 5,
+    });
+    const ctx = createMockCtx();
+
+    await expect(assignRoles(ctx)).rejects.toThrow(
+      'Game API response contains invalid Werewolf state',
+    );
+    expect(ctx.store.applySnapshot).not.toHaveBeenCalled();
   });
 
   // =========================================================================
@@ -398,7 +424,7 @@ describe('startNight — preloads audio on success', () => {
   it('should fire-and-forget preloadForRoles after successful start', async () => {
     global.fetch = mockFetchSuccess({
       success: true,
-      state: { roomCode: 'ABCD', templateRoles: ['wolf', 'seer', 'villager'] },
+      state: buildApiTestState({ templateRoles: ['wolf', 'seer', 'villager'] }),
       revision: 1,
     });
 

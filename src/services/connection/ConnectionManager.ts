@@ -21,6 +21,10 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
+import type {
+  RoomSnapshot,
+  StateUpdateMessage,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
@@ -52,13 +56,13 @@ export interface ConnectionManagerDeps {
   /** WebSocket transport layer (IRealtimeTransport) */
   transport: IRealtimeTransport;
   /** Fetch full game state from DB (used by both Host and Player) */
-  fetchStateFromDB: (roomCode: string) => Promise<{ state: GameState; revision: number } | null>;
+  fetchStateFromDB: (roomCode: string) => Promise<RoomSnapshot<GameState> | null>;
   /** Lightweight revision comparison: read state_revision from DB */
   getStateRevision: (roomCode: string) => Promise<number | null>;
   /** Callback when WS broadcast receives STATE_UPDATE */
-  onStateUpdate: (state: GameState, revision: number, lastAction?: string) => void;
+  onStateUpdate: (message: StateUpdateMessage<GameState>) => void;
   /** Callback after fetch or WS broadcast yields new state (used for store.applySnapshot) */
-  onFetchedState: (state: GameState, revision: number) => void;
+  onFetchedState: (snapshot: RoomSnapshot<GameState>) => void;
   /** Settle-result unicast callback (optional) */
   onSettleResult?: (result: SettleResultMessage) => void;
 }
@@ -105,7 +109,7 @@ export class ConnectionManager {
 
   // Prefetch: fire HTTP fetch in parallel with WS handshake to avoid serial bottleneck.
   // The HTTP call also wakes the DO, so subsequent WS handshake hits a warm DO.
-  #prefetchPromise: Promise<{ state: GameState; revision: number } | null> | null = null;
+  #prefetchPromise: Promise<RoomSnapshot<GameState> | null> | null = null;
   #prefetchGeneration = 0;
 
   constructor(deps: ConnectionManagerDeps) {
@@ -117,9 +121,9 @@ export class ConnectionManager {
       onOpen: () => this.#dispatch({ type: 'WS_OPEN' }),
       onClose: (code, reason) => this.#dispatch({ type: 'WS_CLOSE', code, reason }),
       onError: (error) => this.#dispatch({ type: 'WS_ERROR', error }),
-      onStateUpdate: (state, revision, lastAction) => {
-        deps.onStateUpdate(state, revision, lastAction);
-        this.#dispatch({ type: 'STATE_UPDATE', revision });
+      onStateUpdate: (message) => {
+        deps.onStateUpdate(message);
+        this.#dispatch({ type: 'STATE_UPDATE', revision: message.revision });
         // Activity detected — reset revision poll to fast interval
         this.#resetRevisionPollInterval();
       },
@@ -409,7 +413,7 @@ export class ConnectionManager {
       const prefetch = this.#prefetchPromise;
       this.#prefetchPromise = null;
 
-      let result: { state: GameState; revision: number } | null = null;
+      let result: RoomSnapshot<GameState> | null = null;
 
       if (prefetch) {
         result = await Promise.race([
@@ -426,7 +430,7 @@ export class ConnectionManager {
       }
 
       if (result) {
-        this.#deps.onFetchedState(result.state, result.revision);
+        this.#deps.onFetchedState(result);
         this.#dispatch({ type: 'FETCH_SUCCESS', revision: result.revision });
       } else {
         this.#dispatch({ type: 'FETCH_FAILURE', error: new Error('No state returned') });

@@ -14,6 +14,7 @@
  *   5. Caller performs broadcast
  */
 
+import { parseWerewolfState } from '@werewolf/game-engine';
 import type { HandlerResult, SideEffect } from '@werewolf/game-engine/engine/handlers/types';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import { runInlineProgression } from '@werewolf/game-engine/engine/inlineProgression';
@@ -90,12 +91,19 @@ export function processAction(
   // 1. Read SQLite (synchronous, zero network)
   const rows = sql.exec('SELECT game_state, revision FROM room_state WHERE id = 1').toArray();
 
-  if (rows.length === 0) {
+  const row = rows[0];
+  if (!row) {
     return { success: false, reason: 'ROOM_NOT_FOUND' };
   }
 
-  const state = JSON.parse(rows[0].game_state as string) as GameState;
-  const revision = rows[0].revision as number;
+  if (typeof row.game_state !== 'string') {
+    throw new Error('room_state.game_state must be text');
+  }
+  if (typeof row.revision !== 'number' || !Number.isSafeInteger(row.revision) || row.revision < 1) {
+    throw new Error('room_state.revision must be a positive safe integer');
+  }
+  const state = parseWerewolfState(JSON.parse(row.game_state));
+  const revision = row.revision;
 
   // 2. Call game-engine pure function
   const result = processFn(state, revision);

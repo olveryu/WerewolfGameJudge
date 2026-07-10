@@ -4,6 +4,7 @@
  * Called once by the App.tsx composition root; contains no business logic.
  */
 
+import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine';
 import { GameStore } from '@werewolf/game-engine/engine/store';
 
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
@@ -27,14 +28,14 @@ export function createAllServices(): {
   facade: IGameFacade;
 } {
   const authService = new CFAuthService();
-  const roomService = new CFRoomService();
+  const roomService = new CFRoomService(WEREWOLF_STATE_CODEC);
   const settingsService = new SettingsService();
   const audioService = new AudioService();
   // CFStorageService reads token from cfFetch's tokenProvider (set by CFAuthService constructor)
   const avatarUploadService = new CFStorageService();
 
   const store = new GameStore();
-  const transport = new CFRealtimeService();
+  const transport = new CFRealtimeService(WEREWOLF_STATE_CODEC);
 
   // onSettleResult callback reads `facade` via closure at call time (not declaration time),
   // so the forward reference is safe — facade is initialized before any WS message arrives.
@@ -42,9 +43,9 @@ export function createAllServices(): {
     transport,
     fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
     getStateRevision: async (roomCode) => roomService.getStateRevision(roomCode),
-    onStateUpdate: (state, revision, lastAction) =>
-      store.applySnapshot(state, revision, lastAction),
-    onFetchedState: (state, revision) => store.applySnapshot(state, revision),
+    onStateUpdate: (message) =>
+      store.applySnapshot(message.state, message.revision, message.lastCommandType),
+    onFetchedState: (snapshot) => store.applySnapshot(snapshot.state, snapshot.revision),
     onSettleResult: (result) => facade.handleSettleResult(result),
   });
 

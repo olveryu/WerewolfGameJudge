@@ -10,7 +10,7 @@
  * @throws 503/429 — callDO detected DO retryable/overloaded
  */
 
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { parseWerewolfState } from '@werewolf/game-engine';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -53,10 +53,10 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
   }
 
   // Initialize DO state (if initialState provided)
-  if (parsed.initialState) {
+  if (parsed.initialState !== undefined) {
     try {
       const stub = getGameRoomStub(env, parsed.roomCode, c.req.raw);
-      await stub.init(parsed.initialState as GameState);
+      await stub.init(parseWerewolfState(parsed.initialState));
     } catch (err) {
       // DO init failed → rollback D1 record
       log.error('DO init failed, rolling back', {
@@ -149,16 +149,10 @@ roomRoutes.post('/state', jsonBody(roomCodeBodySchema), async (c) => {
   const result = await stub.getState();
 
   if (!result) {
-    return c.json({ state: null }, 200);
+    return c.json({ snapshot: null }, 200);
   }
 
-  return c.json(
-    {
-      state: result.state,
-      revision: result.revision,
-    },
-    200,
-  );
+  return c.json({ snapshot: result }, 200);
 });
 
 // ── POST /room/revision ─────────────────────────────────────────────────────

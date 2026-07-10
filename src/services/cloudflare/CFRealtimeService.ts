@@ -17,13 +17,19 @@
  * - Connection timeout is controlled by WS_CONNECT_TIMEOUT_MS (8s)
  */
 
+import {
+  type GameStateCodec,
+  parseStateUpdateMessage,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { API_BASE_URL } from '@/config/api';
 import type {
   IRealtimeTransport,
+  SettleResultMessage,
   TransportEventHandlers,
 } from '@/services/types/IRealtimeTransport';
+import { handleError } from '@/utils/errorPipeline';
 import { realtimeLog } from '@/utils/logger';
 
 import { ensureFreshToken } from './cfFetch';
@@ -40,15 +46,31 @@ const WS_CONNECT_TIMEOUT_MS = 8_000;
 export class CFRealtimeService implements IRealtimeTransport {
   #ws: WebSocket | null = null;
   #handlers: TransportEventHandlers | null = null;
+  readonly #stateCodec: GameStateCodec<GameState>;
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
+
+  constructor(stateCodec: GameStateCodec<GameState>) {
+    this.#stateCodec = stateCodec;
+  }
 
   setEventHandlers(handlers: TransportEventHandlers): void {
     this.#handlers = handlers;
   }
 
-  /**\n   * @pre setEventHandlers() \u5df2\u8c03\u7528\u3002\n   * @remarks generation counter \u9632\u6b62 stale WS \u4e8b\u4ef6\u6cc4\u6f0f\uff1a\u6bcf\u6b21 connect() \u9012\u589e #generation\uff0c\n   *   \u4e8b\u4ef6 handler \u4e2d\u68c0\u67e5 `if (gen !== this.#generation) return;` \u4e22\u5f03\u65e7\u8fde\u63a5\u4e8b\u4ef6\u3002\n   *   \u8fde\u63a5\u8d85\u65f6 = WS_CONNECT_TIMEOUT_MS (8s)\uff0c\u8d85\u65f6\u540e\u4e3b\u52a8 close WS\u3002\n   */
+  #requireHandlers(): TransportEventHandlers {
+    if (!this.#handlers) {
+      throw new Error('CFRealtimeService requires event handlers before connect');
+    }
+    return this.#handlers;
+  }
+
+  /**
+   * Open a new room socket after invalidating every event from the previous generation.
+   * setEventHandlers() must be called before connect().
+   */
   connect(roomCode: string, _userId: string): void {
+    this.#requireHandlers();
     // Close any existing connection first (silent, no event)
     this.#closeWsSilent();
 
@@ -65,7 +87,7 @@ export class CFRealtimeService implements IRealtimeTransport {
     if (generation !== this.#generation) return;
     if (!token) {
       realtimeLog.warn('Transport: no valid token, aborting WS connect');
-      this.#handlers?.onClose(4001, 'no valid token');
+      this.#requireHandlers().onClose(4001, 'no valid token');
       return;
     }
 
@@ -90,7 +112,7 @@ export class CFRealtimeService implements IRealtimeTransport {
       clearTimeout(timeout);
       this.#ws = ws;
       realtimeLog.info('Transport: WebSocket open', { roomCode });
-      this.#handlers?.onOpen();
+      this.#requireHandlers().onOpen();
     };
 
     ws.onmessage = (event) => {
@@ -98,10 +120,10 @@ export class CFRealtimeService implements IRealtimeTransport {
       // Heartbeat pong arrives as the literal string "pong" via the DO's
       // setWebSocketAutoResponse, so it never reaches #parseMessage (JSON path).
       if (event.data === 'pong') {
-        this.#handlers?.onPong();
+        this.#requireHandlers().onPong();
         return;
       }
-      this.#parseMessage(event);
+      this.#parseMessage(event, ws);
     };
 
     ws.onclose = (event) => {
@@ -116,7 +138,7 @@ export class CFRealtimeService implements IRealtimeTransport {
         code: event.code,
         reason: event.reason,
       });
-      this.#handlers?.onClose(event.code, event.reason);
+      this.#requireHandlers().onClose(event.code, event.reason);
     };
 
     ws.onerror = () => {
@@ -124,7 +146,7 @@ export class CFRealtimeService implements IRealtimeTransport {
       clearTimeout(timeout);
       // Detail-less and always followed by onclose (which carries the code) → debug only.
       realtimeLog.debug('Transport: WebSocket error');
-      this.#handlers?.onError(new Error('WebSocket error'));
+      this.#requireHandlers().onError(new Error('WebSocket error'));
     };
   }
 
@@ -155,55 +177,68 @@ export class CFRealtimeService implements IRealtimeTransport {
       this.#ws = null;
       try {
         ws.close();
-      } catch {
-        // Ignore close errors
+      } catch (error) {
+        realtimeLog.warn('Transport: failed to close WebSocket', { error });
       }
     }
   }
 
-  #parseMessage(event: MessageEvent): void {
+  #parseMessage(event: MessageEvent, ws: WebSocket): void {
     try {
-      const data: unknown = JSON.parse(event.data as string);
-      if (!isWsObject(data)) return;
-
-      if (data.type === 'STATE_UPDATE' && 'state' in data && 'revision' in data) {
-        const { state, revision, lastAction } = data as {
-          state: GameState;
-          revision: number;
-          lastAction?: string;
-        };
-        realtimeLog.debug('Transport: STATE_UPDATE', { revision });
-        this.#handlers?.onStateUpdate(state, revision, lastAction);
-      } else if (data.type === 'SETTLE_RESULT') {
-        const d = data as Record<string, unknown>;
-        if (
-          typeof d.xpEarned === 'number' &&
-          typeof d.newXp === 'number' &&
-          typeof d.newLevel === 'number' &&
-          typeof d.previousLevel === 'number'
-        ) {
-          this.#handlers?.onSettleResult({
-            xpEarned: d.xpEarned,
-            newXp: d.newXp,
-            newLevel: d.newLevel,
-            previousLevel: d.previousLevel,
-            normalDrawsEarned: typeof d.normalDrawsEarned === 'number' ? d.normalDrawsEarned : 0,
-            goldenDrawsEarned: typeof d.goldenDrawsEarned === 'number' ? d.goldenDrawsEarned : 0,
-          });
-        }
+      if (typeof event.data !== 'string') {
+        throw new Error('Realtime protocol message must be text');
       }
-    } catch {
-      realtimeLog.warn('Transport: failed to parse WS message');
+      const data: unknown = JSON.parse(event.data);
+      if (!isWsObject(data)) {
+        throw new Error('Realtime protocol message must contain a string type');
+      }
+
+      if (data.type === 'STATE_UPDATE') {
+        const message = parseStateUpdateMessage(data, this.#stateCodec);
+        realtimeLog.debug('Transport: STATE_UPDATE', { revision: message.revision });
+        this.#requireHandlers().onStateUpdate(message);
+      } else if (data.type === 'SETTLE_RESULT') {
+        this.#requireHandlers().onSettleResult(parseSettleResultMessage(data));
+      } else {
+        throw new Error(`Unsupported realtime message type: ${data.type}`);
+      }
+    } catch (error) {
+      handleError(error, {
+        label: '实时协议',
+        logger: realtimeLog,
+        feedback: false,
+      });
+      this.#requireHandlers().onError(error);
+      ws.close(1002, 'protocol_error');
     }
   }
 }
 
 /** Type guard: parsed JSON is a non-null object with a string `type` field. */
-function isWsObject(data: unknown): data is { type: string } {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    typeof (data as Record<string, unknown>).type === 'string'
-  );
+function isWsObject(data: unknown): data is Record<string, unknown> & { type: string } {
+  return isRecord(data) && typeof data.type === 'string';
+}
+
+function isRecord(data: unknown): data is Record<string, unknown> {
+  return typeof data === 'object' && data !== null;
+}
+
+function requireNumber(value: unknown, fieldName: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${fieldName} must be a finite number`);
+  }
+  return value;
+}
+
+function parseSettleResultMessage(
+  data: Record<string, unknown> & { type: string },
+): SettleResultMessage {
+  return {
+    xpEarned: requireNumber(data.xpEarned, 'SETTLE_RESULT.xpEarned'),
+    newXp: requireNumber(data.newXp, 'SETTLE_RESULT.newXp'),
+    newLevel: requireNumber(data.newLevel, 'SETTLE_RESULT.newLevel'),
+    previousLevel: requireNumber(data.previousLevel, 'SETTLE_RESULT.previousLevel'),
+    normalDrawsEarned: requireNumber(data.normalDrawsEarned, 'SETTLE_RESULT.normalDrawsEarned'),
+    goldenDrawsEarned: requireNumber(data.goldenDrawsEarned, 'SETTLE_RESULT.goldenDrawsEarned'),
+  };
 }

@@ -15,6 +15,7 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
 import type { ConnectionManager } from '@/services/connection/ConnectionManager';
@@ -53,7 +54,7 @@ jest.mock('@/services/cloudflare/cfFetch', () => ({
 const mockRoomService = () =>
   ({
     getGameState: jest
-      .fn<Promise<{ state: GameState; revision: number } | null>, [string]>()
+      .fn<Promise<RoomSnapshot<GameState> | null>, [string]>()
       .mockResolvedValue(null),
   }) as unknown as IRoomService;
 
@@ -79,6 +80,10 @@ function buildTestState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
+function createTestSnapshot(state: GameState, revision: number): RoomSnapshot<GameState> {
+  return { ...WEREWOLF_STATE_IDENTITY, state, revision };
+}
+
 /**
  * Create a mock ConnectionManager.
  * If store + roomService are provided, connectAndWait simulates the real FSM flow:
@@ -87,7 +92,7 @@ function buildTestState(overrides: Partial<GameState> = {}): GameState {
 const createMockConnectionManager = (
   store?: GameStore,
   roomService?: {
-    getGameState: jest.Mock<Promise<{ state: GameState; revision: number } | null>, [string]>;
+    getGameState: jest.Mock<Promise<RoomSnapshot<GameState> | null>, [string]>;
   },
 ) => ({
   connectAndWait: jest
@@ -358,26 +363,17 @@ describe('GameFacade', () => {
         json: () =>
           Promise.resolve({
             success: true,
-            state: {
+            state: buildTestState({
               roomCode: 'ABCD',
-              hostUserId: 'host-uid',
-              status: GameStatus.Unseated,
-              templateRoles: [],
               players: {
                 0: null,
                 1: {
                   userId: 'player-uid',
                   seat: 1,
-                  displayName: 'Player One',
                   hasViewedRole: false,
                 },
               },
-              currentStepIndex: -1,
-              isAudioPlaying: false,
-              actions: [],
-              pendingRevealAcks: [],
-              roster: {},
-            },
+            }),
             revision: 2,
           }),
       });
@@ -736,19 +732,15 @@ describe('GameFacade', () => {
       const playerStore = new GameStore();
       const playerRoomService = {
         // Return a state with roomCode so the player store has it
-        getGameState: jest.fn().mockResolvedValue({
-          state: {
-            roomCode: 'ABCD',
-            hostUserId: 'host-uid',
-            status: GameStatus.Assigned,
-            templateRoles: [],
-            numberOfPlayers: 6,
-            players: {},
-            currentStepIndex: 0,
-            isAudioPlaying: false,
-          },
-          revision: 1,
-        }),
+        getGameState: jest.fn().mockResolvedValue(
+          createTestSnapshot(
+            buildTestState({
+              roomCode: 'ABCD',
+              status: GameStatus.Assigned,
+            }),
+            1,
+          ),
+        ),
       };
       const playerFacade = new GameFacade({
         store: playerStore,
@@ -1038,37 +1030,33 @@ describe('GameFacade', () => {
 
   describe('Host: joinRoom(isHost=true) (DB restore)', () => {
     /** Build an ongoing state as returned from DB for rejoin tests */
-    const buildOngoingDbState = (overrides: Record<string, unknown> = {}) => ({
-      state: {
-        roomCode: 'REJN',
-        hostUserId: 'host-uid',
-        status: GameStatus.Ongoing as const,
-        templateRoles: ['wolf', 'villager'],
-        players: {
-          0: {
-            userId: 'host-uid',
-            seat: 0,
-            displayName: 'Host',
-            avatarUrl: undefined,
-            role: 'wolf',
-            hasViewedRole: true,
+    const buildOngoingDbState = (overrides: Partial<GameState> = {}) =>
+      createTestSnapshot(
+        buildTestState({
+          roomCode: 'REJN',
+          status: GameStatus.Ongoing,
+          templateRoles: ['wolf', 'villager'],
+          players: {
+            0: {
+              userId: 'host-uid',
+              seat: 0,
+              role: 'wolf',
+              hasViewedRole: true,
+            },
+            1: {
+              userId: 'player-2',
+              seat: 1,
+              role: 'villager',
+              hasViewedRole: true,
+            },
           },
-          1: {
-            userId: 'player-2',
-            seat: 1,
-            displayName: 'P2',
-            avatarUrl: undefined,
-            role: 'villager',
-            hasViewedRole: true,
-          },
-        },
-        currentStepIndex: 0,
-        currentStepId: 'wolfKill',
-        isAudioPlaying: false,
-        ...overrides,
-      },
-      revision: 10,
-    });
+          currentStepIndex: 0,
+          currentStepId: 'wolfKill',
+          isAudioPlaying: false,
+          ...overrides,
+        }),
+        10,
+      );
 
     it('should restore state from DB and set wasAudioInterrupted=true when ongoing', async () => {
       const dbState = buildOngoingDbState();
@@ -1132,28 +1120,23 @@ describe('GameFacade', () => {
 
     /** Helper: create facade with ongoing DB state, already joined */
     const createRejoinedFacade = async (
-      stateOverrides: Record<string, unknown> = {},
+      stateOverrides: Partial<GameState> = {},
     ): Promise<GameFacade> => {
-      const dbState = {
-        state: {
+      const dbState = createTestSnapshot(
+        buildTestState({
           roomCode: 'REJN',
-          hostUserId: 'host-uid',
-          status: GameStatus.Ongoing as const,
+          status: GameStatus.Ongoing,
           templateRoles: ['wolf', 'villager'],
           players: {
             0: {
               userId: 'host-uid',
               seat: 0,
-              displayName: 'Host',
-              avatarUrl: undefined,
               role: 'wolf',
               hasViewedRole: true,
             },
             1: {
               userId: 'player-2',
               seat: 1,
-              displayName: 'P2',
-              avatarUrl: undefined,
               role: 'villager',
               hasViewedRole: true,
             },
@@ -1162,9 +1145,9 @@ describe('GameFacade', () => {
           currentStepId: 'wolfKill',
           isAudioPlaying: true,
           ...stateOverrides,
-        },
-        revision: 10,
-      };
+        }),
+        10,
+      );
 
       // Mock fetch for HTTP API calls during resumeAfterRejoin
       global.fetch = jest.fn().mockResolvedValue({
@@ -1317,18 +1300,20 @@ describe('GameFacade', () => {
         connectionManager: retryConnectionManager as unknown as ConnectionManager,
         audioService: mockAudioServiceInstance as unknown as AudioService,
         roomService: {
-          getGameState: jest.fn().mockResolvedValue({
-            state: buildTestState({
-              roomCode: 'RTRY',
-              status: GameStatus.Ongoing,
-              currentStepId: 'wolfKill',
-              currentStepIndex: 0,
-              isAudioPlaying: true,
-              pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
-              seerLabelMap: {},
-            }),
-            revision: 10,
-          }),
+          getGameState: jest.fn().mockResolvedValue(
+            createTestSnapshot(
+              buildTestState({
+                roomCode: 'RTRY',
+                status: GameStatus.Ongoing,
+                currentStepId: 'wolfKill',
+                currentStepIndex: 0,
+                isAudioPlaying: true,
+                pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+                seerLabelMap: {},
+              }),
+              10,
+            ),
+          ),
         } as unknown as IRoomService,
       });
       await f.createRoom('RTRY', 'host-uid', mockTemplate);

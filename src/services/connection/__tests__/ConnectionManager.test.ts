@@ -1,3 +1,5 @@
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type {
@@ -44,13 +46,17 @@ function createMockTransport(): IRealtimeTransport & {
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MOCK_STATE = { revision: 1 } as unknown as GameState;
+const MOCK_STATE = { ...WEREWOLF_STATE_IDENTITY } as unknown as GameState;
+
+function createMockSnapshot(revision: number): RoomSnapshot<GameState> {
+  return { ...WEREWOLF_STATE_IDENTITY, state: MOCK_STATE, revision };
+}
 
 function createDeps(overrides?: Partial<ConnectionManagerDeps>) {
   const transport = createMockTransport();
   const deps: ConnectionManagerDeps = {
     transport,
-    fetchStateFromDB: jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 1 }),
+    fetchStateFromDB: jest.fn().mockResolvedValue(createMockSnapshot(1)),
     getStateRevision: jest.fn().mockResolvedValue(1),
     onStateUpdate: jest.fn(),
     onFetchedState: jest.fn(),
@@ -365,10 +371,14 @@ describe('ConnectionManager', () => {
       await promise;
 
       // Simulate broadcast
-      const newState = { revision: 5 } as unknown as GameState;
-      transport.handlers.onStateUpdate(newState, 5);
+      const message = {
+        type: 'STATE_UPDATE' as const,
+        ...createMockSnapshot(5),
+        lastCommandType: null,
+      };
+      transport.handlers.onStateUpdate(message);
 
-      expect(deps.onStateUpdate).toHaveBeenCalledWith(newState, 5, undefined);
+      expect(deps.onStateUpdate).toHaveBeenCalledWith(message);
 
       manager.dispose();
     });
@@ -384,7 +394,7 @@ describe('ConnectionManager', () => {
       await jest.advanceTimersByTimeAsync(0);
       await promise;
 
-      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 1);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(1));
 
       manager.dispose();
     });
@@ -410,7 +420,7 @@ describe('ConnectionManager', () => {
 
   describe('prefetch', () => {
     it('fires prefetch on OPEN_WS and uses result in FETCH_STATE', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 3 });
+      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(3));
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
@@ -427,7 +437,7 @@ describe('ConnectionManager', () => {
 
       // fetchStateFromDB called once total (prefetch reused, not called again)
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 3);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(3));
       expect(manager.getState()).toBe(ConnectionState.Connected);
 
       manager.dispose();
@@ -439,7 +449,7 @@ describe('ConnectionManager', () => {
         callCount++;
         // First call (prefetch) returns null, second call (fallback) returns state
         if (callCount === 1) return Promise.resolve(null);
-        return Promise.resolve({ state: MOCK_STATE, revision: 2 });
+        return Promise.resolve(createMockSnapshot(2));
       });
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
@@ -452,7 +462,7 @@ describe('ConnectionManager', () => {
 
       // Prefetch returned null → fallback fetch called
       expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 2);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(2));
 
       manager.dispose();
     });
@@ -463,7 +473,7 @@ describe('ConnectionManager', () => {
         callCount++;
         // First call (prefetch) rejects, second call (fallback) succeeds
         if (callCount === 1) return Promise.reject(new Error('network error'));
-        return Promise.resolve({ state: MOCK_STATE, revision: 4 });
+        return Promise.resolve(createMockSnapshot(4));
       });
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
@@ -476,13 +486,13 @@ describe('ConnectionManager', () => {
 
       // Prefetch error caught → returned null → fallback fetch called
       expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(deps.onFetchedState).toHaveBeenCalledWith(MOCK_STATE, 4);
+      expect(deps.onFetchedState).toHaveBeenCalledWith(createMockSnapshot(4));
 
       manager.dispose();
     });
 
     it('cancels prefetch on disconnect before WS opens', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 1 });
+      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(1));
       const { deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
@@ -500,7 +510,7 @@ describe('ConnectionManager', () => {
     });
 
     it('new OPEN_WS cancels previous prefetch', async () => {
-      const fetchMock = jest.fn().mockResolvedValue({ state: MOCK_STATE, revision: 1 });
+      const fetchMock = jest.fn().mockResolvedValue(createMockSnapshot(1));
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 

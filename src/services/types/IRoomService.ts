@@ -5,6 +5,7 @@
  * Does not validate game logic, does not handle realtime transport.
  */
 
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** Room record (consumer-facing abstraction) */
@@ -43,5 +44,5 @@ export interface IRoomService {
   getStateRevision(roomCode: string): Promise<number | null>;
 
   /** Read full game_state + revision */
-  getGameState(roomCode: string): Promise<{ state: GameState; revision: number } | null>;
+  getGameState(roomCode: string): Promise<RoomSnapshot<GameState> | null>;
 }

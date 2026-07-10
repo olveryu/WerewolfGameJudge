@@ -10,6 +10,7 @@
  * - Does NOT: reconnect, backoff, ping/pong timer, state management, platform event listeners
  */
 
+import type { StateUpdateMessage } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,7 +32,7 @@ export interface TransportEventHandlers {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
-  onStateUpdate(state: GameState, revision: number, lastAction?: string): void;
+  onStateUpdate(message: StateUpdateMessage<GameState>): void;
   onSettleResult(result: SettleResultMessage): void;
   onPong(): void;
 }
