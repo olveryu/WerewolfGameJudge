@@ -54,7 +54,11 @@ type WerewolfGameCommand =
       readonly rules?: Readonly<GameRuleOverrides>;
     }
   | { readonly type: 'werewolf.review.share'; readonly allowedSeats: readonly number[] }
-  | { readonly type: 'werewolf.board.nominate'; readonly roles: readonly RoleId[] }
+  | {
+      readonly type: 'werewolf.board.nominate';
+      readonly displayName: string;
+      readonly roles: readonly RoleId[];
+    }
   | { readonly type: 'werewolf.board.upvote'; readonly targetUserId: string }
   | { readonly type: 'werewolf.board.withdraw' }
   | { readonly type: 'werewolf.night.start' }

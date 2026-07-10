@@ -1,4 +1,10 @@
-import { decideClearSeats, decideKickSeat, decideLeaveSeat, decideTakeSeat } from '../kernel';
+import {
+  decideClearSeats,
+  decideKickSeat,
+  decideLeaveSeat,
+  decideTakeSeat,
+  findSeatByUserId,
+} from '../kernel';
 import { SEAT_OPERATION_REASONS, type SeatMap, type SeatOccupant } from '../types';
 
 interface TestSeat extends SeatOccupant {
@@ -114,6 +120,16 @@ describe('seating kernel', () => {
         { seat: 7, previous: makeSeat('u7', 7), next: null },
       ],
     });
+  });
+
+  it('resolves a user seat through the same invariant-checked index', () => {
+    const seats: SeatMap<TestSeat> = {
+      1: makeSeat('u1', 1),
+      3: makeSeat('u3', 3),
+    };
+
+    expect(findSeatByUserId(seats, 4, 'u3')).toBe(3);
+    expect(findSeatByUserId(seats, 4, 'missing')).toBeNull();
   });
 
   it('fails fast when one user occupies multiple seats', () => {

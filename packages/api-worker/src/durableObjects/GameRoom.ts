@@ -41,21 +41,24 @@ import {
 } from '@werewolf/game-engine/engine/handlers/seatHandler';
 import { handleSetAudioPlaying } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import {
-  handlerError,
   type HandlerExecutionContext,
   type HandlerResult,
   handlerSuccess,
 } from '@werewolf/game-engine/engine/handlers/types';
 import { handleViewedRole } from '@werewolf/game-engine/engine/handlers/viewedRoleHandler';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type {
-  StateAction,
-  UpdatePlayerProfileAction,
-} from '@werewolf/game-engine/engine/reducer/types';
+import type { UpdatePlayerProfileAction } from '@werewolf/game-engine/engine/reducer/types';
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+import {
+  handleApplyRosterLevels,
+  handleAudioAck,
+  handleGroupConfirmAck,
+  handleMarkBotsGroupConfirmed,
+  handleProgressionRequest,
+  handleRevealAck,
+} from '@werewolf/game-engine/games/werewolf/domain/handlers/commandHandlers';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
 import {
   createRoomSnapshot,
@@ -253,9 +256,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       levels[r.userId] = r.newLevel;
     }
 
-    this.#processAction((_state) => {
-      return handlerSuccess([{ type: 'UPDATE_ROSTER_LEVELS' as const, payload: { levels } }]);
-    });
+    this.#processAction((state) =>
+      handleApplyRosterLevels(levels, { state, myUserId: null, mySeat: null }),
+    );
   }
 
   /** Unicast settlement result to each connected registered player */
@@ -482,18 +485,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async audioAck(): Promise<GameActionResult> {
     const result = this.#processAction(
-      (state) => {
-        if (
-          !state.isAudioPlaying &&
-          (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0)
-        ) {
-          return handlerSuccess([]);
-        }
-        return handlerSuccess([
-          { type: 'CLEAR_PENDING_AUDIO_EFFECTS' as const },
-          { type: 'SET_AUDIO_PLAYING' as const, payload: { isPlaying: false } },
-        ]);
-      },
+      (state) => handleAudioAck(buildHandlerContext(state, state.hostUserId)),
       { enabled: true },
     );
     this.#settleIfEnded(result);
@@ -509,12 +501,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async progression(): Promise<GameActionResult> {
     const result = this.#processAction(
-      (state) => {
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        return handlerSuccess([]);
-      },
+      (state) => handleProgressionRequest(buildHandlerContext(state, state.hostUserId)),
       { enabled: true },
     );
     // Settlement is triggered by the last audioAck (after audio finishes); do not settle here
@@ -523,15 +510,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async revealAck(): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
-        if (!state.pendingRevealAcks || state.pendingRevealAcks.length === 0) {
-          return handlerError('no_pending_acks');
-        }
-        return handlerSuccess(
-          [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-          [{ type: 'BROADCAST_STATE' as const }],
-        );
-      },
+      (state) => handleRevealAck(buildHandlerContext(state, state.hostUserId)),
       { enabled: true },
     );
   }
@@ -551,84 +530,14 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async groupConfirmAck(seatNum: number, userId: string): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        const stepId = state.currentStepId;
-        if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId];
-        if (!schema || schema.kind !== 'groupConfirm') {
-          return handlerError('not_group_confirm_step');
-        }
-        const player = state.players[seatNum];
-        if (!player) return handlerError('no_player_at_seat');
-        if (player.userId !== userId && userId !== state.hostUserId) {
-          return handlerError('userId_mismatch');
-        }
-
-        const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
-        const isCupidLoversReveal = stepId === 'cupidLoversReveal';
-        const acks = isConversionReveal
-          ? (state.conversionRevealAcks ?? [])
-          : isCupidLoversReveal
-            ? (state.cupidLoversRevealAcks ?? [])
-            : (state.piperRevealAcks ?? []);
-        if (acks.includes(seatNum)) return handlerSuccess([]);
-
-        const actions: StateAction[] = isConversionReveal
-          ? [{ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat: seatNum } }]
-          : isCupidLoversReveal
-            ? [{ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat: seatNum } }]
-            : [{ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat: seatNum } }];
-
-        return handlerSuccess(actions);
-      },
+      (state) => handleGroupConfirmAck(seatNum, buildHandlerContext(state, userId)),
       { enabled: true },
     );
   }
 
   async markBotsGroupConfirmed(): Promise<GameActionResult> {
     return this.#processAction(
-      (state) => {
-        if (!state.debugMode?.botsEnabled) {
-          return handlerError('debug_not_enabled');
-        }
-        if (state.status !== GameStatus.Ongoing) {
-          return handlerError('not_ongoing');
-        }
-        const stepId = state.currentStepId;
-        if (!stepId) return handlerError('no_current_step');
-        const schema = SCHEMAS[stepId];
-        if (!schema || schema.kind !== 'groupConfirm') {
-          return handlerError('not_group_confirm_step');
-        }
-
-        const isConversionReveal = stepId === 'awakenedGargoyleConvertReveal';
-        const isCupidLoversReveal = stepId === 'cupidLoversReveal';
-        const existingAcks = isConversionReveal
-          ? (state.conversionRevealAcks ?? [])
-          : isCupidLoversReveal
-            ? (state.cupidLoversRevealAcks ?? [])
-            : (state.piperRevealAcks ?? []);
-
-        const actions: StateAction[] = [];
-        for (const [seatStr, player] of Object.entries(state.players)) {
-          if (!player?.isBot) continue;
-          const seat = Number.parseInt(seatStr, 10);
-          if (existingAcks.includes(seat)) continue;
-
-          if (isConversionReveal) {
-            actions.push({ type: 'ADD_CONVERSION_REVEAL_ACK', payload: { seat } });
-          } else if (isCupidLoversReveal) {
-            actions.push({ type: 'ADD_CUPID_LOVERS_REVEAL_ACK', payload: { seat } });
-          } else {
-            actions.push({ type: 'ADD_PIPER_REVEAL_ACK', payload: { seat } });
-          }
-        }
-
-        return handlerSuccess(actions);
-      },
+      (state) => handleMarkBotsGroupConfirmed(buildHandlerContext(state, state.hostUserId)),
       { enabled: true },
     );
   }

@@ -42,6 +42,18 @@
       "types": "./src/games/werewolf/commands/types.ts",
       "default": "./dist/games/werewolf/commands/types.js"
     },
+    "./games/catalog": {
+      "types": "./src/games/catalog.ts",
+      "default": "./dist/games/catalog.js"
+    },
+    "./games/werewolf/public": {
+      "types": "./src/games/werewolf/public.ts",
+      "default": "./dist/games/werewolf/public.js"
+    },
+    "./games/werewolf/domain/handlers/commandHandlers": {
+      "types": "./src/games/werewolf/domain/handlers/commandHandlers.ts",
+      "default": "./dist/games/werewolf/domain/handlers/commandHandlers.js"
+    },
     "./engine/state/*": {
       "types": "./src/engine/state/*.ts",
       "default": "./dist/engine/state/*.js"

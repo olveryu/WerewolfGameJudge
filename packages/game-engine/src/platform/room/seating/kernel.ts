@@ -148,3 +148,12 @@ export function decideClearSeats<TSeat extends SeatOccupant>(
     .map(([seat, occupant]): SeatChange<TSeat> => ({ seat, previous: occupant, next: null }));
   return accepted(changes);
 }
+
+/** Resolve a user's authoritative seat while validating the complete seat map. */
+export function findSeatByUserId<TSeat extends SeatOccupant>(
+  seats: SeatMap<TSeat>,
+  seatCount: number,
+  userId: string,
+): number | null {
+  return indexSeats(seats, seatCount).seatsByUserId.get(userId) ?? null;
+}

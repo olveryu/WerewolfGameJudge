@@ -1695,13 +1695,18 @@ pnpm run e2e
 | --------- | ------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | Phase 0   | 进行中 | `main` 行为 contract、room/seat/DO characterization test、架构边界测试   | 当前分支完整 Werewolf E2E gate                                         |
 | Phase 1   | 进行中 | canonical game identity、版本化 Werewolf codec、snapshot/result envelope | client game-owned 目录迁移、全部边界 exception 清零                    |
-| Phase 2   | 进行中 | typed decision contract、canonical commands、deterministic execution     | concrete `werewolfEngine`、engine/Worker catalog、schema 静态绑定      |
+| Phase 2   | 待 E2E | concrete `werewolfEngine`、exhaustive catalogs、Worker schema 静态绑定   | 推送后的完整 Werewolf Playwright gate                                  |
 | Phase 3-8 | 未开始 | -                                                                        | generic pipeline、creation saga、shared room、Fib vertical slice、清理 |
 
-### 当前提交：Wolf Robot progression gate regression
+### 当前提交：authoritative Werewolf engine 与 exhaustive catalogs
 
-- 根因：inline evaluator 只看到 `wolfRobotLearn` action 已完成，没有识别猎人状态确认 gate，因而尝试非法 advance。
-- 修复：transition validation 与 inline evaluator 共用 `isWolfRobotHunterStatusGatePending`；预期 gate 返回等待，其他 transition error 仍 fail fast。
-- 已验证：engine 定向测试 27 条通过；两个 Wolf Robot hunter Playwright case 在 `CI=1` 静态构建模式下通过。
-- 提交门禁：完整 `pnpm run quality` 通过，包括 183 个 Jest suites、4807 条测试。
-- 下一步：完成 concrete `werewolfEngine` adapter，并把每个 canonical command 映射到唯一的现有规则实现。
+- 新增 concrete `werewolfEngine`，25 个 canonical command 通过 exhaustive switch 映射到唯一规则实现；actor identity、host authority 和 bot takeover seat 均从 `CommandContext.actor` 与权威 state 推导。
+- 五类 action input 只携带玩法输入，seat、role 和 reveal acknowledgement owner 由 engine 从当前 state 解析；非法 schema/input 组合显式拒绝，状态不变量破坏时 fail fast。
+- 把 audio ack、progression、reveal ack、group confirm、bot group confirm、roster level 六组规则移入 game-owned pure handlers；当前 DO 与新 engine 调用同一实现，不复制规则。
+- 新增 exhaustive engine catalog 与 Worker catalog；Zod 4 strict schemas 的 output type 与具体 engine config/command 静态绑定，不公开 `GameEngine<unknown, unknown, unknown>`。
+- `SAVE_STATE`/`BROADCAST_STATE` 留作 platform commit 行为，`PLAY_AUDIO` 转为 state event，未建模的 `SEND_MESSAGE` 直接 fail fast。
+- 定向验证：game-engine 3 个 suites、88 条测试通过；Worker catalog 4 条测试通过。
+- 迁移边界：狼人杀专用 RPC 和 `gameProcessor` 仍是当前生产入口，将在 Phase 3 generic pipeline 接通后于同一个 deployable change 删除；不保留 compatibility route。
+- 提交门禁：完整 `pnpm run quality` 通过；root 183 个 suites、4818 条测试，game-engine 78 个 suites、2313 条测试，api-worker 10 个 files、94 条测试。
+- 阶段状态：代码与本地 quality 退出条件已完成；推送后由 CI 执行完整 Werewolf Playwright gate，通过后 Phase 2 才标记完成。
+- 下一步：Phase 3 新增 atomic room row、command receipt 与 generic dispatch，再原子删除旧 RPC/HTTP action path。

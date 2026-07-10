@@ -1,4 +1,10 @@
-export { decideClearSeats, decideKickSeat, decideLeaveSeat, decideTakeSeat } from './kernel';
+export {
+  decideClearSeats,
+  decideKickSeat,
+  decideLeaveSeat,
+  decideTakeSeat,
+  findSeatByUserId,
+} from './kernel';
 export {
   SEAT_OPERATION_REASONS,
   type SeatChange,

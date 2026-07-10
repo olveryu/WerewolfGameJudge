@@ -25,6 +25,7 @@ import { runInlineProgression } from '@werewolf/game-engine/engine/inlineProgres
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+import { findSeatByUserId } from '@werewolf/game-engine/platform/room/seating';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type { AudioEffect } from '@werewolf/game-engine/protocol/types';
 
@@ -43,20 +44,12 @@ interface InlineProgressionOptions {
   enabled: boolean;
 }
 
-/** Find seat number by UID */
-function findSeatByUserId(state: GameState, userId: string): number | null {
-  for (const [seatKey, player] of Object.entries(state.players)) {
-    if (player?.userId === userId) return Number(seatKey);
-  }
-  return null;
-}
-
 /** Build HandlerContext for game-engine pure handler functions */
 export function buildHandlerContext(state: GameState, userId: string): HandlerContext {
   return {
     state,
     myUserId: userId,
-    mySeat: findSeatByUserId(state, userId),
+    mySeat: findSeatByUserId(state.players, Object.keys(state.players).length, userId),
   };
 }
 

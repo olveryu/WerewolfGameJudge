@@ -22,6 +22,7 @@ export {
 export { shuffleArray } from './utils/shuffle';
 
 // === Platform ===
+export { GAME_ENGINE_CATALOG, type GameEngineCatalog } from './games/catalog';
 export type {
   WerewolfActionInput,
   WerewolfCommand,
@@ -30,6 +31,13 @@ export type {
   WerewolfPublicCommand,
   WerewolfSeatProfile,
 } from './games/werewolf/commands/types';
+export {
+  decideWerewolfCommand,
+  getWerewolfLifecycle,
+  type WerewolfConfig,
+  type WerewolfEngine,
+  werewolfEngine,
+} from './games/werewolf/engine';
 export {
   type CommandActor,
   type CommandContext,
@@ -64,6 +72,7 @@ export {
   decideKickSeat,
   decideLeaveSeat,
   decideTakeSeat,
+  findSeatByUserId,
   SEAT_OPERATION_REASONS,
   type SeatChange,
   type SeatMap,
