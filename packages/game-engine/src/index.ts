@@ -169,6 +169,8 @@ export { resolveWolfVotes } from './engine/resolveWolfVotes';
 export { buildInitialGameState } from './engine/state/buildInitialState';
 export { normalizeState } from './engine/state/normalize';
 export { GameStore } from './engine/store';
+export { WEREWOLF_STATE_CODEC } from './games/werewolf/state/codec';
+export { parseWerewolfState } from './games/werewolf/state/parseState';
 export { WEREWOLF_STATE_IDENTITY, WEREWOLF_STATE_VERSION } from './games/werewolf/state/version';
 export type { GameType, WerewolfGameType } from './platform/protocol/gameTypes';
 export {
@@ -179,10 +181,18 @@ export {
 } from './platform/protocol/gameTypes';
 export type {
   BaseGameState,
+  GameStateCodec,
+  GameStateIdentity,
   RoomSnapshot,
   StateUpdateMessage,
 } from './platform/protocol/roomSnapshot';
-export { createRoomSnapshot, createStateUpdateMessage } from './platform/protocol/roomSnapshot';
+export {
+  assertRoomSnapshotIdentity,
+  createRoomSnapshot,
+  createStateUpdateMessage,
+  parseRoomSnapshot,
+  parseStateUpdateMessage,
+} from './platform/protocol/roomSnapshot';
 
 // === Growth ===
 export {

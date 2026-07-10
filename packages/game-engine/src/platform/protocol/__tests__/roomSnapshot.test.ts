@@ -1,7 +1,13 @@
 import { buildInitialGameState } from '../../../engine/state/buildInitialState';
+import { WEREWOLF_STATE_CODEC } from '../../../games/werewolf/state/codec';
 import { WEREWOLF_STATE_IDENTITY } from '../../../games/werewolf/state/version';
 import type { GameTemplate } from '../../../models/Template';
-import { createRoomSnapshot, createStateUpdateMessage } from '../roomSnapshot';
+import {
+  createRoomSnapshot,
+  createStateUpdateMessage,
+  parseRoomSnapshot,
+  parseStateUpdateMessage,
+} from '../roomSnapshot';
 
 const TEMPLATE: GameTemplate = {
   name: 'Snapshot contract',
@@ -52,6 +58,40 @@ describe('room snapshot protocol', () => {
 
     expect(() => createStateUpdateMessage(snapshot, null)).toThrow(
       'Snapshot identity does not match its state',
+    );
+  });
+
+  it('decodes the same snapshot envelope used by HTTP reconnects', () => {
+    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const snapshot = createRoomSnapshot(state, 3);
+    const encoded: unknown = JSON.parse(JSON.stringify(snapshot));
+
+    expect(parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toEqual(snapshot);
+  });
+
+  it('decodes the same envelope inside realtime updates', () => {
+    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const message = createStateUpdateMessage(createRoomSnapshot(state, 5), 'room.seat.take');
+    const encoded: unknown = JSON.parse(JSON.stringify(message));
+
+    expect(parseStateUpdateMessage(encoded, WEREWOLF_STATE_CODEC)).toEqual(message);
+  });
+
+  it('rejects unknown envelope fields', () => {
+    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const encoded = { ...createRoomSnapshot(state, 3), legacyRevision: 2 };
+
+    expect(() => parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toThrow(
+      'RoomSnapshot contains unknown field: legacyRevision',
+    );
+  });
+
+  it('rejects envelope and payload identity drift', () => {
+    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const encoded = { ...createRoomSnapshot(state, 3), stateVersion: 2 };
+
+    expect(() => parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toThrow(
+      'Unsupported snapshot state version: 2',
     );
   });
 });

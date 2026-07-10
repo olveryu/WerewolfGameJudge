@@ -170,6 +170,9 @@ packages/
 │       ├── games/
 │       │   ├── werewolf/
 │       │   │   ├── commands/
+│       │   │   ├── state/
+│       │   │   │   ├── codec.ts
+│       │   │   │   └── version.ts
 │       │   │   ├── domain/
 │       │   │   │   ├── handlers/
 │       │   │   │   ├── models/
@@ -304,7 +307,11 @@ export type GameType = (typeof GAME_TYPES)[number];
 - trusted code 内部的 `gameType` 不是 `string`。
 - 外部 string 只解析一次，成功后才成为 `GameType`。
 - 从 D1 和 DO 读取的值也要验证。
-- 新增游戏时先更新 `GAME_TYPES`，所有穷尽式 catalog 随即产生编译错误，直到各运行环境完成注册。
+- 新增游戏时，`GAME_TYPES`、state codec、engine 和各运行环境 catalog 必须在同一个
+  vertical-slice change 中原子注册。开发中的编译错误用来提示漏项，但主干不允许出现只有 ID、
+  没有实现的占位游戏类型。
+- 在瞎掰王 vertical slice 合入前，`GAME_TYPES` 只包含 `werewolf`；最终状态才包含
+  `werewolf` 和 `fibking`。
 - create、join、deep link、state parse 和 command dispatch 都没有默认游戏类型。
 
 ## 9. 纯 Game Engine contract
@@ -371,7 +378,31 @@ interface GameEngineDefinition<
 - 所有 event evolve 完成后统一执行 `normalize`，发现损坏直接抛错。
 - State version 显式存在；不支持的版本直接失败或走正式 migration，不猜默认值。
 
-### 9.3 跨游戏 lifecycle
+### 9.3 Runtime state codec
+
+网络 JSON 和 SQLite JSON 都是 `unknown`，不能通过类型断言直接变成游戏 state。每个游戏必须提供
+一个版本化 codec：
+
+```ts
+interface GameStateCodec<TState extends BaseGameState<GameType>> {
+  readonly gameType: TState['gameType'];
+  readonly stateVersion: number;
+  parse(value: unknown): TState;
+}
+```
+
+规则：
+
+- codec 属于对应游戏模块，狼人杀和瞎掰王各自理解自己的 state shape。
+- HTTP snapshot、WebSocket update 和 DO SQLite 读取调用同一个 codec；不能各写一套浅校验。
+- shared protocol parser 只校验 envelope、revision 和 discriminator，然后调用 codec。
+- codec 拒绝未知字段、缺失 required field、非法 enum、错误 game type 和不支持的 state version。
+- codec 可以调用该游戏的 normalize，但 normalize 只接收已经解码的 typed state；不能用
+  `as GameState` 把 `unknown` 塞进去。
+- `GameEngineDefinition.decide/evolve/normalize` 仍不接收 `unknown`。codec 是进入纯 engine 前的
+  protocol boundary，不把 runtime parsing 混进规则函数。
+
+### 9.4 跨游戏 lifecycle
 
 平台为了 analytics 和通用退出行为，可以使用一个粗粒度 lifecycle：
 
@@ -434,6 +465,7 @@ game-engine、Worker 和客户端依赖不同。Zod 和 Cloudflare effect 不应
 - engine catalog 提供纯 engine definition。
 - Worker catalog 为每个 engine 补充 runtime schema 和 effect handler。
 - client catalog 为每个游戏补充 UI 和 navigation metadata。
+- state codec 由游戏模块提供，Worker persistence、HTTP client 和 realtime client 引用同一个实例。
 
 同一个运行环境内部不再分别维护 create、dispatch、effect 和 display registry。
 
@@ -454,6 +486,7 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
 interface WorkerGameModule<TEngine extends AnyGameEngineDefinition> {
   readonly gameType: TEngine['gameType'];
   readonly engine: TEngine;
+  readonly stateCodec: GameStateCodec<StateOf<TEngine>>;
   readonly createConfigSchema: ZodType<ConfigOf<TEngine>>;
   readonly commandSchema: ZodType<CommandOf<TEngine>>;
   readonly effectHandlers: EffectHandlerMap<EffectOf<TEngine>>;
@@ -474,6 +507,7 @@ export const WORKER_GAME_CATALOG = defineWorkerGameCatalog({
 ```ts
 interface GameUiModule<TState extends BaseGameState<GameType>> {
   readonly gameType: TState['gameType'];
+  readonly stateCodec: GameStateCodec<TState>;
   readonly displayName: string;
   readonly iconName: IconName;
   readonly createConfig: React.ComponentType<GameConfigProps>;
@@ -1422,12 +1456,14 @@ pnpm run e2e
 - 在 game-engine 建 `platform/`、`games/werewolf/`、`product/`。
 - 只移动狼人杀，不改变行为。
 - 加 canonical `GameType` 和 snapshot envelope。
+- 加 game-owned state codec，并让 HTTP、WebSocket 和 DO persistence 共用同一解析入口。
 - 把客户端狼人杀专属文件移动到 `src/games/werewolf/`。
 
 退出条件：
 
 - Import-boundary test 通过。
 - Generic platform 不 import Werewolf。
+- 外部或持久化 JSON 到具体 state 的路径中没有 `as GameState` / `as never`。
 - 狼人杀测试和 E2E 语义不变。
 
 ### Phase 2：Typed engine 与 exhaustive catalogs
