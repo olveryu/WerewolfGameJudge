@@ -54,6 +54,10 @@
       "types": "./src/platform/protocol/*.ts",
       "default": "./dist/platform/protocol/*.js"
     },
+    "./platform/engine": {
+      "types": "./src/platform/engine/index.ts",
+      "default": "./dist/platform/engine/index.js"
+    },
     "./platform/room/seating": {
       "types": "./src/platform/room/seating/index.ts",
       "default": "./dist/platform/room/seating/index.js"

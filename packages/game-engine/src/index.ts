@@ -23,6 +23,27 @@ export { shuffleArray } from './utils/shuffle';
 
 // === Platform ===
 export {
+  type CommandContext,
+  type CommandOf,
+  commit,
+  commitDomainRejection,
+  type CommittedCommandOutcome,
+  type CommonGameLifecycle,
+  type ConfigOf,
+  type CreateGameContext,
+  type Decision,
+  defineGameEngineCatalog,
+  type EffectOf,
+  type EventOf,
+  type GameCommand,
+  type GameEffect,
+  type GameEngineDefinition,
+  type GameEvent,
+  reject,
+  type StateOf,
+} from './platform/engine';
+export type { RoomProfileUpdateCommand, RoomSeatCommand } from './platform/protocol/commands';
+export {
   decideClearSeats,
   decideKickSeat,
   decideLeaveSeat,

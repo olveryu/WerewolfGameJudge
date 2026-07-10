@@ -332,17 +332,21 @@ interface CommandContext {
   readonly actorUserId: string;
   readonly controlledSeat: number | null;
   readonly nowMs: number;
+  readonly commandId: string;
 }
 
 type Decision<TEvent, TEffect> =
   | {
-      readonly kind: 'accepted';
+      readonly kind: 'commit';
       readonly events: readonly TEvent[];
       readonly effects: readonly TEffect[];
       readonly broadcast: 'state' | 'none';
+      readonly outcome:
+        | { readonly kind: 'success'; readonly reason?: string }
+        | { readonly kind: 'domainRejected'; readonly reason: string };
     }
   | {
-      readonly kind: 'rejected';
+      readonly kind: 'reject';
       readonly reason: string;
     };
 
@@ -373,8 +377,13 @@ interface GameEngineDefinition<
 - Engine 不接收 `unknown` payload。
 - Engine 使用权威 state 和 `CommandContext` 校验 host 及 actor 权限。
 - Engine 不信任客户端传入的 actor seat。
-- rejected command 没有 event，不增加 revision。
-- 如果狼人杀现有 rejection 会写状态，迁移时必须把它明确改成 accepted domain transition，或者删除该写入，不能继续保留“拒绝但修改状态”的含糊语义。
+- `commit` 表示命令已被权威 engine 接受并进入 command receipt/effect transaction；幂等 no-op 可以是
+  零 event，只有 state event 时才增加 state revision。
+- `commit + domainRejected` 是明确的 domain transition：例如写入只对目标玩家可见的
+  `actionRejected` event。它会提交 event，但 command response 仍携带稳定的业务拒绝 reason。
+- `reject` 表示权限、phase 或参数前置条件失败；它没有 event/effect，不写 command receipt 的成功结果，
+  不增加 revision。
+- 不允许用 `reject` 表示已经修改状态的命令，也不允许 Worker 在 engine 返回后补写 rejection state。
 - 所有 event evolve 完成后统一执行 `normalize`，发现损坏直接抛错。
 - State version 显式存在；不支持的版本直接失败或走正式 migration，不猜默认值。
 
