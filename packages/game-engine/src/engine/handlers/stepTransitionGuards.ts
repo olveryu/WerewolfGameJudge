@@ -13,6 +13,16 @@ import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult, NonNullState } from './types';
 import { handlerError } from './types';
 
+/** Whether the current step is waiting for the Wolf Robot hunter-status acknowledgement. */
+export function isWolfRobotHunterStatusGatePending(state: NonNullState): boolean {
+  return (
+    state.currentStepId === 'wolfRobotLearn' &&
+    state.wolfRobotReveal?.learnedRoleId != null &&
+    WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId) &&
+    state.wolfRobotHunterStatusViewed === false
+  );
+}
+
 /**
  * Validate preconditions (shared by ADVANCE_NIGHT / END_NIGHT)
  *
@@ -53,12 +63,7 @@ export function validateNightFlowPreconditions(
 
   // Gate 4: wolfrobot_hunter_status_not_viewed
   // If current step is wolfRobotLearn and learned a gate-triggering role but not viewed, reject advance
-  if (
-    state.currentStepId === 'wolfRobotLearn' &&
-    state.wolfRobotReveal?.learnedRoleId != null &&
-    WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId) &&
-    state.wolfRobotHunterStatusViewed === false
-  ) {
+  if (isWolfRobotHunterStatusGatePending(state)) {
     return {
       valid: false,
       result: handlerError('wolfrobot_hunter_status_not_viewed'),

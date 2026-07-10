@@ -154,7 +154,7 @@ describe('runInlineProgression', () => {
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
     });
 
-    it('内部推进违反 wolfRobot gate 时立即失败', () => {
+    it('wolfRobot 猎人状态未确认时停在当前步骤', () => {
       const state = make2PlayerState({
         currentStepId: 'wolfRobotLearn',
         actions: [{ schemaId: 'wolfRobotLearn', actorSeat: 0, timestamp: 1 }],
@@ -166,9 +166,42 @@ describe('runInlineProgression', () => {
         wolfRobotHunterStatusViewed: false,
       });
 
-      expect(() => runInlineProgression(state, 'host')).toThrow(
-        '[FAIL-FAST] Inline advance failed: wolfrobot_hunter_status_not_viewed',
-      );
+      const result = runInlineProgression(state, 'host');
+
+      expect(result.stepsAdvanced).toBe(0);
+      expect(result.actions).toEqual([]);
+      expect(result.finalState).toBe(state);
+    });
+
+    it('wolfRobot 猎人状态确认后允许推进', () => {
+      const templateRoles: GameState['templateRoles'] = ['wolf', 'wolfRobot', 'hunter', 'villager'];
+      const plan = buildNightPlan(templateRoles);
+      const wolfRobotStepIndex = plan.steps.findIndex((step) => step.stepId === 'wolfRobotLearn');
+      expect(wolfRobotStepIndex).toBeGreaterThanOrEqual(0);
+
+      const state = make2PlayerState({
+        templateRoles,
+        players: {
+          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
+          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolfRobot' },
+          2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'hunter' },
+          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
+        },
+        currentStepId: 'wolfRobotLearn',
+        currentStepIndex: wolfRobotStepIndex,
+        actions: [{ schemaId: 'wolfRobotLearn', actorSeat: 1, timestamp: 1 }],
+        currentNightResults: { wolfVotesBySeat: { '0': 3 } },
+        wolfRobotReveal: {
+          targetSeat: 2,
+          result: '猎人',
+          learnedRoleId: 'hunter',
+        },
+        wolfRobotHunterStatusViewed: true,
+      });
+
+      const result = runInlineProgression(state, 'host');
+
+      expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
     });
   });
 

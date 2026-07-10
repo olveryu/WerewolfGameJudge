@@ -1686,3 +1686,22 @@ pnpm run e2e
 - 狼人杀和瞎掰王 full E2E 通过。
 - 不存在架构 compatibility layer。
 - 加入 compile-only 第三个游戏不需要修改 platform execution 或 shared room UI。
+
+## 33. 实施进度
+
+每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
+
+| 阶段      | 状态   | 已完成                                                                   | 尚未完成                                                               |
+| --------- | ------ | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Phase 0   | 进行中 | `main` 行为 contract、room/seat/DO characterization test、架构边界测试   | 当前分支完整 Werewolf E2E gate                                         |
+| Phase 1   | 进行中 | canonical game identity、版本化 Werewolf codec、snapshot/result envelope | client game-owned 目录迁移、全部边界 exception 清零                    |
+| Phase 2   | 进行中 | typed decision contract、canonical commands、deterministic execution     | concrete `werewolfEngine`、engine/Worker catalog、schema 静态绑定      |
+| Phase 3-8 | 未开始 | -                                                                        | generic pipeline、creation saga、shared room、Fib vertical slice、清理 |
+
+### 当前提交：Wolf Robot progression gate regression
+
+- 根因：inline evaluator 只看到 `wolfRobotLearn` action 已完成，没有识别猎人状态确认 gate，因而尝试非法 advance。
+- 修复：transition validation 与 inline evaluator 共用 `isWolfRobotHunterStatusGatePending`；预期 gate 返回等待，其他 transition error 仍 fail fast。
+- 已验证：engine 定向测试 27 条通过；两个 Wolf Robot hunter Playwright case 在 `CI=1` 静态构建模式下通过。
+- 提交门禁：完整 `pnpm run quality` 通过，包括 183 个 Jest suites、4807 条测试。
+- 下一步：完成 concrete `werewolfEngine` adapter，并把每个 canonical command 映射到唯一的现有规则实现。

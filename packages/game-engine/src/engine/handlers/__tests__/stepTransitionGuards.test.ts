@@ -7,6 +7,7 @@
 import { GameStatus } from '../../../models/GameStatus';
 import { WOLF_ROBOT_GATE_ROLES } from '../revealPayload';
 import {
+  isWolfRobotHunterStatusGatePending,
   validateNightFlowPreconditions,
   validateSetAudioPlayingPreconditions,
 } from '../stepTransitionGuards';
@@ -123,6 +124,36 @@ describe('validateNightFlowPreconditions', () => {
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(true);
     if (result.valid) expect(result.state).toBe(state);
+  });
+});
+
+describe('isWolfRobotHunterStatusGatePending', () => {
+  const gateTriggerRole = WOLF_ROBOT_GATE_ROLES[0]!;
+
+  it('returns true only while the matching gate is awaiting acknowledgement', () => {
+    const state = createMinimalState({
+      currentStepId: 'wolfRobotLearn',
+      wolfRobotReveal: {
+        targetSeat: 3,
+        result: gateTriggerRole,
+        learnedRoleId: gateTriggerRole,
+      },
+      wolfRobotHunterStatusViewed: false,
+    });
+
+    expect(isWolfRobotHunterStatusGatePending(state)).toBe(true);
+    expect(
+      isWolfRobotHunterStatusGatePending({
+        ...state,
+        wolfRobotHunterStatusViewed: true,
+      }),
+    ).toBe(false);
+    expect(
+      isWolfRobotHunterStatusGatePending({
+        ...state,
+        currentStepId: 'wolfKill',
+      }),
+    ).toBe(false);
   });
 });
 

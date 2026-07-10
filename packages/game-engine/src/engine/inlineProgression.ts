@@ -22,6 +22,7 @@ import type { AudioEffect, GameState } from '../protocol/types';
 import { getEngineLogger } from '../utils/logger';
 import { createSeededRng, randomIntInclusive } from '../utils/random';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
+import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext, SideEffect } from './handlers/types';
 import { gameReducer } from './reducer/gameReducer';
@@ -58,6 +59,10 @@ interface InlineProgressionResult {
 function isStepComplete(state: GameState): boolean {
   const stepId = state.currentStepId;
   if (!stepId) return true; // No current step -> complete (enter endNight)
+
+  // The learning action is complete, but this step remains active until the
+  // Wolf Robot has acknowledged the learned hunter-style status.
+  if (isWolfRobotHunterStatusGatePending(state)) return false;
 
   if (stepId === 'wolfKill') {
     return isWolfVoteAllComplete(state);
