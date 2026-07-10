@@ -21,6 +21,20 @@ export {
 } from './utils/random';
 export { shuffleArray } from './utils/shuffle';
 
+// === Platform ===
+export {
+  decideClearSeats,
+  decideKickSeat,
+  decideLeaveSeat,
+  decideTakeSeat,
+  SEAT_OPERATION_REASONS,
+  type SeatChange,
+  type SeatMap,
+  type SeatOccupant,
+  type SeatOperationReason,
+  type SeatOperationResult,
+} from './platform/room/seating';
+
 // === Models ===
 export {
   makeActionMagicianSwap,

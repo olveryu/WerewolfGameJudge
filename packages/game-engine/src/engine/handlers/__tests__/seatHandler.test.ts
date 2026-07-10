@@ -26,7 +26,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
-} from '@werewolf/game-engine/protocol/reasonCodes';
+} from '@werewolf/game-engine/platform/protocol/reasons';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 

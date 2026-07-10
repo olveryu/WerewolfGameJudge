@@ -50,6 +50,14 @@
       "types": "./src/protocol/*.ts",
       "default": "./dist/protocol/*.js"
     },
+    "./platform/protocol/*": {
+      "types": "./src/platform/protocol/*.ts",
+      "default": "./dist/platform/protocol/*.js"
+    },
+    "./platform/room/seating": {
+      "types": "./src/platform/room/seating/index.ts",
+      "default": "./dist/platform/room/seating/index.js"
+    },
     "./types/*": {
       "types": "./src/types/*.ts",
       "default": "./dist/types/*.js"
