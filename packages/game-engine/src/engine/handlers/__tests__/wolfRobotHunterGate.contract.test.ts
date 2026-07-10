@@ -19,6 +19,7 @@
 import { handleAdvanceNight } from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -27,6 +28,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 // Create minimal state for testing
 function createTestState(overrides?: Partial<GameState>): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,

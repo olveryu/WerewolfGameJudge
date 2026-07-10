@@ -6,6 +6,7 @@
  * Pure function; no side effects, no dependencies on React Native / Expo / IO. *
  * ❗ All required array fields must be initialized to `[]`; `undefined` is not allowed. */
 
+import { WEREWOLF_STATE_IDENTITY } from '../../games/werewolf/state/version';
 import { GameStatus, type GameTemplate } from '../../models';
 import type { GameState } from '../../protocol/types';
 
@@ -20,6 +21,7 @@ export function buildInitialGameState(
   }
 
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode,
     hostUserId,
     status: GameStatus.Unseated,

@@ -1,3 +1,4 @@
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId, SchemaId } from '@werewolf/game-engine/models/roles';
 import type { GameState, ProtocolAction } from '@werewolf/game-engine/protocol/types';
@@ -6,6 +7,7 @@ import { toLocalState } from '@/hooks/adapters/toLocalState';
 
 function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,

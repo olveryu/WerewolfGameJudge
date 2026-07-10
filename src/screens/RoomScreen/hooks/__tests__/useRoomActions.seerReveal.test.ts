@@ -2,6 +2,7 @@
  * Tests for seer reveal intent
  */
 import { renderHook } from '@testing-library/react-native';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { type ActionSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
@@ -9,6 +10,7 @@ import { useRoomActions } from '@/screens/RoomScreen/hooks/useRoomActions';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 const makeGameState = (): LocalGameState => ({
+  ...WEREWOLF_STATE_IDENTITY,
   roomCode: 'TEST',
   hostUserId: 'host-uid',
   status: GameStatus.Ongoing,

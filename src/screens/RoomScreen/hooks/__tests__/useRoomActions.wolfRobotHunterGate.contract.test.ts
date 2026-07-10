@@ -7,6 +7,7 @@
  * 3. Button only appears for wolfRobot step
  */
 
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
@@ -16,6 +17,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 // Helper to create minimal game state
 function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,

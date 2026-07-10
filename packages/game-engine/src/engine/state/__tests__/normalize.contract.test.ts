@@ -6,6 +6,7 @@
  */
 
 import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -19,6 +20,8 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
  */
 const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Core required fields
+  'gameType',
+  'stateVersion',
   'roomCode',
   'hostUserId',
   'status',
@@ -116,6 +119,7 @@ describe('normalizeState contract', () => {
   const createFullState = (): GameState => {
     return {
       // Core required fields
+      ...WEREWOLF_STATE_IDENTITY,
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Ongoing,
@@ -253,6 +257,7 @@ describe('normalizeState contract', () => {
 
   it('should preserve undefined optional fields as undefined', () => {
     const minimalState: GameState = {
+      ...WEREWOLF_STATE_IDENTITY,
       roomCode: 'TEST',
       hostUserId: 'host-uid',
       status: GameStatus.Unseated,

@@ -9,6 +9,7 @@
  * Single source of truth: GameState
  */
 
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { handleSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
 import {
   handleAdvanceNight,
@@ -102,6 +103,7 @@ export function createGame(
   }
 
   let state: GameState = {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST01',
     hostUserId: 'host-uid',
     status: GameStatus.Seated,

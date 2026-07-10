@@ -11,6 +11,7 @@ import {
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
 } from '@werewolf/game-engine/engine/handlers/progressionEvaluator';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -20,6 +21,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 function createWolfKillState(overrides: Partial<GameState> = {}): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host',
     status: GameStatus.Ongoing,

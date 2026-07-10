@@ -13,6 +13,7 @@ import {
 } from '@werewolf/game-engine/engine/handlers/gameControlHandler';
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { Player } from '@werewolf/game-engine/protocol/types';
@@ -41,6 +42,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   }
 
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Unseated,

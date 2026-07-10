@@ -9,6 +9,7 @@ import type {
   ApplyResolverResultAction,
   RecordActionAction,
 } from '@werewolf/game-engine/engine/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { expectSuccess } from './handlerTestUtils';
@@ -17,6 +18,7 @@ const baseContext: HandlerContext = {
   myUserId: 'HOST',
   mySeat: 0,
   state: {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'ROOM',
     hostUserId: 'HOST',
     status: GameStatus.Ongoing,

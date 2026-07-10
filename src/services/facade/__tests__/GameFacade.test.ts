@@ -8,6 +8,7 @@
  * - Player receives STATE_UPDATE -> applySnapshot
  */
 
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { PlayerJoinAction } from '@werewolf/game-engine/engine/reducer/types';
 import { GameStore } from '@werewolf/game-engine/engine/store';
@@ -59,6 +60,7 @@ const mockRoomService = () =>
 /** Helper: build a complete GameState with sensible defaults for tests */
 function buildTestState(overrides: Partial<GameState> = {}): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Unseated,

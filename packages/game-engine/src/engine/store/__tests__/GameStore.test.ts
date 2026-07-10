@@ -4,10 +4,12 @@
 
 import { GameStore } from '@werewolf/game-engine/engine/store/GameStore';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Unseated,

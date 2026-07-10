@@ -6,12 +6,14 @@ import { handleClearAllSeats } from '@werewolf/game-engine/engine/handlers/seatH
 import type { HandlerContext } from '@werewolf/game-engine/engine/handlers/types';
 import type { ClearAllSeatsIntent } from '@werewolf/game-engine/engine/intents/types';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Unseated,

@@ -1,3 +1,4 @@
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -58,6 +59,7 @@ export function makeBaseUseGameRoomReturn({
   );
 
   const gameState = {
+    ...WEREWOLF_STATE_IDENTITY,
     status: GameStatus.Ongoing,
     template: {
       name: 'test',

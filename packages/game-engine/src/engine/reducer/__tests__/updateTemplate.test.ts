@@ -6,6 +6,7 @@
 
 import { gameReducer } from '@werewolf/game-engine/engine/reducer/gameReducer';
 import type { GameState } from '@werewolf/game-engine/engine/store/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { RosterEntry } from '@werewolf/game-engine/protocol/types';
@@ -47,6 +48,7 @@ function createStateWithPlayers(
   const allSeated = players.every((p) => p !== null);
 
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: allSeated ? GameStatus.Seated : GameStatus.Unseated,

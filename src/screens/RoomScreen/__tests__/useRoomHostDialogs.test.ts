@@ -2,6 +2,7 @@
  * Tests for useRoomHostDialogs hook
  */
 import { act, renderHook } from '@testing-library/react-native';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -38,6 +39,7 @@ const createMockGameState = (playerCount: number): LocalGameState => {
   }
 
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: '1234',
     hostUserId: 'host-uid',
     status: GameStatus.Ongoing,

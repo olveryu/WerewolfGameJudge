@@ -12,6 +12,8 @@ import type { DeathReason } from '../engine/DeathCalculator';
 import type { GameRuleOverrides, GameStatus, RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
+import type { WerewolfGameType } from '../platform/protocol/gameTypes';
+import type { BaseGameState } from '../platform/protocol/roomSnapshot';
 import type { CurrentNightResults } from '../resolvers/types';
 
 // =============================================================================
@@ -140,7 +142,7 @@ export interface BoardNomination {
 // GameState — single authoritative state type
 // =============================================================================
 
-export interface GameState {
+export interface GameState extends BaseGameState<WerewolfGameType> {
   // --- Core fields (existing) ---
   roomCode: string;
   hostUserId: string;

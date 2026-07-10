@@ -8,6 +8,8 @@
  * - Required fields fail-fast (requireField)
  */
 
+import { WEREWOLF_STATE_VERSION } from '../../games/werewolf/state/version';
+import { WEREWOLF_GAME_TYPE } from '../../platform/protocol/gameTypes';
 import type { GameState } from '../../protocol/types';
 
 /**
@@ -43,6 +45,14 @@ function requireField<T>(value: T | undefined, fieldName: string): T {
   return value;
 }
 
+function requireIdentity<T>(value: T | undefined, expected: T, fieldName: string): T {
+  const actual = requireField(value, fieldName);
+  if (actual !== expected) {
+    throw new Error(`normalizeState: unsupported ${fieldName}: ${String(actual)}`);
+  }
+  return actual;
+}
+
 /**
  * Pre-broadcast state normalization (normalizeState) — parse boundary.
  *
@@ -67,6 +77,8 @@ export function normalizeState(raw: GameState): GameState {
 
   return {
     // Required fields (fail-fast to avoid masking state corruption)
+    gameType: requireIdentity(raw.gameType, WEREWOLF_GAME_TYPE, 'gameType'),
+    stateVersion: requireIdentity(raw.stateVersion, WEREWOLF_STATE_VERSION, 'stateVersion'),
     roomCode: requireField(raw.roomCode, 'roomCode'),
     hostUserId: requireField(raw.hostUserId, 'hostUserId'),
     status: requireField(raw.status, 'status'),

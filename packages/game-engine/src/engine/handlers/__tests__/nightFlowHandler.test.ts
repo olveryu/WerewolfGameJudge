@@ -26,6 +26,7 @@ import type {
   SetAudioPlayingIntent,
 } from '@werewolf/game-engine/engine/intents/types';
 import type { EndNightAction } from '@werewolf/game-engine/engine/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
@@ -52,6 +53,7 @@ function createPlayer(seat: number, role: string, overrides?: Partial<Player>): 
  */
 function createOngoingState(overrides?: Partial<GameState>): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-uid',
     status: GameStatus.Ongoing,
@@ -220,6 +222,7 @@ describe('nightFlowHandler', () => {
         myUserId: null,
         mySeat: null,
         state: {
+          ...WEREWOLF_STATE_IDENTITY,
           roomCode: 'ROOM',
           hostUserId: 'HOST',
           status: GameStatus.Ongoing,

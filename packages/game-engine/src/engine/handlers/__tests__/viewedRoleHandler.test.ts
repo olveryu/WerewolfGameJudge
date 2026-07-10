@@ -4,6 +4,7 @@
  * Covers: handleViewedRole — seat ownership, status validation, action generation
  */
 
+import { WEREWOLF_STATE_IDENTITY } from '../../../games/werewolf/state/version';
 import { GameStatus } from '../../../models/GameStatus';
 import type { ViewedRoleIntent } from '../../intents/types';
 import type { GameState } from '../../store/types';
@@ -17,6 +18,7 @@ import { expectError, expectSuccess } from './handlerTestUtils';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
+    ...WEREWOLF_STATE_IDENTITY,
     roomCode: 'TEST',
     hostUserId: 'host-1',
     status: GameStatus.Assigned,
