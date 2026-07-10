@@ -328,12 +328,21 @@ interface BaseGameState<TGameType extends GameType> {
   readonly hostUserId: string;
 }
 
-interface CommandContext {
-  readonly actorUserId: string;
-  readonly controlledSeat: number | null;
-  readonly nowMs: number;
-  readonly commandId: string;
-}
+type CommandContext =
+  | {
+      readonly actor: { readonly kind: 'user'; readonly userId: string };
+      readonly controlledSeat: number | null;
+      readonly nowMs: number;
+      readonly commandId: string;
+      readonly randomSeed: string;
+    }
+  | {
+      readonly actor: { readonly kind: 'system'; readonly effectId: string };
+      readonly controlledSeat: null;
+      readonly nowMs: number;
+      readonly commandId: string;
+      readonly randomSeed: string;
+    };
 
 type Decision<TEvent, TEffect> =
   | {
@@ -377,6 +386,8 @@ interface GameEngineDefinition<
 - Engine 不接收 `unknown` payload。
 - Engine 使用权威 state 和 `CommandContext` 校验 host 及 actor 权限。
 - Engine 不信任客户端传入的 actor seat。
+- `randomSeed` 由 Worker 在首次执行 command 时用安全随机源生成，不接受客户端值；纯 engine 从该 seed
+  派生确定性 RNG。`commandId` 只负责幂等，不能兼任随机源。
 - `commit` 表示命令已被权威 engine 接受并进入 command receipt/effect transaction；幂等 no-op 可以是
   零 event，只有 state event 时才增加 state revision。
 - `commit + domainRejected` 是明确的 domain transition：例如写入只对目标玩家可见的
@@ -625,8 +636,8 @@ Dispatch 时客户端不发送 `gameType`。DO 从不可变的持久化 room row
 5. 按持久化 `game_type` 解析 Worker game module。
 6. 使用 module 的 runtime schema 解析 command。
 7. 检查 `commandId` 是否已经完成。
-8. 调用 typed engine `decide`，传入 actor context。
-9. rejected decision 不写入。
+8. 首次执行时生成并持久化 server `randomSeed`，调用 typed engine `decide`，传入 actor context。
+9. `reject` decision 不写入。
 10. 在内存中 evolve 全部 event。
 11. normalize 新 state。
 12. 在一个 SQLite transaction 中更新 state/revision、保存 command receipt、写入 effect outbox。
@@ -642,6 +653,7 @@ HTTP retry 和连接恢复可能重复发送 command。`commandId` 是结构性�
 CREATE TABLE command_receipts (
   command_id TEXT PRIMARY KEY,
   revision INTEGER NOT NULL,
+  random_seed TEXT NOT NULL,
   result_json TEXT NOT NULL,
   created_at INTEGER NOT NULL
 );
@@ -668,21 +680,22 @@ CREATE TABLE command_receipts (
 
 HTTP middleware 负责认证身份，engine 负责授权游戏命令。
 
-Worker 不能只在 D1 判断 host，然后用 `state.hostUserId` 代替真实调用者调用 engine。DO 必须传入：
+Worker 不能只在 D1 判断 host，然后用 `state.hostUserId` 代替真实调用者调用 engine。DO 必须传入
+discriminated principal：
 
 ```ts
-{
-  (actorUserId, controlledSeat, nowMs);
-}
+type CommandActor = { kind: 'user'; userId: string } | { kind: 'system'; effectId: string };
 ```
 
 规则：
 
-- Host-only command 使用 authoritative `state.hostUserId` 对比 `actorUserId`。
+- Host-only command 使用 authoritative `state.hostUserId` 对比 user actor 的 `userId`。
 - 普通玩家使用 state 中与自己 user ID 绑定的 seat 行动。
 - 只有游戏允许 bot control、调用者是 host、目标当前确实是 bot 时，才接受 `controlledSeat`。
 - 接管真人 seat 直接失败。
 - `controlledSeat` 只改变有效 actor seat，不改变 user identity 和 host ownership。
+- System actor 只允许执行 engine 明确定义的 internal command，并且 `controlledSeat` 在类型上固定为 null；
+  public HTTP command schema 不包含 internal command。
 - D1 的 `rooms.host_user_id` 是目录 metadata，可以用于列表，不是 command authority。
 
 ## 15. D1 Room Directory 与建房 Saga

@@ -22,7 +22,16 @@ export {
 export { shuffleArray } from './utils/shuffle';
 
 // === Platform ===
+export type {
+  WerewolfActionInput,
+  WerewolfCommand,
+  WerewolfInternalCommand,
+  WerewolfProfileUpdate,
+  WerewolfPublicCommand,
+  WerewolfSeatProfile,
+} from './games/werewolf/commands/types';
 export {
+  type CommandActor,
   type CommandContext,
   type CommandOf,
   commit,

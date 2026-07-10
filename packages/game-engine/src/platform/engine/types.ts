@@ -24,12 +24,25 @@ export interface CreateGameContext {
   readonly commandId: string;
 }
 
-export interface CommandContext {
-  readonly actorUserId: string;
-  readonly controlledSeat: number | null;
+interface CommandExecutionContext {
   readonly nowMs: number;
   readonly commandId: string;
+  readonly randomSeed: string;
 }
+
+export type CommandActor =
+  | { readonly kind: 'user'; readonly userId: string }
+  | { readonly kind: 'system'; readonly effectId: string };
+
+export type CommandContext =
+  | (CommandExecutionContext & {
+      readonly actor: Extract<CommandActor, { readonly kind: 'user' }>;
+      readonly controlledSeat: number | null;
+    })
+  | (CommandExecutionContext & {
+      readonly actor: Extract<CommandActor, { readonly kind: 'system' }>;
+      readonly controlledSeat: null;
+    });
 
 export type CommittedCommandOutcome =
   | { readonly kind: 'success'; readonly reason?: string }

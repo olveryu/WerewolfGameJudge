@@ -38,6 +38,10 @@
       "types": "./src/engine/store/*.ts",
       "default": "./dist/engine/store/*.js"
     },
+    "./games/werewolf/commands": {
+      "types": "./src/games/werewolf/commands/types.ts",
+      "default": "./dist/games/werewolf/commands/types.js"
+    },
     "./engine/state/*": {
       "types": "./src/engine/state/*.ts",
       "default": "./dist/engine/state/*.js"
