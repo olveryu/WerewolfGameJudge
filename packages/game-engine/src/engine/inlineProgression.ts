@@ -182,11 +182,15 @@ export function runInlineProgression(
   const allAudioEffects: AudioEffect[] = [];
   let currentState = state;
   let stepsAdvanced = 0;
+  let didStopWithinLimit = false;
 
   for (let i = 0; i < MAX_PROGRESSION_LOOPS; i++) {
     const decision = evaluateProgression(currentState, execution.nowMs);
 
-    if (decision === 'none') break;
+    if (decision === 'none') {
+      didStopWithinLimit = true;
+      break;
+    }
 
     const ctx: HandlerContext = {
       state: currentState,
@@ -197,8 +201,7 @@ export function runInlineProgression(
     if (decision === 'advance') {
       const result = handleAdvanceNight({ type: 'ADVANCE_NIGHT' }, ctx, execution);
       if (result.kind === 'error') {
-        log.warn('Inline advance failed', { reason: result.reason });
-        break;
+        throw new Error(`[FAIL-FAST] Inline advance failed: ${result.reason}`);
       }
 
       // Apply actions to get new state
@@ -216,8 +219,7 @@ export function runInlineProgression(
     if (decision === 'end_night') {
       const result = handleEndNight({ type: 'END_NIGHT' }, ctx, execution);
       if (result.kind === 'error') {
-        log.warn('Inline endNight failed', { reason: result.reason });
-        break;
+        throw new Error(`[FAIL-FAST] Inline endNight failed: ${result.reason}`);
       }
 
       for (const action of result.actions) {
@@ -228,8 +230,13 @@ export function runInlineProgression(
       stepsAdvanced++;
 
       // end_night terminates progression
+      didStopWithinLimit = true;
       break;
     }
+  }
+
+  if (!didStopWithinLimit && evaluateProgression(currentState, execution.nowMs) !== 'none') {
+    throw new Error(`[FAIL-FAST] Inline progression exceeded ${MAX_PROGRESSION_LOOPS} transitions`);
   }
 
   // Set stepDeadline if we stopped at a vacant bottom card step without one.

@@ -153,6 +153,23 @@ describe('runInlineProgression', () => {
       const result = runInlineProgression(state, 'host', now);
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
     });
+
+    it('内部推进违反 wolfRobot gate 时立即失败', () => {
+      const state = make2PlayerState({
+        currentStepId: 'wolfRobotLearn',
+        actions: [{ schemaId: 'wolfRobotLearn', actorSeat: 0, timestamp: 1 }],
+        wolfRobotReveal: {
+          targetSeat: 1,
+          result: '猎人',
+          learnedRoleId: 'hunter',
+        },
+        wolfRobotHunterStatusViewed: false,
+      });
+
+      expect(() => runInlineProgression(state, 'host')).toThrow(
+        '[FAIL-FAST] Inline advance failed: wolfrobot_hunter_status_not_viewed',
+      );
+    });
   });
 
   describe('2-player template (wolf + villager)', () => {
