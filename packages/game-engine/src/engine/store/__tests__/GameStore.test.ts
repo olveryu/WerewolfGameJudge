@@ -326,41 +326,41 @@ describe('GameStore', () => {
     });
   });
 
-  describe('consumeLastAction()', () => {
-    it('should return null when no lastAction set', () => {
-      expect(store.consumeLastAction()).toBeNull();
+  describe('consumeLastCommandType()', () => {
+    it('should return null when no command type is set', () => {
+      expect(store.consumeLastCommandType()).toBeNull();
     });
 
-    it('should return lastAction from applySnapshot and clear it', () => {
+    it('should return the command type from applySnapshot and clear it', () => {
       store.applySnapshot(createMinimalState(), 5, 'KICK_PLAYER');
 
-      expect(store.consumeLastAction()).toBe('KICK_PLAYER');
+      expect(store.consumeLastCommandType()).toBe('KICK_PLAYER');
       // Second call returns null (consumed)
-      expect(store.consumeLastAction()).toBeNull();
+      expect(store.consumeLastCommandType()).toBeNull();
     });
 
-    it('should set lastAction to null when applySnapshot has no lastAction', () => {
+    it('should clear the command type when applySnapshot has none', () => {
       store.applySnapshot(createMinimalState(), 5, 'KICK_PLAYER');
-      // Overwrite with no lastAction
+      // Overwrite with no command type
       store.applySnapshot(createMinimalState({ status: GameStatus.Seated }), 6);
 
-      expect(store.consumeLastAction()).toBeNull();
+      expect(store.consumeLastCommandType()).toBeNull();
     });
 
-    it('should reset lastAction on store.reset()', () => {
+    it('should reset the command type on store.reset()', () => {
       store.applySnapshot(createMinimalState(), 5, 'ASSIGN_ROLES');
 
       store.reset();
 
-      expect(store.consumeLastAction()).toBeNull();
+      expect(store.consumeLastCommandType()).toBeNull();
     });
 
-    it('should reset lastAction on store.destroy()', () => {
+    it('should reset the command type on store.destroy()', () => {
       store.applySnapshot(createMinimalState(), 5, 'START_NIGHT');
 
       store.destroy();
 
-      expect(store.consumeLastAction()).toBeNull();
+      expect(store.consumeLastCommandType()).toBeNull();
     });
   });
 });

@@ -1,9 +1,9 @@
 /**
  * useLastActionToast — passive-action toast notifications
  *
- * Detects lastAction envelope in STATE_UPDATE broadcasts,
+ * Detects lastCommandType in STATE_UPDATE broadcasts,
  * shows toast notifications to non-Host players (kick/clearAllSeats/assignRoles/startNight/endNight/restartGame).
- * Uses consumeLastAction for one-time consumption, no impact on other logic.
+ * Uses consumeLastCommandType for one-time consumption, no impact on other logic.
  */
 
 import { useEffect, useRef } from 'react';
@@ -40,12 +40,12 @@ export function useLastActionToast({
     const prevSeat = prevSeatRef.current;
     prevSeatRef.current = mySeat;
 
-    const lastAction = facade.consumeLastAction();
-    if (!lastAction || isHost) return;
+    const lastCommandType = facade.consumeLastCommandType();
+    if (!lastCommandType || isHost) return;
 
-    gameRoomLog.debug('lastAction consumed', { action: lastAction });
+    gameRoomLog.debug('lastCommandType consumed', { commandType: lastCommandType });
 
-    switch (lastAction) {
+    switch (lastCommandType) {
       case 'KICK_PLAYER':
         if (prevSeat !== null && mySeat === null) {
           toast.warning(`你已被移出 ${prevSeat} 号座位`);

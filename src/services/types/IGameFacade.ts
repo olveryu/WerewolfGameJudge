@@ -83,10 +83,10 @@ export interface IGameFacade {
   getStateRevision(): number;
 
   /**
-   * Consume last broadcast's lastAction (one-time read, cleared after read)
+   * Consume the latest broadcast's command type (one-time read, cleared after read)
    * Used by client to detect passive operations (kick/clearAllSeats/assignRoles etc.) and show toast
    */
-  consumeLastAction(): string | null;
+  consumeLastCommandType(): string | null;
 
   /**
    * Subscribe to settlement result push (SETTLE_RESULT WebSocket unicast)

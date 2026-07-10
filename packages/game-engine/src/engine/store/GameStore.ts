@@ -28,8 +28,8 @@ export class GameStore implements IWritableGameStore {
   #revision: number = 0;
   readonly #listeners: Set<StoreStateListener> = new Set();
 
-  /** Action type carried by the most recent broadcast (consumed once) */
-  #lastAction: string | null = null;
+  /** Command type carried by the most recent broadcast (consumed once) */
+  #lastCommandType: string | null = null;
 
   /**
    * Get current state
@@ -61,7 +61,7 @@ export class GameStore implements IWritableGameStore {
    * Only applies when incoming revision > local revision
    * Applies normalizeState to ensure Host/Player shape consistency (anti-drift)
    */
-  applySnapshot(state: GameState, revision: number, lastAction?: string): void {
+  applySnapshot(state: GameState, revision: number, lastCommandType: string | null = null): void {
     if (revision <= this.#revision) {
       // Drop older revision
       return;
@@ -69,7 +69,7 @@ export class GameStore implements IWritableGameStore {
 
     this.#state = normalizeState(state);
     this.#revision = revision;
-    this.#lastAction = lastAction ?? null;
+    this.#lastCommandType = lastCommandType;
 
     this.#notifyListeners();
   }
@@ -113,7 +113,7 @@ export class GameStore implements IWritableGameStore {
   reset(): void {
     this.#state = null;
     this.#revision = 0;
-    this.#lastAction = null;
+    this.#lastCommandType = null;
     // Note: do not clear listeners — React useEffect listener lifecycle is independent of the store
     // Notify listeners that state has become null
     for (const listener of this.#listeners) {
@@ -132,17 +132,17 @@ export class GameStore implements IWritableGameStore {
   destroy(): void {
     this.#state = null;
     this.#revision = 0;
-    this.#lastAction = null;
+    this.#lastCommandType = null;
     this.#listeners.clear();
   }
 
   /**
-   * Consume the lastAction carried by the most recent broadcast (read once, clears after read)
+   * Consume the command type carried by the most recent broadcast (read once, clears after read)
    */
-  consumeLastAction(): string | null {
-    const action = this.#lastAction;
-    this.#lastAction = null;
-    return action;
+  consumeLastCommandType(): string | null {
+    const commandType = this.#lastCommandType;
+    this.#lastCommandType = null;
+    return commandType;
   }
 
   /**

@@ -196,8 +196,8 @@ export class GameFacade implements IGameFacade {
     return this.#store.getRevision();
   }
 
-  consumeLastAction(): string | null {
-    return this.#store.consumeLastAction();
+  consumeLastCommandType(): string | null {
+    return this.#store.consumeLastCommandType();
   }
 
   /**

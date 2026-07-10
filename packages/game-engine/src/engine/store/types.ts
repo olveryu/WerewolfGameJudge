@@ -29,10 +29,10 @@ interface IGameStore {
   subscribe(listener: StoreStateListener): () => void;
 
   /** Apply snapshot (player side) — receives wire payload, normalizes internally */
-  applySnapshot(state: GameState, revision: number, lastAction?: string): void;
+  applySnapshot(state: GameState, revision: number, lastCommandType?: string | null): void;
 
-  /** Consume the lastAction carried by the most recent broadcast (one-shot read, cleared after reading) */
-  consumeLastAction(): string | null;
+  /** Consume the last command type carried by the latest broadcast. */
+  consumeLastCommandType(): string | null;
 }
 
 /**
