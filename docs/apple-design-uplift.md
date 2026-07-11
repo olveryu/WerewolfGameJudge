@@ -124,8 +124,8 @@ screenPaddingH: spacing.screenH,  // 20 (was spacing.medium = 16)
 **Affected files (need marginHorizontal / paddingHorizontal update):**
 
 - `src/screens/HomeScreen/components/styles.ts` — `userBar.marginHorizontal`, `menu.marginHorizontal`
-- `src/screens/RoomScreen/RoomScreen.styles.ts` — `header.paddingHorizontal`, `scrollContent.padding`
-- `src/screens/RoomScreen/components/styles.ts` — multiple `marginHorizontal: spacing.medium`
+- `src/games/werewolf/room/WerewolfRoomScreen.styles.ts` — `header.paddingHorizontal`, `scrollContent.padding`
+- `src/features/room/components/styles.ts` — multiple `marginHorizontal: spacing.medium`
 - `src/screens/ConfigScreen/components/styles.ts` — header, cardA, cardB
 - `src/screens/SettingsScreen/components/styles.ts` — card outer margin
 
@@ -143,7 +143,7 @@ screenPaddingH: spacing.screenH,  // 20 (was spacing.medium = 16)
 
 - `src/screens/HomeScreen/components/styles.ts` — `primaryButton` from `borderRadius.medium` → `borderRadius.full`
 - `src/screens/ConfigScreen/components/styles.ts` — `bottomCreateBtn` already `borderRadius.full`, unchanged
-- `src/screens/RoomScreen/components/styles.ts` — already `borderRadius.full`, unchanged
+- `src/features/room/components/styles.ts` — already `borderRadius.full`, unchanged
 - `src/screens/SettingsScreen/components/styles.ts` — `logoutBtn` from `borderRadius.medium` → `borderRadius.full`
 
 **Risk:** Noticeable shape change but no functional impact. Rollback: restore individual borderRadius values.
@@ -265,7 +265,7 @@ Also add inline `ActivityIndicator` to all network request CTAs (currently HomeS
 pnpm add expo-blur
 ```
 
-**File:** `src/screens/RoomScreen/components/BottomActionPanel.tsx`
+**File:** `src/features/room/components/RoomBottomActionPanel.tsx`
 
 **Approach:** 用 `BlurView` 包裹面板内容：
 
@@ -288,7 +288,7 @@ import { BlurView } from 'expo-blur';
 
 ### 3.2 RoomScreen Header Blur
 
-**File:** `src/screens/RoomScreen/RoomScreen.tsx` + `RoomScreen.styles.ts`
+**File:** `src/games/werewolf/room/WerewolfRoomScreen.tsx` + `WerewolfRoomScreen.styles.ts`
 
 **Approach:** Header 的 `backgroundColor: colors.surface` → `BlurView` 包裹，背景色改半透明。`ScrollView` 加 `contentInsetAdjustmentBehavior` 或 `paddingTop` 确保内容不被遮挡。
 
@@ -355,7 +355,7 @@ Gesture drag-to-dismiss deferred (requires `@gorhom/bottom-sheet`, listed as ind
 
 ### 4.3 PlayerGrid Adaptive Column Count for Large Screens
 
-**File:** `src/screens/RoomScreen/components/SeatTile.tsx` + `PlayerGrid.tsx`
+**File:** `src/features/room/components/RoomSeatTile.tsx` + `RoomSeatBoard.tsx`
 
 **Approach:**
 

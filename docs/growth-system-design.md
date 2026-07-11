@@ -101,7 +101,7 @@ GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
   → #settleResultListeners → useSettleToast → sonner-native toast
 ```
 
-### Toast Display Logic (`src/hooks/useSettleToast.ts`)
+### Toast Display Logic (`src/games/werewolf/hooks/useWerewolfSettleToast.ts`)
 
 | Scenario        | Toast                                      |
 | --------------- | ------------------------------------------ |
@@ -164,7 +164,7 @@ GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
 | `packages/api-worker/src/handlers/statsHandlers.ts`                        | GET /api/user/stats                                           |
 | `packages/api-worker/migrations/0009_simplify_growth.sql`                  | D1 migration                                                  |
 | `src/services/feature/StatsService.ts`                                     | Client stats query                                            |
-| `src/hooks/useSettleToast.ts`                                              | Settlement toast                                              |
+| `src/games/werewolf/hooks/useWerewolfSettleToast.ts`                       | Settlement toast                                              |
 | `src/screens/SettingsScreen/components/GrowthSection.tsx`                  | Settings page growth section                                  |
 | `src/screens/AvatarPickerScreen/AvatarPickerScreen.tsx`                    | Avatar picker (level unlock)                                  |
 | Profile page moon phase banner (last game result, disappears after viewed) | `src/screens/SettingsScreen/`                                 |

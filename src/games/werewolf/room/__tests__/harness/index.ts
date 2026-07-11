@@ -1,0 +1,46 @@
+/**
+ * WerewolfRoomScreen Test Harness - Public API
+ *
+ * Provides test infrastructure for WerewolfRoomScreen UI tests.
+ */
+
+export {
+  BOARD_TEST_FILE_MAP,
+  type BoardConfig,
+  boardHasNightmare,
+  boardHasRole,
+  getAll12PBoards,
+  getBoardByName,
+  getRequiredServerDataDialogTypes,
+  getRequiredUiDialogTypes,
+} from './boardDialogCoverage';
+export {
+  chainActionConfirm,
+  chainConfirmTrigger,
+  chainSkipConfirm,
+  chainWolfRobotHunterStatus,
+  chainWolfVoteConfirm,
+  coverageChainActionPrompt,
+  coverageChainConfirmTrigger,
+  coverageChainMagicianSwap,
+  coverageChainNightmareBlocked,
+  coverageChainSeatActionConfirm,
+  coverageChainSkipConfirm,
+  coverageChainWitchPoisonPrompt,
+  coverageChainWitchSavePrompt,
+  coverageChainWolfRobotHunterStatus,
+  // Coverage-integrated chain drivers
+  coverageChainWolfVote,
+  coverageChainWolfVoteEmpty,
+  createGameRoomMock,
+  createReactiveGameRoomMock,
+  mockNavigation,
+  mockRoom,
+  tapSeat,
+  waitForRoomScreen,
+} from './boardTestUtils';
+export {
+  createShowAlertMock,
+  type DialogType,
+  RoomScreenTestHarness,
+} from './RoomScreenTestHarness';

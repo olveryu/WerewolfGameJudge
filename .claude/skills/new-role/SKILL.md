@@ -343,7 +343,7 @@ function computeNewRoleConfirmStatus(state: NonNullState): NewRoleConfirmStatus 
 
 ### 3. Client-side Display (`promptExecutor.ts`)
 
-**File**: `src/screens/RoomScreen/executors/promptExecutor.ts`
+**File**: `src/games/werewolf/room/executors/promptExecutor.ts`
 
 Dispatch by `statusUi.kind` in `confirmTriggerExecutor`:
 

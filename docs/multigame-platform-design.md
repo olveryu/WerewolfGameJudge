@@ -266,14 +266,26 @@ src/
 ├── games/
 │   ├── werewolf/
 │   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── room/
+│   │   │   ├── components/
+│   │   │   ├── executors/
+│   │   │   ├── hooks/
+│   │   │   ├── policy/
+│   │   │   ├── seatTap/
+│   │   │   └── WerewolfRoomScreen.tsx
 │   │   ├── screens/
 │   │   ├── services/
+│   │   ├── state/
 │   │   ├── werewolfRoomAdapter.ts
 │   │   └── module.ts
 │   ├── fibking/
 │   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── room/
 │   │   ├── screens/
 │   │   ├── services/
+│   │   ├── state/
 │   │   ├── fibRoomAdapter.ts
 │   │   └── module.ts
 │   └── catalog.ts
@@ -1783,15 +1795,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                            |
-| --------- | ------ | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                   |
-| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                   |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                   |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                   |
-| Phase 5   | 进行中 | shared model/shell、lazy seat、focused controllers、seat/QR modal、capability cutover  | profile shared split、目录归位、视觉 gate           |
-| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                 |
+| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                                |
+| --------- | ------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                       |
+| Phase 1   | 进行中 | canonical identity、版本化 codec、room slice/hooks/state 归 Werewolf                   | config/notepad/facade/runtime 归位、边界 exception 清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                       |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                       |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                       |
+| Phase 5   | 进行中 | shared shell/controllers、profile cutover、Werewolf room 归位、seat interaction gate   | shared DTO/命名中性化、entry/session 下沉               |
+| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                     |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -1935,3 +1947,35 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   game-engine 82 suites/2373 tests、api-worker 12 files/88 tests 全部通过。
 - Phase 5 仍未完成：`PlayerProfileCard` 还需拆成 shared frame/query/actions 与狼人杀 camp details slot，shared
   profile 必须由 `RoomShell` 直接渲染；随后把剩余 Werewolf screen/hooks/policy 归位并完成截图与 interaction gate。
+
+### 当前提交：Phase 1/5 Werewolf client ownership 与 shared profile
+
+- `PlayerProfileCard`、测试和 profile model 已移入 `src/features/room`，并由 `RoomShell` 直接渲染。
+  shared card 只拥有 query、基础资料、装备和 capability action；狼人杀阵营分布与内置角色头像名通过
+  `WerewolfProfileDetails` extension 注入。Bot 身份只读取 roster 的 `occupantKind`，不按 user ID 前缀猜测。
+- 原 `src/screens/RoomScreen` 的 123 个生产/测试文件完整移动到
+  `src/games/werewolf/room`。公开入口改为 `WerewolfRoomScreen`，screen state 与 helper/style 文件使用
+  Werewolf 所有权命名；没有旧路径 export 或转发层。
+- 根目录中直接绑定 `IGameFacade`、`GameStatus`、`RoleId` 或狼人杀 action 的 room/action/debug/BGM/
+  ack/settlement hooks 已移动到 `src/games/werewolf/hooks` 并使用 `useWerewolf*` 名称；state projection
+  移到 `src/games/werewolf/state/toWerewolfLocalState.ts`。generic `useConnectionStatus` 暂留根目录，下一批
+  随 shared `RoomSession` 一起中性化。
+- ActionIntent execution 删除 mutable registry、重复 registration 和第二份 exhaustive check，改为一个
+  `satisfies CompleteExecutorMap` 的静态穷尽表。缺少 variant 直接 typecheck 失败，不再存在“未处理再走旧
+  switch”的返回协议。
+- `toGameRoomLike` 只接受 `LocalGameState.wolfVotes` 的必填 `Map`；删除 plain-object 旧状态 cast、转换分支
+  和对应兼容测试。`lastNightDeaths` 同样按 `LocalGameState` 必填类型读取，不再为无效 null fixture 加 fallback。
+- Architecture contract 现在扫描 `src/games/werewolf`，禁止 services 反向 import game UI、跨 game import，
+  并锁定旧 `RoomScreen`、根级 Werewolf hooks 和旧 state adapter 必须不存在。`agents/path-rules`、new-role
+  skill 与现行设计文档路径已同步。
+- 定向验证：`pnpm exec tsc --noEmit` 通过；移动后的 room 67 suites/950 tests、profile/hooks/state/policy
+  14 suites/341 tests，以及 executor/helper 20 suites/279 tests 全部通过。
+- 测试发现范围做了迁移前后对账：同一提交基线的 root Jest 为 187 suites/4812 tests；把 authority、style
+  contract 的扫描根从 `screens/components` 扩展到 `features/games` 后，当前为 187 suites/4927 tests。
+  `hooks.boundary` 对缺失文件直接抛错，不再用 `existsSync` 静默跳过，因此目录归位不会减少实际执行覆盖。
+- 浏览器 interaction gate 原样通过 4/4：手动入座并打开本人 profile、房主直接移出、原子换座、本人离座。
+  首次运行复用旧 Metro 时首页 bundle 返回 HTTP 500；没有修改 timeout/helper，bundle 重建后同一测试和
+  完整四条均通过。成功截图已检查 header、配置区、六列 seat board 和 bottom panel 几何。
+- Phase 1/5 仍未完成：shared profile DTO 仍携带 `campStats/roleRevealEffect`，progress/seat tile 内部还存在
+  `night/role/wolfVote` 命名；auth entry、seat transport、connection status 仍由 Werewolf facade hook 承担。
+  下一批先中性化这些 shared contract，再删除 app-wide `GameFacadeContext` 的 runtime 组合方式。

@@ -42,27 +42,34 @@ function getAllProductionFiles(dir: string): string[] {
 
 const screensDir = path.join(process.cwd(), 'src', 'screens');
 const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
+const gamesDir = path.join(process.cwd(), 'src', 'games');
+const werewolfClientDir = path.join(gamesDir, 'werewolf');
 const servicesDir = path.join(process.cwd(), 'src', 'services');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 
 const screensFiles = getAllProductionFiles(screensDir);
 const sharedRoomFiles = getAllProductionFiles(sharedRoomDir);
+const werewolfClientFiles = getAllProductionFiles(werewolfClientDir);
 const servicesFiles = getAllProductionFiles(servicesDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
 
-// ─── Rule 1: services/ must NOT import screens/ ─────────────────────────────
+// ─── Rule 1: services/ must NOT import UI ownership roots ───────────────────
 
-describe('Layer boundary: services → screens (forbidden)', () => {
+describe('Layer boundary: services → UI (forbidden)', () => {
   it('should find services files to check', () => {
     expect(servicesFiles.length).toBeGreaterThan(0);
   });
 
-  const screensImportPattern = /^\s*import\b.*from\s+['"].*screens\//m;
+  const uiImportPatterns = [
+    /^\s*import\b.*from\s+['"].*screens\//m,
+    /^\s*import\b.*from\s+['"]@\/games\//m,
+  ];
 
-  it.each(servicesFiles)('%s must not import screens/', (filePath) => {
+  it.each(servicesFiles)('%s must not import screens/ or games/', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    const match = content.match(screensImportPattern);
-    expect(match).toBeNull();
+    for (const pattern of uiImportPatterns) {
+      expect(content.match(pattern)).toBeNull();
+    }
   });
 });
 
@@ -105,6 +112,38 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
     for (const pattern of forbiddenImports) {
       expect(content.match(pattern)).toBeNull();
     }
+  });
+});
+
+describe('Layer boundary: game modules are isolated', () => {
+  it('should find Werewolf client files to check', () => {
+    expect(werewolfClientFiles.length).toBeGreaterThan(0);
+  });
+
+  it.each(werewolfClientFiles)('%s must not import another game module', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    expect(content.match(/^\s*import\b.*from\s+['"]@\/games\/(?!werewolf(?:\/|['"]))/m)).toBeNull();
+  });
+});
+
+describe('Client ownership: removed generic Werewolf paths stay removed', () => {
+  const removedPaths = [
+    'src/screens/RoomScreen',
+    'src/hooks/useGameRoom.ts',
+    'src/hooks/useGameActions.ts',
+    'src/hooks/useDebugMode.ts',
+    'src/hooks/useBgmControl.ts',
+    'src/hooks/useLastActionToast.ts',
+    'src/hooks/useNightDerived.ts',
+    'src/hooks/useRoomLifecycle.ts',
+    'src/hooks/useSettleToast.ts',
+    'src/hooks/usePendingAcks.ts',
+    'src/hooks/useAckMutation.ts',
+    'src/hooks/adapters/toLocalState.ts',
+  ];
+
+  it.each(removedPaths)('%s must not exist', (relativePath) => {
+    expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
   });
 });
 

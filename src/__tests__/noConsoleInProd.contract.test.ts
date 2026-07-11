@@ -71,7 +71,7 @@ describe('No console.* in production code', () => {
 
 describe('No Math.random in speakOrder logic', () => {
   it('should not use Math.random in useRoomHostDialogs.ts', () => {
-    const fullPath = path.join(process.cwd(), 'src/screens/RoomScreen/useRoomHostDialogs.ts');
+    const fullPath = path.join(process.cwd(), 'src/games/werewolf/room/useRoomHostDialogs.ts');
     const content = fs.readFileSync(fullPath, 'utf-8');
 
     expect(content).not.toMatch(/Math\.random\s*\(\s*\)/);

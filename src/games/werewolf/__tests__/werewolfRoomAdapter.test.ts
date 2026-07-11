@@ -1,12 +1,12 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
+import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfRoomCapabilities,
   createWerewolfSeatDataSource,
   createWerewolfStatusRibbon,
 } from '@/games/werewolf/werewolfRoomAdapter';
-import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 
 function createCapabilityInput() {
   return {

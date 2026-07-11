@@ -1,9 +1,9 @@
 /** Werewolf client runtime registration. */
 
 import type { GameUiModule } from '@/features/room/model/GameUiModule';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 
 export const werewolfUiModule = {
   gameType: 'werewolf',
-  roomScreen: RoomScreen,
+  roomScreen: WerewolfRoomScreen,
 } satisfies GameUiModule<'werewolf'>;

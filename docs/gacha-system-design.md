@@ -661,7 +661,7 @@ export const dailyRewardSchema = z.object({
 
 ### 7.1 Settlement Toast Refactor
 
-**File**: `src/hooks/useSettleToast.ts`
+**File**: `src/games/werewolf/hooks/useWerewolfSettleToast.ts`
 
 Before:
 
@@ -918,7 +918,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 - `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` adds fields
 - `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` replaced with ticket count fields (remove `reward`)
 - `src/services/cloudflare/CFRealtimeService.ts` — Parse new fields
-- `src/hooks/useSettleToast.ts` — Display changed to ticket notification
+- `src/games/werewolf/hooks/useWerewolfSettleToast.ts` — Display changed to ticket notification
 
 **Impact analysis**:
 

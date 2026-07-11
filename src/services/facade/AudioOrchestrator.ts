@@ -167,7 +167,7 @@ export class AudioOrchestrator {
    * Triggers user gesture -> unlocks Web AudioContext.
    *
    * Behavior:
-   * 1. If BGM setting is on -> start BGM (called by useGameRoom)
+   * 1. If BGM setting is on -> start BGM (called by useWerewolfRoom)
    * 2. If audio was playing when disconnected -> replay current step begin audio
    * 3. After audio ends, POST audio-ack to unlock gate
    *

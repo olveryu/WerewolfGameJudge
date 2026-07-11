@@ -1,7 +1,7 @@
 /**
  * Contract test: Enforce design token usage in style files
  *
- * Scans production .ts/.tsx files in src/screens/ and src/components/ for
+ * Scans production .ts/.tsx files in all client UI ownership roots for
  * hardcoded style values that should reference design tokens from
  * src/theme/tokens.ts or theme colors.
  *
@@ -226,8 +226,15 @@ const KNOWN_VIOLATIONS: Record<string, number> = {
 describe('No hardcoded style values', () => {
   const screensDir = path.join(process.cwd(), 'src', 'screens');
   const componentsDir = path.join(process.cwd(), 'src', 'components');
+  const featuresDir = path.join(process.cwd(), 'src', 'features');
+  const gamesDir = path.join(process.cwd(), 'src', 'games');
 
-  const files = [...getProductionFiles(screensDir), ...getProductionFiles(componentsDir)];
+  const files = [
+    ...getProductionFiles(screensDir),
+    ...getProductionFiles(componentsDir),
+    ...getProductionFiles(featuresDir),
+    ...getProductionFiles(gamesDir),
+  ];
 
   const testCases = files.map((f) => path.relative(process.cwd(), f).replace(/\\/g, '/'));
 

@@ -79,15 +79,19 @@ describe('Server authority import boundary', () => {
   ];
 
   // Directories to check (UI layer - should not import server-authority modules)
+  const featuresDir = path.join(process.cwd(), 'src', 'features');
+  const gamesDir = path.join(process.cwd(), 'src', 'games');
   const hooksDir = path.join(process.cwd(), 'src', 'hooks');
   const screensDir = path.join(process.cwd(), 'src', 'screens');
 
+  const featuresFiles = getAllProductionFiles(featuresDir);
+  const gamesFiles = getAllProductionFiles(gamesDir);
   const hooksFiles = getAllProductionFiles(hooksDir);
   const screensFiles = getAllProductionFiles(screensDir);
-  const allFilesToCheck = [...hooksFiles, ...screensFiles];
+  const allFilesToCheck = [...featuresFiles, ...gamesFiles, ...hooksFiles, ...screensFiles];
 
   // Ensure we found files to check
-  it('should find hooks and screens files to check', () => {
+  it('should find feature, game, hook, and screen files to check', () => {
     expect(allFilesToCheck.length).toBeGreaterThan(0);
   });
 

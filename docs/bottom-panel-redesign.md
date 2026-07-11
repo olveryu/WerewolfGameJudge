@@ -219,18 +219,18 @@ Tier is not declared in game-engine spec; it's derived by the UI layer in `resol
 
 ## File Change List
 
-| File                                                       | Action        | Content                                                                                   |
-| ---------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
-| `src/screens/RoomScreen/hooks/bottomLayoutConfig.ts`       | **New**       | Type definitions + `STATIC_BUTTONS` mapping + `LAYOUT_RULES` rule table                   |
-| `src/screens/RoomScreen/hooks/resolveBottomLayout.ts`      | **New**       | Pure function: rule matching + slot materialization                                       |
-| `src/screens/RoomScreen/hooks/resolveBottomLayout.test.ts` | **New**       | `it.each` assertions for each phase×role combination                                      |
-| `src/screens/RoomScreen/hooks/useBottomLayout.ts`          | **New**       | Hook wrapper                                                                              |
-| `src/screens/RoomScreen/hooks/bottomActionBuilder.ts`      | **No change** | Called by `resolveBottomLayout`                                                           |
-| `src/screens/RoomScreen/components/BottomActionPanel.tsx`  | **Modify**    | Interface changed to `layout: BottomLayout`, three-zone render                            |
-| `src/screens/RoomScreen/components/styles.ts`              | **Modify**    | `BottomActionPanelStyles` add `ghostRow`                                                  |
-| `src/screens/RoomScreen/components/statusPanels.styles.ts` | **Modify**    | `buttonRow` → `flexDirection: 'column'` + `alignItems: 'stretch'`; add `ghostRow`         |
-| `src/screens/RoomScreen/RoomScreen.tsx`                    | **Modify**    | Remove ~110 lines of button JSX, replace with `useBottomLayout` + `layout={bottomLayout}` |
-| `src/screens/RoomScreen/components/HostControlButtons.tsx` | **Delete**    | Logic merged into `LAYOUT_RULES` + `STATIC_BUTTONS`                                       |
+| File                                                        | Action        | Content                                                                                   |
+| ----------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
+| `src/games/werewolf/room/hooks/bottomLayoutConfig.ts`       | **New**       | Type definitions + `STATIC_BUTTONS` mapping + `LAYOUT_RULES` rule table                   |
+| `src/games/werewolf/room/hooks/resolveBottomLayout.ts`      | **New**       | Pure function: rule matching + slot materialization                                       |
+| `src/games/werewolf/room/hooks/resolveBottomLayout.test.ts` | **New**       | `it.each` assertions for each phase×role combination                                      |
+| `src/games/werewolf/room/hooks/useBottomLayout.ts`          | **New**       | Hook wrapper                                                                              |
+| `src/games/werewolf/room/hooks/bottomActionBuilder.ts`      | **No change** | Called by `resolveBottomLayout`                                                           |
+| `src/features/room/components/RoomBottomActionPanel.tsx`    | **Modify**    | Interface changed to `layout: BottomLayout`, three-zone render                            |
+| `src/features/room/components/styles.ts`                    | **Modify**    | `BottomActionPanelStyles` add `ghostRow`                                                  |
+| `src/features/room/components/statusPanels.styles.ts`       | **Modify**    | `buttonRow` → `flexDirection: 'column'` + `alignItems: 'stretch'`; add `ghostRow`         |
+| `src/games/werewolf/room/WerewolfRoomScreen.tsx`            | **Modify**    | Remove ~110 lines of button JSX, replace with `useBottomLayout` + `layout={bottomLayout}` |
+| `src/games/werewolf/room/components/HostControlButtons.tsx` | **Delete**    | Logic merged into `LAYOUT_RULES` + `STATIC_BUTTONS`                                       |
 
 ## E2E Impact
 

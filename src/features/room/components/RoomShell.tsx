@@ -12,6 +12,7 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 
 import { ControlledSeatBanner } from './ControlledSeatBanner';
+import { PlayerProfileCard } from './PlayerProfileCard';
 import { QRCodeModal } from './QRCodeModal';
 import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHeaderActions } from './RoomHeaderActions';
@@ -123,6 +124,8 @@ export const RoomShell: React.FC<RoomShellProps> = ({
           styles={componentStyles.seatConfirmModal}
         />
       )}
+
+      {model.profile && <PlayerProfileCard model={model.profile} />}
 
       <QRCodeModal model={model.share} />
 

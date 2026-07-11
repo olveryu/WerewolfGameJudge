@@ -25,9 +25,9 @@ import type {
   BottomLayout,
   ButtonConfig,
   StaticButtonId,
-} from '@/screens/RoomScreen/hooks/bottomLayoutConfig';
-import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
-import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
+} from '@/games/werewolf/room/hooks/bottomLayoutConfig';
+import type { ActionIntent } from '@/games/werewolf/room/policy/types';
+import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';

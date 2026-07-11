@@ -1,0 +1,16 @@
+/**
+ * useWerewolfPendingAcks — true while any protocol ack mutation is in-flight.
+ *
+ * Aggregates over all mutations registered with `mutationKey: ['ack', ...]`
+ * via useWerewolfAckMutation. RoomInteractionPolicy uses this as a single gate
+ * replacing the per-ack boolean flags.
+ *
+ * Lifetime semantics: covers the entire HTTP roundtrip, including the
+ * window after the user dismisses the dialog but before the server confirms
+ * — exactly the protocol race window the previous pendingX flags protected.
+ */
+
+import { useIsMutating } from '@tanstack/react-query';
+
+/** Returns true when any protocol ack mutation is in flight; used as a gate in RoomInteractionPolicy. */
+export const useWerewolfPendingAcks = (): boolean => useIsMutating({ mutationKey: ['ack'] }) > 0;

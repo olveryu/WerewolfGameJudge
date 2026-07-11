@@ -1,0 +1,469 @@
+/**
+ * werewolfRoom.helpers.ts - Pure functions for WerewolfRoomScreen
+ *
+ * These are pure utility functions with no side effects.
+ * They only depend on types and the roles registry (getRoleSpec, isWolfRole).
+ * Does not import services, navigation, or React.
+ */
+
+import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
+import {
+  canRoleSeeWolves,
+  doesRoleParticipateInWolfVote,
+  getRoleSpec,
+  isWolfRole,
+} from '@werewolf/game-engine/models/roles';
+import {
+  type ActionSchema,
+  SCHEMAS,
+  TargetConstraint,
+} from '@werewolf/game-engine/models/roles/spec';
+import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import {
+  getBottomCardEffectiveRole,
+  isBottomCardWolfVoteExcluded,
+} from '@werewolf/game-engine/utils/playerHelpers';
+
+import type { LocalGameState } from '@/types/GameStateTypes';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/**
+ * Common interface for Room-like objects (supports both Room and LocalGameState).
+ * Used by getWolfVoteSummary and toGameRoomLike.
+ */
+interface GameRoomLike {
+  template: GameTemplate;
+  players: Map<
+    number,
+    {
+      userId: string;
+      seat: number;
+      role: RoleId | null;
+      hasViewedRole: boolean;
+      displayName?: string;
+      avatarUrl?: string | null;
+      level?: number;
+    } | null
+  >;
+  actions: Map<RoleId, RoleAction>;
+  wolfVotes: Map<number, number>;
+  currentStepIndex: number;
+  thiefChosenCard?: RoleId | null;
+  treasureMasterChosenCard?: RoleId | null;
+}
+
+/** Whether the current player is the actioner and whether to show wolf teammates. */
+export interface ActionerState {
+  imActioner: boolean;
+  showWolves: boolean;
+}
+
+/** Structured role item for BoardInfoCard touchable chips */
+export interface RoleDisplayItem {
+  roleId: string;
+  displayName: string;
+  count: number;
+}
+
+interface RoleStats {
+  roleCounts: Record<string, number>;
+  wolfRoles: string[];
+  godRoles: string[];
+  specialRoles: string[];
+  villagerCount: number;
+  wolfRoleItems: RoleDisplayItem[];
+  godRoleItems: RoleDisplayItem[];
+  specialRoleItems: RoleDisplayItem[];
+  /** Villager-faction roles that are NOT generic 'villager' (e.g. mirrorSeer) */
+  villagerRoleItems: RoleDisplayItem[];
+}
+
+export interface SeatViewModel {
+  seat: number;
+  role: RoleId;
+  player: {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    avatarFrame?: string;
+    seatFlair?: string;
+    seatAnimation?: string;
+    nameStyle?: string;
+    roleRevealEffect?: string;
+    level?: number;
+    isBot?: boolean;
+    role?: RoleId | null; // For bot role display (debug mode)
+  } | null;
+  isMySpot: boolean;
+  isWolf: boolean;
+  isSelected: boolean;
+  /** UX-only: if set, the seat is non-selectable for the current UI context (server still validates). */
+  disabledReason?: string;
+  /** Show ✅ badge on seat tile (e.g. player has viewed role during assigned phase). */
+  showReadyBadge?: boolean;
+  /** Pre-formatted wolf vote badge text (visible to wolf-faction only during wolf meeting). */
+  wolfVoteBadge?: string;
+}
+
+// =============================================================================
+// Pure Functions
+// =============================================================================
+
+/**
+ * Determine if the current player is the actioner and whether to show wolves
+ *
+ * Schema-driven logic:
+ * - showWolves = true only when:
+ *   1. schema.kind === 'wolfVote' AND schema.meeting.canSeeEachOther === true
+ *   2. actorRole is a wolf that participates in wolf vote
+ *
+ * @param actorRole - Actor's role (actorRoleForUi — may be bot's role when Host is delegating)
+ * @param currentActionRole - The role that should act now
+ * @param currentSchema - Current action schema (schema-driven UI)
+ * @param actorSeat - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
+ * @param wolfVotes - Map of wolf votes (seat -> target)
+ * @param actions - Map of already submitted role actions
+ * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
+ * @param thiefChosenCard - The role thief chose from bottom cards (if any)
+ * @param groupConfirmAcks - Seats that have already acked the current groupConfirm step
+ */
+export function determineActionerState(
+  actorRole: RoleId | null,
+  currentActionRole: RoleId | null,
+  currentSchema: ActionSchema | null,
+  actorSeat: number | null,
+  wolfVotes: Map<number, number>,
+  actions: Map<RoleId, RoleAction> = new Map(),
+  treasureMasterChosenCard?: RoleId | null,
+  thiefChosenCard?: RoleId | null,
+  groupConfirmAcks: readonly number[] = [],
+): ActionerState {
+  if (!currentActionRole || !actorRole) {
+    return { imActioner: false, showWolves: false };
+  }
+
+  // groupConfirm: ALL seated players are actioners, UNLESS they already acked
+  if (currentSchema?.kind === 'groupConfirm' && actorSeat !== null) {
+    const alreadyAcked = groupConfirmAcks.includes(actorSeat);
+    return { imActioner: !alreadyAcked, showWolves: false };
+  }
+
+  // Schema-driven: determine if this is a wolf meeting phase
+  const isWolfMeetingSchema =
+    currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
+
+  // Effective role: for bottom card actors (thief/treasureMaster), use the chosen card's role
+  const effectiveRole = getBottomCardEffectiveRole(
+    actorRole,
+    thiefChosenCard,
+    treasureMasterChosenCard,
+  );
+
+  // My effective role matches current action
+  if (effectiveRole === currentActionRole) {
+    return handleMatchingRole(effectiveRole, actorSeat, wolfVotes, actions, isWolfMeetingSchema);
+  }
+
+  // Wolf meeting phase: participating wolves can see pack list and act
+  if (isWolfMeetingSchema && isWolfRole(effectiveRole)) {
+    if (isBottomCardWolfVoteExcluded(actorRole)) {
+      return { imActioner: false, showWolves: false };
+    }
+    if (!doesRoleParticipateInWolfVote(effectiveRole)) {
+      // Non-voting wolves (e.g., wolfRobot) cannot see the pack
+      return { imActioner: false, showWolves: false };
+    }
+    return handleWolfTeamTurn(actorSeat, wolfVotes);
+  }
+
+  return { imActioner: false, showWolves: false };
+}
+
+function handleMatchingRole(
+  actorRole: RoleId,
+  actorSeat: number | null,
+  _wolfVotes: Map<number, number>,
+  actions: Map<RoleId, RoleAction>,
+  isWolfMeetingSchema: boolean,
+): ActionerState {
+  // Wolf meeting phase: always imActioner (revote allowed)
+  if (isWolfMeetingSchema && doesRoleParticipateInWolfVote(actorRole)) {
+    return { imActioner: true, showWolves: true };
+  }
+
+  // For non-wolf roles, check if action already submitted
+  // (Skip wolf roles as they use wolfVotes for vote tracking)
+  if (!isWolfRole(actorRole) && actions.has(actorRole)) {
+    return { imActioner: false, showWolves: false };
+  }
+
+  // Schema-driven: show wolves only during wolf meeting with canSeeEachOther
+  const showWolves =
+    isWolfMeetingSchema && isWolfRole(actorRole) && doesRoleParticipateInWolfVote(actorRole);
+
+  return { imActioner: true, showWolves };
+}
+
+function handleWolfTeamTurn(
+  _actorSeat: number | null,
+  _wolfVotes: Map<number, number>,
+): ActionerState {
+  // Revote allowed: always imActioner during wolf meeting
+  return { imActioner: true, showWolves: true };
+}
+
+/**
+ * Convert LocalGameState to GameRoomLike for Room.ts helper functions
+ * The types are compatible - LocalPlayer matches GameRoomLike's player type
+ */
+export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
+  return {
+    template: gameState.template,
+    players: gameState.players,
+    actions: gameState.actions,
+    wolfVotes: gameState.wolfVotes,
+    currentStepIndex: gameState.currentStepIndex,
+    thiefChosenCard: gameState.thiefChosenCard,
+    treasureMasterChosenCard: gameState.treasureMasterChosenCard,
+  };
+}
+
+/**
+ * Format a wolf vote entry into badge text.
+ * -1 → schema-defined empty knife text; ≥0 → "袭击{seat+1}号".
+ */
+function formatWolfVoteBadge(vote: number): string {
+  return vote === -1 ? SCHEMAS.wolfKill.ui!.emptyVoteText! : `袭击${formatSeat(vote)}`;
+}
+
+/**
+ * Get wolf vote summary for display (e.g. "2/3 狼人已确认")
+ */
+export function getWolfVoteSummary(room: GameRoomLike): string {
+  const wolfSeats: number[] = [];
+  room.players.forEach((player, seat) => {
+    if (player?.role) {
+      const effectiveRole = getBottomCardEffectiveRole(
+        player.role,
+        room.thiefChosenCard,
+        room.treasureMasterChosenCard,
+      );
+      if (
+        doesRoleParticipateInWolfVote(effectiveRole) &&
+        !isBottomCardWolfVoteExcluded(player.role)
+      ) {
+        wolfSeats.push(seat);
+      }
+    }
+  });
+  wolfSeats.sort((a, b) => a - b);
+
+  const voted = wolfSeats.filter((seat) => room.wolfVotes.has(seat));
+  return `${voted.length}/${wolfSeats.length} 狼人已确认`;
+}
+
+/**
+ * Calculate role statistics for display
+ */
+export function getRoleStats(roles: RoleId[]): RoleStats {
+  const roleCounts: Record<string, number> = {};
+  const wolfRolesList: string[] = [];
+  const godRolesList: string[] = [];
+  const specialRolesList: string[] = [];
+  const wolfItemMap = new Map<string, RoleDisplayItem>();
+  const godItemMap = new Map<string, RoleDisplayItem>();
+  const specialItemMap = new Map<string, RoleDisplayItem>();
+  const villagerItemMap = new Map<string, RoleDisplayItem>();
+  let villagerCount = 0;
+
+  // Role config is from the judge's perspective — use the real role spec (bypass displayAs masking)
+  roles.forEach((role) => {
+    const spec = getRoleSpec(role);
+    if (!spec) return;
+
+    const { faction, displayName } = spec;
+
+    if (faction === Faction.Wolf) {
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
+      if (!wolfRolesList.includes(displayName)) {
+        wolfRolesList.push(displayName);
+      }
+      const existing = wolfItemMap.get(role);
+      wolfItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName, count: 1 },
+      );
+    } else if (faction === Faction.God) {
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
+      if (!godRolesList.includes(displayName)) {
+        godRolesList.push(displayName);
+      }
+      const existing = godItemMap.get(role);
+      godItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName, count: 1 },
+      );
+    } else if (faction === Faction.Special) {
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
+      if (!specialRolesList.includes(displayName)) {
+        specialRolesList.push(displayName);
+      }
+      const existing = specialItemMap.get(role);
+      specialItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName, count: 1 },
+      );
+    } else if (role === 'villager') {
+      villagerCount++;
+    } else {
+      // Villager-faction but not generic villager (e.g. mirrorSeer)
+      roleCounts[displayName] = (roleCounts[displayName] ?? 0) + 1;
+      const existing = villagerItemMap.get(role);
+      villagerItemMap.set(
+        role,
+        existing
+          ? { ...existing, count: existing.count + 1 }
+          : { roleId: role, displayName, count: 1 },
+      );
+    }
+  });
+
+  return {
+    roleCounts,
+    wolfRoles: wolfRolesList,
+    godRoles: godRolesList,
+    specialRoles: specialRolesList,
+    villagerCount,
+    wolfRoleItems: [...wolfItemMap.values()],
+    godRoleItems: [...godItemMap.values()],
+    specialRoleItems: [...specialItemMap.values()],
+    villagerRoleItems: [...villagerItemMap.values()],
+  };
+}
+
+/**
+ * Build SeatViewModel array from game state
+ *
+ * @param actorSeat - Actor's seat (actorSeatForUi). Used for isMySpot + notSelf constraint.
+ */
+export function buildSeatViewModels(
+  gameState: LocalGameState,
+  actorSeat: number | null,
+  showWolves: boolean,
+  selectedSeat: number | null,
+  options?: {
+    /**
+     * Schema constraints for current action (e.g. ['notSelf']).
+     * UX-only early rejection - server still validates.
+     */
+    schemaConstraints?: readonly TargetConstraint[];
+    /**
+     * Second selected seat for swap schema (magician).
+     * Used to highlight the second seat being selected before confirmation.
+     */
+    secondSelectedSeat?: number | null;
+    /**
+     * Multi-selected seats for multiChooseSeat schema (piper hypnotize).
+     * Each selected seat is highlighted.
+     */
+    multiSelectedSeats?: readonly number[];
+    /**
+     * Show ✅ ready badge on seats where player has viewed their role.
+     * Typically true during Assigned phase.
+     */
+    showReadyBadges?: boolean;
+    /**
+     * Seats that have acked groupConfirm (e.g. piperHypnotizedReveal).
+     * Shows ✅ badge on acked seats during groupConfirm phase.
+     */
+    groupConfirmAcks?: readonly number[];
+  },
+): SeatViewModel[] {
+  // Wolf vote progress: reuse ✅ badge on wolf seats that have voted (ongoing phase only, mutually exclusive with assigned/ready badge)
+  const wolfVotesBySeat = showWolves ? gameState.currentNightResults?.wolfVotesBySeat : undefined;
+
+  const playerRoles = gameState.template.roles.slice(0, gameState.template.numberOfPlayers);
+  return playerRoles.map((role, seat) => {
+    const player = gameState.players.get(seat);
+    // For bottom card actors (thief/treasureMaster), use the chosen card's role
+    // so they are highlighted as wolf / shown vote badge during wolfKill.
+    const effectiveRole = player?.role
+      ? getBottomCardEffectiveRole(
+          player.role,
+          gameState.thiefChosenCard,
+          gameState.treasureMasterChosenCard,
+        )
+      : role;
+    // Wolf visibility is controlled by ActionerState.showWolves.
+    // When true, only wolf-faction roles with canSeeWolves=true are highlighted.
+    // Roles like gargoyle/wolfRobot (canSeeWolves=false) are hidden from wolf pack view.
+    // treasureMaster never meets wolves even when choosing a wolf card.
+    const originalRole = player?.role ?? role;
+    const isWolf =
+      showWolves &&
+      isWolfRole(effectiveRole) &&
+      canRoleSeeWolves(effectiveRole) &&
+      !isBottomCardWolfVoteExcluded(originalRole);
+
+    // UX-only early rejection based on schema constraints.
+    // IMPORTANT: Server remains the authority. This is just early UI guidance.
+    let disabledReason: string | undefined;
+
+    // Constraint: notSelf - cannot select own seat
+    if (options?.schemaConstraints?.includes(TargetConstraint.NotSelf) && seat === actorSeat) {
+      disabledReason = '不能选择自己';
+    }
+
+    // ✅ badge: assigned/ready → "已查看身份"
+    // groupConfirm ack → "已确认催眠"
+    // wolfVoteBadge already covers the "已投票" semantic; the two are mutually exclusive
+    const hasWolfVoteBadge = isWolf && wolfVotesBySeat != null && String(seat) in wolfVotesBySeat;
+    const readyBadge =
+      !hasWolfVoteBadge &&
+      ((options?.showReadyBadges && player != null && player.hasViewedRole) ||
+        (options?.groupConfirmAcks?.includes(seat) ?? false));
+
+    return {
+      seat,
+      role,
+      player: player
+        ? {
+            userId: player.userId,
+            displayName: player.displayName || '玩家',
+            avatarUrl: player.avatarUrl,
+            avatarFrame: player.avatarFrame,
+            seatFlair: player.seatFlair,
+            seatAnimation: player.seatAnimation,
+            nameStyle: player.nameStyle,
+            roleRevealEffect: player.roleRevealEffect,
+            level: player.level,
+            isBot: player.isBot,
+            role: player.role, // For bot role display (debug mode)
+          }
+        : null,
+      isMySpot: actorSeat === seat,
+      isWolf,
+      isSelected:
+        selectedSeat === seat ||
+        options?.secondSelectedSeat === seat ||
+        (options?.multiSelectedSeats?.includes(seat) ?? false),
+      disabledReason,
+      showReadyBadge: readyBadge,
+      wolfVoteBadge: hasWolfVoteBadge
+        ? formatWolfVoteBadge(wolfVotesBySeat[String(seat)]!)
+        : undefined,
+    };
+  });
+}
