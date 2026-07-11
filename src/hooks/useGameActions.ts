@@ -153,7 +153,9 @@ interface GameActionsDeps {
     // Stop BGM on restart
     bgm.stopBgm();
     // Clear controlled seat on restart
-    debug.setControlledSeat(null);
+    if (debug.controlledSeat !== null) {
+      debug.releaseBot();
+    }
     const result = await facade.restartGame();
     handleMutationResult(result, '重新开始', toastError);
   }, [facade, bgm, debug]);

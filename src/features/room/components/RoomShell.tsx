@@ -12,9 +12,11 @@ import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 
 import { ControlledSeatBanner } from './ControlledSeatBanner';
+import { QRCodeModal } from './QRCodeModal';
 import { RoomBottomActionPanel } from './RoomBottomActionPanel';
 import { RoomHeaderActions } from './RoomHeaderActions';
 import { RoomSeatBoard } from './RoomSeatBoard';
+import { RoomSeatConfirmModal } from './RoomSeatConfirmModal';
 import { createRoomShellStyles } from './RoomShell.styles';
 import { RoomStatusRibbon } from './RoomStatusRibbon';
 import { createRoomFeatureStyles } from './styles';
@@ -115,6 +117,15 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         bottomInset={insets.bottom}
       />
 
+      {model.seatConfirmation && (
+        <RoomSeatConfirmModal
+          model={model.seatConfirmation}
+          styles={componentStyles.seatConfirmModal}
+        />
+      )}
+
+      <QRCodeModal model={model.share} />
+
       {gameOverlays}
     </SafeAreaView>
   );
@@ -144,9 +155,7 @@ function buildMenuItems(model: RoomShellModel): readonly RoomHeaderMenuItem[] {
       icon: 'exit-outline',
       group: 'operation',
       tone: 'danger',
-      onPress: () => {
-        void clearSeats.execute();
-      },
+      onPress: clearSeats.execute,
     });
   }
   const fillBots = model.capabilities.canFillBots;
@@ -157,9 +166,7 @@ function buildMenuItems(model: RoomShellModel): readonly RoomHeaderMenuItem[] {
       icon: 'people-outline',
       group: 'operation',
       tone: 'default',
-      onPress: () => {
-        void fillBots.execute();
-      },
+      onPress: fillBots.execute,
     });
   }
 

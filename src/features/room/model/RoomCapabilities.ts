@@ -19,16 +19,15 @@ export interface RoomProfileTarget {
   readonly userId: string;
   readonly occupantKind: 'human' | 'bot';
   readonly rosterName: string;
-  readonly isSelf: boolean;
 }
 
 export interface RoomCapabilities {
-  readonly canTakeSeat: RoomCapability<readonly [seat: number], Promise<RoomOperationResult>>;
-  readonly canMoveSeat: RoomCapability<readonly [seat: number], Promise<RoomOperationResult>>;
-  readonly canLeaveSeat: RoomCapability<readonly [], Promise<RoomOperationResult>>;
-  readonly canKickSeat: RoomCapability<readonly [seat: number], Promise<RoomOperationResult>>;
-  readonly canClearSeats: RoomCapability<readonly [], Promise<RoomOperationResult>>;
-  readonly canFillBots: RoomCapability<readonly [], Promise<RoomOperationResult>>;
+  readonly canTakeSeat: RoomCapability<readonly [seat: number]>;
+  readonly canMoveSeat: RoomCapability<readonly [seat: number]>;
+  readonly canLeaveSeat: RoomCapability;
+  readonly canKickSeat: RoomCapability<readonly [seat: number]>;
+  readonly canClearSeats: RoomCapability;
+  readonly canFillBots: RoomCapability;
   readonly canConfigureGame: RoomCapability;
   readonly canViewProfiles: RoomCapability<readonly [target: RoomProfileTarget]>;
   readonly canTakeOverBots: RoomCapability<readonly [seat: number]>;

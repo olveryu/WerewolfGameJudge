@@ -9,13 +9,13 @@
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 
-import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
   getInteractionResult,
@@ -24,9 +24,8 @@ import {
 } from '@/screens/RoomScreen/policy';
 import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { LocalGameState } from '@/types/GameStateTypes';
-import { showDestructiveAlert, showDismissAlert, showErrorAlert } from '@/utils/alertPresets';
+import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
-import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -57,27 +56,18 @@ interface UseInteractionDispatcherParams {
   handleActionIntent: (intent: ActionIntent) => Promise<void>;
   getActionIntent: (seat: number) => ActionIntent | null;
 
-  // ── Dialog callbacks ──
-  showEnterSeatDialog: (seat: number) => void;
-  showLeaveSeatDialog: (seat: number) => void;
-  handleLeaveRoom: () => void;
-
-  // ── Modal state (guard against duplicate opens) ──
-  seatModalVisible: boolean;
+  // ── Shared room capabilities/controllers ──
+  capabilities: RoomCapabilities;
+  requestRoomExit: () => void;
+  releaseBot: () => void;
 
   // ── Seat operations (raw API) ──
-  leaveSeat: () => Promise<ActionResult>;
   viewedRole: () => Promise<ActionResult>;
 
   // ── Host dialogs ──
-  handleSettingsPress: () => void;
   showPrepareToFlipDialog: () => void;
   showStartGameDialog: () => void;
   showRestartDialog: () => void;
-
-  // ── Submission callbacks ──
-  setControlledSeat: (seat: number | null) => void;
-  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
 
   // ── Role card state setters (owned by RoomScreen) ──
   setRoleCardVisible: (v: boolean) => void;
@@ -94,19 +84,6 @@ interface UseInteractionDispatcherResult {
   onSeatLongPressed: (seat: number) => void;
   /** Computed interaction context (exposed for BottomActionPanel / tests). */
   interactionContext: InteractionContext;
-  /** Player profile card state */
-  profileCardVisible: boolean;
-  profileCardTargetUserId: string;
-  profileCardTargetSeat: number;
-  /** Display name from roster (for bots or offline render without API) */
-  profileCardRosterName: string;
-  /** Whether the profile card is showing the current player's own profile */
-  profileCardIsSelf: boolean;
-  openProfile: (target: RoomProfileTarget) => void;
-  closeProfileCard: () => void;
-  handleProfileKick: ((seat: number) => void) | undefined;
-  /** Callback when self-profile leave seat button is tapped */
-  handleProfileLeaveSeat: ((seat: number) => void) | undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,85 +106,17 @@ export function useInteractionDispatcher({
   isDelegating,
   handleActionIntent,
   getActionIntent,
-  showEnterSeatDialog,
-  showLeaveSeatDialog,
-  handleLeaveRoom,
-  seatModalVisible,
-  leaveSeat,
+  capabilities,
+  requestRoomExit,
+  releaseBot,
   viewedRole,
-  handleSettingsPress,
   showPrepareToFlipDialog,
   showStartGameDialog,
   showRestartDialog,
-  setControlledSeat,
-  kickPlayer,
   setRoleCardVisible,
   setShouldPlayRevealAnimation,
   setIsLoadingRole,
 }: UseInteractionDispatcherParams): UseInteractionDispatcherResult {
-  // ─── Profile card state ──────────────────────────────────────────────────
-
-  const [profileCardVisible, setProfileCardVisible] = useState(false);
-  const [profileCardTargetUserId, setProfileCardTargetUserId] = useState('');
-  const [profileCardTargetSeat, setProfileCardTargetSeat] = useState(0);
-  const [profileCardRosterName, setProfileCardRosterName] = useState('');
-  const [profileCardIsSelf, setProfileCardIsSelf] = useState(false);
-
-  const closeProfileCard = useCallback(() => {
-    setProfileCardVisible(false);
-  }, []);
-
-  const openProfile = useCallback((target: RoomProfileTarget) => {
-    setProfileCardTargetUserId(target.userId);
-    setProfileCardTargetSeat(target.seat);
-    setProfileCardRosterName(target.rosterName);
-    setProfileCardIsSelf(target.isSelf);
-    setProfileCardVisible(true);
-  }, []);
-
-  const canKick = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
-
-  const handleProfileKick = useMemo(
-    () =>
-      canKick
-        ? (seat: number) => {
-            roomScreenLog.debug('handleProfileKick', { seat });
-            setProfileCardVisible(false);
-            void kickPlayer(seat).catch((err) => {
-              handleError(err, {
-                label: '移出',
-                logger: roomScreenLog,
-              });
-            });
-          }
-        : undefined,
-    [canKick, kickPlayer],
-  );
-
-  const handleProfileLeaveSeat = useMemo(
-    () =>
-      canKick
-        ? (_seat: number) => {
-            roomScreenLog.debug('handleProfileLeaveSeat', { seat: _seat });
-            setProfileCardVisible(false);
-            void leaveSeat()
-              .then((result) => {
-                if (!result.success) {
-                  showErrorAlert('离座失败', getUserFacingMessage(result));
-                }
-              })
-              .catch((err) => {
-                handleError(err, {
-                  label: '离座',
-                  logger: roomScreenLog,
-                  alertMessage: '房间响应异常，请重新进入房间后重试。',
-                });
-              });
-          }
-        : undefined,
-    [canKick, leaveSeat],
-  );
-
   // ─── Seat tap sub-handlers ───────────────────────────────────────────────
 
   /** Throttle guard for audio-gate toast — avoids spamming when user taps repeatedly */
@@ -216,15 +125,13 @@ export function useInteractionDispatcher({
 
   const handleSeatingTap = useCallback(
     (seat: number) => {
-      if (seatModalVisible) return;
-
-      if (mySeat !== null && seat === mySeat) {
-        showLeaveSeatDialog(seat);
-      } else {
-        showEnterSeatDialog(seat);
+      const capability = mySeat === null ? capabilities.canTakeSeat : capabilities.canMoveSeat;
+      if (!capability.isAllowed) {
+        throw new Error(`Werewolf seating policy emitted denied capability: ${capability.reason}`);
       }
+      capability.execute(seat);
     },
-    [seatModalVisible, mySeat, showLeaveSeatDialog, showEnterSeatDialog],
+    [capabilities.canMoveSeat, capabilities.canTakeSeat, mySeat],
   );
 
   const handleActionTap = useCallback(
@@ -327,12 +234,6 @@ export function useInteractionDispatcher({
 
         case 'SHOW_DIALOG':
           switch (result.dialogType) {
-            case 'seatingEnter':
-              if (result.seat !== undefined) showEnterSeatDialog(result.seat);
-              return;
-            case 'seatingLeave':
-              if (result.seat !== undefined) showLeaveSeatDialog(result.seat);
-              return;
             case 'roleCard':
               {
                 const effectivePlayer =
@@ -372,7 +273,7 @@ export function useInteractionDispatcher({
               return;
             case 'leaveRoom':
               roomScreenLog.debug('dispatchInteraction Show leaveRoom dialog');
-              handleLeaveRoom();
+              requestRoomExit();
               return;
             default: {
               const _exhaustive: never = result.dialogType;
@@ -408,9 +309,6 @@ export function useInteractionDispatcher({
         case 'HOST_CONTROL':
           roomScreenLog.debug('dispatchInteraction HOST_CONTROL', { action: result.action });
           switch (result.action) {
-            case 'settings':
-              handleSettingsPress();
-              return;
             case 'prepareToFlip':
               showPrepareToFlipDialog();
               return;
@@ -432,55 +330,44 @@ export function useInteractionDispatcher({
           roomScreenLog.debug('dispatchInteraction TAKEOVER_BOT_SEAT', {
             seat: result.seat,
           });
-          setControlledSeat(result.seat);
+          if (!capabilities.canTakeOverBots.isAllowed) {
+            throw new Error(
+              `Werewolf bot policy emitted denied capability: ${capabilities.canTakeOverBots.reason}`,
+            );
+          }
+          capabilities.canTakeOverBots.execute(result.seat);
           return;
 
         case 'RELEASE_BOT_SEAT':
           roomScreenLog.debug('dispatchInteraction RELEASE_BOT_SEAT');
-          setControlledSeat(null);
+          releaseBot();
           return;
-
-        case 'KICK_CONFIRM': {
-          const kickSeat = result.seat;
-          const player = gameState?.players.get(kickSeat);
-          const playerName = player?.displayName ?? `${kickSeat + 1}号座位`;
-          roomScreenLog.debug('dispatchInteraction KICK_CONFIRM', { seat: kickSeat });
-          showDestructiveAlert(
-            '移出座位',
-            `确定要将 ${playerName} 移出座位吗？`,
-            '移出',
-            async () => {
-              await kickPlayer(kickSeat).catch((err) => {
-                handleError(err, {
-                  label: 'kickPlayer',
-                  logger: roomScreenLog,
-                  feedback: 'toast',
-                });
-                throw err;
-              });
-            },
-          );
-          return;
-        }
 
         case 'VIEW_PROFILE': {
           const targetPlayer = gameState?.players.get(result.seat);
           if (!targetPlayer) {
             throw new Error(`Profile target seat ${result.seat} is empty`);
           }
-          const isSelf = result.seat === mySeat;
+          if (targetPlayer.userId !== result.targetUserId) {
+            throw new Error(
+              `Profile policy user ${result.targetUserId} does not match seat occupant ${targetPlayer.userId}`,
+            );
+          }
+          if (!capabilities.canViewProfiles.isAllowed) {
+            throw new Error(
+              `Werewolf profile policy emitted denied capability: ${capabilities.canViewProfiles.reason}`,
+            );
+          }
           roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
             targetUserId: result.targetUserId,
-            rosterName: targetPlayer?.displayName,
-            isSelf,
+            rosterName: targetPlayer.displayName,
           });
-          openProfile({
+          capabilities.canViewProfiles.execute({
             seat: result.seat,
             userId: result.targetUserId,
             occupantKind: targetPlayer.isBot ? 'bot' : 'human',
             rosterName: targetPlayer.displayName ?? `${result.seat + 1}号玩家`,
-            isSelf,
           });
           return;
         }
@@ -497,23 +384,18 @@ export function useInteractionDispatcher({
       handleSeatingTap,
       handleActionTap,
       handleActionIntent,
-      showEnterSeatDialog,
-      showLeaveSeatDialog,
-      handleLeaveRoom,
+      requestRoomExit,
       viewedRole,
-      handleSettingsPress,
       showPrepareToFlipDialog,
       showStartGameDialog,
       showRestartDialog,
-      setControlledSeat,
-      kickPlayer,
+      capabilities,
+      releaseBot,
       effectiveSeat,
-      mySeat,
       gameState,
       setRoleCardVisible,
       setShouldPlayRevealAnimation,
       setIsLoadingRole,
-      openProfile,
     ],
   );
 
@@ -538,14 +420,5 @@ export function useInteractionDispatcher({
     onSeatTapped,
     onSeatLongPressed,
     interactionContext,
-    profileCardVisible,
-    profileCardTargetUserId,
-    profileCardTargetSeat,
-    profileCardRosterName,
-    profileCardIsSelf,
-    openProfile,
-    closeProfileCard,
-    handleProfileKick,
-    handleProfileLeaveSeat,
   };
 }

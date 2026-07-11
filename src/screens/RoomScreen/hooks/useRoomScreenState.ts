@@ -17,6 +17,16 @@ import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealA
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
+import { useRoomConnection } from '@/features/room/controllers/useRoomConnection';
+import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
+import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
+import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
+import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import {
+  createWerewolfRoomCapabilities,
+  toRoomConnectionStatus,
+  WEREWOLF_DISPLAY_NAME,
+} from '@/games/werewolf/werewolfRoomAdapter';
 import { useGameRoom } from '@/hooks/useGameRoom';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
@@ -25,6 +35,8 @@ import { uploadShareImage } from '@/services/feature/ShareImageService';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
+import { handleError } from '@/utils/errorPipeline';
+import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
@@ -37,7 +49,6 @@ import {
 } from '../shareNightReview';
 import { useRoomActionDialogs } from '../useRoomActionDialogs';
 import { useRoomHostDialogs } from '../useRoomHostDialogs';
-import { useRoomSeatDialogs } from '../useRoomSeatDialogs';
 import { useActionerState } from './useActionerState';
 import { useActionOrchestrator } from './useActionOrchestrator';
 import { useHiddenDebugTrigger } from './useHiddenDebugTrigger';
@@ -46,7 +57,6 @@ import { useNightProgress } from './useNightProgress';
 import { useRoomActions } from './useRoomActions';
 import { useRoomDerived } from './useRoomDerived';
 import { useRoomIdentity } from './useRoomIdentity';
-import { useRoomInit } from './useRoomInit';
 import { useRoomModals } from './useRoomModals';
 import { useSpeakingOrder } from './useSpeakingOrder';
 import { useStepDeadlineCountdown } from './useStepDeadlineCountdown';
@@ -124,7 +134,8 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     controlledSeat,
-    setControlledSeat,
+    takeOverBot,
+    releaseBot,
     effectiveSeat,
     effectiveRole,
     // Progression
@@ -176,9 +187,6 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
   const [secondSeat, setSecondSeat] = useState<number | null>(null);
   const [multiSelectedSeats, setMultiSelectedSeats] = useState<readonly number[]>([]);
   const [isStartingGame, setIsStartingGame] = useState(false);
-  const [seatModalVisible, setSeatModalVisible] = useState(false);
-  const [pendingSeat, setPendingSeat] = useState<number | null>(null);
-  const [modalType, setModalType] = useState<'enter' | 'leave'>('enter');
 
   // ── Step deadline countdown tick ──────────────────────────────────────────
   const countdownTick = useStepDeadlineCountdown({
@@ -194,10 +202,34 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
 
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
-  const init = useRoomInit({
+  const handleRoomExit = useCallback(() => {
+    navigation.navigate('Home');
+  }, [navigation]);
+
+  const roomConnection = useRoomConnection({
     room,
     enterRoom,
-    hasGameState: !!gameState,
+    disconnect: leaveRoom,
+    hasRoomState: gameState !== null,
+    connection: {
+      status: toRoomConnectionStatus(connectionStatus),
+      onManualReconnect: manualReconnect,
+    },
+    onExit: handleRoomExit,
+  });
+
+  const seatController = useRoomSeatController({
+    currentSeat: mySeat,
+    takeSeat,
+    leaveSeat,
+  });
+  const profileController = useRoomProfileController({
+    myUserId,
+    kickSeat: kickPlayer,
+  });
+  const shareController = useRoomShareController({
+    roomCode,
+    gameDisplayName: WEREWOLF_DISPLAY_NAME,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -355,33 +387,6 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
 
   const actionDialogs = useRoomActionDialogs();
 
-  const handleLeaveRoomCleanup = useCallback(() => {
-    roomScreenLog.debug('handleLeaveRoomCleanup: calling leaveRoom');
-    void leaveRoom();
-  }, [leaveRoom]);
-
-  const seatDialogs = useRoomSeatDialogs({
-    pendingSeat,
-    setPendingSeat,
-    setSeatModalVisible,
-    setModalType,
-    takeSeat,
-    leaveSeat,
-    roomStatus,
-    navigation,
-    onLeaveRoom: handleLeaveRoomCleanup,
-  });
-
-  const {
-    showEnterSeatDialog,
-    showLeaveSeatDialog,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
-    handleLeaveRoom,
-    isSeatSubmitting,
-  } = seatDialogs;
-
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card modal state (declared before orchestrator so openChooseCardModal
   // is available to pass into ExecutorContext)
@@ -515,6 +520,79 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     roomCode,
   });
 
+  const executeClearSeats = useCallback(() => {
+    void clearAllSeats().catch((error: unknown) => {
+      handleError(error, {
+        label: '清空座位',
+        logger: roomScreenLog,
+        alertMessage: '无法清空座位，请稍后重试。',
+      });
+    });
+  }, [clearAllSeats]);
+
+  const executeFillBots = useCallback(() => {
+    void fillWithBots()
+      .then((result) => {
+        if (!result.success) {
+          roomScreenLog.warn('fill bots rejected', { reason: result.reason });
+          showErrorAlert('填充机器人失败', getUserFacingMessage(result));
+        }
+      })
+      .catch((error: unknown) => {
+        handleError(error, {
+          label: '填充机器人',
+          logger: roomScreenLog,
+          alertMessage: '无法填充机器人，请稍后重试。',
+        });
+      });
+  }, [fillWithBots]);
+
+  const hasOccupiedSeats = useMemo(
+    () =>
+      gameState ? Array.from(gameState.players.values()).some((player) => player !== null) : false,
+    [gameState],
+  );
+
+  const capabilities = useMemo(
+    (): RoomCapabilities =>
+      createWerewolfRoomCapabilities({
+        status: roomStatus,
+        isHost,
+        mySeat,
+        isDebugMode,
+        isAudioPlaying,
+        hasOccupiedSeats,
+        requestTakeSeat: seatController.requestTakeSeat,
+        requestMoveSeat: seatController.requestMoveSeat,
+        requestLeaveSeat: seatController.requestLeaveSeat,
+        kickSeat: profileController.kick,
+        clearSeats: executeClearSeats,
+        fillBots: executeFillBots,
+        configureGame: handleSettingsPress,
+        openProfile: profileController.open,
+        takeOverBot,
+        shareRoom: shareController.open,
+      }),
+    [
+      roomStatus,
+      isHost,
+      mySeat,
+      isDebugMode,
+      isAudioPlaying,
+      hasOccupiedSeats,
+      seatController.requestTakeSeat,
+      seatController.requestMoveSeat,
+      seatController.requestLeaveSeat,
+      profileController.kick,
+      profileController.open,
+      executeClearSeats,
+      executeFillBots,
+      handleSettingsPress,
+      takeOverBot,
+      shareController.open,
+    ],
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Modal / dialog state (role card, skill preview, night review, share review)
   // ═══════════════════════════════════════════════════════════════════════════
@@ -554,20 +632,12 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
   // Interaction Dispatcher
   // ═══════════════════════════════════════════════════════════════════════════
 
-  const {
-    dispatchInteraction,
-    onSeatTapped,
-    onSeatLongPressed,
-    profileCardVisible,
-    profileCardTargetUserId,
-    profileCardTargetSeat,
-    profileCardRosterName,
-    profileCardIsSelf,
-    closeProfileCard,
-    handleProfileKick,
-    handleProfileLeaveSeat,
-    openProfile,
-  } = useInteractionDispatcher({
+  const { requestExit } = roomConnection;
+  const requestRoomExit = useCallback(() => {
+    requestExit(capabilities.shouldConfirmExit);
+  }, [capabilities.shouldConfirmExit, requestExit]);
+
+  const { dispatchInteraction, onSeatTapped, onSeatLongPressed } = useInteractionDispatcher({
     gameState,
     roomStatus,
     isAudioPlaying,
@@ -583,21 +653,16 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     isDelegating,
     handleActionIntent,
     getActionIntent,
-    showEnterSeatDialog,
-    showLeaveSeatDialog,
-    seatModalVisible,
-    leaveSeat,
+    capabilities,
+    requestRoomExit,
+    releaseBot,
     setShouldPlayRevealAnimation,
     setIsLoadingRole,
     setRoleCardVisible,
-    setControlledSeat,
     viewedRole,
-    handleLeaveRoom,
-    handleSettingsPress,
     showPrepareToFlipDialog,
     showStartGameDialog,
     showRestartDialog,
-    kickPlayer,
   });
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -761,6 +826,24 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     };
   }, [bottomCards, isThiefChoose]);
 
+  const seatConfirmation = useMemo(
+    () =>
+      seatController.pendingAction === null
+        ? null
+        : {
+            action: seatController.pendingAction,
+            isSubmitting: seatController.isSubmitting,
+            onConfirm: seatController.confirm,
+            onCancel: seatController.cancel,
+          },
+    [
+      seatController.cancel,
+      seatController.confirm,
+      seatController.isSubmitting,
+      seatController.pendingAction,
+    ],
+  );
+
   // ═══════════════════════════════════════════════════════════════════════════
   // Return bag
   // ═══════════════════════════════════════════════════════════════════════════
@@ -779,23 +862,20 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
-    connectionStatus,
     gameRoomError,
     effectiveSeat,
     effectiveRole,
     isDebugMode,
     controlledSeat,
     hasBots,
-    fillWithBots,
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     clearAllSeats,
-    takeSeat,
-    leaveSeat,
-    kickPlayer,
     requestSnapshot,
-    manualReconnect,
-    setControlledSeat,
+    releaseBot,
+    capabilities,
+    roomConnection: roomConnection.connection,
+    roomShare: shareController,
 
     // ── Board nomination ──
     boardNominate,
@@ -807,8 +887,11 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     playBgm,
     stopBgm,
 
-    // ── Initialization (from useRoomInit) ──
-    ...init,
+    // ── Shared room connection controller ──
+    isInitialized: roomConnection.isInitialized,
+    loadingMessage: roomConnection.loadingMessage,
+    showRetryButton: roomConnection.showRetryButton,
+    handleRetry: roomConnection.retry,
 
     // ── Auth gate (first-time direct URL user) ──
     needsAuth,
@@ -831,15 +914,9 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     handleDebugTitleTap,
 
     // ── Player profile card ──
-    profileCardVisible,
-    profileCardTargetUserId,
-    profileCardTargetSeat,
-    profileCardRosterName,
-    profileCardIsSelf,
-    closeProfileCard,
-    handleProfileKick,
-    handleProfileLeaveSeat,
-    openProfile,
+    profileSelection: profileController.selection,
+    closeProfile: profileController.close,
+    requestProfileSelfLeave: profileController.requestSelfLeave,
 
     // ── Local UI state ──
     isStartingGame,
@@ -847,13 +924,7 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     isActionSubmitting,
 
     // ── Seat modal ──
-    seatModalVisible,
-    pendingSeat,
-    modalType,
-    isSeatSubmitting,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
+    seatConfirmation,
 
     // ── Role card modal ──
     roleCardVisible,

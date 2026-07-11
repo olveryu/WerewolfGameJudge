@@ -50,17 +50,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 // imActioner=true so we can verify action dialogs appear
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
@@ -176,7 +165,8 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       fillWithBots: jest.fn(),
       markAllBotsViewed: jest.fn(),
       markAllBotsGroupConfirmed: jest.fn(),
-      setControlledSeat: jest.fn(),
+      takeOverBot: jest.fn(),
+      releaseBot: jest.fn(),
 
       // Connection
       stateRevision: 1,
@@ -285,7 +275,8 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       fillWithBots: jest.fn(),
       markAllBotsViewed: jest.fn(),
       markAllBotsGroupConfirmed: jest.fn(),
-      setControlledSeat: jest.fn(),
+      takeOverBot: jest.fn(),
+      releaseBot: jest.fn(),
 
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),

@@ -15,6 +15,7 @@ import { captureRef } from 'react-native-view-shot';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
+import type { RoomShareModel } from '@/features/room/model/RoomShare';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -46,19 +47,15 @@ async function captureShareCard(ref: React.RefObject<View | null>): Promise<stri
     const dataUrl = canvas.toDataURL('image/png');
     // Strip "data:image/png;base64," prefix → raw base64
     const prefix = 'base64,';
-    const idx = dataUrl.indexOf(prefix);
-    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
+    const index = dataUrl.indexOf(prefix);
+    if (index < 0) throw new Error('Captured share card is not a base64 data URL');
+    return dataUrl.slice(index + prefix.length);
   }
   return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
 }
 
 interface QRCodeModalProps {
-  visible: boolean;
-  roomCode: string;
-  roomUrl: string;
-  onShareImage: (getBase64: () => Promise<string>) => void;
-  onCopyLink: () => void;
-  onClose: () => void;
+  readonly model: RoomShareModel;
 }
 
 /** QR code size (logical pixels) */
@@ -71,76 +68,79 @@ const QR_LOGO_MARGIN = 4;
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Metro require for local PNG asset
 const appLogo = require('../../../../assets/pwa/icon-192.png') as number;
 
-const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
-  visible,
-  roomCode,
-  roomUrl,
-  onShareImage,
-  onCopyLink,
-  onClose,
-}) => {
+const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({ model }) => {
   const shareCardRef = useRef<View>(null);
   const [isSharing, setIsSharing] = useState(false);
   const preCapturedRef = useRef<string | null>(null);
   const [isPreCaptureReady, setIsPreCaptureReady] = useState(Platform.OS !== 'web');
+  const [isShareCardLaidOut, setIsShareCardLaidOut] = useState(false);
+  const [isLogoLoaded, setIsLogoLoaded] = useState(false);
+  const shareSubmissionRef = useRef<Promise<void> | null>(null);
 
-  // Pre-capture the share card on web so navigator.share() can be called
-  // within the user-activation window (avoids NotAllowedError).
-  // Skip in mini-program: share card view is not rendered (uses WeChat forward guide instead).
   useEffect(() => {
-    if (!visible || Platform.OS !== 'web' || isMiniProgram()) return;
+    if (!model.isVisible) return;
     preCapturedRef.current = null;
-    setIsPreCaptureReady(false);
-    // Use rAF + timeout to ensure the modal's layout & QR code have rendered
-    // (Android WebView needs more time than 300ms)
+    setIsPreCaptureReady(Platform.OS !== 'web');
+  }, [model.isVisible]);
+
+  useEffect(() => {
+    if (
+      !model.isVisible ||
+      Platform.OS !== 'web' ||
+      isMiniProgram() ||
+      !isShareCardLaidOut ||
+      !isLogoLoaded
+    ) {
+      return;
+    }
     let cancelled = false;
     const frameId = requestAnimationFrame(() => {
-      const timer = setTimeout(() => {
-        if (cancelled) return;
-        captureShareCard(shareCardRef)
-          .then((b64) => {
-            if (cancelled) return;
-            preCapturedRef.current = b64;
-            setIsPreCaptureReady(true);
-          })
-          .catch((e: unknown) => {
-            if (cancelled) return;
-            // Pre-capture failed; enable button anyway for on-demand fallback
-            log.warn('Pre-capture share card failed', {
-              error: e instanceof Error ? e.message : String(e),
-            });
-            setIsPreCaptureReady(true);
+      void captureShareCard(shareCardRef)
+        .then((base64) => {
+          if (cancelled) return;
+          preCapturedRef.current = base64;
+          setIsPreCaptureReady(true);
+        })
+        .catch((error: unknown) => {
+          if (cancelled) return;
+          log.warn('Pre-capture share card failed', {
+            error: error instanceof Error ? error.message : String(error),
           });
-      }, 500);
-      cleanupTimer = timer;
+          setIsPreCaptureReady(true);
+        });
     });
-    let cleanupTimer: ReturnType<typeof setTimeout> | null = null;
     return () => {
       cancelled = true;
       cancelAnimationFrame(frameId);
-      if (cleanupTimer) clearTimeout(cleanupTimer);
     };
-  }, [visible]);
+  }, [isLogoLoaded, isShareCardLaidOut, model.isVisible]);
 
   const getBase64 = useCallback(async () => {
     if (preCapturedRef.current) return preCapturedRef.current;
     return captureShareCard(shareCardRef);
   }, []);
 
-  const handleShare = useCallback(() => {
-    if (isSharing) return;
+  const handleShare = useCallback(async (): Promise<void> => {
+    if (shareSubmissionRef.current !== null) {
+      throw new Error('Room QR image share is already in progress');
+    }
     setIsSharing(true);
-    onShareImage(getBase64);
-    // Reset after a short delay to cover async sharing flow
-    setTimeout(() => setIsSharing(false), 2000);
-  }, [isSharing, onShareImage, getBase64]);
+    const submission = model.shareImage(getBase64);
+    shareSubmissionRef.current = submission;
+    try {
+      await submission;
+    } finally {
+      shareSubmissionRef.current = null;
+      setIsSharing(false);
+    }
+  }, [getBase64, model]);
 
   const inMiniProgram = isMiniProgram();
 
   return (
     <BaseCenterModal
-      visible={visible}
-      onClose={onClose}
+      visible={model.isVisible}
+      onClose={model.close}
       dismissOnOverlayPress
       contentStyle={styles.modalBox}
       testID={TESTIDS.qrCodeModal}
@@ -157,13 +157,13 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
               color={colors.primary}
               style={styles.guideIcon}
             />
-            <Text style={styles.roomCode}>房间号 {roomCode}</Text>
+            <Text style={styles.roomCode}>房间号 {model.roomCode}</Text>
             <Text style={styles.guideStep}>1. 点击右上角 ··· 按钮</Text>
             <Text style={styles.guideStep}>2. 选择「转发给朋友」</Text>
             <Text style={styles.guideStep}>好友打开直接进入房间 🎉</Text>
           </View>
           <View style={styles.buttonRow}>
-            <Button variant="primary" onPress={onClose} accessibilityLabel="关闭">
+            <Button variant="primary" onPress={model.close} accessibilityLabel="关闭">
               我知道了
             </Button>
           </View>
@@ -171,37 +171,53 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({
       ) : (
         <>
           {/* Normal web/native: QR code + share/copy buttons */}
-          <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
+          <View
+            ref={shareCardRef}
+            collapsable={false}
+            style={styles.shareCard}
+            onLayout={() => setIsShareCardLaidOut(true)}
+          >
             <View style={styles.qrContainer}>
               <View style={styles.qrWrapper}>
                 <QRCode
-                  value={roomUrl}
+                  value={model.roomUrl}
                   size={QR_SIZE}
                   color={colors.primary}
                   backgroundColor={colors.surface}
                   ecl="H"
                 />
                 <View style={styles.logoContainer}>
-                  <Image source={appLogo} style={styles.logoImage} />
+                  <Image
+                    source={appLogo}
+                    style={styles.logoImage}
+                    onLoadEnd={() => setIsLogoLoaded(true)}
+                  />
                 </View>
               </View>
             </View>
-            <Text style={styles.roomCode}>房间号 {roomCode}</Text>
+            <Text style={styles.roomCode}>房间号 {model.roomCode}</Text>
             <Text style={styles.hint}>扫一扫二维码，加入房间</Text>
           </View>
           <View style={styles.buttonRow}>
-            <Button variant="primary" onPress={onCopyLink}>
+            <Button
+              variant="primary"
+              onPress={() => {
+                void model.copyLink();
+              }}
+            >
               复制链接（推荐）
             </Button>
             <Button
               variant="secondary"
-              onPress={handleShare}
+              onPress={() => {
+                void handleShare();
+              }}
               loading={isSharing || !isPreCaptureReady}
               testID={TESTIDS.qrCodeShareButton}
             >
               分享图片
             </Button>
-            <Button variant="secondary" onPress={onClose} accessibilityLabel="关闭">
+            <Button variant="secondary" onPress={model.close} accessibilityLabel="关闭">
               关闭
             </Button>
           </View>

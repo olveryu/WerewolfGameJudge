@@ -51,16 +51,16 @@ interface PlayerProfileCardProps {
   targetUserId: string;
   /** Target seat number (0-based) */
   targetSeat: number;
-  /** Whether current user is host (shows kick button) */
-  isHost: boolean;
+  /** Explicit occupant type from authoritative room state. */
+  occupantKind: 'human' | 'bot';
   /** Display name from roster (used for bots or fallback) */
   rosterName?: string;
   /** Whether this is the current player's own profile */
-  isSelf?: boolean;
+  isSelf: boolean;
   /** Callback when host taps kick button */
-  onKick?: (seat: number) => void;
+  onKick?: () => void;
   /** Callback when self taps leave seat button */
-  onLeaveSeat?: (seat: number) => void;
+  onLeaveSeat?: () => void;
 }
 
 const AVATAR_SIZE = componentSizes.avatar.xl; // 80pt
@@ -300,14 +300,14 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   onClose,
   targetUserId,
   targetSeat,
-  isHost,
+  occupantKind,
   rosterName,
   isSelf,
   onKick,
   onLeaveSeat,
 }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const isBot = targetUserId.startsWith('bot-');
+  const isBot = occupantKind === 'bot';
 
   // Fetch user public profile (shared cache via TanStack Query)
   const {
@@ -319,13 +319,12 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
   });
 
   const handleKick = useCallback(() => {
-    onClose();
-    onKick?.(targetSeat);
-  }, [onClose, onKick, targetSeat]);
+    onKick?.();
+  }, [onKick]);
 
   const handleLeaveSeat = useCallback(() => {
-    onLeaveSeat?.(targetSeat);
-  }, [onLeaveSeat, targetSeat]);
+    onLeaveSeat?.();
+  }, [onLeaveSeat]);
 
   const handleViewUnlocks = useCallback(() => {
     onClose();
@@ -400,7 +399,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             <View style={styles.titleChip}>
               <Text style={[styles.titleText, { color: colors.textMuted }]}>机器人</Text>
             </View>
-            {isHost && onKick && (
+            {onKick && (
               <PressableScale onPress={handleKick} style={styles.kickButton}>
                 <Text style={styles.kickButtonText}>移出座位</Text>
               </PressableScale>
@@ -504,7 +503,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({
             )}
 
             {/* ── Host kick button (other players only) ── */}
-            {!isSelf && isHost && onKick && (
+            {!isSelf && onKick && (
               <PressableScale onPress={handleKick} style={styles.kickButton}>
                 <Text style={styles.kickButtonText}>移出座位</Text>
               </PressableScale>

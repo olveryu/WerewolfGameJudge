@@ -19,7 +19,12 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 
 import { getSeatTapResult } from '@/screens/RoomScreen/seatTap/SeatTapPolicy';
 
-import type { InteractionContext, InteractionEvent, InteractionResult } from './types';
+import type {
+  HostControlEvent,
+  InteractionContext,
+  InteractionEvent,
+  InteractionResult,
+} from './types';
 
 // =============================================================================
 // Gate Checks (Priority 1-3)
@@ -147,21 +152,14 @@ function handleBottomAction(
  * Handle host control event.
  * Validates host status and returns host control result.
  */
-function handleHostControl(ctx: InteractionContext, event: { action: string }): InteractionResult {
+function handleHostControl(ctx: InteractionContext, event: HostControlEvent): InteractionResult {
   if (!ctx.isHost) {
     return { kind: 'NOOP', reason: 'host_only' };
   }
 
-  // Type narrowing for action
-  const validActions = ['settings', 'prepareToFlip', 'startGame', 'restart'] as const;
-
-  if (!validActions.includes(event.action as (typeof validActions)[number])) {
-    return { kind: 'NOOP', reason: 'other_status' };
-  }
-
   return {
     kind: 'HOST_CONTROL',
-    action: event.action as (typeof validActions)[number],
+    action: event.action,
   };
 }
 

@@ -25,23 +25,19 @@ import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RoomShell } from '@/features/room/components/RoomShell';
-import { createRoomFeatureStyles } from '@/features/room/components/styles';
 import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
 import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfControlledSeatModel,
-  createWerewolfRoomCapabilities,
   createWerewolfSeatDataSource,
   createWerewolfStatusRibbon,
-  toRoomConnectionStatus,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
-import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
@@ -54,9 +50,7 @@ import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { PlayerProfileCard } from './components/PlayerProfileCard';
-import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
-import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
 import { WxAuthFailedOverlay } from './components/WxAuthFailedOverlay';
 import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
@@ -64,8 +58,6 @@ import { useBottomLayout } from './hooks/useBottomLayout';
 import { useRoomScreenState } from './hooks/useRoomScreenState';
 import type { ActionIntent } from './policy/types';
 import { createRoomScreenStyles } from './RoomScreen.styles';
-import { shareQRCodeImage } from './shareQRCode';
-import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
 // ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
@@ -74,7 +66,6 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
   const roomCode = room.roomCode;
   const { user } = useAuthContext();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
-  const roomFeatureStyles = useMemo(() => createRoomFeatureStyles(colors), []);
   const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
 
   // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
@@ -93,51 +84,12 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     setStrategyBoardName(null);
   }, []);
 
-  // ─── QR Code Modal state ──────────────────────────────────────────────
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [nominationModalVisible, setNominationModalVisible] = useState(false);
   const hasAutoShownQR = useRef(false);
 
   // Ticket count for top bar badge (shared cache via TanStack Query)
   const { data: gachaStatus } = useGachaStatusQuery();
   const ticketCount = gachaStatus ? gachaStatus.normalDraws + gachaStatus.goldenDraws : null;
-
-  const handleShareRoom = useCallback(() => {
-    setQrModalVisible(true);
-  }, []);
-
-  const handleCopyLink = useCallback(() => {
-    void shareOrCopyRoomLink(roomCode)
-      .then((result) => {
-        if (result === 'copied') {
-          toast.success('房间链接已复制');
-        } else if (result === 'failed') {
-          showErrorAlert('链接分享失败', '无法复制链接，请手动分享房间号');
-        }
-        // 'shared' -> system share sheet already provided feedback
-        // 'cancelled' -> user dismissed intentionally, no alert needed
-      })
-      .catch((e) => {
-        handleError(e, {
-          label: '分享链接',
-          logger: roomScreenLog,
-          alertMessage: '无法复制链接，请手动分享房间号',
-        });
-      });
-  }, [roomCode]);
-
-  const handleShareQRImage = useCallback(
-    (getBase64: () => Promise<string>) => {
-      void shareQRCodeImage(getBase64, roomCode).catch((e) => {
-        handleError(e, {
-          label: '分享二维码',
-          logger: roomScreenLog,
-          alertMessage: '无法分享二维码图片',
-        });
-      });
-    },
-    [roomCode],
-  );
 
   const handleAvatarPress = useCallback(() => {
     navigation.navigate('Settings', { roomCode });
@@ -157,27 +109,23 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     gameState,
     stateRevision,
     isHost,
-    mySeat,
     roomStatus,
     currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
-    connectionStatus,
-    manualReconnect,
     gameRoomError,
     effectiveSeat,
     effectiveRole,
     isDebugMode,
     controlledSeat,
     hasBots,
-    fillWithBots,
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     clearAllSeats,
-    takeSeat,
-    leaveSeat,
-    kickPlayer,
-    setControlledSeat,
+    releaseBot,
+    capabilities,
+    roomConnection,
+    roomShare,
     // Board nomination
     boardUpvote,
     boardWithdraw,
@@ -213,27 +161,15 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     getBottomAction,
     handleDebugTitleTap,
     // Player profile card
-    profileCardVisible,
-    profileCardTargetUserId,
-    profileCardTargetSeat,
-    profileCardRosterName,
-    profileCardIsSelf,
-    closeProfileCard,
-    handleProfileKick,
-    handleProfileLeaveSeat,
-    openProfile,
+    profileSelection,
+    closeProfile,
+    requestProfileSelfLeave,
     // Local UI state
     isStartingGame,
     isHostActionSubmitting,
     isActionSubmitting,
     // Seat modal
-    seatModalVisible,
-    pendingSeat,
-    modalType,
-    isSeatSubmitting,
-    handleConfirmSeat,
-    handleCancelSeat,
-    handleConfirmLeave,
+    seatConfirmation,
     // Role card modal
     roleCardVisible,
     shouldPlayRevealAnimation,
@@ -355,7 +291,12 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
           toast.info('等待房主开始分配角色');
           break;
         case 'settings':
-          dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' });
+          if (!capabilities.canConfigureGame.isAllowed) {
+            throw new Error(
+              `Werewolf bottom layout emitted denied settings capability: ${capabilities.canConfigureGame.reason}`,
+            );
+          }
+          capabilities.canConfigureGame.execute();
           break;
         case 'prepareToFlip':
           dispatchInteraction({ kind: 'HOST_CONTROL', action: 'prepareToFlip' });
@@ -374,13 +315,8 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
           break;
       }
     },
-    [dispatchInteraction, showLastNightInfo, openNightReview],
+    [capabilities.canConfigureGame, dispatchInteraction, showLastNightInfo, openNightReview],
   );
-
-  const executeClearSeats = useCallback(async () => {
-    await clearAllSeats();
-    return { success: true } as const;
-  }, [clearAllSeats]);
 
   const executeMarkAllBotsViewed = useCallback(() => {
     void markAllBotsViewed().catch((err) => {
@@ -401,50 +337,6 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
       });
     });
   }, [markAllBotsGroupConfirmed]);
-
-  const hasOccupiedSeats = useMemo(
-    () =>
-      gameState ? Array.from(gameState.players.values()).some((player) => player !== null) : false,
-    [gameState],
-  );
-  const capabilities = useMemo(
-    () =>
-      createWerewolfRoomCapabilities({
-        status: roomStatus,
-        isHost,
-        mySeat,
-        isDebugMode,
-        isAudioPlaying,
-        hasOccupiedSeats,
-        isShareAvailable: !isMiniProgram(),
-        takeSeat,
-        leaveSeat,
-        kickSeat: kickPlayer,
-        clearSeats: executeClearSeats,
-        fillBots: fillWithBots,
-        configureGame: () => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' }),
-        openProfile,
-        takeOverBot: onSeatLongPressed,
-        shareRoom: handleShareRoom,
-      }),
-    [
-      roomStatus,
-      isHost,
-      mySeat,
-      isDebugMode,
-      isAudioPlaying,
-      hasOccupiedSeats,
-      takeSeat,
-      leaveSeat,
-      kickPlayer,
-      executeClearSeats,
-      fillWithBots,
-      dispatchInteraction,
-      openProfile,
-      onSeatLongPressed,
-      handleShareRoom,
-    ],
-  );
 
   const seatSource = useMemo(
     () =>
@@ -479,9 +371,9 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
             ? null
             : (gameState?.players.get(controlledSeat)?.displayName ?? null),
         showBulkViewHint: roomStatus === GameStatus.Assigned,
-        release: () => setControlledSeat(null),
+        release: releaseBot,
       }),
-    [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, setControlledSeat],
+    [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, releaseBot],
   );
 
   const bottomActions = useMemo(
@@ -565,6 +457,25 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     executeMarkAllBotsGroupConfirmed,
   ]);
 
+  const handleProfileKick = useCallback(() => {
+    if (profileSelection === null) {
+      throw new Error('Cannot kick without an open profile');
+    }
+    const capability = capabilities.canKickSeat;
+    if (!capability.isAllowed) {
+      throw new Error(`Cannot kick from profile: ${capability.reason}`);
+    }
+    capability.execute(profileSelection.target.seat);
+  }, [capabilities.canKickSeat, profileSelection]);
+
+  const handleProfileLeave = useCallback(() => {
+    const capability = capabilities.canLeaveSeat;
+    if (!capability.isAllowed) {
+      throw new Error(`Cannot leave from profile: ${capability.reason}`);
+    }
+    requestProfileSelfLeave(capability.execute);
+  }, [capabilities.canLeaveSeat, requestProfileSelfLeave]);
+
   const roomShellModel = useMemo(
     (): RoomShellModel => ({
       roomCode,
@@ -579,10 +490,7 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
         },
         menuItems: headerMenuItems,
       },
-      connection: {
-        status: toRoomConnectionStatus(connectionStatus),
-        onManualReconnect: manualReconnect,
-      },
+      connection: roomConnection,
       statusRibbon,
       seats: {
         source: seatSource,
@@ -591,6 +499,8 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
         onSeatPress: onSeatTapped,
         onSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPressed : null,
       },
+      seatConfirmation,
+      share: roomShare,
       bottomActions,
       controlledSeat: controlledSeatModel,
     }),
@@ -603,8 +513,7 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
       handleAvatarPress,
       headerMenuItems,
       dispatchInteraction,
-      connectionStatus,
-      manualReconnect,
+      roomConnection,
       statusRibbon,
       seatSource,
       roomStatus,
@@ -612,6 +521,8 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
       isActionSubmitting,
       onSeatTapped,
       onSeatLongPressed,
+      seatConfirmation,
+      roomShare,
       bottomActions,
       controlledSeatModel,
     ],
@@ -627,9 +538,9 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
       !hasAutoShownQR.current
     ) {
       hasAutoShownQR.current = true;
-      setQrModalVisible(true);
+      roomShare.open();
     }
-  }, [isInitialized, gameState, isHost, entryReason]);
+  }, [entryReason, gameState, isHost, isInitialized, roomShare]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
@@ -751,20 +662,6 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
             onClose={resumeAfterRejoin}
           />
 
-          {/* Seat Confirmation Modal */}
-          {/* Seat Confirmation Modal - only render when pendingSeat is set */}
-          {pendingSeat !== null && (
-            <SeatConfirmModal
-              visible={seatModalVisible}
-              modalType={modalType}
-              seat={pendingSeat}
-              isSubmitting={isSeatSubmitting}
-              onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
-              onCancel={handleCancelSeat}
-              styles={roomFeatureStyles.seatConfirmModal}
-            />
-          )}
-
           {/* Role Card Modal */}
           {(roleCardVisible || isLoadingRole) && effectiveRole && (
             <RoleCardModal
@@ -797,17 +694,27 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
           />
 
           {/* Player Profile Card -- triggered by tapping another player's seat */}
-          <PlayerProfileCard
-            visible={profileCardVisible}
-            onClose={closeProfileCard}
-            targetUserId={profileCardTargetUserId}
-            targetSeat={profileCardTargetSeat}
-            rosterName={profileCardRosterName}
-            isHost={isHost}
-            isSelf={profileCardIsSelf}
-            onKick={handleProfileKick}
-            onLeaveSeat={handleProfileLeaveSeat}
-          />
+          {profileSelection && (
+            <PlayerProfileCard
+              visible
+              onClose={closeProfile}
+              targetUserId={profileSelection.target.userId}
+              targetSeat={profileSelection.target.seat}
+              occupantKind={profileSelection.target.occupantKind}
+              rosterName={profileSelection.target.rosterName}
+              isSelf={profileSelection.isSelf}
+              onKick={
+                !profileSelection.isSelf && capabilities.canKickSeat.isAllowed
+                  ? handleProfileKick
+                  : undefined
+              }
+              onLeaveSeat={
+                profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed
+                  ? handleProfileLeave
+                  : undefined
+              }
+            />
+          )}
 
           {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
           {nightReviewVisible && nightReviewData && (
@@ -845,16 +752,6 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
               onClose={closeShareReview}
             />
           )}
-
-          {/* QR Code Modal -- room QR code share */}
-          <QRCodeModal
-            visible={qrModalVisible}
-            roomCode={roomCode}
-            roomUrl={buildRoomUrl(roomCode)}
-            onShareImage={handleShareQRImage}
-            onCopyLink={handleCopyLink}
-            onClose={() => setQrModalVisible(false)}
-          />
 
           {/* Board Nomination Modal -- board suggestion list */}
           {nominationModalVisible && (

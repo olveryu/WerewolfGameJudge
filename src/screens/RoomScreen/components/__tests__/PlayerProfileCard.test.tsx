@@ -13,7 +13,8 @@ const baseProps = {
   visible: true,
   onClose: jest.fn(),
   targetSeat: 2,
-  isHost: false,
+  occupantKind: 'bot' as const,
+  isSelf: false,
   onKick: jest.fn(),
 };
 
@@ -53,21 +54,21 @@ describe('PlayerProfileCard', () => {
       expect(getByText('机器人3')).toBeTruthy();
     });
 
-    it('shows kick button for host', () => {
+    it('shows kick button when the capability is provided', () => {
       const { getByText } = render(
-        <PlayerProfileCard {...baseProps} targetUserId="bot-2" rosterName="机器人3号" isHost />,
+        <PlayerProfileCard {...baseProps} targetUserId="bot-2" rosterName="机器人3号" />,
       );
 
       expect(getByText('移出座位')).toBeTruthy();
     });
 
-    it('hides kick button for non-host', () => {
+    it('hides kick button when the capability is absent', () => {
       const { queryByText } = render(
         <PlayerProfileCard
           {...baseProps}
           targetUserId="bot-2"
           rosterName="机器人3号"
-          isHost={false}
+          onKick={undefined}
         />,
       );
 
@@ -92,7 +93,9 @@ describe('PlayerProfileCard', () => {
         isError: false,
       });
 
-      const { getByText } = render(<PlayerProfileCard {...baseProps} targetUserId="user-abc" />);
+      const { getByText } = render(
+        <PlayerProfileCard {...baseProps} occupantKind="human" targetUserId="user-abc" />,
+      );
 
       expect(getByText('Alice')).toBeTruthy();
       expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
@@ -102,7 +105,14 @@ describe('PlayerProfileCard', () => {
     });
 
     it('does not enable query when not visible', () => {
-      render(<PlayerProfileCard {...baseProps} visible={false} targetUserId="user-abc" />);
+      render(
+        <PlayerProfileCard
+          {...baseProps}
+          visible={false}
+          occupantKind="human"
+          targetUserId="user-abc"
+        />,
+      );
 
       expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
         'user-abc',

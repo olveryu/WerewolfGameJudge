@@ -504,6 +504,10 @@ jest.mock('./src/utils/logger', () => {
     bgmLog: mockLogger,
     chatLog: mockLogger,
     connectionLog: mockLogger,
+    cfFetchLog: mockLogger,
+    statsLog: mockLogger,
+    shareLog: mockLogger,
+    gachaLog: mockLogger,
   };
 });
 

@@ -17,6 +17,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useState } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import type { RoomEntryResult } from '@/features/room/model/RoomConnection';
 import { userStatsOptions } from '@/hooks/queries/queryOptions';
 import { addRecentRoom } from '@/lib/recentRooms';
 import { SupersededError } from '@/services/connection/types';
@@ -31,9 +32,6 @@ import { gameRoomLog } from '@/utils/logger';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Discriminated union: success guarantees no error field; failure guarantees error string. */
-export type RoomInitResult = { success: true } | { success: false; error: string };
-
 interface RoomLifecycleState {
   loading: boolean;
   error: string | null;
@@ -43,7 +41,7 @@ interface RoomLifecycleState {
   clearNeedsAuth: () => void;
 
   // Room actions
-  enterRoom: (room: RoomRecord) => Promise<RoomInitResult>;
+  enterRoom: (room: RoomRecord) => Promise<RoomEntryResult>;
   leaveRoom: () => Promise<void>;
 
   // Seat actions
@@ -82,7 +80,7 @@ interface RoomLifecycleDeps {
   // =========================================================================
 
   const enterRoom = useCallback(
-    async (room: RoomRecord): Promise<RoomInitResult> => {
+    async (room: RoomRecord): Promise<RoomEntryResult> => {
       setLoading(true);
       setError(null);
 

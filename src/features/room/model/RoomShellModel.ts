@@ -5,7 +5,9 @@ import type { ComponentProps } from 'react';
 
 import type { RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomCapabilities } from './RoomCapabilities';
+import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
+import type { RoomShareModel } from './RoomShare';
 
 export type RoomIconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -79,6 +81,8 @@ export interface RoomShellModel {
   readonly connection: RoomConnectionViewModel;
   readonly statusRibbon: RoomStatusRibbonModel | null;
   readonly seats: RoomSeatBoardModel;
+  readonly seatConfirmation: RoomSeatConfirmationModel | null;
+  readonly share: RoomShareModel;
   readonly bottomActions: RoomBottomActionModel;
   readonly controlledSeat: RoomControlledSeatModel | null;
 }

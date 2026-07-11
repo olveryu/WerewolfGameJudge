@@ -13,15 +13,17 @@
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 
+import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import type { IGameFacade } from '@/services/types/IGameFacade';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 export interface DebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */
   controlledSeat: number | null;
-  setControlledSeat: (seat: number | null) => void;
+  takeOverBot: (seat: number) => void;
+  releaseBot: () => void;
   /** Effective seat = controlledSeat ?? mySeat */
   effectiveSeat: number | null;
   /** Role of the effective seat */
@@ -45,7 +47,8 @@ export function useDebugMode(
   mySeat: number | null,
   gameState: LocalGameState | null,
 ): DebugModeState {
-  const [controlledSeat, setControlledSeat] = useState<number | null>(null);
+  const botControl = useRoomBotControl();
+  const { controlledSeat } = botControl;
 
   // effectiveSeat = controlledSeat ?? mySeat
   const effectiveSeat = controlledSeat ?? mySeat;
@@ -90,7 +93,8 @@ export function useDebugMode(
 
   return {
     controlledSeat,
-    setControlledSeat,
+    takeOverBot: botControl.takeOver,
+    releaseBot: botControl.release,
     effectiveSeat,
     effectiveRole,
     isDebugMode,

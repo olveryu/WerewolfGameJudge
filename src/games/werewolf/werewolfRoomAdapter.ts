@@ -10,7 +10,6 @@ import type {
 import type {
   RoomCapabilities,
   RoomCapability,
-  RoomOperationResult,
   RoomProfileTarget,
 } from '@/features/room/model/RoomCapabilities';
 import type {
@@ -31,6 +30,8 @@ import type { ActionIntent } from '@/screens/RoomScreen/policy/types';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
+export const WEREWOLF_DISPLAY_NAME = '狼人杀';
+
 const denied = <TArgs extends readonly unknown[], TResult>(
   reason: string | null,
 ): RoomCapability<TArgs, TResult> => ({ isAllowed: false, reason });
@@ -46,12 +47,12 @@ interface WerewolfCapabilitiesInput {
   readonly isDebugMode: boolean;
   readonly isAudioPlaying: boolean;
   readonly hasOccupiedSeats: boolean;
-  readonly isShareAvailable: boolean;
-  readonly takeSeat: (seat: number) => Promise<RoomOperationResult>;
-  readonly leaveSeat: () => Promise<RoomOperationResult>;
-  readonly kickSeat: (seat: number) => Promise<RoomOperationResult>;
-  readonly clearSeats: () => Promise<RoomOperationResult>;
-  readonly fillBots: () => Promise<RoomOperationResult>;
+  readonly requestTakeSeat: (seat: number) => void;
+  readonly requestMoveSeat: (seat: number) => void;
+  readonly requestLeaveSeat: () => void;
+  readonly kickSeat: (seat: number) => void;
+  readonly clearSeats: () => void;
+  readonly fillBots: () => void;
   readonly configureGame: () => void;
   readonly openProfile: (target: RoomProfileTarget) => void;
   readonly takeOverBot: (seat: number) => void;
@@ -67,11 +68,17 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
 
   return {
     canTakeSeat:
-      isSetup && input.mySeat === null ? allowed(input.takeSeat) : denied('当前阶段不能入座'),
+      isSetup && input.mySeat === null
+        ? allowed(input.requestTakeSeat)
+        : denied('当前阶段不能入座'),
     canMoveSeat:
-      isSetup && input.mySeat !== null ? allowed(input.takeSeat) : denied('当前阶段不能换座'),
+      isSetup && input.mySeat !== null
+        ? allowed(input.requestMoveSeat)
+        : denied('当前阶段不能换座'),
     canLeaveSeat:
-      isSetup && input.mySeat !== null ? allowed(input.leaveSeat) : denied('当前阶段不能离座'),
+      isSetup && input.mySeat !== null
+        ? allowed(input.requestLeaveSeat)
+        : denied('当前阶段不能离座'),
     canKickSeat: input.isHost && isSetup ? allowed(input.kickSeat) : denied('当前阶段不能移出座位'),
     canClearSeats:
       input.isHost && isSetup && input.hasOccupiedSeats
@@ -88,8 +95,7 @@ export function createWerewolfRoomCapabilities(input: WerewolfCapabilitiesInput)
         ? allowed(input.openProfile)
         : denied('游戏进行中不能查看玩家资料'),
     canTakeOverBots: canTakeOver ? allowed(input.takeOverBot) : denied('当前不能接管机器人'),
-    canShareRoom:
-      input.isShareAvailable && isSetup ? allowed(input.shareRoom) : denied('当前阶段不能分享房间'),
+    canShareRoom: isSetup ? allowed(input.shareRoom) : denied('当前阶段不能分享房间'),
     shouldConfirmExit: true,
   };
 }

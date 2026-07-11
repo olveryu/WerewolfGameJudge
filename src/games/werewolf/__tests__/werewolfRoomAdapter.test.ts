@@ -8,8 +8,6 @@ import {
 } from '@/games/werewolf/werewolfRoomAdapter';
 import type { SeatViewModel } from '@/screens/RoomScreen/RoomScreen.helpers';
 
-const success = async () => ({ success: true }) as const;
-
 function createCapabilityInput() {
   return {
     status: GameStatus.Unseated,
@@ -18,12 +16,12 @@ function createCapabilityInput() {
     isDebugMode: true,
     isAudioPlaying: false,
     hasOccupiedSeats: true,
-    isShareAvailable: true,
-    takeSeat: jest.fn(success),
-    leaveSeat: jest.fn(success),
-    kickSeat: jest.fn(success),
-    clearSeats: jest.fn(success),
-    fillBots: jest.fn(success),
+    requestTakeSeat: jest.fn(),
+    requestMoveSeat: jest.fn(),
+    requestLeaveSeat: jest.fn(),
+    kickSeat: jest.fn(),
+    clearSeats: jest.fn(),
+    fillBots: jest.fn(),
     configureGame: jest.fn(),
     openProfile: jest.fn(),
     takeOverBot: jest.fn(),
@@ -47,7 +45,7 @@ describe('werewolfRoomAdapter', () => {
     expect('execute' in capabilities.canConfigureGame).toBe(false);
   });
 
-  it('binds shared setup capabilities to the existing Werewolf commands', async () => {
+  it('binds shared setup capabilities to the shared room controllers', () => {
     const input = createCapabilityInput();
     const capabilities = createWerewolfRoomCapabilities(input);
     expect(capabilities.canTakeSeat.isAllowed).toBe(true);
@@ -57,9 +55,9 @@ describe('werewolfRoomAdapter', () => {
     if (!capabilities.canTakeSeat.isAllowed || !capabilities.canShareRoom.isAllowed) {
       throw new Error('Expected Werewolf setup capabilities to be executable');
     }
-    await capabilities.canTakeSeat.execute(2);
+    capabilities.canTakeSeat.execute(2);
     capabilities.canShareRoom.execute();
-    expect(input.takeSeat).toHaveBeenCalledWith(2);
+    expect(input.requestTakeSeat).toHaveBeenCalledWith(2);
     expect(input.shareRoom).toHaveBeenCalledTimes(1);
   });
 

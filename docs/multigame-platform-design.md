@@ -1032,12 +1032,12 @@ type RoomCapability<Args extends readonly unknown[] = [], Result = void> =
   | { readonly isAllowed: true; readonly execute: (...args: Args) => Result };
 
 interface RoomCapabilities {
-  readonly canTakeSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
-  readonly canMoveSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
-  readonly canLeaveSeat: RoomCapability<[], Promise<RoomOperationResult>>;
-  readonly canKickSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
-  readonly canClearSeats: RoomCapability<[], Promise<RoomOperationResult>>;
-  readonly canFillBots: RoomCapability<[], Promise<RoomOperationResult>>;
+  readonly canTakeSeat: RoomCapability<[seat: number]>;
+  readonly canMoveSeat: RoomCapability<[seat: number]>;
+  readonly canLeaveSeat: RoomCapability;
+  readonly canKickSeat: RoomCapability<[seat: number]>;
+  readonly canClearSeats: RoomCapability;
+  readonly canFillBots: RoomCapability;
   readonly canConfigureGame: RoomCapability;
   readonly canViewProfiles: RoomCapability<[target: RoomProfileTarget]>;
   readonly canTakeOverBots: RoomCapability<[seat: number]>;
@@ -1047,6 +1047,11 @@ interface RoomCapabilities {
 ```
 
 Shell 不 import `GameStatus` 或 `FibPhase`，也不根据 generic `ongoing` 猜 `canKickSeat`。Game adapter 按自己的 phase 和 actor 穷尽式派生 capabilities。
+
+Capability 的 `execute` 表示一个完整 UI intent，不暴露 raw room mutation。比如 `canMoveSeat.execute(5)`
+打开明确的“换座”确认，确认后才由 `useRoomSeatController` 私有调用原子的 `room.seat.take`；不能在 UI
+组合 `leave + take`。Mutation result、submission lock、reason mapping 和异常反馈都属于 controller，不能再由
+screen、dispatcher 或 component 建第二条提交路径。
 
 Capabilities 同时控制可见性和执行入口。一个 capability 如果计算出来却没有 production consumer，architecture contract test 必须失败。
 
@@ -1778,15 +1783,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                             |
-| --------- | ------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                    |
-| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零  |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                    |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                    |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                    |
-| Phase 5   | 进行中 | shared model、RoomShell、header/status/seat/bottom cutover、lazy seat source           | focused controllers、profile/QR、目录归位、视觉 gate |
-| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                  |
+| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                            |
+| --------- | ------ | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                   |
+| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                   |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                   |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                   |
+| Phase 5   | 进行中 | shared model/shell、lazy seat、focused controllers、seat/QR modal、capability cutover  | profile shared split、目录归位、视觉 gate           |
+| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -1899,3 +1904,34 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   约束，不加 sleep、轮询或重试。相关 2 files/22 tests 通过，完整 api-worker 12 files/88 tests 连续三轮通过。
 - 下一批删除 profile、seat、share、bot、connection 的重复本地状态，完成 take/move/leave 三态确认和 direct
   kick，再把剩余狼人杀 screen/hooks/policy/tests 一次性归位到 `src/games/werewolf`。
+
+### 当前提交：Phase 5 focused room controllers 与 capability 单通路
+
+- 新增 `useRoomSeatController`、`useRoomProfileController`、`useRoomBotControl`、`useRoomConnection` 和
+  `useRoomShareController`。每个 controller 只拥有一个功能域的 state/transition；没有接收 `GameStatus`、角色、
+  night schema 或 Fib phase，也没有新建一个聚合所有 selector/command 的大 hook。
+- Seat confirmation 使用 `take | move | leave` 判别联合。未入座点空位是“入座”，已入座点另一空位是“换座”，
+  本人 profile 的“离座”先关闭 profile 再走同一个离座确认。换座只提交一次权威 `room.seat.take`，由 engine
+  seating kernel 原子清旧座并占新座，客户端不拼接两条命令。
+- `RoomCapabilities.execute` 改为完整 UI intent，dispatcher 不再持有 raw `takeSeat`、`leaveSeat`、`kickPlayer`
+  或 profile primitive state。Seat/profile/bot interaction 只执行 capability；denied capability 若仍被狼人杀 policy
+  产出则按内部一致性错误 fail fast。
+- Profile 的本人身份只比较 authoritative `target.userId === myUserId`，不再按 seat 猜测；occupant kind 由房间
+  roster 显式提供，不再用 `userId.startsWith('bot-')`。移出座位是 profile controller 的 direct kick，不存在
+  `KICK_CONFIRM` producer/type/switch；本人离座必须执行 `canLeaveSeat`。
+- Controlled bot seat 的唯一 local state 已移到 shared bot controller；狼人杀仍独占 Host/debug/audio phase gate、
+  effective role、actor identity 和 command envelope。重开游戏只在确实控制 bot 时 release，不再暴露可写任意
+  `number | null` 的 setter。
+- `RoomShell` 现在直接拥有 `RoomSeatConfirmModal` 和 `QRCodeModal`。旧 `useRoomSeatDialogs`、`useRoomInit`、
+  screen-local QR state、旧 modal 路径和对应 mock 已删除，没有 re-export 或 compatibility layer。Share copy/title
+  接收 game display name，不再硬编码“狼人杀”；QR pre-capture 改由 layout 与 logo load 事件驱动，分享 loading
+  跟随真实 Promise，不再使用 500ms/2000ms timer。
+- Connection entry 用 React 19.2 `useEffectEvent` 分离 callback freshness 与 room/retry synchronization；callback
+  identity 变化不会重新进房，retry generation 会丢弃 superseded attempt。Web Share 的 cancellation/error 分类与
+  file capability check 按当前 MDN contract 实现，React Native share 保留 `dismissedAction` 语义。
+- 定向门禁：focused controller 4 suites/12 tests、adapter/policy/profile/share 4 suites/61 tests、代表性
+  RoomScreen/board/shared component 10 suites/79 tests、architecture contract 340 tests 全部通过。完整
+  `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全绿；root 187 suites/4812 tests、
+  game-engine 82 suites/2373 tests、api-worker 12 files/88 tests 全部通过。
+- Phase 5 仍未完成：`PlayerProfileCard` 还需拆成 shared frame/query/actions 与狼人杀 camp details slot，shared
+  profile 必须由 `RoomShell` 直接渲染；随后把剩余 Werewolf screen/hooks/policy 归位并完成截图与 interaction gate。

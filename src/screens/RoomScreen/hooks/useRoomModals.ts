@@ -3,7 +3,7 @@
  *
  * Extracted from useRoomScreenState; centralizes visible state and open/close handlers for all modals.
  * Includes: role card, skill preview, night details, share details, last-night info.
- * Excludes seat dialogs (managed by useRoomSeatDialogs) and action dialogs (managed by useRoomActionDialogs).
+ * Excludes shared room modals and Werewolf action dialogs.
  */
 
 import type { RoleId } from '@werewolf/game-engine/models/roles';

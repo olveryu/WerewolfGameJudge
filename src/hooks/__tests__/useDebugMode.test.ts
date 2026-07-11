@@ -75,7 +75,7 @@ describe('useDebugMode', () => {
     const { result } = renderHook(() => useDebugMode(facade, 1, makeGameState()));
 
     act(() => {
-      result.current.setControlledSeat(2);
+      result.current.takeOverBot(2);
     });
 
     expect(result.current.effectiveSeat).toBe(2);

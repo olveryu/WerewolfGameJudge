@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
+import type { RoomEntryResult } from '@/features/room/model/RoomConnection';
 import { ConnectionStatus, type IGameFacade } from '@/services/types/IGameFacade';
 import type { RoomRecord } from '@/services/types/IRoomService';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -38,7 +39,7 @@ import { useDebugMode } from './useDebugMode';
 import { useGameActions } from './useGameActions';
 import { useLastActionToast } from './useLastActionToast';
 import { useNightDerived } from './useNightDerived';
-import { type RoomInitResult, useRoomLifecycle } from './useRoomLifecycle';
+import { useRoomLifecycle } from './useRoomLifecycle';
 import { useSettleToast } from './useSettleToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +67,8 @@ interface UseGameRoomResult {
   controlledSeat: number | null;
   effectiveSeat: number | null;
   effectiveRole: RoleId | null;
-  setControlledSeat: (seat: number | null) => void;
+  takeOverBot: (seat: number) => void;
+  releaseBot: () => void;
   isDebugMode: boolean;
   fillWithBots: () => Promise<ActionResult>;
   markAllBotsViewed: () => Promise<ActionResult>;
@@ -94,7 +96,7 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  enterRoom: (room: RoomRecord) => Promise<RoomInitResult>;
+  enterRoom: (room: RoomRecord) => Promise<RoomEntryResult>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seat: number) => Promise<ActionResult>;
   leaveSeat: () => Promise<ActionResult>;
@@ -340,7 +342,8 @@ interface UseGameRoomResult {
     controlledSeat: debug.controlledSeat,
     effectiveSeat: debug.effectiveSeat,
     effectiveRole: debug.effectiveRole,
-    setControlledSeat: debug.setControlledSeat,
+    takeOverBot: debug.takeOverBot,
+    releaseBot: debug.releaseBot,
     isDebugMode: debug.isDebugMode,
     fillWithBots: debug.fillWithBots,
     markAllBotsViewed: debug.markAllBotsViewed,

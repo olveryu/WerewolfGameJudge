@@ -112,7 +112,8 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
     markAllBotsGroupConfirmed: jest.fn(),
-    setControlledSeat: jest.fn(),
+    takeOverBot: jest.fn(),
+    releaseBot: jest.fn(),
 
     // Actions used by RoomScreen
     enterRoom: jest.fn().mockResolvedValue({ success: true }),
@@ -155,16 +156,6 @@ jest.mock('../useRoomHostDialogs', () => ({
 }));
 
 // Avoid seat dialogs complexity
-jest.mock('../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
 
 // NOTE:
 // We intentionally do NOT mock useRoomActionDialogs/useActionerState.

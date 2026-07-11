@@ -442,7 +442,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     // Set controlledSeat to 1 (bot seat)
     await act(async () => {
-      result.current.setControlledSeat(1);
+      result.current.takeOverBot(1);
     });
 
     // Now: effectiveSeat = 1, effectiveRole = 'wolf'
@@ -505,7 +505,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     // Set controlledSeat to 1 (wolfRobot bot seat)
     await act(async () => {
-      result.current.setControlledSeat(1);
+      result.current.takeOverBot(1);
     });
 
     // effectiveSeat should now be 1
@@ -560,7 +560,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
 
     // Set controlledSeat to empty seat 1
     await act(async () => {
-      result.current.setControlledSeat(1);
+      result.current.takeOverBot(1);
     });
 
     expect(result.current.effectiveSeat).toBe(1);

@@ -1,5 +1,5 @@
 /**
- * shareRoom.test - Tests for room link sharing utility
+ * roomShare.test - Tests for room link sharing utility
  *
  * Covers native Share API, mobile web navigator.share, desktop clipboard,
  * fallback paths, and cancellation handling.
@@ -11,7 +11,7 @@ import { Platform, Share } from 'react-native';
 const origNavigator = global.navigator;
 const origWindow = global.window;
 
-import { shareOrCopyRoomLink } from '../shareRoom';
+import { shareOrCopyRoomLink } from '../roomShare';
 
 describe('shareOrCopyRoomLink', () => {
   beforeEach(() => {
@@ -31,7 +31,7 @@ describe('shareOrCopyRoomLink', () => {
       .spyOn(Share, 'share')
       .mockResolvedValue({ action: Share.sharedAction, activityType: undefined });
 
-    const result = await shareOrCopyRoomLink('1234');
+    const result = await shareOrCopyRoomLink('1234', '狼人杀');
     expect(result).toBe('shared');
     expect(Share.share).toHaveBeenCalledWith(
       expect.objectContaining({ url: 'https://werewolfjudge.eu.org/room/1234' }),
@@ -44,14 +44,14 @@ describe('shareOrCopyRoomLink', () => {
       .spyOn(Share, 'share')
       .mockResolvedValue({ action: Share.dismissedAction, activityType: undefined });
 
-    expect(await shareOrCopyRoomLink('5678')).toBe('cancelled');
+    expect(await shareOrCopyRoomLink('5678', '狼人杀')).toBe('cancelled');
   });
 
   it('should return "failed" when native Share throws', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'android', writable: true });
     jest.spyOn(Share, 'share').mockRejectedValue(new Error('share error'));
 
-    expect(await shareOrCopyRoomLink('5678')).toBe('failed');
+    expect(await shareOrCopyRoomLink('5678', '狼人杀')).toBe('failed');
   });
 
   // ── Mobile web: navigator.share ──
@@ -71,7 +71,7 @@ describe('shareOrCopyRoomLink', () => {
       configurable: true,
     });
 
-    const result = await shareOrCopyRoomLink('9999');
+    const result = await shareOrCopyRoomLink('9999', '狼人杀');
     expect(result).toBe('shared');
     expect(mockShare).toHaveBeenCalledWith(
       expect.objectContaining({ url: 'https://test.local/room/9999' }),
@@ -92,7 +92,7 @@ describe('shareOrCopyRoomLink', () => {
 
   it('should return "cancelled" when mobile web share is dismissed', async () => {
     Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
-    const mockShare = jest.fn().mockRejectedValue(new DOMException('AbortError'));
+    const mockShare = jest.fn().mockRejectedValue(new DOMException('cancelled', 'AbortError'));
     Object.defineProperty(global, 'navigator', {
       value: { share: mockShare, maxTouchPoints: 1, clipboard: undefined },
       writable: true,
@@ -104,7 +104,38 @@ describe('shareOrCopyRoomLink', () => {
       configurable: true,
     });
 
-    expect(await shareOrCopyRoomLink('1111')).toBe('cancelled');
+    expect(await shareOrCopyRoomLink('1111', '狼人杀')).toBe('cancelled');
+
+    Object.defineProperty(global, 'navigator', {
+      value: origNavigator,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(global, 'window', {
+      value: origWindow,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it('returns "failed" when mobile web sharing fails for a non-cancellation reason', async () => {
+    Object.defineProperty(Platform, 'OS', { value: 'web', writable: true });
+    Object.defineProperty(global, 'navigator', {
+      value: {
+        share: jest.fn().mockRejectedValue(new DOMException('blocked', 'NotAllowedError')),
+        maxTouchPoints: 1,
+        clipboard: undefined,
+      },
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(global, 'window', {
+      value: { ...origWindow, ontouchstart: true, location: { origin: 'https://test.local' } },
+      writable: true,
+      configurable: true,
+    });
+
+    expect(await shareOrCopyRoomLink('1111', '狼人杀')).toBe('failed');
 
     Object.defineProperty(global, 'navigator', {
       value: origNavigator,
@@ -135,7 +166,7 @@ describe('shareOrCopyRoomLink', () => {
       configurable: true,
     });
 
-    const result = await shareOrCopyRoomLink('2222');
+    const result = await shareOrCopyRoomLink('2222', '狼人杀');
     expect(result).toBe('copied');
     expect(mockWriteText).toHaveBeenCalledWith('https://desk.local/room/2222');
 
@@ -171,7 +202,7 @@ describe('shareOrCopyRoomLink', () => {
       configurable: true,
     });
 
-    expect(await shareOrCopyRoomLink('3333')).toBe('shared');
+    expect(await shareOrCopyRoomLink('3333', '狼人杀')).toBe('shared');
     expect(mockShare).toHaveBeenCalled();
 
     Object.defineProperty(global, 'navigator', {
@@ -201,7 +232,7 @@ describe('shareOrCopyRoomLink', () => {
       configurable: true,
     });
 
-    expect(await shareOrCopyRoomLink('4444')).toBe('failed');
+    expect(await shareOrCopyRoomLink('4444', '狼人杀')).toBe('failed');
 
     Object.defineProperty(global, 'navigator', {
       value: origNavigator,

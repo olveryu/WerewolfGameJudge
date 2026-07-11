@@ -97,7 +97,8 @@ jest.mock('../../../hooks/useGameRoom', () => {
         fillWithBots: jest.fn(),
         markAllBotsViewed: jest.fn(),
         markAllBotsGroupConfirmed: jest.fn(),
-        setControlledSeat: jest.fn(),
+        takeOverBot: jest.fn(),
+        releaseBot: jest.fn(),
 
         enterRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
@@ -173,17 +174,6 @@ jest.mock('../useRoomHostDialogs', () => ({
     showStartGameDialog: jest.fn(),
     showRestartDialog: jest.fn(),
     handleSettingsPress: jest.fn(),
-  }),
-}));
-
-jest.mock('../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
   }),
 }));
 

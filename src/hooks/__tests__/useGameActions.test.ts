@@ -77,25 +77,19 @@ interface MockDebugOverrides {
   controlledSeat?: number | null;
   effectiveSeat?: number | null;
   effectiveRole?: string | null;
-  setControlledSeat?: jest.Mock;
+  releaseBot?: jest.Mock;
 }
 
 function createMockDebug(
   overrides: MockDebugOverrides = {},
-): Pick<
-  DebugModeState,
-  'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
-> {
+): Pick<DebugModeState, 'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'> {
   return {
     controlledSeat: null,
     effectiveSeat: 1,
     effectiveRole: 'wolf',
-    setControlledSeat: jest.fn(),
+    releaseBot: jest.fn(),
     ...overrides,
-  } as Pick<
-    DebugModeState,
-    'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
-  >;
+  } as Pick<DebugModeState, 'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'>;
 }
 
 type GameActionsDeps = Parameters<typeof useGameActions>[0];
@@ -103,10 +97,7 @@ type GameActionsDeps = Parameters<typeof useGameActions>[0];
 interface MockDepsOverrides {
   facade?: MockFacade;
   bgm?: Pick<BgmControlState, 'startBgmIfEnabled' | 'stopBgm'>;
-  debug?: Pick<
-    DebugModeState,
-    'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'setControlledSeat'
-  >;
+  debug?: Pick<DebugModeState, 'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'>;
   mySeat?: number | null;
   gameState?: Partial<LocalGameState> | null;
 }
@@ -188,13 +179,13 @@ describe('useGameActions - game control', () => {
   });
 
   it('restartGame should stop BGM, clear debug seat, and call facade', async () => {
-    const deps = createDeps();
+    const deps = createDeps({ debug: createMockDebug({ controlledSeat: 2 }) });
     const { result } = renderHook(() => useGameActions(deps));
 
     await act(() => result.current.restartGame());
 
     expect(deps.bgm.stopBgm).toHaveBeenCalled();
-    expect(deps.debug.setControlledSeat).toHaveBeenCalledWith(null);
+    expect(deps.debug.releaseBot).toHaveBeenCalledTimes(1);
     expect(deps.facade.restartGame).toHaveBeenCalled();
   });
 

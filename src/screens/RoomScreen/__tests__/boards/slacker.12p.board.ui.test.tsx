@@ -61,17 +61,6 @@ jest.mock('../../useRoomHostDialogs', () => ({
   }),
 }));
 
-jest.mock('../../useRoomSeatDialogs', () => ({
-  useRoomSeatDialogs: () => ({
-    showEnterSeatDialog: jest.fn(),
-    showLeaveSeatDialog: jest.fn(),
-    handleConfirmSeat: jest.fn(),
-    handleCancelSeat: jest.fn(),
-    handleConfirmLeave: jest.fn(),
-    handleLeaveRoom: jest.fn(),
-  }),
-}));
-
 jest.mock('../../hooks/useActionerState', () => ({
   useActionerState: () => ({
     imActioner: true,

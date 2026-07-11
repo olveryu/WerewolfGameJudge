@@ -97,7 +97,7 @@ export interface BottomActionEvent {
 /** Host control button tap (start game, restart, etc.) */
 export interface HostControlEvent {
   kind: 'HOST_CONTROL';
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart';
+  action: 'prepareToFlip' | 'startGame' | 'restart';
 }
 
 /** View role card button tap */
@@ -153,8 +153,7 @@ export interface InteractionResultAlert {
 /** Show a dialog (confirm, action prompt, etc.) */
 export interface InteractionResultShowDialog {
   kind: 'SHOW_DIALOG';
-  dialogType: 'seatingEnter' | 'seatingLeave' | 'roleCard' | 'leaveRoom';
-  seat?: number;
+  dialogType: 'roleCard' | 'leaveRoom';
 }
 
 /** Run seating flow (enter/leave seat) */
@@ -173,7 +172,7 @@ export interface InteractionResultActionFlow {
 /** Run host control action */
 export interface InteractionResultHostControl {
   kind: 'HOST_CONTROL';
-  action: 'settings' | 'prepareToFlip' | 'startGame' | 'restart';
+  action: 'prepareToFlip' | 'startGame' | 'restart';
 }
 
 /** Takeover bot seat (debug mode) */
@@ -185,12 +184,6 @@ export interface InteractionResultTakeoverBotSeat {
 /** Release bot seat control (debug mode) */
 export interface InteractionResultReleaseBotSeat {
   kind: 'RELEASE_BOT_SEAT';
-}
-
-/** Host kick confirmation */
-export interface InteractionResultKickConfirm {
-  kind: 'KICK_CONFIRM';
-  seat: number;
 }
 
 /** View player profile card */
@@ -210,7 +203,6 @@ export type InteractionResult =
   | InteractionResultHostControl
   | InteractionResultTakeoverBotSeat
   | InteractionResultReleaseBotSeat
-  | InteractionResultKickConfirm
   | InteractionResultViewProfile;
 
 // =============================================================================
