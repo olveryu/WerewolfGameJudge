@@ -124,7 +124,7 @@ const REASON_CODE_MAP: Record<string, string> = {
   // ── Room / Avatar / Share ─────────────────────────────────────────────────
   room_code_conflict: '房间号冲突，请重试',
   room_initialization_conflict: '房间初始化冲突，请重新创建',
-  room_code_mismatch: '房间信息不一致，请重新进入',
+  room_effects_pending: '房间操作仍在处理中，请稍后重试',
   command_id_conflict: '操作标识冲突，请重试',
   STORAGE_NOT_CONFIGURED: '存储服务未配置',
   FILE_REQUIRED: '请选择文件',

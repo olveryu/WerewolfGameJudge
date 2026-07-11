@@ -5,20 +5,20 @@
  */
 
 import type { GameStore } from '@werewolf/game-engine/engine/store';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 import type { AudioOrchestratorDeps } from '../AudioOrchestrator';
 import { AudioOrchestrator } from '../AudioOrchestrator';
 import type { PreparedAudioAck } from '../gameActions';
+import type { RoomCommandDispatchOutcome } from '../roomCommandSession';
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
 
 const mockPrepareAudioAck = jest.fn<PreparedAudioAck | null, unknown[]>();
-const mockDispatchPreparedAudioAck = jest.fn<Promise<ActionResult>, unknown[]>();
+const mockDispatchPreparedAudioAck = jest.fn<Promise<RoomCommandDispatchOutcome>, unknown[]>();
 
 const mockPreparedAudioAckA: PreparedAudioAck = Object.freeze({
   roomCode: 'ROOM',
@@ -114,7 +114,10 @@ describe('AudioOrchestrator reconnect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrepareAudioAck.mockReturnValue(mockPreparedAudioAckA);
-    mockDispatchPreparedAudioAck.mockResolvedValue({ success: true });
+    mockDispatchPreparedAudioAck.mockResolvedValue({
+      kind: 'decided',
+      result: { success: true },
+    });
     jest.useFakeTimers();
   });
 
@@ -131,8 +134,8 @@ describe('AudioOrchestrator reconnect', () => {
       const { emitStatus, mockStore, triggerStoreSubscriber } = createOrchestrator();
 
       mockDispatchPreparedAudioAck.mockResolvedValueOnce({
-        success: false,
-        reason: 'NETWORK_ERROR',
+        kind: 'deliveryUnknown',
+        result: { success: false, reason: 'NETWORK_ERROR' },
       });
       mockStore.getState.mockReturnValue({
         pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
@@ -147,7 +150,10 @@ describe('AudioOrchestrator reconnect', () => {
       await jest.advanceTimersByTimeAsync(100);
 
       // Step 2: Emit Live — should trigger L2 retry since ack failed
-      mockDispatchPreparedAudioAck.mockResolvedValue({ success: true });
+      mockDispatchPreparedAudioAck.mockResolvedValue({
+        kind: 'decided',
+        result: { success: true },
+      });
       mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
       emitStatus(ConnectionStatus.Live);
 
@@ -180,6 +186,32 @@ describe('AudioOrchestrator reconnect', () => {
       expect(mockPrepareAudioAck).toHaveBeenCalledTimes(2);
       expect(mockDispatchPreparedAudioAck.mock.calls[0]?.[1]).toBe(mockPreparedAudioAckA);
       expect(mockDispatchPreparedAudioAck.mock.calls[1]?.[1]).toBe(mockPreparedAudioAckB);
+    });
+
+    it('retains the prepared command when dispatch throws a protocol error', async () => {
+      const { emitStatus, mockStore, triggerStoreSubscriber } = createOrchestrator();
+      mockDispatchPreparedAudioAck.mockRejectedValueOnce(new Error('protocol corruption'));
+      mockStore.getState.mockReturnValue({
+        pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+      });
+
+      triggerStoreSubscriber({
+        pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],
+      });
+      await jest.advanceTimersByTimeAsync(100);
+
+      mockDispatchPreparedAudioAck.mockResolvedValue({
+        kind: 'decided',
+        result: { success: true },
+      });
+      mockStore.getState.mockReturnValue({ pendingAudioEffects: null });
+      emitStatus(ConnectionStatus.Live);
+      await jest.advanceTimersByTimeAsync(100);
+
+      expect(mockPrepareAudioAck).toHaveBeenCalledTimes(1);
+      expect(mockDispatchPreparedAudioAck).toHaveBeenCalledTimes(2);
+      expect(mockDispatchPreparedAudioAck.mock.calls[0]?.[1]).toBe(mockPreparedAudioAckA);
+      expect(mockDispatchPreparedAudioAck.mock.calls[1]?.[1]).toBe(mockPreparedAudioAckA);
     });
 
     it('does not retry when not host', () => {
@@ -231,8 +263,8 @@ describe('AudioOrchestrator reconnect', () => {
 
       // Make ack keep failing → triggers registerOnlineRetry
       mockDispatchPreparedAudioAck.mockResolvedValue({
-        success: false,
-        reason: 'NETWORK_ERROR',
+        kind: 'deliveryUnknown',
+        result: { success: false, reason: 'NETWORK_ERROR' },
       });
       mockStore.getState.mockReturnValue({
         pendingAudioEffects: [{ audioKey: 'wolf', isEndAudio: false }],

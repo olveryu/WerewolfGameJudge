@@ -60,7 +60,7 @@ export interface WorkerEffectContext<TInternalCommand> {
     commandId: string,
     command: TInternalCommand,
   ): Promise<RoomCommandResult<BaseGameState<GameType>>>;
-  sendToUser(userId: string, message: object): void;
+  publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
 }
 
 export interface RuntimeWorkerEffectContext {
@@ -72,7 +72,7 @@ export interface RuntimeWorkerEffectContext {
     commandId: string,
     command: unknown,
   ): Promise<RoomCommandResult<BaseGameState<GameType>>>;
-  sendToUser(userId: string, message: object): void;
+  publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
 }
 
 /** Runtime-erased operations. Concrete engine types stay closed inside the module factory. */
@@ -239,7 +239,8 @@ export function defineWorkerGameModule<
         roomCode: context.roomCode,
         revision: context.revision,
         dispatchInternal: (commandId, command) => context.dispatchInternal(commandId, command),
-        sendToUser: (userId, message) => context.sendToUser(userId, message),
+        publishUserEvent: (userId, eventId, message) =>
+          context.publishUserEvent(userId, eventId, message),
       }),
   };
 }

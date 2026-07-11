@@ -56,7 +56,7 @@ describe('Werewolf command protocol', () => {
   it('does not accept client-supplied actor, seat, role, or timestamp fields', () => {
     const validCommand: WerewolfCommand = {
       type: 'werewolf.action.submit',
-      input: { kind: 'confirm', confirmed: true },
+      input: { kind: 'confirm' },
     };
 
     expect(validCommand.type).toBe('werewolf.action.submit');

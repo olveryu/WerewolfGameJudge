@@ -23,6 +23,7 @@ import type { ConnectionManager } from '@/services/connection/ConnectionManager'
 import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
 import type { AudioService } from '@/services/infra/AudioService';
+import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import type { IRoomService } from '@/services/types/IRoomService';
 
 jest.mock('@werewolf/game-engine', () => ({
@@ -142,6 +143,7 @@ const createMockConnectionManager = (
   connect: jest.fn<void, [string, string]>(),
   dispose: jest.fn<void, []>(),
   manualReconnect: jest.fn<void, []>(),
+  acknowledgeUserEvent: jest.fn<boolean, [string]>().mockReturnValue(true),
   addStateListener: jest.fn<() => void, [(...args: unknown[]) => void]>().mockReturnValue(() => {}),
   updateRevision: jest.fn<void, [number]>(),
   getState: jest.fn<string, []>().mockReturnValue('Idle'),
@@ -157,6 +159,7 @@ describe('GameFacade', () => {
     disconnect: jest.Mock<void, []>;
     dispose: jest.Mock<void, []>;
     manualReconnect: jest.Mock<void, []>;
+    acknowledgeUserEvent: jest.Mock<boolean, [string]>;
     addStateListener: jest.Mock<() => void, [(...args: unknown[]) => void]>;
     updateRevision: jest.Mock<void, [number]>;
     getState: jest.Mock<string, []>;
@@ -177,6 +180,7 @@ describe('GameFacade', () => {
       disconnect: jest.fn<void, []>(),
       dispose: jest.fn<void, []>(),
       manualReconnect: jest.fn<void, []>(),
+      acknowledgeUserEvent: jest.fn<boolean, [string]>().mockReturnValue(true),
       addStateListener: jest
         .fn<() => void, [(...args: unknown[]) => void]>()
         .mockReturnValue(() => {}),
@@ -234,6 +238,58 @@ describe('GameFacade', () => {
 
     return state;
   };
+
+  describe('durable settlement delivery', () => {
+    const settlement: SettleResultMessage = {
+      eventId: 'settlement-event-1',
+      gameType: 'werewolf',
+      settlementId: 'settlement-1',
+      endedRevision: 12,
+      xpEarned: 15,
+      newXp: 40,
+      newLevel: 2,
+      previousLevel: 1,
+      normalDrawsEarned: 2,
+      goldenDrawsEarned: 1,
+    };
+
+    it('buffers until a listener consumes the event, then acknowledges duplicate delivery', () => {
+      facade.updateMyUserId('user-1');
+      facade.handleSettleResult(settlement);
+      expect(mockConnectionManager.acknowledgeUserEvent).not.toHaveBeenCalled();
+
+      const listener = jest.fn();
+      facade.addSettleResultListener(listener);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledWith(settlement);
+      expect(mockConnectionManager.acknowledgeUserEvent).toHaveBeenCalledWith('settlement-event-1');
+
+      facade.handleSettleResult(settlement);
+      expect(listener).toHaveBeenCalledTimes(1);
+      expect(mockConnectionManager.acknowledgeUserEvent).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails fast when one event ID changes payload across deliveries', () => {
+      facade.updateMyUserId('user-1');
+      facade.addSettleResultListener(jest.fn());
+      facade.handleSettleResult(settlement);
+
+      expect(() => facade.handleSettleResult({ ...settlement, xpEarned: 16 })).toThrow(
+        'Settlement event settlement-event-1 changed across deliveries',
+      );
+    });
+
+    it('does not acknowledge an event whose listener failed', () => {
+      facade.updateMyUserId('user-1');
+      facade.addSettleResultListener(() => {
+        throw new Error('toast failed');
+      });
+
+      facade.handleSettleResult(settlement);
+
+      expect(mockConnectionManager.acknowledgeUserEvent).not.toHaveBeenCalled();
+    });
+  });
 
   describe('Host: createRoom', () => {
     it('should load the authoritative server snapshot', async () => {
@@ -1349,6 +1405,7 @@ describe('GameFacade', () => {
         disconnect: jest.fn<void, []>(),
         dispose: jest.fn<void, []>(),
         manualReconnect: jest.fn<void, []>(),
+        acknowledgeUserEvent: jest.fn<boolean, [string]>().mockReturnValue(true),
         addStateListener: jest
           .fn<() => void, [(...args: unknown[]) => void]>()
           .mockImplementation((listener: (s: string) => void) => {

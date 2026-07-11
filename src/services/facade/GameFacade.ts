@@ -23,7 +23,7 @@
  *   Subsequent async callbacks (audio ack, WS event handlers) check #aborted to decide whether to drop.
  */
 
-import type { WerewolfActionInput } from '@werewolf/game-engine';
+import { WEREWOLF_STATE_CODEC, type WerewolfActionInput } from '@werewolf/game-engine';
 import { type GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
@@ -46,6 +46,7 @@ import { AudioOrchestrator } from './AudioOrchestrator';
 // Sub-modules
 import type { GameActionsContext } from './gameActions';
 import * as gameActions from './gameActions';
+import { RoomCommandSession } from './roomCommandSession';
 import type { SeatActionsContext } from './seatActions';
 import * as seatActions from './seatActions';
 
@@ -64,6 +65,12 @@ interface GameFacadeDeps {
   audioService: AudioService;
   /** RoomService instance (DB state persistence) */
   roomService: IRoomService;
+}
+
+interface SettlementDelivery {
+  readonly result: SettleResultMessage;
+  readonly fingerprint: string;
+  isDelivered: boolean;
 }
 
 /** Map internal ConnectionState → UI ConnectionStatus */
@@ -98,13 +105,16 @@ export class GameFacade implements IGameFacade {
   readonly #connectionManager: ConnectionManager;
   readonly #audioService: AudioService;
   readonly #roomService: IRoomService;
+  readonly #commandSession: RoomCommandSession<GameState>;
   readonly #audioOrchestrator: AudioOrchestrator;
   #isHost = false;
   #myUserId: string | null = null;
   /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
   #roomCode: string | null = null;
-  /** Settle result listeners (push-based, no buffer needed) */
+  /** Settlement listeners and durable deliveries waiting for UI consumption. */
   readonly #settleResultListeners = new Set<(result: SettleResultMessage) => void>();
+  readonly #settlementDeliveries = new Map<string, SettlementDelivery>();
+  #settlementUserId: string | null = null;
 
   /**
    * Abort flag: set to true when leaving room.
@@ -121,6 +131,10 @@ export class GameFacade implements IGameFacade {
     this.#connectionManager = deps.connectionManager;
     this.#audioService = deps.audioService;
     this.#roomService = deps.roomService;
+    this.#commandSession = new RoomCommandSession({
+      codec: WEREWOLF_STATE_CODEC,
+      store: deps.store,
+    });
 
     // Audio orchestration: reactive playback + ack retry
     this.#audioOrchestrator = new AudioOrchestrator({
@@ -130,6 +144,9 @@ export class GameFacade implements IGameFacade {
       getActionsContext: () => this.#getActionsContext(),
       isHost: () => this.#isHost,
       isAborted: () => this.#aborted,
+    });
+    this.#connectionManager.addStateListener((state) => {
+      if (state === ConnectionState.Connected) this.#acknowledgeDeliveredSettlements();
     });
   }
 
@@ -178,7 +195,9 @@ export class GameFacade implements IGameFacade {
         new: newUid,
       });
     }
+    this.#activateSettlementUser(newUid);
     this.#myUserId = newUid;
+    if (this.#roomCode !== null) this.#commandSession.enterRoom(this.#roomCode, newUid);
   }
 
   getMySeat(): number | null {
@@ -205,17 +224,32 @@ export class GameFacade implements IGameFacade {
    * Called by ConnectionManager onSettleResult callback.
    */
   handleSettleResult(result: SettleResultMessage): void {
-    for (const fn of this.#settleResultListeners) {
-      try {
-        fn(result);
-      } catch (e) {
-        facadeLog.error('SettleResult listener error', e);
-      }
+    if (this.#settlementUserId === null) {
+      throw new Error('[FAIL-FAST] Settlement event arrived without an active user identity');
     }
+    const fingerprint = JSON.stringify(result);
+    const existing = this.#settlementDeliveries.get(result.eventId);
+    if (existing !== undefined) {
+      if (existing.fingerprint !== fingerprint) {
+        throw new Error(`Settlement event ${result.eventId} changed across deliveries`);
+      }
+      if (existing.isDelivered) {
+        this.#connectionManager.acknowledgeUserEvent(result.eventId);
+        return;
+      }
+    } else {
+      this.#settlementDeliveries.set(result.eventId, {
+        result,
+        fingerprint,
+        isDelivered: false,
+      });
+    }
+    this.#deliverPendingSettlements();
   }
 
   addSettleResultListener(fn: (result: SettleResultMessage) => void): () => void {
     this.#settleResultListeners.add(fn);
+    this.#deliverPendingSettlements();
     return () => {
       this.#settleResultListeners.delete(fn);
     };
@@ -260,8 +294,10 @@ export class GameFacade implements IGameFacade {
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
     this.#isHost = true;
+    this.#activateSettlementUser(hostUserId);
     this.#myUserId = hostUserId;
     this.#roomCode = roomCode;
+    this.#commandSession.enterRoom(roomCode, hostUserId);
 
     this.#store.reset();
 
@@ -291,7 +327,9 @@ export class GameFacade implements IGameFacade {
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
     this.#isHost = isHost;
+    this.#activateSettlementUser(userId);
     this.#myUserId = userId;
+    this.#commandSession.enterRoom(roomCode, userId);
 
     // Only reset store when switching rooms; same-room rejoin keeps cached state
     // (connectAndWait will fetch latest from DB regardless)
@@ -363,6 +401,7 @@ export class GameFacade implements IGameFacade {
     // Set abort flag FIRST to stop any ongoing async operations (e.g., audio queue)
     this.#aborted = true;
     this.#audioOrchestrator.reset();
+    this.#commandSession.leaveRoom();
 
     // Don't auto-unseat — player recovers original seat by UID when returning to room
 
@@ -623,13 +662,47 @@ export class GameFacade implements IGameFacade {
     return {
       store: this.#store,
       audioService: this.#audioService,
+      commands: this.#commandSession,
     };
   }
 
   #getSeatActionsContext(): SeatActionsContext {
     return {
       store: this.#store,
+      commands: this.#commandSession,
     };
+  }
+
+  #activateSettlementUser(userId: string): void {
+    if (this.#settlementUserId === userId) return;
+    this.#settlementDeliveries.clear();
+    this.#settlementUserId = userId;
+  }
+
+  #deliverPendingSettlements(): void {
+    if (this.#settleResultListeners.size === 0) return;
+
+    for (const [eventId, delivery] of this.#settlementDeliveries) {
+      if (delivery.isDelivered) continue;
+      let didFail = false;
+      for (const listener of this.#settleResultListeners) {
+        try {
+          listener(delivery.result);
+        } catch (error) {
+          didFail = true;
+          facadeLog.error('SettleResult listener error', error);
+        }
+      }
+      if (didFail) continue;
+      delivery.isDelivered = true;
+      this.#connectionManager.acknowledgeUserEvent(eventId);
+    }
+  }
+
+  #acknowledgeDeliveredSettlements(): void {
+    for (const [eventId, delivery] of this.#settlementDeliveries) {
+      if (delivery.isDelivered) this.#connectionManager.acknowledgeUserEvent(eventId);
+    }
   }
 
   /**

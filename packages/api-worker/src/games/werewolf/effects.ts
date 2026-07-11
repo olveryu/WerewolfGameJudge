@@ -72,8 +72,10 @@ async function handleGameEnded(
   }
 
   for (const result of results) {
-    context.sendToUser(result.userId, {
+    const eventId = `${context.effectId}:${result.userId}`;
+    await context.publishUserEvent(result.userId, eventId, {
       type: 'SETTLE_RESULT',
+      eventId,
       gameType: 'werewolf',
       settlementId: context.effectId,
       endedRevision: context.revision,

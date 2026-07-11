@@ -129,6 +129,6 @@ export const confirmTriggerExecutor: IntentExecutor = (_intent, ctx) => {
     throw new Error('[FAIL-FAST] confirmTrigger requires an effective actor seat');
   }
   actionDialogs.showRoleActionPrompt(dialogTitle, statusMessage, async () => {
-    await proceedWithAction({ kind: 'confirm', confirmed: true });
+    await proceedWithAction({ kind: 'confirm' });
   });
 };

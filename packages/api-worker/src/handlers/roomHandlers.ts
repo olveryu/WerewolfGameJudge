@@ -1,9 +1,9 @@
 /** Authenticated generic room creation, command, read, and deletion routes. */
 
 import {
-  REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
   REASON_ROOM_CODE_CONFLICT,
+  REASON_ROOM_EFFECTS_PENDING,
   REASON_ROOM_INITIALIZATION_CONFLICT,
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import { eq } from 'drizzle-orm';
@@ -89,10 +89,7 @@ roomRoutes.post('/command', requireAuth, jsonBody(roomCommandSchema), async (c) 
   const input = c.req.valid('json');
   const room = await findRoomInstance(c.env, input.roomCode);
   if (room === null) {
-    return c.json(
-      { kind: 'rejected' as const, commandId: input.commandId, reason: REASON_NO_STATE },
-      200,
-    );
+    return c.json({ success: false as const, reason: REASON_NO_STATE }, 404);
   }
   const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
   const dispatched = await callDO(() =>
@@ -104,11 +101,10 @@ roomRoutes.post('/command', requireAuth, jsonBody(roomCommandSchema), async (c) 
       command: input.command,
     }),
   );
-  const status =
-    dispatched.result.kind === 'rejected' && dispatched.result.reason === REASON_COMMAND_ID_CONFLICT
-      ? 409
-      : 200;
-  return c.json(dispatched.result, status);
+  if (dispatched.kind === 'unavailable') {
+    return c.json({ success: false as const, reason: dispatched.reason }, 404);
+  }
+  return c.json(dispatched.result, 200);
 });
 
 roomRoutes.post('/get', jsonBody(roomCodeBodySchema), async (c) => {
@@ -148,7 +144,12 @@ roomRoutes.post('/delete', requireAuth, jsonBody(roomCodeBodySchema), async (c) 
   const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
   const deletedRoom = await callDO(() => stub.deleteRoom(c.var.userId));
   if (!deletedRoom.success) {
-    const status = deletedRoom.reason === REASON_NO_STATE ? 404 : 403;
+    const status =
+      deletedRoom.reason === REASON_NO_STATE
+        ? 404
+        : deletedRoom.reason === REASON_ROOM_EFFECTS_PENDING
+          ? 409
+          : 403;
     return c.json(deletedRoom, status);
   }
 

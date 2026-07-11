@@ -66,7 +66,7 @@ export interface ProtocolAction {
  * Audio effect descriptor
  *
  * Produced during server-side inline progression, written to `GameStatePayload.pendingAudioEffects`.
- * Host device consumes queue to play audio; cleared via POST `/game/night/audio-ack` after playback.
+ * Host device consumes the queue, then submits `werewolf.audio.ack` through the room command protocol.
  * Non-Host devices ignore this.
  */
 export interface AudioEffect {
@@ -349,13 +349,13 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /**
    * Pending audio list written during server-side progression.
    *
-   * Host device consumes and plays in order, cleared via POST `/game/night/audio-ack` after playback.
+   * Host device consumes and plays in order, then submits `werewolf.audio.ack`.
    * Non-Host devices ignore this.
    *
    * Lifecycle:
    * - Write: extracted from sideEffects during server-side inline progression (action -> advance/endNight)
    * - Consume: Host device watches state changes -> detects non-empty -> plays -> POST ack clears
-   * - Clear: `/game/night/audio-ack` empties array + sets isAudioPlaying=false
+   * - Clear: committed `werewolf.audio.ack` empties the array and releases the audio gate
    */
   pendingAudioEffects?: AudioEffect[];
 

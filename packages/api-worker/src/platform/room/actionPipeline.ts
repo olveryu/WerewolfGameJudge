@@ -9,7 +9,6 @@ import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
-  REASON_ROOM_CODE_MISMATCH,
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
@@ -92,7 +91,11 @@ function buildOutboxEffects(
 
 function rejectedPipelineResult(commandId: string, reason: string): PipelineDispatchResult {
   return {
-    rpc: { result: createRejectedResult(commandId, reason), isReplay: false },
+    rpc: {
+      kind: 'decided',
+      result: createRejectedResult(commandId, reason),
+      isReplay: false,
+    },
     broadcast: 'none',
     commandType: null,
   };
@@ -106,10 +109,16 @@ export async function dispatchRoomCommand(
 ): Promise<PipelineDispatchResult> {
   const room = repository.readRoom();
   if (room === null) {
-    return rejectedPipelineResult(request.commandId, REASON_NO_STATE);
+    return {
+      rpc: { kind: 'unavailable', reason: REASON_NO_STATE },
+      broadcast: 'none',
+      commandType: null,
+    };
   }
   if (request.roomCode !== room.roomCode) {
-    return rejectedPipelineResult(request.commandId, REASON_ROOM_CODE_MISMATCH);
+    throw new Error(
+      `Room command code ${request.roomCode} does not match authoritative room ${room.roomCode}`,
+    );
   }
 
   repository.deleteExpiredReceipts(nowMs);
@@ -121,7 +130,7 @@ export async function dispatchRoomCommand(
   }
   if (receipt !== null) {
     return {
-      rpc: { result: receipt.result, isReplay: true },
+      rpc: { kind: 'decided', result: receipt.result, isReplay: true },
       broadcast: 'none',
       commandType: null,
     };
@@ -147,7 +156,7 @@ export async function dispatchRoomCommand(
       decidedAt: nowMs,
     });
     return {
-      rpc: { result, isReplay: false },
+      rpc: { kind: 'decided', result, isReplay: false },
       broadcast: 'none',
       commandType: null,
     };
@@ -175,7 +184,7 @@ export async function dispatchRoomCommand(
   });
 
   return {
-    rpc: { result, isReplay: false },
+    rpc: { kind: 'decided', result, isReplay: false },
     broadcast: decision.broadcast,
     commandType: decision.commandType,
   };

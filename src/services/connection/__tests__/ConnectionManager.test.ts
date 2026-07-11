@@ -35,7 +35,7 @@ function createMockTransport(): IRealtimeTransport & {
     },
     connect: jest.fn(),
     disconnect: jest.fn(),
-    send: jest.fn(),
+    send: jest.fn().mockReturnValue(true),
     setEventHandlers(h: TransportEventHandlers) {
       handlers = h;
     },
@@ -229,6 +229,18 @@ describe('ConnectionManager', () => {
   });
 
   describe('ping/pong', () => {
+    it('sends the canonical durable user-event acknowledgement', () => {
+      const { transport, deps } = createDeps();
+      const manager = new ConnectionManager(deps);
+
+      expect(manager.acknowledgeUserEvent('event-1')).toBe(true);
+      expect(transport.send).toHaveBeenCalledWith(
+        JSON.stringify({ type: 'USER_EVENT_ACK', eventId: 'event-1' }),
+      );
+
+      manager.dispose();
+    });
+
     it('sends ping at interval and handles pong', async () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);

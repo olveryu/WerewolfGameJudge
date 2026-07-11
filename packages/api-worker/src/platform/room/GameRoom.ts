@@ -2,22 +2,28 @@
 
 import * as Sentry from '@sentry/cloudflare';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { REASON_NO_STATE, REASON_NOT_HOST } from '@werewolf/game-engine/platform/protocol/reasons';
+import {
+  REASON_NO_STATE,
+  REASON_NOT_HOST,
+  REASON_ROOM_EFFECTS_PENDING,
+} from '@werewolf/game-engine/platform/protocol/reasons';
 import {
   type BaseGameState,
   createStateUpdateMessage,
   type RoomSnapshot,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import { parseUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
 import { createLogger } from '../../lib/logger';
+import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox } from './effectOutbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
 import { getWorkerGameModule, RoomRepository } from './roomRepository';
-import { migrateRoomStorage } from './storageSchema';
+import { initializeRoomStorage } from './storageSchema';
 import type {
   DeleteRoomResult,
   DispatchRoomResult,
@@ -57,7 +63,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     this.#outbox = new EffectOutbox(ctx.storage);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     void ctx.blockConcurrencyWhile(async () => {
-      await migrateRoomStorage(ctx.storage, Date.now());
+      initializeRoomStorage(ctx.storage, Date.now());
       await this.#schedulePendingOutbox();
     });
   }
@@ -82,6 +88,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       Date.now(),
     );
     if (
+      pipeline.rpc.kind === 'decided' &&
       !pipeline.rpc.isReplay &&
       pipeline.rpc.result.kind === 'committed' &&
       pipeline.broadcast === 'state'
@@ -104,6 +111,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     if (room === null) return { success: false, reason: REASON_NO_STATE };
     if (actorUserId !== room.hostUserId) {
       return { success: false, reason: REASON_NOT_HOST };
+    }
+    if (this.#outbox.hasOutstandingEffects()) {
+      return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
     }
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
@@ -189,6 +199,9 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
           },
           Date.now(),
         );
+        if (dispatched.rpc.kind !== 'decided') {
+          throw new Error(`Internal effect command ${commandId} has no room state`);
+        }
         if (
           !dispatched.rpc.isReplay &&
           dispatched.rpc.result.kind === 'committed' &&
@@ -198,7 +211,8 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
         }
         return dispatched.rpc.result;
       },
-      sendToUser: (userId, message) => this.#sendToUser(userId, message),
+      publishUserEvent: (userId, eventId, message) =>
+        this.#publishUserEvent(userId, eventId, message),
     });
   }
 
@@ -227,7 +241,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
   }
 
-  #sendToUser(userId: string, message: object): void {
+  #pushUserEventToConnectedSockets(userId: string, message: object): void {
     const serialized = JSON.stringify(message);
     for (const socket of this.ctx.getWebSockets(userSocketTag(userId))) {
       try {
@@ -241,6 +255,25 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
   }
 
+  async #publishUserEvent(userId: string, eventId: string, message: object): Promise<void> {
+    await enqueueUserEvent(this.env.DB, { userId, eventId, message });
+    this.#pushUserEventToConnectedSockets(userId, message);
+  }
+
+  async #sendNextUserEvent(socket: WebSocket, userId: string): Promise<void> {
+    const pending = await readNextUserEvent(this.env.DB, userId);
+    if (pending === null) return;
+    try {
+      socket.send(JSON.stringify(pending.message));
+    } catch (error) {
+      log.warn('pending user event skipped closed socket', {
+        userId,
+        eventId: pending.eventId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname !== '/websocket') {
@@ -249,7 +282,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     return this.#handleWebSocketUpgrade(url);
   }
 
-  #handleWebSocketUpgrade(url: URL): Response {
+  async #handleWebSocketUpgrade(url: URL): Promise<Response> {
     const userId = url.searchParams.get('userId');
     const roomCode = url.searchParams.get('roomCode');
     if (userId === null || userId.length === 0 || roomCode === null || roomCode.length === 0) {
@@ -261,7 +294,39 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1], [userSocketTag(userId)]);
+    await this.#sendNextUserEvent(pair[1], userId);
     return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    let acknowledgement;
+    try {
+      if (typeof message !== 'string') {
+        throw new Error('WebSocket client message must be text');
+      }
+      acknowledgement = parseUserEventAckMessage(JSON.parse(message));
+    } catch (error) {
+      log.error('invalid websocket client message', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      Sentry.captureException(error);
+      socket.close(1002, 'protocol_error');
+      return;
+    }
+
+    const userTags = this.ctx
+      .getTags(socket)
+      .filter((tag) => tag.startsWith(USER_SOCKET_TAG_PREFIX));
+    if (userTags.length !== 1) {
+      throw new Error(`WebSocket must have exactly one user tag, received ${userTags.length}`);
+    }
+    const userId = userTags[0]?.slice(USER_SOCKET_TAG_PREFIX.length);
+    if (userId === undefined || userId.length === 0) {
+      throw new Error('WebSocket user tag must contain a user ID');
+    }
+
+    await acknowledgeUserEvent(this.env.DB, userId, acknowledgement.eventId);
+    await this.#sendNextUserEvent(socket, userId);
   }
 
   async webSocketClose(

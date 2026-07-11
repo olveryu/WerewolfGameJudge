@@ -68,6 +68,11 @@ export {
 } from './platform/protocol/commandResult';
 export type { RoomProfileUpdateCommand, RoomSeatCommand } from './platform/protocol/commands';
 export {
+  createUserEventAckMessage,
+  parseUserEventAckMessage,
+  type UserEventAckMessage,
+} from './platform/protocol/userEvents';
+export {
   decideClearSeats,
   decideKickSeat,
   decideLeaveSeat,

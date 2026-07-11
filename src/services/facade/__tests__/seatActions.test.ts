@@ -1,6 +1,7 @@
+import type { WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
-import { dispatchRoomCommand } from '@/services/facade/roomCommandTransport';
 import {
   kickPlayer,
   leaveSeat,
@@ -8,11 +9,14 @@ import {
   takeSeat,
 } from '@/services/facade/seatActions';
 
-jest.mock('@/services/facade/roomCommandTransport', () => ({
-  dispatchRoomCommand: jest.fn(),
-}));
+interface DispatchSeatCommandOptions {
+  readonly roomCode: string;
+  readonly command: WerewolfPublicCommand;
+  readonly controlledSeat: null;
+  readonly label: string;
+}
 
-const dispatchMock = jest.mocked(dispatchRoomCommand);
+const dispatchMock = jest.fn<Promise<ActionResult>, [DispatchSeatCommandOptions]>();
 
 function createContext(roomCode: string | null = 'ABCD'): SeatActionsContext {
   return {
@@ -20,6 +24,9 @@ function createContext(roomCode: string | null = 'ABCD'): SeatActionsContext {
       getState: jest.fn(() => (roomCode === null ? null : { roomCode })),
       applySnapshot: jest.fn(),
     } as unknown as GameStore,
+    commands: {
+      dispatch: dispatchMock,
+    } as unknown as SeatActionsContext['commands'],
   };
 }
 

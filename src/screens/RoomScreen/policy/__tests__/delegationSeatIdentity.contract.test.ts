@@ -50,11 +50,14 @@ describe('Delegation Seat Identity Contract', () => {
     });
 
     /**
-     * P0 Contract: skip action (compound) must use effectiveSeat
+     * P0 Contract: every schema uses the same skip input without actor authority.
      */
-    it('compound skip builds witch input without actor seat', () => {
+    it('skip uses one canonical input without schema-specific or actor fields', () => {
       const content = readFileContent(SKIP_EXECUTOR_PATH);
-      expect(content).toMatch(/buildWitchActionInput/);
+      expect(content).toMatch(/proceedWithAction\(\{\s*kind:\s*['"]skip['"]\s*\}\)/);
+      expect(content).not.toMatch(/buildWitchActionInput/);
+      expect(content).not.toMatch(/kind:\s*['"]target['"]\s*,\s*target:\s*null/);
+      expect(content).not.toMatch(/confirmed:\s*false/);
       expect(content).not.toMatch(/skipSeat/);
       expect(content).not.toMatch(/effectiveSeat/);
       expect(content).not.toMatch(/mySeat/);

@@ -30,13 +30,14 @@ export interface WerewolfProfileUpdate {
 export type WerewolfActionInput =
   | { readonly kind: 'target'; readonly target: number | null }
   | { readonly kind: 'multiTarget'; readonly targets: readonly number[] }
-  | { readonly kind: 'confirm'; readonly confirmed: boolean }
+  | { readonly kind: 'confirm' }
   | {
       readonly kind: 'witch';
       readonly saveTarget: number | null;
       readonly poisonTarget: number | null;
     }
-  | { readonly kind: 'card'; readonly cardIndex: number };
+  | { readonly kind: 'card'; readonly cardIndex: number }
+  | { readonly kind: 'skip' };
 
 type WerewolfRoomCommand =
   | RoomSeatCommand<WerewolfSeatProfile>

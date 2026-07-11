@@ -263,6 +263,26 @@ export const gameSettlementResults = sqliteTable(
   ],
 );
 
+// ── user_event_inbox ───────────────────────────────────────────────────────
+
+/** Pending user events, deleted only after an authenticated client acknowledgement. */
+export const userEventInbox = sqliteTable(
+  'user_event_inbox',
+  {
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    eventId: text('event_id').notNull(),
+    eventType: text('event_type').notNull(),
+    payloadJson: text('payload_json').notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.userId, table.eventId] }),
+    index('idx_user_event_inbox_delivery').on(table.userId, table.createdAt, table.eventId),
+  ],
+);
+
 // ── room_participants ────────────────────────────────────────────────────────
 
 /** Room participants association table. */

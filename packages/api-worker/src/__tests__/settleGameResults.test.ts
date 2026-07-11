@@ -276,7 +276,7 @@ describe('Werewolf game-ended effect handler', () => {
     const effect = buildEndedEffect('EFFECT-ROOM');
     await insertEffectUsers(['user-0']);
     const dispatchCalls: { commandId: string; command: WerewolfInternalCommand }[] = [];
-    const sentMessages: { userId: string; message: object }[] = [];
+    const publishedEvents: { userId: string; eventId: string; message: object }[] = [];
     let dispatchOutcome: 'transportRejected' | 'domainRejected' | 'success' = 'transportRejected';
     const snapshot = buildSnapshot();
 
@@ -305,18 +305,18 @@ describe('Werewolf game-ended effect handler', () => {
           outcome: { kind: 'success' },
         };
       },
-      sendToUser: (userId, message) => {
-        sentMessages.push({ userId, message });
+      publishUserEvent: async (userId, eventId, message) => {
+        publishedEvents.push({ userId, eventId, message });
       },
     };
 
     await expect(handleWerewolfEffect(effect, context)).rejects.toThrow('was rejected');
-    expect(sentMessages).toEqual([]);
+    expect(publishedEvents).toEqual([]);
     expect((await readStats('user-0')).games_played).toBe(1);
 
     dispatchOutcome = 'domainRejected';
     await expect(handleWerewolfEffect(effect, context)).rejects.toThrow('failed');
-    expect(sentMessages).toEqual([]);
+    expect(publishedEvents).toEqual([]);
     expect((await readStats('user-0')).games_played).toBe(1);
 
     dispatchOutcome = 'success';
@@ -333,12 +333,14 @@ describe('Werewolf game-ended effect handler', () => {
       expect(call.command).toEqual(firstDispatch.command);
     }
 
-    expect(sentMessages).toHaveLength(1);
-    const sentMessage = sentMessages[0];
-    if (sentMessage === undefined) throw new Error('Missing settlement message');
-    expect(sentMessage.userId).toBe('user-0');
-    expect(sentMessage.message).toMatchObject({
+    expect(publishedEvents).toHaveLength(1);
+    const publishedEvent = publishedEvents[0];
+    if (publishedEvent === undefined) throw new Error('Missing settlement event');
+    expect(publishedEvent.userId).toBe('user-0');
+    expect(publishedEvent.eventId).toBe('effect-handler-retry:user-0');
+    expect(publishedEvent.message).toMatchObject({
       type: 'SETTLE_RESULT',
+      eventId: 'effect-handler-retry:user-0',
       gameType: 'werewolf',
       settlementId: 'effect-handler-retry',
       endedRevision: 12,

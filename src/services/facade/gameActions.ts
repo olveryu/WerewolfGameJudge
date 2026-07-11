@@ -6,7 +6,6 @@
  */
 
 import {
-  WEREWOLF_STATE_CODEC,
   type WerewolfActionInput,
   type WerewolfProfileUpdate,
   type WerewolfPublicCommand,
@@ -15,22 +14,20 @@ import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { AudioService } from '@/services/infra/AudioService';
 import { facadeLog } from '@/utils/logger';
 
-import {
-  dispatchPreparedRoomCommand,
-  dispatchRoomCommand,
-  type PreparedRoomCommand,
-  prepareRoomCommand,
-} from './roomCommandTransport';
+import type { RoomCommandDispatchOutcome, RoomCommandSession } from './roomCommandSession';
+import type { PreparedRoomCommand } from './roomCommandTransport';
 
 const NOT_CONNECTED: ActionResult = { success: false, reason: 'NOT_CONNECTED' };
 
 export interface GameActionsContext {
   readonly store: GameStore;
   readonly audioService: AudioService;
+  readonly commands: RoomCommandSession<GameState>;
 }
 
 type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
@@ -47,12 +44,10 @@ async function dispatchWerewolfCommand(
   const roomCode = ctx.store.getState()?.roomCode;
   if (roomCode === undefined) return NOT_CONNECTED;
 
-  return dispatchRoomCommand({
+  return ctx.commands.dispatch({
     roomCode,
     command,
     controlledSeat,
-    codec: WEREWOLF_STATE_CODEC,
-    store: ctx.store,
     label,
   });
 }
@@ -64,7 +59,7 @@ function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
     case 'multiTarget':
       return { kind: 'multiTarget', targets: [...input.targets] };
     case 'confirm':
-      return { kind: 'confirm', confirmed: input.confirmed };
+      return { kind: 'confirm' };
     case 'witch':
       return {
         kind: 'witch',
@@ -73,6 +68,8 @@ function copyActionInput(input: WerewolfActionInput): WerewolfActionInput {
       };
     case 'card':
       return { kind: 'card', cardIndex: input.cardIndex };
+    case 'skip':
+      return { kind: 'skip' };
   }
 }
 
@@ -221,7 +218,7 @@ export function prepareAudioAck(ctx: GameActionsContext): PreparedAudioAck | nul
   const roomCode = ctx.store.getState()?.roomCode;
   if (roomCode === undefined) return null;
 
-  return prepareRoomCommand({
+  return ctx.commands.prepare({
     roomCode,
     command: { type: 'werewolf.audio.ack' },
     controlledSeat: null,
@@ -232,21 +229,16 @@ export function prepareAudioAck(ctx: GameActionsContext): PreparedAudioAck | nul
 export async function dispatchPreparedAudioAck(
   ctx: GameActionsContext,
   prepared: PreparedAudioAck,
-): Promise<ActionResult> {
+): Promise<RoomCommandDispatchOutcome> {
   const roomCode = ctx.store.getState()?.roomCode;
-  if (roomCode === undefined) return NOT_CONNECTED;
+  if (roomCode === undefined) return { kind: 'notDecided', result: NOT_CONNECTED };
   if (roomCode !== prepared.roomCode) {
     throw new Error(
       `[FAIL-FAST] Prepared audio ack belongs to room ${prepared.roomCode}, not ${roomCode}`,
     );
   }
 
-  return dispatchPreparedRoomCommand({
-    prepared,
-    codec: WEREWOLF_STATE_CODEC,
-    store: ctx.store,
-    label: 'postAudioAck',
-  });
+  return ctx.commands.dispatchPrepared(prepared, 'postAudioAck');
 }
 
 export function postProgression(ctx: GameActionsContext): Promise<ActionResult> {

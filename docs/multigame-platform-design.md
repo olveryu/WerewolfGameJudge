@@ -682,9 +682,14 @@ CREATE TABLE command_receipts (
 `command_id_conflict`。新 ID 才按当前 state 执行。当前 bounded policy 是七天，并且只清理没有任何
 outbox row 引用的过期 receipt；terminal failed effect 的 origin receipt 会继续保留。
 
-客户端一个用户意图只 prepare 一次 immutable command envelope。普通 HTTP retry、401 refresh、连接恢复
-都重发同一个 envelope。音频 gate 这类跨连接 acknowledgement 由 orchestrator 持有 prepared command，
-只有观察到成功 receipt 或 terminal rejection 才释放；网络、timeout、5xx 和 overload 结果不能生成新 ID。
+客户端由 `RoomCommandSession` 持有当前 `(roomCode, userId)` 身份及待决命令。一个用户意图通过 canonical
+JSON key 只 prepare 一次 immutable command envelope；并发的同一意图共享 in-flight promise。普通 HTTP
+retry、401 refresh、连接恢复和用户再次触发仍重发同一个 envelope。只有收到 canonical command decision
+才释放 ID；404 `no_state`、网络、timeout、5xx、overload 和协议解析异常都保留原 envelope。离开房间或切换
+用户会增加 session generation，旧请求即使晚到也不能把 snapshot 写进新 session。
+
+音频 gate 这类跨连接 acknowledgement 由 orchestrator 持有 prepared command，并通过同一个 session
+发送；它和普通 action 服从相同的 command ID 生命周期，不维护第二套 retry 语义。
 
 ### 13.4 Result model
 
@@ -712,16 +717,19 @@ type RoomCommandResult<TState> =
 - 客户端在应用 snapshot 后只把 domain outcome 交给 UI，UI 不读取 transport metadata。
 - 客户端必须验证 response `commandId` 等于 immutable prepared command 的 ID。
 - 未知字段、缺失 snapshot、非法 state 或 revision 都是协议错误，直接 fail fast，不改写成 domain rejection。
+- `no_state` 是“尚无权威 room state”的 availability 结果，HTTP 返回 404，不能伪造成 receipt-backed
+  `RoomCommandResult`。客户端保留原 command ID，待房间可用后仍可重发同一 envelope。
+- D1 room code 路由到的 DO 若持久化了另一 room identity，属于目录/存储完整性损坏，直接抛错并上报；不能
+  返回可被 UI 当成业务拒绝的 `room_code_mismatch`。
 
 预期业务拒绝返回稳定 reason code：
 
-- `no_state`
-- `room_code_mismatch`
 - `command_id_conflict`
 - `seat_taken`
 - `invalid_seat`
 - `game_in_progress`
 - `not_host`
+- `room_effects_pending`
 - `fib_round_not_full`
 - `fib_round_already_ongoing`
 
@@ -729,6 +737,10 @@ Reason code 全仓使用 lower snake case；Worker、engine、client translation
 再出现 `ROOM_NOT_FOUND`、点分名或游戏自造别名。
 
 持久化损坏、未注册 module、非法 persisted JSON、unsupported state version 直接抛错并上报 Sentry，不在 domain 层转换成笼统的“请稍后重试”。
+
+狼人杀 action input 也必须只有一种 canonical 表示：跳过统一为 `{ kind: 'skip' }`，确认执行统一为
+`{ kind: 'confirm' }`。`target: null` 只保留给 `wolfVote` 的合法空刀；空多选、全空 witch input 或
+`confirmed: false` 都不能再充当第二种跳过协议。Worker schema 和 engine adapter 在边界拒绝这些重复表示。
 
 ## 14. 权限模型
 
@@ -862,11 +874,26 @@ Effect 以 outbox ID 和 game-specific business key 保证 idempotent。Alarm ha
 - Effect 失败记录错误和指数 backoff，再安排同一个 row；不创建第二套 retry key。
 - Retry 用尽后保留 failed outbox row 和 telemetry，不静默删除。
 - Effect handler 可以发送 internal idempotent command，但不能绕过 command pipeline 直接改 state。
+- 只要 outbox 存在 `pending`、`processing` 或 `failed` row，房间删除就返回
+  `room_effects_pending`，不能先删 DO 再丢失尚未完成的业务 effect。
 
 狼人杀 growth effect 使用 D1 `game_settlement_results(effect_id, user_id)` 保存精确 XP、等级和票券结果。
 奖励 RNG 从 `effectId + userId + rewardType` 确定性派生；stats、阵营记录和结果 ledger 在一个 D1
-`batch()` transaction 内提交。DO 在重试时读取原结果，使用稳定 internal command ID 更新 roster，并以
-`settlementId + endedRevision` 发送可去重的 realtime 消息，禁止重新抽奖。
+`batch()` transaction 内提交。DO 在重试时读取原结果，使用稳定 internal command ID 更新 roster。
+
+### 17.4 Durable user event inbox
+
+Settlement UI 通知不是 best-effort WebSocket side effect。Worker 先把每名用户的确定性 event ID 与完整
+payload 写入 D1 `user_event_inbox`，相同 `(userId, eventId)` 只允许完全相同的 payload。然后才尝试推送给
+在线 socket：
+
+1. WebSocket 建连后读取该认证用户最早的未确认 event。
+2. 客户端 facade 消费事件后发送严格的 `USER_EVENT_ACK`。
+3. Worker 只按 socket 身份删除该用户自己的 row，再发送下一条，形成顺序 backpressure。
+4. listener 抛错、断线或 ACK 丢失都不删除 row；重连后至少一次重放。
+5. 客户端按 `eventId` 去重展示，但重复投递仍再次 ACK；同 ID payload 改变属于协议损坏。
+
+该 inbox 属于 user scope，不依赖房间 DO 生命周期，因此房间删除不会丢失已提交的 settlement 通知。
 
 ## 18. 瞎掰王出题 workflow
 
@@ -1742,28 +1769,39 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                 | 尚未完成                                                             |
-| --------- | ------ | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard   | -                                                                    |
-| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope    | client game-owned 目录迁移、全部边界 exception 清零                  |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E | -                                                                    |
-| Phase 3   | 待 E2E | generic command、atomic DO storage、receipt/outbox、client cutover     | 当前提交完整 Werewolf Playwright gate                                |
-| Phase 4-8 | 未开始 | -                                                                      | creation saga、单一 deep link、shared room、Fib vertical slice、清理 |
+| 阶段      | 状态       | 已完成                                                                                 | 尚未完成                                                             |
+| --------- | ---------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Phase 0   | 完成       | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                                    |
+| Phase 1   | 进行中     | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零                  |
+| Phase 2   | 完成       | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                                    |
+| Phase 3   | 待远端 E2E | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | 当前提交完整 Werewolf Playwright gate                                |
+| Phase 4-8 | 未开始     | -                                                                                      | creation saga、单一 deep link、shared room、Fib vertical slice、清理 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
 不改变四个测试 shard 的通过事实；后续单独修 CI 配置，不把它混进游戏架构提交。
 
-### 当前提交：generic command pipeline 与 transactional outbox
+### 当前提交：Phase 3 delivery 与 protocol hardening
 
-- 新增 generic `GameRoom`、atomic `room_state`、one-way 旧 SQL migration、严格 initialization replay；
-  持久化 game type、state version、state、revision 和 canonical initialization，不保留第二份 room identity。
+- Generic `GameRoom` 只接受 fresh storage 或当前 schema version。`0034_room_instance_identity_cutover.sql`
+  已在同一 release 使旧 active room 失效，因此删除旧 `room_state` / `settle_pending` 猜测迁移；未版本化或
+  future version 的 DO storage 直接 fail fast，不保留兼容 reader。
 - 所有 public command 从 JWT actor 进入同一 pipeline；receipt 绑定 game/version、actor、controlled seat、
   command type 和 canonical request。accepted 与 engine rejection 都持久化，ID 换 actor/body 直接冲突。
+- `no_state` 从 command decision 中分离为 404 availability；DO room identity 不一致改为完整性异常。所有
+  canonical decision 使用 HTTP 200 返回并校验 exact command ID，避免 transport status 绕过协议验证。
+- 新增 session-owned `RoomCommandSession`：canonical intent key、immutable envelope、同意图并发合并、未知
+  delivery 保留 ID、room/user generation 隔离晚到 snapshot。普通 action、seat action 与 audio ACK 共用该
+  生命周期，不再由每个 action 临时生成 retry ID。
+- 狼人杀跳过协议收敛为唯一 `{ kind: 'skip' }`；engine 按权威 schema 转换到纯 handler intent，并拒绝
+  `target:null`、空多选、全空 witch 和 `confirmed:false` 等重复表示。狼人空刀仍保留明确的
+  `wolfVote + target:null` 语义。
 - state、receipt、outbox row 与最早 alarm 在一个 DO storage transaction 提交；delivery claim 使用 watchdog
-  lease，失败按同一 row backoff，达到上限保留 failed row。旧 `settle_pending` 原子迁入 outbox。
+  lease，失败按同一 row backoff，达到上限保留 failed row。存在任何 outbox row 时禁止删除房间。
 - 狼人杀结束 effect 使用 D1 精确 settlement ledger 与确定性 reward RNG；stats、camp 和 reward result 在一个
   D1 batch 提交，重试读取原结果，再用稳定 internal command ID 更新 roster。
+- Settlement 通知改为 D1 `user_event_inbox` 的 authenticated at-least-once delivery：持久化后推送、socket
+  identity ACK、逐条 replay；客户端只在 listener 成功后 ACK，并对重复 event 重发 ACK 而不重复展示。
 - 删除狼人杀专用 `GameRoom`、public RPC、`gameProcessor`、`/game/*` 与 night routes；建房只发送
   `gameType + config + creationId`，客户端不再构造或上传初始 state。
 - 客户端所有狼人杀 action 改走 authenticated `/room/command`，玩法 input 不携带 actor seat/role；response
@@ -1775,14 +1813,16 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - 公共 room code 与 DO identity 已分离：D1 `rooms.id` 保存 `newUniqueId()`，所有 HTTP/WS 路径先查目录再
   `idFromString()` 路由。`0034_room_instance_identity_cutover.sql` 明确使旧 routing model 的 active room
   失效，不保留按 room code 访问旧 DO 的兼容分支。
-- Realtime 对每个 socket 要求 revision 严格递增；settlement 用 `settlementId` 验证重复 payload 并在内存中
-  bounded dedupe，payload 同 ID 变化直接关闭协议连接。
-- 提交门禁：完整 `pnpm run quality` 通过；root 183 个 suites/4808 条测试、game-engine 78 个
-  suites/2339 条测试、api-worker 9 个 files/72 条测试，typecheck、build、knip、lint 和 format 全部通过。
-- 额外定向验证：client facade/transport/audio 107 条、Config/RoomScreen 22 条通过；Worker 9 个 files/73
-  条通过，并覆盖目录 row 丢失后同一公开房号路由到新 DO。此前本地并发 E2E 暴露 room code 误作 DO
-  identity，修复后原失败 broadcast 场景以 `1 worker` 通过；本地关键 E2E 与推送后完整 Playwright shard
-  仍按 Phase 3 退出条件执行。
-- 阶段状态：Phase 3 代码切换完成但不提前宣告退出；完整 Werewolf E2E 通过后才能标记完成。
+- Realtime 对每个 socket 要求 revision 严格递增；durable user event 使用独立 event ID/ACK contract，不把
+  user notification 混进 state revision。
+- 本提交完整 `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全部通过；root
+  183 suites/4823 tests、game-engine 79 suites/2352 tests、api-worker 10 files/81 tests 全部通过。
+- 额外定向门禁：game-engine command/adapter 52 条、client Piper/skip/facade 28 条通过；本地
+  `piper skips -> night ends normally` Playwright 1/1 通过。
+- commit `fa281458` 对应 CI run `29130480914` 的 quality 与 shard 1/2/4 通过；shard 3 的唯一失败被 trace
+  定位为旧 UI 用 `{kind:'target',target:null}` 表示 multi-select skip，新 engine 正确拒绝为
+  `action_input_mismatch`。本提交从协议根部消除重复表示，推送后的完整四 shard 仍是 Phase 3 退出门禁。
+- 阶段状态：Phase 3 的实现与本地回归已完成，但在当前提交远端四个 Werewolf shard 全通过前保持
+  “待远端 E2E”，不提前宣告完成。
 - 下一步：Phase 4 用 D1 status 与 reconciliation 实现 create/delete saga，再加入唯一
   `/room/:roomCode` resolver；不在 Phase 3 的 catch-delete 上伪装跨存储原子性。

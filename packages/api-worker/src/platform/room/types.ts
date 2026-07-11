@@ -3,6 +3,7 @@
 import type { CommandActor } from '@werewolf/game-engine/platform/engine';
 import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { type REASON_NO_STATE } from '@werewolf/game-engine/platform/protocol/reasons';
 import type {
   BaseGameState,
   RoomSnapshot,
@@ -40,10 +41,13 @@ export interface DispatchUserRoomCommand {
   readonly command: unknown;
 }
 
-export interface DispatchRoomResult {
-  readonly result: RoomCommandResult<BaseGameState<GameType>>;
-  readonly isReplay: boolean;
-}
+export type DispatchRoomResult =
+  | { readonly kind: 'unavailable'; readonly reason: typeof REASON_NO_STATE }
+  | {
+      readonly kind: 'decided';
+      readonly result: RoomCommandResult<BaseGameState<GameType>>;
+      readonly isReplay: boolean;
+    };
 
 export type DeleteRoomResult =
   | { readonly success: true }

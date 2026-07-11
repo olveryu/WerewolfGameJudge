@@ -32,7 +32,6 @@ import { facadeLog } from '@/utils/logger';
 
 import type { GameActionsContext, PreparedAudioAck } from './gameActions';
 import * as gameActions from './gameActions';
-import { isRoomCommandDeliveryUnknown } from './roomCommandTransport';
 
 /** AudioOrchestrator injectable dependencies */
 export interface AudioOrchestratorDeps {
@@ -107,7 +106,9 @@ export class AudioOrchestrator {
       if (!state.pendingAudioEffects || state.pendingAudioEffects.length === 0) return;
       // Avoid reacting during rejoin overlay (resumeAfterRejoin handles that path)
       if (this.#wasAudioInterrupted) return;
-      void this.#playPendingAudioEffects(state.pendingAudioEffects);
+      void this.#playPendingAudioEffects(state.pendingAudioEffects).catch((error: unknown) => {
+        facadeLog.error('Reactive audio effect queue failed', error);
+      });
     });
 
     // L2: Retry — postAudioAck failed during disconnect -> replay audio + retry ack after reconnect live
@@ -249,37 +250,33 @@ export class AudioOrchestrator {
   async #dispatchAudioAck(source: string): Promise<ActionResult> {
     const prepared = this.#getOrPrepareAudioAck();
 
-    try {
-      const result = await gameActions.dispatchPreparedAudioAck(
-        this.#deps.getActionsContext(),
-        prepared,
-      );
-      if (result.success) {
-        this.#clearPendingAudioAck();
-        return result;
-      }
+    const outcome = await gameActions.dispatchPreparedAudioAck(
+      this.#deps.getActionsContext(),
+      prepared,
+    );
+    if (outcome.kind !== 'decided') {
+      facadeLog.warn('Audio ack has no terminal decision; retaining the prepared command', {
+        source,
+        commandId: prepared.commandId,
+        delivery: outcome.kind,
+        reason: outcome.result.reason,
+      });
+      this.#registerOnlineRetry();
+      return outcome.result;
+    }
 
-      if (isRoomCommandDeliveryUnknown(result)) {
-        facadeLog.warn('Audio ack delivery is unknown; retaining the prepared command', {
-          source,
-          commandId: prepared.commandId,
-          reason: result.reason,
-        });
-        this.#registerOnlineRetry();
-        return result;
-      }
-
-      this.#clearPendingAudioAck();
+    const { result } = outcome;
+    if (!result.success) {
       facadeLog.warn('Audio ack was terminally rejected', {
         source,
         commandId: prepared.commandId,
         reason: result.reason,
       });
-      return result;
-    } catch (error) {
-      this.#clearPendingAudioAck();
-      throw error;
     }
+    if (this.#pendingAudioAck === prepared) {
+      this.#clearPendingAudioAck();
+    }
+    return result;
   }
 
   // =========================================================================

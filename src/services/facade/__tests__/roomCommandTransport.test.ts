@@ -7,12 +7,8 @@ import {
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { setRefreshHandler, setTokenProvider } from '@/services/cloudflare/cfFetch';
-import {
-  dispatchPreparedRoomCommand,
-  dispatchRoomCommand,
-  isRoomCommandDeliveryUnknown,
-  prepareRoomCommand,
-} from '@/services/facade/roomCommandTransport';
+import { RoomCommandSession } from '@/services/facade/roomCommandSession';
+import { isRoomCommandDeliveryUnknown } from '@/services/facade/roomCommandTransport';
 
 import { buildApiTestState } from './apiTestState';
 
@@ -81,6 +77,17 @@ function jsonResponse(value: unknown, status = 200): Response {
   } as unknown as Response;
 }
 
+function createDeferred<T>(): {
+  readonly promise: Promise<T>;
+  readonly resolve: (value: T) => void;
+} {
+  let resolvePromise!: (value: T) => void;
+  const promise = new Promise<T>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return { promise, resolve: resolvePromise };
+}
+
 function committedResult(
   commandId: string,
   state: GameState,
@@ -101,11 +108,17 @@ describe('dispatchRoomCommand', () => {
   const originalFetch = global.fetch;
   const state = buildApiTestState();
   const applySnapshot = jest.fn<void, [GameState, number]>();
+  let session: RoomCommandSession<GameState>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     setTokenProvider(() => null);
     setRefreshHandler(async () => 'expired');
+    session = new RoomCommandSession({
+      codec: WEREWOLF_STATE_CODEC,
+      store: { applySnapshot },
+    });
+    session.enterRoom('ABCD', 'user-1');
   });
 
   afterEach(() => {
@@ -114,12 +127,10 @@ describe('dispatchRoomCommand', () => {
   });
 
   function dispatch(controlledSeat: number | null = null) {
-    return dispatchRoomCommand({
+    return session.dispatch({
       roomCode: 'ABCD',
       command: { type: 'werewolf.roles.assign' },
       controlledSeat,
-      codec: WEREWOLF_STATE_CODEC,
-      store: { applySnapshot },
       label: 'assignRoles',
     });
   }
@@ -286,6 +297,69 @@ describe('dispatchRoomCommand', () => {
     expect(authorization).toEqual(['Bearer expired-token', 'Bearer fresh-token']);
   });
 
+  it('retains an ordinary command ID after unknown delivery until a decision arrives', async () => {
+    jest.useFakeTimers();
+    const bodies: string[] = [];
+    let networkIsAvailable = false;
+    global.fetch = jest.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (typeof init?.body !== 'string') throw new Error('Expected request body');
+      bodies.push(init.body);
+      if (!networkIsAvailable) throw new TypeError('Failed to fetch');
+      const { commandId } = parseEnvelope(init);
+      return jsonResponse(committedResult(commandId, state));
+    });
+
+    const firstAttempt = dispatch();
+    await jest.advanceTimersByTimeAsync(3_000);
+    await expect(firstAttempt).resolves.toEqual({ success: false, reason: 'NETWORK_ERROR' });
+
+    networkIsAvailable = true;
+    await expect(dispatch()).resolves.toEqual({ success: true });
+
+    const firstBody = bodies[0];
+    if (firstBody === undefined) throw new Error('Expected a command body');
+    expect(bodies).toHaveLength(4);
+    expect(new Set(bodies)).toEqual(new Set([firstBody]));
+  });
+
+  it('retains the command ID when the server confirms no decision was created', async () => {
+    const bodies: string[] = [];
+    global.fetch = jest
+      .fn()
+      .mockImplementationOnce(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (typeof init?.body !== 'string') throw new Error('Expected request body');
+        bodies.push(init.body);
+        return jsonResponse({ success: false, reason: 'no_state' }, 404);
+      })
+      .mockImplementationOnce(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (typeof init?.body !== 'string') throw new Error('Expected request body');
+        bodies.push(init.body);
+        const { commandId } = parseEnvelope(init);
+        return jsonResponse(committedResult(commandId, state));
+      });
+
+    await expect(dispatch()).resolves.toEqual({ success: false, reason: 'no_state' });
+    await expect(dispatch()).resolves.toEqual({ success: true });
+
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toBe(bodies[0]);
+  });
+
+  it('releases a command ID only after its terminal decision', async () => {
+    const commandIds: string[] = [];
+    global.fetch = jest.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const { commandId } = parseEnvelope(init);
+      commandIds.push(commandId);
+      return jsonResponse(committedResult(commandId, state));
+    });
+
+    await expect(dispatch()).resolves.toEqual({ success: true });
+    await expect(dispatch()).resolves.toEqual({ success: true });
+
+    expect(commandIds).toHaveLength(2);
+    expect(commandIds[1]).not.toBe(commandIds[0]);
+  });
+
   it('reuses one immutable prepared envelope across separate dispatch calls', async () => {
     jest.useFakeTimers();
     const bodies: string[] = [];
@@ -297,18 +371,12 @@ describe('dispatchRoomCommand', () => {
       const { commandId } = parseEnvelope(init);
       return jsonResponse(committedResult(commandId, state));
     });
-    const prepared = prepareRoomCommand({
+    const prepared = session.prepare({
       roomCode: 'ABCD',
       command: { type: 'werewolf.audio.ack' },
       controlledSeat: null,
     });
-    const dispatchPrepared = () =>
-      dispatchPreparedRoomCommand({
-        prepared,
-        codec: WEREWOLF_STATE_CODEC,
-        store: { applySnapshot },
-        label: 'postAudioAck',
-      });
+    const dispatchPrepared = () => session.dispatchPrepared(prepared, 'postAudioAck');
 
     expect(Object.isFrozen(prepared)).toBe(true);
     expect(Object.isFrozen(prepared.command)).toBe(true);
@@ -316,12 +384,15 @@ describe('dispatchRoomCommand', () => {
     const lostResponseAttempt = dispatchPrepared();
     await jest.advanceTimersByTimeAsync(3_000);
     await expect(lostResponseAttempt).resolves.toEqual({
-      success: false,
-      reason: 'NETWORK_ERROR',
+      kind: 'deliveryUnknown',
+      result: { success: false, reason: 'NETWORK_ERROR' },
     });
 
     networkIsAvailable = true;
-    await expect(dispatchPrepared()).resolves.toEqual({ success: true });
+    await expect(dispatchPrepared()).resolves.toEqual({
+      kind: 'decided',
+      result: { success: true },
+    });
 
     const firstBody = bodies[0];
     if (firstBody === undefined) throw new Error('Expected a prepared command body');
@@ -330,14 +401,46 @@ describe('dispatchRoomCommand', () => {
     expect(parseEnvelope({ body: firstBody }).commandId).toBe(prepared.commandId);
   });
 
-  it('throws and reports protocol corruption when response commandId differs', async () => {
-    global.fetch = jest.fn(async () =>
-      jsonResponse(committedResult('different-command-id', state)),
-    );
+  it('retains the command ID after protocol corruption', async () => {
+    const bodies: string[] = [];
+    global.fetch = jest
+      .fn()
+      .mockImplementationOnce(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (typeof init?.body !== 'string') throw new Error('Expected request body');
+        bodies.push(init.body);
+        return jsonResponse(committedResult('different-command-id', state));
+      })
+      .mockImplementationOnce(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (typeof init?.body !== 'string') throw new Error('Expected request body');
+        bodies.push(init.body);
+        const { commandId } = parseEnvelope(init);
+        return jsonResponse(committedResult(commandId, state));
+      });
 
     await expect(dispatch()).rejects.toBeInstanceOf(RoomCommandProtocolError);
     expect(applySnapshot).not.toHaveBeenCalled();
     expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(RoomCommandProtocolError));
+
+    await expect(dispatch()).resolves.toEqual({ success: true });
+    expect(bodies[1]).toBe(bodies[0]);
+  });
+
+  it('does not apply a late snapshot after leaving the command session', async () => {
+    const response = createDeferred<Response>();
+    let commandId = '';
+    global.fetch = jest.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      commandId = parseEnvelope(init).commandId;
+      return response.promise;
+    });
+
+    const pending = dispatch();
+    await Promise.resolve();
+    session.leaveRoom();
+    if (commandId.length === 0) throw new Error('Expected pending room command response');
+    response.resolve(jsonResponse(committedResult(commandId, state)));
+
+    await expect(pending).resolves.toEqual({ success: true });
+    expect(applySnapshot).not.toHaveBeenCalled();
   });
 });
 

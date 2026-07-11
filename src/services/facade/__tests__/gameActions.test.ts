@@ -1,12 +1,8 @@
-import {
-  WEREWOLF_STATE_CODEC,
-  type WerewolfActionInput,
-  type WerewolfPublicCommand,
-} from '@werewolf/game-engine';
+import { type WerewolfActionInput, type WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
-import type { GameActionsContext } from '@/services/facade/gameActions';
 import {
   assignRoles,
   boardNominate,
@@ -15,6 +11,7 @@ import {
   clearAllSeats,
   dispatchPreparedAudioAck,
   fillWithBots,
+  type GameActionsContext,
   markAllBotsGroupConfirmed,
   markAllBotsViewed,
   markViewedRole,
@@ -31,30 +28,37 @@ import {
   updatePlayerProfile,
   updateTemplate,
 } from '@/services/facade/gameActions';
-import {
-  dispatchPreparedRoomCommand,
-  dispatchRoomCommand,
-  type PreparedRoomCommand,
-  prepareRoomCommand,
-} from '@/services/facade/roomCommandTransport';
+import type { RoomCommandDispatchOutcome } from '@/services/facade/roomCommandSession';
+import type { PreparedRoomCommand } from '@/services/facade/roomCommandTransport';
 
-jest.mock('@/services/facade/roomCommandTransport', () => ({
-  dispatchPreparedRoomCommand: jest.fn(),
-  dispatchRoomCommand: jest.fn(),
-  prepareRoomCommand: jest.fn(),
-}));
+type AudioAckCommand = Extract<WerewolfPublicCommand, { readonly type: 'werewolf.audio.ack' }>;
 
-const dispatchMock = jest.mocked(dispatchRoomCommand);
-const dispatchPreparedMock = jest.mocked(dispatchPreparedRoomCommand);
-const prepareMock = jest.mocked(prepareRoomCommand);
+interface DispatchCommandOptions {
+  readonly roomCode: string;
+  readonly command: WerewolfPublicCommand;
+  readonly controlledSeat: number | null;
+  readonly label: string;
+}
 
-const PREPARED_AUDIO_ACK: PreparedRoomCommand<{ readonly type: 'werewolf.audio.ack' }> =
-  Object.freeze({
-    roomCode: 'ABCD',
-    commandId: 'audio-ack-command',
-    command: Object.freeze({ type: 'werewolf.audio.ack' }),
-    controlledSeat: null,
-  });
+interface PrepareAudioAckOptions {
+  readonly roomCode: string;
+  readonly command: AudioAckCommand;
+  readonly controlledSeat: number | null;
+}
+
+const dispatchMock = jest.fn<Promise<ActionResult>, [DispatchCommandOptions]>();
+const dispatchPreparedMock = jest.fn<
+  Promise<RoomCommandDispatchOutcome>,
+  [PreparedRoomCommand<AudioAckCommand>, string]
+>();
+const prepareMock = jest.fn<PreparedRoomCommand<AudioAckCommand>, [PrepareAudioAckOptions]>();
+
+const PREPARED_AUDIO_ACK: PreparedRoomCommand<AudioAckCommand> = Object.freeze({
+  roomCode: 'ABCD',
+  commandId: 'audio-ack-command',
+  command: Object.freeze({ type: 'werewolf.audio.ack' }),
+  controlledSeat: null,
+});
 
 function createContext(roomCode: string | null = 'ABCD'): GameActionsContext {
   const state = roomCode === null ? null : { roomCode, templateRoles: ['wolf', 'seer'] };
@@ -66,6 +70,11 @@ function createContext(roomCode: string | null = 'ABCD'): GameActionsContext {
     audioService: {
       preloadForRoles: jest.fn().mockResolvedValue(undefined),
     } as unknown as GameActionsContext['audioService'],
+    commands: {
+      dispatch: dispatchMock,
+      dispatchPrepared: dispatchPreparedMock,
+      prepare: prepareMock,
+    } as unknown as GameActionsContext['commands'],
   };
 }
 
@@ -82,7 +91,10 @@ function expectCommand(command: WerewolfPublicCommand, controlledSeat: number | 
 describe('canonical Werewolf command builders', () => {
   beforeEach(() => {
     dispatchMock.mockReset().mockResolvedValue({ success: true });
-    dispatchPreparedMock.mockReset().mockResolvedValue({ success: true });
+    dispatchPreparedMock.mockReset().mockResolvedValue({
+      kind: 'decided',
+      result: { success: true },
+    });
     prepareMock.mockReset().mockReturnValue(PREPARED_AUDIO_ACK);
   });
 
@@ -156,9 +168,10 @@ describe('canonical Werewolf command builders', () => {
   it.each<WerewolfActionInput>([
     { kind: 'target', target: 2 },
     { kind: 'multiTarget', targets: [1, 3] },
-    { kind: 'confirm', confirmed: false },
+    { kind: 'confirm' },
     { kind: 'witch', saveTarget: 2, poisonTarget: null },
     { kind: 'card', cardIndex: 1 },
+    { kind: 'skip' },
   ])('maps $kind input without actor seat or role authority', async (input) => {
     const ctx = createContext();
 
@@ -221,13 +234,8 @@ describe('canonical Werewolf command builders', () => {
 
     await dispatchPreparedAudioAck(ctx, prepared);
 
-    expect(dispatchPreparedMock).toHaveBeenCalledWith({
-      prepared,
-      codec: WEREWOLF_STATE_CODEC,
-      store: ctx.store,
-      label: 'postAudioAck',
-    });
-    expect(dispatchPreparedMock.mock.calls[0]?.[0].prepared).toBe(prepared);
+    expect(dispatchPreparedMock).toHaveBeenCalledWith(prepared, 'postAudioAck');
+    expect(dispatchPreparedMock.mock.calls[0]?.[0]).toBe(prepared);
   });
 
   it('fails fast when a prepared audio ack is dispatched in another room', async () => {
@@ -247,8 +255,8 @@ describe('canonical Werewolf command builders', () => {
     expect(dispatchMock).not.toHaveBeenCalled();
     expect(prepareAudioAck(ctx)).toBeNull();
     await expect(dispatchPreparedAudioAck(ctx, PREPARED_AUDIO_ACK)).resolves.toEqual({
-      success: false,
-      reason: 'NOT_CONNECTED',
+      kind: 'notDecided',
+      result: { success: false, reason: 'NOT_CONNECTED' },
     });
     expect(prepareMock).not.toHaveBeenCalled();
     expect(dispatchPreparedMock).not.toHaveBeenCalled();

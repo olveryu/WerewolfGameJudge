@@ -157,6 +157,14 @@ export class EffectOutbox {
       : parseNonNegativeInteger(row.available_at, 'effect_outbox.available_at');
   }
 
+  hasOutstandingEffects(): boolean {
+    const row = this.#sql
+      .exec<{ effect_count: unknown }>('SELECT COUNT(*) AS effect_count FROM effect_outbox')
+      .one();
+    const effectCount = parseNonNegativeInteger(row.effect_count, 'effect_outbox count');
+    return effectCount > 0;
+  }
+
   markSucceeded(effectId: string): void {
     this.#sql.exec('DELETE FROM effect_outbox WHERE id = ? RETURNING id', effectId).one();
   }

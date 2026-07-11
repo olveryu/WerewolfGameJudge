@@ -1,18 +1,20 @@
 /** Canonical shared room-seat command builders for the Werewolf facade. */
 
-import { WEREWOLF_STATE_CODEC, type WerewolfPublicCommand } from '@werewolf/game-engine';
+import type { WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { GameStore } from '@werewolf/game-engine/engine/store';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import { facadeLog } from '@/utils/logger';
 
 import type { SeatProfile } from '../types/IGameFacade';
-import { dispatchRoomCommand } from './roomCommandTransport';
+import type { RoomCommandSession } from './roomCommandSession';
 
 const NOT_CONNECTED: ActionResult = { success: false, reason: 'NOT_CONNECTED' };
 
 export interface SeatActionsContext {
   readonly store: GameStore;
+  readonly commands: RoomCommandSession<GameState>;
 }
 
 async function dispatchSeatCommand(
@@ -23,12 +25,10 @@ async function dispatchSeatCommand(
   const roomCode = ctx.store.getState()?.roomCode;
   if (roomCode === undefined) return NOT_CONNECTED;
 
-  return dispatchRoomCommand({
+  return ctx.commands.dispatch({
     roomCode,
     command,
     controlledSeat: null,
-    codec: WEREWOLF_STATE_CODEC,
-    store: ctx.store,
     label,
   });
 }

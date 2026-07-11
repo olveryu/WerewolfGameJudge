@@ -25,6 +25,7 @@ import type {
   RoomSnapshot,
   StateUpdateMessage,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import { createUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { IRealtimeTransport, SettleResultMessage } from '@/services/types/IRealtimeTransport';
@@ -153,6 +154,11 @@ export class ConnectionManager {
   /** Current FSM context (for observability / testing) */
   getContext(): Readonly<FSMContext> {
     return this.#ctx;
+  }
+
+  /** Acknowledge a durable user event on the currently connected room socket. */
+  acknowledgeUserEvent(eventId: string): boolean {
+    return this.#deps.transport.send(JSON.stringify(createUserEventAckMessage(eventId)));
   }
 
   /**

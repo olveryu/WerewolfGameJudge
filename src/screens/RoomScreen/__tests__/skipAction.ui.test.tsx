@@ -189,7 +189,7 @@ describe('RoomScreen skip action UI', () => {
     });
   });
 
-  it('press "不用技能" -> confirm -> submits null target input', async () => {
+  it('press "不用技能" -> confirm -> submits the canonical skip input', async () => {
     mockedCanSkip = true;
     mockedSchemaId = 'seerCheck';
     const skipText = getChooseSeatSchema(mockedSchemaId).ui?.bottomActionText;
@@ -222,6 +222,6 @@ describe('RoomScreen skip action UI', () => {
       confirmBtn?.onPress?.();
     });
 
-    expect(mockSubmitAction).toHaveBeenCalledWith({ kind: 'target', target: null });
+    expect(mockSubmitAction).toHaveBeenCalledWith({ kind: 'skip' });
   });
 });

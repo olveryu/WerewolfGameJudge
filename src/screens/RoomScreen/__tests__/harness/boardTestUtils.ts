@@ -733,6 +733,7 @@ export async function coverageChainSkipConfirm(
   // Chain: press primary on skipConfirm dialog
   harness.pressPrimaryOnType('skipConfirm');
   expect(submitAction).toHaveBeenCalledTimes(1);
+  expect(submitAction).toHaveBeenCalledWith({ kind: 'skip' });
 
   result.unmount();
   return { submitAction };

@@ -36,7 +36,6 @@ import { ensureFreshToken } from './cfFetch';
 
 /** WebSocket connection timeout (ms) */
 const WS_CONNECT_TIMEOUT_MS = 8_000;
-const SETTLEMENT_DEDUPE_LIMIT = 128;
 
 /**
  * CFRealtimeService — WebSocket transport layer implementation.
@@ -51,7 +50,6 @@ export class CFRealtimeService implements IRealtimeTransport {
   /** Generation counter: prevents stale WS events after disconnect/reconnect */
   #generation = 0;
   #lastSocketRevision = 0;
-  readonly #settlementFingerprints = new Map<string, string>();
 
   constructor(stateCodec: GameStateCodec<GameState>) {
     this.#stateCodec = stateCodec;
@@ -158,13 +156,15 @@ export class CFRealtimeService implements IRealtimeTransport {
     this.#closeWsSilent();
   }
 
-  send(data: string): void {
+  send(data: string): boolean {
     if (this.#ws?.readyState === WebSocket.OPEN) {
       this.#ws.send(data);
+      return true;
     } else {
       realtimeLog.warn('Transport: send dropped (WS not open)', {
         readyState: this.#ws?.readyState,
       });
+      return false;
     }
   }
 
@@ -209,25 +209,6 @@ export class CFRealtimeService implements IRealtimeTransport {
         this.#requireHandlers().onStateUpdate(message);
       } else if (data.type === 'SETTLE_RESULT') {
         const message = parseSettleResultMessage(data);
-        const fingerprint = JSON.stringify(message);
-        const previousFingerprint = this.#settlementFingerprints.get(message.settlementId);
-        if (previousFingerprint !== undefined) {
-          if (previousFingerprint !== fingerprint) {
-            throw new Error(`SETTLE_RESULT ${message.settlementId} changed across deliveries`);
-          }
-          realtimeLog.debug('Transport: duplicate settlement skipped', {
-            settlementId: message.settlementId,
-          });
-          return;
-        }
-        this.#settlementFingerprints.set(message.settlementId, fingerprint);
-        if (this.#settlementFingerprints.size > SETTLEMENT_DEDUPE_LIMIT) {
-          const oldestSettlementId = this.#settlementFingerprints.keys().next().value;
-          if (oldestSettlementId === undefined) {
-            throw new Error('Settlement dedupe index lost insertion order');
-          }
-          this.#settlementFingerprints.delete(oldestSettlementId);
-        }
         this.#requireHandlers().onSettleResult(message);
       } else {
         throw new Error(`Unsupported realtime message type: ${data.type}`);
@@ -278,6 +259,7 @@ function parseSettleResultMessage(
 ): SettleResultMessage {
   const expectedKeys = [
     'type',
+    'eventId',
     'gameType',
     'settlementId',
     'endedRevision',
@@ -289,16 +271,19 @@ function parseSettleResultMessage(
     'goldenDrawsEarned',
   ];
   const actualKeys = Object.keys(data);
-  if (
-    actualKeys.length !== expectedKeys.length ||
-    !expectedKeys.every((key) => actualKeys.includes(key))
-  ) {
-    throw new Error('SETTLE_RESULT contains unsupported fields');
+  const unknownKey = actualKeys.find((key) => !expectedKeys.includes(key));
+  if (unknownKey !== undefined) {
+    throw new Error(`SETTLE_RESULT contains unknown field: ${unknownKey}`);
+  }
+  const missingKey = expectedKeys.find((key) => !actualKeys.includes(key));
+  if (missingKey !== undefined) {
+    throw new Error(`SETTLE_RESULT is missing field: ${missingKey}`);
   }
   if (data.gameType !== 'werewolf') {
     throw new Error(`SETTLE_RESULT gameType is invalid: ${String(data.gameType)}`);
   }
   return {
+    eventId: requireNonEmptyString(data.eventId, 'SETTLE_RESULT.eventId'),
     gameType: data.gameType,
     settlementId: requireNonEmptyString(data.settlementId, 'SETTLE_RESULT.settlementId'),
     endedRevision: requirePositiveInteger(data.endedRevision, 'SETTLE_RESULT.endedRevision'),

@@ -142,10 +142,11 @@ describe('CFRealtimeService protocol', () => {
     expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
   });
 
-  it('delivers one strict settlement result and skips an identical retry', async () => {
+  it('parses every durable settlement delivery for the facade acknowledgement owner', async () => {
     const { handlers, socket } = await connectService();
     const message = {
       type: 'SETTLE_RESULT',
+      eventId: 'settlement-event-1',
       gameType: 'werewolf',
       settlementId: 'settlement-1',
       endedRevision: 12,
@@ -160,8 +161,9 @@ describe('CFRealtimeService protocol', () => {
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
 
-    expect(handlers.onSettleResult).toHaveBeenCalledTimes(1);
+    expect(handlers.onSettleResult).toHaveBeenCalledTimes(2);
     expect(handlers.onSettleResult).toHaveBeenCalledWith({
+      eventId: 'settlement-event-1',
       gameType: 'werewolf',
       settlementId: 'settlement-1',
       endedRevision: 12,
@@ -174,7 +176,7 @@ describe('CFRealtimeService protocol', () => {
     });
   });
 
-  it('treats a changed settlement retry as a protocol error', async () => {
+  it('rejects a settlement message without its durable event ID', async () => {
     const { handlers, socket } = await connectService();
     const message = {
       type: 'SETTLE_RESULT',
@@ -189,16 +191,13 @@ describe('CFRealtimeService protocol', () => {
       goldenDrawsEarned: 1,
     };
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
-    socket.onmessage?.({
-      data: JSON.stringify({ ...message, xpEarned: 16 }),
-    } as MessageEvent);
 
-    expect(handlers.onSettleResult).toHaveBeenCalledTimes(1);
+    expect(handlers.onSettleResult).not.toHaveBeenCalled();
     const settlementError = handlers.onError.mock.calls[0]?.[0];
     if (!(settlementError instanceof Error)) {
       throw new Error('Expected settlement protocol error');
     }
-    expect(settlementError.message).toContain('changed across deliveries');
+    expect(settlementError.message).toContain('missing field');
     expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
   });
 });

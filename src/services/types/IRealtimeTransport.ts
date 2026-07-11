@@ -20,6 +20,7 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 /** Game settle result unicast message. */
 export interface SettleResultMessage {
+  readonly eventId: string;
   readonly gameType: GameType;
   readonly settlementId: string;
   readonly endedRevision: number;
@@ -62,9 +63,9 @@ export interface IRealtimeTransport {
 
   /**
    * Send a text message to the WebSocket.
-   * Only sends when WS readyState === OPEN; otherwise silently ignored.
+   * @returns true only when the message was handed to an open socket.
    */
-  send(data: string): void;
+  send(data: string): boolean;
 
   /**
    * Register event handlers (transport translates WS events to typed callbacks).

@@ -130,7 +130,7 @@ describe('Werewolf action input adapter', () => {
     {
       stepId: 'hunterConfirm',
       role: 'hunter',
-      input: { kind: 'confirm', confirmed: true },
+      input: { kind: 'confirm' },
       payload: { seat: 1, role: 'hunter', target: null, extra: { confirmed: true } },
     },
     {
@@ -149,6 +149,12 @@ describe('Werewolf action input adapter', () => {
       role: 'thief',
       input: { kind: 'card', cardIndex: 1 },
       payload: { seat: 1, role: 'thief', target: null, extra: { cardIndex: 1 } },
+    },
+    {
+      stepId: 'wolfKill',
+      role: 'wolf',
+      input: { kind: 'target', target: null },
+      payload: { seat: 1, role: 'wolf', target: null },
     },
   ])('maps $input.kind into the existing handler intent', ({ stepId, role, input, payload }) => {
     const state = createState({
@@ -169,7 +175,51 @@ describe('Werewolf action input adapter', () => {
   it('rejects a typed input whose kind does not match the authoritative current schema', () => {
     const state = createState({ status: GameStatus.Ongoing, currentStepId: 'seerCheck' });
 
-    expect(resolveSubmitActionIntent(state, 1, { kind: 'confirm', confirmed: true })).toEqual({
+    expect(resolveSubmitActionIntent(state, 1, { kind: 'confirm' })).toEqual({
+      kind: 'rejected',
+      reason: REASON_ACTION_INPUT_MISMATCH,
+    });
+  });
+
+  it.each<[GameState['currentStepId'], RoleId]>([
+    ['seerCheck', 'seer'],
+    ['magicianSwap', 'magician'],
+    ['hunterConfirm', 'hunter'],
+    ['witchAction', 'witch'],
+    ['thiefChoose', 'thief'],
+    ['piperHypnotize', 'piper'],
+  ])('maps one canonical skip input for %s', (stepId, role) => {
+    const state = createState({
+      status: GameStatus.Ongoing,
+      currentStepId: stepId,
+      players: {
+        ...createState().players,
+        1: { userId: 'user-1', seat: 1, role, hasViewedRole: true },
+      },
+    });
+
+    expect(resolveSubmitActionIntent(state, 1, { kind: 'skip' })).toEqual({
+      kind: 'resolved',
+      intent: {
+        type: 'SUBMIT_ACTION',
+        payload: { seat: 1, role, target: null },
+      },
+    });
+  });
+
+  it.each<
+    [
+      GameState['currentStepId'],
+      Extract<WerewolfCommand, { type: 'werewolf.action.submit' }>['input'],
+    ]
+  >([
+    ['seerCheck', { kind: 'target', target: null }],
+    ['piperHypnotize', { kind: 'multiTarget', targets: [] }],
+    ['witchAction', { kind: 'witch', saveTarget: null, poisonTarget: null }],
+  ])('rejects duplicate skip encoding for %s', (stepId, input) => {
+    const state = createState({ status: GameStatus.Ongoing, currentStepId: stepId });
+
+    expect(resolveSubmitActionIntent(state, 1, input)).toEqual({
       kind: 'rejected',
       reason: REASON_ACTION_INPUT_MISMATCH,
     });
@@ -255,7 +305,7 @@ describe('Werewolf engine definition and catalog', () => {
     'werewolf.bots.markRolesViewed': { type: 'werewolf.bots.markRolesViewed' },
     'werewolf.action.submit': {
       type: 'werewolf.action.submit',
-      input: { kind: 'target', target: null },
+      input: { kind: 'skip' },
     },
     'werewolf.role.view': { type: 'werewolf.role.view' },
     'werewolf.config.update': {

@@ -25,7 +25,7 @@ const VALID_PUBLIC_COMMANDS = [
   { type: 'werewolf.roles.assign' },
   { type: 'werewolf.game.restart' },
   { type: 'werewolf.bots.markRolesViewed' },
-  { type: 'werewolf.action.submit', input: { kind: 'target', target: null } },
+  { type: 'werewolf.action.submit', input: { kind: 'skip' } },
   { type: 'werewolf.role.view' },
   { type: 'werewolf.config.update', templateRoles: ['villager'] },
   { type: 'werewolf.review.share', allowedSeats: [0] },
@@ -95,6 +95,12 @@ describe('Worker game catalog', () => {
       werewolfPublicCommandSchema.parse({
         type: 'werewolf.config.update',
         templateRoles: ['not-a-role'],
+      }),
+    ).toThrow();
+    expect(() =>
+      werewolfPublicCommandSchema.parse({
+        type: 'werewolf.action.submit',
+        input: { kind: 'confirm', confirmed: false },
       }),
     ).toThrow();
   });

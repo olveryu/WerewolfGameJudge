@@ -134,6 +134,18 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_game_settlement_results_user_settled
     ON game_settlement_results(user_id, settled_at);`,
 
+  // ── user_event_inbox ──
+  `CREATE TABLE IF NOT EXISTS user_event_inbox (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload_json TEXT NOT NULL CHECK (json_valid(payload_json) AND json_type(payload_json) = 'object'),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, event_id)
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_user_event_inbox_delivery
+    ON user_event_inbox(user_id, created_at, event_id);`,
+
   // ── rooms ──
   `CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,

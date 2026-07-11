@@ -17,7 +17,6 @@ function expectedInputKind(schema: ActionSchema): WerewolfActionInputKind | null
   switch (schema.kind) {
     case 'chooseSeat':
     case 'wolfVote':
-    case 'skip':
     case 'confirmTarget':
       return 'target';
     case 'swap':
@@ -29,6 +28,8 @@ function expectedInputKind(schema: ActionSchema): WerewolfActionInputKind | null
       return 'witch';
     case 'chooseCard':
       return 'card';
+    case 'skip':
+      return 'skip';
     case 'groupConfirm':
       return null;
     default: {
@@ -53,7 +54,16 @@ export function resolveSubmitActionIntent(
     return { kind: 'rejected', reason: 'invalid_step' };
   }
   const expectedKind = expectedInputKind(schema);
-  if (expectedKind === null || expectedKind !== input.kind) {
+  const isCanonicalSkip = input.kind === 'skip' && schema.kind !== 'groupConfirm';
+  if (!isCanonicalSkip && (expectedKind === null || expectedKind !== input.kind)) {
+    return { kind: 'rejected', reason: REASON_ACTION_INPUT_MISMATCH };
+  }
+
+  const hasDuplicateSkipEncoding =
+    (input.kind === 'target' && input.target === null && schema.kind !== 'wolfVote') ||
+    (input.kind === 'multiTarget' && input.targets.length === 0) ||
+    (input.kind === 'witch' && input.saveTarget === null && input.poisonTarget === null);
+  if (hasDuplicateSkipEncoding) {
     return { kind: 'rejected', reason: REASON_ACTION_INPUT_MISMATCH };
   }
 
@@ -96,7 +106,7 @@ export function resolveSubmitActionIntent(
             seat: actorSeat,
             role: player.role,
             target: null,
-            extra: { confirmed: input.confirmed },
+            extra: { confirmed: true },
           },
         },
       };
@@ -129,6 +139,14 @@ export function resolveSubmitActionIntent(
             target: null,
             extra: { cardIndex: input.cardIndex },
           },
+        },
+      };
+    case 'skip':
+      return {
+        kind: 'resolved',
+        intent: {
+          type: 'SUBMIT_ACTION',
+          payload: { seat: actorSeat, role: player.role, target: null },
         },
       };
     default: {

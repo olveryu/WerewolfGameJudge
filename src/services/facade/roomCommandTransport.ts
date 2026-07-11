@@ -1,9 +1,4 @@
-/**
- * Authenticated room-command transport.
- *
- * Owns command idempotency, transport retries, protocol parsing, and committed
- * snapshot application. Game-specific callers supply a codec and command type.
- */
+/** Authenticated transport for one already-prepared room command. */
 
 import {
   type BaseGameState,
@@ -12,6 +7,7 @@ import {
   newRequestId,
   parseRoomCommandResult,
   RoomCommandProtocolError,
+  type RoomCommandResult,
 } from '@werewolf/game-engine';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
@@ -22,11 +18,7 @@ import { facadeLog } from '@/utils/logger';
 
 const COMMAND_PATH = '/room/command';
 const BUSINESS_RETRY_DELAYS_MS = [300, 600] as const;
-const EXPECTED_HTTP_STATUS_CODES = [400, 401, 403, 404, 409, 422, 429];
-
-export interface RoomSnapshotStore<TState> {
-  applySnapshot(state: TState, revision: number): void;
-}
+const EXPECTED_HTTP_STATUS_CODES = [400, 401, 403, 404, 422, 429];
 
 export interface PreparedRoomCommand<TCommand extends object> extends Record<string, unknown> {
   readonly roomCode: string;
@@ -41,23 +33,39 @@ interface PrepareRoomCommandOptions<TCommand extends object> {
   readonly controlledSeat: number | null;
 }
 
-interface DispatchPreparedRoomCommandOptions<
+interface SendPreparedRoomCommandOptions<
   TState extends BaseGameState<GameType>,
   TCommand extends object,
 > {
   readonly prepared: PreparedRoomCommand<TCommand>;
   readonly codec: GameStateCodec<TState>;
-  readonly store: RoomSnapshotStore<TState>;
   readonly label: string;
 }
 
-interface DispatchRoomCommandOptions<
-  TState extends BaseGameState<GameType>,
-  TCommand extends object,
-> extends PrepareRoomCommandOptions<TCommand> {
-  readonly codec: GameStateCodec<TState>;
-  readonly store: RoomSnapshotStore<TState>;
-  readonly label: string;
+export type RoomCommandTransportAttempt<TState extends BaseGameState<GameType>> =
+  | {
+      readonly kind: 'decided';
+      readonly decision: RoomCommandResult<TState>;
+    }
+  | {
+      readonly kind: 'notDecided' | 'deliveryUnknown';
+      readonly result: ActionResult;
+    };
+
+function freezeCommand(value: unknown, ancestors: Set<object>): void {
+  if (value === null || typeof value !== 'object') return;
+  if (ancestors.has(value)) {
+    throw new Error('Room command must not contain circular references');
+  }
+
+  ancestors.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) freezeCommand(item, ancestors);
+  } else {
+    for (const item of Object.values(value)) freezeCommand(item, ancestors);
+  }
+  ancestors.delete(value);
+  Object.freeze(value);
 }
 
 /** Whether the client cannot know if the server committed this command. */
@@ -77,19 +85,19 @@ export function isRoomCommandDeliveryUnknown(result: ActionResult): boolean {
   }
 }
 
-/** Prepare one immutable command envelope for one or more dispatch attempts. */
+/** Prepare and deeply freeze one command envelope. */
 export function prepareRoomCommand<TCommand extends object>({
   roomCode,
   command,
   controlledSeat,
 }: PrepareRoomCommandOptions<TCommand>): PreparedRoomCommand<TCommand> {
-  const envelope: PreparedRoomCommand<TCommand> = {
+  freezeCommand(command, new Set());
+  return Object.freeze({
     roomCode,
     commandId: newRequestId(),
-    command: Object.freeze(command),
+    command,
     controlledSeat,
-  };
-  return Object.freeze(envelope);
+  });
 }
 
 function readErrorStatus(error: unknown): number | null {
@@ -120,32 +128,45 @@ function reportTransportError(error: unknown, label: string): void {
   });
 }
 
-function mapTransportError(error: unknown, label: string): ActionResult {
+function mapTransportError(
+  error: unknown,
+  label: string,
+): Exclude<RoomCommandTransportAttempt<never>, { readonly kind: 'decided' }> {
   reportTransportError(error, label);
 
-  if (isAbortError(error)) return { success: false, reason: 'TIMEOUT' };
-  if (isNetworkError(error)) return { success: false, reason: 'NETWORK_ERROR' };
+  let result: ActionResult;
+  if (isAbortError(error)) {
+    result = { success: false, reason: 'TIMEOUT' };
+  } else if (isNetworkError(error)) {
+    result = { success: false, reason: 'NETWORK_ERROR' };
+  } else {
+    const reason = readErrorReason(error);
+    if (reason === null) throw error;
+    result = { success: false, reason };
+  }
 
-  const reason = readErrorReason(error);
-  if (reason !== null) return { success: false, reason };
-
-  throw error;
+  const status = readErrorStatus(error);
+  const isUnknownStatus = status !== null && status >= 500 && status <= 599;
+  return {
+    kind:
+      isUnknownStatus || isRoomCommandDeliveryUnknown(result) ? 'deliveryUnknown' : 'notDecided',
+    result,
+  };
 }
 
 function wait(delayMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
-/** Dispatch an already-prepared command without changing its commandId. */
-export async function dispatchPreparedRoomCommand<
+/** Send an immutable command without applying its snapshot or changing its ID. */
+export async function sendPreparedRoomCommand<
   TState extends BaseGameState<GameType>,
   TCommand extends object,
 >({
   prepared,
   codec,
-  store,
   label,
-}: DispatchPreparedRoomCommandOptions<TState, TCommand>): Promise<ActionResult> {
+}: SendPreparedRoomCommandOptions<TState, TCommand>): Promise<RoomCommandTransportAttempt<TState>> {
   let payload: unknown;
   for (let attempt = 0; ; attempt += 1) {
     try {
@@ -168,45 +189,15 @@ export async function dispatchPreparedRoomCommand<
   }
 
   try {
-    const result = parseRoomCommandResult(payload, codec);
-    if (result.commandId !== prepared.commandId) {
+    const decision = parseRoomCommandResult(payload, codec);
+    if (decision.commandId !== prepared.commandId) {
       throw new RoomCommandProtocolError(
-        `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${result.commandId}`,
+        `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${decision.commandId}`,
       );
     }
-
-    if (result.kind === 'rejected') {
-      return { success: false, reason: result.reason };
-    }
-
-    store.applySnapshot(result.snapshot.state, result.snapshot.revision);
-    return result.outcome.kind === 'domainRejected'
-      ? { success: false, reason: result.outcome.reason }
-      : result.outcome.reason === undefined
-        ? { success: true }
-        : { success: true, reason: result.outcome.reason };
+    return { kind: 'decided', decision };
   } catch (error) {
     reportTransportError(error, label);
     throw error;
   }
-}
-
-/** Prepare and dispatch one ordinary room command. */
-export function dispatchRoomCommand<
-  TState extends BaseGameState<GameType>,
-  TCommand extends object,
->({
-  roomCode,
-  command,
-  controlledSeat,
-  codec,
-  store,
-  label,
-}: DispatchRoomCommandOptions<TState, TCommand>): Promise<ActionResult> {
-  return dispatchPreparedRoomCommand({
-    prepared: prepareRoomCommand({ roomCode, command, controlledSeat }),
-    codec,
-    store,
-    label,
-  });
 }

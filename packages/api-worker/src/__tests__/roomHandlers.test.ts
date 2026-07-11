@@ -11,9 +11,10 @@ import {
   type RoomSnapshot,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import { env, SELF } from 'cloudflare:test';
+import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import type { GameRoom } from '../platform/room/GameRoom';
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
 interface AuthResponse {
@@ -253,7 +254,24 @@ describe('POST /room/command', () => {
     expect(result.snapshot.state.players[1]?.userId).toBe(player.user.id);
   });
 
-  it('replays an identical command and returns 409 for command ID reuse', async () => {
+  it('returns unavailable transport status without fabricating a command decision', async () => {
+    const auth = await createAnonymousUser();
+    const response = await postJson(
+      '/room/command',
+      {
+        roomCode: 'MISSING-ROOM',
+        commandId: 'missing-room-command',
+        controlledSeat: null,
+        command: { type: 'room.seat.leave' },
+      },
+      auth.access_token,
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ success: false, reason: 'no_state' });
+  });
+
+  it('replays an identical command and decodes command ID conflicts as decisions', async () => {
     const auth = await createAnonymousUser();
     const roomCode = 'COMMAND-REPLAY';
     expect((await createRoom(roomCode, auth, 'command-replay-create')).status).toBe(200);
@@ -279,11 +297,78 @@ describe('POST /room/command', () => {
       { ...command, command: { type: 'room.seat.leave' } },
       auth.access_token,
     );
-    expect(conflict.status).toBe(409);
-    expect(await conflict.json()).toEqual({
+    expect(conflict.status).toBe(200);
+    const conflictResult = parseRoomCommandResult(await conflict.json(), WEREWOLF_STATE_CODEC);
+    expect(conflictResult).toEqual({
       kind: 'rejected',
       commandId: 'stable-command',
       reason: REASON_COMMAND_ID_CONFLICT,
     });
+  });
+});
+
+describe('POST /room/delete', () => {
+  it('keeps the room directory until committed effects are delivered', async () => {
+    const auth = await createAnonymousUser();
+    const roomCode = 'DELETE-OUTBOX';
+    expect((await createRoom(roomCode, auth, 'delete-outbox-create')).status).toBe(200);
+
+    const directory = await env.DB.prepare('SELECT id FROM rooms WHERE code = ?')
+      .bind(roomCode)
+      .first<{ id: string }>();
+    if (directory === null) throw new Error('Room directory row is missing');
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(directory.id));
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec(`
+        INSERT INTO effect_outbox (
+          id,
+          origin_command_id,
+          scope,
+          game_type,
+          effect_type,
+          business_key,
+          payload_json,
+          status,
+          attempt_count,
+          available_at,
+          created_revision,
+          created_at,
+          last_error
+        ) VALUES (
+          'failed-delete-effect',
+          'failed-delete-command',
+          'platform',
+          'werewolf',
+          'room.participant.seated',
+          'failed-delete-business-key',
+          '{}',
+          'failed',
+          7,
+          0,
+          1,
+          0,
+          'delivery exhausted'
+        )
+      `);
+    });
+
+    const blocked = await postJson('/room/delete', { roomCode }, auth.access_token);
+    expect(blocked.status).toBe(409);
+    expect(await blocked.json()).toEqual({
+      success: false,
+      reason: 'room_effects_pending',
+    });
+    expect(await (await postJson('/room/get', { roomCode })).json()).toMatchObject({
+      room: { roomCode },
+    });
+
+    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+      state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'failed-delete-effect'");
+    });
+
+    const deleted = await postJson('/room/delete', { roomCode }, auth.access_token);
+    expect(deleted.status).toBe(200);
+    expect(await deleted.json()).toEqual({ success: true });
+    expect(await (await postJson('/room/get', { roomCode })).json()).toEqual({ room: null });
   });
 });
