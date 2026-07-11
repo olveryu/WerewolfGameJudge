@@ -41,8 +41,8 @@ export function createAllServices(): {
   // so the forward reference is safe — facade is initialized before any WS message arrives.
   const connectionManager = new ConnectionManager({
     transport,
-    fetchStateFromDB: async (roomCode) => roomService.getGameState(roomCode),
-    getStateRevision: async (roomCode) => roomService.getStateRevision(roomCode),
+    fetchStateFromDB: async (room) => roomService.getGameState(room),
+    getStateRevision: async (room) => roomService.getStateRevision(room),
     onStateUpdate: (message) =>
       store.applySnapshot(message.state, message.revision, message.lastCommandType),
     onFetchedState: (snapshot) => store.applySnapshot(snapshot.state, snapshot.revision),

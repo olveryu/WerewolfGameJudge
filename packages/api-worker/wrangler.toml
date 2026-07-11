@@ -76,7 +76,10 @@ SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.
 
 # ── Cron Triggers ────────────────────────────────────────────────────────────
 [triggers]
-crons = ["0 3 * * *"]   # Daily at UTC 03:00 — cleanup stale rooms / anonymous users / login attempts
+crons = [
+  "*/5 * * * *", # Reconcile interrupted room create/delete sagas
+  "0 3 * * *"    # Daily room expiry and account/data retention cleanup
+]
 
 # ── Local Dev Server ─────────────────────────────────────────────────────────
 # Bind to localhost so Expo Web (localhost:8081) and wrangler share the same

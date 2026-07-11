@@ -19,6 +19,14 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
+const mockRoom: React.ComponentProps<typeof RoomScreen>['room'] = {
+  roomCode: '1234',
+  roomId: 'room-id-1234',
+  gameType: 'werewolf',
+  hostUserId: 'host-uid',
+  createdAt: new Date(0),
+};
+
 const mockSubmitAction = jest.fn();
 
 let mockedCanSkip = true;
@@ -106,7 +114,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         markAllBotsGroupConfirmed: jest.fn(),
         setControlledSeat: jest.fn(),
 
-        joinRoom: jest.fn().mockResolvedValue({ success: true }),
+        enterRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
         assignRoles: jest.fn(),
@@ -176,12 +184,11 @@ describe('RoomScreen skip action UI', () => {
       throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
     }
 
-    const route = {
-      params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
     const nav = mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation'];
 
-    const { queryByText } = render(<RoomScreen navigation={nav} route={route} />);
+    const { queryByText } = render(
+      <RoomScreen navigation={nav} room={mockRoom} entryReason={null} />,
+    );
 
     // chooseSeat + canSkip=false => no bottom skip button
     await waitFor(() => {
@@ -196,12 +203,11 @@ describe('RoomScreen skip action UI', () => {
     if (!skipText) {
       throw new Error(`[TEST] Missing ${mockedSchemaId}.ui.bottomActionText`);
     }
-    const route = {
-      params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
     const nav = mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation'];
 
-    const { findByText } = render(<RoomScreen navigation={nav} route={route} />);
+    const { findByText } = render(
+      <RoomScreen navigation={nav} room={mockRoom} entryReason={null} />,
+    );
 
     const skipButton = await findByText(skipText);
     fireEvent.press(skipButton);

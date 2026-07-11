@@ -19,5 +19,5 @@ export const REASON_CONTROLLED_SEAT_NOT_ALLOWED = 'controlled_seat_not_allowed' 
 export const REASON_CONTROLLED_SEAT_NOT_BOT = 'controlled_seat_not_bot' as const;
 export const REASON_COMMAND_ID_CONFLICT = 'command_id_conflict' as const;
 export const REASON_ROOM_INITIALIZATION_CONFLICT = 'room_initialization_conflict' as const;
-export const REASON_ROOM_CODE_CONFLICT = 'room_code_conflict' as const;
 export const REASON_ROOM_EFFECTS_PENDING = 'room_effects_pending' as const;
+export const REASON_ROOM_INSTANCE_MISMATCH = 'room_instance_mismatch' as const;

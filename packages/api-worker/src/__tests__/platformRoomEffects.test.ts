@@ -9,23 +9,26 @@ import {
 } from '../platform/room/platformEffects';
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
-const ROOM_CODE = 'PLATFORM-EFFECT';
+const ROOM_CODE = '4444';
+let roomId: string;
 
 beforeAll(async () => {
   await bootstrapTestSchema(env.DB);
 });
 
 beforeEach(async () => {
+  roomId = env.GAME_ROOM.newUniqueId().toString();
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM room_participants').run();
   await env.DB.prepare('DELETE FROM rooms').run();
   await env.DB.prepare(
     `INSERT INTO rooms (
-      id, code, host_user_id, created_at, updated_at, games_started
-    ) VALUES ('room-id', ?, 'host-1', '2026-01-01T00:00:00.000Z',
-      '2026-01-01T00:00:00.000Z', 0)`,
+      id, code, game_type, host_user_id, creation_id, config_json, status,
+      created_at, updated_at, games_started
+    ) VALUES (?, ?, 'werewolf', 'host-1', 'platform-effect-creation', '{}',
+      'active', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 0)`,
   )
-    .bind(ROOM_CODE)
+    .bind(roomId, ROOM_CODE)
     .run();
 });
 
@@ -84,18 +87,24 @@ describe('platform room effects', () => {
   });
 
   it('records one game start per room revision under at-least-once delivery', async () => {
+    const identity = {
+      roomCode: ROOM_CODE,
+      roomId,
+      creationId: 'platform-effect-creation',
+    };
     const firstEffect = {
       type: 'platform.room.gameStarted' as const,
       roomCode: ROOM_CODE,
       startedRevision: 9,
       startedAtMs: Date.parse('2026-02-01T00:00:00.000Z'),
     };
-    await handlePlatformRoomEffect('effect-1', firstEffect, env);
-    await handlePlatformRoomEffect('effect-1', firstEffect, env);
-    await handlePlatformRoomEffect('effect-alias', firstEffect, env);
+    await handlePlatformRoomEffect('effect-1', firstEffect, identity, env);
+    await handlePlatformRoomEffect('effect-1', firstEffect, identity, env);
+    await handlePlatformRoomEffect('effect-alias', firstEffect, identity, env);
     await handlePlatformRoomEffect(
       'effect-2',
       { ...firstEffect, startedRevision: 15, startedAtMs: firstEffect.startedAtMs + 1_000 },
+      identity,
       env,
     );
 
@@ -110,9 +119,9 @@ describe('platform room effects', () => {
     });
     const starts = await env.DB.prepare(
       `SELECT effect_id, started_revision
-      FROM room_game_starts WHERE room_code = ? ORDER BY started_revision`,
+      FROM room_game_starts WHERE room_id = ? ORDER BY started_revision`,
     )
-      .bind(ROOM_CODE)
+      .bind(roomId)
       .all();
     expect(starts.results).toEqual([
       { effect_id: 'effect-1', started_revision: 9 },

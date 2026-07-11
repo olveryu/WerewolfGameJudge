@@ -27,6 +27,18 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
+const roomScreenProps: React.ComponentProps<typeof RoomScreen> = {
+  navigation: mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation'],
+  room: {
+    roomCode: '1234',
+    roomId: 'room-id-1234',
+    gameType: 'werewolf',
+    hostUserId: 'host-uid',
+    createdAt: new Date(0),
+  },
+  entryReason: null,
+};
+
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
 const mockSubmitAction = jest.fn<void, [WerewolfActionInput]>();
 const mockRequestSnapshot = jest.fn();
@@ -103,7 +115,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     setControlledSeat: jest.fn(),
 
     // Actions used by RoomScreen
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue({ success: true }),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
@@ -244,18 +256,7 @@ describe('RoomScreen wolf vote UI', () => {
   });
 
   it('tap seat tile -> triggers intent and shows wolf vote dialog (E2E)', async () => {
-    const props = {
-      navigation: mockNavigation as unknown as React.ComponentProps<
-        typeof RoomScreen
-      >['navigation'],
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '噩梦之影守卫',
-        },
-      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
-    };
+    const props = roomScreenProps;
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
@@ -320,18 +321,7 @@ describe('RoomScreen wolf vote UI', () => {
       });
     };
 
-    const props = {
-      navigation: mockNavigation as unknown as React.ComponentProps<
-        typeof RoomScreen
-      >['navigation'],
-      route: {
-        params: {
-          roomCode: '1234',
-          isHost: false,
-          template: '噩梦之影守卫',
-        },
-      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
-    };
+    const props = roomScreenProps;
 
     const rendered = render(<RoomScreen {...props} />);
     const { findByTestId, findByText } = rendered;
@@ -393,14 +383,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   it('tap seat → wolfVote dialog → press 确定 → submitAction called with correct target', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props = {
-      navigation: mockNavigation as unknown as React.ComponentProps<
-        typeof RoomScreen
-      >['navigation'],
-      route: {
-        params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
-    };
+    const props = roomScreenProps;
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
@@ -428,14 +411,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   it('tap seat → wolfVote dialog → press 取消 → submitAction NOT called', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props = {
-      navigation: mockNavigation as unknown as React.ComponentProps<
-        typeof RoomScreen
-      >['navigation'],
-      route: {
-        params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
-    };
+    const props = roomScreenProps;
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 
@@ -460,14 +436,7 @@ describe('RoomScreen wolf vote chain interaction (harness)', () => {
   it('harness getLastEvent returns the wolfVote dialog with correct metadata', async () => {
     mockUseGameRoomImpl = () => makeBaseUseGameRoomReturn();
 
-    const props = {
-      navigation: mockNavigation as unknown as React.ComponentProps<
-        typeof RoomScreen
-      >['navigation'],
-      route: {
-        params: { roomCode: '1234', isHost: false, template: '噩梦之影守卫' },
-      } as unknown as React.ComponentProps<typeof RoomScreen>['route'],
-    };
+    const props = roomScreenProps;
 
     const { findByTestId, findByText } = render(<RoomScreen {...props} />);
 

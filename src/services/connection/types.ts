@@ -35,7 +35,7 @@ export enum ConnectionState {
 
 /** FSM event types (input) — trigger state transitions. */
 export type ConnectionEvent =
-  | { type: 'CONNECT'; roomCode: string; userId: string }
+  | { type: 'CONNECT'; roomCode: string; roomId: string; userId: string }
   | { type: 'WS_OPEN' }
   | { type: 'WS_CLOSE'; code?: number; reason?: string }
   | { type: 'WS_ERROR'; error?: unknown }
@@ -59,9 +59,9 @@ export type ConnectionEvent =
 
 /** FSM side effect types (output) — executed by ConnectionManager. */
 export type SideEffect =
-  | { type: 'OPEN_WS'; roomCode: string; userId: string }
+  | { type: 'OPEN_WS'; roomCode: string; roomId: string; userId: string }
   | { type: 'CLOSE_WS' }
-  | { type: 'FETCH_STATE'; roomCode: string }
+  | { type: 'FETCH_STATE'; roomCode: string; roomId: string }
   | { type: 'SCHEDULE_RETRY'; delayMs: number }
   | { type: 'CANCEL_RETRY' }
   | { type: 'START_PING' }
@@ -83,6 +83,7 @@ export type SideEffect =
 export interface FSMContext {
   readonly state: ConnectionState;
   readonly roomCode: string | null;
+  readonly roomId: string | null;
   readonly userId: string | null;
   /** Current reconnect attempt count (0-based). Resets to 0 when WS connection succeeds and enters Connected. */
   readonly attempt: number;

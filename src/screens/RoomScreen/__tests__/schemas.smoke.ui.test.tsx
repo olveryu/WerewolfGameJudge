@@ -4,7 +4,7 @@ import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/s
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
@@ -182,7 +182,7 @@ describe('RoomScreen schema smoke (one-per-schema)', () => {
         );
 
       const { queryByText } = render(
-        <RoomScreen navigation={mockNavigation} route={mockRoomRoute} />,
+        <RoomScreen navigation={mockNavigation} room={mockRoom} entryReason={null} />,
       );
 
       if (schemaId === 'wolfKill') {

@@ -118,7 +118,7 @@ describe('dispatchRoomCommand', () => {
       codec: WEREWOLF_STATE_CODEC,
       store: { applySnapshot },
     });
-    session.enterRoom('ABCD', 'user-1');
+    session.enterRoom({ roomCode: 'ABCD', roomId: 'room-id-abcd' }, 'user-1');
   });
 
   afterEach(() => {

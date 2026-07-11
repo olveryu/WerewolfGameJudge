@@ -47,7 +47,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
       navigation.goBack();
     } else {
       // Stale Tab reload: stack lost, navigate back to Room with roomCode from URL
-      navigation.navigate('Room', { roomCode: route.params.roomCode, isHost: false });
+      navigation.navigate('Room', { roomCode: route.params.roomCode });
     }
   }, [navigation, route.params.roomCode]);
 

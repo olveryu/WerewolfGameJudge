@@ -8,8 +8,7 @@
  * No business logic or database queries.
  */
 
-/** Max room code length to prevent abuse in OG output. */
-const MAX_ROOM_CODE_LENGTH = 10;
+import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 
 interface Env {
   ASSETS: Fetcher;
@@ -17,8 +16,8 @@ interface Env {
 
 /** OG property → replacement content value mapping. */
 const OG_REPLACEMENTS: Record<string, (roomCode: string, ogUrl: string) => string> = {
-  'og:title': (roomCode) => `狼人杀房间 ${roomCode} · 加入游戏`,
-  'og:description': () => '点击链接加入狼人杀房间',
+  'og:title': (roomCode) => `游戏房间 ${roomCode} · 加入游戏`,
+  'og:description': () => '点击链接加入游戏房间',
   'og:url': (_roomNumber, ogUrl) => ogUrl,
 };
 
@@ -45,7 +44,7 @@ class TitleRewriter implements HTMLRewriterElementContentHandlers {
 
   text(text: Text): void {
     if (!this.replaced) {
-      text.replace(`狼人杀房间 ${this.roomCode}`);
+      text.replace(`游戏房间 ${this.roomCode}`);
       this.replaced = true;
     } else {
       text.remove();
@@ -56,11 +55,8 @@ class TitleRewriter implements HTMLRewriterElementContentHandlers {
 export const onRequest: PagesFunction<Env> = async (context) => {
   const { request, params, env } = context;
 
-  // Validate & sanitize room code
-  const raw = String(params.roomCode ?? '').slice(0, MAX_ROOM_CODE_LENGTH);
-  // Only allow alphanumeric room codes
-  const roomCode = raw.replace(/[^a-zA-Z0-9]/g, '');
-  if (!roomCode) {
+  const roomCode = String(params.roomCode ?? '');
+  if (!isRoomCode(roomCode)) {
     return context.next();
   }
 

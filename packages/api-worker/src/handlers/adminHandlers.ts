@@ -163,6 +163,11 @@ adminRoutes.get('/rooms', async (c) => {
     .select({
       id: rooms.id,
       code: rooms.code,
+      gameType: rooms.gameType,
+      status: rooms.status,
+      reconciliationAttemptCount: rooms.reconciliationAttemptCount,
+      reconcileAfter: rooms.reconcileAfter,
+      lastError: rooms.lastError,
       hostUserId: rooms.hostUserId,
       createdAt: rooms.createdAt,
       hostName: users.displayName,
@@ -173,7 +178,7 @@ adminRoutes.get('/rooms', async (c) => {
     })
     .from(rooms)
     .leftJoin(users, eq(rooms.hostUserId, users.id))
-    .leftJoin(roomParticipants, eq(rooms.code, roomParticipants.roomCode))
+    .leftJoin(roomParticipants, eq(rooms.id, roomParticipants.roomId))
     .groupBy(rooms.id)
     .orderBy(desc(rooms.createdAt))
     .limit(limit)
@@ -183,6 +188,11 @@ adminRoutes.get('/rooms', async (c) => {
     rooms: rows.map((r) => ({
       id: r.id,
       code: r.code,
+      gameType: r.gameType,
+      status: r.status,
+      reconciliationAttemptCount: r.reconciliationAttemptCount,
+      reconcileAfter: r.reconcileAfter,
+      lastError: r.lastError,
       hostUserId: r.hostUserId,
       hostName: r.hostName,
       hostCountry: r.hostCountry,
@@ -216,9 +226,10 @@ adminRoutes.get('/rooms/:roomCode/players', async (c) => {
       gamesPlayed: userStats.gamesPlayed,
     })
     .from(roomParticipants)
+    .innerJoin(rooms, eq(roomParticipants.roomId, rooms.id))
     .innerJoin(users, eq(roomParticipants.userId, users.id))
     .leftJoin(userStats, eq(roomParticipants.userId, userStats.userId))
-    .where(eq(roomParticipants.roomCode, roomCode))
+    .where(eq(rooms.code, roomCode))
     .orderBy(roomParticipants.joinedAt);
 
   return c.json({

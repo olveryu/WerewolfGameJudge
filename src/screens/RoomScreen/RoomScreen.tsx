@@ -9,7 +9,6 @@
  * services / policy / helpers.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type NativeStackScreenProps } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
@@ -26,8 +25,8 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
+import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout, spacing } from '@/theme';
@@ -63,12 +62,11 @@ import { createRoomScreenStyles } from './RoomScreen.styles';
 import { shareQRCodeImage } from './shareQRCode';
 import { buildRoomUrl, shareOrCopyRoomLink } from './shareRoom';
 
-type Props = NativeStackScreenProps<RootStackParamList, 'Room'>;
-
 // ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 
-export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
+export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, navigation }) => {
+  const roomCode = room.roomCode;
   const { user } = useAuthContext();
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
@@ -80,8 +78,8 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
-    navigation.navigate('Notepad', { roomCode: route.params.roomCode });
-  }, [navigation, route.params.roomCode]);
+    navigation.navigate('Notepad', { roomCode });
+  }, [navigation, roomCode]);
 
   // ─── Strategy Modal ───────────────────────────────────────────────────
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);
@@ -104,7 +102,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
   }, []);
 
   const handleCopyLink = useCallback(() => {
-    void shareOrCopyRoomLink(route.params.roomCode)
+    void shareOrCopyRoomLink(roomCode)
       .then((result) => {
         if (result === 'copied') {
           toast.success('房间链接已复制');
@@ -121,11 +119,11 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           alertMessage: '无法复制链接，请手动分享房间号',
         });
       });
-  }, [route.params.roomCode]);
+  }, [roomCode]);
 
   const handleShareQRImage = useCallback(
     (getBase64: () => Promise<string>) => {
-      void shareQRCodeImage(getBase64, route.params.roomCode).catch((e) => {
+      void shareQRCodeImage(getBase64, roomCode).catch((e) => {
         handleError(e, {
           label: '分享二维码',
           logger: roomScreenLog,
@@ -133,25 +131,23 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
         });
       });
     },
-    [route.params.roomCode],
+    [roomCode],
   );
 
   const handleAvatarPress = useCallback(() => {
-    navigation.navigate('Settings', { roomCode: route.params.roomCode });
-  }, [navigation, route.params.roomCode]);
+    navigation.navigate('Settings', { roomCode });
+  }, [navigation, roomCode]);
 
   const handleEncyclopedia = useCallback(() => {
-    navigation.navigate('Encyclopedia', { roomCode: route.params.roomCode });
-  }, [navigation, route.params.roomCode]);
+    navigation.navigate('Encyclopedia', { roomCode });
+  }, [navigation, roomCode]);
 
   const handleMusicSettings = useCallback(() => {
-    navigation.navigate('MusicSettings', { roomCode: route.params.roomCode });
-  }, [navigation, route.params.roomCode]);
+    navigation.navigate('MusicSettings', { roomCode });
+  }, [navigation, roomCode]);
 
   const {
     // Route params
-    roomCode,
-    template,
     // Game state
     gameState,
     isHost,
@@ -259,7 +255,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useRoomScreenState(route.params, navigation);
+  } = useRoomScreenState(room, navigation);
 
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -372,11 +368,17 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
-    if (isInitialized && gameState && isHost && template && !hasAutoShownQR.current) {
+    if (
+      isInitialized &&
+      gameState &&
+      isHost &&
+      entryReason === 'created' &&
+      !hasAutoShownQR.current
+    ) {
       hasAutoShownQR.current = true;
       setQrModalVisible(true);
     }
-  }, [isInitialized, gameState, isHost, template]);
+  }, [isInitialized, gameState, isHost, entryReason]);
 
   // ─── Loading / Error early returns ─────────────────────────────────────
   if (!isInitialized || !gameState) {
@@ -679,7 +681,7 @@ export const RoomScreen: React.FC<Props> = ({ route, navigation }) => {
           roleId={effectiveRole}
           resolvedAnimation={resolvedRoleRevealAnimation}
           shouldPlayAnimation={shouldPlayRevealAnimation}
-          allRoleIds={gameState?.template?.roles ?? template?.roles ?? []}
+          allRoleIds={gameState?.template.roles ?? []}
           remainingCards={
             gameState
               ? Array.from(gameState.players.values()).filter((p) => p && !p.hasViewedRole).length +

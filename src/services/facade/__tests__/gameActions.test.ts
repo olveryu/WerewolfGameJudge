@@ -55,6 +55,7 @@ const prepareMock = jest.fn<PreparedRoomCommand<AudioAckCommand>, [PrepareAudioA
 
 const PREPARED_AUDIO_ACK: PreparedRoomCommand<AudioAckCommand> = Object.freeze({
   roomCode: 'ABCD',
+  roomId: 'room-id-abcd',
   commandId: 'audio-ack-command',
   command: Object.freeze({ type: 'werewolf.audio.ack' }),
   controlledSeat: null,

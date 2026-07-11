@@ -18,6 +18,7 @@ import type { ReactTestInstance } from 'react-test-renderer';
 
 import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { RoomRecord } from '@/services/types/IRoomService';
 import { TESTIDS } from '@/testids';
 import type { LocalPlayer } from '@/types/GameStateTypes';
 
@@ -48,9 +49,13 @@ export const mockNavigation = {
   setOptions: jest.fn(),
 } as unknown as RoomScreenProps['navigation'];
 
-export const mockRoomRoute = {
-  params: { roomCode: '1234', isHost: false },
-} as unknown as RoomScreenProps['route'];
+export const mockRoom: RoomRecord = {
+  roomCode: '1234',
+  roomId: 'room-id-1234',
+  gameType: 'werewolf',
+  hostUserId: 'host-uid',
+  createdAt: new Date(0),
+};
 
 // =============================================================================
 // Game State Factory
@@ -218,8 +223,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     setControlledSeat: jest.fn(),
 
     // Actions
-    initializeRoom: jest.fn().mockResolvedValue({ success: true }),
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue({ success: true }),
     leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
@@ -998,9 +1002,8 @@ export async function coverageChainNightmareBlocked(
     mockSetter(newMock);
     result.rerender(
       React.createElement(RoomScreen, {
-        route: { params: { roomCode: '1234', isHost: false } } as React.ComponentProps<
-          typeof RoomScreen
-        >['route'],
+        room: mockRoom,
+        entryReason: null,
         navigation: mockNavigation,
       }),
     );

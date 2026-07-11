@@ -22,6 +22,7 @@ const EXPECTED_HTTP_STATUS_CODES = [400, 401, 403, 404, 422, 429];
 
 export interface PreparedRoomCommand<TCommand extends object> extends Record<string, unknown> {
   readonly roomCode: string;
+  readonly roomId: string;
   readonly commandId: string;
   readonly command: Readonly<TCommand>;
   readonly controlledSeat: number | null;
@@ -29,6 +30,7 @@ export interface PreparedRoomCommand<TCommand extends object> extends Record<str
 
 interface PrepareRoomCommandOptions<TCommand extends object> {
   readonly roomCode: string;
+  readonly roomId: string;
   readonly command: TCommand;
   readonly controlledSeat: number | null;
 }
@@ -88,12 +90,14 @@ export function isRoomCommandDeliveryUnknown(result: ActionResult): boolean {
 /** Prepare and deeply freeze one command envelope. */
 export function prepareRoomCommand<TCommand extends object>({
   roomCode,
+  roomId,
   command,
   controlledSeat,
 }: PrepareRoomCommandOptions<TCommand>): PreparedRoomCommand<TCommand> {
   freezeCommand(command, new Set());
   return Object.freeze({
     roomCode,
+    roomId,
     commandId: newRequestId(),
     command,
     controlledSeat,

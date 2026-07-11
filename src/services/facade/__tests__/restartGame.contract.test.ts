@@ -105,7 +105,15 @@ describe('restartGame Contract (HTTP API)', () => {
       } as unknown as IRoomService,
     });
 
-    await facade.createRoom('1234', 'host-uid');
+    await facade.enterRoom(
+      {
+        roomCode: '1234',
+        roomId: 'room-id-1234',
+        gameType: 'werewolf',
+        hostUserId: 'host-uid',
+      },
+      'host-uid',
+    );
   });
 
   afterEach(() => {

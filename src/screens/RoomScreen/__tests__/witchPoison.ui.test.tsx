@@ -17,6 +17,14 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
+const mockRoom: React.ComponentProps<typeof RoomScreen>['room'] = {
+  roomCode: '1234',
+  roomId: 'room-id-1234',
+  gameType: 'werewolf',
+  hostUserId: 'host-uid',
+  createdAt: new Date(0),
+};
+
 // Schema-driven flow: when currentSchema is the step schema (witchPoison), seat tap triggers a confirm
 // and confirmation submits a canonical Witch action input.
 const mockSubmitAction = jest.fn();
@@ -91,7 +99,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         markAllBotsGroupConfirmed: jest.fn(),
         setControlledSeat: jest.fn(),
 
-        joinRoom: jest.fn().mockResolvedValue({ success: true }),
+        enterRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
         assignRoles: jest.fn(),
@@ -185,16 +193,13 @@ describe('RoomScreen witch poison UI (smoke)', () => {
   });
 
   it('tap seat -> poison confirm -> submits canonical witch input', async () => {
-    const route = {
-      params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
-    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
-
     const { findByTestId } = render(
       <RoomScreen
         navigation={
           mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
         }
-        route={route}
+        room={mockRoom}
+        entryReason={null}
       />,
     );
 
@@ -225,16 +230,13 @@ describe('RoomScreen witch poison UI (smoke)', () => {
   // Regression guard: seat-tap poison must NOT be driven by any save-related context.
   // (phase field removed; seat taps always mean poison under new UX.)
   it('canSave=true still tap seat -> poison confirm -> submits poisonTarget', async () => {
-    const route = {
-      params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
-    } as unknown as React.ComponentProps<typeof RoomScreen>['route'];
-
     const { findByTestId } = render(
       <RoomScreen
         navigation={
           mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
         }
-        route={route}
+        room={mockRoom}
+        entryReason={null}
       />,
     );
     const seatPressable = await findByTestId(TESTIDS.seatTilePressable(2));

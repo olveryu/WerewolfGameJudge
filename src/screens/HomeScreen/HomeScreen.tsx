@@ -16,6 +16,7 @@ import {
   getRoleSpec,
   isWolfRole,
 } from '@werewolf/game-engine/models/roles';
+import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
@@ -178,8 +179,8 @@ export const HomeScreen: React.FC = () => {
   );
 
   const handleJoinRoom = useCallback(async () => {
-    if (roomCode.length !== 4) {
-      setJoinError('请输入4位房间号');
+    if (!isRoomCode(roomCode)) {
+      setJoinError('请输入4位数字房间号');
       return;
     }
 
@@ -189,7 +190,7 @@ export const HomeScreen: React.FC = () => {
 
     try {
       setShowJoinModal(false);
-      navigation.navigate('Room', { roomCode: roomCode, isHost: false });
+      navigation.navigate('Room', { roomCode });
       setRoomCode('');
     } catch {
       homeLog.warn('Join failed');
@@ -213,7 +214,7 @@ export const HomeScreen: React.FC = () => {
   const handleJoinFromRecent = useCallback(
     (code: string) => {
       homeLog.info('Join from recent rooms', { roomCode: code });
-      navigation.navigate('Room', { roomCode: code, isHost: false });
+      navigation.navigate('Room', { roomCode: code });
     },
     [navigation],
   );

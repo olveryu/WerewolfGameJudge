@@ -16,6 +16,7 @@ import { GameStore } from '@werewolf/game-engine/engine/store';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
 import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
 
@@ -24,7 +25,7 @@ import { ConnectionState } from '@/services/connection/types';
 import { GameFacade } from '@/services/facade/GameFacade';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
-import type { IRoomService } from '@/services/types/IRoomService';
+import type { IRoomService, RoomIdentity } from '@/services/types/IRoomService';
 
 jest.mock('@werewolf/game-engine', () => ({
   ...jest.requireActual<typeof import('@werewolf/game-engine')>('@werewolf/game-engine'),
@@ -113,6 +114,10 @@ function createCommandRejection(reason: string) {
   });
 }
 
+function roomIdentity(roomCode: string, hostUserId = 'host-uid'): RoomIdentity {
+  return { roomCode, roomId: `room-id-${roomCode}`, gameType: 'werewolf', hostUserId };
+}
+
 function getFirstRequestBody(): string {
   const firstCall = jest.mocked(global.fetch).mock.calls[0];
   if (firstCall === undefined || typeof firstCall[1]?.body !== 'string') {
@@ -129,18 +134,18 @@ function getFirstRequestBody(): string {
 const createMockConnectionManager = (
   store?: GameStore,
   roomService?: {
-    getGameState: jest.Mock<Promise<RoomSnapshot<GameState> | null>, [string]>;
+    getGameState: jest.Mock<Promise<RoomSnapshot<GameState> | null>, [RoomLocator]>;
   },
 ) => ({
   connectAndWait: jest
-    .fn<Promise<void>, [string, string]>()
-    .mockImplementation(async (roomCode: string) => {
+    .fn<Promise<void>, [RoomLocator, string]>()
+    .mockImplementation(async (room: RoomLocator) => {
       if (store && roomService) {
-        const dbState = await roomService.getGameState(roomCode);
+        const dbState = await roomService.getGameState(room);
         if (dbState) store.applySnapshot(dbState.state, dbState.revision);
       }
     }),
-  connect: jest.fn<void, [string, string]>(),
+  connect: jest.fn<void, [RoomLocator, string]>(),
   dispose: jest.fn<void, []>(),
   manualReconnect: jest.fn<void, []>(),
   acknowledgeUserEvent: jest.fn<boolean, [string]>().mockReturnValue(true),
@@ -154,8 +159,8 @@ describe('GameFacade', () => {
   let facade: GameFacade;
   let testStore: GameStore;
   let mockConnectionManager: {
-    connectAndWait: jest.Mock<Promise<void>, [string, string]>;
-    connect: jest.Mock<void, [string, string]>;
+    connectAndWait: jest.Mock<Promise<void>, [RoomLocator, string]>;
+    connect: jest.Mock<void, [RoomLocator, string]>;
     disconnect: jest.Mock<void, []>;
     dispose: jest.Mock<void, []>;
     manualReconnect: jest.Mock<void, []>;
@@ -175,8 +180,15 @@ describe('GameFacade', () => {
   beforeEach(() => {
     // Setup mock ConnectionManager
     mockConnectionManager = {
-      connectAndWait: jest.fn<Promise<void>, [string, string]>().mockResolvedValue(undefined),
-      connect: jest.fn<void, [string, string]>(),
+      connectAndWait: jest
+        .fn<Promise<void>, [RoomLocator, string]>()
+        .mockImplementation(async (room: RoomLocator) => {
+          testStore.applySnapshot(
+            buildTestState({ roomCode: room.roomCode, hostUserId: 'host-uid' }),
+            1,
+          );
+        }),
+      connect: jest.fn<void, [RoomLocator, string]>(),
       disconnect: jest.fn<void, []>(),
       dispose: jest.fn<void, []>(),
       manualReconnect: jest.fn<void, []>(),
@@ -203,7 +215,7 @@ describe('GameFacade', () => {
     mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {
       testStore.applySnapshot(buildInitialGameState(roomCode, hostUserId, mockTemplate), 1);
     });
-    await facade.createRoom(roomCode, hostUserId);
+    await facade.enterRoom(roomIdentity(roomCode, hostUserId), hostUserId);
   }
 
   // ===========================================================================
@@ -304,14 +316,17 @@ describe('GameFacade', () => {
     it('should connect via ConnectionManager with correct params', async () => {
       await connectCreatedRoom('ABCD', 'host-uid');
 
-      expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith('ABCD', 'host-uid');
+      expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith(
+        { roomCode: 'ABCD', roomId: 'room-id-ABCD' },
+        'host-uid',
+      );
     });
 
     it('fails fast when connection completes without a server snapshot', async () => {
       mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {});
 
-      await expect(facade.createRoom('ABCD', 'host-uid')).rejects.toThrow(
-        '[FAIL-FAST] Created room connection completed without a server snapshot',
+      await expect(facade.enterRoom(roomIdentity('ABCD'), 'host-uid')).rejects.toThrow(
+        '[FAIL-FAST] Active room connection completed without a server snapshot',
       );
     });
 
@@ -320,8 +335,8 @@ describe('GameFacade', () => {
         testStore.applySnapshot(buildInitialGameState('OTHER', 'host-uid', mockTemplate), 1);
       });
 
-      await expect(facade.createRoom('ABCD', 'host-uid')).rejects.toThrow(
-        '[FAIL-FAST] Created room snapshot identity does not match the room',
+      await expect(facade.enterRoom(roomIdentity('ABCD'), 'host-uid')).rejects.toThrow(
+        '[FAIL-FAST] Room directory metadata does not match its snapshot',
       );
     });
   });
@@ -410,12 +425,15 @@ describe('GameFacade', () => {
 
   describe('Player: joinRoom', () => {
     it('should join as player and connect via ConnectionManager', async () => {
-      await facade.joinRoom('ABCD', 'player-uid', false);
+      await facade.enterRoom(roomIdentity('ABCD'), 'player-uid');
 
       expect(facade.isHostPlayer()).toBe(false);
       expect(facade.getMyUserId()).toBe('player-uid');
 
-      expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith('ABCD', 'player-uid');
+      expect(mockConnectionManager.connectAndWait).toHaveBeenCalledWith(
+        { roomCode: 'ABCD', roomId: 'room-id-ABCD' },
+        'player-uid',
+      );
     });
   });
 
@@ -423,7 +441,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinRoom('ABCD', 'player-uid', false);
+      await facade.enterRoom(roomIdentity('ABCD'), 'player-uid');
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
@@ -507,7 +525,7 @@ describe('GameFacade', () => {
 
   describe('Player: receive STATE_UPDATE', () => {
     beforeEach(async () => {
-      await facade.joinRoom('ABCD', 'player-uid', false);
+      await facade.enterRoom(roomIdentity('ABCD'), 'player-uid');
     });
 
     it('should apply snapshot when receiving state via postgres_changes', () => {
@@ -535,7 +553,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinRoom('ABCD', 'player-uid', false);
+      await facade.enterRoom(roomIdentity('ABCD'), 'player-uid');
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
@@ -601,7 +619,7 @@ describe('GameFacade', () => {
     const originalFetch = global.fetch;
 
     beforeEach(async () => {
-      await facade.joinRoom('ABCD', 'player-uid', false);
+      await facade.enterRoom(roomIdentity('ABCD'), 'player-uid');
 
       // Player must receive state to populate roomCode in store
       testStore.applySnapshot(
@@ -867,7 +885,7 @@ describe('GameFacade', () => {
         audioService: mockAudioServiceInstance as unknown as AudioService,
         roomService: playerRoomService as unknown as IRoomService,
       });
-      await playerFacade.joinRoom('ABCD', 'player-uid', false);
+      await playerFacade.enterRoom(roomIdentity('ABCD'), 'player-uid');
 
       global.fetch = jest.fn().mockResolvedValue({
         ok: true,
@@ -1193,9 +1211,7 @@ describe('GameFacade', () => {
         roomService: rejoinRoomService as unknown as IRoomService,
       });
 
-      const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
-
-      expect(result.success).toBe(true);
+      await facadeWithDb.enterRoom(roomIdentity('REJN'), 'host-uid');
       expect(facadeWithDb.wasAudioInterrupted).toBe(true);
       expect(facadeWithDb.isHostPlayer()).toBe(true);
       expect(facadeWithDb.getState()?.status).toBe(GameStatus.Ongoing);
@@ -1217,16 +1233,15 @@ describe('GameFacade', () => {
         roomService: rejoinRoomService2 as unknown as IRoomService,
       });
 
-      const result = await facadeWithDb.joinRoom('REJN', 'host-uid', true);
-
-      expect(result.success).toBe(true);
+      await facadeWithDb.enterRoom(roomIdentity('REJN'), 'host-uid');
       expect(facadeWithDb.wasAudioInterrupted).toBe(false);
     });
 
-    it('should return no_db_state when no DB state and no template', async () => {
-      const result = await facade.joinRoom('REJN', 'host-uid', true);
-
-      expect(result).toEqual({ success: false, reason: 'no_db_state' });
+    it('fails fast when an active directory room has no DO state', async () => {
+      mockConnectionManager.connectAndWait.mockImplementationOnce(async () => {});
+      await expect(facade.enterRoom(roomIdentity('REJN'), 'host-uid')).rejects.toThrow(
+        '[FAIL-FAST] Active room connection completed without a server snapshot',
+      );
       expect(facade.isHostPlayer()).toBe(false);
     });
   });
@@ -1289,7 +1304,7 @@ describe('GameFacade', () => {
         roomService: rejoinRoomService as unknown as IRoomService,
       });
 
-      await f.joinRoom('REJN', 'host-uid', true);
+      await f.enterRoom(roomIdentity('REJN'), 'host-uid');
       mockAudioServiceInstance.playRoleBeginningAudio.mockClear();
       (global.fetch as jest.Mock).mockClear();
       // Re-set the mock after clearing
@@ -1397,11 +1412,14 @@ describe('GameFacade', () => {
       retryStore = new GameStore();
       retryConnectionManager = {
         connectAndWait: jest
-          .fn<Promise<void>, [string, string]>()
-          .mockImplementation(async (roomCode, hostUserId) => {
-            retryStore.applySnapshot(buildInitialGameState(roomCode, hostUserId, mockTemplate), 1);
+          .fn<Promise<void>, [RoomLocator, string]>()
+          .mockImplementation(async (room, hostUserId) => {
+            retryStore.applySnapshot(
+              buildInitialGameState(room.roomCode, hostUserId, mockTemplate),
+              1,
+            );
           }),
-        connect: jest.fn<void, [string, string]>(),
+        connect: jest.fn<void, [RoomLocator, string]>(),
         disconnect: jest.fn<void, []>(),
         dispose: jest.fn<void, []>(),
         manualReconnect: jest.fn<void, []>(),
@@ -1440,7 +1458,7 @@ describe('GameFacade', () => {
           ),
         } as unknown as IRoomService,
       });
-      await f.createRoom('RTRY', 'host-uid');
+      await f.enterRoom(roomIdentity('RTRY'), 'host-uid');
       return f;
     };
 

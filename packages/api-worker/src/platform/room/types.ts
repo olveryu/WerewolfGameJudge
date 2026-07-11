@@ -4,17 +4,20 @@ import type { CommandActor } from '@werewolf/game-engine/platform/engine';
 import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import { type REASON_NO_STATE } from '@werewolf/game-engine/platform/protocol/reasons';
+import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
   RoomSnapshot,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
-export interface InitializeRoomCommand {
-  readonly roomCode: string;
+export interface RoomInstanceIdentity extends RoomLocator {
+  readonly creationId: string;
+}
+
+export interface InitializeRoomCommand extends RoomInstanceIdentity {
   readonly gameType: GameType;
   readonly hostUserId: string;
   readonly config: unknown;
-  readonly creationId: string;
 }
 
 export type InitializeRoomResult =
@@ -33,8 +36,7 @@ export interface DispatchRoomCommand {
   readonly command: unknown;
 }
 
-export interface DispatchUserRoomCommand {
-  readonly roomCode: string;
+export interface DispatchUserRoomCommand extends RoomInstanceIdentity {
   readonly commandId: string;
   readonly actorUserId: string;
   readonly controlledSeat: number | null;
@@ -49,7 +51,19 @@ export type DispatchRoomResult =
       readonly isReplay: boolean;
     };
 
-export type DeleteRoomResult =
+export type ReadRoomCommand = RoomInstanceIdentity;
+
+export interface AuthorizeRoomDeletionCommand extends RoomInstanceIdentity {
+  readonly actorUserId: string;
+}
+
+export type AuthorizeRoomDeletionResult =
+  | { readonly success: true }
+  | { readonly success: false; readonly reason: string };
+
+export type DeleteRoomStorageCommand = RoomInstanceIdentity;
+
+export type DeleteRoomStorageResult =
   | { readonly success: true }
   | { readonly success: false; readonly reason: string };
 

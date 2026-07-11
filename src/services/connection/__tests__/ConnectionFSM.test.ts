@@ -11,6 +11,7 @@ function ctx(state: ConnectionState, overrides?: Partial<FSMContext>): FSMContex
     ...createInitialContext(),
     state,
     roomCode: 'ROOM1',
+    roomId: 'room-id-1',
     userId: 'user1',
     ...overrides,
   };
@@ -36,6 +37,7 @@ describe('createInitialContext', () => {
     const c = createInitialContext();
     expect(c.state).toBe(ConnectionState.Idle);
     expect(c.roomCode).toBeNull();
+    expect(c.roomId).toBeNull();
     expect(c.userId).toBeNull();
     expect(c.attempt).toBe(0);
     expect(c.maxAttempts).toBe(DEFAULT_MAX_ATTEMPTS);
@@ -55,10 +57,15 @@ describe('createInitialContext', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Idle state', () => {
-  const idle = ctx(ConnectionState.Idle, { roomCode: null, userId: null });
+  const idle = ctx(ConnectionState.Idle, { roomCode: null, roomId: null, userId: null });
 
   it('CONNECT → Connecting + OPEN_WS', () => {
-    const result = transition(idle, { type: 'CONNECT', roomCode: 'R1', userId: 'U1' });
+    const result = transition(idle, {
+      type: 'CONNECT',
+      roomCode: 'R1',
+      roomId: 'room-id-r1',
+      userId: 'U1',
+    });
     expect(result.ctx.state).toBe(ConnectionState.Connecting);
     expect(result.ctx.roomCode).toBe('R1');
     expect(result.ctx.userId).toBe('U1');
@@ -507,7 +514,7 @@ describe('Disposed state', () => {
   const disposed = ctx(ConnectionState.Disposed);
 
   it.each([
-    { type: 'CONNECT' as const, roomCode: 'R', userId: 'U' },
+    { type: 'CONNECT' as const, roomCode: 'R', roomId: 'room-id-r', userId: 'U' },
     { type: 'WS_OPEN' as const },
     { type: 'WS_CLOSE' as const },
     { type: 'MANUAL_RECONNECT' as const },
@@ -528,7 +535,12 @@ describe('transition sequences', () => {
     let c = createInitialContext();
 
     // CONNECT
-    const r1 = transition(c, { type: 'CONNECT', roomCode: 'ROOM', userId: 'USER' });
+    const r1 = transition(c, {
+      type: 'CONNECT',
+      roomCode: 'ROOM',
+      roomId: 'room-id',
+      userId: 'USER',
+    });
     expect(r1.ctx.state).toBe(ConnectionState.Connecting);
     c = r1.ctx;
 
@@ -647,7 +659,12 @@ describe('transition sequences', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('CONNECT from non-Idle states (global transition)', () => {
-  const connectEvent = { type: 'CONNECT' as const, roomCode: 'NEW', userId: 'U2' };
+  const connectEvent = {
+    type: 'CONNECT' as const,
+    roomCode: 'NEW',
+    roomId: 'room-id-new',
+    userId: 'U2',
+  };
 
   it.each([
     ConnectionState.Connecting,

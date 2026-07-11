@@ -60,24 +60,26 @@ async function insertRoom(
   lastStartedAt: string | null,
 ): Promise<void> {
   await env.DB.prepare(
-    `INSERT INTO rooms (id, code, host_user_id, created_at, updated_at, games_started, last_started_at)
-     VALUES (?, ?, ?, datetime('now'), datetime('now'), ?, ?)`,
+    `INSERT INTO rooms (
+      id, code, game_type, host_user_id, creation_id, config_json, status,
+      created_at, updated_at, games_started, last_started_at
+    ) VALUES (?, ?, 'werewolf', ?, ?, '{}', 'active', datetime('now'), datetime('now'), ?, ?)`,
   )
-    .bind(id, code, HOST_USER_ID, gamesStarted, lastStartedAt)
+    .bind(id, code, HOST_USER_ID, `creation-${id}`, gamesStarted, lastStartedAt)
     .run();
 }
 
 describe('GET /admin/rooms game-start visibility', () => {
   it('returns gamesStarted + lastStartedAt for a played room', async () => {
     const startedAt = '2026-06-30T08:15:00.000Z';
-    await insertRoom('room-played', 'PLAY1', 3, startedAt);
+    await insertRoom('room-played', '1111', 3, startedAt);
 
     const res = await getRooms(ADMIN_TOKEN);
     expect(res.status).toBe(200);
 
     const body = await res.json<AdminRoomsResponse>();
-    const room = body.rooms.find((r) => r.code === 'PLAY1');
-    if (!room) throw new Error('room PLAY1 missing from /admin/rooms response');
+    const room = body.rooms.find((r) => r.code === '1111');
+    if (!room) throw new Error('room 1111 missing from /admin/rooms response');
     expect(room.gamesStarted).toBe(3);
     expect(room.lastStartedAt).toBe(startedAt);
     expect(room.hostName).toBe('AdminHost');
@@ -85,20 +87,20 @@ describe('GET /admin/rooms game-start visibility', () => {
   });
 
   it('returns zero / null for a never-started room', async () => {
-    await insertRoom('room-fresh', 'FRESH1', 0, null);
+    await insertRoom('room-fresh', '2222', 0, null);
 
     const res = await getRooms(ADMIN_TOKEN);
     expect(res.status).toBe(200);
 
     const body = await res.json<AdminRoomsResponse>();
-    const room = body.rooms.find((r) => r.code === 'FRESH1');
-    if (!room) throw new Error('room FRESH1 missing from /admin/rooms response');
+    const room = body.rooms.find((r) => r.code === '2222');
+    if (!room) throw new Error('room 2222 missing from /admin/rooms response');
     expect(room.gamesStarted).toBe(0);
     expect(room.lastStartedAt).toBeNull();
   });
 
   it('rejects requests without the admin token', async () => {
-    await insertRoom('room-auth', 'AUTH1', 1, null);
+    await insertRoom('room-auth', '3333', 1, null);
 
     const res = await SELF.fetch('https://test.local/admin/rooms');
     expect(res.status).toBe(401);

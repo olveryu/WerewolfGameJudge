@@ -12,6 +12,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { SettleResultMessage } from './IRealtimeTransport';
+import type { RoomIdentity } from './IRoomService';
 
 /** Canonical Werewolf profile carried by a room.seat.take command. */
 export type SeatProfile = WerewolfSeatProfile;
@@ -88,20 +89,9 @@ export interface IGameFacade {
 
   // === Room Lifecycle ===
   /**
-   * Host: create new room
-   * Join the broadcast channel and require the authoritative server snapshot
+   * Enter an active resolved room. Host identity comes from room metadata.
    */
-  createRoom(roomCode: string, hostUserId: string): Promise<void>;
-
-  /**
-   * Join existing room (unified entry for Host rejoin + Player join)
-   *
-   * Host rejoin: isHost=true, recover state from DB, detect _wasAudioInterrupted
-   * Player join: isHost=false, read initial state from DB
-   *
-   * @returns success=false only when Host rejoin has no DB state
-   */
-  joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult>;
+  enterRoom(room: RoomIdentity, userId: string): Promise<void>;
 
   /**
    * Leave room

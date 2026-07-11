@@ -31,7 +31,7 @@ import {
   createShowAlertMock,
   getBoardByName,
   mockNavigation,
-  mockRoomRoute,
+  mockRoom,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -82,7 +82,8 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
-  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+  const renderRoom = () =>
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
   const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
     mockUseGameRoomReturn = m;
   };

@@ -38,8 +38,7 @@ describe('useGameRoom - seat reason transparency', () => {
     getMyUserId: jest.fn().mockReturnValue('player-uid'),
     getMySeat: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
-    createRoom: jest.fn().mockResolvedValue(undefined),
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue({ success: true }),
     leaveSeat: jest.fn().mockResolvedValue({ success: true }),
@@ -86,7 +85,6 @@ describe('useGameRoom - seat reason transparency', () => {
         getCurrentUserId: jest.fn().mockReturnValue('player-uid'),
       },
       roomService: {
-        createRoom: jest.fn(),
         getRoom: jest
           .fn()
           .mockResolvedValue({ roomCode: '1234', hostUserId: 'test-uid', createdAt: new Date() }),
@@ -325,8 +323,7 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
     getStateRevision: jest.fn().mockReturnValue(1),
     consumeLastCommandType: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
-    createRoom: jest.fn().mockResolvedValue(undefined),
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue({ success: true }),
     leaveSeat: jest.fn().mockResolvedValue({ success: true }),
@@ -371,7 +368,6 @@ describe('useGameRoom - effectiveSeat/effectiveRole for debug bot control', () =
         getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
       },
       roomService: {
-        createRoom: jest.fn(),
         getRoom: jest
           .fn()
           .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),
@@ -588,8 +584,7 @@ describe('useGameRoom - rejoin continue overlay', () => {
     getStateRevision: jest.fn().mockReturnValue(0),
     consumeLastCommandType: jest.fn().mockReturnValue(null),
     addSettleResultListener: jest.fn().mockReturnValue(() => {}),
-    createRoom: jest.fn().mockResolvedValue(undefined),
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn().mockResolvedValue(undefined),
     takeSeat: jest.fn().mockResolvedValue({ success: true }),
     leaveSeat: jest.fn().mockResolvedValue({ success: true }),
@@ -634,7 +629,6 @@ describe('useGameRoom - rejoin continue overlay', () => {
         getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
       },
       roomService: {
-        createRoom: jest.fn(),
         getRoom: jest
           .fn()
           .mockResolvedValue({ roomCode: '1234', hostUserId: 'host-uid', createdAt: new Date() }),

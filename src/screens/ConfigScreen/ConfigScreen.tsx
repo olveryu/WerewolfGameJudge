@@ -97,7 +97,7 @@ export const ConfigScreen: React.FC = () => {
   const updatedRules = route.params?.updatedRules;
 
   const facade = useGameFacade();
-  const { settingsService, authService } = useServices();
+  const { settingsService, authService, roomService } = useServices();
 
   const state = useConfigScreenState({
     existingRoomCode,
@@ -108,6 +108,7 @@ export const ConfigScreen: React.FC = () => {
     facade,
     settingsService,
     authService,
+    roomService,
   });
 
   const {

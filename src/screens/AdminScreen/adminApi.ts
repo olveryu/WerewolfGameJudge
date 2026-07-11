@@ -72,6 +72,11 @@ export interface AdminUser {
 export interface AdminRoom {
   id: string;
   code: string;
+  gameType: string;
+  status: 'creating' | 'active' | 'deleting' | 'failed';
+  reconciliationAttemptCount: number;
+  reconcileAfter: string | null;
+  lastError: string | null;
   hostUserId: string;
   hostName: string | null;
   hostCountry: string | null;

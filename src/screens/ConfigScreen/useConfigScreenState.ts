@@ -27,6 +27,7 @@ import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { IRoomService } from '@/services/types/IRoomService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -57,6 +58,7 @@ interface UseConfigScreenStateParams {
   facade: IGameFacade;
   settingsService: SettingsService;
   authService: IAuthService;
+  roomService: IRoomService;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ export function useConfigScreenState({
   facade,
   settingsService,
   authService,
+  roomService,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
   const isEditMode = !!existingRoomCode;
@@ -205,7 +208,6 @@ export function useConfigScreenState({
     if (!canNominate) {
       navigation.popTo('Room', {
         roomCode: nominateMode.roomCode,
-        isHost: false,
       });
     }
   }, [gameState, gameState?.status, nominateMode, navigation]);
@@ -290,7 +292,6 @@ export function useConfigScreenState({
         }
         navigation.popTo('Room', {
           roomCode: nominateMode.roomCode,
-          isHost: false,
         });
         return;
       }
@@ -331,10 +332,10 @@ export function useConfigScreenState({
         });
         const roomCode = record.roomCode;
         addRecentRoom(roomCode);
+        roomService.acknowledgeRoomCreation(record.creationId);
         navigation.navigate('Room', {
           roomCode,
-          isHost: true,
-          template,
+          entryReason: 'created',
         });
       }
     } catch (e) {
@@ -358,6 +359,7 @@ export function useConfigScreenState({
     bgmEnabled,
     isLoading,
     authService,
+    roomService,
     createRoom,
     variantOverrides,
     rules,

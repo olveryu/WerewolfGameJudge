@@ -1,7 +1,7 @@
 /**
  * useRoomInit.ts - Room initialization hook
  *
- * Calls useGameRoom init APIs (initializeRoom, joinRoom), manages local
+ * Enters a resolver-validated room through the single connection path and manages local
  * loading/retry UI state. Error messages come from RoomInitResult.error
  * (synchronous return, not async state).
  * Does not control night phase or push game actions, does not import services
@@ -13,17 +13,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { RoomInitResult } from '@/hooks/useRoomLifecycle';
+import type { RoomRecord } from '@/services/types/IRoomService';
 import { roomScreenLog } from '@/utils/logger';
 
 interface UseRoomInitParams {
-  /** Room number (4-digit code) — confirmed/final, already created in DB */
-  roomCode: string;
-  /** Whether this client is creating the room (host) */
-  isHostParam: boolean;
-  /** From useGameRoom: initialize room (facade only, no DB) */
-  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
-  /** From useGameRoom: join existing room */
-  joinRoom: (roomCode: string) => Promise<RoomInitResult>;
+  /** Active metadata already resolved by RoomResolverScreen. */
+  room: RoomRecord;
+  /** From useGameRoom: enter as host or player based on resolved metadata. */
+  enterRoom: (room: RoomRecord) => Promise<RoomInitResult>;
   /** Check if we have received game state */
   hasGameState: boolean;
 }
@@ -41,19 +38,11 @@ interface UseRoomInitResult {
 
 /**
  * Manages room initialization lifecycle.
- * Host: initializeRoom → initialized
- * Player: joinRoom → initialized
- *
- * Note: DB room creation is done in ConfigScreen BEFORE navigation.
- * This hook only handles facade initialization (host) or joining (player).
- *
  * Retry: handleRetry resets state and increments retryKey to force re-trigger.
  */
 export function useRoomInit({
-  roomCode,
-  isHostParam,
-  initializeRoom,
-  joinRoom,
+  room,
+  enterRoom,
   hasGameState,
 }: UseRoomInitParams): UseRoomInitResult {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -78,51 +67,31 @@ export function useRoomInit({
     const initRoom = async () => {
       setLoadingMessage('正在加载房间');
 
-      if (isHostParam) {
-        // Host initializes room (DB record already created before navigation)
-        setLoadingMessage('正在加载房间');
-        roomScreenLog.debug('Host initializing room', { roomCode });
-        const result = await initializeRoom(roomCode);
+      setLoadingMessage('正在加入房间');
+      roomScreenLog.debug('Entering resolved room', {
+        roomCode: room.roomCode,
+        gameType: room.gameType,
+      });
+      const result = await enterRoom(room);
 
-        if (!result.success) {
-          initInProgressRef.current = false;
-          roomScreenLog.warn('Host initializeRoom failed', {
-            roomCode,
-            error: result.error,
-          });
-          setLoadingMessage(result.error);
-          setShowRetryButton(true);
-          return;
-        }
-
+      if (result.success) {
         setIsInitialized(true);
         initInProgressRef.current = false;
-        roomScreenLog.debug('Host init complete');
+        roomScreenLog.debug('Room entry complete');
       } else {
-        // Player joins existing room via RealtimeService
-        setLoadingMessage('正在加入房间');
-        roomScreenLog.debug('Player joining room', { roomCode });
-        const result = await joinRoom(roomCode);
-
-        if (result.success) {
-          setIsInitialized(true);
-          initInProgressRef.current = false;
-          roomScreenLog.debug('Player join complete');
-        } else {
-          initInProgressRef.current = false;
-          roomScreenLog.warn('joinRoom failed', {
-            roomCode,
-            error: result.error,
-          });
-          setLoadingMessage(result.error);
-          setShowRetryButton(true);
-        }
+        initInProgressRef.current = false;
+        roomScreenLog.warn('enterRoom failed', {
+          roomCode: room.roomCode,
+          error: result.error,
+        });
+        setLoadingMessage(result.error);
+        setShowRetryButton(true);
       }
     };
 
     void initRoom();
     // retryKey change also triggers a retry
-  }, [isInitialized, retryKey, isHostParam, roomCode, initializeRoom, joinRoom]);
+  }, [isInitialized, retryKey, room, enterRoom]);
 
   // Loading timeout — two-phase: soft hint at 8s, hard retry at 15s
   useEffect(() => {

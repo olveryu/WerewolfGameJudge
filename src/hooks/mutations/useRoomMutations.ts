@@ -2,7 +2,6 @@
  * useRoomMutations — TanStack Query mutation hooks for room operations
  *
  * useCreateRoom: wraps roomService.createRoom (internal 409 conflict retry preserved)
- * useJoinRoom: wraps roomService.getRoom
  * Network retry handled by cfFetch (fetchWithRetry), no mutation-layer retry needed.
  */
 
@@ -15,12 +14,5 @@ export function useCreateRoom() {
   const { roomService } = useServices();
   return useMutation({
     mutationFn: (request: CreateRoomRequest) => roomService.createRoom(request),
-  });
-}
-
-export function useJoinRoom() {
-  const { roomService } = useServices();
-  return useMutation({
-    mutationFn: (roomCode: string) => roomService.getRoom(roomCode),
   });
 }

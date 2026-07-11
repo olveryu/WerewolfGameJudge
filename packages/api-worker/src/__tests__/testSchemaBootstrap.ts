@@ -149,34 +149,55 @@ const SCHEMA_STATEMENTS = [
   // ── rooms ──
   `CREATE TABLE IF NOT EXISTS rooms (
     id TEXT PRIMARY KEY,
-    code TEXT NOT NULL UNIQUE,
+    code TEXT NOT NULL UNIQUE CHECK (code GLOB '[1-9][0-9][0-9][0-9]'),
+    game_type TEXT NOT NULL CHECK (game_type IN ('werewolf')),
     host_user_id TEXT NOT NULL,
+    creation_id TEXT NOT NULL UNIQUE CHECK (length(creation_id) > 0),
+    config_json TEXT NOT NULL CHECK (
+      json_valid(config_json) AND json_type(config_json) = 'object'
+    ),
+    status TEXT NOT NULL CHECK (status IN ('creating', 'active', 'deleting', 'failed')),
+    failure_operation TEXT CHECK (failure_operation IN ('create', 'delete')),
+    last_error TEXT,
+    reconciliation_attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (
+      reconciliation_attempt_count >= 0
+    ),
+    reconcile_after TEXT,
+    delete_requested_by TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     games_started INTEGER NOT NULL DEFAULT 0,
-    last_started_at TEXT
+    last_started_at TEXT,
+    CHECK ((status = 'failed') = (failure_operation IS NOT NULL)),
+    CHECK (
+      status NOT IN ('deleting', 'failed')
+      OR failure_operation = 'create'
+      OR delete_requested_by IS NOT NULL
+    )
   );`,
+  `CREATE INDEX IF NOT EXISTS idx_rooms_status_reconcile
+    ON rooms(status, reconcile_after);`,
+  `CREATE INDEX IF NOT EXISTS idx_rooms_host_user ON rooms(host_user_id);`,
 
   // ── room_game_starts ──
   `CREATE TABLE IF NOT EXISTS room_game_starts (
     effect_id TEXT PRIMARY KEY,
-    room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+    room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
     started_revision INTEGER NOT NULL CHECK (started_revision > 0),
     started_at TEXT NOT NULL
   );`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_room_game_starts_room_revision
-    ON room_game_starts(room_code, started_revision);`,
+    ON room_game_starts(room_id, started_revision);`,
   `CREATE INDEX IF NOT EXISTS idx_room_game_starts_room_started
-    ON room_game_starts(room_code, started_at);`,
+    ON room_game_starts(room_id, started_at);`,
 
   // ── room_participants ──
   `CREATE TABLE IF NOT EXISTS room_participants (
-    room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+    room_id TEXT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     joined_at TEXT NOT NULL,
-    PRIMARY KEY (room_code, user_id)
+    PRIMARY KEY (room_id, user_id)
   );`,
-  `CREATE INDEX IF NOT EXISTS idx_room_participants_room_code ON room_participants(room_code);`,
   `CREATE INDEX IF NOT EXISTS idx_room_participants_user_id ON room_participants(user_id);`,
 ] as const;
 

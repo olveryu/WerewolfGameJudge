@@ -1,0 +1,97 @@
+/** Canonical room URL resolver: metadata first, then one registered game UI module. */
+
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as Sentry from '@sentry/react-native';
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import type React from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { LoadingScreen } from '@/components/LoadingScreen';
+import { useServices } from '@/contexts/ServiceContext';
+import type { GameUiModule } from '@/features/room/model/GameUiModule';
+import type { RootStackParamList } from '@/navigation/types';
+import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/services/types/IRoomService';
+import { log } from '@/utils/logger';
+
+type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;
+
+interface RoomResolverScreenProps extends NavigationProps {
+  readonly getGameModule: (gameType: GameType) => GameUiModule;
+}
+
+type ResolverState =
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'resolved'; readonly room: RoomRecord; readonly module: GameUiModule }
+  | { readonly kind: 'error'; readonly message: string };
+
+const resolverLog = log.extend('RoomResolver');
+
+export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
+  route,
+  navigation,
+  getGameModule,
+}) => {
+  const { roomService } = useServices();
+  const [retryGeneration, setRetryGeneration] = useState(0);
+  const [state, setState] = useState<ResolverState>({ kind: 'loading' });
+
+  useEffect(() => {
+    let isCurrent = true;
+    const roomCode = route.params.roomCode;
+    if (!isRoomCode(roomCode)) {
+      setState({ kind: 'error', message: '房间号格式错误' });
+      return () => {
+        isCurrent = false;
+      };
+    }
+
+    setState({ kind: 'loading' });
+    void roomService
+      .getRoom(roomCode)
+      .then((room) => {
+        if (!isCurrent) return;
+        if (room === null) {
+          setState({ kind: 'error', message: '房间不存在' });
+          return;
+        }
+        setState({ kind: 'resolved', room, module: getGameModule(room.gameType) });
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent) return;
+        const cause = error instanceof Error ? error : new Error(String(error));
+        const message =
+          cause instanceof UnsupportedRoomGameTypeError
+            ? '暂不支持该游戏类型'
+            : '房间加载失败，请重试';
+        resolverLog.error('room metadata resolution failed', {
+          roomCode,
+          error: cause.message,
+        });
+        Sentry.captureException(cause, { extra: { roomCode } });
+        setState({ kind: 'error', message });
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [getGameModule, retryGeneration, roomService, route.params.roomCode]);
+
+  const handleRetry = useCallback(() => {
+    setRetryGeneration((generation) => generation + 1);
+  }, []);
+
+  if (state.kind === 'loading') return <LoadingScreen message="正在查找房间" />;
+  if (state.kind === 'error') {
+    return <LoadingScreen error={state.message} onRetry={handleRetry} />;
+  }
+
+  const GameRoomScreen = state.module.roomScreen;
+  return (
+    <GameRoomScreen
+      room={state.room}
+      entryReason={route.params.entryReason ?? null}
+      navigation={navigation}
+    />
+  );
+};

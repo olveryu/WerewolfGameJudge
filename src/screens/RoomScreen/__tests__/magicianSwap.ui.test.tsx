@@ -21,6 +21,14 @@ const mockNavigation = {
   setOptions: jest.fn(),
 };
 
+const mockRoom: React.ComponentProps<typeof RoomScreen>['room'] = {
+  roomCode: '1234',
+  roomId: 'room-id-1234',
+  gameType: 'werewolf',
+  hostUserId: 'host-uid',
+  createdAt: new Date(0),
+};
+
 const mockSubmitAction = jest.fn();
 
 jest.mock('../../../hooks/useGameRoom', () => {
@@ -93,7 +101,7 @@ jest.mock('../../../hooks/useGameRoom', () => {
         markAllBotsGroupConfirmed: jest.fn(),
         setControlledSeat: jest.fn(),
 
-        joinRoom: jest.fn().mockResolvedValue({ success: true }),
+        enterRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
         assignRoles: jest.fn(),
@@ -192,11 +200,8 @@ describe('RoomScreen magician swap UI (smoke)', () => {
         navigation={
           mockNavigation as unknown as React.ComponentProps<typeof RoomScreen>['navigation']
         }
-        route={
-          {
-            params: { roomCode: '1234', isHost: false, template: '梦魇守卫' },
-          } as unknown as React.ComponentProps<typeof RoomScreen>['route']
-        }
+        room={mockRoom}
+        entryReason={null}
       />,
     );
 

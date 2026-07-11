@@ -36,7 +36,7 @@ import {
   createShowAlertMock,
   getBoardByName,
   mockNavigation,
-  mockRoomRoute,
+  mockRoom,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -99,7 +99,8 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 // =============================================================================
 
 describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
-  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+  const renderRoom = () =>
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
   const setMock = (m: ReturnType<typeof createGameRoomMock>) => {
     mockUseGameRoomReturn = m;
   };
@@ -120,7 +121,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -144,7 +145,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -165,7 +166,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -190,7 +191,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -215,7 +216,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -235,7 +236,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);
@@ -264,7 +265,7 @@ describe(`RoomScreen UI: ${BOARD_NAME}`, () => {
       });
 
       const { getByTestId, getByText } = render(
-        <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+        <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
       );
 
       await waitForRoomScreen(getByTestId);

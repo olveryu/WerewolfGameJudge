@@ -24,6 +24,7 @@ const TEMPLATE: GameTemplate = {
   numberOfPlayers: 4,
   roles: ['wolf', 'seer', 'villager', 'villager'],
 };
+const ROOM = { roomCode: '1234', roomId: 'room-id-1234' } as const;
 
 class MockWebSocket {
   // eslint-disable-next-line @typescript-eslint/naming-convention -- WebSocket API constant
@@ -66,7 +67,7 @@ async function connectService(): Promise<{
   const service = new CFRealtimeService(WEREWOLF_STATE_CODEC);
   const handlers = createHandlers();
   service.setEventHandlers(handlers);
-  service.connect('ROOM', 'USER');
+  service.connect(ROOM, 'USER');
   await Promise.resolve();
   const socket = MockWebSocket.instances[0];
   if (!socket) throw new Error('Expected CFRealtimeService to create a WebSocket');
@@ -91,7 +92,7 @@ describe('CFRealtimeService protocol', () => {
   it('fails fast when connect is called before handlers are registered', () => {
     const service = new CFRealtimeService(WEREWOLF_STATE_CODEC);
 
-    expect(() => service.connect('ROOM', 'USER')).toThrow(
+    expect(() => service.connect(ROOM, 'USER')).toThrow(
       'CFRealtimeService requires event handlers before connect',
     );
     expect(MockWebSocket.instances).toHaveLength(0);

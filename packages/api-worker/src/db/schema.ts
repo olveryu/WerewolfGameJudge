@@ -5,6 +5,7 @@
  * Table and column names use snake_case to match physical columns in D1.
  */
 
+import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import {
   index,
   integer,
@@ -61,33 +62,58 @@ export const users = sqliteTable(
 
 // ── rooms ───────────────────────────────────────────────────────────────────
 
-/** Rooms table. */
-export const rooms = sqliteTable('rooms', {
-  id: text('id').primaryKey(),
-  code: text('code').notNull().unique(),
-  hostUserId: text('host_user_id').notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-  /** Times a game started (startNight succeeded) in this room. Survives DO restart. */
-  gamesStarted: integer('games_started').notNull().default(0),
-  /** ISO 8601 UTC of the most recent game start. null = never started. */
-  lastStartedAt: text('last_started_at'),
-});
+export const ROOM_DIRECTORY_STATUSES = ['creating', 'active', 'deleting', 'failed'] as const;
+export type RoomDirectoryStatus = (typeof ROOM_DIRECTORY_STATUSES)[number];
+
+export const ROOM_SAGA_OPERATIONS = ['create', 'delete'] as const;
+export type RoomSagaOperation = (typeof ROOM_SAGA_OPERATIONS)[number];
+
+/** Public room directory and cross-storage saga state. */
+export const rooms = sqliteTable(
+  'rooms',
+  {
+    /** Immutable Durable Object instance ID. */
+    id: text('id').primaryKey(),
+    /** Reusable four-digit public lookup key. */
+    code: text('code').notNull().unique(),
+    gameType: text('game_type', { enum: GAME_TYPES }).notNull(),
+    hostUserId: text('host_user_id').notNull(),
+    creationId: text('creation_id').notNull().unique(),
+    /** Canonical parsed game config used to resume initialization. */
+    configJson: text('config_json').notNull(),
+    status: text('status', { enum: ROOM_DIRECTORY_STATUSES }).notNull(),
+    failureOperation: text('failure_operation', { enum: ROOM_SAGA_OPERATIONS }),
+    lastError: text('last_error'),
+    reconciliationAttemptCount: integer('reconciliation_attempt_count').notNull().default(0),
+    reconcileAfter: text('reconcile_after'),
+    deleteRequestedBy: text('delete_requested_by'),
+    createdAt: text('created_at').notNull(),
+    updatedAt: text('updated_at').notNull(),
+    /** Times a game started (startNight succeeded) in this room. Survives DO restart. */
+    gamesStarted: integer('games_started').notNull().default(0),
+    /** ISO 8601 UTC of the most recent game start. null = never started. */
+    lastStartedAt: text('last_started_at'),
+  },
+  (table) => [
+    index('idx_rooms_status_reconcile').on(table.status, table.reconcileAfter),
+    index('idx_rooms_host_user').on(table.hostUserId),
+  ],
+);
 
 /** Idempotency ledger for committed setup-to-ongoing room transitions. */
 export const roomGameStarts = sqliteTable(
   'room_game_starts',
   {
     effectId: text('effect_id').primaryKey(),
-    roomCode: text('room_code')
+    roomId: text('room_id')
       .notNull()
-      .references(() => rooms.code, { onDelete: 'cascade' }),
+      .references(() => rooms.id, { onDelete: 'cascade' }),
     startedRevision: integer('started_revision').notNull(),
     startedAt: text('started_at').notNull(),
   },
   (table) => [
-    uniqueIndex('idx_room_game_starts_room_revision').on(table.roomCode, table.startedRevision),
-    index('idx_room_game_starts_room_started').on(table.roomCode, table.startedAt),
+    uniqueIndex('idx_room_game_starts_room_revision').on(table.roomId, table.startedRevision),
+    index('idx_room_game_starts_room_started').on(table.roomId, table.startedAt),
   ],
 );
 
@@ -289,17 +315,16 @@ export const userEventInbox = sqliteTable(
 export const roomParticipants = sqliteTable(
   'room_participants',
   {
-    roomCode: text('room_code')
+    roomId: text('room_id')
       .notNull()
-      .references(() => rooms.code, { onDelete: 'cascade' }),
+      .references(() => rooms.id, { onDelete: 'cascade' }),
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     joinedAt: text('joined_at').notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.roomCode, table.userId] }),
-    index('idx_room_participants_room_code').on(table.roomCode),
+    primaryKey({ columns: [table.roomId, table.userId] }),
     index('idx_room_participants_user_id').on(table.userId),
   ],
 );

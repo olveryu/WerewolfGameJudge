@@ -1,17 +1,20 @@
 /**
  * Cron Handlers — scheduled cleanup tasks
  *
- * Triggered by Cloudflare Cron Trigger daily at UTC 03:00.
- * - Deletes expired rooms created over 24 hours ago
+ * Triggered by Cloudflare Cron Triggers.
+ * - Reconciles interrupted room create/delete sagas every five minutes
+ * - Marks rooms created over 24 hours ago for authoritative deletion at UTC 03:00
  * - Cleans up anonymous users inactive for 14 days (must not be host of any room)
  */
 
 import { sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
-import { idempotencyKeys, loginAttempts, rooms, users, wxClaims } from '../db/schema';
+import { idempotencyKeys, loginAttempts, users, wxClaims } from '../db/schema';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
+import { markExpiredRoomsDeleting } from '../platform/room/roomDirectory';
+import { reconcileRoomDirectory } from '../platform/room/roomSaga';
 
 const log = createLogger('cron');
 
@@ -19,16 +22,14 @@ const ROOM_MAX_AGE_HOURS = 24;
 const ANON_INACTIVE_DAYS = 14;
 const BATCH_LIMIT = 1000;
 
-async function cleanupStaleRooms(env: Env): Promise<{ deleted: number }> {
-  const db = createDb(env.DB);
-  const result = await db
-    .delete(rooms)
-    .where(sql`${rooms.createdAt} < datetime('now', ${`-${ROOM_MAX_AGE_HOURS}`} || ' hours')`)
-    .returning({ id: rooms.id });
+const ROOM_RECONCILIATION_CRON = '*/5 * * * *';
+const DAILY_CLEANUP_CRON = '0 3 * * *';
 
-  const deleted = result.length;
-  log.info('cleanupStaleRooms', { deleted });
-  return { deleted };
+async function expireStaleRooms(env: Env, nowMs: number): Promise<{ marked: number }> {
+  const cutoffMs = nowMs - ROOM_MAX_AGE_HOURS * 60 * 60 * 1_000;
+  const marked = await markExpiredRoomsDeleting(env, cutoffMs, nowMs, BATCH_LIMIT);
+  log.info('expireStaleRooms', { marked });
+  return { marked };
 }
 
 async function cleanupAnonymousUsers(env: Env): Promise<{ deleted: number }> {
@@ -96,18 +97,50 @@ async function cleanupExpiredWxClaims(env: Env): Promise<{ deleted: number }> {
   return { deleted };
 }
 
-/** Run all scheduled cleanup tasks. */
-export async function runScheduledCleanup(env: Env): Promise<void> {
-  const rooms = await cleanupStaleRooms(env);
-  const users = await cleanupAnonymousUsers(env);
-  const logins = await cleanupOldLoginAttempts(env);
-  const idempotency = await cleanupExpiredIdempotencyKeys(env);
-  const wxClaimsResult = await cleanupExpiredWxClaims(env);
-  log.info('cleanup complete', {
-    rooms: rooms.deleted,
-    anonymousUsers: users.deleted,
-    loginAttempts: logins.deleted,
-    idempotencyKeys: idempotency.deleted,
-    wxClaims: wxClaimsResult.deleted,
-  });
+/** Run room saga recovery independently from daily data retention. */
+async function runRoomReconciliation(env: Env, nowMs: number): Promise<void> {
+  const reconciled = await reconcileRoomDirectory(env, nowMs);
+  log.info('room reconciliation complete', { reconciled });
+}
+
+/** Run daily retention tasks after marking stale rooms for saga deletion. */
+async function runDailyCleanup(env: Env, nowMs: number): Promise<void> {
+  const tasks = [
+    { name: 'room expiry', run: () => expireStaleRooms(env, nowMs) },
+    { name: 'room reconciliation', run: () => runRoomReconciliation(env, nowMs) },
+    { name: 'anonymous user cleanup', run: () => cleanupAnonymousUsers(env) },
+    { name: 'login attempt cleanup', run: () => cleanupOldLoginAttempts(env) },
+    { name: 'idempotency cleanup', run: () => cleanupExpiredIdempotencyKeys(env) },
+    { name: 'WeChat claim cleanup', run: () => cleanupExpiredWxClaims(env) },
+  ] as const;
+  const failures: Error[] = [];
+
+  for (const task of tasks) {
+    try {
+      await task.run();
+    } catch (error) {
+      const cause = error instanceof Error ? error : new Error(String(error));
+      failures.push(cause);
+      log.error('daily cleanup task failed', { task: task.name, error: cause.message });
+    }
+  }
+
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} daily cleanup tasks failed`);
+  }
+  log.info('cleanup complete');
+}
+
+/** Dispatch one configured cron expression; unknown schedules are configuration errors. */
+export async function runScheduledCron(env: Env, cron: string, nowMs: number): Promise<void> {
+  switch (cron) {
+    case ROOM_RECONCILIATION_CRON:
+      await runRoomReconciliation(env, nowMs);
+      return;
+    case DAILY_CLEANUP_CRON:
+      await runDailyCleanup(env, nowMs);
+      return;
+    default:
+      throw new Error(`Unknown cron trigger: ${cron}`);
+  }
 }

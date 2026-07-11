@@ -7,17 +7,24 @@ import type {
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import type {
-  DeleteRoomResult,
+  AuthorizeRoomDeletionCommand,
+  AuthorizeRoomDeletionResult,
+  DeleteRoomStorageCommand,
+  DeleteRoomStorageResult,
   DispatchRoomResult,
   DispatchUserRoomCommand,
   InitializeRoomCommand,
   InitializeRoomResult,
+  ReadRoomCommand,
 } from './types';
 
 export interface IGameRoomRPC {
   initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult>;
   dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult>;
-  getSnapshot(): Promise<RoomSnapshot<BaseGameState<GameType>> | null>;
-  getRevision(): Promise<number | null>;
-  deleteRoom(actorUserId: string): Promise<DeleteRoomResult>;
+  getSnapshot(command: ReadRoomCommand): Promise<RoomSnapshot<BaseGameState<GameType>> | null>;
+  getRevision(command: ReadRoomCommand): Promise<number | null>;
+  authorizeRoomDeletion(
+    command: AuthorizeRoomDeletionCommand,
+  ): Promise<AuthorizeRoomDeletionResult>;
+  deleteRoomStorage(command: DeleteRoomStorageCommand): Promise<DeleteRoomStorageResult>;
 }

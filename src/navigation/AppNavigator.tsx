@@ -12,11 +12,16 @@ import {
   type LinkingOptions,
   NavigationContainer,
 } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import type React from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
+import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
+import { getClientGameModule } from '@/games/catalog';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
@@ -32,7 +37,6 @@ import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
 import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
-import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { ShardExchangeScreen } from '@/screens/ShardExchangeScreen/ShardExchangeScreen';
 import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
@@ -53,14 +57,18 @@ const navLog = log.extend('AppNavigator');
  * |----------|--------------------------------|
  * | Home     | `/`                            |
  * | Config   | `/config`                      |
- * | Room     | `/room/:roomCode?isHost=true` |
+ * | Room     | `/room/:roomCode`             |
  * | Settings | `/settings`                    |
  *
- * `template` is a complex object needed only at creation time and is stripped from the URL (via getPathFromState).
+ * Programmatic entry intent is stripped from the URL.
  */
 
 /** Params that are programmatic-only and should never appear in the URL. */
-const TRANSIENT_PARAMS = ['template'];
+const TRANSIENT_PARAMS = ['entryReason'];
+
+const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Room'>> = (props) => (
+  <RoomResolverScreen {...props} getGameModule={getClientGameModule} />
+);
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -74,11 +82,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
         path: 'room/:roomCode',
         parse: {
           roomCode: (roomCode: string) => roomCode,
-          isHost: (isHost: string) => isHost === 'true',
         },
         stringify: {
           roomCode: (roomCode: string) => roomCode,
-          isHost: (isHost: boolean) => (isHost ? 'true' : 'false'),
         },
       },
       Settings: 'settings/:roomCode?',
@@ -116,7 +122,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
             ...state,
             routes: [
               { name: 'Home' as const },
-              { name: 'Room' as const, params: { roomCode, isHost: false } },
+              { name: 'Room' as const, params: { roomCode } },
               topRoute,
             ],
             index: 2,
@@ -134,7 +140,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
 
     return state;
   },
-  // Strip non-serializable params (template, roleRevealAnimation) from browser URL
+  // Strip programmatic-only params from the browser URL.
   getPathFromState(state, options) {
     const path = defaultGetPathFromState(state, options);
     try {
@@ -204,7 +210,7 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           component={GameRulesScreen}
           options={{ title: '游戏规则' }}
         />
-        <Stack.Screen name="Room" component={RoomScreen} options={{ title: '房间' }} />
+        <Stack.Screen name="Room" component={RoomResolverRoute} options={{ title: '房间' }} />
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}

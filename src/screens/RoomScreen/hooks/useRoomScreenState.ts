@@ -12,7 +12,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +22,7 @@ import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
+import type { RoomRecord } from '@/services/types/IRoomService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
@@ -68,13 +68,6 @@ const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，�
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Route params that RoomScreen receives (mirrors RootStackParamList['Room']) */
-interface RoomScreenRouteParams {
-  roomCode: string;
-  isHost: boolean;
-  template?: GameTemplate;
-}
-
 /** Navigation type required by useRoomScreenState */
 type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'>;
 
@@ -82,17 +75,8 @@ type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useRoomScreenState(
-  params: RoomScreenRouteParams,
-  navigation: RoomScreenNavigation,
-) {
-  const {
-    roomCode,
-    // Default to false: URL navigation (refresh) may omit isHost;
-    // joinRoom auto-detects host status from DB record.hostUserId
-    isHost: isHostParam = false,
-    template,
-  } = params;
+export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavigation) {
+  const { roomCode } = room;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Core game room hook
@@ -112,8 +96,7 @@ export function useRoomScreenState(
     connectionStatus,
     manualReconnect,
     error: gameRoomError,
-    initializeRoom,
-    joinRoom,
+    enterRoom,
     leaveRoom,
     takeSeat,
     leaveSeat,
@@ -211,10 +194,8 @@ export function useRoomScreenState(
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
   const init = useRoomInit({
-    roomCode,
-    isHostParam,
-    initializeRoom,
-    joinRoom,
+    room,
+    enterRoom,
     hasGameState: !!gameState,
   });
 
@@ -785,7 +766,6 @@ export function useRoomScreenState(
   return {
     // ── Route params ──
     roomCode,
-    template,
 
     // ── Game state (from useGameRoom) ──
     gameState,

@@ -1769,13 +1769,14 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态       | 已完成                                                                                 | 尚未完成                                                             |
-| --------- | ---------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Phase 0   | 完成       | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                                    |
-| Phase 1   | 进行中     | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零                  |
-| Phase 2   | 完成       | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                                    |
-| Phase 3   | 待远端 E2E | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | 当前提交完整 Werewolf Playwright gate                                |
-| Phase 4-8 | 未开始     | -                                                                                      | creation saga、单一 deep link、shared room、Fib vertical slice、清理 |
+| 阶段      | 状态       | 已完成                                                                                 | 尚未完成                                            |
+| --------- | ---------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Phase 0   | 完成       | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                   |
+| Phase 1   | 进行中     | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零 |
+| Phase 2   | 完成       | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                   |
+| Phase 3   | 完成       | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                   |
+| Phase 4   | 待远端 E2E | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | 当前提交完整 Werewolf Playwright gate               |
+| Phase 5-8 | 未开始     | -                                                                                      | shared room、Fib vertical slice、清理               |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -1822,7 +1823,42 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - commit `fa281458` 对应 CI run `29130480914` 的 quality 与 shard 1/2/4 通过；shard 3 的唯一失败被 trace
   定位为旧 UI 用 `{kind:'target',target:null}` 表示 multi-select skip，新 engine 正确拒绝为
   `action_input_mismatch`。本提交从协议根部消除重复表示，推送后的完整四 shard 仍是 Phase 3 退出门禁。
-- 阶段状态：Phase 3 的实现与本地回归已完成，但在当前提交远端四个 Werewolf shard 全通过前保持
-  “待远端 E2E”，不提前宣告完成。
-- 下一步：Phase 4 用 D1 status 与 reconciliation 实现 create/delete saga，再加入唯一
-  `/room/:roomCode` resolver；不在 Phase 3 的 catch-delete 上伪装跨存储原子性。
+- commit `055b4a1f` 对应 CI run `29132638988`：quality 与四个 Werewolf Playwright shard 全部
+  通过。workflow 总状态失败仍只来自零 step 的 `merge-reports` job，不是产品或测试失败；Phase 3
+  据此满足退出条件并标记完成。
+
+### 当前提交：Phase 4 room directory saga 与 canonical entry
+
+- D1 `rooms` 现在是显式 saga directory：`creating | active | deleting | failed`、唯一
+  `creationId`、canonical `configJson`、失败操作、错误、重试次数和下次 reconciliation 时间都在同一
+  authority row。建房码只由 Worker 分配，客户端不再生成或提交 public code。
+- 创建流程按 `creationId + actor + gameType + canonical config` 精确重放；DO 初始化成功但 D1 未激活时，
+  五分钟 cron 会继续 activate。删除先由 DO 校验房主和 outbox，再把 D1 标记 deleting，最后删除 DO storage
+  和 exact directory row；任一步中断都由同一 saga 向前恢复，不 catch-delete、不回滚已提交的另一存储。
+- `0036_room_directory_saga.sql` 把 participant/game-start 外键从可复用 `room_code` 改到 immutable
+  `room_id`。本分支的 `0034_room_instance_identity_cutover.sql` 已明确清空旧 routing model；两者在同一
+  未发布 release 顺序执行，因此不保留旧房间兼容 reader。`wrangler d1 migrations apply --local` 已验证
+  0036 的 14 条命令全部成功。
+- `RoomLocator = {roomCode, roomId}` 成为共享协议。只有 `/room/get` 用 public code 做一次 discovery；
+  command、state、revision、delete 和 WebSocket 全部要求 exact locator。Worker 再把 D1 的 `creationId`
+  注入 DO RPC，DO 同时核对 `ctx.id`、room code 和 creation identity。四位 code 被复用后，旧 tab 返回
+  `room_instance_mismatch`，不会进入新房或把旧 effect 写给新房。
+- Active D1 row 若读不到 DO snapshot/revision，按跨存储完整性错误返回 500，不伪装成“房间不存在”。
+  所有 authority read 都解析 DO ID、game type、canonical JSON、状态组合、时间和计数；损坏行立即失败。
+- 客户端把 canonical creation intent 与 `creationId` 持久化到 MMKV。网络结果未知或 App 重启时复用同一
+  ID；Config 先持久化可恢复的 recent-room 入口，再 acknowledge 并发出 Room navigation，terminal 4xx
+  才删除。
+- 新 `RoomResolverScreen` 先读取 metadata，再通过 exhaustive client catalog 选择游戏 UI；唯一 URL 是
+  `/room/:roomCode`，navigation 不携带 host/template，不对 missing 或 unknown game 回退狼人杀。Pages OG
+  handler 同样只接受四位 canonical code，并使用游戏中性的中文标题。
+- Reconciliation cron 每五分钟执行；daily cleanup 中 room expiry、room reconciliation、anonymous user、
+  login attempt、idempotency 和 WeChat claim cleanup 分别执行并最后聚合错误，一个失败不会阻止后续任务。
+- 新增 interrupted create/delete、outbox-blocked delete、stale room instance、active-row/missing-DO、
+  noncanonical D1 row、daily task isolation、locator/canonical JSON、resolver 和 creation-intent restart tests。
+- 本提交完整 `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全部通过；root
+  183 suites/4834 tests、game-engine 82 suites/2373 tests、api-worker 12 files/88 tests 全部通过。首次完整
+  gate 暴露 7 个 RoomScreen test fixture 仍把 `useGameRoom.enterRoom` mock 成 `Promise<void>`；测试现已按
+  `RoomInitResult` 的真实 contract 返回显式 success，没有给生产初始化路径增加 fallback。
+- 阶段状态：Phase 4 实现与本地完整 quality 已完成，保持“待远端 E2E”；本提交推送后的四个
+  Playwright shard 全绿后才标记完成。下一步进入 Phase 5，从稳定狼人杀 UI 反向抽取真实 shared room
+  feature，不先造第二套壳。

@@ -14,7 +14,7 @@ import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
-  mockRoomRoute,
+  mockRoom,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -91,7 +91,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -110,7 +110,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -130,7 +130,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -150,7 +150,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -168,7 +168,7 @@ describe('RoomScreen UI: non-actioner perspective', () => {
     });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);

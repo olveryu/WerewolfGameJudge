@@ -8,6 +8,7 @@ import type React from 'react';
 
 import type { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { RoomRecord } from '@/services/types/IRoomService';
 import type { LocalPlayer } from '@/types/GameStateTypes';
 
 type RoomScreenProps = React.ComponentProps<typeof RoomScreen>;
@@ -31,9 +32,13 @@ export const mockNavigation = {
   setOptions: jest.fn(),
 } as unknown as RoomScreenProps['navigation'];
 
-export const mockRoomRoute = {
-  params: { roomCode: '1234', isHost: false },
-} as unknown as RoomScreenProps['route'];
+export const mockRoom: RoomRecord = {
+  roomCode: '1234',
+  roomId: 'room-id-1234',
+  gameType: 'werewolf',
+  hostUserId: 'host-uid',
+  createdAt: new Date(0),
+};
 
 export function makeBaseUseGameRoomReturn({
   schemaId,
@@ -113,8 +118,7 @@ export function makeBaseUseGameRoomReturn({
     markAllBotsGroupConfirmed: jest.fn(),
     setControlledSeat: jest.fn(),
 
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
-    initializeRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue({ success: true }),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),

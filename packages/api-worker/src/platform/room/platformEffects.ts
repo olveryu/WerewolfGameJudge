@@ -3,6 +3,8 @@
 import { z } from 'zod';
 
 import type { Env } from '../../env';
+import type { RoomEffectDirectoryIdentity } from './roomDirectory';
+import { assertRoomEffectDirectory } from './roomDirectory';
 
 export type PlatformRoomEffect =
   | {
@@ -79,17 +81,32 @@ export function parsePlatformRoomEffect(value: unknown): PlatformRoomEffect {
 export async function handlePlatformRoomEffect(
   effectId: string,
   effect: PlatformRoomEffect,
+  identity: RoomEffectDirectoryIdentity,
   env: Env,
 ): Promise<void> {
+  if (effect.roomCode !== identity.roomCode) {
+    throw new Error(`Platform effect ${effectId} room code does not match its room identity`);
+  }
+  await assertRoomEffectDirectory(env, identity);
+
   switch (effect.type) {
     case 'platform.room.participantJoined':
       await env.DB.prepare(
-        `INSERT INTO room_participants (room_code, user_id, joined_at)
-        VALUES (?, ?, ?)
-        ON CONFLICT (room_code, user_id) DO NOTHING`,
+        `INSERT INTO room_participants (room_id, user_id, joined_at)
+        SELECT id, ?, ?
+        FROM rooms
+        WHERE id = ? AND code = ? AND creation_id = ?
+        ON CONFLICT (room_id, user_id) DO NOTHING`,
       )
-        .bind(effect.roomCode, effect.userId, new Date(effect.joinedAtMs).toISOString())
+        .bind(
+          effect.userId,
+          new Date(effect.joinedAtMs).toISOString(),
+          identity.roomId,
+          identity.roomCode,
+          identity.creationId,
+        )
         .run();
+      await assertRoomEffectDirectory(env, identity);
       return;
     case 'platform.room.gameStarted': {
       const startedAt = new Date(effect.startedAtMs).toISOString();
@@ -97,28 +114,46 @@ export async function handlePlatformRoomEffect(
         env.DB.prepare(
           `INSERT INTO room_game_starts (
             effect_id,
-            room_code,
+            room_id,
             started_revision,
             started_at
-          ) VALUES (?, ?, ?, ?)
+          )
+          SELECT ?, id, ?, ?
+          FROM rooms
+          WHERE id = ? AND code = ? AND creation_id = ?
           ON CONFLICT DO NOTHING`,
-        ).bind(effectId, effect.roomCode, effect.startedRevision, startedAt),
+        ).bind(
+          effectId,
+          effect.startedRevision,
+          startedAt,
+          identity.roomId,
+          identity.roomCode,
+          identity.creationId,
+        ),
         env.DB.prepare(
           `UPDATE rooms
           SET
             games_started = (
-              SELECT COUNT(*) FROM room_game_starts WHERE room_code = ?
+              SELECT COUNT(*) FROM room_game_starts WHERE room_id = ?
             ),
             last_started_at = (
-              SELECT MAX(started_at) FROM room_game_starts WHERE room_code = ?
+              SELECT MAX(started_at) FROM room_game_starts WHERE room_id = ?
             ),
             updated_at = MAX(
               updated_at,
-              (SELECT MAX(started_at) FROM room_game_starts WHERE room_code = ?)
+              (SELECT MAX(started_at) FROM room_game_starts WHERE room_id = ?)
             )
-          WHERE code = ?`,
-        ).bind(effect.roomCode, effect.roomCode, effect.roomCode, effect.roomCode),
+          WHERE id = ? AND code = ? AND creation_id = ?`,
+        ).bind(
+          identity.roomId,
+          identity.roomId,
+          identity.roomId,
+          identity.roomId,
+          identity.roomCode,
+          identity.creationId,
+        ),
       ]);
+      await assertRoomEffectDirectory(env, identity);
       return;
     }
   }

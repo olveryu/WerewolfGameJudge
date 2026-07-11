@@ -19,7 +19,11 @@ import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomServic
 const mockUseServices = useServices as jest.Mock;
 
 // Mock useCreateRoom mutation hook
-const mockCreateRoomMutateAsync = jest.fn<Promise<RoomRecord>, [CreateRoomRequest]>();
+const mockCreateRoomMutateAsync = jest.fn<
+  Promise<RoomRecord & { creationId: string }>,
+  [CreateRoomRequest]
+>();
+const mockAcknowledgeRoomCreation = jest.fn();
 jest.mock('@/hooks/mutations/useRoomMutations', () => ({
   useCreateRoom: () => ({
     mutateAsync: mockCreateRoomMutateAsync,
@@ -67,7 +71,7 @@ const createMockFacade = (): IGameFacade =>
     getMySeat: jest.fn(() => null),
     getStateRevision: jest.fn(() => 0),
     createRoom: jest.fn(),
-    joinRoom: jest.fn().mockResolvedValue({ success: true }),
+    enterRoom: jest.fn().mockResolvedValue(undefined),
     leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
@@ -87,11 +91,14 @@ describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Mutation mock — simulate 409 retry: returned roomCode differs from any pre-generated code
+    // Mutation mock returns the room code allocated by the server saga.
     mockCreateRoomMutateAsync.mockResolvedValue({
-      roomCode: '7777', // The confirmed DB roomCode
+      roomCode: '7777',
+      roomId: 'room-id-7777',
+      gameType: 'werewolf',
       hostUserId: 'host-uid',
       createdAt: new Date(),
+      creationId: 'creation-id-7777',
     });
 
     // Override global ServiceContext mock with test-specific services
@@ -100,7 +107,7 @@ describe('Room creation → navigation roomCode contract', () => {
         waitForInit: jest.fn().mockResolvedValue(undefined),
         getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
       },
-      roomService: {},
+      roomService: { acknowledgeRoomCreation: mockAcknowledgeRoomCreation },
       settingsService: {
         load: jest.fn().mockResolvedValue(undefined),
         setBgmEnabled: jest.fn().mockResolvedValue(undefined),
@@ -141,8 +148,7 @@ describe('Room creation → navigation roomCode contract', () => {
     if (navArgs === undefined) throw new Error('Missing room navigation call');
     expect(navArgs[0]).toBe('Room');
     expect(navArgs[1].roomCode).toBe('7777');
-    expect(navArgs[1].isHost).toBe(true);
-    expect(navArgs[1].template).toBeDefined();
+    expect(navArgs[1]).toEqual({ roomCode: '7777', entryReason: 'created' });
     const createRequest = mockCreateRoomMutateAsync.mock.calls[0]?.[0];
     if (createRequest === undefined) throw new Error('Missing create-room request');
     expect(createRequest.expectedHostUserId).toBe('host-uid');
@@ -197,5 +203,20 @@ describe('Room creation → navigation roomCode contract', () => {
       RECENT_ROOM_CODES_KEY,
       expect.stringContaining('7777'),
     );
+  });
+
+  it('acknowledges the creation intent after persisting the recent room', async () => {
+    const mockFacade = createMockFacade();
+    const { getByText } = render(
+      <GameFacadeProvider facade={mockFacade}>
+        <ConfigScreen />
+      </GameFacadeProvider>,
+    );
+
+    fireEvent.press(getByText('创建房间'));
+
+    await waitFor(() => {
+      expect(mockAcknowledgeRoomCreation).toHaveBeenCalledWith('creation-id-7777');
+    });
   });
 });

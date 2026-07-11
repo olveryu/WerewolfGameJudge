@@ -1,15 +1,13 @@
-/** Generic room HTTP authentication, creation, and command contracts. */
+/** Generic room HTTP authentication, saga creation, command, and deletion contracts. */
 
 import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine/games/werewolf/public';
 import { parseRoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
 import {
   REASON_COMMAND_ID_CONFLICT,
-  REASON_ROOM_CODE_CONFLICT,
+  REASON_ROOM_INITIALIZATION_CONFLICT,
 } from '@werewolf/game-engine/platform/protocol/reasons';
-import {
-  parseRoomSnapshot,
-  type RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -25,15 +23,12 @@ interface AuthResponse {
 interface CreateRoomResponse {
   room: {
     roomCode: string;
+    roomId: string;
     gameType: 'werewolf';
     hostUserId: string;
     createdAt: string;
   };
   snapshot: RoomSnapshot<GameState>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
@@ -57,20 +52,28 @@ async function createAnonymousUser(): Promise<AuthResponse> {
 }
 
 async function createRoom(
-  roomCode: string,
   auth: AuthResponse,
   creationId: string,
+  templateRoles: readonly string[] = TEMPLATE_ROLES,
 ): Promise<Response> {
   return postJson(
     '/room/create',
     {
-      roomCode,
       gameType: 'werewolf',
-      config: { templateRoles: TEMPLATE_ROLES },
+      config: { templateRoles },
       creationId,
     },
     auth.access_token,
   );
+}
+
+async function createActiveRoom(
+  auth: AuthResponse,
+  creationId: string,
+): Promise<CreateRoomResponse> {
+  const response = await createRoom(auth, creationId);
+  expect(response.status).toBe(200);
+  return response.json<CreateRoomResponse>();
 }
 
 beforeAll(async () => {
@@ -79,24 +82,22 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM room_participants').run();
+  await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
 });
 
 describe('POST /room/create', () => {
-  it('creates server-authored state from game type and config', async () => {
+  it('allocates the public code and creates server-authored state', async () => {
     const auth = await createAnonymousUser();
-    const roomCode = 'CREATE-GENERIC';
-    const response = await createRoom(roomCode, auth, 'create-generic-1');
+    const body = await createActiveRoom(auth, 'create-generic-1');
 
-    expect(response.status).toBe(200);
-    const body = await response.json<CreateRoomResponse>();
+    expect(isRoomCode(body.room.roomCode)).toBe(true);
     expect(body.room).toMatchObject({
-      roomCode,
       gameType: 'werewolf',
       hostUserId: auth.user.id,
     });
     expect(WEREWOLF_STATE_CODEC.parse(body.snapshot.state)).toMatchObject({
-      roomCode,
+      roomCode: body.room.roomCode,
       hostUserId: auth.user.id,
       gameType: 'werewolf',
       stateVersion: 1,
@@ -104,119 +105,65 @@ describe('POST /room/create', () => {
     });
     expect(body.snapshot.revision).toBe(1);
 
-    const stateResponse = await postJson('/room/state', { roomCode });
-    expect(stateResponse.status).toBe(200);
-    expect(await stateResponse.json()).toEqual({ snapshot: body.snapshot });
+    const directory = await postJson('/room/get', { roomCode: body.room.roomCode });
+    expect(await directory.json()).toEqual({ room: body.room });
+    const state = await postJson('/room/state', {
+      roomCode: body.room.roomCode,
+      roomId: body.room.roomId,
+    });
+    expect(await state.json()).toEqual({ snapshot: body.snapshot });
   });
 
-  it('rejects client-authored state and unknown game types before writing D1', async () => {
+  it('rejects client routing fields, unknown games, and invalid config before D1 claim', async () => {
     const auth = await createAnonymousUser();
-    const roomCode = 'CREATE-INVALID';
-
-    const stateBlobResponse = await postJson(
+    const clientRouting = await postJson(
       '/room/create',
       {
-        roomCode,
+        roomCode: '1234',
         gameType: 'werewolf',
         config: { templateRoles: TEMPLATE_ROLES },
-        creationId: 'invalid-create-1',
+        creationId: 'invalid-create-routing',
         initialState: { hostUserId: 'forged' },
       },
       auth.access_token,
     );
-    const unknownGameResponse = await postJson(
+    const unknownGame = await postJson(
       '/room/create',
-      {
-        roomCode,
-        gameType: 'unknown-game',
-        config: {},
-        creationId: 'invalid-create-2',
-      },
+      { gameType: 'unknown-game', config: {}, creationId: 'invalid-create-game' },
       auth.access_token,
     );
+    const invalidConfig = await createRoom(auth, 'invalid-create-config', []);
 
-    expect(stateBlobResponse.status).toBe(400);
-    expect(unknownGameResponse.status).toBe(400);
-    const directory = await postJson('/room/get', { roomCode });
-    expect(await directory.json()).toEqual({ room: null });
+    expect(clientRouting.status).toBe(400);
+    expect(unknownGame.status).toBe(400);
+    expect(invalidConfig.status).toBe(400);
+    const count = await env.DB.prepare('SELECT COUNT(*) AS count FROM rooms').first<{
+      count: number;
+    }>();
+    expect(count?.count).toBe(0);
   });
 
-  it('returns a validation result for an invalid game config and removes the directory row', async () => {
-    const auth = await createAnonymousUser();
-    const roomCode = 'CREATE-BAD-CONFIG';
-    const response = await postJson(
-      '/room/create',
-      {
-        roomCode,
-        gameType: 'werewolf',
-        config: { templateRoles: [] },
-        creationId: 'bad-config-create',
-      },
-      auth.access_token,
-    );
+  it('replays the exact creation identity and rejects changed actor or config', async () => {
+    const host = await createAnonymousUser();
+    const other = await createAnonymousUser();
+    const first = await createActiveRoom(host, 'stable-creation');
+    const replayResponse = await createRoom(host, 'stable-creation');
+    expect(replayResponse.status).toBe(200);
+    expect(await replayResponse.json()).toEqual(first);
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ success: false, reason: 'VALIDATION_ERROR' });
-    expect(await (await postJson('/room/get', { roomCode })).json()).toEqual({ room: null });
-  });
-
-  it('rejects a duplicate room code without replacing its authoritative state', async () => {
-    const firstAuth = await createAnonymousUser();
-    const secondAuth = await createAnonymousUser();
-    const roomCode = 'CREATE-CONFLICT';
-    expect((await createRoom(roomCode, firstAuth, 'create-first')).status).toBe(200);
-
-    const conflict = await createRoom(roomCode, secondAuth, 'create-second');
-    expect(conflict.status).toBe(409);
-    expect(await conflict.json()).toEqual({
+    const changedActor = await createRoom(other, 'stable-creation');
+    expect(changedActor.status).toBe(409);
+    expect(await changedActor.json()).toEqual({
       success: false,
-      reason: REASON_ROOM_CODE_CONFLICT,
+      reason: REASON_ROOM_INITIALIZATION_CONFLICT,
     });
-
-    const stateResponse = await postJson('/room/state', { roomCode });
-    const payload: unknown = await stateResponse.json();
-    if (!isRecord(payload) || !('snapshot' in payload)) {
-      throw new Error('Invalid /room/state response envelope');
-    }
-    const snapshot = parseRoomSnapshot(payload.snapshot, WEREWOLF_STATE_CODEC);
-    expect(snapshot.state.hostUserId).toBe(firstAuth.user.id);
-  });
-
-  it('routes a reused public code to a new DO when the old directory row is gone', async () => {
-    const firstAuth = await createAnonymousUser();
-    const secondAuth = await createAnonymousUser();
-    const roomCode = 'REUSED-CODE';
-    expect((await createRoom(roomCode, firstAuth, 'create-before-directory-loss')).status).toBe(
-      200,
-    );
-    const firstDirectory = await env.DB.prepare('SELECT id FROM rooms WHERE code = ?')
-      .bind(roomCode)
-      .first<{ id: string }>();
-    if (firstDirectory === null) throw new Error('First room directory row is missing');
-
-    await env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(roomCode).run();
-
-    const recreated = await createRoom(roomCode, secondAuth, 'create-after-directory-loss');
-    expect(recreated.status).toBe(200);
-    const recreatedBody = await recreated.json<CreateRoomResponse>();
-    expect(recreatedBody.snapshot.state.hostUserId).toBe(secondAuth.user.id);
-    const secondDirectory = await env.DB.prepare('SELECT id FROM rooms WHERE code = ?')
-      .bind(roomCode)
-      .first<{ id: string }>();
-    if (secondDirectory === null) throw new Error('Second room directory row is missing');
-    expect(secondDirectory.id).not.toBe(firstDirectory.id);
-
-    const oldRoom = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(firstDirectory.id));
-    const oldSnapshot = await oldRoom.getSnapshot();
-    expect(oldSnapshot?.state.hostUserId).toBe(firstAuth.user.id);
-
-    const routedState = await postJson('/room/state', { roomCode });
-    const routedPayload: unknown = await routedState.json();
-    if (!isRecord(routedPayload) || !('snapshot' in routedPayload)) {
-      throw new Error('Invalid reused room state envelope');
-    }
-    const routedSnapshot = parseRoomSnapshot(routedPayload.snapshot, WEREWOLF_STATE_CODEC);
-    expect(routedSnapshot.state.hostUserId).toBe(secondAuth.user.id);
+    const changedConfig = await createRoom(host, 'stable-creation', [
+      'wolf',
+      'villager',
+      'villager',
+      'villager',
+    ]);
+    expect(changedConfig.status).toBe(409);
   });
 });
 
@@ -224,10 +171,10 @@ describe('POST /room/command', () => {
   it('requires auth and derives the seated user only from the token', async () => {
     const host = await createAnonymousUser();
     const player = await createAnonymousUser();
-    const roomCode = 'COMMAND-AUTH';
-    expect((await createRoom(roomCode, host, 'command-auth-create')).status).toBe(200);
+    const created = await createActiveRoom(host, 'command-auth-create');
     const command = {
-      roomCode,
+      roomCode: created.room.roomCode,
+      roomId: created.room.roomId,
       commandId: 'player-seat',
       controlledSeat: null,
       command: {
@@ -250,7 +197,6 @@ describe('POST /room/command', () => {
     const result = parseRoomCommandResult(await response.json(), WEREWOLF_STATE_CODEC);
     expect(result.kind).toBe('committed');
     if (result.kind !== 'committed') throw new Error(result.reason);
-    expect(result.commandId).toBe('player-seat');
     expect(result.snapshot.state.players[1]?.userId).toBe(player.user.id);
   });
 
@@ -259,7 +205,8 @@ describe('POST /room/command', () => {
     const response = await postJson(
       '/room/command',
       {
-        roomCode: 'MISSING-ROOM',
+        roomCode: '9999',
+        roomId: env.GAME_ROOM.newUniqueId().toString(),
         commandId: 'missing-room-command',
         controlledSeat: null,
         command: { type: 'room.seat.leave' },
@@ -273,10 +220,10 @@ describe('POST /room/command', () => {
 
   it('replays an identical command and decodes command ID conflicts as decisions', async () => {
     const auth = await createAnonymousUser();
-    const roomCode = 'COMMAND-REPLAY';
-    expect((await createRoom(roomCode, auth, 'command-replay-create')).status).toBe(200);
+    const created = await createActiveRoom(auth, 'command-replay-create');
     const command = {
-      roomCode,
+      roomCode: created.room.roomCode,
+      roomId: created.room.roomId,
       commandId: 'stable-command',
       controlledSeat: null,
       command: {
@@ -297,7 +244,6 @@ describe('POST /room/command', () => {
       { ...command, command: { type: 'room.seat.leave' } },
       auth.access_token,
     );
-    expect(conflict.status).toBe(200);
     const conflictResult = parseRoomCommandResult(await conflict.json(), WEREWOLF_STATE_CODEC);
     expect(conflictResult).toEqual({
       kind: 'rejected',
@@ -305,54 +251,76 @@ describe('POST /room/command', () => {
       reason: REASON_COMMAND_ID_CONFLICT,
     });
   });
+
+  it('rejects a stale room instance after resolving a reusable public code', async () => {
+    const auth = await createAnonymousUser();
+    const created = await createActiveRoom(auth, 'stale-instance-create');
+    const staleRoomId = env.GAME_ROOM.newUniqueId().toString();
+    const staleLocator = { roomCode: created.room.roomCode, roomId: staleRoomId };
+
+    const command = await postJson(
+      '/room/command',
+      {
+        ...staleLocator,
+        commandId: 'stale-instance-command',
+        controlledSeat: null,
+        command: { type: 'room.seat.leave' },
+      },
+      auth.access_token,
+    );
+    const state = await postJson('/room/state', staleLocator);
+    const deletion = await postJson('/room/delete', staleLocator, auth.access_token);
+
+    for (const response of [command, state, deletion]) {
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({
+        success: false,
+        reason: 'room_instance_mismatch',
+      });
+    }
+  });
+
+  it('surfaces an active directory row without DO state as an integrity failure', async () => {
+    const roomId = env.GAME_ROOM.newUniqueId().toString();
+    await env.DB.prepare(
+      `INSERT INTO rooms (
+        id, code, game_type, host_user_id, creation_id, config_json, status,
+        created_at, updated_at, games_started
+      ) VALUES (?, '6789', 'werewolf', 'host-1', 'missing-do-state',
+        '{"templateRoles":["wolf","seer","villager","villager"]}', 'active',
+        '2026-07-10T12:00:00.000Z', '2026-07-10T12:00:00.000Z', 0)`,
+    )
+      .bind(roomId)
+      .run();
+
+    const response = await postJson('/room/state', { roomCode: '6789', roomId });
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ success: false, reason: 'INTERNAL_ERROR' });
+  });
 });
 
 describe('POST /room/delete', () => {
-  it('keeps the room directory until committed effects are delivered', async () => {
+  it('keeps an active room available until outstanding effects are resolved', async () => {
     const auth = await createAnonymousUser();
-    const roomCode = 'DELETE-OUTBOX';
-    expect((await createRoom(roomCode, auth, 'delete-outbox-create')).status).toBe(200);
-
-    const directory = await env.DB.prepare('SELECT id FROM rooms WHERE code = ?')
-      .bind(roomCode)
-      .first<{ id: string }>();
-    if (directory === null) throw new Error('Room directory row is missing');
-    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(directory.id));
+    const created = await createActiveRoom(auth, 'delete-outbox-create');
+    const roomCode = created.room.roomCode;
+    const roomId = created.room.roomId;
+    const stub = env.GAME_ROOM.get(env.GAME_ROOM.idFromString(roomId));
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec(`
         INSERT INTO effect_outbox (
-          id,
-          origin_command_id,
-          scope,
-          game_type,
-          effect_type,
-          business_key,
-          payload_json,
-          status,
-          attempt_count,
-          available_at,
-          created_revision,
-          created_at,
-          last_error
+          id, origin_command_id, scope, game_type, effect_type, business_key,
+          payload_json, status, attempt_count, available_at, created_revision,
+          created_at, last_error
         ) VALUES (
-          'failed-delete-effect',
-          'failed-delete-command',
-          'platform',
-          'werewolf',
-          'room.participant.seated',
-          'failed-delete-business-key',
-          '{}',
-          'failed',
-          7,
-          0,
-          1,
-          0,
-          'delivery exhausted'
+          'failed-delete-effect', 'failed-delete-command', 'platform', 'werewolf',
+          'room.participant.seated', 'failed-delete-business-key', '{}', 'failed',
+          7, 0, 1, 0, 'delivery exhausted'
         )
       `);
     });
 
-    const blocked = await postJson('/room/delete', { roomCode }, auth.access_token);
+    const blocked = await postJson('/room/delete', { roomCode, roomId }, auth.access_token);
     expect(blocked.status).toBe(409);
     expect(await blocked.json()).toEqual({
       success: false,
@@ -365,10 +333,12 @@ describe('POST /room/delete', () => {
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'failed-delete-effect'");
     });
-
-    const deleted = await postJson('/room/delete', { roomCode }, auth.access_token);
+    const deleted = await postJson('/room/delete', { roomCode, roomId }, auth.access_token);
     expect(deleted.status).toBe(200);
-    expect(await deleted.json()).toEqual({ success: true });
+    expect(await deleted.json()).toEqual({ success: true, pending: false });
     expect(await (await postJson('/room/get', { roomCode })).json()).toEqual({ room: null });
+    await expect(
+      stub.getSnapshot({ roomCode, roomId, creationId: 'delete-outbox-create' }),
+    ).resolves.toBeNull();
   });
 });

@@ -19,13 +19,14 @@
  */
 
 import * as Sentry from '@sentry/cloudflare';
+import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv, Env } from './env';
 import { createLogger } from './lib/logger';
-import { findRoomInstance } from './platform/room/roomDirectory';
+import { resolveActiveRoom } from './platform/room/roomDirectory';
 
 // Re-export Durable Object class for wrangler
 export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
@@ -35,15 +36,16 @@ export { GameRoom } from './platform/room/GameRoom';
 import { adminRoutes } from './handlers/adminHandlers';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
-import { runScheduledCleanup } from './handlers/cronHandlers';
+import { runScheduledCron } from './handlers/cronHandlers';
 import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
 import { geminiRoutes } from './handlers/geminiProxy';
 import { roomRoutes } from './handlers/roomHandlers';
-import { callDO, getGameRoomStub } from './handlers/shared';
+import { callDO } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
 import { statsRoutes } from './handlers/statsHandlers';
 import { telemetryRoutes } from './handlers/telemetryHandlers';
+import { getGameRoomStub } from './platform/room/roomStub';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
@@ -106,9 +108,13 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 app.get('/ws', async (c) => {
   const roomCode = c.req.query('roomCode');
+  const roomId = c.req.query('roomId');
   const token = c.req.query('token');
-  if (!roomCode) {
-    return c.json({ error: 'roomCode required' }, 400);
+  if (roomCode === undefined || !isRoomCode(roomCode)) {
+    return c.json({ error: 'valid roomCode required' }, 400);
+  }
+  if (roomId === undefined || roomId.length === 0) {
+    return c.json({ error: 'roomId required' }, 400);
   }
   if (!token) {
     return c.json({ error: 'token required' }, 401);
@@ -121,15 +127,23 @@ app.get('/ws', async (c) => {
     return c.json({ error: 'unauthorized' }, 401);
   }
 
-  const room = await findRoomInstance(c.env, roomCode);
-  if (room === null) {
+  const resolution = await resolveActiveRoom(c.env, roomCode, roomId);
+  if (resolution.kind === 'missing') {
     return c.json({ error: 'room not found' }, 404);
   }
-  const stub = getGameRoomStub(c.env, room.roomInstanceId, c.req.raw);
+  if (resolution.kind === 'instanceMismatch') {
+    return c.json({ error: 'room instance mismatch' }, 409);
+  }
+  const { room } = resolution;
+  const stub = getGameRoomStub(c.env, room.roomId, c.req.raw);
   const doUrl = new URL(c.req.url);
   doUrl.pathname = '/websocket';
+  doUrl.search = '';
   // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
   doUrl.searchParams.set('userId', payload.sub);
+  doUrl.searchParams.set('roomCode', room.roomCode);
+  doUrl.searchParams.set('roomId', room.roomId);
+  doUrl.searchParams.set('creationId', room.creationId);
   return await callDO(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
 });
 
@@ -165,7 +179,7 @@ export default Sentry.withSentry(
       env: Env,
       ctx: ExecutionContext,
     ): Promise<void> {
-      ctx.waitUntil(runScheduledCleanup(env));
+      ctx.waitUntil(runScheduledCron(env, controller.cron, controller.scheduledTime));
     },
   } satisfies ExportedHandler<Env>,
 );

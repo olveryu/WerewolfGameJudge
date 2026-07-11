@@ -18,6 +18,10 @@
  */
 
 import {
+  parseRoomLocator,
+  type RoomLocator,
+} from '@werewolf/game-engine/platform/protocol/roomLocator';
+import {
   type GameStateCodec,
   parseStateUpdateMessage,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
@@ -70,7 +74,7 @@ export class CFRealtimeService implements IRealtimeTransport {
    * Open a new room socket after invalidating every event from the previous generation.
    * setEventHandlers() must be called before connect().
    */
-  connect(roomCode: string, _userId: string): void {
+  connect(room: RoomLocator, _userId: string): void {
     this.#requireHandlers();
     // Close any existing connection first (silent, no event)
     this.#closeWsSilent();
@@ -80,10 +84,13 @@ export class CFRealtimeService implements IRealtimeTransport {
     // The WS handshake cannot surface a 401 to the cfFetch refresh interceptor,
     // so an expired token would loop (401 → close → retry with the same stale token).
     // Refresh the token up-front, then open the socket.
-    void this.#openSocket(roomCode, generation);
+    void this.#openSocket(
+      parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId }),
+      generation,
+    );
   }
 
-  async #openSocket(roomCode: string, generation: number): Promise<void> {
+  async #openSocket(room: RoomLocator, generation: number): Promise<void> {
     const token = await ensureFreshToken();
     // A newer connect()/disconnect() superseded us while refreshing → abort.
     if (generation !== this.#generation) return;
@@ -94,9 +101,9 @@ export class CFRealtimeService implements IRealtimeTransport {
     }
 
     const wsBase = API_BASE_URL.replace(/^http/, 'ws');
-    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(roomCode)}&token=${encodeURIComponent(token)}`;
+    const wsUrl = `${wsBase}/ws?roomCode=${encodeURIComponent(room.roomCode)}&roomId=${encodeURIComponent(room.roomId)}&token=${encodeURIComponent(token)}`;
 
-    realtimeLog.info('Transport: connecting', { roomCode });
+    realtimeLog.info('Transport: connecting', room);
     const ws = new WebSocket(wsUrl);
 
     const timeout = setTimeout(() => {
@@ -113,7 +120,7 @@ export class CFRealtimeService implements IRealtimeTransport {
       }
       clearTimeout(timeout);
       this.#ws = ws;
-      realtimeLog.info('Transport: WebSocket open', { roomCode });
+      realtimeLog.info('Transport: WebSocket open', room);
       this.#requireHandlers().onOpen();
     };
 

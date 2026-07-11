@@ -12,25 +12,6 @@ import type { z } from 'zod';
 import type { WeChatAuthProxy } from '../durableObjects/WeChatAuthProxy';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
-import type { GameRoom } from '../platform/room/GameRoom';
-
-/**
- * Strip the `& Disposable` intersection that @cloudflare/workers-types adds
- * to DO stub RPC return values. This restores proper discriminated union narrowing.
- *
- * Usage: cast the raw CF stub once at the creation site → all downstream call
- * sites get clean types without per-call `as Promise<T>`.
- */
-type StripDisposable<T> = T extends Disposable ? Omit<T, keyof Disposable> : T;
-
-type CleanRpcMethods<DO> = {
-  [K in keyof DO]: DO[K] extends (...args: infer A) => Promise<infer R>
-    ? (...args: A) => Promise<StripDisposable<R>>
-    : DO[K];
-};
-
-/** GameRoom stub with clean RPC return types (Disposable stripped). */
-type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoom>>;
 
 const log = createLogger('do');
 
@@ -62,35 +43,6 @@ export function jsonBody<T extends z.ZodType>(schema: T) {
 }
 
 /**
- * Maps CF continent codes to DO location hints.
- * Only affects the first get() for a new DO — subsequent calls ignore the hint.
- */
-const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
-  AS: 'apac',
-  OC: 'oc',
-  EU: 'weur',
-  NA: 'enam',
-  SA: 'enam', // SA unsupported → falls back to ENAM per CF docs
-  AF: 'afr',
-};
-
-/**
- * Get a typed DO stub for a persisted room instance ID.
- *
- * Returns a GameRoomStub with clean RPC types (Disposable stripped),
- * eliminating the need for `as Promise<GameActionResult>` at every call site.
- *
- * Optionally accepts the incoming Request to extract cf.continent
- * and pass a locationHint, co-locating the DO near the first requester.
- */
-export function getGameRoomStub(env: Env, roomInstanceId: string, req?: Request): GameRoomStub {
-  const id = env.GAME_ROOM.idFromString(roomInstanceId);
-  const cf = (req as CfRequest | undefined)?.cf;
-  const locationHint = cf?.continent ? CONTINENT_TO_HINT[cf.continent] : undefined;
-  return env.GAME_ROOM.get(id, locationHint ? { locationHint } : undefined);
-}
-
-/**
  * Get a WeChatAuthProxy stub with locationHint: "apac".
  *
  * Uses a singleton DO (idFromName("wechat-auth")) — stateless, only proxies
@@ -100,9 +52,6 @@ export function getWeChatAuthStub(env: Env): DurableObjectStub<WeChatAuthProxy> 
   const id = env.WECHAT_AUTH.idFromName('wechat-auth');
   return env.WECHAT_AUTH.get(id, { locationHint: 'apac' });
 }
-
-/** Request with Cloudflare-specific properties. */
-type CfRequest = Request & { cf?: IncomingRequestCfProperties };
 
 /**
  * Wraps a DO RPC call and handles DO-specific error properties.

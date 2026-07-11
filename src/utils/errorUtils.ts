@@ -122,7 +122,6 @@ const REASON_CODE_MAP: Record<string, string> = {
   INVALID_REFRESH_TOKEN: '登录已过期，请重新登录',
   WECHAT_ALREADY_BOUND: '该微信已绑定其他账号',
   // ── Room / Avatar / Share ─────────────────────────────────────────────────
-  room_code_conflict: '房间号冲突，请重试',
   room_initialization_conflict: '房间初始化冲突，请重新创建',
   room_effects_pending: '房间操作仍在处理中，请稍后重试',
   command_id_conflict: '操作标识冲突，请重试',

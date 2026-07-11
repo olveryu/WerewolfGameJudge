@@ -8,7 +8,6 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
-  REASON_ROOM_INITIALIZATION_CONFLICT,
   REASON_SEAT_EMPTY,
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import { createUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
@@ -22,7 +21,7 @@ import type { DispatchRoomResult, InitializeRoomResult } from '../platform/room/
 import { enqueueUserEvent } from '../platform/userEvents/inbox';
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
-const ROOM_CODE = 'GENERIC-ROOM';
+const ROOM_CODE = '1234';
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
 
 beforeAll(async () => {
@@ -36,30 +35,40 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM rooms').run();
   await env.DB.prepare("DELETE FROM users WHERE id IN ('host-1', 'player-1')").run();
   await env.DB.prepare("INSERT INTO users (id) VALUES ('host-1'), ('player-1')").run();
-  await env.DB.prepare(
-    `INSERT INTO rooms (
-      id, code, host_user_id, created_at, updated_at, games_started
-    ) VALUES ('generic-room-id', ?, 'host-1', '2026-01-01T00:00:00.000Z',
-      '2026-01-01T00:00:00.000Z', 0)`,
-  )
-    .bind(ROOM_CODE)
-    .run();
 });
 
 function getStub(): DurableObjectStub<GameRoom> {
   return env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
 }
 
+function roomIdentity(stub: DurableObjectStub<GameRoom>, creationId = 'creation-1') {
+  return { roomCode: ROOM_CODE, roomId: stub.id.toString(), creationId };
+}
+
+async function ensureDirectory(stub: DurableObjectStub<GameRoom>): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO rooms (
+      id, code, game_type, host_user_id, creation_id, config_json, status,
+      created_at, updated_at, games_started
+    ) VALUES (?, ?, 'werewolf', 'host-1', 'creation-1',
+      '{"templateRoles":["wolf","seer","villager","villager"]}', 'active',
+      '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 0)
+    ON CONFLICT DO NOTHING`,
+  )
+    .bind(stub.id.toString(), ROOM_CODE)
+    .run();
+}
+
 async function initialize(
   stub: DurableObjectStub<GameRoom>,
   creationId = 'creation-1',
 ): Promise<InitializeRoomResult> {
+  await ensureDirectory(stub);
   return stub.initializeRoom({
-    roomCode: ROOM_CODE,
+    ...roomIdentity(stub, creationId),
     gameType: 'werewolf',
     hostUserId: 'host-1',
     config: { templateRoles: TEMPLATE_ROLES },
-    creationId,
   });
 }
 
@@ -73,7 +82,7 @@ async function dispatch(
   },
 ): Promise<DispatchRoomResult> {
   return stub.dispatchUserCommand({
-    roomCode: ROOM_CODE,
+    ...roomIdentity(stub),
     commandId: input.commandId,
     actorUserId: input.actorUserId,
     controlledSeat: input.controlledSeat ?? null,
@@ -104,8 +113,8 @@ describe('GameRoom initialization', () => {
   it('fails fast before initialization instead of hanging', async () => {
     const stub = getStub();
 
-    await expect(stub.getSnapshot()).resolves.toBeNull();
-    await expect(stub.getRevision()).resolves.toBeNull();
+    await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
+    await expect(stub.getRevision(roomIdentity(stub))).resolves.toBeNull();
     await expect(
       dispatch(stub, {
         commandId: 'before-init',
@@ -119,13 +128,18 @@ describe('GameRoom initialization', () => {
     const stub = getStub();
     const first = await initialize(stub);
     const replay = await initialize(stub);
-    const conflict = await initialize(stub, 'creation-2');
 
     expect(first).toMatchObject({ success: true, isReplay: false });
     expect(replay).toMatchObject({ success: true, isReplay: true });
-    expect(conflict).toEqual({
-      success: false,
-      reason: REASON_ROOM_INITIALIZATION_CONFLICT,
+    await runInDurableObject(stub, async (instance: GameRoom) => {
+      await expect(
+        instance.initializeRoom({
+          ...roomIdentity(stub, 'creation-2'),
+          gameType: 'werewolf',
+          hostUserId: 'host-1',
+          config: { templateRoles: TEMPLATE_ROLES },
+        }),
+      ).rejects.toThrow('Room identity does not match Durable Object storage');
     });
     if (!first.success) throw new Error(first.reason);
     const state = WEREWOLF_STATE_CODEC.parse(first.snapshot.state);
@@ -141,7 +155,7 @@ describe('GameRoom initialization', () => {
 
   it('validates the current schema idempotently', async () => {
     const stub = getStub();
-    await stub.getSnapshot();
+    await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       initializeRoomStorage(state.storage, Date.now());
@@ -155,7 +169,7 @@ describe('GameRoom initialization', () => {
 
   it('rejects an unversioned room schema without replacing it', async () => {
     const stub = getStub();
-    await stub.getSnapshot();
+    await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       await state.storage.deleteAlarm();
@@ -185,7 +199,7 @@ describe('GameRoom initialization', () => {
 
   it('rejects a future schema version', async () => {
     const stub = getStub();
-    await stub.getSnapshot();
+    await stub.getSnapshot(roomIdentity(stub));
 
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       await state.storage.deleteAll();
@@ -226,7 +240,7 @@ describe('GameRoom command receipts', () => {
     expect(first.result.snapshot.state.players[0]?.userId).toBe('host-1');
     expect(replay.isReplay).toBe(true);
     expect(replay.result).toEqual(first.result);
-    expect(await stub.getRevision()).toBe(2);
+    expect(await stub.getRevision(roomIdentity(stub))).toBe(2);
   });
 
   it('advances revision for a committed state event even when JSON values are unchanged', async () => {
@@ -254,7 +268,7 @@ describe('GameRoom command receipts', () => {
     );
 
     expect(update.result.snapshot.revision).toBe(3);
-    expect(await stub.getRevision()).toBe(3);
+    expect(await stub.getRevision(roomIdentity(stub))).toBe(3);
   });
 
   it('rejects command ID reuse by another actor or request body', async () => {
@@ -334,7 +348,7 @@ describe('GameRoom command receipts', () => {
 
     const replay = await dispatch(stub, rejectedRequest);
     expect(replay).toEqual({ kind: 'decided', result: first.result, isReplay: true });
-    const snapshot = await stub.getSnapshot();
+    const snapshot = await stub.getSnapshot(roomIdentity(stub));
     if (snapshot === null) throw new Error('Expected initialized snapshot');
     expect(WEREWOLF_STATE_CODEC.parse(snapshot.state).players[2]?.hasViewedRole).toBe(false);
   });
@@ -375,9 +389,9 @@ describe('GameRoom command receipts', () => {
 
     await runDurableObjectAlarm(stub);
     const participant = await env.DB.prepare(
-      'SELECT user_id FROM room_participants WHERE room_code = ?',
+      'SELECT user_id FROM room_participants WHERE room_id = ?',
     )
-      .bind(ROOM_CODE)
+      .bind(stub.id.toString())
       .first();
     expect(participant).toEqual({ user_id: 'host-1' });
   });
@@ -419,7 +433,9 @@ describe('GameRoom command receipts', () => {
       `);
     });
 
-    await expect(stub.deleteRoom('host-1')).resolves.toEqual({
+    await expect(
+      stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),
+    ).resolves.toEqual({
       success: false,
       reason: 'room_effects_pending',
     });
@@ -435,7 +451,13 @@ describe('GameRoom command receipts', () => {
     await runInDurableObject(stub, async (_instance: GameRoom, state) => {
       state.storage.sql.exec("DELETE FROM effect_outbox WHERE id = 'failed-effect'");
     });
-    await expect(stub.deleteRoom('host-1')).resolves.toEqual({ success: true });
+    await expect(
+      stub.authorizeRoomDeletion({ ...roomIdentity(stub), actorUserId: 'host-1' }),
+    ).resolves.toEqual({ success: true });
+    await expect(stub.deleteRoomStorage(roomIdentity(stub))).resolves.toEqual({
+      success: true,
+    });
+    await expect(stub.getSnapshot(roomIdentity(stub))).resolves.toBeNull();
   });
 
   it('acknowledges a durable user event only through the socket user identity', async () => {
@@ -474,9 +496,14 @@ describe('GameRoom command receipts', () => {
     });
 
     const response = await stub.fetch(
-      new Request(`https://room.test/websocket?roomCode=${ROOM_CODE}&userId=host-1`, {
-        headers: { Upgrade: 'websocket' },
-      }),
+      new Request(
+        `https://room.test/websocket?roomCode=${ROOM_CODE}&roomId=${encodeURIComponent(
+          stub.id.toString(),
+        )}&creationId=creation-1&userId=host-1`,
+        {
+          headers: { Upgrade: 'websocket' },
+        },
+      ),
     );
     expect(response.status).toBe(101);
     const socket = response.webSocket;

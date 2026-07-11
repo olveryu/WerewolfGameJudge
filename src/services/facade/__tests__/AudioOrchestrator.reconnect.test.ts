@@ -22,6 +22,7 @@ const mockDispatchPreparedAudioAck = jest.fn<Promise<RoomCommandDispatchOutcome>
 
 const mockPreparedAudioAckA: PreparedAudioAck = Object.freeze({
   roomCode: 'ROOM',
+  roomId: 'room-id-room',
   commandId: 'audio-ack-a',
   command: Object.freeze({ type: 'werewolf.audio.ack' }),
   controlledSeat: null,
@@ -29,6 +30,7 @@ const mockPreparedAudioAckA: PreparedAudioAck = Object.freeze({
 
 const mockPreparedAudioAckB: PreparedAudioAck = Object.freeze({
   roomCode: 'ROOM',
+  roomId: 'room-id-room',
   commandId: 'audio-ack-b',
   command: Object.freeze({ type: 'werewolf.audio.ack' }),
   controlledSeat: null,

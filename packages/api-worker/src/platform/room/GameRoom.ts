@@ -22,15 +22,21 @@ import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox } from './effectOutbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
+import { assertRoomEffectDirectory } from './roomDirectory';
 import { getWorkerGameModule, RoomRepository } from './roomRepository';
 import { initializeRoomStorage } from './storageSchema';
 import type {
-  DeleteRoomResult,
+  AuthorizeRoomDeletionCommand,
+  AuthorizeRoomDeletionResult,
+  DeleteRoomStorageCommand,
+  DeleteRoomStorageResult,
   DispatchRoomResult,
   DispatchUserRoomCommand,
   InitializeRoomCommand,
   InitializeRoomResult,
   PendingOutboxEffect,
+  ReadRoomCommand,
+  RoomInstanceIdentity,
 } from './types';
 
 const OUTBOX_DRAIN_BATCH_SIZE = 16;
@@ -56,6 +62,7 @@ function assertEffectType(effect: PendingOutboxEffect): void {
 class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   readonly #repository: RoomRepository;
   readonly #outbox: EffectOutbox;
+  #isStorageDeleted = false;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -69,10 +76,21 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   }
 
   async initializeRoom(command: InitializeRoomCommand): Promise<InitializeRoomResult> {
+    if (this.#isStorageDeleted) {
+      throw new Error('Deleted room storage cannot be initialized again');
+    }
+    this.#readRoomInstance(command);
     return this.#repository.initialize(command, Date.now());
   }
 
   async dispatchUserCommand(command: DispatchUserRoomCommand): Promise<DispatchRoomResult> {
+    if (this.#isStorageDeleted) {
+      return { kind: 'unavailable', reason: REASON_NO_STATE };
+    }
+    const room = this.#readRoomInstance(command);
+    if (room === null) {
+      return { kind: 'unavailable', reason: REASON_NO_STATE };
+    }
     if (command.actorUserId.length === 0) {
       throw new Error('dispatchUserCommand.actorUserId must be non-empty');
     }
@@ -98,29 +116,55 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     return pipeline.rpc;
   }
 
-  async getSnapshot(): Promise<RoomSnapshot<BaseGameState<GameType>> | null> {
+  async getSnapshot(
+    command: ReadRoomCommand,
+  ): Promise<RoomSnapshot<BaseGameState<GameType>> | null> {
+    if (this.#isStorageDeleted) return null;
+    this.#readRoomInstance(command);
     return this.#repository.readSnapshot();
   }
 
-  async getRevision(): Promise<number | null> {
+  async getRevision(command: ReadRoomCommand): Promise<number | null> {
+    if (this.#isStorageDeleted) return null;
+    this.#readRoomInstance(command);
     return this.#repository.readRoom()?.revision ?? null;
   }
 
-  async deleteRoom(actorUserId: string): Promise<DeleteRoomResult> {
-    const room = this.#repository.readRoom();
+  async authorizeRoomDeletion(
+    command: AuthorizeRoomDeletionCommand,
+  ): Promise<AuthorizeRoomDeletionResult> {
+    if (this.#isStorageDeleted) return { success: false, reason: REASON_NO_STATE };
+    const room = this.#readRoomInstance(command);
     if (room === null) return { success: false, reason: REASON_NO_STATE };
-    if (actorUserId !== room.hostUserId) {
+    if (command.actorUserId !== room.hostUserId) {
       return { success: false, reason: REASON_NOT_HOST };
     }
     if (this.#outbox.hasOutstandingEffects()) {
       return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
     }
+    return { success: true };
+  }
+
+  async deleteRoomStorage(command: DeleteRoomStorageCommand): Promise<DeleteRoomStorageResult> {
+    this.#assertIdentityFields(command);
+    if (this.#isStorageDeleted) return { success: true };
+
+    this.#readRoomInstance(command);
+    if (this.#outbox.hasOutstandingEffects()) {
+      return { success: false, reason: REASON_ROOM_EFFECTS_PENDING };
+    }
+
+    for (const socket of this.ctx.getWebSockets()) {
+      socket.close(1000, 'room_deleted');
+    }
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
+    this.#isStorageDeleted = true;
     return { success: true };
   }
 
   async alarm(): Promise<void> {
+    if (this.#isStorageDeleted) return;
     for (let processed = 0; processed < OUTBOX_DRAIN_BATCH_SIZE; processed += 1) {
       const claim = await this.#outbox.claimNextDue(Date.now());
       if (claim.kind === 'empty') break;
@@ -169,18 +213,29 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
 
   async #executeEffect(effect: PendingOutboxEffect): Promise<void> {
     assertEffectType(effect);
-    if (effect.scope === 'platform') {
-      await handlePlatformRoomEffect(effect.id, parsePlatformRoomEffect(effect.payload), this.env);
-      return;
-    }
-
     const room = this.#repository.readRoom();
     if (room === null) {
-      throw new Error(`Game effect ${effect.id} has no room state`);
+      throw new Error(`Room effect ${effect.id} has no room state`);
     }
     if (room.gameType !== effect.gameType) {
       throw new Error(`Game effect ${effect.id} does not match its room`);
     }
+    const directoryIdentity = {
+      roomId: this.ctx.id.toString(),
+      roomCode: room.roomCode,
+      creationId: room.creationId,
+    };
+    await assertRoomEffectDirectory(this.env, directoryIdentity);
+    if (effect.scope === 'platform') {
+      await handlePlatformRoomEffect(
+        effect.id,
+        parsePlatformRoomEffect(effect.payload),
+        directoryIdentity,
+        this.env,
+      );
+      return;
+    }
+
     const module = getWorkerGameModule(room.gameType);
     await module.handleEffect(effect.payload, {
       bindings: this.env,
@@ -275,6 +330,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   }
 
   async fetch(request: Request): Promise<Response> {
+    if (this.#isStorageDeleted) return new Response('Room deleted', { status: 404 });
     const url = new URL(request.url);
     if (url.pathname !== '/websocket') {
       return new Response('Not Found', { status: 404 });
@@ -285,12 +341,22 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
   async #handleWebSocketUpgrade(url: URL): Promise<Response> {
     const userId = url.searchParams.get('userId');
     const roomCode = url.searchParams.get('roomCode');
-    if (userId === null || userId.length === 0 || roomCode === null || roomCode.length === 0) {
-      return new Response('userId and roomCode required', { status: 400 });
+    const roomId = url.searchParams.get('roomId');
+    const creationId = url.searchParams.get('creationId');
+    if (
+      userId === null ||
+      userId.length === 0 ||
+      roomCode === null ||
+      roomCode.length === 0 ||
+      roomId === null ||
+      roomId.length === 0 ||
+      creationId === null ||
+      creationId.length === 0
+    ) {
+      return new Response('userId and room identity required', { status: 400 });
     }
-    const room = this.#repository.readRoom();
+    const room = this.#readRoomInstance({ roomCode, roomId, creationId });
     if (room === null) return new Response('Room not initialized', { status: 404 });
-    if (room.roomCode !== roomCode) return new Response('Room code mismatch', { status: 409 });
 
     const pair = new WebSocketPair();
     this.ctx.acceptWebSocket(pair[1], [userSocketTag(userId)]);
@@ -298,7 +364,34 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
+  #assertIdentityFields(identity: RoomInstanceIdentity): void {
+    if (
+      identity.roomId.length === 0 ||
+      identity.roomCode.length === 0 ||
+      identity.creationId.length === 0
+    ) {
+      throw new Error('Room instance identity fields must be non-empty');
+    }
+    if (identity.roomId !== this.ctx.id.toString()) {
+      throw new Error('Room identity does not match the addressed Durable Object');
+    }
+  }
+
+  #readRoomInstance(identity: RoomInstanceIdentity): ReturnType<RoomRepository['readRoom']> {
+    this.#assertIdentityFields(identity);
+    const room = this.#repository.readRoom();
+    if (room === null) return null;
+    if (room.roomCode !== identity.roomCode || room.creationId !== identity.creationId) {
+      throw new Error('Room identity does not match Durable Object storage');
+    }
+    return room;
+  }
+
   async webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    if (this.#isStorageDeleted) {
+      socket.close(1000, 'room_deleted');
+      return;
+    }
     let acknowledgement;
     try {
       if (typeof message !== 'string') {

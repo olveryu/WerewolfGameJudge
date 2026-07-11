@@ -12,6 +12,7 @@ import type {
   GameEffect,
   StateOf,
 } from '@werewolf/game-engine/platform/engine';
+import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
 import {
   parseRoomCommandResult,
   type RoomCommandResult,
@@ -51,6 +52,14 @@ export type RuntimeCreateResult =
     }
   | { readonly kind: 'invalidConfig'; readonly reason: string };
 
+export type RuntimeConfigResult =
+  | {
+      readonly kind: 'valid';
+      readonly config: unknown;
+      readonly configJson: string;
+    }
+  | { readonly kind: 'invalid'; readonly reason: string };
+
 export interface WorkerEffectContext<TInternalCommand> {
   readonly bindings: Env;
   readonly effectId: string;
@@ -79,6 +88,7 @@ export interface RuntimeWorkerEffectContext {
 export interface RuntimeWorkerGameModule {
   readonly gameType: GameType;
   readonly stateVersion: number;
+  parseCreateConfig(config: unknown): RuntimeConfigResult;
   createInitialState(config: unknown, context: CreateGameContext): RuntimeCreateResult;
   parseState(value: unknown): BaseGameState<GameType>;
   parseCommandResult(value: unknown): RoomCommandResult<BaseGameState<GameType>>;
@@ -197,22 +207,37 @@ export function defineWorkerGameModule<
     return state;
   };
 
+  const parseCreateConfig = (
+    rawConfig: unknown,
+  ):
+    | { readonly kind: 'valid'; readonly config: ConfigOf<TEngine>; readonly configJson: string }
+    | { readonly kind: 'invalid'; readonly reason: string } => {
+    const parsedConfig = definition.createConfigSchema.safeParse(rawConfig);
+    if (!parsedConfig.success) return { kind: 'invalid', reason: 'VALIDATION_ERROR' };
+    return {
+      kind: 'valid',
+      config: parsedConfig.data,
+      configJson: canonicalJson(parsedConfig.data),
+    };
+  };
+
   return {
     ...definition,
     stateVersion: definition.engine.stateVersion,
+    parseCreateConfig,
     createInitialState: (rawConfig, context) => {
-      const parsedConfig = definition.createConfigSchema.safeParse(rawConfig);
-      if (!parsedConfig.success) {
-        return { kind: 'invalidConfig', reason: 'VALIDATION_ERROR' };
+      const parsedConfig = parseCreateConfig(rawConfig);
+      if (parsedConfig.kind === 'invalid') {
+        return { kind: 'invalidConfig', reason: parsedConfig.reason };
       }
       const state = definition.engine.normalize(
-        definition.engine.createInitialState(parsedConfig.data, context),
+        definition.engine.createInitialState(parsedConfig.config, context),
       );
       assertStateIdentity(definition, state);
       return {
         kind: 'created',
         state,
-        configJson: JSON.stringify(parsedConfig.data),
+        configJson: parsedConfig.configJson,
       };
     },
     parseState,

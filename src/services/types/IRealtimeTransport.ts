@@ -11,6 +11,7 @@
  */
 
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
 import type { StateUpdateMessage } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -53,7 +54,7 @@ export interface IRealtimeTransport {
    * Built-in 8s connect timeout. Timeout/failure is signaled via handlers.onClose / handlers.onError.
    * Contains no reconnect logic.
    */
-  connect(roomCode: string, userId: string): void;
+  connect(room: RoomLocator, userId: string): void;
 
   /**
    * Close the current WebSocket.

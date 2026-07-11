@@ -15,7 +15,7 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
@@ -56,7 +56,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
 
   it('blocked player tapping a seat shows confirm dialog (not blocked alert)', async () => {
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -94,7 +94,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
       },
     } as unknown as MockReturn;
 
-    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
     await waitFor(() => {
       expect(mockShowAlert).toHaveBeenCalledWith(
@@ -137,7 +137,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     } as unknown as MockReturn;
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -169,7 +169,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     };
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -201,7 +201,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     };
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -247,7 +247,7 @@ describe('Nightmare Blocked UI (server-authoritative)', () => {
     } as unknown as MockReturn;
 
     const { getByTestId, queryByText } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {

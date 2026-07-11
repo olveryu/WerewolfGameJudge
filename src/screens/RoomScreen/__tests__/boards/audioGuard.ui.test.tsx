@@ -16,7 +16,7 @@ import {
   createGameRoomMock,
   createShowAlertMock,
   mockNavigation,
-  mockRoomRoute,
+  mockRoom,
   RoomScreenTestHarness,
   tapSeat,
   waitForRoomScreen,
@@ -72,7 +72,8 @@ jest.mock('../../../../hooks/useGameRoom', () => ({
 }));
 
 describe('Audio Guard (isAudioPlaying=true)', () => {
-  const renderRoom = () => render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+  const renderRoom = () =>
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -79,6 +79,17 @@ export const RoomsTab: React.FC = () => {
               房主: {item.hostName ?? '未知'} · {item.hostCountry ?? '?'}
             </Text>
             <Text style={styles.cardDetail}>
+              {item.gameType} ·{' '}
+              {
+                { creating: '创建中', active: '活跃', deleting: '删除中', failed: '恢复失败' }[
+                  item.status
+                ]
+              }
+              {item.reconciliationAttemptCount > 0
+                ? ` · 已重试 ${item.reconciliationAttemptCount} 次`
+                : ''}
+            </Text>
+            <Text style={styles.cardDetail}>
               {item.gamesStarted > 0
                 ? `已开局 ${item.gamesStarted} 次${
                     item.lastStartedAt

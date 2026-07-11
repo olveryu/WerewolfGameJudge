@@ -288,25 +288,12 @@ Specialized waits for RoomScreen after creation or joining.
 
 ---
 
-## HTTP 409 Conflict Handling (Room Creation)
+## Room Creation Retry Contract
 
-**Failure Signature:** `Failed to create room: duplicate key value violates unique constraint`
-
-**Root Cause:** Race condition between `generateRoomCode()` check and `createRoom()` insert.
-If another client creates a room with the same 4-digit code in between, Supabase returns 409.
-
-### Mitigation (IMPLEMENTED in RoomService)
-
-1. **createRoom() retry logic:**
-   - On 409/duplicate error: generate new room number and retry
-   - Up to 3 attempts (configurable via `maxRetries`)
-   - Logs each retry attempt with error details
-
-2. **Detection patterns:**
-   - PostgreSQL error code `23505` (unique_violation)
-   - Error message contains "duplicate", "conflict", or "already exists"
-
-**Status:** ✅ MITIGATED at app level. Room creation retries with new code on conflict.
+Public four-digit codes are allocated by the Worker. The client persists one `creationId` for the
+canonical creation intent and retries that exact identity after unknown delivery or app restart.
+D1 owns code-collision retry and the create/delete saga reconciler resumes interrupted cross-storage
+steps. Tests must never generate a room code or retry a creation with a new identity.
 
 ---
 

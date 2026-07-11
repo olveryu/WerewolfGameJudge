@@ -17,7 +17,7 @@ import { RoomScreen } from '@/screens/RoomScreen/RoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
-import { makeBaseUseGameRoomReturn, mockNavigation, mockRoomRoute } from './schemaSmokeTestUtils';
+import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
 jest.mock('../../../utils/alert', () => ({
   ...jest.requireActual<typeof import('../../../utils/alert')>('../../../utils/alert'),
@@ -67,7 +67,7 @@ describe('RoomScreen witch save UI (contract)', () => {
 
   it('seat tapping does NOT submit save (save is confirmTarget, target comes from witchContext)', async () => {
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -81,7 +81,7 @@ describe('RoomScreen witch save UI (contract)', () => {
   });
 
   it('shows witch info prompt using schema.ui.prompt on render', async () => {
-    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
     // Some builds may not auto-prompt on first render (depending on RoomScreen prompt gating).
     // Keep this test focused on the contract: save is NOT seat-driven.
@@ -94,7 +94,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 2 });
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -112,7 +112,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
     const { getByTestId, getByText } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitFor(() => {
@@ -157,7 +157,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     const killedSeat = 2;
     mockUseGameRoomReturn = makeMock({ canSave: true, killedSeat });
 
-    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
     const saveStep = witchSchema.steps[0]!;
@@ -176,7 +176,7 @@ describe('RoomScreen witch save UI (contract)', () => {
     // Witch is at seat 0, wolves kill seat 0 → canSave=false, killedSeat=0
     mockUseGameRoomReturn = makeMock({ canSave: false, killedSeat: 0 });
 
-    render(<RoomScreen route={mockRoomRoute} navigation={mockNavigation} />);
+    render(<RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />);
 
     const witchSchema = SCHEMAS.witchAction as CompoundSchema;
     const saveStep = witchSchema.steps[0]!;

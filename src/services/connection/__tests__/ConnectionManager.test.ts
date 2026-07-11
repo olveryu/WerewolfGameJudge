@@ -47,6 +47,8 @@ function createMockTransport(): IRealtimeTransport & {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MOCK_STATE = { ...WEREWOLF_STATE_IDENTITY } as unknown as GameState;
+const ROOM_1 = { roomCode: '1234', roomId: 'room-id-1' } as const;
+const ROOM_2 = { roomCode: '5678', roomId: 'room-id-2' } as const;
 
 function createMockSnapshot(revision: number): RoomSnapshot<GameState> {
   return { ...WEREWOLF_STATE_IDENTITY, state: MOCK_STATE, revision };
@@ -87,10 +89,10 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       // Should call transport.connect
-      expect(transport.connect).toHaveBeenCalledWith('ROOM1', 'USER1');
+      expect(transport.connect).toHaveBeenCalledWith(ROOM_1, 'USER1');
 
       // Simulate WS open → triggers FETCH_STATE
       transport.handlers.onOpen();
@@ -110,7 +112,7 @@ describe('ConnectionManager', () => {
       });
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1', 5000);
+      const promise = manager.connectAndWait(ROOM_1, 'USER1', 5000);
 
       // WS opens but fetch hangs
       t.handlers.onOpen();
@@ -128,7 +130,7 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // First connect
-      const p1 = manager.connectAndWait('ROOM1', 'USER1');
+      const p1 = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await p1;
@@ -136,7 +138,7 @@ describe('ConnectionManager', () => {
       // Second connect to same room — should re-fetch state but not re-open WS
       const fetchSpy = deps.fetchStateFromDB as jest.Mock;
       const callsBefore = fetchSpy.mock.calls.length;
-      await expect(manager.connectAndWait('ROOM1', 'USER1')).resolves.toBeUndefined();
+      await expect(manager.connectAndWait(ROOM_1, 'USER1')).resolves.toBeUndefined();
       expect(fetchSpy).toHaveBeenCalledTimes(callsBefore + 1);
 
       manager.dispose();
@@ -146,7 +148,7 @@ describe('ConnectionManager', () => {
       const { deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       manager.dispose();
 
@@ -158,17 +160,17 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
       manager.dispose();
 
-      await expect(manager.connectAndWait('ROOM1', 'USER1')).rejects.toThrow('disposed');
+      await expect(manager.connectAndWait(ROOM_1, 'USER1')).rejects.toThrow('disposed');
     });
 
     it('rejects old promise when called again before settling', async () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise1 = manager.connectAndWait('ROOM1', 'USER1');
+      const promise1 = manager.connectAndWait(ROOM_1, 'USER1');
 
       // Second call before first settles
-      const promise2 = manager.connectAndWait('ROOM1', 'USER1');
+      const promise2 = manager.connectAndWait(ROOM_1, 'USER1');
 
       // Old promise should be rejected with SupersededError
       await expect(promise1).rejects.toBeInstanceOf(SupersededError);
@@ -194,7 +196,7 @@ describe('ConnectionManager', () => {
       expect(states).toEqual([ConnectionState.Idle]);
 
       // Connect
-      manager.connect('ROOM1', 'USER1');
+      manager.connect(ROOM_1, 'USER1');
       expect(states).toContain(ConnectionState.Connecting);
 
       // WS open → Syncing
@@ -220,7 +222,7 @@ describe('ConnectionManager', () => {
 
       unsub();
 
-      manager.connect('ROOM1', 'USER1');
+      manager.connect(ROOM_1, 'USER1');
       // Should NOT get Connecting notification
       expect(states).toEqual([ConnectionState.Idle]);
 
@@ -245,7 +247,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -268,7 +270,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -292,7 +294,7 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // Get to Connected
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -318,7 +320,7 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // Get to Connected then disconnect
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -356,7 +358,7 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // Get to Connected (has ping + revision poll running)
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -377,7 +379,7 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // Get to Connected
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -401,7 +403,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps();
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
       await promise;
@@ -417,7 +419,7 @@ describe('ConnectionManager', () => {
       });
       const manager = new ConnectionManager(deps);
 
-      manager.connect('ROOM1', 'USER1');
+      manager.connect(ROOM_1, 'USER1');
       transport.handlers.onOpen(); // → Syncing → FETCH_STATE
 
       await jest.advanceTimersByTimeAsync(0);
@@ -436,7 +438,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       // OPEN_WS triggers prefetch + transport.connect
       // At this point, fetchStateFromDB should already be called (prefetch)
@@ -466,7 +468,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
@@ -490,7 +492,7 @@ describe('ConnectionManager', () => {
       const { transport, deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       transport.handlers.onOpen();
       await jest.advanceTimersByTimeAsync(0);
@@ -508,7 +510,7 @@ describe('ConnectionManager', () => {
       const { deps } = createDeps({ fetchStateFromDB: fetchMock });
       const manager = new ConnectionManager(deps);
 
-      const promise = manager.connectAndWait('ROOM1', 'USER1');
+      const promise = manager.connectAndWait(ROOM_1, 'USER1');
 
       // Prefetch started
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -527,11 +529,11 @@ describe('ConnectionManager', () => {
       const manager = new ConnectionManager(deps);
 
       // First connect → prefetch #1
-      const p1 = manager.connectAndWait('ROOM1', 'USER1');
+      const p1 = manager.connectAndWait(ROOM_1, 'USER1');
       expect(fetchMock).toHaveBeenCalledTimes(1);
 
       // Second connect supersedes → prefetch #2 (cancels #1)
-      const p2 = manager.connectAndWait('ROOM2', 'USER1');
+      const p2 = manager.connectAndWait(ROOM_2, 'USER1');
       expect(fetchMock).toHaveBeenCalledTimes(2);
 
       await expect(p1).rejects.toBeInstanceOf(SupersededError);

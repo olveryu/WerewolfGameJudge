@@ -93,8 +93,7 @@ interface UseGameRoomResult {
   error: string | null;
 
   // Room lifecycle (from useRoomLifecycle)
-  initializeRoom: (roomCode: string) => Promise<RoomInitResult>;
-  joinRoom: (roomCode: string) => Promise<RoomInitResult>;
+  enterRoom: (room: RoomRecord) => Promise<RoomInitResult>;
   leaveRoom: () => Promise<void>;
   takeSeat: (seat: number) => Promise<ActionResult>;
   leaveSeat: () => Promise<ActionResult>;
@@ -358,8 +357,7 @@ interface UseGameRoomResult {
     // Lifecycle
     loading: lifecycle.loading,
     error: lifecycle.error,
-    initializeRoom: lifecycle.initializeRoom,
-    joinRoom: lifecycle.joinRoom,
+    enterRoom: lifecycle.enterRoom,
     leaveRoom: lifecycle.leaveRoom,
     takeSeat: lifecycle.takeSeat,
     leaveSeat: lifecycle.leaveSeat,

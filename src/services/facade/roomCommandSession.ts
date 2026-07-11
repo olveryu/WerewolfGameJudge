@@ -6,6 +6,8 @@ import type {
   GameType,
   RoomCommandResult,
 } from '@werewolf/game-engine';
+import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
+import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
 import {
@@ -35,6 +37,7 @@ interface DispatchRoomCommandOptions<TCommand extends object> extends RoomComman
 
 interface ActiveRoomIdentity {
   readonly roomCode: string;
+  readonly roomId: string;
   readonly userId: string;
 }
 
@@ -51,85 +54,12 @@ export type RoomCommandDispatchOutcome =
       readonly result: ActionResult;
     };
 
-function encodeString(value: string): string {
-  const encoded = JSON.stringify(value);
-  if (encoded === undefined) throw new Error('Failed to encode room command string');
-  return encoded;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function canonicalJson(value: unknown, path: string, ancestors: Set<object>): string {
-  if (value === null) return 'null';
-  switch (typeof value) {
-    case 'string':
-      return encodeString(value);
-    case 'boolean':
-      return value ? 'true' : 'false';
-    case 'number':
-      if (!Number.isFinite(value)) {
-        throw new Error(`Room command ${path} must contain a finite number`);
-      }
-      return JSON.stringify(value);
-    case 'object': {
-      if (ancestors.has(value)) {
-        throw new Error(`Room command ${path} contains a circular reference`);
-      }
-      ancestors.add(value);
-
-      let encoded: string;
-      if (Array.isArray(value)) {
-        encoded = `[${value
-          .map((item, index) => {
-            if (item === undefined) {
-              throw new Error(`Room command ${path}[${index}] must not be undefined`);
-            }
-            return canonicalJson(item, `${path}[${index}]`, ancestors);
-          })
-          .join(',')}]`;
-      } else {
-        if (!isRecord(value)) {
-          throw new Error(`Room command ${path} must contain a JSON object`);
-        }
-        const prototype = Reflect.getPrototypeOf(value);
-        if (prototype !== Object.prototype && prototype !== null) {
-          throw new Error(`Room command ${path} must contain only plain objects`);
-        }
-        const fields = Object.keys(value)
-          .sort()
-          .flatMap((key) => {
-            const field = value[key];
-            return field === undefined
-              ? []
-              : [`${encodeString(key)}:${canonicalJson(field, `${path}.${key}`, ancestors)}`];
-          });
-        encoded = `{${fields.join(',')}}`;
-      }
-
-      ancestors.delete(value);
-      return encoded;
-    }
-    case 'undefined':
-    case 'bigint':
-    case 'function':
-    case 'symbol':
-      throw new Error(`Room command ${path} contains a non-JSON value`);
-  }
-  throw new Error(`Room command ${path} has an unsupported value`);
-}
-
 function createIntentKey<TCommand extends object>(options: RoomCommandOptions<TCommand>): string {
-  return canonicalJson(
-    {
-      roomCode: options.roomCode,
-      controlledSeat: options.controlledSeat,
-      command: options.command,
-    },
-    '$',
-    new Set(),
-  );
+  return canonicalJson({
+    roomCode: options.roomCode,
+    controlledSeat: options.controlledSeat,
+    command: options.command,
+  });
 }
 
 function mapDecision<TState extends BaseGameState<GameType>>(
@@ -159,15 +89,21 @@ export class RoomCommandSession<TState extends BaseGameState<GameType>> {
   }
 
   /** Start or resume one room/user identity; switching identity abandons prior envelopes. */
-  enterRoom(roomCode: string, userId: string): void {
-    if (roomCode.length === 0 || userId.length === 0) {
+  enterRoom(room: RoomLocator, userId: string): void {
+    if (room.roomCode.length === 0 || room.roomId.length === 0 || userId.length === 0) {
       throw new Error('Room command session identity must be non-empty');
     }
-    if (this.#identity?.roomCode === roomCode && this.#identity.userId === userId) return;
+    if (
+      this.#identity?.roomCode === room.roomCode &&
+      this.#identity.roomId === room.roomId &&
+      this.#identity.userId === userId
+    ) {
+      return;
+    }
 
     this.#generation += 1;
     this.#pending.clear();
-    this.#identity = { roomCode, userId };
+    this.#identity = { ...room, userId };
   }
 
   /** End the active identity and prevent late responses from applying snapshots. */
@@ -180,21 +116,21 @@ export class RoomCommandSession<TState extends BaseGameState<GameType>> {
   prepare<TCommand extends object>(
     options: RoomCommandOptions<TCommand>,
   ): PreparedRoomCommand<TCommand> {
-    this.#assertActiveRoom(options.roomCode);
+    const identity = this.#requireActiveRoom(options.roomCode);
     createIntentKey(options);
-    return prepareRoomCommand(options);
+    return prepareRoomCommand({ ...options, roomId: identity.roomId });
   }
 
   async dispatch<TCommand extends object>({
     label,
     ...options
   }: DispatchRoomCommandOptions<TCommand>): Promise<ActionResult> {
-    this.#assertActiveRoom(options.roomCode);
+    const identity = this.#requireActiveRoom(options.roomCode);
     const intentKey = createIntentKey(options);
     let pending = this.#pending.get(intentKey);
     if (pending === undefined) {
       pending = {
-        prepared: prepareRoomCommand(options),
+        prepared: prepareRoomCommand({ ...options, roomId: identity.roomId }),
         generation: this.#generation,
         inFlight: null,
       };
@@ -221,7 +157,10 @@ export class RoomCommandSession<TState extends BaseGameState<GameType>> {
     prepared: PreparedRoomCommand<TCommand>,
     label: string,
   ): Promise<RoomCommandDispatchOutcome> {
-    this.#assertActiveRoom(prepared.roomCode);
+    const identity = this.#requireActiveRoom(prepared.roomCode);
+    if (prepared.roomId !== identity.roomId) {
+      throw new Error('[FAIL-FAST] Prepared command belongs to a stale room instance');
+    }
     const generation = this.#generation;
     const attempt = await sendPreparedRoomCommand({
       prepared,
@@ -237,7 +176,7 @@ export class RoomCommandSession<TState extends BaseGameState<GameType>> {
     return { kind: 'decided', result: mapDecision(decision) };
   }
 
-  #assertActiveRoom(roomCode: string): void {
+  #requireActiveRoom(roomCode: string): ActiveRoomIdentity {
     if (this.#identity === null) {
       throw new Error('[FAIL-FAST] Room command session is not active');
     }
@@ -246,5 +185,6 @@ export class RoomCommandSession<TState extends BaseGameState<GameType>> {
         `[FAIL-FAST] Room command belongs to ${roomCode}, not ${this.#identity.roomCode}`,
       );
     }
+    return this.#identity;
   }
 }

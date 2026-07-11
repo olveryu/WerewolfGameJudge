@@ -1,4 +1,4 @@
-import { type GameRuleOverrides, type GameTemplate } from '@werewolf/game-engine/models/Template';
+import { type GameRuleOverrides } from '@werewolf/game-engine/models/Template';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -31,8 +31,7 @@ export type RootStackParamList = {
     | undefined;
   Room: {
     roomCode: string;
-    isHost: boolean;
-    template?: GameTemplate;
+    entryReason?: 'created';
   };
   Settings: { roomCode?: string } | undefined;
   MusicSettings: { roomCode?: string } | undefined;

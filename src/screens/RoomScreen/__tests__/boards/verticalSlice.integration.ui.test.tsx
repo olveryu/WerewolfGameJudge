@@ -22,7 +22,7 @@ import { toLocalState } from '@/hooks/adapters/toLocalState';
 import {
   createShowAlertMock,
   mockNavigation,
-  mockRoomRoute,
+  mockRoom,
   RoomScreenTestHarness,
   waitForRoomScreen,
 } from '@/screens/RoomScreen/__tests__/harness';
@@ -183,8 +183,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       lastStateReceivedAt: Date.now(),
 
       // Actions
-      initializeRoom: jest.fn(),
-      joinRoom: jest.fn().mockResolvedValue({ success: true }),
+      enterRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
@@ -211,7 +210,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
 
     // 4. Render and verify
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);
@@ -291,8 +290,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       stateRevision: 1,
       lastStateReceivedAt: Date.now(),
 
-      initializeRoom: jest.fn(),
-      joinRoom: jest.fn().mockResolvedValue({ success: true }),
+      enterRoom: jest.fn().mockResolvedValue({ success: true }),
       leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
@@ -317,7 +315,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     };
 
     const { getByTestId } = render(
-      <RoomScreen route={mockRoomRoute} navigation={mockNavigation} />,
+      <RoomScreen room={mockRoom} entryReason={null} navigation={mockNavigation} />,
     );
 
     await waitForRoomScreen(getByTestId);

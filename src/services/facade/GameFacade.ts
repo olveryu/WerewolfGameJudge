@@ -38,7 +38,7 @@ import { type AudioService } from '@/services/infra/AudioService';
 import type { FacadeStateListener, IGameFacade, SeatProfile } from '@/services/types/IGameFacade';
 import { ConnectionStatus } from '@/services/types/IGameFacade';
 import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
-import type { IRoomService } from '@/services/types/IRoomService';
+import type { IRoomService, RoomIdentity } from '@/services/types/IRoomService';
 import { handleError } from '@/utils/errorPipeline';
 import { facadeLog } from '@/utils/logger';
 
@@ -109,8 +109,9 @@ export class GameFacade implements IGameFacade {
   readonly #audioOrchestrator: AudioOrchestrator;
   #isHost = false;
   #myUserId: string | null = null;
-  /** Cached roomCode: survives store.reset(), used by fetchStateFromDB fallback */
+  /** Cached immutable room locator survives store.reset(). */
   #roomCode: string | null = null;
+  #roomId: string | null = null;
   /** Settlement listeners and durable deliveries waiting for UI consumption. */
   readonly #settleResultListeners = new Set<(result: SettleResultMessage) => void>();
   readonly #settlementDeliveries = new Map<string, SettlementDelivery>();
@@ -197,7 +198,11 @@ export class GameFacade implements IGameFacade {
     }
     this.#activateSettlementUser(newUid);
     this.#myUserId = newUid;
-    if (this.#roomCode !== null) this.#commandSession.enterRoom(this.#roomCode, newUid);
+    if (this.#roomCode !== null && this.#roomId !== null) {
+      this.#commandSession.enterRoom({ roomCode: this.#roomCode, roomId: this.#roomId }, newUid);
+    } else if (this.#roomCode !== null || this.#roomId !== null) {
+      throw new Error('[FAIL-FAST] Cached room locator is incomplete');
+    }
   }
 
   getMySeat(): number | null {
@@ -288,80 +293,55 @@ export class GameFacade implements IGameFacade {
   // Room Lifecycle
   // =========================================================================
 
-  async createRoom(roomCode: string, hostUserId: string): Promise<void> {
-    facadeLog.info('createRoom', { roomCode });
-    this.#aborted = false;
-    this.#audioOrchestrator.reset();
-    this.#settleResultListeners.clear();
-    this.#isHost = true;
-    this.#activateSettlementUser(hostUserId);
-    this.#myUserId = hostUserId;
-    this.#roomCode = roomCode;
-    this.#commandSession.enterRoom(roomCode, hostUserId);
-
-    this.#store.reset();
-
-    // Connect WS + wait for Connected (FSM: Idle -> Connecting -> Syncing -> Connected)
-    await this.#connectionManager.connectAndWait(roomCode, hostUserId);
-
-    const state = this.#store.getState();
-    if (state === null) {
-      throw new Error('[FAIL-FAST] Created room connection completed without a server snapshot');
+  /** Connect one resolved room identity; creation and re-entry share this path. */
+  async enterRoom(room: RoomIdentity, userId: string): Promise<void> {
+    if (room.gameType !== 'werewolf') {
+      throw new Error(`Werewolf facade cannot enter ${room.gameType}`);
     }
-    if (state.roomCode !== roomCode || state.hostUserId !== hostUserId) {
-      throw new Error('[FAIL-FAST] Created room snapshot identity does not match the room');
-    }
-  }
-
-  /**
-   * Join existing room (unified entry for Host rejoin + Player join)
-   *
-   * connectAndWait() does WS connection + auto fetchDB (FSM Syncing -> Connected).
-   * Host rejoin presets #wasAudioInterrupted guard to block reactive mis-playback.
-   *
-   * @returns success=false only when Host rejoin has no DB state
-   */
-  async joinRoom(roomCode: string, userId: string, isHost: boolean): Promise<ActionResult> {
-    facadeLog.info('joinRoom', { roomCode, isHost });
+    const { roomCode, roomId } = room;
+    const isHost = room.hostUserId === userId;
+    facadeLog.info('enterRoom', { roomCode, isHost });
     this.#aborted = false;
     this.#audioOrchestrator.reset();
     this.#settleResultListeners.clear();
     this.#isHost = isHost;
     this.#activateSettlementUser(userId);
     this.#myUserId = userId;
-    this.#commandSession.enterRoom(roomCode, userId);
+    this.#commandSession.enterRoom({ roomCode, roomId }, userId);
 
     // Only reset store when switching rooms; same-room rejoin keeps cached state
     // (connectAndWait will fetch latest from DB regardless)
-    if (roomCode !== this.#roomCode) {
+    if (roomCode !== this.#roomCode || roomId !== this.#roomId) {
       this.#store.reset();
     }
     this.#roomCode = roomCode;
+    this.#roomId = roomId;
 
     // Host rejoin: preset guard to block reactive mis-playback when receiving pendingAudioEffects during subscribe phase
     if (isHost) this.#audioOrchestrator.setWasAudioInterrupted(true);
 
     // connectAndWait: WS connection + fetchDB + wait for Connected
     // FSM Syncing phase auto-fetches DB -> onFetchedState -> store.applySnapshot
-    await this.#connectionManager.connectAndWait(roomCode, userId);
+    await this.#connectionManager.connectAndWait({ roomCode, roomId }, userId);
 
-    // After connectAndWait, store should have state from DB (if any)
+    // After connectAndWait, store must contain the state referenced by the active directory row.
     const dbState = this.#store.getState();
-
-    if (dbState) {
-      if (isHost) {
-        this.#audioOrchestrator.setWasAudioInterrupted(dbState.status === GameStatus.Ongoing);
-      }
-    } else if (isHost) {
-      // Host rejoin with no DB state: cannot recover
+    if (dbState === null) {
       this.#audioOrchestrator.setWasAudioInterrupted(false);
-      this.#isHost = false;
-      this.#myUserId = null;
-      facadeLog.warn('Host rejoin failed: no DB state');
-      return { success: false, reason: 'no_db_state' };
+      await this.leaveRoom();
+      throw new Error('[FAIL-FAST] Active room connection completed without a server snapshot');
     }
-
-    return { success: true };
+    if (
+      dbState.roomCode !== room.roomCode ||
+      dbState.gameType !== room.gameType ||
+      dbState.hostUserId !== room.hostUserId
+    ) {
+      await this.leaveRoom();
+      throw new Error('[FAIL-FAST] Room directory metadata does not match its snapshot');
+    }
+    if (isHost) {
+      this.#audioOrchestrator.setWasAudioInterrupted(dbState.status === GameStatus.Ongoing);
+    }
   }
 
   /**
@@ -415,6 +395,7 @@ export class GameFacade implements IGameFacade {
     this.#myUserId = null;
     this.#isHost = false;
     this.#roomCode = null;
+    this.#roomId = null;
     this.#settleResultListeners.clear();
   }
 
@@ -622,11 +603,18 @@ export class GameFacade implements IGameFacade {
    * Used by both Host and Player.
    */
   async fetchStateFromDB(): Promise<boolean> {
-    const roomCode = this.#store.getState()?.roomCode ?? this.#roomCode;
-    if (!roomCode) return false;
+    if (this.#roomCode === null && this.#roomId === null) return false;
+    if (this.#roomCode === null || this.#roomId === null) {
+      throw new Error('[FAIL-FAST] Cached room locator is incomplete');
+    }
+    const stateRoomCode = this.#store.getState()?.roomCode;
+    if (stateRoomCode !== undefined && stateRoomCode !== this.#roomCode) {
+      throw new Error('[FAIL-FAST] Cached room locator does not match the current state');
+    }
+    const room = { roomCode: this.#roomCode, roomId: this.#roomId };
 
     try {
-      const dbState = await this.#roomService.getGameState(roomCode);
+      const dbState = await this.#roomService.getGameState(room);
       if (dbState) {
         this.#store.applySnapshot(dbState.state, dbState.revision);
         this.#connectionManager.updateRevision(dbState.revision);

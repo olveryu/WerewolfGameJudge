@@ -34,7 +34,7 @@ function createMockFacade(): IGameFacade & {
     getMySeat: jest.fn().mockReturnValue(null),
     getStateRevision: jest.fn().mockReturnValue(0),
     createRoom: jest.fn(),
-    joinRoom: jest.fn(),
+    enterRoom: jest.fn(),
     leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
