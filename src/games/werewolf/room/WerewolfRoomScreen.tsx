@@ -13,18 +13,19 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomShell } from '@/features/room/components/RoomShell';
+import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
@@ -32,6 +33,7 @@ import {
   resolveWerewolfBuiltinAvatarName,
   WerewolfProfileDetails,
 } from '@/games/werewolf/components/WerewolfProfileDetails';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfControlledSeatModel,
@@ -41,13 +43,11 @@ import {
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, spacing } from '@/theme';
+import { colors, componentSizes } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
-import { isMiniProgram } from '@/utils/miniProgram';
 
-import { AuthGateOverlay } from './components/AuthGateOverlay';
 import { createBoardInfoStyles } from './components/boardInfo.styles';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
@@ -56,7 +56,6 @@ import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
 import { RoleCardModal } from './components/RoleCardModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
-import { WxAuthFailedOverlay } from './components/WxAuthFailedOverlay';
 import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
 import { useWerewolfRoomScreenState } from './hooks/useWerewolfRoomScreenState';
@@ -70,6 +69,33 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
   room,
   entryReason,
   navigation,
+}) => {
+  const facade = useWerewolfGame();
+  const handleExit = useCallback(() => navigation.navigate('Home'), [navigation]);
+
+  return (
+    <RoomEntryBoundary room={room} session={facade.roomSession} onExit={handleExit}>
+      {(entryController) => (
+        <WerewolfRoomContent
+          room={room}
+          entryReason={entryReason}
+          navigation={navigation}
+          entryController={entryController}
+        />
+      )}
+    </RoomEntryBoundary>
+  );
+};
+
+interface WerewolfRoomContentProps extends GameRoomScreenProps {
+  readonly entryController: RoomEntryController;
+}
+
+export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
+  room,
+  entryReason,
+  navigation,
+  entryController,
 }) => {
   const roomCode = room.roomCode;
   const { user } = useAuthContext();
@@ -121,7 +147,6 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
     currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
-    gameRoomError,
     effectiveSeat,
     effectiveRole,
     isDebugMode,
@@ -141,14 +166,6 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
     isBgmPlaying,
     playBgm,
     stopBgm,
-    // Initialization
-    isInitialized,
-    loadingMessage,
-    showRetryButton,
-    handleRetry,
-    // Auth gate
-    needsAuth,
-    clearNeedsAuth,
     // Derived view models
     seatViewModels,
     villagerCount,
@@ -210,7 +227,7 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useWerewolfRoomScreenState(room, navigation);
+  } = useWerewolfRoomScreenState(room, navigation, entryController);
 
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -565,76 +582,11 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
 
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
-    if (
-      isInitialized &&
-      gameState &&
-      isHost &&
-      entryReason === 'created' &&
-      !hasAutoShownQR.current
-    ) {
+    if (isHost && entryReason === 'created' && !hasAutoShownQR.current) {
       hasAutoShownQR.current = true;
       roomShare.open();
     }
-  }, [entryReason, gameState, isHost, isInitialized, roomShare]);
-
-  // ─── Loading / Error early returns ─────────────────────────────────────
-  if (!isInitialized || !gameState) {
-    // Auth gate: first-time user via direct URL -- show login options (must check before error)
-    if (needsAuth) {
-      if (isMiniProgram()) {
-        return (
-          <WxAuthFailedOverlay
-            onCancel={() => {
-              clearNeedsAuth();
-              navigation.navigate('Home');
-            }}
-          />
-        );
-      }
-      return (
-        <AuthGateOverlay
-          onSuccess={() => {
-            clearNeedsAuth();
-            handleRetry();
-          }}
-          onCancel={() => {
-            clearNeedsAuth();
-            navigation.navigate('Home');
-          }}
-        />
-      );
-    }
-
-    const displayMessage = showRetryButton && gameRoomError ? gameRoomError : loadingMessage;
-    const isError = showRetryButton;
-
-    if (isError) {
-      return (
-        <View style={styles.loadingContainer}>
-          <Ionicons
-            name="warning-outline"
-            size={spacing.xxlarge + spacing.medium}
-            color={colors.error}
-            style={{ marginBottom: spacing.medium }}
-          />
-          <Text style={[styles.loadingText, styles.errorMessageText]}>{displayMessage}</Text>
-          <View style={styles.retryButtonRow}>
-            <TouchableOpacity style={styles.errorBackButton} onPress={handleRetry}>
-              <Text style={styles.errorBackButtonText}>重试</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.errorSecondaryButton}
-              onPress={() => navigation.navigate('Home')}
-            >
-              <Text style={styles.errorSecondaryButtonText}>返回首页</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-
-    return <LoadingScreen message={displayMessage} />;
-  }
+  }, [entryReason, isHost, roomShare]);
 
   return (
     <RoomShell

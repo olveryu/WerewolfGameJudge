@@ -20,7 +20,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
@@ -213,7 +213,7 @@ export const BoardNominationModal = memo(function BoardNominationModal({
   clearAllSeats,
   onClose,
 }: BoardNominationModalProps) {
-  const facade = useGameFacade();
+  const facade = useWerewolfGame();
 
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {

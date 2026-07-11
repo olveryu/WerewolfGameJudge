@@ -34,7 +34,7 @@ import { roomScreenLog } from '@/utils/logger';
 
 interface UseInteractionDispatcherParams {
   // ── Game state ──
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
   isHost: boolean;
@@ -160,7 +160,6 @@ export function useInteractionDispatcher({
   const interactionContext: InteractionContext = useMemo(
     () => ({
       roomStatus,
-      hasGameState: !!gameState,
       isAudioPlaying,
       hasPendingAck,
       isHost,
@@ -186,7 +185,7 @@ export function useInteractionDispatcher({
         return gameState.players.get(seat) != null;
       },
       getPlayerUid: (seat: number) => {
-        return gameState?.players.get(seat)?.userId;
+        return gameState.players.get(seat)?.userId;
       },
     }),
     [

@@ -2,7 +2,12 @@
 
 export type RoomOperationResult =
   | { readonly success: true; readonly reason?: string }
-  | { readonly success: false; readonly reason: string };
+  | {
+      readonly success: false;
+      readonly failureKind: 'rejected' | 'notDecided' | 'deliveryUnknown';
+      readonly commandId: string;
+      readonly reason: string;
+    };
 
 export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResult = void> =
   | {

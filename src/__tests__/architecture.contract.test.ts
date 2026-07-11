@@ -2,7 +2,7 @@
  * architecture.contract — Layer boundary guard
  *
  * Enforces the project's unidirectional dependency rules:
- *   UI (screens/components) → Application (services/facade) → Domain (game-engine)
+ *   UI → shared room or game-owned runtime → platform protocols
  *   UI → Application → Infrastructure (services/infra, services/transport)
  *
  * Forbidden directions:
@@ -45,12 +45,14 @@ const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
 const gamesDir = path.join(process.cwd(), 'src', 'games');
 const werewolfClientDir = path.join(gamesDir, 'werewolf');
 const servicesDir = path.join(process.cwd(), 'src', 'services');
+const srcDir = path.join(process.cwd(), 'src');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 
 const screensFiles = getAllProductionFiles(screensDir);
 const sharedRoomFiles = getAllProductionFiles(sharedRoomDir);
 const werewolfClientFiles = getAllProductionFiles(werewolfClientDir);
 const servicesFiles = getAllProductionFiles(servicesDir);
+const srcFiles = getAllProductionFiles(srcDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
 
 // ─── Rule 1: services/ must NOT import UI ownership roots ───────────────────
@@ -104,7 +106,8 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
   const forbiddenImports = [
     /^\s*import\b.*from\s+['"]@\/games\//m,
     /^\s*import\b.*from\s+['"]@\/screens\/RoomScreen\//m,
-    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(models|games|engine|resolvers)\//m,
+    /^\s*import\b.*from\s+['"]@werewolf\/game-engine['"]/m,
+    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(?!(?:platform|growth)\/)/m,
   ];
 
   it.each(sharedRoomFiles)('%s must not import a game implementation', (filePath) => {
@@ -115,7 +118,7 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
   });
 
   const forbiddenGameSemanticIdentifiers =
-    /\b(?:campStats|roleRevealEffect|playerRoleRevealEffect|wolfVoteBadge|wolfRing|NightProgressIndicator|currentRoleName)\b/;
+    /\b(?:ActionResult|GameState|GameStatus|LocalGameState|RoleId|GameStore|campStats|roleRevealEffect|playerRoleRevealEffect|wolfVoteBadge|wolfRing|NightProgressIndicator|currentRoleName)\b/;
 
   it.each(sharedRoomFiles)('%s must use game-neutral room contracts', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
@@ -144,14 +147,43 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/hooks/useLastActionToast.ts',
     'src/hooks/useNightDerived.ts',
     'src/hooks/useRoomLifecycle.ts',
+    'src/hooks/useConnectionStatus.ts',
     'src/hooks/useSettleToast.ts',
     'src/hooks/usePendingAcks.ts',
     'src/hooks/useAckMutation.ts',
     'src/hooks/adapters/toLocalState.ts',
+    'src/services/registry.ts',
+    'src/services/facade',
+    'src/services/types/IGameFacade.ts',
+    'src/contexts/GameFacadeContext.tsx',
+    'src/services/cloudflare/CFRoomService.ts',
+    'src/services/types/IRoomService.ts',
+    'src/features/room/services/RoomCommandDispatcher.ts',
+    'src/features/room/services/RoomSession.ts',
+    'src/features/room/services/roomCommandClient.ts',
+    'src/features/room/services/roomSeatCommands.ts',
+    'src/features/room/controllers/useRoomLifecycle.ts',
+    'src/features/room/controllers/useRoomSessionStatus.ts',
+    'src/features/room/controllers/useRoomConnection.ts',
+    'src/games/werewolf/hooks/useWerewolfRoomLifecycle.ts',
+    'src/games/werewolf/room/components/AuthGateOverlay.tsx',
+    'src/games/werewolf/room/components/WxAuthFailedOverlay.tsx',
   ];
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+});
+
+describe('Client ownership: RoomSession has one implementation', () => {
+  it('defines exactly one RoomSession class in production client code', () => {
+    const implementations = srcFiles.filter((filePath) =>
+      /\bclass\s+RoomSession\b/.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(implementations.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/features/room/session/RoomSession.ts',
+    ]);
   });
 });
 
@@ -164,7 +196,6 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
 
   // Allowed runtime imports from services/ (enums that must be runtime values)
   const allowedRuntimeImports = [
-    'ConnectionStatus',
     'isAIChatReady',
     'BGM_TRACKS',
     'BGM_VOLUME',

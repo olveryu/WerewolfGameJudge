@@ -49,7 +49,7 @@ function resolveBgmAssets(track: string): AudioAsset[] {
  */
 export function useWerewolfBgmControl(
   isHost: boolean,
-  gameStatus: GameStatus | null,
+  gameStatus: GameStatus,
   isAudioPlaying: boolean,
 ): WerewolfBgmControlState {
   const [isBgmEnabled, setIsBgmEnabled] = useState(true);

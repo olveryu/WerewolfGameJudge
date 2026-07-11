@@ -5,7 +5,7 @@ import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes
 import type React from 'react';
 
 import type { RootStackParamList } from '@/navigation/types';
-import type { RoomRecord } from '@/services/types/IRoomService';
+import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 export type RoomEntryReason = 'created' | null;
 

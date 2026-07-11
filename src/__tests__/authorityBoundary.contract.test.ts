@@ -8,7 +8,7 @@
  * - NightFlowController (night flow state machine)
  * - DeathCalculator (death calculation)
  *
- * UI/hooks should only interact via GameFacade or transport layer.
+ * UI/hooks should only interact through a game-owned client or the shared room session.
  */
 
 import fs from 'node:fs';
@@ -104,7 +104,7 @@ describe('Server authority import boundary', () => {
         fail(
           `File ${filePath} imports server-authority module: "${match[0]}"\n` +
             'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
-            'Use GameFacade or transport layer instead.',
+            'Use a game-owned client or the shared room session instead.',
         );
       }
     }

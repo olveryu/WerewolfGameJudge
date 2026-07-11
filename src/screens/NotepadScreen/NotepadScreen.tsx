@@ -3,7 +3,7 @@
  *
  * Standalone screen, navigated to from RoomScreen's BoardInfoCard "笔记" button (modal presentation).
  * Shows a single-column notepad panel + public note area + faction legend.
- * Uses useGameFacade() to get the facade -> useNotepad manages pure-client notepad state.
+ * Reads the active Werewolf snapshot; useNotepad manages pure-client notes.
  * Does not call services directly (notepad persistence is handled inside useNotepad via AsyncStorage).
  */
 
@@ -22,7 +22,9 @@ import { Button } from '@/components/Button';
 import { NotepadPanel } from '@/components/NotepadPanel';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
-import { useGameFacade } from '@/contexts';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { useNotepad } from '@/hooks/useNotepad';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
@@ -39,8 +41,10 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
 
-  const facade = useGameFacade();
-  const notepad = useNotepad(facade);
+  const facade = useWerewolfGame();
+  const room = useRoomSessionSnapshot(facade.roomSession);
+  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+  const notepad = useNotepad(gameState);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -58,8 +62,8 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
     }
 
     // Build recorder's own role info
-    const mySeat = facade.getMySeat();
-    const gameState = facade.getState();
+    const identity = room.phase === 'idle' ? null : room.identity;
+    const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
     const myRole = mySeat != null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
       mySeat != null && myRole
@@ -79,7 +83,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
         maxTokens: 10000,
       });
     });
-  }, [facade, notepad.state, notepad.playerCount]);
+  }, [gameState, notepad.state, notepad.playerCount, room]);
 
   const panelStyles = useMemo(
     () => ({

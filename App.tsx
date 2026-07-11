@@ -8,20 +8,24 @@ import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 
+import { createAppServices } from '@/app/createAppServices';
 import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
-import { AuthProvider, GameFacadeProvider, ServiceProvider } from '@/contexts';
-import { useGameFacade } from '@/contexts';
+import { AuthProvider, ServiceProvider } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import {
+  useWerewolfGame,
+  WerewolfGameProvider,
+} from '@/games/werewolf/runtime/WerewolfGameContext';
 import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
 import { getSentryIntegrations } from '@/lib/sentryIntegrations';
 import { AppNavigator } from '@/navigation';
-import { createAllServices } from '@/services/registry';
 import { colors } from '@/theme';
 import { type AlertConfig, setAlertListener } from '@/utils/alert';
 import { signalAppReady } from '@/utils/appReady';
@@ -234,24 +238,13 @@ function dismissWebSplash() {
 
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
-  const facade = useGameFacade();
-
-  // Compute triggerPulse: true when game has progressed past Unseated/Seated
-  const [triggerPulse, setTriggerPulse] = useState(() => {
-    const s = facade.getState();
-    return s !== null && s.status !== GameStatus.Unseated && s.status !== GameStatus.Seated;
-  });
-
-  useEffect(() => {
-    const unsubscribe = facade.addListener((state) => {
-      const isAssigned =
-        state !== null &&
-        state.status !== GameStatus.Unseated &&
-        state.status !== GameStatus.Seated;
-      setTriggerPulse(isAssigned);
-    });
-    return unsubscribe;
-  }, [facade]);
+  const werewolfClient = useWerewolfGame();
+  const { roomSession } = werewolfClient;
+  const room = useRoomSessionSnapshot(roomSession);
+  const triggerPulse =
+    room.phase === 'ready' &&
+    room.snapshot.state.status !== GameStatus.Unseated &&
+    room.snapshot.state.status !== GameStatus.Seated;
 
   // Set up global alert listener
   useEffect(() => {
@@ -367,7 +360,7 @@ export default function App() {
 
   // Composition root: create all service instances via ServiceRegistry
   // useState lazy init ensures services are created only once
-  const [{ services, facade }] = useState(() => createAllServices());
+  const [{ services, werewolfClient }] = useState(() => createAppServices());
 
   return (
     <ErrorBoundary>
@@ -375,11 +368,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ServiceProvider services={services}>
             <AuthProvider>
-              <GameFacadeProvider facade={facade}>
+              <WerewolfGameProvider client={werewolfClient}>
                 <ModalStackProvider>
                   <AppContent />
                 </ModalStackProvider>
-              </GameFacadeProvider>
+              </WerewolfGameProvider>
             </AuthProvider>
           </ServiceProvider>
         </QueryClientProvider>

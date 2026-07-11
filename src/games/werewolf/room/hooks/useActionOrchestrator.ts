@@ -39,7 +39,7 @@ import { dispatchIntent } from '../executors';
 
 interface UseActionOrchestratorParams {
   // ── Game state ──
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null;
@@ -133,7 +133,7 @@ export function useActionOrchestrator({
   );
 
   // ─── Refs ────────────────────────────────────────────────────────────────
-  const gameStateRef = useRef<LocalGameState | null>(null);
+  const gameStateRef = useRef<LocalGameState>(gameState);
   const lastAutoIntentKeyRef = useRef<string | null>(null);
   const lastRejectedKeyRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
@@ -311,7 +311,7 @@ export function useActionOrchestrator({
     // Build idempotency key: stable representation of "same turn + same actor"
     const key = [
       roomStatus,
-      gameState?.currentStepIndex ?? 'null',
+      gameState.currentStepIndex,
       currentActionRole ?? 'null',
       actorSeatForUi ?? 'null',
       imActioner ? 'A' : 'N',
@@ -341,7 +341,7 @@ export function useActionOrchestrator({
     firstSwapSeat,
     roomStatus,
     currentActionRole,
-    gameState?.currentStepIndex,
+    gameState.currentStepIndex,
     getAutoTriggerIntent,
     handleActionIntent,
   ]);

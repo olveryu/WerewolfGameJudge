@@ -7,8 +7,7 @@ import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types'
 import type React from 'react';
 
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
-import type { RoomRecord } from '@/services/types/IRoomService';
+import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import type { LocalPlayer } from '@/types/GameStateTypes';
 
 type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
@@ -92,10 +91,9 @@ export function makeBaseUseGameRoomReturn({
   };
 
   return {
-    facade: { getState: () => gameState },
     gameState,
 
-    connectionStatus: ConnectionStatus.Live,
+    connectionStatus: 'live',
 
     isHost: false,
     roomStatus: GameStatus.Ongoing,
@@ -119,7 +117,6 @@ export function makeBaseUseGameRoomReturn({
     takeOverBot: jest.fn(),
     releaseBot: jest.fn(),
 
-    enterRoom: jest.fn().mockResolvedValue({ success: true }),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
@@ -129,8 +126,6 @@ export function makeBaseUseGameRoomReturn({
     submitAction: jest.fn(),
 
     hasWolfVoted: () => false,
-    getWolfVoteSummary: () => '0/0 狼人已确认',
-    requestSnapshot: jest.fn(),
     viewedRole: jest.fn(),
 
     getLastNightInfo: jest.fn().mockReturnValue(''),
@@ -138,9 +133,7 @@ export function makeBaseUseGameRoomReturn({
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
     submitGroupConfirmAck: jest.fn().mockResolvedValue({ success: true }),
 
-    isBgmEnabled: true,
     isBgmPlaying: false,
-    toggleBgm: jest.fn(),
     playBgm: jest.fn(),
     stopBgm: jest.fn(),
 

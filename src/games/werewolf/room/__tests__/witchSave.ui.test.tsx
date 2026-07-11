@@ -13,7 +13,7 @@ import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 

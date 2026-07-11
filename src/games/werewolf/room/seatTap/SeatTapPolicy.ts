@@ -23,7 +23,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 /** Result when tap should be ignored (no-op) */
 interface SeatTapResultNoop {
   kind: 'NOOP';
-  reason: 'audio_playing' | 'no_game_state' | 'not_actioner' | 'other_status';
+  reason: 'audio_playing' | 'not_actioner' | 'other_status';
 }
 
 /** Result when an alert should be shown */
@@ -63,7 +63,7 @@ type SeatTapResult =
 /** Input context for seat tap policy decision */
 export interface SeatTapPolicyInput {
   /** Current room/game status */
-  roomStatus: GameStatus | undefined;
+  roomStatus: GameStatus;
   /** Whether audio is currently playing (gate) */
   isAudioPlaying: boolean;
   /** The seat index that was tapped */
@@ -72,8 +72,6 @@ export interface SeatTapPolicyInput {
   disabledReason?: string;
   /** Whether the current player can act (imActioner) - used for ongoing phase */
   imActioner: boolean;
-  /** Whether game state exists */
-  hasGameState: boolean;
   /** Whether the tapped seat is occupied by another player (not self) */
   isSeatOccupiedByOther: boolean;
   /** UID of the player occupying the tapped seat (if occupied by other) */
@@ -104,17 +102,11 @@ export function getSeatTapResult(input: SeatTapPolicyInput): SeatTapResult {
     seat,
     disabledReason,
     imActioner,
-    hasGameState,
     isSeatOccupiedByOther,
     targetUserId,
     isSelfSeated,
     myUserId,
   } = input;
-
-  // Guard: no game state
-  if (!hasGameState) {
-    return { kind: 'NOOP', reason: 'no_game_state' };
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Priority 1: Audio Gate (highest priority)

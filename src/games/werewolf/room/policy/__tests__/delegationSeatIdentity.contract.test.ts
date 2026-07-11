@@ -462,8 +462,8 @@ describe('Delegation Seat Identity Contract', () => {
     });
 
     /** The facade accepts only the explicit takeover discriminator. */
-    it('IGameFacade.sendWolfRobotHunterStatusViewed takes controlledSeat', () => {
-      const content = readFileContent('src/services/types/IGameFacade.ts');
+    it('WerewolfGameClient.sendWolfRobotHunterStatusViewed takes controlledSeat', () => {
+      const content = readFileContent('src/games/werewolf/runtime/WerewolfGameClient.ts');
 
       const regex =
         /sendWolfRobotHunterStatusViewed\s*\(\s*controlledSeat\s*:\s*number\s*\|\s*null\s*\)/;

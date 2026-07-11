@@ -28,7 +28,7 @@ interface HandleErrorOptions {
   /** Descriptive label for log output, e.g. '创建房间' or '[wolfVote]' */
   label: string;
 
-  /** Logger instance — pass the module's named logger (e.g. `facadeLog`) */
+  /** Logger instance — pass the module's named logger (e.g. `roomSessionLog`) */
   logger: Logger;
 
   /**

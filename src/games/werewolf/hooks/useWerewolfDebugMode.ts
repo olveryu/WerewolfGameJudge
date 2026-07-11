@@ -16,7 +16,8 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback } from 'react';
 
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 export interface WerewolfDebugModeState {
@@ -31,7 +32,7 @@ export interface WerewolfDebugModeState {
   /** Whether debug bot mode is active */
   isDebugMode: boolean;
   /** Fill all empty seats with bots */
-  fillWithBots: () => Promise<ActionResult>;
+  fillWithBots: () => Promise<RoomOperationResult>;
   /** Mark all bot seats as having viewed their roles */
   markAllBotsViewed: () => Promise<ActionResult>;
   /** Mark all bot seats as having acked groupConfirm step */
@@ -43,9 +44,11 @@ export interface WerewolfDebugModeState {
  * When Host controls a bot seat, effectiveSeat/effectiveRole reflect the bot's identity.
  */
 export function useWerewolfDebugMode(
-  facade: IGameFacade,
+  facade: WerewolfGameClient,
   mySeat: number | null,
-  gameState: LocalGameState | null,
+  gameState: LocalGameState,
+  leaveSeat: () => Promise<RoomOperationResult>,
+  fillBots: () => Promise<RoomOperationResult>,
 ): WerewolfDebugModeState {
   const botControl = useRoomBotControl();
   const { controlledSeat } = botControl;
@@ -55,39 +58,28 @@ export function useWerewolfDebugMode(
 
   // effectiveRole = role of effectiveSeat
   const effectiveRole =
-    effectiveSeat !== null && gameState
-      ? (gameState.players.get(effectiveSeat)?.role ?? null)
-      : null;
+    effectiveSeat !== null ? (gameState.players.get(effectiveSeat)?.role ?? null) : null;
 
   // Whether debug bot mode is active
-  const isDebugMode = gameState?.debugMode?.botsEnabled === true;
+  const isDebugMode = gameState.debugMode?.botsEnabled === true;
 
   // Fill all empty seats with bots
-  const fillWithBots = useCallback(async (): Promise<ActionResult> => {
-    if (!facade.isHostPlayer()) {
-      return { success: false, reason: 'host_only' };
-    }
+  const fillWithBots = useCallback(async (): Promise<RoomOperationResult> => {
     // If Host is seated, leave seat first so the seat can be filled with a bot
-    if (facade.getMySeat() !== null) {
-      const leaveResult = await facade.leaveSeat();
+    if (mySeat !== null) {
+      const leaveResult = await leaveSeat();
       if (!leaveResult.success) return leaveResult;
     }
-    return facade.fillWithBots();
-  }, [facade]);
+    return fillBots();
+  }, [fillBots, leaveSeat, mySeat]);
 
   // Mark all bot seats as having viewed their roles
   const markAllBotsViewed = useCallback(async (): Promise<ActionResult> => {
-    if (!facade.isHostPlayer()) {
-      return { success: false, reason: 'host_only' };
-    }
     return facade.markAllBotsViewed();
   }, [facade]);
 
   // Mark all bot seats as having acked groupConfirm step
   const markAllBotsGroupConfirmed = useCallback(async (): Promise<ActionResult> => {
-    if (!facade.isHostPlayer()) {
-      return { success: false, reason: 'host_only' };
-    }
     return facade.markAllBotsGroupConfirmed();
   }, [facade]);
 

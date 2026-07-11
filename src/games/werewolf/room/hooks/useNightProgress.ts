@@ -31,7 +31,7 @@ interface UseNightProgressParams {
   /** Current night step id (null when not in night phase) */
   currentStepId: SchemaId | null;
   /** Game state (for status + template.roles to build night plan) */
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
 }
 
 interface UseNightProgressResult {
@@ -50,7 +50,7 @@ export function useNightProgress({
   // ─── Night progress derived state ────────────────────────────────────────
 
   const nightProgress = useMemo<NightProgressInfo | null>(() => {
-    if (!currentStepId || gameState?.status !== GameStatus.Ongoing) {
+    if (!currentStepId || gameState.status !== GameStatus.Ongoing) {
       return null;
     }
 

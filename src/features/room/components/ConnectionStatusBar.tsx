@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import type { RoomConnectionStatus } from '@/features/room/model/RoomShellModel';
+import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import { TESTIDS } from '@/testids';
 
 import { type ConnectionStatusBarStyles } from './styles';
@@ -25,7 +25,7 @@ import { type ConnectionStatusBarStyles } from './styles';
 interface ConnectionStatusBarProps {
   /** Current connection state */
   status: RoomConnectionStatus;
-  /** Trigger manual reconnect (from facade) */
+  /** Trigger manual reconnect through the shared room entry controller. */
   onManualReconnect: () => void;
   /** Pre-created styles from parent */
   styles: ConnectionStatusBarStyles;

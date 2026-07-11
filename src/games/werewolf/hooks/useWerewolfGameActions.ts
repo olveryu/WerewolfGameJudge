@@ -21,7 +21,8 @@ import { useCallback } from 'react';
 import { toast } from 'sonner-native';
 
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
@@ -100,11 +101,13 @@ interface WerewolfGameActionsState {
 }
 
 interface WerewolfGameActionsDeps {
-  facade: IGameFacade;
+  facade: WerewolfGameClient;
   bgm: WerewolfBgmControlState;
   debug: WerewolfDebugModeState;
+  isHost: boolean;
   mySeat: number | null;
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
+  clearSeats: () => Promise<RoomOperationResult>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -117,7 +120,7 @@ interface WerewolfGameActionsDeps {
  */ export function useWerewolfGameActions(
   deps: WerewolfGameActionsDeps,
 ): WerewolfGameActionsState {
-  const { facade, bgm, debug, mySeat, gameState } = deps;
+  const { facade, bgm, debug, isHost, mySeat, gameState, clearSeats } = deps;
 
   // =========================================================================
   // Game control (host-only)
@@ -126,32 +129,32 @@ interface WerewolfGameActionsDeps {
   // Update template (host only)
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
-      if (!facade.isHostPlayer()) return;
+      if (!isHost) return;
       const result = await facade.updateTemplate(template);
       handleMutationResult(result, '更新模板', toastError);
     },
-    [facade],
+    [facade, isHost],
   );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
+    if (!isHost) return;
     const result = await facade.assignRoles();
     handleMutationResult(result, '分配角色', toastError);
-  }, [facade]);
+  }, [facade, isHost]);
 
   // Start game (host only)
   // BGM is driven by useWerewolfBgmControl's gameStatus->Ongoing reactive effect; not imperatively started here.
   const startGame = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
+    if (!isHost) return;
 
     const result = await facade.startNight();
     handleMutationResult(result, '开始游戏', toastError);
-  }, [facade]);
+  }, [facade, isHost]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
+    if (!isHost) return;
     // Stop BGM on restart
     bgm.stopBgm();
     // Clear controlled seat on restart
@@ -160,34 +163,34 @@ interface WerewolfGameActionsDeps {
     }
     const result = await facade.restartGame();
     handleMutationResult(result, '重新开始', toastError);
-  }, [facade, bgm, debug]);
+  }, [facade, bgm, debug, isHost]);
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<void> => {
-    if (!facade.isHostPlayer()) return;
-    const result = await facade.clearAllSeats();
+    if (!isHost) return;
+    const result = await clearSeats();
     handleMutationResult(result, '全员起立', toastError);
-  }, [facade]);
+  }, [clearSeats, isHost]);
 
   // Share night review to selected seats (host only)
   const shareNightReview = useCallback(
     async (allowedSeats: number[]): Promise<void> => {
-      if (!facade.isHostPlayer()) return;
+      if (!isHost) return;
       const result = await facade.shareNightReview(allowedSeats);
       handleMutationResult(result, '分享详细信息', toastError);
     },
-    [facade],
+    [facade, isHost],
   );
 
   // Set audio playing (host only) - PR7 audio timing control
   const setAudioPlaying = useCallback(
     async (isPlaying: boolean): Promise<ActionResult> => {
-      if (!facade.isHostPlayer()) {
+      if (!isHost) {
         return { success: false, reason: 'host_only' };
       }
       return facade.setAudioPlaying(isPlaying);
     },
-    [facade],
+    [facade, isHost],
   );
 
   // =========================================================================
@@ -243,10 +246,10 @@ interface WerewolfGameActionsDeps {
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
-    if (!facade.isHostPlayer()) return false;
+    if (!isHost) return false;
     const result = await facade.postProgression();
     return result.success;
-  }, [facade]);
+  }, [facade, isHost]);
 
   // =========================================================================
   // Board Nomination (any connected player)
@@ -283,7 +286,6 @@ interface WerewolfGameActionsDeps {
 
   // Get last night info - derived from gameState
   const getLastNightInfo = useCallback((): string => {
-    if (!gameState) return '无信息';
     const parts: string[] = [];
 
     const deaths = gameState.lastNightDeaths;
@@ -307,7 +309,6 @@ interface WerewolfGameActionsDeps {
 
   // Get curse info — separate from lastNightInfo; returns null when crow is not in template
   const getCurseInfo = useCallback((): string | null => {
-    if (!gameState) return null;
     if (!gameState.template.roles.includes('crow')) return null;
     const { cursedSeat } = gameState.currentNightResults;
     if (cursedSeat == null) return '乌鸦未诅咒任何人';
@@ -317,7 +318,6 @@ interface WerewolfGameActionsDeps {
   // Check if a wolf has voted
   const hasWolfVoted = useCallback(
     (seat: number): boolean => {
-      if (!gameState) return false;
       return gameState.wolfVotes.has(seat);
     },
     [gameState],

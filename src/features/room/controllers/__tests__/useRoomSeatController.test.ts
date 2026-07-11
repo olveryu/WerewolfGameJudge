@@ -71,7 +71,12 @@ describe('useRoomSeatController', () => {
 
   it('closes the modal and reports an authoritative rejection', async () => {
     const takeSeat = jest.fn(
-      async (): Promise<RoomOperationResult> => ({ success: false, reason: 'seat_taken' }),
+      async (): Promise<RoomOperationResult> => ({
+        success: false,
+        failureKind: 'rejected',
+        commandId: 'seat-command-1',
+        reason: 'seat_taken',
+      }),
     );
     const { result } = renderHook(() =>
       useRoomSeatController({ currentSeat: null, takeSeat, leaveSeat: createSuccess }),

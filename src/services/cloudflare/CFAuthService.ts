@@ -18,7 +18,6 @@
  */
 
 import * as Sentry from '@sentry/react-native';
-import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/models/roles';
 
 import { storage } from '@/lib/storage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
@@ -51,7 +50,6 @@ export class CFAuthService implements IAuthService {
   #cachedRefreshToken: string | null = null;
   #isAnonymous = false;
   #hasWechat = false;
-  #generatedName: string | null = null;
   #needsWechatLogin = false;
   readonly #initPromise: Promise<void>;
   readonly #authExpiredCallbacks = new Set<() => void>();
@@ -360,122 +358,6 @@ export class CFAuthService implements IAuthService {
       }
       return null;
     }
-  }
-
-  generateDisplayName(): string {
-    if (this.#generatedName) return this.#generatedName;
-
-    const adjectives = [
-      '首刀',
-      '自刀',
-      '空刀',
-      '暗刀',
-      '补刀',
-      '乱刀',
-      '挡刀',
-      '背刀',
-      '刀法',
-      '金水',
-      '银水',
-      '查杀',
-      '反查',
-      '发水',
-      '深水',
-      '对跳',
-      '悍跳',
-      '裸跳',
-      '跳坑',
-      '站边',
-      '归票',
-      '跑票',
-      '飞票',
-      '铁票',
-      '秒投',
-      '改票',
-      '混票',
-      '冲票',
-      '拉票',
-      '抗推',
-      '扛推',
-      '放逐',
-      '公投',
-      '上警',
-      '退水',
-      '划水',
-      '警上',
-      '警下',
-      '踩人',
-      '捞人',
-      '倒钩',
-      '互踩',
-      '互保',
-      '自爆',
-      '翻盘',
-      '翻牌',
-      '亮牌',
-      '暗牌',
-      '明牌',
-      '炸牌',
-      '摊牌',
-      '反水',
-      '上岸',
-      '抱团',
-      '对线',
-      '拉扯',
-      '破绽',
-      '毒奶',
-      '甩锅',
-      '背锅',
-      '挖坑',
-      '控场',
-      '打底',
-      '开车',
-      '搭车',
-      '带飞',
-      '带坑',
-      '躺平',
-      '躺赢',
-      '躺输',
-      '苟住',
-      '冲锋',
-      '收割',
-      '逆风',
-      '顺风',
-      '起飞',
-      '血崩',
-      '丝血',
-      '残局',
-      '开局',
-      '白板',
-      '神位',
-      '狼坑',
-      '铁狼',
-      '独狼',
-      '民意',
-      '遗言',
-      '闭眼',
-      '睁眼',
-      '天黑',
-      '天亮',
-      '出局',
-      '焦点',
-      '口嗨',
-      '拍桌',
-      '吃药',
-      '蹭车',
-      '抢水',
-      '存活',
-      '盘逻辑',
-    ];
-    const nouns = getAllRoleIds().map((id) => getRoleSpec(id).displayName);
-
-    const arr = new Uint32Array(2);
-    crypto.getRandomValues(arr);
-    const idx1 = arr[0]! % adjectives.length;
-    const idx2 = arr[1]! % nouns.length;
-
-    this.#generatedName = adjectives[idx1]! + '的' + nouns[idx2]!;
-    return this.#generatedName;
   }
 
   // ── Private: Token management ─────────────────────────────────────────────

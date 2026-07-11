@@ -1,5 +1,3 @@
-/** Game-neutral result returned when entering a resolved room. */
+/** Game-neutral room connection state. */
 
-export type RoomEntryResult =
-  | { readonly success: true }
-  | { readonly success: false; readonly error: string };
+export type RoomConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'failed';

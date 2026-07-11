@@ -16,9 +16,8 @@ import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
 import React from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
-import type { RoomRecord } from '@/services/types/IRoomService';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { TESTIDS } from '@/testids';
 import type { LocalPlayer } from '@/types/GameStateTypes';
 
@@ -188,14 +187,10 @@ export function createGameRoomMock(options: GameStateMockOptions) {
   };
 
   return {
-    // Facade stub — useNotepad (called via useWerewolfRoomScreenState) only needs getState()
-    facade: { getState: () => gameState },
-
     gameState,
     stateRevision: 1,
 
-    roomRecord: null,
-    connectionStatus: ConnectionStatus.Live,
+    connectionStatus: 'live',
     isHost,
     roomStatus: GameStatus.Ongoing,
     currentActionRole,
@@ -203,15 +198,9 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     currentStepId: schemaId,
     currentSchemaId: schemaId,
     isAudioPlaying,
-    loading: false,
     mySeat,
     myRole,
     myUserId: `p${mySeat}`,
-    error: null,
-
-    // Connection
-    manualReconnect: jest.fn(),
-    lastStateReceivedAt: Date.now(),
 
     // Debug mode - effectiveSeat/effectiveRole are used in WerewolfRoomScreen
     isDebugMode: false,
@@ -225,11 +214,8 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     releaseBot: jest.fn(),
 
     // Actions
-    enterRoom: jest.fn().mockResolvedValue({ success: true }),
-    leaveRoom: jest.fn(),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
-    requestSnapshot: jest.fn(),
     assignRoles: jest.fn(),
     startGame: jest.fn(),
     restartGame: jest.fn(),
@@ -248,12 +234,6 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     boardNominate: jest.fn().mockResolvedValue({ success: true }),
     boardUpvote: jest.fn().mockResolvedValue({ success: true }),
     boardWithdraw: jest.fn().mockResolvedValue({ success: true }),
-
-    // Error plumbing
-
-    // Auth gate
-    needsAuth: false,
-    clearNeedsAuth: jest.fn(),
 
     // Info getters
     getLastNightInfo: jest.fn().mockReturnValue(''),

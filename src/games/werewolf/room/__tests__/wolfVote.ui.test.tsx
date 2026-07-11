@@ -5,8 +5,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';
 import type { LocalPlayer } from '@/types/GameStateTypes';
 // We assert on showAlert calls (WerewolfRoomScreen uses this wrapper)
@@ -43,7 +42,6 @@ const roomScreenProps: React.ComponentProps<typeof WerewolfRoomScreen> = {
 
 // Mock the room hook: provide minimal state to render PlayerGrid and accept taps
 const mockSubmitAction = jest.fn<void, [WerewolfActionInput]>();
-const mockRequestSnapshot = jest.fn();
 
 type UseWerewolfRoomReturn = ReturnType<typeof makeBaseUseGameRoomReturn>;
 let mockUseGameRoomImpl: () => UseWerewolfRoomReturn;
@@ -91,11 +89,10 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
   };
 
   return {
-    facade: { getState: () => gameState },
     gameState,
 
     // Connection
-    connectionStatus: ConnectionStatus.Live,
+    connectionStatus: 'live',
 
     // Host/role/step info used by WerewolfRoomScreen
     isHost: false,
@@ -121,7 +118,6 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     releaseBot: jest.fn(),
 
     // Actions used by WerewolfRoomScreen
-    enterRoom: jest.fn().mockResolvedValue({ success: true }),
     takeSeat: jest.fn(),
     leaveSeat: jest.fn(),
     assignRoles: jest.fn(),
@@ -129,7 +125,6 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     restartGame: jest.fn(),
     submitAction: mockSubmitAction,
     hasWolfVoted: () => false,
-    requestSnapshot: mockRequestSnapshot,
     viewedRole: jest.fn(),
 
     // Error plumbing
@@ -140,9 +135,7 @@ function makeBaseUseGameRoomReturn(overrides?: Record<string, unknown>) {
     submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
 
     // BGM controls
-    isBgmEnabled: true,
     isBgmPlaying: false,
-    toggleBgm: jest.fn(),
     playBgm: jest.fn(),
     stopBgm: jest.fn(),
 

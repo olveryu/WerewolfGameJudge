@@ -1,39 +1,32 @@
-/**
- * useWerewolfDebugMode.test - Unit tests for Host debug bot-control hook
- *
- * Verifies effectiveSeat/effectiveRole derivation, isDebugMode flag,
- * fillWithBots flow (leave seat → fill), and markAllBotsViewed guard.
- */
-
 import { act, renderHook } from '@testing-library/react-native';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import { useWerewolfDebugMode } from '@/games/werewolf/hooks/useWerewolfDebugMode';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
-type MockFacade = Pick<
-  IGameFacade,
-  | 'isHostPlayer'
-  | 'getMySeat'
-  | 'leaveSeat'
-  | 'fillWithBots'
-  | 'markAllBotsViewed'
-  | 'markAllBotsGroupConfirmed'
->;
-
-function createMockFacade(overrides: Partial<{ [K in keyof MockFacade]: MockFacade[K] }> = {}) {
+function createMockFacade(): WerewolfGameClient {
   return {
-    isHostPlayer: jest.fn<boolean, []>(() => true),
-    getMySeat: jest.fn<number | null, []>(() => 1),
-    leaveSeat: jest.fn().mockResolvedValue({ success: true }),
-    fillWithBots: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsViewed: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsGroupConfirmed: jest
       .fn<Promise<ActionResult>, []>()
       .mockResolvedValue({ success: true }),
-    ...overrides,
-  } as unknown as IGameFacade;
+  } as unknown as WerewolfGameClient;
+}
+
+function success(): RoomOperationResult {
+  return { success: true };
+}
+
+function createSeatCommands(overrides?: {
+  readonly leaveSeat?: () => Promise<RoomOperationResult>;
+  readonly fillBots?: () => Promise<RoomOperationResult>;
+}) {
+  return {
+    leaveSeat: jest.fn(overrides?.leaveSeat ?? (async () => success())),
+    fillBots: jest.fn(overrides?.fillBots ?? (async () => success())),
+  };
 }
 
 function makeGameState(
@@ -59,165 +52,114 @@ function makeGameState(
   } as unknown as LocalGameState;
 }
 
+function renderDebugMode(options?: {
+  readonly facade?: WerewolfGameClient;
+  readonly mySeat?: number | null;
+  readonly gameState?: LocalGameState;
+  readonly seatCommands?: ReturnType<typeof createSeatCommands>;
+}) {
+  const facade = options?.facade ?? createMockFacade();
+  const seatCommands = options?.seatCommands ?? createSeatCommands();
+  const hook = renderHook(() =>
+    useWerewolfDebugMode(
+      facade,
+      options?.mySeat === undefined ? 1 : options.mySeat,
+      options?.gameState === undefined ? makeGameState() : options.gameState,
+      seatCommands.leaveSeat,
+      seatCommands.fillBots,
+    ),
+  );
+  return { ...hook, facade, seatCommands };
+}
+
 describe('useWerewolfDebugMode', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('effectiveSeat defaults to mySeat when no controlled seat', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 3, null));
+  it('derives the effective seat and role from the active identity', () => {
+    const { result } = renderDebugMode();
 
-    expect(result.current.effectiveSeat).toBe(3);
-    expect(result.current.controlledSeat).toBeNull();
+    expect(result.current.effectiveSeat).toBe(1);
+    expect(result.current.effectiveRole).toBe('wolf');
   });
 
-  it('effectiveSeat uses controlledSeat when set', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, makeGameState()));
+  it('uses the controlled bot seat and role after takeover', () => {
+    const { result } = renderDebugMode();
 
-    act(() => {
-      result.current.takeOverBot(2);
-    });
+    act(() => result.current.takeOverBot(2));
 
     expect(result.current.effectiveSeat).toBe(2);
     expect(result.current.effectiveRole).toBe('seer');
   });
 
-  it('effectiveRole is null when gameState is null', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
+  it('returns null role when the effective seat is absent', () => {
+    const { result } = renderDebugMode({ mySeat: 99 });
 
     expect(result.current.effectiveRole).toBeNull();
   });
 
-  it('effectiveRole is derived from gameState.players', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, makeGameState()));
-
-    expect(result.current.effectiveRole).toBe('wolf');
-  });
-
-  it('effectiveRole is null when seat not in players map', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 99, makeGameState()));
-
-    expect(result.current.effectiveRole).toBeNull();
-  });
-
-  it('isDebugMode reflects gameState.debugMode.botsEnabled', () => {
-    const facade = createMockFacade();
-    const stateWithBots = makeGameState({ debugMode: { botsEnabled: true } });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, stateWithBots));
+  it('reflects the authoritative botsEnabled flag', () => {
+    const gameState = makeGameState({ debugMode: { botsEnabled: true } });
+    const { result } = renderDebugMode({ gameState });
 
     expect(result.current.isDebugMode).toBe(true);
   });
 
-  it('isDebugMode is false when debugMode is absent', () => {
-    const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, makeGameState()));
-
-    expect(result.current.isDebugMode).toBe(false);
-  });
-
-  // --- fillWithBots ---
-
-  it('fillWithBots leaves seat first if hosted is seated, then fills', async () => {
-    const facade = createMockFacade({
-      getMySeat: jest.fn<number | null, []>(() => 1),
-    });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
-
-    let res: ActionResult | undefined;
-    await act(async () => {
-      res = await result.current.fillWithBots();
-    });
-
-    expect(facade.leaveSeat).toHaveBeenCalled();
-    expect(facade.fillWithBots).toHaveBeenCalled();
-    expect(res).toEqual({ success: true });
-  });
-
-  it('fillWithBots skips leaveSeat when host is not seated', async () => {
-    const facade = createMockFacade({
-      getMySeat: jest.fn<number | null, []>(() => null),
-    });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, null, null));
+  it('leaves the host seat before filling every empty seat with bots', async () => {
+    const { result, seatCommands } = renderDebugMode({ mySeat: 1 });
 
     await act(async () => {
       await result.current.fillWithBots();
     });
 
-    expect(facade.leaveSeat).not.toHaveBeenCalled();
-    expect(facade.fillWithBots).toHaveBeenCalled();
+    expect(seatCommands.leaveSeat).toHaveBeenCalledTimes(1);
+    expect(seatCommands.fillBots).toHaveBeenCalledTimes(1);
   });
 
-  it('fillWithBots returns failure when not host', async () => {
-    const facade = createMockFacade({
-      isHostPlayer: jest.fn<boolean, []>(() => false),
-    });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
+  it('fills bots directly when the host is not seated', async () => {
+    const { result, seatCommands } = renderDebugMode({ mySeat: null });
 
-    let res: ActionResult | undefined;
     await act(async () => {
-      res = await result.current.fillWithBots();
+      await result.current.fillWithBots();
     });
 
-    expect(res).toEqual({ success: false, reason: 'host_only' });
-    expect(facade.leaveSeat).not.toHaveBeenCalled();
+    expect(seatCommands.leaveSeat).not.toHaveBeenCalled();
+    expect(seatCommands.fillBots).toHaveBeenCalledTimes(1);
   });
 
-  it('fillWithBots returns the leave-seat rejection without filling bots', async () => {
-    const facade = createMockFacade({
-      getMySeat: jest.fn<number | null, []>(() => 1),
-      leaveSeat: jest.fn().mockResolvedValue({ success: false, reason: 'game_in_progress' }),
-    });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
+  it('does not fill bots when leave-seat is rejected', async () => {
+    const rejection: RoomOperationResult = {
+      success: false,
+      failureKind: 'rejected',
+      commandId: 'leave-command',
+      reason: 'game_in_progress',
+    };
+    const seatCommands = createSeatCommands({ leaveSeat: async () => rejection });
+    const { result } = renderDebugMode({ seatCommands });
 
-    let res: ActionResult | undefined;
-    await act(async () => {
-      res = await result.current.fillWithBots();
-    });
-
-    expect(res).toEqual({ success: false, reason: 'game_in_progress' });
-    expect(facade.fillWithBots).not.toHaveBeenCalled();
+    await expect(result.current.fillWithBots()).resolves.toEqual(rejection);
+    expect(seatCommands.fillBots).not.toHaveBeenCalled();
   });
 
-  it('fillWithBots propagates an unexpected leave-seat exception', async () => {
-    const facade = createMockFacade({
-      getMySeat: jest.fn<number | null, []>(() => 1),
-      leaveSeat: jest.fn().mockRejectedValue(new Error('leave failed')),
+  it('propagates an unexpected leave-seat exception', async () => {
+    const seatCommands = createSeatCommands({
+      leaveSeat: async () => {
+        throw new Error('leave failed');
+      },
     });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
+    const { result } = renderDebugMode({ seatCommands });
 
     await expect(result.current.fillWithBots()).rejects.toThrow('leave failed');
-    expect(facade.fillWithBots).not.toHaveBeenCalled();
+    expect(seatCommands.fillBots).not.toHaveBeenCalled();
   });
 
-  // --- markAllBotsViewed ---
-
-  it('markAllBotsViewed calls facade method', async () => {
+  it('delegates Werewolf bot progression commands to the facade', async () => {
     const facade = createMockFacade();
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
+    const { result } = renderDebugMode({ facade });
 
-    let res: ActionResult | undefined;
-    await act(async () => {
-      res = await result.current.markAllBotsViewed();
-    });
+    await result.current.markAllBotsViewed();
+    await result.current.markAllBotsGroupConfirmed();
 
-    expect(facade.markAllBotsViewed).toHaveBeenCalled();
-    expect(res).toEqual({ success: true });
-  });
-
-  it('markAllBotsViewed returns failure when not host', async () => {
-    const facade = createMockFacade({
-      isHostPlayer: jest.fn<boolean, []>(() => false),
-    });
-    const { result } = renderHook(() => useWerewolfDebugMode(facade, 1, null));
-
-    let res: ActionResult | undefined;
-    await act(async () => {
-      res = await result.current.markAllBotsViewed();
-    });
-
-    expect(res).toEqual({ success: false, reason: 'host_only' });
+    expect(facade.markAllBotsViewed).toHaveBeenCalledTimes(1);
+    expect(facade.markAllBotsGroupConfirmed).toHaveBeenCalledTimes(1);
   });
 });

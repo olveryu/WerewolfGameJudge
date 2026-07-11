@@ -87,7 +87,6 @@ roomRoutes.post('/create', requireAuth, jsonBody(createRoomSchema), async (c) =>
           hostUserId: initialized.room.hostUserId,
           createdAt: initialized.room.createdAt,
         },
-        snapshot: initialized.snapshot,
       },
       200,
     );

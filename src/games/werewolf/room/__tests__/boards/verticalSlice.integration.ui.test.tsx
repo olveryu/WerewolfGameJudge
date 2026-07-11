@@ -25,11 +25,10 @@ import {
   RoomScreenTestHarness,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import { cleanupGame, createGame } from '@/services/__tests__/boards/gameFactory';
 import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================
@@ -141,8 +140,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('witchAction');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
-      facade: { getState: () => mockUseGameRoomReturn.gameState },
-      connectionStatus: ConnectionStatus.Live,
+      connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'witch',
@@ -153,9 +151,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       mySeat: MY_SEAT,
       myRole: 'witch',
       myUserId: `p${MY_SEAT}`,
-      error: null,
-      roomRecord: null,
-      loading: false,
 
       // Debug mode
       isDebugMode: false,
@@ -170,19 +165,13 @@ describe('Vertical Slice: real state -> UI rendering', () => {
 
       // Connection
       stateRevision: 1,
-      lastStateReceivedAt: Date.now(),
 
       // Actions
-      enterRoom: jest.fn().mockResolvedValue({ success: true }),
-      leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
-      requestSnapshot: jest.fn(),
-      updateTemplate: jest.fn(),
       assignRoles: jest.fn(),
       startGame: jest.fn(),
       restartGame: jest.fn(),
-      setAudioPlaying: jest.fn(),
       viewedRole: jest.fn(),
       submitAction: jest.fn().mockResolvedValue(undefined),
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
@@ -191,9 +180,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
       // BGM
-      isBgmEnabled: false,
       isBgmPlaying: false,
-      toggleBgm: jest.fn(),
       playBgm: jest.fn(),
       stopBgm: jest.fn(),
     };
@@ -252,8 +239,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const currentSchema = getSchema('seerCheck');
     mockUseGameRoomReturn = {
       gameState: toMockGameState(realState),
-      facade: { getState: () => mockUseGameRoomReturn.gameState },
-      connectionStatus: ConnectionStatus.Live,
+      connectionStatus: 'live',
       isHost: false,
       roomStatus: GameStatus.Ongoing,
       currentActionRole: 'seer',
@@ -264,9 +250,6 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       mySeat: seerSeat,
       myRole: 'seer',
       myUserId: `p${seerSeat}`,
-      error: null,
-      roomRecord: null,
-      loading: false,
 
       isDebugMode: false,
       controlledSeat: null,
@@ -279,18 +262,12 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       releaseBot: jest.fn(),
 
       stateRevision: 1,
-      lastStateReceivedAt: Date.now(),
 
-      enterRoom: jest.fn().mockResolvedValue({ success: true }),
-      leaveRoom: jest.fn(),
       takeSeat: jest.fn(),
       leaveSeat: jest.fn(),
-      requestSnapshot: jest.fn(),
-      updateTemplate: jest.fn(),
       assignRoles: jest.fn(),
       startGame: jest.fn(),
       restartGame: jest.fn(),
-      setAudioPlaying: jest.fn(),
       viewedRole: jest.fn(),
       submitAction: jest.fn().mockResolvedValue(undefined),
       submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
@@ -298,9 +275,7 @@ describe('Vertical Slice: real state -> UI rendering', () => {
       getLastNightInfo: jest.fn().mockReturnValue(''),
       hasWolfVoted: jest.fn().mockReturnValue(false),
 
-      isBgmEnabled: false,
       isBgmPlaying: false,
-      toggleBgm: jest.fn(),
       playBgm: jest.fn(),
       stopBgm: jest.fn(),
     };

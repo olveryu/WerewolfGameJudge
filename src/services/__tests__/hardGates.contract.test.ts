@@ -42,7 +42,7 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 
 describe('hard gates (contract)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
-  const facadeRoot = path.join(repoRoot, 'src/services/facade');
+  const werewolfRuntimeRoot = path.join(repoRoot, 'src/games/werewolf/runtime');
   const engineRoot = path.join(repoRoot, 'packages/game-engine/src/engine');
 
   it('forbids dynamic require() in game-engine/engine/** (non-tests)', () => {
@@ -54,7 +54,7 @@ describe('hard gates (contract)', () => {
   });
 
   it('forbids Facade-level progression evaluators (no evaluateAndExecuteProgression)', () => {
-    const matches = scanDirForNeedle(facadeRoot, 'evaluateAndExecuteProgression');
+    const matches = scanDirForNeedle(werewolfRuntimeRoot, 'evaluateAndExecuteProgression');
     expect(matches).toEqual([]);
   });
 
@@ -62,7 +62,7 @@ describe('hard gates (contract)', () => {
     const forbiddenNeedles = ['progressionTracker', 'tryAdvanceNight'];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(facadeRoot, needle).filter(
+      scanDirForNeedle(werewolfRuntimeRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );
@@ -88,7 +88,7 @@ describe('hard gates (contract)', () => {
     ];
 
     const matches = forbiddenNeedles.flatMap((needle) =>
-      scanDirForNeedle(facadeRoot, needle).filter(
+      scanDirForNeedle(werewolfRuntimeRoot, needle).filter(
         (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
       ),
     );

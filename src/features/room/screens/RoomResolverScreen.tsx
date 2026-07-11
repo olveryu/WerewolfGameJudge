@@ -11,7 +11,10 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
 import type { GameUiModule } from '@/features/room/model/GameUiModule';
 import type { RootStackParamList } from '@/navigation/types';
-import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/services/types/IRoomService';
+import {
+  type RoomRecord,
+  UnsupportedRoomGameTypeError,
+} from '@/services/types/IRoomDirectoryService';
 import { log } from '@/utils/logger';
 
 type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;
@@ -32,7 +35,7 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
   navigation,
   getGameModule,
 }) => {
-  const { roomService } = useServices();
+  const { roomDirectory } = useServices();
   const [retryGeneration, setRetryGeneration] = useState(0);
   const [state, setState] = useState<ResolverState>({ kind: 'loading' });
 
@@ -47,7 +50,7 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
     }
 
     setState({ kind: 'loading' });
-    void roomService
+    void roomDirectory
       .getRoom(roomCode)
       .then((room) => {
         if (!isCurrent) return;
@@ -75,7 +78,7 @@ export const RoomResolverScreen: React.FC<RoomResolverScreenProps> = ({
     return () => {
       isCurrent = false;
     };
-  }, [getGameModule, retryGeneration, roomService, route.params.roomCode]);
+  }, [getGameModule, retryGeneration, roomDirectory, route.params.roomCode]);
 
   const handleRetry = useCallback(() => {
     setRetryGeneration((generation) => generation + 1);

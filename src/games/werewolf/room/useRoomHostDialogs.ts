@@ -35,7 +35,7 @@ export function generateSpeakOrder(
 }
 
 interface UseRoomHostDialogsParams {
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
@@ -78,8 +78,6 @@ export const useRoomHostDialogs = ({
   }, []);
 
   const showPrepareToFlipDialog = useCallback(() => {
-    if (!gameState) return;
-
     let seatedCount = 0;
     gameState.players.forEach((player) => {
       if (player !== null) seatedCount++;
@@ -157,7 +155,7 @@ export const useRoomHostDialogs = ({
   }, [restartGame, markSubmitting]);
 
   const showRestartDialog = useCallback(() => {
-    if (gameState?.status !== GameStatus.Ended) {
+    if (gameState.status !== GameStatus.Ended) {
       // Game not ended — no complete report to share, plain restart
       showConfirmAlert('重新开始游戏？', '使用相同配置开始新一局', handleRestart);
       return;
@@ -176,7 +174,7 @@ export const useRoomHostDialogs = ({
         onPress: handleRestart,
       },
     ]);
-  }, [gameState?.status, shareNightReviewReport, handleRestart]);
+  }, [gameState.status, shareNightReviewReport, handleRestart]);
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Config', { existingRoomCode: roomCode });

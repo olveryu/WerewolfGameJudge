@@ -6,19 +6,21 @@
  * Owns message CRUD, AIChatService calls, and haptics. No UI rendering or gesture handling.
  */
 
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { newRequestId } from '@werewolf/game-engine/utils/id';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 
 import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
 import { NETWORK_ERROR } from '@/config/errorMessages';
+import type { RoomSessionSnapshot } from '@/features/room/session/types';
+import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { storage } from '@/lib/storage';
 import {
   type ChatMessage,
   isAIChatReady,
   streamChatMessage,
 } from '@/services/feature/AIChatService';
-import type { IGameFacade } from '@/services/types/IGameFacade';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
@@ -55,11 +57,18 @@ export interface UseChatMessagesReturn {
   handleClearHistory: () => void;
 }
 
+interface WerewolfRoomContextSource {
+  getSnapshot(): RoomSessionSnapshot<GameState>;
+}
+
 /**
- * @param facade Game facade (used to build player context)
+ * @param source Active Werewolf room session used to build player context.
  * @param isOpen Whether the chat window is open (abort request on close)
  */
-export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMessagesReturn {
+export function useChatMessages(
+  source: WerewolfRoomContextSource,
+  isOpen: boolean,
+): UseChatMessagesReturn {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -177,8 +186,10 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
       setMessages((prev) => [...prev, assistantMessage]);
 
       try {
-        const gameState = facade.getState();
-        const mySeat = facade.getMySeat();
+        const room = source.getSnapshot();
+        const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+        const identity = room.phase === 'idle' ? null : room.identity;
+        const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
         const gameContext = buildPlayerContext(gameState, mySeat);
 
         const contextMessages: ChatMessage[] = skipHistory
@@ -310,7 +321,7 @@ export function useChatMessages(facade: IGameFacade, isOpen: boolean): UseChatMe
         setIsStreaming(false);
       }
     },
-    [facade],
+    [source],
   );
 
   // ── Public actions ─────────────────────────────────

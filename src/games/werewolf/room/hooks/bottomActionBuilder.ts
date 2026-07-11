@@ -31,7 +31,7 @@ export interface BottomButton {
 }
 
 interface BottomActionContext {
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
   currentSchema: ActionSchema | null;
@@ -77,7 +77,6 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
     getWitchContext,
   } = ctx;
 
-  if (!gameState) return EMPTY;
   if (roomStatus !== GameStatus.Ongoing) return EMPTY;
   if (isAudioPlaying) return EMPTY;
   if (!currentSchema) return EMPTY;

@@ -6,7 +6,7 @@ import { Text } from 'react-native';
 import { useServices } from '@/contexts/ServiceContext';
 import type { GameUiModule } from '@/features/room/model/GameUiModule';
 import type { RootStackParamList } from '@/navigation/types';
-import type { IRoomService, RoomRecord } from '@/services/types/IRoomService';
+import type { IRoomDirectoryService, RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 import { RoomResolverScreen } from '../RoomResolverScreen';
 
@@ -15,7 +15,7 @@ jest.mock('@/contexts/ServiceContext', () => ({ useServices: jest.fn() }));
 
 const mockUseServices = jest.mocked(useServices);
 const getRoom = jest.fn<Promise<RoomRecord | null>, [string]>();
-const roomService = { getRoom } as unknown as IRoomService;
+const roomDirectory = { getRoom } as unknown as IRoomDirectoryService;
 const navigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
@@ -45,7 +45,7 @@ function renderResolver(roomCode = '1234') {
 describe('RoomResolverScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseServices.mockReturnValue({ roomService } as ReturnType<typeof useServices>);
+    mockUseServices.mockReturnValue({ roomDirectory } as ReturnType<typeof useServices>);
   });
 
   it('resolves metadata before selecting the registered game screen', async () => {

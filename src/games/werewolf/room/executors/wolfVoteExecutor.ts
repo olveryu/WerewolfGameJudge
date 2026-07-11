@@ -52,7 +52,7 @@ export const wolfVoteExecutor: IntentExecutor = (intent, ctx) => {
     (() => {
       // Only override for immune targets — normal text comes from schema templates.
       if (intent.targetSeat < 0) return undefined;
-      const targetRole = gameStateRef.current?.players?.get(intent.targetSeat)?.role;
+      const targetRole = gameStateRef.current.players.get(intent.targetSeat)?.role;
       if (currentSchema?.id !== 'wolfKill' || !targetRole) return undefined;
       const immune = getWolfKillImmuneRoleIds().includes(targetRole);
       if (!immune) return undefined;

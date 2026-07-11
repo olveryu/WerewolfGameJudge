@@ -20,7 +20,7 @@ import { buildSeatViewModels, getRoleStats } from '../werewolfRoom.helpers';
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface UseRoomDerivedInput {
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
   roomStatus: GameStatus;

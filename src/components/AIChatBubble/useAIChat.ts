@@ -9,7 +9,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import { useGameFacade } from '@/contexts';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { setAIChatBridgeListener } from '@/utils/aiChatBridge';
 
 import type { DisplayMessage } from './AIChatBubble.styles';
@@ -56,7 +57,8 @@ interface UseAIChatReturn {
 // ══════════════════════════════════════════════════════════
 
 export function useAIChat(): UseAIChatReturn {
-  const facade = useGameFacade();
+  const werewolfClient = useWerewolfGame();
+  const { roomSession } = werewolfClient;
 
   // ── Open/close state ─────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
@@ -64,7 +66,7 @@ export function useAIChat(): UseAIChatReturn {
   // ── Sub-hooks ────────────────────────────────────────
   const bubble = useBubbleDrag(useCallback(() => setIsOpen(true), []));
   const keyboardHeight = useKeyboardHeight();
-  const chat: UseChatMessagesReturn = useChatMessages(facade, isOpen);
+  const chat: UseChatMessagesReturn = useChatMessages(roomSession, isOpen);
 
   // ── Bridge listener (cross-component message requests) ──
   const sendWithDisplay = chat.sendWithDisplay;
@@ -86,22 +88,26 @@ export function useAIChat(): UseAIChatReturn {
   // Refresh quick questions when chat opens
   useEffect(() => {
     if (isOpen) {
-      const gameState = facade.getState();
-      const mySeat = facade.getMySeat();
+      const room = roomSession.getSnapshot();
+      const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+      const identity = room.phase === 'idle' ? null : room.identity;
+      const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only: facade is a stable singleton, refreshing quick questions only when panel opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open-only: roomSession is a stable singleton; refresh only when the panel opens
   }, [isOpen]); // intentionally not depending on messages — only refresh once on open
 
   // Refresh quick questions when streaming completes (refresh suggestions after each reply)
   useEffect(() => {
     if (prevStreamingRef.current && !chat.isStreaming) {
-      const gameState = facade.getState();
-      const mySeat = facade.getMySeat();
+      const room = roomSession.getSnapshot();
+      const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+      const identity = room.phase === 'idle' ? null : room.identity;
+      const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
       setContextQuestions(generateQuickQuestions(gameState, mySeat));
     }
     prevStreamingRef.current = chat.isStreaming;
-  }, [chat.isStreaming, chat.messages, facade]);
+  }, [chat.isStreaming, chat.messages, roomSession]);
 
   // ── Return ───────────────────────────────────────────
   return {

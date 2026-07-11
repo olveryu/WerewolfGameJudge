@@ -19,7 +19,7 @@ import {
   tapSeat,
   waitForRoomScreen,
 } from '@/games/werewolf/room/__tests__/harness';
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================

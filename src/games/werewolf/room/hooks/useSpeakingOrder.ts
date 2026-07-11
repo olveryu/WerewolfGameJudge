@@ -19,7 +19,7 @@ import { generateSpeakOrder } from '../useRoomHostDialogs';
 interface UseSpeakingOrderParams {
   roomStatus: GameStatus;
   isAudioPlaying: boolean;
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
 }
 
 /**
@@ -35,7 +35,7 @@ export function useSpeakingOrder({
 
   // Ref to read gameState inside effect without adding it as a dependency
   // (gameState object reference changes on every broadcast, which would cancel the 60s timer)
-  const gameStateRef = useRef(gameState);
+  const gameStateRef = useRef<LocalGameState>(gameState);
   useEffect(() => {
     gameStateRef.current = gameState;
   }, [gameState]);
@@ -52,7 +52,7 @@ export function useSpeakingOrder({
       setSpeakingOrderText(undefined);
       return;
     }
-    if (!gameStateRef.current || isAudioPlaying || speakingOrderShownRef.current) {
+    if (isAudioPlaying || speakingOrderShownRef.current) {
       return;
     }
     speakingOrderShownRef.current = true;

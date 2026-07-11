@@ -17,7 +17,6 @@ import type {
   RoomSeatViewModel,
 } from '@/features/room/model/RoomSeatDataSource';
 import type {
-  RoomConnectionStatus,
   RoomControlledSeatModel,
   RoomStatusRibbonModel,
 } from '@/features/room/model/RoomShellModel';
@@ -28,7 +27,6 @@ import type {
 } from '@/games/werewolf/room/hooks/bottomLayoutConfig';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
-import { ConnectionStatus } from '@/services/types/IGameFacade';
 
 export const WEREWOLF_DISPLAY_NAME = '狼人杀';
 
@@ -158,21 +156,6 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
       };
     },
   };
-}
-
-export function toRoomConnectionStatus(status: ConnectionStatus): RoomConnectionStatus {
-  switch (status) {
-    case ConnectionStatus.Connecting:
-      return 'connecting';
-    case ConnectionStatus.Syncing:
-      return 'syncing';
-    case ConnectionStatus.Live:
-      return 'live';
-    case ConnectionStatus.Disconnected:
-      return 'disconnected';
-    case ConnectionStatus.Failed:
-      return 'failed';
-  }
 }
 
 interface WerewolfStatusRibbonInput {

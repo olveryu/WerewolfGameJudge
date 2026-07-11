@@ -10,7 +10,7 @@ import { toast } from 'sonner-native';
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -34,7 +34,7 @@ interface UseAppearanceSaveParams {
   updateProfile: (patch: Record<string, string>) => Promise<unknown>;
   uploadAvatar: (uri: string) => Promise<string>;
   refreshUser: () => Promise<void>;
-  facade: IGameFacade;
+  facade: WerewolfGameClient;
   isInRoom: boolean;
   goBack: () => void;
 }

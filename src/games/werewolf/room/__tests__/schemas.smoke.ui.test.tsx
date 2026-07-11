@@ -2,7 +2,7 @@ import { render, waitFor } from '@testing-library/react-native';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 
 import { makeBaseUseGameRoomReturn, mockNavigation, mockRoom } from './schemaSmokeTestUtils';
 
@@ -160,7 +160,7 @@ describe('WerewolfRoomScreen schema smoke (one-per-schema)', () => {
           },
           {
             hasWolfVoted: room.hasWolfVoted,
-            getWolfVoteSummary: room.getWolfVoteSummary,
+            getWolfVoteSummary: () => '0/0 狼人已确认',
             getWitchContext: () =>
               ((room.gameState as Record<string, unknown>)?.witchContext ?? null) as {
                 killedSeat: number;

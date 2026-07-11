@@ -12,34 +12,33 @@
 
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
-import type { StateUpdateMessage } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type {
+  BaseGameState,
+  StateUpdateMessage,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Handlers (transport → ConnectionManager)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Game settle result unicast message. */
-export interface SettleResultMessage {
+export interface RealtimeUserEvent {
   readonly eventId: string;
-  readonly gameType: GameType;
-  readonly settlementId: string;
-  readonly endedRevision: number;
-  xpEarned: number;
-  newXp: number;
-  newLevel: number;
-  previousLevel: number;
-  normalDrawsEarned: number;
-  goldenDrawsEarned: number;
+}
+
+export interface RealtimeUserEventCodec<TEvent extends RealtimeUserEvent> {
+  parse(value: unknown): TEvent;
 }
 
 /** Transport-layer event callbacks (transport -> ConnectionManager). */
-export interface TransportEventHandlers {
+export interface TransportEventHandlers<
+  TState extends BaseGameState<GameType>,
+  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
+> {
   onOpen(): void;
   onClose(code: number, reason: string): void;
   onError(error: unknown): void;
-  onStateUpdate(message: StateUpdateMessage<GameState>): void;
-  onSettleResult(result: SettleResultMessage): void;
+  onStateUpdate(message: StateUpdateMessage<TState>): void;
+  onUserEvent(event: TEvent): void;
   onPong(): void;
 }
 
@@ -48,13 +47,16 @@ export interface TransportEventHandlers {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** WebSocket transport layer interface — atomic operation contract, no reconnect logic. */
-export interface IRealtimeTransport {
+export interface IRealtimeTransport<
+  TState extends BaseGameState<GameType>,
+  TEvent extends RealtimeUserEvent = RealtimeUserEvent,
+> {
   /**
    * Establish WebSocket connection.
    * Built-in 8s connect timeout. Timeout/failure is signaled via handlers.onClose / handlers.onError.
    * Contains no reconnect logic.
    */
-  connect(room: RoomLocator, userId: string): void;
+  connect(room: RoomLocator): Promise<void>;
 
   /**
    * Close the current WebSocket.
@@ -72,5 +74,5 @@ export interface IRealtimeTransport {
    * Register event handlers (transport translates WS events to typed callbacks).
    * Must be called before connect().
    */
-  setEventHandlers(handlers: TransportEventHandlers): void;
+  setEventHandlers(handlers: TransportEventHandlers<TState, TEvent>): void;
 }

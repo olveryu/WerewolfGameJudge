@@ -34,7 +34,7 @@ describe('useAuth hook', () => {
           .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
         onAuthExpired: jest.fn().mockReturnValue(jest.fn()),
       },
-      roomService: {
+      roomDirectory: {
         createRoom: jest.fn(),
         getRoom: jest.fn(),
         deleteRoom: jest.fn(),

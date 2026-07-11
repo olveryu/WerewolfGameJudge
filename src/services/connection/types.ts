@@ -35,10 +35,11 @@ export enum ConnectionState {
 
 /** FSM event types (input) — trigger state transitions. */
 export type ConnectionEvent =
-  | { type: 'CONNECT'; roomCode: string; roomId: string; userId: string }
+  | { type: 'CONNECT'; roomCode: string; roomId: string }
   | { type: 'WS_OPEN' }
   | { type: 'WS_CLOSE'; code?: number; reason?: string }
   | { type: 'WS_ERROR'; error?: unknown }
+  | { type: 'PROTOCOL_FAILURE'; error: unknown }
   | { type: 'FETCH_SUCCESS'; revision: number }
   | { type: 'FETCH_FAILURE'; error?: unknown }
   | { type: 'STATE_UPDATE'; revision: number }
@@ -59,7 +60,7 @@ export type ConnectionEvent =
 
 /** FSM side effect types (output) — executed by ConnectionManager. */
 export type SideEffect =
-  | { type: 'OPEN_WS'; roomCode: string; roomId: string; userId: string }
+  | { type: 'OPEN_WS'; roomCode: string; roomId: string }
   | { type: 'CLOSE_WS' }
   | { type: 'FETCH_STATE'; roomCode: string; roomId: string }
   | { type: 'SCHEDULE_RETRY'; delayMs: number }
@@ -84,7 +85,6 @@ export interface FSMContext {
   readonly state: ConnectionState;
   readonly roomCode: string | null;
   readonly roomId: string | null;
-  readonly userId: string | null;
   /** Current reconnect attempt count (0-based). Resets to 0 when WS connection succeeds and enters Connected. */
   readonly attempt: number;
   /** Max reconnect attempts. Enters Failed state when exhausted (awaits manual reconnect or network recovery). */
@@ -99,23 +99,6 @@ export interface FSMContext {
 export interface TransitionResult {
   readonly ctx: FSMContext;
   readonly effects: readonly SideEffect[];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Errors
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * SupersededError — thrown when connectAndWait() is cancelled by a newer call.
- *
- * When thrown: when a new connectAndWait() call supersedes a prior unresolved one.
- * How to catch: `instanceof SupersededError` — not a real failure, just a cancellation signal.
- */
-export class SupersededError extends Error {
-  constructor() {
-    super('Superseded by new connectAndWait');
-    this.name = 'SupersededError';
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

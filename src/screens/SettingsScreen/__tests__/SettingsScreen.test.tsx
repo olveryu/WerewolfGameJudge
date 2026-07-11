@@ -47,13 +47,21 @@ jest.mock('../../../utils/defaultAvatarIcons', () => ({
   })),
 }));
 
-// Mock GameFacadeContext — SettingsScreen calls facade methods for room state and profile sync
-jest.mock('../../../contexts/GameFacadeContext', () => ({
-  useGameFacade: () => ({
-    getState: jest.fn().mockReturnValue(null),
-    getMySeat: jest.fn().mockReturnValue(null),
-    subscribe: jest.fn().mockReturnValue(() => {}),
-    updateMyUserId: jest.fn(),
+// Settings reads the shared session through the game-owned Werewolf client.
+jest.mock('../../../games/werewolf/runtime/WerewolfGameContext', () => ({
+  useWerewolfGame: () => ({
+    roomSession: {
+      getSnapshot: jest.fn().mockReturnValue({
+        phase: 'idle',
+        epoch: 0,
+        identity: null,
+        connection: 'disconnected',
+        snapshot: null,
+        lastCommand: null,
+        error: null,
+      }),
+      subscribe: jest.fn().mockReturnValue(() => {}),
+    },
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
   }),
 }));

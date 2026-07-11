@@ -37,7 +37,7 @@ export type { ActionIntent };
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface GameContext {
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   roomStatus: GameStatus;
   currentActionRole: RoleId | null;
   currentSchema: ActionSchema | null; // Phase 3: schema for current action role
@@ -325,12 +325,11 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // ─────────────────────────────────────────────────────────────────────────
 
   const canTapForAction = useCallback((): boolean => {
-    if (!gameState) return false;
     if (roomStatus !== GameStatus.Ongoing) return false;
     if (isAudioPlaying) return false;
     if (!imActioner) return false;
     return true;
-  }, [gameState, roomStatus, isAudioPlaying, imActioner]);
+  }, [roomStatus, isAudioPlaying, imActioner]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // UI-only: wolf status line for the action prompt area

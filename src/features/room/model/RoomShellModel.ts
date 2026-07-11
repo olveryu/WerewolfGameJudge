@@ -5,14 +5,13 @@ import type { ComponentProps } from 'react';
 
 import type { RoomBottomActionModel } from './RoomBottomActions';
 import type { RoomCapabilities } from './RoomCapabilities';
+import type { RoomConnectionStatus } from './RoomConnection';
 import type { RoomProfileCardModel } from './RoomProfile';
 import type { RoomSeatConfirmationModel } from './RoomSeatConfirmation';
 import type { RoomSeatDataSource } from './RoomSeatDataSource';
 import type { RoomShareModel } from './RoomShare';
 
 export type RoomIconName = ComponentProps<typeof Ionicons>['name'];
-
-export type RoomConnectionStatus = 'connecting' | 'syncing' | 'live' | 'disconnected' | 'failed';
 
 export interface RoomConnectionViewModel {
   readonly status: RoomConnectionStatus;

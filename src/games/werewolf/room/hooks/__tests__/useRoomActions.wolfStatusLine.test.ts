@@ -11,7 +11,7 @@ import type { LocalGameState } from '@/types/GameStateTypes';
 
 function makeContext(partial: Partial<GameContext>): GameContext {
   return {
-    gameState: null,
+    gameState: {} as LocalGameState,
     roomStatus: GameStatus.Ongoing,
     currentActionRole: null,
     currentSchema: null,

@@ -9,11 +9,11 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
-import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
 import { useServices } from '@/contexts/ServiceContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { WerewolfGameProvider } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomService';
+import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -61,20 +61,22 @@ jest.mock('../../../utils/alert', () => ({
   showAlert: jest.fn(),
 }));
 
-const createMockFacade = (): IGameFacade =>
+const idleRoomSnapshot = {
+  phase: 'idle' as const,
+  epoch: 0,
+  identity: null,
+  connection: 'disconnected' as const,
+  snapshot: null,
+  lastCommand: null,
+  error: null,
+};
+
+const createMockFacade = (): WerewolfGameClient =>
   ({
-    addListener: jest.fn(() => jest.fn()),
-    subscribe: jest.fn(() => jest.fn()),
-    getState: jest.fn(() => null),
-    isHostPlayer: jest.fn(() => false),
-    getMyUserId: jest.fn(() => null),
-    getMySeat: jest.fn(() => null),
-    getStateRevision: jest.fn(() => 0),
-    createRoom: jest.fn(),
-    enterRoom: jest.fn().mockResolvedValue(undefined),
-    leaveRoom: jest.fn(),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
+    roomSession: {
+      getSnapshot: () => idleRoomSnapshot,
+      subscribe: jest.fn(() => () => undefined),
+    },
     assignRoles: jest.fn(),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn(),
@@ -83,9 +85,7 @@ const createMockFacade = (): IGameFacade =>
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
     setAudioPlaying: jest.fn(),
-    requestSnapshot: jest.fn(),
-    addConnectionStatusListener: jest.fn(() => jest.fn()),
-  }) as unknown as IGameFacade;
+  }) as unknown as WerewolfGameClient;
 
 describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
@@ -96,7 +96,7 @@ describe('Room creation → navigation roomCode contract', () => {
       roomCode: '7777',
       roomId: 'room-id-7777',
       gameType: 'werewolf',
-      hostUserId: 'host-uid',
+      hostUserId: 'test-uid',
       createdAt: new Date(),
       creationId: 'creation-id-7777',
     });
@@ -105,9 +105,8 @@ describe('Room creation → navigation roomCode contract', () => {
     mockUseServices.mockReturnValue({
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
-        getCurrentUserId: jest.fn().mockReturnValue('host-uid'),
       },
-      roomService: { acknowledgeRoomCreation: mockAcknowledgeRoomCreation },
+      roomDirectory: { acknowledgeRoomCreation: mockAcknowledgeRoomCreation },
       settingsService: {
         load: jest.fn().mockResolvedValue(undefined),
         setBgmEnabled: jest.fn().mockResolvedValue(undefined),
@@ -128,9 +127,9 @@ describe('Room creation → navigation roomCode contract', () => {
   it('should navigate with the roomCode returned by createRoomRecord, not a pre-generated code', async () => {
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <WerewolfGameProvider client={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </WerewolfGameProvider>,
     );
 
     // Press the create room button (default template has roles pre-selected)
@@ -151,7 +150,7 @@ describe('Room creation → navigation roomCode contract', () => {
     expect(navArgs[1]).toEqual({ roomCode: '7777', entryReason: 'created' });
     const createRequest = mockCreateRoomMutateAsync.mock.calls[0]?.[0];
     if (createRequest === undefined) throw new Error('Missing create-room request');
-    expect(createRequest.expectedHostUserId).toBe('host-uid');
+    expect(createRequest.expectedHostUserId).toBe('test-uid');
     expect(createRequest.gameType).toBe('werewolf');
     expect(Array.isArray(createRequest.config.templateRoles)).toBe(true);
     expect(createRequest).not.toHaveProperty('buildInitialState');
@@ -164,9 +163,9 @@ describe('Room creation → navigation roomCode contract', () => {
 
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <WerewolfGameProvider client={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </WerewolfGameProvider>,
     );
 
     const createButton = getByText('创建房间');
@@ -186,9 +185,9 @@ describe('Room creation → navigation roomCode contract', () => {
     storage.getString.mockReturnValue(undefined);
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <WerewolfGameProvider client={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </WerewolfGameProvider>,
     );
 
     const createButton = getByText('创建房间');
@@ -208,9 +207,9 @@ describe('Room creation → navigation roomCode contract', () => {
   it('acknowledges the creation intent after persisting the recent room', async () => {
     const mockFacade = createMockFacade();
     const { getByText } = render(
-      <GameFacadeProvider facade={mockFacade}>
+      <WerewolfGameProvider client={mockFacade}>
         <ConfigScreen />
-      </GameFacadeProvider>,
+      </WerewolfGameProvider>,
     );
 
     fireEvent.press(getByText('创建房间'));

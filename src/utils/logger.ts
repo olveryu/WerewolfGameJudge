@@ -127,6 +127,8 @@ export const audioLog = log.extend('Audio');
 export const authLog = log.extend('Auth');
 /** Room management log */
 export const roomLog = log.extend('Room');
+/** Shared room session and command lifecycle log */
+export const roomSessionLog = log.extend('RoomSession');
 /** GameRoom hook log */
 export const gameRoomLog = log.extend('GameRoom');
 /** WebSocket connection lifecycle log */
@@ -137,8 +139,8 @@ export const configLog = log.extend('Config');
 export const roomScreenLog = log.extend('RoomScreen');
 /** HomeScreen log */
 export const homeLog = log.extend('Home');
-/** GameFacade log */
-export const facadeLog = log.extend('Facade');
+/** Werewolf runtime command and audio orchestration log */
+export const werewolfRuntimeLog = log.extend('WerewolfRuntime');
 /** Settings page log */
 export const settingsLog = log.extend('Settings');
 /** SettingsService log */

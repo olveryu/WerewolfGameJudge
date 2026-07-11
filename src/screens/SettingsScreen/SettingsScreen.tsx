@@ -8,9 +8,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { WerewolfSeatProfile } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from 'sonner-native';
@@ -19,8 +21,14 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import {
+  leaveRoomSeat,
+  type RoomSeatCommandContext,
+} from '@/features/room/session/roomSeatCommandClient';
 import { getClientGameModules } from '@/games/catalog';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import {
   useChangePassword,
   useSignInAnonymously,
@@ -67,14 +75,18 @@ export const SettingsScreen: React.FC = () => {
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: changePassword } = useChangePassword();
-  const facade = useGameFacade();
+  const facade = useWerewolfGame();
+  const { roomSession } = facade;
 
-  // Room context: subscribe to facade state for reactive canSwitchAccount
-  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
-  const getSnapshot = useCallback(() => facade.getState(), [facade]);
-  const gameState = useSyncExternalStore(subscribe, getSnapshot);
-  const isInRoom = gameState !== null;
-  const isSeated = facade.getMySeat() !== null;
+  const room = useRoomSessionSnapshot(roomSession);
+  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
+  const isInRoom = room.phase !== 'idle';
+  const activeUserId = room.phase === 'idle' ? null : room.identity.userId;
+  const isSeated = getWerewolfUserSeat(gameState, activeUserId) !== null;
+  const seatCommandContext = useMemo<RoomSeatCommandContext<GameState, WerewolfSeatProfile>>(
+    () => ({ dispatch: (command, options) => roomSession.dispatch(command, options) }),
+    [roomSession],
+  );
   // Disable account switch / email binding after role assignment (Assigned/Ready/Ongoing/Ended)
   const canSwitchAccount =
     !isInRoom ||
@@ -229,7 +241,7 @@ export const SettingsScreen: React.FC = () => {
       try {
         // If seated in a room, leave seat first (simplifies all edge cases)
         if (isInRoom && isSeated) {
-          const result = await facade.leaveSeat();
+          const result = await leaveRoomSeat(seatCommandContext);
           if (!result.success) {
             showErrorAlert('离座失败', translateReasonCode(result.reason));
             return;
@@ -259,7 +271,7 @@ export const SettingsScreen: React.FC = () => {
     } else {
       void doSwitch();
     }
-  }, [user?.isAnonymous, facade, navigation, isInRoom, isSeated]);
+  }, [user?.isAnonymous, navigation, isInRoom, isSeated, seatCommandContext]);
 
   // ============================================
   // Render helpers

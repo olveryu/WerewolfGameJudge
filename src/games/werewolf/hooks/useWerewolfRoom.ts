@@ -2,15 +2,14 @@
  * useWerewolfRoom - Composition hook for game room management
  *
  * Orchestrates 6 sub-hooks into a single flat interface:
- * - useWerewolfRoomLifecycle: room creation/joining/leaving + seat management
+ * - shared RoomSession snapshot + canonical seat commands
  * - useWerewolfGameActions: game control + night actions
- * - useConnectionStatus: connection status subscription (FSM-driven)
  * - useWerewolfBgmControl: BGM state management
  * - useWerewolfDebugMode: debug bot control
  * - useWerewolfNightDerived: pure night-phase derivations
  *
  * Server is the Single Source of Truth for all game state.
- * Composes sub-hooks, subscribes to facade state, derives identity/roomStatus.
+ * Composes sub-hooks around the shared immutable session snapshot.
  * Does not call the service layer directly; contains no business callback logic (belongs in sub-hooks).
  */
 
@@ -20,16 +19,15 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useGameFacade } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useServices } from '@/contexts/ServiceContext';
-import type { RoomEntryResult } from '@/features/room/model/RoomConnection';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
+import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
-import { useConnectionStatus } from '@/hooks/useConnectionStatus';
-import { ConnectionStatus, type IGameFacade } from '@/services/types/IGameFacade';
-import type { RoomRecord } from '@/services/types/IRoomService';
 import type { LocalGameState } from '@/types/GameStateTypes';
 import { setAlertBlocked } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
@@ -39,7 +37,7 @@ import { useWerewolfDebugMode } from './useWerewolfDebugMode';
 import { useWerewolfGameActions } from './useWerewolfGameActions';
 import { useWerewolfLastActionToast } from './useWerewolfLastActionToast';
 import { useWerewolfNightDerived } from './useWerewolfNightDerived';
-import { useWerewolfRoomLifecycle } from './useWerewolfRoomLifecycle';
+import { useWerewolfSeatCommands } from './useWerewolfSeatCommands';
 import { useWerewolfSettleToast } from './useWerewolfSettleToast';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,19 +45,12 @@ import { useWerewolfSettleToast } from './useWerewolfSettleToast';
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface UseWerewolfRoomResult {
-  // Core facade (for sub-hooks that need direct facade access)
-  facade: IGameFacade;
-
-  // Room info
-  roomRecord: RoomRecord | null;
-
-  // Game state (from GameFacade)
-  gameState: LocalGameState | null;
+  gameState: LocalGameState;
   stateRevision: number;
 
   // Player info
   isHost: boolean;
-  myUserId: string | null;
+  myUserId: string;
   mySeat: number | null;
   myRole: RoleId | null;
 
@@ -70,7 +61,7 @@ interface UseWerewolfRoomResult {
   takeOverBot: (seat: number) => void;
   releaseBot: () => void;
   isDebugMode: boolean;
-  fillWithBots: () => Promise<ActionResult>;
+  fillWithBots: () => Promise<RoomOperationResult>;
   markAllBotsViewed: () => Promise<ActionResult>;
   markAllBotsGroupConfirmed: () => Promise<ActionResult>;
 
@@ -82,28 +73,12 @@ interface UseWerewolfRoomResult {
   currentSchema: ActionSchema | null;
   currentStepId: SchemaId | null;
 
-  // Connection (from useConnectionStatus)
-  connectionStatus: ConnectionStatus;
+  // Connection (from shared RoomSession)
+  connectionStatus: RoomConnectionStatus;
 
-  // Manual reconnect (from facade)
-  manualReconnect: () => void;
-
-  // Sync status
-  lastStateReceivedAt: number | null;
-
-  // Status (from useWerewolfRoomLifecycle)
-  loading: boolean;
-  error: string | null;
-
-  // Room lifecycle (from useWerewolfRoomLifecycle)
-  enterRoom: (room: RoomRecord) => Promise<RoomEntryResult>;
-  leaveRoom: () => Promise<void>;
-  takeSeat: (seat: number) => Promise<ActionResult>;
-  leaveSeat: () => Promise<ActionResult>;
-  kickPlayer: (targetSeat: number) => Promise<ActionResult>;
-  requestSnapshot: () => Promise<boolean>;
-  needsAuth: boolean;
-  clearNeedsAuth: () => void;
+  takeSeat: (seat: number) => Promise<RoomOperationResult>;
+  leaveSeat: () => Promise<RoomOperationResult>;
+  kickPlayer: (targetSeat: number) => Promise<RoomOperationResult>;
 
   // Game actions (from useWerewolfGameActions)
   assignRoles: () => Promise<void>;
@@ -149,122 +124,73 @@ interface UseWerewolfRoomResult {
   // =========================================================================
   // Core: facade + services
   // =========================================================================
-  const facade = useGameFacade();
-  const { authService } = useServices();
+  const facade = useWerewolfGame();
+  const session = facade.roomSession;
   const isFocused = useIsFocused();
   const { user } = useAuthContext();
-
-  // roomRecord is owned here so useWerewolfRoomLifecycle can set it and screens can read it
-  const [roomRecord, setRoomRecord] = useState<RoomRecord | null>(null);
-
-  // =========================================================================
-  // Phase C safety net: keep facade userId in sync with auth state.
-  // Phase A prevents userId change during anonymous→register, but if userId
-  // changes for any other reason (e.g. sign-out → sign-in while room
-  // screen is mounted via Settings modal), we patch facade immediately.
-  // =========================================================================
-  useEffect(() => {
-    if (user?.id) {
-      facade.updateMyUserId(user.id);
-    }
-  }, [user?.id, facade]);
+  const sessionSnapshot = useRoomSessionSnapshot(session, isFocused);
+  if (sessionSnapshot.phase !== 'ready') {
+    throw new Error('[FAIL-FAST] Werewolf room hooks mounted before the room session was ready');
+  }
+  if (user === null || user.id !== sessionSnapshot.identity.userId) {
+    throw new Error('[FAIL-FAST] Auth profile does not match the ready room session');
+  }
 
   // =========================================================================
   // Sub-hooks
   // =========================================================================
 
-  // Connection status subscription (FSM-driven)
-  const connection = useConnectionStatus(facade);
-
   // Rejoin overlay state: shown when Host rejoins an ongoing game
   const [showContinueOverlay, setShowContinueOverlay] = useState(false);
 
-  // =========================================================================
-  // Facade state subscription (useSyncExternalStore + useIsFocused)
-  //
-  // On Web, NativeStackNavigator popped screens are hidden via CSS rather than unmounted,
-  // so useEffect cleanup won't run. Use useIsFocused to gate subscription:
-  // - Focused: real subscribe -> state updates live
-  // - Blurred: empty subscribe -> 0 listeners accumulate
-  // - Refocus: isFocused changes -> subscribe changes -> React re-subscribes
-  //   -> immediately calls getSnapshot() to read latest state (covers changes during blur)
-  // =========================================================================
-
-  const subscribe = useCallback(
-    (cb: () => void) => {
-      if (!isFocused) return () => {}; // not focused -> empty subscribe (prevent listener accumulation)
-      return facade.subscribe(cb);
-    },
-    [facade, isFocused],
-  );
-  const getSnapshot = useCallback(() => facade.getState(), [facade]);
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot);
-
-  // Derive local state (pure computation, zero useState for identity)
-  const gameState = useMemo(() => (snapshot ? toWerewolfLocalState(snapshot) : null), [snapshot]);
-  const isHost = snapshot !== null && facade.isHostPlayer();
-  const myUserId = snapshot !== null ? facade.getMyUserId() : null;
-  const mySeat = snapshot !== null ? facade.getMySeat() : null;
+  const snapshot = sessionSnapshot.snapshot.state;
+  const gameState = useMemo(() => toWerewolfLocalState(snapshot), [snapshot]);
+  const { identity } = sessionSnapshot;
+  const myUserId = identity.userId;
+  const isHost = identity.room.hostUserId === identity.userId;
+  const mySeat = getWerewolfUserSeat(snapshot, myUserId);
+  const connectionStatus = sessionSnapshot.connection;
 
   // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
-  useWerewolfLastActionToast({ facade, isHost, mySeat, isFocused });
+  useWerewolfLastActionToast({
+    lastCommand: sessionSnapshot.lastCommand,
+    isHost,
+    mySeat,
+    isFocused,
+  });
 
   // Toast notifications for XP gain / level-up after valid game settlement
-  useWerewolfSettleToast({ facade, isFocused });
-
-  // Side effects: sync metadata + rejoin overlay
-  const { setStateRevision, onStateReceived, setLastStateReceivedAt } = connection;
+  useWerewolfSettleToast({ session, isFocused });
 
   useEffect(() => {
     if (!isFocused) return; // hidden (blurred) screens do not run side effects
-    if (snapshot) {
-      gameRoomLog.debug('State update from facade', {
-        roomCode: snapshot.roomCode,
-        status: snapshot.status,
-      });
-      setStateRevision(facade.getStateRevision());
-      onStateReceived();
+    gameRoomLog.debug('State update from room session', {
+      roomCode: snapshot.roomCode,
+      status: snapshot.status,
+    });
 
-      // Host rejoin to ongoing game → show "continue game" overlay
-      // wasAudioInterrupted is a one-shot flag set during joinRoom(isHost=true) DB restore,
-      // cleared after resumeAfterRejoin(). setState(true) is idempotent.
-      if (
-        facade.isHostPlayer() &&
-        snapshot.status === GameStatus.Ongoing &&
-        facade.wasAudioInterrupted
-      ) {
-        setAlertBlocked(true);
-        setShowContinueOverlay(true);
-      }
-    } else {
-      setStateRevision(0);
-      setLastStateReceivedAt(null);
+    if (isHost && snapshot.status === GameStatus.Ongoing && facade.wasAudioInterrupted) {
+      setAlertBlocked(true);
+      setShowContinueOverlay(true);
     }
-  }, [isFocused, snapshot, facade, setStateRevision, onStateReceived, setLastStateReceivedAt]);
+  }, [facade, isFocused, isHost, snapshot]);
 
   // BGM state management (needs isHost + gameState derived above)
-  const bgm = useWerewolfBgmControl(
-    isHost,
-    gameState?.status ?? null,
-    gameState?.isAudioPlaying ?? false,
-  );
+  const bgm = useWerewolfBgmControl(isHost, gameState.status, gameState.isAudioPlaying);
+
+  const seatCommands = useWerewolfSeatCommands({ session, user });
 
   // Debug mode: bot control
-  const debug = useWerewolfDebugMode(facade, mySeat, gameState);
+  const debug = useWerewolfDebugMode(
+    facade,
+    mySeat,
+    gameState,
+    seatCommands.leaveSeat,
+    seatCommands.fillBots,
+  );
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);
-
-  // Manual reconnect (stable ref — facade is from context, identity never changes)
-  const manualReconnect = useCallback(() => facade.manualReconnect(), [facade]);
-
-  // Room lifecycle: creation/joining/leaving + seats
-  const lifecycle = useWerewolfRoomLifecycle({
-    facade,
-    authService,
-    user,
-    setRoomRecord,
-  });
 
   // =========================================================================
   // Profile sync on reconnect
@@ -275,9 +201,8 @@ interface UseWerewolfRoomResult {
   // Fire-and-forget: failure only warns, does not block game flow.
   // =========================================================================
   useEffect(() => {
-    if (connection.connectionStatus !== ConnectionStatus.Live) return;
+    if (connectionStatus !== 'live') return;
     if (mySeat === null) return;
-    if (!user) return;
 
     const displayName = user.displayName ?? undefined;
     facade
@@ -293,15 +218,17 @@ interface UseWerewolfRoomResult {
       .catch((err: unknown) => {
         gameRoomLog.warn('Profile sync on reconnect failed', err);
       });
-  }, [connection.connectionStatus, mySeat, facade, user]);
+  }, [connectionStatus, mySeat, facade, user]);
 
   // Game actions: game control + night actions
   const actions = useWerewolfGameActions({
     facade,
     bgm,
     debug,
+    isHost,
     mySeat,
     gameState,
+    clearSeats: seatCommands.clearSeats,
   });
 
   // =========================================================================
@@ -326,18 +253,16 @@ interface UseWerewolfRoomResult {
   // =========================================================================
 
   const myRole: RoleId | null =
-    mySeat !== null && gameState ? (gameState.players.get(mySeat)?.role ?? null) : null;
+    mySeat !== null ? (gameState.players.get(mySeat)?.role ?? null) : null;
 
-  const roomStatus: GameStatus = gameState?.status ?? GameStatus.Unseated;
+  const roomStatus = gameState.status;
 
   // =========================================================================
   // Return flat bag
   // =========================================================================
   return {
-    facade,
-    roomRecord,
     gameState,
-    stateRevision: facade.getStateRevision(),
+    stateRevision: sessionSnapshot.snapshot.revision,
     isHost,
     myUserId,
     mySeat,
@@ -360,20 +285,10 @@ interface UseWerewolfRoomResult {
     currentSchema: nightDerived.currentSchema,
     currentStepId: nightDerived.currentStepId,
     // Connection
-    connectionStatus: connection.connectionStatus,
-    manualReconnect,
-    lastStateReceivedAt: connection.lastStateReceivedAt,
-    // Lifecycle
-    loading: lifecycle.loading,
-    error: lifecycle.error,
-    enterRoom: lifecycle.enterRoom,
-    leaveRoom: lifecycle.leaveRoom,
-    takeSeat: lifecycle.takeSeat,
-    leaveSeat: lifecycle.leaveSeat,
-    kickPlayer: lifecycle.kickPlayer,
-    requestSnapshot: lifecycle.requestSnapshot,
-    needsAuth: lifecycle.needsAuth,
-    clearNeedsAuth: lifecycle.clearNeedsAuth,
+    connectionStatus: sessionSnapshot.connection,
+    takeSeat: seatCommands.takeSeat,
+    leaveSeat: seatCommands.leaveSeat,
+    kickPlayer: seatCommands.kickSeat,
     // Game actions
     assignRoles: actions.assignRoles,
     startGame: actions.startGame,

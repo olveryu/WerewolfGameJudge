@@ -9,10 +9,11 @@ import { act, renderHook } from '@testing-library/react-native';
 import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolfBgmControl';
 import type { WerewolfDebugModeState } from '@/games/werewolf/hooks/useWerewolfDebugMode';
 import { useWerewolfGameActions } from '@/games/werewolf/hooks/useWerewolfGameActions';
-import type { IGameFacade } from '@/services/types/IGameFacade';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState } from '@/types/GameStateTypes';
 
 // Mock showAlert
@@ -30,19 +31,17 @@ import { toast } from 'sonner-native';
 type MutationResult = ActionResult;
 
 type MockFacade = {
-  [K in keyof IGameFacade]: jest.Mock;
+  [K in keyof WerewolfGameClient]: jest.Mock;
 };
 
 function createMockFacade(overrides: Partial<MockFacade> = {}): MockFacade {
   return {
-    isHostPlayer: jest.fn(() => true),
     updateTemplate: jest
       .fn<Promise<MutationResult>, [unknown]>()
       .mockResolvedValue({ success: true }),
     assignRoles: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
     startNight: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
     restartGame: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
-    clearAllSeats: jest.fn<Promise<MutationResult>, []>().mockResolvedValue({ success: true }),
     shareNightReview: jest
       .fn<Promise<MutationResult>, [number[]]>()
       .mockResolvedValue({ success: true }),
@@ -107,8 +106,10 @@ interface MockDepsOverrides {
     WerewolfDebugModeState,
     'controlledSeat' | 'effectiveSeat' | 'effectiveRole' | 'releaseBot'
   >;
+  isHost?: boolean;
   mySeat?: number | null;
-  gameState?: Partial<LocalGameState> | null;
+  gameState?: Partial<LocalGameState>;
+  clearSeats?: () => Promise<RoomOperationResult>;
 }
 
 function createDeps(overrides: MockDepsOverrides = {}): WerewolfGameActionsDeps {
@@ -117,10 +118,17 @@ function createDeps(overrides: MockDepsOverrides = {}): WerewolfGameActionsDeps 
     facade: createMockFacade(),
     bgm: createMockBgm(),
     debug: createMockDebug(),
+    isHost: true,
     mySeat: 1,
-    gameState: null,
+    gameState: {
+      lastNightDeaths: [],
+      wolfVotes: new Map(),
+      currentNightResults: {},
+      template: { roles: [] },
+    } as unknown as LocalGameState,
+    clearSeats: jest.fn(async () => ({ success: true })),
     ...rest,
-    ...(gameState !== undefined && { gameState: gameState as LocalGameState | null }),
+    ...(gameState !== undefined && { gameState: gameState as LocalGameState }),
   } as unknown as WerewolfGameActionsDeps;
 }
 
@@ -143,7 +151,7 @@ describe('useWerewolfGameActions - game control', () => {
   });
 
   it('updateTemplate should skip when not host', async () => {
-    const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
+    const deps = createDeps({ isHost: false });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.updateTemplate({ name: '', numberOfPlayers: 0, roles: [] }));
@@ -198,13 +206,13 @@ describe('useWerewolfGameActions - game control', () => {
     expect(deps.facade.restartGame).toHaveBeenCalled();
   });
 
-  it('clearAllSeats should call facade', async () => {
+  it('clearAllSeats should call the shared seat command', async () => {
     const deps = createDeps();
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.clearAllSeats());
 
-    expect(deps.facade.clearAllSeats).toHaveBeenCalled();
+    expect(deps.clearSeats).toHaveBeenCalled();
   });
 
   it('shareNightReview should call facade with allowedSeats', async () => {
@@ -217,7 +225,7 @@ describe('useWerewolfGameActions - game control', () => {
   });
 
   it('setAudioPlaying should return host_only reason when not host', async () => {
-    const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
+    const deps = createDeps({ isHost: false });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     let res: ActionResult | undefined;
@@ -260,7 +268,7 @@ describe('useWerewolfGameActions - game control', () => {
   });
 
   it('postProgression should return false for non-host', async () => {
-    const deps = createDeps({ facade: createMockFacade({ isHostPlayer: jest.fn(() => false) }) });
+    const deps = createDeps({ isHost: false });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     let ok: boolean | undefined;
@@ -361,13 +369,6 @@ describe('useWerewolfGameActions - player night actions', () => {
 describe('useWerewolfGameActions - game state queries', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('getLastNightInfo should return "无信息" when no gameState', () => {
-    const deps = createDeps({ gameState: null });
-    const { result } = renderHook(() => useWerewolfGameActions(deps));
-
-    expect(result.current.getLastNightInfo()).toBe('无信息');
-  });
-
   it('getLastNightInfo should return "昨夜平安夜" when no deaths', () => {
     const deps = createDeps({
       gameState: { lastNightDeaths: [], wolfVotes: new Map(), currentNightResults: {} },
@@ -429,13 +430,6 @@ describe('useWerewolfGameActions - game state queries', () => {
     expect(result.current.getLastNightInfo()).toBe('昨夜死亡: 1号\n2号被禁言\n4号被禁票');
   });
 
-  it('hasWolfVoted should return false when no gameState', () => {
-    const deps = createDeps({ gameState: null });
-    const { result } = renderHook(() => useWerewolfGameActions(deps));
-
-    expect(result.current.hasWolfVoted(1)).toBe(false);
-  });
-
   it('hasWolfVoted should check wolfVotes map', () => {
     const wolfVotes = new Map([[3, 5]]);
     const deps = createDeps({
@@ -451,18 +445,23 @@ describe('useWerewolfGameActions - game state queries', () => {
 describe('useWerewolfGameActions - handleMutationResult', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should toast with default reason when reason is missing (toastError callback)', async () => {
-    const facade = createMockFacade({
-      clearAllSeats: jest.fn().mockResolvedValue({ success: false }),
-    });
-    const deps = createDeps({ facade });
+  it('should toast a shared seat-command rejection', async () => {
+    const clearSeats = jest.fn(
+      async (): Promise<RoomOperationResult> => ({
+        success: false,
+        failureKind: 'rejected',
+        commandId: 'clear-command',
+        reason: 'invalid_status',
+      }),
+    );
+    const deps = createDeps({ clearSeats });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
 
     await act(() => result.current.clearAllSeats());
 
     expect(mockShowAlert).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith('全员起立失败', {
-      description: '请稍后重试',
+      description: '当前状态不允许此操作',
     });
   });
 

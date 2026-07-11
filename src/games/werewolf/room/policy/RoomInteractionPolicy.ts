@@ -6,8 +6,7 @@
  *
  * Priority order (contract - MUST be tested):
  * 1. Audio Gate (highest) - NOOP when audio is playing during ongoing game
- * 2. No Game State - NOOP when game state is missing
- * 3. Pending Server-Ack Gate - NOOP when any protocol ack is in-flight
+ * 2. Pending Server-Ack Gate - NOOP when any protocol ack is in-flight
  *    (reveal / hunterStatus / groupConfirm); aggregated via useWerewolfPendingAcks
  * 4. Event Routing - Route to appropriate handler based on event type
  *
@@ -27,7 +26,7 @@ import type {
 } from './types';
 
 // =============================================================================
-// Gate Checks (Priority 1-3)
+// Gate Checks
 // =============================================================================
 
 /**
@@ -51,17 +50,6 @@ function checkAudioGate(
 
   if (ctx.roomStatus === GameStatus.Ongoing && ctx.isAudioPlaying) {
     return { kind: 'NOOP', reason: 'audio_playing' };
-  }
-  return null;
-}
-
-/**
- * Check game state gate.
- * Returns NOOP if game state is missing.
- */
-function checkGameStateGate(ctx: InteractionContext): InteractionResult | null {
-  if (!ctx.hasGameState) {
-    return { kind: 'NOOP', reason: 'no_game_state' };
   }
   return null;
 }
@@ -110,7 +98,6 @@ function handleSeatTap(
     seat: event.seat,
     disabledReason: event.disabledReason,
     imActioner: ctx.imActioner,
-    hasGameState: ctx.hasGameState,
     isSeatOccupiedByOther: !isSelf && (ctx.isSeatOccupied?.(event.seat) ?? false),
     targetUserId,
     isSelfSeated: isSelf && ctx.mySeat !== null,
@@ -245,9 +232,6 @@ export function getInteractionResult(
   // ─────────────────────────────────────────────────────────────────────────
   // Priority 2: No Game State
   // ─────────────────────────────────────────────────────────────────────────
-  const gameStateGate = checkGameStateGate(ctx);
-  if (gameStateGate) return gameStateGate;
-
   // ─────────────────────────────────────────────────────────────────────────
   // Priority 3: Pending Server-Ack Gate (reveal / hunterStatus / groupConfirm)
   // ─────────────────────────────────────────────────────────────────────────

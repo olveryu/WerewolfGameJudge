@@ -3,17 +3,16 @@
  *
  * Detects lastCommandType in STATE_UPDATE broadcasts,
  * shows toast notifications to non-Host players (kick/clearAllSeats/assignRoles/startNight/endNight/restartGame).
- * Uses consumeLastCommandType for one-time consumption, no impact on other logic.
+ * Uses the immutable session command marker keyed by revision.
  */
 
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner-native';
 
-import type { IGameFacade } from '@/services/types/IGameFacade';
 import { gameRoomLog } from '@/utils/logger';
 
 interface UseLastActionToastParams {
-  facade: IGameFacade;
+  lastCommand: { readonly revision: number; readonly type: string } | null;
   isHost: boolean;
   mySeat: number | null;
   isFocused: boolean;
@@ -26,12 +25,13 @@ interface UseLastActionToastParams {
  * - ASSIGN_ROLES / START_NIGHT / END_NIGHT / RESTART_GAME: non-Host players
  */
 export function useWerewolfLastActionToast({
-  facade,
+  lastCommand,
   isHost,
   mySeat,
   isFocused,
 }: UseLastActionToastParams): void {
   const prevSeatRef = useRef(mySeat);
+  const handledRevisionRef = useRef<number | null>(null);
 
   // Track seat changes for kick/clearAllSeats detection
   useEffect(() => {
@@ -40,12 +40,13 @@ export function useWerewolfLastActionToast({
     const prevSeat = prevSeatRef.current;
     prevSeatRef.current = mySeat;
 
-    const lastCommandType = facade.consumeLastCommandType();
-    if (!lastCommandType || isHost) return;
+    if (lastCommand === null || handledRevisionRef.current === lastCommand.revision) return;
+    handledRevisionRef.current = lastCommand.revision;
+    if (isHost) return;
 
-    gameRoomLog.debug('lastCommandType consumed', { commandType: lastCommandType });
+    gameRoomLog.debug('lastCommandType handled', { commandType: lastCommand.type });
 
-    switch (lastCommandType) {
+    switch (lastCommand.type) {
       case 'KICK_PLAYER':
         if (prevSeat !== null && mySeat === null) {
           toast.warning(`你已被移出 ${prevSeat} 号座位`);
@@ -69,5 +70,5 @@ export function useWerewolfLastActionToast({
         toast.info('房主已重新开始游戏');
         break;
     }
-  }, [facade, isHost, mySeat, isFocused]);
+  }, [isFocused, isHost, lastCommand, mySeat]);
 }

@@ -34,7 +34,6 @@ export function createInitialContext(
     state: ConnectionState.Idle,
     roomCode: null,
     roomId: null,
-    userId: null,
     attempt: 0,
     maxAttempts: overrides?.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
     lastRevision: 0,
@@ -55,6 +54,22 @@ export function createInitialContext(
  * @returns New context + side effects to execute
  */
 export function transition(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
+  if (event.type === 'PROTOCOL_FAILURE') {
+    if (ctx.state === ConnectionState.Idle || ctx.state === ConnectionState.Disposed) {
+      return noop(ctx);
+    }
+    return {
+      ctx: { ...ctx, state: ConnectionState.Failed },
+      effects: [
+        log('error', `${ctx.state} → Failed (protocol failure)`, { error: event.error }),
+        { type: 'CLOSE_WS' },
+        { type: 'CANCEL_RETRY' },
+        { type: 'STOP_PING' },
+        { type: 'STOP_REVISION_POLL' },
+      ],
+    };
+  }
+
   switch (ctx.state) {
     case ConnectionState.Idle:
       return handleIdle(ctx, event);
@@ -86,7 +101,6 @@ function handleIdle(ctx: FSMContext, event: ConnectionEvent): TransitionResult {
       state: ConnectionState.Connecting,
       roomCode: event.roomCode,
       roomId: event.roomId,
-      userId: event.userId,
       attempt: 0,
       lastRevision: 0,
     };
@@ -613,10 +627,7 @@ function fetchState(ctx: FSMContext): SideEffect {
 }
 
 function openWebSocket(ctx: FSMContext): SideEffect {
-  if (ctx.userId === null || ctx.userId.length === 0) {
-    throw new Error(`Connection state ${ctx.state} requires a user identity`);
-  }
-  return { type: 'OPEN_WS', ...requireRoomIdentity(ctx), userId: ctx.userId };
+  return { type: 'OPEN_WS', ...requireRoomIdentity(ctx) };
 }
 
 function noop(ctx: FSMContext): TransitionResult {
@@ -660,7 +671,6 @@ function toConnecting(
     state: ConnectionState.Connecting,
     roomCode: event.roomCode,
     roomId: event.roomId,
-    userId: event.userId,
     attempt: 0,
     lastRevision: 0,
   };

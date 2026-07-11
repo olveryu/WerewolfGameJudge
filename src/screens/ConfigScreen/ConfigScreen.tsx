@@ -17,8 +17,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useGameFacade } from '@/contexts';
 import { useServices } from '@/contexts/ServiceContext';
+import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
@@ -96,8 +96,8 @@ export const ConfigScreen: React.FC = () => {
   const nominateMode = route.params?.nominateMode;
   const updatedRules = route.params?.updatedRules;
 
-  const facade = useGameFacade();
-  const { settingsService, authService, roomService } = useServices();
+  const facade = useWerewolfGame();
+  const { settingsService, roomDirectory } = useServices();
 
   const state = useConfigScreenState({
     existingRoomCode,
@@ -107,8 +107,7 @@ export const ConfigScreen: React.FC = () => {
     navigation,
     facade,
     settingsService,
-    authService,
-    roomService,
+    roomDirectory,
   });
 
   const {

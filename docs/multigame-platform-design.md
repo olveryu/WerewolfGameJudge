@@ -1804,15 +1804,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                                |
-| --------- | ------ | -------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                       |
-| Phase 1   | 进行中 | canonical identity、版本化 codec、room slice/hooks/state 归 Werewolf                   | config/notepad/facade/runtime 归位、边界 exception 清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                       |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                       |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                       |
-| Phase 5   | 进行中 | shared shell/controllers、profile/progress/seat contract 中性化、Werewolf room 归位    | entry/session/transport 下沉                            |
-| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                     |
+| 阶段      | 状态   | 已完成                                                                                  | 尚未完成                                         |
+| --------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                                |
+| Phase 1   | 进行中 | canonical identity、版本化 codec、room slice/hooks/state/facade/runtime 归 Werewolf     | config/notepad/AI chat 归位、边界 exception 清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                                |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                                |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                                |
+| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位 | -                                                |
+| Phase 6-8 | 未开始 | -                                                                                       | Fib engine/UI、清理                              |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2012,3 +2012,37 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   `baseUrl` deprecation gate 拒绝；未添加 ignore flag，最终以标准 `pnpm run quality` 验收。
 - Phase 5 下一批：把 auth/entry/connection/seat command 下沉为 shared `RoomSession`，删除
   `useWerewolfRoomLifecycle` 中的平台职责和 root `useConnectionStatus` 的 `IGameFacade` 绑定。
+
+### 当前提交：Phase 5 单一 RoomSession 与 game-owned runtime 收口
+
+- `src/features/room/session/RoomSession.ts` 是唯一 active-room session 实现，也只在
+  `src/app/createAppServices.ts` 实例化一次。它的 immutable snapshot 同时表达 room identity、session
+  epoch、connection phase、authoritative snapshot、last committed command 和 terminal error；UI 不再组合
+  facade state、connection hook 与 room record 三份状态。
+- `RoomSession` 拥有 command ID、prepared intent、同意图并发去重、epoch 隔离、delivery-unknown retry
+  与 user-event ACK。Seat command 只使用 `room.seat.take/leave/kick/clear/fillBots` 一套协议名，
+  狼人杀不再保留 `takeSeat/leaveSeat` 等平行 transport。Command outcome 明确区分 committed、
+  domain rejected、not decided、delivery unknown 和 superseded，不用 boolean 猜测服务端是否提交。
+- `ConnectionManager` 只重试可恢复的网络故障。WebSocket 1002、无效 snapshot、active room 返回
+  null state、state/event callback 破坏 contract 都立即进入 protocol failure，关闭 socket 并停止 retry；
+  prefetch grace race 会清理未命中 timer，不留 open handle。Abort 会立即使 connect/reconnect 失效并
+  断开当前 epoch，不等待底层 request 自行结束。
+- `useRoomEntryController` 和 `RoomEntryBoundary` 是唯一 auth/entry/retry/reconnect/exit 边界。
+  等价 `RoomRecord` 按所有 identity field 稳定化，不因 React object identity 重连；并发手动重连
+  直接 fail fast。Game-owned hooks 只在 boundary ready 后 mount，因此狼人杀 `gameState` 和 status 是必填，
+  已删除 `no_game_state` 分支与为未初始化状态准备的 fallback UI/policy。
+- Room directory 与 state 读取拆成 `IRoomDirectoryService` / `IRoomStateService` 及对应 Cloudflare
+  adapter。`/room/create` 只返回 directory metadata，creation saga 内部校验 state；游戏 codec 不再泄漏到
+  game-neutral directory port。
+- 原 app-wide `GameFacadeContext`、`IGameFacade`、`src/services/facade`、`IRoomService`、
+  `CFRoomService`、`useRoomConnection`、`useConnectionStatus` 和 `useWerewolfRoomLifecycle` 已删除，没有
+  alias、re-export 或 compatibility adapter。狼人杀 command/audio orchestration、client contract 与 context 全部归入
+  `src/games/werewolf/runtime`；shared room 和 production services 对 `src/games` 的反向 import 为零。
+- Architecture contract 锁定上述已删除路径必须不存在、全仓只有一个 `class RoomSession`、shared
+  room 不得出现 game semantic type。Room UI test 通过 ready-content harness 测试真实 game content，不伪造
+  第二个 provider/session 来绕过 entry contract。
+- 最终 `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全绿；root
+  188 suites/4966 tests、game-engine 83 suites/2378 tests、api-worker 12 files/90 tests 全部通过。
+  Phase 5 Playwright 回归 `entry-flow` 6、`seating` 6、`rejoin` 2、`reconnect` 4，共 18/18 通过；
+  包含 30 秒离线恢复和 5 次 online/offline flapping，没有修改 helper、timeout 或 retry 规则。
+- Phase 5 至此收口；Phase 6 未启动。

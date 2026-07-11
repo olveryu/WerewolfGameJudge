@@ -11,13 +11,13 @@ import { createContext, use, useMemo } from 'react';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IAuthService } from '@/services/types/IAuthService';
-import type { IRoomService } from '@/services/types/IRoomService';
+import type { IRoomDirectoryService } from '@/services/types/IRoomDirectoryService';
 import type { IStorageService } from '@/services/types/IStorageService';
 
 /** Set of service instances provided by the DI container. */
 export interface ServiceContextValue {
   authService: IAuthService;
-  roomService: IRoomService;
+  roomDirectory: IRoomDirectoryService;
   settingsService: SettingsService;
   audioService: AudioService;
   avatarUploadService: IStorageService;

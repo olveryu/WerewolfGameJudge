@@ -1,0 +1,52 @@
+/** Cloudflare adapter for typed authoritative room snapshot reads. */
+
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import {
+  parseRoomLocator,
+  type RoomLocator,
+} from '@werewolf/game-engine/platform/protocol/roomLocator';
+import {
+  type BaseGameState,
+  type GameStateCodec,
+  parseRoomSnapshot,
+  type RoomSnapshot,
+} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+
+import type { IRoomStateService } from '@/services/types/IRoomStateService';
+import { roomLog } from '@/utils/logger';
+
+import { cfPost } from './cfFetch';
+import { assertExactRoomResponseKeys, isRoomResponseRecord } from './roomResponseValidation';
+
+export class CFRoomStateService<
+  TState extends BaseGameState<GameType>,
+> implements IRoomStateService<TState> {
+  constructor(readonly stateCodec: GameStateCodec<TState>) {}
+
+  async getStateRevision(room: RoomLocator): Promise<number | null> {
+    const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
+    roomLog.debug('getStateRevision', locator);
+    const value: unknown = await cfPost<unknown>('/room/revision', { ...locator });
+    if (!isRoomResponseRecord(value)) throw new Error('Invalid /room/revision response envelope');
+    assertExactRoomResponseKeys(value, ['revision'], '/room/revision response');
+    if (
+      value.revision !== null &&
+      (typeof value.revision !== 'number' ||
+        !Number.isSafeInteger(value.revision) ||
+        value.revision < 1)
+    ) {
+      throw new Error('/room/revision returned an invalid revision');
+    }
+    return value.revision;
+  }
+
+  async getGameState(room: RoomLocator): Promise<RoomSnapshot<TState> | null> {
+    const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
+    roomLog.debug('getGameState', locator);
+    const value: unknown = await cfPost<unknown>('/room/state', { ...locator });
+    if (!isRoomResponseRecord(value)) throw new Error('Invalid /room/state response envelope');
+    assertExactRoomResponseKeys(value, ['snapshot'], '/room/state response');
+    if (value.snapshot === null) return null;
+    return parseRoomSnapshot(value.snapshot, this.stateCodec);
+  }
+}

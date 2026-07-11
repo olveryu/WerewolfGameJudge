@@ -17,7 +17,7 @@ import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealA
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
-import { useRoomConnection } from '@/features/room/controllers/useRoomConnection';
+import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
@@ -25,14 +25,13 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import {
   createWerewolfRoomCapabilities,
-  toRoomConnectionStatus,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
-import type { RoomRecord } from '@/services/types/IRoomService';
+import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -71,9 +70,6 @@ const EMPTY_ACTIONS: Map<RoleId, RoleAction> = new Map();
 /** Stable empty array for groupConfirm acks when not in a groupConfirm step */
 const EMPTY_ACKS: readonly number[] = [];
 
-/** Errors that cannot be recovered by retrying — auto-redirect to Home */
-const FATAL_ROOM_ERRORS = new Set(['房间不存在', '房间状态已过期，请重新创建房间']);
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +81,11 @@ type RoomScreenNavigation = NativeStackNavigationProp<RootStackParamList, 'Room'
 // Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScreenNavigation) {
+export function useWerewolfRoomScreenState(
+  room: RoomRecord,
+  navigation: RoomScreenNavigation,
+  entryController: RoomEntryController,
+) {
   const { roomCode } = room;
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -104,11 +104,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     currentSchema,
     currentStepId,
     isAudioPlaying,
-    connectionStatus,
-    manualReconnect,
-    error: gameRoomError,
-    enterRoom,
-    leaveRoom,
     takeSeat,
     leaveSeat,
     assignRoles,
@@ -121,9 +116,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     hasWolfVoted,
     getLastNightInfo: getLastNightInfoFn,
     getCurseInfo: getCurseInfoFn,
-    needsAuth,
-    clearNeedsAuth,
-    requestSnapshot,
     submitRevealAck,
     submitGroupConfirmAck,
     sendWolfRobotHunterStatusViewed,
@@ -202,21 +194,7 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
 
   const { handleDebugTitleTap } = useHiddenDebugTrigger();
 
-  const handleRoomExit = useCallback(() => {
-    navigation.navigate('Home');
-  }, [navigation]);
-
-  const roomConnection = useRoomConnection({
-    room,
-    enterRoom,
-    disconnect: leaveRoom,
-    hasRoomState: gameState !== null,
-    connection: {
-      status: toRoomConnectionStatus(connectionStatus),
-      onManualReconnect: manualReconnect,
-    },
-    onExit: handleRoomExit,
-  });
+  const roomConnection = entryController;
 
   const seatController = useRoomSeatController({
     currentSeat: mySeat,
@@ -231,25 +209,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     roomCode,
     gameDisplayName: WEREWOLF_DISPLAY_NAME,
   });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Fatal error auto-redirect: room gone → alert + navigate Home
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const fatalErrorFiredRef = useRef(false);
-  useEffect(() => {
-    if (!gameRoomError) return;
-    const fatal = FATAL_ROOM_ERRORS.has(gameRoomError);
-    if (!fatal) return;
-    // Guard: fire only once to prevent alert-storm from rapid error state toggles
-    if (fatalErrorFiredRef.current) return;
-    fatalErrorFiredRef.current = true;
-    roomScreenLog.debug('Fatal room error, redirecting to Home', {
-      error: gameRoomError,
-    });
-    showErrorAlert('房间异常', gameRoomError);
-    navigation.navigate('Home');
-  }, [gameRoomError, navigation]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Actor Identity (delegated to useRoomIdentity)
@@ -764,7 +723,7 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
   useEffect(() => {
     const prev = notepadPrevStatusRef.current;
     if (
-      prev !== undefined &&
+      prev !== null &&
       prev !== GameStatus.Unseated &&
       prev !== GameStatus.Seated &&
       roomStatus === GameStatus.Seated
@@ -862,7 +821,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     currentSchema,
     isAudioPlaying,
     resolvedRoleRevealAnimation,
-    gameRoomError,
     effectiveSeat,
     effectiveRole,
     isDebugMode,
@@ -871,7 +829,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     clearAllSeats,
-    requestSnapshot,
     releaseBot,
     capabilities,
     roomConnection: roomConnection.connection,
@@ -886,16 +843,6 @@ export function useWerewolfRoomScreenState(room: RoomRecord, navigation: RoomScr
     isBgmPlaying,
     playBgm,
     stopBgm,
-
-    // ── Shared room connection controller ──
-    isInitialized: roomConnection.isInitialized,
-    loadingMessage: roomConnection.loadingMessage,
-    showRetryButton: roomConnection.showRetryButton,
-    handleRetry: roomConnection.retry,
-
-    // ── Auth gate (first-time direct URL user) ──
-    needsAuth,
-    clearNeedsAuth,
 
     // ── Derived view models (from useRoomDerived) ──
     ...derived,

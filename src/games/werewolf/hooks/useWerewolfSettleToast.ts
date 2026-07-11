@@ -1,7 +1,7 @@
 /**
  * useWerewolfSettleToast -- settle XP/level-up/draw-ticket toast notifications
  *
- * Subscribes to facade.addSettleResultListener; on SETTLE_RESULT shows:
+ * Registers the Werewolf handler on the shared room session; on SETTLE_RESULT shows:
  * - Level-up + golden ticket: "升级 Lv.{n}！获得黄金抽奖券"
  * - Normal XP + tickets: "+{xp} XP · 获得抽奖券"
  *
@@ -9,20 +9,25 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
+import type { WerewolfPublicCommand } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 
+import type { RoomSessionClient } from '@/features/room/session/types';
+import type {
+  WerewolfSettlementEvent,
+  WerewolfUserEvent,
+} from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { gachaStatusOptions, userStatsOptions } from '@/hooks/queries/queryOptions';
-import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { SettleResultMessage } from '@/services/types/IRealtimeTransport';
 import { gameRoomLog } from '@/utils/logger';
 
 interface UseSettleToastParams {
-  facade: IGameFacade;
+  session: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
   isFocused: boolean;
 }
 
-function showSettleToast(result: SettleResultMessage): void {
+function showSettleToast(result: WerewolfSettlementEvent): void {
   const leveledUp = result.newLevel > result.previousLevel;
   gameRoomLog.debug('Settle toast', { xpEarned: result.xpEarned, leveledUp });
 
@@ -48,23 +53,25 @@ function showSettleToast(result: SettleResultMessage): void {
 /**
  * Listen for settle results, pop XP/level-up toast, and refresh gacha/stats query cache.
  *
- * @param params.facade - GameFacade instance
+ * @param params.session - Active shared room session
  * @param params.isFocused - Whether the current screen is focused (avoid background toasts)
  */
-export function useWerewolfSettleToast({ facade, isFocused }: UseSettleToastParams): void {
+export function useWerewolfSettleToast({ session, isFocused }: UseSettleToastParams): void {
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!isFocused) return;
 
-    const unsub = facade.addSettleResultListener((result) => {
+    const unsub = session.setUserEventHandler(async (result) => {
       showSettleToast(result);
 
       // Refresh cached ticket counts so header badge updates immediately
-      void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
-      void queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey }),
+        queryClient.invalidateQueries({ queryKey: userStatsOptions().queryKey }),
+      ]);
     });
 
     return unsub;
-  }, [facade, isFocused, queryClient]);
+  }, [isFocused, queryClient, session]);
 }

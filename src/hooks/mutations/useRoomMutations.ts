@@ -1,18 +1,18 @@
 /**
  * useRoomMutations — TanStack Query mutation hooks for room operations
  *
- * useCreateRoom: wraps roomService.createRoom (internal 409 conflict retry preserved)
+ * useCreateRoom: wraps roomDirectory.createRoom (internal creation replay preserved)
  * Network retry handled by cfFetch (fetchWithRetry), no mutation-layer retry needed.
  */
 
 import { useMutation } from '@tanstack/react-query';
 
 import { useServices } from '@/contexts/ServiceContext';
-import type { CreateRoomRequest } from '@/services/types/IRoomService';
+import type { CreateRoomRequest } from '@/services/types/IRoomDirectoryService';
 
 export function useCreateRoom() {
-  const { roomService } = useServices();
+  const { roomDirectory } = useServices();
   return useMutation({
-    mutationFn: (request: CreateRoomRequest) => roomService.createRoom(request),
+    mutationFn: (request: CreateRoomRequest) => roomDirectory.createRoom(request),
   });
 }

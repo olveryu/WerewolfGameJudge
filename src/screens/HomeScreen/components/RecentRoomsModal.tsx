@@ -78,7 +78,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
   onClose,
   onJoin,
 }) => {
-  const { roomService } = useServices();
+  const { roomDirectory } = useServices();
   const [entries, setEntries] = useState<RoomEntry[]>([]);
 
   // Check all rooms when modal opens
@@ -89,7 +89,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
     setEntries(initial);
 
     for (const roomCode of roomCodes) {
-      roomService.getRoom(roomCode).then(
+      roomDirectory.getRoom(roomCode).then(
         (room) => {
           if (!room) {
             removeRecentRoom(roomCode);
@@ -115,7 +115,7 @@ export const RecentRoomsModal: React.FC<RecentRoomsModalProps> = ({
         },
       );
     }
-  }, [visible, roomCodes, roomService]);
+  }, [roomDirectory, roomCodes, visible]);
 
   const handleJoin = useCallback(
     (roomCode: string) => {

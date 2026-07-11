@@ -27,7 +27,6 @@ describe('SeatTapPolicy', () => {
         seat: 0,
         disabledReason: undefined,
         imActioner: true,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -49,7 +48,6 @@ describe('SeatTapPolicy', () => {
         seat: 0,
         disabledReason: '不能选择自己', // Would normally trigger ALERT
         imActioner: true,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -72,7 +70,6 @@ describe('SeatTapPolicy', () => {
         seat: 0,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -94,7 +91,6 @@ describe('SeatTapPolicy', () => {
         seat: 0,
         disabledReason: '不能选择自己',
         imActioner: true,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -115,7 +111,6 @@ describe('SeatTapPolicy', () => {
         seat: 0,
         disabledReason: '某个原因',
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -141,7 +136,6 @@ describe('SeatTapPolicy', () => {
           seat: 3,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -161,7 +155,6 @@ describe('SeatTapPolicy', () => {
           seat: 5,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -181,7 +174,6 @@ describe('SeatTapPolicy', () => {
           seat: 2,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-abc',
@@ -203,7 +195,6 @@ describe('SeatTapPolicy', () => {
           seat: 3,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-def',
@@ -225,7 +216,6 @@ describe('SeatTapPolicy', () => {
           seat: 1,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-ghi',
@@ -247,7 +237,6 @@ describe('SeatTapPolicy', () => {
           seat: 1,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
         };
@@ -266,7 +255,6 @@ describe('SeatTapPolicy', () => {
           seat: 2,
           disabledReason: undefined,
           imActioner: true,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -286,7 +274,6 @@ describe('SeatTapPolicy', () => {
           seat: 2,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -308,7 +295,6 @@ describe('SeatTapPolicy', () => {
           seat: 0,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -328,7 +314,6 @@ describe('SeatTapPolicy', () => {
           seat: 2,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-assigned',
@@ -349,7 +334,6 @@ describe('SeatTapPolicy', () => {
           seat: 0,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -369,7 +353,6 @@ describe('SeatTapPolicy', () => {
           seat: 1,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-ready',
@@ -390,7 +373,6 @@ describe('SeatTapPolicy', () => {
           seat: 0,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: false,
           isSelfSeated: false,
         };
@@ -410,7 +392,6 @@ describe('SeatTapPolicy', () => {
           seat: 4,
           disabledReason: undefined,
           imActioner: false,
-          hasGameState: true,
           isSeatOccupiedByOther: true,
           isSelfSeated: false,
           targetUserId: 'user-ended',
@@ -437,7 +418,6 @@ describe('SeatTapPolicy', () => {
         seat: 2,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: true,
         myUserId: 'user-self',
@@ -459,7 +439,6 @@ describe('SeatTapPolicy', () => {
         seat: 3,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: true,
         myUserId: 'user-self',
@@ -481,7 +460,6 @@ describe('SeatTapPolicy', () => {
         seat: 1,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: true,
         myUserId: 'user-self',
@@ -503,7 +481,6 @@ describe('SeatTapPolicy', () => {
         seat: 5,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: true,
         myUserId: 'user-self',
@@ -525,7 +502,6 @@ describe('SeatTapPolicy', () => {
         seat: 2,
         disabledReason: undefined,
         imActioner: true,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: true,
         myUserId: 'user-self',
@@ -544,7 +520,6 @@ describe('SeatTapPolicy', () => {
         seat: 4,
         disabledReason: undefined,
         imActioner: false,
-        hasGameState: true,
         isSeatOccupiedByOther: false,
         isSelfSeated: false,
       };
@@ -552,48 +527,6 @@ describe('SeatTapPolicy', () => {
       const result = getSeatTapResult(input);
 
       expect(result.kind).toBe('SEATING_FLOW');
-    });
-  });
-
-  // ==========================================================================
-  // Edge cases
-  // ==========================================================================
-  describe('Edge cases', () => {
-    it('returns NOOP(no_game_state) when hasGameState is false', () => {
-      const input: SeatTapPolicyInput = {
-        roomStatus: GameStatus.Ongoing,
-        isAudioPlaying: false,
-        seat: 0,
-        disabledReason: undefined,
-        imActioner: true,
-        hasGameState: false,
-        isSeatOccupiedByOther: false,
-        isSelfSeated: false,
-      };
-
-      const result = getSeatTapResult(input);
-
-      expect(result.kind).toBe('NOOP');
-      if (result.kind === 'NOOP') {
-        expect(result.reason).toBe('no_game_state');
-      }
-    });
-
-    it('returns NOOP(no_game_state) when roomStatus is undefined', () => {
-      const input: SeatTapPolicyInput = {
-        roomStatus: undefined,
-        isAudioPlaying: false,
-        seat: 0,
-        disabledReason: undefined,
-        imActioner: true,
-        hasGameState: false, // No game state means undefined status
-        isSeatOccupiedByOther: false,
-        isSelfSeated: false,
-      };
-
-      const result = getSeatTapResult(input);
-
-      expect(result.kind).toBe('NOOP');
     });
   });
 });

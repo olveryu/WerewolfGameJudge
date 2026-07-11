@@ -33,11 +33,11 @@ const isWeb = Platform.OS === 'web';
  * Responsibilities:
  * - Delegate platform-specific TTS playback to AudioPlaybackStrategy
  * - Delegate BGM lifecycle to BgmPlayer
- * - Provide a unified public API for GameFacade / gameActions to consume
+ * - Provide playback primitives for game-owned runtime orchestration
  * - Manage pause/resume on Web visibility change
  *
  * Not responsible for:
- * - Deciding "when to play what" (declared by Handler, orchestrated by Facade)
+ * - Deciding "when to play what" (declared by handlers, orchestrated by a game runtime)
  * - Game logic or state management
  *
  * Boundary constraints:

@@ -28,8 +28,8 @@ type AckResult = ActionResult;
 
 export interface ExecutorContext {
   // ── Game state (readonly snapshots) ──
-  gameState: LocalGameState | null;
-  gameStateRef: MutableRefObject<LocalGameState | null>;
+  gameState: LocalGameState;
+  gameStateRef: MutableRefObject<LocalGameState>;
   currentSchema: ActionSchema | null;
   currentActionRole: RoleId | null;
 

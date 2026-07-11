@@ -17,17 +17,17 @@ import {
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/models/Template';
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
 import { addRecentRoom } from '@/lib/recentRooms';
 import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
-import type { IAuthService } from '@/services/types/IAuthService';
-import type { IGameFacade } from '@/services/types/IGameFacade';
-import type { IRoomService } from '@/services/types/IRoomService';
+import type { IRoomDirectoryService } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -55,10 +55,9 @@ interface UseConfigScreenStateParams {
   nominateMode: { roomCode: string } | undefined;
   updatedRules: GameRuleOverrides | undefined;
   navigation: ConfigNavigationProp;
-  facade: IGameFacade;
+  facade: WerewolfGameClient;
   settingsService: SettingsService;
-  authService: IAuthService;
-  roomService: IRoomService;
+  roomDirectory: IRoomDirectoryService;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,10 +72,12 @@ export function useConfigScreenState({
   navigation,
   facade,
   settingsService,
-  authService,
-  roomService,
+  roomDirectory,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
+  const { roomSession } = facade;
+  const room = useRoomSessionSnapshot(roomSession);
+  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
   const isEditMode = !!existingRoomCode;
   const isNominateMode = !!nominateMode;
 
@@ -142,7 +143,7 @@ export function useConfigScreenState({
         roomCode: existingRoomCode ?? nominateMode?.roomCode,
       });
       try {
-        const state = facade.getState();
+        const state = gameState;
         if (state?.templateRoles && state.templateRoles.length > 0) {
           const restored = restoreFromTemplateRoles(state.templateRoles);
           setSelection(restored.selection);
@@ -165,7 +166,7 @@ export function useConfigScreenState({
     isNominateMode,
     existingRoomCode,
     nominateMode,
-    facade,
+    gameState,
     settingsService,
   ]);
 
@@ -195,10 +196,6 @@ export function useConfigScreenState({
   }, [navigation]);
 
   // ── Auto-navigate back when game progresses past nomination phase ───────
-
-  const subscribe = useCallback((cb: () => void) => facade.subscribe(cb), [facade]);
-  const getSnapshot = useCallback(() => facade.getState(), [facade]);
-  const gameState = useSyncExternalStore(subscribe, getSnapshot);
 
   useEffect(() => {
     if (!nominateMode) return;
@@ -316,14 +313,12 @@ export function useConfigScreenState({
         }
       } else {
         // Create room record in DB first — get confirmed/final roomCode
-        await authService.waitForInit();
-        const hostUserId = authService.getCurrentUserId();
-        if (!hostUserId) {
+        if (user === null) {
           navigation.navigate('Home');
           return;
         }
         const record = await createRoom({
-          expectedHostUserId: hostUserId,
+          expectedHostUserId: user.id,
           gameType: 'werewolf',
           config: {
             templateRoles: template.roles,
@@ -332,7 +327,7 @@ export function useConfigScreenState({
         });
         const roomCode = record.roomCode;
         addRecentRoom(roomCode);
-        roomService.acknowledgeRoomCreation(record.creationId);
+        roomDirectory.acknowledgeRoomCreation(record.creationId);
         navigation.navigate('Room', {
           roomCode,
           entryReason: 'created',
@@ -358,12 +353,11 @@ export function useConfigScreenState({
     settingsService,
     bgmEnabled,
     isLoading,
-    authService,
-    roomService,
+    roomDirectory,
     createRoom,
     variantOverrides,
     rules,
-    user?.displayName,
+    user,
   ]);
 
   // ── Template label ───────────────────────────────────────────────────────

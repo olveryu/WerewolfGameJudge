@@ -108,9 +108,6 @@ export interface IAuthService {
   /** Restore auth from local session, returns userId or null */
   initAuth(): Promise<string | null>;
 
-  /** Generate random Chinese display name (Werewolf meme prefix + role name), cached per session */
-  generateDisplayName(): string;
-
   /**
    * Subscribe to auth expiry events (both tokens dead, session fully lost).
    * Returns an unsubscribe function. Call it in useEffect cleanup.

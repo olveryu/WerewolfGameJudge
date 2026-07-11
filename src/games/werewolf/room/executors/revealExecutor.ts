@@ -23,10 +23,9 @@ import type { IntentExecutor } from './types';
 
 /** Handle reveal intent (display check result + ack). */
 export const revealExecutor: IntentExecutor = (intent, ctx) => {
-  const { gameState, gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
+  const { gameStateRef, currentSchema, confirmThenAct, mountedRef } = ctx;
   const { revealAckMutation, actionDialogs } = ctx;
 
-  if (!gameState) return;
   if (!intent.revealKind) {
     roomScreenLog.warn(' reveal intent missing revealKind');
     return;
@@ -43,7 +42,7 @@ export const revealExecutor: IntentExecutor = (intent, ctx) => {
       await new Promise((resolve) => setTimeout(resolve, retryInterval));
       if (!mountedRef.current) return;
       const state = gameStateRef.current;
-      if (state) reveal = getRevealDataFromState(state, revealKind);
+      reveal = getRevealDataFromState(state, revealKind);
       if (reveal) break;
     }
 

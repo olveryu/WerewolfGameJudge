@@ -1,9 +1,9 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { GameFacadeProvider } from '@/contexts/GameFacadeContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { WerewolfGameProvider } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import type { IGameFacade } from '@/services/types/IGameFacade';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -39,21 +39,23 @@ jest.mock('../../../utils/alert', () => ({
 
 // Services are injected via DI (ServiceContext), no concrete mocks needed here.
 
-// Mock facade for testing
-const createMockFacade = (): IGameFacade =>
+const idleRoomSnapshot = {
+  phase: 'idle' as const,
+  epoch: 0,
+  identity: null,
+  connection: 'disconnected' as const,
+  snapshot: null,
+  lastCommand: null,
+  error: null,
+};
+
+// Mock Werewolf client for testing
+const createMockFacade = (): WerewolfGameClient =>
   ({
-    addListener: jest.fn(() => jest.fn()),
-    subscribe: jest.fn(() => jest.fn()),
-    getState: jest.fn(() => null),
-    isHostPlayer: jest.fn(() => false),
-    getMyUserId: jest.fn(() => null),
-    getMySeat: jest.fn(() => null),
-    getStateRevision: jest.fn(() => 0),
-    createRoom: jest.fn(),
-    enterRoom: jest.fn().mockResolvedValue(undefined),
-    leaveRoom: jest.fn(),
-    takeSeat: jest.fn(),
-    leaveSeat: jest.fn(),
+    roomSession: {
+      getSnapshot: () => idleRoomSnapshot,
+      subscribe: jest.fn(() => () => undefined),
+    },
     assignRoles: jest.fn(),
     updateTemplate: jest.fn().mockResolvedValue({ success: true }),
     startNight: jest.fn(),
@@ -62,22 +64,18 @@ const createMockFacade = (): IGameFacade =>
     submitAction: jest.fn(),
     submitRevealAck: jest.fn(),
     setAudioPlaying: jest.fn(),
-    requestSnapshot: jest.fn(),
     postProgression: jest.fn(),
-    fetchStateFromDB: jest.fn(),
     sendWolfRobotHunterStatusViewed: jest.fn(),
     get wasAudioInterrupted() {
       return false;
     },
     resumeAfterRejoin: jest.fn(),
-    fillWithBots: jest.fn(),
     markAllBotsViewed: jest.fn(),
-    addConnectionStatusListener: jest.fn(() => jest.fn()),
-  }) as unknown as IGameFacade;
+  }) as unknown as WerewolfGameClient;
 
 const renderWithFacade = (ui: React.ReactElement) => {
   const mockFacade = createMockFacade();
-  return render(<GameFacadeProvider facade={mockFacade}>{ui}</GameFacadeProvider>);
+  return render(<WerewolfGameProvider client={mockFacade}>{ui}</WerewolfGameProvider>);
 };
 
 describe('ConfigScreen', () => {

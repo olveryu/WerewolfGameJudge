@@ -2,7 +2,7 @@ import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import type React from 'react';
 
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';
 import { showAlert } from '@/utils/alert';
 
@@ -66,12 +66,9 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         roomCode: '1234',
       };
       return {
-        facade: { getState: () => gameState },
         gameState,
 
-        connectionStatus: (
-          require('@/services/types/IGameFacade') as typeof import('@/services/types/IGameFacade')
-        ).ConnectionStatus.Live,
+        connectionStatus: 'live',
 
         isHost: false,
         roomStatus: (
@@ -102,7 +99,6 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         takeOverBot: jest.fn(),
         releaseBot: jest.fn(),
 
-        enterRoom: jest.fn().mockResolvedValue({ success: true }),
         takeSeat: jest.fn(),
         leaveSeat: jest.fn(),
         assignRoles: jest.fn(),
@@ -112,16 +108,13 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
         submitAction: mockSubmitAction,
 
         hasWolfVoted: () => false,
-        requestSnapshot: jest.fn(),
         viewedRole: jest.fn(),
 
         getLastNightInfo: jest.fn().mockReturnValue(''),
 
         submitRevealAck: jest.fn().mockResolvedValue({ success: true }),
 
-        isBgmEnabled: true,
         isBgmPlaying: false,
-        toggleBgm: jest.fn(),
         playBgm: jest.fn(),
         stopBgm: jest.fn(),
       };

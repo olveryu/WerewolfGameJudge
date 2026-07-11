@@ -35,16 +35,13 @@ interface WerewolfNightDerivedValues {
  * Derives night-phase values from game state.
  * All pure useMemo computations — no side effects, no subscriptions.
  */
-export function useWerewolfNightDerived(
-  gameState: LocalGameState | null,
-): WerewolfNightDerivedValues {
+export function useWerewolfNightDerived(gameState: LocalGameState): WerewolfNightDerivedValues {
   // Current action role + schemaId — derived from NightPlan in one pass.
   // Phase 5: actionOrder removed from template, now derived from NightPlan.
   // Uses currentStepIndex to pick the exact step, which correctly handles roles
   // with multiple night steps (e.g. piper → piperHypnotize + piperHypnotizedReveal).
   const { currentActionRole, currentSchemaId } = useMemo(() => {
     const NONE = { currentActionRole: null, currentSchemaId: null } as const;
-    if (!gameState) return NONE;
     if (gameState.status !== GameStatus.Ongoing) return NONE;
     const nightPlan = buildNightPlan(gameState.template.roles, gameState.seerLabelMap);
     if (gameState.currentStepIndex >= nightPlan.steps.length) return NONE;
@@ -62,10 +59,10 @@ export function useWerewolfNightDerived(
   }, [currentSchemaId]);
 
   // Authoritative stepId from Host ROLE_TURN (UI-only)
-  const currentStepId: SchemaId | null = gameState?.currentStepId ?? null;
+  const currentStepId: SchemaId | null = gameState.currentStepId ?? null;
 
   // Check if audio is currently playing
-  const isAudioPlaying: boolean = gameState?.isAudioPlaying ?? false;
+  const isAudioPlaying = gameState.isAudioPlaying;
 
   return {
     currentActionRole,

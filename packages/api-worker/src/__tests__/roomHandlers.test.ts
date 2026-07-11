@@ -7,7 +7,6 @@ import {
   REASON_ROOM_INITIALIZATION_CONFLICT,
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
-import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -29,7 +28,14 @@ interface CreateRoomResponse {
     hostUserId: string;
     createdAt: string;
   };
-  snapshot: RoomSnapshot<GameState>;
+}
+
+interface StateResponse {
+  snapshot: {
+    gameType: 'werewolf';
+    state: GameState;
+    revision: number;
+  };
 }
 
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
@@ -99,22 +105,23 @@ describe('POST /room/create', () => {
       gameType: 'werewolf',
       hostUserId: auth.user.id,
     });
-    expect(WEREWOLF_STATE_CODEC.parse(body.snapshot.state)).toMatchObject({
+    const state = await postJson('/room/state', {
+      roomCode: body.room.roomCode,
+      roomId: body.room.roomId,
+    });
+    const stateBody = await state.json<StateResponse>();
+    expect(WEREWOLF_STATE_CODEC.parse(stateBody.snapshot.state)).toMatchObject({
       roomCode: body.room.roomCode,
       hostUserId: auth.user.id,
       gameType: 'werewolf',
       stateVersion: 1,
       templateRoles: TEMPLATE_ROLES,
     });
-    expect(body.snapshot.revision).toBe(1);
+    expect(stateBody.snapshot.revision).toBe(1);
 
     const directory = await postJson('/room/get', { roomCode: body.room.roomCode });
     expect(await directory.json()).toEqual({ room: body.room });
-    const state = await postJson('/room/state', {
-      roomCode: body.room.roomCode,
-      roomId: body.room.roomId,
-    });
-    expect(await state.json()).toEqual({ snapshot: body.snapshot });
+    expect(state.status).toBe(200);
   });
 
   it('rejects client routing fields, unknown games, and invalid config before D1 claim', async () => {

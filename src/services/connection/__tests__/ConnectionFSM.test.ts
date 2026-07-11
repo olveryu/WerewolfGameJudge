@@ -12,7 +12,6 @@ function ctx(state: ConnectionState, overrides?: Partial<FSMContext>): FSMContex
     state,
     roomCode: 'ROOM1',
     roomId: 'room-id-1',
-    userId: 'user1',
     ...overrides,
   };
 }
@@ -38,7 +37,6 @@ describe('createInitialContext', () => {
     expect(c.state).toBe(ConnectionState.Idle);
     expect(c.roomCode).toBeNull();
     expect(c.roomId).toBeNull();
-    expect(c.userId).toBeNull();
     expect(c.attempt).toBe(0);
     expect(c.maxAttempts).toBe(DEFAULT_MAX_ATTEMPTS);
     expect(c.lastRevision).toBe(0);
@@ -57,18 +55,16 @@ describe('createInitialContext', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Idle state', () => {
-  const idle = ctx(ConnectionState.Idle, { roomCode: null, roomId: null, userId: null });
+  const idle = ctx(ConnectionState.Idle, { roomCode: null, roomId: null });
 
   it('CONNECT → Connecting + OPEN_WS', () => {
     const result = transition(idle, {
       type: 'CONNECT',
       roomCode: 'R1',
       roomId: 'room-id-r1',
-      userId: 'U1',
     });
     expect(result.ctx.state).toBe(ConnectionState.Connecting);
     expect(result.ctx.roomCode).toBe('R1');
-    expect(result.ctx.userId).toBe('U1');
     expect(result.ctx.attempt).toBe(0);
     expect(effectTypes(result)).toContain('OPEN_WS');
   });
@@ -514,7 +510,7 @@ describe('Disposed state', () => {
   const disposed = ctx(ConnectionState.Disposed);
 
   it.each([
-    { type: 'CONNECT' as const, roomCode: 'R', roomId: 'room-id-r', userId: 'U' },
+    { type: 'CONNECT' as const, roomCode: 'R', roomId: 'room-id-r' },
     { type: 'WS_OPEN' as const },
     { type: 'WS_CLOSE' as const },
     { type: 'MANUAL_RECONNECT' as const },
@@ -539,7 +535,6 @@ describe('transition sequences', () => {
       type: 'CONNECT',
       roomCode: 'ROOM',
       roomId: 'room-id',
-      userId: 'USER',
     });
     expect(r1.ctx.state).toBe(ConnectionState.Connecting);
     c = r1.ctx;
@@ -663,7 +658,6 @@ describe('CONNECT from non-Idle states (global transition)', () => {
     type: 'CONNECT' as const,
     roomCode: 'NEW',
     roomId: 'room-id-new',
-    userId: 'U2',
   };
 
   it.each([
@@ -679,7 +673,6 @@ describe('CONNECT from non-Idle states (global transition)', () => {
 
     expect(result.ctx.state).toBe(ConnectionState.Connecting);
     expect(result.ctx.roomCode).toBe('NEW');
-    expect(result.ctx.userId).toBe('U2');
     expect(result.ctx.attempt).toBe(0);
     expect(result.ctx.lastRevision).toBe(0);
 
@@ -695,4 +688,36 @@ describe('CONNECT from non-Idle states (global transition)', () => {
     const disposed = ctx(ConnectionState.Disposed);
     expectNoop(transition(disposed, connectEvent), disposed);
   });
+});
+
+describe('PROTOCOL_FAILURE', () => {
+  it.each([
+    ConnectionState.Connecting,
+    ConnectionState.Syncing,
+    ConnectionState.Connected,
+    ConnectionState.Disconnected,
+    ConnectionState.Reconnecting,
+    ConnectionState.Failed,
+  ])('%s fails immediately and cancels every connection effect', (state) => {
+    const result = transition(ctx(state), {
+      type: 'PROTOCOL_FAILURE',
+      error: new Error('invalid protocol payload'),
+    });
+
+    expect(result.ctx.state).toBe(ConnectionState.Failed);
+    expect(effectTypes(result)).toEqual(
+      expect.arrayContaining(['CLOSE_WS', 'CANCEL_RETRY', 'STOP_PING', 'STOP_REVISION_POLL']),
+    );
+  });
+
+  it.each([ConnectionState.Idle, ConnectionState.Disposed])(
+    '%s ignores stale failures',
+    (state) => {
+      const current = ctx(state);
+      expectNoop(
+        transition(current, { type: 'PROTOCOL_FAILURE', error: new Error('stale') }),
+        current,
+      );
+    },
+  );
 });

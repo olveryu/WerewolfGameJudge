@@ -5,7 +5,12 @@ import {
   createRoomSnapshot,
   createStateUpdateMessage,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 
+import {
+  WEREWOLF_USER_EVENT_CODEC,
+  type WerewolfUserEvent,
+} from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import type { TransportEventHandlers } from '@/services/types/IRealtimeTransport';
 
 import { ensureFreshToken } from '../cfFetch';
@@ -48,27 +53,29 @@ class MockWebSocket {
 
 const mockEnsureFreshToken = jest.mocked(ensureFreshToken);
 
-function createHandlers(): jest.Mocked<TransportEventHandlers> {
+function createHandlers(): jest.Mocked<TransportEventHandlers<GameState, WerewolfUserEvent>> {
   return {
     onOpen: jest.fn(),
     onClose: jest.fn(),
     onError: jest.fn(),
     onStateUpdate: jest.fn(),
-    onSettleResult: jest.fn(),
+    onUserEvent: jest.fn(),
     onPong: jest.fn(),
   };
 }
 
 async function connectService(): Promise<{
-  service: CFRealtimeService;
-  handlers: jest.Mocked<TransportEventHandlers>;
+  service: CFRealtimeService<GameState, WerewolfUserEvent>;
+  handlers: jest.Mocked<TransportEventHandlers<GameState, WerewolfUserEvent>>;
   socket: MockWebSocket;
 }> {
-  const service = new CFRealtimeService(WEREWOLF_STATE_CODEC);
+  const service = new CFRealtimeService<GameState, WerewolfUserEvent>(
+    WEREWOLF_STATE_CODEC,
+    WEREWOLF_USER_EVENT_CODEC,
+  );
   const handlers = createHandlers();
   service.setEventHandlers(handlers);
-  service.connect(ROOM, 'USER');
-  await Promise.resolve();
+  await service.connect(ROOM);
   const socket = MockWebSocket.instances[0];
   if (!socket) throw new Error('Expected CFRealtimeService to create a WebSocket');
   socket.onopen?.();
@@ -89,10 +96,10 @@ describe('CFRealtimeService protocol', () => {
     jest.clearAllMocks();
   });
 
-  it('fails fast when connect is called before handlers are registered', () => {
-    const service = new CFRealtimeService(WEREWOLF_STATE_CODEC);
+  it('fails fast when connect is called before handlers are registered', async () => {
+    const service = new CFRealtimeService(WEREWOLF_STATE_CODEC, WEREWOLF_USER_EVENT_CODEC);
 
-    expect(() => service.connect(ROOM, 'USER')).toThrow(
+    await expect(service.connect(ROOM)).rejects.toThrow(
       'CFRealtimeService requires event handlers before connect',
     );
     expect(MockWebSocket.instances).toHaveLength(0);
@@ -143,7 +150,7 @@ describe('CFRealtimeService protocol', () => {
     expect(socket.close).toHaveBeenCalledWith(1002, 'protocol_error');
   });
 
-  it('parses every durable settlement delivery for the facade acknowledgement owner', async () => {
+  it('parses every durable settlement delivery for the session acknowledgement owner', async () => {
     const { handlers, socket } = await connectService();
     const message = {
       type: 'SETTLE_RESULT',
@@ -162,8 +169,9 @@ describe('CFRealtimeService protocol', () => {
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
 
-    expect(handlers.onSettleResult).toHaveBeenCalledTimes(2);
-    expect(handlers.onSettleResult).toHaveBeenCalledWith({
+    expect(handlers.onUserEvent).toHaveBeenCalledTimes(2);
+    expect(handlers.onUserEvent).toHaveBeenCalledWith({
+      type: 'SETTLE_RESULT',
       eventId: 'settlement-event-1',
       gameType: 'werewolf',
       settlementId: 'settlement-1',
@@ -193,7 +201,7 @@ describe('CFRealtimeService protocol', () => {
     };
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
 
-    expect(handlers.onSettleResult).not.toHaveBeenCalled();
+    expect(handlers.onUserEvent).not.toHaveBeenCalled();
     const settlementError = handlers.onError.mock.calls[0]?.[0];
     if (!(settlementError instanceof Error)) {
       throw new Error('Expected settlement protocol error');

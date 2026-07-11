@@ -23,7 +23,6 @@ import { INTERACTION_PRIORITY } from '@/games/werewolf/room/policy/types';
 function createBaseContext(overrides: Partial<InteractionContext> = {}): InteractionContext {
   return {
     roomStatus: GameStatus.Ongoing,
-    hasGameState: true,
     isAudioPlaying: false,
     hasPendingAck: false,
     isHost: false,
@@ -73,10 +72,7 @@ function createLeaveRoomEvent(): InteractionEvent {
 
 describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
   test('priority constants are in correct order', () => {
-    expect(INTERACTION_PRIORITY.AUDIO_GATE).toBeLessThan(INTERACTION_PRIORITY.NO_GAME_STATE);
-    expect(INTERACTION_PRIORITY.NO_GAME_STATE).toBeLessThan(
-      INTERACTION_PRIORITY.PENDING_REVEAL_ACK,
-    );
+    expect(INTERACTION_PRIORITY.AUDIO_GATE).toBeLessThan(INTERACTION_PRIORITY.PENDING_REVEAL_ACK);
     expect(INTERACTION_PRIORITY.PENDING_REVEAL_ACK).toBeLessThan(
       INTERACTION_PRIORITY.PENDING_HUNTER_GATE,
     );
@@ -154,37 +150,7 @@ describe('RoomInteractionPolicy - Priority Order (Contract)', () => {
     });
   });
 
-  describe('Priority 2: No Game State', () => {
-    test('no_game_state blocks seat tap', () => {
-      const ctx = createBaseContext({
-        hasGameState: false,
-        isAudioPlaying: false,
-      });
-      const event = createSeatTapEvent(1);
-
-      const result = getInteractionResult(ctx, event);
-
-      expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'no_game_state');
-    });
-
-    test('audio gate beats no_game_state', () => {
-      const ctx = createBaseContext({
-        hasGameState: false,
-        isAudioPlaying: true,
-        roomStatus: GameStatus.Ongoing,
-      });
-      const event = createSeatTapEvent(1);
-
-      const result = getInteractionResult(ctx, event);
-
-      // Audio gate should win (checked first)
-      expect(result.kind).toBe('NOOP');
-      expect(result).toHaveProperty('reason', 'audio_playing');
-    });
-  });
-
-  describe('Priority 3: Pending Server-Ack', () => {
+  describe('Priority 2: Pending Server-Ack', () => {
     test('hasPendingAck blocks seat tap during ongoing', () => {
       const ctx = createBaseContext({
         hasPendingAck: true,
@@ -559,7 +525,6 @@ describe('RoomInteractionPolicy - Edge Cases', () => {
     const ctx = createBaseContext({
       isAudioPlaying: false,
       hasPendingAck: false,
-      hasGameState: true,
       roomStatus: GameStatus.Ongoing,
       imActioner: true,
     });

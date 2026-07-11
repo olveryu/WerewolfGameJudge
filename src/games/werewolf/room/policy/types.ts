@@ -6,9 +6,8 @@
  *
  * Priority order (contract):
  * 1. Audio Gate (highest) - NOOP when audio is playing
- * 2. No Game State - NOOP when game state is missing
- * 3. Pending Gates - Block when reveal ack or other gates are pending
- * 4. Event Routing - Route to appropriate handler based on event type
+ * 2. Pending Gates - Block when reveal ack or other gates are pending
+ * 3. Event Routing - Route to appropriate handler based on event type
  *
  * Only imports types (GameStatus, RoleId, ActionIntent, etc.). Does not import
  * services, navigation, showAlert, or React.
@@ -134,7 +133,6 @@ export interface InteractionResultNoop {
   kind: 'NOOP';
   reason:
     | 'audio_playing'
-    | 'no_game_state'
     | 'not_actioner'
     | 'other_status'
     | 'pending_ack'
@@ -215,8 +213,7 @@ export type InteractionResult =
  */
 export interface InteractionContext {
   // Room/game state
-  roomStatus: GameStatus | undefined;
-  hasGameState: boolean;
+  roomStatus: GameStatus;
 
   // Gates (priority order: audio > pending server-ack)
   isAudioPlaying: boolean;
@@ -257,8 +254,7 @@ export interface InteractionContext {
  */
 export const INTERACTION_PRIORITY = {
   AUDIO_GATE: 1,
-  NO_GAME_STATE: 2,
-  PENDING_REVEAL_ACK: 3,
-  PENDING_HUNTER_GATE: 4,
-  EVENT_ROUTING: 5,
+  PENDING_REVEAL_ACK: 2,
+  PENDING_HUNTER_GATE: 3,
+  EVENT_ROUTING: 4,
 } as const;
