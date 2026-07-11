@@ -14,7 +14,7 @@ import { UI_ICONS } from '@/config/iconTokens';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import type { RoleDisplayItem } from '../RoomScreen.helpers';
-import { type BoardInfoCardStyles } from './styles';
+import { type BoardInfoCardStyles } from './boardInfo.styles';
 
 interface BoardInfoCardProps {
   /** Total number of players */

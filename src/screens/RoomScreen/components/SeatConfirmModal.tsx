@@ -11,9 +11,8 @@ import { Text, View } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
+import { type SeatConfirmModalStyles } from '@/features/room/components/styles';
 import { TESTIDS } from '@/testids';
-
-import { type SeatConfirmModalStyles } from './styles';
 
 type SeatModalType = 'enter' | 'leave';
 

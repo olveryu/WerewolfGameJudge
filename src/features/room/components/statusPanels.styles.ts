@@ -20,6 +20,7 @@ import type {
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
   HostGuideBannerStyles,
+  NightProgressIndicatorStyles,
   StatusRibbonStyles,
 } from './styles';
 
@@ -28,6 +29,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
   hostGuideBanner: HostGuideBannerStyles;
+  nightProgressIndicator: NightProgressIndicatorStyles;
   statusRibbon: StatusRibbonStyles;
 } {
   return {
@@ -190,6 +192,44 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...textStyles.secondarySemibold,
         color: colors.info,
         flex: 1,
+      },
+    }),
+
+    nightProgressIndicator: StyleSheet.create<NightProgressIndicatorStyles>({
+      container: {
+        paddingHorizontal: spacing.medium,
+        paddingVertical: spacing.small,
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.large,
+        marginHorizontal: spacing.medium,
+        marginTop: spacing.small,
+        ...shadows.sm,
+      },
+      headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: spacing.tight,
+      },
+      stepText: {
+        ...textStyles.secondarySemibold,
+        color: colors.text,
+      },
+      roleText: {
+        fontSize: typography.secondary,
+        lineHeight: typography.lineHeights.secondary,
+        color: colors.textSecondary,
+      },
+      progressBarContainer: {
+        height: spacing.small,
+        backgroundColor: withAlpha(colors.primary, 0.1),
+        borderRadius: borderRadius.full,
+        overflow: 'hidden',
+      },
+      progressBarFill: {
+        height: '100%',
+        backgroundColor: colors.primary,
+        borderRadius: borderRadius.full,
       },
     }),
 

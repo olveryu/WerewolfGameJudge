@@ -13,8 +13,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
@@ -25,11 +24,22 @@ import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { RoomShell } from '@/features/room/components/RoomShell';
+import { createRoomFeatureStyles } from '@/features/room/components/styles';
 import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
+import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import {
+  createWerewolfBottomActionLayout,
+  createWerewolfControlledSeatModel,
+  createWerewolfRoomCapabilities,
+  createWerewolfSeatDataSource,
+  createWerewolfStatusRibbon,
+  toRoomConnectionStatus,
+} from '@/games/werewolf/werewolfRoomAdapter';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
-import { colors, componentSizes, layout, spacing } from '@/theme';
+import { colors, componentSizes, spacing } from '@/theme';
 import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -37,22 +47,17 @@ import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
 
 import { AuthGateOverlay } from './components/AuthGateOverlay';
+import { createBoardInfoStyles } from './components/boardInfo.styles';
 import { BoardInfoCard } from './components/BoardInfoCard';
 import { BoardNominationModal } from './components/BoardNominationList';
-import { BottomActionPanel } from './components/BottomActionPanel';
 import { ChooseBottomCardModal } from './components/ChooseBottomCardModal';
-import { ControlledSeatBanner } from './components/ControlledSeatBanner';
-import { HeaderActions } from './components/HeaderActions';
 import { NightReviewModal } from './components/NightReviewModal';
 import { NightReviewShareCard } from './components/NightReviewShareCard';
-import { PlayerGrid } from './components/PlayerGrid';
 import { PlayerProfileCard } from './components/PlayerProfileCard';
 import { QRCodeModal } from './components/QRCodeModal';
 import { RoleCardModal } from './components/RoleCardModal';
 import { SeatConfirmModal } from './components/SeatConfirmModal';
 import { ShareReviewModal } from './components/ShareReviewModal';
-import { StatusRibbon } from './components/StatusRibbon';
-import { createRoomScreenComponentStyles } from './components/styles';
 import { WxAuthFailedOverlay } from './components/WxAuthFailedOverlay';
 import type { LayoutContext, StaticButtonId } from './hooks/bottomLayoutConfig';
 import { useBottomLayout } from './hooks/useBottomLayout';
@@ -68,9 +73,9 @@ const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, navigation }) => {
   const roomCode = room.roomCode;
   const { user } = useAuthContext();
-  const insets = useSafeAreaInsets();
   const styles = useMemo(() => createRoomScreenStyles(colors), []);
-  const componentStyles = useMemo(() => createRoomScreenComponentStyles(colors), []);
+  const roomFeatureStyles = useMemo(() => createRoomFeatureStyles(colors), []);
+  const boardInfoStyles = useMemo(() => createBoardInfoStyles(colors), []);
 
   // Pre-compile Skia GPU shaders for role reveal animations (eliminates first-frame jank).
   // Moved here from App.tsx -- Skia is now lazy-loaded, so warmup runs when Skia is ready.
@@ -150,7 +155,9 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     // Route params
     // Game state
     gameState,
+    stateRevision,
     isHost,
+    mySeat,
     roomStatus,
     currentSchema,
     isAudioPlaying,
@@ -167,6 +174,9 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     clearAllSeats,
+    takeSeat,
+    leaveSeat,
+    kickPlayer,
     setControlledSeat,
     // Board nomination
     boardUpvote,
@@ -211,6 +221,7 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     closeProfileCard,
     handleProfileKick,
     handleProfileLeaveSeat,
+    openProfile,
     // Local UI state
     isStartingGame,
     isHostActionSubmitting,
@@ -366,6 +377,246 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
     [dispatchInteraction, showLastNightInfo, openNightReview],
   );
 
+  const executeClearSeats = useCallback(async () => {
+    await clearAllSeats();
+    return { success: true } as const;
+  }, [clearAllSeats]);
+
+  const executeMarkAllBotsViewed = useCallback(() => {
+    void markAllBotsViewed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsViewed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsViewed]);
+
+  const executeMarkAllBotsGroupConfirmed = useCallback(() => {
+    void markAllBotsGroupConfirmed().catch((err) => {
+      handleError(err, {
+        label: 'markAllBotsGroupConfirmed',
+        logger: roomScreenLog,
+        feedback: false,
+      });
+    });
+  }, [markAllBotsGroupConfirmed]);
+
+  const hasOccupiedSeats = useMemo(
+    () =>
+      gameState ? Array.from(gameState.players.values()).some((player) => player !== null) : false,
+    [gameState],
+  );
+  const capabilities = useMemo(
+    () =>
+      createWerewolfRoomCapabilities({
+        status: roomStatus,
+        isHost,
+        mySeat,
+        isDebugMode,
+        isAudioPlaying,
+        hasOccupiedSeats,
+        isShareAvailable: !isMiniProgram(),
+        takeSeat,
+        leaveSeat,
+        kickSeat: kickPlayer,
+        clearSeats: executeClearSeats,
+        fillBots: fillWithBots,
+        configureGame: () => dispatchInteraction({ kind: 'HOST_CONTROL', action: 'settings' }),
+        openProfile,
+        takeOverBot: onSeatLongPressed,
+        shareRoom: handleShareRoom,
+      }),
+    [
+      roomStatus,
+      isHost,
+      mySeat,
+      isDebugMode,
+      isAudioPlaying,
+      hasOccupiedSeats,
+      takeSeat,
+      leaveSeat,
+      kickPlayer,
+      executeClearSeats,
+      fillWithBots,
+      dispatchInteraction,
+      openProfile,
+      onSeatLongPressed,
+      handleShareRoom,
+    ],
+  );
+
+  const seatSource = useMemo(
+    () =>
+      createWerewolfSeatDataSource({
+        seats: seatViewModels,
+        controlledSeat,
+        showBotRoles: isDebugMode && isHost,
+        showLevels: roomStatus !== GameStatus.Ongoing,
+        decorationsEnabled: roomStatus !== GameStatus.Ongoing,
+        revision: stateRevision,
+      }),
+    [seatViewModels, controlledSeat, isDebugMode, isHost, roomStatus, stateRevision],
+  );
+
+  const statusRibbon = useMemo(
+    () => createWerewolfStatusRibbon({ nightProgress, speakingOrderText, guideMessage }),
+    [nightProgress, speakingOrderText, guideMessage],
+  );
+
+  const controlledSeatModel = useMemo(
+    () =>
+      createWerewolfControlledSeatModel({
+        isVisible:
+          isDebugMode &&
+          isHost &&
+          hasBots &&
+          roomStatus !== GameStatus.Unseated &&
+          roomStatus !== GameStatus.Seated,
+        controlledSeat,
+        controlledBotName:
+          controlledSeat === null
+            ? null
+            : (gameState?.players.get(controlledSeat)?.displayName ?? null),
+        showBulkViewHint: roomStatus === GameStatus.Assigned,
+        release: () => setControlledSeat(null),
+      }),
+    [isDebugMode, isHost, hasBots, roomStatus, controlledSeat, gameState, setControlledSeat],
+  );
+
+  const bottomActions = useMemo(
+    () => ({
+      message:
+        !isAudioPlaying &&
+        (imActioner ||
+          roomStatus === GameStatus.Ended ||
+          (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
+          ? gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
+            ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
+            : actionMessage
+          : null,
+      layout: createWerewolfBottomActionLayout({
+        layout: bottomLayout,
+        onIntent: handleSchemaButtonPress,
+        onStaticAction: handleStaticButtonPress,
+      }),
+    }),
+    [
+      isAudioPlaying,
+      imActioner,
+      roomStatus,
+      gameState?.rules?.isPlagueMode,
+      isHost,
+      actionMessage,
+      bottomLayout,
+      handleSchemaButtonPress,
+      handleStaticButtonPress,
+    ],
+  );
+
+  const headerMenuItems = useMemo((): readonly RoomHeaderMenuItem[] => {
+    const items: RoomHeaderMenuItem[] = [];
+    if (isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing) {
+      items.push({
+        id: 'music-settings',
+        label: '音乐设置',
+        icon: 'musical-notes-outline',
+        group: 'utility',
+        tone: 'default',
+        onPress: handleMusicSettings,
+      });
+    }
+    if (isHost && isDebugMode && roomStatus === GameStatus.Assigned) {
+      items.push({
+        id: 'mark-bots-viewed',
+        label: '标记机器人已查看',
+        icon: 'eye-outline',
+        group: 'operation',
+        tone: 'default',
+        onPress: executeMarkAllBotsViewed,
+      });
+    }
+    if (
+      isHost &&
+      isDebugMode &&
+      !isAudioPlaying &&
+      roomStatus === GameStatus.Ongoing &&
+      currentSchema?.kind === 'groupConfirm'
+    ) {
+      items.push({
+        id: 'mark-bots-confirmed',
+        label: '标记机器人已确认',
+        icon: 'checkmark-done-outline',
+        group: 'operation',
+        tone: 'default',
+        onPress: executeMarkAllBotsGroupConfirmed,
+      });
+    }
+    return items;
+  }, [
+    isHost,
+    isStartingGame,
+    isAudioPlaying,
+    roomStatus,
+    isDebugMode,
+    currentSchema?.kind,
+    handleMusicSettings,
+    executeMarkAllBotsViewed,
+    executeMarkAllBotsGroupConfirmed,
+  ]);
+
+  const roomShellModel = useMemo(
+    (): RoomShellModel => ({
+      roomCode,
+      capabilities,
+      header: {
+        onBack: () => dispatchInteraction({ kind: 'LEAVE_ROOM' }),
+        onTitlePress: handleDebugTitleTap,
+        userAction: {
+          user,
+          ticketCount,
+          onPress: handleAvatarPress,
+        },
+        menuItems: headerMenuItems,
+      },
+      connection: {
+        status: toRoomConnectionStatus(connectionStatus),
+        onManualReconnect: manualReconnect,
+      },
+      statusRibbon,
+      seats: {
+        source: seatSource,
+        visuallyDisabled:
+          (roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting,
+        onSeatPress: onSeatTapped,
+        onSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPressed : null,
+      },
+      bottomActions,
+      controlledSeat: controlledSeatModel,
+    }),
+    [
+      roomCode,
+      capabilities,
+      handleDebugTitleTap,
+      user,
+      ticketCount,
+      handleAvatarPress,
+      headerMenuItems,
+      dispatchInteraction,
+      connectionStatus,
+      manualReconnect,
+      statusRibbon,
+      seatSource,
+      roomStatus,
+      isAudioPlaying,
+      isActionSubmitting,
+      onSeatTapped,
+      onSeatLongPressed,
+      bottomActions,
+      controlledSeatModel,
+    ],
+  );
+
   // ─── Auto-show QR invite card after room creation ─────────────────────
   useEffect(() => {
     if (
@@ -440,164 +691,35 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
   }
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={['left', 'right']}
-      testID={TESTIDS.roomScreenRoot}
-    >
-      {/* Header */}
-      <View
-        style={[styles.header, { paddingTop: insets.top + layout.headerPaddingV }]}
-        testID={TESTIDS.roomHeader}
-      >
-        <View style={styles.headerLeft}>
+    <RoomShell
+      model={roomShellModel}
+      leadingExtraActions={
+        roomStatus === GameStatus.Ended && !isAudioPlaying ? (
           <Button
             variant="icon"
-            onPress={() => dispatchInteraction({ kind: 'LEAVE_ROOM' })}
-            style={styles.backButton}
-            testID={TESTIDS.roomBackButton}
+            onPress={isBgmPlaying ? stopBgm : playBgm}
+            testID={TESTIDS.bgmToggleButton}
+            accessibilityLabel={isBgmPlaying ? '暂停音乐' : '播放音乐'}
           >
-            <Ionicons name="chevron-back" size={componentSizes.icon.lg} color={colors.text} />
+            <Ionicons
+              name={isBgmPlaying ? 'pause' : 'musical-notes'}
+              size={componentSizes.icon.md}
+              color={isBgmPlaying ? colors.primary : colors.text}
+            />
           </Button>
-          {/* BGM Toggle -- all players, ended phase only, right of back button */}
-          {roomStatus === GameStatus.Ended && !isAudioPlaying && (
-            <Button
-              variant="icon"
-              onPress={isBgmPlaying ? stopBgm : playBgm}
-              style={styles.backButton}
-              testID={TESTIDS.bgmToggleButton}
-            >
-              <Ionicons
-                name={isBgmPlaying ? 'pause' : 'musical-notes'}
-                size={componentSizes.icon.md}
-                color={isBgmPlaying ? colors.primary : colors.text}
-              />
-            </Button>
-          )}
-        </View>
-        <View style={styles.headerCenter}>
-          <TouchableOpacity onPress={handleDebugTitleTap} activeOpacity={1}>
-            <Text style={styles.headerTitle}>房间 {roomCode}</Text>
-          </TouchableOpacity>
-        </View>
-        {/* Header right: encyclopedia + host menu */}
-        <View style={styles.headerRight}>
-          <Button
-            variant="icon"
-            onPress={handleEncyclopedia}
-            style={styles.backButton}
-            testID={TESTIDS.roomEncyclopediaButton}
-          >
-            <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
-          </Button>
-          <HeaderActions
-            visible
-            user={user}
-            ticketCount={ticketCount}
-            showUserSettings
-            showShareRoom={
-              !isMiniProgram() &&
-              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated)
-            }
-            showMusicSettings={
-              isHost && !isStartingGame && !isAudioPlaying && roomStatus !== GameStatus.Ongoing
-            }
-            showFillWithBots={isHost && roomStatus === GameStatus.Unseated}
-            showMarkAllBotsViewed={isHost && isDebugMode && roomStatus === GameStatus.Assigned}
-            showMarkAllBotsGroupConfirmed={
-              isHost &&
-              isDebugMode &&
-              !isAudioPlaying &&
-              roomStatus === GameStatus.Ongoing &&
-              currentSchema?.kind === 'groupConfirm'
-            }
-            showClearAllSeats={
-              isHost &&
-              (roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated) &&
-              !!gameState &&
-              Array.from(gameState.players.values()).some((p) => p !== null)
-            }
-            onFillWithBots={() =>
-              void fillWithBots().catch((err) => {
-                handleError(err, {
-                  label: 'fillWithBots',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMarkAllBotsViewed={() =>
-              void markAllBotsViewed().catch((err) => {
-                handleError(err, {
-                  label: 'markAllBotsViewed',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMarkAllBotsGroupConfirmed={() =>
-              void markAllBotsGroupConfirmed().catch((err) => {
-                handleError(err, {
-                  label: 'markAllBotsGroupConfirmed',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onClearAllSeats={() =>
-              void clearAllSeats().catch((err) => {
-                handleError(err, {
-                  label: 'clearAllSeats',
-                  logger: roomScreenLog,
-                  feedback: false,
-                });
-              })
-            }
-            onMusicSettings={handleMusicSettings}
-            onUserSettings={handleAvatarPress}
-            onShareRoom={handleShareRoom}
-            styles={componentStyles.headerActions}
-          />
-        </View>
-      </View>
-
-      {/* StatusRibbon -- unified slot: connection > night progress > speaking order > host guide */}
-      <StatusRibbon
-        connectionStatus={connectionStatus}
-        onManualReconnect={manualReconnect}
-        nightProgress={nightProgress}
-        guideMessage={guideMessage}
-        speakingOrderText={speakingOrderText}
-        styles={componentStyles.statusRibbon}
-        connectionStatusBarStyles={componentStyles.connectionStatusBar}
-        nightProgressIndicatorStyles={componentStyles.nightProgressIndicator}
-        hostGuideBannerStyles={componentStyles.hostGuideBanner}
-      />
-
-      {/* Bot Mode Hint / Controlled Seat Banner - mutually exclusive */}
-      {isDebugMode &&
-        isHost &&
-        hasBots &&
-        roomStatus !== GameStatus.Unseated &&
-        roomStatus !== GameStatus.Seated &&
-        (controlledSeat !== null && gameState.players.get(controlledSeat) ? (
-          <ControlledSeatBanner
-            mode="controlled"
-            controlledSeat={controlledSeat}
-            botDisplayName={gameState.players.get(controlledSeat)?.displayName || 'Bot'}
-            onRelease={() => setControlledSeat(null)}
-            styles={componentStyles.controlledSeatBanner}
-          />
-        ) : (
-          <ControlledSeatBanner
-            mode="hint"
-            showBulkViewHint={roomStatus === GameStatus.Assigned}
-            styles={componentStyles.controlledSeatBanner}
-          />
-        ))}
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Board Info - collapsed during ongoing/ended, expanded during setup */}
+        ) : null
+      }
+      trailingExtraActions={
+        <Button
+          variant="icon"
+          onPress={handleEncyclopedia}
+          testID={TESTIDS.roomEncyclopediaButton}
+          accessibilityLabel="角色百科"
+        >
+          <Ionicons name="book-outline" size={componentSizes.icon.md} color={colors.text} />
+        </Button>
+      }
+      beforeSeatBoard={
         <BoardInfoCard
           playerCount={gameState.template.numberOfPlayers}
           wolfRoleItems={wolfRoleItems}
@@ -609,199 +731,171 @@ export const RoomScreen: React.FC<GameRoomScreenProps> = ({ room, entryReason, n
           onRolePress={handleSkillPreviewOpen}
           onNotepadPress={handleNotepadPress}
           onStrategyPress={matchedStrategyName ? handleStrategyPress : undefined}
-          styles={componentStyles.boardInfoCard}
+          styles={boardInfoStyles}
           showNominations={showNominations}
           hasMyNomination={hasMyNomination}
           nominationCount={nominationCount}
           onNominatePress={handleNominate}
           onViewNominations={handleViewNominations}
         />
-
-        {/* Player Grid */}
-        <PlayerGrid
-          seats={seatViewModels}
-          onSeatPress={onSeatTapped}
-          onSeatLongPress={onSeatLongPressed}
-          disabled={(roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting}
-          controlledSeat={controlledSeat}
-          showBotRoles={isDebugMode && isHost}
-          showLevels={roomStatus !== GameStatus.Ongoing}
-          seatDecorationsEnabled={roomStatus !== GameStatus.Ongoing}
-        />
-      </ScrollView>
-
-      {/* Bottom Action Panel - floating card with three-tier layout */}
-      <BottomActionPanel
-        message={
-          gameState?.rules?.isPlagueMode && isHost && roomStatus === GameStatus.Ready
-            ? '黑死病模式 — 已发牌，请由房主担任真人法官主持后续流程'
-            : actionMessage
-        }
-        showMessage={
-          !isAudioPlaying &&
-          (imActioner ||
-            roomStatus === GameStatus.Ended ||
-            (gameState?.rules?.isPlagueMode === true && isHost && roomStatus === GameStatus.Ready))
-        }
-        layout={bottomLayout}
-        onSchemaButtonPress={handleSchemaButtonPress}
-        onStaticButtonPress={handleStaticButtonPress}
-        styles={componentStyles.bottomActionPanel}
-        bottomInset={insets.bottom}
-      />
-
-      {/* Continue Game Overlay -- shown after Host rejoin to unlock audio */}
-      <AlertModal
-        visible={needsContinueOverlay}
-        title="游戏已恢复"
-        message="点击下方按钮继续游戏并恢复音频"
-        buttons={[{ text: '继续游戏', onPress: resumeAfterRejoin }]}
-        onClose={resumeAfterRejoin}
-      />
-
-      {/* Seat Confirmation Modal */}
-      {/* Seat Confirmation Modal - only render when pendingSeat is set */}
-      {pendingSeat !== null && (
-        <SeatConfirmModal
-          visible={seatModalVisible}
-          modalType={modalType}
-          seat={pendingSeat}
-          isSubmitting={isSeatSubmitting}
-          onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
-          onCancel={handleCancelSeat}
-          styles={componentStyles.seatConfirmModal}
-        />
-      )}
-
-      {/* Role Card Modal */}
-      {(roleCardVisible || isLoadingRole) && effectiveRole && (
-        <RoleCardModal
-          visible={roleCardVisible}
-          isLoading={isLoadingRole}
-          roleId={effectiveRole}
-          resolvedAnimation={resolvedRoleRevealAnimation}
-          shouldPlayAnimation={shouldPlayRevealAnimation}
-          allRoleIds={gameState?.template.roles ?? []}
-          remainingCards={
-            gameState
-              ? Array.from(gameState.players.values()).filter((p) => p && !p.hasViewedRole).length +
-                (shouldPlayRevealAnimation ? 1 : 0)
-              : 0
-          }
-          onClose={handleRoleCardClose}
-          seerLabelMap={gameState?.seerLabelMap}
-        />
-      )}
-
-      {/* Skill Preview Modal -- triggered by tapping a role chip in BoardInfoCard */}
-      <RoleCardSimple
-        visible={skillPreviewRoleId !== null}
-        roleId={skillPreviewRoleId}
-        onClose={handleSkillPreviewClose}
-        showRealIdentity
-        onAskAI={
-          isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
-        }
-      />
-
-      {/* Player Profile Card -- triggered by tapping another player's seat */}
-      <PlayerProfileCard
-        visible={profileCardVisible}
-        onClose={closeProfileCard}
-        targetUserId={profileCardTargetUserId}
-        targetSeat={profileCardTargetSeat}
-        rosterName={profileCardRosterName}
-        isHost={isHost}
-        isSelf={profileCardIsSelf}
-        onKick={handleProfileKick}
-        onLeaveSeat={handleProfileLeaveSeat}
-      />
-
-      {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
-      {nightReviewVisible && nightReviewData && (
-        <NightReviewModal
-          visible={nightReviewVisible}
-          data={nightReviewData}
-          onClose={closeNightReview}
-        />
-      )}
-
-      {/* Share card -- mounted on-demand during capture only */}
-      {isCapturingShareCard && nightReviewData && (
-        <View style={styles.hiddenShareCardContainer}>
-          <NightReviewShareCard
-            ref={nightReviewShareCardRef}
-            data={nightReviewData}
-            roomCode={roomCode}
+      }
+      afterSeatBoard={null}
+      gameOverlays={
+        <>
+          {/* Continue Game Overlay -- shown after Host rejoin to unlock audio */}
+          <AlertModal
+            visible={needsContinueOverlay}
+            title="游戏已恢复"
+            message="点击下方按钮继续游戏并恢复音频"
+            buttons={[{ text: '继续游戏', onPress: resumeAfterRejoin }]}
+            onClose={resumeAfterRejoin}
           />
-        </View>
-      )}
 
-      {/* Share Review Modal -- Host picks seats whose details to share */}
-      {shareReviewVisible && gameState && (
-        <ShareReviewModal
-          visible={shareReviewVisible}
-          seats={Array.from(gameState.players.entries())
-            .filter(([seatNum, p]) => p !== null && seatNum !== effectiveSeat)
-            .map(([seatNum, p]) => ({
-              seat: seatNum,
-              displayName: p!.displayName ?? `玩家${seatNum + 1}`,
-            }))
-            .sort((a, b) => a.seat - b.seat)}
-          currentAllowedSeats={gameState.nightReviewAllowedSeats ?? []}
-          onConfirm={shareNightReview}
-          onClose={closeShareReview}
-        />
-      )}
+          {/* Seat Confirmation Modal */}
+          {/* Seat Confirmation Modal - only render when pendingSeat is set */}
+          {pendingSeat !== null && (
+            <SeatConfirmModal
+              visible={seatModalVisible}
+              modalType={modalType}
+              seat={pendingSeat}
+              isSubmitting={isSeatSubmitting}
+              onConfirm={modalType === 'enter' ? handleConfirmSeat : handleConfirmLeave}
+              onCancel={handleCancelSeat}
+              styles={roomFeatureStyles.seatConfirmModal}
+            />
+          )}
 
-      {/* QR Code Modal -- room QR code share */}
-      <QRCodeModal
-        visible={qrModalVisible}
-        roomCode={roomCode}
-        roomUrl={buildRoomUrl(roomCode)}
-        onShareImage={handleShareQRImage}
-        onCopyLink={handleCopyLink}
-        onClose={() => setQrModalVisible(false)}
-      />
+          {/* Role Card Modal */}
+          {(roleCardVisible || isLoadingRole) && effectiveRole && (
+            <RoleCardModal
+              visible={roleCardVisible}
+              isLoading={isLoadingRole}
+              roleId={effectiveRole}
+              resolvedAnimation={resolvedRoleRevealAnimation}
+              shouldPlayAnimation={shouldPlayRevealAnimation}
+              allRoleIds={gameState?.template.roles ?? []}
+              remainingCards={
+                gameState
+                  ? Array.from(gameState.players.values()).filter((p) => p && !p.hasViewedRole)
+                      .length + (shouldPlayRevealAnimation ? 1 : 0)
+                  : 0
+              }
+              onClose={handleRoleCardClose}
+              seerLabelMap={gameState?.seerLabelMap}
+            />
+          )}
 
-      {/* Board Nomination Modal -- board suggestion list */}
-      {nominationModalVisible && (
-        <BoardNominationModal
-          visible={nominationModalVisible}
-          nominations={gameState?.boardNominations}
-          myUserId={user?.id ?? null}
-          isHost={isHost}
-          currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
-          onUpvote={(userId: string) => {
-            void boardUpvote(userId);
-          }}
-          onWithdraw={() => {
-            void boardWithdraw();
-          }}
-          clearAllSeats={clearAllSeats}
-          onClose={() => setNominationModalVisible(false)}
-        />
-      )}
+          {/* Skill Preview Modal -- triggered by tapping a role chip in BoardInfoCard */}
+          <RoleCardSimple
+            visible={skillPreviewRoleId !== null}
+            roleId={skillPreviewRoleId}
+            onClose={handleSkillPreviewClose}
+            showRealIdentity
+            onAskAI={
+              isAIChatReady() ? (rid) => askAIAboutRole(rid, handleSkillPreviewClose) : undefined
+            }
+          />
 
-      {/* Choose Bottom Card Modal -- Treasure Master / Thief deck card selection */}
-      {chooseCardModalVisible && gameState?.bottomCards && (
-        <ChooseBottomCardModal
-          visible={chooseCardModalVisible}
-          bottomCards={gameState.bottomCards}
-          confirmText={currentSchema?.ui?.confirmText ?? ''}
-          disabledIndices={bottomCardDisabledIndices}
-          disabledHint={bottomCardDisabledHint}
-          subtitle={bottomCardSubtitle}
-          onChoose={(idx) => handleChooseCard(idx)}
-          onClose={closeChooseCardModal}
-        />
-      )}
+          {/* Player Profile Card -- triggered by tapping another player's seat */}
+          <PlayerProfileCard
+            visible={profileCardVisible}
+            onClose={closeProfileCard}
+            targetUserId={profileCardTargetUserId}
+            targetSeat={profileCardTargetSeat}
+            rosterName={profileCardRosterName}
+            isHost={isHost}
+            isSelf={profileCardIsSelf}
+            onKick={handleProfileKick}
+            onLeaveSeat={handleProfileLeaveSeat}
+          />
 
-      {/* Board Strategy Modal -- strategy details */}
-      <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
+          {/* Night Review Modal -- for Judge / spectators; shows night actions + all roles */}
+          {nightReviewVisible && nightReviewData && (
+            <NightReviewModal
+              visible={nightReviewVisible}
+              data={nightReviewData}
+              onClose={closeNightReview}
+            />
+          )}
 
-      {/* Debug Console -- store-driven modal, toggled via useHiddenDebugTrigger */}
-      <DebugPanel />
-    </SafeAreaView>
+          {/* Share card -- mounted on-demand during capture only */}
+          {isCapturingShareCard && nightReviewData && (
+            <View style={styles.hiddenShareCardContainer}>
+              <NightReviewShareCard
+                ref={nightReviewShareCardRef}
+                data={nightReviewData}
+                roomCode={roomCode}
+              />
+            </View>
+          )}
+
+          {/* Share Review Modal -- Host picks seats whose details to share */}
+          {shareReviewVisible && gameState && (
+            <ShareReviewModal
+              visible={shareReviewVisible}
+              seats={Array.from(gameState.players.entries())
+                .filter(([seatNum, p]) => p !== null && seatNum !== effectiveSeat)
+                .map(([seatNum, p]) => ({
+                  seat: seatNum,
+                  displayName: p!.displayName ?? `玩家${seatNum + 1}`,
+                }))
+                .sort((a, b) => a.seat - b.seat)}
+              currentAllowedSeats={gameState.nightReviewAllowedSeats ?? []}
+              onConfirm={shareNightReview}
+              onClose={closeShareReview}
+            />
+          )}
+
+          {/* QR Code Modal -- room QR code share */}
+          <QRCodeModal
+            visible={qrModalVisible}
+            roomCode={roomCode}
+            roomUrl={buildRoomUrl(roomCode)}
+            onShareImage={handleShareQRImage}
+            onCopyLink={handleCopyLink}
+            onClose={() => setQrModalVisible(false)}
+          />
+
+          {/* Board Nomination Modal -- board suggestion list */}
+          {nominationModalVisible && (
+            <BoardNominationModal
+              visible={nominationModalVisible}
+              nominations={gameState?.boardNominations}
+              myUserId={user?.id ?? null}
+              isHost={isHost}
+              currentPlayerCount={gameState?.template.numberOfPlayers ?? 0}
+              onUpvote={(userId: string) => {
+                void boardUpvote(userId);
+              }}
+              onWithdraw={() => {
+                void boardWithdraw();
+              }}
+              clearAllSeats={clearAllSeats}
+              onClose={() => setNominationModalVisible(false)}
+            />
+          )}
+
+          {/* Choose Bottom Card Modal -- Treasure Master / Thief deck card selection */}
+          {chooseCardModalVisible && gameState?.bottomCards && (
+            <ChooseBottomCardModal
+              visible={chooseCardModalVisible}
+              bottomCards={gameState.bottomCards}
+              confirmText={currentSchema?.ui?.confirmText ?? ''}
+              disabledIndices={bottomCardDisabledIndices}
+              disabledHint={bottomCardDisabledHint}
+              subtitle={bottomCardSubtitle}
+              onChoose={(idx) => handleChooseCard(idx)}
+              onClose={closeChooseCardModal}
+            />
+          )}
+
+          {/* Board Strategy Modal -- strategy details */}
+          <BoardStrategyModal boardName={strategyBoardName} onClose={handleStrategyClose} />
+
+          {/* Debug Console -- store-driven modal, toggled via useHiddenDebugTrigger */}
+          <DebugPanel />
+        </>
+      }
+    />
   );
 };

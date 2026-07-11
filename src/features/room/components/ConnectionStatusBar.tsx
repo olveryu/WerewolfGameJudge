@@ -17,14 +17,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { ConnectionStatus } from '@/services/types/IGameFacade';
+import type { RoomConnectionStatus } from '@/features/room/model/RoomShellModel';
 import { TESTIDS } from '@/testids';
 
 import { type ConnectionStatusBarStyles } from './styles';
 
 interface ConnectionStatusBarProps {
   /** Current connection state */
-  status: ConnectionStatus;
+  status: RoomConnectionStatus;
   /** Trigger manual reconnect (from facade) */
   onManualReconnect: () => void;
   /** Pre-created styles from parent */
@@ -52,8 +52,8 @@ const ConnectionStatusBarComponent: React.FC<ConnectionStatusBarProps> = ({
   const [containerWidth, setContainerWidth] = useState(0);
   const progressValue = useSharedValue(0);
 
-  const isDisconnected = status !== ConnectionStatus.Live;
-  const isFailed = status === ConnectionStatus.Failed;
+  const isDisconnected = status !== 'live';
+  const isFailed = status === 'failed';
 
   // Start / stop the sliding animation based on connection status
   // Skip animation for Failed state (no auto-retry happening)

@@ -54,6 +54,7 @@ interface UseGameRoomResult {
 
   // Game state (from GameFacade)
   gameState: LocalGameState | null;
+  stateRevision: number;
 
   // Player info
   isHost: boolean;
@@ -330,6 +331,7 @@ interface UseGameRoomResult {
     facade,
     roomRecord,
     gameState,
+    stateRevision: facade.getStateRevision(),
     isHost,
     myUserId,
     mySeat,

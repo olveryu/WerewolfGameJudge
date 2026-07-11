@@ -10,9 +10,10 @@ import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { GameRoom } from '../platform/room/GameRoom';
+import { deleteCurrentRoomAlarms } from './roomTestCleanup';
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
 interface AuthResponse {
@@ -85,6 +86,8 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
 });
+
+afterEach(deleteCurrentRoomAlarms);
 
 describe('POST /room/create', () => {
   it('allocates the public code and creates server-authored state', async () => {

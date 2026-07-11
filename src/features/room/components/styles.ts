@@ -1,37 +1,11 @@
-/**
- * RoomScreen component styles — barrel file.
- *
- * Composes per-group style creators into a single RoomScreenComponentStyles object.
- * Created once in RoomScreen and passed to all sub-components via props.
- * SeatTile/PlayerGrid have their own styles (performance: depends on tileSize).
- */
+/** Stable styles shared by all room-shell consumers. */
+
 import type { TextStyle, ViewStyle } from 'react-native';
 
 import type { ThemeColors } from '@/theme';
 
-import { createBoardInfoStyles } from './boardInfo.styles';
 import { createModalMenuStyles } from './modalMenu.styles';
 import { createStatusPanelStyles } from './statusPanels.styles';
-
-// ─── Per-component style interfaces ─────────────────────────────────────────
-
-export interface BoardInfoCardStyles {
-  boardInfoContainer: ViewStyle;
-  headerRow: ViewStyle;
-  headerRowRight: ViewStyle;
-  boardInfoTitle: TextStyle;
-  notepadBtn: ViewStyle;
-  notepadBtnText: TextStyle;
-  boardInfoContent: ViewStyle;
-  roleCategory: ViewStyle;
-  roleCategoryLabel: TextStyle;
-  roleCategoryText: TextStyle;
-  roleChipRow: ViewStyle;
-  boardInfoHint: TextStyle;
-  nominationButtonRow: ViewStyle;
-  nominationBtn: ViewStyle;
-  nominationBtnText: TextStyle;
-}
 
 export interface BottomActionPanelStyles {
   container: ViewStyle;
@@ -105,26 +79,20 @@ export interface SeatConfirmModalStyles {
   modalButton: ViewStyle;
 }
 
-// ─── Combined styles container ──────────────────────────────────────────────
-
-interface RoomScreenComponentStyles {
-  boardInfoCard: BoardInfoCardStyles;
-  bottomActionPanel: BottomActionPanelStyles;
-  connectionStatusBar: ConnectionStatusBarStyles;
-  controlledSeatBanner: ControlledSeatBannerStyles;
-  hostGuideBanner: HostGuideBannerStyles;
-  headerActions: HeaderActionsStyles;
-  nightProgressIndicator: NightProgressIndicatorStyles;
-  seatConfirmModal: SeatConfirmModalStyles;
-  statusRibbon: StatusRibbonStyles;
+export interface RoomFeatureStyles {
+  readonly bottomActionPanel: BottomActionPanelStyles;
+  readonly connectionStatusBar: ConnectionStatusBarStyles;
+  readonly controlledSeatBanner: ControlledSeatBannerStyles;
+  readonly hostGuideBanner: HostGuideBannerStyles;
+  readonly headerActions: HeaderActionsStyles;
+  readonly nightProgressIndicator: NightProgressIndicatorStyles;
+  readonly seatConfirmModal: SeatConfirmModalStyles;
+  readonly statusRibbon: StatusRibbonStyles;
 }
 
-// ─── Factory ────────────────────────────────────────────────────────────────
-
-export function createRoomScreenComponentStyles(colors: ThemeColors): RoomScreenComponentStyles {
+export function createRoomFeatureStyles(colors: ThemeColors): RoomFeatureStyles {
   const statusPanels = createStatusPanelStyles(colors);
   return {
-    ...createBoardInfoStyles(colors),
     ...statusPanels,
     ...createModalMenuStyles(colors),
     statusRibbon: statusPanels.statusRibbon,

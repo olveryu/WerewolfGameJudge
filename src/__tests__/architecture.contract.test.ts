@@ -41,10 +41,12 @@ function getAllProductionFiles(dir: string): string[] {
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
 const screensDir = path.join(process.cwd(), 'src', 'screens');
+const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
 const servicesDir = path.join(process.cwd(), 'src', 'services');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 
 const screensFiles = getAllProductionFiles(screensDir);
+const sharedRoomFiles = getAllProductionFiles(sharedRoomDir);
 const servicesFiles = getAllProductionFiles(servicesDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
 
@@ -83,6 +85,25 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
     for (const pattern of clientImportPatterns) {
       const match = content.match(pattern);
       expect(match).toBeNull();
+    }
+  });
+});
+
+describe('Layer boundary: shared room → game-specific code (forbidden)', () => {
+  it('should find shared room files to check', () => {
+    expect(sharedRoomFiles.length).toBeGreaterThan(0);
+  });
+
+  const forbiddenImports = [
+    /^\s*import\b.*from\s+['"]@\/games\//m,
+    /^\s*import\b.*from\s+['"]@\/screens\/RoomScreen\//m,
+    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(models|games|engine|resolvers)\//m,
+  ];
+
+  it.each(sharedRoomFiles)('%s must not import a game implementation', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    for (const pattern of forbiddenImports) {
+      expect(content.match(pattern)).toBeNull();
     }
   });
 });

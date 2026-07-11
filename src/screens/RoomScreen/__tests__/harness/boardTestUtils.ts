@@ -192,6 +192,7 @@ export function createGameRoomMock(options: GameStateMockOptions) {
     facade: { getState: () => gameState },
 
     gameState,
+    stateRevision: 1,
 
     roomRecord: null,
     connectionStatus: ConnectionStatus.Live,

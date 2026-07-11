@@ -5,12 +5,12 @@
  */
 import { render } from '@testing-library/react-native';
 
-import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
-import { createRoomScreenComponentStyles } from '@/screens/RoomScreen/components/styles';
+import { NightProgressIndicator } from '@/features/room/components/NightProgressIndicator';
+import { createRoomFeatureStyles } from '@/features/room/components/styles';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
-const mockStyles = createRoomScreenComponentStyles(colors).nightProgressIndicator;
+const mockStyles = createRoomFeatureStyles(colors).nightProgressIndicator;
 
 describe('NightProgressIndicator', () => {
   it('should render step count correctly', () => {

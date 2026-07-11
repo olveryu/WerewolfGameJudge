@@ -15,6 +15,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
+import type { RoomProfileTarget } from '@/features/room/model/RoomCapabilities';
 import { usePendingAcks } from '@/hooks/usePendingAcks';
 import {
   getInteractionResult,
@@ -101,6 +102,7 @@ interface UseInteractionDispatcherResult {
   profileCardRosterName: string;
   /** Whether the profile card is showing the current player's own profile */
   profileCardIsSelf: boolean;
+  openProfile: (target: RoomProfileTarget) => void;
   closeProfileCard: () => void;
   handleProfileKick: ((seat: number) => void) | undefined;
   /** Callback when self-profile leave seat button is tapped */
@@ -153,6 +155,14 @@ export function useInteractionDispatcher({
 
   const closeProfileCard = useCallback(() => {
     setProfileCardVisible(false);
+  }, []);
+
+  const openProfile = useCallback((target: RoomProfileTarget) => {
+    setProfileCardTargetUserId(target.userId);
+    setProfileCardTargetSeat(target.seat);
+    setProfileCardRosterName(target.rosterName);
+    setProfileCardIsSelf(target.isSelf);
+    setProfileCardVisible(true);
   }, []);
 
   const canKick = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -455,6 +465,9 @@ export function useInteractionDispatcher({
 
         case 'VIEW_PROFILE': {
           const targetPlayer = gameState?.players.get(result.seat);
+          if (!targetPlayer) {
+            throw new Error(`Profile target seat ${result.seat} is empty`);
+          }
           const isSelf = result.seat === mySeat;
           roomScreenLog.debug('dispatchInteraction VIEW_PROFILE', {
             seat: result.seat,
@@ -462,11 +475,13 @@ export function useInteractionDispatcher({
             rosterName: targetPlayer?.displayName,
             isSelf,
           });
-          setProfileCardTargetUserId(result.targetUserId);
-          setProfileCardTargetSeat(result.seat);
-          setProfileCardRosterName(targetPlayer?.displayName ?? '');
-          setProfileCardIsSelf(isSelf);
-          setProfileCardVisible(true);
+          openProfile({
+            seat: result.seat,
+            userId: result.targetUserId,
+            occupantKind: targetPlayer.isBot ? 'bot' : 'human',
+            rosterName: targetPlayer.displayName ?? `${result.seat + 1}号玩家`,
+            isSelf,
+          });
           return;
         }
 
@@ -498,6 +513,7 @@ export function useInteractionDispatcher({
       setRoleCardVisible,
       setShouldPlayRevealAnimation,
       setIsLoadingRole,
+      openProfile,
     ],
   );
 
@@ -527,6 +543,7 @@ export function useInteractionDispatcher({
     profileCardTargetSeat,
     profileCardRosterName,
     profileCardIsSelf,
+    openProfile,
     closeProfileCard,
     handleProfileKick,
     handleProfileLeaveSeat,

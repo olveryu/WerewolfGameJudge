@@ -15,16 +15,16 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { NightProgressIndicator } from '@/screens/RoomScreen/components/NightProgressIndicator';
+import { NightProgressIndicator } from '@/features/room/components/NightProgressIndicator';
 import {
-  createRoomScreenComponentStyles,
+  createRoomFeatureStyles,
   type NightProgressIndicatorStyles,
-} from '@/screens/RoomScreen/components/styles';
+} from '@/features/room/components/styles';
 import { colors } from '@/theme';
 
 // ─── Setup ──────────────────────────────────────────────────────────────────────────
 
-const componentStyles = createRoomScreenComponentStyles(colors);
+const componentStyles = createRoomFeatureStyles(colors);
 const indicatorStyles: NightProgressIndicatorStyles = componentStyles.nightProgressIndicator;
 
 let renderCount = 0;

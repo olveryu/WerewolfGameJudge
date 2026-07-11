@@ -1023,20 +1023,25 @@ Game adapter 从 typed state、登录用户和本地 controller state 派生这�
 
 ### 20.3 显式 capabilities
 
-Shared UI 直接接收权限：
+Shared UI 直接接收权限。实现使用判别联合强化最初的 boolean 草图：不允许时类型上不存在
+`execute`，防止“按钮隐藏但 mutation callback 仍可调用”的双重权限通路。
 
 ```ts
+type RoomCapability<Args extends readonly unknown[] = [], Result = void> =
+  | { readonly isAllowed: false; readonly reason: string | null }
+  | { readonly isAllowed: true; readonly execute: (...args: Args) => Result };
+
 interface RoomCapabilities {
-  readonly canTakeSeat: boolean;
-  readonly canMoveSeat: boolean;
-  readonly canLeaveSeat: boolean;
-  readonly canKickSeat: boolean;
-  readonly canClearSeats: boolean;
-  readonly canFillBots: boolean;
-  readonly canConfigureGame: boolean;
-  readonly canViewProfiles: boolean;
-  readonly canTakeOverBots: boolean;
-  readonly canShareRoom: boolean;
+  readonly canTakeSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
+  readonly canMoveSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
+  readonly canLeaveSeat: RoomCapability<[], Promise<RoomOperationResult>>;
+  readonly canKickSeat: RoomCapability<[seat: number], Promise<RoomOperationResult>>;
+  readonly canClearSeats: RoomCapability<[], Promise<RoomOperationResult>>;
+  readonly canFillBots: RoomCapability<[], Promise<RoomOperationResult>>;
+  readonly canConfigureGame: RoomCapability;
+  readonly canViewProfiles: RoomCapability<[target: RoomProfileTarget]>;
+  readonly canTakeOverBots: RoomCapability<[seat: number]>;
+  readonly canShareRoom: RoomCapability;
   readonly shouldConfirmExit: boolean;
 }
 ```
@@ -1065,6 +1070,7 @@ Capabilities 同时控制可见性和执行入口。一个 capability 如果计�
 - `afterSeatBoard`：本游戏公开结果。
 - `identityModal`：本游戏身份内容。
 - `extraHeaderActions`：确实没有共享语义的操作。
+- `gameOverlays`：choose-card、night-review、nomination 等不属于 shared modal 的游戏弹窗。
 
 Slot 不能重新渲染 header、seat board、bottom panel 或 shared modal。
 
@@ -1116,7 +1122,8 @@ Shared overflow items：
 - 文本必须换行或截断，不能覆盖相邻 tile。
 - 空座、真人、bot、本人、controlled bot 的视觉状态彼此清晰。
 - 角色只在 game adapter 允许时出现。
-- `RoomSeatBoard` 使用 lazy data source，不能要求调用者预先创建所有 seat model。
+- `RoomSeatBoard` 使用 lazy data source，不能要求调用者预先创建所有 seat model。实现采用 React Native
+  `VirtualizedList` 的 opaque data + `getItem` + `getItemCount` contract，只读取当前 window 的 seat。
 - Mobile、tablet、desktop 使用同一列数算法和明确 breakpoint。
 - 超大房间采用 window/range rendering，不能因为滚动尺寸溢出导致页面空白。
 
@@ -1158,6 +1165,8 @@ Active flow 中如果不能 kick，不能只隐藏按钮却仍保留可调用 ca
 - Ghost：低频设置或恢复操作。
 
 每个游戏只生成 typed button model，由 `RoomShell` 渲染。Game screen 不在 shell 周围另放按钮。
+Disabled button 使用 `isEnabled: false` 分支，只能携带显式 `onDisabledPress` 反馈或 `null`；不能保留可提交
+mutation 的 `onPress` 再通过 `fireWhenDisabled` 绕过 disabled 状态。
 
 ### 21.7 Modal 和 menu
 
@@ -1769,14 +1778,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态       | 已完成                                                                                 | 尚未完成                                            |
-| --------- | ---------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Phase 0   | 完成       | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                   |
-| Phase 1   | 进行中     | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零 |
-| Phase 2   | 完成       | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                   |
-| Phase 3   | 完成       | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                   |
-| Phase 4   | 待远端 E2E | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | 当前提交完整 Werewolf Playwright gate               |
-| Phase 5-8 | 未开始     | -                                                                                      | shared room、Fib vertical slice、清理               |
+| 阶段      | 状态   | 已完成                                                                                 | 尚未完成                                             |
+| --------- | ------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                   | -                                                    |
+| Phase 1   | 进行中 | canonical identity、版本化 Werewolf codec、snapshot/result envelope                    | client game-owned 目录迁移、全部边界 exception 清零  |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                    |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                    |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                    |
+| Phase 5   | 进行中 | shared model、RoomShell、header/status/seat/bottom cutover、lazy seat source           | focused controllers、profile/QR、目录归位、视觉 gate |
+| Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                  |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -1859,6 +1869,33 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   183 suites/4834 tests、game-engine 82 suites/2373 tests、api-worker 12 files/88 tests 全部通过。首次完整
   gate 暴露 7 个 RoomScreen test fixture 仍把 `useGameRoom.enterRoom` mock 成 `Promise<void>`；测试现已按
   `RoomInitResult` 的真实 contract 返回显式 success，没有给生产初始化路径增加 fallback。
-- 阶段状态：Phase 4 实现与本地完整 quality 已完成，保持“待远端 E2E”；本提交推送后的四个
-  Playwright shard 全绿后才标记完成。下一步进入 Phase 5，从稳定狼人杀 UI 反向抽取真实 shared room
-  feature，不先造第二套壳。
+- commit `a517b88f` 对应 CI run `29135328507`：quality 与四个 Werewolf Playwright shard 全部通过。
+  workflow 总状态仍只因零 step 的 `merge-reports` job 失败；Phase 4 据此满足退出条件并标记完成。
+- 阶段状态：Phase 4 已完成。Phase 5 从稳定狼人杀 UI 反向抽取真实 shared room feature，不先造第二套壳。
+
+### 当前提交：Phase 5 shared room shell 第一批 cutover
+
+- 新建 game-neutral `RoomCapabilities`、`RoomSeatDataSource`、`RoomBottomActionModel` 和
+  `RoomShellModel`。Capability 使用 allowed/denied 判别联合，denied 分支没有 `execute`，权限同时约束
+  可见性和执行入口。
+- 狼人杀 adapter 负责把 `GameStatus`、角色名、wolf highlight、night progress、bottom layout 和真实 command
+  转成中性模型；`src/features/room` 新增 import-boundary gate，禁止反向 import 狼人杀 model、旧 RoomScreen
+  或 `src/games/*`。
+- 狼人杀已经真实渲染 `RoomShell`，共享 header、connection/status ribbon、controlled-bot banner、seat board
+  和 bottom panel；原组件已从旧目录移动，没有 compatibility export 或第二套 JSX。
+- `RoomSeatBoard` 改为 windowed indexed source。10,000 座位 component test 证明只读取 rendered window；
+  狼人杀继续从现有 12/15 人 view model 生成 source，后续 Fib 不需要创建 N 个空座对象。
+- Bottom button 把 enabled mutation 与 disabled feedback 分成互斥类型；host action submitting 时不再保留第二次
+  submit callback，只有“等待房主”可携带明确的只读提示行为。
+- 本地定向门禁：shared/adapter/RoomScreen 77 suites/1019 tests 通过；运行中补齐 `stateRevision` fixture 后，
+  mock-shape contract 已在新进程独立复跑 1 suite/3 tests 全部通过。浏览器
+  `single player manual seat shows green seat badge` Playwright 1/1 通过，并人工检查 1280×720 截图的 header、
+  六列 seat geometry 和 bottom safe-area。
+- 最终 gate 暴露 api-worker 旧测试把 `Date.now()` immediate alarm 当成可由
+  `runDurableObjectAlarm()` 独占触发：runtime 先领取 alarm 时 helper 返回 false，测试却直接读 D1，与 effect
+  drain 形成竞态；同文件的其他测试还会把 alarm 留到测试结束。现在 delivery contract 在
+  `runInDurableObject` 的事件边界内调用真实 `GameRoom.alarm()` 并断言 pending outbox 被清空；统一
+  `afterEach` 使用 `listDurableObjectIds()` 删除本文件创建的 GameRoom alarm，符合 Cloudflare 当前测试隔离
+  约束，不加 sleep、轮询或重试。相关 2 files/22 tests 通过，完整 api-worker 12 files/88 tests 连续三轮通过。
+- 下一批删除 profile、seat、share、bot、connection 的重复本地状态，完成 take/move/leave 三态确认和 direct
+  kick，再把剩余狼人杀 screen/hooks/policy/tests 一次性归位到 `src/games/werewolf`。

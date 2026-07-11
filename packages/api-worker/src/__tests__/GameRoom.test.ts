@@ -11,14 +11,15 @@ import {
   REASON_SEAT_EMPTY,
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import { createUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
-import { runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
+import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import type { GameRoom } from '../platform/room/GameRoom';
 import { initializeRoomStorage } from '../platform/room/storageSchema';
 import type { DispatchRoomResult, InitializeRoomResult } from '../platform/room/types';
 import { enqueueUserEvent } from '../platform/userEvents/inbox';
+import { deleteCurrentRoomAlarms } from './roomTestCleanup';
 import { bootstrapTestSchema } from './testSchemaBootstrap';
 
 const ROOM_CODE = '1234';
@@ -36,6 +37,8 @@ beforeEach(async () => {
   await env.DB.prepare("DELETE FROM users WHERE id IN ('host-1', 'player-1')").run();
   await env.DB.prepare("INSERT INTO users (id) VALUES ('host-1'), ('player-1')").run();
 });
+
+afterEach(deleteCurrentRoomAlarms);
 
 function getStub(): DurableObjectStub<GameRoom> {
   return env.GAME_ROOM.get(env.GAME_ROOM.newUniqueId());
@@ -385,9 +388,23 @@ describe('GameRoom command receipts', () => {
         decision_kind: 'committed',
         revision: 2,
       });
+      expect(
+        state.storage.sql
+          .exec(
+            `SELECT status, effect_type
+            FROM effect_outbox WHERE origin_command_id = 'seat-with-effect'`,
+          )
+          .one(),
+      ).toEqual({ status: 'pending', effect_type: 'platform.room.participantJoined' });
     });
 
-    await runDurableObjectAlarm(stub);
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      await state.storage.deleteAlarm();
+      await instance.alarm();
+      expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
+        count: 0,
+      });
+    });
     const participant = await env.DB.prepare(
       'SELECT user_id FROM room_participants WHERE room_id = ?',
     )

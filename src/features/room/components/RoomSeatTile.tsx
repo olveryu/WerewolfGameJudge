@@ -1,5 +1,5 @@
 /**
- * SeatTile - single seat tile (Memoized)
+ * RoomSeatTile - single game-neutral seat tile (Memoized)
  *
  * Styles are created by PlayerGrid and passed in; custom areEqual prevents unnecessary re-renders.
  * Enter/leave animations (slide up + bounce / fade out + shrink).
@@ -21,10 +21,6 @@ import {
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
-
 import { Avatar } from '@/components/Avatar';
 import { AvatarWithFrame } from '@/components/AvatarWithFrame';
 import { FrameOverlay } from '@/components/FrameOverlay';
@@ -34,6 +30,7 @@ import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAni
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { STATUS_ICONS, UI_ICONS } from '@/config/iconTokens';
+import { formatRoomSeat, type RoomSeatHighlight } from '@/features/room/model/RoomSeatDataSource';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -68,7 +65,7 @@ export function getGridColumns(screenWidth: number): number {
  * Pre-computed styles for SeatTile.
  * Created once in PlayerGrid and passed to all SeatTile instances.
  */
-export interface SeatTileStyles {
+export interface RoomSeatTileStyles {
   tileWrapper: ViewStyle;
   playerTile: ViewStyle;
   mySpotTile: ViewStyle;
@@ -103,17 +100,15 @@ export interface SeatTileStyles {
   botRoleName: TextStyle;
 }
 
-export interface SeatTileProps {
+export interface RoomSeatTileProps {
   // Primitive props for stable comparison
   seat: number;
   tileSize: number;
   disabled: boolean;
   disabledReason?: string;
   isMySpot: boolean;
-  isWolf: boolean;
-  isSelected: boolean;
+  highlight: RoomSeatHighlight;
   isBot: boolean;
-  isControlled: boolean; // Host is controlling this bot seat
   // Player info (null if empty seat)
   playerUserId: string | null;
   playerAvatarUrl?: string;
@@ -129,9 +124,8 @@ export interface SeatTileProps {
   playerDisplayName: string | null;
   /** Whether the player is anonymous (no custom avatar set). Dims the nickname. */
   isPlayerAnonymous: boolean;
-  // Role info for bot display (debug mode only)
-  roleId: RoleId | null;
-  showBotRole: boolean; // isHost && debugMode?.botsEnabled && isBot
+  /** Game-owned secondary label, such as a bot role name in debug mode. */
+  secondaryLabel: string | null;
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
   /** Pre-formatted wolf vote badge text. Visible to wolf-faction only. */
@@ -145,22 +139,20 @@ export interface SeatTileProps {
   /** Whether seat decorations (entrance animation / flair / pet) render. Disabled during the Ongoing phase to cut continuous CPU/GPU heat & battery drain. */
   seatDecorationsEnabled: boolean;
   // Styles (created once in PlayerGrid)
-  styles: SeatTileStyles;
+  styles: RoomSeatTileStyles;
   onPress: (seat: number, disabledReason?: string) => void;
   /** Long press callback for takeover bot seat (debug mode) */
-  onLongPress?: (seat: number) => void;
+  onLongPress: ((seat: number) => void) | null;
 }
 
-const SeatTileComponent: React.FC<SeatTileProps> = ({
+const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   seat,
   tileSize,
   disabled,
   disabledReason,
   isMySpot,
-  isWolf,
-  isSelected,
+  highlight,
   isBot,
-  isControlled,
   playerUserId,
   playerAvatarUrl,
   playerAvatarFrame,
@@ -170,8 +162,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
   playerNameStyle,
   playerDisplayName,
   isPlayerAnonymous,
-  roleId,
-  showBotRole,
+  secondaryLabel,
   showReadyBadge,
   wolfVoteBadge,
   playerLevel,
@@ -216,6 +207,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 
   // C4/C5: Selected tile pop/shrink
   const selectedScale = useMemo(() => new Animated.Value(1), []);
+  const isSelected = highlight === 'selected';
   const prevIsSelectedRef = useRef(isSelected);
 
   // Custom seat entrance animation (from equipped seatAnimation cosmetic)
@@ -343,9 +335,6 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     transform: [{ scale: selectedScale }],
   };
 
-  // Get role display name for bot (debug mode only)
-  const botRoleDisplayName = showBotRole && roleId ? getRoleDisplayName(roleId) : null;
-
   // Resolve seat flair component
   const flairConfig = useMemo(() => getFlairById(playerSeatFlair), [playerSeatFlair]);
   const FlairComponent = flairConfig?.Component;
@@ -375,11 +364,11 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
     : tileSize - spacing.tight - fixed.borderWidthThick * 2;
   const avatarRadius = hasFrame ? borderRadius.large : borderRadius.large - fixed.borderWidthThick;
   let highlightRingStyle: ViewStyle | null = null;
-  if (isControlled) {
+  if (highlight === 'controlled') {
     highlightRingStyle = hasFrame ? styles.controlledRingFramed : styles.controlledRing;
-  } else if (isSelected) {
+  } else if (highlight === 'selected') {
     highlightRingStyle = hasFrame ? styles.selectedRingFramed : styles.selectedRing;
-  } else if (isWolf) {
+  } else if (highlight === 'danger') {
     highlightRingStyle = hasFrame ? styles.wolfRingFramed : styles.wolfRing;
   }
 
@@ -390,8 +379,8 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
           testID={TESTIDS.seatTilePressable(seat)}
           accessibilityLabel={
             playerDisplayName
-              ? `座位${formatSeat(seat)} ${playerDisplayName}`
-              : `座位${formatSeat(seat)}`
+              ? `座位${formatRoomSeat(seat)} ${playerDisplayName}`
+              : `座位${formatRoomSeat(seat)}`
           }
           style={[
             styles.playerTile,
@@ -481,7 +470,7 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
           )}
 
-          {showLevel && playerLevel != null && hasPlayer && !botRoleDisplayName && (
+          {showLevel && playerLevel != null && hasPlayer && !secondaryLabel && (
             <View style={styles.levelBadge}>
               <Text style={styles.levelBadgeText}>Lv{playerLevel}</Text>
             </View>
@@ -508,9 +497,9 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
             {isBot && ' '}
             {playerDisplayName}
           </NameStyleText>
-          {botRoleDisplayName && (
+          {secondaryLabel && (
             <Text style={styles.botRoleName} numberOfLines={1}>
-              {botRoleDisplayName}
+              {secondaryLabel}
             </Text>
           )}
         </>
@@ -522,13 +511,16 @@ const SeatTileComponent: React.FC<SeatTileProps> = ({
 };
 
 // Memoize with custom comparison
-export const SeatTile = memo(SeatTileComponent);
+export const RoomSeatTile = memo(RoomSeatTileComponent);
 
 /**
  * Create SeatTile styles. Called once in PlayerGrid and passed to all tiles.
  * Exported for use by PlayerGrid.
  */
-export function createSeatTileStyles(colors: ThemeColors, tileSize: number): SeatTileStyles {
+export function createRoomSeatTileStyles(
+  colors: ThemeColors,
+  tileSize: number,
+): RoomSeatTileStyles {
   // Unified highlight ring: solid colored border + glow. Independent of avatar opacity, so it stays
   // visible on opaque custom avatars and never covers the avatar face.
   const ring = (color: string): ViewStyle => ({

@@ -84,6 +84,7 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
 
   const {
     gameState,
+    stateRevision,
     isHost,
     mySeat,
     myRole,
@@ -565,6 +566,7 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     closeProfileCard,
     handleProfileKick,
     handleProfileLeaveSeat,
+    openProfile,
   } = useInteractionDispatcher({
     gameState,
     roomStatus,
@@ -769,7 +771,9 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
 
     // ── Game state (from useGameRoom) ──
     gameState,
+    stateRevision,
     isHost,
+    mySeat,
     roomStatus,
     currentActionRole,
     currentSchema,
@@ -786,6 +790,9 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     markAllBotsViewed,
     markAllBotsGroupConfirmed,
     clearAllSeats,
+    takeSeat,
+    leaveSeat,
+    kickPlayer,
     requestSnapshot,
     manualReconnect,
     setControlledSeat,
@@ -832,6 +839,7 @@ export function useRoomScreenState(room: RoomRecord, navigation: RoomScreenNavig
     closeProfileCard,
     handleProfileKick,
     handleProfileLeaveSeat,
+    openProfile,
 
     // ── Local UI state ──
     isStartingGame,
