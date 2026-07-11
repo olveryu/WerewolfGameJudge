@@ -61,11 +61,11 @@ export interface HeaderActionsStyles {
   headerRightContainer: ViewStyle;
 }
 
-export interface NightProgressIndicatorStyles {
+export interface RoomProgressIndicatorStyles {
   container: ViewStyle;
   headerRow: ViewStyle;
   stepText: TextStyle;
-  roleText: TextStyle;
+  labelText: TextStyle;
   progressBarContainer: ViewStyle;
   progressBarFill: ViewStyle;
 }
@@ -85,7 +85,7 @@ export interface RoomFeatureStyles {
   readonly controlledSeatBanner: ControlledSeatBannerStyles;
   readonly hostGuideBanner: HostGuideBannerStyles;
   readonly headerActions: HeaderActionsStyles;
-  readonly nightProgressIndicator: NightProgressIndicatorStyles;
+  readonly progressIndicator: RoomProgressIndicatorStyles;
   readonly seatConfirmModal: SeatConfirmModalStyles;
   readonly statusRibbon: StatusRibbonStyles;
 }

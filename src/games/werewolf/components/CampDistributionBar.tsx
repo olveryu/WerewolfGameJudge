@@ -1,23 +1,24 @@
 /**
  * CampDistributionBar — per-user camp distribution (狼人 / 神 / 平民 / 第三方).
  *
- * Pure presentational: renders one horizontal bar per camp bucket (fixed CAMP_ORDER),
+ * Pure presentational: renders one horizontal bar per camp bucket,
  * each filled to its share of the visible games, with a trailing percentage.
  * Shows an empty-state line when no games are visible (total === 0).
- * Used by SettingsScreen growth section (self) and room PlayerProfileCard (public).
+ * Used by Werewolf account stats and room profile extensions.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { CampBucket } from '@werewolf/game-engine/models/roles';
-import { CAMP_ORDER } from '@werewolf/game-engine/models/roles';
+import {
+  WEREWOLF_CAMP_ORDER,
+  type WerewolfCampStats,
+} from '@werewolf/game-engine/games/werewolf/public';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { CAMP_VISUAL } from '@/config/campVisual';
-import type { CampStats } from '@/services/feature/StatsService';
+import { CAMP_VISUAL } from '@/games/werewolf/config/campVisual';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 
 interface CampDistributionBarProps {
-  campStats: CampStats;
+  campStats: WerewolfCampStats;
   /** Narrow layout for the 300pt room card (smaller label column). */
   compact?: boolean;
 }
@@ -36,7 +37,7 @@ const CampDistributionBarComponent: React.FC<CampDistributionBarProps> = ({
       {campStats.total === 0 ? (
         <Text style={styles.emptyText}>暂无阵营数据</Text>
       ) : (
-        CAMP_ORDER.map((bucket: CampBucket) => {
+        WEREWOLF_CAMP_ORDER.map((bucket) => {
           const visual = CAMP_VISUAL[bucket];
           const count = campStats.counts[bucket];
           const percent = toPercent(count, campStats.total);

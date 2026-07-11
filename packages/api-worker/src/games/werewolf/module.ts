@@ -1,9 +1,14 @@
 /** Worker runtime module for Werewolf. */
 
-import { WEREWOLF_STATE_CODEC, werewolfEngine } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  parseWerewolfPublicStats,
+  WEREWOLF_STATE_CODEC,
+  werewolfEngine,
+} from '@werewolf/game-engine/games/werewolf/public';
 
 import { defineWorkerGameModule } from '../workerModule';
 import { handleWerewolfEffect, werewolfEffectSchema } from './effects';
+import { getWerewolfPublicUserStats } from './publicUserStats';
 import {
   werewolfCreateConfigSchema,
   werewolfInternalCommandSchema,
@@ -18,5 +23,7 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   publicCommandSchema: werewolfPublicCommandSchema,
   internalCommandSchema: werewolfInternalCommandSchema,
   effectSchema: werewolfEffectSchema,
+  parsePublicUserStats: parseWerewolfPublicStats,
+  getPublicUserStats: getWerewolfPublicUserStats,
   handleEffect: handleWerewolfEffect,
 });

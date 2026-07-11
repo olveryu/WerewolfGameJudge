@@ -14,11 +14,11 @@ import { typography } from '@/theme';
 
 import { ConnectionStatusBar } from './ConnectionStatusBar';
 import { HostGuideBanner } from './HostGuideBanner';
-import { NightProgressIndicator } from './NightProgressIndicator';
+import { RoomProgressIndicator } from './RoomProgressIndicator';
 import type {
   ConnectionStatusBarStyles,
   HostGuideBannerStyles,
-  NightProgressIndicatorStyles,
+  RoomProgressIndicatorStyles,
   StatusRibbonStyles,
 } from './styles';
 
@@ -27,7 +27,7 @@ interface RoomStatusRibbonProps {
   readonly status: RoomStatusRibbonModel | null;
   readonly styles: StatusRibbonStyles;
   readonly connectionStatusBarStyles: ConnectionStatusBarStyles;
-  readonly nightProgressIndicatorStyles: NightProgressIndicatorStyles;
+  readonly progressIndicatorStyles: RoomProgressIndicatorStyles;
   readonly hostGuideBannerStyles: HostGuideBannerStyles;
 }
 
@@ -36,7 +36,7 @@ const RoomStatusRibbonComponent: React.FC<RoomStatusRibbonProps> = ({
   status,
   styles,
   connectionStatusBarStyles,
-  nightProgressIndicatorStyles,
+  progressIndicatorStyles,
   hostGuideBannerStyles,
 }) => {
   if (connection.status !== 'live') {
@@ -53,11 +53,11 @@ const RoomStatusRibbonComponent: React.FC<RoomStatusRibbonProps> = ({
 
   if (status.kind === 'progress') {
     return (
-      <NightProgressIndicator
+      <RoomProgressIndicator
         currentStep={status.current}
         totalSteps={status.total}
-        currentRoleName={status.label ?? undefined}
-        styles={nightProgressIndicatorStyles}
+        currentLabel={status.label ?? undefined}
+        styles={progressIndicatorStyles}
       />
     );
   }

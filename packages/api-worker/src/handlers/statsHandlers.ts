@@ -4,6 +4,7 @@
  * GET /api/user/stats: returns current user XP, level, games played.
  * GET /api/user/:userId/profile: returns specified user's public profile.
  * GET /api/user/:userId/unlocks: returns specified user's unlocked items list.
+ * GET /api/games/:gameType/users/:userId/stats: delegates public game statistics to its module.
  * Logged-in users only.
  *
  * @throws 401 — requireAuth failed
@@ -11,63 +12,25 @@
  */
 
 import { getLevelTitle } from '@werewolf/game-engine/growth/level';
-import { CAMP_ORDER, type CampBucket } from '@werewolf/game-engine/models/roles';
-import { and, eq, sql } from 'drizzle-orm';
+import { isGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
-import type { Db } from '../db';
 import { createDb } from '../db';
-import { campSettlements, users, userStats } from '../db/schema';
+import { users, userStats } from '../db/schema';
 import type { AppEnv } from '../env';
+import { WORKER_GAME_CATALOG } from '../games/catalog';
 import { requireAuth } from '../lib/auth';
 
 /** User stats/profile routes. */
 export const statsRoutes = new Hono<AppEnv>();
-
-/** Hours a finished game stays hidden from the camp distribution (anti-cheat delay, all viewers). */
-const PUBLIC_VISIBILITY_DELAY_HOURS = 2;
-
-/** Camp distribution payload: per-bucket counts + visible total. */
-interface CampStatsPayload {
-  total: number;
-  counts: Record<CampBucket, number>;
-}
-
-/**
- * Aggregate a user's camp distribution from camp_settlements.
- *
- * Only counts games settled ≥PUBLIC_VISIBILITY_DELAY_HOURS ago — applied uniformly to both the
- * self view and other players' view, so a just-finished game never reveals a player's role.
- */
-async function aggregateCampStats(db: Db, userId: string): Promise<CampStatsPayload> {
-  const rows = await db
-    .select({ camp: campSettlements.camp, n: sql<number>`count(*)` })
-    .from(campSettlements)
-    .where(
-      and(
-        eq(campSettlements.userId, userId),
-        sql`${campSettlements.settledAt} <= datetime('now', ${`-${PUBLIC_VISIBILITY_DELAY_HOURS} hours`})`,
-      ),
-    )
-    .groupBy(campSettlements.camp);
-
-  const counts = Object.fromEntries(CAMP_ORDER.map((c) => [c, 0])) as Record<CampBucket, number>;
-  let total = 0;
-  for (const row of rows) {
-    if (row.camp in counts) {
-      counts[row.camp as CampBucket] = row.n;
-      total += row.n;
-    }
-  }
-  return { total, counts };
-}
 
 /** GET /api/user/:userId/profile — view another player's public profile */
 statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
   const db = createDb(c.env.DB);
   const targetUserId = c.req.param('userId');
 
-  const [userRow, statsRow, campStats] = await Promise.all([
+  const [userRow, statsRow] = await Promise.all([
     db
       .select({
         displayName: users.displayName,
@@ -92,8 +55,6 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
       .from(userStats)
       .where(eq(userStats.userId, targetUserId))
       .get(),
-    // Camp distribution: only games settled ≥2h ago are visible (anti-cheat delay)
-    aggregateCampStats(db, targetUserId),
   ]);
 
   if (!userRow) return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
@@ -111,14 +72,13 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
       avatarFrame: userRow.avatarFrame ?? undefined,
       seatFlair: userRow.equippedFlair ?? undefined,
       nameStyle: userRow.equippedNameStyle ?? undefined,
-      roleRevealEffect: userRow.equippedEffect ?? undefined,
+      revealEffect: userRow.equippedEffect ?? undefined,
       seatAnimation: userRow.equippedSeatAnimation ?? undefined,
       level,
       title: getLevelTitle(level),
       xp: statsRow?.xp ?? 0,
       gamesPlayed: statsRow?.gamesPlayed ?? 0,
       unlockedItemCount: unlockedItems.length,
-      campStats,
     },
     200,
   );
@@ -161,9 +121,6 @@ statsRoutes.get('/user/stats', requireAuth, async (c) => {
     .where(eq(userStats.userId, userId))
     .get();
 
-  // Camp distribution: only games settled ≥2h ago are visible (anti-cheat delay)
-  const campStats = await aggregateCampStats(db, userId);
-
   const unlockedItems: string[] = statsRow?.unlockedItems
     ? (JSON.parse(statsRow.unlockedItems) as string[])
     : [];
@@ -174,8 +131,21 @@ statsRoutes.get('/user/stats', requireAuth, async (c) => {
       level: statsRow?.level ?? 0,
       gamesPlayed: statsRow?.gamesPlayed ?? 0,
       unlockedItems,
-      campStats,
     },
     200,
   );
+});
+
+/** GET /api/games/:gameType/users/:userId/stats — public statistics owned by a game module. */
+statsRoutes.get('/games/:gameType/users/:userId/stats', requireAuth, async (c) => {
+  const gameType = c.req.param('gameType');
+  if (!isGameType(gameType)) {
+    return c.json({ success: false, reason: 'GAME_TYPE_NOT_FOUND' }, 404);
+  }
+
+  const stats = await WORKER_GAME_CATALOG[gameType].getPublicUserStats(
+    c.req.param('userId'),
+    c.env,
+  );
+  return c.json(stats, 200);
 });

@@ -20,7 +20,7 @@ import type {
   ConnectionStatusBarStyles,
   ControlledSeatBannerStyles,
   HostGuideBannerStyles,
-  NightProgressIndicatorStyles,
+  RoomProgressIndicatorStyles,
   StatusRibbonStyles,
 } from './styles';
 
@@ -29,7 +29,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
   connectionStatusBar: ConnectionStatusBarStyles;
   controlledSeatBanner: ControlledSeatBannerStyles;
   hostGuideBanner: HostGuideBannerStyles;
-  nightProgressIndicator: NightProgressIndicatorStyles;
+  progressIndicator: RoomProgressIndicatorStyles;
   statusRibbon: StatusRibbonStyles;
 } {
   return {
@@ -195,7 +195,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
       },
     }),
 
-    nightProgressIndicator: StyleSheet.create<NightProgressIndicatorStyles>({
+    progressIndicator: StyleSheet.create<RoomProgressIndicatorStyles>({
       container: {
         paddingHorizontal: spacing.medium,
         paddingVertical: spacing.small,
@@ -215,7 +215,7 @@ export function createStatusPanelStyles(colors: ThemeColors): {
         ...textStyles.secondarySemibold,
         color: colors.text,
       },
-      roleText: {
+      labelText: {
         fontSize: typography.secondary,
         lineHeight: typography.lineHeights.secondary,
         color: colors.textSecondary,

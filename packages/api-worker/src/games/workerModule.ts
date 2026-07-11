@@ -94,6 +94,7 @@ export interface RuntimeWorkerGameModule {
   parseCommandResult(value: unknown): RoomCommandResult<BaseGameState<GameType>>;
   decidePublic(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
   decideInternal(state: unknown, command: unknown, context: CommandContext): RuntimeDecision;
+  getPublicUserStats(userId: string, bindings: Env): Promise<unknown>;
   handleEffect(effect: unknown, context: RuntimeWorkerEffectContext): Promise<void>;
 }
 
@@ -101,6 +102,7 @@ export interface WorkerGameModuleDefinition<
   TEngine extends RegisteredGameEngine,
   TPublicCommand extends CommandOf<TEngine>,
   TInternalCommand extends CommandOf<TEngine>,
+  TPublicUserStats,
 > {
   readonly gameType: TEngine['gameType'];
   readonly engine: TEngine;
@@ -109,6 +111,8 @@ export interface WorkerGameModuleDefinition<
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
   readonly effectSchema: ZodType<EffectOf<TEngine>>;
+  parsePublicUserStats(value: unknown): TPublicUserStats;
+  getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   handleEffect(
     effect: EffectOf<TEngine>,
     context: WorkerEffectContext<TInternalCommand>,
@@ -119,7 +123,9 @@ export type WorkerGameModule<
   TEngine extends RegisteredGameEngine,
   TPublicCommand extends CommandOf<TEngine>,
   TInternalCommand extends CommandOf<TEngine>,
-> = WorkerGameModuleDefinition<TEngine, TPublicCommand, TInternalCommand> & RuntimeWorkerGameModule;
+  TPublicUserStats,
+> = WorkerGameModuleDefinition<TEngine, TPublicCommand, TInternalCommand, TPublicUserStats> &
+  RuntimeWorkerGameModule;
 
 type ExactCommandPartition<
   TEngine extends RegisteredGameEngine,
@@ -136,8 +142,14 @@ function assertStateIdentity<
   TEngine extends RegisteredGameEngine,
   TPublicCommand extends CommandOf<TEngine>,
   TInternalCommand extends CommandOf<TEngine>,
+  TPublicUserStats,
 >(
-  definition: WorkerGameModuleDefinition<TEngine, TPublicCommand, TInternalCommand>,
+  definition: WorkerGameModuleDefinition<
+    TEngine,
+    TPublicCommand,
+    TInternalCommand,
+    TPublicUserStats
+  >,
   state: StateOf<TEngine>,
 ): void {
   if (state.gameType !== definition.gameType) {
@@ -156,8 +168,14 @@ function executeDecision<
   TEngine extends RegisteredGameEngine,
   TPublicCommand extends CommandOf<TEngine>,
   TInternalCommand extends CommandOf<TEngine>,
+  TPublicUserStats,
 >(
-  definition: WorkerGameModuleDefinition<TEngine, TPublicCommand, TInternalCommand>,
+  definition: WorkerGameModuleDefinition<
+    TEngine,
+    TPublicCommand,
+    TInternalCommand,
+    TPublicUserStats
+  >,
   state: StateOf<TEngine>,
   command: CommandOf<TEngine>,
   context: CommandContext,
@@ -197,10 +215,16 @@ export function defineWorkerGameModule<
   const TEngine extends RegisteredGameEngine,
   const TPublicCommand extends CommandOf<TEngine>,
   const TInternalCommand extends CommandOf<TEngine>,
+  const TPublicUserStats,
 >(
-  definition: WorkerGameModuleDefinition<TEngine, TPublicCommand, TInternalCommand> &
+  definition: WorkerGameModuleDefinition<
+    TEngine,
+    TPublicCommand,
+    TInternalCommand,
+    TPublicUserStats
+  > &
     ExactCommandPartition<TEngine, TPublicCommand, TInternalCommand>,
-): WorkerGameModule<TEngine, TPublicCommand, TInternalCommand> {
+): WorkerGameModule<TEngine, TPublicCommand, TInternalCommand, TPublicUserStats> {
   const parseState = (value: unknown): StateOf<TEngine> => {
     const state = definition.engine.normalize(definition.stateCodec.parse(value));
     assertStateIdentity(definition, state);
@@ -257,6 +281,8 @@ export function defineWorkerGameModule<
         definition.internalCommandSchema.parse(rawCommand),
         context,
       ),
+    getPublicUserStats: async (userId, bindings) =>
+      definition.parsePublicUserStats(await definition.getPublicUserStats(userId, bindings)),
     handleEffect: (rawEffect, context) =>
       definition.handleEffect(definition.effectSchema.parse(rawEffect), {
         bindings: context.bindings,

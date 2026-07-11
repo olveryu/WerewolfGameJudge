@@ -30,7 +30,7 @@ import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
 import {
   resolveWerewolfBuiltinAvatarName,
-  WEREWOLF_PROFILE_GAME_DETAILS,
+  WerewolfProfileDetails,
 } from '@/games/werewolf/components/WerewolfProfileDetails';
 import {
   createWerewolfBottomActionLayout,
@@ -495,7 +495,10 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
       onLeaveSeat:
         profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
       resolveBuiltinAvatarName: resolveWerewolfBuiltinAvatarName,
-      gameDetails: WEREWOLF_PROFILE_GAME_DETAILS,
+      gameDetails: {
+        title: '阵营分布',
+        content: <WerewolfProfileDetails userId={profileSelection.target.userId} />,
+      },
     };
   }, [
     capabilities.canKickSeat.isAllowed,

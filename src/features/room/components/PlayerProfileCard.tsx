@@ -148,12 +148,12 @@ function resolveSeatAnimationSlot(animId: string | undefined): SlotInfo {
   };
 }
 
-function resolveRoleRevealSlot(effectId: string | undefined): SlotInfo {
-  if (!effectId) return { name: '', rarity: null, typeLabel: '翻牌动画' };
+function resolveRevealEffectSlot(effectId: string | undefined): SlotInfo {
+  if (!effectId) return { name: '', rarity: null, typeLabel: '揭晓特效' };
   return {
     name: getPetByEffectId(effectId)?.name ?? effectId,
     rarity: getItemRarity(effectId),
-    typeLabel: '翻牌动画',
+    typeLabel: '揭晓特效',
   };
 }
 
@@ -209,9 +209,9 @@ const EquipmentShowcase: React.FC<{
   const frameSlot = useMemo(() => resolveFrameSlot(profile.avatarFrame), [profile.avatarFrame]);
   const nameStyleSlot = useMemo(() => resolveNameStyleSlot(profile.nameStyle), [profile.nameStyle]);
   const flairSlot = useMemo(() => resolveFlairSlot(profile.seatFlair), [profile.seatFlair]);
-  const roleRevealSlot = useMemo(
-    () => resolveRoleRevealSlot(profile.roleRevealEffect),
-    [profile.roleRevealEffect],
+  const revealEffectSlot = useMemo(
+    () => resolveRevealEffectSlot(profile.revealEffect),
+    [profile.revealEffect],
   );
   const seatAnimationSlot = useMemo(
     () => resolveSeatAnimationSlot(profile.seatAnimation),
@@ -270,9 +270,9 @@ const EquipmentShowcase: React.FC<{
           {flairSlot.name ? <Text style={styles.equipSlotIcon}>✦</Text> : null}
         </EquipmentSlot>
 
-        {/* Role Reveal Effect (card-flip animation / pet) */}
-        <EquipmentSlot slot={roleRevealSlot}>
-          {roleRevealSlot.name ? <Text style={styles.equipSlotIcon}>🎴</Text> : null}
+        {/* Product reveal effect */}
+        <EquipmentSlot slot={revealEffectSlot}>
+          {revealEffectSlot.name ? <Text style={styles.equipSlotIcon}>🎴</Text> : null}
         </EquipmentSlot>
 
         {/* Seat Animation */}
@@ -475,7 +475,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
                   <Text style={styles.equipDividerLabel}>{model.gameDetails.title}</Text>
                   <View style={styles.equipDividerLine} />
                 </View>
-                {model.gameDetails.render(profile)}
+                {model.gameDetails.content}
               </View>
             )}
 

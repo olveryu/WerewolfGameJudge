@@ -71,8 +71,8 @@ export const TESTIDS = {
   seatConfirmOk: 'seat-confirm-ok',
   seatConfirmCancel: 'seat-confirm-cancel',
 
-  // NightProgressIndicator
-  nightProgressIndicator: 'night-progress-indicator',
+  // RoomProgressIndicator
+  roomProgressIndicator: 'room-progress-indicator',
 
   // AlertModal
   alertModalOverlay: 'alert-modal-overlay',

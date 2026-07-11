@@ -1,98 +1,97 @@
 /**
- * NightProgressIndicator.test.tsx
+ * RoomProgressIndicator.test.tsx
  *
- * Tests for the night progress indicator component.
+ * Tests for the shared room progress indicator component.
  */
 import { render } from '@testing-library/react-native';
 
-import { NightProgressIndicator } from '@/features/room/components/NightProgressIndicator';
+import { RoomProgressIndicator } from '@/features/room/components/RoomProgressIndicator';
 import { createRoomFeatureStyles } from '@/features/room/components/styles';
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';
 
-const mockStyles = createRoomFeatureStyles(colors).nightProgressIndicator;
+const mockStyles = createRoomFeatureStyles(colors).progressIndicator;
 
-describe('NightProgressIndicator', () => {
+describe('RoomProgressIndicator', () => {
   it('should render step count correctly', () => {
     const { getByText } = render(
-      <NightProgressIndicator currentStep={3} totalSteps={12} styles={mockStyles} />,
+      <RoomProgressIndicator currentStep={3} totalSteps={12} styles={mockStyles} />,
     );
 
     expect(getByText(/第3步 \/ 共12步/)).toBeTruthy();
   });
 
-  it('should render role name when provided', () => {
-    const roleName = 'test-role';
+  it('should render the game-owned label when provided', () => {
+    const label = '当前步骤';
     const { getByText } = render(
-      <NightProgressIndicator
+      <RoomProgressIndicator
         currentStep={5}
         totalSteps={10}
-        currentRoleName={roleName}
+        currentLabel={label}
         styles={mockStyles}
       />,
     );
 
     expect(getByText(/第5步 \/ 共10步/)).toBeTruthy();
-    expect(getByText(roleName)).toBeTruthy();
+    expect(getByText(label)).toBeTruthy();
   });
 
-  it('should not render role name when not provided', () => {
-    const roleName = 'test-role';
+  it('should not render a label when one is not provided', () => {
+    const label = '当前步骤';
     const { queryByText, getByText } = render(
-      <NightProgressIndicator currentStep={1} totalSteps={8} styles={mockStyles} />,
+      <RoomProgressIndicator currentStep={1} totalSteps={8} styles={mockStyles} />,
     );
 
     expect(getByText(/第1步 \/ 共8步/)).toBeTruthy();
-    // Should not have any role text element
-    expect(queryByText(roleName)).toBeNull();
+    expect(queryByText(label)).toBeNull();
   });
 
   it('should have correct testID', () => {
     const { getByTestId } = render(
-      <NightProgressIndicator currentStep={1} totalSteps={5} styles={mockStyles} />,
+      <RoomProgressIndicator currentStep={1} totalSteps={5} styles={mockStyles} />,
     );
 
-    expect(getByTestId(TESTIDS.nightProgressIndicator)).toBeTruthy();
+    expect(getByTestId(TESTIDS.roomProgressIndicator)).toBeTruthy();
   });
 
   it('should display first step correctly', () => {
-    const roleName = 'test-role';
+    const label = '当前步骤';
     const { getByText } = render(
-      <NightProgressIndicator
+      <RoomProgressIndicator
         currentStep={1}
         totalSteps={12}
-        currentRoleName={roleName}
+        currentLabel={label}
         styles={mockStyles}
       />,
     );
 
     expect(getByText(/第1步 \/ 共12步/)).toBeTruthy();
-    expect(getByText(roleName)).toBeTruthy();
+    expect(getByText(label)).toBeTruthy();
   });
 
   it('should display last step correctly', () => {
-    const roleName = 'test-role';
+    const label = '当前步骤';
     const { getByText } = render(
-      <NightProgressIndicator
+      <RoomProgressIndicator
         currentStep={12}
         totalSteps={12}
-        currentRoleName={roleName}
+        currentLabel={label}
         styles={mockStyles}
       />,
     );
 
     expect(getByText(/第12步 \/ 共12步/)).toBeTruthy();
-    expect(getByText(roleName)).toBeTruthy();
+    expect(getByText(label)).toBeTruthy();
   });
 
   it('should handle various total step counts', () => {
     const { getByText, rerender } = render(
-      <NightProgressIndicator currentStep={3} totalSteps={5} styles={mockStyles} />,
+      <RoomProgressIndicator currentStep={3} totalSteps={5} styles={mockStyles} />,
     );
 
     expect(getByText(/第3步 \/ 共5步/)).toBeTruthy();
 
-    rerender(<NightProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />);
+    rerender(<RoomProgressIndicator currentStep={7} totalSteps={15} styles={mockStyles} />);
     expect(getByText(/第7步 \/ 共15步/)).toBeTruthy();
   });
 });

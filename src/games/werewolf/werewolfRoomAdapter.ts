@@ -141,7 +141,7 @@ export function createWerewolfSeatDataSource(input: WerewolfSeatSourceInput): Ro
               seatFlair: seat.player.seatFlair,
               seatAnimation: seat.player.seatAnimation,
               nameStyle: seat.player.nameStyle,
-              roleRevealEffect: seat.player.roleRevealEffect,
+              seatPetId: seat.player.roleRevealEffect,
               level: seat.player.level,
               isAnonymous: !seat.player.avatarUrl,
             }

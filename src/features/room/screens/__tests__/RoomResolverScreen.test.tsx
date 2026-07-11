@@ -24,7 +24,12 @@ const navigation = {
 const WerewolfRoom: React.FC<React.ComponentProps<GameUiModule['roomScreen']>> = ({ room }) => (
   <Text>{`狼人杀房间 ${room.roomCode}`}</Text>
 );
-const module: GameUiModule = { gameType: 'werewolf', roomScreen: WerewolfRoom };
+const AccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
+const module: GameUiModule = {
+  gameType: 'werewolf',
+  roomScreen: WerewolfRoom,
+  accountStatsSection: AccountStatsSection,
+};
 const getGameModule = jest.fn(() => module);
 
 function renderResolver(roomCode = '1234') {

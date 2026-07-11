@@ -74,8 +74,8 @@ export interface RoomSeatTileStyles {
    * opacity, so it stays visible on opaque custom avatars without covering the avatar face.
    * Framed variants use glow only to avoid clashing with the decorative frame.
    */
-  wolfRing: ViewStyle;
-  wolfRingFramed: ViewStyle;
+  dangerRing: ViewStyle;
+  dangerRingFramed: ViewStyle;
   selectedRing: ViewStyle;
   selectedRingFramed: ViewStyle;
   controlledRing: ViewStyle;
@@ -89,7 +89,7 @@ export interface RoomSeatTileStyles {
   readyBadgeContainer: ViewStyle;
   readyBadgeIcon: TextStyle;
   petWrapper: ViewStyle;
-  wolfVoteBadge: TextStyle;
+  badgeText: TextStyle;
   levelBadge: ViewStyle;
   levelBadgeText: TextStyle;
   emptyIndicator: TextStyle;
@@ -117,8 +117,8 @@ export interface RoomSeatTileProps {
   playerSeatFlair?: string;
   /** Seat entrance animation ID (plays when player joins). */
   playerSeatAnimation?: string;
-  /** Role reveal effect ID (determines seat pet). */
-  playerRoleRevealEffect?: string;
+  /** Product cosmetic rendered as the seat companion. */
+  playerSeatPetId?: string;
   /** Name style ID (text effect on player name). */
   playerNameStyle?: string;
   playerDisplayName: string | null;
@@ -128,8 +128,8 @@ export interface RoomSeatTileProps {
   secondaryLabel: string | null;
   /** Show ✅ ready badge (e.g. player has viewed role during assigned phase). */
   showReadyBadge: boolean;
-  /** Pre-formatted wolf vote badge text. Visible to wolf-faction only. */
-  wolfVoteBadge?: string;
+  /** Pre-formatted game-owned badge text. */
+  badgeText?: string;
   /** Player level (from growth system). */
   playerLevel?: number;
   /** Whether to show the level label below the player name (lobby phases only). */
@@ -158,13 +158,13 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   playerAvatarFrame,
   playerSeatFlair,
   playerSeatAnimation,
-  playerRoleRevealEffect,
+  playerSeatPetId,
   playerNameStyle,
   playerDisplayName,
   isPlayerAnonymous,
   secondaryLabel,
   showReadyBadge,
-  wolfVoteBadge,
+  badgeText,
   playerLevel,
   showLevel,
   isAppVisible,
@@ -340,20 +340,17 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   const FlairComponent = flairConfig?.Component;
   const flairSize = tileSize - spacing.tight;
 
-  // Resolve seat pet component (from equipped role reveal effect)
-  const petConfig = useMemo(
-    () => getPetByEffectId(playerRoleRevealEffect),
-    [playerRoleRevealEffect],
-  );
+  // Resolve the product-owned seat companion selected by the game adapter.
+  const petConfig = useMemo(() => getPetByEffectId(playerSeatPetId), [playerSeatPetId]);
   const PetComponent = petConfig?.Component;
   const petSize = Math.round(tileSize * 0.32);
 
-  // Unified seat highlight ring. Priority: controlled (host takeover) > selected (current target) > wolf (faction reveal).
+  // Unified seat highlight ring. Priority: controlled > selected > danger.
   // Resolved as a single style so every highlight state shares one avatar-independent indicator.
   //
   // During the Ongoing phase the decorative avatar frame is dropped (effectiveFrame = undefined) so
   // the functional highlight ring uses the solid-border `ring` variant instead of the glow-only
-  // `ringFramed` variant — otherwise the decorative frame border obscures the wolf/selected/controlled
+  // `ringFramed` variant — otherwise the decorative frame border obscures the functional
   // highlight. Dropping the frame also unmounts the LegendaryShimmer animation overlay, cutting CPU/GPU.
   const effectiveFrame = seatDecorationsEnabled ? playerAvatarFrame : undefined;
   const hasFrame = !!effectiveFrame;
@@ -369,7 +366,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
   } else if (highlight === 'selected') {
     highlightRingStyle = hasFrame ? styles.selectedRingFramed : styles.selectedRing;
   } else if (highlight === 'danger') {
-    highlightRingStyle = hasFrame ? styles.wolfRingFramed : styles.wolfRing;
+    highlightRingStyle = hasFrame ? styles.dangerRingFramed : styles.dangerRing;
   }
 
   return (
@@ -466,9 +463,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
             </Animated.View>
           )}
 
-          {wolfVoteBadge != null && hasPlayer && (
-            <Text style={styles.wolfVoteBadge}>{wolfVoteBadge}</Text>
-          )}
+          {badgeText != null && hasPlayer && <Text style={styles.badgeText}>{badgeText}</Text>}
 
           {showLevel && playerLevel != null && hasPlayer && !secondaryLabel && (
             <View style={styles.levelBadge}>
@@ -558,8 +553,8 @@ export function createRoomSeatTileStyles(
       backgroundColor: colors.transparent,
       boxShadow: 'none',
     },
-    wolfRing: ring(colors.wolf),
-    wolfRingFramed: ringFramed(colors.wolf),
+    dangerRing: ring(colors.error),
+    dangerRingFramed: ringFramed(colors.error),
     selectedRing: ring(colors.primaryDark),
     selectedRingFramed: ringFramed(colors.primaryDark),
     controlledRing: ring(colors.warning),
@@ -611,7 +606,7 @@ export function createRoomSeatTileStyles(
       right: -Math.round(tileSize * 0.1),
       pointerEvents: 'none',
     },
-    wolfVoteBadge: {
+    badgeText: {
       position: 'absolute',
       bottom: spacing.tight + spacing.micro,
       left: spacing.tight + spacing.micro,

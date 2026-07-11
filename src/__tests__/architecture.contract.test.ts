@@ -113,6 +113,14 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
       expect(content.match(pattern)).toBeNull();
     }
   });
+
+  const forbiddenGameSemanticIdentifiers =
+    /\b(?:campStats|roleRevealEffect|playerRoleRevealEffect|wolfVoteBadge|wolfRing|NightProgressIndicator|currentRoleName)\b/;
+
+  it.each(sharedRoomFiles)('%s must use game-neutral room contracts', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    expect(content.match(forbiddenGameSemanticIdentifiers)).toBeNull();
+  });
 });
 
 describe('Layer boundary: game modules are isolated', () => {

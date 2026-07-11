@@ -518,13 +518,18 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
 ### 11.3 Worker module
 
 ```ts
-interface WorkerGameModule<TEngine extends AnyGameEngineDefinition> {
+interface WorkerGameModule<TEngine extends AnyGameEngineDefinition, TPublicUserStats> {
   readonly gameType: TEngine['gameType'];
   readonly engine: TEngine;
   readonly stateCodec: GameStateCodec<StateOf<TEngine>>;
   readonly createConfigSchema: ZodType<ConfigOf<TEngine>>;
   readonly commandSchema: ZodType<CommandOf<TEngine>>;
   readonly effectHandlers: EffectHandlerMap<EffectOf<TEngine>>;
+  readonly parsePublicUserStats: (value: unknown) => TPublicUserStats;
+  readonly getPublicUserStats: (
+    userId: string,
+    bindings: WorkerBindings,
+  ) => Promise<TPublicUserStats>;
 }
 ```
 
@@ -548,11 +553,15 @@ interface GameUiModule<TState extends BaseGameState<GameType>> {
   readonly createConfig: React.ComponentType<GameConfigProps>;
   readonly roomContent: React.ComponentType<GameRoomContentProps<TState>>;
   readonly rules: React.ComponentType<GameRulesProps>;
+  readonly accountStatsSection: React.ComponentType<GameAccountStatsProps>;
   readonly createRoomAdapter: (session: RoomSession<TState>) => RoomUiAdapter<TState>;
 }
 ```
 
 首页 mode option、generic host screen 和 room resolver 都从这个 catalog 生成。未知 ID 显示明确错误并上报 telemetry，绝不导航到狼人杀。
+`GET /api/games/:gameType/users/:userId/stats` 只负责认证、解析 canonical game type 和 catalog dispatch；
+统计查询、响应类型与严格 parser 由对应 Worker/game-engine module 所有。`/api/user/stats` 与
+`/api/user/:userId/profile` 不携带任何具体游戏字段。
 
 ## 12. Durable Object 持久化
 
@@ -1802,7 +1811,7 @@ pnpm run e2e
 | Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                 | -                                                       |
 | Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event | -                                                       |
 | Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation        | -                                                       |
-| Phase 5   | 进行中 | shared shell/controllers、profile cutover、Werewolf room 归位、seat interaction gate   | shared DTO/命名中性化、entry/session 下沉               |
+| Phase 5   | 进行中 | shared shell/controllers、profile/progress/seat contract 中性化、Werewolf room 归位    | entry/session/transport 下沉                            |
 | Phase 6-8 | 未开始 | -                                                                                      | Fib engine/UI、清理                                     |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
@@ -1976,6 +1985,30 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - 浏览器 interaction gate 原样通过 4/4：手动入座并打开本人 profile、房主直接移出、原子换座、本人离座。
   首次运行复用旧 Metro 时首页 bundle 返回 HTTP 500；没有修改 timeout/helper，bundle 重建后同一测试和
   完整四条均通过。成功截图已检查 header、配置区、六列 seat board 和 bottom panel 几何。
-- Phase 1/5 仍未完成：shared profile DTO 仍携带 `campStats/roleRevealEffect`，progress/seat tile 内部还存在
-  `night/role/wolfVote` 命名；auth entry、seat transport、connection status 仍由 Werewolf facade hook 承担。
-  下一批先中性化这些 shared contract，再删除 app-wide `GameFacadeContext` 的 runtime 组合方式。
+- Phase 1/5 仍未完成：auth entry、seat transport、connection status 仍由 Werewolf facade hook 承担。
+  下一批建立 shared `RoomSession`，再删除 app-wide `GameFacadeContext` 的 runtime 组合方式。
+
+### 当前提交：Phase 5 shared contract 与 game-owned public stats
+
+- `NightProgressIndicator/currentRoleName/nightProgressIndicator` 完整改为
+  `RoomProgressIndicator/currentLabel/progressIndicator`；`RoomStatusRibbonModel` 继续只接收 game adapter
+  提供的 label，不解释狼人杀 night/role。旧文件、test ID、style type 和 import 不保留 alias。
+- Shared seat contract 只暴露 `danger | selected | controlled`、`badgeText` 和 `seatPetId`。`RoomSeatTile`
+  不再出现 `wolfRing/wolfVoteBadge/playerRoleRevealEffect/colors.wolf`；Werewolf adapter 负责把
+  `isWolf/wolfVoteBadge/roleRevealEffect` 映射为中性 presentation model。
+- `/api/user/stats` 与 `/api/user/:userId/profile` 删除 `campStats`；公开 profile 的产品特效字段从
+  `roleRevealEffect` 直接切为 `revealEffect`，没有双字段读取。阵营统计迁入
+  `packages/api-worker/src/games/werewolf/publicUserStats.ts`，继续统一执行两小时可见性规则。
+- Worker module 新增必填 `parsePublicUserStats/getPublicUserStats` contract。通用
+  `/api/games/:gameType/users/:userId/stats` 在 `isGameType` 后从唯一 catalog dispatch；未知 type 返回 404，
+  module output 由 game-engine `parseWerewolfPublicStats` 校验 identity、四个 bucket、非负整数和总数一致性。
+- `CampDistributionBar/campVisual` 移入 `src/games/werewolf`。`GameUiModule` 必填注册
+  `accountStatsSection`，Settings 枚举 exhaustive client catalog 渲染，不 import Werewolf component，也不新增
+  game type 条件；room profile 的 extension 只接收 React content，不读取 game-specific profile DTO。
+- Architecture contract 禁止 shared room 再出现 `campStats`、`roleRevealEffect`、`wolfVoteBadge`、
+  `wolfRing`、`NightProgressIndicator` 或 `currentRoleName`。全仓旧路径和 shared semantic 扫描为零。
+- 定向验证：root typecheck、game-engine build 通过；game-engine 1 suite/5 tests、api-worker 12 files/90
+  tests、root 12 suites/456 tests 全部通过。单独 api-worker `tsc --noEmit` 被该 package 现有 TypeScript 6
+  `baseUrl` deprecation gate 拒绝；未添加 ignore flag，最终以标准 `pnpm run quality` 验收。
+- Phase 5 下一批：把 auth/entry/connection/seat command 下沉为 shared `RoomSession`，删除
+  `useWerewolfRoomLifecycle` 中的平台职责和 root `useConnectionStatus` 的 `IGameFacade` 绑定。

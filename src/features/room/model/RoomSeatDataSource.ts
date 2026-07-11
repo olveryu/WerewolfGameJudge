@@ -11,7 +11,7 @@ export interface RoomSeatPlayer {
   readonly seatFlair?: string;
   readonly seatAnimation?: string;
   readonly nameStyle?: string;
-  readonly roleRevealEffect?: string;
+  readonly seatPetId?: string;
   readonly level?: number;
   readonly isAnonymous: boolean;
 }

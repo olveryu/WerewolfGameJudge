@@ -1,42 +1,42 @@
 /**
- * NightProgressIndicator Memo Performance Tests
+ * RoomProgressIndicator Memo Performance Tests
  *
- * Verifies that NightProgressIndicator (memo'd) only re-renders
+ * Verifies that RoomProgressIndicator (memo'd) only re-renders
  * when its primitive props actually change. This component updates
- * on every night step transition — memo correctness is critical
+ * on every game step transition — memo correctness is critical
  * to avoid unnecessary layout/paint during audio-sensitive gameplay.
  *
  * Key scenarios:
- * 1. Same step/total/role ⇒ no re-render
+ * 1. Same step/total/label ⇒ no re-render
  * 2. currentStep increments ⇒ re-render
- * 3. currentRoleName changes ⇒ re-render
+ * 3. currentLabel changes ⇒ re-render
  * 4. styles reference unchanged ⇒ no re-render contribution
  */
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
-import { NightProgressIndicator } from '@/features/room/components/NightProgressIndicator';
+import { RoomProgressIndicator } from '@/features/room/components/RoomProgressIndicator';
 import {
   createRoomFeatureStyles,
-  type NightProgressIndicatorStyles,
+  type RoomProgressIndicatorStyles,
 } from '@/features/room/components/styles';
 import { colors } from '@/theme';
 
 // ─── Setup ──────────────────────────────────────────────────────────────────────────
 
 const componentStyles = createRoomFeatureStyles(colors);
-const indicatorStyles: NightProgressIndicatorStyles = componentStyles.nightProgressIndicator;
+const indicatorStyles: RoomProgressIndicatorStyles = componentStyles.progressIndicator;
 
 let renderCount = 0;
 
 const TrackedIndicator: React.FC<{
   currentStep: number;
   totalSteps: number;
-  currentRoleName?: string;
-  styles: NightProgressIndicatorStyles;
+  currentLabel?: string;
+  styles: RoomProgressIndicatorStyles;
 }> = (props) => {
   renderCount++;
-  return <NightProgressIndicator {...props} />;
+  return <RoomProgressIndicator {...props} />;
 };
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -45,13 +45,13 @@ beforeEach(() => {
   renderCount = 0;
 });
 
-describe('NightProgressIndicator memo optimization', () => {
+describe('RoomProgressIndicator memo optimization', () => {
   it('should render once on initial mount', () => {
     render(
       <TrackedIndicator
         currentStep={1}
         totalSteps={5}
-        currentRoleName="狼人"
+        currentLabel="狼人"
         styles={indicatorStyles}
       />,
     );
@@ -63,7 +63,7 @@ describe('NightProgressIndicator memo optimization', () => {
     const props = {
       currentStep: 1,
       totalSteps: 5,
-      currentRoleName: '狼人',
+      currentLabel: '狼人',
       styles: indicatorStyles,
     };
 
@@ -80,7 +80,7 @@ describe('NightProgressIndicator memo optimization', () => {
       <TrackedIndicator
         currentStep={1}
         totalSteps={5}
-        currentRoleName="狼人"
+        currentLabel="狼人"
         styles={indicatorStyles}
       />,
     );
@@ -90,19 +90,19 @@ describe('NightProgressIndicator memo optimization', () => {
       <TrackedIndicator
         currentStep={2}
         totalSteps={5}
-        currentRoleName="女巫"
+        currentLabel="女巫"
         styles={indicatorStyles}
       />,
     );
     expect(renderCount).toBe(2);
   });
 
-  it('should re-render when currentRoleName changes', () => {
+  it('should re-render when currentLabel changes', () => {
     const { rerender } = render(
       <TrackedIndicator
         currentStep={2}
         totalSteps={5}
-        currentRoleName="狼人"
+        currentLabel="狼人"
         styles={indicatorStyles}
       />,
     );
@@ -112,7 +112,7 @@ describe('NightProgressIndicator memo optimization', () => {
       <TrackedIndicator
         currentStep={2}
         totalSteps={5}
-        currentRoleName="预言家"
+        currentLabel="预言家"
         styles={indicatorStyles}
       />,
     );
@@ -121,10 +121,10 @@ describe('NightProgressIndicator memo optimization', () => {
 
   it('should display correct progress text', () => {
     const { getByText } = render(
-      <NightProgressIndicator
+      <RoomProgressIndicator
         currentStep={3}
         totalSteps={7}
-        currentRoleName="守卫"
+        currentLabel="守卫"
         styles={indicatorStyles}
       />,
     );
@@ -135,7 +135,7 @@ describe('NightProgressIndicator memo optimization', () => {
 
   it('should handle edge case: step 0 / total 0', () => {
     const { getByText } = render(
-      <NightProgressIndicator currentStep={0} totalSteps={0} styles={indicatorStyles} />,
+      <RoomProgressIndicator currentStep={0} totalSteps={0} styles={indicatorStyles} />,
     );
 
     expect(getByText('第0步 / 共0步')).toBeTruthy();

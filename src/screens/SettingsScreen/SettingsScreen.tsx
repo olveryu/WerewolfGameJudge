@@ -20,6 +20,7 @@ import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useGameFacade } from '@/contexts/GameFacadeContext';
+import { getClientGameModules } from '@/games/catalog';
 import {
   useChangePassword,
   useSignInAnonymously,
@@ -52,6 +53,8 @@ import {
   GrowthSection,
   NameSection,
 } from './components';
+
+const gameModules = getClientGameModules();
 
 /** Settings screen. */
 export const SettingsScreen: React.FC = () => {
@@ -397,12 +400,18 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           {/* Growth — full width below profile row */}
-          {growthStats && (
-            <GrowthSection
-              stats={growthStats}
-              styles={styles}
-              onPressUnlocks={handleNavigateUnlocks}
-            />
+          {growthStats && user && (
+            <>
+              <GrowthSection
+                stats={growthStats}
+                styles={styles}
+                onPressUnlocks={handleNavigateUnlocks}
+              />
+              {gameModules.map((gameModule) => {
+                const AccountStatsSection = gameModule.accountStatsSection;
+                return <AccountStatsSection key={gameModule.gameType} userId={user.id} />;
+              })}
+            </>
           )}
 
           {/* Zone 2: Dresser entry */}

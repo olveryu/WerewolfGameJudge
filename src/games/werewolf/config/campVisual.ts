@@ -1,11 +1,11 @@
 /**
  * campVisual — camp bucket display metadata (label, emoji, color).
  *
- * Shared by CampDistributionBar (SettingsScreen growth section + room PlayerProfileCard).
+ * Owned by the Werewolf account and room profile extensions.
  * Colors reference the shared theme camp palette (colors.wolf / god / villager / third),
  * keeping camp coloring consistent with the encyclopedia and seat UI.
  */
-import type { CampBucket } from '@werewolf/game-engine/models/roles';
+import type { WerewolfCampStats } from '@werewolf/game-engine/games/werewolf/public';
 
 import { colors } from '@/theme';
 
@@ -18,7 +18,7 @@ interface CampVisual {
   color: string;
 }
 
-export const CAMP_VISUAL: Record<CampBucket, CampVisual> = {
+export const CAMP_VISUAL: Record<keyof WerewolfCampStats['counts'], CampVisual> = {
   wolf: { label: '狼人', emoji: '🐺', color: colors.wolf },
   god: { label: '神', emoji: '✨', color: colors.god },
   villager: { label: '平民', emoji: '🧑', color: colors.villager },

@@ -15,7 +15,12 @@ export interface GameRoomScreenProps {
   readonly navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
 }
 
+export interface GameAccountStatsProps {
+  readonly userId: string;
+}
+
 export interface GameUiModule<TGameType extends GameType = GameType> {
   readonly gameType: TGameType;
   readonly roomScreen: React.ComponentType<GameRoomScreenProps>;
+  readonly accountStatsSection: React.ComponentType<GameAccountStatsProps>;
 }

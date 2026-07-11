@@ -94,7 +94,7 @@ export const RoomShell: React.FC<RoomShellProps> = ({
         status={model.statusRibbon}
         styles={componentStyles.statusRibbon}
         connectionStatusBarStyles={componentStyles.connectionStatusBar}
-        nightProgressIndicatorStyles={componentStyles.nightProgressIndicator}
+        progressIndicatorStyles={componentStyles.progressIndicator}
         hostGuideBannerStyles={componentStyles.hostGuideBanner}
       />
 

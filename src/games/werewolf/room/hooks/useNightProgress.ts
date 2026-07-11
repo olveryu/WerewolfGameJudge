@@ -35,7 +35,7 @@ interface UseNightProgressParams {
 }
 
 interface UseNightProgressResult {
-  /** Night progress info for NightProgressIndicator, null when not applicable */
+  /** Werewolf night progress mapped into the shared room progress model. */
   nightProgress: NightProgressInfo | null;
 }
 

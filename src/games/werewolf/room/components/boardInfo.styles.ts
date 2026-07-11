@@ -1,5 +1,5 @@
 /**
- * BoardInfoCard + NightProgressIndicator styles.
+ * BoardInfoCard styles.
  */
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 

@@ -2,8 +2,6 @@
 
 import type React from 'react';
 
-import type { UserPublicProfile } from '@/services/feature/StatsService';
-
 import type { RoomProfileTarget } from './RoomCapabilities';
 
 export interface RoomProfileCardModel {
@@ -15,6 +13,6 @@ export interface RoomProfileCardModel {
   readonly resolveBuiltinAvatarName: (avatarId: string) => string;
   readonly gameDetails: {
     readonly title: string;
-    readonly render: (profile: UserPublicProfile) => React.ReactNode;
+    readonly content: React.ReactElement;
   } | null;
 }

@@ -2,7 +2,7 @@
  * HostGuideBanner — Contextual hint bar shown only to the Host.
  *
  * Displays a single-line guide message at each game phase, telling the Host
- * what to do next. Renders between NightProgressIndicator and ControlledSeatBanner.
+ * what to do next. Renders between RoomProgressIndicator and ControlledSeatBanner.
  * Returns null when message is empty (e.g. during Ongoing phase).
  */
 import Ionicons from '@expo/vector-icons/Ionicons';

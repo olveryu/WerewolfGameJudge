@@ -1,15 +1,31 @@
-/** Werewolf-only extension rendered inside the shared player profile card. */
+/** Werewolf-only statistics rendered inside the shared player profile card. */
 
 import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
+import type React from 'react';
+import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 
-import { CampDistributionBar } from '@/components/CampDistributionBar';
-import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
+import { useWerewolfPublicStats } from '@/games/werewolf/hooks/useWerewolfPublicStats';
+import { colors, spacing, typography } from '@/theme';
 
-export const WEREWOLF_PROFILE_GAME_DETAILS = {
-  title: '阵营分布',
-  render: (profile) => <CampDistributionBar campStats={profile.campStats} compact />,
-} satisfies NonNullable<RoomProfileCardModel['gameDetails']>;
+import { CampDistributionBar } from './CampDistributionBar';
+
+export const WerewolfProfileDetails: React.FC<{ readonly userId: string }> = ({ userId }) => {
+  const { data, isPending, isError } = useWerewolfPublicStats(userId);
+
+  if (isPending) return <ActivityIndicator color={colors.primary} />;
+  if (isError) return <Text style={styles.errorText}>阵营统计加载失败</Text>;
+  return <CampDistributionBar campStats={data.campStats} compact />;
+};
 
 export function resolveWerewolfBuiltinAvatarName(avatarId: string): string {
   return getRoleDisplayName(avatarId);
 }
+
+const styles = StyleSheet.create({
+  errorText: {
+    paddingVertical: spacing.small,
+    fontSize: typography.caption,
+    lineHeight: typography.lineHeights.caption,
+    color: colors.error,
+  },
+});

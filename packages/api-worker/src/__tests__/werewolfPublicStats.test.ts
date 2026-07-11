@@ -1,8 +1,7 @@
 /**
- * Camp statistics — integration tests
+ * Werewolf public statistics — integration tests
  *
- * Verifies GET /api/user/stats (self, immediate) vs GET /api/user/:userId/profile
- * (public, 2h-delayed) camp distribution, focusing on the anti-cheat visibility boundary.
+ * Verifies the game-routed stats endpoint and its two-hour anti-cheat visibility boundary.
  * Runs in Workers runtime via @cloudflare/vitest-pool-workers with D1.
  */
 
@@ -30,8 +29,11 @@ async function getJson(path: string, token: string): Promise<Response> {
 }
 
 interface CampStatsResponse {
+  gameType: 'werewolf';
   campStats: { total: number; counts: Record<string, number> };
 }
+
+const werewolfStatsPath = `/api/games/werewolf/users/${TARGET_USER_ID}/stats`;
 
 beforeAll(async () => {
   await bootstrapTestSchema(env.DB);
@@ -72,9 +74,10 @@ describe('camp statistics visibility', () => {
     await insertCampRow(TARGET_USER_ID, 'r1:0', 'wolf', 1); // 1 min ago → hidden
     await insertCampRow(TARGET_USER_ID, 'r2:0', 'god', 200); // >2h ago → visible
 
-    const res = await getJson('/api/user/stats', await mintToken(TARGET_USER_ID));
+    const res = await getJson(werewolfStatsPath, await mintToken(TARGET_USER_ID));
     expect(res.status).toBe(200);
     const body = await res.json<CampStatsResponse>();
+    expect(body.gameType).toBe('werewolf');
     expect(body.campStats.total).toBe(1);
     expect(body.campStats.counts.god).toBe(1);
     expect(body.campStats.counts.wolf).toBe(0);
@@ -84,10 +87,7 @@ describe('camp statistics visibility', () => {
     await insertCampRow(TARGET_USER_ID, 'r1:0', 'wolf', 119); // 1h59m ago → hidden
     await insertCampRow(TARGET_USER_ID, 'r2:0', 'god', 121); // 2h01m ago → visible
 
-    const res = await getJson(
-      `/api/user/${TARGET_USER_ID}/profile`,
-      await mintToken(VIEWER_USER_ID),
-    );
+    const res = await getJson(werewolfStatsPath, await mintToken(VIEWER_USER_ID));
     expect(res.status).toBe(200);
     const body = await res.json<CampStatsResponse>();
     expect(body.campStats.total).toBe(1);
@@ -98,15 +98,35 @@ describe('camp statistics visibility', () => {
   it('public view counts a game once it crosses the 2 hour boundary', async () => {
     await insertCampRow(TARGET_USER_ID, 'r1:0', 'villager', 121); // 2h01m ago → visible
 
-    const selfRes = await getJson('/api/user/stats', await mintToken(TARGET_USER_ID));
-    const publicRes = await getJson(
-      `/api/user/${TARGET_USER_ID}/profile`,
-      await mintToken(VIEWER_USER_ID),
-    );
+    const selfRes = await getJson(werewolfStatsPath, await mintToken(TARGET_USER_ID));
+    const publicRes = await getJson(werewolfStatsPath, await mintToken(VIEWER_USER_ID));
     const selfBody = await selfRes.json<CampStatsResponse>();
     const publicBody = await publicRes.json<CampStatsResponse>();
 
     expect(selfBody.campStats.counts.villager).toBe(1);
     expect(publicBody.campStats.counts.villager).toBe(1);
+  });
+
+  it('keeps platform profile and growth payloads free of game statistics', async () => {
+    const token = await mintToken(TARGET_USER_ID);
+    const profileRes = await getJson(`/api/user/${TARGET_USER_ID}/profile`, token);
+    const growthRes = await getJson('/api/user/stats', token);
+    const profileBody = await profileRes.json<Record<string, unknown>>();
+    const growthBody = await growthRes.json<Record<string, unknown>>();
+
+    expect(profileBody).not.toHaveProperty('campStats');
+    expect(growthBody).not.toHaveProperty('campStats');
+  });
+
+  it('rejects an unregistered game type before module dispatch', async () => {
+    const res = await getJson(
+      `/api/games/unregistered/users/${TARGET_USER_ID}/stats`,
+      await mintToken(VIEWER_USER_ID),
+    );
+    expect(res.status).toBe(404);
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      reason: 'GAME_TYPE_NOT_FOUND',
+    });
   });
 });
