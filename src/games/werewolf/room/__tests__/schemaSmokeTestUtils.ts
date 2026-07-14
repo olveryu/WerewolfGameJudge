@@ -7,8 +7,8 @@ import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types'
 import type React from 'react';
 
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
-import type { LocalPlayer } from '@/types/GameStateTypes';
 
 type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
 

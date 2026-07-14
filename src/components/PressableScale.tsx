@@ -12,7 +12,7 @@ import { memo, useCallback } from 'react';
 import { type AccessibilityState, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
-import { triggerHaptic } from '@/components/RoleRevealEffects/utils/haptics';
+import { triggerHaptic } from '@/utils/haptics';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

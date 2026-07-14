@@ -15,7 +15,7 @@ import {
   getWolfVoteSummary,
   toGameRoomLike,
 } from '@/games/werewolf/room/werewolfRoom.helpers';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // =============================================================================
 // determineActionerState

@@ -27,8 +27,8 @@ import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { setAlertBlocked } from '@/utils/alert';
 import { gameRoomLog } from '@/utils/logger';
 

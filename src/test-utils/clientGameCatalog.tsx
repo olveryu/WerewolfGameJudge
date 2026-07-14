@@ -11,6 +11,7 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 
 const EmptyRoomScreen: React.FC<GameRoomScreenProps> = () => null;
 const EmptyAccountStatsSection: React.FC<GameAccountStatsProps> = () => null;
+const EmptyScreen: React.FC = () => null;
 
 export function createTestClientGameCatalog(client: WerewolfGameClient): ClientGameCatalog {
   return {
@@ -20,6 +21,13 @@ export function createTestClientGameCatalog(client: WerewolfGameClient): ClientG
       roomScreen: EmptyRoomScreen,
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
+      screens: {
+        boardPicker: EmptyScreen,
+        config: EmptyScreen,
+        encyclopedia: EmptyScreen,
+        rules: EmptyScreen,
+        notepad: EmptyScreen,
+      },
     },
   };
 }

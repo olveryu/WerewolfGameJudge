@@ -63,7 +63,15 @@ describe('Import Boundary Enforcement', () => {
     ];
 
     // UI directories that should NOT import resolvers
-    const uiDirs = ['components', 'screens', 'navigation', 'contexts', 'hooks'];
+    const uiDirs = [
+      'components',
+      'screens',
+      'navigation',
+      'contexts',
+      'hooks',
+      'features',
+      'games',
+    ];
 
     for (const uiDir of uiDirs) {
       it(`src/${uiDir}/** should not import from services/night/resolvers`, () => {
@@ -86,7 +94,7 @@ describe('Import Boundary Enforcement', () => {
           const report = allViolations
             .map((v) => `${v.file}:\n  ${v.violations.join('\n  ')}`)
             .join('\n\n');
-          fail(`Found forbidden imports from server-authority resolvers:\n\n${report}`);
+          throw new Error(`Found forbidden imports from server-authority resolvers:\n\n${report}`);
         }
       });
     }
@@ -136,7 +144,7 @@ describe('Import Boundary Enforcement', () => {
         const report = allViolations
           .map((v) => `${v.file}:\n  ${v.violations.join('\n  ')}`)
           .join('\n\n');
-        fail(`Resolvers should not import from UI directories:\n\n${report}`);
+        throw new Error(`Resolvers should not import from UI directories:\n\n${report}`);
       }
     });
   });

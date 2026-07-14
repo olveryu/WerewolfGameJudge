@@ -23,7 +23,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
 import { getClientGameModule } from '@/games/catalog';
-import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { useClientGameCatalog, useClientGameModule } from '@/games/ClientGameCatalogContext';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
@@ -31,14 +31,9 @@ import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';
 import { AuthForgotPasswordScreen } from '@/screens/AuthScreen/AuthForgotPasswordScreen';
 import { AuthLoginScreen } from '@/screens/AuthScreen/AuthLoginScreen';
 import { AuthResetPasswordScreen } from '@/screens/AuthScreen/AuthResetPasswordScreen';
-import { BoardPickerScreen } from '@/screens/BoardPickerScreen/BoardPickerScreen';
-import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
-import { EncyclopediaScreen } from '@/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { GachaScreen } from '@/screens/GachaScreen/GachaScreen';
-import { GameRulesScreen } from '@/screens/GameRulesScreen/GameRulesScreen';
 import { HomeScreen } from '@/screens/HomeScreen/HomeScreen';
 import { MusicSettingsScreen } from '@/screens/MusicSettingsScreen/MusicSettingsScreen';
-import { NotepadScreen } from '@/screens/NotepadScreen/NotepadScreen';
 import { SettingsScreen } from '@/screens/SettingsScreen/SettingsScreen';
 import { ShardExchangeScreen } from '@/screens/ShardExchangeScreen/ShardExchangeScreen';
 import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
@@ -76,6 +71,23 @@ const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Ro
   );
   return <RoomResolverScreen {...props} getGameModule={resolveGameModule} />;
 };
+
+function createWerewolfScreenRoute(
+  screenName: keyof ReturnType<typeof useClientGameModule<'werewolf'>>['screens'],
+): React.ComponentType {
+  const Route: React.FC = () => {
+    const Screen = useClientGameModule('werewolf').screens[screenName];
+    return <Screen />;
+  };
+  Route.displayName = `Werewolf${screenName}Route`;
+  return Route;
+}
+
+const WerewolfBoardPickerRoute = createWerewolfScreenRoute('boardPicker');
+const WerewolfConfigRoute = createWerewolfScreenRoute('config');
+const WerewolfEncyclopediaRoute = createWerewolfScreenRoute('encyclopedia');
+const WerewolfRulesRoute = createWerewolfScreenRoute('rules');
+const WerewolfNotepadRoute = createWerewolfScreenRoute('notepad');
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -199,12 +211,12 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         />
         <Stack.Screen
           name="BoardPicker"
-          component={BoardPickerScreen}
+          component={WerewolfBoardPickerRoute}
           options={{ title: '选择板子' }}
         />
         <Stack.Screen
           name="Config"
-          component={ConfigScreen}
+          component={WerewolfConfigRoute}
           options={{ title: '创建房间', animation: 'slide_from_bottom' }}
           getId={({ params }) => {
             if (params?.nominateMode) return 'nominate';
@@ -214,7 +226,7 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         />
         <Stack.Screen
           name="GameRules"
-          component={GameRulesScreen}
+          component={WerewolfRulesRoute}
           options={{ title: '游戏规则' }}
         />
         <Stack.Screen name="Room" component={RoomResolverRoute} options={{ title: '房间' }} />
@@ -230,12 +242,12 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         />
         <Stack.Screen
           name="Encyclopedia"
-          component={EncyclopediaScreen}
+          component={WerewolfEncyclopediaRoute}
           options={{ title: '角色图鉴', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="Notepad"
-          component={NotepadScreen}
+          component={WerewolfNotepadRoute}
           options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen

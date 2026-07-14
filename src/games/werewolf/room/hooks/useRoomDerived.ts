@@ -11,7 +11,7 @@ import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { useMemo } from 'react';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 import { buildSeatViewModels, getRoleStats } from '../werewolfRoom.helpers';
 

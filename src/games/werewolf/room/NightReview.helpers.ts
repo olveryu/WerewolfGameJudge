@@ -13,7 +13,7 @@ import { Team } from '@werewolf/game-engine/models/roles/spec/types';
 import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Death reason labels

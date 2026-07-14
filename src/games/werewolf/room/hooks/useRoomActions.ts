@@ -24,7 +24,7 @@ import {
 import { useCallback, useMemo } from 'react';
 
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 import { type BottomActionVM, buildBottomAction } from './bottomActionBuilder';
 

@@ -16,7 +16,7 @@ import {
 } from '@werewolf/game-engine/models/roles/spec';
 import { useMemo } from 'react';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 interface WerewolfNightDerivedValues {
   /** Current action role derived from NightPlan */

@@ -22,13 +22,13 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
+import { getNotepadStorageKey } from '@/games/werewolf/hooks/useNotepad';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
-import { getNotepadStorageKey } from '@/hooks/useNotepad';
 import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';

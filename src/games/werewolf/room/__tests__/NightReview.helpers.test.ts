@@ -5,7 +5,7 @@ import { getRoleDisplayName, ROLE_SPECS } from '@werewolf/game-engine/models/rol
 import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec/nightSteps';
 import type { RoleSpec } from '@werewolf/game-engine/models/roles/spec/roleSpec.types';
 
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 import { buildActionLines, buildIdentityLines, buildNightReviewData } from '../NightReview.helpers';
 

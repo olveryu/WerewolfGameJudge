@@ -9,8 +9,8 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useRef, useState } from 'react';
 
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import type { RootStackParamList } from '@/navigation/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
 import { CANCEL_BUTTON, showAlert } from '@/utils/alert';
 import { showConfirmAlert, showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';

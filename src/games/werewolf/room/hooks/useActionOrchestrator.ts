@@ -26,7 +26,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useWerewolfAckMutation } from '@/games/werewolf/hooks/useWerewolfAckMutation';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 

@@ -12,7 +12,7 @@ import type { SchemaId } from '@werewolf/game-engine/models/roles';
 import { buildNightPlan, getRoleDisplayAs, getRoleSpec } from '@werewolf/game-engine/models/roles';
 import { useMemo } from 'react';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

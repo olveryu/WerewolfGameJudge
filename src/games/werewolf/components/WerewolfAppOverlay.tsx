@@ -3,8 +3,8 @@
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type React from 'react';
 
-import { AIChatBubble } from '@/components/AIChatBubble';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import { AIChatBubble } from '@/games/werewolf/components/AIChatBubble';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 
 interface WerewolfAppOverlayProps {

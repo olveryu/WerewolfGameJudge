@@ -9,8 +9,8 @@ import type React from 'react';
 import { memo, useEffect, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import { FactionChip } from '@/components/FactionChip';
 import { UI_ICONS } from '@/config/iconTokens';
+import { FactionChip } from '@/games/werewolf/components/FactionChip';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import type { RoleDisplayItem } from '../werewolfRoom.helpers';

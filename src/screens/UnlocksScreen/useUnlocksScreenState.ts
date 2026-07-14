@@ -24,8 +24,8 @@ import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { compareByRarity } from '@/config/rarityVisual';
+import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 

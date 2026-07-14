@@ -24,7 +24,7 @@ import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
 import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
 import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 /**
  * Convert Player + RosterEntry to LocalPlayer

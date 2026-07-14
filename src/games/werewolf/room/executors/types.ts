@@ -18,7 +18,7 @@ import type { MutableRefObject } from 'react';
 
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';
 import type { UseRoomActionDialogsResult } from '@/games/werewolf/room/useRoomActionDialogs';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 type AckResult = ActionResult;
 

@@ -15,7 +15,7 @@ import { getSchema } from '@werewolf/game-engine/models/roles/spec';
 
 import type { GameContext } from '@/games/werewolf/room/hooks/useRoomActions';
 import { useRoomActions } from '@/games/werewolf/room/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 function makeContext(overrides: Partial<GameContext> = {}): GameContext {
   const base: GameContext = {

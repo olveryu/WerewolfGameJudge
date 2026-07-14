@@ -23,7 +23,7 @@ import {
   type InteractionEvent,
 } from '@/games/werewolf/room/policy';
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { showDismissAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';

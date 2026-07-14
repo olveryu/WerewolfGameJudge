@@ -18,7 +18,7 @@ import { useCallback } from 'react';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 export interface WerewolfDebugModeState {
   /** Which bot seat the Host is currently controlling (null = normal mode) */

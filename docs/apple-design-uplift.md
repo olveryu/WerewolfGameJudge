@@ -126,7 +126,7 @@ screenPaddingH: spacing.screenH,  // 20 (was spacing.medium = 16)
 - `src/screens/HomeScreen/components/styles.ts` — `userBar.marginHorizontal`, `menu.marginHorizontal`
 - `src/games/werewolf/room/WerewolfRoomScreen.styles.ts` — `header.paddingHorizontal`, `scrollContent.padding`
 - `src/features/room/components/styles.ts` — multiple `marginHorizontal: spacing.medium`
-- `src/screens/ConfigScreen/components/styles.ts` — header, cardA, cardB
+- `src/games/werewolf/screens/ConfigScreen/components/styles.ts` — header, cardA, cardB
 - `src/screens/SettingsScreen/components/styles.ts` — card outer margin
 
 **Risk:** Spacing increases 4px, may be slightly tight on small screens (320px). Verify iPhone SE layout. Rollback: change `screenH` back to `spacing.medium`.
@@ -142,7 +142,7 @@ screenPaddingH: spacing.screenH,  // 20 (was spacing.medium = 16)
 **Affected files:**
 
 - `src/screens/HomeScreen/components/styles.ts` — `primaryButton` from `borderRadius.medium` → `borderRadius.full`
-- `src/screens/ConfigScreen/components/styles.ts` — `bottomCreateBtn` already `borderRadius.full`, unchanged
+- `src/games/werewolf/screens/ConfigScreen/components/styles.ts` — `bottomCreateBtn` already `borderRadius.full`, unchanged
 - `src/features/room/components/styles.ts` — already `borderRadius.full`, unchanged
 - `src/screens/SettingsScreen/components/styles.ts` — `logoutBtn` from `borderRadius.medium` → `borderRadius.full`
 
@@ -296,7 +296,7 @@ import { BlurView } from 'expo-blur';
 
 ### 3.3 ConfigScreen FactionTabs → Segmented Control Style
 
-**File:** `src/screens/ConfigScreen/components/FactionTabs.tsx` + `styles.ts`
+**File:** `src/games/werewolf/screens/ConfigScreen/components/FactionTabs.tsx` + `styles.ts`
 
 **Approach:** 当前是底部下划线指示器 → 改为 iOS Segmented Control 样式：
 

@@ -14,7 +14,7 @@ import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolf
 import type { WerewolfDebugModeState } from '@/games/werewolf/hooks/useWerewolfDebugMode';
 import { useWerewolfGameActions } from '@/games/werewolf/hooks/useWerewolfGameActions';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // Mock showAlert
 const mockShowAlert = jest.fn<void, [string, string]>();

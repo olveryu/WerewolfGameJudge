@@ -33,7 +33,15 @@ const ALLOWED_PATTERNS = [
 ];
 
 // Directories to scan
-const SCAN_DIRS = ['src/screens', 'src/services', 'src/hooks', 'src/contexts', 'src/components'];
+const SCAN_DIRS = [
+  'src/screens',
+  'src/services',
+  'src/hooks',
+  'src/contexts',
+  'src/components',
+  'src/features',
+  'src/games',
+];
 
 describe('Math.random() 禁止规则', () => {
   it('业务代码中不应直接使用 Math.random()', async () => {

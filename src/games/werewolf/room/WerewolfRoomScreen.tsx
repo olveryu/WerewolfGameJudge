@@ -17,11 +17,8 @@ import { View } from 'react-native';
 import { toast } from 'sonner-native';
 
 import { AlertModal } from '@/components/AlertModal';
-import { BOARD_STRATEGY, BoardStrategyModal } from '@/components/BoardStrategy';
 import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
-import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useSkiaShaderWarmup } from '@/components/SkiaShaderWarmup';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomShell } from '@/features/room/components/RoomShell';
@@ -29,11 +26,16 @@ import type { RoomEntryController } from '@/features/room/controllers/useRoomEnt
 import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { RoomHeaderMenuItem, RoomShellModel } from '@/features/room/model/RoomShellModel';
+import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
+import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
 import {
   resolveWerewolfBuiltinAvatarName,
   WerewolfProfileDetails,
 } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfControlledSeatModel,
@@ -41,10 +43,8 @@ import {
   createWerewolfStatusRibbon,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
-import { askAIAboutRole } from '@/utils/aiChatBridge';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';
 

@@ -12,7 +12,7 @@ import { createSeededRng } from '@werewolf/game-engine/utils/random';
 import { useEffect, useRef, useState } from 'react';
 
 import { STATUS } from '@/config/emojiTokens';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 import { generateSpeakOrder } from '../useRoomHostDialogs';
 

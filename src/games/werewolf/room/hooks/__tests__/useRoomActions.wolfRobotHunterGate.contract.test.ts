@@ -12,7 +12,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
 import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // Helper to create minimal game state
 function createMinimalState(overrides?: Partial<LocalGameState>): LocalGameState {

@@ -17,12 +17,12 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
-import type { RevealEffectType } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import { useClientGameModule } from '@/games/ClientGameCatalogContext';
+import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import type { RevealEffectType } from '@/games/werewolf/components/RoleRevealEffects';
 import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
 import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';

@@ -18,10 +18,10 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
-import { FactionRoleList } from '@/components/FactionRoleList';
-import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
+import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
+import { computeFactionStats } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
   colors,

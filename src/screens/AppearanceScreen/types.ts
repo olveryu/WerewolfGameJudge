@@ -6,8 +6,8 @@ import type {
 } from '@werewolf/game-engine/growth/rewardCatalog';
 
 import type { FrameId } from '@/components/avatarFrames';
-import { createRoleData } from '@/components/RoleRevealEffects';
 import type { FlairId } from '@/components/seatFlairs';
+import { createRoleData } from '@/games/werewolf/components/RoleRevealEffects';
 
 /** Number of columns in the avatar grid. */
 export const NUM_COLUMNS = 4;

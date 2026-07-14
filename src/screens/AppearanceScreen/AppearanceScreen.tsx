@@ -22,8 +22,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
-import { RoleRevealAnimator } from '@/components/RoleRevealEffects';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { RoleRevealAnimator } from '@/games/werewolf/components/RoleRevealEffects';
 import { colors, componentSizes } from '@/theme';
 import { getHandDrawnImage } from '@/utils/avatar';
 

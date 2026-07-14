@@ -1804,15 +1804,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                  | 尚未完成                                         |
-| --------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                                |
-| Phase 1   | 进行中 | canonical identity、版本化 codec、shared roster、单一 session factory 与 client catalog | config/notepad/AI chat 归位、边界 exception 清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                                |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                                |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                                |
-| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位 | -                                                |
-| Phase 6-8 | 未开始 | -                                                                                       | Fib engine/UI、清理                              |
+| 阶段      | 状态   | 已完成                                                                                       | 尚未完成                                          |
+| --------- | ------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                         | -                                                 |
+| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf screens/components/services 归位 | Home/navigation、profile/cosmetics/audio 边界清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                       | -                                                 |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event       | -                                                 |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation              | -                                                 |
+| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位      | -                                                 |
+| Phase 6-8 | 未开始 | -                                                                                            | Fib engine/UI、清理                               |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2080,3 +2080,24 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   188 suites/4984 tests、game-engine 83 suites/2393 tests、api-worker 12 files/90 tests 全部通过。
 - Phase 1 仍进行中：Config、Notepad、AI chat 文件本体与 role UI 仍需归入 Werewolf slice，Settings/Appearance
   还需改用 game-neutral active-room profile capability；完成这些边界后才能开始 Fib 原子 vertical slice。
+
+### 当前提交：Phase 1 Werewolf UI 与 client service 所有权归位
+
+- `BoardPickerScreen`、`ConfigScreen`、`EncyclopediaScreen`、`GameRulesScreen`、`NotepadScreen` 连同测试完整
+  移入 `src/games/werewolf/screens/`。根 `src/screens/` 只保留产品页面；旧目录不存在，也没有 index 转发或
+  navigation compatibility route。
+- AI chat、board strategy、faction UI、notepad panel、role card/description、role reveal effects、shader warmup
+  与 reveal animation registry 全部移入 `src/games/werewolf/components/`。AI chat service/bridge 与 notepad hook
+  分别归入 game-owned `services/`、`hooks/`；`LocalGameState` 从根 `src/types` 归入 Werewolf state。
+- `triggerHaptic` 与 native capability detection 不含游戏语义，抽到产品级 `src/utils/haptics*.ts`；
+  `PressableScale`、AI chat 与 role reveal 共用该实现，shared/product component 不反向 import game slice。
+- Config 与 Notepad 不再从 `ClientGameCatalogContext` 查找自己的 runtime。Werewolf module 显式绑定同一个
+  client 并注册 screen contribution；AppNavigator 只读取 module registration，不直接 import concrete screen。
+- Architecture contract 锁定所有旧 screen/component/hook/service/type 路径必须不存在，并禁止根
+  `src/components` import game module 或 concrete game-engine API。random、responsive layout、hardcoded style 与
+  resolver authority 扫描都覆盖 `src/games`/`src/features`，目录移动不会降低测试覆盖。
+- 定向验证：typecheck 通过；5 个 architecture/style suites 共 1084 tests、14 个移动后的 Config/AI chat/
+  role reveal/component/service suites 共 171 tests 全部通过。
+- Phase 1 仍进行中：Home 和 navigation param 仍含 Werewolf 模板/角色语义；Settings/Appearance/Gacha/Unlocks
+  仍需通过 game-neutral profile/cosmetic contribution；AudioService registry、avatar role projection、role badge 与
+  root engine integration tests 仍需按所有权收口。

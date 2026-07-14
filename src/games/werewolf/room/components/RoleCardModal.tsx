@@ -24,15 +24,15 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
-import { RoleCardSimple } from '@/components/RoleCardSimple';
+import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import {
   createRoleData,
   type RevealEffectType,
   type RoleData,
   RoleRevealAnimator,
-} from '@/components/RoleRevealEffects';
-import { isAIChatReady } from '@/services/feature/AIChatService';
-import { askAIAboutRole } from '@/utils/aiChatBridge';
+} from '@/games/werewolf/components/RoleRevealEffects';
+import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
+import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
 import { getRoleAvatar } from '@/utils/avatar';
 import { log } from '@/utils/logger';
 

@@ -27,7 +27,7 @@ import {
   isBottomCardWolfVoteExcluded,
 } from '@werewolf/game-engine/utils/playerHelpers';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // =============================================================================
 // Types

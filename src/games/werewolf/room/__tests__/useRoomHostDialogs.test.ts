@@ -8,7 +8,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { useRoomHostDialogs } from '@/games/werewolf/room/useRoomHostDialogs';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { showAlert } from '@/utils/alert';
 
 // Mock showAlert

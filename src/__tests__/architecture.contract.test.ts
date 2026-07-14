@@ -41,6 +41,7 @@ function getAllProductionFiles(dir: string): string[] {
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
 const screensDir = path.join(process.cwd(), 'src', 'screens');
+const productComponentsDir = path.join(process.cwd(), 'src', 'components');
 const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
 const gamesDir = path.join(process.cwd(), 'src', 'games');
 const werewolfClientDir = path.join(gamesDir, 'werewolf');
@@ -49,6 +50,7 @@ const srcDir = path.join(process.cwd(), 'src');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 
 const screensFiles = getAllProductionFiles(screensDir);
+const productComponentFiles = getAllProductionFiles(productComponentsDir);
 const sharedRoomFiles = getAllProductionFiles(sharedRoomDir);
 const werewolfClientFiles = getAllProductionFiles(werewolfClientDir);
 const servicesFiles = getAllProductionFiles(servicesDir);
@@ -126,6 +128,25 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
   });
 });
 
+describe('Layer boundary: product components → game-specific code (forbidden)', () => {
+  it('should find product component files to check', () => {
+    expect(productComponentFiles.length).toBeGreaterThan(0);
+  });
+
+  const forbiddenImports = [
+    /^\s*import\b.*from\s+['"]@\/games\//m,
+    /^\s*import\b.*from\s+['"]@werewolf\/game-engine['"]/m,
+    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(?!(?:platform|growth)\/)/m,
+  ];
+
+  it.each(productComponentFiles)('%s must not import a game implementation', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    for (const pattern of forbiddenImports) {
+      expect(content.match(pattern)).toBeNull();
+    }
+  });
+});
+
 describe('Layer boundary: game modules are isolated', () => {
   it('should find Werewolf client files to check', () => {
     expect(werewolfClientFiles.length).toBeGreaterThan(0);
@@ -168,6 +189,26 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/games/werewolf/hooks/useWerewolfRoomLifecycle.ts',
     'src/games/werewolf/room/components/AuthGateOverlay.tsx',
     'src/games/werewolf/room/components/WxAuthFailedOverlay.tsx',
+    'src/screens/BoardPickerScreen',
+    'src/screens/ConfigScreen',
+    'src/screens/EncyclopediaScreen',
+    'src/screens/GameRulesScreen',
+    'src/screens/NotepadScreen',
+    'src/components/AIChatBubble',
+    'src/components/BoardStrategy',
+    'src/components/FactionChip.tsx',
+    'src/components/FactionRoleList.tsx',
+    'src/components/NotepadPanel.tsx',
+    'src/components/RoleCardSimple.tsx',
+    'src/components/RoleDescriptionView.tsx',
+    'src/components/RoleRevealEffects',
+    'src/components/SettingsSheet',
+    'src/components/SkiaShaderWarmup.tsx',
+    'src/components/roleDisplayUtils.ts',
+    'src/hooks/useNotepad.ts',
+    'src/services/feature/AIChatService.ts',
+    'src/types/GameStateTypes.ts',
+    'src/utils/aiChatBridge.ts',
   ];
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {

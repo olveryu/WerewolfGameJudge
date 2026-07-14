@@ -21,7 +21,7 @@ import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
+import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
 import { borderRadius, colors } from '@/theme';
 import { getAvatarThumbByIndex, HAND_DRAWN_KEYS } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';

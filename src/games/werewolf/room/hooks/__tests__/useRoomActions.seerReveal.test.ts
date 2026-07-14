@@ -7,7 +7,7 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { type ActionSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 
 import { useRoomActions } from '@/games/werewolf/room/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 const makeGameState = (): LocalGameState => ({
   ...WEREWOLF_STATE_IDENTITY,

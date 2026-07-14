@@ -23,7 +23,7 @@ import { toast } from 'sonner-native';
 import { NETWORK_ERROR, SERVER_ERROR } from '@/config/errorMessages';
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { translateReasonCode } from '@/utils/errorUtils';
 

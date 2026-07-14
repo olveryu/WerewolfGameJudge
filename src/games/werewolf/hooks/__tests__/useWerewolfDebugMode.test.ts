@@ -4,7 +4,7 @@ import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import { useWerewolfDebugMode } from '@/games/werewolf/hooks/useWerewolfDebugMode';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
+import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
 function createMockFacade(): WerewolfGameClient {
   return {

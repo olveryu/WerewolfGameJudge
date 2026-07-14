@@ -9,7 +9,7 @@ import type { WerewolfActionInput } from '@werewolf/game-engine';
 import type { RevealKind } from '@werewolf/game-engine/models/roles';
 import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
 
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reveal: GameState field access

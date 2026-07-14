@@ -6,8 +6,8 @@ import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
 import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
+import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 import { TESTIDS } from '@/testids';
-import type { LocalPlayer } from '@/types/GameStateTypes';
 // We assert on showAlert calls (WerewolfRoomScreen uses this wrapper)
 import { showAlert } from '@/utils/alert';
 

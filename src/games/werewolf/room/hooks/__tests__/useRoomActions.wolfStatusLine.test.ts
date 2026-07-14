@@ -7,7 +7,7 @@ import {
   type GameContext,
   useRoomActions,
 } from '@/games/werewolf/room/hooks/useRoomActions';
-import type { LocalGameState } from '@/types/GameStateTypes';
+import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 
 function makeContext(partial: Partial<GameContext>): GameContext {
   return {

@@ -101,7 +101,7 @@ describe('Server authority import boundary', () => {
     for (const pattern of forbiddenPatterns) {
       const match = content.match(pattern);
       if (match) {
-        fail(
+        throw new Error(
           `File ${filePath} imports server-authority module: "${match[0]}"\n` +
             'Hooks and screens should not import reducer, handlers, resolvers, DeathCalculator, or resolveWolfVotes.\n' +
             'Use a game-owned client or the shared room session instead.',
