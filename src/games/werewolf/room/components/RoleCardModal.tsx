@@ -24,6 +24,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Modal } from '@/components/AppModal';
 import { LoadingScreen } from '@/components/LoadingScreen/LoadingScreen';
+import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import {
   createRoleData,
@@ -33,7 +34,6 @@ import {
 } from '@/games/werewolf/components/RoleRevealEffects';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
-import { getRoleAvatar } from '@/utils/avatar';
 import { log } from '@/utils/logger';
 
 // ─── Alignment map (Faction → reveal alignment) ────────────────────────────

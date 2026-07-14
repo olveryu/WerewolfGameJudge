@@ -232,6 +232,10 @@ packages/
 │
 src/
 ├── features/
+│   ├── product/
+│   │   └── model/
+│   │       ├── GameProductUi.ts
+│   │       └── GameAudioPreview.ts
 │   └── room/
 │       ├── components/
 │       │   ├── RoomShell.tsx
@@ -265,6 +269,8 @@ src/
 │           └── RoomResolverScreen.tsx
 ├── games/
 │   ├── werewolf/
+│   │   ├── assets/
+│   │   ├── audio/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   ├── room/
@@ -1804,15 +1810,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                  | 尚未完成                               |
-| --------- | ------ | --------------------------------------------------------------------------------------- | -------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                      |
-| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic 归位    | Home/navigation、audio/assets 边界清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                      |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                      |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                      |
-| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位 | -                                      |
-| Phase 6-8 | 未开始 | -                                                                                       | Fib engine/UI、清理                    |
+| 阶段      | 状态   | 已完成                                                                                            | 尚未完成                 |
+| --------- | ------ | ------------------------------------------------------------------------------------------------- | ------------------------ |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                              | -                        |
+| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets 归位 | Home/navigation 边界清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                            | -                        |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event            | -                        |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                   | -                        |
+| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位           | -                        |
+| Phase 6-8 | 未开始 | -                                                                                                 | Fib engine/UI、清理      |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2127,3 +2133,31 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 1 仍进行中：Home 的 random role/board announcement 和建房入口仍是 Werewolf 语义；
   navigation 仍有 Werewolf route params；role/night audio registry、role avatar projection 和 role badge 还在
   product/infra root。下一批完成这些所有权后再判定 Phase 1 退出条件。
+
+### 当前提交：Phase 1 game-owned narration 与 role assets 收口
+
+- `AudioService` 只保留 `AudioClip` 播放、preload、音量和资源生命周期等平台原语，不再认识 `RoleId`、
+  night step 或狼人杀音频 key。`WerewolfAudioPlayer` 在 game slice 内把 role/night 语义映射到平台端口，
+  facade、action context 和 orchestrator 只依赖该 game-owned runtime。
+- role、step、双预言家标签和 night narration registry 已完整移动到
+  `src/games/werewolf/audio/`，原始资源集合逐项对比无差异。engine 产生但客户端未注册的 key 抛出
+  `MissingWerewolfAudioError`，不会被普通设备播放失败通路吞掉；contract test 直接遍历
+  `NIGHT_STEPS.audioKey/audioEndKey` 验证覆盖。preload 只收集实际有旁白的角色并按 clip key 去重。
+- `ClientGameModule.audioPreview` 是 composition catalog 的必填 contribution；没有试听的游戏显式注册
+  `null`。Music Settings 枚举 catalog contribution，不再硬编码狼人或 `wolf` key；每次试听使用独立
+  invocation identity，停止后立即重播时，旧 Promise 完成不会清掉新一轮状态。
+- role badge 的 native/Web registry 与 role-avatar projection 已归入 `src/games/werewolf/assets/`。
+  product avatar 工具不再 import `RoleId`；底牌 modal 沿用 engine 已解析的 `readonly RoleId[]`，删除把
+  domain type 降成 `string` 后再强转的通路。
+- BGM 是产品级通用音频，独立保留在 `src/services/infra/audio/bgmCatalog.ts`。持久化 setting、播放控制和
+  UI 共用 `BgmTrackId/BgmTrackSetting`；已选 track 使用 strict lookup，未知值不再静默退回随机列表。
+- foreground 音量协议已从狼人杀专用的 `roleAudioVolume` 统一为 `gameAudioVolume`，设置页显示“游戏音效”，
+  狼人杀仅在自己的 hook 中把该平台设置接到 narration player。MMKV 使用中性 `@user_settings` key；不读取
+  旧 key 或旧字段，也不保留 migration/compatibility adapter。持久化 JSON 以 `unknown` 入站并逐字段解析，
+  没有 `Partial<UserSettings>` 类型断言；运行时 setter 收到非有限音量会立即抛出 fail-fast error。
+- Architecture contract 锁定旧 generic narration/badge 路径不得恢复，并禁止 `AudioService` 与 product
+  avatar utility 重新出现狼人杀语义。`new-role` skill 已同步新的音频和 badge owner 路径。
+- 定向验证：`pnpm exec tsc --noEmit` 通过；architecture、audio registry/player、orchestrator 共
+  4 suites/819 tests 通过；Settings、Music Settings、AudioService 共 3 suites/30 tests 通过。
+- Phase 1 仍进行中：只剩 Home 的 random role/board announcement/建房入口和 navigation params 中的
+  Werewolf 语义。下一提交完成该边界并按 Phase 1 退出条件验收，随后暂停。

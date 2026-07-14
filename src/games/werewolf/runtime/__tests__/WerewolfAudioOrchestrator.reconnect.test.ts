@@ -106,13 +106,16 @@ function createOrchestrator(overrides?: Partial<WerewolfAudioOrchestratorDeps>):
         };
       }),
     },
-    audioService: {
-      playNightAudio: jest.fn().mockResolvedValue(undefined),
-      playNightEndAudio: jest.fn().mockResolvedValue(undefined),
-      playRoleBeginningAudio: jest.fn().mockResolvedValue(undefined),
-      playRoleEndingAudio: jest.fn().mockResolvedValue(undefined),
+    audio: {
+      playNight: jest.fn().mockResolvedValue(undefined),
+      playNightEnd: jest.fn().mockResolvedValue(undefined),
+      playBeginning: jest.fn().mockResolvedValue(undefined),
+      playEnding: jest.fn().mockResolvedValue(undefined),
+      preloadRoles: jest.fn().mockResolvedValue(undefined),
+      stopNarration: jest.fn(),
       stopBgm: jest.fn(),
-    } as unknown as WerewolfAudioOrchestratorDeps['audioService'],
+      clearPreloaded: jest.fn(),
+    },
     getActionsContext: jest.fn().mockReturnValue({}),
     isHost: jest.fn().mockReturnValue(true),
     isAborted: jest.fn().mockReturnValue(false),

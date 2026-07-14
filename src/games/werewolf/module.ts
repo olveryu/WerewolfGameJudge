@@ -9,6 +9,7 @@ import { type ComponentType, createElement } from 'react';
 
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
+import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
@@ -51,7 +52,8 @@ export function createWerewolfUiModule({
     stateCodec: WEREWOLF_STATE_CODEC,
     userEventCodec: WEREWOLF_USER_EVENT_CODEC,
   });
-  const client = new WerewolfGameFacade({ roomSession, audioService });
+  const audio = new WerewolfAudioPlayer(audioService);
+  const client = new WerewolfGameFacade({ roomSession, audio });
   const roomAccount = new WerewolfRoomAccountCapability(client);
 
   function BoundWerewolfRoomScreen(props: GameRoomScreenProps) {
@@ -76,6 +78,11 @@ export function createWerewolfUiModule({
     roomScreen: BoundWerewolfRoomScreen,
     roomAccount,
     productUi: werewolfProductUi,
+    audioPreview: {
+      label: '试听效果',
+      play: () => audio.playBeginning('wolf'),
+      stop: audio.stopNarration,
+    },
     accountStatsSection: WerewolfAccountStatsSection,
     appOverlay: BoundWerewolfAppOverlay,
     screens: {

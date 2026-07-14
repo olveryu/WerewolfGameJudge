@@ -11,6 +11,9 @@ export const RECENT_ROOM_CODES_KEY = 'recentRoomCodes';
 /** Unacknowledged room creation intents used for exact retry after restart. */
 export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
 
+/** Persisted product-level user settings JSON. */
+export const USER_SETTINGS_KEY = '@user_settings';
+
 /** Latest announcement version the user has seen (What's New dialog) */
 export const LAST_SEEN_VERSION_KEY = '@werewolf_last_seen_version';
 

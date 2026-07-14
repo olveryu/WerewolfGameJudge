@@ -19,18 +19,18 @@ import {
 } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
+import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 import { borderRadius, colors, spacing, textStyles, type ThemeColors, typography } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
-import { getRoleBadge } from '@/utils/roleBadges';
 
 interface BottomCardItem {
-  roleId: string;
+  roleId: RoleId;
   displayName: string;
 }
 
 interface ChooseBottomCardModalProps {
   visible: boolean;
-  bottomCards: readonly string[];
+  bottomCards: readonly RoleId[];
   confirmText: string;
   /** Indices of cards that should be greyed out and non-clickable. */
   disabledIndices: number[];
@@ -169,7 +169,7 @@ const ChooseBottomCardModalComponent: React.FC<ChooseBottomCardModalProps> = ({
                   activeOpacity={0.7}
                   onPress={() => handleCardPress(index, card)}
                 >
-                  <Image source={getRoleBadge(card.roleId as RoleId)} style={styles.cardBadge} />
+                  <Image source={getRoleBadge(card.roleId)} style={styles.cardBadge} />
                   <View style={styles.cardInfo}>
                     <Text style={[styles.cardName, isDisabled && styles.cardNameDisabled]}>
                       {card.displayName}

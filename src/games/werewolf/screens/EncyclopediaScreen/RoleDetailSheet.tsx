@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from '@/components/AppModal';
 import { Button } from '@/components/Button';
 import { UI_ICONS } from '@/config/iconTokens';
+import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { buildRolePlayGuidePrompt } from '@/games/werewolf/components/AIChatBubble/rolePlayGuide';
 import { RoleDescriptionView } from '@/games/werewolf/components/RoleDescriptionView';
 import { requestAIChatMessage } from '@/games/werewolf/services/aiChatBridge';
@@ -39,7 +40,6 @@ import {
   withAlpha,
 } from '@/theme';
 import { showConfirmAlert } from '@/utils/alertPresets';
-import { getRoleAvatar } from '@/utils/avatar';
 
 import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
 

@@ -1,6 +1,6 @@
 import { getAllRoleIds } from '@werewolf/game-engine/models/roles';
 
-import { getRoleBadge } from '@/utils/roleBadges';
+import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 
 describe('roleBadges', () => {
   it('covers every role in ROLE_SPECS', () => {

@@ -91,9 +91,16 @@ function decidedRejection(reason: string): RoomCommandDispatchOutcome<GameState>
 function createContext(): GameActionsContext {
   return {
     getState: jest.fn(() => STATE),
-    audioService: {
-      preloadForRoles: jest.fn().mockResolvedValue(undefined),
-    } as unknown as GameActionsContext['audioService'],
+    audio: {
+      playBeginning: jest.fn().mockResolvedValue(undefined),
+      playEnding: jest.fn().mockResolvedValue(undefined),
+      playNight: jest.fn().mockResolvedValue(undefined),
+      playNightEnd: jest.fn().mockResolvedValue(undefined),
+      preloadRoles: jest.fn().mockResolvedValue(undefined),
+      stopNarration: jest.fn(),
+      stopBgm: jest.fn(),
+      clearPreloaded: jest.fn(),
+    },
     commands: {
       dispatch: dispatchMock,
       dispatchPrepared: dispatchPreparedMock,
@@ -234,12 +241,12 @@ describe('canonical Werewolf command builders', () => {
     await startNight(ctx);
 
     expectCommand({ type: 'werewolf.night.start' }, null);
-    expect(ctx.audioService.preloadForRoles).toHaveBeenCalledWith(['wolf', 'seer']);
+    expect(ctx.audio.preloadRoles).toHaveBeenCalledWith(['wolf', 'seer']);
 
     dispatchMock.mockResolvedValueOnce(decidedRejection('invalid_status'));
-    jest.mocked(ctx.audioService.preloadForRoles).mockClear();
+    jest.mocked(ctx.audio.preloadRoles).mockClear();
     await startNight(ctx);
-    expect(ctx.audioService.preloadForRoles).not.toHaveBeenCalled();
+    expect(ctx.audio.preloadRoles).not.toHaveBeenCalled();
   });
 
   it('prepares one typed audio ack envelope and dispatches that exact object', async () => {

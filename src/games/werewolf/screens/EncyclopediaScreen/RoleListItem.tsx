@@ -9,6 +9,7 @@ import { ROLE_SPECS, type RoleAbilityTag, type RoleId } from '@werewolf/game-eng
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -20,7 +21,6 @@ import {
   typography,
   withAlpha,
 } from '@/theme';
-import { getRoleBadge } from '@/utils/roleBadges';
 
 import { TAG_COLOR_KEY, TAG_LABELS } from './constants';
 

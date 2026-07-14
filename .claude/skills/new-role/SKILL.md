@@ -70,7 +70,7 @@ Implement step by step in SOP order.
 | 2   | Insert into NIGHT_STEP_ORDER_INTERNAL | `packages/game-engine/src/models/roles/spec/plan.ts`    |
 | 3   | Register Resolver                     | `packages/game-engine/src/resolvers/index.ts`           |
 | 4   | Generate audio files                  | See "Step 4 — Audio Generation"                         |
-| 5   | Register audio                        | `src/services/infra/audio/audioRegistry.ts`             |
+| 5   | Register audio                        | `src/games/werewolf/audio/audioRegistry.ts`             |
 | 6   | Add to ConfigScreen                   | `src/games/werewolf/screens/ConfigScreen/configData.ts` |
 | 6b  | Role badge                            | See "Step 6b — Badge Generation"                        |
 
@@ -640,16 +640,14 @@ export const newRoleActionResolver: ResolverFn = (context, input) => {
 
 ### Register Audio
 
-**File**: `src/services/infra/audio/audioRegistry.ts`
+**File**: `src/games/werewolf/audio/audioRegistry.ts`
 
 ```typescript
-newRole: {
-  begin: require('../../../../assets/audio/new_role.mp3'),
-  end: require('../../../../assets/audio_end/new_role.mp3'),
-},
+['newRole', { begin: newRoleBegin, end: newRoleEnd }],
 ```
 
-Multi-step role's second step is registered in `STEP_AUDIO`. Lookup chain: `AUDIO_REGISTRY[roleId]` → `SEER_LABEL_AUDIO` → `STEP_AUDIO[audioKey]`.
+Add static begin/end asset imports in the same file. Multi-step role audio goes in `STEP_AUDIO`.
+`resolveWerewolfBeginningAudio` and `resolveWerewolfEndingAudio` own the strict lookup chain.
 
 ### Step 6b — Role Badge Generation
 
@@ -684,8 +682,8 @@ Write a 30-80 character role description and append it after the universal prefi
    - `assets/badges/png/512/role_<roleId>.png` (512px badge)
    - `assets/avatars/web/<roleId>.webp` (512px WebP avatar)
    - `assets/badges/web/role_<roleId>.webp` (128px WebP badge thumbnail)
-3. `src/utils/roleBadges.ts` → `BADGE_MAP`: add native badge import
-4. `src/utils/roleBadges.web.ts` → `BADGE_MAP`: add web badge import
+3. `src/games/werewolf/assets/roleBadges.ts` → `BADGE_MAP`: add native badge import
+4. `src/games/werewolf/assets/roleBadges.web.ts` → `BADGE_MAP`: add web badge import
 5. `scripts/badge-config.mjs` → `EMOJI_MAP`: add `roleId: [folderName, fileName, hasSkinTone]` mapping (Fluent Emoji 3D assets)
 6. `packages/game-engine/src/growth/rewardCatalog.ts` → `HAND_DRAWN_AVATAR_IDS`: insert roleId in alphabetical order
 7. `packages/game-engine/src/growth/rewardCatalog.ts` → `AVATAR_RARITY`: insert in rarity block (`legendary` / `epic`)

@@ -48,6 +48,7 @@ export function createTestClientGameCatalog(client: WerewolfGameClient): ClientG
               }
             : null,
       },
+      audioPreview: null,
       accountStatsSection: EmptyAccountStatsSection,
       appOverlay: null,
       screens: {

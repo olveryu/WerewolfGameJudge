@@ -27,12 +27,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { getRoleAvatar } from '@/games/werewolf/assets/roleAvatars';
 import { RoleDescriptionView } from '@/games/werewolf/components/RoleDescriptionView';
 import { getFactionName } from '@/games/werewolf/components/roleDisplayUtils';
 import { WolfCrackBackground } from '@/games/werewolf/components/RoleRevealEffects/common/effects/WolfRevealEffect';
 import { CONFIG } from '@/games/werewolf/components/RoleRevealEffects/config';
 import { borderRadius, colors, fixed, spacing, type ThemeColors, typography } from '@/theme';
-import { getRoleAvatar } from '@/utils/avatar';
 
 const AE = CONFIG.alignmentEffects;
 

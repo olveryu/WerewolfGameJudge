@@ -8,7 +8,7 @@
  * - pause/resume on page visibility change
  *
  * Not responsible for:
- * - TTS voice playback (handled by AudioPlaybackStrategy)
+ * - Foreground game audio playback (handled by AudioPlaybackStrategy)
  * - Deciding when to play (orchestrated by AudioOrchestrator)
  *
  * Boundary constraints:
@@ -34,7 +34,7 @@ import { Platform } from 'react-native';
 import { audioLog } from '@/utils/logger';
 
 import { ensureAudioContextRunning, getAudioContext } from './AudioContextOwner';
-import { BGM_VOLUME } from './audioRegistry';
+import { BGM_VOLUME } from './bgmCatalog';
 import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
 import { getUnlockedBgmElement } from './webAudioUnlock';
@@ -265,8 +265,8 @@ export class BgmPlayer {
         this.#trackEndFired = true;
         audioLog.debug('timeupdate loop fallback triggered');
         el.currentTime = 0;
-        el.play().catch(() => {
-          /* ignore */
+        el.play().catch((error: unknown) => {
+          audioLog.warn('BGM loop fallback playback failed', error);
         });
         // Reset flag shortly after so the next cycle can fire again
         setTimeout(() => {

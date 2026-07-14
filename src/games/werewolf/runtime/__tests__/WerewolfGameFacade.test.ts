@@ -1,5 +1,6 @@
 import type { WerewolfPublicCommand } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -8,8 +9,8 @@ import type {
   RoomSessionClient,
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import type { AudioService } from '@/services/infra/AudioService';
 import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 import { WerewolfGameFacade } from '../WerewolfGameFacade';
@@ -23,13 +24,17 @@ const room: RoomRecord = {
   createdAt: new Date('2026-07-11T12:00:00.000Z'),
 };
 
-function createAudioService(): jest.Mocked<AudioService> {
+function createAudio(): jest.Mocked<WerewolfAudioRuntime> {
   return {
-    stop: jest.fn(),
+    playBeginning: jest.fn(async (_audioKey: string) => undefined),
+    playEnding: jest.fn(async (_audioKey: string) => undefined),
+    playNight: jest.fn(async () => undefined),
+    playNightEnd: jest.fn(async () => undefined),
+    preloadRoles: jest.fn(async (_roles: readonly RoleId[]) => undefined),
+    stopNarration: jest.fn(),
     stopBgm: jest.fn(),
     clearPreloaded: jest.fn(),
-    preloadForRoles: jest.fn(async () => undefined),
-  } as unknown as jest.Mocked<AudioService>;
+  };
 }
 
 function createRoomSession() {
@@ -126,9 +131,9 @@ function readySnapshot(status: GameStatus, userId = 'host-user'): RoomSessionSna
 
 function createFacade() {
   const roomSession = createRoomSession();
-  const audioService = createAudioService();
-  const facade = new WerewolfGameFacade({ roomSession: roomSession.session, audioService });
-  return { facade, roomSession, audioService };
+  const audio = createAudio();
+  const facade = new WerewolfGameFacade({ roomSession: roomSession.session, audio });
+  return { facade, roomSession, audio };
 }
 
 describe('WerewolfGameFacade composition', () => {
@@ -151,14 +156,14 @@ describe('WerewolfGameFacade composition', () => {
   });
 
   it('stops prepared audio before dispatching a Werewolf restart command', async () => {
-    const { facade, roomSession, audioService } = createFacade();
+    const { facade, roomSession, audio } = createFacade();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 
     await facade.restartGame();
 
-    expect(audioService.stop).toHaveBeenCalledTimes(1);
-    expect(audioService.clearPreloaded).toHaveBeenCalledTimes(1);
+    expect(audio.stopNarration).toHaveBeenCalledTimes(1);
+    expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.dispatch).toHaveBeenCalledWith(
       { type: 'werewolf.game.restart' },
       { controlledSeat: null, label: 'restartGame' },
@@ -166,7 +171,7 @@ describe('WerewolfGameFacade composition', () => {
   });
 
   it('reacts to session teardown without owning disconnect', () => {
-    const { roomSession, audioService } = createFacade();
+    const { roomSession, audio } = createFacade();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 
@@ -180,9 +185,9 @@ describe('WerewolfGameFacade composition', () => {
       error: null,
     });
 
-    expect(audioService.stop).toHaveBeenCalledTimes(1);
-    expect(audioService.stopBgm).toHaveBeenCalledTimes(1);
-    expect(audioService.clearPreloaded).toHaveBeenCalledTimes(1);
+    expect(audio.stopNarration).toHaveBeenCalledTimes(1);
+    expect(audio.stopBgm).toHaveBeenCalledTimes(1);
+    expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
     expect(roomSession.session.disconnect).not.toHaveBeenCalled();
   });
 });

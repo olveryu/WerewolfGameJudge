@@ -32,7 +32,7 @@ const LOAD_RETRY_DELAY_MS = 2000;
 /**
  * WebAudioStrategy — HTMLAudioElement implementation.
  *
- * Used for web-side TTS audio playback, with preloading, load-failure retry, and visibility pause/resume.
+ * Used for web foreground game audio, with preloading, load-failure retry, and visibility pause/resume.
  */
 export class WebAudioStrategy implements AudioPlaybackStrategy {
   #audioElement: HTMLAudioElement | null = null;

@@ -20,13 +20,13 @@ import type {
   RoomCommandDispatchOutcome,
   RoomSessionClient,
 } from '@/features/room/session/types';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import type { AudioService } from '@/services/infra/AudioService';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 export interface GameActionsContext {
   readonly getState: () => GameState;
-  readonly audioService: AudioService;
+  readonly audio: WerewolfAudioRuntime;
   readonly commands: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
 }
 
@@ -134,8 +134,8 @@ export async function startNight(ctx: GameActionsContext): Promise<ActionResult>
   if (!result.success) return result;
 
   const stateAfterStart = ctx.getState();
-  ctx.audioService.preloadForRoles(stateAfterStart.templateRoles).catch((error: unknown) => {
-    werewolfRuntimeLog.warn('preloadForRoles failed (non-critical)', error);
+  ctx.audio.preloadRoles(stateAfterStart.templateRoles).catch((error: unknown) => {
+    werewolfRuntimeLog.warn('Werewolf narration preload failed', error);
   });
   return result;
 }

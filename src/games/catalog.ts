@@ -3,6 +3,7 @@
 import { GAME_TYPES, type GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
+import type { GameAudioPreviewContribution } from '@/features/product/model/GameAudioPreview';
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
 import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
 import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
@@ -15,6 +16,7 @@ export interface ClientGameModule<
 > extends RoomUiModule<TGameType> {
   readonly roomAccount: RoomAccountCapability<TGameType>;
   readonly productUi: GameProductUiContribution;
+  readonly audioPreview: GameAudioPreviewContribution | null;
   readonly accountStatsSection: React.ComponentType<{ readonly userId: string }>;
   readonly appOverlay: React.ComponentType | null;
 }

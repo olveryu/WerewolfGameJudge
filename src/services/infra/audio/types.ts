@@ -11,6 +11,12 @@
  */
 export type AudioAsset = number | string | { uri: string };
 
+/** Immutable asset plus cache/playback key supplied by an owning feature. */
+export interface AudioClip {
+  readonly key: string;
+  readonly asset: AudioAsset;
+}
+
 /** Resolve an AudioAsset to a URL string. */
 export function audioAssetToUrl(asset: AudioAsset): string {
   if (typeof asset === 'string') return asset;

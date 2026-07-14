@@ -1,27 +1,18 @@
 /**
  * AudioService — audio playback engine (composition root).
  *
- * Delegates platform-specific TTS playback to AudioPlaybackStrategy,
+ * Delegates platform-specific foreground playback to AudioPlaybackStrategy,
  * delegates BGM lifecycle to BgmPlayer, exposes a unified public API.
  */
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
 import { handleError } from '@/utils/errorPipeline';
 import { audioLog } from '@/utils/logger';
 
-import {
-  AUDIO_REGISTRY,
-  NIGHT_AUDIO,
-  NIGHT_END_AUDIO,
-  SEER_LABEL_AUDIO,
-  SEER_LABEL_AUDIO_END,
-  STEP_AUDIO,
-} from './audio/audioRegistry';
 import { BgmPlayer } from './audio/BgmPlayer';
 import { NativeAudioStrategy } from './audio/NativeAudioStrategy';
-import type { AudioAsset, AudioPlaybackStrategy } from './audio/types';
+import type { AudioAsset, AudioClip, AudioPlaybackStrategy } from './audio/types';
 import { WebAudioStrategy } from './audio/WebAudioStrategy';
 import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 
@@ -31,7 +22,7 @@ const isWeb = Platform.OS === 'web';
  * AudioService — audio playback engine (composition root).
  *
  * Responsibilities:
- * - Delegate platform-specific TTS playback to AudioPlaybackStrategy
+ * - Delegate platform-specific foreground playback to AudioPlaybackStrategy
  * - Delegate BGM lifecycle to BgmPlayer
  * - Provide playback primitives for game-owned runtime orchestration
  * - Manage pause/resume on Web visibility change
@@ -93,52 +84,10 @@ export class AudioService {
     }
   }
 
-  // ============ Night audio ============
+  // ============ Foreground audio ============
 
-  async playNightAudio(): Promise<void> {
-    return this.#strategy.play(NIGHT_AUDIO, 'night');
-  }
-
-  async playNightBeginAudio(): Promise<void> {
-    return this.playNightAudio();
-  }
-
-  async playNightEndAudio(): Promise<void> {
-    return this.#strategy.play(NIGHT_END_AUDIO, 'night_end');
-  }
-
-  // ============ Role audio ============
-
-  async playRoleBeginningAudio(role: string): Promise<void> {
-    const entry = AUDIO_REGISTRY[role as RoleId];
-    const audioFile = entry?.begin ?? SEER_LABEL_AUDIO[role] ?? STEP_AUDIO[role]?.begin;
-    if (!audioFile) {
-      // Normal case: some roles (e.g. villager) intentionally have no narration.
-      audioLog.debug('playRoleBeginningAudio: no audio file, skipping', { role });
-      return;
-    }
-    audioLog.debug('playRoleBeginningAudio: playing audio', { role });
-    return this.#strategy.play(audioFile, `role_begin_${role}`);
-  }
-
-  async playRoleEndingAudio(role: string): Promise<void> {
-    const entry = AUDIO_REGISTRY[role as RoleId];
-    const audioFile = entry?.end ?? SEER_LABEL_AUDIO_END[role] ?? STEP_AUDIO[role]?.end;
-    if (!audioFile) {
-      // Normal case: some roles (e.g. villager) intentionally have no narration.
-      audioLog.debug('playRoleEndingAudio: no audio file, skipping', { role });
-      return;
-    }
-    audioLog.debug('playRoleEndingAudio: playing audio', { role });
-    return this.#strategy.play(audioFile, `role_end_${role}`);
-  }
-
-  getBeginningAudio(role: RoleId): AudioAsset | null {
-    return AUDIO_REGISTRY[role]?.begin ?? null;
-  }
-
-  getEndingAudio(role: RoleId): AudioAsset | null {
-    return AUDIO_REGISTRY[role]?.end ?? null;
+  async playClip(clip: AudioClip): Promise<void> {
+    return this.#strategy.play(clip.asset, clip.key);
   }
 
   // ============ Playback control ============
@@ -176,42 +125,16 @@ export class AudioService {
     this.#bgm.setVolume(volume);
   }
 
-  setRoleAudioVolume(volume: number): void {
+  setGameAudioVolume(volume: number): void {
     this.#strategy.setVolume(volume);
   }
 
   // ============ Preload ============
 
-  /**
-   * Preload audio files for the given roles to eliminate first-play decode latency.
-   *
-   * Fire-and-forget: failures are silently logged and do not affect gameplay.
-   * Call this when entering night phase so audio is ready before the first role's turn.
-   */
-  async preloadForRoles(roles: RoleId[]): Promise<void> {
-    audioLog.debug('preloadForRoles: starting', { roles });
-
-    const filesToPreload: Array<{ key: string; file: AudioAsset }> = [
-      { key: 'night', file: NIGHT_AUDIO },
-      { key: 'night_end', file: NIGHT_END_AUDIO },
-    ];
-
-    for (const role of roles) {
-      const entry = AUDIO_REGISTRY[role];
-      if (entry) {
-        filesToPreload.push({ key: `begin_${role}`, file: entry.begin });
-        filesToPreload.push({ key: `end_${role}`, file: entry.end });
-      }
-    }
-
-    const promises = filesToPreload.map(({ key, file }) =>
-      this.#strategy.preloadFile(key, file).catch((err) => {
-        audioLog.warn('preloadForRoles: failed to preload', { key }, err);
-      }),
-    );
-
-    await Promise.all(promises);
-    audioLog.debug('preloadForRoles: done', { count: filesToPreload.length });
+  async preloadClips(clips: readonly AudioClip[]): Promise<void> {
+    audioLog.debug('preloadClips: starting', { count: clips.length });
+    await Promise.all(clips.map((clip) => this.#strategy.preloadFile(clip.key, clip.asset)));
+    audioLog.debug('preloadClips: done', { count: clips.length });
   }
 
   clearPreloaded(): void {

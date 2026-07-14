@@ -29,8 +29,8 @@ import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { resolveRandomAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import { type AudioService } from '@/services/infra/AudioService';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
 import {
@@ -51,8 +51,8 @@ import type { WerewolfGameClient } from './WerewolfGameClient';
 interface WerewolfGameFacadeDeps {
   /** Single shared room session instance. */
   roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
-  /** AudioService instance */
-  audioService: AudioService;
+  /** Game-owned narration runtime. */
+  audio: WerewolfAudioRuntime;
 }
 
 /**
@@ -60,7 +60,7 @@ interface WerewolfGameFacadeDeps {
  */
 export class WerewolfGameFacade implements WerewolfGameClient {
   readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
-  readonly #audioService: AudioService;
+  readonly #audio: WerewolfAudioRuntime;
   readonly #audioOrchestrator: WerewolfAudioOrchestrator;
   #activeEpoch: number | null = null;
   #initializedSnapshotEpoch: number | null = null;
@@ -77,7 +77,7 @@ export class WerewolfGameFacade implements WerewolfGameClient {
    */
   constructor(deps: WerewolfGameFacadeDeps) {
     this.roomSession = deps.roomSession;
-    this.#audioService = deps.audioService;
+    this.#audio = deps.audio;
 
     this.roomSession.subscribe(() => this.#handleSessionLifecycle());
 
@@ -88,7 +88,7 @@ export class WerewolfGameFacade implements WerewolfGameClient {
         subscribe: (listener) =>
           this.roomSession.subscribe(() => listener(this.#getAudioRoomSnapshot())),
       },
-      audioService: deps.audioService,
+      audio: deps.audio,
       getActionsContext: () => this.#getActionsContext(),
       isHost: () => this.#isActiveUserHost(),
       isAborted: () => this.#aborted,
@@ -154,8 +154,8 @@ export class WerewolfGameFacade implements WerewolfGameClient {
    */
   async restartGame(): Promise<ActionResult> {
     // Stop current audio then release preloaded resources (stop before clearPreloaded)
-    this.#audioService.stop();
-    this.#audioService.clearPreloaded();
+    this.#audio.stopNarration();
+    this.#audio.clearPreloaded();
     // Server validates hostUserId, client no longer does redundant gating
     return gameActions.restartGame(this.#getActionsContext());
   }
@@ -290,7 +290,7 @@ export class WerewolfGameFacade implements WerewolfGameClient {
   #getActionsContext(): GameActionsContext {
     return {
       getState: () => this.#getReadyState(),
-      audioService: this.#audioService,
+      audio: this.#audio,
       commands: this.roomSession,
     };
   }
@@ -303,9 +303,9 @@ export class WerewolfGameFacade implements WerewolfGameClient {
       this.#activeEpoch = null;
       this.#initializedSnapshotEpoch = null;
       this.#audioOrchestrator.reset();
-      this.#audioService.stop();
-      this.#audioService.stopBgm();
-      this.#audioService.clearPreloaded();
+      this.#audio.stopNarration();
+      this.#audio.stopBgm();
+      this.#audio.clearPreloaded();
       return;
     }
 

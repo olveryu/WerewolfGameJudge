@@ -16,7 +16,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import type { BgmTrackEntry } from '@/services/infra/audio/audioRegistry';
+import type { BgmTrackEntry, BgmTrackId } from '@/services/infra/audio/bgmCatalog';
 import {
   borderRadius,
   colors,
@@ -36,8 +36,8 @@ interface TrackRowProps {
   isSelected: boolean;
   isPreviewing: boolean;
   disabled: boolean;
-  onSelect: (trackId: string) => void;
-  onPreviewToggle: (trackId: string) => void;
+  onSelect: (trackId: BgmTrackId) => void;
+  onPreviewToggle: (trackId: BgmTrackId) => void;
   colors: ThemeColors;
 }
 

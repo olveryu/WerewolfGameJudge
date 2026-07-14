@@ -1,6 +1,7 @@
 /**
  * SettingsService.test.ts - Tests for the settings service
  */
+import { USER_SETTINGS_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';
 import { SettingsService } from '@/services/feature/SettingsService';
 
@@ -24,6 +25,7 @@ describe('SettingsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(storage.getString).mockReturnValue(undefined);
     service = new SettingsService();
   });
 
@@ -31,12 +33,42 @@ describe('SettingsService', () => {
     it('loads settings from MMKV storage', async () => {
       const storedSettings = {
         bgmEnabled: false,
+        gameAudioVolume: 0.4,
       };
-      (storage.getString as jest.Mock).mockReturnValue(JSON.stringify(storedSettings));
+      jest.mocked(storage.getString).mockReturnValue(JSON.stringify(storedSettings));
 
       await service.load();
 
-      expect(storage.getString).toHaveBeenCalledWith('@werewolf_settings');
+      expect(storage.getString).toHaveBeenCalledWith(USER_SETTINGS_KEY);
+      expect(service.isBgmEnabled()).toBe(false);
+      expect(service.getGameAudioVolume()).toBe(0.4);
+    });
+
+    it('does not interpret removed game-specific settings fields', async () => {
+      jest.mocked(storage.getString).mockReturnValue(JSON.stringify({ roleAudioVolume: 0.2 }));
+
+      await service.load();
+
+      expect(service.getGameAudioVolume()).toBe(1);
+    });
+  });
+
+  describe('gameAudioVolume', () => {
+    it('clamps and persists foreground game audio volume', async () => {
+      await service.setGameAudioVolume(2);
+
+      expect(service.getGameAudioVolume()).toBe(1);
+      expect(storage.set).toHaveBeenLastCalledWith(
+        USER_SETTINGS_KEY,
+        expect.stringContaining('"gameAudioVolume":1'),
+      );
+    });
+
+    it('fails fast for non-finite volume', async () => {
+      await expect(service.setGameAudioVolume(Number.NaN)).rejects.toThrow(
+        '[FAIL-FAST] gameAudioVolume must be a finite number',
+      );
+      expect(storage.set).not.toHaveBeenCalled();
     });
   });
 

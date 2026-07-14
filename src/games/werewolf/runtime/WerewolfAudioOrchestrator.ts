@@ -8,7 +8,7 @@
  *
  * Not responsible for:
  * - Room lifecycle or generic disconnect recovery (handled by ConnectionRecoveryManager)
- * - Platform-specific audio playback (handled by AudioService)
+ * - Asset lookup or platform playback (handled by WerewolfAudioRuntime)
  *
  * Boundary constraints:
  * - Only active for Host role (plays/retries only when isHost() === true)
@@ -25,7 +25,8 @@ import type { AudioEffect, GameState } from '@werewolf/game-engine/protocol/type
 import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
-import type { AudioService } from '@/services/infra/AudioService';
+import { MissingWerewolfAudioError } from '@/games/werewolf/audio/audioRegistry';
+import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { handleError } from '@/utils/errorPipeline';
 import { werewolfRuntimeLog } from '@/utils/logger';
 
@@ -46,8 +47,8 @@ export interface WerewolfAudioRoomSource {
 export interface WerewolfAudioOrchestratorDeps {
   /** Combined Werewolf room state + connection source. */
   roomSource: WerewolfAudioRoomSource;
-  /** AudioService instance */
-  audioService: AudioService;
+  /** Game-owned narration runtime. */
+  audio: WerewolfAudioRuntime;
   /** Get current GameActionsContext (lazy-evaluated to avoid constructor cycles) */
   getActionsContext: () => GameActionsContext;
   /** Whether currently Host (lazy-evaluated) */
@@ -206,7 +207,7 @@ export class WerewolfAudioOrchestrator {
           });
           try {
             const resolvedKey = resolveSeerAudioKey(stepSpec.audioKey, state.seerLabelMap);
-            await this.#deps.audioService.playRoleBeginningAudio(resolvedKey);
+            await this.#deps.audio.playBeginning(resolvedKey);
           } finally {
             // After audio completes (or fails), POST audio-ack to release gate + trigger progression
             await this.#postAudioAckWithRetry();
@@ -312,7 +313,7 @@ export class WerewolfAudioOrchestrator {
     if (this.#isPlayingEffects) return;
     this.#isPlayingEffects = true;
 
-    const { audioService } = this.#deps;
+    const { audio } = this.#deps;
 
     try {
       let currentEffects: AudioEffect[] | undefined = effects;
@@ -334,17 +335,18 @@ export class WerewolfAudioOrchestrator {
           if (this.#deps.isAborted()) break;
           try {
             if (effect.isEndAudio) {
-              await audioService.playRoleEndingAudio(effect.audioKey);
+              await audio.playEnding(effect.audioKey);
             } else if (effect.audioKey === 'night') {
-              await audioService.playNightAudio();
+              await audio.playNight();
             } else if (effect.audioKey === 'night_end') {
               // Audio timing: stop BGM immediately before dawn audio to avoid BGM overlapping with "dawn" voice.
-              audioService.stopBgm();
-              await audioService.playNightEndAudio();
+              audio.stopBgm();
+              await audio.playNightEnd();
             } else {
-              await audioService.playRoleBeginningAudio(effect.audioKey);
+              await audio.playBeginning(effect.audioKey);
             }
           } catch (e) {
+            if (e instanceof MissingWerewolfAudioError) throw e;
             // Single audio failure doesn't block queue (consistent with resumeAfterRejoin)
             werewolfRuntimeLog.warn('Audio effect playback failed, continuing', {
               audioKey: effect.audioKey,

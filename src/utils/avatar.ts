@@ -19,7 +19,6 @@ import {
   HAND_DRAWN_AVATAR_IDS,
   type HandDrawnAvatarId,
 } from '@werewolf/game-engine/growth/rewardCatalog';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 
@@ -59,14 +58,6 @@ export function getHandDrawnThumb(avatarId: string): number | undefined {
 /** Resolve a hand-drawn avatarId to its full-size image. Returns undefined for generated/unknown IDs. */
 export function getHandDrawnImage(avatarId: string): number | undefined {
   return AVATAR_IMAGE_MAP[avatarId as HandDrawnAvatarId];
-}
-
-/**
- * Resolve a roleId to its full hand-drawn avatar image (platform-split:
- * web 512px WebP, native 2048px PNG). Every role has a hand-drawn avatar, so this is total.
- */
-export function getRoleAvatar(roleId: RoleId): number {
-  return AVATAR_IMAGE_MAP[roleId];
 }
 
 /**

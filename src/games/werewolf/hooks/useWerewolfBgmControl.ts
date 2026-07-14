@@ -14,7 +14,8 @@ import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
-import { BGM_TRACKS } from '@/services/infra/audio/audioRegistry';
+import type { BgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
+import { BGM_TRACKS, getBgmTrack } from '@/services/infra/audio/bgmCatalog';
 import type { AudioAsset } from '@/services/infra/audio/types';
 import { bgmLog } from '@/utils/logger';
 
@@ -35,12 +36,11 @@ export interface WerewolfBgmControlState {
  * Resolve BGM track setting to asset array.
  * 'random' -> all tracks (BgmPlayer will shuffle); specific track -> single-element array.
  */
-function resolveBgmAssets(track: string): AudioAsset[] {
+function resolveBgmAssets(track: BgmTrackSetting): AudioAsset[] {
   if (track === 'random') {
     return BGM_TRACKS.map((t) => t.asset);
   }
-  const entry = BGM_TRACKS.find((t) => t.id === track);
-  return entry ? [entry.asset] : BGM_TRACKS.map((t) => t.asset);
+  return [getBgmTrack(track).asset];
 }
 
 /**
@@ -63,7 +63,7 @@ export function useWerewolfBgmControl(
       setIsBgmEnabled(settingsService.isBgmEnabled());
       // Apply persisted volume to audio service
       audioService.setBgmVolume(settingsService.getBgmVolume());
-      audioService.setRoleAudioVolume(settingsService.getRoleAudioVolume());
+      audioService.setGameAudioVolume(settingsService.getGameAudioVolume());
     };
     loadSettings().catch((e) => {
       bgmLog.warn('Failed to load BGM settings', e);

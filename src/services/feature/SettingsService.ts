@@ -14,11 +14,12 @@
  * - load() must be called once at app startup; subsequent reads are synchronous
  * - Silently degrades to in-memory defaults when MMKV is unavailable
  */
+import { USER_SETTINGS_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';
+import type { BgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
+import { BGM_VOLUME, isBgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
 import { handleError } from '@/utils/errorPipeline';
 import { settingsServiceLog } from '@/utils/logger';
-
-const SETTINGS_KEY = '@werewolf_settings';
 
 /**
  * MMKV access can throw `QuotaExceededError` / `SecurityError` (e.g. private mode,
@@ -27,8 +28,8 @@ const SETTINGS_KEY = '@werewolf_settings';
 const isExpectedStorageError = (err: unknown): boolean =>
   err instanceof Error && (err.name === 'QuotaExceededError' || err.name === 'SecurityError');
 
-import type { BgmTrackSetting } from '@/services/infra/audio/audioRegistry';
-import { BGM_VOLUME, VALID_BGM_TRACK_IDS } from '@/services/infra/audio/audioRegistry';
+const MIN_VOLUME = 0;
+const MAX_VOLUME = 1;
 
 interface UserSettings {
   /** Whether to play background music during night phase (default: true) */
@@ -37,21 +38,82 @@ interface UserSettings {
   bgmTrack: BgmTrackSetting;
   /** BGM volume 0.0–1.0 (default: BGM_VOLUME) */
   bgmVolume: number;
-  /** Role audio (TTS narration) volume 0.0–1.0 (default: 1.0) */
-  roleAudioVolume: number;
+  /** Foreground game audio volume 0.0–1.0 (default: 1.0) */
+  gameAudioVolume: number;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
   bgmEnabled: true,
   bgmTrack: 'random',
   bgmVolume: BGM_VOLUME,
-  roleAudioVolume: 1.0,
+  gameAudioVolume: MAX_VOLUME,
 };
+
+function clampVolume(volume: number): number {
+  return Math.max(MIN_VOLUME, Math.min(MAX_VOLUME, volume));
+}
+
+function requireFiniteVolume(volume: number, settingName: string): number {
+  if (!Number.isFinite(volume)) {
+    throw new TypeError(`[FAIL-FAST] ${settingName} must be a finite number`);
+  }
+  return clampVolume(volume);
+}
+
+function readPersistedBoolean(value: unknown, settingName: string, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  if (typeof value === 'boolean') return value;
+
+  settingsServiceLog.warn(`Invalid persisted ${settingName}, resetting to default`, value);
+  return fallback;
+}
+
+function readPersistedVolume(value: unknown, settingName: string, fallback: number): number {
+  if (value === undefined) return fallback;
+  if (typeof value === 'number' && Number.isFinite(value)) return clampVolume(value);
+
+  settingsServiceLog.warn(`Invalid persisted ${settingName}, resetting to default`, value);
+  return fallback;
+}
+
+function readPersistedBgmTrack(value: unknown): BgmTrackSetting {
+  if (value === undefined) return DEFAULT_SETTINGS.bgmTrack;
+  if (isBgmTrackSetting(value)) return value;
+
+  settingsServiceLog.warn('Invalid persisted bgmTrack, resetting to default', value);
+  return DEFAULT_SETTINGS.bgmTrack;
+}
+
+function parsePersistedSettings(value: unknown): UserSettings {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    settingsServiceLog.warn('Invalid persisted settings payload, resetting to defaults', value);
+    return { ...DEFAULT_SETTINGS };
+  }
+
+  return {
+    bgmEnabled: readPersistedBoolean(
+      Reflect.get(value, 'bgmEnabled'),
+      'bgmEnabled',
+      DEFAULT_SETTINGS.bgmEnabled,
+    ),
+    bgmTrack: readPersistedBgmTrack(Reflect.get(value, 'bgmTrack')),
+    bgmVolume: readPersistedVolume(
+      Reflect.get(value, 'bgmVolume'),
+      'bgmVolume',
+      DEFAULT_SETTINGS.bgmVolume,
+    ),
+    gameAudioVolume: readPersistedVolume(
+      Reflect.get(value, 'gameAudioVolume'),
+      'gameAudioVolume',
+      DEFAULT_SETTINGS.gameAudioVolume,
+    ),
+  };
+}
 
 /**
  * SettingsService — user settings management (BGM / volume / track).
  *
- * Responsibilities: MMKV read/write + in-memory cache + server sync.
+ * Responsibilities: MMKV read/write + in-memory cache + change listeners.
  */
 export class SettingsService {
   #settings: UserSettings = { ...DEFAULT_SETTINGS };
@@ -66,51 +128,10 @@ export class SettingsService {
     if (this.#loaded) return;
 
     try {
-      const raw = storage.getString(SETTINGS_KEY);
+      const raw = storage.getString(USER_SETTINGS_KEY);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
-        if (typeof parsed === 'object' && parsed !== null) {
-          // Merge with defaults to handle new settings added in future versions
-          const merged = { ...DEFAULT_SETTINGS, ...(parsed as Partial<UserSettings>) };
-
-          // Validate + clamp persisted values to current valid ranges
-          // Validate boolean fields (guard against corrupted persisted data)
-          if (typeof merged.bgmEnabled !== 'boolean') {
-            settingsServiceLog.warn(
-              'Invalid persisted bgmEnabled, resetting to default:',
-              merged.bgmEnabled,
-            );
-            merged.bgmEnabled = DEFAULT_SETTINGS.bgmEnabled;
-          }
-          if (merged.bgmTrack !== 'random' && !VALID_BGM_TRACK_IDS.has(merged.bgmTrack)) {
-            settingsServiceLog.warn(
-              'Invalid persisted bgmTrack, resetting to default:',
-              merged.bgmTrack,
-            );
-            merged.bgmTrack = DEFAULT_SETTINGS.bgmTrack;
-          }
-          // Validate + clamp bgmVolume to [0, 1]
-          if (typeof merged.bgmVolume !== 'number' || !isFinite(merged.bgmVolume)) {
-            settingsServiceLog.warn(
-              'Invalid persisted bgmVolume, resetting to default:',
-              merged.bgmVolume,
-            );
-            merged.bgmVolume = DEFAULT_SETTINGS.bgmVolume;
-          } else {
-            merged.bgmVolume = Math.max(0, Math.min(1, merged.bgmVolume));
-          }
-          // Validate + clamp roleAudioVolume to [0, 1]
-          if (typeof merged.roleAudioVolume !== 'number' || !isFinite(merged.roleAudioVolume)) {
-            settingsServiceLog.warn(
-              'Invalid persisted roleAudioVolume, resetting to default:',
-              merged.roleAudioVolume,
-            );
-            merged.roleAudioVolume = DEFAULT_SETTINGS.roleAudioVolume;
-          } else {
-            merged.roleAudioVolume = Math.max(0, Math.min(1, merged.roleAudioVolume));
-          }
-          this.#settings = merged;
-        }
+        this.#settings = parsePersistedSettings(parsed);
       }
 
       this.#loaded = true;
@@ -132,7 +153,7 @@ export class SettingsService {
    */
   async #save(): Promise<void> {
     try {
-      storage.set(SETTINGS_KEY, JSON.stringify(this.#settings));
+      storage.set(USER_SETTINGS_KEY, JSON.stringify(this.#settings));
       this.#notifyListeners();
     } catch (e) {
       handleError(e, {
@@ -194,26 +215,22 @@ export class SettingsService {
    * Set BGM volume and persist. Clamped to [0, 1].
    */
   async setBgmVolume(volume: number): Promise<void> {
-    this.#settings.bgmVolume = Math.max(0, Math.min(1, volume));
+    this.#settings.bgmVolume = requireFiniteVolume(volume, 'bgmVolume');
     await this.#save();
   }
 
-  // =========================================================================
-  // Role Audio Volume Settings
-  // =========================================================================
-
   /**
-   * Get role audio (TTS narration) volume (0.0–1.0).
+   * Get foreground game audio volume (0.0–1.0).
    */
-  getRoleAudioVolume(): number {
-    return this.#settings.roleAudioVolume;
+  getGameAudioVolume(): number {
+    return this.#settings.gameAudioVolume;
   }
 
   /**
-   * Set role audio volume and persist. Clamped to [0, 1].
+   * Set foreground game audio volume and persist. Clamped to [0, 1].
    */
-  async setRoleAudioVolume(volume: number): Promise<void> {
-    this.#settings.roleAudioVolume = Math.max(0, Math.min(1, volume));
+  async setGameAudioVolume(volume: number): Promise<void> {
+    this.#settings.gameAudioVolume = requireFiniteVolume(volume, 'gameAudioVolume');
     await this.#save();
   }
 

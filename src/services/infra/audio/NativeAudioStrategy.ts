@@ -29,7 +29,7 @@ const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;
 /**
  * NativeAudioStrategy — expo-audio AudioPlayer implementation.
  *
- * Used for TTS audio playback on iOS / Android.
+ * Used for foreground game audio playback on iOS / Android.
  */
 export class NativeAudioStrategy implements AudioPlaybackStrategy {
   #player: AudioPlayer | null = null;

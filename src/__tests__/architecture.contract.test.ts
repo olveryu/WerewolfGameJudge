@@ -188,6 +188,9 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/features/room/controllers/useRoomConnection.ts',
     'src/features/room/model/GameUiModule.ts',
     'src/games/model/GameProductUi.ts',
+    'src/services/infra/audio/audioRegistry.ts',
+    'src/utils/roleBadges.ts',
+    'src/utils/roleBadges.web.ts',
     'src/games/werewolf/hooks/useWerewolfRoomLifecycle.ts',
     'src/games/werewolf/room/components/AuthGateOverlay.tsx',
     'src/games/werewolf/room/components/WxAuthFailedOverlay.tsx',
@@ -215,6 +218,24 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+});
+
+describe('Client ownership: generic audio and avatar utilities stay game-neutral', () => {
+  it('keeps Werewolf narration out of the platform AudioService', () => {
+    const content = fs.readFileSync(
+      path.join(process.cwd(), 'src', 'services', 'infra', 'AudioService.ts'),
+      'utf-8',
+    );
+
+    expect(content).not.toMatch(/\bRoleId\b|playRole|playNight|preloadForRoles|AUDIO_REGISTRY/);
+    expect(content).not.toMatch(/@werewolf\/game-engine\/(?:models|games\/werewolf)/);
+  });
+
+  it('keeps role projection out of the product avatar registry', () => {
+    const content = fs.readFileSync(path.join(process.cwd(), 'src', 'utils', 'avatar.ts'), 'utf-8');
+
+    expect(content).not.toMatch(/\bRoleId\b|\bgetRoleAvatar\b/);
   });
 });
 
@@ -279,6 +300,7 @@ describe('Layer boundary: screens → services runtime imports (restricted)', ()
     'isAIChatReady',
     'BGM_TRACKS',
     'BGM_VOLUME',
+    'getBgmTrack',
     'fetchUserStats',
     'fetchUserProfile',
     'fetchUserUnlocks',

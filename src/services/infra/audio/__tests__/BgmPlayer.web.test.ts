@@ -14,8 +14,8 @@
 // Force the Web backend: BgmPlayer evaluates `Platform.OS === 'web'` at module load.
 jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 
-// Avoid loading audio asset requires (audioRegistry pulls in every .mp3).
-jest.mock('../audioRegistry', () => ({ BGM_VOLUME: 0.3 }));
+// Avoid loading static BGM assets in this playback-only test.
+jest.mock('../bgmCatalog', () => ({ BGM_VOLUME: 0.3 }));
 
 // Factories must be self-contained (jest hoists them above const declarations);
 // grab handles by re-importing the mocked modules.
