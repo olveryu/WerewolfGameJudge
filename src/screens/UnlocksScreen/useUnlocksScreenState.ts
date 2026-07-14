@@ -16,7 +16,6 @@ import {
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
 } from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 
@@ -25,7 +24,7 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { compareByRarity } from '@/config/rarityVisual';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import { useClientProductUi } from '@/games/ClientGameCatalogContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 
@@ -66,6 +65,7 @@ interface Params {
 
 /** State hook for the unlocks screen. */
 export function useUnlocksScreenState({ viewingUserId }: Params) {
+  const productUi = useClientProductUi();
   const isViewer = !!viewingUserId;
 
   const [activeTab, setActiveTab] = useState<TabKey>('avatar');
@@ -94,13 +94,13 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
       AVATAR_IDS.map((id) => ({
         id,
         type: 'avatar' as const,
-        displayName: getRoleDisplayName(id),
+        displayName: productUi.getAvatarDisplayName(id),
         unlocked: unlockedSet.has(id),
         rarity: getItemRarity(id),
       })).sort(
         (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
       ),
-    [unlockedSet],
+    [productUi, unlockedSet],
   );
 
   const frameItems = useMemo((): UnlockItem[] => {
@@ -155,18 +155,18 @@ export function useUnlocksScreenState({ viewingUserId }: Params) {
   const effectItems = useMemo(
     (): UnlockItem[] =>
       ROLE_REVEAL_EFFECT_IDS.map((id) => {
-        const opt = getAnimationOption(id);
+        const presentation = productUi.getRevealEffectPresentation(id);
         return {
           id,
           type: 'effect' as const,
-          displayName: opt?.label ?? id,
+          displayName: presentation.label,
           unlocked: unlockedSet.has(id),
           rarity: getItemRarity(id),
         };
       }).sort(
         (a, b) => Number(!a.unlocked) - Number(!b.unlocked) || compareByRarity(a.rarity, b.rarity),
       ),
-    [unlockedSet],
+    [productUi, unlockedSet],
   );
 
   const seatAnimationItems = useMemo(

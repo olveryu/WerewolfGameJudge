@@ -7,13 +7,14 @@ import { Text, View } from 'react-native';
 import { Button } from '@/components/Button';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import type { ProductIconName } from '@/features/product/model/GameProductUi';
 import { colors } from '@/theme';
 
 import type { AppearanceScreenStyles } from './styles';
 
 interface EffectHeroPreviewProps {
   heroEffectId: string | null;
-  heroEffectIcon: string;
+  heroEffectIcon: ProductIconName;
   heroEffectLabel: string;
   heroEffectDesc: string;
   heroEffectRarity: Rarity | null;
@@ -50,7 +51,7 @@ export const EffectHeroPreview: React.FC<EffectHeroPreviewProps> = ({
             <PetComponent size={48} />
           ) : (
             <Ionicons
-              name={heroEffectIcon as React.ComponentProps<typeof Ionicons>['name']}
+              name={heroEffectIcon}
               size={36}
               color={
                 heroEffectRarity ? RARITY_VISUAL[heroEffectRarity].color : colors.textSecondary

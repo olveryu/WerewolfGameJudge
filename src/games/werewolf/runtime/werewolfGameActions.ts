@@ -263,23 +263,8 @@ export function markAllBotsGroupConfirmed(ctx: GameActionsContext): Promise<Acti
 
 export function updatePlayerProfile(
   ctx: GameActionsContext,
-  displayName?: string,
-  avatarUrl?: string,
-  avatarFrame?: string,
-  seatFlair?: string,
-  nameStyle?: string,
-  roleRevealEffect?: string,
-  seatAnimation?: string,
+  profile: WerewolfProfileUpdate,
 ): Promise<ActionResult> {
-  const profile: WerewolfProfileUpdate = {
-    displayName,
-    avatarUrl,
-    avatarFrame,
-    seatFlair,
-    nameStyle,
-    roleRevealEffect,
-    seatAnimation,
-  };
   return dispatchWerewolfCommand(
     ctx,
     { type: 'room.profile.update', profile },

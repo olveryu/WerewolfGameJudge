@@ -19,10 +19,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useClientGameModule } from '@/games/ClientGameCatalogContext';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
-import type { RevealEffectType } from '@/games/werewolf/components/RoleRevealEffects';
+import { useActiveRoomAccount, useClientProductUi } from '@/games/ClientGameCatalogContext';
 import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
 import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
@@ -49,9 +46,8 @@ export function useAppearanceState() {
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: uploadAvatar } = useUploadAvatar();
-  const facade = useClientGameModule('werewolf').client;
-  const room = useRoomSessionSnapshot(facade.roomSession);
-  const isInRoom = room.phase !== 'idle';
+  const activeRoom = useActiveRoomAccount();
+  const productUi = useClientProductUi();
 
   const readOnly = !user || (user.isAnonymous ?? false);
 
@@ -82,7 +78,7 @@ export function useAppearanceState() {
   >(null);
   const [activeTab, setActiveTab] = useState<PickerTab>('avatar');
   const [rarityFilter, setRarityFilter] = useState<RarityFilter>('all');
-  const [previewEffectType, setPreviewEffectType] = useState<RevealEffectType | null>(null);
+  const [previewEffectId, setPreviewEffectId] = useState<RoleRevealEffectId | null>(null);
 
   // Growth stats for unlock check (shared cache via TanStack Query)
   const { data: statsData } = useUserStatsQuery();
@@ -154,12 +150,13 @@ export function useAppearanceState() {
   const effectGridData = useMemo(
     () =>
       buildEffectGridData(
+        productUi,
         unlockedIds,
         currentEquippedEffect,
         isNoEffectActive,
         isRandomEffectActive,
       ),
-    [unlockedIds, currentEquippedEffect, isNoEffectActive, isRandomEffectActive],
+    [productUi, unlockedIds, currentEquippedEffect, isNoEffectActive, isRandomEffectActive],
   );
 
   const seatAnimationGridData = useMemo(
@@ -204,9 +201,7 @@ export function useAppearanceState() {
   // ── Effect Hero derived state ──
 
   const heroEffectId = selectedEffect ?? currentEquippedEffect ?? 'none';
-  const heroEffectOption = getAnimationOption(
-    heroEffectId === 'none' ? 'none' : heroEffectId === 'random' ? 'random' : heroEffectId,
-  );
+  const heroEffectPresentation = productUi.getRevealEffectPresentation(heroEffectId);
   const heroEffectRarity =
     heroEffectId !== 'none' && heroEffectId !== 'random' ? getItemRarity(heroEffectId) : null;
   const heroEffectUnlocked =
@@ -232,12 +227,11 @@ export function useAppearanceState() {
     heroEffectId,
     heroEffectUnlocked,
     heroEffectIsEquipped,
-    heroEffectOptionLabel: heroEffectOption?.label,
+    heroEffectOptionLabel: heroEffectPresentation.label,
     updateProfile,
     uploadAvatar,
     refreshUser,
-    facade,
-    isInRoom,
+    activeRoom,
     goBack,
   });
 
@@ -335,8 +329,11 @@ export function useAppearanceState() {
       showAlert('无法预览', '请先选择一个具体特效');
       return;
     }
-    setPreviewEffectType(heroEffectId as RevealEffectType);
-  }, [heroEffectId]);
+    if (heroEffectPresentation.id === 'none' || heroEffectPresentation.id === 'random') {
+      throw new Error('[FAIL-FAST] Concrete reveal effect presentation expected');
+    }
+    setPreviewEffectId(heroEffectPresentation.id);
+  }, [heroEffectId, heroEffectPresentation.id]);
 
   const handleLongPress = useCallback((avatarId: string) => {
     setPreviewAvatarId(avatarId);
@@ -387,7 +384,7 @@ export function useAppearanceState() {
     filteredSeatAnimationData,
     // Effect hero
     heroEffectId,
-    heroEffectOption,
+    heroEffectPresentation,
     heroEffectRarity,
     heroEffectUnlocked,
     heroEffectIsEquipped,
@@ -410,8 +407,8 @@ export function useAppearanceState() {
     handleUpgrade,
     // Preview
     previewAvatarId,
-    previewEffectType,
-    setPreviewEffectType,
+    previewEffectId,
+    setPreviewEffectId,
     // Misc
     saving,
     wolfPawIcon,

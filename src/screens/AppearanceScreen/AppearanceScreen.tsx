@@ -23,7 +23,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { RoleRevealAnimator } from '@/games/werewolf/components/RoleRevealEffects';
 import { colors, componentSizes } from '@/theme';
 import { getHandDrawnImage } from '@/utils/avatar';
 
@@ -48,13 +47,14 @@ import type {
   NameStyleGridItem,
   SeatAnimationGridItem,
 } from './types';
-import { FRAME_NUM_COLUMNS, NUM_COLUMNS, PREVIEW_ALL_ROLES, PREVIEW_ROLE } from './types';
+import { FRAME_NUM_COLUMNS, NUM_COLUMNS } from './types';
 
 /** Appearance customization screen. */
 export const AppearanceScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createAppearanceScreenStyles(colors), []);
   const state = useAppearanceState();
+  const RevealEffectPreview = state.heroEffectPresentation.Preview;
 
   // ── Key extractors ──
 
@@ -259,9 +259,9 @@ export const AppearanceScreen: React.FC = () => {
       ) : (
         <EffectHeroPreview
           heroEffectId={state.heroEffectId}
-          heroEffectIcon={state.heroEffectOption?.icon ?? 'help-outline'}
-          heroEffectLabel={state.heroEffectOption?.label ?? '无'}
-          heroEffectDesc={state.heroEffectOption?.shortDesc ?? '跳过动画，直接显示身份'}
+          heroEffectIcon={state.heroEffectPresentation.icon}
+          heroEffectLabel={state.heroEffectPresentation.label}
+          heroEffectDesc={state.heroEffectPresentation.shortDescription}
           heroEffectRarity={state.heroEffectRarity}
           heroEffectUnlocked={state.heroEffectUnlocked}
           heroEffectIsEquipped={state.heroEffectIsEquipped}
@@ -403,14 +403,10 @@ export const AppearanceScreen: React.FC = () => {
         </Pressable>
       )}
 
-      {state.previewEffectType && (
-        <RoleRevealAnimator
-          visible
-          effectType={state.previewEffectType}
-          role={PREVIEW_ROLE}
-          allRoles={PREVIEW_ALL_ROLES}
-          onComplete={() => state.setPreviewEffectType(null)}
-          enableHaptics={false}
+      {state.previewEffectId !== null && (
+        <RevealEffectPreview
+          effectId={state.previewEffectId}
+          onComplete={() => state.setPreviewEffectId(null)}
         />
       )}
     </SafeAreaView>

@@ -1,14 +1,26 @@
 /** Exhaustive client game-module catalog created by the application composition root. */
 
 import { GAME_TYPES, type GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type React from 'react';
 
-import type { GameUiModule } from '@/features/room/model/GameUiModule';
+import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
+import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
+import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
-import { createWerewolfUiModule, type WerewolfUiModule } from '@/games/werewolf/module';
+import { createWerewolfUiModule, type WerewolfUiModuleExtension } from '@/games/werewolf/module';
 import type { AudioService } from '@/services/infra/AudioService';
 
+export interface ClientGameModule<
+  TGameType extends GameType = GameType,
+> extends RoomUiModule<TGameType> {
+  readonly roomAccount: RoomAccountCapability<TGameType>;
+  readonly productUi: GameProductUiContribution;
+  readonly accountStatsSection: React.ComponentType<{ readonly userId: string }>;
+  readonly appOverlay: React.ComponentType | null;
+}
+
 interface ClientGameModuleByType {
-  readonly werewolf: WerewolfUiModule;
+  readonly werewolf: ClientGameModule<'werewolf'> & WerewolfUiModuleExtension;
 }
 
 export type ClientGameCatalog = {
@@ -36,6 +48,6 @@ export function getClientGameModule<TGameType extends GameType>(
   return catalog[gameType];
 }
 
-export function getClientGameModules(catalog: ClientGameCatalog): readonly GameUiModule[] {
+export function getClientGameModules(catalog: ClientGameCatalog): readonly ClientGameModule[] {
   return GAME_TYPES.map((gameType) => catalog[gameType]);
 }

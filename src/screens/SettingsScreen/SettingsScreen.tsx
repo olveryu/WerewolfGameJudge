@@ -8,9 +8,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { WerewolfSeatProfile } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -21,14 +18,9 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import {
-  leaveRoomSeat,
-  type RoomSeatCommandContext,
-} from '@/features/room/session/roomSeatCommandClient';
+import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
 import { getClientGameModules } from '@/games/catalog';
-import { useClientGameCatalog, useClientGameModule } from '@/games/ClientGameCatalogContext';
-import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
+import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import {
   useChangePassword,
   useSignInAnonymously,
@@ -75,23 +67,26 @@ export const SettingsScreen: React.FC = () => {
   const { mutateAsync: changePassword } = useChangePassword();
   const gameCatalog = useClientGameCatalog();
   const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
-  const facade = useClientGameModule('werewolf').client;
-  const { roomSession } = facade;
+  const activeRoom = useActiveRoomAccount();
+  const isInRoom = activeRoom.phase !== 'idle';
+  const isSeated = activeRoom.isSeated;
+  const canSwitchAccount = activeRoom.canSwitchAccount;
 
-  const room = useRoomSessionSnapshot(roomSession);
-  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
-  const isInRoom = room.phase !== 'idle';
-  const activeUserId = room.phase === 'idle' ? null : room.identity.userId;
-  const isSeated = getWerewolfUserSeat(gameState, activeUserId) !== null;
-  const seatCommandContext = useMemo<RoomSeatCommandContext<GameState, WerewolfSeatProfile>>(
-    () => ({ dispatch: (command, options) => roomSession.dispatch(command, options) }),
-    [roomSession],
+  const syncActiveRoomProfile = useCallback(
+    async (patch: RoomProfilePatch): Promise<boolean> => {
+      if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
+      try {
+        const result = await activeRoom.updateProfile(patch);
+        if (result.success) return true;
+        settingsLog.warn('Profile sync to active room rejected', { reason: result.reason });
+      } catch (error: unknown) {
+        settingsLog.warn('Profile sync to active room failed', error);
+      }
+      toast.warning('资料已保存，房间内同步失败');
+      return false;
+    },
+    [activeRoom],
   );
-  // Disable account switch / email binding after role assignment (Assigned/Ready/Ongoing/Ended)
-  const canSwitchAccount =
-    !isInRoom ||
-    gameState?.status === GameStatus.Unseated ||
-    gameState?.status === GameStatus.Seated;
 
   const [showChangePassword, setShowChangePassword] = useState(false);
 
@@ -112,13 +107,14 @@ export const SettingsScreen: React.FC = () => {
     if (wasAnonymousRef.current && user && !isAnonymous) {
       // Just upgraded from anonymous → email; sync profile to GameState if in room
       settingsLog.info('Anonymous→email upgrade detected, syncing profile to GameState');
-      facade
-        .updatePlayerProfile(user.displayName ?? undefined, user.avatarUrl ?? undefined)
-        .catch((err: unknown) => settingsLog.warn('Profile sync to GameState failed', err));
+      void syncActiveRoomProfile({
+        displayName: user.displayName ?? undefined,
+        avatarUrl: user.avatarUrl ?? undefined,
+      });
     }
     wasAnonymousRef.current = isAnonymous;
     if (isAuthenticated) wasAuthenticatedRef.current = true;
-  }, [user, facade, isAuthenticated]);
+  }, [user, syncActiveRoomProfile, isAuthenticated]);
 
   // Reset transient states when screen regains focus
   useEffect(() => {
@@ -190,10 +186,8 @@ export const SettingsScreen: React.FC = () => {
           try {
             await updateProfile({ displayName: trimmed });
             await refreshUser();
-            toast.success('昵称已更新');
-            facade
-              .updatePlayerProfile(trimmed, undefined)
-              .catch((err: unknown) => settingsLog.warn('Name sync to GameState failed', err));
+            const roomSynced = await syncActiveRoomProfile({ displayName: trimmed });
+            if (roomSynced) toast.success('昵称已更新');
           } catch (e: unknown) {
             const message = getErrorMessage(e);
             settingsLog.error('Update name failed', { message }, e);
@@ -202,7 +196,7 @@ export const SettingsScreen: React.FC = () => {
         })();
       },
     });
-  }, [user?.displayName, updateProfile, refreshUser, facade]);
+  }, [user?.displayName, updateProfile, refreshUser, syncActiveRoomProfile]);
 
   /** Anonymous user "bind email": enter sign-up mode directly. */
   const handleShowUpgradeForm = useCallback(() => {
@@ -241,7 +235,7 @@ export const SettingsScreen: React.FC = () => {
       try {
         // If seated in a room, leave seat first (simplifies all edge cases)
         if (isInRoom && isSeated) {
-          const result = await leaveRoomSeat(seatCommandContext);
+          const result = await activeRoom.leaveSeat();
           if (!result.success) {
             showErrorAlert('离座失败', translateReasonCode(result.reason));
             return;
@@ -271,7 +265,7 @@ export const SettingsScreen: React.FC = () => {
     } else {
       void doSwitch();
     }
-  }, [user?.isAnonymous, navigation, isInRoom, isSeated, seatCommandContext]);
+  }, [user?.isAnonymous, navigation, isInRoom, isSeated, activeRoom]);
 
   // ============================================
   // Render helpers

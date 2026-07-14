@@ -1804,15 +1804,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                       | 尚未完成                                          |
-| --------- | ------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                         | -                                                 |
-| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf screens/components/services 归位 | Home/navigation、profile/cosmetics/audio 边界清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                       | -                                                 |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event       | -                                                 |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation              | -                                                 |
-| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位      | -                                                 |
-| Phase 6-8 | 未开始 | -                                                                                            | Fib engine/UI、清理                               |
+| 阶段      | 状态   | 已完成                                                                                  | 尚未完成                               |
+| --------- | ------ | --------------------------------------------------------------------------------------- | -------------------------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                      |
+| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic 归位    | Home/navigation、audio/assets 边界清零 |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                      |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                      |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                      |
+| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位 | -                                      |
+| Phase 6-8 | 未开始 | -                                                                                       | Fib engine/UI、清理                    |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2101,3 +2101,29 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 1 仍进行中：Home 和 navigation param 仍含 Werewolf 模板/角色语义；Settings/Appearance/Gacha/Unlocks
   仍需通过 game-neutral profile/cosmetic contribution；AudioService registry、avatar role projection、role badge 与
   root engine integration tests 仍需按所有权收口。
+
+### 当前提交：Phase 1 active-room account 与 product presenter 收口
+
+- 新增 game-neutral `RoomAccountCapability`，只暴露 active room 的 `isSeated`、`canSwitchAccount`、
+  `canSyncProfile`、`updateProfile`和 `leaveSeat`。`createActiveRoomAccountSource` 从穷尽式 client catalog
+  选择唯一 active session；两个 session 同时 active 或 game type 不一致直接 fail fast。
+- `WerewolfRoomAccountCapability` 在 game slice 内把 `GameStatus`、player map 和
+  `WerewolfProfileUpdate` 投影为上述中性能力。Settings 与 Appearance 不再读 Werewolf session/facade/state；
+  离座继续只 dispatch canonical `room.seat.leave`，资料更新改为单个 object command，无 positional
+  overload。
+- 账户 profile 是持久化权威，active-room roster 是明确的 projection。Settings/Appearance 现在同时处理
+  rejected result 和 thrown error：记录原因并显示“资料已保存，房间内同步失败”，不再静默留下
+  过期 roster，也不把 projection 失败误报为账户保存失败。
+- 新增 strict `ClientProductUi`：generated avatar 名称属于 product catalog；手绘角色头像名和翻牌特效
+  metadata/preview 由 Werewolf contribution 拥有。每个 item 必须恰好一个 owner，missing/duplicate
+  都 fail fast。Appearance、Gacha、Unlocks、ShardExchange 已不再 import concrete game UI。
+- 完整 quality 的 architecture contract 发现原始实现把 aggregate `GameUiModule` 放进 `features/room`，并让
+  shared room 和 Werewolf slice 反向依赖 `games/model`。现已删除这两个错误路径：room feature 只拥有
+  `RoomUiModule`，product feature 拥有 `GameProductUiContribution`，aggregate `ClientGameModule` 只存在于
+  composition catalog。active-room 与 product resolver 直接接收 capability/contribution，不再用类型断言
+  伪造残缺 module；architecture contract 锁定旧路径不得恢复。
+- 定向验证：`pnpm exec tsc --noEmit` 通过；active source、product resolver、Werewolf adapter、Settings
+  和 profile command 5 suites/27 tests 全部通过。
+- Phase 1 仍进行中：Home 的 random role/board announcement 和建房入口仍是 Werewolf 语义；
+  navigation 仍有 Werewolf route params；role/night audio registry、role avatar projection 和 role badge 还在
+  product/infra root。下一批完成这些所有权后再判定 Phase 1 退出条件。

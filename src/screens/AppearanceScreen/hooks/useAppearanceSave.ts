@@ -10,7 +10,10 @@ import { toast } from 'sonner-native';
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type {
+  ActiveRoomAccountSnapshot,
+  RoomProfilePatch,
+} from '@/features/room/model/RoomAccountCapability';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 import { makeBuiltinAvatarUrl } from '@/utils/avatar';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -34,9 +37,23 @@ interface UseAppearanceSaveParams {
   updateProfile: (patch: Record<string, string>) => Promise<unknown>;
   uploadAvatar: (uri: string) => Promise<string>;
   refreshUser: () => Promise<void>;
-  facade: WerewolfGameClient;
-  isInRoom: boolean;
+  activeRoom: ActiveRoomAccountSnapshot;
   goBack: () => void;
+}
+
+async function syncActiveRoomProfile(
+  activeRoom: ActiveRoomAccountSnapshot,
+  patch: RoomProfilePatch,
+): Promise<boolean> {
+  if (activeRoom.phase === 'idle' || !activeRoom.canSyncProfile) return true;
+  try {
+    const result = await activeRoom.updateProfile(patch);
+    if (result.success) return true;
+    settingsLog.warn('Cosmetic sync to active room rejected', { reason: result.reason });
+  } catch (error: unknown) {
+    settingsLog.warn('Cosmetic sync to active room failed', error);
+  }
+  return false;
 }
 
 /** Appearance save/upload hook. */
@@ -71,12 +88,11 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
         try {
           const url = await p.uploadAvatar(result.assets[0].uri);
           await p.refreshUser();
-          toast.success('头像已更新');
-
-          if (p.isInRoom) {
-            p.facade
-              .updatePlayerProfile(undefined, url)
-              .catch((err: unknown) => settingsLog.warn('Avatar sync to GameState failed', err));
+          const roomSynced = await syncActiveRoomProfile(p.activeRoom, { avatarUrl: url });
+          if (roomSynced) {
+            toast.success('头像已更新');
+          } else {
+            toast.warning('头像已保存，房间内同步失败');
           }
 
           p.goBack();
@@ -167,9 +183,10 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       }
 
       // Sync to GameState only when in a room (otherwise no GameState exists)
-      let gameStateSyncFailed = false;
+      let activeRoomSyncFailed = false;
       if (
-        p.isInRoom &&
+        p.activeRoom.phase !== 'idle' &&
+        p.activeRoom.canSyncProfile &&
         (newAvatarUrl !== undefined ||
           newFrame !== undefined ||
           newFlair !== undefined ||
@@ -177,24 +194,17 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
           newEquippedEffect !== undefined ||
           newSeatAnimation !== undefined)
       ) {
-        const result = await p.facade.updatePlayerProfile(
-          undefined,
-          newAvatarUrl,
-          newFrame,
-          newFlair,
-          newNameStyle,
-          newEquippedEffect,
-          newSeatAnimation,
-        );
-        if (!result.success) {
-          gameStateSyncFailed = true;
-          settingsLog.warn('Cosmetic sync to GameState failed', {
-            reason: result.reason,
-          });
-        }
+        activeRoomSyncFailed = !(await syncActiveRoomProfile(p.activeRoom, {
+          avatarUrl: newAvatarUrl,
+          avatarFrame: newFrame,
+          seatFlair: newFlair,
+          nameStyle: newNameStyle,
+          revealEffect: newEquippedEffect,
+          seatAnimation: newSeatAnimation,
+        }));
       }
 
-      if (gameStateSyncFailed) {
+      if (activeRoomSyncFailed) {
         toast.warning('形象已保存，游戏内可能需要重新入座刷新');
       } else {
         toast.success('形象已更新');
@@ -226,26 +236,16 @@ export function useAppearanceSave(params: UseAppearanceSaveParams) {
       await p.refreshUser();
 
       // Sync roleRevealEffect to GameState so other players see the change
-      if (p.isInRoom) {
-        const result = await p.facade.updatePlayerProfile(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          value,
-          undefined,
+      const roomSynced = await syncActiveRoomProfile(p.activeRoom, { revealEffect: value });
+      if (roomSynced) {
+        toast.success(
+          p.heroEffectId === 'none'
+            ? '已卸下特效'
+            : `已装备「${p.heroEffectOptionLabel ?? p.heroEffectId}」`,
         );
-        if (!result.success) {
-          settingsLog.warn('Effect sync to GameState failed', { reason: result.reason });
-        }
+      } else {
+        toast.warning('特效已保存，房间内同步失败');
       }
-
-      toast.success(
-        p.heroEffectId === 'none'
-          ? '已卸下特效'
-          : `已装备「${p.heroEffectOptionLabel ?? p.heroEffectId}」`,
-      );
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Equip effect failed', { message }, e);

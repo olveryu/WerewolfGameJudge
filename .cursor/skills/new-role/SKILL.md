@@ -64,15 +64,15 @@ Implement step by step in SOP order.
 
 #### Core Steps (Roles with night actions)
 
-| #   | Step                                  | File                                                  |
-| --- | ------------------------------------- | ----------------------------------------------------- |
-| 1   | Add ROLE_SPECS entry                  | `packages/game-engine/src/models/roles/spec/specs.ts` |
-| 2   | Insert into NIGHT_STEP_ORDER_INTERNAL | `packages/game-engine/src/models/roles/spec/plan.ts`  |
-| 3   | Register Resolver                     | `packages/game-engine/src/resolvers/index.ts`         |
-| 4   | Generate audio files                  | See "Step 4 — Audio Generation"                       |
-| 5   | Register audio                        | `src/services/infra/audio/audioRegistry.ts`           |
-| 6   | Add to ConfigScreen                   | `src/screens/ConfigScreen/configData.ts`              |
-| 6b  | Role badge                            | See "Step 6b — Badge Generation"                      |
+| #   | Step                                  | File                                                    |
+| --- | ------------------------------------- | ------------------------------------------------------- |
+| 1   | Add ROLE_SPECS entry                  | `packages/game-engine/src/models/roles/spec/specs.ts`   |
+| 2   | Insert into NIGHT_STEP_ORDER_INTERNAL | `packages/game-engine/src/models/roles/spec/plan.ts`    |
+| 3   | Register Resolver                     | `packages/game-engine/src/resolvers/index.ts`           |
+| 4   | Generate audio files                  | See "Step 4 — Audio Generation"                         |
+| 5   | Register audio                        | `src/services/infra/audio/audioRegistry.ts`             |
+| 6   | Add to ConfigScreen                   | `src/games/werewolf/screens/ConfigScreen/configData.ts` |
+| 6b  | Role badge                            | See "Step 6b — Badge Generation"                        |
 
 #### Roles without night actions
 
@@ -110,7 +110,7 @@ Go through each core principle 🔍 self-check for all changes in this session:
 - Confirm `rewardCatalog.ts` HAND_DRAWN_AVATAR_IDS + AVATAR_RARITY added (step 6b.6-7)
 - Confirm `avatarImages.ts` + `avatarImages.web.ts` registered (step 6b.8-9)
 - **If a preset board was also added** (via new-board skill or directly), the following must also be done in sync:
-  - Add strategy entry in `BOARD_STRATEGY` in `src/components/BoardStrategy/boardStrategyData.ts` (key = board name), including difficulty / recommendLevel / tags / summary / goodStrategy / wolfStrategy / thirdStrategy (if third-party) / firstNight / pitfalls / meta
+  - Add strategy entry in `BOARD_STRATEGY` in `src/games/werewolf/components/BoardStrategy/boardStrategyData.ts` (key = board name), including difficulty / recommendLevel / tags / summary / goodStrategy / wolfStrategy / thirdStrategy (if third-party) / firstNight / pitfalls / meta
   - Update preset board count in `README.md` and `README.en.md`
   - Update `docs/PRESET_BOARDS.md` preset board reference doc
 - Summarize change file inventory

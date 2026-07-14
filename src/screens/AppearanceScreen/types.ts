@@ -7,7 +7,7 @@ import type {
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';
-import { createRoleData } from '@/games/werewolf/components/RoleRevealEffects';
+import type { ProductIconName } from '@/features/product/model/GameProductUi';
 
 /** Number of columns in the avatar grid. */
 export const NUM_COLUMNS = 4;
@@ -17,19 +17,6 @@ export const FRAME_NUM_COLUMNS = 3;
 export const FRAME_GRID_CELL_SIZE = 72;
 /** Hero preview size. */
 export const HERO_PREVIEW_SIZE = 80;
-
-/** Preview uses a real villager role so RoleCardContent can resolve ROLE_SPECS. */
-export const PREVIEW_ROLE = createRoleData('villager', '村民', 'villager');
-
-/** Multiple roles for roulette/roleHunt/fortuneWheel preview (need scroll targets). */
-export const PREVIEW_ALL_ROLES = [
-  PREVIEW_ROLE,
-  createRoleData('wolf', '狼人', 'wolf'),
-  createRoleData('seer', '预言家', 'god'),
-  createRoleData('witch', '女巫', 'god'),
-  createRoleData('hunter', '猎人', 'god'),
-  createRoleData('guard', '守卫', 'god'),
-];
 
 /** Currently selected avatar ID. */
 export type Selection = string | null;
@@ -76,7 +63,7 @@ export interface NameStyleGridItem {
 export interface EffectGridItem {
   id: RoleRevealEffectId | 'none' | 'random';
   name: string;
-  icon: string;
+  icon: ProductIconName;
   unlocked: boolean;
   isActive: boolean;
   rarity: Rarity | null;

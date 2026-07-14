@@ -25,6 +25,7 @@ import { toast } from 'sonner-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import { useClientProductUi } from '@/games/ClientGameCatalogContext';
 import { useExchangeShardMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import type { RootStackParamList } from '@/navigation/types';
@@ -89,6 +90,7 @@ const PREVIEW_SIZE = 56;
   const { data: gachaStatus, isLoading: gachaLoading } = useGachaStatusQuery();
   const { data: statsData, isLoading: statsLoading } = useUserStatsQuery();
   const { mutate: exchange, isPending: isExchanging } = useExchangeShardMutation();
+  const productUi = useClientProductUi();
 
   const [activeTab, setActiveTab] = useState<TypeTab>('avatar');
   const [activeRarity, setActiveRarity] = useState<RarityFilter>('all');
@@ -133,7 +135,7 @@ const PREVIEW_SIZE = 56;
 
   const handleExchange = useCallback(
     (item: ExchangeItem) => {
-      const displayName = getRewardDisplayName(item.type, item.id);
+      const displayName = getRewardDisplayName(productUi, item.type, item.id);
       Alert.alert('确认兑换', `消耗 ✦ ${item.cost} 碎片兑换「${displayName}」？`, [
         { text: '取消', style: 'cancel' },
         {
@@ -159,7 +161,7 @@ const PREVIEW_SIZE = 56;
         },
       ]);
     },
-    [exchange],
+    [exchange, productUi],
   );
 
   const handleGoBack = useCallback(() => {
@@ -196,7 +198,7 @@ const PREVIEW_SIZE = 56;
 
           {/* Name */}
           <Text style={styles.cellName} numberOfLines={1}>
-            {getRewardDisplayName(item.type, item.id)}
+            {getRewardDisplayName(productUi, item.type, item.id)}
           </Text>
 
           {/* Status / Exchange */}
@@ -226,7 +228,7 @@ const PREVIEW_SIZE = 56;
         </View>
       );
     },
-    [shards, isExchanging, handleExchange],
+    [shards, isExchanging, handleExchange, productUi],
   );
 
   const keyExtractor = useCallback((item: ExchangeItem) => `${item.type}-${item.id}`, []);

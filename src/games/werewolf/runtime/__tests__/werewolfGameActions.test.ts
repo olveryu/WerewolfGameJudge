@@ -201,7 +201,15 @@ describe('canonical Werewolf command builders', () => {
   it('maps the canonical profile update object without userId', async () => {
     const ctx = createContext();
 
-    await updatePlayerProfile(ctx, 'Alice', 'avatar', 'frame', 'flair', 'style', 'effect', 'seat');
+    await updatePlayerProfile(ctx, {
+      displayName: 'Alice',
+      avatarUrl: 'avatar',
+      avatarFrame: 'frame',
+      seatFlair: 'flair',
+      nameStyle: 'style',
+      roleRevealEffect: 'effect',
+      seatAnimation: 'seat',
+    });
 
     expectCommand(
       {

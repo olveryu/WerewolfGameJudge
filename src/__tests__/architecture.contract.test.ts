@@ -186,6 +186,8 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/features/room/controllers/useRoomLifecycle.ts',
     'src/features/room/controllers/useRoomSessionStatus.ts',
     'src/features/room/controllers/useRoomConnection.ts',
+    'src/features/room/model/GameUiModule.ts',
+    'src/games/model/GameProductUi.ts',
     'src/games/werewolf/hooks/useWerewolfRoomLifecycle.ts',
     'src/games/werewolf/room/components/AuthGateOverlay.tsx',
     'src/games/werewolf/room/components/WxAuthFailedOverlay.tsx',

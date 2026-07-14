@@ -16,7 +16,11 @@
  * - Does not own room entry, identity, connection, seat commands, or user-event delivery
  */
 
-import type { WerewolfActionInput, WerewolfPublicCommand } from '@werewolf/game-engine';
+import type {
+  WerewolfActionInput,
+  WerewolfProfileUpdate,
+  WerewolfPublicCommand,
+} from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
@@ -186,25 +190,11 @@ export class WerewolfGameFacade implements WerewolfGameClient {
    * Called after user changes name/avatar in SettingsScreen, broadcasts new profile to all clients.
    * If not seated, server returns NOT_SEATED (silently ignore).
    */
-  async updatePlayerProfile(
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<ActionResult> {
-    return gameActions.updatePlayerProfile(
-      this.#getActionsContext(),
-      displayName,
-      avatarUrl,
-      avatarFrame,
-      seatFlair,
-      nameStyle,
-      this.#resolveEffect(roleRevealEffect),
-      seatAnimation,
-    );
+  async updatePlayerProfile(profile: WerewolfProfileUpdate): Promise<ActionResult> {
+    return gameActions.updatePlayerProfile(this.#getActionsContext(), {
+      ...profile,
+      roleRevealEffect: this.#resolveEffect(profile.roleRevealEffect),
+    });
   }
 
   /**

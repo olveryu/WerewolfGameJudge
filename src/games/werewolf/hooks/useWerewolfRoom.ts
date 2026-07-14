@@ -205,15 +205,15 @@ interface UseWerewolfRoomResult {
 
     const displayName = user.displayName ?? undefined;
     facade
-      .updatePlayerProfile(
+      .updatePlayerProfile({
         displayName,
-        user.avatarUrl ?? undefined,
-        user.avatarFrame ?? '',
-        user.seatFlair ?? '',
-        user.nameStyle ?? '',
-        user.equippedEffect ?? '',
-        user.seatAnimation ?? '',
-      )
+        avatarUrl: user.avatarUrl ?? undefined,
+        avatarFrame: user.avatarFrame ?? '',
+        seatFlair: user.seatFlair ?? '',
+        nameStyle: user.nameStyle ?? '',
+        roleRevealEffect: user.equippedEffect ?? '',
+        seatAnimation: user.seatAnimation ?? '',
+      })
       .catch((err: unknown) => {
         gameRoomLog.warn('Profile sync on reconnect failed', err);
       });

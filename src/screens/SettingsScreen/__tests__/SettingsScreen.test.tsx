@@ -73,7 +73,12 @@ jest.mock('../../../games/ClientGameCatalogContext', () => {
   };
   return {
     useClientGameCatalog: () => ({ werewolf }),
-    useClientGameModule: () => werewolf,
+    useActiveRoomAccount: () => ({
+      phase: 'idle',
+      isSeated: false,
+      canSwitchAccount: true,
+      canSyncProfile: false,
+    }),
   };
 });
 

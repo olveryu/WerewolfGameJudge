@@ -12,7 +12,7 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { compareByRarity } from '@/config/rarityVisual';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import type { ClientProductUi } from '@/games/productUi';
 import { AVATAR_KEYS } from '@/utils/avatar';
 
 import {
@@ -142,6 +142,7 @@ export function buildNameStyleGridData(
 
 /** Build effect grid data. */
 export function buildEffectGridData(
+  productUi: ClientProductUi,
   unlockedIds: readonly string[],
   currentEquippedEffect: string | null,
   isNoEffectActive: boolean,
@@ -164,11 +165,11 @@ export function buildEffectGridData(
     rarity: null,
   };
   const items: EffectGridItem[] = ROLE_REVEAL_EFFECT_IDS.map((id) => {
-    const opt = getAnimationOption(id);
+    const presentation = productUi.getRevealEffectPresentation(id);
     return {
       id,
-      name: opt?.label ?? id,
-      icon: opt?.icon ?? 'help-outline',
+      name: presentation.label,
+      icon: presentation.icon,
       unlocked: isRoleRevealEffectUnlocked(id, unlockedIds),
       isActive: currentEquippedEffect === id,
       rarity: getItemRarity(id),

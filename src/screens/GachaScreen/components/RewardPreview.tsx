@@ -11,7 +11,6 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
@@ -21,7 +20,8 @@ import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
-import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';
+import { useClientProductUi } from '@/games/ClientGameCatalogContext';
+import type { ClientProductUi } from '@/games/productUi';
 import { borderRadius, colors } from '@/theme';
 import { getAvatarThumbByIndex, HAND_DRAWN_KEYS } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';
@@ -31,15 +31,14 @@ const WOLF_PAW = getAvatarIcon('preview');
 
 // ─── Display name resolver ──────────────────────────────────────────────
 
-export function getRewardDisplayName(rewardType: RewardType, rewardId: string): string {
+export function getRewardDisplayName(
+  productUi: ClientProductUi,
+  rewardType: RewardType,
+  rewardId: string,
+): string {
   switch (rewardType) {
     case 'avatar':
-      if (isGeneratedAvatar(rewardId)) {
-        return rewardId.startsWith('genR')
-          ? `人像 ${rewardId.slice(4)}`
-          : `色环 ${rewardId.slice(4)}`;
-      }
-      return getRoleDisplayName(rewardId) ?? rewardId;
+      return productUi.getAvatarDisplayName(rewardId);
     case 'frame':
       return getFrameById(rewardId)?.name ?? rewardId;
     case 'seatFlair':
@@ -48,10 +47,8 @@ export function getRewardDisplayName(rewardType: RewardType, rewardId: string): 
       return getNameStyleById(rewardId)?.name ?? rewardId;
     case 'seatAnimation':
       return getSeatAnimationById(rewardId)?.name ?? rewardId;
-    case 'roleRevealEffect': {
-      const opt = getAnimationOption(rewardId);
-      return opt?.label ?? rewardId;
-    }
+    case 'roleRevealEffect':
+      return productUi.getRevealEffectPresentation(rewardId).label;
   }
 }
 
@@ -65,6 +62,7 @@ interface RewardPreviewProps {
 
 /** Reward preview image (renders avatar/frame/flair etc. by type). */
 export const RewardPreview = React.memo<RewardPreviewProps>(({ rewardType, rewardId, size }) => {
+  const productUi = useClientProductUi();
   switch (rewardType) {
     case 'avatar':
       return <AvatarPreview id={rewardId} size={size} />;
@@ -77,7 +75,7 @@ export const RewardPreview = React.memo<RewardPreviewProps>(({ rewardType, rewar
     case 'seatAnimation':
       return <SeatAnimationPreview id={rewardId} size={size} />;
     case 'roleRevealEffect':
-      return <EffectPreview id={rewardId} size={size} />;
+      return <EffectPreview id={rewardId} size={size} productUi={productUi} />;
   }
 });
 
@@ -141,12 +139,19 @@ function NameStylePreview({ id, size }: { id: string; size: number }) {
   );
 }
 
-function EffectPreview({ id, size }: { id: string; size: number }) {
-  const opt = getAnimationOption(id);
-  const iconName = (opt?.icon ?? 'help-outline') as React.ComponentProps<typeof Ionicons>['name'];
+function EffectPreview({
+  id,
+  size,
+  productUi,
+}: {
+  id: string;
+  size: number;
+  productUi: ClientProductUi;
+}) {
+  const presentation = productUi.getRevealEffectPresentation(id);
   return (
     <View style={[styles.effectContainer, { width: size, height: size }]}>
-      <Ionicons name={iconName} size={size * 0.5} color={colors.text} />
+      <Ionicons name={presentation.icon} size={size * 0.5} color={colors.text} />
     </View>
   );
 }

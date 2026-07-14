@@ -4,7 +4,7 @@ import type React from 'react';
 import { Text } from 'react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
-import type { GameUiModule } from '@/features/room/model/GameUiModule';
+import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RootStackParamList } from '@/navigation/types';
 import type { IRoomDirectoryService, RoomRecord } from '@/services/types/IRoomDirectoryService';
 
@@ -21,15 +21,12 @@ const navigation = {
   goBack: jest.fn(),
 } as unknown as NativeStackScreenProps<RootStackParamList, 'Room'>['navigation'];
 
-const WerewolfRoom: React.FC<React.ComponentProps<GameUiModule['roomScreen']>> = ({ room }) => (
+const WerewolfRoom: React.FC<React.ComponentProps<RoomUiModule['roomScreen']>> = ({ room }) => (
   <Text>{`狼人杀房间 ${room.roomCode}`}</Text>
 );
-const AccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
-const module: GameUiModule = {
+const module: RoomUiModule = {
   gameType: 'werewolf',
   roomScreen: WerewolfRoom,
-  accountStatsSection: AccountStatsSection,
-  appOverlay: null,
 };
 const getGameModule = jest.fn(() => module);
 

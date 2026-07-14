@@ -7,10 +7,12 @@ import {
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { type ComponentType, createElement } from 'react';
 
-import type { GameRoomScreenProps, GameUiModule } from '@/features/room/model/GameUiModule';
+import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
+import { werewolfProductUi } from '@/games/werewolf/productUi';
+import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
 import {
   WEREWOLF_USER_EVENT_CODEC,
   type WerewolfUserEvent,
@@ -25,7 +27,7 @@ import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRu
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import type { AudioService } from '@/services/infra/AudioService';
 
-export interface WerewolfUiModule extends GameUiModule<'werewolf'> {
+export interface WerewolfUiModuleExtension {
   readonly client: WerewolfGameClient;
   readonly screens: {
     readonly boardPicker: ComponentType;
@@ -44,12 +46,13 @@ interface CreateWerewolfUiModuleDeps {
 export function createWerewolfUiModule({
   sessionFactory,
   audioService,
-}: CreateWerewolfUiModuleDeps): WerewolfUiModule {
+}: CreateWerewolfUiModuleDeps) {
   const roomSession = sessionFactory.create<GameState, WerewolfPublicCommand, WerewolfUserEvent>({
     stateCodec: WEREWOLF_STATE_CODEC,
     userEventCodec: WEREWOLF_USER_EVENT_CODEC,
   });
   const client = new WerewolfGameFacade({ roomSession, audioService });
+  const roomAccount = new WerewolfRoomAccountCapability(client);
 
   function BoundWerewolfRoomScreen(props: GameRoomScreenProps) {
     return createElement(WerewolfRoomScreen, { ...props, client });
@@ -68,9 +71,11 @@ export function createWerewolfUiModule({
   }
 
   return {
-    gameType: 'werewolf',
+    gameType: 'werewolf' as const,
     client,
     roomScreen: BoundWerewolfRoomScreen,
+    roomAccount,
+    productUi: werewolfProductUi,
     accountStatsSection: WerewolfAccountStatsSection,
     appOverlay: BoundWerewolfAppOverlay,
     screens: {

@@ -1,6 +1,10 @@
 /** Werewolf client runtime commands composed around one shared room session. */
 
-import type { WerewolfActionInput, WerewolfPublicCommand } from '@werewolf/game-engine';
+import type {
+  WerewolfActionInput,
+  WerewolfProfileUpdate,
+  WerewolfPublicCommand,
+} from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -50,15 +54,7 @@ export interface WerewolfGameClient {
    * Called after user changes name/avatar in Settings, broadcasts new profile to all clients.
    * Server returns NOT_SEATED when not seated, caller can silently ignore.
    */
-  updatePlayerProfile(
-    displayName?: string,
-    avatarUrl?: string,
-    avatarFrame?: string,
-    seatFlair?: string,
-    nameStyle?: string,
-    roleRevealEffect?: string,
-    seatAnimation?: string,
-  ): Promise<ActionResult>;
+  updatePlayerProfile(profile: WerewolfProfileUpdate): Promise<ActionResult>;
 
   /**
    * Share "detailed info" to specified seats (Host-only, ended phase)

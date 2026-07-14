@@ -1,4 +1,4 @@
-/** Client game-module contract consumed by the room composition root. */
+/** Game-neutral room-screen contribution consumed by the room resolver. */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
@@ -15,13 +15,7 @@ export interface GameRoomScreenProps {
   readonly navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
 }
 
-export interface GameAccountStatsProps {
-  readonly userId: string;
-}
-
-export interface GameUiModule<TGameType extends GameType = GameType> {
+export interface RoomUiModule<TGameType extends GameType = GameType> {
   readonly gameType: TGameType;
   readonly roomScreen: React.ComponentType<GameRoomScreenProps>;
-  readonly accountStatsSection: React.ComponentType<GameAccountStatsProps>;
-  readonly appOverlay: React.ComponentType | null;
 }

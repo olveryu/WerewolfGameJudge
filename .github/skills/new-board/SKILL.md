@@ -209,7 +209,7 @@ If the board contains special role combinations or new roles, add a Playwright E
 ### Phase 7 — Wrap-up
 
 - Confirm `pnpm run quality` passes
-- **Add a strategy entry in `src/components/BoardStrategy/boardStrategyData.ts`** under `BOARD_STRATEGY` (key = `PresetTemplate.name`), including `difficulty`, `recommendLevel`, `tags`, `summary`, `goodStrategy`, `wolfStrategy` (add `thirdStrategy` if third-party faction present), `firstNight`, `pitfalls`, `meta`
+- **Add a strategy entry in `src/games/werewolf/components/BoardStrategy/boardStrategyData.ts`** under `BOARD_STRATEGY` (key = `PresetTemplate.name`), including `difficulty`, `recommendLevel`, `tags`, `summary`, `goodStrategy`, `wolfStrategy` (add `thirdStrategy` if third-party faction present), `firstNight`, `pitfalls`, `meta`
 - Update preset board count in `README.md` and `README.en.md` (e.g., "27 preset boards" → "28 preset boards")
 - Update `docs/PRESET_BOARDS.md` preset boards reference doc (append to corresponding category table)
 - Summarize changed file list

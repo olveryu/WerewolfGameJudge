@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
-import type { GameUiModule } from '@/features/room/model/GameUiModule';
+import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RootStackParamList } from '@/navigation/types';
 import {
   type RoomRecord,
@@ -20,12 +20,12 @@ import { log } from '@/utils/logger';
 type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;
 
 interface RoomResolverScreenProps extends NavigationProps {
-  readonly getGameModule: (gameType: GameType) => GameUiModule;
+  readonly getGameModule: (gameType: GameType) => RoomUiModule;
 }
 
 type ResolverState =
   | { readonly kind: 'loading' }
-  | { readonly kind: 'resolved'; readonly room: RoomRecord; readonly module: GameUiModule }
+  | { readonly kind: 'resolved'; readonly room: RoomRecord; readonly module: RoomUiModule }
   | { readonly kind: 'error'; readonly message: string };
 
 const resolverLog = log.extend('RoomResolver');

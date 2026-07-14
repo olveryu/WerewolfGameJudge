@@ -4,7 +4,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
-import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
+import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { WerewolfRoomContent } from '@/games/werewolf/room/WerewolfRoomScreen';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 

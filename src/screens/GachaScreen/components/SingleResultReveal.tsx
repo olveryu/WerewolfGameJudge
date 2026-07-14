@@ -26,6 +26,7 @@ import Animated, {
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import { useClientProductUi } from '@/games/ClientGameCatalogContext';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 
@@ -75,8 +76,9 @@ export function SingleResultReveal({
   reducedMotion,
 }: SingleResultRevealProps) {
   const rarity = item.rarity;
+  const productUi = useClientProductUi();
   const visual = RARITY_VISUAL[rarity];
-  const displayName = getRewardDisplayName(item.rewardType, item.rewardId);
+  const displayName = getRewardDisplayName(productUi, item.rewardType, item.rewardId);
   const typeLabel = REWARD_TYPE_LABELS[item.rewardType];
   const previewSize = PREVIEW_SIZES[rarity];
   const borderWidth = BORDER_WIDTHS[rarity];

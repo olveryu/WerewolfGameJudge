@@ -4,7 +4,7 @@
 
 name: 'Screens & Components'
 description: 'Screen/Component layer standards: Policy-Orchestrator-Presentational three-tier, Theme Tokens, RN performance. Use when: editing screens, components, UI layer, theme tokens, React Native performance, animations'
-applyTo: 'src/screens/**,src/components/**'
+applyTo: 'src/screens/**,src/components/**,src/games/_/screens/\*\*,src/games/_/components/\*\*'
 
 ---
 
@@ -49,7 +49,7 @@ Faction colors must uniformly use theme tokens. Hardcoded color values are forbi
 | Third    | `colors.third`    | same as above                               |
 
 - All UI displaying faction colors (ConfigScreen chip, BoardInfoCard chip, RoleCard, NotepadPanel badge, AIChatBubble etc.) must read from `colors.*` to ensure theme-following.
-- `RoleRevealEffects` animation components derive glow/particle/gradient colors via `createAlignmentThemes(colors)` factory function (`src/components/RoleRevealEffects/types.ts`).
+- `RoleRevealEffects` animation components derive glow/particle/gradient colors via `createAlignmentThemes(colors)` factory function (`src/games/werewolf/components/RoleRevealEffects/types.ts`).
 - When adding new faction-related UI, all 4 factions (wolf / god / villager / third) must be covered.
 
 ## Shared Component Registry
