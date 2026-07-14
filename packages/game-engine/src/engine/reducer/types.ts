@@ -6,7 +6,8 @@
 
 import type { GameRuleOverrides, RoleId, SchemaId } from '../../models';
 import type { WolfKillOverride } from '../../models/roles/spec/schema.types';
-import type { ConfirmStatus, Player, ProtocolAction, RosterEntry } from '../../protocol/types';
+import type { RosterEntry } from '../../platform/room/roster';
+import type { ConfirmStatus, Player, ProtocolAction } from '../../protocol/types';
 import type { AudioEffect, BoardNomination } from '../../protocol/types';
 import type { CurrentNightResults } from '../../resolvers/types';
 import type { DeathReason } from '../DeathCalculator';

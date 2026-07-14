@@ -1807,7 +1807,7 @@ pnpm run e2e
 | 阶段      | 状态   | 已完成                                                                                  | 尚未完成                                         |
 | --------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                                |
-| Phase 1   | 进行中 | canonical identity、版本化 codec、room slice/hooks/state/facade/runtime 归 Werewolf     | config/notepad/AI chat 归位、边界 exception 清零 |
+| Phase 1   | 进行中 | canonical identity、版本化 codec、shared roster、room runtime 归位                      | config/notepad/AI chat 归位、边界 exception 清零 |
 | Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                                |
 | Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                                |
 | Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                                |
@@ -2046,3 +2046,15 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   Phase 5 Playwright 回归 `entry-flow` 6、`seating` 6、`rejoin` 2、`reconnect` 4，共 18/18 通过；
   包含 30 秒离线恢复和 5 次 online/offline flapping，没有修改 helper、timeout 或 retry 规则。
 - Phase 5 至此收口；Phase 6 未启动。
+
+### 当前提交：Phase 1 shared roster 所有权收口
+
+- `RosterEntry` 从狼人杀 `protocol/types.ts` 移到 `platform/room/roster.ts`，成为房间展示资料的唯一类型来源；
+  狼人杀 state 继续组合该 shared 类型，不保留旧路径 re-export 或 compatibility alias。
+- game-engine root export 与 package subpath 直接指向 shared roster；严格 Werewolf state parser、reducer、bot
+  roster 和客户端 state projection 全部切换到新所有权，wire shape 和运行时行为不变。
+- game-engine architecture contract 枚举 `games/*` 生产目录，禁止相对路径或 package subpath 导入其他游戏
+  module，也禁止 game module 反向导入 games catalog。新增第三个游戏时该边界自动进入测试范围。
+- 定向验证：Werewolf state parser、template reducer 与 architecture contract 共 3 suites/44 tests 通过。
+- Phase 1 仍进行中：config/notepad/AI chat 的 Werewolf 所有权与剩余边界 exception 尚未收口；Phase 6
+  仍未注册 `fibking`，继续遵守 engine、Worker、client catalogs 原子启用规则。

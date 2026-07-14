@@ -14,6 +14,7 @@ import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';
 import type { WerewolfGameType } from '../platform/protocol/gameTypes';
 import type { BaseGameState } from '../platform/protocol/roomSnapshot';
+import type { RosterEntry } from '../platform/room/roster';
 import type { CurrentNightResults } from '../resolvers/types';
 
 // =============================================================================
@@ -89,34 +90,6 @@ export interface Player {
   hasViewedRole: boolean;
   /** true = bot placeholder (debug mode); affects: skip reveal ack, groupConfirm, XP settlement */
   isBot?: boolean;
-}
-
-// =============================================================================
-// RosterEntry — display fields, separated from game logic
-// =============================================================================
-
-/**
- * RosterEntry — player display info within a room (nickname / avatar / level).
- *
- * Separated from Player (game logic fields):
- * - Player: userId / seat / role / hasViewedRole / isBot
- * - RosterEntry: displayName / avatarUrl / avatarFrame / level
- *
- * keyed by userId in GameStatePayload.roster.
- */
-export interface RosterEntry {
-  displayName: string;
-  avatarUrl?: string;
-  avatarFrame?: string;
-  /** Equipped seat flair gacha item ID */
-  seatFlair?: string;
-  /** Equipped seat animation gacha item ID */
-  seatAnimation?: string;
-  /** Equipped name style gacha item ID */
-  nameStyle?: string;
-  /** Equipped role reveal effect gacha item ID */
-  roleRevealEffect?: string;
-  level?: number;
 }
 
 // =============================================================================

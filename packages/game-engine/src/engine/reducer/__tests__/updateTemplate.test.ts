@@ -9,7 +9,7 @@ import type { GameState } from '@werewolf/game-engine/engine/store/types';
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { RosterEntry } from '@werewolf/game-engine/protocol/types';
+import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
 
 interface PlayerInput {
   userId: string;

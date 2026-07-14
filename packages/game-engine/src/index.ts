@@ -72,6 +72,7 @@ export {
   parseUserEventAckMessage,
   type UserEventAckMessage,
 } from './platform/protocol/userEvents';
+export type { RosterEntry } from './platform/room/roster';
 export {
   decideClearSeats,
   decideKickSeat,
@@ -148,7 +149,6 @@ export {
   type Player,
   type PlayerMessage,
   type ProtocolAction,
-  type RosterEntry,
   type ShootConfirmStatus,
 } from './protocol/types';
 

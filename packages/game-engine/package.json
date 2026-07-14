@@ -78,6 +78,10 @@
       "types": "./src/platform/room/seating/index.ts",
       "default": "./dist/platform/room/seating/index.js"
     },
+    "./platform/room/roster": {
+      "types": "./src/platform/room/roster.ts",
+      "default": "./dist/platform/room/roster.js"
+    },
     "./types/*": {
       "types": "./src/types/*.ts",
       "default": "./dist/types/*.js"

@@ -9,6 +9,7 @@ import { isValidSchemaId } from '../../../models/roles/spec/schemas';
 import { Team } from '../../../models/roles/spec/types';
 import type { GameRuleOverrides } from '../../../models/Template';
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
+import type { RosterEntry } from '../../../platform/room/roster';
 import type {
   AudioEffect,
   BoardNomination,
@@ -16,7 +17,6 @@ import type {
   GameState,
   Player,
   ProtocolAction,
-  RosterEntry,
 } from '../../../protocol/types';
 import type { CurrentNightResults } from '../../../resolvers/types';
 import { WEREWOLF_STATE_VERSION } from './version';

@@ -21,7 +21,8 @@ import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
 import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
-import type { GameState, Player, RosterEntry } from '@werewolf/game-engine/protocol/types';
+import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
+import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
 
 import type { LocalGameState, LocalPlayer } from '@/types/GameStateTypes';
 
