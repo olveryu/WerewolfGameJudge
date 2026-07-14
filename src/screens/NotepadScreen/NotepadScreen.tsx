@@ -23,7 +23,7 @@ import { NotepadPanel } from '@/components/NotepadPanel';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { UI_ICONS } from '@/config/iconTokens';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { useClientGameModule } from '@/games/ClientGameCatalogContext';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { useNotepad } from '@/hooks/useNotepad';
 import { type RootStackParamList } from '@/navigation/types';
@@ -41,7 +41,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
 
-  const facade = useWerewolfGame();
+  const facade = useClientGameModule('werewolf').client;
   const room = useRoomSessionSnapshot(facade.roomSession);
   const gameState = room.phase === 'ready' ? room.snapshot.state : null;
   const notepad = useNotepad(gameState);

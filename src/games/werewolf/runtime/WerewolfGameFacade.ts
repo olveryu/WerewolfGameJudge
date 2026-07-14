@@ -11,8 +11,8 @@
  * - Global singleton (getInstance/resetInstance removed)
  *
  * Boundary constraints:
- * - Created by composition root (App.tsx) via constructor DI
- * - Injected through WerewolfGameContext
+ * - Created by the Werewolf client-module factory via constructor DI
+ * - Exposed through the shared client game catalog
  * - Does not own room entry, identity, connection, seat commands, or user-event delivery
  */
 
@@ -41,7 +41,7 @@ import type { WerewolfGameClient } from './WerewolfGameClient';
 /**
  * WerewolfGameFacade injectable dependencies.
  *
- * All fields required — explicitly created and injected by composition root (App.tsx).
+ * All fields required — explicitly created and injected by the Werewolf module factory.
  * Tests likewise explicitly pass mock instances.
  */
 interface WerewolfGameFacadeDeps {

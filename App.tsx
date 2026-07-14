@@ -1,15 +1,13 @@
 import * as Sentry from '@sentry/react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 
 import { createAppServices } from '@/app/createAppServices';
-import { AIChatBubble } from '@/components/AIChatBubble';
 import { AlertModal } from '@/components/AlertModal';
 import { ModalStackProvider } from '@/components/AppModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -17,11 +15,8 @@ import { WxLoginFailedScreen } from '@/components/WxLoginFailedScreen';
 import { APP_VERSION } from '@/config/version';
 import { AuthProvider, ServiceProvider } from '@/contexts';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import {
-  useWerewolfGame,
-  WerewolfGameProvider,
-} from '@/games/werewolf/runtime/WerewolfGameContext';
+import { getClientGameModules } from '@/games/catalog';
+import { ClientGameCatalogProvider, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { useBootProgress } from '@/hooks/useBootProgress';
 import { queryClient } from '@/lib/queryClient';
 import { getSentryIntegrations } from '@/lib/sentryIntegrations';
@@ -238,13 +233,8 @@ function dismissWebSplash() {
 
 function AppContent() {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
-  const werewolfClient = useWerewolfGame();
-  const { roomSession } = werewolfClient;
-  const room = useRoomSessionSnapshot(roomSession);
-  const triggerPulse =
-    room.phase === 'ready' &&
-    room.snapshot.state.status !== GameStatus.Unseated &&
-    room.snapshot.state.status !== GameStatus.Seated;
+  const gameCatalog = useClientGameCatalog();
+  const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
 
   // Set up global alert listener
   useEffect(() => {
@@ -349,7 +339,10 @@ function AppContent() {
           onClose={handleAlertClose}
         />
       )}
-      <AIChatBubble triggerPulse={triggerPulse} />
+      {gameModules.map((gameModule) => {
+        const AppOverlay = gameModule.appOverlay;
+        return AppOverlay === null ? null : <AppOverlay key={gameModule.gameType} />;
+      })}
       <Toaster theme="light" richColors position="top-center" />
     </>
   );
@@ -360,7 +353,7 @@ export default function App() {
 
   // Composition root: create all service instances via ServiceRegistry
   // useState lazy init ensures services are created only once
-  const [{ services, werewolfClient }] = useState(() => createAppServices());
+  const [{ services, gameCatalog }] = useState(() => createAppServices());
 
   return (
     <ErrorBoundary>
@@ -368,11 +361,11 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <ServiceProvider services={services}>
             <AuthProvider>
-              <WerewolfGameProvider client={werewolfClient}>
+              <ClientGameCatalogProvider catalog={gameCatalog}>
                 <ModalStackProvider>
                   <AppContent />
                 </ModalStackProvider>
-              </WerewolfGameProvider>
+              </ClientGameCatalogProvider>
             </AuthProvider>
           </ServiceProvider>
         </QueryClientProvider>

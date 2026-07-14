@@ -2,8 +2,9 @@ import { render } from '@testing-library/react-native';
 import type React from 'react';
 import { Text } from 'react-native';
 
-import type { WerewolfGameClient } from '../WerewolfGameClient';
-import { useWerewolfGame, WerewolfGameProvider } from '../WerewolfGameContext';
+import { ClientGameCatalogProvider, useClientGameModule } from '@/games/ClientGameCatalogContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { createTestClientGameCatalog } from '@/test-utils/clientGameCatalog';
 
 function createRoomSession(): WerewolfGameClient['roomSession'] {
   return {
@@ -55,24 +56,22 @@ function createFakeClient(): WerewolfGameClient {
 }
 
 const Consumer: React.FC = () => {
-  const client = useWerewolfGame();
+  const client = useClientGameModule('werewolf').client;
   const room = client.roomSession.getSnapshot();
   return <Text testID="userId">{room.phase === 'idle' ? 'null' : room.identity.userId}</Text>;
 };
 
-describe('WerewolfGameProvider / useWerewolfGame', () => {
-  it('throws when used without provider', () => {
-    expect(() => render(<Consumer />)).toThrow(
-      '[useWerewolfGame] Missing <WerewolfGameProvider> in component tree',
-    );
+describe('ClientGameCatalogProvider', () => {
+  it('fails fast when used without the composition-root provider', () => {
+    expect(() => render(<Consumer />)).toThrow('[FAIL-FAST] Missing ClientGameCatalogProvider');
   });
 
-  it('provides the explicit facade prop', () => {
+  it('returns the client bound to the requested game module', () => {
     const client = createFakeClient();
     const ui = render(
-      <WerewolfGameProvider client={client}>
+      <ClientGameCatalogProvider catalog={createTestClientGameCatalog(client)}>
         <Consumer />
-      </WerewolfGameProvider>,
+      </ClientGameCatalogProvider>,
     );
 
     expect(ui.getByTestId('userId').props.children).toBe('u1');

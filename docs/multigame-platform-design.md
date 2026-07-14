@@ -1807,7 +1807,7 @@ pnpm run e2e
 | 阶段      | 状态   | 已完成                                                                                  | 尚未完成                                         |
 | --------- | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                    | -                                                |
-| Phase 1   | 进行中 | canonical identity、版本化 codec、shared roster、room runtime 归位                      | config/notepad/AI chat 归位、边界 exception 清零 |
+| Phase 1   | 进行中 | canonical identity、版本化 codec、shared roster、单一 session factory 与 client catalog | config/notepad/AI chat 归位、边界 exception 清零 |
 | Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                  | -                                                |
 | Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event  | -                                                |
 | Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation         | -                                                |
@@ -2058,3 +2058,25 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - 定向验证：Werewolf state parser、template reducer 与 architecture contract 共 3 suites/44 tests 通过。
 - Phase 1 仍进行中：config/notepad/AI chat 的 Werewolf 所有权与剩余边界 exception 尚未收口；Phase 6
   仍未注册 `fibking`，继续遵守 engine、Worker、client catalogs 原子启用规则。
+
+### 当前提交：Phase 1 单一客户端装配根
+
+- 新增 game-neutral `GameSessionFactory` contract；生产端只有
+  `CloudflareGameSessionFactory` 可以实例化 `RoomSession`，并统一绑定 state codec、user-event codec、
+  Cloudflare state adapter、realtime transport 与 command ID。`createAppServices` 不再 import Werewolf codec、
+  event、facade 或 state type。
+- Client catalog 从 module-level singleton 改为 composition root 创建的 immutable runtime catalog。
+  `createWerewolfUiModule` 在一个位置创建 typed session 和 `WerewolfGameFacade`，room screen 与 app overlay
+  都绑定同一个 client，不存在第二个 session、provider 或 hidden singleton。
+- App 只注入一个 `ClientGameCatalogProvider`；原 `WerewolfGameContext`、`WerewolfGameProvider` 和
+  `useWerewolfGame` 已删除，没有 alias 或 compatibility export。导航 resolver、Settings 统计枚举及暂未归位的
+  Werewolf 页面都通过同一个 catalog 读取已注册 module。
+- Werewolf room composition 改为显式接收 module-bound client；`useWerewolfRoom`、room screen state、board
+  nomination 与 AI chat overlay 不再依赖 per-game React context。App 不再读取 `GameStatus` 或直接渲染
+  Werewolf overlay，game-owned overlay 作为 module contribution 挂载。
+- Architecture contract 锁定 `RoomSession` 只有一个 class 且只由生产 session factory 构造；App/app composition
+  root 禁止 import concrete game，具体 game slice 禁止创建 React context 或 `*GameProvider`。
+- 完整 `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全绿；root
+  188 suites/4984 tests、game-engine 83 suites/2393 tests、api-worker 12 files/90 tests 全部通过。
+- Phase 1 仍进行中：Config、Notepad、AI chat 文件本体与 role UI 仍需归入 Werewolf slice，Settings/Appearance
+  还需改用 game-neutral active-room profile capability；完成这些边界后才能开始 Fib 原子 vertical slice。

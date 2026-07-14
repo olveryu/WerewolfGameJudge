@@ -27,7 +27,7 @@ import {
   type RoomSeatCommandContext,
 } from '@/features/room/session/roomSeatCommandClient';
 import { getClientGameModules } from '@/games/catalog';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { useClientGameCatalog, useClientGameModule } from '@/games/ClientGameCatalogContext';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import {
   useChangePassword,
@@ -62,8 +62,6 @@ import {
   NameSection,
 } from './components';
 
-const gameModules = getClientGameModules();
-
 /** Settings screen. */
 export const SettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -75,7 +73,9 @@ export const SettingsScreen: React.FC = () => {
   const { mutateAsync: signInAnonymously, isPending: isAnonymousPending } = useSignInAnonymously();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: changePassword } = useChangePassword();
-  const facade = useWerewolfGame();
+  const gameCatalog = useClientGameCatalog();
+  const gameModules = useMemo(() => getClientGameModules(gameCatalog), [gameCatalog]);
+  const facade = useClientGameModule('werewolf').client;
   const { roomSession } = facade;
 
   const room = useRoomSessionSnapshot(roomSession);

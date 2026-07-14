@@ -10,10 +10,11 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
+import { ClientGameCatalogProvider } from '@/games/ClientGameCatalogContext';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { WerewolfGameProvider } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
 import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomDirectoryService';
+import { createTestClientGameCatalog } from '@/test-utils/clientGameCatalog';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
@@ -87,6 +88,15 @@ const createMockFacade = (): WerewolfGameClient =>
     setAudioPlaying: jest.fn(),
   }) as unknown as WerewolfGameClient;
 
+function renderConfigScreen() {
+  const mockFacade = createMockFacade();
+  return render(
+    <ClientGameCatalogProvider catalog={createTestClientGameCatalog(mockFacade)}>
+      <ConfigScreen />
+    </ClientGameCatalogProvider>,
+  );
+}
+
 describe('Room creation → navigation roomCode contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -125,12 +135,7 @@ describe('Room creation → navigation roomCode contract', () => {
   });
 
   it('should navigate with the roomCode returned by createRoomRecord, not a pre-generated code', async () => {
-    const mockFacade = createMockFacade();
-    const { getByText } = render(
-      <WerewolfGameProvider client={mockFacade}>
-        <ConfigScreen />
-      </WerewolfGameProvider>,
-    );
+    const { getByText } = renderConfigScreen();
 
     // Press the create room button (default template has roles pre-selected)
     const createButton = getByText('创建房间');
@@ -161,12 +166,7 @@ describe('Room creation → navigation roomCode contract', () => {
     // Simulate DB creation failure
     mockCreateRoomMutateAsync.mockRejectedValueOnce(new Error('服务未配置'));
 
-    const mockFacade = createMockFacade();
-    const { getByText } = render(
-      <WerewolfGameProvider client={mockFacade}>
-        <ConfigScreen />
-      </WerewolfGameProvider>,
-    );
+    const { getByText } = renderConfigScreen();
 
     const createButton = getByText('创建房间');
     fireEvent.press(createButton);
@@ -183,12 +183,7 @@ describe('Room creation → navigation roomCode contract', () => {
       storage: { set: jest.Mock; getString: jest.Mock };
     };
     storage.getString.mockReturnValue(undefined);
-    const mockFacade = createMockFacade();
-    const { getByText } = render(
-      <WerewolfGameProvider client={mockFacade}>
-        <ConfigScreen />
-      </WerewolfGameProvider>,
-    );
+    const { getByText } = renderConfigScreen();
 
     const createButton = getByText('创建房间');
     fireEvent.press(createButton);
@@ -205,12 +200,7 @@ describe('Room creation → navigation roomCode contract', () => {
   });
 
   it('acknowledges the creation intent after persisting the recent room', async () => {
-    const mockFacade = createMockFacade();
-    const { getByText } = render(
-      <WerewolfGameProvider client={mockFacade}>
-        <ConfigScreen />
-      </WerewolfGameProvider>,
-    );
+    const { getByText } = renderConfigScreen();
 
     fireEvent.press(getByText('创建房间'));
 

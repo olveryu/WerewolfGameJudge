@@ -20,7 +20,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { FactionRoleList } from '@/components/FactionRoleList';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { computeFactionStats } from '@/screens/ConfigScreen/configHelpers';
 import {
   borderRadius,
@@ -35,6 +35,7 @@ import {
 import { showErrorAlert } from '@/utils/alertPresets';
 
 interface BoardNominationModalProps {
+  readonly client: WerewolfGameClient;
   /** Whether the modal is visible */
   visible: boolean;
   /** userId → BoardNomination record */
@@ -203,6 +204,7 @@ function NominationCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const BoardNominationModal = memo(function BoardNominationModal({
+  client,
   visible,
   nominations,
   myUserId,
@@ -213,8 +215,6 @@ export const BoardNominationModal = memo(function BoardNominationModal({
   clearAllSeats,
   onClose,
 }: BoardNominationModalProps) {
-  const facade = useWerewolfGame();
-
   const handleAdopt = useCallback(
     async (roles: readonly RoleId[]) => {
       const newCount = getPlayerCount(roles);
@@ -222,13 +222,13 @@ export const BoardNominationModal = memo(function BoardNominationModal({
         await clearAllSeats();
       }
       const template = createCustomTemplate([...roles]);
-      const result = await facade.updateTemplate(template);
+      const result = await client.updateTemplate(template);
       if (!result.success) {
         showErrorAlert('采纳失败', result.reason ?? '请稍后重试');
       }
       onClose();
     },
-    [currentPlayerCount, clearAllSeats, facade, onClose],
+    [currentPlayerCount, clearAllSeats, client, onClose],
   );
 
   const entries = useMemo(() => {

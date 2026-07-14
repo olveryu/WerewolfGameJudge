@@ -10,7 +10,6 @@ import type { RoomSessionClient } from '@/features/room/session/types';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { WerewolfGameProvider } from '@/games/werewolf/runtime/WerewolfGameContext';
 
 let mockAuthUserId = 'host-user';
 
@@ -129,12 +128,10 @@ function createFacade(options?: {
   } as unknown as WerewolfGameClient;
 }
 
-function createWrapper(facade: WerewolfGameClient): React.FC<React.PropsWithChildren> {
+function createWrapper(): React.FC<React.PropsWithChildren> {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const Wrapper: React.FC<React.PropsWithChildren> = ({ children }) => (
-    <QueryClientProvider client={queryClient}>
-      <WerewolfGameProvider client={facade}>{children}</WerewolfGameProvider>
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
   Wrapper.displayName = 'WerewolfRoomTestWrapper';
   return Wrapper;
@@ -143,8 +140,8 @@ function createWrapper(facade: WerewolfGameClient): React.FC<React.PropsWithChil
 describe('useWerewolfRoom shared-session composition', () => {
   it('derives identity, seat, role, revision, and connection from one room session', () => {
     const facade = createFacade();
-    const { result } = renderHook(() => useWerewolfRoom(), {
-      wrapper: createWrapper(facade),
+    const { result } = renderHook(() => useWerewolfRoom(facade), {
+      wrapper: createWrapper(),
     });
 
     expect(result.current.myUserId).toBe('host-user');
@@ -157,8 +154,8 @@ describe('useWerewolfRoom shared-session composition', () => {
 
   it('does not infer host authority from the snapshot when the active user is a player', () => {
     const facade = createFacade({ userId: 'player-user' });
-    const { result } = renderHook(() => useWerewolfRoom(), {
-      wrapper: createWrapper(facade),
+    const { result } = renderHook(() => useWerewolfRoom(facade), {
+      wrapper: createWrapper(),
     });
 
     expect(result.current.isHost).toBe(false);
@@ -167,8 +164,8 @@ describe('useWerewolfRoom shared-session composition', () => {
 
   it('shows the rejoin overlay only for an interrupted host session', async () => {
     const facade = createFacade({ wasAudioInterrupted: true });
-    const { result } = renderHook(() => useWerewolfRoom(), {
-      wrapper: createWrapper(facade),
+    const { result } = renderHook(() => useWerewolfRoom(facade), {
+      wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.needsContinueOverlay).toBe(true));
@@ -179,8 +176,8 @@ describe('useWerewolfRoom shared-session composition', () => {
 
   it('does not show the rejoin overlay for a non-host user', () => {
     const facade = createFacade({ userId: 'player-user', wasAudioInterrupted: true });
-    const { result } = renderHook(() => useWerewolfRoom(), {
-      wrapper: createWrapper(facade),
+    const { result } = renderHook(() => useWerewolfRoom(facade), {
+      wrapper: createWrapper(),
     });
 
     expect(result.current.needsContinueOverlay).toBe(false);

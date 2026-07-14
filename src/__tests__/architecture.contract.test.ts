@@ -185,6 +185,43 @@ describe('Client ownership: RoomSession has one implementation', () => {
       'src/features/room/session/RoomSession.ts',
     ]);
   });
+
+  it('is instantiated only by the production game-session factory', () => {
+    const constructors = srcFiles.filter((filePath) =>
+      /\bnew\s+RoomSession\s*</.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(constructors.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/app/CloudflareGameSessionFactory.ts',
+    ]);
+  });
+});
+
+describe('Client composition: one game-neutral catalog provider', () => {
+  const compositionRootFiles = [
+    path.join(process.cwd(), 'App.tsx'),
+    path.join(srcDir, 'app'),
+  ].flatMap((entry) => (fs.statSync(entry).isDirectory() ? getAllProductionFiles(entry) : [entry]));
+
+  it.each(compositionRootFiles)('%s must not import a concrete game module', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    expect(
+      content.match(/^\s*import\b.*from\s+['"]@\/games\/(?!catalog|ClientGameCatalogContext)/m),
+    ).toBeNull();
+  });
+
+  it('does not define a provider or React context inside a concrete game slice', () => {
+    const concreteGameFiles = getAllProductionFiles(gamesDir).filter((filePath) => {
+      const relativePath = path.relative(gamesDir, filePath);
+      return relativePath.split(path.sep).length > 1;
+    });
+    const offenders = concreteGameFiles.filter((filePath) => {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return /\bcreateContext\s*[<(]|\b[A-Z]\w*GameProvider\b/.test(content);
+    });
+
+    expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
+  });
 });
 
 // ─── Rule 3: screens/ runtime imports from services/ are restricted ──────────

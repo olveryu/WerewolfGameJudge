@@ -6,6 +6,9 @@ import { useMemo } from 'react';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import type { GameRoomScreenProps } from '@/features/room/model/GameUiModule';
 import { WerewolfRoomContent } from '@/games/werewolf/room/WerewolfRoomScreen';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+
+const TEST_CLIENT = {} as WerewolfGameClient;
 
 export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = (props) => {
   const entryController = useMemo<RoomEntryController>(
@@ -28,5 +31,5 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = (props) => {
     [props.navigation],
   );
 
-  return <WerewolfRoomContent {...props} entryController={entryController} />;
+  return <WerewolfRoomContent {...props} entryController={entryController} client={TEST_CLIENT} />;
 };

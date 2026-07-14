@@ -47,9 +47,9 @@ jest.mock('../../../utils/defaultAvatarIcons', () => ({
   })),
 }));
 
-// Settings reads the shared session through the game-owned Werewolf client.
-jest.mock('../../../games/werewolf/runtime/WerewolfGameContext', () => ({
-  useWerewolfGame: () => ({
+// Settings reads the active client through the shared game catalog.
+jest.mock('../../../games/ClientGameCatalogContext', () => {
+  const client = {
     roomSession: {
       getSnapshot: jest.fn().mockReturnValue({
         phase: 'idle',
@@ -63,8 +63,19 @@ jest.mock('../../../games/werewolf/runtime/WerewolfGameContext', () => ({
       subscribe: jest.fn().mockReturnValue(() => {}),
     },
     updatePlayerProfile: jest.fn().mockResolvedValue({ success: true }),
-  }),
-}));
+  };
+  const werewolf = {
+    gameType: 'werewolf',
+    client,
+    roomScreen: () => null,
+    accountStatsSection: () => null,
+    appOverlay: null,
+  };
+  return {
+    useClientGameCatalog: () => ({ werewolf }),
+    useClientGameModule: () => werewolf,
+  };
+});
 
 describe('SettingsScreen', () => {
   beforeEach(() => {

@@ -22,7 +22,7 @@ import type { FlairId } from '@/components/seatFlairs';
 import { getAnimationOption } from '@/components/SettingsSheet/animationOptions';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { useClientGameModule } from '@/games/ClientGameCatalogContext';
 import { useUpdateProfile } from '@/hooks/mutations/useAuthMutations';
 import { useUploadAvatar } from '@/hooks/mutations/useUploadAvatar';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
@@ -49,7 +49,7 @@ export function useAppearanceState() {
   const { user, refreshUser } = useAuth();
   const { mutateAsync: updateProfile } = useUpdateProfile();
   const { mutateAsync: uploadAvatar } = useUploadAvatar();
-  const facade = useWerewolfGame();
+  const facade = useClientGameModule('werewolf').client;
   const room = useRoomSessionSnapshot(facade.roomSession);
   const isInRoom = room.phase !== 'idle';
 

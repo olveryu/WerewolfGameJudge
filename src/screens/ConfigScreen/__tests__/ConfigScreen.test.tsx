@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react-native';
 import type React from 'react';
 
+import { ClientGameCatalogProvider } from '@/games/ClientGameCatalogContext';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { WerewolfGameProvider } from '@/games/werewolf/runtime/WerewolfGameContext';
 import { ConfigScreen } from '@/screens/ConfigScreen/ConfigScreen';
+import { createTestClientGameCatalog } from '@/test-utils/clientGameCatalog';
 
 // Mock navigation
 const mockNavigate = jest.fn();
@@ -75,7 +76,11 @@ const createMockFacade = (): WerewolfGameClient =>
 
 const renderWithFacade = (ui: React.ReactElement) => {
   const mockFacade = createMockFacade();
-  return render(<WerewolfGameProvider client={mockFacade}>{ui}</WerewolfGameProvider>);
+  return render(
+    <ClientGameCatalogProvider catalog={createTestClientGameCatalog(mockFacade)}>
+      {ui}
+    </ClientGameCatalogProvider>,
+  );
 };
 
 describe('ConfigScreen', () => {

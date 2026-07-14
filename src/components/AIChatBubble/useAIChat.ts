@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { setAIChatBridgeListener } from '@/utils/aiChatBridge';
 
@@ -56,8 +56,7 @@ interface UseAIChatReturn {
 // Hook
 // ══════════════════════════════════════════════════════════
 
-export function useAIChat(): UseAIChatReturn {
-  const werewolfClient = useWerewolfGame();
+export function useAIChat(werewolfClient: WerewolfGameClient): UseAIChatReturn {
   const { roomSession } = werewolfClient;
 
   // ── Open/close state ─────────────────────────────────

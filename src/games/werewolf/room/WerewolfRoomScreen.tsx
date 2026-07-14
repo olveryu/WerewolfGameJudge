@@ -33,7 +33,7 @@ import {
   resolveWerewolfBuiltinAvatarName,
   WerewolfProfileDetails,
 } from '@/games/werewolf/components/WerewolfProfileDetails';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import {
   createWerewolfBottomActionLayout,
   createWerewolfControlledSeatModel,
@@ -65,22 +65,27 @@ import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 // ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 
-export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
+interface WerewolfRoomScreenProps extends GameRoomScreenProps {
+  readonly client: WerewolfGameClient;
+}
+
+export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
   room,
   entryReason,
   navigation,
+  client,
 }) => {
-  const facade = useWerewolfGame();
   const handleExit = useCallback(() => navigation.navigate('Home'), [navigation]);
 
   return (
-    <RoomEntryBoundary room={room} session={facade.roomSession} onExit={handleExit}>
+    <RoomEntryBoundary room={room} session={client.roomSession} onExit={handleExit}>
       {(entryController) => (
         <WerewolfRoomContent
           room={room}
           entryReason={entryReason}
           navigation={navigation}
           entryController={entryController}
+          client={client}
         />
       )}
     </RoomEntryBoundary>
@@ -89,6 +94,7 @@ export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = ({
 
 interface WerewolfRoomContentProps extends GameRoomScreenProps {
   readonly entryController: RoomEntryController;
+  readonly client: WerewolfGameClient;
 }
 
 export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
@@ -96,6 +102,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   entryReason,
   navigation,
   entryController,
+  client,
 }) => {
   const roomCode = room.roomCode;
   const { user } = useAuthContext();
@@ -227,7 +234,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
     bottomCardDisabledIndices,
     bottomCardDisabledHint,
     bottomCardSubtitle,
-  } = useWerewolfRoomScreenState(room, navigation, entryController);
+  } = useWerewolfRoomScreenState(room, navigation, entryController, client);
 
   // ─── Board nomination callbacks ────────────────────────────────────────
   const showNominations = roomStatus === GameStatus.Unseated || roomStatus === GameStatus.Seated;
@@ -720,6 +727,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
           {/* Board Nomination Modal -- board suggestion list */}
           {nominationModalVisible && (
             <BoardNominationModal
+              client={client}
               visible={nominationModalVisible}
               nominations={gameState?.boardNominations}
               myUserId={user?.id ?? null}

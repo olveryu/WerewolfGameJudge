@@ -23,6 +23,7 @@ import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatCo
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
@@ -85,6 +86,7 @@ export function useWerewolfRoomScreenState(
   room: RoomRecord,
   navigation: RoomScreenNavigation,
   entryController: RoomEntryController,
+  client: WerewolfGameClient,
 ) {
   const { roomCode } = room;
 
@@ -144,7 +146,7 @@ export function useWerewolfRoomScreenState(
     resumeAfterRejoin,
     needsContinueOverlay,
     dismissContinueOverlay,
-  } = useWerewolfRoom();
+  } = useWerewolfRoom(client);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Personal role reveal animation (from GameState roster, already resolved)

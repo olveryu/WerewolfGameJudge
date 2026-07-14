@@ -18,7 +18,7 @@ import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { RoleCardSimple } from '@/components/RoleCardSimple';
 import { useServices } from '@/contexts/ServiceContext';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import { useClientGameModule } from '@/games/ClientGameCatalogContext';
 import { type RootStackParamList } from '@/navigation/types';
 import { isAIChatReady } from '@/services/feature/AIChatService';
 import { TESTIDS } from '@/testids';
@@ -96,7 +96,7 @@ export const ConfigScreen: React.FC = () => {
   const nominateMode = route.params?.nominateMode;
   const updatedRules = route.params?.updatedRules;
 
-  const facade = useWerewolfGame();
+  const facade = useClientGameModule('werewolf').client;
   const { settingsService, roomDirectory } = useServices();
 
   const state = useConfigScreenState({

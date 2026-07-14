@@ -1,29 +1,41 @@
-/** Exhaustive client game-module catalog. */
+/** Exhaustive client game-module catalog created by the application composition root. */
 
 import { GAME_TYPES, type GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
 import type { GameUiModule } from '@/features/room/model/GameUiModule';
+import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
+import { createWerewolfUiModule, type WerewolfUiModule } from '@/games/werewolf/module';
+import type { AudioService } from '@/services/infra/AudioService';
 
-import { werewolfUiModule } from './werewolf/module';
-
-type ClientGameCatalog = {
-  readonly [TGameType in GameType]: GameUiModule<TGameType>;
-};
-
-const CLIENT_GAME_CATALOG = {
-  werewolf: werewolfUiModule,
-} satisfies ClientGameCatalog;
-
-const CLIENT_GAME_MODULES: readonly GameUiModule[] = GAME_TYPES.map(
-  (gameType) => CLIENT_GAME_CATALOG[gameType],
-);
-
-export function getClientGameModule<TGameType extends GameType>(
-  gameType: TGameType,
-): ClientGameCatalog[TGameType] {
-  return CLIENT_GAME_CATALOG[gameType];
+interface ClientGameModuleByType {
+  readonly werewolf: WerewolfUiModule;
 }
 
-export function getClientGameModules(): readonly GameUiModule[] {
-  return CLIENT_GAME_MODULES;
+export type ClientGameCatalog = {
+  readonly [TGameType in GameType]: ClientGameModuleByType[TGameType];
+};
+
+interface CreateClientGameCatalogDeps {
+  readonly sessionFactory: GameSessionFactory;
+  readonly audioService: AudioService;
+}
+
+export function createClientGameCatalog({
+  sessionFactory,
+  audioService,
+}: CreateClientGameCatalogDeps): ClientGameCatalog {
+  return {
+    werewolf: createWerewolfUiModule({ sessionFactory, audioService }),
+  };
+}
+
+export function getClientGameModule<TGameType extends GameType>(
+  catalog: ClientGameCatalog,
+  gameType: TGameType,
+): ClientGameCatalog[TGameType] {
+  return catalog[gameType];
+}
+
+export function getClientGameModules(catalog: ClientGameCatalog): readonly GameUiModule[] {
+  return GAME_TYPES.map((gameType) => catalog[gameType]);
 }

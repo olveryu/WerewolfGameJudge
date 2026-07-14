@@ -17,11 +17,13 @@ import {
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
 import type React from 'react';
+import { useCallback } from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
 import { getClientGameModule } from '@/games/catalog';
+import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
@@ -66,9 +68,14 @@ const navLog = log.extend('AppNavigator');
 /** Params that are programmatic-only and should never appear in the URL. */
 const TRANSIENT_PARAMS = ['entryReason'];
 
-const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Room'>> = (props) => (
-  <RoomResolverScreen {...props} getGameModule={getClientGameModule} />
-);
+const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Room'>> = (props) => {
+  const catalog = useClientGameCatalog();
+  const resolveGameModule = useCallback(
+    (gameType: Parameters<typeof getClientGameModule>[1]) => getClientGameModule(catalog, gameType),
+    [catalog],
+  );
+  return <RoomResolverScreen {...props} getGameModule={resolveGameModule} />;
+};
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {

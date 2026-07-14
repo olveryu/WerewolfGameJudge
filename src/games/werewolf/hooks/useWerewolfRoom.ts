@@ -25,7 +25,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
-import { useWerewolfGame } from '@/games/werewolf/runtime/WerewolfGameContext';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 import type { LocalGameState } from '@/types/GameStateTypes';
@@ -120,11 +120,10 @@ interface UseWerewolfRoomResult {
  * Composition hook for WerewolfRoomScreen — orchestrates 6 sub-hooks into a unified game room interface.
  *
  * Responsible for assembling lifecycle, connection status, game state, actions, night-phase derivations, and BGM.
- */ export const useWerewolfRoom = (): UseWerewolfRoomResult => {
+ */ export const useWerewolfRoom = (facade: WerewolfGameClient): UseWerewolfRoomResult => {
   // =========================================================================
   // Core: facade + services
   // =========================================================================
-  const facade = useWerewolfGame();
   const session = facade.roomSession;
   const isFocused = useIsFocused();
   const { user } = useAuthContext();

@@ -29,6 +29,7 @@ const module: GameUiModule = {
   gameType: 'werewolf',
   roomScreen: WerewolfRoom,
   accountStatsSection: AccountStatsSection,
+  appOverlay: null,
 };
 const getGameModule = jest.fn(() => module);
 

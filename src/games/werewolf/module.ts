@@ -1,11 +1,57 @@
 /** Werewolf client runtime registration. */
 
-import type { GameUiModule } from '@/features/room/model/GameUiModule';
-import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
-import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import {
+  WEREWOLF_STATE_CODEC,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
+import { createElement } from 'react';
 
-export const werewolfUiModule = {
-  gameType: 'werewolf',
-  roomScreen: WerewolfRoomScreen,
-  accountStatsSection: WerewolfAccountStatsSection,
-} satisfies GameUiModule<'werewolf'>;
+import type { GameRoomScreenProps, GameUiModule } from '@/features/room/model/GameUiModule';
+import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
+import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
+import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
+import {
+  WEREWOLF_USER_EVENT_CODEC,
+  type WerewolfUserEvent,
+} from '@/games/werewolf/realtime/werewolfUserEventCodec';
+import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
+import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { WerewolfGameFacade } from '@/games/werewolf/runtime/WerewolfGameFacade';
+import type { AudioService } from '@/services/infra/AudioService';
+
+export interface WerewolfUiModule extends GameUiModule<'werewolf'> {
+  readonly client: WerewolfGameClient;
+}
+
+interface CreateWerewolfUiModuleDeps {
+  readonly sessionFactory: GameSessionFactory;
+  readonly audioService: AudioService;
+}
+
+export function createWerewolfUiModule({
+  sessionFactory,
+  audioService,
+}: CreateWerewolfUiModuleDeps): WerewolfUiModule {
+  const roomSession = sessionFactory.create<GameState, WerewolfPublicCommand, WerewolfUserEvent>({
+    stateCodec: WEREWOLF_STATE_CODEC,
+    userEventCodec: WEREWOLF_USER_EVENT_CODEC,
+  });
+  const client = new WerewolfGameFacade({ roomSession, audioService });
+
+  function BoundWerewolfRoomScreen(props: GameRoomScreenProps) {
+    return createElement(WerewolfRoomScreen, { ...props, client });
+  }
+
+  function BoundWerewolfAppOverlay() {
+    return createElement(WerewolfAppOverlay, { client });
+  }
+
+  return {
+    gameType: 'werewolf',
+    client,
+    roomScreen: BoundWerewolfRoomScreen,
+    accountStatsSection: WerewolfAccountStatsSection,
+    appOverlay: BoundWerewolfAppOverlay,
+  };
+}
