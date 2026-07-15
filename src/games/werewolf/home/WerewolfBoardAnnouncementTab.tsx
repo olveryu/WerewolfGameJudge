@@ -5,7 +5,7 @@ import {
   PRESET_TEMPLATES,
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';

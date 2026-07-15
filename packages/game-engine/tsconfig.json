@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@werewolf/game-engine/*": ["./src/*"],
-      "@werewolf/game-engine": ["./src/index.ts"]
+      "@game-judge/game-engine/*": ["./src/*"],
+      "@game-judge/game-engine": ["./src/index.ts"]
     },
     "rootDir": "src",
     "outDir": "dist"

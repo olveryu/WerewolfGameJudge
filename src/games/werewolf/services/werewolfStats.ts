@@ -1,10 +1,10 @@
 /** Werewolf public-statistics HTTP contract and cache key. */
 
-import { queryOptions } from '@tanstack/react-query';
 import {
   parseWerewolfPublicStats,
   type WerewolfPublicStats,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { queryOptions } from '@tanstack/react-query';
 
 import { cfGet } from '@/services/cloudflare/cfFetch';
 

@@ -12,8 +12,8 @@ import {
   isWolfRole,
   type RoleAbilityTag,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { Faction } from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';

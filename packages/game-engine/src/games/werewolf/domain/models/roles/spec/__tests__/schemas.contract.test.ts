@@ -10,13 +10,13 @@ import {
   isValidSchemaId,
   type SchemaId,
   SCHEMAS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import { NIGHT_STEPS } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import type {
   ActionSchema,
   CompoundSchema,
   WolfVoteSchema,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
 
 describe('SCHEMAS contract', () => {
   it('should include at least all NIGHT_STEPS schemas (and may include helper schemas)', () => {

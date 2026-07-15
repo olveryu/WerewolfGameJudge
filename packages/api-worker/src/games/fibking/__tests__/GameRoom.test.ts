@@ -1,4 +1,7 @@
-import { FIB_STATE_CODEC, type FibPublicCommand } from '@werewolf/game-engine/games/fibking/public';
+import {
+  FIB_STATE_CODEC,
+  type FibPublicCommand,
+} from '@game-judge/game-engine/games/fibking/public';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';

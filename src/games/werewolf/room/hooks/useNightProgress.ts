@@ -7,13 +7,13 @@
  * (gates are in useActionOrchestrator).
  */
 
-import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import {
   buildNightPlan,
   getRoleDisplayAs,
   getRoleSpec,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';

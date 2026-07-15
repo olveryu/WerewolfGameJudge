@@ -10,9 +10,9 @@
  * - seat-key normalization introducing data distortion
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/games/werewolf/public';
-import { normalizeState } from '@werewolf/game-engine/games/werewolf/testing';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import { normalizeState } from '@game-judge/game-engine/games/werewolf/testing';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';

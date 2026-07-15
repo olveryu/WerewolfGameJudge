@@ -142,7 +142,8 @@
 
 ## 7. 目标目录树
 
-物理目录可以继续叫 `packages/game-engine` 和 `packages/api-worker`。workspace package scope 最终应从 `@werewolf/*` 一次性改为中性名称，例如 `@game-judge/*`。改名完成后不保留 alias。
+物理目录继续使用 `packages/game-engine` 和 `packages/api-worker`。workspace package scope 统一使用中性名称
+`@game-judge/*`；旧的具体游戏 scope 已原子删除，不保留 alias。
 
 ```text
 packages/
@@ -1832,7 +1833,7 @@ pnpm run e2e
 交付：
 
 - 删除旧 context、facade、route、processor、directory、export、migration-only adapter。
-- 批准后一次性修改 workspace package scope。
+- workspace package scope 一次性改为中性命名且不保留 alias。
 - 删除 architecture test 临时 allowlist。
 - 更新仓库文档。
 
@@ -2627,3 +2628,23 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
 - Phase 8 尚余：workspace scope 一次性中性化且不保留 alias，开放单个 game module contract 并补 compile-only
   Pictionary 接入证明，最后执行 migration、seed、quality 与全量 E2E。
+
+### 当前提交：Phase 8.8 workspace package scope 中性化
+
+- `packages/game-engine` 与 `packages/api-worker` 的 workspace 身份分别原子改为
+  `@game-judge/game-engine`、`@game-judge/api-worker`；root app、Worker、engine、E2E 的 import、mock、TypeScript
+  paths、Jest/Vitest mapper、pnpm filter 与 workspace dependency 同步迁移，不保留旧 scope alias。
+- `pnpm-lock.yaml` 由 pnpm 10.32.1 按新 manifest 重算；`pnpm -r list --depth -1` 只枚举中性 scope 下的两个
+  workspace package。仓库活动文件的旧 scope 搜索为零，`CHANGELOG.md` 与 `docs/archive/**` 仅保留历史事实。
+- CI、README、部署命令、architecture contract、agent canonical sources 与 skill 示例统一使用新 scope，并通过
+  `pnpm run sync:agents` 生成所有编辑器/代理镜像。Cloudflare Worker、D1、Pages 等已部署资源名不属于 package
+  identity，本提交不改资源名、binding、URL 或迁移历史。
+- client architecture contract 以唯一 `GAME_ENGINE_PACKAGE` 常量和 AST module specifier 统一判断 package root、
+  shared `platform/product` 与 concrete `games/*` import，不再在多个 regex 中复制 scope。scope 迁移后的边界语义保持
+  不变：shared 层只能读取 platform/product，package root 与任何 game implementation 仍会立即失败。
+- 完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；root
+  220 suites/8616 tests、game-engine 86 suites/2513 tests、api-worker 16 files/116 tests 全部通过。root Jest 仍只有
+  仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
+- Phase 8 尚余：消除 client navigation 与 Worker HTTP 的双重 concrete-game 组合点，开放单个 game module
+  contract 并补 compile-only Pictionary 接入证明，收紧三 workspace architecture gate，最后执行 migration、seed、
+  quality 与全量 E2E。

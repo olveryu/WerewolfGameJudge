@@ -8,9 +8,9 @@
  * Also invalidates gachaStatus + userStats queries to refresh the header badge.
  */
 
+import type { WerewolfPublicCommand } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { useQueryClient } from '@tanstack/react-query';
-import type { WerewolfPublicCommand } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 

@@ -11,7 +11,7 @@
  * @throws 404 — key not found on GET
  */
 
-import { randomHex } from '@werewolf/game-engine/platform/identifiers';
+import { randomHex } from '@game-judge/game-engine/platform/identifiers';
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';

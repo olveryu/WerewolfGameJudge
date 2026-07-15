@@ -1,6 +1,6 @@
 /** FibKing-owned word generation port and provider result contract. */
 
-import type { FibWordSource } from '@werewolf/game-engine/games/fibking/public';
+import type { FibWordSource } from '@game-judge/game-engine/games/fibking/public';
 
 export interface FibWordRequest {
   readonly avoidWords: readonly string[];

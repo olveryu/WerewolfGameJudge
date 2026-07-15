@@ -5,7 +5,7 @@
  * Table and column names use snake_case to match physical columns in D1.
  */
 
-import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   index,
   integer,

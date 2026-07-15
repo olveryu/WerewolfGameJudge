@@ -1,9 +1,9 @@
 /** Canonical room URL resolver: metadata first, then one registered game UI module. */
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Sentry from '@sentry/react-native';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 

@@ -16,7 +16,7 @@ applyTo: '**/\*.test.ts,**/\*.test.tsx,**/**tests**/**,e2e/\*\*'
 - `it.skip` / `test.skip` / `describe.skip` is forbidden (CI detects and fails directly).
 - Test assertions are based on `GameState` single source of truth. Directly modifying state / injecting host-only state is forbidden.
 - Test files may use `as` to construct mock data. Mocking `src/utils/alert.ts`'s `showAlert` is allowed.
-- Jest mocking game-engine modules uses package path `@werewolf/game-engine/...`. Relative path mock stubs are forbidden. Static analysis tests read source files from `packages/game-engine/src/`.
+- Jest mocking game-engine modules uses package path `@game-judge/game-engine/...`. Relative path mock stubs are forbidden. Static analysis tests read source files from `packages/game-engine/src/`.
 - Running tests must not use `| grep` / `| head` / `| tail` to truncate output. Playwright defaults to `--reporter=list` (as in `pnpm run e2e`); project debug scripts (`e2e:core` / `e2e:remote`) may use `--reporter=line`.
 - Bug fixes prioritize root cause fix, roll back outdated patches. Claiming "already fixed" without evidence is forbidden: provide commit hash, modified files, verification results.
 

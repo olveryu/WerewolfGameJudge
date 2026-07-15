@@ -6,7 +6,7 @@
  * 创建确定性 dev 用户（全解锁），通过 wrangler d1 execute --local 写入。
  *
  * 用法：node scripts/seed-local.mjs
- * 或：  pnpm -F @werewolf/api-worker db:seed:local
+ * 或：  pnpm -F @game-judge/api-worker db:seed:local
  */
 
 import { execFileSync } from 'node:child_process';

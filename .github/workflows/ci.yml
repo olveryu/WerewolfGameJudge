@@ -33,7 +33,7 @@ jobs:
         run: pnpm exec tsc --noEmit
 
       - name: Build game-engine
-        run: pnpm --filter @werewolf/game-engine run build
+        run: pnpm --filter @game-judge/game-engine run build
 
       - name: Lint
         run: pnpm run lint
@@ -64,7 +64,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Build game-engine (api-worker dependency)
-        run: pnpm --filter @werewolf/game-engine run build
+        run: pnpm --filter @game-judge/game-engine run build
 
       - name: Apply D1 migrations
         uses: cloudflare/wrangler-action@v4

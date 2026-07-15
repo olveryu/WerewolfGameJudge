@@ -7,7 +7,7 @@
  * submits via proceedWithAction.
  */
 
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { roomScreenLog } from '@/utils/logger';
 

@@ -1,6 +1,5 @@
 /** Compose shared room controllers with FibKing phase and role semantics. */
 
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   type FibPublicCommand,
   type FibRoundView,
@@ -9,7 +8,8 @@ import {
   getFibRoundView,
   getFibUserSeat,
   isFibImplicitBotSeat,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';

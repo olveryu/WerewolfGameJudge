@@ -1,8 +1,8 @@
 /** User-scoped persistence for immutable recent room identities. */
 
-import { type GameType, parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
-import { parseRoomId } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
+import { parseRoomId } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 import { storage } from '@/services/infra/localStorage';
 

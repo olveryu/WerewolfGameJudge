@@ -11,9 +11,9 @@
  * integration layer (integration tests that verify ACTION_REJECTED is broadcast).
  */
 
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   type ActionDeps,

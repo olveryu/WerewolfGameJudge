@@ -6,8 +6,8 @@
  * Reads gameState and ROLE_SPECS. Does not modify state or call services.
  */
 
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from '@/games/werewolf/services/AIChatService';
 

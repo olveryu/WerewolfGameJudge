@@ -1,16 +1,16 @@
 /** Werewolf random-role spotlight contributed to the product Home screen. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   Faction,
   getAllRoleIds,
   getRoleSpec,
   isWolfRole,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { randomIntInclusive } from '@werewolf/game-engine/platform/random';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { randomIntInclusive } from '@game-judge/game-engine/platform/random';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, {

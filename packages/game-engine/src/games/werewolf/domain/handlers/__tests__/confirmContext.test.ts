@@ -8,11 +8,11 @@
 import {
   computeCanShootForSeat,
   maybeCreateConfirmStatusAction,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/confirmContext';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import { Team } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/confirmContext';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import { Team } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
 // Test Helper

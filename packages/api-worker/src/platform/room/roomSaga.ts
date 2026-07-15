@@ -1,8 +1,8 @@
 /** Forward-recoverable orchestration between the D1 directory and room Durable Objects. */
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import * as Sentry from '@sentry/cloudflare';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import type { Env } from '../../env';
 import { createLogger } from '../../lib/logger';

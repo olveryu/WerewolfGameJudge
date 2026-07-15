@@ -4,9 +4,9 @@ import type {
   WerewolfConfig,
   WerewolfInternalCommand,
   WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { validateTemplateRoles } from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { validateTemplateRoles } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';

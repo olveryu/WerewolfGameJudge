@@ -8,7 +8,7 @@
  * No hooks, no side effects.
  */
 
-import type { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { BottomButton } from './bottomActionBuilder';
 import {

@@ -13,12 +13,12 @@
  * Does not call the service layer directly; contains no business callback logic (belongs in sub-hooks).
  */
 
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionSchema, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import { useIsFocused } from '@react-navigation/native';
-import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionSchema, SchemaId } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';

@@ -1,6 +1,6 @@
 /** Typed composition boundary between pure game engines and the Worker runtime. */
 
-import type { GameEngineCatalog } from '@werewolf/game-engine/games/catalog';
+import type { GameEngineCatalog } from '@game-judge/game-engine/games/catalog';
 import type {
   CommandContext,
   CommandOf,
@@ -8,17 +8,17 @@ import type {
   GameEffect,
   GameEngineDefinition,
   GameEvent,
-} from '@werewolf/game-engine/platform/engine';
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
+} from '@game-judge/game-engine/platform/engine';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import {
   parseRoomCommandResult,
   type RoomCommandResult,
-} from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+} from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type { ZodType } from 'zod';
 
 import type { Env } from '../env';

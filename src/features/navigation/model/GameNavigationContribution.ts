@@ -1,6 +1,6 @@
 /** Game-owned root-route definitions and their bound client screens. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 export type GameNavigationRouteKind = 'config' | 'guide' | 'notepad';

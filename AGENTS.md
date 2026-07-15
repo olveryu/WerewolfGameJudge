@@ -21,13 +21,13 @@ React Native (Expo SDK 56) multigame judge app. Cloudflare Worker + DO + D1 hand
 - `pnpm run quality` �?typecheck + knip + lint + format + test all at once
 - `npx knip --no-exit-code` �?Dead code detection. Watch for false positives: `metro.config.js`, `react-dom`, etc.
 - `pnpm run release` �?Bump version �?CHANGELOG �?commit �?tag �?push
-- `pnpm -F @werewolf/api-worker db:seed:local` �?Local D1 seed: creates dev user (`dev@test.local` / `dev123`) + unlocks all items
+- `pnpm -F @game-judge/api-worker db:seed:local` �?Local D1 seed: creates dev user (`dev@test.local` / `dev123`) + unlocks all items
 
 ### Dev Environment Startup
 
 - `pnpm run dev` starts worker + web via concurrently
 - Wrangler OAuth token expires ~24h �?`cd packages/api-worker && npx wrangler login`
-- First time or new migration �?`pnpm -F @werewolf/api-worker db:migrate:local`
+- First time or new migration �?`pnpm -F @game-judge/api-worker db:migrate:local`
 
 ---
 

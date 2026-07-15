@@ -8,7 +8,7 @@
  * No business logic or database queries.
  */
 
-import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 interface Env {
   ASSETS: Fetcher;

@@ -1,4 +1,4 @@
-import { getAllRoleIds } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllRoleIds } from '@game-judge/game-engine/games/werewolf/public';
 
 import { getRoleBadge } from '@/games/werewolf/assets/roleBadges';
 

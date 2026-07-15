@@ -9,8 +9,8 @@
  * - Bottom action buttons are NOT rendered when audio is playing
  */
 
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
-import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createGameRoomMock,

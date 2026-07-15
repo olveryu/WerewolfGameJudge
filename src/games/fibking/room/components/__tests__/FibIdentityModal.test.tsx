@@ -1,5 +1,5 @@
+import type { FibRoundView } from '@game-judge/game-engine/games/fibking/public';
 import { fireEvent, render } from '@testing-library/react-native';
-import type { FibRoundView } from '@werewolf/game-engine/games/fibking/public';
 
 import { TESTIDS } from '@/testids';
 

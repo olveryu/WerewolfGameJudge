@@ -4,12 +4,12 @@
  * Tests for witchActionResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
-import { witchActionResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/witch';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
+import { witchActionResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/witch';
 
 // =============================================================================
 // Test Helpers

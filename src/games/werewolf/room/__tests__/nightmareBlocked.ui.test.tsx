@@ -8,8 +8,8 @@
  * - UI shows error from gameState.actionRejected
  */
 
+import { BLOCKED_UI_DEFAULTS } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/games/werewolf/public';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';

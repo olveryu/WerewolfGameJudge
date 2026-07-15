@@ -3,11 +3,11 @@
  *
  * Search / category / role filter / expand-collapse / navigation.
  */
+import { Faction, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { PRESET_TEMPLATES, TemplateCategory } from '@game-judge/game-engine/games/werewolf/public';
 import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Faction, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { PRESET_TEMPLATES, TemplateCategory } from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useMemo, useState } from 'react';
 import { LayoutAnimation } from 'react-native';
 

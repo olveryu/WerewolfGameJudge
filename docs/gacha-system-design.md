@@ -48,7 +48,7 @@ Introduce gacha mechanism:
 | Constraint           | Description                                                                                                                                           |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Server authoritative | Probability calculation, ticket deduction, item grants all execute on Worker. Client only submits "draw" request and displays server-returned results |
-| Game engine purity   | `@werewolf/game-engine` holds probability pure functions (`rollRarity`/`selectReward`), no IO / DB operations                                         |
+| Game engine purity   | `@game-judge/game-engine` holds probability pure functions (`rollRarity`/`selectReward`), no IO / DB operations                                       |
 | Trust model          | Face-to-face party game, no extra anti-cheat architecture, but server validates ticket balance                                                        |
 | Atomic deployment    | Worker + Pages deploy atomically, no old/new version coexistence, API changes are directly breaking                                                   |
 

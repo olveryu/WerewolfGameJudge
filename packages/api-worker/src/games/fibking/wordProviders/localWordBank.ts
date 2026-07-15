@@ -1,6 +1,6 @@
 /** Curated local word bank used by development, tests, and explicit local policy. */
 
-import { FIB_USED_WORD_LIMIT } from '@werewolf/game-engine/games/fibking/public';
+import { FIB_USED_WORD_LIMIT } from '@game-judge/game-engine/games/fibking/public';
 
 export interface LocalFibWord {
   readonly word: string;

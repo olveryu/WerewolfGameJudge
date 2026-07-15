@@ -4,7 +4,7 @@
  * RoleSpec.emoji is a required field, so TypeScript enforces coverage at compile time.
  * This runtime test guards against empty-string or whitespace-only values.
  */
-import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllRoleIds, getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
 describe('RoleSpec.emoji coverage contract', () => {
   const allRoleIds = getAllRoleIds();

@@ -4,12 +4,12 @@
  * Verifies that seat players are intelligently retained / scaled up or down when the template is updated.
  */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { gameReducer } from '@werewolf/game-engine/games/werewolf/domain/reducer/gameReducer';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
-import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
+import type { RosterEntry } from '@game-judge/game-engine/platform/room/roster';
 
 interface PlayerInput {
   userId: string;

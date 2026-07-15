@@ -10,9 +10,9 @@
  * This test verifies the sequential compound flow works end-to-end.
  */
 
+import type { CompoundSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { CompoundSchema } from '@werewolf/game-engine/games/werewolf/public';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createGameRoomMock,

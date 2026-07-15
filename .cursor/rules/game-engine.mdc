@@ -25,11 +25,11 @@ Pure game logic workspace imported by client and Worker. It has no React, Cloudf
   `src/product/`.
 - Each game's state, models, handlers, reducers, and resolvers live under `src/games/<gameType>/`.
 - `platform/` cannot import `games/`. One game cannot import another game.
-- Client and Worker import a game only through `@werewolf/game-engine/games/<gameType>/public`.
+- Client and Worker import a game only through `@game-judge/game-engine/games/<gameType>/public`.
 - Cross-package test harnesses use the explicit `games/<gameType>/testing` export. Production code cannot import it.
 - Game-owned domain deep paths are package-private. Restoring generic `src/engine`, `src/models`, `src/protocol`,
   or `src/resolvers` directories is forbidden.
-- Shared operation results use `@werewolf/game-engine/platform/protocol/actionResult`.
+- Shared operation results use `@game-judge/game-engine/platform/protocol/actionResult`.
 
 ## Reducer Rules
 

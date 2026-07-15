@@ -5,7 +5,7 @@
  * Exports getRoleBadge(roleId) to get ImageSourcePropType for 512px PNG.
  * No business logic, no service imports.
  */
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ImageSourcePropType } from 'react-native';
 
 import badge_avenger from '../../../../assets/badges/png/512/role_avenger.png';

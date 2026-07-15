@@ -13,8 +13,8 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "paths": {
-      "@werewolf/game-engine/*": ["../game-engine/src/*"],
-      "@werewolf/game-engine": ["../game-engine/src/index.ts"]
+      "@game-judge/game-engine/*": ["../game-engine/src/*"],
+      "@game-judge/game-engine": ["../game-engine/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts"],

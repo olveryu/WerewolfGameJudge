@@ -1,9 +1,9 @@
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { CurrentNightResults } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema, type SchemaId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema, type SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';

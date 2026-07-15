@@ -10,6 +10,7 @@
  * Gesture Handler handles: `Gesture.Pan()` accumulates spin via circle drawing.
  * Does not import services and contains no business logic.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -20,7 +21,6 @@ import {
   Rect,
   vec,
 } from '@shopify/react-native-skia';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';

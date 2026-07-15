@@ -1,6 +1,6 @@
 /** Interrupted create/delete recovery across D1 and Durable Object storage. */
 
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import { env, runInDurableObject } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

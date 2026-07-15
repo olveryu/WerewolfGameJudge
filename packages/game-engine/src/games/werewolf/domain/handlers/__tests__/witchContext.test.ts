@@ -5,11 +5,14 @@
  * witchContext computation logic is covered indirectly via the public API
  */
 
-import type { NonNullState } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
-import { maybeCreateWitchContextAction as createWitchContextAction } from '@werewolf/game-engine/games/werewolf/domain/handlers/witchContext';
-import type { SchemaId } from '@werewolf/game-engine/games/werewolf/domain/models';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
+import type { NonNullState } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import { maybeCreateWitchContextAction as createWitchContextAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/witchContext';
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type {
+  GameState,
+  Player,
+} from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 
 const TEST_RNG = () => 0.75;
 

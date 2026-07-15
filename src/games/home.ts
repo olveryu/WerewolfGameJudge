@@ -1,6 +1,6 @@
 /** Aggregate game-owned Home contributions at the client composition boundary. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import type {

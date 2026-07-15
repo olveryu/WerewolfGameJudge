@@ -1,6 +1,9 @@
 /** Parse editable FibKing player counts without imposing a product maximum. */
 
-import { FIB_MIN_PLAYERS, isValidFibPlayerCount } from '@werewolf/game-engine/games/fibking/public';
+import {
+  FIB_MIN_PLAYERS,
+  isValidFibPlayerCount,
+} from '@game-judge/game-engine/games/fibking/public';
 
 export type FibPlayerCountInput =
   | { readonly kind: 'valid'; readonly value: number }

@@ -4,8 +4,8 @@ import {
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
-} from '@werewolf/game-engine/product/rewards';
-import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/rewards';
+import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@game-judge/game-engine/product/rewards';
 
 import { AVATAR_FRAMES } from '@/components/avatarFrames';
 import { NAME_STYLES } from '@/components/nameStyles';

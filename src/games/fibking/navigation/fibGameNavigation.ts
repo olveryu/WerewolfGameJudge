@@ -1,7 +1,7 @@
 /** FibKing root-navigation definition and strict route parsers. */
 
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import {
   defineGameNavigation,

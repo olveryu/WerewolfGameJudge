@@ -6,7 +6,7 @@
  * No service imports, no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {

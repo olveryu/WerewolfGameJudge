@@ -8,7 +8,7 @@
  * animations clip children with `overflow: hidden`, which would cut the frame).
  * Returns null when no frame is equipped. No service imports, no business logic.
  */
-import { LEGENDARY_FRAME_IDS } from '@werewolf/game-engine/product/rewards';
+import { LEGENDARY_FRAME_IDS } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 import { memo, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';

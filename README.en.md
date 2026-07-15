@@ -152,8 +152,8 @@ pnpm run quality      # typecheck + lint + format + test:all
 pnpm run e2e          # Playwright E2E
 
 # Local D1 seed — dev user (dev@test.local / dev123) with all items unlocked
-pnpm -F @werewolf/api-worker db:migrate:local
-pnpm -F @werewolf/api-worker db:seed:local
+pnpm -F @game-judge/api-worker db:migrate:local
+pnpm -F @game-judge/api-worker db:seed:local
 ```
 
 ### Project Structure

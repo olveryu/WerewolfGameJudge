@@ -9,7 +9,7 @@ import {
   getRoleSpec,
   getRoleStructuredDescription,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 
 /**
  * Builds an AI prompt for role-strategy consultation.

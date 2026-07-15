@@ -1,16 +1,16 @@
 /** Cloudflare adapter for typed authoritative room snapshot reads. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
-} from '@werewolf/game-engine/platform/protocol/roomLocator';
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
 import {
   type BaseGameState,
   type GameStateCodec,
   parseRoomSnapshot,
   type RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { IRoomStateService } from '@/services/types/IRoomStateService';
 import { roomLog } from '@/utils/logger';

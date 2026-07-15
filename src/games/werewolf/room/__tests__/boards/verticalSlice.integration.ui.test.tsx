@@ -11,12 +11,12 @@
  * 3. Render WerewolfRoomScreen and verify the correct dialog appears
  */
 
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from '@/games/werewolf/__tests__/engine/boards/gameFactory';
 import { sendMessageOrThrow } from '@/games/werewolf/__tests__/engine/boards/stepByStepRunner';

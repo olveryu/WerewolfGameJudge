@@ -5,7 +5,7 @@
  * Wrapped uniformly via cfGet/cfPost.
  */
 
-import type { Rarity, RewardType } from '@werewolf/game-engine/product/rewards';
+import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 

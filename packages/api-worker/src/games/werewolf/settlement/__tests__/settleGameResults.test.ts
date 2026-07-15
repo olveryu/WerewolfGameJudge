@@ -3,12 +3,12 @@
 import type {
   WerewolfGameEndedEffect,
   WerewolfInternalCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

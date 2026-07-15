@@ -8,10 +8,10 @@
       "@/*": [
         "./src/*"
       ],
-      "@werewolf/game-engine": [
+      "@game-judge/game-engine": [
         "./packages/game-engine/src/index.ts"
       ],
-      "@werewolf/game-engine/*": [
+      "@game-judge/game-engine/*": [
         "./packages/game-engine/src/*"
       ]
     }

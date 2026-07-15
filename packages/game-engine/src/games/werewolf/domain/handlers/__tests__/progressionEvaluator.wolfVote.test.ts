@@ -10,10 +10,10 @@ import {
   decideWolfVoteTimerAction,
   isWolfVoteAllComplete,
   WOLF_VOTE_COUNTDOWN_MS,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/progressionEvaluator';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/progressionEvaluator';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 // =============================================================================
 // Test Helpers

@@ -15,8 +15,8 @@
  * Reanimated handles: driving all shared values + phase switching.
  * No service imports, no business logic.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { Blur, Canvas, Circle, Group, Line, Path, Rect, vec } from '@shopify/react-native-skia';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';

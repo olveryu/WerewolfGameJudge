@@ -4,7 +4,7 @@ import type {
   FibConfig,
   FibInternalCommand,
   FibPublicCommand,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import {
   FIB_DEFINITION_MAX_LENGTH,
   FIB_DEFINITION_MIN_LENGTH,
@@ -12,7 +12,7 @@ import {
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   FIB_WORD_SOURCES,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';

@@ -1,4 +1,4 @@
-import type { FibState } from '@werewolf/game-engine/games/fibking/public';
+import type { FibState } from '@game-judge/game-engine/games/fibking/public';
 
 import {
   createFibBottomActions,

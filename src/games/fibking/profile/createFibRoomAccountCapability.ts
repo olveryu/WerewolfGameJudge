@@ -1,7 +1,7 @@
 /** Bind FibKing account operations to the shared room session. */
 
-import type { FibState } from '@werewolf/game-engine/games/fibking/public';
-import { getFibUserSeat } from '@werewolf/game-engine/games/fibking/public';
+import type { FibState } from '@game-judge/game-engine/games/fibking/public';
+import { getFibUserSeat } from '@game-judge/game-engine/games/fibking/public';
 
 import { createSessionRoomAccountCapability } from '@/features/room/session/SessionRoomAccountCapability';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';

@@ -95,7 +95,7 @@ Create an integration test under `src/games/werewolf/__tests__/engine/boards/`.
 Naming example: `night1.guard.blocks_wolfkill.12p.integration.test.ts`
 
 ```typescript
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@game-judge/game-engine/models/roles';
 
 import { cleanupGame, createGame, GameContext } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

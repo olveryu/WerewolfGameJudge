@@ -3,14 +3,14 @@ import {
   fibEngine,
   type FibInternalCommand,
   type FibPublicCommand,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import {
   werewolfEngine,
   type WerewolfInternalCommand,
   type WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
-import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
 import { WORKER_GAME_CATALOG } from '../games/catalog';

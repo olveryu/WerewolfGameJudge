@@ -5,7 +5,7 @@
  * a structured AI analysis request text.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { WerewolfNotepadState } from '@/games/werewolf/state/WerewolfNotepadState';
 

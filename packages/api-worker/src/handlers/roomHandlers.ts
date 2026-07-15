@@ -6,7 +6,7 @@ import {
   REASON_ROOM_EFFECTS_PENDING,
   REASON_ROOM_INITIALIZATION_CONFLICT,
   REASON_ROOM_INSTANCE_MISMATCH,
-} from '@werewolf/game-engine/platform/protocol/reasons';
+} from '@game-judge/game-engine/platform/protocol/reasons';
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';

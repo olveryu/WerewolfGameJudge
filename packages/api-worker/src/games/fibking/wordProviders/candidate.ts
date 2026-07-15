@@ -6,7 +6,7 @@ import {
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
   type FibWordSource,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import type { FibWordCandidate } from './types';

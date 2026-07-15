@@ -18,21 +18,24 @@ import {
   handleAdvanceNight as executeAdvanceNight,
   handleEndNight as executeEndNight,
   handleSetAudioPlaying,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
   AdvanceNightIntent,
   EndNightIntent,
   SetAudioPlayingIntent,
-} from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { NIGHT_STEPS } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import { buildNightPlan } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/plan';
-import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import type { EndNightAction } from '@werewolf/game-engine/games/werewolf/domain/reducer/types';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
-import { createSeededRng } from '@werewolf/game-engine/platform/random';
+} from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/plan';
+import type {
+  GameState,
+  Player,
+} from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import type { EndNightAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
+import { createSeededRng } from '@game-judge/game-engine/platform/random';
 
 import { maybeCreateWitchContextAction } from '../witchContext';
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';

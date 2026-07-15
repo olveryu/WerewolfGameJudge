@@ -9,7 +9,7 @@ import {
   randomPick,
   type Rng,
   secureRng,
-} from '@werewolf/game-engine/platform/random';
+} from '@game-judge/game-engine/platform/random';
 
 describe('randomIntInclusive', () => {
   it('should return min when range is single value', () => {

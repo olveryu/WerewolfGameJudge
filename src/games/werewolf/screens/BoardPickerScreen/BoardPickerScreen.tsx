@@ -7,11 +7,11 @@
  * Pure presentation layer, does not import service, contains no business logic.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { PresetTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { PresetTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import {
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import {

@@ -1,7 +1,7 @@
 /** Game-neutral room-screen contribution consumed by the room resolver. */
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';

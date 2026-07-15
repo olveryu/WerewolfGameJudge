@@ -1,6 +1,6 @@
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus, WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
 
 import { type ActiveWerewolfNotepadRoom, useNotepad } from '@/games/werewolf/hooks/useNotepad';
 import {

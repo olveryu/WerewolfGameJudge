@@ -10,7 +10,7 @@ import {
   REASON_FIB_ROUND_NOT_PREPARING,
   REASON_FIB_WORD_INVALID,
   REASON_FIB_WORD_REUSED,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 
 import type { RoomOperationFailureMessage } from '@/features/room/model/RoomCapabilities';
 import { getUserFacingMessage } from '@/utils/errorUtils';

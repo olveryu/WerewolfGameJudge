@@ -1,6 +1,6 @@
+import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { renderHook } from '@testing-library/react-native';
-import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   type ActionDeps,

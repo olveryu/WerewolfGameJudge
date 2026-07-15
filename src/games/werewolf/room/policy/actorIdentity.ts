@@ -16,7 +16,7 @@
  * Does not provide default values (null means fail-fast at caller).
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 /**
  * Input for actor identity calculation.

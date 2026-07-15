@@ -1,13 +1,13 @@
 /** Generic room HTTP authentication, saga creation, command, and deletion contracts. */
 
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine/games/werewolf/public';
-import { parseRoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_CODEC } from '@game-judge/game-engine/games/werewolf/public';
+import { parseRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_ROOM_INITIALIZATION_CONFLICT,
-} from '@werewolf/game-engine/platform/protocol/reasons';
-import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+} from '@game-judge/game-engine/platform/protocol/reasons';
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

@@ -8,8 +8,11 @@
  * @see docs/architecture/schema-kinds.md
  */
 
-import { type CompoundSchema, TargetConstraint } from '@werewolf/game-engine/games/werewolf/public';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 
 const witchSchema = SCHEMAS.witchAction as CompoundSchema;
 

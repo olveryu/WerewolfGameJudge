@@ -11,7 +11,7 @@ alwaysApply: false
 
 ## Source Code Location
 
-Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
+Game logic: `@game-judge/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
 Cloudflare adapters, connection management, infrastructure implementations, and transport ports. Product APIs and
 React controllers live under their owning `src/features/*`; game-owned APIs live under `src/games/<gameType>/`.
 
@@ -20,14 +20,14 @@ React controllers live under their owning `src/features/*`; game-owned APIs live
 Feature APIs may call `src/services/cloudflare/cfFetch`, but screens/components call the feature API or controller, not
 the infrastructure adapter directly.
 
-| Owner         | File                                                        | Responsibility                                      |
-| ------------- | ----------------------------------------------------------- | --------------------------------------------------- |
-| Account       | `src/features/account/services/accountApi.ts`               | Growth data, public profiles, unlocked items        |
-| Gacha         | `src/features/gacha/services/gachaApi.ts`                   | Draw status, draw, daily reward, shard exchange     |
-| Feedback      | `src/features/feedback/services/feedbackApi.ts`             | Submit, history, reply, read, resolve                |
-| Settings      | `src/features/settings/services/SettingsService.ts`         | Persist product preferences                         |
-| Werewolf      | `src/games/werewolf/services/uploadNightReviewImage.ts`     | Upload a Werewolf night-review image                |
-| Infrastructure | `src/services/cloudflare/CFAvatarUploadService.ts`         | Custom avatar upload adapter                        |
+| Owner          | File                                                    | Responsibility                                  |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------- |
+| Account        | `src/features/account/services/accountApi.ts`           | Growth data, public profiles, unlocked items    |
+| Gacha          | `src/features/gacha/services/gachaApi.ts`               | Draw status, draw, daily reward, shard exchange |
+| Feedback       | `src/features/feedback/services/feedbackApi.ts`         | Submit, history, reply, read, resolve           |
+| Settings       | `src/features/settings/services/SettingsService.ts`     | Persist product preferences                     |
+| Werewolf       | `src/games/werewolf/services/uploadNightReviewImage.ts` | Upload a Werewolf night-review image            |
+| Infrastructure | `src/services/cloudflare/CFAvatarUploadService.ts`      | Custom avatar upload adapter                    |
 
 ## Core Rules
 

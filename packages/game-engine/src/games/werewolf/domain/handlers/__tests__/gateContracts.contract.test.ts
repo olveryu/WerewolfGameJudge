@@ -12,19 +12,19 @@
  * 4. BLOCKED_UI_DEFAULTS.message is the single source of truth for nightmare rejection
  */
 
-import { checkNightmareBlockGuard } from '@werewolf/game-engine/games/werewolf/domain/handlers/actionGuards';
-import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/games/werewolf/domain/handlers/actionHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
-import type { SubmitActionIntent } from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { SchemaId } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
+import { checkNightmareBlockGuard } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionGuards';
+import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import {
   BLOCKED_UI_DEFAULTS,
   SCHEMAS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import type { ActionRejectedAction } from '@werewolf/game-engine/games/werewolf/domain/reducer/types';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { ActionRejectedAction } from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import {
   expectError,

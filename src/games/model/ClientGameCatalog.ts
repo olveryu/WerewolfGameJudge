@@ -1,6 +1,6 @@
 /** Game-neutral client module catalog contract and exhaustive lookup helpers. */
 
-import { GAME_TYPES, type GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import type { GameHomeContribution } from '@/features/home/model/GameHomeContribution';

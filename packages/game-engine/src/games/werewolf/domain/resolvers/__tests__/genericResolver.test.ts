@@ -5,12 +5,12 @@
  * for each supported effect kind, matching V1 resolver behavior.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { createGenericResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/genericResolver';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { createGenericResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/genericResolver';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Shared Helpers

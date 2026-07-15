@@ -1,13 +1,13 @@
 import {
   buildNightPlan,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   BOTTOM_CARD_COUNT,
   createCustomTemplate,
   createTemplateFromRoles,
   PRESET_TEMPLATES,
-} from '@werewolf/game-engine/games/werewolf/domain/models/Template';
+} from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan

@@ -1,10 +1,10 @@
-import type { GameStateCodec } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { GameStateCodec } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import {
   type BaseGameState,
   createRoomSnapshot,
   createStateUpdateMessage,
   type RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { RoomSession } from '@/features/room/session/RoomSession';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';

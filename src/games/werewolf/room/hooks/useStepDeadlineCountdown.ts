@@ -15,7 +15,7 @@
  * (e.g. `useRoomActions.getBottomAction` countdown display).
  */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { useEffect, useRef, useState } from 'react';
 
 import { fireAndForget } from '@/utils/errorPipeline';

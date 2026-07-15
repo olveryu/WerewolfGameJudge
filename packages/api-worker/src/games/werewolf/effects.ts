@@ -4,9 +4,9 @@ import type {
   WerewolfEffect,
   WerewolfGameEndedEffect,
   WerewolfInternalCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
 import { createEffectCommandId } from '../effectCommandId';

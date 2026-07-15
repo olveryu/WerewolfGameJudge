@@ -3,7 +3,7 @@
 import type {
   WerewolfCampStats,
   WerewolfPublicStats,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import { and, eq, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';

@@ -1,7 +1,7 @@
 /** FibKing config form and create/edit command orchestration. */
 
+import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@werewolf/game-engine/games/fibking/public';
 import { useCallback, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';

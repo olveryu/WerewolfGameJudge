@@ -1,7 +1,7 @@
 /** Game-neutral room directory and creation contracts. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 export interface RoomIdentity extends RoomLocator {
   readonly gameType: GameType;

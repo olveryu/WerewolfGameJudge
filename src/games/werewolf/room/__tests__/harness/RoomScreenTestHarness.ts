@@ -15,7 +15,7 @@
  * - Only for Jest test environment; must not be referenced from production code
  */
 
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { AlertButton } from '@/utils/alert';
 

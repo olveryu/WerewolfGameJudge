@@ -10,8 +10,8 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
-      "@werewolf/game-engine": ["../packages/game-engine/src/index.ts"],
-      "@werewolf/game-engine/*": ["../packages/game-engine/src/*"]
+      "@game-judge/game-engine": ["../packages/game-engine/src/index.ts"],
+      "@game-judge/game-engine/*": ["../packages/game-engine/src/*"]
     }
   },
   "include": ["**/*.ts"]

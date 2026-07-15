@@ -6,11 +6,11 @@
  * No hooks, no side effects.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { getBottomCardEffectiveRole } from '@werewolf/game-engine/games/werewolf/public';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getBottomCardEffectiveRole } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';

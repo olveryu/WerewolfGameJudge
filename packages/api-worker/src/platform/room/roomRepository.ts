@@ -4,15 +4,15 @@ import type {
   CommandActor,
   CreateGameContext,
   GameEffect,
-} from '@werewolf/game-engine/platform/engine';
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import { type GameType, parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { REASON_ROOM_INITIALIZATION_CONFLICT } from '@werewolf/game-engine/platform/protocol/reasons';
+} from '@game-judge/game-engine/platform/engine';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { REASON_ROOM_INITIALIZATION_CONFLICT } from '@game-judge/game-engine/platform/protocol/reasons';
 import {
   type BaseGameState,
   createRoomSnapshot,
   type RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RuntimeWorkerGameModule, WorkerGameModuleResolver } from './runtimeGameModule';
 import type {

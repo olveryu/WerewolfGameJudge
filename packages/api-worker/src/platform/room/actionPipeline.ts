@@ -1,16 +1,16 @@
 /** Generic authenticated command pipeline shared by every registered room game. */
 
-import type { CommandContext, GameEffect } from '@werewolf/game-engine/platform/engine';
+import type { CommandContext, GameEffect } from '@game-judge/game-engine/platform/engine';
 import {
   createRoomCommandResult,
   type RoomCommandResult,
-} from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+} from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
-} from '@werewolf/game-engine/platform/protocol/reasons';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/reasons';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { derivePlatformRoomEffects, getPlatformRoomEffectBusinessKey } from './platformEffects';
 import {

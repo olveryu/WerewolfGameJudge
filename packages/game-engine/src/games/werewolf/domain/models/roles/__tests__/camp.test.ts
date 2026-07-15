@@ -8,8 +8,8 @@ import {
   getAllRoleIds,
   getRoleCamp,
   getRoleSpec,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { Faction } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { Faction } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
 
 describe('getRoleCamp', () => {
   it('maps every role to a valid camp bucket', () => {

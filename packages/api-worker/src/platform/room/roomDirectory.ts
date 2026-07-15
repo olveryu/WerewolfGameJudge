@@ -1,9 +1,9 @@
 /** D1 room directory and explicit cross-storage saga state transitions. */
 
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
-import { randomIntInclusive } from '@werewolf/game-engine/platform/random';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
+import { randomIntInclusive } from '@game-judge/game-engine/platform/random';
 import { and, eq, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';

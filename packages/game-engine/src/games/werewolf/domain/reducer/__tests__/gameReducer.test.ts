@@ -2,9 +2,9 @@
  * gameReducer Unit Tests
  */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { Player } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import { gameReducer } from '@werewolf/game-engine/games/werewolf/domain/reducer/gameReducer';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { Player } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
 import type {
   AdvanceToNextActionAction,
   ApplyResolverResultAction,
@@ -19,9 +19,9 @@ import type {
   StateAction,
   UpdatePlayerProfileAction,
   UpdateTemplateAction,
-} from '@werewolf/game-engine/games/werewolf/domain/reducer/types';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {

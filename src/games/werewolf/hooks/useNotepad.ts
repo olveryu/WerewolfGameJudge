@@ -1,7 +1,7 @@
 /** React controller for the game-owned Werewolf notepad. */
 
-import type { GameState, RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { ROLE_SPECS, Team } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState, RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS, Team } from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {

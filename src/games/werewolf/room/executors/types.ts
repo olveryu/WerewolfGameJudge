@@ -9,11 +9,11 @@
  * Does not import services directly.
  */
 
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import type { MutableRefObject } from 'react';
 
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';

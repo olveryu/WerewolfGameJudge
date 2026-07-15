@@ -9,7 +9,7 @@ import {
   getFibRole,
   isFibImplicitBotSeat,
   isFibRoomFull,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 
 import type {
   RoomBottomActionModel,

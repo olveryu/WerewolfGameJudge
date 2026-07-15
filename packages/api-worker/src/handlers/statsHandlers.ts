@@ -11,9 +11,9 @@
  * @throws 404 — target user not found
  */
 
-import { isGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { getLevelTitle } from '@werewolf/game-engine/product/growth';
-import { parseUnlockedRewardIds } from '@werewolf/game-engine/product/rewards';
+import { isGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { getLevelTitle } from '@game-judge/game-engine/product/growth';
+import { parseUnlockedRewardIds } from '@game-judge/game-engine/product/rewards';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 

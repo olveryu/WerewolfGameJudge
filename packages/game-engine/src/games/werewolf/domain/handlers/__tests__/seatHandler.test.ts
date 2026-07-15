@@ -7,17 +7,17 @@ import {
   handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/seatHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/seatHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
   JoinSeatIntent,
   KickPlayerIntent,
   LeaveMySeatIntent,
   UpdatePlayerProfileIntent,
-} from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
@@ -27,7 +27,7 @@ import {
   REASON_NOT_SEATED,
   REASON_SEAT_EMPTY,
   REASON_SEAT_TAKEN,
-} from '@werewolf/game-engine/platform/protocol/reasons';
+} from '@game-judge/game-engine/platform/protocol/reasons';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 

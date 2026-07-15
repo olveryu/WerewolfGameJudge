@@ -8,10 +8,10 @@
  * - protocol: submitAction({ kind: 'witch', saveTarget, poisonTarget })
  */
 
+import type { CompoundSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { CompoundSchema } from '@werewolf/game-engine/games/werewolf/public';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { TESTIDS } from '@/testids';

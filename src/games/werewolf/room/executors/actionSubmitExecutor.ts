@@ -5,7 +5,7 @@
  * 'actionConfirm': Shows confirmation dialog, then submits one canonical action input.
  */
 
-import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
 
 import { roomScreenLog } from '@/utils/logger';
 

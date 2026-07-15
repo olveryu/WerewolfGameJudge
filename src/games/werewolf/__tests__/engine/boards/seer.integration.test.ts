@@ -9,8 +9,8 @@
  * Uses harness (createGame)
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { BLOCKED_UI_DEFAULTS } from '@game-judge/game-engine/games/werewolf/public';
 
 import { createGame } from './gameFactory';
 

@@ -5,7 +5,7 @@
  * Colors reference the shared theme camp palette (colors.wolf / god / villager / third),
  * keeping camp coloring consistent with the encyclopedia and seat UI.
  */
-import type { WerewolfCampStats } from '@werewolf/game-engine/games/werewolf/public';
+import type { WerewolfCampStats } from '@game-judge/game-engine/games/werewolf/public';
 
 import { colors } from '@/theme';
 

@@ -12,11 +12,11 @@
  * Does not modify GameState directly and does not bypass the facade.
  */
 
-import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { useCallback } from 'react';
 import { toast } from 'sonner-native';
 

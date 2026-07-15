@@ -10,12 +10,12 @@
  * No runtime logic or service dependencies.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { type GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { type GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { type GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 
 // =============================================================================
 // Player Types

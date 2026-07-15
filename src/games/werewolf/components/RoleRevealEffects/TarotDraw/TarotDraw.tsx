@@ -6,6 +6,7 @@
  * Uses `useSharedValue` to drive all animations, `` to switch phases, no `setTimeout`.
  * Renders animations and haptic feedback. No service imports, no business logic.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -20,7 +21,6 @@ import {
   useTexture,
   vec,
 } from '@shopify/react-native-skia';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';

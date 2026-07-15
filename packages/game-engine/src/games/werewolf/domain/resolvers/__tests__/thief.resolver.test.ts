@@ -7,12 +7,12 @@
  * - Sets bottomCardStepRoles to all bottom cards (matching treasureMaster behavior)
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { thiefChooseResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/thief';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { thiefChooseResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/thief';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Helpers

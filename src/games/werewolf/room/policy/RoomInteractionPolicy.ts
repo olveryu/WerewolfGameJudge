@@ -14,7 +14,7 @@
  * navigation, showAlert, React, or any IO.
  */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import { getSeatTapResult } from '@/games/werewolf/room/seatTap/SeatTapPolicy';
 

@@ -3,7 +3,7 @@
  *
  * Shared by GachaScreen / UnlocksScreen / AppearanceScreen.
  */
-import type { Rarity } from '@werewolf/game-engine/product/rewards';
+import type { Rarity } from '@game-judge/game-engine/product/rewards';
 import type { ViewStyle } from 'react-native';
 
 import { withAlpha } from '@/theme';

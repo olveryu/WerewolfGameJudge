@@ -1,7 +1,7 @@
 /** Strict persistence for one user, room instance, and Werewolf round. */
 
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { parseRoomId } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { parseRoomId } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 import type { WerewolfNotepadState } from '@/games/werewolf/state/WerewolfNotepadState';
 import { storage } from '@/services/infra/localStorage';

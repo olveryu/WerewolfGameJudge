@@ -4,7 +4,7 @@ import { RoomCreationIntentStore } from '@/features/room/services/RoomCreationIn
 const mockStoredValues = new Map<string, string>();
 const mockNewRequestId = jest.fn<string, []>();
 
-jest.mock('@werewolf/game-engine/platform/identifiers', () => ({
+jest.mock('@game-judge/game-engine/platform/identifiers', () => ({
   newRequestId: () => mockNewRequestId(),
 }));
 

@@ -1,6 +1,6 @@
+import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { act, renderHook } from '@testing-library/react-native';
-import type { RoomSeatCommand } from '@werewolf/game-engine/platform/protocol/commands';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import { useRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
 import type {

@@ -1,7 +1,7 @@
 /** FibKing identity and ended-round result inside the shared centered modal primitive. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { FibRoundView } from '@werewolf/game-engine/games/fibking/public';
+import type { FibRoundView } from '@game-judge/game-engine/games/fibking/public';
 import type React from 'react';
 import { memo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';

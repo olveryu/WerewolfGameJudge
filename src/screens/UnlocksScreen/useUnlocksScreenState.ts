@@ -15,7 +15,7 @@ import {
   ROLE_REVEAL_EFFECT_IDS,
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
-} from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/rewards';
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 

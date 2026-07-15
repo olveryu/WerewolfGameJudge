@@ -14,8 +14,8 @@ import {
   ROLE_SPECS,
   type RoleId,
   SCHEMAS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/games/werewolf/domain/models/Template';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import { PRESET_TEMPLATES } from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 
 // =============================================================================
 // Night Plan Tests

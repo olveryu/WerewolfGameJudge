@@ -1,10 +1,10 @@
 /** Typed factory contract for creating the single shared room-session implementation. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type {
   RealtimeUserEvent,

@@ -4,10 +4,10 @@
  * Tests the hook wrapper around determineActionerState.
  */
 
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { renderHook } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   useActionerState,

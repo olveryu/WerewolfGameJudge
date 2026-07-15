@@ -6,10 +6,10 @@ import type {
   CommonGameLifecycle,
   CreateGameContext,
   GameEffect,
-} from '@werewolf/game-engine/platform/engine';
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/engine';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { Env } from '../../env';
 

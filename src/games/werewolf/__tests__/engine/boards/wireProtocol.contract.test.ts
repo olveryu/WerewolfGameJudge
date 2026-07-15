@@ -8,8 +8,8 @@
  * Approach A: runtime capture - capture the payload actually sent by the harness
  */
 
-import { type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import { type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_STEPS, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';

@@ -6,12 +6,12 @@
  * and hypnotizedSeats output.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { piperHypnotizeResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/piper';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { piperHypnotizeResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/piper';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Test Helpers

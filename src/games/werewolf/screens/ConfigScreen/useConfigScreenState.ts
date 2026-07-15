@@ -8,15 +8,15 @@
  * Does not render JSX, does not import RN components, does not own styles.
  */
 
-import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { Faction } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import {
   createCustomTemplate,
   type GameRuleOverrides,
   PRESET_TEMPLATES,
   validateTemplateRoles,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner-native';
 

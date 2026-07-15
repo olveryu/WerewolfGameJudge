@@ -1,7 +1,7 @@
-import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
-import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_CODEC } from '@game-judge/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { cfPost } from '../cfFetch';
 import { CFRoomStateService } from '../CFRoomStateService';

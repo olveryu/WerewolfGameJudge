@@ -12,7 +12,7 @@ import {
   makeWitchPoison,
   makeWitchSave,
   type WitchAction,
-} from '@werewolf/game-engine/games/werewolf/domain/models/actions/WitchAction';
+} from '@game-judge/game-engine/games/werewolf/domain/models/actions/WitchAction';
 
 describe('WitchAction', () => {
   describe('Factory Functions', () => {

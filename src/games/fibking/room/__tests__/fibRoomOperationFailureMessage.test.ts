@@ -1,4 +1,4 @@
-import { REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE } from '@werewolf/game-engine/games/fibking/public';
+import { REASON_FIB_OCCUPIED_SEAT_OUT_OF_RANGE } from '@game-judge/game-engine/games/fibking/public';
 
 import { getFibRoomOperationFailureMessage } from '../fibRoomOperationFailureMessage';
 

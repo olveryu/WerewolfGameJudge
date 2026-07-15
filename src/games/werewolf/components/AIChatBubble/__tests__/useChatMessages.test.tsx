@@ -1,5 +1,5 @@
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import { useChatMessages } from '@/games/werewolf/components/AIChatBubble/useChatMessages';

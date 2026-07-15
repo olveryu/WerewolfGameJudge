@@ -1,7 +1,7 @@
 /** Product UI contracts implemented by concrete game modules. */
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleRevealEffectId } from '@werewolf/game-engine/product/rewards';
+import type { RoleRevealEffectId } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 export type RevealEffectSelectionId = RoleRevealEffectId | 'none' | 'random';

@@ -10,12 +10,12 @@
  * - Does NOT: reconnect, backoff, ping/pong timer, state management, platform event listeners
  */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
   StateUpdateMessage,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Handlers (transport → ConnectionManager)

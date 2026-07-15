@@ -18,8 +18,8 @@
  *   GET  /health                  -- health check
  */
 
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import * as Sentry from '@sentry/cloudflare';
-import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';

@@ -9,9 +9,9 @@
  * Step order (SeerWitchHunterIdiot): wolfKill → witchAction → hunterConfirm → seerCheck
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { sendMessageOrThrow } from './stepByStepRunner';

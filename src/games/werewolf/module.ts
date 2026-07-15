@@ -1,10 +1,10 @@
 /** Werewolf client runtime registration. */
 
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   WEREWOLF_STATE_CODEC,
   type WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';

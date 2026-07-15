@@ -4,13 +4,13 @@
  * Ensures resolver behavior is aligned with schema constraints.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   type CompoundSchema,
   TargetConstraint,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schemas';
-import { validateConstraints } from '@werewolf/game-engine/games/werewolf/domain/resolvers/constraintValidator';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schemas';
+import { validateConstraints } from '@game-judge/game-engine/games/werewolf/domain/resolvers/constraintValidator';
 
 describe('constraintValidator', () => {
   describe('notSelf constraint', () => {

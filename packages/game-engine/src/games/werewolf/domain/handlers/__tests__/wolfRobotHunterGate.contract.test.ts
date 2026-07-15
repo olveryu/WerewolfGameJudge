@@ -16,12 +16,12 @@
  * Facade security validation tests should go in gameActions unit tests.
  */
 
-import { handleAdvanceNight as executeAdvanceNight } from '@werewolf/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
-import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/games/werewolf/domain/handlers/wolfRobotHunterGateHandler';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+import { handleAdvanceNight as executeAdvanceNight } from '@game-judge/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import { handleSetWolfRobotHunterStatusViewed } from '@game-judge/game-engine/games/werewolf/domain/handlers/wolfRobotHunterGateHandler';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 

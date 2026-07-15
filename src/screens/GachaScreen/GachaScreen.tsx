@@ -8,9 +8,9 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { PITY_THRESHOLD } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
-import { PITY_THRESHOLD } from '@werewolf/game-engine/product/rewards';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {

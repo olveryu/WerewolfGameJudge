@@ -6,13 +6,13 @@
  * Does not render JSX, own styles, or contain business logic.
  */
 
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
+import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
-import { Faction } from '@werewolf/game-engine/games/werewolf/public';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 

@@ -6,8 +6,8 @@
  * Owns message CRUD, AIChatService calls, and haptics. No UI rendering or gesture handling.
  */
 
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { newRequestId } from '@werewolf/game-engine/platform/identifiers';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 

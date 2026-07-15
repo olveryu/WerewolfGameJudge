@@ -17,6 +17,9 @@ importers:
       '@expo/vector-icons':
         specifier: ^15.1.1
         version: 15.1.1(expo-font@56.0.5(expo@56.0.5)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+      '@game-judge/game-engine':
+        specifier: workspace:*
+        version: link:packages/game-engine
       '@react-navigation/native':
         specifier: ^7.2.5
         version: 7.2.5(react-native@0.85.3(@babel/core@7.29.7)(@react-native/jest-preset@0.85.3(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
@@ -32,9 +35,6 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.100.14
         version: 5.100.14(react@19.2.3)
-      '@werewolf/game-engine':
-        specifier: workspace:*
-        version: link:packages/game-engine
       babel-plugin-react-compiler:
         specifier: ^1.0.0
         version: 1.0.0
@@ -216,12 +216,12 @@ importers:
 
   packages/api-worker:
     dependencies:
+      '@game-judge/game-engine':
+        specifier: workspace:*
+        version: link:../game-engine
       '@sentry/cloudflare':
         specifier: ^10.54.0
         version: 10.54.0(@cloudflare/workers-types@4.20260528.1)
-      '@werewolf/game-engine':
-        specifier: workspace:*
-        version: link:../game-engine
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3

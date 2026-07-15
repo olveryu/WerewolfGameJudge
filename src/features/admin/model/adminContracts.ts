@@ -1,6 +1,6 @@
 /** Typed response contracts for the standalone admin portal. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 export interface AdminUser {
   id: string;

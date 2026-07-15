@@ -1,7 +1,7 @@
 /** Worker composition root for the concrete multi-game Durable Object. */
 
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import * as Sentry from '@sentry/cloudflare';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
 import type { Env } from '../env';
 import { GameRoomRuntime } from '../platform/room/GameRoom';

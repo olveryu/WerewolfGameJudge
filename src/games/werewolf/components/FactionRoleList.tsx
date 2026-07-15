@@ -6,7 +6,7 @@
  * renders the "狼N 神N 民N 特N" badge row + per-faction FactionChip rows.
  * Pure presentation component, does not import service, no business logic.
  */
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { memo, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

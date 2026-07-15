@@ -1,8 +1,8 @@
 /** Canonical seat-command client shared by every seated room game. */
 
-import type { RoomSeatCommand } from '@werewolf/game-engine/platform/protocol/commands';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import {

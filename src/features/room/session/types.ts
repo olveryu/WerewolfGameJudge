@@ -1,11 +1,11 @@
 /** Immutable contracts owned by one active room session. */
 
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';

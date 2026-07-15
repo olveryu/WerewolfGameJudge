@@ -6,8 +6,8 @@
  * Does not access third-party APIs directly, store API keys, or mutate game state.
  */
 
-import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import { type GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { API_BASE_URL } from '@/config/api';
 import { NETWORK_ERROR } from '@/config/errorMessages';

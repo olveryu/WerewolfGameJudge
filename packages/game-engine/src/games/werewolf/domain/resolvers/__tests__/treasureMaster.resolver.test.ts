@@ -6,13 +6,13 @@
  * and invalid index rejection.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { Team } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
-import { BOTTOM_CARD_COUNT } from '@werewolf/game-engine/games/werewolf/domain/models/Template';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { Team } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
+import { BOTTOM_CARD_COUNT } from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 import { computeEffectiveTeam, treasureMasterChooseResolver } from '../treasureMaster';
 

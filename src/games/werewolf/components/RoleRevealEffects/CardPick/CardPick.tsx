@@ -9,6 +9,7 @@
  * so later viewers see fewer cards, creating a "running out" tension.
  * Renders pick animation and haptic feedback. No service imports, no business logic.
  */
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Blur,
   Canvas,
@@ -18,7 +19,6 @@ import {
   RoundedRect,
   vec,
 } from '@shopify/react-native-skia';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';

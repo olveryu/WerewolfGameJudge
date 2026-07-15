@@ -10,7 +10,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@werewolf/game-engine': path.resolve(__dirname, '../game-engine/src'),
+      '@game-judge/game-engine': path.resolve(__dirname, '../game-engine/src'),
     },
   },
   test: {

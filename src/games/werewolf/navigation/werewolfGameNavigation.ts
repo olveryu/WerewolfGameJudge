@@ -1,8 +1,8 @@
 /** Werewolf root-navigation definition and strict route parsers. */
 
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import { defineGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import {

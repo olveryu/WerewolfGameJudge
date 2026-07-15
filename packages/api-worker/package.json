@@ -1,5 +1,5 @@
 {
-  "name": "@werewolf/api-worker",
+  "name": "@game-judge/api-worker",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@sentry/cloudflare": "^10.54.0",
-    "@werewolf/game-engine": "workspace:*",
+    "@game-judge/game-engine": "workspace:*",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.23",

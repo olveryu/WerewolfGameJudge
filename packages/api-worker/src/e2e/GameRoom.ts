@@ -1,6 +1,6 @@
 /** E2E Durable Object composition with deterministic recoverable Fib effects. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import { getWorkerGameModule } from '../games/catalog';
 import { GameRoomRuntime } from '../platform/room/GameRoom';

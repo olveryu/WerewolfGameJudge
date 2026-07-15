@@ -1,5 +1,5 @@
 {
-  "name": "@werewolf/game-engine",
+  "name": "@game-judge/game-engine",
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",

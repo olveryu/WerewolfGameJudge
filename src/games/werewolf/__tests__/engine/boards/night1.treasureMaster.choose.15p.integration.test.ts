@@ -10,8 +10,8 @@
  * Architecture: intents → handlers → reducer → GameState
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { Team } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';

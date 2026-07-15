@@ -5,14 +5,14 @@
  * Provides mock factories and common test patterns.
  */
 
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ConfirmStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { Team } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
-import type { ConfirmStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
-import { Team } from '@werewolf/game-engine/games/werewolf/public';
 import React from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 

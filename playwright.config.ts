@@ -87,7 +87,8 @@ export default defineConfig({
   webServer: [
     {
       name: 'API',
-      command: 'node scripts/setup-e2e-api.mjs && pnpm --filter @werewolf/api-worker run dev:test',
+      command:
+        'node scripts/setup-e2e-api.mjs && pnpm --filter @game-judge/api-worker run dev:test',
       url: `${LOCAL_CF_API_URL}/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,

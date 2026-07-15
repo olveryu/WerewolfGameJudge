@@ -6,6 +6,8 @@
  * Covers navigator definition, screen registration, header style config, and linking route mapping.
  * No business logic; does not call services directly.
  */
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import {
   getPathFromState as defaultGetPathFromState,
   getStateFromPath as defaultGetStateFromPath,
@@ -16,8 +18,6 @@ import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback } from 'react';
 

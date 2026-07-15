@@ -1,8 +1,8 @@
-import type { WerewolfPublicCommand } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { WerewolfPublicCommand } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type {

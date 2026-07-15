@@ -1,6 +1,6 @@
 /** Environment-owned Fib word provider selection policy. */
 
-import { isFibWordSource } from '@werewolf/game-engine/games/fibking/public';
+import { isFibWordSource } from '@game-judge/game-engine/games/fibking/public';
 
 import type { Env } from '../../../env';
 import { createGeminiFibWordProvider } from './gemini';

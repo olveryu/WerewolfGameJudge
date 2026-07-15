@@ -1,6 +1,6 @@
 /** Client-only Werewolf notepad state and view-model contracts. */
 
-import type { Faction, RoleId, Team } from '@werewolf/game-engine/games/werewolf/public';
+import type { Faction, RoleId, Team } from '@game-judge/game-engine/games/werewolf/public';
 
 export interface RoleTagInfo {
   readonly roleId: RoleId;

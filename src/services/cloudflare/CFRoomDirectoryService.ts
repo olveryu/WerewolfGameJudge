@@ -1,12 +1,12 @@
 /** Cloudflare adapter for game-neutral room directory operations. */
 
-import { type GameType, isGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { type GameType, isGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import {
   parseRoomId,
   parseRoomLocator,
   type RoomLocator,
-} from '@werewolf/game-engine/platform/protocol/roomLocator';
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 import type {
   RoomCreationTransportRequest,

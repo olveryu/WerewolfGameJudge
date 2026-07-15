@@ -1,6 +1,6 @@
 /** Strict local persistence for Werewolf AI chat messages. */
 
-import { parseRoomId } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import { parseRoomId } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
 import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import { storage } from '@/services/infra/localStorage';

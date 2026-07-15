@@ -3,11 +3,11 @@
 import type {
   WerewolfActionInput,
   WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';

@@ -10,7 +10,7 @@ import {
   type NightPlanStep,
   ROLE_SPECS,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 
 describe('buildNightPlan', () => {
   describe('basic functionality', () => {

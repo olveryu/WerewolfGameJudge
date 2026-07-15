@@ -6,9 +6,9 @@
  * Reads gameState for question matching. Does not call services or modify state.
  */
 
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { randomPick } from '@werewolf/game-engine/platform/random';
-import { shuffleArray } from '@werewolf/game-engine/platform/random';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { randomPick } from '@game-judge/game-engine/platform/random';
+import { shuffleArray } from '@game-judge/game-engine/platform/random';
 
 // ── Question pool ───────────────────────────────────────
 

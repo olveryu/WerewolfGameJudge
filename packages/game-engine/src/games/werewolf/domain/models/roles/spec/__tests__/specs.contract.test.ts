@@ -11,14 +11,17 @@ import {
   NIGHT_STEPS,
   ROLE_SPECS,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import type { RoleSpec } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
 import {
   type CompoundSchema,
   TargetConstraint,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schemas';
-import { Faction, Team } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schemas';
+import {
+  Faction,
+  Team,
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
 
 describe('ROLE_SPECS contract', () => {
   it('should have exactly 43 roles', () => {

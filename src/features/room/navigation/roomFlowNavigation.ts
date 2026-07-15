@@ -1,7 +1,7 @@
 /** Canonical root-stack transitions for room creation and room-owned subflows. */
 
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 
 import type { RootStackParamList } from '@/navigation/types';
 

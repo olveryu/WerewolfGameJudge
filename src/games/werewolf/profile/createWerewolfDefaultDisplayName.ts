@@ -1,6 +1,6 @@
 /** Deterministic room-scoped fallback name owned by the Werewolf game module. */
 
-import { getAllRoleIds, getRoleSpec } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllRoleIds, getRoleSpec } from '@game-judge/game-engine/games/werewolf/public';
 
 const WEREWOLF_NAME_PREFIXES = [
   '首刀',

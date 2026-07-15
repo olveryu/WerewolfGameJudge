@@ -10,7 +10,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   WEREWOLF_CAMP_ORDER,
   type WerewolfCampStats,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 

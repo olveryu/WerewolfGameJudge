@@ -12,9 +12,9 @@
  * - swappedSeats is the single source of truth in GameState
  */
 
-import type { RoleSeatMap } from '@werewolf/game-engine/games/werewolf/domain/DeathCalculator';
-import { calculateDeaths } from '@werewolf/game-engine/games/werewolf/domain/DeathCalculator';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleSeatMap } from '@game-judge/game-engine/games/werewolf/domain/DeathCalculator';
+import { calculateDeaths } from '@game-judge/game-engine/games/werewolf/domain/DeathCalculator';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 
 import { RESOLVERS } from '../index';
 import { magicianSwapResolver } from '../magician';

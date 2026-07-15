@@ -8,7 +8,7 @@ applyTo: 'src/services/**'
 
 ## Source Code Location
 
-Game logic: `@werewolf/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
+Game logic: `@game-judge/game-engine` (see `game-engine.instructions.md`). `src/services/` only owns
 Cloudflare adapters, connection management, infrastructure implementations, and transport ports. Product APIs and
 React controllers live under their owning `src/features/*`; game-owned APIs live under `src/games/<gameType>/`.
 

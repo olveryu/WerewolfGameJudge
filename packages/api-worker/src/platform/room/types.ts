@@ -1,14 +1,14 @@
 /** Serializable contracts used by the generic room Durable Object RPC surface. */
 
-import type { CommandActor } from '@werewolf/game-engine/platform/engine';
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { type REASON_NO_STATE } from '@werewolf/game-engine/platform/protocol/reasons';
-import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
+import type { CommandActor } from '@game-judge/game-engine/platform/engine';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { type REASON_NO_STATE } from '@game-judge/game-engine/platform/protocol/reasons';
+import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
   RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 export interface RoomInstanceIdentity extends RoomLocator {
   readonly creationId: string;

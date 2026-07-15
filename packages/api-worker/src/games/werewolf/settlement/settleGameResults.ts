@@ -5,17 +5,17 @@
  * committed rewards instead of generating rewards or updating user stats again.
  */
 
-import type { WerewolfGameEndedEffect } from '@werewolf/game-engine/games/werewolf/public';
-import { type CampBucket, getRoleCamp } from '@werewolf/game-engine/games/werewolf/public';
-import { createSeededRng } from '@werewolf/game-engine/platform/random';
+import type { WerewolfGameEndedEffect } from '@game-judge/game-engine/games/werewolf/public';
+import { type CampBucket, getRoleCamp } from '@game-judge/game-engine/games/werewolf/public';
+import { createSeededRng } from '@game-judge/game-engine/platform/random';
 import {
   getLevel,
   LEVEL_THRESHOLDS,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,
-} from '@werewolf/game-engine/product/growth';
-import { rollGoldenDraws, rollNormalDraws } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/growth';
+import { rollGoldenDraws, rollNormalDraws } from '@game-judge/game-engine/product/rewards';
 
 import type { gameSettlementResults } from '../dbSchema';
 

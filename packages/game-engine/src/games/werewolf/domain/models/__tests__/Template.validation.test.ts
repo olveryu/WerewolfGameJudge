@@ -1,8 +1,8 @@
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   MINIMUM_PLAYERS,
   validateTemplateRoles,
-} from '@werewolf/game-engine/games/werewolf/domain/models/Template';
+} from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 
 describe('validateTemplateRoles', () => {
   it('rejects empty roles array', () => {

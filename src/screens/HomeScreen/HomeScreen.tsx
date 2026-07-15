@@ -8,9 +8,9 @@
  * No hardcoded style values, no console.*.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { isRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import { LinearGradient } from 'expo-linear-gradient';
 import type React from 'react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';

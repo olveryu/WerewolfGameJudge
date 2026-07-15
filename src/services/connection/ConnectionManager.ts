@@ -21,17 +21,17 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
-} from '@werewolf/game-engine/platform/protocol/roomLocator';
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
   RoomSnapshot,
   StateUpdateMessage,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import { createUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 
 import type { IRealtimeTransport, RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 import { handleError } from '@/utils/errorPipeline';

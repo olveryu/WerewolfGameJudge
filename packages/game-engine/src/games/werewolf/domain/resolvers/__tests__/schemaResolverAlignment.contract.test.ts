@@ -8,21 +8,21 @@
  * Contract test guarding against blanket skip behavior.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   type SchemaId,
   SCHEMAS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
 import {
   type ChooseSeatSchema,
   type CompoundSchema,
   TargetConstraint,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
-import { RESOLVERS } from '@werewolf/game-engine/games/werewolf/domain/resolvers';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schema.types';
+import { RESOLVERS } from '@game-judge/game-engine/games/werewolf/domain/resolvers';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // Build a base ResolverContext
 function createBaseContext(

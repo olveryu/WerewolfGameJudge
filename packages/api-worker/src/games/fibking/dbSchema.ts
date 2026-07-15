@@ -1,6 +1,6 @@
 /** FibKing-owned D1 table definitions imported directly by FibKing persistence. */
 
-import { FIB_WORD_SOURCES } from '@werewolf/game-engine/games/fibking/public';
+import { FIB_WORD_SOURCES } from '@game-judge/game-engine/games/fibking/public';
 import { index, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import { rooms } from '../../db/applicationSchema';

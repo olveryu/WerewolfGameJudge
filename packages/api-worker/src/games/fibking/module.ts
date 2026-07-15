@@ -4,7 +4,7 @@ import {
   FIB_STATE_CODEC,
   fibEngine,
   parseFibPublicStats,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 
 import { defineWorkerGameModule } from '../workerModule';
 import { fibEffectSchema, handleFibEffect } from './effects';

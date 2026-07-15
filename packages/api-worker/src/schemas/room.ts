@@ -1,7 +1,7 @@
 /** Strict schemas for the game-agnostic /room HTTP boundary. */
 
-import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { ROOM_CODE_PATTERN } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { ROOM_CODE_PATTERN } from '@game-judge/game-engine/platform/protocol/roomCode';
 import { z } from 'zod';
 
 const roomCodeSchema = z.string().regex(ROOM_CODE_PATTERN);

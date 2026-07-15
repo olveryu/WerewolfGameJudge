@@ -1,6 +1,6 @@
 /** Compose game-owned audio previews for the product music settings screen. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import type { GameAudioPreviewContribution } from '@/features/product/model/GameAudioPreview';
 

@@ -2,7 +2,7 @@
  * Tests for generateSpeakOrder
  */
 
-import { type Rng } from '@werewolf/game-engine/platform/random';
+import { type Rng } from '@game-judge/game-engine/platform/random';
 
 import { generateSpeakOrder } from '@/games/werewolf/room/useRoomHostDialogs';
 

@@ -12,10 +12,10 @@
  * - confirmTrigger: avenger confirm trigger
  */
 
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { getSchema, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { Team } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { getSchema, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
-import { Team } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   coverageChainActionPrompt,

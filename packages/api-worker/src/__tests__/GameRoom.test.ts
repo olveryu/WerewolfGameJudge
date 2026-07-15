@@ -3,14 +3,14 @@
 import {
   WEREWOLF_STATE_CODEC,
   type WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,
   REASON_SEAT_EMPTY,
-} from '@werewolf/game-engine/platform/protocol/reasons';
-import { createUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
+} from '@game-judge/game-engine/platform/protocol/reasons';
+import { createUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';

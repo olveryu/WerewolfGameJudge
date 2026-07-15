@@ -11,14 +11,14 @@
  * no StyleSheet.create (styles passed from parent or via shared components).
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import {
   Faction,
   getRoleDisplayAs,
   getRoleDisplayName,
   getRoleSpec,
-} from '@werewolf/game-engine/games/werewolf/public';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { ResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 

@@ -6,15 +6,15 @@
  * (NotSelf, NotWolfFaction, AdjacentToWolfFaction), and convertReveal no-op.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   awakenedGargoyleConvertResolver,
   awakenedGargoyleConvertRevealResolver,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/awakenedGargoyle';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/awakenedGargoyle';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Test Helpers

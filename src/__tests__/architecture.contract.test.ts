@@ -14,12 +14,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import {
   getModuleSpecifiers,
   getRuntimeModuleSpecifiers,
 } from '../../packages/game-engine/src/platform/__tests__/moduleSpecifiers';
+
+const GAME_ENGINE_PACKAGE = '@game-judge/game-engine';
+
+function isSharedGameEngineSpecifier(specifier: string): boolean {
+  return [`${GAME_ENGINE_PACKAGE}/platform/`, `${GAME_ENGINE_PACKAGE}/product/`].some((prefix) =>
+    specifier.startsWith(prefix),
+  );
+}
 
 // ─── Shared file walker ─────────────────────────────────────────────────────
 
@@ -148,8 +156,8 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
 describe('Game-engine package boundary: consumers use explicit public APIs', () => {
   const consumerFiles = [...srcFiles, ...workerFiles];
   const removedOwnershipPrefixes = [
-    '@werewolf/game-engine/growth',
-    '@werewolf/game-engine/utils',
+    '@game-judge/game-engine/growth',
+    '@game-judge/game-engine/utils',
   ] as const;
 
   it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
@@ -309,9 +317,9 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
     const violations = getModuleSpecifiers(filePath, content).filter((specifier) => {
       if (specifier.startsWith('@/games/')) return true;
       if (specifier.startsWith('@/screens/RoomScreen/')) return true;
-      if (specifier === '@werewolf/game-engine') return true;
-      if (!specifier.startsWith('@werewolf/game-engine/')) return false;
-      return !/^@werewolf\/game-engine\/(?:platform|product)\//.test(specifier);
+      if (specifier === GAME_ENGINE_PACKAGE) return true;
+      if (!specifier.startsWith(`${GAME_ENGINE_PACKAGE}/`)) return false;
+      return !isSharedGameEngineSpecifier(specifier);
     });
     expect(violations).toEqual([]);
   });
@@ -334,9 +342,9 @@ describe('Layer boundary: product components → game-specific code (forbidden)'
     const content = fs.readFileSync(filePath, 'utf-8');
     const violations = getModuleSpecifiers(filePath, content).filter((specifier) => {
       if (specifier.startsWith('@/games/')) return true;
-      if (specifier === '@werewolf/game-engine') return true;
-      if (!specifier.startsWith('@werewolf/game-engine/')) return false;
-      return !/^@werewolf\/game-engine\/(?:platform|product)\//.test(specifier);
+      if (specifier === GAME_ENGINE_PACKAGE) return true;
+      if (!specifier.startsWith(`${GAME_ENGINE_PACKAGE}/`)) return false;
+      return !isSharedGameEngineSpecifier(specifier);
     });
     expect(violations).toEqual([]);
   });
@@ -551,8 +559,8 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
         GAME_TYPES.some(
           (gameType) =>
             specifier.startsWith(`@/games/${gameType}`) ||
-            specifier.startsWith(`@werewolf/game-engine/games/${gameType}`),
-        ) || specifier.startsWith('@werewolf/game-engine/models/'),
+            specifier.startsWith(`@game-judge/game-engine/games/${gameType}`),
+        ) || specifier.startsWith('@game-judge/game-engine/models/'),
     );
     expect(violations).toEqual([]);
   });
@@ -611,13 +619,17 @@ describe('Test boundary: real navigation is opt-in', () => {
 
 describe('Client ownership: generic audio and avatar utilities stay game-neutral', () => {
   it('keeps Werewolf narration out of the platform AudioService', () => {
-    const content = fs.readFileSync(
-      path.join(process.cwd(), 'src', 'services', 'infra', 'AudioService.ts'),
-      'utf-8',
+    const filePath = path.join(process.cwd(), 'src', 'services', 'infra', 'AudioService.ts');
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const gameEngineViolations = getModuleSpecifiers(filePath, content).filter(
+      (specifier) =>
+        specifier === GAME_ENGINE_PACKAGE ||
+        (specifier.startsWith(`${GAME_ENGINE_PACKAGE}/`) &&
+          !isSharedGameEngineSpecifier(specifier)),
     );
 
     expect(content).not.toMatch(/\bRoleId\b|playRole|playNight|preloadForRoles|AUDIO_REGISTRY/);
-    expect(content).not.toMatch(/@werewolf\/game-engine\/(?:models|games\/werewolf)/);
+    expect(gameEngineViolations).toEqual([]);
   });
 
   it('keeps role projection out of the product avatar registry', () => {

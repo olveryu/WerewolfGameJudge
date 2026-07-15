@@ -2,15 +2,15 @@
  * ActionHandler Tests
  */
 
-import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/games/werewolf/domain/handlers/actionHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
-import type { SubmitActionIntent } from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
+import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/actionHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type {
   ApplyResolverResultAction,
   RecordActionAction,
-} from '@werewolf/game-engine/games/werewolf/domain/reducer/types';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/reducer/types';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 
@@ -45,13 +45,13 @@ function handleSubmitAction(intent: SubmitActionIntent, context: HandlerContext)
   return executeSubmitAction(intent, context, TEST_HANDLER_EXECUTION);
 }
 
-jest.mock('@werewolf/game-engine/games/werewolf/domain/resolvers', () => ({
+jest.mock('@game-judge/game-engine/games/werewolf/domain/resolvers', () => ({
   RESOLVERS: {
     seerCheck: jest.fn(() => ({ valid: true, updates: { someUpdate: true } })),
   },
 }));
 
-jest.mock('@werewolf/game-engine/games/werewolf/domain/models/roles/spec', () => ({
+jest.mock('@game-judge/game-engine/games/werewolf/domain/models/roles/spec', () => ({
   NIGHT_STEPS: [{ id: 'seerCheck', roleId: 'seer' }],
   SCHEMAS: { seerCheck: { id: 'seerCheck', kind: 'chooseSeat' } }, // PR4: must mock SCHEMAS
 }));

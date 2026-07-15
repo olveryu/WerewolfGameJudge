@@ -1,7 +1,7 @@
 /** React subscription for the single immutable room-session snapshot. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useSyncExternalStore } from 'react';
 
 import type {

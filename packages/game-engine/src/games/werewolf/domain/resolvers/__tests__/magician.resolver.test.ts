@@ -4,12 +4,12 @@
  * Tests for magicianSwapResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { magicianSwapResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/magician';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { magicianSwapResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/magician';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Test Helpers

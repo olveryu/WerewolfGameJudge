@@ -1,9 +1,9 @@
-import type { DeathReason } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleSpec } from '@werewolf/game-engine/games/werewolf/public';
-import { makeActionTarget } from '@werewolf/game-engine/games/werewolf/public';
-import { getRoleDisplayName, ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
-import { NIGHT_STEPS } from '@werewolf/game-engine/games/werewolf/public';
+import type { DeathReason } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/public';
+import { makeActionTarget } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleDisplayName, ROLE_SPECS } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_STEPS } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 

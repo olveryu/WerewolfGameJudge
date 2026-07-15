@@ -1,7 +1,7 @@
 /** Exhaustive composition of game-owned root-navigation definitions. */
 
-import { type GameType, parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
+import { type GameType, parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import type {
   GameNavigationDefinition,

@@ -9,7 +9,7 @@ import {
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { FACTION_SECTIONS } from './constants';

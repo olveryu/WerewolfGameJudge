@@ -8,7 +8,7 @@
  * Board: custom 12-player (includes piper)
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';

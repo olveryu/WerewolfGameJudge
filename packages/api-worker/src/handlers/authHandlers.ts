@@ -20,7 +20,7 @@
  * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
 
-import { getLevel } from '@werewolf/game-engine/product/growth';
+import { getLevel } from '@game-judge/game-engine/product/growth';
 import {
   getItemRarity,
   isFlairUnlocked,
@@ -30,7 +30,7 @@ import {
   isSeatAnimationUnlocked,
   parseUnlockedRewardIds,
   ROLE_REVEAL_EFFECT_IDS,
-} from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/rewards';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 

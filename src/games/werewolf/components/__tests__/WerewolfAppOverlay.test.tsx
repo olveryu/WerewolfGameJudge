@@ -1,6 +1,6 @@
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { ActiveRoomIdentity, RoomSessionSnapshot } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';

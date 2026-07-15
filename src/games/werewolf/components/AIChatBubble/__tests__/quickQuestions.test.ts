@@ -5,8 +5,8 @@
  * based on game state and player seat.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
 
 import { generateQuickQuestions } from '@/games/werewolf/components/AIChatBubble/quickQuestions';
 

@@ -7,10 +7,10 @@ import {
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_PREPARING,
   REASON_FIB_WORD_REUSED,
-} from '@werewolf/game-engine/games/fibking/public';
-import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import { createRoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/games/fibking/public';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

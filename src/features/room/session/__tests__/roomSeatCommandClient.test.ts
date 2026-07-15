@@ -1,4 +1,4 @@
-import type { RoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+import type { RoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import {
   clearRoomSeats,

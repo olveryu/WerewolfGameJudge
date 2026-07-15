@@ -37,11 +37,11 @@ import {
   calculateDeathsDetailed,
   type NightActions,
   type RoleSeatMap,
-} from '@werewolf/game-engine/games/werewolf/domain/DeathCalculator';
+} from '@game-judge/game-engine/games/werewolf/domain/DeathCalculator';
 import {
   makeWitchPoison,
   makeWitchSave,
-} from '@werewolf/game-engine/games/werewolf/domain/models/actions/WitchAction';
+} from '@game-judge/game-engine/games/werewolf/domain/models/actions/WitchAction';
 
 /** All roles absent — mirrors the module-private DEFAULT_ROLE_SEAT_MAP */
 const NO_ROLES: RoleSeatMap = {

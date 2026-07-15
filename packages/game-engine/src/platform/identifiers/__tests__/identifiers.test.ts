@@ -2,7 +2,7 @@
  * Tests for ID generation utilities
  */
 
-import { newRequestId, randomHex } from '@werewolf/game-engine/platform/identifiers';
+import { newRequestId, randomHex } from '@game-judge/game-engine/platform/identifiers';
 
 describe('ID utilities', () => {
   describe('randomHex', () => {

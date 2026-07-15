@@ -7,7 +7,7 @@
 import {
   isValidRoleId,
   ROLE_SPECS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   getAllStepIds,
   getStepsByRole,
@@ -15,9 +15,9 @@ import {
   getStepSpec,
   getStepSpecStrict,
   NIGHT_STEPS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/nightSteps';
-import type { RoleSpec } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
-import { isValidSchemaId } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/schemas';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/nightSteps';
+import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
+import { isValidSchemaId } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/schemas';
 
 describe('NIGHT_STEPS contract', () => {
   describe('uniqueness', () => {

@@ -1,12 +1,12 @@
 /** Werewolf profile projection bound to the shared canonical seat-command client. */
 
-import { useQueryClient } from '@tanstack/react-query';
 import type {
   WerewolfPublicCommand,
   WerewolfSeatProfile,
-} from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { resolveRandomAnimation } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';

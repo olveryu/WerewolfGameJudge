@@ -4,7 +4,7 @@ import {
   parseWerewolfPublicStats,
   WEREWOLF_STATE_CODEC,
   werewolfEngine,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 
 import { defineWorkerGameModule } from '../workerModule';
 import { handleWerewolfEffect, werewolfEffectSchema } from './effects';

@@ -1,6 +1,6 @@
 /** Strict persistent store for recoverable room-creation IDs. */
 
-import { newRequestId } from '@werewolf/game-engine/platform/identifiers';
+import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
 
 import { ROOM_CREATION_INTENTS_KEY } from '@/config/storageKeys';
 import { storage } from '@/services/infra/localStorage';

@@ -22,7 +22,7 @@ quality → deploy-api-worker (main only)
 
 ### deploy-api-worker
 
-1. `pnpm --filter @werewolf/game-engine run build` (Worker depends on game-engine dist/)
+1. `pnpm --filter @game-judge/game-engine run build` (Worker depends on game-engine dist/)
 2. `wrangler d1 migrations apply werewolf-db --remote` (**migrations before deployment**)
 3. `wrangler deploy`
 
@@ -37,7 +37,7 @@ quality → deploy-api-worker (main only)
 
 Cloudflare Pages build entry point. Flow:
 
-1. Build game-engine (`pnpm --filter @werewolf/game-engine run build`)
+1. Build game-engine (`pnpm --filter @game-judge/game-engine run build`)
 2. `npx expo export --platform web`
 3. PWA manifest + service worker injection
 4. Font file post-processing
@@ -64,7 +64,7 @@ GitHub Actions `release.yml` creates GitHub Release on `v*` tags.
 
 ## D1 Migrations
 
-- Local: `pnpm -F @werewolf/api-worker db:migrate:local`
+- Local: `pnpm -F @game-judge/api-worker db:migrate:local`
 - Remote (CI): `wrangler d1 migrations apply werewolf-db --remote`
 - After new migration, local must re-migrate or Worker startup reports schema error
 

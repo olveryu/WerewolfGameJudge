@@ -6,24 +6,24 @@
  * No business logic, side effects, or service calls.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, Player } from '@game-judge/game-engine/games/werewolf/public';
 import {
   makeActionMagicianSwap,
   makeActionTarget,
   makeActionWitch,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import {
   makeWitchNone,
   makeWitchPoison,
   makeWitchSave,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
-import { createTemplateFromRoles } from '@werewolf/game-engine/games/werewolf/public';
-import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
-import { parseResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { type GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { NIGHT_STEPS, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { createTemplateFromRoles } from '@game-judge/game-engine/games/werewolf/public';
+import type { RosterEntry } from '@game-judge/game-engine/platform/room/roster';
+import { parseResolvedRoleRevealAnimation } from '@game-judge/game-engine/product/rewards';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 

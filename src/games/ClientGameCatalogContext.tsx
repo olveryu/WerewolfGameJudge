@@ -1,6 +1,6 @@
 /** React boundary for the composition-root client game catalog. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 import { createContext, use, useMemo, useSyncExternalStore } from 'react';
 

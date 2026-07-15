@@ -7,7 +7,7 @@ alwaysApply: false
 ---
 
 
-# @werewolf/api-worker Standards
+# @game-judge/api-worker Standards
 
 Cloudflare Worker (Durable Objects + D1 + R2). Game API + Auth API.
 Uses **Hono** framework (`hono/cors`, `hono/validator`, `hono/http-exception`, `hono/factory`).
@@ -86,7 +86,7 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 ### Concurrency Safety
 
 - OCC (Optimistic Concurrency Control): `user_stats.version` column; draw/daily-reward reads version → writes with `WHERE version = readVersion`, retries on conflict (MAX_DRAW_RETRIES=3)
-- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@werewolf/game-engine`
+- `crypto.getRandomValues()` for random number generation; probability functions (`rollRarity` / `selectReward`) imported from `@game-judge/game-engine`
 
 ### Daily Login Reward
 

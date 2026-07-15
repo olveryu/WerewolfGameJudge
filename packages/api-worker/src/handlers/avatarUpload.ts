@@ -11,7 +11,7 @@
  * @throws 404 — avatar not found (GET)
  */
 
-import { randomHex } from '@werewolf/game-engine/platform/identifiers';
+import { randomHex } from '@game-judge/game-engine/platform/identifiers';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 

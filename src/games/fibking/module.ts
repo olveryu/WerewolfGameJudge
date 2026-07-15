@@ -4,7 +4,7 @@ import {
   FIB_STATE_CODEC,
   type FibPublicCommand,
   type FibState,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import { createElement } from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';

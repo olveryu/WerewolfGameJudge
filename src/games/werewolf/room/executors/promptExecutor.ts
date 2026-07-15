@@ -8,8 +8,8 @@
  * confirmed action via proceedWithAction.
  */
 
-import { getRoleDisplayName } from '@werewolf/game-engine/games/werewolf/public';
-import { Team } from '@werewolf/game-engine/games/werewolf/public';
+import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
+import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import { roomScreenLog } from '@/utils/logger';
 

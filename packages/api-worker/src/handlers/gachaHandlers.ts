@@ -18,7 +18,7 @@
  * @pre idempotencyKey uniquely identifies this operation; replays return cached response (24h TTL)
  */
 
-import { secureRng } from '@werewolf/game-engine/platform/random';
+import { secureRng } from '@game-judge/game-engine/platform/random';
 import {
   type DrawType,
   parseUnlockedRewardIds,
@@ -29,7 +29,7 @@ import {
   rollRarity,
   selectReward,
   SHARD_COSTS,
-} from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/rewards';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 

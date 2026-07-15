@@ -4,12 +4,12 @@ import {
   parseRoomCommandResult,
   RoomCommandProtocolError,
   type RoomCommandResult,
-} from '@werewolf/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+} from '@game-judge/game-engine/platform/protocol/commandResult';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { PreparedRoomCommand } from '@/features/room/session/types';
 import { cfPost } from '@/services/cloudflare/cfFetch';

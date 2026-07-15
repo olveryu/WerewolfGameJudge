@@ -9,7 +9,7 @@ import {
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 

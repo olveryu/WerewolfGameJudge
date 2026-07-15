@@ -5,8 +5,8 @@
  * then submits via proceedWithAction.
  */
 
-import { getWolfKillImmuneRoleIds } from '@werewolf/game-engine/games/werewolf/public';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import { getWolfKillImmuneRoleIds } from '@game-judge/game-engine/games/werewolf/public';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { roomScreenLog } from '@/utils/logger';
 

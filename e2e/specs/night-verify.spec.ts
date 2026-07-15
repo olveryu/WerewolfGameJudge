@@ -1,5 +1,5 @@
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 import { expect, test } from '@playwright/test';
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import { closeAll } from '../fixtures/app.fixture';
 import { type GameSetupWithRolesResult, setupNPlayerGameWithRoles } from '../helpers/multi-player';

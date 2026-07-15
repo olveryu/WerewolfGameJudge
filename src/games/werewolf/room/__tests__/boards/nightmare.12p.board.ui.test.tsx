@@ -21,9 +21,9 @@
  * - UI shows actionRejected with BLOCKED_UI_DEFAULTS message
  */
 
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { BLOCKED_UI_DEFAULTS, getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { BLOCKED_UI_DEFAULTS, getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   boardHasNightmare,

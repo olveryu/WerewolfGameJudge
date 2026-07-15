@@ -8,10 +8,10 @@
 import {
   getAllRoleIds,
   ROLE_SPECS,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import type { RoleDescription } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
-import type { RoleSpec } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
-import { getRoleStructuredDescription } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/specs';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import type { RoleDescription } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
+import type { RoleSpec } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/roleSpec.types';
+import { getRoleStructuredDescription } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/specs';
 
 /** Valid field keys in RoleDescription */
 const VALID_FIELDS: readonly (keyof RoleDescription)[] = [

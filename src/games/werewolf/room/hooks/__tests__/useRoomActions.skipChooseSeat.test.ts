@@ -1,4 +1,4 @@
-import type { ChooseSeatSchema } from '@werewolf/game-engine/games/werewolf/public';
+import type { ChooseSeatSchema } from '@game-judge/game-engine/games/werewolf/public';
 
 import { deriveSkipIntentFromSchema } from '@/games/werewolf/room/hooks/useRoomActions';
 

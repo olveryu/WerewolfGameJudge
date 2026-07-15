@@ -9,11 +9,14 @@
  * If any layer drifts, this test fails.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { ActionInput, ResolverContext } from '@werewolf/game-engine/games/werewolf/public';
-import { type CompoundSchema, TargetConstraint } from '@werewolf/game-engine/games/werewolf/public';
-import { type SchemaId, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
-import { RESOLVERS } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { ActionInput, ResolverContext } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  type CompoundSchema,
+  TargetConstraint,
+} from '@game-judge/game-engine/games/werewolf/public';
+import { type SchemaId, SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
+import { RESOLVERS } from '@game-judge/game-engine/games/werewolf/public';
 
 // === Test Helpers ===
 

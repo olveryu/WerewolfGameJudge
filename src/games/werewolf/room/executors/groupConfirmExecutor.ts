@@ -5,7 +5,7 @@
  * role action prompt with schema-driven confirm button.
  */
 
-import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
+import { formatSeat } from '@game-judge/game-engine/platform/room/formatSeat';
 
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';

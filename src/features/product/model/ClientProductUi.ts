@@ -1,6 +1,6 @@
 /** Strict product-presentation resolver composed from game-owned contributions. */
 
-import { AVATAR_IDS, HAND_DRAWN_AVATAR_IDS } from '@werewolf/game-engine/product/rewards';
+import { AVATAR_IDS, HAND_DRAWN_AVATAR_IDS } from '@game-judge/game-engine/product/rewards';
 
 import type {
   GameProductUiContribution,

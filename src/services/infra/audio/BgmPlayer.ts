@@ -26,7 +26,7 @@
  *   double-fire from ended + timeupdate.
  */
 
-import { shuffleArray } from '@werewolf/game-engine/platform/random';
+import { shuffleArray } from '@game-judge/game-engine/platform/random';
 import type { AudioPlayer } from 'expo-audio';
 import { createAudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';

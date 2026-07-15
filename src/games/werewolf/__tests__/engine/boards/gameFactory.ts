@@ -9,38 +9,38 @@
  * Single source of truth: GameState
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
-import type { NightPlan } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState, PlayerMessage } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { buildNightPlan } from '@werewolf/game-engine/games/werewolf/public';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import type { NightPlan } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, PlayerMessage } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/public';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '@game-judge/game-engine/games/werewolf/public';
 import {
   createTemplateFromRoles,
   type GameTemplate,
   getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
-} from '@werewolf/game-engine/games/werewolf/public';
+} from '@game-judge/game-engine/games/werewolf/public';
 import type {
   HandlerContext,
   HandlerExecutionContext,
   HandlerResult,
-} from '@werewolf/game-engine/games/werewolf/testing';
-import type { SubmitActionIntent } from '@werewolf/game-engine/games/werewolf/testing';
-import type { StateAction } from '@werewolf/game-engine/games/werewolf/testing';
-import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/games/werewolf/testing';
+} from '@game-judge/game-engine/games/werewolf/testing';
+import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/testing';
+import type { StateAction } from '@game-judge/game-engine/games/werewolf/testing';
+import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/testing';
 import {
   handleAdvanceNight as executeAdvanceNight,
   handleEndNight as executeEndNight,
-} from '@werewolf/game-engine/games/werewolf/testing';
-import { handlerSuccess } from '@werewolf/game-engine/games/werewolf/testing';
-import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/games/werewolf/testing';
-import { gameReducer } from '@werewolf/game-engine/games/werewolf/testing';
-import { normalizeState } from '@werewolf/game-engine/games/werewolf/testing';
-import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
+} from '@game-judge/game-engine/games/werewolf/testing';
+import { handlerSuccess } from '@game-judge/game-engine/games/werewolf/testing';
+import { handleSetWolfRobotHunterStatusViewed } from '@game-judge/game-engine/games/werewolf/testing';
+import { gameReducer } from '@game-judge/game-engine/games/werewolf/testing';
+import { normalizeState } from '@game-judge/game-engine/games/werewolf/testing';
+import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
 
 import type { CapturedMessage, GameContext } from './gameContext';
 

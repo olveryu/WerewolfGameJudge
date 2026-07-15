@@ -1,7 +1,7 @@
 /** Game-neutral account operations for the one active room. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { RoomProfileUpdate } from '@werewolf/game-engine/platform/room/roster';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { RoomProfileUpdate } from '@game-judge/game-engine/platform/room/roster';
 
 import type { RoomOperationResult } from './RoomCapabilities';
 

@@ -1,18 +1,18 @@
 /** Generic room authority: typed RPC dispatch, atomic storage, realtime, and outbox drain. */
 
-import * as Sentry from '@sentry/cloudflare';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   REASON_NO_STATE,
   REASON_NOT_HOST,
   REASON_ROOM_EFFECTS_PENDING,
-} from '@werewolf/game-engine/platform/protocol/reasons';
+} from '@game-judge/game-engine/platform/protocol/reasons';
 import {
   type BaseGameState,
   createStateUpdateMessage,
   type RoomSnapshot,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import { parseUserEventAckMessage } from '@werewolf/game-engine/platform/protocol/userEvents';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import { parseUserEventAckMessage } from '@game-judge/game-engine/platform/protocol/userEvents';
+import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';

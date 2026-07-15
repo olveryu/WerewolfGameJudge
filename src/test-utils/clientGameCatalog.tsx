@@ -1,6 +1,6 @@
 /** Typed client game catalog fixture for React tests. */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';

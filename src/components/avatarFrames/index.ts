@@ -1,11 +1,11 @@
 /**
  * avatarFrames — avatar frame registry
  *
- * FrameId type derived from FRAME_IDS in `@werewolf/game-engine/product/rewards`.
+ * FrameId type derived from FRAME_IDS in `@game-judge/game-engine/product/rewards`.
  * Use getFrameComponent to fetch the corresponding SVG render component by id.
  * No service or theme imports.
  */
-import { FRAME_IDS, type FrameId } from '@werewolf/game-engine/product/rewards';
+import { FRAME_IDS, type FrameId } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 import { AshWoodFrame } from './AshWoodFrame';

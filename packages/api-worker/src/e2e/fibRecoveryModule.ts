@@ -4,7 +4,7 @@ import type {
   FibEffect,
   FibInternalCommand,
   FibState,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 
 import { fibEffectSchema, handleFibGenerateWordEffect } from '../games/fibking/effects';
 import { fibWorkerModule } from '../games/fibking/module';

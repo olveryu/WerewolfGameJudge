@@ -1,7 +1,7 @@
-import type { RoleId, SchemaId } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState, ProtocolAction } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId, SchemaId } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState, ProtocolAction } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
 

@@ -6,17 +6,17 @@ import {
   handleBoardNominate,
   handleBoardUpvote,
   handleBoardWithdraw,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/gameControlHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
   BoardNominateIntent,
   BoardUpvoteIntent,
   BoardWithdrawIntent,
-} from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import { handleUpvoteBoardNomination } from '@werewolf/game-engine/games/werewolf/domain/reducer/lifecycleReducers';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import { handleUpvoteBoardNomination } from '@game-judge/game-engine/games/werewolf/domain/reducer/lifecycleReducers';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 

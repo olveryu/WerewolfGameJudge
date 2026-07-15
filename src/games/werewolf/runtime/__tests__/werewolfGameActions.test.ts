@@ -1,11 +1,11 @@
-import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import {
   type WerewolfActionInput,
   type WerewolfPublicCommand,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type {
   PreparedRoomCommand,

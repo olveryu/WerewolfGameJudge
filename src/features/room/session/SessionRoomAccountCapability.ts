@@ -3,14 +3,14 @@
 import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
-} from '@werewolf/game-engine/platform/protocol/commands';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
-import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/commands';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type {
   RoomProfileUpdate,
   RoomSeatProfile,
-} from '@werewolf/game-engine/platform/room/roster';
-import { resolveRandomAnimation } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/platform/room/roster';
+import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
 
 import type {
   GameRoomAccountSnapshot,

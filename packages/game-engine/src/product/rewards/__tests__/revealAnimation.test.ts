@@ -4,7 +4,7 @@ import {
   type ResolvedRoleRevealAnimation,
   resolveRandomAnimation,
   type RoleRevealAnimation,
-} from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/rewards';
 
 describe('reveal animation policy', () => {
   it('derives the twelve randomizable effects from the reward catalog', () => {

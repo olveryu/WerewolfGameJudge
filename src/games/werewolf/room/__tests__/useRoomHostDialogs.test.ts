@@ -1,11 +1,11 @@
 /**
  * Tests for useRoomHostDialogs hook
  */
+import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { act, renderHook } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import { useRoomHostDialogs } from '@/games/werewolf/room/useRoomHostDialogs';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';

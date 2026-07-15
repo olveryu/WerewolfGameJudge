@@ -2,12 +2,12 @@
  * handleClearAllSeats Unit Tests
  */
 
-import { handleClearAllSeats } from '@werewolf/game-engine/games/werewolf/domain/handlers/seatHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
-import type { ClearAllSeatsIntent } from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+import { handleClearAllSeats } from '@game-judge/game-engine/games/werewolf/domain/handlers/seatHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import type { ClearAllSeatsIntent } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess } from './handlerTestUtils';
 

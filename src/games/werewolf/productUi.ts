@@ -1,7 +1,7 @@
 /** Werewolf-owned presentation for product rewards with Werewolf semantics. */
 
-import { getRoleDisplayName } from '@werewolf/game-engine/games/werewolf/public';
-import { HAND_DRAWN_AVATAR_IDS } from '@werewolf/game-engine/product/rewards';
+import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
+import { HAND_DRAWN_AVATAR_IDS } from '@game-judge/game-engine/product/rewards';
 
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
 import { getAnimationOption } from '@/games/werewolf/components/roleRevealAnimationOptions';

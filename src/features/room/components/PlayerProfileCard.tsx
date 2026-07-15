@@ -5,15 +5,15 @@
  * Host additionally sees a "remove from seat" button. Bot shows a simplified card (no API).
  * Pure display + data fetching, contains no game logic.
  */
-import { useNavigation } from '@react-navigation/native';
-import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   getLevelProgress,
   getLevelTitle,
   LEVEL_THRESHOLDS,
-} from '@werewolf/game-engine/product/growth';
-import { getItemRarity, type Rarity } from '@werewolf/game-engine/product/rewards';
+} from '@game-judge/game-engine/product/growth';
+import { getItemRarity, type Rarity } from '@game-judge/game-engine/product/rewards';
+import { useNavigation } from '@react-navigation/native';
+import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {

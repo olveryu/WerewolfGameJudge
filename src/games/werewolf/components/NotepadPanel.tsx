@@ -9,8 +9,8 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { Faction } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { Faction } from '@game-judge/game-engine/games/werewolf/public';
 import React, { useCallback, useState } from 'react';
 import {
   FlatList,

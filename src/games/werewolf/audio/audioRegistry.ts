@@ -5,7 +5,7 @@
  * and platform playback stay outside this registry.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { AudioAsset, AudioClip } from '@/features/product/model/AudioClip';
 

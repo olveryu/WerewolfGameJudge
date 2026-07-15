@@ -8,7 +8,7 @@ import {
   type FibState,
   REASON_FIB_ROUND_MISMATCH,
   REASON_FIB_ROUND_NOT_PREPARING,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
 import { createEffectCommandId } from '../effectCommandId';

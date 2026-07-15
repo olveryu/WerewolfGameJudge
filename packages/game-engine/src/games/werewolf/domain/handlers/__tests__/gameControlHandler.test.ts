@@ -8,18 +8,18 @@ import {
   handleShareNightReview,
   handleStartNight as executeStartNight,
   handleUpdateTemplate,
-} from '@werewolf/game-engine/games/werewolf/domain/handlers/gameControlHandler';
-import type { HandlerContext } from '@werewolf/game-engine/games/werewolf/domain/handlers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/handlers/gameControlHandler';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import type {
   AssignRolesIntent,
   RestartGameIntent,
   ShareNightReviewIntent,
   StartNightIntent,
   UpdateTemplateIntent,
-} from '@werewolf/game-engine/games/werewolf/domain/intents/types';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+} from '@game-judge/game-engine/games/werewolf/domain/intents/types';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';
 

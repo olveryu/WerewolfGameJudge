@@ -3,8 +3,8 @@
 import {
   FIB_WORD_SOURCES,
   type FibGenerateWordEffect,
-} from '@werewolf/game-engine/games/fibking/public';
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
+} from '@game-judge/game-engine/games/fibking/public';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 import { z } from 'zod';
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';

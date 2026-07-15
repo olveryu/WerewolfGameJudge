@@ -8,8 +8,8 @@
  * It covers a gap where nearly all board tests only test the confirm path.
  */
 
+import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createGameRoomMock,

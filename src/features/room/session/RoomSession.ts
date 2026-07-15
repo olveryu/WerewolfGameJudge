@@ -1,13 +1,13 @@
 /** Single owner for room identity, snapshot, connection, commands, and durable user events. */
 
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
   RoomSnapshot,
   StateUpdateMessage,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import {

@@ -12,8 +12,8 @@
  * - canShoot logic now lives in resolvers (see wolfRobot.resolver.test.ts)
  */
 
-import type { ConfirmSchema } from '@werewolf/game-engine/games/werewolf/public';
-import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import type { ConfirmSchema } from '@game-judge/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@game-judge/game-engine/games/werewolf/public';
 
 describe('confirm schema contract (hunter/darkWolfKing)', () => {
   describe('hunterConfirm schema', () => {

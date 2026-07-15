@@ -1,7 +1,7 @@
 /** Werewolf-owned derivation of neutral room-shell models. */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { getRoleDisplayName } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { getRoleDisplayName } from '@game-judge/game-engine/games/werewolf/public';
 
 import type {
   RoomBottomActionLayout,

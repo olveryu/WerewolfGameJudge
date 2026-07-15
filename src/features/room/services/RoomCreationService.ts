@@ -1,6 +1,6 @@
 /** Recoverable single-flight room-creation saga. */
 
-import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
+import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
 
 import type {
   RoomCreationRequest,

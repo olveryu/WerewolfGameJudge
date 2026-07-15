@@ -1,4 +1,4 @@
-import { getAllSchemaIds } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllSchemaIds } from '@game-judge/game-engine/games/werewolf/public';
 
 // Keep this list in sync with `schemas.smoke.ui.test.tsx`.
 //

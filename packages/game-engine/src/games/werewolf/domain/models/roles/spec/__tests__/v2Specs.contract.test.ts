@@ -10,8 +10,11 @@ import {
   ROLE_SPECS,
   type RoleId,
   type RoleSpec,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec';
-import { Faction, Team } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec';
+import {
+  Faction,
+  Team,
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
 
 const allIds = Object.keys(ROLE_SPECS).sort() as RoleId[];
 

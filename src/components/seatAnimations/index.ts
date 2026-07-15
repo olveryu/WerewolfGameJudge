@@ -1,11 +1,11 @@
 /**
  * seatAnimations — sit animation registry.
  *
- * SeatAnimationId type is derived from SEAT_ANIMATION_IDS in `@werewolf/game-engine/product/rewards`.
+ * SeatAnimationId type is derived from SEAT_ANIMATION_IDS in `@game-judge/game-engine/product/rewards`.
  * Use getSeatAnimationById to look up the corresponding Reanimated animation component by id.
  * Structure mirrors `seatFlairs/index.ts`.
  */
-import { SEAT_ANIMATION_IDS, type SeatAnimationId } from '@werewolf/game-engine/product/rewards';
+import { SEAT_ANIMATION_IDS, type SeatAnimationId } from '@game-judge/game-engine/product/rewards';
 import type React from 'react';
 
 import { COMMON_ANIMATION_ENTRIES, RARE_ANIMATION_ENTRIES } from './common';

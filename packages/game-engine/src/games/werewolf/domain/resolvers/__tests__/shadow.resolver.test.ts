@@ -4,13 +4,13 @@
  * Tests for shadowChooseMimicResolver validation and resolution logic.
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
-import { Team } from '@werewolf/game-engine/games/werewolf/domain/models/roles/spec/types';
-import { shadowChooseMimicResolver } from '@werewolf/game-engine/games/werewolf/domain/resolvers/shadow';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
+import { Team } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
+import { shadowChooseMimicResolver } from '@game-judge/game-engine/games/werewolf/domain/resolvers/shadow';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Test Helpers

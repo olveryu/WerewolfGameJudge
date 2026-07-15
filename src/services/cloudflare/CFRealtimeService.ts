@@ -17,16 +17,16 @@
  * - Connection timeout is controlled by WS_CONNECT_TIMEOUT_MS (8s)
  */
 
-import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
-} from '@werewolf/game-engine/platform/protocol/roomLocator';
+} from '@game-judge/game-engine/platform/protocol/roomLocator';
 import {
   type BaseGameState,
   type GameStateCodec,
   parseStateUpdateMessage,
-} from '@werewolf/game-engine/platform/protocol/roomSnapshot';
+} from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { API_BASE_URL } from '@/config/api';
 import type {

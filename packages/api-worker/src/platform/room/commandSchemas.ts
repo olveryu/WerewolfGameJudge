@@ -3,7 +3,7 @@
 import type {
   RoomProfileUpdate,
   RoomSeatProfile,
-} from '@werewolf/game-engine/platform/room/roster';
+} from '@game-judge/game-engine/platform/room/roster';
 import { z } from 'zod';
 
 const roomSeatProfileSchema: z.ZodType<RoomSeatProfile> = z.strictObject({

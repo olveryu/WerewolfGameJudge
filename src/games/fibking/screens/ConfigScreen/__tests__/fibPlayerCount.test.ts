@@ -1,4 +1,4 @@
-import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@werewolf/game-engine/games/fibking/public';
+import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@game-judge/game-engine/games/fibking/public';
 
 import { parseFibPlayerCountInput } from '../fibPlayerCount';
 

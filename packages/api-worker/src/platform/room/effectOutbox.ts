@@ -1,6 +1,6 @@
 /** Durable Object transactional outbox reader, delivery lease, and retry policy. */
 
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 
 import type { EffectScope, PendingOutboxEffect } from './types';
 

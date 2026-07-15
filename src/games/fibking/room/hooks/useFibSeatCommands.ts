@@ -1,7 +1,7 @@
 /** FibKing roster projection bound to the canonical shared seat-command client. */
 
+import type { FibSeatProfile, FibState } from '@game-judge/game-engine/games/fibking/public';
 import { useQueryClient } from '@tanstack/react-query';
-import type { FibSeatProfile, FibState } from '@werewolf/game-engine/games/fibking/public';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';

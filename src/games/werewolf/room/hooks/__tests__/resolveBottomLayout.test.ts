@@ -1,4 +1,4 @@
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 
 import { TESTIDS } from '@/testids';
 import { colors } from '@/theme';

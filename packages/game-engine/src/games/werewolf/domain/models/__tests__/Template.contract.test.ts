@@ -15,12 +15,12 @@ import {
   getRoleSpec,
   isValidRoleId,
   type RoleId,
-} from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+} from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   createTemplateFromRoles,
   getPlayerCount,
   PRESET_TEMPLATES,
-} from '@werewolf/game-engine/games/werewolf/domain/models/Template';
+} from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 
 /**
  * Helper: Get action order from roles via NightPlan

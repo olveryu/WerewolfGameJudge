@@ -5,7 +5,7 @@ import {
   FIB_DEFINITION_MIN_LENGTH,
   FIB_WORD_MAX_LENGTH,
   FIB_WORD_MIN_LENGTH,
-} from '@werewolf/game-engine/games/fibking/public';
+} from '@game-judge/game-engine/games/fibking/public';
 
 import type { FibWordRequest } from './types';
 

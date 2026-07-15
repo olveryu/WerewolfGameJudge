@@ -5,9 +5,9 @@
  * Owned items are dimmed with "已拥有" badge; exchange button disabled when shards insufficient.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
+import { REWARD_POOL, SHARD_COSTS } from '@game-judge/game-engine/product/rewards';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { Rarity, RewardType } from '@werewolf/game-engine/product/rewards';
-import { REWARD_POOL, SHARD_COSTS } from '@werewolf/game-engine/product/rewards';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,

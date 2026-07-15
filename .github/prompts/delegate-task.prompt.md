@@ -89,5 +89,5 @@ You are a [expert role]. [One-sentence task description].
 - Cloudflare Worker (Hono) + Durable Objects + D1 + R2
 - Web-first, compatible with iOS/Android/WeChat mini-program (web-view shell)
 - Single light theme "Yuebai" — primary `#4F46E5`
-- `@werewolf/game-engine` forbids `@/` alias, uses relative paths only
+- `@game-judge/game-engine` forbids `@/` alias, uses relative paths only
 - Quality command: `pnpm run quality` (typecheck + lint + format + test)

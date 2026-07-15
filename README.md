@@ -152,8 +152,8 @@ pnpm run quality      # typecheck + lint + format + test:all
 pnpm run e2e          # Playwright E2E
 
 # 本地 D1 seed — dev 用户 (dev@test.local / dev123) + 全物品解锁
-pnpm -F @werewolf/api-worker db:migrate:local
-pnpm -F @werewolf/api-worker db:seed:local
+pnpm -F @game-judge/api-worker db:migrate:local
+pnpm -F @game-judge/api-worker db:seed:local
 ```
 
 ### 项目结构

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { SeatAnimationId } from '@werewolf/game-engine/product/rewards';
+import type { SeatAnimationId } from '@game-judge/game-engine/product/rewards';
 import { memo, useCallback } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 

@@ -5,10 +5,10 @@
  * When adding new fields, if you forget to pass them through in normalizeState, this test will fail.
  */
 
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/domain/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
-import { normalizeState } from '@werewolf/game-engine/games/werewolf/domain/state/normalize';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
+import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
+import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
+import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
 /**
  * List of all top-level fields of GameState (single source of truth)

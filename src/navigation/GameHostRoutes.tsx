@@ -1,7 +1,7 @@
 /** Game-neutral root routes resolved from bound navigation capabilities. */
 
+import { parseGameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import type { GameNavigationRouteKind } from '@/features/navigation/model/GameNavigationContribution';

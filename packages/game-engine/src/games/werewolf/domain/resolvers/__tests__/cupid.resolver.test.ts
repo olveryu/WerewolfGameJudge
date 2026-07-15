@@ -8,15 +8,15 @@
  * - Can select self
  */
 
-import type { RoleId } from '@werewolf/game-engine/games/werewolf/domain/models/roles';
+import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
 import {
   cupidChooseLoversResolver,
   cupidLoversRevealResolver,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/cupid';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/cupid';
 import type {
   ActionInput,
   ResolverContext,
-} from '@werewolf/game-engine/games/werewolf/domain/resolvers/types';
+} from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
 // =============================================================================
 // Helpers
