@@ -14,7 +14,7 @@ import { Hono } from 'hono';
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
-import { extractBearerToken, requireAuth, verifyToken } from '../auth/tokenAuth';
+import { authenticateAccessToken, extractBearerToken, requireAuth } from '../auth/tokenAuth';
 import { users, userStats } from './dbSchema';
 import { toUserMetadata } from './profile';
 import { updateProfileSchema } from './schemas';
@@ -29,9 +29,15 @@ accountAuthRoutes.get('/user', async (c) => {
     return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
   }
 
-  const payload = await verifyToken(token, c.env);
-  if (payload === null) {
+  const authentication = await authenticateAccessToken(token, c.env);
+  if (authentication.kind === 'invalid') {
     return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
+  }
+  if (authentication.kind === 'userNotFound') {
+    return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
+  }
+  if (authentication.kind === 'revoked') {
+    return c.json({ success: false, reason: 'TOKEN_REVOKED' }, 401);
   }
 
   const user = await db
@@ -48,17 +54,13 @@ accountAuthRoutes.get('/user', async (c) => {
       equippedSeatAnimation: users.equippedSeatAnimation,
       isAnonymous: users.isAnonymous,
       wechatOpenid: users.wechatOpenid,
-      tokenVersion: users.tokenVersion,
     })
     .from(users)
-    .where(eq(users.id, payload.sub))
+    .where(eq(users.id, authentication.principal.userId))
     .get();
 
   if (user === undefined) {
-    return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
-  }
-  if (user.tokenVersion !== payload.ver) {
-    return c.json({ success: false, reason: 'TOKEN_REVOKED' }, 401);
+    throw new Error(`Authenticated user ${authentication.principal.userId} disappeared`);
   }
 
   return c.json(

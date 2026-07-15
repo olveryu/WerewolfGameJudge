@@ -169,6 +169,23 @@ describe('POST /auth/signup', () => {
     expect(body.user.is_anonymous).toBe(false);
   });
 
+  it('does not upgrade an anonymous account through a revoked token', async () => {
+    const anonRes = await postJson('/auth/anonymous', {});
+    const anonBody = await anonRes.json<AuthSuccessResponse>();
+    const signout = await postJson('/auth/signout', {}, anonBody.access_token);
+    expect(signout.status).toBe(200);
+
+    const res = await postJson(
+      '/auth/signup',
+      { email: 'after-signout@test.local', password: 'pass123' },
+      anonBody.access_token,
+    );
+    expect(res.status).toBe(200);
+
+    const body = await res.json<AuthSuccessResponse>();
+    expect(body.user.id).not.toBe(anonBody.user.id);
+  });
+
   it('rejects validation error for missing password', async () => {
     const res = await postJson('/auth/signup', { email: 'bad@test.local' });
     expect(res.status).toBe(400);

@@ -28,7 +28,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { users, userStats } from '../account/dbSchema';
-import { selectUserProfile, toUserMetadata } from '../account/profile';
+import { createEmptyUserMetadata, selectUserProfile, toUserMetadata } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
 import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
 import { hashPassword, verifyPassword } from './passwordHash';
@@ -44,13 +44,13 @@ import {
   wechatClaimSchema,
 } from './schemas';
 import {
+  authenticateAccessToken,
   bumpTokenVersion,
   extractBearerToken,
   issueTokenPair,
   requireAuth,
   revokeAllRefreshTokens,
   rotateRefreshToken,
-  verifyToken,
 } from './tokenAuth';
 import { getWeChatAuthStub } from './wechat/weChatAuthStub';
 
@@ -217,12 +217,17 @@ authRoutes.post('/anonymous', async (c) => {
     updatedAt: now,
   });
 
-  const tokens = await issueTokenPair(userId, env, { anon: true, ver: 0 });
+  const tokens = await issueTokenPair(userId, env, 0);
 
   return c.json(
     {
       ...tokens,
-      user: { id: userId, is_anonymous: true, email: null, user_metadata: toUserMetadata(null) },
+      user: {
+        id: userId,
+        is_anonymous: true,
+        email: null,
+        user_metadata: createEmptyUserMetadata(),
+      },
     },
     200,
   );
@@ -240,25 +245,29 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   const email = parsed.email.toLowerCase().trim();
   const displayName = parsed.displayName || email.split('@')[0];
 
-  // Check if request is from authenticated user eligible for in-place upgrade:
-  // - anonymous user (payload.anon)
+  // Check if request is from an authenticated account eligible for in-place upgrade:
+  // - anonymous user
   // - WeChat-only user (no email, no password in DB)
   const bearerToken = extractBearerToken(request);
-  let existingUserId: string | null = null;
-  if (bearerToken) {
-    const payload = await verifyToken(bearerToken, env);
-    if (payload) {
-      if (payload.anon) {
-        existingUserId = payload.sub;
+  let upgradeAccount: { userId: string; tokenVersion: number } | null = null;
+  if (bearerToken !== null) {
+    const authentication = await authenticateAccessToken(bearerToken, env);
+    if (authentication.kind === 'authenticated') {
+      if (authentication.principal.isAnonymous) {
+        upgradeAccount = authentication.principal;
       } else {
         // Check DB: WeChat-only user (no email, no password) also eligible
         const row = await db
           .select({ email: users.email, passwordHash: users.passwordHash })
           .from(users)
-          .where(eq(users.id, payload.sub))
+          .where(eq(users.id, authentication.principal.userId))
           .get();
-        if (row && !row.email && !row.passwordHash) {
-          existingUserId = payload.sub;
+
+        if (row === undefined) {
+          throw new Error(`Authenticated user ${authentication.principal.userId} disappeared`);
+        }
+        if (row.email === null && row.passwordHash === null) {
+          upgradeAccount = authentication.principal;
         }
       }
     }
@@ -266,11 +275,16 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
 
   const passwordHash = await hashPassword(parsed.password);
 
-  if (existingUserId) {
+  if (upgradeAccount !== null) {
+    const { userId: existingUserId } = upgradeAccount;
     // In-place upgrade (anonymous or WeChat-only → email): preserve UID + existing profile
     // Check email not already taken by another user
     const existing = await db
-      .select({ id: users.id, passwordHash: users.passwordHash })
+      .select({
+        id: users.id,
+        passwordHash: users.passwordHash,
+        tokenVersion: users.tokenVersion,
+      })
       .from(users)
       .where(eq(users.email, email))
       .get();
@@ -284,7 +298,11 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         .where(eq(users.id, existingUserId))
         .get();
 
-      if (!callerRow?.wechatOpenid || !existing.passwordHash) {
+      if (callerRow === undefined) {
+        throw new Error(`Authenticated user ${existingUserId} disappeared`);
+      }
+
+      if (callerRow.wechatOpenid === null || existing.passwordHash === null) {
         // Anonymous user or target has no password — cannot merge, plain conflict
         return c.json({ success: false, reason: 'EMAIL_ALREADY_REGISTERED' }, 409);
       }
@@ -318,15 +336,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       // Read back merged account profile
       const mergedProfile = await selectUserProfile(db, existing.id);
 
-      const mergedUser = await db
-        .select({ tokenVersion: users.tokenVersion })
-        .from(users)
-        .where(eq(users.id, existing.id))
-        .get();
-      const tokens = await issueTokenPair(existing.id, env, {
-        email,
-        ver: mergedUser!.tokenVersion,
-      });
+      const tokens = await issueTokenPair(existing.id, env, existing.tokenVersion);
 
       return c.json(
         {
@@ -345,7 +355,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
     // Only overwrite display_name if caller explicitly provided one
     const updateName = parsed.displayName ? displayName : null;
 
-    await db
+    const upgradeResult = await db
       .update(users)
       .set({
         email,
@@ -356,21 +366,18 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
       })
       .where(eq(users.id, existingUserId));
 
+    if (upgradeResult.meta.changes !== 1) {
+      throw new Error(
+        `Expected one user while upgrading account, changed ${upgradeResult.meta.changes}`,
+      );
+    }
+
     // Welcome bonus for anonymous/WeChat → email upgrade
     await grantWelcomeBonus(db, existingUserId);
 
     // Read back full profile (user may have cosmetics from anonymous/WeChat era)
     const upgradedProfile = await selectUserProfile(db, existingUserId);
-    const upgraded = await db
-      .select({ tokenVersion: users.tokenVersion })
-      .from(users)
-      .where(eq(users.id, existingUserId))
-      .get();
-
-    const tokens = await issueTokenPair(existingUserId, env, {
-      email,
-      ver: upgraded!.tokenVersion,
-    });
+    const tokens = await issueTokenPair(existingUserId, env, upgradeAccount.tokenVersion);
 
     return c.json(
       {
@@ -413,7 +420,7 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   // Welcome bonus for new registered user
   await grantWelcomeBonus(db, userId);
 
-  const tokens = await issueTokenPair(userId, env, { email, ver: 0 });
+  const tokens = await issueTokenPair(userId, env, 0);
 
   return c.json(
     {
@@ -515,7 +522,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       .where(eq(users.id, user.id));
   }
 
-  const tokens = await issueTokenPair(user.id, env, { email, ver: user.tokenVersion });
+  const tokens = await issueTokenPair(user.id, env, user.tokenVersion);
 
   return c.json(
     {
@@ -759,7 +766,7 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   await revokeAllRefreshTokens(token.userId, env);
 
   // Auto-login: issue new token pair
-  const tokens = await issueTokenPair(token.userId, env, { email, ver: newVer });
+  const tokens = await issueTokenPair(token.userId, env, newVer);
 
   // Fetch user metadata for response
   const profile = await selectUserProfile(db, token.userId);
@@ -878,53 +885,62 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
   const geo = requestGeo(c);
 
   // Find or create user by openid
-  let userId: string;
+  let account: {
+    id: string;
+    email: string | null;
+    isAnonymous: number;
+    tokenVersion: number;
+  };
   const existing = await db
-    .select({ id: users.id, tokenVersion: users.tokenVersion })
+    .select({
+      id: users.id,
+      email: users.email,
+      isAnonymous: users.isAnonymous,
+      tokenVersion: users.tokenVersion,
+    })
     .from(users)
     .where(eq(users.wechatOpenid, openid))
     .get();
 
   if (existing) {
-    userId = existing.id;
-    await db
+    account = existing;
+    const updateResult = await db
       .update(users)
       .set({ ...geo, updatedAt: sql`datetime('now')` })
-      .where(eq(users.id, userId));
+      .where(eq(users.id, account.id));
+    if (updateResult.meta.changes !== 1) {
+      throw new Error(`Expected one WeChat user, changed ${updateResult.meta.changes}`);
+    }
   } else {
-    userId = crypto.randomUUID();
-    await db.insert(users).values({
-      id: userId,
-      wechatOpenid: openid,
+    account = {
+      id: crypto.randomUUID(),
+      email: null,
       isAnonymous: 0,
+      tokenVersion: 0,
+    };
+    await db.insert(users).values({
+      id: account.id,
+      wechatOpenid: openid,
+      isAnonymous: account.isAnonymous,
       ...geo,
       createdAt: sql`datetime('now')`,
       updatedAt: sql`datetime('now')`,
     });
-    await grantWelcomeBonus(db, userId);
+    await grantWelcomeBonus(db, account.id);
   }
 
-  // Issue tokens
-  const tokenVersion = existing?.tokenVersion ?? 0;
-  const tokens = await issueTokenPair(userId, env, { ver: tokenVersion });
+  const tokens = await issueTokenPair(account.id, env, account.tokenVersion);
+  const profile = await selectUserProfile(db, account.id);
 
-  // Fetch user for response
-  const user = await db
-    .select({ id: users.id, email: users.email, isAnonymous: users.isAnonymous })
-    .from(users)
-    .where(eq(users.id, userId))
-    .get();
-  const profile = await selectUserProfile(db, userId);
-
-  log.info('claim redeemed', { userId, nonce: nonce.slice(0, 8) });
+  log.info('claim redeemed', { userId: account.id, nonce: nonce.slice(0, 8) });
   return c.json(
     {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       user: {
-        id: userId,
-        email: user?.email ?? null,
-        is_anonymous: !!user?.isAnonymous,
+        id: account.id,
+        email: account.email,
+        is_anonymous: account.isAnonymous === 1,
         has_wechat: true,
         user_metadata: toUserMetadata(profile),
       },

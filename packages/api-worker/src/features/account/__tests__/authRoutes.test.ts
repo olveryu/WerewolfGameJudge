@@ -1,6 +1,7 @@
 /** Account-owned /auth user and profile endpoint integration tests. */
 
 import { env, SELF } from 'cloudflare:test';
+import { SignJWT } from 'jose';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 interface AuthSuccessResponse {
@@ -15,6 +16,11 @@ interface UserProfileResponse {
       user_metadata: { display_name?: string };
     };
   };
+}
+
+interface AuthErrorResponse {
+  success: false;
+  reason: string;
 }
 
 async function signUp(email: string, displayName?: string): Promise<string> {
@@ -44,6 +50,15 @@ async function updateProfile(token: string, body: unknown): Promise<Response> {
   });
 }
 
+async function createTokenWithoutSubject(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return new SignJWT({ ver: 0 })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(now)
+    .setExpirationTime(now + 60)
+    .sign(new TextEncoder().encode(env.JWT_SECRET));
+}
+
 beforeEach(async () => {
   await env.DB.exec('DELETE FROM refresh_tokens;');
   await env.DB.exec('DELETE FROM user_stats;');
@@ -59,6 +74,44 @@ describe('GET /auth/user', () => {
   it('returns 401 with invalid token', async () => {
     const response = await getCurrentUser('garbage-token');
     expect(response.status).toBe(401);
+  });
+
+  it('returns 401 when a signed token is missing required claims', async () => {
+    const response = await getCurrentUser(await createTokenWithoutSubject());
+
+    expect(response.status).toBe(401);
+    await expect(response.json<AuthErrorResponse>()).resolves.toEqual({
+      success: false,
+      reason: 'UNAUTHORIZED',
+    });
+  });
+
+  it('returns TOKEN_REVOKED after signout', async () => {
+    const token = await signUp('revoked@test.local');
+    const signout = await SELF.fetch('https://test.local/auth/signout', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(signout.status).toBe(200);
+
+    const response = await getCurrentUser(token);
+    expect(response.status).toBe(401);
+    await expect(response.json<AuthErrorResponse>()).resolves.toEqual({
+      success: false,
+      reason: 'TOKEN_REVOKED',
+    });
+  });
+
+  it('returns USER_NOT_FOUND when the token subject no longer exists', async () => {
+    const token = await signUp('deleted@test.local');
+    await env.DB.prepare('DELETE FROM users WHERE email = ?').bind('deleted@test.local').run();
+
+    const response = await getCurrentUser(token);
+    expect(response.status).toBe(404);
+    await expect(response.json<AuthErrorResponse>()).resolves.toEqual({
+      success: false,
+      reason: 'USER_NOT_FOUND',
+    });
   });
 
   it('returns the current account with a valid token', async () => {

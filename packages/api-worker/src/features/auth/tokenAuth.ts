@@ -1,41 +1,48 @@
 /**
  * JWT Auth — custom JWT authentication + Refresh Token
  *
- * Access token: short-lived (1 hour), HS256 signed, contains sub/ver/anon/email.
+ * Access token: short-lived (1 hour), HS256 signed, contains stable sub/ver claims.
  * Refresh token: random hex string, SHA-256 hashed and stored in D1, 90-day TTL, single-use (rotation).
  * Token version: users.token_version field, bumped on signout/password change to invalidate all old tokens.
  */
 
 import { eq, sql } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
-import { jwtVerify, SignJWT } from 'jose';
+import { errors, jwtVerify, SignJWT } from 'jose';
+import { z } from 'zod';
 
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { users } from '../account/dbSchema';
 import { refreshTokens } from './dbSchema';
 
-/** User info contained in JWT payload */
-interface JwtPayload {
-  /** User UUID (users.id) */
-  sub: string;
-  /** Token version — must match users.token_version; mismatch = token revoked */
-  ver: number;
-  /** true = anonymous user; undefined = authenticated user */
-  anon?: boolean;
-  /** Set only for authenticated users */
-  email?: string;
-  /** Issued at (Unix seconds, not milliseconds) */
-  iat: number;
-  /** Expiration (Unix seconds, not milliseconds) */
-  exp: number;
-}
-
 const JWT_ALGORITHM = 'HS256' as const;
 /** Access token expiry: 1 hour */
 const ACCESS_TOKEN_EXPIRY_SECONDS = 60 * 60;
 /** Refresh token expiry: 90 days */
 const REFRESH_TOKEN_EXPIRY_DAYS = 90;
+
+const accessTokenClaimsSchema = z.strictObject({
+  sub: z.string().min(1),
+  ver: z.int().nonnegative(),
+  iat: z.int().nonnegative(),
+  exp: z.int().positive(),
+});
+
+type AccessTokenClaims = z.infer<typeof accessTokenClaimsSchema>;
+
+type AccessTokenAuthentication =
+  | {
+      readonly kind: 'authenticated';
+      readonly principal: {
+        readonly userId: string;
+        readonly isAnonymous: boolean;
+        readonly tokenVersion: number;
+      };
+    }
+  | { readonly kind: 'invalid' }
+  | { readonly kind: 'revoked' }
+  | { readonly kind: 'userNotFound' };
 
 function getSecret(env: Env): Uint8Array {
   return new TextEncoder().encode(env.JWT_SECRET);
@@ -51,32 +58,53 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 /** Issue an access token (short-lived JWT) */
-async function signToken(
-  userId: string,
-  env: Env,
-  claims?: { anon?: boolean; email?: string; ver?: number },
-): Promise<string> {
+async function signToken(userId: string, env: Env, tokenVersion: number): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  return new SignJWT({
-    sub: userId,
-    ver: claims?.ver ?? 0,
-    anon: claims?.anon,
-    email: claims?.email,
-    iat: now,
-    exp: now + ACCESS_TOKEN_EXPIRY_SECONDS,
-  })
+  return new SignJWT({ ver: tokenVersion })
     .setProtectedHeader({ alg: JWT_ALGORITHM })
+    .setSubject(userId)
+    .setIssuedAt(now)
+    .setExpirationTime(now + ACCESS_TOKEN_EXPIRY_SECONDS)
     .sign(getSecret(env));
 }
 
-/** Verify JWT, return payload or null */
-export async function verifyToken(token: string, env: Env): Promise<JwtPayload | null> {
+async function verifyAccessTokenClaims(token: string, env: Env): Promise<AccessTokenClaims | null> {
+  const secret = getSecret(env);
   try {
-    const { payload } = await jwtVerify(token, getSecret(env));
-    return payload as unknown as JwtPayload;
-  } catch {
-    return null;
+    const { payload } = await jwtVerify(token, secret, { algorithms: [JWT_ALGORITHM] });
+    const parsed = accessTokenClaimsSchema.safeParse(payload);
+    return parsed.success ? parsed.data : null;
+  } catch (error) {
+    if (error instanceof errors.JOSEError) return null;
+    throw error;
   }
+}
+
+/** Verify access-token signature, claims, user existence, and revocation version. */
+export async function authenticateAccessToken(
+  token: string,
+  env: Env,
+): Promise<AccessTokenAuthentication> {
+  const claims = await verifyAccessTokenClaims(token, env);
+  if (claims === null) return { kind: 'invalid' };
+
+  const db = createDb(env.DB);
+  const user = await db
+    .select({ isAnonymous: users.isAnonymous, tokenVersion: users.tokenVersion })
+    .from(users)
+    .where(eq(users.id, claims.sub))
+    .get();
+
+  if (user === undefined) return { kind: 'userNotFound' };
+  if (user.tokenVersion !== claims.ver) return { kind: 'revoked' };
+  return {
+    kind: 'authenticated',
+    principal: {
+      userId: claims.sub,
+      isAnonymous: user.isAnonymous === 1,
+      tokenVersion: user.tokenVersion,
+    },
+  };
 }
 
 /** Extract Bearer token from Authorization header */
@@ -156,8 +184,6 @@ export async function rotateRefreshToken(
   const user = await db
     .select({
       id: users.id,
-      email: users.email,
-      isAnonymous: users.isAnonymous,
       tokenVersion: users.tokenVersion,
     })
     .from(users)
@@ -167,11 +193,7 @@ export async function rotateRefreshToken(
   if (!user) return null;
 
   // Issue new token pair
-  const accessToken = await signToken(user.id, env, {
-    anon: user.isAnonymous === 1 ? true : undefined,
-    email: user.email ?? undefined,
-    ver: user.tokenVersion,
-  });
+  const accessToken = await signToken(user.id, env, user.tokenVersion);
   const newRefreshToken = await createRefreshToken(user.id, env);
 
   return { accessToken, refreshToken: newRefreshToken, userId: user.id };
@@ -186,10 +208,16 @@ export async function revokeAllRefreshTokens(userId: string, env: Env): Promise<
 /** Increment token_version for a user, invalidating all existing access tokens */
 export async function bumpTokenVersion(userId: string, env: Env): Promise<number> {
   const db = createDb(env.DB);
-  await db
+  const result = await db
     .update(users)
     .set({ tokenVersion: sql`${users.tokenVersion} + 1`, updatedAt: sql`datetime('now')` })
     .where(eq(users.id, userId));
+
+  if (result.meta.changes !== 1) {
+    throw new Error(
+      `Expected one user while bumping token version, changed ${result.meta.changes}`,
+    );
+  }
 
   const row = await db
     .select({ tokenVersion: users.tokenVersion })
@@ -197,7 +225,10 @@ export async function bumpTokenVersion(userId: string, env: Env): Promise<number
     .where(eq(users.id, userId))
     .get();
 
-  return row!.tokenVersion;
+  if (row === undefined) {
+    throw new Error('User disappeared after token version update');
+  }
+  return row.tokenVersion;
 }
 
 // ── Token Pair issuance (unified entry for login/signup/reset) ─────────────
@@ -211,9 +242,9 @@ interface TokenPair {
 export async function issueTokenPair(
   userId: string,
   env: Env,
-  claims?: { anon?: boolean; email?: string; ver?: number },
+  tokenVersion: number,
 ): Promise<TokenPair> {
-  const accessToken = await signToken(userId, env, claims);
+  const accessToken = await signToken(userId, env, tokenVersion);
   const refreshToken = await createRefreshToken(userId, env);
   return { access_token: accessToken, refresh_token: refreshToken };
 }
@@ -232,22 +263,13 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const auth = c.req.header('Authorization');
   if (!auth?.startsWith('Bearer ')) return c.json({ error: 'unauthorized' }, 401);
   const token = auth.slice(7);
-  const payload = await verifyToken(token, c.env);
-  if (!payload) return c.json({ error: 'unauthorized' }, 401);
-
-  // Verify token version matches DB (revocation check)
-  const db = createDb(c.env.DB);
-  const user = await db
-    .select({ tokenVersion: users.tokenVersion })
-    .from(users)
-    .where(eq(users.id, payload.sub))
-    .get();
-
-  if (!user || user.tokenVersion !== payload.ver) {
+  const authentication = await authenticateAccessToken(token, c.env);
+  if (authentication.kind === 'invalid') return c.json({ error: 'unauthorized' }, 401);
+  if (authentication.kind !== 'authenticated') {
     return c.json({ error: 'token_revoked' }, 401);
   }
 
-  c.set('userId', payload.sub);
-  c.set('isAnonymous', payload.anon === true);
+  c.set('userId', authentication.principal.userId);
+  c.set('isAnonymous', authentication.principal.isAnonymous);
   await next();
 });

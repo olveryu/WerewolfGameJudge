@@ -30,7 +30,7 @@ import { avatarRoutes } from './features/account/avatarRoutes';
 import { accountRoutes } from './features/account/routes';
 import { adminRoutes } from './features/admin/routes';
 import { authRoutes } from './features/auth/routes';
-import { requireAuth, verifyToken } from './features/auth/tokenAuth';
+import { authenticateAccessToken, requireAuth } from './features/auth/tokenAuth';
 import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/routes';
 import { gachaRoutes } from './features/gacha/routes';
 import { shareRoutes } from './features/sharing/routes';
@@ -50,8 +50,8 @@ export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
 const app = new Hono<AppEnv>();
 const roomRoutes = createRoomRoutes(getWorkerGameModule, requireAuth);
 const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
-  const payload = await verifyToken(token, env);
-  return payload === null ? null : payload.sub;
+  const authentication = await authenticateAccessToken(token, env);
+  return authentication.kind === 'authenticated' ? authentication.principal.userId : null;
 });
 
 const log = createLogger('worker');

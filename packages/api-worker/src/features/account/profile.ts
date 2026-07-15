@@ -50,16 +50,30 @@ type ProfileRow = {
 // ── Serialization ───────────────────────────────────────────────────────────
 
 /** Converts a DB profile row to wire-format user_metadata */
-export function toUserMetadata(row: ProfileRow | null | undefined): UserMetadata {
+export function toUserMetadata(row: ProfileRow): UserMetadata {
   return {
-    display_name: row?.displayName ?? null,
-    avatar_url: row?.avatarUrl ?? null,
-    custom_avatar_url: row?.customAvatarUrl ?? null,
-    avatar_frame: row?.avatarFrame ?? null,
-    seat_flair: row?.equippedFlair ?? null,
-    name_style: row?.equippedNameStyle ?? null,
-    equipped_effect: row?.equippedEffect ?? null,
-    seat_animation: row?.equippedSeatAnimation ?? null,
+    display_name: row.displayName,
+    avatar_url: row.avatarUrl,
+    custom_avatar_url: row.customAvatarUrl,
+    avatar_frame: row.avatarFrame,
+    seat_flair: row.equippedFlair,
+    name_style: row.equippedNameStyle,
+    equipped_effect: row.equippedEffect,
+    seat_animation: row.equippedSeatAnimation,
+  };
+}
+
+/** Creates metadata for a user row that has just been inserted with default profile fields. */
+export function createEmptyUserMetadata(): UserMetadata {
+  return {
+    display_name: null,
+    avatar_url: null,
+    custom_avatar_url: null,
+    avatar_frame: null,
+    seat_flair: null,
+    name_style: null,
+    equipped_effect: null,
+    seat_animation: null,
   };
 }
 
@@ -67,12 +81,13 @@ export function toUserMetadata(row: ProfileRow | null | undefined): UserMetadata
 
 /**
  * Queries user profile columns (excludes identity fields like id/email/isAnonymous).
- * Returns null if the user does not exist.
+ * Throws if the required user does not exist.
  */
 export async function selectUserProfile(
   db: ReturnType<typeof createDb>,
   userId: string,
-): Promise<ProfileRow | null> {
+): Promise<ProfileRow> {
   const row = await db.select(PROFILE_SELECT).from(users).where(eq(users.id, userId)).get();
-  return row ?? null;
+  if (row === undefined) throw new Error(`Expected profile for user ${userId}`);
+  return row;
 }
