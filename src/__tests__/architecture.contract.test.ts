@@ -186,6 +186,26 @@ function hasPropertyAccess(filePath: string, propertyName: string): boolean {
   return found;
 }
 
+function getIdentifierNames(filePath: string): readonly string[] {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const names = new Set<string>();
+
+  function visit(node: ts.Node): void {
+    if (ts.isIdentifier(node)) names.add(node.text);
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return [...names];
+}
+
 function isGameDomainSpecifier(specifier: string): boolean {
   return GAME_TYPES.some((gameType) => {
     const domainPath = `/games/${gameType}/domain`;
@@ -878,6 +898,17 @@ describe('Client ownership: game-specific modules stay in game slices', () => {
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+
+  it('does not restore a game-owned facade abstraction', () => {
+    const offenders = getAllProductionFiles(gamesDir).flatMap((filePath) => {
+      const relativePath = path.relative(process.cwd(), filePath);
+      const identifiers = getIdentifierNames(filePath).filter((name) => /facade/i.test(name));
+      const fileViolation = /facade/i.test(path.basename(filePath)) ? [relativePath] : [];
+      return [...fileViolation, ...identifiers.map((name) => `${relativePath}:${name}`)];
+    });
+
+    expect(offenders).toEqual([]);
   });
 });
 

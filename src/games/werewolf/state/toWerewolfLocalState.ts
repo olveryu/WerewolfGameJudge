@@ -1,7 +1,7 @@
 /**
  * toWerewolfLocalState - converts GameState into the LocalGameState expected by the UI
  *
- * Game-owned view projection that lets the UI consume canonical facade state. Only performs pure data
+ * Game-owned view projection that lets the UI consume canonical client state. Only performs pure data
  * format conversion (Record → Map, templateRoles → template) and required UI derivations.
  * No business logic, side effects, or service calls.
  */

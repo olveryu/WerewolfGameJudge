@@ -1,7 +1,7 @@
 /**
  * Canonical Werewolf runtime command builders.
  *
- * This module maps facade operations to protocol commands only. The Worker is
+ * This module maps client operations to protocol commands only. The Worker is
  * responsible for actor resolution, authorization, validation, and game rules.
  */
 

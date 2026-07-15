@@ -99,7 +99,7 @@ function createRoomSession(
   } as unknown as WerewolfGameClient['roomSession'];
 }
 
-function createFacade(options?: {
+function createClient(options?: {
   readonly state?: GameState;
   readonly userId?: string;
   readonly wasAudioInterrupted?: boolean;
@@ -142,8 +142,8 @@ function createWrapper(): React.FC<React.PropsWithChildren> {
 
 describe('useWerewolfRoom shared-session composition', () => {
   it('derives identity, seat, role, revision, and connection from one room session', () => {
-    const facade = createFacade();
-    const { result } = renderHook(() => useWerewolfRoom(facade), {
+    const client = createClient();
+    const { result } = renderHook(() => useWerewolfRoom(client), {
       wrapper: createWrapper(),
     });
 
@@ -156,8 +156,8 @@ describe('useWerewolfRoom shared-session composition', () => {
   });
 
   it('does not infer host authority from the snapshot when the active user is a player', () => {
-    const facade = createFacade({ userId: 'player-user' });
-    const { result } = renderHook(() => useWerewolfRoom(facade), {
+    const client = createClient({ userId: 'player-user' });
+    const { result } = renderHook(() => useWerewolfRoom(client), {
       wrapper: createWrapper(),
     });
 
@@ -166,20 +166,20 @@ describe('useWerewolfRoom shared-session composition', () => {
   });
 
   it('shows the rejoin overlay only for an interrupted host session', async () => {
-    const facade = createFacade({ wasAudioInterrupted: true });
-    const { result } = renderHook(() => useWerewolfRoom(facade), {
+    const client = createClient({ wasAudioInterrupted: true });
+    const { result } = renderHook(() => useWerewolfRoom(client), {
       wrapper: createWrapper(),
     });
 
     await waitFor(() => expect(result.current.needsContinueOverlay).toBe(true));
     act(() => result.current.resumeAfterRejoin());
     expect(result.current.needsContinueOverlay).toBe(false);
-    expect(facade.resumeAfterRejoin).toHaveBeenCalledTimes(1);
+    expect(client.resumeAfterRejoin).toHaveBeenCalledTimes(1);
   });
 
   it('does not show the rejoin overlay for a non-host user', () => {
-    const facade = createFacade({ userId: 'player-user', wasAudioInterrupted: true });
-    const { result } = renderHook(() => useWerewolfRoom(facade), {
+    const client = createClient({ userId: 'player-user', wasAudioInterrupted: true });
+    const { result } = renderHook(() => useWerewolfRoom(client), {
       wrapper: createWrapper(),
     });
 

@@ -1,5 +1,5 @@
 /**
- * WerewolfGameFacade — game-owned command and audio orchestration.
+ * WerewolfGameClientRuntime — game-owned command and audio orchestration.
  *
  * Responsibilities:
  * - Expose Werewolf commands over the shared RoomSession
@@ -8,7 +8,6 @@
  * Not responsible for:
  * - Business logic / validation rules (all in handlers)
  * - Direct state mutation (all in reducers)
- * - Global singleton (getInstance/resetInstance removed)
  *
  * Boundary constraints:
  * - Created by the Werewolf client-module factory via constructor DI
@@ -41,12 +40,12 @@ import * as gameActions from './werewolfGameActions';
 import type { WerewolfGameClient } from './WerewolfGameClient';
 
 /**
- * WerewolfGameFacade injectable dependencies.
+ * WerewolfGameClientRuntime injectable dependencies.
  *
  * All fields required — explicitly created and injected by the Werewolf module factory.
  * Tests likewise explicitly pass mock instances.
  */
-interface WerewolfGameFacadeDeps {
+interface WerewolfGameClientRuntimeDeps {
   /** Single shared room session instance. */
   roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
   /** Game-owned narration runtime. */
@@ -56,7 +55,7 @@ interface WerewolfGameFacadeDeps {
 /**
  * Werewolf command/audio client layered over the shared session.
  */
-export class WerewolfGameFacade implements WerewolfGameClient {
+export class WerewolfGameClientRuntime implements WerewolfGameClient {
   readonly roomSession: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;
   readonly #audio: WerewolfAudioRuntime;
   readonly #audioOrchestrator: WerewolfAudioOrchestrator;
@@ -73,7 +72,7 @@ export class WerewolfGameFacade implements WerewolfGameClient {
   /**
    * @param deps - Must be explicitly provided by composition root or tests.
    */
-  constructor(deps: WerewolfGameFacadeDeps) {
+  constructor(deps: WerewolfGameClientRuntimeDeps) {
     this.roomSession = deps.roomSession;
     this.#audio = deps.audio;
 

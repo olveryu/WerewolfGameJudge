@@ -6,7 +6,7 @@ import { useWerewolfDebugMode } from '@/games/werewolf/hooks/useWerewolfDebugMod
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
-function createMockFacade(): WerewolfGameClient {
+function createMockClient(): WerewolfGameClient {
   return {
     markAllBotsViewed: jest.fn<Promise<ActionResult>, []>().mockResolvedValue({ success: true }),
     markAllBotsGroupConfirmed: jest
@@ -53,23 +53,23 @@ function makeGameState(
 }
 
 function renderDebugMode(options?: {
-  readonly facade?: WerewolfGameClient;
+  readonly client?: WerewolfGameClient;
   readonly mySeat?: number | null;
   readonly gameState?: LocalGameState;
   readonly seatCommands?: ReturnType<typeof createSeatCommands>;
 }) {
-  const facade = options?.facade ?? createMockFacade();
+  const client = options?.client ?? createMockClient();
   const seatCommands = options?.seatCommands ?? createSeatCommands();
   const hook = renderHook(() =>
     useWerewolfDebugMode(
-      facade,
+      client,
       options?.mySeat === undefined ? 1 : options.mySeat,
       options?.gameState === undefined ? makeGameState() : options.gameState,
       seatCommands.leaveSeat,
       seatCommands.fillBots,
     ),
   );
-  return { ...hook, facade, seatCommands };
+  return { ...hook, client, seatCommands };
 }
 
 describe('useWerewolfDebugMode', () => {
@@ -152,14 +152,14 @@ describe('useWerewolfDebugMode', () => {
     expect(seatCommands.fillBots).not.toHaveBeenCalled();
   });
 
-  it('delegates Werewolf bot progression commands to the facade', async () => {
-    const facade = createMockFacade();
-    const { result } = renderDebugMode({ facade });
+  it('delegates Werewolf bot progression commands to the client', async () => {
+    const client = createMockClient();
+    const { result } = renderDebugMode({ client });
 
     await result.current.markAllBotsViewed();
     await result.current.markAllBotsGroupConfirmed();
 
-    expect(facade.markAllBotsViewed).toHaveBeenCalledTimes(1);
-    expect(facade.markAllBotsGroupConfirmed).toHaveBeenCalledTimes(1);
+    expect(client.markAllBotsViewed).toHaveBeenCalledTimes(1);
+    expect(client.markAllBotsGroupConfirmed).toHaveBeenCalledTimes(1);
   });
 });

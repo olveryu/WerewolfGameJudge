@@ -23,7 +23,7 @@ import {
   type WerewolfUserEvent,
 } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import { WerewolfGameFacade } from '@/games/werewolf/runtime/WerewolfGameFacade';
+import { WerewolfGameClientRuntime } from '@/games/werewolf/runtime/WerewolfGameClientRuntime';
 import { EncyclopediaScreen } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import type { AudioService } from '@/services/infra/AudioService';
@@ -42,7 +42,7 @@ export function createWerewolfUiModule({
     userEventCodec: WEREWOLF_USER_EVENT_CODEC,
   });
   const audio = new WerewolfAudioPlayer(audioService);
-  const client = new WerewolfGameFacade({ roomSession, audio });
+  const client = new WerewolfGameClientRuntime({ roomSession, audio });
   const roomAccount = new WerewolfRoomAccountCapability(client);
   const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
 

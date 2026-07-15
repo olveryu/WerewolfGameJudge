@@ -8,8 +8,8 @@
  * - Reveal ack and wolfRobot hunter status gates
  * - Game state queries: getLastNightInfo, hasWolfVoted
  *
- * Executes game operations via facade; uses debug/bgm sub-hook state.
- * Does not modify GameState directly and does not bypass the facade.
+ * Executes game operations via client; uses debug/bgm sub-hook state.
+ * Does not modify GameState directly and does not bypass the client.
  */
 
 import type { WerewolfActionInput } from '@game-judge/game-engine/games/werewolf/public';
@@ -101,7 +101,7 @@ interface WerewolfGameActionsState {
 }
 
 interface WerewolfGameActionsDeps {
-  facade: WerewolfGameClient;
+  client: WerewolfGameClient;
   bgm: WerewolfBgmControlState;
   debug: WerewolfDebugModeState;
   isHost: boolean;
@@ -116,11 +116,11 @@ interface WerewolfGameActionsDeps {
 /**
  * Game actions hook — wraps all interactions: start game, night action, restart, etc.
  *
- * Issues HTTP requests via the facade; does not touch local state directly.
+ * Issues HTTP requests via the client; does not touch local state directly.
  */ export function useWerewolfGameActions(
   deps: WerewolfGameActionsDeps,
 ): WerewolfGameActionsState {
-  const { facade, bgm, debug, isHost, mySeat, gameState, clearSeats } = deps;
+  const { client, bgm, debug, isHost, mySeat, gameState, clearSeats } = deps;
 
   // =========================================================================
   // Game control (host-only)
@@ -130,27 +130,27 @@ interface WerewolfGameActionsDeps {
   const updateTemplate = useCallback(
     async (template: GameTemplate): Promise<void> => {
       if (!isHost) return;
-      const result = await facade.updateTemplate(template);
+      const result = await client.updateTemplate(template);
       handleMutationResult(result, '更新模板', toastError);
     },
-    [facade, isHost],
+    [client, isHost],
   );
 
   // Assign roles (host only)
   const assignRoles = useCallback(async (): Promise<void> => {
     if (!isHost) return;
-    const result = await facade.assignRoles();
+    const result = await client.assignRoles();
     handleMutationResult(result, '分配角色', toastError);
-  }, [facade, isHost]);
+  }, [client, isHost]);
 
   // Start game (host only)
   // BGM is driven by useWerewolfBgmControl's gameStatus->Ongoing reactive effect; not imperatively started here.
   const startGame = useCallback(async (): Promise<void> => {
     if (!isHost) return;
 
-    const result = await facade.startNight();
+    const result = await client.startNight();
     handleMutationResult(result, '开始游戏', toastError);
-  }, [facade, isHost]);
+  }, [client, isHost]);
 
   // Restart game (host only)
   const restartGame = useCallback(async (): Promise<void> => {
@@ -161,9 +161,9 @@ interface WerewolfGameActionsDeps {
     if (debug.controlledSeat !== null) {
       debug.releaseBot();
     }
-    const result = await facade.restartGame();
+    const result = await client.restartGame();
     handleMutationResult(result, '重新开始', toastError);
-  }, [facade, bgm, debug, isHost]);
+  }, [client, bgm, debug, isHost]);
 
   // Clear all seats (host only)
   const clearAllSeats = useCallback(async (): Promise<RoomOperationResult> => {
@@ -177,10 +177,10 @@ interface WerewolfGameActionsDeps {
   const shareNightReview = useCallback(
     async (allowedSeats: number[]): Promise<void> => {
       if (!isHost) return;
-      const result = await facade.shareNightReview(allowedSeats);
+      const result = await client.shareNightReview(allowedSeats);
       handleMutationResult(result, '分享详细信息', toastError);
     },
-    [facade, isHost],
+    [client, isHost],
   );
 
   // Set audio playing (host only) - PR7 audio timing control
@@ -189,9 +189,9 @@ interface WerewolfGameActionsDeps {
       if (!isHost) {
         return { success: false, reason: 'host_only' };
       }
-      return facade.setAudioPlaying(isPlaying);
+      return client.setAudioPlaying(isPlaying);
     },
-    [facade, isHost],
+    [client, isHost],
   );
 
   // =========================================================================
@@ -204,10 +204,10 @@ interface WerewolfGameActionsDeps {
   const viewedRole = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.controlledSeat ?? mySeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
-    const result = await facade.markViewedRole(debug.controlledSeat);
+    const result = await client.markViewedRole(debug.controlledSeat);
     handleMutationResult(result, '查看身份', toastError);
     return result;
-  }, [debug.controlledSeat, mySeat, facade]);
+  }, [debug.controlledSeat, mySeat, client]);
 
   // Submit action. effectiveSeat is a UI eligibility check; only controlledSeat crosses the wire.
   // Business rejection UX is handled by the state-driven actionRejected effect
@@ -215,42 +215,42 @@ interface WerewolfGameActionsDeps {
   const submitAction = useCallback(
     async (input: WerewolfActionInput): Promise<void> => {
       if (debug.effectiveSeat === null) return;
-      const result = await facade.submitAction(input, debug.controlledSeat);
+      const result = await client.submitAction(input, debug.controlledSeat);
       handleMutationResult(result, '提交行动');
     },
-    [debug.controlledSeat, debug.effectiveSeat, facade],
+    [debug.controlledSeat, debug.effectiveSeat, client],
   );
 
   // Reveal acknowledge (seer/psychic/gargoyle/wolfRobot)
   const submitRevealAck = useCallback(async (): Promise<ActionResult> => {
-    const result = await facade.submitRevealAck(debug.controlledSeat);
+    const result = await client.submitRevealAck(debug.controlledSeat);
     handleMutationResult(result, '确认揭示', toastError);
     return result;
-  }, [debug.controlledSeat, facade]);
+  }, [debug.controlledSeat, client]);
 
   // Group confirm acknowledge (piperHypnotizedReveal)
   // Uses effectiveSeat internally to support debug bot control mode
   const submitGroupConfirmAck = useCallback(async (): Promise<ActionResult> => {
     const seat = debug.effectiveSeat;
     if (seat === null) return { success: false, reason: 'NO_SEAT' };
-    const result = await facade.submitGroupConfirmAck(debug.controlledSeat);
+    const result = await client.submitGroupConfirmAck(debug.controlledSeat);
     handleMutationResult(result, '确认催眠', toastError);
     return result;
-  }, [debug.controlledSeat, debug.effectiveSeat, facade]);
+  }, [debug.controlledSeat, debug.effectiveSeat, client]);
 
   // WolfRobot hunter status viewed gate
   const sendWolfRobotHunterStatusViewed = useCallback(async (): Promise<void> => {
     if (debug.effectiveSeat === null) return;
-    const result = await facade.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
+    const result = await client.sendWolfRobotHunterStatusViewed(debug.controlledSeat);
     handleMutationResult(result, '确认猎人状态', toastError);
-  }, [debug.controlledSeat, debug.effectiveSeat, facade]);
+  }, [debug.controlledSeat, debug.effectiveSeat, client]);
 
   // Post progression (host only) — triggered by client when wolf vote deadline expires
   const postProgression = useCallback(async (): Promise<boolean> => {
     if (!isHost) return false;
-    const result = await facade.postProgression();
+    const result = await client.postProgression();
     return result.success;
-  }, [facade, isHost]);
+  }, [client, isHost]);
 
   // =========================================================================
   // Board Nomination (any connected player)
@@ -258,28 +258,28 @@ interface WerewolfGameActionsDeps {
 
   const boardNominate = useCallback(
     async (displayName: string, roles: RoleId[]): Promise<void> => {
-      const result = await facade.boardNominate(displayName, roles);
+      const result = await client.boardNominate(displayName, roles);
       if (result.success && result.reason === 'DEDUPLICATED') {
         toast.info('已有相同板子建议，已自动为你投票');
         return;
       }
       handleMutationResult(result, '提交建议', toastError);
     },
-    [facade],
+    [client],
   );
 
   const boardUpvote = useCallback(
     async (targetUserId: string): Promise<void> => {
-      const result = await facade.boardUpvote(targetUserId);
+      const result = await client.boardUpvote(targetUserId);
       handleMutationResult(result, '点赞', toastError);
     },
-    [facade],
+    [client],
   );
 
   const boardWithdraw = useCallback(async (): Promise<void> => {
-    const result = await facade.boardWithdraw();
+    const result = await client.boardWithdraw();
     handleMutationResult(result, '撤回建议', toastError);
-  }, [facade]);
+  }, [client]);
 
   // =========================================================================
   // Game state queries

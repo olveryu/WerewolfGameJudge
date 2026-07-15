@@ -149,9 +149,9 @@ describe('Delegation Seat Identity Contract', () => {
         const startIndex = match.index;
         const block = content.substring(startIndex, startIndex + 300);
 
-        expect(block).toMatch(/facade\.submitAction\(input,\s*debug\.controlledSeat\)/);
-        expect(block).not.toMatch(/facade\.submitAction\([^)]*effectiveRole/);
-        expect(block).not.toMatch(/facade\.submitAction\([^)]*effectiveSeat/);
+        expect(block).toMatch(/client\.submitAction\(input,\s*debug\.controlledSeat\)/);
+        expect(block).not.toMatch(/client\.submitAction\([^)]*effectiveRole/);
+        expect(block).not.toMatch(/client\.submitAction\([^)]*effectiveSeat/);
       }
     });
 
@@ -173,7 +173,7 @@ describe('Delegation Seat Identity Contract', () => {
         const block = content.substring(startIndex, startIndex + 300);
 
         expect(block).toMatch(/async\s*\(\s*\)/);
-        expect(block).toMatch(/facade\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/);
+        expect(block).toMatch(/client\.sendWolfRobotHunterStatusViewed\(debug\.controlledSeat\)/);
       }
     });
   });
@@ -461,7 +461,7 @@ describe('Delegation Seat Identity Contract', () => {
       expect(content).not.toMatch(/\.mutate\(mySeat/);
     });
 
-    /** The facade accepts only the explicit takeover discriminator. */
+    /** The client accepts only the explicit takeover discriminator. */
     it('WerewolfGameClient.sendWolfRobotHunterStatusViewed takes controlledSeat', () => {
       const content = readFileContent('src/games/werewolf/runtime/WerewolfGameClient.ts');
 

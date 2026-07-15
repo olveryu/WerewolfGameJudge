@@ -3,7 +3,7 @@
  *
  * Shows hunter shoot-status dialog for wolfRobot disguise phase, then
  * triggers hunterStatusAckMutation after the user dismisses. Bot authority is
- * carried separately as controlledSeat by the facade action hook.
+ * carried separately as controlledSeat by the client action hook.
  *
  * Re-entry across the in-flight HTTP window is guarded upstream:
  * - Auto-trigger path: lastAutoIntentKeyRef in useActionOrchestrator dedupes

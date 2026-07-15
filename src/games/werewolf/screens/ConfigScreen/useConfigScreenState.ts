@@ -54,7 +54,7 @@ interface UseConfigScreenStateParams {
   nominateMode: { roomCode: string } | undefined;
   updatedRules: GameRuleOverrides | undefined;
   navigation: ConfigNavigationProp;
-  facade: WerewolfGameClient;
+  client: WerewolfGameClient;
   settingsService: SettingsService;
   onExitFlow: () => void;
   onReturnToRoom: (roomCode: string) => void;
@@ -71,14 +71,14 @@ export function useConfigScreenState({
   nominateMode,
   updatedRules,
   navigation,
-  facade,
+  client,
   settingsService,
   onExitFlow,
   onReturnToRoom,
   onRoomCreated,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
-  const { roomSession } = facade;
+  const { roomSession } = client;
   const room = useRoomSessionSnapshot(roomSession);
   const gameState = room.phase === 'ready' ? room.snapshot.state : null;
   const isEditMode = !!existingRoomCode;
@@ -123,7 +123,7 @@ export function useConfigScreenState({
   //
   // Single effect with explicit priority:
   //   1. presetName (user picked a board in BoardPicker) — always wins
-  //   2. room state (edit/nominate mode without preset) — load from facade
+  //   2. room state (edit/nominate mode without preset) — load from client
   //   3. neither — no-op (new room, empty selection already set by useState)
 
   useEffect(() => {
@@ -140,7 +140,7 @@ export function useConfigScreenState({
       return;
     }
 
-    // Priority 2: edit/nominate mode — load current room roles from facade
+    // Priority 2: edit/nominate mode — load current room roles from client
     if ((isEditMode || isNominateMode) && (existingRoomCode || isNominateMode)) {
       configLog.debug('Loading room roles', {
         roomCode: existingRoomCode ?? nominateMode?.roomCode,
@@ -268,7 +268,7 @@ export function useConfigScreenState({
       // ── Nominate mode: submit board nomination ──
       if (nominateMode) {
         const displayName = user?.displayName ?? '匿名玩家';
-        const result = await facade.boardNominate(displayName, roles);
+        const result = await client.boardNominate(displayName, roles);
         if (!result.success) {
           showErrorAlert('提交失败', result.reason ?? '提交建议失败，请重试');
           return;
@@ -288,7 +288,7 @@ export function useConfigScreenState({
       await settingsService.setBgmEnabled(bgmEnabled);
 
       if (isEditMode && existingRoomCode) {
-        const result = await facade.updateTemplate(template);
+        const result = await client.updateTemplate(template);
         if (!result.success) {
           showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
           return;
@@ -324,7 +324,7 @@ export function useConfigScreenState({
     isEditMode,
     nominateMode,
     existingRoomCode,
-    facade,
+    client,
     settingsService,
     bgmEnabled,
     isLoading,

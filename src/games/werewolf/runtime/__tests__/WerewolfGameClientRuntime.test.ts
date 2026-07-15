@@ -13,7 +13,7 @@ import type {
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 
-import { WerewolfGameFacade } from '../WerewolfGameFacade';
+import { WerewolfGameClientRuntime } from '../WerewolfGameClientRuntime';
 import { buildApiTestState } from './apiTestState';
 
 const room: RoomRecord<'werewolf'> = {
@@ -129,38 +129,38 @@ function readySnapshot(status: GameStatus, userId = 'host-user'): RoomSessionSna
   };
 }
 
-function createFacade() {
+function createClient() {
   const roomSession = createRoomSession();
   const audio = createAudio();
-  const facade = new WerewolfGameFacade({ roomSession: roomSession.session, audio });
-  return { facade, roomSession, audio };
+  const client = new WerewolfGameClientRuntime({ roomSession: roomSession.session, audio });
+  return { client, roomSession, audio };
 }
 
-describe('WerewolfGameFacade composition', () => {
+describe('WerewolfGameClientRuntime composition', () => {
   it('derives host rejoin audio recovery from shared session transitions', () => {
-    const { facade, roomSession } = createFacade();
+    const { client, roomSession } = createClient();
 
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Ongoing));
 
-    expect(facade.wasAudioInterrupted).toBe(true);
+    expect(client.wasAudioInterrupted).toBe(true);
   });
 
   it('does not mark a non-host entry as interrupted', () => {
-    const { facade, roomSession } = createFacade();
+    const { client, roomSession } = createClient();
 
     roomSession.emit(enteringSnapshot('player-user'));
     roomSession.emit(readySnapshot(GameStatus.Ongoing, 'player-user'));
 
-    expect(facade.wasAudioInterrupted).toBe(false);
+    expect(client.wasAudioInterrupted).toBe(false);
   });
 
   it('stops prepared audio before dispatching a Werewolf restart command', async () => {
-    const { facade, roomSession, audio } = createFacade();
+    const { client, roomSession, audio } = createClient();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 
-    await facade.restartGame();
+    await client.restartGame();
 
     expect(audio.stopNarration).toHaveBeenCalledTimes(1);
     expect(audio.clearPreloaded).toHaveBeenCalledTimes(1);
@@ -171,7 +171,7 @@ describe('WerewolfGameFacade composition', () => {
   });
 
   it('reacts to session teardown without owning disconnect', () => {
-    const { roomSession, audio } = createFacade();
+    const { roomSession, audio } = createClient();
     roomSession.emit(enteringSnapshot());
     roomSession.emit(readySnapshot(GameStatus.Seated));
 

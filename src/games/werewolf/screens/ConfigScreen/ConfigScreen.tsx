@@ -116,7 +116,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     nominateMode,
     updatedRules,
     navigation,
-    facade: client,
+    client,
     settingsService,
     onExitFlow,
     onReturnToRoom,

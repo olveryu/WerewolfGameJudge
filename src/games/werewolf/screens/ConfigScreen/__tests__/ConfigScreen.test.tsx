@@ -56,7 +56,7 @@ const idleRoomSnapshot = {
 };
 
 // Mock Werewolf client for testing
-const createMockFacade = (): WerewolfGameClient =>
+const createMockClient = (): WerewolfGameClient =>
   ({
     roomSession: {
       getSnapshot: () => idleRoomSnapshot,
@@ -79,7 +79,7 @@ const createMockFacade = (): WerewolfGameClient =>
     markAllBotsViewed: jest.fn(),
   }) as unknown as WerewolfGameClient;
 
-const renderWithFacade = (ui: React.ReactElement) => {
+const renderWithClient = (ui: React.ReactElement) => {
   return render(ui);
 };
 
@@ -91,8 +91,8 @@ describe('ConfigScreen', () => {
 
   describe('Rendering', () => {
     it('should render preset template buttons', () => {
-      const { getByText } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Template title in header shows short display name + arrow
@@ -100,8 +100,8 @@ describe('ConfigScreen', () => {
     });
 
     it('should render role selection sections', () => {
-      const { getByText, getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText, getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Check for faction tabs in tab bar (use testID to avoid emoji encoding issues)
@@ -113,8 +113,8 @@ describe('ConfigScreen', () => {
     });
 
     it('should render create button at bottom', () => {
-      const { getByText } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Bottom sticky button shows "创建房间"
@@ -122,8 +122,8 @@ describe('ConfigScreen', () => {
     });
 
     it('should render header with player count and reset button', () => {
-      const { getByText, getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText, getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Header shows player count
@@ -135,8 +135,8 @@ describe('ConfigScreen', () => {
 
   describe('Template Selection', () => {
     it('should render template dropdown in header with default selected', () => {
-      const { getByText } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Template title in header shows short name + arrow indicator
@@ -146,8 +146,8 @@ describe('ConfigScreen', () => {
 
   describe('Role Selection', () => {
     it('should render role chips for active tab', () => {
-      const { getByText, getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByText, getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Default active tab is good -- god role chips should be visible
@@ -159,8 +159,8 @@ describe('ConfigScreen', () => {
 
   describe('Navigation', () => {
     it('should render back button', () => {
-      const { getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       // Back button renders chevron-back icon
@@ -168,8 +168,8 @@ describe('ConfigScreen', () => {
     });
 
     it('exits through the explicit flow boundary at the first nested route', () => {
-      const { getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       fireEvent.press(getByTestId('config-back-button'));
@@ -180,8 +180,8 @@ describe('ConfigScreen', () => {
 
     it('goes back inside the nested flow when a previous local route exists', () => {
       mockNavigationIndex = 1;
-      const { getByTestId } = renderWithFacade(
-        <ConfigScreen client={createMockFacade()} {...flowCallbacks} />,
+      const { getByTestId } = renderWithClient(
+        <ConfigScreen client={createMockClient()} {...flowCallbacks} />,
       );
 
       fireEvent.press(getByTestId('config-back-button'));

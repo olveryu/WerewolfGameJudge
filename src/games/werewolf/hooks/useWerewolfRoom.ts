@@ -120,11 +120,11 @@ interface UseWerewolfRoomResult {
  * Composition hook for WerewolfRoomScreen — orchestrates 6 sub-hooks into a unified game room interface.
  *
  * Responsible for assembling lifecycle, connection status, game state, actions, night-phase derivations, and BGM.
- */ export const useWerewolfRoom = (facade: WerewolfGameClient): UseWerewolfRoomResult => {
+ */ export const useWerewolfRoom = (client: WerewolfGameClient): UseWerewolfRoomResult => {
   // =========================================================================
-  // Core: facade + services
+  // Core: client + services
   // =========================================================================
-  const session = facade.roomSession;
+  const session = client.roomSession;
   const isFocused = useIsFocused();
   const { user } = useAuthContext();
   const sessionSnapshot = useRoomSessionSnapshot(session, isFocused);
@@ -167,11 +167,11 @@ interface UseWerewolfRoomResult {
       status: snapshot.status,
     });
 
-    if (isHost && snapshot.status === GameStatus.Ongoing && facade.wasAudioInterrupted) {
+    if (isHost && snapshot.status === GameStatus.Ongoing && client.wasAudioInterrupted) {
       setAlertBlocked(true);
       setShowContinueOverlay(true);
     }
-  }, [facade, isFocused, isHost, snapshot]);
+  }, [client, isFocused, isHost, snapshot]);
 
   // BGM state management (needs isHost + gameState derived above)
   const bgm = useWerewolfBgmControl(isHost, gameState.status, gameState.isAudioPlaying);
@@ -180,7 +180,7 @@ interface UseWerewolfRoomResult {
 
   // Debug mode: bot control
   const debug = useWerewolfDebugMode(
-    facade,
+    client,
     mySeat,
     gameState,
     seatCommands.leaveSeat,
@@ -192,7 +192,7 @@ interface UseWerewolfRoomResult {
 
   // Game actions: game control + night actions
   const actions = useWerewolfGameActions({
-    facade,
+    client,
     bgm,
     debug,
     isHost,
@@ -210,8 +210,8 @@ interface UseWerewolfRoomResult {
     setShowContinueOverlay(false);
     bgm.startBgmIfEnabled();
     // Fire-and-forget: audio plays in background; overlay has already been dismissed immediately
-    void facade.resumeAfterRejoin();
-  }, [facade, bgm]);
+    void client.resumeAfterRejoin();
+  }, [client, bgm]);
 
   const dismissContinueOverlay = useCallback(() => {
     setAlertBlocked(false);

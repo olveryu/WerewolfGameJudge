@@ -7,8 +7,8 @@
  * - isDebugMode flag
  * - fillWithBots / markAllBotsViewed actions
  *
- * Derives effectiveSeat/effectiveRole and calls facade debug API.
- * Does not directly modify GameState or bypass facade game operations.
+ * Derives effectiveSeat/effectiveRole and calls client debug API.
+ * Does not directly modify GameState or bypass client game operations.
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
@@ -44,7 +44,7 @@ export interface WerewolfDebugModeState {
  * When Host controls a bot seat, effectiveSeat/effectiveRole reflect the bot's identity.
  */
 export function useWerewolfDebugMode(
-  facade: WerewolfGameClient,
+  client: WerewolfGameClient,
   mySeat: number | null,
   gameState: LocalGameState,
   leaveSeat: () => Promise<RoomOperationResult>,
@@ -75,13 +75,13 @@ export function useWerewolfDebugMode(
 
   // Mark all bot seats as having viewed their roles
   const markAllBotsViewed = useCallback(async (): Promise<ActionResult> => {
-    return facade.markAllBotsViewed();
-  }, [facade]);
+    return client.markAllBotsViewed();
+  }, [client]);
 
   // Mark all bot seats as having acked groupConfirm step
   const markAllBotsGroupConfirmed = useCallback(async (): Promise<ActionResult> => {
-    return facade.markAllBotsGroupConfirmed();
-  }, [facade]);
+    return client.markAllBotsGroupConfirmed();
+  }, [client]);
 
   return {
     controlledSeat,

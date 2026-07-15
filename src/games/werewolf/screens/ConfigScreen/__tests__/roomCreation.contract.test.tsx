@@ -60,7 +60,7 @@ const idleRoomSnapshot = {
   error: null,
 };
 
-const createMockFacade = (): WerewolfGameClient =>
+const createMockClient = (): WerewolfGameClient =>
   ({
     roomSession: {
       getSnapshot: () => idleRoomSnapshot,
@@ -77,10 +77,10 @@ const createMockFacade = (): WerewolfGameClient =>
   }) as unknown as WerewolfGameClient;
 
 function renderConfigScreen() {
-  const mockFacade = createMockFacade();
+  const mockClient = createMockClient();
   return render(
     <ConfigScreen
-      client={mockFacade}
+      client={mockClient}
       onExitFlow={jest.fn()}
       onReturnToRoom={jest.fn()}
       onRoomCreated={mockOnRoomCreated}

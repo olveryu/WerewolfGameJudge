@@ -79,7 +79,7 @@ function extractStatusCode(err: unknown): number | undefined {
  * Usage:
  * ```ts
  * try {
- *   await facade.startNight();
+ *   await client.startNight();
  * } catch (err) {
  *   handleError(err, { label: '开始夜晚', logger: roomScreenLog });
  * }
