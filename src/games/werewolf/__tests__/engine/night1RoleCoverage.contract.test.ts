@@ -1,5 +1,5 @@
 /**
- * Night-1 Role Coverage Contract Test (PR8)
+ * Night-1 Role Coverage Contract Test
  *
  * Ensures every step in NIGHT_STEPS has:
  * - a corresponding schema definition

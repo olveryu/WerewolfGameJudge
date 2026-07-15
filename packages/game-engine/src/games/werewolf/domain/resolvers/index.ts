@@ -2,10 +2,10 @@
  * Resolvers Registry (SERVER-ONLY)
  *
  * Responsibility: registers the SchemaId -> ResolverFn map used by actionHandler,
- * and exports the resolver mapping. Must not be imported by UI code (enforced by the import-boundary test).
+ * and exports the resolver mapping. Must not be imported by UI code.
  *
  * ⚠️ WARNING: This module MUST NOT be imported by UI code.
- * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
+ * The package architecture contract enforces the public/testing export boundary.
  */
 
 import {

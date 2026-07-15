@@ -1897,17 +1897,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                       |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                       |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                       |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                       |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                       |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                       |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                       |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                       |
-| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage/room creation、单一 navigation capability、精确 exports           | 动态 AST 门禁、scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                             | 尚未完成                                                       |
+| ------- | ------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                               | -                                                              |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位  | -                                                              |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                             | -                                                              |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                             | -                                                              |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                    | -                                                              |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                            | -                                                              |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                  | -                                                              |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                | -                                                              |
+| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage/room creation、navigation capability、测试所有权、精确目录/exports | 动态 AST import 门禁、scope 中性化、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2558,3 +2558,25 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   仍只有仓库已记录的 Expo late-log/forced-exit 噪声，命令退出码为 0，没有因此修改 production 流程。
 - Phase 8 尚余：用 TypeScript AST 替换易漂移的行级 import 门禁，删除过期 hard gate/allowlist，完成目录集合与
   workspace scope 中性化、compile-only Pictionary 接入证明，以及最终 migration、seed、quality、全量 E2E。
+
+### 当前提交：Phase 8.6 狼人杀测试所有权与精确目录门禁
+
+- `src/services/__tests__/boards` 中仍有效的 engine public/testing API 集成套件与 helper 全部归入
+  `src/games/werewolf/__tests__/engine/boards`；night-step/schema/resolver 覆盖 contract 同步归入同一游戏 slice。
+  狼人杀 UI vertical-slice 测试只从该 game-owned test harness 取真实状态，不再反向依赖 generic services 测试目录。
+- 删除 `legacyRuntimeGate.contract.test.ts`、`hardGates.contract.test.ts`、旧 role-spec import gate 和
+  `boundary.guard.test.ts`。前三者重复扫描已删除路径或历史 symbol；最后一个在目标目录不存在时直接 `return`，会把
+  门禁缺失报告成通过。有效的 domain/public/testing 边界继续由 TypeScript AST architecture contract 强制执行。
+- client、game-engine、api-worker 三层 `games/` 目录现在都按 canonical `GAME_TYPES` 做精确集合断言。client 只额外
+  允许明确的 composition 目录 `__tests__` 与 `model`；未注册 concrete game 目录会立即失败，不再只检查两个已知目录
+  “存在”。每个 concrete game 之间的禁止互相 import 断言保持不变。
+- `new-board` skill 的唯一源文件更新到新的 game-owned 测试目录，并通过 `pnpm run sync:agents` 同步所有生成副本；
+  resolver 注释改指向现行 package architecture contract，不再引用已经删除的旧 test path。
+- 定向验证通过：root TypeScript；architecture、Werewolf engine integration 与 UI vertical-slice 共 35 suites、
+  4048 tests 全部通过。
+- 完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；root
+  220 suites/8588 tests、game-engine 86 suites/2511 tests、api-worker 16 files/116 tests 全部通过。root Jest 仍只有
+  仓库已记录的 Expo late-log/forced-exit 噪声，命令退出码为 0，没有为测试进程噪声修改 production 行为。
+- Phase 8 尚余：把 screens runtime service import 的行级 allowlist 换成 AST ownership contract，收口 root
+  hooks/lib/feature service 的物理归属，中性化 workspace scope，补 compile-only Pictionary 接入证明，最后执行
+  migration、seed、quality 与全量 E2E。

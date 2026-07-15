@@ -116,7 +116,7 @@ describe('Night-1: Guard Blocks Wolf Kill (12p)', () => {
    *
    * When the Guard blocks the kill, witchContext.killedSeat still reports the original target
    * (so the witch can see who was attacked).
-   * See: src/services/engine/handlers/__tests__/witchContext.test.ts
+   * See: packages/game-engine/src/games/werewolf/domain/handlers/__tests__/witchContext.test.ts
    */
 
   describe('守卫 + 女巫同守同救', () => {

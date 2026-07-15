@@ -18,6 +18,8 @@ import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/games/werewolf/public';
 import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
+import { cleanupGame, createGame } from '@/games/werewolf/__tests__/engine/boards/gameFactory';
+import { sendMessageOrThrow } from '@/games/werewolf/__tests__/engine/boards/stepByStepRunner';
 import {
   createShowAlertMock,
   mockNavigation,
@@ -27,8 +29,6 @@ import {
 } from '@/games/werewolf/room/__tests__/harness';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import { toWerewolfLocalState } from '@/games/werewolf/state/toWerewolfLocalState';
-import { cleanupGame, createGame } from '@/services/__tests__/boards/gameFactory';
-import { sendMessageOrThrow } from '@/services/__tests__/boards/stepByStepRunner';
 import { showAlert } from '@/utils/alert';
 
 // =============================================================================

@@ -340,19 +340,35 @@ describe('Layer boundary: product components → game-specific code (forbidden)'
 });
 
 describe('Layer boundary: game modules are isolated', () => {
-  const gameRoots: readonly [string, string][] = [
-    ['client', gamesDir],
-    ['engine', engineGamesDir],
-    ['worker', workerGamesDir],
+  const gameRoots = [
+    {
+      layer: 'client',
+      root: gamesDir,
+      compositionDirectories: ['__tests__', 'model'],
+    },
+    { layer: 'engine', root: engineGamesDir, compositionDirectories: [] },
+    { layer: 'worker', root: workerGamesDir, compositionDirectories: [] },
   ];
 
-  it.each(gameRoots)('%s defines one concrete directory per canonical game', (_layer, root) => {
-    for (const gameType of GAME_TYPES) {
-      expect(getAllProductionFiles(path.join(root, gameType)).length).toBeGreaterThan(0);
-    }
-  });
+  it.each(gameRoots)(
+    '$layer defines exactly one concrete directory per canonical game',
+    ({ root, compositionDirectories }) => {
+      const compositionDirectorySet = new Set<string>(compositionDirectories);
+      const concreteDirectories = fs
+        .readdirSync(root, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && !compositionDirectorySet.has(entry.name))
+        .map((entry) => entry.name)
+        .sort();
 
-  for (const [layer, root] of gameRoots) {
+      expect(concreteDirectories).toEqual([...GAME_TYPES].sort());
+
+      for (const gameType of GAME_TYPES) {
+        expect(getAllProductionFiles(path.join(root, gameType)).length).toBeGreaterThan(0);
+      }
+    },
+  );
+
+  for (const { layer, root } of gameRoots) {
     for (const gameType of GAME_TYPES) {
       const files = getAllProductionFiles(path.join(root, gameType));
       it.each(files)(`${layer} ${gameType}: %s must not import another game`, (filePath) => {

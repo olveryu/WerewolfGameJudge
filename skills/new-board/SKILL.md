@@ -86,11 +86,11 @@ Search `PRESET_TEMPLATES.length`; if the guide text has a hardcoded template cou
 
 ### Phase 4 — Integration Test
 
-Create an integration test under `src/services/__tests__/boards/`.
+Create an integration test under `src/games/werewolf/__tests__/engine/boards/`.
 
 #### 4a. Create Integration Test File
 
-**File**: `src/services/__tests__/boards/night1.<topic>.<role-feature>.12p.integration.test.ts`
+**File**: `src/games/werewolf/__tests__/engine/boards/night1.<topic>.<role-feature>.12p.integration.test.ts`
 
 Naming example: `night1.guard.blocks_wolfkill.12p.integration.test.ts`
 
@@ -139,7 +139,7 @@ describe('Night-1: <topic description> (12p)', () => {
 
 #### 4b. Register in Boards Coverage Contract
 
-**File**: `src/services/__tests__/boards/night1.boards.coverage.contract.test.ts`
+**File**: `src/games/werewolf/__tests__/engine/boards/night1.boards.coverage.contract.test.ts`
 
 1. Add the board name to `REQUIRED_12P_TEMPLATES` array
 2. Add the corresponding regex to `TEMPLATE_TO_TEST_PATTERN`

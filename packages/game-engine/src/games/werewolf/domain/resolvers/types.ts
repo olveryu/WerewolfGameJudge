@@ -3,10 +3,10 @@
  *
  * Responsibility: defines the core types of the Resolver system (ResolverFn / ResolverContext / ResolverResult / CurrentNightResults)
  * plus pure-function utilities like resolveRoleForChecks. Exports type definitions and pure-function utilities.
- * Not imported by UI code (enforced by the import boundary test); carries no cross-night fields (previousActions / lastNightTarget, etc.).
+ * Not imported by UI code; carries no cross-night fields (previousActions / lastNightTarget, etc.).
  *
  * ⚠️ WARNING: These types and the resolver implementations MUST NOT be imported by UI code.
- * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
+ * The package architecture contract enforces the public/testing export boundary.
  */
 
 import type { Rng } from '../../../../platform/random';
