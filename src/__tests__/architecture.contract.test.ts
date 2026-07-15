@@ -296,13 +296,19 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     ]);
   });
 
-  it('exposes Werewolf AI chat through a game-owned route only', () => {
-    const workerEntry = fs.readFileSync(path.join(workerSrcDir, 'index.ts'), 'utf-8');
+  it('registers game HTTP routes through the Worker catalog only', () => {
+    const workerEntryPath = path.join(workerSrcDir, 'index.ts');
+    const workerEntry = fs.readFileSync(workerEntryPath, 'utf-8');
+    const entryImports = getModuleSpecifiers(workerEntryPath, workerEntry);
+    const concreteGameImports = entryImports.filter((specifier) =>
+      GAME_TYPES.some((gameType) => specifier.split('/').includes(gameType)),
+    );
     const providerNamedRouteOwners = workerFiles.filter((filePath) =>
       fs.readFileSync(filePath, 'utf-8').includes('/gemini-proxy'),
     );
 
-    expect(workerEntry).toContain("app.route('/api/games/werewolf/ai-chat', werewolfAiChatRoutes)");
+    expect(entryImports).toContain('./games/catalog');
+    expect(concreteGameImports).toEqual([]);
     expect(providerNamedRouteOwners).toEqual([]);
   });
 });
@@ -545,6 +551,7 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
     ...sharedHomeFiles,
     ...sharedNavigationFiles,
     path.join(srcDir, 'games', 'home.ts'),
+    path.join(srcDir, 'games', 'navigation.ts'),
     path.join(srcDir, 'games', 'model', 'ClientGameCatalog.ts'),
     path.join(srcDir, 'games', 'ClientGameCatalogContext.tsx'),
     path.join(srcDir, 'navigation', 'AppNavigator.tsx'),
@@ -572,6 +579,20 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
     }
   });
 
+  it('composes multiple concrete client games only in the exhaustive plugin catalog', () => {
+    const multiGameConsumers = srcFiles.filter((filePath) => {
+      const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+      const importedGames = GAME_TYPES.filter((gameType) =>
+        imports.some((specifier) => specifier.split('/').includes(gameType)),
+      );
+      return importedGames.length > 1;
+    });
+
+    expect(multiGameConsumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/games/catalog.ts',
+    ]);
+  });
+
   it('keeps concrete config sub-routes out of the root stack', () => {
     const rootTypes = fs.readFileSync(path.join(srcDir, 'navigation', 'types.ts'), 'utf-8');
     const appNavigator = fs.readFileSync(
@@ -596,16 +617,6 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
     }
     expect(gameHostRoutes).not.toMatch(/['"]nominate['"]/);
     expect(gameHostRoutes).not.toMatch(/useClientGameModule\s*\(\s*['"]/);
-  });
-
-  it('loads the concrete client catalog only from the application composition root', () => {
-    const consumers = srcFiles.filter((filePath) =>
-      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes('@/games/catalog'),
-    );
-
-    expect(consumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
-      'src/app/createAppServices.ts',
-    ]);
   });
 });
 

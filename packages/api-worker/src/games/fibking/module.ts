@@ -18,6 +18,7 @@ export const fibWorkerModule = defineWorkerGameModule({
   publicCommandSchema: fibPublicCommandSchema,
   internalCommandSchema: fibInternalCommandSchema,
   effectSchema: fibEffectSchema,
+  httpRoutes: [],
   parsePublicUserStats: parseFibPublicStats,
   getPublicUserStats: () => Promise.resolve({ gameType: 'fibking' }),
   getEffectBusinessKey: (effect) => effect.payload.roundId,

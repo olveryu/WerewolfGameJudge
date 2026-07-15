@@ -591,6 +591,7 @@ interface WorkerGameModule<TEngine extends AnyGameEngineDefinition, TPublicUserS
   readonly createConfigSchema: ZodType<ConfigOf<TEngine>>;
   readonly commandSchema: ZodType<CommandOf<TEngine>>;
   readonly effectHandlers: EffectHandlerMap<EffectOf<TEngine>>;
+  readonly httpRoutes: readonly WorkerGameHttpRoute<TEngine['gameType']>[];
   readonly parsePublicUserStats: (value: unknown) => TPublicUserStats;
   readonly getPublicUserStats: (
     userId: string,
@@ -600,6 +601,9 @@ interface WorkerGameModule<TEngine extends AnyGameEngineDefinition, TPublicUserS
 ```
 
 `defineWorkerGameModule` 在编译期绑定 schema output 和 engine input，避免 command schema 产出的 shape 与 engine command union 静默分叉。
+游戏专属 HTTP 能力也必须由 module 显式贡献；路径只能位于 `/api/games/<gameType>/*`。Worker catalog
+按 canonical `GAME_TYPES` 投影全部 route，并在启动时拒绝重复路径。Worker entry 只遍历投影结果，不 import
+狼人杀或瞎掰王 route。
 
 ```ts
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog({
@@ -1471,13 +1475,16 @@ type RootStackParamList = {
 };
 ```
 
-每个游戏在自己的 `navigation/` 中声明一个 `GameNavigationDefinition`。`config/guide/notepad` 每项只能是
+每个游戏在自己的 `navigation/` 中声明一个 `GameNavigationDefinition`。客户端唯一的
+`CLIENT_GAME_PLUGIN_CATALOG` 同时注册 module factory 和 navigation definition；它是唯一允许同时 import
+多个具体游戏的客户端文件。`config/guide/notepad` 每项只能是
 `{ kind: 'screen', parseParams }` 或 `{ kind: 'unsupported' }`；`bindGameNavigation()` 根据 definition 在编译期
 精确要求受支持 screen，禁止给 unsupported route 绑定 screen。`null` screen、`never` route extension 和另一张
 capability boolean 表都不存在。
 
-`src/games/navigation.ts` 是唯一穷尽组合点：`GameConfigRouteParams/GameGuideRouteParams/
-GameNotepadRouteParams` 直接从两个游戏 definition 的 parser 返回类型推导。`GameHostRoutes.tsx` 从
+`src/games/navigation.ts` 只从上述 plugin catalog 投影 route contract：`GameConfigRouteParams/
+GameGuideRouteParams/GameNotepadRouteParams` 直接从已注册 definition 的 parser 返回类型推导，不再维护第二份
+具体游戏清单。`GameHostRoutes.tsx` 从
 `ClientGameCatalog` 读取同一个已绑定 capability 并先执行其 parser 再渲染；`AppNavigator` 的 deep-link parent
 stack 也通过组合后的同一个 definition 解析。游戏不支持某 route 时，类型联合不会包含该游戏，外部 deep link
 在进入 screen 前 fail fast，不 fallback 到狼人杀。`Room` 继续是唯一公开房间 URL，并由
@@ -1918,17 +1925,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                 |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                        |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                        |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                        |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                        |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                        |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                        |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                        |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                        |
-| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、AST/目录/exports 门禁               | scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                            | 尚未完成                                         |
+| ------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                              | -                                                |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                 | -                                                |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                            | -                                                |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                            | -                                                |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                   | -                                                |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                           | -                                                |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                 | -                                                |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                               | -                                                |
+| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、scope 中性化、单一插件组合点、AST/目录/exports 门禁 | 开放 module contract、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2648,3 +2655,26 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 8 尚余：消除 client navigation 与 Worker HTTP 的双重 concrete-game 组合点，开放单个 game module
   contract 并补 compile-only Pictionary 接入证明，收紧三 workspace architecture gate，最后执行 migration、seed、
   quality 与全量 E2E。
+
+### 当前提交：Phase 8.9 单一 client/Worker game plugin 组合点
+
+- 客户端删除独立的 concrete navigation registry。`CLIENT_GAME_PLUGIN_CATALOG` 现在是唯一同时 import 多个具体
+  游戏的 composition point，每个注册项原子提供 `gameType`、navigation definition 与 module factory；
+  `createClientGameCatalog()` 和 generic route param/parser 都从同一个对象投影，新增游戏不再需要同步两张清单。
+- catalog 的 metadata 读取保持无副作用。狼人杀 nested native stack 从 module import-time 初始化改为
+  `createWerewolfConfigFlowScreen()`，只在 application composition 创建狼人杀 module 时构造一次；navigation
+  parser、测试 catalog 或其他纯 metadata consumer 不会因 import catalog 提前创建 navigator。
+- `WorkerGameModuleDefinition` 新增必填 `httpRoutes` contribution。狼人杀 AI chat route 归属狼人杀 module；瞎掰王
+  显式贡献空数组。路径必须位于 `/api/games/<module.gameType>/*`，越界在 module 定义时 fail fast；Worker catalog
+  按 canonical `GAME_TYPES` 投影 route 并拒绝重复路径，`index.ts` 只注册 catalog 输出，不 import concrete game。
+- architecture contract 使用 TypeScript AST 检查 Worker entry 的 module specifier，禁止 concrete game import；客户端
+  扫描全部 runtime source，断言只有 `src/games/catalog.ts` 同时 import 多个 concrete game。删除了依赖消费者文件
+  allowlist 的旧 catalog gate，避免合法 projection consumer 被误判，同时保留更强的 concrete composition 唯一性。
+- 定向验证通过：root typecheck；客户端 architecture、catalog context、deep-link 与 navigation 共 4 suites/3706
+  tests；api-worker 全量 16 files/117 tests。完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine
+  build、Knip、ESLint、Prettier 全绿；root 220 suites/8618 tests、game-engine 86 suites/2513 tests、api-worker
+  16 files/117 tests 全部通过。root Jest 仍只有仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，
+  没有为测试进程噪声修改 production 行为。
+- Phase 8 尚余：把单个 game module contract 从 production `GameType` 闭集解耦并加入 compile-only Pictionary
+  证明，继续收紧三 workspace 的非空 AST/目录门禁，完成 fail-fast 与残留命名清理，最后执行 local migration、
+  seed、完整 quality 和全量 E2E。

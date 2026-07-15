@@ -14,7 +14,7 @@
  *   POST /auth/forgot-password    -- send password reset code
  *   POST /auth/reset-password     -- reset password with code
  *   POST /room/command            -- authenticated game command API
- *   POST /api/games/werewolf/ai-chat -- Werewolf AI assistant
+ *   *    /api/games/:gameType/*  -- game-owned HTTP capabilities
  *   GET  /health                  -- health check
  */
 
@@ -25,6 +25,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
 import type { AppEnv, Env } from './env';
+import { WORKER_GAME_HTTP_ROUTES } from './games/catalog';
 import { createLogger } from './lib/logger';
 import { resolveActiveRoom } from './platform/room/roomDirectory';
 
@@ -33,7 +34,6 @@ export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 export { GameRoom } from './games/GameRoom';
 
 // Route groups
-import { werewolfAiChatRoutes } from './games/werewolf/aiChat/routes';
 import { adminRoutes } from './handlers/adminHandlers';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
@@ -152,7 +152,9 @@ app.get('/ws', async (c) => {
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
 app.route('/room', roomRoutes);
-app.route('/api/games/werewolf/ai-chat', werewolfAiChatRoutes);
+for (const route of WORKER_GAME_HTTP_ROUTES) {
+  app.route(route.path, route.router);
+}
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
 app.route('/api', statsRoutes);

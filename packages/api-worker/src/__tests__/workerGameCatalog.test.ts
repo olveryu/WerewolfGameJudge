@@ -13,7 +13,7 @@ import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/te
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
-import { WORKER_GAME_CATALOG } from '../games/catalog';
+import { WORKER_GAME_CATALOG, WORKER_GAME_HTTP_ROUTES } from '../games/catalog';
 import { fibEffectSchema } from '../games/fibking/effects';
 import {
   FIB_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT,
@@ -21,6 +21,7 @@ import {
   fibInternalCommandSchema,
   fibPublicCommandSchema,
 } from '../games/fibking/schemas';
+import { werewolfAiChatRoutes } from '../games/werewolf/aiChat/routes';
 import { werewolfEffectSchema } from '../games/werewolf/effects';
 import {
   WEREWOLF_PUBLIC_COMMAND_SCHEMA_OPTION_COUNT,
@@ -89,6 +90,17 @@ const VALID_FIB_INTERNAL_COMMAND = {
 describe('Worker game catalog', () => {
   it('registers exactly one Worker module for every canonical game type', () => {
     expect(Object.keys(WORKER_GAME_CATALOG)).toEqual([...GAME_TYPES]);
+  });
+
+  it('projects game-owned HTTP routes from the same catalog', () => {
+    expect(WORKER_GAME_HTTP_ROUTES).toEqual([
+      {
+        gameType: 'werewolf',
+        path: '/api/games/werewolf/ai-chat',
+        router: werewolfAiChatRoutes,
+      },
+    ]);
+    expect(WORKER_GAME_CATALOG.fibking.httpRoutes).toEqual([]);
   });
 
   it('binds the concrete Werewolf engine, codec, and schemas', () => {

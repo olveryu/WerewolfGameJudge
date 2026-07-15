@@ -7,6 +7,7 @@ import {
 } from '@game-judge/game-engine/games/werewolf/public';
 
 import { defineWorkerGameModule } from '../workerModule';
+import { werewolfAiChatRoutes } from './aiChat/routes';
 import { handleWerewolfEffect, werewolfEffectSchema } from './effects';
 import { getWerewolfPublicUserStats } from './publicUserStats';
 import {
@@ -23,6 +24,12 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   publicCommandSchema: werewolfPublicCommandSchema,
   internalCommandSchema: werewolfInternalCommandSchema,
   effectSchema: werewolfEffectSchema,
+  httpRoutes: [
+    {
+      path: '/api/games/werewolf/ai-chat',
+      router: werewolfAiChatRoutes,
+    },
+  ],
   parsePublicUserStats: parseWerewolfPublicStats,
   getPublicUserStats: getWerewolfPublicUserStats,
   getEffectBusinessKey: (_effect, context) => `revision:${context.createdRevision}`,

@@ -15,7 +15,7 @@ import type React from 'react';
 import { Pressable, Text } from 'react-native';
 
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
-import { WerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
+import { createWerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import type { RootStackParamList } from '@/navigation/types';
 
@@ -63,6 +63,7 @@ jest.mock('@/games/werewolf/screens/GameRulesScreen/GameRulesScreen', () => ({
 }));
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
+const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
 const mockClient = {} as WerewolfGameClient;
 
 const HomeProbe: React.FC = () => {

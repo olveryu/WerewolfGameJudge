@@ -19,9 +19,10 @@ import type {
   BaseGameState,
   GameStateCodec,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
+import type { Hono } from 'hono';
 import type { ZodType } from 'zod';
 
-import type { Env } from '../env';
+import type { AppEnv, Env } from '../env';
 import type {
   RuntimeDecision,
   RuntimeWorkerGameModule,
@@ -30,6 +31,11 @@ import type {
 } from '../platform/room/runtimeGameModule';
 
 export type RegisteredGameEngine = GameEngineCatalog[GameType];
+
+export interface WorkerGameHttpRoute<TGameType extends GameType> {
+  readonly path: `/api/games/${TGameType}/${string}`;
+  readonly router: Hono<AppEnv>;
+}
 
 export interface WorkerEffectContext<TState extends BaseGameState<GameType>, TInternalCommand> {
   readonly bindings: Env;
@@ -69,6 +75,7 @@ export interface WorkerGameModuleDefinition<
   readonly publicCommandSchema: ZodType<TPublicCommand>;
   readonly internalCommandSchema: ZodType<TInternalCommand>;
   readonly effectSchema: ZodType<TEffect>;
+  readonly httpRoutes: readonly WorkerGameHttpRoute<TGameType>[];
   parsePublicUserStats(value: unknown): TPublicUserStats;
   getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
   getEffectBusinessKey(effect: TEffect, context: WorkerEffectBusinessContext): string;
@@ -167,6 +174,15 @@ export function defineWorkerGameModule<
     TEvent,
     TEffect
   > = definition.engine;
+
+  const routePrefix = `/api/games/${definition.gameType}/`;
+  for (const route of definition.httpRoutes) {
+    if (!route.path.startsWith(routePrefix) || route.path.length === routePrefix.length) {
+      throw new Error(
+        `Game module ${definition.gameType} registered HTTP route outside ${routePrefix}`,
+      );
+    }
+  }
 
   const assertStateIdentity = (state: TState): void => {
     if (state.gameType !== definition.gameType) {

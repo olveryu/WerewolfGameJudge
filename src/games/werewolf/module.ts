@@ -14,7 +14,7 @@ import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer'
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
 import { werewolfHomeContribution } from '@/games/werewolf/home';
-import { WerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
+import { createWerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
 import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
@@ -44,6 +44,7 @@ export function createWerewolfUiModule({
   const audio = new WerewolfAudioPlayer(audioService);
   const client = new WerewolfGameFacade({ roomSession, audio });
   const roomAccount = new WerewolfRoomAccountCapability(client);
+  const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
 
   function BoundWerewolfRoomScreen(props: GameRoomScreenProps) {
     return createElement(WerewolfRoomScreen, { ...props, client });

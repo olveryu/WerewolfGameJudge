@@ -6,9 +6,8 @@ import type React from 'react';
 import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
-import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
+import { CLIENT_GAME_PLUGIN_CATALOG } from '@/games/catalog';
 import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
-import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 
 const EmptyRoomScreen: React.FC<GameRoomScreenProps> = () => null;
 const EmptyAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
@@ -48,7 +47,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
         spotlight: null,
         announcementTabs: [],
       },
-      navigation: bindGameNavigation(werewolfGameNavigation, {
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.werewolf.navigation, {
         config: EmptyScreen,
         guide: EmptyScreen,
         notepad: EmptyScreen,
@@ -83,7 +82,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
         spotlight: null,
         announcementTabs: [],
       },
-      navigation: bindGameNavigation(fibGameNavigation, {
+      navigation: bindGameNavigation(CLIENT_GAME_PLUGIN_CATALOG.fibking.navigation, {
         config: EmptyScreen,
         guide: EmptyScreen,
       }),

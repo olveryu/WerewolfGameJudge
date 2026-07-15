@@ -4,24 +4,19 @@ import { type GameType, parseGameType } from '@game-judge/game-engine/platform/p
 import { parseRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
 import type {
-  GameNavigationDefinition,
   GameNavigationRouteKind,
   SupportedGameNavigationRoute,
 } from '@/features/navigation/model/GameNavigationContribution';
 import { parseRouteParams } from '@/features/navigation/model/routeParams';
-import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
-import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
-
-const GAME_NAVIGATION_DEFINITIONS = {
-  werewolf: werewolfGameNavigation,
-  fibking: fibGameNavigation,
-} satisfies { readonly [TGameType in GameType]: GameNavigationDefinition<TGameType> };
+import { CLIENT_GAME_PLUGIN_CATALOG } from '@/games/catalog';
 
 type RouteParams<TDefinition> =
   TDefinition extends SupportedGameNavigationRoute<infer TParams> ? TParams : never;
 
 type RegisteredRouteParams<TRouteKind extends GameNavigationRouteKind> = {
-  [TGameType in GameType]: RouteParams<(typeof GAME_NAVIGATION_DEFINITIONS)[TGameType][TRouteKind]>;
+  [TGameType in GameType]: RouteParams<
+    (typeof CLIENT_GAME_PLUGIN_CATALOG)[TGameType]['navigation'][TRouteKind]
+  >;
 }[GameType];
 
 export type GameConfigRouteParams = RegisteredRouteParams<'config'>;
@@ -34,7 +29,7 @@ function getSupportedRouteDefinition(
 ): SupportedGameNavigationRoute {
   const routeParams = parseRouteParams(params, `Game ${routeKind}`);
   const gameType = parseGameType(routeParams.gameType);
-  const definition = GAME_NAVIGATION_DEFINITIONS[gameType][routeKind];
+  const definition = CLIENT_GAME_PLUGIN_CATALOG[gameType].navigation[routeKind];
   if (definition.kind === 'unsupported') {
     throw new Error(`[FAIL-FAST] ${gameType} does not support ${routeKind} navigation`);
   }
