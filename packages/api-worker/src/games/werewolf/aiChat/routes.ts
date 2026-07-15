@@ -16,6 +16,7 @@ import { Hono } from 'hono';
 import type { AppEnv } from '../../../env';
 import { requireAuth } from '../../../features/auth/tokenAuth';
 import { jsonBody } from '../../../platform/http/jsonBody';
+import { readCloudflareRequestMetadata } from '../../../platform/http/requestMetadata';
 import { createLogger } from '../../../platform/observability/logger';
 import { werewolfAiChatRequestSchema } from './schema';
 
@@ -35,8 +36,7 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
   const parsed = c.req.valid('json');
   const startTime = Date.now();
   const userId = c.var.userId;
-  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
-  const country = (cf?.country as string) ?? 'unknown';
+  const country = readCloudflareRequestMetadata(c.req.raw).country ?? 'unknown';
 
   /** Fire-and-forget: write one data point to AI_USAGE Analytics Engine. */
   const writeUsage = (model: string, provider: 'gemini' | 'workers-ai', status: 'ok' | 'error') => {

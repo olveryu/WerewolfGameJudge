@@ -26,6 +26,7 @@ import { Hono } from 'hono';
 import { createDb } from '../../db';
 import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
+import { readCloudflareRequestMetadata } from '../../platform/http/requestMetadata';
 import { createLogger } from '../../platform/observability/logger';
 import { users, userStats } from '../account/dbSchema';
 import { createEmptyUserMetadata, selectUserProfile, toUserMetadata } from '../account/profile';
@@ -59,12 +60,12 @@ const log = createLogger('auth');
 /** Auth-related routes (signup/signin/refresh/password reset). */
 export const authRoutes = new Hono<AppEnv>();
 
-/** Extract Cloudflare edge geo from incoming request. */
-function requestGeo(c: { req: { raw: Request } }) {
-  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+/** Map Cloudflare edge metadata to the account persistence columns. */
+function requestGeo(request: Request) {
+  const metadata = readCloudflareRequestMetadata(request);
   return {
-    lastCountry: (cf?.country as string) ?? null,
-    lastColo: (cf?.colo as string) ?? null,
+    lastCountry: metadata.country ?? null,
+    lastColo: metadata.colo ?? null,
   };
 }
 
@@ -206,7 +207,7 @@ authRoutes.post('/anonymous', async (c) => {
   const env = c.env;
   const db = createDb(env.DB);
   const userId = crypto.randomUUID();
-  const geo = requestGeo(c);
+  const geo = requestGeo(c.req.raw);
 
   const now = sql`datetime('now')`;
   await db.insert(users).values({
@@ -508,7 +509,7 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
   await db.delete(loginAttempts).where(eq(loginAttempts.emailHash, emailHash));
 
   // Update geo + lazy migration: bcrypt → PBKDF2 rehash on first successful login
-  const geo = requestGeo(c);
+  const geo = requestGeo(c.req.raw);
   if (result.needsRehash && result.newHash) {
     await db
       .update(users)
@@ -882,7 +883,7 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
   await db.delete(wxClaims).where(eq(wxClaims.nonce, nonce));
 
   const { openid } = claim;
-  const geo = requestGeo(c);
+  const geo = requestGeo(c.req.raw);
 
   // Find or create user by openid
   let account: {

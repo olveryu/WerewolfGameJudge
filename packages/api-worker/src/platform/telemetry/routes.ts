@@ -10,6 +10,7 @@
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../../env';
+import { readCloudflareRequestMetadata } from '../http/requestMetadata';
 import { loadTimingSchema } from './schemas';
 
 /** Telemetry data reporting routes. */
@@ -23,7 +24,7 @@ telemetryRoutes.post('/load-timing', async (c) => {
     return c.json({ success: false, reason: 'VALIDATION_ERROR' }, 400);
   }
   const payload = parsed.data;
-  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  const metadata = readCloudflareRequestMetadata(c.req.raw);
 
   // Write one data point per resource entry — each becomes a queryable row
   for (const res of payload.resources) {
@@ -41,9 +42,9 @@ telemetryRoutes.post('/load-timing', async (c) => {
       blobs: [
         res.name, // blob1: full URL
         payload.ua, // blob2: user agent
-        cf?.country ?? 'unknown', // blob3: country
-        cf?.colo ?? 'unknown', // blob4: CF colo (edge location)
-        cf?.asOrganization ?? '', // blob5: ISP/ASN org name
+        metadata.country ?? 'unknown', // blob3: country
+        metadata.colo ?? 'unknown', // blob4: CF colo (edge location)
+        metadata.asOrganization ?? '', // blob5: ISP/ASN org name
       ],
       doubles: [
         res.duration, // double1: total duration ms

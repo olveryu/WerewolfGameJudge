@@ -273,7 +273,8 @@ packages/
 │   │   │   │   └── workerModule.ts
 │   │   │   ├── http/
 │   │   │   │   ├── callDurableObject.ts
-│   │   │   │   └── jsonBody.ts
+│   │   │   │   ├── jsonBody.ts
+│   │   │   │   └── requestMetadata.ts
 │   │   │   ├── observability/
 │   │   │   │   └── logger.ts
 │   │   │   ├── room/
@@ -1991,17 +1992,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                                                                                                                                                                                                                                                                                                 | 尚未完成                                                                        |
-| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                                                                                                                                                                                                   | -                                                                               |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                                                                                                                                                                                                      | -                                                                               |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                                                                                                                                                                                                 | -                                                                               |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                                                                                                                                                                                                 | -                                                                               |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                                                                                                                                                                        | -                                                                               |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                                                                                                                                                                                | -                                                                               |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                                                                                                                                                                      | -                                                                               |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                                                                                                                                                                    | -                                                                               |
-| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary、Wrangler binding 单一权威、JWT principal 单一认证边界、provider payload runtime parsing、Worker test type-honesty、gacha atomic mutation ledger | request metadata cast、engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                                                                                                                                                                                                                                                                                                                       | 尚未完成                                                 |
+| ------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                                                                                                                                                                                                                                         | -                                                        |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                                                                                                                                                                                                                                            | -                                                        |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                                                                                                                                                                                                                                       | -                                                        |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                                                                                                                                                                                                                                       | -                                                        |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                                                                                                                                                                                                              | -                                                        |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                                                                                                                                                                                                                      | -                                                        |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                                                                                                                                                                                                            | -                                                        |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                                                                                                                                                                                                          | -                                                        |
+| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary、Wrangler binding 单一权威、JWT principal 单一认证边界、provider payload runtime parsing、Worker test type-honesty、gacha atomic mutation ledger、Cloudflare request metadata 单一边界 | engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2950,3 +2951,27 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   并发和 daily 首次并发测试；Worker 定向验证为 25 files / 159 tests。完整 `pnpm run quality` 在本提交前通过，root 仍只保留
   已记录的 Expo teardown/forced-exit 噪声。
   Phase 8.12 下一批删除 request metadata cast，并继续 engine/client 精确 exports 与 fallback/旧命名审计。
+
+### 当前提交：Phase 8.12C Cloudflare request metadata 单一边界
+
+- 新增 `platform/http/requestMetadata.ts`，直接消费 Wrangler 生成的 `Request.cf`，不再为 Worker runtime 手写
+  `Request & { cf: ... }` 或断言 `country`。缺失 `cf` 是 local/scheduled 调用的合法状态；字段一旦存在却不是
+  generated contract 规定的字符串，或 `continent` 不是 Cloudflare 七个洲代码之一，就在 HTTP platform boundary
+  立即抛错，不把 malformed runtime metadata 静默改写成 `unknown`。
+- Worker request log、auth geo persistence、load timing Analytics Engine、Werewolf AI usage 与 room DO placement
+  全部消费同一个 parser。owner 仍负责目的地语义：D1 nullable column 写 `null`，Analytics 缺值写原有
+  `unknown`/空串，结构化日志保留 `undefined` omission；scheduled room reconciliation 没有 incoming request，因此不传
+  location hint。
+- DO continent mapping 使用 `Record<ContinentCode, DurableObjectLocationHint | undefined>` 穷尽生成类型；`AN` 明确不提供
+  hint，其余代码保持原有 `afr/apac/weur/enam/oc` placement。依据 Cloudflare 当前
+  [Request 文档](https://developers.cloudflare.com/workers/runtime-apis/request/)与
+  [Durable Object namespace 文档](https://developers.cloudflare.com/durable-objects/api/namespace/)，`cf` 属于 incoming
+  Worker request，`locationHint` 属于 namespace stub lookup option，二者不进入 game-owned module。
+- architecture contract 以 TypeScript AST 枚举 Worker production property access，规定 `.cf` 只能由该 parser 读取，
+  并精确锁定 `platform/http` 的三个 production 文件，不能重新增加第二个 metadata boundary 或 forwarding helper。
+  定向 architecture suite 为 1 suite / 3765 tests。
+- 新增 present、local/scheduled absent、wrong-type 与 invalid-continent 回归测试。Worker production/test TypeScript
+  全绿，Worker 全量 26 files / 163 tests 通过；production source 中不再存在 `IncomingRequestCfProperties`、`CfRequest`
+  或 request metadata cast。完整 `pnpm run quality` 通过：root 221 suites / 8755 tests、game-engine 86 suites /
+  2513 tests、Worker 26 files / 163 tests，类型生成、三套 TypeScript、engine build、Knip、ESLint 与 Prettier 全绿。
+  Phase 8.12 下一批进入 engine/client 精确 exports、fallback 与旧命名审计。

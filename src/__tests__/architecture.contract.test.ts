@@ -163,6 +163,29 @@ function hasZodObjectCall(filePath: string): boolean {
   return found;
 }
 
+function hasPropertyAccess(filePath: string, propertyName: string): boolean {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  let found = false;
+
+  function visit(node: ts.Node): void {
+    if (ts.isPropertyAccessExpression(node) && node.name.text === propertyName) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return found;
+}
+
 function isGameDomainSpecifier(specifier: string): boolean {
   return GAME_TYPES.some((gameType) => {
     const domainPath = `/games/${gameType}/domain`;
@@ -675,6 +698,19 @@ describe('Worker ownership: source tree is exact', () => {
 });
 
 describe('Worker request boundary: client objects are strict', () => {
+  it('owns Cloudflare request metadata in one platform parser', () => {
+    const metadataReaders = workerFiles
+      .filter((filePath) => hasPropertyAccess(filePath, 'cf'))
+      .map((filePath) => path.relative(process.cwd(), filePath));
+
+    expect(metadataReaders).toEqual(['packages/api-worker/src/platform/http/requestMetadata.ts']);
+    expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'http'))).toEqual([
+      'callDurableObject.ts',
+      'jsonBody.ts',
+      'requestMetadata.ts',
+    ]);
+  });
+
   it('uses permissive Zod objects only for external provider payloads', () => {
     const permissiveSchemaFiles = workerFiles
       .filter(hasZodObjectCall)

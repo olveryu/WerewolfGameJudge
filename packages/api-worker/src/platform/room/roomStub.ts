@@ -1,6 +1,7 @@
 /** Typed Durable Object stub lookup from an immutable directory instance ID. */
 
 import type { Env } from '../../env';
+import { readCloudflareRequestMetadata } from '../http/requestMetadata';
 import type { GameRoomRuntime } from './GameRoomRuntime';
 
 type StripDisposable<T> = T extends Disposable ? Omit<T, keyof Disposable> : T;
@@ -13,20 +14,19 @@ type CleanRpcMethods<DO> = {
 
 export type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoomRuntime>>;
 
-const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
+const CONTINENT_TO_HINT = {
+  AF: 'afr',
+  AN: undefined,
   AS: 'apac',
-  OC: 'oc',
   EU: 'weur',
   NA: 'enam',
+  OC: 'oc',
   SA: 'enam',
-  AF: 'afr',
-};
-
-type CfRequest = Request & { cf?: IncomingRequestCfProperties };
+} satisfies Record<ContinentCode, DurableObjectLocationHint | undefined>;
 
 export function getGameRoomStub(env: Env, roomId: string, request?: Request): GameRoomStub {
   const id = env.GAME_ROOM.idFromString(roomId);
-  const continent = (request as CfRequest | undefined)?.cf?.continent;
+  const continent = readCloudflareRequestMetadata(request).continent;
   const locationHint = continent === undefined ? undefined : CONTINENT_TO_HINT[continent];
   return env.GAME_ROOM.get(id, locationHint === undefined ? undefined : { locationHint });
 }

@@ -36,6 +36,7 @@ import { gachaRoutes } from './features/gacha/routes';
 import { shareRoutes } from './features/sharing/routes';
 import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
 import { publicGameStatsRoutes } from './games/publicStatsRoutes';
+import { readCloudflareRequestMetadata } from './platform/http/requestMetadata';
 import { createLogger } from './platform/observability/logger';
 import { createRoomRoutes } from './platform/room/routes';
 import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
@@ -73,13 +74,13 @@ app.use(
 app.use('*', async (c, next) => {
   const start = Date.now();
   await next();
-  const cf = (c.req.raw as Request & { cf?: IncomingRequestCfProperties }).cf;
+  const metadata = readCloudflareRequestMetadata(c.req.raw);
   log.info('request', {
     method: c.req.method,
     path: c.req.path,
     status: c.res.status,
-    country: cf?.country,
-    colo: cf?.colo,
+    country: metadata.country,
+    colo: metadata.colo,
     ms: Date.now() - start,
   });
 });
