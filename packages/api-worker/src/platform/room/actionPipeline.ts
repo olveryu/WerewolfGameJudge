@@ -12,6 +12,11 @@ import {
 } from '@game-judge/game-engine/platform/protocol/reasons';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
+import type {
+  RuntimeCommittedDecision,
+  RuntimeWorkerGameModule,
+  WorkerGameModuleResolver,
+} from '../gameModules/runtimeGameModule';
 import { derivePlatformRoomEffects, getPlatformRoomEffectBusinessKey } from './platformEffects';
 import {
   getCommittedRevision,
@@ -19,11 +24,6 @@ import {
   type RoomRepository,
   serializeCommandRequest,
 } from './roomRepository';
-import type {
-  RuntimeCommittedDecision,
-  RuntimeWorkerGameModule,
-  WorkerGameModuleResolver,
-} from './runtimeGameModule';
 import type { DispatchRoomCommand, DispatchRoomResult, StoredRoomRow } from './types';
 
 export interface PipelineDispatchResult {

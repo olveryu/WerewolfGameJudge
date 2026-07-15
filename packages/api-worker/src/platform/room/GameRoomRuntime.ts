@@ -16,6 +16,10 @@ import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
+import type {
+  RuntimeWorkerGameModule,
+  WorkerGameModuleResolver,
+} from '../gameModules/runtimeGameModule';
 import { createLogger } from '../observability/logger';
 import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
@@ -24,7 +28,6 @@ import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
 import { assertRoomEffectDirectory } from './roomDirectory';
 import { RoomRepository } from './roomRepository';
-import type { RuntimeWorkerGameModule, WorkerGameModuleResolver } from './runtimeGameModule';
 import { initializeRoomStorage } from './storageSchema';
 import type {
   AuthorizeRoomDeletionCommand,

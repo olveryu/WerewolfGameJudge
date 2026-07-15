@@ -12,7 +12,7 @@ import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/ro
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { WorkerEffectContext } from '../../../workerModule';
+import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleWerewolfEffect, werewolfEffectSchema } from '../../effects';
 import { settleGameResults } from '../settleGameResults';
 

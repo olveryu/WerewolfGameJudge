@@ -2755,8 +2755,9 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   再重建精确 room record 调用具体 screen；错误路由立即抛出，不用 React component cast 或宽化 props 隐藏方差问题。
 - Worker 把开放的 typed module runtime 与 `GameRoom` 消费的 `RuntimeWorkerGameModule` 分开。
   `defineWorkerGameModule` 允许第三游戏 authoring；`registerWorkerGameModule` 只接受 canonical `GameType` 且 engine
-  必须匹配 `GameEngineCatalog[TGameType]`，并在 effect context 与 internal dispatch result 两个方向用同一 codec
-  验证 state。production catalog 与 E2E replacement module 都经过这一唯一擦除边界。
+  与 module identity 必须一致，并在 effect context 与 internal dispatch result 两个方向用同一 codec 验证 state。
+  production `defineWorkerGameCatalog` 同时接收唯一 `GAME_ENGINE_CATALOG` 与 Worker modules，在编译期逐 key 绑定 engine
+  类型、在启动时检查 engine object identity；generic platform helper 不反向 import production game catalog。
 - 新增三层 compile-only Pictionary fixture：engine 是真实纯 engine/codec，Worker 使用严格 Zod config/command/
   effect schema，client 创建 typed session、navigation、room account、room screen 和 plugin。fixture 不新增 production
   game ID、目录、route 或 catalog entry；`@ts-expect-error` 反向证明它不能赋给 `GameType`、不能跨 Worker/client
@@ -2777,7 +2778,7 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   password 和 profile 暂由 auth feature 持有，Wrangler 依赖的 `WeChatAuthProxy` export class name 保持不变。
 - room HTTP route 与 request schema 归入 `platform/room`；JSON validator、Durable Object availability translator
   和 logger 分别归入 `platform/http` 与 `platform/observability`。原 `handlers/shared.ts` 已拆除，不保留旧 path
-  export；DO error 的未知边界通过 `unknown` + `Reflect.get` 检查，不再用 object cast 假装已验证。
+  export；DO error 的未知边界通过 `unknown` + `in` narrowing 检查，不再用 object cast 假装已验证。
 - Worker tests 与生产 owner 共置，跨 owner 的测试基础设施放在 package-level `test/`。删除手写的第二份 D1 DDL；
   Vitest 按 Cloudflare 当前 `readD1Migrations()` / `applyD1Migrations()` 流程直接执行 production migrations，新增
   migration 不再要求同步维护 `testSchemaBootstrap.ts`。
@@ -2793,3 +2794,26 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 8.11 下一批继续处理 Worker 的 `platform/gameModules`、DO composition、D1 schema ownership、scheduled
   maintenance、WebSocket route 与严格 owned request schema；之后再完成 engine/client 精确目录与 exports 门禁、
   fail-fast/命名残留清理，以及 local migration、seed、最终 quality 和全量 E2E。
+
+### 当前提交：Phase 8.11B Worker runtime ownership 与 WebSocket admission
+
+- `workerModule.ts`、`runtimeGameModule.ts` 与 `effectCommandId.ts` 统一归入 `platform/gameModules`。开放 authoring、
+  canonical runtime 擦除、effect command ID 和 room authority port 现在由同一个 platform owner 维护；`games/` 根只保留
+  唯一 concrete composition `catalog.ts`，没有 forwarding file。
+- generic `workerModule.ts` 不再 type import game-engine 的 production `games/catalog`。`games/catalog.ts` 在 application
+  composition 显式把 `GAME_ENGINE_CATALOG` 传给 `defineWorkerGameCatalog`；错误 engine 在编译期无法按 key 注册，即使绕过
+  编译边界，启动时的 object identity 检查也会 fail fast。
+- production Sentry DO wrapper 从 `games/GameRoom.ts` 归入 `app/GameRoom.ts`；共享 authority runtime 文件明确命名为
+  `platform/room/GameRoomRuntime.ts`。Wrangler 看到的 `GameRoom` export class name、binding、production 和 E2E
+  replacement 行为保持不变，旧路径全部删除。
+- `/ws` 的 room identity 校验、token admission 后的 room resolution、DO URL 构造和 availability translation 全部移入
+  `platform/room/webSocketRoutes.ts`。`index.ts` 只注册原 `/ws` 路径，并从 auth feature 注入
+  `RoomWebSocketAuthenticator`；room platform 不依赖 JWT payload 或 auth implementation。
+- architecture contract 精确锁定 `games/catalog.ts` 与 `platform/gameModules` 三个文件，并继续禁止所有 Worker
+  platform production module import game composition。定向验证通过：Worker typecheck；Vitest 18 files / 120 tests；
+  architecture contract 1 suite / 3693 tests。完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、
+  Knip、ESLint、Prettier 全绿；root 221 suites / 8667 tests、game-engine 86 suites / 2513 tests、api-worker
+  18 files / 120 tests 全部通过。root Jest 仍只有仓库已记录的 Expo teardown 与 forced-exit 噪声，没有为测试进程
+  噪声修改 production 行为。
+- Phase 8.11 尚余 D1 schema ownership、scheduled maintenance owner 拆分、严格 owned request schema、account/auth 路由
+  边界与 Worker binding 类型收口；之后进入 engine/client residual cleanup 和最终验收。

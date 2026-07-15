@@ -369,11 +369,21 @@ describe('Worker ownership: source tree is exact', () => {
   it('defines the exact shared platform ownership roots', () => {
     expect(getTopLevelProductionDirectories(workerPlatformDir)).toEqual([
       'crypto',
+      'gameModules',
       'http',
       'observability',
       'room',
       'telemetry',
       'userEvents',
+    ]);
+  });
+
+  it('keeps generic Worker game-module infrastructure platform-owned', () => {
+    expect(getTopLevelProductionFiles(workerGamesDir)).toEqual(['catalog.ts']);
+    expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'gameModules'))).toEqual([
+      'effectCommandId.ts',
+      'runtimeGameModule.ts',
+      'workerModule.ts',
     ]);
   });
 

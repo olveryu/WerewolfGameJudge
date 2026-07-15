@@ -14,7 +14,7 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { WorkerEffectContext } from '../../../workerModule';
+import type { WorkerEffectContext } from '../../../../platform/gameModules/workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
 import { createConfiguredFibWordProvider } from '..';
 import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidate } from '../candidate';

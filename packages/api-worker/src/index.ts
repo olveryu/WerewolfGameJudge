@@ -18,7 +18,6 @@
  *   GET  /health                  -- health check
  */
 
-import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -35,21 +34,23 @@ import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/route
 import { gachaRoutes } from './features/gacha/routes';
 import { shareRoutes } from './features/sharing/routes';
 import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
-import { callDurableObject } from './platform/http/callDurableObject';
 import { createLogger } from './platform/observability/logger';
-import { resolveActiveRoom } from './platform/room/roomDirectory';
-import { getGameRoomStub } from './platform/room/roomStub';
 import { createRoomRoutes } from './platform/room/routes';
+import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
 import { telemetryRoutes } from './platform/telemetry/routes';
 
 // Re-export Durable Object class for wrangler
+export { GameRoom } from './app/GameRoom';
 export { WeChatAuthProxy } from './features/auth/WeChatAuthProxy';
-export { GameRoom } from './games/GameRoom';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
 const app = new Hono<AppEnv>();
 const roomRoutes = createRoomRoutes(getWorkerGameModule, requireAuth);
+const roomWebSocketHandler = createRoomWebSocketHandler(async (token, env) => {
+  const payload = await verifyToken(token, env);
+  return payload === null ? null : payload.sub;
+});
 
 const log = createLogger('worker');
 
@@ -106,45 +107,7 @@ app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // ── WebSocket upgrade → Durable Object ──────────────────────────────────────
 
-app.get('/ws', async (c) => {
-  const roomCode = c.req.query('roomCode');
-  const roomId = c.req.query('roomId');
-  const token = c.req.query('token');
-  if (roomCode === undefined || !isRoomCode(roomCode)) {
-    return c.json({ error: 'valid roomCode required' }, 400);
-  }
-  if (roomId === undefined || roomId.length === 0) {
-    return c.json({ error: 'roomId required' }, 400);
-  }
-  if (!token) {
-    return c.json({ error: 'token required' }, 401);
-  }
-
-  // Verify JWT before allowing WebSocket upgrade
-  const payload = await verifyToken(token, c.env);
-  if (!payload) {
-    return c.json({ error: 'unauthorized' }, 401);
-  }
-
-  const resolution = await resolveActiveRoom(c.env, roomCode, roomId);
-  if (resolution.kind === 'missing') {
-    return c.json({ error: 'room not found' }, 404);
-  }
-  if (resolution.kind === 'instanceMismatch') {
-    return c.json({ error: 'room instance mismatch' }, 409);
-  }
-  const { room } = resolution;
-  const stub = getGameRoomStub(c.env, room.roomId, c.req.raw);
-  const doUrl = new URL(c.req.url);
-  doUrl.pathname = '/websocket';
-  doUrl.search = '';
-  // Pass verified userId (from JWT) to DO instead of trusting client-provided userId
-  doUrl.searchParams.set('userId', payload.sub);
-  doUrl.searchParams.set('roomCode', room.roomCode);
-  doUrl.searchParams.set('roomId', room.roomId);
-  doUrl.searchParams.set('creationId', room.creationId);
-  return await callDurableObject(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
-});
+app.get('/ws', roomWebSocketHandler);
 
 // ── Route groups ────────────────────────────────────────────────────────────
 

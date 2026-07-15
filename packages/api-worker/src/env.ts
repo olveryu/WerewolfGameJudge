@@ -13,7 +13,7 @@ export interface Env {
   AVATARS: R2Bucket;
 
   // ── Durable Objects ─────────────────────────────────────────────
-  GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoom').GameRoomRuntime>;
+  GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoomRuntime').GameRoomRuntime>;
   WECHAT_AUTH: DurableObjectNamespace<import('./features/auth/WeChatAuthProxy').WeChatAuthProxy>;
   // ── Workers AI ─────────────────────────────────────────────────────
   AI: Ai;

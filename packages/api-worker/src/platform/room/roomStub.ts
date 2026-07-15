@@ -1,7 +1,7 @@
 /** Typed Durable Object stub lookup from an immutable directory instance ID. */
 
 import type { Env } from '../../env';
-import type { GameRoomRuntime } from './GameRoom';
+import type { GameRoomRuntime } from './GameRoomRuntime';
 
 type StripDisposable<T> = T extends Disposable ? Omit<T, keyof Disposable> : T;
 

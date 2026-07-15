@@ -4,7 +4,7 @@ import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonic
 import { env, runInDurableObject } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { GameRoomRuntime as GameRoom } from '../GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 import {
   beginRoomDeletion,
   claimRoomCreation,

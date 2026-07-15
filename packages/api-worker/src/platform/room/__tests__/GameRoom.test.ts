@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import { enqueueUserEvent } from '../../userEvents/inbox';
-import type { GameRoomRuntime as GameRoom } from '../GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 import { initializeRoomStorage } from '../storageSchema';
 import type { DispatchRoomResult, InitializeRoomResult } from '../types';
 

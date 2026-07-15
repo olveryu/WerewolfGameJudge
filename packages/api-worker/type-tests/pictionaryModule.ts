@@ -12,7 +12,10 @@ import {
   PICTURE_DICTIONARY_GAME_TYPE,
 } from '../../game-engine/type-tests/pictionaryModule';
 import { WORKER_GAME_CATALOG } from '../src/games/catalog';
-import { defineWorkerGameModule, registerWorkerGameModule } from '../src/games/workerModule';
+import {
+  defineWorkerGameModule,
+  registerWorkerGameModule,
+} from '../src/platform/gameModules/workerModule';
 
 interface PictionaryPublicUserStats {
   readonly gameType: typeof PICTURE_DICTIONARY_GAME_TYPE;

@@ -10,8 +10,11 @@ import { fibEffectSchema, handleFibGenerateWordEffect } from '../games/fibking/e
 import { fibWorkerModule } from '../games/fibking/module';
 import { getOrCreateFibWordGenerationResult } from '../games/fibking/wordGenerationResults';
 import { createLocalFibWordProvider } from '../games/fibking/wordProviders/local';
-import type { WorkerEffectContext } from '../games/workerModule';
-import { defineWorkerGameModule, registerWorkerGameModule } from '../games/workerModule';
+import type { WorkerEffectContext } from '../platform/gameModules/workerModule';
+import {
+  defineWorkerGameModule,
+  registerWorkerGameModule,
+} from '../platform/gameModules/workerModule';
 
 async function hasPersistedProviderResult(
   context: WorkerEffectContext<FibState, FibInternalCommand>,

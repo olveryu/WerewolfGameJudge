@@ -6,7 +6,7 @@ import {
   parseFibPublicStats,
 } from '@game-judge/game-engine/games/fibking/public';
 
-import { defineWorkerGameModule } from '../workerModule';
+import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { fibEffectSchema, handleFibEffect } from './effects';
 import { fibCreateConfigSchema, fibInternalCommandSchema, fibPublicCommandSchema } from './schemas';
 

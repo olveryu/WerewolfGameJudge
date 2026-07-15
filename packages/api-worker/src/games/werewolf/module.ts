@@ -6,7 +6,7 @@ import {
   werewolfEngine,
 } from '@game-judge/game-engine/games/werewolf/public';
 
-import { defineWorkerGameModule } from '../workerModule';
+import { defineWorkerGameModule } from '../../platform/gameModules/workerModule';
 import { werewolfAiChatRoutes } from './aiChat/routes';
 import { handleWerewolfEffect, werewolfEffectSchema } from './effects';
 import { getWerewolfPublicUserStats } from './publicUserStats';

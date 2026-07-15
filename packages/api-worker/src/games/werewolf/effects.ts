@@ -9,8 +9,8 @@ import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
-import { createEffectCommandId } from '../effectCommandId';
-import type { WorkerEffectContext } from '../workerModule';
+import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { settleGameResults } from './settlement/settleGameResults';
 
 const roleIdSchema = z.custom<RoleId>(

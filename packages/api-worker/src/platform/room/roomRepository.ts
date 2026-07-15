@@ -14,7 +14,10 @@ import {
   type RoomSnapshot,
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
-import type { RuntimeWorkerGameModule, WorkerGameModuleResolver } from './runtimeGameModule';
+import type {
+  RuntimeWorkerGameModule,
+  WorkerGameModuleResolver,
+} from '../gameModules/runtimeGameModule';
 import type {
   DispatchRoomCommand,
   EffectScope,

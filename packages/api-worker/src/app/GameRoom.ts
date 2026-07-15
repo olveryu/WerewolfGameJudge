@@ -4,9 +4,9 @@ import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTyp
 import * as Sentry from '@sentry/cloudflare';
 
 import type { Env } from '../env';
-import { GameRoomRuntime } from '../platform/room/GameRoom';
-import type { RuntimeWorkerGameModule } from '../platform/room/runtimeGameModule';
-import { getWorkerGameModule } from './catalog';
+import { getWorkerGameModule } from '../games/catalog';
+import type { RuntimeWorkerGameModule } from '../platform/gameModules/runtimeGameModule';
+import { GameRoomRuntime } from '../platform/room/GameRoomRuntime';
 
 class ComposedGameRoom extends GameRoomRuntime {
   protected resolveGameModule(gameType: GameType): RuntimeWorkerGameModule {

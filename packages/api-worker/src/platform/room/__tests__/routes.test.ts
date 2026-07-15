@@ -12,7 +12,7 @@ import { env, runInDurableObject, SELF } from 'cloudflare:test';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
-import type { GameRoomRuntime as GameRoom } from '../GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../GameRoomRuntime';
 
 interface AuthResponse {
   access_token: string;

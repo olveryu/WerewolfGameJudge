@@ -10,6 +10,7 @@ import {
 import { Hono, type MiddlewareHandler } from 'hono';
 
 import type { AppEnv } from '../../env';
+import type { WorkerGameModuleResolver } from '../gameModules/runtimeGameModule';
 import { callDurableObject } from '../http/callDurableObject';
 import { jsonBody } from '../http/jsonBody';
 import { createLogger } from '../observability/logger';
@@ -30,7 +31,6 @@ import {
 } from './roomDirectory';
 import { resumeRoomCreation, resumeRoomDeletion } from './roomSaga';
 import { getGameRoomStub } from './roomStub';
-import type { WorkerGameModuleResolver } from './runtimeGameModule';
 
 const log = createLogger('room');
 

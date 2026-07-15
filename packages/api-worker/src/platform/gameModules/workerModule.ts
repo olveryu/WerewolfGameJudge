@@ -1,6 +1,5 @@
 /** Typed composition boundary between pure game engines and the Worker runtime. */
 
-import type { GameEngineCatalog } from '@game-judge/game-engine/games/catalog';
 import type {
   CommandContext,
   CommandOf,
@@ -17,7 +16,7 @@ import {
   parseRoomCommandResult,
   type RoomCommandResult,
 } from '@game-judge/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
@@ -25,12 +24,12 @@ import type {
 import type { Hono } from 'hono';
 import type { ZodType } from 'zod';
 
-import type { AppEnv, Env } from '../env';
+import type { AppEnv, Env } from '../../env';
 import type {
   RuntimeWorkerGameModule,
   WorkerEffectBusinessContext,
   WorkerEffectRoomIdentity,
-} from '../platform/room/runtimeGameModule';
+} from './runtimeGameModule';
 
 export interface WorkerGameHttpRoute<TGameType extends string> {
   readonly path: `/api/games/${TGameType}/${string}`;
@@ -402,8 +401,7 @@ export function registerWorkerGameModule<
     TPublicCommand | TInternalCommand,
     TEvent,
     TEffect
-  > &
-    GameEngineCatalog[TGameType],
+  >,
   const TPublicUserStats,
 >(
   module: WorkerGameModule<
@@ -454,16 +452,42 @@ export function registerWorkerGameModule<
 export type WorkerGameCatalogShape = {
   readonly [TGameType in GameType]: RuntimeWorkerGameModule & {
     readonly gameType: TGameType;
-    readonly engine: GameEngineCatalog[TGameType];
+    readonly engine: object;
   };
 };
 
-type NoExtraGameTypes<TCatalog> = {
-  readonly [TKey in Exclude<keyof TCatalog, GameType>]: never;
+type EngineCatalogShape = {
+  readonly [TGameType in GameType]: {
+    readonly gameType: TGameType;
+  };
 };
 
-export function defineWorkerGameCatalog<const TCatalog extends WorkerGameCatalogShape>(
-  catalog: TCatalog & NoExtraGameTypes<TCatalog>,
+type ValidatedWorkerGameCatalog<
+  TEngineCatalog extends EngineCatalogShape,
+  TCatalog extends WorkerGameCatalogShape,
+> = {
+  readonly [TGameType in GameType]: TCatalog[TGameType] extends RuntimeWorkerGameModule & {
+    readonly gameType: TGameType;
+    readonly engine: TEngineCatalog[TGameType];
+  }
+    ? TCatalog[TGameType]
+    : never;
+} & {
+  readonly [TExtraKey in Exclude<keyof TCatalog, GameType>]: never;
+};
+
+/** Bind canonical Worker modules to the one production engine catalog. */
+export function defineWorkerGameCatalog<
+  const TEngineCatalog extends EngineCatalogShape,
+  const TCatalog extends WorkerGameCatalogShape,
+>(
+  engineCatalog: TEngineCatalog,
+  catalog: TCatalog & ValidatedWorkerGameCatalog<TEngineCatalog, TCatalog>,
 ): TCatalog {
+  for (const gameType of GAME_TYPES) {
+    if (catalog[gameType].engine !== engineCatalog[gameType]) {
+      throw new Error(`[FAIL-FAST] Worker module ${gameType} does not use its production engine`);
+    }
+  }
   return catalog;
 }

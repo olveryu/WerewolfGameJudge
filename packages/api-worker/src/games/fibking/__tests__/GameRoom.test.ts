@@ -7,7 +7,7 @@ import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
-import type { GameRoomRuntime as GameRoom } from '../../../platform/room/GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../../../platform/room/GameRoomRuntime';
 import type { DispatchRoomResult, InitializeRoomResult } from '../../../platform/room/types';
 
 const ROOM_CODE = '8642';

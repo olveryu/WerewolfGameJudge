@@ -2,7 +2,7 @@
 
 import { env, listDurableObjectIds, runInDurableObject } from 'cloudflare:test';
 
-import type { GameRoomRuntime } from '../src/platform/room/GameRoom';
+import type { GameRoomRuntime } from '../src/platform/room/GameRoomRuntime';
 
 export async function deleteCurrentRoomAlarms(): Promise<void> {
   const roomIds = await listDurableObjectIds(env.GAME_ROOM);

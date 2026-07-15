@@ -1,15 +1,19 @@
 /** Exhaustive Worker game catalog and game-owned HTTP route projection. */
 
+import { GAME_ENGINE_CATALOG } from '@game-judge/game-engine/games/catalog';
 import { GAME_TYPES, type GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
-import type { RuntimeWorkerGameModule } from '../platform/room/runtimeGameModule';
+import type { RuntimeWorkerGameModule } from '../platform/gameModules/runtimeGameModule';
+import {
+  defineWorkerGameCatalog,
+  registerWorkerGameModule,
+} from '../platform/gameModules/workerModule';
 import { fibWorkerModule } from './fibking/module';
 import { werewolfWorkerModule } from './werewolf/module';
-import { defineWorkerGameCatalog, registerWorkerGameModule } from './workerModule';
 
-export const WORKER_GAME_CATALOG = defineWorkerGameCatalog({
+export const WORKER_GAME_CATALOG = defineWorkerGameCatalog(GAME_ENGINE_CATALOG, {
   werewolf: registerWorkerGameModule(werewolfWorkerModule),
   fibking: registerWorkerGameModule(fibWorkerModule),
 });

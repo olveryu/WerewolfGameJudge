@@ -8,7 +8,7 @@ import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonic
 import { z } from 'zod';
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
-import type { WorkerEffectRoomIdentity } from '../../platform/room/runtimeGameModule';
+import type { WorkerEffectRoomIdentity } from '../../platform/gameModules/runtimeGameModule';
 import type { fibWordGenerationResults } from './dbSchema';
 import { parseFibWordCandidate } from './wordProviders/candidate';
 import type { FibWordCandidate, FibWordProvider } from './wordProviders/types';

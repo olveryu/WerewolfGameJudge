@@ -11,8 +11,8 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { z } from 'zod';
 
-import { createEffectCommandId } from '../effectCommandId';
-import type { WorkerEffectContext } from '../workerModule';
+import { createEffectCommandId } from '../../platform/gameModules/effectCommandId';
+import type { WorkerEffectContext } from '../../platform/gameModules/workerModule';
 import { getOrCreateFibWordGenerationResult } from './wordGenerationResults';
 import { createConfiguredFibWordProvider, type FibWordProvider } from './wordProviders';
 
