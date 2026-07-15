@@ -422,13 +422,17 @@ jobs:
     runs-on: ubuntu-latest
     if: always() && needs.e2e.result != 'skipped'
     needs: e2e
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
 
       - name: Download blob reports
         uses: actions/download-artifact@v8
@@ -438,7 +442,7 @@ jobs:
           merge-multiple: true
 
       - name: Merge reports
-        run: npx playwright merge-reports --reporter=html ./all-blob-reports
+        run: pnpm exec playwright merge-reports --reporter=html ./all-blob-reports
 
       - name: Upload merged report artifact
         uses: actions/upload-artifact@v7
@@ -448,18 +452,32 @@ jobs:
           retention-days: 30
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main'
+        if: |
+          github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-pages-artifact@v5
         with:
           path: playwright-report/
 
+  deploy-e2e-report:
+    runs-on: ubuntu-latest
+    if: |
+      needs.merge-reports.result == 'success' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: merge-reports
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
         id: deploy
         uses: actions/deploy-pages@v5
 
       - name: Add report link to summary
-        if: github.ref == 'refs/heads/main'
         run: |
           echo "## 📊 Playwright Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

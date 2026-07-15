@@ -2274,3 +2274,24 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 1 至此满足退出条件并标记完成：platform/protocol、Worker/client catalogs、客户端目录所有权、Home 与
   navigation 均已中性化，且没有 compatibility layer。按实施顺序暂停在 Phase 1 完成点，Phase 6
   `fibking` vertical slice 尚未开始。
+
+### 当前提交：Phase 1 远端验收与 CI 报告发布边界
+
+- commit `ca29c08f` 对应 CI run `29379097267`：quality 与四个 Playwright shard 全部通过；其中 shard 4
+  覆盖 `entry-flow`、`db-recovery`、`seating`、room lifecycle 与 canonical navigation。Phase 1 的产品行为和
+  架构门禁据此完成远端验收。
+- 该 run 的最终红灯来自后置 `merge-reports` job 在零 step 时被拒绝。根因是报告聚合与 Pages 部署共处一个
+  job，导致所有 PR 都在执行报告合并前申请受保护的 `github-pages` environment；允许
+  `refs/pull/*/merge` 部署会削弱现有环境规则，不是正确修复。
+- 按 GitHub 当前的
+  [Pages custom workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+  边界拆分：`merge-reports` 不绑定 deployment environment，使用仓库 lockfile 对应的 Playwright 合并并上传
+  普通 artifact；新增 `deploy-e2e-report`，只在 `main` push 或 `workflow_dispatch` 时消费 Pages artifact，且
+  只有该部署 job 绑定 `github-pages`。PR 因此可以完成报告聚合，同时仍受
+  [deployment environment 保护规则](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
+  约束，不能发布 Pages。
+- 本提交只收口 CI 报告发布职责，不改变 Phase 1 产品代码，也不启动 Phase 6 `fibking` vertical slice。
+- 提交前完整 `pnpm run quality` 通过：typecheck、game-engine build、knip、lint、format 全绿；root
+  200 suites/5544 tests、game-engine 83 suites/2393 tests、api-worker 12 files/90 tests 全部通过。另从 run
+  `29379097267` 下载四个真实 blob artifacts，使用仓库锁定的 Playwright 完成 merge 并生成 HTML report，验证
+  新聚合步骤与现有 shard 产物兼容。
