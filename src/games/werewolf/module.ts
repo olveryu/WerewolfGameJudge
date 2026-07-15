@@ -7,6 +7,7 @@ import {
 } from '@werewolf/game-engine/games/werewolf/public';
 import { createElement } from 'react';
 
+import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -14,6 +15,7 @@ import { WerewolfAccountStatsSection } from '@/games/werewolf/components/Werewol
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
 import { werewolfHomeContribution } from '@/games/werewolf/home';
 import { WerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
+import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
 import {
@@ -63,11 +65,11 @@ export function createWerewolfUiModule({
     gameType: 'werewolf' as const,
     client,
     home: werewolfHomeContribution,
-    navigation: {
-      configScreen: BoundWerewolfConfigFlowScreen,
-      guideScreen: EncyclopediaScreen,
-      notepadScreen: BoundWerewolfNotepadScreen,
-    },
+    navigation: bindGameNavigation(werewolfGameNavigation, {
+      config: BoundWerewolfConfigFlowScreen,
+      guide: EncyclopediaScreen,
+      notepad: BoundWerewolfNotepadScreen,
+    }),
     roomScreen: BoundWerewolfRoomScreen,
     roomAccount,
     productUi: werewolfProductUi,

@@ -11,7 +11,6 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -24,6 +23,7 @@ import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessi
 import { buildNotepadSummary } from '@/games/werewolf/components/AIChatBubble/notepadSummary';
 import { NotepadPanel } from '@/games/werewolf/components/NotepadPanel';
 import { useNotepad } from '@/games/werewolf/hooks/useNotepad';
+import { parseWerewolfNotepadRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { requestAIChatMessage } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
@@ -42,10 +42,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const styles = useMemo(() => createNotepadScreenStyles(colors), []);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameNotepad'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameNotepad'>>();
-  if (route.params.gameType !== 'werewolf') {
-    throw new Error(`[FAIL-FAST] Werewolf notepad received game type ${route.params.gameType}`);
-  }
-  const roomCode = parseRoomCode(route.params.roomCode);
+  const { roomCode } = parseWerewolfNotepadRouteParams(route.params);
 
   const room = useRoomSessionSnapshot(client.roomSession);
   const activeNotepadRoom =

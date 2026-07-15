@@ -8,12 +8,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  getAllRoleIds,
-  isValidRoleId,
-  type RoleId,
-} from '@werewolf/game-engine/games/werewolf/public';
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllRoleIds, PRESET_TEMPLATES } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -21,6 +16,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import type { WerewolfGuideTab } from '@/games/werewolf/navigation/types';
+import { parseWerewolfGuideRouteParams } from '@/games/werewolf/navigation/werewolfGameNavigation';
 import type { RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, withAlpha } from '@/theme';
@@ -32,32 +29,10 @@ import { useEncyclopediaScreenState } from './useEncyclopediaScreenState';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type GuideTab = 'roles' | 'boards';
-
-const GUIDE_SEGMENTS: readonly { key: GuideTab; label: string }[] = [
+const GUIDE_SEGMENTS: readonly { key: WerewolfGuideTab; label: string }[] = [
   { key: 'roles', label: `角色 · ${getAllRoleIds().length}` },
   { key: 'boards', label: `板子 · ${PRESET_TEMPLATES.length}` },
 ];
-
-function parseGuideTab(value: unknown): GuideTab {
-  if (value === undefined || value === 'roles') return 'roles';
-  if (value === 'boards') return 'boards';
-  if (typeof value !== 'string') {
-    throw new Error('[FAIL-FAST] Werewolf guide tab must be a string');
-  }
-  throw new Error(`[FAIL-FAST] Unknown Werewolf guide tab: ${value}`);
-}
-
-function parseGuideRoleId(value: unknown): RoleId | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== 'string') {
-    throw new Error('[FAIL-FAST] Werewolf guide role must be a string');
-  }
-  if (!isValidRoleId(value)) {
-    throw new Error(`[FAIL-FAST] Unknown Werewolf guide role: ${value}`);
-  }
-  return value;
-}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -66,14 +41,11 @@ export const EncyclopediaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
   const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
-  if (route.params.gameType !== 'werewolf') {
-    throw new Error(`[FAIL-FAST] Werewolf guide received game type ${route.params.gameType}`);
-  }
-  const initialTab = parseGuideTab(route.params.initialTab);
-  const initialRoleId = parseGuideRoleId(route.params.roleId);
-  const [activeTab, setActiveTab] = useState<GuideTab>(initialTab);
+  const routeParams = parseWerewolfGuideRouteParams(route.params);
+  const initialTab = routeParams.initialTab ?? 'roles';
+  const [activeTab, setActiveTab] = useState<WerewolfGuideTab>(initialTab);
 
-  const rolesState = useEncyclopediaScreenState(initialRoleId);
+  const rolesState = useEncyclopediaScreenState(routeParams.roleId);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {

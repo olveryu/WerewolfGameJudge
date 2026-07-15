@@ -23,11 +23,12 @@ import { useCallback } from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
+import type { GameNavigationRouteKind } from '@/features/navigation/model/GameNavigationContribution';
 import { parseRouteParams } from '@/features/navigation/model/routeParams';
 import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
 import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModule } from '@/games/model/ClientGameCatalog';
-import { getGameConfigRoomCode } from '@/games/navigation';
+import { getGameNavigationRoomCode } from '@/games/navigation';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
@@ -83,8 +84,22 @@ function getOptionalRoomCode(params: unknown): string | null {
   return roomCode === undefined ? null : parseRoomCode(roomCode);
 }
 
+function getGameNavigationRouteKind(routeName: string): GameNavigationRouteKind | null {
+  switch (routeName) {
+    case 'GameConfig':
+      return 'config';
+    case 'GameGuide':
+      return 'guide';
+    case 'GameNotepad':
+      return 'notepad';
+    default:
+      return null;
+  }
+}
+
 function getParentRoomCode(routeName: string, params: unknown): string | null {
-  if (routeName === 'GameConfig') return getGameConfigRoomCode(params);
+  const routeKind = getGameNavigationRouteKind(routeName);
+  if (routeKind !== null) return getGameNavigationRoomCode(routeKind, params);
   return getOptionalRoomCode(params);
 }
 

@@ -1450,9 +1450,17 @@ type RootStackParamList = {
 };
 ```
 
-`GameHostRoutes.tsx` 只解析 canonical `gameType`，再从 `ClientGameCatalog` 取
-`configScreen/guideScreen/notepadScreen`。缺失可选 screen 直接抛错，不 fallback 到狼人杀。`Room` 继续是唯一
-公开房间 URL，并由 `RoomResolverScreen` 读取权威 metadata 后选择 module。
+每个游戏在自己的 `navigation/` 中声明一个 `GameNavigationDefinition`。`config/guide/notepad` 每项只能是
+`{ kind: 'screen', parseParams }` 或 `{ kind: 'unsupported' }`；`bindGameNavigation()` 根据 definition 在编译期
+精确要求受支持 screen，禁止给 unsupported route 绑定 screen。`null` screen、`never` route extension 和另一张
+capability boolean 表都不存在。
+
+`src/games/navigation.ts` 是唯一穷尽组合点：`GameConfigRouteParams/GameGuideRouteParams/
+GameNotepadRouteParams` 直接从两个游戏 definition 的 parser 返回类型推导。`GameHostRoutes.tsx` 从
+`ClientGameCatalog` 读取同一个已绑定 capability 并先执行其 parser 再渲染；`AppNavigator` 的 deep-link parent
+stack 也通过组合后的同一个 definition 解析。游戏不支持某 route 时，类型联合不会包含该游戏，外部 deep link
+在进入 screen 前 fail fast，不 fallback 到狼人杀。`Room` 继续是唯一公开房间 URL，并由
+`RoomResolverScreen` 读取权威 metadata 后选择 module。
 
 Root stack 不注册 `BoardPicker`、`Config`、`GameRules`、`Encyclopedia` 或 `Notepad` 等狼人杀页面。狼人杀的
 `BoardPicker -> Config -> Rules` 是 `WerewolfConfigFlowScreen` 内部 native stack；创建、编辑、板子提案三种
@@ -1889,17 +1897,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                       |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                              |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                              |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                              |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                              |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                              |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                              |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                              |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                              |
-| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage 与 room creation、精确 exports 与 AST gates                       | navigation、动态门禁、scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                       |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                       |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                       |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                       |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                       |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                       |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                       |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                       |
+| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage/room creation、单一 navigation capability、精确 exports           | 动态 AST 门禁、scope 中性化、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2523,3 +2531,30 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   仍输出仓库已记录的 Expo late-log/forced-exit 噪声，但命令退出码为 0，没有为噪声修改 production 行为。
 - Phase 8 仍未完成。下一批统一 navigation capability contribution 与 deep-link registration，然后删除过期
   hard gate/allowlist，完成 workspace scope 中性化、compile-only Pictionary 接入证明和最终 migration/E2E 验收。
+
+### 当前提交：Phase 8.5 单一 navigation capability 与 route contract
+
+- `GameNavigationContribution` 不再用 `configScreen/guideScreen/notepadScreen` 的 nullable 三元组表达能力。每个
+  route 现在是 `kind: 'screen' | 'unsupported'` 判别联合；`bindGameNavigation()` 的 mapped binding 只要求
+  definition 中受支持的 screen，缺 screen、给 unsupported route 绑定 screen 都在编译期失败，composition
+  boundary 仍保留确定的 fail-fast invariant check。
+- Werewolf 与 FibKing 分别在自己的 `navigation/werewolfGameNavigation.ts`、
+  `navigation/fibGameNavigation.ts` 声明严格 definition。Config、guide、notepad 参数由 game-owned parser
+  校验 exact key、canonical game type、room code、mode、role ID 与 guide tab；screen 不再维护另一套 route
+  字段校验。
+- `src/games/navigation.ts` 只做按 `GameType` 的穷尽组合。三个 root route 参数联合均从 definition 的
+  `parseParams` 返回类型推导；FibKing notepad 由 `unsupported` 自动从 `GameNotepadRouteParams` 排除，删除
+  `FibNotepadRouteParams = never` 和空 guide extension 这两种平行表示。
+- `GameHostRoutes` 统一按 route kind 解析并渲染 catalog capability；Home 的玩法入口可见性读取同一 `kind`。
+  `AppNavigator` 的 cold deep link 在构造 parent stack 前调用同一组合 parser，所以
+  `/game/fibking/notepad/:roomCode`、FibKing `nominate`、非法 Werewolf role/tab 和游戏不认识的额外参数均在进入
+  screen 前失败，不再等 nullable screen 分支兜底。
+- 编译 contract 证明 FibKing 不能构造 `GameNotepadRouteParams`、不能漏绑 guide screen，也不能给 notepad
+  绑 screen；runtime contract 覆盖两个游戏的 config parent stack、guide/notepad capability 与 malformed
+  deep link。定向验证已通过 root TypeScript、navigation/Home 3 suites/56 tests 和 architecture
+  1 suite/3654 tests。
+- 提交前完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；
+  root 224 suites/8611 tests、game-engine 86 suites/2511 tests、api-worker 16 files/116 tests 全部通过。root Jest
+  仍只有仓库已记录的 Expo late-log/forced-exit 噪声，命令退出码为 0，没有因此修改 production 流程。
+- Phase 8 尚余：用 TypeScript AST 替换易漂移的行级 import 门禁，删除过期 hard gate/allowlist，完成目录集合与
+  workspace scope 中性化、compile-only Pictionary 接入证明，以及最终 migration、seed、quality、全量 E2E。

@@ -1,65 +1,58 @@
-/** Exhaustive root-route parameter composition for client game modules. */
+/** Exhaustive composition of game-owned root-navigation definitions. */
 
 import { type GameType, parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 
+import type {
+  GameNavigationDefinition,
+  GameNavigationRouteKind,
+  SupportedGameNavigationRoute,
+} from '@/features/navigation/model/GameNavigationContribution';
 import { parseRouteParams } from '@/features/navigation/model/routeParams';
-import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibConfigRoute';
-import type {
-  FibConfigRouteParams,
-  FibGuideRouteExtension,
-  FibNotepadRouteParams,
-} from '@/games/fibking/navigation/types';
-import type {
-  WerewolfConfigRouteParams,
-  WerewolfGuideRouteExtension,
-  WerewolfNotepadRouteParams,
-} from '@/games/werewolf/navigation/types';
-import { parseWerewolfConfigRouteParams } from '@/games/werewolf/navigation/werewolfConfigFlow';
+import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
+import { werewolfGameNavigation } from '@/games/werewolf/navigation/werewolfGameNavigation';
 
-interface ClientGameRouteExtensionsByType {
-  readonly werewolf: {
-    readonly config: WerewolfConfigRouteParams;
-    readonly guide: WerewolfGuideRouteExtension;
-    readonly notepad: WerewolfNotepadRouteParams;
-  };
-  readonly fibking: {
-    readonly config: FibConfigRouteParams;
-    readonly guide: FibGuideRouteExtension;
-    readonly notepad: FibNotepadRouteParams;
-  };
-}
+const GAME_NAVIGATION_DEFINITIONS = {
+  werewolf: werewolfGameNavigation,
+  fibking: fibGameNavigation,
+} satisfies { readonly [TGameType in GameType]: GameNavigationDefinition<TGameType> };
 
-type GameSpecificRouteParams<TKey extends keyof ClientGameRouteExtensionsByType[GameType]> = {
-  [TGameType in GameType]: {
-    readonly gameType: TGameType;
-  } & ClientGameRouteExtensionsByType[TGameType][TKey];
+type RouteParams<TDefinition> =
+  TDefinition extends SupportedGameNavigationRoute<infer TParams> ? TParams : never;
+
+type RegisteredRouteParams<TRouteKind extends GameNavigationRouteKind> = {
+  [TGameType in GameType]: RouteParams<(typeof GAME_NAVIGATION_DEFINITIONS)[TGameType][TRouteKind]>;
 }[GameType];
 
-export type GameConfigRouteParams = ClientGameRouteExtensionsByType[GameType]['config'];
+export type GameConfigRouteParams = RegisteredRouteParams<'config'>;
+export type GameGuideRouteParams = RegisteredRouteParams<'guide'>;
+export type GameNotepadRouteParams = RegisteredRouteParams<'notepad'>;
 
-export type GameGuideRouteParams = {
-  [TGameType in GameType]: {
-    readonly gameType: TGameType;
-    readonly roomCode?: string;
-  } & ClientGameRouteExtensionsByType[TGameType]['guide'];
-}[GameType];
-
-export type GameNotepadRouteParams = GameSpecificRouteParams<'notepad'>;
-
-type GameConfigRouteParser = (params: unknown) => GameConfigRouteParams;
-
-const GAME_CONFIG_ROUTE_PARSERS = {
-  werewolf: parseWerewolfConfigRouteParams,
-  fibking: parseFibConfigRouteParams,
-} satisfies Readonly<Record<GameType, GameConfigRouteParser>>;
-
-function parseGameConfigRouteParams(params: unknown): GameConfigRouteParams {
-  const routeParams = parseRouteParams(params, 'Game config');
+function getSupportedRouteDefinition(
+  routeKind: GameNavigationRouteKind,
+  params: unknown,
+): SupportedGameNavigationRoute {
+  const routeParams = parseRouteParams(params, `Game ${routeKind}`);
   const gameType = parseGameType(routeParams.gameType);
-  return GAME_CONFIG_ROUTE_PARSERS[gameType](routeParams);
+  const definition = GAME_NAVIGATION_DEFINITIONS[gameType][routeKind];
+  if (definition.kind === 'unsupported') {
+    throw new Error(`[FAIL-FAST] ${gameType} does not support ${routeKind} navigation`);
+  }
+  return definition;
 }
 
-export function getGameConfigRoomCode(params: unknown): string | null {
-  const routeParams = parseGameConfigRouteParams(params);
-  return 'roomCode' in routeParams ? routeParams.roomCode : null;
+export function parseGameNavigationRouteParams(
+  routeKind: GameNavigationRouteKind,
+  params: unknown,
+): object {
+  return getSupportedRouteDefinition(routeKind, params).parseParams(params);
+}
+
+export function getGameNavigationRoomCode(
+  routeKind: GameNavigationRouteKind,
+  params: unknown,
+): string | null {
+  const routeParams = parseGameNavigationRouteParams(routeKind, params);
+  if (!('roomCode' in routeParams) || routeParams.roomCode === undefined) return null;
+  return parseRoomCode(routeParams.roomCode);
 }

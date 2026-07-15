@@ -14,12 +14,17 @@ export type WerewolfConfigRouteParams =
       readonly roomCode: string;
     };
 
-export interface WerewolfGuideRouteExtension {
+export type WerewolfGuideTab = 'roles' | 'boards';
+
+export interface WerewolfGuideRouteParams {
+  readonly gameType: 'werewolf';
+  readonly roomCode?: string;
   readonly roleId?: RoleId;
-  readonly initialTab?: 'roles' | 'boards';
+  readonly initialTab?: WerewolfGuideTab;
 }
 
 export interface WerewolfNotepadRouteParams {
+  readonly gameType: 'werewolf';
   readonly roomCode: string;
 }
 

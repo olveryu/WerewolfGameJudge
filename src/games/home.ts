@@ -55,7 +55,7 @@ export function createClientGameHome(modules: readonly ClientGameModule[]): Clie
 
     const modeOption = { gameType: module.gameType, ...module.home.mode };
     modeOptions.push(modeOption);
-    if (module.navigation.guideScreen !== null) guideOptions.push(modeOption);
+    if (module.navigation.guide.kind === 'screen') guideOptions.push(modeOption);
     if (module.home.spotlight !== null) {
       spotlights.push({ gameType: module.gameType, spotlight: module.home.spotlight });
     }

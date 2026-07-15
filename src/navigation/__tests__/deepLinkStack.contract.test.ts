@@ -88,4 +88,56 @@ describe('deep-link stack: game config route matrix', () => {
   ])('rejects the invalid config route %s', (path) => {
     expect(() => linking.getStateFromPath!(path, linking.config)).toThrow();
   });
+
+  it.each([
+    {
+      path: '/game/fibking/config/create',
+      expectedRoutes: ['Home', 'GameConfig'],
+    },
+    {
+      path: '/game/fibking/config/edit/2468',
+      expectedRoutes: ['Home', 'Room', 'GameConfig'],
+    },
+  ])('builds the FibKing parent stack for $path', ({ path, expectedRoutes }) => {
+    const state = linking.getStateFromPath!(path, linking.config);
+
+    expect(state?.routes.map((route) => route.name)).toEqual(expectedRoutes);
+  });
+
+  it.each([
+    '/game/fibking/config/nominate/2468',
+    '/game/fibking/config/create/2468',
+    '/game/fibking/config/edit',
+  ])('rejects the invalid FibKing config route %s', (path) => {
+    expect(() => linking.getStateFromPath!(path, linking.config)).toThrow();
+  });
+});
+
+describe('deep-link stack: optional game navigation capabilities', () => {
+  it('accepts registered guide and notepad routes', () => {
+    expect(
+      linking.getStateFromPath!('/game/fibking/guide/2468', linking.config)?.routes.map(
+        (route) => route.name,
+      ),
+    ).toEqual(['Home', 'Room', 'GameGuide']);
+    expect(
+      linking.getStateFromPath!('/game/werewolf/notepad/1357', linking.config)?.routes.map(
+        (route) => route.name,
+      ),
+    ).toEqual(['Home', 'Room', 'GameNotepad']);
+  });
+
+  it('rejects a route whose game capability is unsupported', () => {
+    expect(() => linking.getStateFromPath!('/game/fibking/notepad/2468', linking.config)).toThrow(
+      '[FAIL-FAST] fibking does not support notepad navigation',
+    );
+  });
+
+  it.each([
+    '/game/fibking/guide/2468?roleId=seer',
+    '/game/werewolf/guide/2468?initialTab=unknown',
+    '/game/werewolf/guide/2468?roleId=unknown',
+  ])('rejects malformed game guide params from %s', (path) => {
+    expect(() => linking.getStateFromPath!(path, linking.config)).toThrow();
+  });
 });

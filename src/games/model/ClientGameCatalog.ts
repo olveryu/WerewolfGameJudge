@@ -14,7 +14,7 @@ export interface ClientGameModule<
   TGameType extends GameType = GameType,
 > extends RoomUiModule<TGameType> {
   readonly home: GameHomeContribution;
-  readonly navigation: GameNavigationContribution;
+  readonly navigation: GameNavigationContribution<TGameType>;
   readonly roomAccount: RoomAccountCapability<TGameType>;
   readonly productUi: GameProductUiContribution;
   readonly audioPreview: GameAudioPreviewContribution | null;

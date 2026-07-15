@@ -11,5 +11,7 @@ export type FibConfigRouteParams =
       readonly roomCode: string;
     };
 
-export type FibGuideRouteExtension = Readonly<Record<never, never>>;
-export type FibNotepadRouteParams = never;
+export interface FibGuideRouteParams {
+  readonly gameType: 'fibking';
+  readonly roomCode?: string;
+}

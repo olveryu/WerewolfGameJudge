@@ -7,11 +7,13 @@ import {
 } from '@werewolf/game-engine/games/fibking/public';
 import { createElement } from 'react';
 
+import { bindGameNavigation } from '@/features/navigation/model/GameNavigationContribution';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { NO_ROOM_USER_EVENT_CODEC } from '@/features/room/session/noRoomUserEventCodec';
 import { fibHomeContribution } from '@/games/fibking/home';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
+import { fibGameNavigation } from '@/games/fibking/navigation/fibGameNavigation';
 import { fibProductUi } from '@/games/fibking/productUi';
 import { createFibRoomAccountCapability } from '@/games/fibking/profile/createFibRoomAccountCapability';
 import { FibRoomScreen } from '@/games/fibking/room/FibRoomScreen';
@@ -43,11 +45,10 @@ export function createFibUiModule({ sessionFactory }: CreateFibUiModuleDeps) {
   return {
     gameType: 'fibking',
     home: fibHomeContribution,
-    navigation: {
-      configScreen: BoundFibConfigScreen,
-      guideScreen: FibRulesScreen,
-      notepadScreen: null,
-    },
+    navigation: bindGameNavigation(fibGameNavigation, {
+      config: BoundFibConfigScreen,
+      guide: FibRulesScreen,
+    }),
     roomScreen: BoundFibRoomScreen,
     roomAccount,
     productUi: fibProductUi,
