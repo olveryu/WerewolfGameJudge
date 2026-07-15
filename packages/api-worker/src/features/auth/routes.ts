@@ -1,15 +1,13 @@
 /**
  * Auth Route Handlers — self-implemented auth API (Hono routes)
  *
- * Covers anonymous login, email signup/signin, profile update, session recovery.
+ * Covers anonymous login, email signup/signin, password management, and session recovery.
  * JWT issuing/verification; passwords hashed via PBKDF2 and stored in D1.
  *
  * @throws HTTP error codes thrown/returned by each route:
  * - POST /auth/anonymous — no special errors
  * - POST /auth/signup — 409 EMAIL_ALREADY_REGISTERED | 500 ACCOUNT_MERGE_FAILED
  * - POST /auth/signin — 429 TOO_MANY_ATTEMPTS (10/15min) | 401 INVALID_CREDENTIALS
- * - GET /auth/user — 401 token missing/invalid/revoked | 404 user deleted
- * - PUT /auth/profile — 403 equipped item not unlocked
  * - PUT /auth/password — 400 NO_PASSWORD (anonymous/WeChat user) | 401 old password incorrect
  * - POST /auth/signout — no special errors
  * - POST /auth/forgot-password — 500 EMAIL_SEND_FAILED
@@ -21,16 +19,7 @@
  */
 
 import { getLevel } from '@game-judge/game-engine/product/growth';
-import {
-  getItemRarity,
-  isFlairUnlocked,
-  isFrameUnlocked,
-  isNameStyleUnlocked,
-  isRoleRevealEffectUnlocked,
-  isSeatAnimationUnlocked,
-  parseUnlockedRewardIds,
-  ROLE_REVEAL_EFFECT_IDS,
-} from '@game-judge/game-engine/product/rewards';
+import { getItemRarity, parseUnlockedRewardIds } from '@game-judge/game-engine/product/rewards';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -39,6 +28,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { users, userStats } from '../account/dbSchema';
+import { selectUserProfile, toUserMetadata } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
 import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
 import { hashPassword, verifyPassword } from './passwordHash';
@@ -51,7 +41,6 @@ import {
   resetPasswordSchema,
   signInSchema,
   signUpSchema,
-  updateProfileSchema,
   wechatClaimSchema,
 } from './schemas';
 import {
@@ -63,8 +52,7 @@ import {
   rotateRefreshToken,
   verifyToken,
 } from './tokenAuth';
-import { selectUserProfile, toUserMetadata } from './userProfile';
-import { getWeChatAuthStub } from './weChatAuthStub';
+import { getWeChatAuthStub } from './wechat/weChatAuthStub';
 
 const log = createLogger('auth');
 
@@ -541,144 +529,6 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
     },
     200,
   );
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GET /auth/user — fetch current user info (via JWT)
-// ─────────────────────────────────────────────────────────────────────────────
-authRoutes.get('/user', async (c) => {
-  const env = c.env;
-  const db = createDb(env.DB);
-  const token = extractBearerToken(c.req.raw);
-  if (!token) {
-    return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
-  }
-
-  const payload = await verifyToken(token, env);
-  if (!payload) {
-    return c.json({ success: false, reason: 'UNAUTHORIZED' }, 401);
-  }
-
-  const user = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      customAvatarUrl: users.customAvatarUrl,
-      avatarFrame: users.avatarFrame,
-      equippedFlair: users.equippedFlair,
-      equippedNameStyle: users.equippedNameStyle,
-      equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
-      isAnonymous: users.isAnonymous,
-      wechatOpenid: users.wechatOpenid,
-      tokenVersion: users.tokenVersion,
-    })
-    .from(users)
-    .where(eq(users.id, payload.sub))
-    .get();
-
-  if (!user) {
-    return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
-  }
-
-  // Verify token version (revocation check)
-  if (user.tokenVersion !== payload.ver) {
-    return c.json({ success: false, reason: 'TOKEN_REVOKED' }, 401);
-  }
-
-  return c.json(
-    {
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          is_anonymous: user.isAnonymous === 1,
-          has_wechat: !!user.wechatOpenid,
-          user_metadata: toUserMetadata(user),
-        },
-      },
-    },
-    200,
-  );
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PUT /auth/profile — update user profile
-// ─────────────────────────────────────────────────────────────────────────────
-authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c) => {
-  const env = c.env;
-  const db = createDb(env.DB);
-  const userId = c.var.userId;
-  const parsed = c.req.valid('json');
-
-  // ── Validate cosmetic equip ownership ──────────────────────────────────
-  // Empty string means "unequip" and is always allowed.
-  const cosmeticFields = {
-    avatarFrame: parsed.avatarFrame,
-    seatFlair: parsed.seatFlair,
-    nameStyle: parsed.nameStyle,
-    equippedEffect: parsed.equippedEffect,
-    seatAnimation: parsed.seatAnimation,
-  };
-  const needsOwnershipCheck = Object.values(cosmeticFields).some(
-    (v) => v !== undefined && v !== '',
-  );
-
-  if (needsOwnershipCheck) {
-    const stats = await db
-      .select({ unlockedItems: userStats.unlockedItems })
-      .from(userStats)
-      .where(eq(userStats.userId, userId))
-      .get();
-    const unlockedIds = stats ? parseUnlockedRewardIds(stats.unlockedItems) : [];
-
-    if (cosmeticFields.avatarFrame && !isFrameUnlocked(cosmeticFields.avatarFrame, unlockedIds)) {
-      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'avatarFrame' }, 403);
-    }
-    if (cosmeticFields.seatFlair && !isFlairUnlocked(cosmeticFields.seatFlair, unlockedIds)) {
-      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'seatFlair' }, 403);
-    }
-    if (cosmeticFields.nameStyle && !isNameStyleUnlocked(cosmeticFields.nameStyle, unlockedIds)) {
-      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'nameStyle' }, 403);
-    }
-    if (
-      cosmeticFields.equippedEffect &&
-      (ROLE_REVEAL_EFFECT_IDS as readonly string[]).includes(cosmeticFields.equippedEffect) &&
-      !isRoleRevealEffectUnlocked(cosmeticFields.equippedEffect, unlockedIds)
-    ) {
-      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'equippedEffect' }, 403);
-    }
-    if (
-      cosmeticFields.seatAnimation &&
-      !isSeatAnimationUnlocked(cosmeticFields.seatAnimation, unlockedIds)
-    ) {
-      return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'seatAnimation' }, 403);
-    }
-  }
-
-  // Build set object for only provided fields
-  const set: Record<string, unknown> = {};
-
-  if (parsed.displayName !== undefined) set.displayName = parsed.displayName;
-  if (parsed.avatarUrl !== undefined) set.avatarUrl = parsed.avatarUrl;
-  if (parsed.customAvatarUrl !== undefined) set.customAvatarUrl = parsed.customAvatarUrl;
-  if (parsed.avatarFrame !== undefined) set.avatarFrame = parsed.avatarFrame;
-  if (parsed.seatFlair !== undefined) set.equippedFlair = parsed.seatFlair;
-  if (parsed.nameStyle !== undefined) set.equippedNameStyle = parsed.nameStyle;
-  if (parsed.equippedEffect !== undefined) set.equippedEffect = parsed.equippedEffect;
-  if (parsed.seatAnimation !== undefined) set.equippedSeatAnimation = parsed.seatAnimation;
-
-  if (Object.keys(set).length === 0) {
-    return c.json({ success: true }, 200);
-  }
-
-  set.updatedAt = sql`datetime('now')`;
-
-  await db.update(users).set(set).where(eq(users.id, userId));
-
-  return c.json({ success: true }, 200);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

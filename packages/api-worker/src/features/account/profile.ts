@@ -1,7 +1,7 @@
 /**
- * userProfile — single source of truth for user profile queries and serialization
+ * Account profile query and serialization contract.
  *
- * All auth endpoints returning user_metadata must go through this module.
+ * All account and auth endpoints returning user_metadata must go through this module.
  * Adding a new cosmetic field only requires editing this file + DB schema,
  * not 7 different handler sites.
  */
@@ -9,7 +9,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { createDb } from '../../db';
-import { users } from '../account/dbSchema';
+import { users } from './dbSchema';
 
 // ── Wire format (API -> client) ─────────────────────────────────────────────
 

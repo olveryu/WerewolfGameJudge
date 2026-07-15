@@ -89,6 +89,17 @@ describe('POST /api/gacha/daily-reward', () => {
     expect(body.reason).toBe('cooldown');
   });
 
+  it('rejects unknown request fields instead of stripping them', async () => {
+    const token = await mintToken();
+    const res = await postJson(
+      '/api/gacha/daily-reward',
+      { localDate: todayLocal(), unexpected: true },
+      token,
+    );
+
+    expect(res.status).toBe(400);
+  });
+
   it('allows claim after cooldown expires', async () => {
     const token = await mintToken();
     // Simulate a claim 21 hours ago (past the 20h cooldown)

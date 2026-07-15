@@ -1991,17 +1991,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                                                                                                                         | 尚未完成                                                 |
-| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                           | -                                                        |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                              | -                                                        |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                         | -                                                        |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                         | -                                                        |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                | -                                                        |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                        | -                                                        |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                              | -                                                        |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                            | -                                                        |
-| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁 | engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                                                                                                                                | 尚未完成                                                                      |
+| ------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                                                  | -                                                                             |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                                                     | -                                                                             |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                                                | -                                                                             |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                                                | -                                                                             |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                       | -                                                                             |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                               | -                                                                             |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                     | -                                                                             |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                   | -                                                                             |
+| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary | Worker binding 类型、engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2839,3 +2839,21 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   全部通过。root Jest 仍只有仓库已记录的 Expo teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
 - Phase 8.11 尚余严格 owned request schema、account/auth 路由边界与 Worker binding 类型收口；之后进入 engine/client
   residual cleanup 和 local migration、seed、最终 quality、全量 E2E 验收。
+
+### 当前提交：Phase 8.11D Worker route 与 request boundary 所有权
+
+- `/auth/user` 与 `/auth/profile` 的公开 URL 保持不变，但实现、schema、profile serialization 与测试归入
+  `features/account`；`features/auth` 只保留身份建立、credential、session、claim 与 token 生命周期。WeChat
+  provider adapter 归入 `features/auth/wechat`，旧路径直接删除，不提供 forwarding export。
+- `/api/games/:gameType/users/:userId/stats` 从 account route 移入 `games/publicStatsRoutes.ts`，由 canonical
+  `WORKER_GAME_CATALOG` dispatch 对应游戏的公开统计。account production code 不再 import game composition，
+  architecture contract 对该依赖方向和 owner 根文件集合做精确断言。
+- 所有客户端控制的 auth、account、feedback、gacha、telemetry 与狼人杀 AI chat JSON object schema 使用 Zod 4
+  `strictObject`，未知 root 或 nested field 在 HTTP boundary 直接返回 validation error。GitHub webhook、微信 API 与
+  Fib word provider 的第三方响应仍允许 provider 增加字段，并分别保存在明确命名的 provider schema/adapter 中。
+- architecture contract 通过 TypeScript AST 扫描全部 Worker production file，只允许三个 external provider
+  boundary 调用 permissive `z.object()`；新增 integration/schema tests 同时证明客户端未知字段被拒绝、第三方额外字段
+  被接受。定向验证通过：root/Worker TypeScript、architecture contract 1 suite / 3751 tests、Worker
+  21 files / 134 tests。
+- 本批提交前完整 `pnpm run quality` 通过；没有修改公开 URL、数据库 schema、migration 或运行时响应 contract。
+  Phase 8.11 只剩 Wrangler 生成 binding 类型的单一权威收口，之后进入 engine/client residual cleanup 与最终验收。

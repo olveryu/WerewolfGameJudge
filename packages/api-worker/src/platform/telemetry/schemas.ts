@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-const resourceEntrySchema = z.object({
+const resourceEntrySchema = z.strictObject({
   name: z.string().max(500),
   duration: z.number().min(0),
   transferSize: z.number().min(0),
@@ -15,7 +15,7 @@ const resourceEntrySchema = z.object({
   download: z.number().min(0),
 });
 
-export const loadTimingSchema = z.object({
+export const loadTimingSchema = z.strictObject({
   /** Total boot time from boot:start to app:registered (ms) */
   totalMs: z.number().min(0).max(300_000),
   /** Navigation timing: TTFB for the HTML document (ms) */

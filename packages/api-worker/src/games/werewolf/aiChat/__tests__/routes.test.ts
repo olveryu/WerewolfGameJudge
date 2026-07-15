@@ -54,6 +54,23 @@ describe('Werewolf AI chat route', () => {
     });
   });
 
+  it.each([
+    { messages: [{ role: 'user', content: 'test' }], unexpected: true },
+    { messages: [{ role: 'user', content: 'test', unexpected: true }] },
+  ])('rejects unknown client-controlled fields', async (body) => {
+    const token = await mintToken();
+    const response = await SELF.fetch('https://test.local/api/games/werewolf/ai-chat', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    expect(response.status).toBe(400);
+  });
+
   it('does not retain the removed provider-named route', async () => {
     const response = await SELF.fetch('https://test.local/gemini-proxy', { method: 'POST' });
 

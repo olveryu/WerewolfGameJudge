@@ -119,6 +119,35 @@ function getSqliteTableNames(filePath: string): readonly string[] {
   return tableNames;
 }
 
+function hasZodObjectCall(filePath: string): boolean {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  let found = false;
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === 'z' &&
+      node.expression.name.text === 'object'
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return found;
+}
+
 function isGameDomainSpecifier(specifier: string): boolean {
   return GAME_TYPES.some((gameType) => {
     const domainPath = `/games/${gameType}/domain`;
@@ -291,6 +320,9 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     'packages/api-worker/src/growth/settleGameResults.ts',
     'packages/api-worker/src/handlers/geminiProxy.ts',
     'packages/api-worker/src/schemas/gemini.ts',
+    'packages/api-worker/src/features/auth/WeChatAuthProxy.ts',
+    'packages/api-worker/src/features/auth/weChatAuthStub.ts',
+    'packages/api-worker/src/features/auth/userProfile.ts',
   ];
 
   it.each(removedWorkerPaths)('%s must not exist', (relativePath) => {
@@ -423,6 +455,43 @@ describe('Worker ownership: source tree is exact', () => {
     ]);
   });
 
+  it('keeps account, auth, feedback, and game composition files owner-local', () => {
+    expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'account'))).toEqual([
+      'authRoutes.ts',
+      'avatarRoutes.ts',
+      'dbSchema.ts',
+      'maintenance.ts',
+      'profile.ts',
+      'routes.ts',
+      'schemas.ts',
+    ]);
+    expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'auth'))).toEqual([
+      'dbSchema.ts',
+      'maintenance.ts',
+      'passwordHash.ts',
+      'passwordResetEmail.ts',
+      'routes.ts',
+      'schemas.ts',
+      'tokenAuth.ts',
+    ]);
+    expect(getTopLevelProductionDirectories(path.join(workerSrcDir, 'features', 'auth'))).toEqual([
+      'wechat',
+    ]);
+    expect(
+      getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'auth', 'wechat')),
+    ).toEqual(['WeChatAuthProxy.ts', 'weChatAuthStub.ts']);
+    expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'features', 'feedback'))).toEqual([
+      'dbSchema.ts',
+      'githubWebhookSchemas.ts',
+      'routes.ts',
+      'schemas.ts',
+    ]);
+    expect(getTopLevelProductionFiles(workerGamesDir)).toEqual([
+      'catalog.ts',
+      'publicStatsRoutes.ts',
+    ]);
+  });
+
   it('defines the exact shared platform ownership roots', () => {
     expect(getTopLevelProductionDirectories(workerPlatformDir)).toEqual([
       'crypto',
@@ -444,7 +513,6 @@ describe('Worker ownership: source tree is exact', () => {
   });
 
   it('keeps generic Worker game-module infrastructure platform-owned', () => {
-    expect(getTopLevelProductionFiles(workerGamesDir)).toEqual(['catalog.ts']);
     expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'gameModules'))).toEqual([
       'effectCommandId.ts',
       'runtimeGameModule.ts',
@@ -458,6 +526,27 @@ describe('Worker ownership: source tree is exact', () => {
       expect(getAllProductionFiles(path.join(workerSrcDir, removedRoot))).toEqual([]);
     },
   );
+});
+
+describe('Worker request boundary: client objects are strict', () => {
+  it('uses permissive Zod objects only for external provider payloads', () => {
+    const permissiveSchemaFiles = workerFiles
+      .filter(hasZodObjectCall)
+      .map((filePath) => path.relative(process.cwd(), filePath))
+      .sort();
+
+    expect(permissiveSchemaFiles).toEqual([
+      'packages/api-worker/src/features/auth/wechat/WeChatAuthProxy.ts',
+      'packages/api-worker/src/features/feedback/githubWebhookSchemas.ts',
+      'packages/api-worker/src/games/fibking/wordProviders/gemini.ts',
+    ]);
+  });
+
+  const accountFiles = getAllProductionFiles(path.join(workerSrcDir, 'features', 'account'));
+  it.each(accountFiles)('%s must not import game composition', (filePath) => {
+    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter((specifier) => hasPathSegment(specifier, 'games'))).toEqual([]);
+  });
 });
 
 describe('Layer boundary: shared room → game-specific code (forbidden)', () => {

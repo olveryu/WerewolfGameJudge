@@ -25,8 +25,9 @@ import { HTTPException } from 'hono/http-exception';
 
 import { runScheduledCron } from './app/scheduled';
 import type { AppEnv, Env } from './env';
+import { accountAuthRoutes } from './features/account/authRoutes';
 import { avatarRoutes } from './features/account/avatarRoutes';
-import { statsRoutes } from './features/account/routes';
+import { accountRoutes } from './features/account/routes';
 import { adminRoutes } from './features/admin/routes';
 import { authRoutes } from './features/auth/routes';
 import { requireAuth, verifyToken } from './features/auth/tokenAuth';
@@ -34,6 +35,7 @@ import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/route
 import { gachaRoutes } from './features/gacha/routes';
 import { shareRoutes } from './features/sharing/routes';
 import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
+import { publicGameStatsRoutes } from './games/publicStatsRoutes';
 import { createLogger } from './platform/observability/logger';
 import { createRoomRoutes } from './platform/room/routes';
 import { createRoomWebSocketHandler } from './platform/room/webSocketRoutes';
@@ -41,7 +43,7 @@ import { telemetryRoutes } from './platform/telemetry/routes';
 
 // Re-export Durable Object class for wrangler
 export { GameRoom } from './app/GameRoom';
-export { WeChatAuthProxy } from './features/auth/WeChatAuthProxy';
+export { WeChatAuthProxy } from './features/auth/wechat/WeChatAuthProxy';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
@@ -113,13 +115,15 @@ app.get('/ws', roomWebSocketHandler);
 
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
+app.route('/auth', accountAuthRoutes);
 app.route('/room', roomRoutes);
 for (const route of WORKER_GAME_HTTP_ROUTES) {
   app.route(route.path, route.router);
 }
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
-app.route('/api', statsRoutes);
+app.route('/api', accountRoutes);
+app.route('/api', publicGameStatsRoutes);
 app.route('/api', gachaRoutes);
 app.route('/api', feedbackRoutes);
 app.route('/api', feedbackWebhookRoutes);

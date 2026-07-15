@@ -17,16 +17,19 @@
 
 import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
+import { z } from 'zod';
 
-import type { Env } from '../../env';
+import type { Env } from '../../../env';
 
-/** WeChat code2Session response shape */
-interface WxCode2SessionResult {
-  openid?: string;
-  session_key?: string;
-  errcode?: number;
-  errmsg?: string;
-}
+/** WeChat owns this response and may add unrelated fields. */
+const wxCode2SessionResultSchema = z.object({
+  openid: z.string().optional(),
+  session_key: z.string().optional(),
+  errcode: z.number().optional(),
+  errmsg: z.string().optional(),
+});
+
+type WxCode2SessionResult = z.infer<typeof wxCode2SessionResultSchema>;
 
 /** code2Session timeout (APAC -> China same-region; 15s safety net) */
 const WX_API_TIMEOUT_MS = 15_000;
@@ -55,8 +58,8 @@ class WeChatAuthProxyBase extends DurableObject<Env> {
     const resp = await fetch(url.toString(), {
       signal: AbortSignal.timeout(WX_API_TIMEOUT_MS),
     });
-    const data: WxCode2SessionResult = await resp.json();
-    return data;
+    const data: unknown = await resp.json();
+    return wxCode2SessionResultSchema.parse(data);
   }
 }
 

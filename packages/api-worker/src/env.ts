@@ -14,7 +14,9 @@ export interface Env {
 
   // ── Durable Objects ─────────────────────────────────────────────
   GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoomRuntime').GameRoomRuntime>;
-  WECHAT_AUTH: DurableObjectNamespace<import('./features/auth/WeChatAuthProxy').WeChatAuthProxy>;
+  WECHAT_AUTH: DurableObjectNamespace<
+    import('./features/auth/wechat/WeChatAuthProxy').WeChatAuthProxy
+  >;
   // ── Workers AI ─────────────────────────────────────────────────────
   AI: Ai;
   // ── Analytics Engine (load timing telemetry) ────────────────────────

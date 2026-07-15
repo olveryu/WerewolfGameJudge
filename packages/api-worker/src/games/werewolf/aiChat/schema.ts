@@ -2,10 +2,10 @@
 
 import { z } from 'zod';
 
-export const werewolfAiChatRequestSchema = z.object({
+export const werewolfAiChatRequestSchema = z.strictObject({
   messages: z
     .array(
-      z.object({
+      z.strictObject({
         role: z.enum(['system', 'user', 'assistant']),
         content: z.string(),
       }),

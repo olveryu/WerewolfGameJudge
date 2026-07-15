@@ -23,13 +23,12 @@ import { createLogger } from '../../platform/observability/logger';
 import { users } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
 import { feedbackReplies, feedbacks } from './dbSchema';
+import { githubIssueCommentPayloadSchema, githubIssuesPayloadSchema } from './githubWebhookSchemas';
 import {
   feedbackMarkReadSchema,
   feedbackReplySchema,
   feedbackResolveSchema,
   feedbackSchema,
-  githubIssueCommentPayloadSchema,
-  githubIssuesPayloadSchema,
 } from './schemas';
 
 const log = createLogger('feedback');

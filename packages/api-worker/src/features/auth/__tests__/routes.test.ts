@@ -25,17 +25,6 @@ interface AuthErrorResponse {
   reason: string;
 }
 
-interface UserProfileResponse {
-  data: {
-    user: {
-      id: string;
-      email: string | null;
-      is_anonymous: boolean;
-      user_metadata: { display_name?: string };
-    };
-  };
-}
-
 interface ResetPasswordSuccessResponse {
   success: boolean;
   access_token: string;
@@ -63,12 +52,6 @@ async function putJson(path: string, body: unknown, token: string): Promise<Resp
     },
     body: JSON.stringify(body),
   });
-}
-
-async function getJson(path: string, token?: string): Promise<Response> {
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return SELF.fetch(`https://test.local${path}`, { headers });
 }
 
 /** Clean all test data between tests */
@@ -193,6 +176,16 @@ describe('POST /auth/signup', () => {
     const body = await res.json<AuthErrorResponse>();
     expect(body.reason).toBe('VALIDATION_ERROR');
   });
+
+  it('rejects unknown request fields instead of stripping them', async () => {
+    const res = await postJson('/auth/signup', {
+      email: 'strict@test.local',
+      password: 'pass123',
+      unexpected: true,
+    });
+
+    expect(res.status).toBe(400);
+  });
 });
 
 // ── POST /auth/signin ───────────────────────────────────────────────────────
@@ -253,96 +246,6 @@ describe('POST /auth/signin', () => {
 
     const body = await res.json<AuthErrorResponse>();
     expect(body.reason).toBe('TOO_MANY_ATTEMPTS');
-  });
-});
-
-// ── GET /auth/user ──────────────────────────────────────────────────────────
-
-describe('GET /auth/user', () => {
-  it('returns 401 without token', async () => {
-    const res = await getJson('/auth/user');
-    expect(res.status).toBe(401);
-  });
-
-  it('returns 401 with invalid token', async () => {
-    const res = await getJson('/auth/user', 'garbage-token');
-    expect(res.status).toBe(401);
-  });
-
-  it('returns user profile with valid token', async () => {
-    // Signup → get token
-    const signupRes = await postJson('/auth/signup', {
-      email: 'profile@test.local',
-      password: 'pass123',
-      displayName: 'Profiler',
-    });
-    const { access_token } = await signupRes.json<AuthSuccessResponse>();
-
-    const res = await getJson('/auth/user', access_token);
-    expect(res.status).toBe(200);
-
-    const body = await res.json<UserProfileResponse>();
-    expect(body.data.user.email).toBe('profile@test.local');
-    expect(body.data.user.is_anonymous).toBe(false);
-    expect(body.data.user.user_metadata.display_name).toBe('Profiler');
-  });
-});
-
-// ── PUT /auth/profile ───────────────────────────────────────────────────────
-
-describe('PUT /auth/profile', () => {
-  it('updates display name', async () => {
-    const signupRes = await postJson('/auth/signup', {
-      email: 'upd@test.local',
-      password: 'pass123',
-    });
-    const { access_token } = await signupRes.json<AuthSuccessResponse>();
-
-    const res = await putJson('/auth/profile', { displayName: 'NewName' }, access_token);
-    expect(res.status).toBe(200);
-
-    const body = await res.json<{ success: boolean }>();
-    expect(body.success).toBe(true);
-
-    // Verify via GET /auth/user
-    const userRes = await getJson('/auth/user', access_token);
-    const userBody = await userRes.json<UserProfileResponse>();
-    expect(userBody.data.user.user_metadata.display_name).toBe('NewName');
-  });
-
-  it.each(['avatarFrame', 'seatFlair', 'nameStyle', 'seatAnimation'] as const)(
-    'rejects an unknown %s at the request schema boundary',
-    async (field) => {
-      const signupRes = await postJson('/auth/signup', {
-        email: `${field}@test.local`,
-        password: 'pass123',
-      });
-      const { access_token } = await signupRes.json<AuthSuccessResponse>();
-
-      const res = await putJson('/auth/profile', { [field]: 'nonExistent' }, access_token);
-
-      expect(res.status).toBe(400);
-    },
-  );
-
-  it('returns 401 without auth', async () => {
-    const res = await SELF.fetch('https://test.local/auth/profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName: 'X' }),
-    });
-    expect(res.status).toBe(401);
-  });
-
-  it('succeeds with empty body (no-op)', async () => {
-    const signupRes = await postJson('/auth/signup', {
-      email: 'noop@test.local',
-      password: 'pass123',
-    });
-    const { access_token } = await signupRes.json<AuthSuccessResponse>();
-
-    const res = await putJson('/auth/profile', {}, access_token);
-    expect(res.status).toBe(200);
   });
 });
 
