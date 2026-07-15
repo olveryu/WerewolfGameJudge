@@ -32,7 +32,7 @@ import { buildNightPlan } from '@werewolf/game-engine/games/werewolf/domain/mode
 import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/domain/protocol/types';
 import type { EndNightAction } from '@werewolf/game-engine/games/werewolf/domain/reducer/types';
 import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/state/version';
-import { createSeededRng } from '@werewolf/game-engine/utils/random';
+import { createSeededRng } from '@werewolf/game-engine/platform/random';
 
 import { maybeCreateWitchContextAction } from '../witchContext';
 import { expectError, expectSuccess, TEST_HANDLER_EXECUTION } from './handlerTestUtils';

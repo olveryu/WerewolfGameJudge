@@ -1,19 +1,17 @@
 /**
- * gachaProbability — Gacha probability engine (pure functions)
+ * gacha - Gacha probability engine (pure functions)
  *
  * Core: rollRarity() computes rarity from draw type + pity,
  *       selectReward() randomly picks an item from the target rarity pool (duplicates allowed).
  * Random values are injected by callers; functions themselves have no side effects.
  *
- * @remarks pity mechanism: pityCount forces upgrade on the 10th attempt (>=9).
- *   Pity counter resets after obtaining target rarity or higher.
- *   RARITY_UPGRADE_ORDER fallback chain: when target rarity pool is empty, fall back upward first,
- *   then downward; all empty returns undefined (caller must handle).
- *   selectReward duplicate handling: owned items can still be rolled, converted to shard compensation (SHARD_VALUES[rarity]).
+ * @remarks pityCount forces an upgrade on the 10th attempt (>=9). Owned items can still be
+ *   rolled and are converted to shard compensation.
  */
 
-import type { Rarity, RewardItem } from './rewardCatalog';
-import { REWARD_POOL, SHARD_VALUES } from './rewardCatalog';
+import { randomPick, type Rng } from '../../platform/random';
+import type { Rarity, RewardItem } from './catalog';
+import { REWARD_POOL, SHARD_VALUES } from './catalog';
 
 /** Draw type: normal / golden. */
 export type DrawType = 'normal' | 'golden';
@@ -37,8 +35,21 @@ export const GOLDEN_RATES: Readonly<Record<Rarity, number>> = {
   common: 67,
 };
 
-/** Rarity upgrade order (used for upward fallback on deduplication) */
-const RARITY_UPGRADE_ORDER: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+/** Rarity order used to enforce the pity floor. */
+const RARITY_ORDER: readonly Rarity[] = ['common', 'rare', 'epic', 'legendary'];
+
+const REWARD_POOLS_BY_RARITY: Readonly<Record<Rarity, readonly RewardItem[]>> = {
+  common: REWARD_POOL.filter((item) => item.rarity === 'common'),
+  rare: REWARD_POOL.filter((item) => item.rarity === 'rare'),
+  epic: REWARD_POOL.filter((item) => item.rarity === 'epic'),
+  legendary: REWARD_POOL.filter((item) => item.rarity === 'legendary'),
+};
+
+for (const [rarity, pool] of Object.entries(REWARD_POOLS_BY_RARITY)) {
+  if (pool.length === 0) {
+    throw new Error(`[FAIL-FAST] Reward catalog has no ${rarity} items`);
+  }
+}
 
 /**
  * Roll rarity based on draw type and pity count.
@@ -57,6 +68,12 @@ export function rollRarity(
   pityCount: number,
   randomValue: number,
 ): { rarity: Rarity; pityReset: boolean } {
+  if (!Number.isSafeInteger(pityCount) || pityCount < 0) {
+    throw new Error(`[FAIL-FAST] Pity count must be a non-negative integer: ${pityCount}`);
+  }
+  if (!Number.isFinite(randomValue) || randomValue < 0 || randomValue >= 100) {
+    throw new Error(`[FAIL-FAST] Rarity roll must be in [0, 100): ${randomValue}`);
+  }
   const rates = drawType === 'golden' ? GOLDEN_RATES : NORMAL_RATES;
   const isPityTrigger = pityCount >= PITY_THRESHOLD - 1; // pityCount=9 -> 10th attempt
 
@@ -66,7 +83,7 @@ export function rollRarity(
   if (isPityTrigger) {
     // Pity triggered: results below pity floor clamp to floor; high rarity probabilities unchanged
     const pityFloor: Rarity = drawType === 'golden' ? 'epic' : 'rare';
-    if (RARITY_UPGRADE_ORDER.indexOf(rarity) < RARITY_UPGRADE_ORDER.indexOf(pityFloor)) {
+    if (RARITY_ORDER.indexOf(rarity) < RARITY_ORDER.indexOf(pityFloor)) {
       rarity = pityFloor;
     }
     return { rarity, pityReset: true };
@@ -81,7 +98,7 @@ export function rollRarity(
 }
 
 /** selectReward return result */
-export interface SelectRewardResult {
+interface SelectRewardResult {
   readonly reward: RewardItem;
   /** Whether the player already owns the item */
   readonly isDuplicate: boolean;
@@ -92,50 +109,24 @@ export interface SelectRewardResult {
 /**
  * Randomly pick an item from the target rarity pool. Duplicates allowed; on duplicate, compute shard reward.
  *
- * If target rarity pool is empty (should not happen), fall back upward first (rare->epic->legendary),
- * then downward (rare->common). All empty returns undefined.
- *
  * @param targetRarity - target rarity
  * @param unlockedIds - set of item IDs the player already owns (used for duplicate detection)
- * @param randomFn - (max) => random integer in [0, max)
- * @returns selected item + duplicate flag + shard reward; undefined if all pools are empty
+ * @param rng - random number generator returning a float in [0, 1)
+ * @returns selected item + duplicate flag + shard reward
  */
 export function selectReward(
   targetRarity: Rarity,
   unlockedIds: ReadonlySet<string>,
-  randomFn: (max: number) => number,
-): SelectRewardResult | undefined {
-  const startIdx = RARITY_UPGRADE_ORDER.indexOf(targetRarity);
-
-  for (let i = startIdx; i < RARITY_UPGRADE_ORDER.length; i++) {
-    const r = RARITY_UPGRADE_ORDER[i]!;
-    const pool = REWARD_POOL.filter((item) => item.rarity === r);
-    if (pool.length > 0) {
-      const reward = pool[randomFn(pool.length)]!;
-      const isDuplicate = unlockedIds.has(reward.id);
-      return {
-        reward,
-        isDuplicate,
-        shardsAwarded: isDuplicate ? SHARD_VALUES[reward.rarity] : 0,
-      };
-    }
-  }
-
-  for (let i = startIdx - 1; i >= 0; i--) {
-    const r = RARITY_UPGRADE_ORDER[i]!;
-    const pool = REWARD_POOL.filter((item) => item.rarity === r);
-    if (pool.length > 0) {
-      const reward = pool[randomFn(pool.length)]!;
-      const isDuplicate = unlockedIds.has(reward.id);
-      return {
-        reward,
-        isDuplicate,
-        shardsAwarded: isDuplicate ? SHARD_VALUES[reward.rarity] : 0,
-      };
-    }
-  }
-
-  return undefined;
+  rng: Rng,
+): SelectRewardResult {
+  const pool = REWARD_POOLS_BY_RARITY[targetRarity];
+  const reward = randomPick(pool, rng);
+  const isDuplicate = unlockedIds.has(reward.id);
+  return {
+    reward,
+    isDuplicate,
+    shardsAwarded: isDuplicate ? SHARD_VALUES[reward.rarity] : 0,
+  };
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────

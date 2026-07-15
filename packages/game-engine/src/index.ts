@@ -2,41 +2,6 @@
 
 export { GAME_ENGINE_CATALOG, type GameEngineCatalog } from './games/catalog';
 export {
-  AVATAR_IDS,
-  type DrawType,
-  FRAME_IDS,
-  FREE_AVATAR_IDS,
-  FREE_FRAME_IDS,
-  FREE_NAME_STYLE_IDS,
-  getItemRarity,
-  getLevel,
-  getLevelProgress,
-  getUnlockedAvatars,
-  getUnlockedFrames,
-  getUnlockedNameStyles,
-  GOLDEN_RATES,
-  isFrameUnlocked,
-  isNameStyleUnlocked,
-  LEGENDARY_FRAME_IDS,
-  LEVEL_THRESHOLDS,
-  NAME_STYLE_IDS,
-  type NameStyleId,
-  NORMAL_RATES,
-  pickRandomReward,
-  PITY_THRESHOLD,
-  type Rarity,
-  REWARD_POOL,
-  type RewardItem,
-  type RewardType,
-  rollRarity,
-  rollXp,
-  selectReward,
-  TOTAL_UNLOCKABLE_COUNT,
-  XP_BASE,
-  XP_RANDOM_BASE,
-} from './growth';
-export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './growth/revealEffect';
-export {
   type CommandActor,
   type CommandContext,
   type CommandExecutionContext,
@@ -58,6 +23,7 @@ export {
   reject,
   type StateOf,
 } from './platform/engine';
+export { newRequestId, randomHex } from './platform/identifiers';
 export type { ActionResult } from './platform/protocol/actionResult';
 export {
   createRoomCommandResult,
@@ -93,6 +59,15 @@ export {
   parseUserEventAckMessage,
   type UserEventAckMessage,
 } from './platform/protocol/userEvents';
+export {
+  createSeededRng,
+  randomBool,
+  randomIntInclusive,
+  randomPick,
+  type Rng,
+  secureRng,
+  shuffleArray,
+} from './platform/random';
 export { formatSeat } from './platform/room/formatSeat';
 export type { RoomProfileUpdate, RoomSeatProfile, RosterEntry } from './platform/room/roster';
 export {
@@ -108,13 +83,39 @@ export {
   type SeatOperationReason,
   type SeatOperationResult,
 } from './platform/room/seating';
-export { newRejectionId, newRequestId, randomHex } from './utils/id';
 export {
-  createSeededRng,
-  randomBool,
-  randomIntInclusive,
-  randomPick,
-  type Rng,
-  secureRng,
-} from './utils/random';
-export { shuffleArray } from './utils/shuffle';
+  getLevel,
+  getLevelProgress,
+  LEVEL_THRESHOLDS,
+  rollXp,
+  XP_BASE,
+  XP_RANDOM_BASE,
+} from './product/growth';
+export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './product/rewards';
+export {
+  AVATAR_IDS,
+  type DrawType,
+  FRAME_IDS,
+  FREE_AVATAR_IDS,
+  FREE_FRAME_IDS,
+  FREE_NAME_STYLE_IDS,
+  getItemRarity,
+  getUnlockedAvatars,
+  getUnlockedFrames,
+  getUnlockedNameStyles,
+  GOLDEN_RATES,
+  isFrameUnlocked,
+  isNameStyleUnlocked,
+  LEGENDARY_FRAME_IDS,
+  NAME_STYLE_IDS,
+  type NameStyleId,
+  NORMAL_RATES,
+  PITY_THRESHOLD,
+  type Rarity,
+  REWARD_POOL,
+  type RewardItem,
+  type RewardType,
+  rollRarity,
+  selectReward,
+  TOTAL_UNLOCKABLE_COUNT,
+} from './product/rewards';

@@ -1,8 +1,8 @@
 /** Production room-session factory bound to Cloudflare state and realtime adapters. */
 
+import { newRequestId } from '@werewolf/game-engine/platform/identifiers';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import { newRequestId } from '@werewolf/game-engine/utils/id';
 
 import type {
   GameSessionDefinition,

@@ -8,7 +8,7 @@
  */
 
 import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { createSeededRng } from '@werewolf/game-engine/utils/random';
+import { createSeededRng } from '@werewolf/game-engine/platform/random';
 import { useEffect, useRef, useState } from 'react';
 
 import { STATUS } from '@/config/emojiTokens';

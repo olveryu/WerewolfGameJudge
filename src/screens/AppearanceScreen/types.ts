@@ -3,7 +3,7 @@ import type {
   Rarity,
   RoleRevealEffectId,
   SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/rewards';
 
 import type { FrameId } from '@/components/avatarFrames';
 import type { FlairId } from '@/components/seatFlairs';

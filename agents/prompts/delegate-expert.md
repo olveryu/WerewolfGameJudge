@@ -82,7 +82,7 @@ You are a [expert role]. [One-sentence task description].
 ## Project Constants (inherited from AGENTS.md)
 
 - pnpm monorepo: `packages/game-engine` + `packages/api-worker` + root project
-- React Native 0.83 + React 19 + Expo SDK 55 + TypeScript ~5.9
+- React Native 0.85 + React 19 + Expo SDK 56 + TypeScript ~6.0
 - Cloudflare Worker (Hono) + Durable Objects + D1 + R2
 - Web-first, compatible with iOS/Android/WeChat mini-program (web-view shell)
 - Single light theme "Yuebai" — primary `#4F46E5`

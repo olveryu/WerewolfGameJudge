@@ -7,7 +7,7 @@
  * - Native: solid color + textShadow (gradient/animation degraded)
  */
 
-import type { NameStyleId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { NameStyleId } from '@werewolf/game-engine/product/rewards';
 
 import { COMMON_NAME_STYLE_CONFIGS, RARE_NAME_STYLE_CONFIGS } from './common';
 

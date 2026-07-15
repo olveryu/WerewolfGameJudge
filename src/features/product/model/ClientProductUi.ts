@@ -1,6 +1,6 @@
 /** Strict product-presentation resolver composed from game-owned contributions. */
 
-import { AVATAR_IDS, HAND_DRAWN_AVATAR_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { AVATAR_IDS, HAND_DRAWN_AVATAR_IDS } from '@werewolf/game-engine/product/rewards';
 
 import type {
   GameProductUiContribution,

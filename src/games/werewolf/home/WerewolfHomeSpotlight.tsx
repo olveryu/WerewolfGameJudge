@@ -10,7 +10,7 @@ import {
   isWolfRole,
   type RoleId,
 } from '@werewolf/game-engine/games/werewolf/public';
-import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
+import { randomIntInclusive } from '@werewolf/game-engine/platform/random';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import Animated, {

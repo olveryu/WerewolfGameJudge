@@ -5,7 +5,7 @@
  * Provides avatar image mapping plus stable hash assignment + deduplication keyed on userId/roomId.
  * Does not import React or services; does not make network requests.
  *
- * The ID registry lives in `@werewolf/game-engine/growth/rewardCatalog` (single source of truth).
+ * The ID registry lives in `@werewolf/game-engine/product/rewards` (single source of truth).
  * Adding a new avatar requires updating both rewardCatalog AVATAR_IDS and avatarImages.ts / avatarImages.web.ts.
  *
  * Image maps are split by platform (Metro resolves .web.ts automatically):
@@ -18,7 +18,7 @@ import {
   type AvatarId,
   HAND_DRAWN_AVATAR_IDS,
   type HandDrawnAvatarId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/rewards';
 
 import { AVATAR_IMAGE_MAP, AVATAR_THUMB_MAP } from './avatarImages';
 

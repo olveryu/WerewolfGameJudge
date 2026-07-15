@@ -12,6 +12,14 @@
  */
 export type Rng = () => number;
 
+function readUnitInterval(rng: Rng): number {
+  const value = rng();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new Error(`[FAIL-FAST] RNG must return a finite number in [0, 1); received ${value}`);
+  }
+  return value;
+}
+
 /**
  * Secure random number generator.
  * Uses Web Crypto API (natively supported by Node 19+ / browsers).
@@ -33,8 +41,14 @@ export function secureRng(): number {
  * @returns Integer in [min, max]
  */
 export function randomIntInclusive(min: number, max: number, rng: Rng = secureRng): number {
+  if (!Number.isSafeInteger(min) || !Number.isSafeInteger(max) || min > max) {
+    throw new Error(`[FAIL-FAST] Invalid inclusive integer range: ${min}..${max}`);
+  }
   const range = max - min + 1;
-  return Math.floor(rng() * range) + min;
+  if (!Number.isSafeInteger(range)) {
+    throw new Error(`[FAIL-FAST] Inclusive integer range is too wide: ${min}..${max}`);
+  }
+  return Math.floor(readUnitInterval(rng) * range) + min;
 }
 
 /**
@@ -44,7 +58,7 @@ export function randomIntInclusive(min: number, max: number, rng: Rng = secureRn
  * @returns true or false
  */
 export function randomBool(rng: Rng = secureRng): boolean {
-  return rng() < 0.5;
+  return readUnitInterval(rng) < 0.5;
 }
 
 /**
@@ -57,9 +71,10 @@ export function randomBool(rng: Rng = secureRng): boolean {
  */
 export function randomPick<T>(arr: readonly T[], rng: Rng = secureRng): T {
   if (arr.length === 0) {
-    throw new Error('randomPick: array must not be empty');
+    throw new Error('[FAIL-FAST] randomPick requires a non-empty array');
   }
-  return arr[Math.floor(rng() * arr.length)]!;
+  const index = randomIntInclusive(0, arr.length - 1, rng);
+  return arr[index]!;
 }
 
 /**

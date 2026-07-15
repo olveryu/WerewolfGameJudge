@@ -1,16 +1,4 @@
 import {
-  getUnlockedAvatars,
-  getUnlockedFlairs,
-  getUnlockedFrames,
-  getUnlockedNameStyles,
-  getUnlockedSeatAnimations,
-  isFlairUnlocked,
-  isFrameUnlocked,
-  isNameStyleUnlocked,
-  isSeatAnimationUnlocked,
-  pickRandomReward,
-} from '../frameUnlock';
-import {
   AVATAR_IDS,
   FRAME_IDS,
   FREE_AVATAR_IDS,
@@ -19,14 +7,38 @@ import {
   FREE_NAME_STYLE_IDS,
   FREE_ROLE_REVEAL_EFFECT_IDS,
   FREE_SEAT_ANIMATION_IDS,
+  getItemRarity,
   NAME_STYLE_IDS,
   REWARD_POOL,
   ROLE_REVEAL_EFFECT_IDS,
   SEAT_ANIMATION_IDS,
   SEAT_FLAIR_IDS,
-} from '../rewardCatalog';
+} from '../catalog';
+import {
+  getUnlockedAvatars,
+  getUnlockedFlairs,
+  getUnlockedFrames,
+  getUnlockedNameStyles,
+  getUnlockedSeatAnimations,
+  isFlairUnlocked,
+  isFrameUnlocked,
+  isNameStyleUnlocked,
+  isRoleRevealEffectUnlocked,
+  isSeatAnimationUnlocked,
+  parseUnlockedRewardIds,
+} from '../unlocks';
 
 describe('rewardCatalog', () => {
+  it('returns common for a registered item without an explicit rarity override', () => {
+    expect(getItemRarity('genC001')).toBe('common');
+  });
+
+  it('fails fast for an item outside the catalog', () => {
+    expect(() => getItemRarity('nonExistent')).toThrow(
+      '[FAIL-FAST] Unknown reward item ID: nonExistent',
+    );
+  });
+
   it('REWARD_POOL has correct total items (avatars + frames + flairs + nameStyles + roleRevealEffects + seatAnimations - free)', () => {
     expect(REWARD_POOL).toHaveLength(
       AVATAR_IDS.length +
@@ -71,73 +83,19 @@ describe('rewardCatalog', () => {
   });
 });
 
-describe('pickRandomReward', () => {
-  it('returns an avatar at non-3x level', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 1);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('avatar');
+describe('parseUnlockedRewardIds', () => {
+  it('parses unique catalog IDs', () => {
+    expect(parseUnlockedRewardIds('["seer","moonSilver"]')).toEqual(['seer', 'moonSilver']);
   });
 
-  it('returns a frame at 5x level', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 5);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('frame');
-  });
-
-  it('returns a seatFlair at 3x level', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 3);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('seatFlair');
-  });
-
-  it('returns a nameStyle at 7x level', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 7);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('nameStyle');
-  });
-
-  it('returns a seatAnimation at 13x level', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 13);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('seatAnimation');
-  });
-
-  it('returns a seatFlair at level 6', () => {
-    const unlocked = new Set<string>();
-    const result = pickRandomReward(unlocked, () => 0, 6);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('seatFlair');
-  });
-
-  it('falls back to avatar when all frames are unlocked', () => {
-    const allFrameIds = new Set(REWARD_POOL.filter((r) => r.type === 'frame').map((r) => r.id));
-    const result = pickRandomReward(allFrameIds, () => 0, 5);
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('avatar');
-  });
-
-  it('falls back when all avatars are unlocked', () => {
-    const allAvatarIds = new Set(REWARD_POOL.filter((r) => r.type === 'avatar').map((r) => r.id));
-    const result = pickRandomReward(allAvatarIds, () => 0, 1);
-    expect(result).toBeDefined();
-    expect(result!.type === 'frame' || result!.type === 'seatFlair').toBe(true);
-  });
-
-  it('returns undefined when pool is exhausted', () => {
-    const allIds = new Set(REWARD_POOL.map((r) => r.id));
-    expect(pickRandomReward(allIds, () => 0, 1)).toBeUndefined();
-  });
-
-  it('does not return already unlocked items', () => {
-    const unlocked = new Set(['seer', 'wolf']);
-    const result = pickRandomReward(unlocked, () => 0, 1);
-    expect(result).toBeDefined();
-    expect(unlocked.has(result!.id)).toBe(false);
+  it.each([
+    ['invalid JSON', '{'],
+    ['non-array JSON', '{}'],
+    ['non-string item', '[1]'],
+    ['unknown item', '["nonExistent"]'],
+    ['duplicate item', '["seer","seer"]'],
+  ])('fails fast for %s', (_caseName, serialized) => {
+    expect(() => parseUnlockedRewardIds(serialized)).toThrow('[FAIL-FAST]');
   });
 });
 
@@ -157,6 +115,10 @@ describe('getUnlockedAvatars', () => {
     const unlocked = getUnlockedAvatars(['moonSilver']);
     expect(unlocked.has('moonSilver')).toBe(false);
     expect(unlocked.size).toBe(FREE_AVATAR_IDS.size);
+  });
+
+  it('fails fast for an unknown unlock ID', () => {
+    expect(() => getUnlockedAvatars(['nonExistent'])).toThrow('[FAIL-FAST]');
   });
 });
 
@@ -189,10 +151,6 @@ describe('isFrameUnlocked', () => {
 
   it('non-free frame is unlocked when in list', () => {
     expect(isFrameUnlocked('moonSilver', ['moonSilver'])).toBe(true);
-  });
-
-  it('unknown frame returns false', () => {
-    expect(isFrameUnlocked('nonExistent', ['seer', 'moonSilver'])).toBe(false);
   });
 });
 
@@ -261,10 +219,6 @@ describe('isNameStyleUnlocked', () => {
   it('silverGleam is unlocked when in list', () => {
     expect(isNameStyleUnlocked('silverGleam', ['silverGleam'])).toBe(true);
   });
-
-  it('unknown nameStyle returns false', () => {
-    expect(isNameStyleUnlocked('nonExistent', ['silverGleam'])).toBe(false);
-  });
 });
 
 describe('getUnlockedSeatAnimations', () => {
@@ -294,8 +248,25 @@ describe('isSeatAnimationUnlocked', () => {
   it('wolfKingEntry is unlocked when in list', () => {
     expect(isSeatAnimationUnlocked('wolfKingEntry', ['wolfKingEntry'])).toBe(true);
   });
+});
 
-  it('unknown seatAnimation returns false', () => {
-    expect(isSeatAnimationUnlocked('nonExistent', ['wolfKingEntry'])).toBe(false);
+describe('unlock target contracts', () => {
+  const checks = [
+    ['frame', isFrameUnlocked],
+    ['seat flair', isFlairUnlocked],
+    ['name style', isNameStyleUnlocked],
+    ['role reveal effect', isRoleRevealEffectUnlocked],
+    ['seat animation', isSeatAnimationUnlocked],
+  ] as const;
+
+  it.each(checks)('fails fast for an unknown %s ID', (_label, isUnlocked) => {
+    expect(() => isUnlocked('nonExistent', [])).toThrow('[FAIL-FAST]');
   });
+
+  it.each(checks)(
+    'fails fast when a %s query receives another reward type',
+    (_label, isUnlocked) => {
+      expect(() => isUnlocked('seer', ['seer'])).toThrow('[FAIL-FAST]');
+    },
+  );
 });

@@ -2,7 +2,7 @@ import type {
   NameStyleId,
   RoleRevealEffectId,
   SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/rewards';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useRef, useState } from 'react';
 import { Linking } from 'react-native';

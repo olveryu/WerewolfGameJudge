@@ -6,14 +6,13 @@
  * Embedded inside account card; does not include its own card container.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { getLevelProgress, LEVEL_THRESHOLDS } from '@werewolf/game-engine/product/growth';
 import {
   FREE_AVATAR_IDS,
   FREE_FLAIR_IDS,
   FREE_FRAME_IDS,
-  getLevelProgress,
-  LEVEL_THRESHOLDS,
   TOTAL_UNLOCKABLE_COUNT,
-} from '@werewolf/game-engine/growth';
+} from '@werewolf/game-engine/product/rewards';
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 

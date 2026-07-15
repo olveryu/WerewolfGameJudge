@@ -11,6 +11,7 @@
  * @throws 404 — avatar not found (GET)
  */
 
+import { randomHex } from '@werewolf/game-engine/platform/identifiers';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -19,14 +20,7 @@ import { users } from '../db/applicationSchema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 
-/**
- * Generate a random hex string
- */
-function randomHex(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+const AVATAR_SUFFIX_HEX_LENGTH = 8;
 
 /** Avatar upload routes. */
 export const avatarRoutes = new Hono<AppEnv>();
@@ -67,7 +61,7 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
   }
 
   // Upload new avatar
-  const suffix = randomHex(4);
+  const suffix = randomHex(AVATAR_SUFFIX_HEX_LENGTH);
   const ext = file.type === 'image/png' ? 'png' : 'jpg';
   const key = `${userId}/${Date.now()}-${suffix}.${ext}`;
 

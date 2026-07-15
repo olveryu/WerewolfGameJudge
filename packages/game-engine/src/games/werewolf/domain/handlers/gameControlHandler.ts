@@ -10,10 +10,10 @@
  * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
+import { createSeededRng, type Rng } from '../../../../platform/random';
+import { shuffleArray } from '../../../../platform/random';
 import { formatSeat } from '../../../../platform/room/formatSeat';
 import type { RosterEntry } from '../../../../platform/room/roster';
-import { createSeededRng, type Rng } from '../../../../utils/random';
-import { shuffleArray } from '../../../../utils/shuffle';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import type {
   AssignRolesIntent,

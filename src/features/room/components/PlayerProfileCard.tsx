@@ -11,8 +11,8 @@ import {
   getLevelProgress,
   getLevelTitle,
   LEVEL_THRESHOLDS,
-} from '@werewolf/game-engine/growth/level';
-import { getItemRarity, type Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/growth';
+import { getItemRarity, type Rarity } from '@werewolf/game-engine/product/rewards';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import Animated, {

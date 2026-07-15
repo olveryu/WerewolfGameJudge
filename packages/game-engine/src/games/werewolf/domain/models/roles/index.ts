@@ -9,10 +9,6 @@
  * No service dependencies, no side effects, no resolver logic.
  */
 
-import { getEngineLogger } from '../../../../../utils/logger';
-
-const roleLog = getEngineLogger().extend('Role');
-
 // ============================================================
 // Re-export from spec/
 // ============================================================
@@ -68,18 +64,15 @@ import { Team } from './spec/types';
 
 /**
  * Get role display name (Chinese).
- * Falls back to '未知角色' for unknown roleIds, with warning log.
  *
  * @param roleId - The role ID to look up
  * @returns The Chinese display name (e.g., '平民', '狼人', '预言家')
  */
 export function getRoleDisplayName(roleId: string): string {
   if (!isValidRoleId(roleId)) {
-    roleLog.warn('Unknown roleId', { roleId });
-    return '未知角色';
+    throw new Error(`[FAIL-FAST] Unknown Werewolf role ID: ${roleId}`);
   }
-  const spec = getRoleSpec(roleId);
-  return spec?.displayName ?? '未知角色';
+  return getRoleSpec(roleId).displayName;
 }
 
 // ============================================================

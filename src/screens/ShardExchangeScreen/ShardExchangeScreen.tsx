@@ -6,8 +6,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
-import { REWARD_POOL, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@werewolf/game-engine/product/rewards';
+import { REWARD_POOL, SHARD_COSTS } from '@werewolf/game-engine/product/rewards';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,

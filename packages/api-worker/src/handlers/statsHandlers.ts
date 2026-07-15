@@ -11,8 +11,9 @@
  * @throws 404 — target user not found
  */
 
-import { getLevelTitle } from '@werewolf/game-engine/growth/level';
 import { isGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { getLevelTitle } from '@werewolf/game-engine/product/growth';
+import { parseUnlockedRewardIds } from '@werewolf/game-engine/product/rewards';
 import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -59,8 +60,8 @@ statsRoutes.get('/user/:userId/profile', requireAuth, async (c) => {
 
   if (!userRow) return c.json({ success: false, reason: 'USER_NOT_FOUND' }, 404);
 
-  const unlockedItems: string[] = statsRow?.unlockedItems
-    ? (JSON.parse(statsRow.unlockedItems) as string[])
+  const unlockedItems = statsRow?.unlockedItems
+    ? parseUnlockedRewardIds(statsRow.unlockedItems)
     : [];
 
   const level = statsRow?.level ?? 0;
@@ -95,8 +96,8 @@ statsRoutes.get('/user/:userId/unlocks', requireAuth, async (c) => {
     .where(eq(userStats.userId, targetUserId))
     .get();
 
-  const unlockedItems: string[] = statsRow?.unlockedItems
-    ? (JSON.parse(statsRow.unlockedItems) as string[])
+  const unlockedItems = statsRow?.unlockedItems
+    ? parseUnlockedRewardIds(statsRow.unlockedItems)
     : [];
 
   return c.json({ unlockedItems }, 200);
@@ -121,8 +122,8 @@ statsRoutes.get('/user/stats', requireAuth, async (c) => {
     .where(eq(userStats.userId, userId))
     .get();
 
-  const unlockedItems: string[] = statsRow?.unlockedItems
-    ? (JSON.parse(statsRow.unlockedItems) as string[])
+  const unlockedItems = statsRow?.unlockedItems
+    ? parseUnlockedRewardIds(statsRow.unlockedItems)
     : [];
 
   return c.json(

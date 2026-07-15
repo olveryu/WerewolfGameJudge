@@ -7,7 +7,7 @@
  */
 
 import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { newRequestId } from '@werewolf/game-engine/utils/id';
+import { newRequestId } from '@werewolf/game-engine/platform/identifiers';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 

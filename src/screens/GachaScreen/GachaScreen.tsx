@@ -9,7 +9,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { PITY_THRESHOLD } from '@werewolf/game-engine/growth/gachaProbability';
+import { PITY_THRESHOLD } from '@werewolf/game-engine/product/rewards';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
 import {
@@ -132,8 +132,9 @@ export function GachaScreen({ navigation }: Props) {
           onError: (error: Error) => {
             setIsAnimating(false);
             machineRef.current?.cancelAnimation();
-            // Business rejection (insufficient tickets, collection complete) is warn-only; other errors are reported to Sentry via MutationCache.onError
-            const reason = 'reason' in error ? (error as { reason: string }).reason : '';
+            // Expected business rejections are warn-only; unexpected failures are reported by MutationCache.
+            const reason =
+              'reason' in error && typeof error.reason === 'string' ? error.reason : '';
             const isExpected =
               reason === 'INSUFFICIENT_DRAWS' ||
               reason === 'NO_STATS' ||

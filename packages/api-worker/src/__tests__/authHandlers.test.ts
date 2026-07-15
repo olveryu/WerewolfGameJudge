@@ -318,6 +318,21 @@ describe('PUT /auth/profile', () => {
     expect(userBody.data.user.user_metadata.display_name).toBe('NewName');
   });
 
+  it.each(['avatarFrame', 'seatFlair', 'nameStyle', 'seatAnimation'] as const)(
+    'rejects an unknown %s at the request schema boundary',
+    async (field) => {
+      const signupRes = await postJson('/auth/signup', {
+        email: `${field}@test.local`,
+        password: 'pass123',
+      });
+      const { access_token } = await signupRes.json<AuthSuccessResponse>();
+
+      const res = await putJson('/auth/profile', { [field]: 'nonExistent' }, access_token);
+
+      expect(res.status).toBe(400);
+    },
+  );
+
   it('returns 401 without auth', async () => {
     const res = await SELF.fetch('https://test.local/auth/profile', {
       method: 'PUT',

@@ -7,8 +7,8 @@
  */
 
 import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { randomPick } from '@werewolf/game-engine/utils/random';
-import { shuffleArray } from '@werewolf/game-engine/utils/shuffle';
+import { randomPick } from '@werewolf/game-engine/platform/random';
+import { shuffleArray } from '@werewolf/game-engine/platform/random';
 
 // ── Question pool ───────────────────────────────────────
 

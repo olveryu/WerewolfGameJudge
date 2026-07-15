@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity } from '@werewolf/game-engine/product/rewards';
 import type React from 'react';
 import { useMemo } from 'react';
 import { Text, View } from 'react-native';

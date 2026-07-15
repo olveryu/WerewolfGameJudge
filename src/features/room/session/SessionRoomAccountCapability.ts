@@ -1,6 +1,5 @@
 /** Shared RoomSession projection for product-level account operations. */
 
-import { resolveRandomAnimation } from '@werewolf/game-engine/growth/revealEffect';
 import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
@@ -11,6 +10,7 @@ import type {
   RoomProfileUpdate,
   RoomSeatProfile,
 } from '@werewolf/game-engine/platform/room/roster';
+import { resolveRandomAnimation } from '@werewolf/game-engine/product/rewards';
 
 import type {
   GameRoomAccountSnapshot,

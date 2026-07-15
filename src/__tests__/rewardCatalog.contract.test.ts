@@ -19,7 +19,7 @@ import {
   HAND_DRAWN_AVATAR_IDS,
   NAME_STYLE_IDS,
   SEAT_FLAIR_IDS,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/rewards';
 
 import { AVATAR_FRAMES, getFrameById } from '@/components/avatarFrames';
 import { isGeneratedAvatar } from '@/components/GeneratedAvatar';

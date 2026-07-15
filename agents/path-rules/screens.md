@@ -64,7 +64,7 @@ Faction colors must uniformly use theme tokens. Hardcoded color values are forbi
 
 - `index.ts` exports `SEAT_FLAIRS` object + `getFlairComponent(flairId)` factory function.
 - Each Flair accepts `FlairProps` (`size` / `progress: SharedValue<number>`), renders with Skia Immediate Mode.
-- Adding flair: create component → register in `index.ts` → add to `rewardCatalog.ts` SEAT_FLAIR_IDS.
+- Adding flair: create component → register in `index.ts` → add to `product/rewards/catalog.ts` SEAT_FLAIR_IDS.
 
 ### Avatar Frames (avatarFrames)
 

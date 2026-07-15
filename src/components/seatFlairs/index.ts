@@ -1,11 +1,11 @@
 /**
  * seatFlairs — seat flair registry
  *
- * The FlairId type is derived from SEAT_FLAIR_IDS in `@werewolf/game-engine/growth/rewardCatalog`.
+ * The FlairId type is derived from SEAT_FLAIR_IDS in `@werewolf/game-engine/product/rewards`.
  * Use getFlairById to retrieve the matching Reanimated animation component by id.
  * Same pattern as `avatarFrames/index.ts`.
  */
-import { type FlairId, SEAT_FLAIR_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { type FlairId, SEAT_FLAIR_IDS } from '@werewolf/game-engine/product/rewards';
 import type React from 'react';
 
 import { AmberDropFlair } from './AmberDropFlair';

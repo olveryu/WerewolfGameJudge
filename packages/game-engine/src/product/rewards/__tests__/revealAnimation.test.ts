@@ -1,11 +1,12 @@
 import {
+  parseResolvedRoleRevealAnimation,
   RANDOMIZABLE_ANIMATIONS,
   type ResolvedRoleRevealAnimation,
   resolveRandomAnimation,
   type RoleRevealAnimation,
-} from '@werewolf/game-engine/growth/revealEffect';
+} from '@werewolf/game-engine/product/rewards';
 
-describe('revealEffect', () => {
+describe('reveal animation policy', () => {
   it('derives the twelve randomizable effects from the reward catalog', () => {
     expect(RANDOMIZABLE_ANIMATIONS).toHaveLength(12);
     expect(RANDOMIZABLE_ANIMATIONS).toEqual(
@@ -28,8 +29,11 @@ describe('revealEffect', () => {
     expect(RANDOMIZABLE_ANIMATIONS).not.toContain('random');
   });
 
-  it('resolves random effects deterministically', () => {
-    expect(resolveRandomAnimation('room-1234')).toBe(resolveRandomAnimation('room-1234'));
+  it('keeps fixed seed mappings stable', () => {
+    expect(resolveRandomAnimation('room-1234')).toBe('vortexCollapse');
+    expect(resolveRandomAnimation('a')).toBe('vortexCollapse');
+    expect(resolveRandomAnimation('1234u1')).toBe('meteorStrike');
+
     for (const seed of ['a', 'b', 'c', '123', 'room1']) {
       expect(RANDOMIZABLE_ANIMATIONS).toContain(resolveRandomAnimation(seed));
     }
@@ -50,5 +54,12 @@ describe('revealEffect', () => {
     const resolved: ResolvedRoleRevealAnimation = 'roulette';
     expect(configured).toBe('random');
     expect(resolved).toBe('roulette');
+  });
+
+  it('parses resolved effects and rejects unresolved or stale values', () => {
+    expect(parseResolvedRoleRevealAnimation('roulette')).toBe('roulette');
+    expect(parseResolvedRoleRevealAnimation('none')).toBe('none');
+    expect(() => parseResolvedRoleRevealAnimation('random')).toThrow('[FAIL-FAST]');
+    expect(() => parseResolvedRoleRevealAnimation('retiredEffect')).toThrow('[FAIL-FAST]');
   });
 });

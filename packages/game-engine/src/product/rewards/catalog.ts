@@ -396,7 +396,7 @@ export const NAME_STYLE_IDS = [
   'lustrousAzure', 'lustrousIndigo', 'lustrousViolet', 'lustrousRose', 'lustrousSlate',
 ] as const;
 
-/** All role-reveal effect IDs (1:1 with RandomizableAnimation in RoleRevealAnimation). */
+/** All role-reveal effect IDs available to the reveal-animation policy. */
 // prettier-ignore
 export const ROLE_REVEAL_EFFECT_IDS = [
   'roulette',
@@ -998,65 +998,92 @@ const SEAT_ANIMATION_RARITY: Record<string, Rarity> = {
   // Common (100) — 10 patterns × 10 colors (not listed → falls through to 'common')
 };
 
-/** Look up rarity by ID (unified across avatar/frame/flair/nameStyle/roleRevealEffect/seatAnimation) */
+function createRewardItems(
+  ids: readonly string[],
+  type: RewardType,
+  rarityById: Readonly<Record<string, Rarity>>,
+  defaultRarity: Rarity,
+): readonly RewardItem[] {
+  return ids.map((id) => ({ type, id, rarity: rarityById[id] ?? defaultRarity }));
+}
+
+const REWARD_CATALOG: readonly RewardItem[] = [
+  ...createRewardItems(AVATAR_IDS, 'avatar', AVATAR_RARITY, 'common'),
+  ...createRewardItems(FRAME_IDS, 'frame', FRAME_RARITY, 'common'),
+  ...createRewardItems(SEAT_FLAIR_IDS, 'seatFlair', FLAIR_RARITY, 'common'),
+  ...createRewardItems(NAME_STYLE_IDS, 'nameStyle', NAME_STYLE_RARITY, 'common'),
+  ...createRewardItems(
+    ROLE_REVEAL_EFFECT_IDS,
+    'roleRevealEffect',
+    ROLE_REVEAL_EFFECT_RARITY,
+    'legendary',
+  ),
+  ...createRewardItems(SEAT_ANIMATION_IDS, 'seatAnimation', SEAT_ANIMATION_RARITY, 'common'),
+];
+
+function createRewardIndex(
+  items: readonly RewardItem[],
+  indexName: string,
+): ReadonlyMap<string, RewardItem> {
+  const index = new Map<string, RewardItem>();
+  for (const item of items) {
+    if (index.has(item.id)) {
+      throw new Error(`[FAIL-FAST] Duplicate reward item ID in ${indexName}: ${item.id}`);
+    }
+    index.set(item.id, item);
+  }
+  return index;
+}
+
+const REWARD_CATALOG_BY_ID = createRewardIndex(REWARD_CATALOG, 'catalog');
+
+/** Look up a registered reward item. */
+export function getRewardItem(id: string): RewardItem {
+  const item = REWARD_CATALOG_BY_ID.get(id);
+  if (item === undefined) {
+    throw new Error(`[FAIL-FAST] Unknown reward item ID: ${id}`);
+  }
+  return item;
+}
+
+/** Look up rarity by ID (unified across avatar/frame/flair/nameStyle/roleRevealEffect/seatAnimation). */
 export function getItemRarity(id: string): Rarity {
-  return (
-    AVATAR_RARITY[id] ??
-    FRAME_RARITY[id] ??
-    FLAIR_RARITY[id] ??
-    NAME_STYLE_RARITY[id] ??
-    ROLE_REVEAL_EFFECT_RARITY[id] ??
-    SEAT_ANIMATION_RARITY[id] ??
-    'common'
-  );
+  return getRewardItem(id).rarity;
+}
+
+function isFreeReward(item: RewardItem): boolean {
+  switch (item.type) {
+    case 'avatar':
+      return FREE_AVATAR_IDS.has(item.id);
+    case 'frame':
+      return FREE_FRAME_IDS.has(item.id);
+    case 'seatFlair':
+      return FREE_FLAIR_IDS.has(item.id);
+    case 'nameStyle':
+      return FREE_NAME_STYLE_IDS.has(item.id);
+    case 'roleRevealEffect':
+      return FREE_ROLE_REVEAL_EFFECT_IDS.has(item.id);
+    case 'seatAnimation':
+      return FREE_SEAT_ANIMATION_IDS.has(item.id);
+  }
 }
 
 /**
  * Drawable reward pool (all unlockable items - free items).
  * On server-side level-up, already-unlocked items are excluded from this pool, then a random draw is performed.
  */
-export const REWARD_POOL: readonly RewardItem[] = [
-  ...AVATAR_IDS.filter((id) => !FREE_AVATAR_IDS.has(id)).map(
-    (id) => ({ type: 'avatar', id, rarity: AVATAR_RARITY[id] ?? 'common' }) as const,
-  ),
-  ...FRAME_IDS.filter((id) => !FREE_FRAME_IDS.has(id)).map(
-    (id) => ({ type: 'frame', id, rarity: FRAME_RARITY[id] ?? 'common' }) as const,
-  ),
-  ...SEAT_FLAIR_IDS.filter((id) => !FREE_FLAIR_IDS.has(id)).map(
-    (id) => ({ type: 'seatFlair', id, rarity: FLAIR_RARITY[id] ?? 'common' }) as const,
-  ),
-  ...NAME_STYLE_IDS.filter((id) => !FREE_NAME_STYLE_IDS.has(id)).map(
-    (id) => ({ type: 'nameStyle', id, rarity: NAME_STYLE_RARITY[id] ?? 'common' }) as const,
-  ),
-  ...ROLE_REVEAL_EFFECT_IDS.filter((id) => !FREE_ROLE_REVEAL_EFFECT_IDS.has(id)).map(
-    (id) =>
-      ({
-        type: 'roleRevealEffect',
-        id,
-        rarity: ROLE_REVEAL_EFFECT_RARITY[id] ?? 'legendary',
-      }) as const,
-  ),
-  ...SEAT_ANIMATION_IDS.filter((id) => !FREE_SEAT_ANIMATION_IDS.has(id)).map(
-    (id) => ({ type: 'seatAnimation', id, rarity: SEAT_ANIMATION_RARITY[id] ?? 'common' }) as const,
-  ),
-];
+export const REWARD_POOL: readonly RewardItem[] = REWARD_CATALOG.filter(
+  (item) => !isFreeReward(item),
+);
 
 /** Total free item count */
-export const FREE_ITEM_COUNT =
-  FREE_AVATAR_IDS.size +
-  FREE_FRAME_IDS.size +
-  FREE_FLAIR_IDS.size +
-  FREE_NAME_STYLE_IDS.size +
-  FREE_ROLE_REVEAL_EFFECT_IDS.size +
-  FREE_SEAT_ANIMATION_IDS.size;
+const FREE_ITEM_COUNT = REWARD_CATALOG.length - REWARD_POOL.length;
 
 /** Total obtainable item count (including free) */
 export const TOTAL_UNLOCKABLE_COUNT = REWARD_POOL.length + FREE_ITEM_COUNT;
 
 /** id → RewardItem fast lookup index (O(1) replacement for REWARD_POOL.find()) */
-export const REWARD_POOL_BY_ID: ReadonlyMap<string, RewardItem> = new Map(
-  REWARD_POOL.map((item) => [item.id, item]),
-);
+export const REWARD_POOL_BY_ID = createRewardIndex(REWARD_POOL, 'reward pool');
 
 // ── Shard System ────────────────────────────────────────────────────────
 

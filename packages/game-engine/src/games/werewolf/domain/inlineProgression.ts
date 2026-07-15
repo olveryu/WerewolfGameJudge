@@ -16,8 +16,7 @@
  * contains no IO, side effects, or time dependency (Date.now is passed in by caller).
  */
 
-import { getEngineLogger } from '../../../utils/logger';
-import { createSeededRng, randomIntInclusive } from '../../../utils/random';
+import { createSeededRng, randomIntInclusive } from '../../../platform/random';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
@@ -27,8 +26,6 @@ import { getStepSpec } from './models/roles/spec/nightSteps';
 import type { AudioEffect, GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
-
-const log = getEngineLogger().extend('InlineProgression');
 
 /** Random delay range for vacant bottom card step (ms) */
 const AUTO_SKIP_DELAY_MIN_MS = 5000;
@@ -267,10 +264,6 @@ export function runInlineProgression(
     };
     currentState = gameReducer(currentState, setDeadlineAction);
     allActions.push(setDeadlineAction);
-    log.info('Set stepDeadline for vacant bottom card step', {
-      stepId: currentState.currentStepId,
-      deadline,
-    });
   }
 
   // If there are audio effects, add SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING actions
@@ -287,11 +280,6 @@ export function runInlineProgression(
     currentState = gameReducer(currentState, setAudioPlayingAction);
     allActions.push(setEffectsAction, setAudioPlayingAction);
   }
-
-  log.debug('runInlineProgression complete', {
-    stepsAdvanced,
-    audioEffects: allAudioEffects.length,
-  });
 
   return {
     actions: allActions,

@@ -7,7 +7,7 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import type { Rng } from '../../../../utils/random';
+import type { Rng } from '../../../../platform/random';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { ResolverFn, ResolverResult } from './types';
 

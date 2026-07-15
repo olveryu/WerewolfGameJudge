@@ -18,11 +18,18 @@
  * @pre idempotencyKey uniquely identifies this operation; replays return cached response (24h TTL)
  */
 
-import type { DrawType } from '@werewolf/game-engine/growth/gachaProbability';
-import { rollRarity, selectReward } from '@werewolf/game-engine/growth/gachaProbability';
-import { rollNormalDraws } from '@werewolf/game-engine/growth/level';
-import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
-import { REWARD_POOL_BY_ID, SHARD_COSTS } from '@werewolf/game-engine/growth/rewardCatalog';
+import { secureRng } from '@werewolf/game-engine/platform/random';
+import {
+  type DrawType,
+  parseUnlockedRewardIds,
+  type Rarity,
+  REWARD_POOL_BY_ID,
+  type RewardType,
+  rollNormalDraws,
+  rollRarity,
+  selectReward,
+  SHARD_COSTS,
+} from '@werewolf/game-engine/product/rewards';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -113,7 +120,7 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     });
   }
 
-  const unlockedItems: string[] = JSON.parse(stats.unlockedItems) as string[];
+  const unlockedItems = parseUnlockedRewardIds(stats.unlockedItems);
 
   return c.json({
     normalDraws: stats.normalDraws,
@@ -125,20 +132,6 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     lastLoginRewardAt: stats.lastLoginRewardAt,
   });
 });
-
-/** crypto-safe random float in [0, 100) */
-function cryptoRandomPercent(): number {
-  const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
-  return (arr[0] / 0x100000000) * 100;
-}
-
-/** crypto-safe random int in [0, max) */
-function cryptoRandomInt(max: number): number {
-  const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
-  return arr[0] % max;
-}
 
 interface DrawResult {
   rarity: Rarity;
@@ -217,7 +210,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     // 3. Parse existing unlocked items
-    const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
+    const unlockedIds = parseUnlockedRewardIds(stats.unlockedItems);
     const unlockedSet = new Set(unlockedIds);
 
     let currentPity = drawType === 'golden' ? stats.goldenPity : stats.normalPity;
@@ -241,16 +234,10 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 
     // 4. Execute draws
     for (let i = 0; i < count; i++) {
-      const randomValue = cryptoRandomPercent();
+      const randomValue = secureRng() * 100;
       const { rarity, pityReset } = rollRarity(drawType, currentPity, randomValue);
 
-      const result = selectReward(rarity, unlockedSet, cryptoRandomInt);
-
-      if (!result) {
-        // Pool is empty (should not happen -- pool is static), break
-        break;
-      }
-
+      const result = selectReward(rarity, unlockedSet, secureRng);
       const { reward, isDuplicate, shardsAwarded } = result;
 
       if (!isDuplicate) {
@@ -286,13 +273,12 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     // 5. OCC write: deduct tickets, update pity, update unlocked items, add shards, bump version
-    const actualCount = results.length;
     const updatedItems = JSON.stringify([...unlockedSet]);
 
     const pityUpdate =
       drawType === 'golden'
-        ? { goldenPity: currentPity, goldenDraws: sql`${userStats.goldenDraws} - ${actualCount}` }
-        : { normalPity: currentPity, normalDraws: sql`${userStats.normalDraws} - ${actualCount}` };
+        ? { goldenPity: currentPity, goldenDraws: sql`${userStats.goldenDraws} - ${count}` }
+        : { normalPity: currentPity, normalDraws: sql`${userStats.normalDraws} - ${count}` };
 
     const updated = await db
       .update(userStats)
@@ -314,17 +300,19 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     // 6. Insert draw history records via D1 batch API.
     // Each statement carries only 11 params (one row), avoiding D1's 100-param-per-query limit.
     // Batch is transactional: all-or-nothing.
-    if (historyEntries.length > 0) {
-      const stmts = historyEntries.map((entry) => db.insert(drawHistory).values(entry));
-      await db.batch(stmts as [(typeof stmts)[0], ...typeof stmts]);
+    const stmts = historyEntries.map((entry) => db.insert(drawHistory).values(entry));
+    const firstStatement = stmts[0];
+    if (firstStatement === undefined) {
+      throw new Error('[FAIL-FAST] A validated draw must produce at least one history statement');
     }
+    await db.batch([firstStatement, ...stmts.slice(1)]);
 
     // 7. Return results
     const rarities: Rarity[] = results.map((r: DrawResult): Rarity => r.rarity);
     log.info('draw success', {
       userId,
       drawType,
-      count: results.length,
+      count,
       rarities,
       totalShardsAwarded,
     });
@@ -332,8 +320,8 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       results,
       totalShardsAwarded,
       remaining: {
-        normalDraws: drawType === 'normal' ? availableTickets - actualCount : stats.normalDraws,
-        goldenDraws: drawType === 'golden' ? availableTickets - actualCount : stats.goldenDraws,
+        normalDraws: drawType === 'normal' ? availableTickets - count : stats.normalDraws,
+        goldenDraws: drawType === 'golden' ? availableTickets - count : stats.goldenDraws,
       },
     };
     await storeIdempotentResponse(db, userId, idempotencyKey, response);
@@ -470,7 +458,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
     }
 
     // 4. Check not already owned
-    const unlockedIds: string[] = JSON.parse(stats.unlockedItems) as string[];
+    const unlockedIds = parseUnlockedRewardIds(stats.unlockedItems);
     if (unlockedIds.includes(rewardId)) {
       log.warn('already owned', { userId, rewardId });
       return c.json({ success: false, reason: 'ALREADY_OWNED' }, 400);

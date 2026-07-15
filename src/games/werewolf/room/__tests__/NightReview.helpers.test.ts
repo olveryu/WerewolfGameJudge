@@ -679,7 +679,7 @@ describe('NightReview.helpers', () => {
   describe('buildNightReviewData', () => {
     it('returns both sections', () => {
       const players = new Map<number, LocalPlayer | null>([
-        [0, makePlayer(0, 'werewolf')],
+        [0, makePlayer(0, 'wolf')],
         [1, makePlayer(1, 'seer')],
       ]);
       const data = buildNightReviewData(

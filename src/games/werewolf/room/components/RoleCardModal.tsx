@@ -18,7 +18,7 @@ import {
   getRoleDisplayName,
   getRoleSpec,
 } from '@werewolf/game-engine/games/werewolf/public';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/growth/revealEffect';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 

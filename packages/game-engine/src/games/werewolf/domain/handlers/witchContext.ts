@@ -12,7 +12,7 @@
  * - Night-1-only: canPoison is always true (project rule: poison available on Night-1)
  */
 
-import type { Rng } from '../../../../utils/random';
+import type { Rng } from '../../../../platform/random';
 import type { SchemaId } from '../models/roles/spec';
 import { findSeatByRole } from '../playerHelpers';
 import type { SetWitchContextAction } from '../reducer/types';

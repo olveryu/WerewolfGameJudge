@@ -1,6 +1,12 @@
 /** Zod schemas for /auth/* endpoints */
 
-import { ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+import {
+  FRAME_IDS,
+  NAME_STYLE_IDS,
+  ROLE_REVEAL_EFFECT_IDS,
+  SEAT_ANIMATION_IDS,
+  SEAT_FLAIR_IDS,
+} from '@werewolf/game-engine/product/rewards';
 import { z } from 'zod';
 
 /** Sign-up request validation. */
@@ -21,11 +27,11 @@ export const updateProfileSchema = z.object({
   displayName: z.string().max(30).optional(),
   avatarUrl: z.string().max(500).optional(),
   customAvatarUrl: z.string().max(500).optional(),
-  avatarFrame: z.string().max(100).optional(),
-  seatFlair: z.string().max(100).optional(),
-  nameStyle: z.string().max(100).optional(),
+  avatarFrame: z.enum(['', ...FRAME_IDS]).optional(),
+  seatFlair: z.enum(['', ...SEAT_FLAIR_IDS]).optional(),
+  nameStyle: z.enum(['', ...NAME_STYLE_IDS]).optional(),
   equippedEffect: z.enum(['', 'random', ...ROLE_REVEAL_EFFECT_IDS]).optional(),
-  seatAnimation: z.string().max(100).optional(),
+  seatAnimation: z.enum(['', ...SEAT_ANIMATION_IDS]).optional(),
 });
 
 /** Change password request validation. */

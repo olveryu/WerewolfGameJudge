@@ -4,7 +4,7 @@
  * Native platforms use full-size 2048px raw PNGs and 512px badge PNGs.
  * See avatarImages.web.ts for the web variant (512px + 128px WebP).
  */
-import type { HandDrawnAvatarId } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { HandDrawnAvatarId } from '@werewolf/game-engine/product/rewards';
 
 // --- Raw avatar imports ---
 import avenger from '../../assets/avatars/raw/avenger.png';

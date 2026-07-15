@@ -1,9 +1,8 @@
 import {
   getLevel,
   getLevelProgress,
+  getLevelTitle,
   LEVEL_THRESHOLDS,
-  rollGoldenDraws,
-  rollNormalDraws,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,
@@ -70,6 +69,13 @@ describe('level', () => {
     it('returns correct level between thresholds', () => {
       expect(getLevel(90)).toBe(1); // between 60 and 120
     });
+
+    it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
+      'fails fast for invalid XP %s',
+      (xp) => {
+        expect(() => getLevel(xp)).toThrow('[FAIL-FAST]');
+      },
+    );
   });
 
   describe('getLevelProgress', () => {
@@ -86,6 +92,21 @@ describe('level', () => {
     it('returns 1 at max level', () => {
       expect(getLevelProgress(LEVEL_THRESHOLDS[51]!)).toBe(1);
       expect(getLevelProgress(999999)).toBe(1);
+    });
+
+    it('fails fast instead of projecting invalid XP', () => {
+      expect(() => getLevelProgress(-1)).toThrow('[FAIL-FAST]');
+    });
+  });
+
+  describe('getLevelTitle', () => {
+    it('returns the title for a valid level', () => {
+      expect(getLevelTitle(0)).toBe('新手');
+      expect(getLevelTitle(51)).toBe('传奇');
+    });
+
+    it.each([-1, 1.5, 52, Number.NaN])('fails fast for invalid level %s', (level) => {
+      expect(() => getLevelTitle(level)).toThrow('[FAIL-FAST]');
     });
   });
 
@@ -112,29 +133,9 @@ describe('level', () => {
       expect(rollXp(0, () => 0.999_999)).toBe(XP_BASE + XP_RANDOM_BASE);
       expect(rollXp(30, () => 0.5)).toBe(75);
     });
-  });
 
-  describe('draw rewards', () => {
-    it.each([
-      [0, 1],
-      [0.299_999, 1],
-      [0.3, 2],
-      [0.65, 3],
-      [0.85, 4],
-      [0.95, 5],
-    ])('maps normal draw RNG value %s to %s draws', (rngValue, expected) => {
-      expect(rollNormalDraws(() => rngValue)).toBe(expected);
-    });
-
-    it.each([
-      [0, 1],
-      [0.349_999, 1],
-      [0.35, 2],
-      [0.7, 3],
-      [0.88, 4],
-      [0.96, 5],
-    ])('maps golden draw RNG value %s to %s draws', (rngValue, expected) => {
-      expect(rollGoldenDraws(() => rngValue)).toBe(expected);
+    it.each([-1, 1.5, 52, Number.NaN])('fails fast for invalid level %s', (level) => {
+      expect(() => rollXp(level, () => 0)).toThrow('[FAIL-FAST]');
     });
   });
 });

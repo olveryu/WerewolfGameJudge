@@ -4,12 +4,12 @@
 
 ## Project Overview
 
-React Native (Expo SDK 55) Werewolf game judge assistant app. Cloudflare Worker + DO + D1 handles API/persistence/realtime. **Web-first**, compatible with iOS / Android / WeChat mini-program (web-view shell). Includes gacha collection + XP/level growth system (`packages/game-engine/src/growth/`).
+React Native (Expo SDK 56) multigame judge app. Cloudflare Worker + DO + D1 handles API/persistence/realtime. **Web-first**, compatible with iOS / Android / WeChat mini-program (web-view shell). Includes gacha collection + XP/level growth product modules (`packages/game-engine/src/product/`).
 
 ## Tech Stack
 
 - **pnpm workspace monorepo** (`packages/game-engine` + `packages/api-worker` + root project)
-- React Native + React 19 + Expo SDK 55 | TypeScript (`strict: true` + `noUncheckedIndexedAccess: true`)
+- React Native 0.85 + React 19 + Expo SDK 56 | TypeScript 6 (`strict: true` + `noUncheckedIndexedAccess: true`)
 - Cloudflare Worker (Hono) + DO SQLite + D1 + R2 | Sentry | Jest 29 | Playwright | ESLint 9
 - Path alias: `@/` �?`src/` (root project only; game-engine uses relative paths)
 - Version number authoritative source is `package.json` / lockfile only �?no hardcoding

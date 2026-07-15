@@ -1,5 +1,6 @@
 /** Cloudflare adapter for game-neutral room directory operations. */
 
+import { newRequestId } from '@werewolf/game-engine/platform/identifiers';
 import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonicalJson';
 import { type GameType, isGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
@@ -8,7 +9,6 @@ import {
   parseRoomLocator,
   type RoomLocator,
 } from '@werewolf/game-engine/platform/protocol/roomLocator';
-import { newRequestId } from '@werewolf/game-engine/utils/id';
 
 import { ROOM_CREATION_INTENTS_KEY } from '@/config/storageKeys';
 import { storage } from '@/lib/storage';

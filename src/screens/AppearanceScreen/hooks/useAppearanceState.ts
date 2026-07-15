@@ -1,19 +1,19 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getUnlockedAvatars } from '@werewolf/game-engine/growth/frameUnlock';
+import { getUnlockedAvatars } from '@werewolf/game-engine/product/rewards';
 import {
   isFlairUnlocked,
   isFrameUnlocked,
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
-} from '@werewolf/game-engine/growth/frameUnlock';
+} from '@werewolf/game-engine/product/rewards';
 import {
   getItemRarity,
   type NameStyleId,
   type RoleRevealEffectId,
   type SeatAnimationId,
-} from '@werewolf/game-engine/growth/rewardCatalog';
+} from '@werewolf/game-engine/product/rewards';
 import { useCallback, useMemo, useState } from 'react';
 
 import { AVATAR_FRAMES, type FrameId } from '@/components/avatarFrames';

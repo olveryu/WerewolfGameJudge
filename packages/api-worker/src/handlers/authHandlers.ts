@@ -20,15 +20,17 @@
  * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
 
+import { getLevel } from '@werewolf/game-engine/product/growth';
 import {
+  getItemRarity,
   isFlairUnlocked,
   isFrameUnlocked,
   isNameStyleUnlocked,
   isRoleRevealEffectUnlocked,
   isSeatAnimationUnlocked,
-} from '@werewolf/game-engine/growth/frameUnlock';
-import { getLevel } from '@werewolf/game-engine/growth/level';
-import { getItemRarity, ROLE_REVEAL_EFFECT_IDS } from '@werewolf/game-engine/growth/rewardCatalog';
+  parseUnlockedRewardIds,
+  ROLE_REVEAL_EFFECT_IDS,
+} from '@werewolf/game-engine/product/rewards';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
@@ -128,7 +130,7 @@ async function mergeUserStats(
   // No source stats → nothing to merge
   if (!sourceStats) return;
 
-  const sourceItems: string[] = JSON.parse(sourceStats.unlockedItems) as string[];
+  const sourceItems = parseUnlockedRewardIds(sourceStats.unlockedItems);
 
   if (!targetStats) {
     // Target has no stats row — transfer source row entirely by upsert
@@ -160,7 +162,7 @@ async function mergeUserStats(
   }
 
   // Both have stats — merge
-  const targetItems: string[] = JSON.parse(targetStats.unlockedItems) as string[];
+  const targetItems = parseUnlockedRewardIds(targetStats.unlockedItems);
   const targetSet = new Set(targetItems);
 
   // Compute duplicate compensation
@@ -634,9 +636,7 @@ authRoutes.put('/profile', requireAuth, jsonBody(updateProfileSchema), async (c)
       .from(userStats)
       .where(eq(userStats.userId, userId))
       .get();
-    const unlockedIds: readonly string[] = stats
-      ? (JSON.parse(stats.unlockedItems) as string[])
-      : [];
+    const unlockedIds = stats ? parseUnlockedRewardIds(stats.unlockedItems) : [];
 
     if (cosmeticFields.avatarFrame && !isFrameUnlocked(cosmeticFields.avatarFrame, unlockedIds)) {
       return c.json({ success: false, reason: 'ITEM_NOT_UNLOCKED', field: 'avatarFrame' }, 403);

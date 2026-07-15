@@ -10,7 +10,7 @@
  * VIEWED_ROLE handling lives in viewedRoleHandler.ts.
  */
 
-import { createSeededRng, type Rng } from '../../../../utils/random';
+import { createSeededRng, type Rng } from '../../../../platform/random';
 import type { SubmitActionIntent } from '../intents/types';
 import { ROLE_SPECS, type RoleId, type SchemaId, SCHEMAS, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';

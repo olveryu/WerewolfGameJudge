@@ -7,7 +7,7 @@
  * @param options.rng - Command-scoped random number generator for tie-breaking.
  */
 
-import { randomPick, type Rng } from '../../../utils/random';
+import { randomPick, type Rng } from '../../../platform/random';
 
 export function resolveWolfVotes(
   votes: Map<number, number>,

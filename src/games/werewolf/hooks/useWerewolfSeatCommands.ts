@@ -6,7 +6,7 @@ import type {
   WerewolfSeatProfile,
 } from '@werewolf/game-engine/games/werewolf/public';
 import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { resolveRandomAnimation } from '@werewolf/game-engine/growth/revealEffect';
+import { resolveRandomAnimation } from '@werewolf/game-engine/product/rewards';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';

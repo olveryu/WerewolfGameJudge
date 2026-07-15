@@ -164,9 +164,11 @@ packages/
 │       │   │   └── seating/
 │       │   │       ├── kernel.ts
 │       │   │       └── types.ts
-│       │   └── store/
-│       │       ├── SnapshotStore.ts
-│       │       └── types.ts
+│       │   ├── identifiers/
+│       │   │   └── index.ts
+│       │   └── random/
+│       │       ├── random.ts
+│       │       └── shuffle.ts
 │       ├── games/
 │       │   ├── werewolf/
 │       │   │   ├── commands/
@@ -192,7 +194,13 @@ packages/
 │       │       └── public.ts
 │       ├── product/
 │       │   ├── growth/
+│       │   │   └── level.ts
 │       │   └── rewards/
+│       │       ├── catalog.ts
+│       │       ├── earnings.ts
+│       │       ├── gacha.ts
+│       │       ├── revealAnimation.ts
+│       │       └── unlocks.ts
 │       └── index.ts
 │
 ├── api-worker/
@@ -1881,17 +1889,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                                                     |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                                                            |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                                                            |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                                                            |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                                                            |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                                                            |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                                                            |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                                                            |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                                                            |
-| Phase 8 | 进行中 | engine domain/public 边界、AST import gate、Worker game-owned schema/settlement/AI/test 归位                      | product/utils、客户端 storage/navigation、动态门禁、scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                                      |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                                             |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                                             |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                                             |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                                             |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                                             |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                                             |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                                             |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                                             |
+| Phase 8 | 进行中 | engine domain/public、Worker game ownership、product/platform primitive、精确 exports 与 AST gates                | 客户端 storage/navigation、动态门禁、scope 中性化、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2430,3 +2438,41 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   212 suites/7443 tests、game-engine 85 suites/2460 tests、api-worker 15 files/110 tests 全部通过。
 - Phase 8 仍未完成。下一批处理 game-engine product/growth 与剩余 `utils` 所有权；之后处理客户端 storage、
   navigation contribution、shared mutation 归位，再收紧动态门禁、workspace scope 和第三游戏编译证明。
+
+### 当前提交：Phase 8.3 product 与 platform primitive 归位
+
+- 删除 game-engine 顶层 `growth/` 与 `utils/`，不保留 package alias 或 compatibility barrel。XP/level 归入
+  `product/growth`；奖励目录、抽券收益、抽奖策略、揭晓动画和解锁查询归入 `product/rewards`；随机数、洗牌、
+  request ID 与 hex ID 分别归入 `platform/random`、`platform/identifiers`。原 level 文件里的普通/黄金券收益已拆到
+  rewards，不把产品奖励策略留在 growth。无生产消费者的自动升级发物品 API、rejection ID helper 与永久 noop 的
+  engine logger 连同孤立测试一起删除。
+- `package.json` 只暴露 `./platform/identifiers`、`./platform/random`、`./product/growth`、
+  `./product/rewards` 等精确入口；`platform/protocol/*` wildcard 也改成实际消费者使用的逐项 export。架构门禁要求
+  `games/` 目录名与 `GAME_TYPES` 完全相等、每个游戏包含生产模块、每个 package export 指向存在源码，并用负向
+  fixture 证明 platform 不能依赖 product/game、product 不能依赖 game、游戏不能互相依赖、根 API 不能导出具体
+  游戏。
+- 所有随机选择统一消费 `Rng` 的 `[0, 1)` 契约。整数范围必须由 safe integer 表示，非法 RNG、空数组与非法 hex
+  长度直接失败；`newRequestId` 明确要求标准 `crypto.randomUUID()`，不再用时间戳拼接降级。揭晓动画删除自己的
+  hash 实现，改用 `createSeededRng`，并以固定 seed 向量锁定 settlement replay 与动画映射。
+- 抽奖只从 roll 命中的精确 rarity pool 选择，重复物品按 rarity 转碎片；目录缺少任一 rarity、selector RNG
+  越界或目录 ID 未注册都会 fail fast。Worker 删除 `% max` 随机索引与“可能少抽几次”的死分支，严格扣除已校验
+  的 `count`。分享图和头像沿用 shared `randomHex`，路由集成测试分别锁定 12/8 位 hex key，防止 byte/hex
+  语义迁移改变公开 URL。
+- 新增唯一 `parseUnlockedRewardIds`，在产品边界验证 D1 JSON、数组元素、可抽奖励池成员与重复 ID；auth、stats、
+  gacha 的 9 个读取点不再使用 `JSON.parse(...) as string[]`。unlock query 与 persisted parser 共用必需的
+  reward-pool lookup，不再把缺失映射静默当成其他奖励类型。Catalog 从同一份全目录索引派生 rarity、type 与
+  drawable pool，并在模块初始化时拒绝重复 ID；unlock target 收到未知或错类型 ID 时失败。外部 profile cosmetic
+  ID 先由精确 Zod enum 拒绝并返回 400，不能把不可信输入推入 engine。XP 必须是非负 safe integer，level 必须在
+  `0..51`，非法值不再投影成 0 级或“传奇”。未知角色名在 engine 查询处失败，过期揭晓特效在
+  `GameState -> LocalGameState` 投影处失败，RoomScreen 不再把错误数据静默改成 `none`。
+- `seed-local.mjs` 不再用正则读取已删除文件，而是用 TypeScript AST 解析 `product/rewards/catalog.ts` 的字符串
+  数组与命名 spread；不支持的表达式、循环 spread 和重复 ID 都会终止 seed。Wrangler 4.95.0 本地 migration
+  验证无待执行项，seed 实际解析 196 头像、200 头像框、210 座位特效、200 名字样式、12 揭晓特效与 200 入座
+  动画，共 1018 个唯一 ID，并成功执行两条 D1 写入。
+- 仓库内 AGENTS、path rules、delegate/new-role skill 及其镜像已同步 Expo 56、TypeScript 6 与新目录；活跃代码、
+  脚本和说明不再指导 agent 恢复旧 growth/utils/logger 路径。定向验证已通过 game-engine build、engine 5 suites/
+  218 tests、root 3 suites/3375 tests、Worker 16 files/116 tests、root/Worker TypeScript 与 Knip。
+- 提交前完整 `pnpm run quality` 通过：typecheck、game-engine build、Knip、ESLint、Prettier 全绿；root
+  212 suites/8213 tests、game-engine 86 suites/2511 tests、api-worker 16 files/116 tests 全部通过。
+- Phase 8 仍未完成。下一批处理客户端 storage/navigation/shared mutation 的物理所有权，然后完成动态门禁、
+  workspace scope 中性化、compile-only 第三游戏证明与全量 E2E 验收。

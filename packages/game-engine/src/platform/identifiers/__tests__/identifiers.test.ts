@@ -2,7 +2,7 @@
  * Tests for ID generation utilities
  */
 
-import { newRejectionId, newRequestId, randomHex } from '@werewolf/game-engine/utils/id';
+import { newRequestId, randomHex } from '@werewolf/game-engine/platform/identifiers';
 
 describe('ID utilities', () => {
   describe('randomHex', () => {
@@ -23,6 +23,11 @@ describe('ID utilities', () => {
       }
       expect(values.size).toBe(100);
     });
+
+    it('fails fast for an invalid requested length', () => {
+      expect(() => randomHex(0)).toThrow('[FAIL-FAST]');
+      expect(() => randomHex(1.5)).toThrow('[FAIL-FAST]');
+    });
   });
 
   describe('newRequestId', () => {
@@ -36,22 +41,6 @@ describe('ID utilities', () => {
       const ids = new Set<string>();
       for (let i = 0; i < 100; i++) {
         ids.add(newRequestId());
-      }
-      expect(ids.size).toBe(100);
-    });
-  });
-
-  describe('newRejectionId', () => {
-    it('should return a non-empty string', () => {
-      const id = newRejectionId();
-      expect(typeof id).toBe('string');
-      expect(id.length).toBeGreaterThan(0);
-    });
-
-    it('should generate unique IDs (100 calls should produce 100 unique values)', () => {
-      const ids = new Set<string>();
-      for (let i = 0; i < 100; i++) {
-        ids.add(newRejectionId());
       }
       expect(ids.size).toBe(100);
     });

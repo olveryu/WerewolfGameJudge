@@ -15,6 +15,7 @@ import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { type RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { type GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
 
 // =============================================================================
 // Player Types
@@ -29,7 +30,7 @@ export interface LocalPlayer {
   seatFlair?: string;
   seatAnimation?: string;
   nameStyle?: string;
-  roleRevealEffect?: string;
+  roleRevealEffect?: ResolvedRoleRevealAnimation;
   level?: number;
   role: RoleId | null;
   hasViewedRole: boolean;

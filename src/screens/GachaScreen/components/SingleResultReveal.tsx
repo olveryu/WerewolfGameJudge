@@ -9,7 +9,7 @@
  *
  * Under reducedMotion all animations degrade to a simple fade-in.
  */
-import type { Rarity, RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity, RewardType } from '@werewolf/game-engine/product/rewards';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {

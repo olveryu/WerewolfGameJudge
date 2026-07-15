@@ -7,7 +7,7 @@
  * Orchestrator layer: calls useAppearanceState -> composes all Presentational components.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { getItemRarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import { getItemRarity } from '@werewolf/game-engine/product/rewards';
 import { Image as ExpoImage } from 'expo-image';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';

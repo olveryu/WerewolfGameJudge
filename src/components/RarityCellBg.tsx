@@ -5,7 +5,7 @@
  * gradient using the rarity theme color. Common rarity is not rendered.
  * Shared by AppearanceScreen / UnlocksScreen grid cells.
  */
-import type { Rarity } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { Rarity } from '@werewolf/game-engine/product/rewards';
 import { LinearGradient } from 'expo-linear-gradient';
 import { memo } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -10,7 +10,7 @@
  * Reuses the rendering pattern from UnlocksScreen.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RewardType } from '@werewolf/game-engine/growth/rewardCatalog';
+import type { RewardType } from '@werewolf/game-engine/product/rewards';
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 

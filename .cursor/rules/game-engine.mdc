@@ -16,7 +16,7 @@ Pure game logic workspace imported by client and Worker. It has no React, Cloudf
 - Package-internal production imports use relative paths. `@/` is forbidden.
 - React / React Native / Expo / any platform dependency is forbidden. Importing from `src/` directory is forbidden.
 - Node.js-specific APIs (`fs`/`path`/`process` etc.) forbidden in src/.
-- `console.*` forbidden — use `getEngineLogger()` (DI pattern: `setEngineLogger()` injects, noop when not injected).
+- `console.*` is forbidden. Pure engine APIs return typed outcomes or throw contract errors; they do not log.
 - Random numbers/IDs use Web Crypto API (`crypto.getRandomValues`).
 
 ## Ownership And Imports

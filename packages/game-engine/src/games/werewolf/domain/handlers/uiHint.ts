@@ -8,14 +8,11 @@
  * Consumed only by handleAdvanceNight. No IO, does not mutate state.
  */
 
-import { getEngineLogger } from '../../../../utils/logger';
 import { getWolfRoleIds, type NightPlanStep, SCHEMAS } from '../models';
 import { BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import { findSeatByRole } from '../playerHelpers';
 import type { SetUiHintAction } from '../reducer/types';
 import type { NonNullState } from './types';
-
-const nightFlowLog = getEngineLogger().extend('NightFlow');
 
 /**
  * Create UI Hint Action
@@ -34,23 +31,13 @@ export function maybeCreateUiHintAction(
 ): SetUiHintAction {
   // Night ended or no next step: clear hint
   if (!nextStep) {
-    nightFlowLog.debug('nextStep is null, clearing hint');
     return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
   }
 
   const { stepId, roleId } = nextStep;
   const schema = SCHEMAS[stepId];
 
-  // DEBUG: Log the hint decision inputs
   const nextActorSeat = findSeatByRole(state.players, roleId);
-  nightFlowLog.debug('evaluating UI hint', {
-    stepId,
-    roleId,
-    nextActorSeat,
-    nightmareBlockedSeat: state.nightmareBlockedSeat,
-    wolfKillOverride: !!state.wolfKillOverride,
-    schemaKind: schema?.kind,
-  });
 
   // Schema-driven blocked UI: prefer per-role override from schema.ui, otherwise use defaults
   // Type assertion needed because SCHEMAS uses as const inference; literal type omits optional blocked* fields
@@ -64,10 +51,6 @@ export function maybeCreateUiHintAction(
   if (schema?.kind === 'wolfVote' && state.wolfKillOverride) {
     const wolfRoleIds = getWolfRoleIds();
     const { ui } = state.wolfKillOverride;
-    nightFlowLog.debug('setting wolf_kill_disabled hint', {
-      wolfRoleIds,
-      source: state.wolfKillOverride.source,
-    });
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -88,7 +71,6 @@ export function maybeCreateUiHintAction(
   // Case 1.5: wolfVote + cupid in template -> all wolves see unanimity hint
   if (schema?.kind === 'wolfVote' && state.templateRoles.includes('cupid')) {
     const wolfRoleIds = getWolfRoleIds();
-    nightFlowLog.debug('setting wolf_unanimity_required hint (cupid board)');
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -104,7 +86,6 @@ export function maybeCreateUiHintAction(
   // Case 1.6: wolfVote normal board -> show tie-random-kill hint
   if (schema?.kind === 'wolfVote') {
     const wolfRoleIds = getWolfRoleIds();
-    nightFlowLog.debug('setting wolf_tie_random hint (normal board)');
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -119,7 +100,6 @@ export function maybeCreateUiHintAction(
 
   // Case 2: next actor is blocked by nightmare
   if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
-    nightFlowLog.debug('setting blocked_by_nightmare hint', { nextActorSeat, roleId });
     return {
       type: 'SET_UI_HINT',
       payload: {
@@ -138,6 +118,5 @@ export function maybeCreateUiHintAction(
   }
 
   // Case 3: normal step, clear hint
-  nightFlowLog.debug('no hint needed, clearing');
   return { type: 'SET_UI_HINT', payload: { currentActorHint: null } };
 }

@@ -21,8 +21,7 @@
  * UI hint calculation → uiHint.ts
  */
 
-import { getEngineLogger } from '../../../../utils/logger';
-import { createSeededRng } from '../../../../utils/random';
+import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
 import { calculateDeathsDetailed } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
@@ -51,8 +50,6 @@ import type { HandlerContext, HandlerExecutionContext, HandlerResult, SideEffect
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
-
-const nightFlowLog = getEngineLogger().extend('NightFlow');
 
 // =============================================================================
 // ADVANCE_NIGHT Handler
@@ -205,9 +202,6 @@ export function handleEndNight(
   // currentStepId must be undefined, indicating all steps are complete (after advanceNight sets nextStepId to null)
   // Calling endNight mid-night is a severe architectural violation and must fail-fast
   if (state.currentStepId !== undefined) {
-    nightFlowLog.error('handleEndNight: night_not_complete - currentStepId is still set', {
-      currentStepId: state.currentStepId,
-    });
     return handlerError('night_not_complete');
   }
 
@@ -237,19 +231,8 @@ export function handleEndNight(
     checkedSeats,
   );
 
-  // DEBUG: log death calculation inputs
-  nightFlowLog.debug('handleEndNight: calculating deaths', {
-    wolfVotes: state.currentNightResults?.wolfVotesBySeat,
-    wolfKillOverride: !!state.wolfKillOverride,
-    nightActions,
-    roleSeatMap,
-  });
-
   // Call DeathCalculator (reuse, do not reimplement)
   const { deaths, deathReasons } = calculateDeathsDetailed(nightActions, roleSeatMap);
-
-  // DEBUG: log death calculation results
-  nightFlowLog.debug('handleEndNight: deaths calculated', { deaths, deathReasons });
 
   const endNightAction: EndNightAction = {
     type: 'END_NIGHT',

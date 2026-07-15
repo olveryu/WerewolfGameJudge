@@ -35,6 +35,20 @@ function makeBaseGameState(overrides: Partial<GameState> = {}): GameState {
 }
 
 describe('toWerewolfLocalState', () => {
+  it('fails fast before rendering a stale reveal effect', () => {
+    const state = makeBaseGameState({
+      roster: {
+        p0: { displayName: 'P1', revealEffect: 'retiredEffect' },
+        p1: { displayName: 'P2' },
+        p2: { displayName: 'P3' },
+      },
+    });
+
+    expect(() => toWerewolfLocalState(state)).toThrow(
+      '[FAIL-FAST] Unknown resolved role reveal animation: retiredEffect',
+    );
+  });
+
   it('maps core fields and optional role contexts', () => {
     const state = makeBaseGameState({
       currentStepId: 'seerCheck' as SchemaId,

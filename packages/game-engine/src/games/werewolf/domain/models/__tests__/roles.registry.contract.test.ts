@@ -178,11 +178,10 @@ describe('Role Registry Contract Tests', () => {
       expect(getRoleDisplayName('wolfRobot')).toBe('机械狼人');
     });
 
-    it('returns "未知角色" for unknown roleId with warning log', () => {
-      // Unknown roleId should return fallback
-      expect(getRoleDisplayName('unknown')).toBe('未知角色');
-      expect(getRoleDisplayName('invalidRole')).toBe('未知角色');
-      expect(getRoleDisplayName('')).toBe('未知角色');
+    it('fails fast for an unknown roleId', () => {
+      expect(() => getRoleDisplayName('unknown')).toThrow('[FAIL-FAST]');
+      expect(() => getRoleDisplayName('invalidRole')).toThrow('[FAIL-FAST]');
+      expect(() => getRoleDisplayName('')).toThrow('[FAIL-FAST]');
     });
 
     it('all valid roleIds return non-empty displayName', () => {
@@ -190,7 +189,6 @@ describe('Role Registry Contract Tests', () => {
       for (const roleId of allRoleIds) {
         const displayName = getRoleDisplayName(roleId);
         expect(displayName).toBeTruthy();
-        expect(displayName).not.toBe('未知角色');
       }
     });
   });

@@ -6,7 +6,7 @@
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
+import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/platform/random';
 import { useCallback, useRef, useState } from 'react';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';

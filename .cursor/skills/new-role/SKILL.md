@@ -107,7 +107,7 @@ Go through each core principle 🔍 self-check for all changes in this session:
 - Update step order table and role behavior matrix in `docs/NIGHT1_ROLE_ALIGNMENT_MATRIX.md`
 - Confirm new role prompt appended to `docs/avatar-generation-prompts.md` (step 6b.10)
 - Confirm `scripts/badge-config.mjs` EMOJI_MAP has new role mapping added (step 6b.5)
-- Confirm `rewardCatalog.ts` HAND_DRAWN_AVATAR_IDS + AVATAR_RARITY added (step 6b.6-7)
+- Confirm `product/rewards/catalog.ts` HAND_DRAWN_AVATAR_IDS + AVATAR_RARITY added (step 6b.6-7)
 - Confirm `avatarImages.ts` + `avatarImages.web.ts` registered (step 6b.8-9)
 - **If a preset board was also added** (via new-board skill or directly), the following must also be done in sync:
   - Add strategy entry in `BOARD_STRATEGY` in `src/games/werewolf/components/BoardStrategy/boardStrategyData.ts` (key = board name), including difficulty / recommendLevel / tags / summary / goodStrategy / wolfStrategy / thirdStrategy (if third-party) / firstNight / pitfalls / meta
@@ -685,8 +685,8 @@ Write a 30-80 character role description and append it after the universal prefi
 3. `src/games/werewolf/assets/roleBadges.ts` → `BADGE_MAP`: add native badge import
 4. `src/games/werewolf/assets/roleBadges.web.ts` → `BADGE_MAP`: add web badge import
 5. `scripts/badge-config.mjs` → `EMOJI_MAP`: add `roleId: [folderName, fileName, hasSkinTone]` mapping (Fluent Emoji 3D assets)
-6. `packages/game-engine/src/growth/rewardCatalog.ts` → `HAND_DRAWN_AVATAR_IDS`: insert roleId in alphabetical order
-7. `packages/game-engine/src/growth/rewardCatalog.ts` → `AVATAR_RARITY`: insert in rarity block (`legendary` / `epic`)
+6. `packages/game-engine/src/product/rewards/catalog.ts` → `HAND_DRAWN_AVATAR_IDS`: insert roleId in alphabetical order
+7. `packages/game-engine/src/product/rewards/catalog.ts` → `AVATAR_RARITY`: insert in rarity block (`legendary` / `epic`)
 8. `src/utils/avatarImages.ts` → add raw PNG import + badge PNG thumbnail import + `AVATAR_IMAGE_MAP` + `AVATAR_THUMB_MAP` entries
 9. `src/utils/avatarImages.web.ts` → add WebP avatar import + WebP badge thumbnail import + `AVATAR_IMAGE_MAP` + `AVATAR_THUMB_MAP` entries
 10. Append generated prompt to `docs/avatar-generation-prompts.md` (continue numbering, insert by faction block)

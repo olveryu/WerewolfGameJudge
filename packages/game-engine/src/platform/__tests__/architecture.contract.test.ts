@@ -1,22 +1,39 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { GAME_TYPES } from '../protocol/gameTypes';
 import { getModuleSpecifiers } from './moduleSpecifiers';
 
 const platformDirectory = path.resolve(__dirname, '..');
 const gamesDirectory = path.resolve(__dirname, '..', '..', 'games');
+const productDirectory = path.resolve(__dirname, '..', '..', 'product');
 const sourceDirectory = path.resolve(__dirname, '..', '..');
 const packageDirectory = path.resolve(sourceDirectory, '..');
 
-const REMOVED_GENERIC_GAME_DIRECTORIES = ['engine', 'models', 'protocol', 'resolvers'] as const;
+const REMOVED_ROOT_DIRECTORIES = [
+  'engine',
+  'growth',
+  'models',
+  'protocol',
+  'resolvers',
+  'utils',
+] as const;
 const REMOVED_PACKAGE_EXPORT_PREFIXES = [
   './engine',
+  './growth',
   './models',
   './protocol',
   './resolvers',
+  './utils',
 ] as const;
 const GAME_EXPORT_PATTERN = /^\.\/games\/([^/]+)(?:\/(.+))?$/;
 const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public', 'testing']);
+
+interface PackageExportEntry {
+  readonly exportPath: string;
+  readonly typesPath: string;
+  readonly defaultPath: string;
+}
 
 function isPathWithin(directory: string, candidate: string): boolean {
   return candidate === directory || candidate.startsWith(`${directory}${path.sep}`);
@@ -36,6 +53,55 @@ function collectProductionFiles(directory: string): string[] {
   return files;
 }
 
+function findBoundaryViolations(
+  filePath: string,
+  source: string,
+  allowedDirectories: readonly string[],
+  allowedFiles: readonly string[] = [],
+): readonly string[] {
+  return getModuleSpecifiers(filePath, source).filter((specifier) => {
+    if (!specifier.startsWith('.')) return true;
+    const resolvedPath = path.resolve(path.dirname(filePath), specifier);
+    return (
+      !allowedDirectories.some((directory) => isPathWithin(directory, resolvedPath)) &&
+      !allowedFiles.includes(resolvedPath)
+    );
+  });
+}
+
+function readPackageExports(): readonly PackageExportEntry[] {
+  const packageJson: unknown = JSON.parse(
+    fs.readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'),
+  );
+  if (typeof packageJson !== 'object' || packageJson === null || Array.isArray(packageJson)) {
+    throw new Error('game-engine package.json must contain an object');
+  }
+  if (!('exports' in packageJson)) {
+    throw new Error('game-engine package.json must define exports');
+  }
+  const packageExports = packageJson.exports;
+  if (
+    typeof packageExports !== 'object' ||
+    packageExports === null ||
+    Array.isArray(packageExports)
+  ) {
+    throw new Error('game-engine package.json exports must contain an object');
+  }
+
+  return Object.keys(packageExports).map((exportPath) => {
+    const mapping: unknown = Reflect.get(packageExports, exportPath);
+    if (typeof mapping !== 'object' || mapping === null || Array.isArray(mapping)) {
+      throw new Error(`game-engine export ${exportPath} must contain an object`);
+    }
+    const typesPath: unknown = Reflect.get(mapping, 'types');
+    const defaultPath: unknown = Reflect.get(mapping, 'default');
+    if (typeof typesPath !== 'string' || typeof defaultPath !== 'string') {
+      throw new Error(`game-engine export ${exportPath} must define types and default paths`);
+    }
+    return { exportPath, typesPath, defaultPath };
+  });
+}
+
 describe('game-engine platform dependency boundary', () => {
   const platformFiles = collectProductionFiles(platformDirectory);
 
@@ -45,111 +111,156 @@ describe('game-engine platform dependency boundary', () => {
 
   it.each(platformFiles)('%s imports only other platform modules', (filePath) => {
     const source = fs.readFileSync(filePath, 'utf8');
-    const violations = getModuleSpecifiers(filePath, source).filter((specifier) => {
-      if (!specifier.startsWith('.')) return true;
-      const resolvedPath = path.resolve(path.dirname(filePath), specifier);
-      return !resolvedPath.startsWith(`${platformDirectory}${path.sep}`);
-    });
+    const violations = findBoundaryViolations(filePath, source, [platformDirectory]);
+
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('game-engine product dependency boundary', () => {
+  const productFiles = collectProductionFiles(productDirectory);
+
+  it('contains production modules', () => {
+    expect(productFiles.length).toBeGreaterThan(0);
+  });
+
+  it.each(productFiles)('%s imports only product or platform modules', (filePath) => {
+    const source = fs.readFileSync(filePath, 'utf8');
+    const violations = findBoundaryViolations(filePath, source, [
+      productDirectory,
+      platformDirectory,
+    ]);
 
     expect(violations).toEqual([]);
   });
 });
 
 describe('game-engine game module dependency boundary', () => {
-  const gameDirectories = fs
+  const gameDirectoryNames = fs
     .readdirSync(gamesDirectory, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(gamesDirectory, entry.name));
+    .map((entry) => entry.name)
+    .sort();
+  const gameDirectories = gameDirectoryNames.map((name) => path.join(gamesDirectory, name));
 
-  it('contains registered game module directories', () => {
-    expect(gameDirectories.length).toBeGreaterThan(0);
+  it('contains exactly the registered game module directories', () => {
+    expect(gameDirectoryNames).toEqual([...GAME_TYPES].sort());
   });
 
   for (const gameDirectory of gameDirectories) {
     const gameName = path.basename(gameDirectory);
     const productionFiles = collectProductionFiles(gameDirectory);
 
-    it.each(productionFiles)(`${gameName}: %s does not import another game module`, (filePath) => {
-      const source = fs.readFileSync(filePath, 'utf8');
-      const violations = getModuleSpecifiers(filePath, source).filter((specifier) => {
-        if (specifier.startsWith('.')) {
-          const resolvedPath = path.resolve(path.dirname(filePath), specifier);
-          return (
-            isPathWithin(gamesDirectory, resolvedPath) && !isPathWithin(gameDirectory, resolvedPath)
-          );
-        }
-
-        const gamePathMatch = specifier.match(/\/games\/([^/]+)(?:\/|$)/);
-        return gamePathMatch !== null && gamePathMatch[1] !== gameName;
-      });
-
-      expect(violations).toEqual([]);
+    it(`${gameName}: contains production modules`, () => {
+      expect(productionFiles.length).toBeGreaterThan(0);
     });
+
+    it.each(productionFiles)(
+      `${gameName}: %s imports only its game, product, or platform`,
+      (filePath) => {
+        const source = fs.readFileSync(filePath, 'utf8');
+        const violations = findBoundaryViolations(filePath, source, [
+          gameDirectory,
+          productDirectory,
+          platformDirectory,
+        ]);
+
+        expect(violations).toEqual([]);
+      },
+    );
   }
 });
 
+describe('game-engine root public API boundary', () => {
+  const rootIndexPath = path.join(sourceDirectory, 'index.ts');
+
+  it('aggregates platform/product APIs and the game catalog without concrete games', () => {
+    const source = fs.readFileSync(rootIndexPath, 'utf8');
+    const violations = findBoundaryViolations(
+      rootIndexPath,
+      source,
+      [productDirectory, platformDirectory],
+      [path.join(gamesDirectory, 'catalog')],
+    );
+
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('game-engine dependency boundary fixtures', () => {
+  it.each([
+    {
+      filePath: path.join(platformDirectory, 'fixture.ts'),
+      source: "import '../product/growth';",
+      allowedDirectories: [platformDirectory],
+      expected: '../product/growth',
+    },
+    {
+      filePath: path.join(productDirectory, 'fixture.ts'),
+      source: "import '../games/werewolf/public';",
+      allowedDirectories: [productDirectory, platformDirectory],
+      expected: '../games/werewolf/public',
+    },
+    {
+      filePath: path.join(gamesDirectory, 'werewolf', 'fixture.ts'),
+      source: "import '../fibking/public';",
+      allowedDirectories: [
+        path.join(gamesDirectory, 'werewolf'),
+        productDirectory,
+        platformDirectory,
+      ],
+      expected: '../fibking/public',
+    },
+    {
+      filePath: path.join(sourceDirectory, 'index.ts'),
+      source: "export * from './games/werewolf/public';",
+      allowedDirectories: [productDirectory, platformDirectory],
+      expected: './games/werewolf/public',
+    },
+  ])('rejects $expected', ({ filePath, source, allowedDirectories, expected }) => {
+    expect(findBoundaryViolations(filePath, source, allowedDirectories)).toEqual([expected]);
+  });
+});
+
 describe('game-engine ownership layout', () => {
-  it.each(REMOVED_GENERIC_GAME_DIRECTORIES)('does not restore src/%s', (directoryName) => {
+  it.each(REMOVED_ROOT_DIRECTORIES)('does not restore src/%s', (directoryName) => {
     expect(fs.existsSync(path.join(sourceDirectory, directoryName))).toBe(false);
   });
 
   it('does not expose removed generic game subpaths', () => {
-    const packageJson: unknown = JSON.parse(
-      fs.readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'),
-    );
-    if (typeof packageJson !== 'object' || packageJson === null || Array.isArray(packageJson)) {
-      throw new Error('game-engine package.json must contain an object');
-    }
-
-    if (!('exports' in packageJson)) {
-      throw new Error('game-engine package.json must define exports');
-    }
-    const packageExports = packageJson.exports;
-    if (
-      typeof packageExports !== 'object' ||
-      packageExports === null ||
-      Array.isArray(packageExports)
-    ) {
-      throw new Error('game-engine package.json exports must contain an object');
-    }
-
-    const removedExports = Object.keys(packageExports).filter((exportPath) =>
-      REMOVED_PACKAGE_EXPORT_PREFIXES.some(
-        (prefix) => exportPath === prefix || exportPath.startsWith(`${prefix}/`),
-      ),
-    );
+    const removedExports = readPackageExports()
+      .map(({ exportPath }) => exportPath)
+      .filter((exportPath) =>
+        REMOVED_PACKAGE_EXPORT_PREFIXES.some(
+          (prefix) => exportPath === prefix || exportPath.startsWith(`${prefix}/`),
+        ),
+      );
 
     expect(removedExports).toEqual([]);
   });
 
   it('exposes each game module only through public or testing entrypoints', () => {
-    const packageJson: unknown = JSON.parse(
-      fs.readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'),
-    );
-    if (typeof packageJson !== 'object' || packageJson === null || Array.isArray(packageJson)) {
-      throw new Error('game-engine package.json must contain an object');
-    }
-    if (!('exports' in packageJson)) {
-      throw new Error('game-engine package.json must define exports');
-    }
-    const packageExports = packageJson.exports;
-    if (
-      typeof packageExports !== 'object' ||
-      packageExports === null ||
-      Array.isArray(packageExports)
-    ) {
-      throw new Error('game-engine package.json exports must contain an object');
-    }
-
-    const invalidGameExports = Object.keys(packageExports).filter((exportPath) => {
-      if (exportPath === './games/catalog') return false;
-      const match = GAME_EXPORT_PATTERN.exec(exportPath);
-      if (match === null) return false;
-      if (match[1] === 'catalog') return true;
-      const entrypoint = match[2];
-      return entrypoint === undefined || !ALLOWED_GAME_MODULE_ENTRYPOINTS.has(entrypoint);
-    });
+    const invalidGameExports = readPackageExports()
+      .map(({ exportPath }) => exportPath)
+      .filter((exportPath) => {
+        if (exportPath === './games/catalog') return false;
+        const match = GAME_EXPORT_PATTERN.exec(exportPath);
+        if (match === null) return false;
+        if (match[1] === 'catalog') return true;
+        const entrypoint = match[2];
+        return entrypoint === undefined || !ALLOWED_GAME_MODULE_ENTRYPOINTS.has(entrypoint);
+      });
 
     expect(invalidGameExports).toEqual([]);
+  });
+
+  it('uses exact package exports backed by source files', () => {
+    for (const entry of readPackageExports()) {
+      expect(entry.exportPath).not.toContain('*');
+      expect(fs.existsSync(path.resolve(packageDirectory, entry.typesPath))).toBe(true);
+      expect(entry.defaultPath).toBe(
+        entry.typesPath.replace('./src/', './dist/').replace(/\.tsx?$/, '.js'),
+      );
+    }
   });
 });

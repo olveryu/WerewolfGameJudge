@@ -3,11 +3,13 @@
  */
 
 import {
+  createSeededRng,
   randomBool,
   randomIntInclusive,
+  randomPick,
   type Rng,
   secureRng,
-} from '@werewolf/game-engine/utils/random';
+} from '@werewolf/game-engine/platform/random';
 
 describe('randomIntInclusive', () => {
   it('should return min when range is single value', () => {
@@ -91,5 +93,34 @@ describe('secureRng', () => {
     }
     // Should have many unique values
     expect(values.size).toBeGreaterThan(40);
+  });
+});
+
+describe('createSeededRng', () => {
+  it('keeps the settlement replay sequence stable', () => {
+    const rng = createSeededRng('settlement-effect:user:xp');
+    expect([rng(), rng(), rng()]).toEqual([
+      0.7951667574234307, 0.9170032795518637, 0.40868775942362845,
+    ]);
+  });
+});
+
+describe('RNG contract', () => {
+  it('fails fast for invalid ranges', () => {
+    expect(() => randomIntInclusive(2, 1)).toThrow('[FAIL-FAST]');
+    expect(() => randomIntInclusive(0.5, 2)).toThrow('[FAIL-FAST]');
+    expect(() => randomIntInclusive(Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)).toThrow(
+      '[FAIL-FAST] Inclusive integer range is too wide',
+    );
+  });
+
+  it('fails fast when an injected RNG returns outside [0, 1)', () => {
+    expect(() => randomIntInclusive(1, 2, () => 1)).toThrow('[FAIL-FAST]');
+    expect(() => randomBool(() => -0.1)).toThrow('[FAIL-FAST]');
+    expect(() => randomBool(() => Number.NaN)).toThrow('[FAIL-FAST]');
+  });
+
+  it('allows undefined when it is a valid source element', () => {
+    expect(randomPick([undefined], () => 0)).toBeUndefined();
   });
 });

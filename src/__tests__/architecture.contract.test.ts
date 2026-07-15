@@ -144,6 +144,10 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
 
 describe('Game-engine package boundary: consumers use explicit public APIs', () => {
   const consumerFiles = [...srcFiles, ...workerFiles];
+  const removedOwnershipPrefixes = [
+    '@werewolf/game-engine/growth',
+    '@werewolf/game-engine/utils',
+  ] as const;
 
   it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
     const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
@@ -153,6 +157,16 @@ describe('Game-engine package boundary: consumers use explicit public APIs', () 
   it.each(consumerFiles)('%s must not import a game testing API in production', (filePath) => {
     const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
     expect(imports.filter(isGameTestingSpecifier)).toEqual([]);
+  });
+
+  it.each(consumerFiles)('%s must not import a removed engine ownership path', (filePath) => {
+    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+    const violations = imports.filter((specifier) =>
+      removedOwnershipPrefixes.some(
+        (prefix) => specifier === prefix || specifier.startsWith(`${prefix}/`),
+      ),
+    );
+    expect(violations).toEqual([]);
   });
 });
 
@@ -294,7 +308,7 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
       if (specifier.startsWith('@/screens/RoomScreen/')) return true;
       if (specifier === '@werewolf/game-engine') return true;
       if (!specifier.startsWith('@werewolf/game-engine/')) return false;
-      return !/^@werewolf\/game-engine\/(?:platform|growth)\//.test(specifier);
+      return !/^@werewolf\/game-engine\/(?:platform|product)\//.test(specifier);
     });
     expect(violations).toEqual([]);
   });
@@ -319,7 +333,7 @@ describe('Layer boundary: product components → game-specific code (forbidden)'
       if (specifier.startsWith('@/games/')) return true;
       if (specifier === '@werewolf/game-engine') return true;
       if (!specifier.startsWith('@werewolf/game-engine/')) return false;
-      return !/^@werewolf\/game-engine\/(?:platform|growth)\//.test(specifier);
+      return !/^@werewolf\/game-engine\/(?:platform|product)\//.test(specifier);
     });
     expect(violations).toEqual([]);
   });

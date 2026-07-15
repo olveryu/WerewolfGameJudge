@@ -47,7 +47,7 @@ export function parseBoolean(value: unknown, path: string): boolean {
   return value;
 }
 
-export function parseNumber(value: unknown, path: string): number {
+function parseNumber(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return failDecode(path, 'a finite number');
   }

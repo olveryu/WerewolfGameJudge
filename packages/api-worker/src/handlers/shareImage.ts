@@ -11,6 +11,7 @@
  * @throws 404 — key not found on GET
  */
 
+import { randomHex } from '@werewolf/game-engine/platform/identifiers';
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
@@ -18,11 +19,7 @@ import { requireAuth } from '../lib/auth';
 import { shareImageUploadSchema } from '../schemas/shareImage';
 import { jsonBody } from './shared';
 
-function randomHex(bytes: number): string {
-  const buf = new Uint8Array(bytes);
-  crypto.getRandomValues(buf);
-  return [...buf].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+const SHARE_IMAGE_SUFFIX_HEX_LENGTH = 12;
 
 /** Share image upload routes. */
 export const shareRoutes = new Hono<AppEnv>();
@@ -47,7 +44,7 @@ shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async 
   }
 
   // Upload to R2 with share/ prefix
-  const key = `share/${Date.now()}-${randomHex(6)}.png`;
+  const key = `share/${Date.now()}-${randomHex(SHARE_IMAGE_SUFFIX_HEX_LENGTH)}.png`;
   await env.AVATARS.put(key, bytes, {
     httpMetadata: { contentType: 'image/png' },
   });

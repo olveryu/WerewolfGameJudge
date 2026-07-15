@@ -23,6 +23,7 @@ import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { NIGHT_STEPS, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 import { createTemplateFromRoles } from '@werewolf/game-engine/games/werewolf/public';
 import type { RosterEntry } from '@werewolf/game-engine/platform/room/roster';
+import { parseResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
 
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';
 
@@ -39,7 +40,10 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
     seatFlair: roster?.seatFlair,
     seatAnimation: roster?.seatAnimation,
     nameStyle: roster?.nameStyle,
-    roleRevealEffect: roster?.revealEffect,
+    roleRevealEffect:
+      roster?.revealEffect === undefined
+        ? undefined
+        : parseResolvedRoleRevealAnimation(roster.revealEffect),
     level: roster?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,

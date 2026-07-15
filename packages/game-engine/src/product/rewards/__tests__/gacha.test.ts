@@ -1,12 +1,6 @@
-import {
-  GOLDEN_RATES,
-  NORMAL_RATES,
-  PITY_THRESHOLD,
-  rollRarity,
-  selectReward,
-} from '../growth/gachaProbability';
-import type { Rarity } from '../growth/rewardCatalog';
-import { REWARD_POOL } from '../growth/rewardCatalog';
+import type { Rarity } from '../catalog';
+import { REWARD_POOL } from '../catalog';
+import { GOLDEN_RATES, NORMAL_RATES, PITY_THRESHOLD, rollRarity, selectReward } from '../gacha';
 
 describe('gachaProbability', () => {
   // ── rollRarity ──────────────────────────────────────────────────────────
@@ -138,47 +132,54 @@ describe('gachaProbability', () => {
       const { pityReset } = rollRarity('golden', 5, 5); // epic range
       expect(pityReset).toBe(true);
     });
+
+    it('fails fast for invalid pity or random input', () => {
+      expect(() => rollRarity('normal', -1, 50)).toThrow('[FAIL-FAST]');
+      expect(() => rollRarity('normal', 0.5, 50)).toThrow('[FAIL-FAST]');
+      expect(() => rollRarity('normal', 0, 100)).toThrow('[FAIL-FAST]');
+      expect(() => rollRarity('normal', 0, Number.NaN)).toThrow('[FAIL-FAST]');
+    });
   });
 
   // ── selectReward ────────────────────────────────────────────────────────
 
   describe('selectReward', () => {
-    const deterministicRandom = (_max: number) => 0; // always pick first
+    const deterministicRandom = () => 0; // always pick first
 
     it('should return item of target rarity', () => {
       const result = selectReward('epic', new Set(), deterministicRandom);
-      expect(result).toBeDefined();
-      expect(result!.reward.rarity).toBe('epic');
-      expect(result!.isDuplicate).toBe(false);
-      expect(result!.shardsAwarded).toBe(0);
+      expect(result.reward.rarity).toBe('epic');
+      expect(result.isDuplicate).toBe(false);
+      expect(result.shardsAwarded).toBe(0);
     });
 
     it('should mark duplicate and award shards for already-owned items', () => {
       const epicItems = REWARD_POOL.filter((i) => i.rarity === 'epic');
       const ownedIds = new Set([epicItems[0]!.id]);
       const result = selectReward('epic', ownedIds, deterministicRandom);
-      expect(result).toBeDefined();
-      expect(result!.reward.id).toBe(epicItems[0]!.id);
-      expect(result!.isDuplicate).toBe(true);
-      expect(result!.shardsAwarded).toBe(50); // SHARD_VALUES.epic
+      expect(result.reward.id).toBe(epicItems[0]!.id);
+      expect(result.isDuplicate).toBe(true);
+      expect(result.shardsAwarded).toBe(50); // SHARD_VALUES.epic
     });
 
     it('should return item even when pool has owned items (allows duplicates)', () => {
       const epicItems = REWARD_POOL.filter((i) => i.rarity === 'epic');
       const ownedIds = new Set(epicItems.map((i) => i.id));
       const result = selectReward('epic', ownedIds, deterministicRandom);
-      expect(result).toBeDefined();
-      expect(result!.isDuplicate).toBe(true);
-      expect(result!.shardsAwarded).toBe(50);
+      expect(result.isDuplicate).toBe(true);
+      expect(result.shardsAwarded).toBe(50);
     });
 
-    it('should respect randomFn index', () => {
+    it('should respect the injected RNG', () => {
       const epicPool = REWARD_POOL.filter((i) => i.rarity === 'epic');
-      // Pick the last item
-      const lastPicker = (max: number) => max - 1;
-      const result = selectReward('epic', new Set(), lastPicker);
-      expect(result).toBeDefined();
-      expect(result!.reward.id).toBe(epicPool[epicPool.length - 1]!.id);
+      const result = selectReward('epic', new Set(), () => 1 - Number.EPSILON);
+      expect(result.reward.id).toBe(epicPool[epicPool.length - 1]!.id);
+    });
+
+    it('fails fast when the RNG violates its unit-interval contract', () => {
+      expect(() => selectReward('epic', new Set(), () => -1)).toThrow('[FAIL-FAST]');
+      expect(() => selectReward('epic', new Set(), () => 1)).toThrow('[FAIL-FAST]');
+      expect(() => selectReward('epic', new Set(), () => Number.NaN)).toThrow('[FAIL-FAST]');
     });
   });
 

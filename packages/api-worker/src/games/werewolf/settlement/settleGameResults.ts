@@ -7,16 +7,15 @@
 
 import type { WerewolfGameEndedEffect } from '@werewolf/game-engine/games/werewolf/public';
 import { type CampBucket, getRoleCamp } from '@werewolf/game-engine/games/werewolf/public';
+import { createSeededRng } from '@werewolf/game-engine/platform/random';
 import {
   getLevel,
   LEVEL_THRESHOLDS,
-  rollGoldenDraws,
-  rollNormalDraws,
   rollXp,
   XP_BASE,
   XP_RANDOM_BASE,
-} from '@werewolf/game-engine/growth/level';
-import { createSeededRng } from '@werewolf/game-engine/utils/random';
+} from '@werewolf/game-engine/product/growth';
+import { rollGoldenDraws, rollNormalDraws } from '@werewolf/game-engine/product/rewards';
 
 import type { gameSettlementResults } from '../dbSchema';
 

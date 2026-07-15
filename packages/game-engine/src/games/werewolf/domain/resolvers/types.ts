@@ -9,7 +9,7 @@
  * Use the import boundary test in __tests__/import-boundary.test.ts to enforce this.
  */
 
-import type { Rng } from '../../../../utils/random';
+import type { Rng } from '../../../../platform/random';
 import type { RoleId, SchemaId } from '../models';
 import type { WolfKillOverride } from '../models/roles/spec/schema.types';
 import type { Team } from '../models/roles/spec/types';

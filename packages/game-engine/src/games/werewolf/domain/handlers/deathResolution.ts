@@ -15,7 +15,7 @@
  *   Death priority is determined internally by DeathCalculator: wolfKill > poison > couple > dream > charm.
  */
 
-import type { Rng } from '../../../../utils/random';
+import type { Rng } from '../../../../platform/random';
 import type { NightActions, ReflectionSource, RoleSeatMap } from '../DeathCalculator';
 import { type RoleId, type SchemaId } from '../models';
 import type { WitchAction } from '../models/actions/WitchAction';

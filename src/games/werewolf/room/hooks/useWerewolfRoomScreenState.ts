@@ -12,10 +12,7 @@ import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
 import { Faction } from '@werewolf/game-engine/games/werewolf/public';
-import {
-  RANDOMIZABLE_ANIMATIONS,
-  type ResolvedRoleRevealAnimation,
-} from '@werewolf/game-engine/growth/revealEffect';
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/product/rewards';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
@@ -157,12 +154,7 @@ export function useWerewolfRoomScreenState(
     if (mySeat === null || !gameState) return 'none';
     const effect = gameState.players.get(mySeat)?.roleRevealEffect;
     if (!effect) return 'none';
-    // Validate against known animation IDs — roster may contain stale values
-    if (!(RANDOMIZABLE_ANIMATIONS as readonly string[]).includes(effect)) {
-      roomScreenLog.warn('Unknown roleRevealEffect in roster, falling back to none', { effect });
-      return 'none';
-    }
-    return effect as ResolvedRoleRevealAnimation;
+    return effect;
   }, [mySeat, gameState]);
 
   // ═══════════════════════════════════════════════════════════════════════════
