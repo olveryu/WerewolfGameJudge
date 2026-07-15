@@ -1,7 +1,6 @@
 /** Pure contracts implemented by every game engine. */
 
 import type { CommittedCommandOutcome } from '../protocol/commandResult';
-import type { GameType } from '../protocol/gameTypes';
 import type { BaseGameState } from '../protocol/roomSnapshot';
 
 export type { CommittedCommandOutcome } from '../protocol/commandResult';
@@ -61,7 +60,7 @@ export type Decision<TEvent extends GameEvent, TEffect extends GameEffect> =
     };
 
 export interface GameEngineDefinition<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
   TCommand extends GameCommand,

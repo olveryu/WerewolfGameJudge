@@ -10,7 +10,7 @@ import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameCl
 
 const TEST_CLIENT = {} as WerewolfGameClient;
 
-export const WerewolfRoomScreen: React.FC<GameRoomScreenProps> = (props) => {
+export const WerewolfRoomScreen: React.FC<GameRoomScreenProps<'werewolf'>> = (props) => {
   const entryController = useMemo<RoomEntryController>(
     () => ({
       isReady: true,

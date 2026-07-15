@@ -10,7 +10,6 @@
  * - Does NOT: reconnect, backoff, ping/pong timer, state management, platform event listeners
  */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 import type {
   BaseGameState,
@@ -31,7 +30,7 @@ export interface RealtimeUserEventCodec<TEvent extends RealtimeUserEvent> {
 
 /** Transport-layer event callbacks (transport -> ConnectionManager). */
 export interface TransportEventHandlers<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent = RealtimeUserEvent,
 > {
   onOpen(): void;
@@ -48,7 +47,7 @@ export interface TransportEventHandlers<
 
 /** WebSocket transport layer interface — atomic operation contract, no reconnect logic. */
 export interface IRealtimeTransport<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent = RealtimeUserEvent,
 > {
   /**

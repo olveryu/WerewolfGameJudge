@@ -17,7 +17,6 @@
  * - Connection timeout is controlled by WS_CONNECT_TIMEOUT_MS (8s)
  */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
@@ -50,7 +49,7 @@ const WS_CONNECT_TIMEOUT_MS = 8_000;
  * Does not include reconnect/backoff logic.
  */
 export class CFRealtimeService<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent,
 > implements IRealtimeTransport<TState, TEvent> {
   #ws: WebSocket | null = null;

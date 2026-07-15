@@ -1,7 +1,6 @@
 /** Single owner for room identity, snapshot, connection, commands, and durable user events. */
 
 import { canonicalJson } from '@game-judge/game-engine/platform/protocol/canonicalJson';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
@@ -32,7 +31,7 @@ import { handleError } from '@/utils/errorPipeline';
 import { roomSessionLog } from '@/utils/logger';
 
 interface RoomSessionDeps<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RoomUserEvent & RealtimeUserEvent,
 > {
   readonly codec: GameStateCodec<TState>;
@@ -41,7 +40,7 @@ interface RoomSessionDeps<
   readonly createCommandId: () => string;
 }
 
-interface PendingRoomCommand<TState extends BaseGameState<GameType>, TCommand extends object> {
+interface PendingRoomCommand<TState extends BaseGameState<string>, TCommand extends object> {
   readonly prepared: PreparedRoomCommand<TCommand>;
   inFlight: Promise<RoomCommandDispatchOutcome<TState>> | null;
 }
@@ -53,7 +52,7 @@ interface UserEventDelivery<TEvent> {
   isDelivering: boolean;
 }
 
-function createIdleSnapshot<TState extends BaseGameState<GameType>>(
+function createIdleSnapshot<TState extends BaseGameState<string>>(
   epoch: number,
 ): RoomSessionSnapshot<TState> {
   return Object.freeze({
@@ -99,7 +98,7 @@ function isSignalAborted(signal: AbortSignal | undefined): boolean {
 
 /** Owns exactly one room identity from connect() until disconnect(). */
 export class RoomSession<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent & RealtimeUserEvent,
 > implements RoomSessionClient<TState, TCommand, TEvent> {
@@ -138,7 +137,10 @@ export class RoomSession<
     return () => this.#listeners.delete(listener);
   }
 
-  async connect(identity: ActiveRoomIdentity, signal?: AbortSignal): Promise<RoomConnectOutcome> {
+  async connect(
+    identity: ActiveRoomIdentity<TState['gameType']>,
+    signal?: AbortSignal,
+  ): Promise<RoomConnectOutcome> {
     if (this.#snapshot.phase !== 'idle') {
       throw new Error('[FAIL-FAST] Disconnect the active room session before connect');
     }

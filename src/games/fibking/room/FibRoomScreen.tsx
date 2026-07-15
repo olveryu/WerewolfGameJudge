@@ -13,7 +13,7 @@ import { FibIdentityModal } from './components/FibIdentityModal';
 import { FibRoomSummary } from './components/FibRoomSummary';
 import { useFibRoomScreenState } from './hooks/useFibRoomScreenState';
 
-interface FibRoomScreenProps extends GameRoomScreenProps {
+interface FibRoomScreenProps extends GameRoomScreenProps<'fibking'> {
   readonly session: FibRoomSession;
 }
 

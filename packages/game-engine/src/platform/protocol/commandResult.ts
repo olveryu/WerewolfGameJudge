@@ -1,6 +1,5 @@
 /** Public command result envelope shared by Worker and room clients. */
 
-import type { GameType } from './gameTypes';
 import {
   type BaseGameState,
   createRoomSnapshot,
@@ -13,7 +12,7 @@ export type CommittedCommandOutcome =
   | { readonly kind: 'success'; readonly reason?: string }
   | { readonly kind: 'domainRejected'; readonly reason: string };
 
-export type RoomCommandResult<TState extends BaseGameState<GameType>> =
+export type RoomCommandResult<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'committed';
       readonly commandId: string;
@@ -26,7 +25,7 @@ export type RoomCommandResult<TState extends BaseGameState<GameType>> =
       readonly reason: string;
     };
 
-type RoomCommandResultSource<TState extends BaseGameState<GameType>> =
+type RoomCommandResultSource<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'committed';
       readonly commandId: string;
@@ -117,7 +116,7 @@ function parseCommittedCommandOutcome(value: unknown): CommittedCommandOutcome {
   }
 }
 
-export function createRoomCommandResult<TState extends BaseGameState<GameType>>(
+export function createRoomCommandResult<TState extends BaseGameState<string>>(
   result: RoomCommandResultSource<TState>,
 ): RoomCommandResult<TState> {
   const commandId = parseCommandId(result.commandId);
@@ -134,7 +133,7 @@ export function createRoomCommandResult<TState extends BaseGameState<GameType>>(
   };
 }
 
-export function parseRoomCommandResult<TState extends BaseGameState<GameType>>(
+export function parseRoomCommandResult<TState extends BaseGameState<string>>(
   value: unknown,
   codec: GameStateCodec<TState>,
 ): RoomCommandResult<TState> {

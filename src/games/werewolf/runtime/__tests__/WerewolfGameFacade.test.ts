@@ -16,7 +16,7 @@ import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEv
 import { WerewolfGameFacade } from '../WerewolfGameFacade';
 import { buildApiTestState } from './apiTestState';
 
-const room: RoomRecord = {
+const room: RoomRecord<'werewolf'> = {
   roomCode: '1234',
   roomId: 'room-id-1234',
   gameType: 'werewolf',

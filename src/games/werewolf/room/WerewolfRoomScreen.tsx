@@ -62,7 +62,7 @@ import { createRoomScreenStyles } from './WerewolfRoomScreen.styles';
 // ── Strategy Modal ───────────────────────────────────────────────────────────
 const BOARD_STRATEGY_KEYS = new Set(Object.keys(BOARD_STRATEGY));
 
-interface WerewolfRoomScreenProps extends GameRoomScreenProps {
+interface WerewolfRoomScreenProps extends GameRoomScreenProps<'werewolf'> {
   readonly client: WerewolfGameClient;
 }
 
@@ -89,7 +89,7 @@ export const WerewolfRoomScreen: React.FC<WerewolfRoomScreenProps> = ({
   );
 };
 
-interface WerewolfRoomContentProps extends GameRoomScreenProps {
+interface WerewolfRoomContentProps extends GameRoomScreenProps<'werewolf'> {
   readonly entryController: RoomEntryController;
   readonly client: WerewolfGameClient;
 }

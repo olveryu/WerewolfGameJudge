@@ -8,7 +8,7 @@ import type {
   GameModeIconName,
 } from '@/features/home/model/GameHomeContribution';
 
-import type { ClientGameModule } from './model/ClientGameCatalog';
+import type { RegisteredClientGameModule } from './model/ClientGameCatalog';
 
 export interface ClientGameModeOption {
   readonly gameType: GameType;
@@ -35,7 +35,9 @@ export interface ClientGameHome {
   readonly announcementTabs: readonly ClientGameAnnouncementTab[];
 }
 
-export function createClientGameHome(modules: readonly ClientGameModule[]): ClientGameHome {
+export function createClientGameHome(
+  modules: readonly RegisteredClientGameModule[],
+): ClientGameHome {
   if (modules.length === 0) {
     throw new Error('[FAIL-FAST] Client game catalog must provide at least one Home contribution');
   }

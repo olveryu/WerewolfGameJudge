@@ -1,6 +1,5 @@
 /** Single auth, entry, reconnect, retry, and exit controller for resolved rooms. */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -19,11 +18,11 @@ import { roomScreenLog } from '@/utils/logger';
 const SLOW_CONNECTION_HINT_MS = 8_000;
 
 interface UseRoomEntryControllerParams<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 > {
-  readonly room: RoomRecord;
+  readonly room: RoomRecord<TState['gameType']>;
   readonly session: RoomSessionClient<TState, TCommand, TEvent>;
   readonly authUserId: string | null;
   readonly isAuthLoading: boolean;
@@ -40,7 +39,11 @@ export interface RoomEntryController {
   readonly requestExit: (shouldConfirm: boolean) => void;
 }
 
-function matchesIdentity(identity: ActiveRoomIdentity, room: RoomRecord, userId: string): boolean {
+function matchesIdentity<TGameType extends string>(
+  identity: ActiveRoomIdentity<TGameType>,
+  room: RoomRecord<TGameType>,
+  userId: string,
+): boolean {
   return (
     identity.userId === userId &&
     identity.room.roomCode === room.roomCode &&
@@ -51,7 +54,7 @@ function matchesIdentity(identity: ActiveRoomIdentity, room: RoomRecord, userId:
 }
 
 export function useRoomEntryController<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 >({
@@ -66,7 +69,7 @@ export function useRoomEntryController<
   const [isSlowConnection, setIsSlowConnection] = useState(false);
   const reconnectAbortRef = useRef<AbortController | null>(null);
   const roomCreatedAtMs = room.createdAt.getTime();
-  const stableRoom = useMemo<RoomRecord>(
+  const stableRoom = useMemo<RoomRecord<TState['gameType']>>(
     () => ({
       roomCode: room.roomCode,
       roomId: room.roomId,
@@ -81,7 +84,10 @@ export function useRoomEntryController<
     if (isAuthLoading || authUserId === null) return;
 
     const controller = new AbortController();
-    const identity: ActiveRoomIdentity = { room: stableRoom, userId: authUserId };
+    const identity: ActiveRoomIdentity<TState['gameType']> = {
+      room: stableRoom,
+      userId: authUserId,
+    };
 
     const enter = async (): Promise<void> => {
       const current = session.getSnapshot();

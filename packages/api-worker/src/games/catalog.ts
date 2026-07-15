@@ -7,11 +7,11 @@ import type { AppEnv } from '../env';
 import type { RuntimeWorkerGameModule } from '../platform/room/runtimeGameModule';
 import { fibWorkerModule } from './fibking/module';
 import { werewolfWorkerModule } from './werewolf/module';
-import { defineWorkerGameCatalog } from './workerModule';
+import { defineWorkerGameCatalog, registerWorkerGameModule } from './workerModule';
 
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog({
-  werewolf: werewolfWorkerModule,
-  fibking: fibWorkerModule,
+  werewolf: registerWorkerGameModule(werewolfWorkerModule),
+  fibking: registerWorkerGameModule(fibWorkerModule),
 });
 
 export type WorkerGameCatalog = typeof WORKER_GAME_CATALOG;

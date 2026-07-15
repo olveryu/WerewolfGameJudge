@@ -11,7 +11,7 @@ import { fibWorkerModule } from '../games/fibking/module';
 import { getOrCreateFibWordGenerationResult } from '../games/fibking/wordGenerationResults';
 import { createLocalFibWordProvider } from '../games/fibking/wordProviders/local';
 import type { WorkerEffectContext } from '../games/workerModule';
-import { defineWorkerGameModule } from '../games/workerModule';
+import { defineWorkerGameModule, registerWorkerGameModule } from '../games/workerModule';
 
 async function hasPersistedProviderResult(
   context: WorkerEffectContext<FibState, FibInternalCommand>,
@@ -44,8 +44,10 @@ async function handleRecoverableFibEffect(
   await handleFibGenerateWordEffect(effect, context, provider);
 }
 
-export const e2eFibWorkerModule = defineWorkerGameModule({
+const e2eFibWorkerModuleDefinition = defineWorkerGameModule({
   ...fibWorkerModule,
   effectSchema: fibEffectSchema,
   handleEffect: handleRecoverableFibEffect,
 });
+
+export const e2eFibWorkerModule = registerWorkerGameModule(e2eFibWorkerModuleDefinition);

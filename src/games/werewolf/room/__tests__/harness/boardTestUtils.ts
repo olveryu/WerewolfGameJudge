@@ -48,7 +48,7 @@ export const mockNavigation = {
   setOptions: jest.fn(),
 } as unknown as RoomScreenProps['navigation'];
 
-export const mockRoom: RoomRecord = {
+export const mockRoom: RoomRecord<'werewolf'> = {
   roomCode: '1234',
   roomId: 'room-id-1234',
   gameType: 'werewolf',

@@ -27,7 +27,7 @@ export function toRoomProfileUpdate(patch: RoomProfilePatch): RoomProfileUpdate 
   };
 }
 
-export interface GameRoomAccountSnapshot<TGameType extends GameType = GameType> {
+export interface GameRoomAccountSnapshot<TGameType extends string = GameType> {
   readonly gameType: TGameType;
   readonly phase: 'idle' | 'entering' | 'ready' | 'failed';
   readonly isSeated: boolean;
@@ -35,7 +35,7 @@ export interface GameRoomAccountSnapshot<TGameType extends GameType = GameType> 
   readonly canSyncProfile: boolean;
 }
 
-export interface RoomAccountCapability<TGameType extends GameType = GameType> {
+export interface RoomAccountCapability<TGameType extends string = GameType> {
   readonly gameType: TGameType;
   getSnapshot(): GameRoomAccountSnapshot<TGameType>;
   subscribe(listener: () => void): () => void;

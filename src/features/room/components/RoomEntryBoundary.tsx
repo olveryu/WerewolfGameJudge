@@ -1,7 +1,6 @@
 /** Resolved-room auth and session boundary; game hooks mount only after a snapshot exists. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type React from 'react';
 import { Text, View } from 'react-native';
@@ -23,18 +22,18 @@ import { roomEntryStyles as styles } from './roomEntry.styles';
 import { RoomMiniProgramAuthFailure } from './RoomMiniProgramAuthFailure';
 
 interface RoomEntryBoundaryProps<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 > {
-  readonly room: RoomRecord;
+  readonly room: RoomRecord<TState['gameType']>;
   readonly session: RoomSessionClient<TState, TCommand, TEvent>;
   readonly onExit: () => void;
   readonly children: (controller: RoomEntryController) => React.ReactNode;
 }
 
 export function RoomEntryBoundary<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 >({

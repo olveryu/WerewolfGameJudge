@@ -34,7 +34,7 @@ export function createFibUiModule({ sessionFactory }: CreateFibUiModuleDeps) {
   });
   const roomAccount = createFibRoomAccountCapability(roomSession);
 
-  function BoundFibRoomScreen(props: GameRoomScreenProps) {
+  function BoundFibRoomScreen(props: GameRoomScreenProps<'fibking'>) {
     return createElement(FibRoomScreen, { ...props, session: roomSession });
   }
 

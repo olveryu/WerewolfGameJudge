@@ -2,25 +2,25 @@
 
 import type { GameType } from './gameTypes';
 
-export interface BaseGameState<TGameType extends GameType> {
+export interface BaseGameState<TGameType extends string> {
   readonly gameType: TGameType;
   readonly stateVersion: number;
   readonly roomCode: string;
   readonly hostUserId: string;
 }
 
-export interface GameStateIdentity<TGameType extends GameType = GameType> {
+export interface GameStateIdentity<TGameType extends string = GameType> {
   readonly gameType: TGameType;
   readonly stateVersion: number;
 }
 
-export interface GameStateCodec<TState extends BaseGameState<GameType>> extends GameStateIdentity<
+export interface GameStateCodec<TState extends BaseGameState<string>> extends GameStateIdentity<
   TState['gameType']
 > {
   parse(value: unknown): TState;
 }
 
-export interface RoomSnapshot<TState extends BaseGameState<GameType>> {
+export interface RoomSnapshot<TState extends BaseGameState<string>> {
   readonly gameType: TState['gameType'];
   readonly stateVersion: number;
   readonly revision: number;
@@ -28,7 +28,7 @@ export interface RoomSnapshot<TState extends BaseGameState<GameType>> {
 }
 
 export interface StateUpdateMessage<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
 > extends RoomSnapshot<TState> {
   readonly type: 'STATE_UPDATE';
   readonly lastCommandType: string | null;
@@ -77,7 +77,7 @@ function assertExactKeys(
   }
 }
 
-export function createRoomSnapshot<TState extends BaseGameState<GameType>>(
+export function createRoomSnapshot<TState extends BaseGameState<string>>(
   state: TState,
   revision: number,
 ): RoomSnapshot<TState> {
@@ -91,7 +91,7 @@ export function createRoomSnapshot<TState extends BaseGameState<GameType>>(
   };
 }
 
-export function createStateUpdateMessage<TState extends BaseGameState<GameType>>(
+export function createStateUpdateMessage<TState extends BaseGameState<string>>(
   snapshot: RoomSnapshot<TState>,
   lastCommandType: string | null,
 ): StateUpdateMessage<TState> {
@@ -108,7 +108,7 @@ export function createStateUpdateMessage<TState extends BaseGameState<GameType>>
   };
 }
 
-export function parseRoomSnapshot<TState extends BaseGameState<GameType>>(
+export function parseRoomSnapshot<TState extends BaseGameState<string>>(
   value: unknown,
   codec: GameStateCodec<TState>,
 ): RoomSnapshot<TState> {
@@ -131,7 +131,7 @@ export function parseRoomSnapshot<TState extends BaseGameState<GameType>>(
   return snapshot;
 }
 
-export function parseStateUpdateMessage<TState extends BaseGameState<GameType>>(
+export function parseStateUpdateMessage<TState extends BaseGameState<string>>(
   value: unknown,
   codec: GameStateCodec<TState>,
 ): StateUpdateMessage<TState> {
@@ -163,7 +163,7 @@ export function parseStateUpdateMessage<TState extends BaseGameState<GameType>>(
   };
 }
 
-export function assertRoomSnapshotIdentity<TState extends BaseGameState<GameType>>(
+export function assertRoomSnapshotIdentity<TState extends BaseGameState<string>>(
   snapshot: RoomSnapshot<TState>,
   expected: GameStateIdentity<TState['gameType']>,
 ): void {

@@ -382,14 +382,18 @@ export type GameType = (typeof GAME_TYPES)[number];
 
 规则：
 
-- trusted code 内部的 `gameType` 不是 `string`。
+- 生产运行时、持久化、路由和 catalog 内部的 `gameType` 必须是 `GameType`，不能退化成裸 `string`。
+- module authoring contract 使用 `TGameType extends string` 保留未注册 literal 的完整类型；这只是编译期扩展面，
+  不能直接进入生产 resolver、storage 或 routing。
+- engine、Worker、client 各自只有一个 production registration boundary。只有 `TGameType extends GameType`
+  且 engine/catalog identity 完全匹配的 module 才能在该边界擦除为生产 runtime shape。
 - 外部 string 只解析一次，成功后才成为 `GameType`。
 - 从 D1 和 DO 读取的值也要验证。
 - 新增游戏时，`GAME_TYPES`、state codec、engine 和各运行环境 catalog 必须在同一个
   vertical-slice change 中原子注册。开发中的编译错误用来提示漏项，但主干不允许出现只有 ID、
   没有实现的占位游戏类型。
-- 在瞎掰王 vertical slice 合入前，`GAME_TYPES` 只包含 `werewolf`；最终状态才包含
-  `werewolf` 和 `fibking`。
+- Compile-only 第三游戏 fixture 只能调用开放的 authoring helper；把它赋给 `GameType`、注册到生产
+  Worker/client catalog 或按未知 key 读取生产 catalog 都必须编译失败。
 - create、join、deep link、state parse 和 command dispatch 都没有默认游戏类型。
 
 ## 9. 纯 Game Engine contract
@@ -399,7 +403,7 @@ export type GameType = (typeof GAME_TYPES)[number];
 每个游戏定义自己的 state、config、command union 和 event union：
 
 ```ts
-interface BaseGameState<TGameType extends GameType> {
+interface BaseGameState<TGameType extends string> {
   readonly gameType: TGameType;
   readonly stateVersion: number;
   readonly roomCode: string;
@@ -438,7 +442,7 @@ type Decision<TEvent, TEffect> =
     };
 
 interface GameEngineDefinition<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
   TCommand,
@@ -485,7 +489,7 @@ interface GameEngineDefinition<
 一个版本化 codec：
 
 ```ts
-interface GameStateCodec<TState extends BaseGameState<GameType>> {
+interface GameStateCodec<TState extends BaseGameState<string>> {
   readonly gameType: TState['gameType'];
   readonly stateVersion: number;
   parse(value: unknown): TState;
@@ -579,7 +583,9 @@ export const GAME_ENGINE_CATALOG = defineGameEngineCatalog({
 } satisfies Record<GameType, AnyGameEngineDefinition>);
 ```
 
-如果异构 module 按 runtime ID 选择时必须做 type erasure，它只能隐藏在 `defineGameEngineCatalog` 内部。具体 module 始终保持完整类型，不能把 `GameEngine<unknown, unknown, unknown>` 当成应用层常规 contract 对外暴露。
+`GameEngineDefinition<TGameType extends string, ...>` 是开放的 authoring contract；
+`defineGameEngineCatalog` 是生产闭集边界，只接受 `GameType` 的精确键集和 identity 一致的 engine。具体 module
+始终保持完整类型，不能把 `GameEngine<unknown, unknown, unknown>` 当成应用层常规 contract 对外暴露。
 
 ### 11.3 Worker module
 
@@ -600,35 +606,39 @@ interface WorkerGameModule<TEngine extends AnyGameEngineDefinition, TPublicUserS
 }
 ```
 
-`defineWorkerGameModule` 在编译期绑定 schema output 和 engine input，避免 command schema 产出的 shape 与 engine command union 静默分叉。
+`defineWorkerGameModule` 是开放的 authoring helper，在编译期绑定 literal game ID、schema output、codec 和 engine
+input，避免 command schema 产出的 shape 与 engine command union 静默分叉。它返回具体 state/effect/stats 的
+typed runtime module，不能直接交给 `GameRoom`。
 游戏专属 HTTP 能力也必须由 module 显式贡献；路径只能位于 `/api/games/<gameType>/*`。Worker catalog
 按 canonical `GAME_TYPES` 投影全部 route，并在启动时拒绝重复路径。Worker entry 只遍历投影结果，不 import
 狼人杀或瞎掰王 route。
 
 ```ts
 export const WORKER_GAME_CATALOG = defineWorkerGameCatalog({
-  werewolf: werewolfWorkerModule,
-  fibking: fibWorkerModule,
-} satisfies Record<GameType, AnyWorkerGameModule>);
+  werewolf: registerWorkerGameModule(werewolfWorkerModule),
+  fibking: registerWorkerGameModule(fibWorkerModule),
+});
 ```
+
+`registerWorkerGameModule` 只接受 canonical `GameType` 且 engine 必须等于对应 engine catalog entry。它验证
+effect context state，并用同一个 module codec 解析 internal dispatch result，然后才擦除成
+`RuntimeWorkerGameModule`。`GameRoom`、persistence 和 routing 始终只看到这个生产闭集接口，不接受开放字符串。
 
 ### 11.4 Client module
 
 ```ts
-interface GameUiModule<TState extends BaseGameState<GameType>> {
-  readonly gameType: TState['gameType'];
-  readonly stateCodec: GameStateCodec<TState>;
-  readonly displayName: string;
-  readonly iconName: IconName;
-  readonly createConfig: React.ComponentType<GameConfigProps>;
-  readonly roomContent: React.ComponentType<GameRoomContentProps<TState>>;
-  readonly rules: React.ComponentType<GameRulesProps>;
-  readonly accountStatsSection: React.ComponentType<GameAccountStatsProps>;
-  readonly createRoomAdapter: (session: RoomSession<TState>) => RoomUiAdapter<TState>;
+interface ClientGamePluginDefinition<TGameType extends string> {
+  readonly gameType: TGameType;
+  readonly navigation: GameNavigationDefinition<TGameType>;
+  createModule(dependencies: ClientGameModuleDependencies): ClientGameModule<TGameType>;
 }
 ```
 
-首页 mode option、generic host screen 和 room resolver 都从这个 catalog 生成。未知 ID 显示明确错误并上报 telemetry，绝不导航到狼人杀。
+client session/transport、navigation definition、`RoomRecord<TGameType>`、room account capability 和具体 room screen
+都保留同一个 literal ID。`registerClientGameModule` 只接受 `GameType`；它先核对 resolved room identity，再重建
+精确 `RoomRecord<TGameType>` 并调用具体 screen，不用 component cast 绕过 React props 方差。首页 mode option、
+generic host screen 和 room resolver 都从同一个 `CLIENT_GAME_PLUGIN_CATALOG` 投影。未知 ID 显示明确错误并上报
+telemetry，绝不导航到狼人杀。
 `GET /api/games/:gameType/users/:userId/stats` 只负责认证、解析 canonical game type 和 catalog dispatch；
 统计查询、响应类型与严格 parser 由对应 Worker/game-engine module 所有。`/api/user/stats` 与
 `/api/user/:userId/profile` 不携带任何具体游戏字段。
@@ -1925,17 +1935,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                                            | 尚未完成                                         |
-| ------- | ------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                              | -                                                |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                 | -                                                |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                            | -                                                |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                            | -                                                |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                   | -                                                |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                           | -                                                |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                 | -                                                |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                               | -                                                |
-| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、scope 中性化、单一插件组合点、AST/目录/exports 门禁 | 开放 module contract、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                                                | 尚未完成                                   |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                  | -                                          |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                     | -                                          |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                | -                                          |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                | -                                          |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                       | -                                          |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                               | -                                          |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                     | -                                          |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                   | -                                          |
+| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁 | 精确门禁、fail-fast/命名残留清理、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2678,3 +2688,27 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 8 尚余：把单个 game module contract 从 production `GameType` 闭集解耦并加入 compile-only Pictionary
   证明，继续收紧三 workspace 的非空 AST/目录门禁，完成 fail-fast 与残留命名清理，最后执行 local migration、
   seed、完整 quality 和全量 E2E。
+
+### 当前提交：Phase 8.10 开放 module authoring 与封闭生产注册
+
+- `BaseGameState`、state codec、command result 与 `GameEngineDefinition` 的 authoring 泛型统一为
+  `TGameType extends string`，因此未注册游戏可以保留自己的 literal ID、state、config、command、event 和 effect
+  类型；生产 `GAME_TYPES`、engine catalog、parser、routing 和 storage 仍是 `GameType` 闭集，没有新增第二份 ID union。
+- client session/transport 链、`ActiveRoomIdentity<TGameType>`、`RoomRecord<TGameType>`、navigation definition、room
+  capability 和具体 screen 贯穿同一个 literal ID。生产 `registerRoomUiModule` 会先核对 metadata 中的 game type，
+  再重建精确 room record 调用具体 screen；错误路由立即抛出，不用 React component cast 或宽化 props 隐藏方差问题。
+- Worker 把开放的 typed module runtime 与 `GameRoom` 消费的 `RuntimeWorkerGameModule` 分开。
+  `defineWorkerGameModule` 允许第三游戏 authoring；`registerWorkerGameModule` 只接受 canonical `GameType` 且 engine
+  必须匹配 `GameEngineCatalog[TGameType]`，并在 effect context 与 internal dispatch result 两个方向用同一 codec
+  验证 state。production catalog 与 E2E replacement module 都经过这一唯一擦除边界。
+- 新增三层 compile-only Pictionary fixture：engine 是真实纯 engine/codec，Worker 使用严格 Zod config/command/
+  effect schema，client 创建 typed session、navigation、room account、room screen 和 plugin。fixture 不新增 production
+  game ID、目录、route 或 catalog entry；`@ts-expect-error` 反向证明它不能赋给 `GameType`、不能跨 Worker/client
+  registration boundary，也不能作为生产 catalog key 读取。
+- `knip.json` 与 Worker `tsconfig.json` 显式纳入 type-test roots，保证 fixture 不是未编译死文件。定向验证已通过
+  root/Worker typecheck、Room UI registration 2 tests 和 Worker catalog 9 tests。
+- 完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；root
+  221 suites/8626 tests、game-engine 86 suites/2513 tests、api-worker 16 files/117 tests 全部通过。root Jest 仍只有
+  仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
+- Phase 8 尚余精确 AST/目录/exports 门禁、fail-fast 与残留命名清理，以及 local migration、seed、最终 quality
+  和全量 E2E。

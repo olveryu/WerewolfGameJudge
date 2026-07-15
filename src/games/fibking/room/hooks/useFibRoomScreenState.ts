@@ -43,8 +43,8 @@ import { getFibRoomOperationFailureMessage } from '../fibRoomOperationFailureMes
 import { useFibSeatCommands } from './useFibSeatCommands';
 
 interface UseFibRoomScreenStateParams {
-  readonly room: GameRoomScreenProps['room'];
-  readonly entryReason: GameRoomScreenProps['entryReason'];
+  readonly room: GameRoomScreenProps<'fibking'>['room'];
+  readonly entryReason: GameRoomScreenProps<'fibking'>['entryReason'];
   readonly navigation: NativeStackNavigationProp<RootStackParamList, 'Room'>;
   readonly entryController: RoomEntryController;
   readonly session: FibRoomSession;

@@ -1,6 +1,5 @@
 /** Map generic room-command outcomes to the executable room-capability contract. */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
@@ -10,7 +9,7 @@ import type {
 } from '@/features/room/session/types';
 
 export interface RoomOperationCommandContext<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
 > {
   dispatch(
@@ -19,7 +18,7 @@ export interface RoomOperationCommandContext<
   ): Promise<RoomCommandDispatchOutcome<TState>>;
 }
 
-function mapRoomOperationResult<TState extends BaseGameState<GameType>>(
+function mapRoomOperationResult<TState extends BaseGameState<string>>(
   outcome: RoomCommandDispatchOutcome<TState>,
 ): RoomOperationResult {
   if (outcome.kind === 'superseded') {
@@ -57,7 +56,7 @@ function mapRoomOperationResult<TState extends BaseGameState<GameType>>(
 }
 
 export async function dispatchRoomOperation<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
 >(
   context: RoomOperationCommandContext<TState, TCommand>,

@@ -60,7 +60,7 @@ interface UseAIChatReturn {
 
 export function useAIChat(
   werewolfClient: WerewolfGameClient,
-  identity: ActiveRoomIdentity,
+  identity: ActiveRoomIdentity<'werewolf'>,
 ): UseAIChatReturn {
   const { roomSession } = werewolfClient;
   const storageOwner = useMemo<AIChatStorageOwner>(

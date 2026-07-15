@@ -3,12 +3,12 @@
 import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { RoomLocator } from '@game-judge/game-engine/platform/protocol/roomLocator';
 
-export interface RoomIdentity extends RoomLocator {
-  readonly gameType: GameType;
+export interface RoomIdentity<TGameType extends string = GameType> extends RoomLocator {
+  readonly gameType: TGameType;
   readonly hostUserId: string;
 }
 
-export interface RoomRecord extends RoomIdentity {
+export interface RoomRecord<TGameType extends string = GameType> extends RoomIdentity<TGameType> {
   readonly createdAt: Date;
 }
 

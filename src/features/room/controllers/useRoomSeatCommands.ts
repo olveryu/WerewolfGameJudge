@@ -1,7 +1,6 @@
 /** Canonical seat-command controller shared by every room game. */
 
 import type { RoomSeatCommand } from '@game-judge/game-engine/platform/protocol/commands';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useMemo } from 'react';
 
@@ -21,7 +20,7 @@ import type {
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
 
-interface RoomSeatSession<TState extends BaseGameState<GameType>, TProfile> {
+interface RoomSeatSession<TState extends BaseGameState<string>, TProfile> {
   getSnapshot(): RoomSessionSnapshot<TState>;
   dispatch(
     command: RoomSeatCommand<TProfile>,
@@ -37,13 +36,13 @@ export interface RoomSeatCommandOperations {
   readonly fillBots: () => Promise<RoomOperationResult>;
 }
 
-interface UseRoomSeatCommandsParams<TState extends BaseGameState<GameType>, TProfile> {
+interface UseRoomSeatCommandsParams<TState extends BaseGameState<string>, TProfile> {
   readonly session: RoomSeatSession<TState, TProfile>;
   readonly userId: string;
-  readonly createProfile: (identity: ActiveRoomIdentity) => TProfile;
+  readonly createProfile: (identity: ActiveRoomIdentity<TState['gameType']>) => TProfile;
 }
 
-export function useRoomSeatCommands<TState extends BaseGameState<GameType>, TProfile>({
+export function useRoomSeatCommands<TState extends BaseGameState<string>, TProfile>({
   session,
   userId,
   createProfile,

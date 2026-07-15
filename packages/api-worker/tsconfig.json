@@ -17,6 +17,6 @@
       "@game-judge/game-engine": ["../game-engine/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "type-tests/**/*.ts"],
   "exclude": ["node_modules", "dist", "src/**/__tests__"]
 }

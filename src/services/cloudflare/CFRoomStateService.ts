@@ -1,6 +1,5 @@
 /** Cloudflare adapter for typed authoritative room snapshot reads. */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
@@ -19,7 +18,7 @@ import { cfPost } from './cfFetch';
 import { assertExactRoomResponseKeys, isRoomResponseRecord } from './roomResponseValidation';
 
 export class CFRoomStateService<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
 > implements IRoomStateService<TState> {
   constructor(readonly stateCodec: GameStateCodec<TState>) {}
 

@@ -53,7 +53,7 @@ const TEST_CODEC: GameStateCodec<TestState> = {
   },
 };
 
-const IDENTITY: ActiveRoomIdentity = {
+const IDENTITY: ActiveRoomIdentity<'werewolf'> = {
   room: {
     roomCode: '1234',
     roomId: 'room-id-1234',

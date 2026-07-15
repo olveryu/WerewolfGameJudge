@@ -8,10 +8,14 @@ import type { GameNavigationContribution } from '@/features/navigation/model/Gam
 import type { GameAudioPreviewContribution } from '@/features/product/model/GameAudioPreview';
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
 import type { RoomAccountCapability } from '@/features/room/model/RoomAccountCapability';
-import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
+import {
+  type RegisteredRoomUiModule,
+  registerRoomUiModule,
+  type RoomUiModule,
+} from '@/features/room/model/RoomUiModule';
 
 export interface ClientGameModule<
-  TGameType extends GameType = GameType,
+  TGameType extends string = GameType,
 > extends RoomUiModule<TGameType> {
   readonly home: GameHomeContribution;
   readonly navigation: GameNavigationContribution<TGameType>;
@@ -22,9 +26,23 @@ export interface ClientGameModule<
   readonly appOverlay: React.ComponentType | null;
 }
 
+type ClientGameCatalogEntry<TGameType extends GameType> = Omit<
+  ClientGameModule<TGameType>,
+  'gameType' | 'roomScreen'
+> &
+  RegisteredRoomUiModule<TGameType>;
+
 export type ClientGameCatalog = {
-  readonly [TGameType in GameType]: ClientGameModule<TGameType>;
+  readonly [TGameType in GameType]: ClientGameCatalogEntry<TGameType>;
 };
+
+export type RegisteredClientGameModule = ClientGameCatalog[GameType];
+
+export function registerClientGameModule<TGameType extends GameType>(
+  module: ClientGameModule<TGameType>,
+): ClientGameCatalogEntry<TGameType> {
+  return { ...module, ...registerRoomUiModule(module) };
+}
 
 export function getClientGameModule<TGameType extends GameType>(
   catalog: ClientGameCatalog,
@@ -33,6 +51,8 @@ export function getClientGameModule<TGameType extends GameType>(
   return catalog[gameType];
 }
 
-export function getClientGameModules(catalog: ClientGameCatalog): readonly ClientGameModule[] {
+export function getClientGameModules(
+  catalog: ClientGameCatalog,
+): readonly RegisteredClientGameModule[] {
   return GAME_TYPES.map((gameType) => catalog[gameType]);
 }

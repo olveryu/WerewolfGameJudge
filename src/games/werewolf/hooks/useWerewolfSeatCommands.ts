@@ -25,7 +25,7 @@ interface UseWerewolfSeatCommandsParams {
 export function useWerewolfSeatCommands({ session, user }: UseWerewolfSeatCommandsParams) {
   const queryClient = useQueryClient();
   const createProfile = useCallback(
-    (identity: ActiveRoomIdentity) => {
+    (identity: ActiveRoomIdentity<'werewolf'>) => {
       const cachedStats = queryClient.getQueryData(userStatsOptions().queryKey);
       const equippedEffect =
         user.equippedEffect === 'random'

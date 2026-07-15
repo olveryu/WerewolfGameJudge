@@ -46,7 +46,7 @@ export function createWerewolfUiModule({
   const roomAccount = new WerewolfRoomAccountCapability(client);
   const WerewolfConfigFlowScreen = createWerewolfConfigFlowScreen();
 
-  function BoundWerewolfRoomScreen(props: GameRoomScreenProps) {
+  function BoundWerewolfRoomScreen(props: GameRoomScreenProps<'werewolf'>) {
     return createElement(WerewolfRoomScreen, { ...props, client });
   }
 

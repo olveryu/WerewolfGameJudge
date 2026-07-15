@@ -19,7 +19,7 @@ export type GameNavigationRouteDefinition =
   | UnsupportedGameNavigationRoute;
 
 export interface GameNavigationDefinition<
-  TGameType extends GameType = GameType,
+  TGameType extends string = GameType,
   TConfig extends GameNavigationRouteDefinition = GameNavigationRouteDefinition,
   TGuide extends GameNavigationRouteDefinition = GameNavigationRouteDefinition,
   TNotepad extends GameNavigationRouteDefinition = GameNavigationRouteDefinition,
@@ -38,14 +38,14 @@ export type GameNavigationCapability =
   | GameNavigationScreenCapability
   | UnsupportedGameNavigationRoute;
 
-export interface GameNavigationContribution<TGameType extends GameType = GameType> {
+export interface GameNavigationContribution<TGameType extends string = GameType> {
   readonly gameType: TGameType;
   readonly config: GameNavigationCapability;
   readonly guide: GameNavigationCapability;
   readonly notepad: GameNavigationCapability;
 }
 
-type SupportedRouteKeys<TDefinition extends GameNavigationDefinition> = {
+type SupportedRouteKeys<TDefinition extends GameNavigationDefinition<string>> = {
   [TRouteKind in GameNavigationRouteKind]: TDefinition[TRouteKind] extends {
     readonly kind: 'screen';
   }
@@ -53,12 +53,12 @@ type SupportedRouteKeys<TDefinition extends GameNavigationDefinition> = {
     : never;
 }[GameNavigationRouteKind];
 
-export type GameNavigationScreenBindings<TDefinition extends GameNavigationDefinition> = {
+export type GameNavigationScreenBindings<TDefinition extends GameNavigationDefinition<string>> = {
   readonly [TRouteKind in SupportedRouteKeys<TDefinition>]: React.ComponentType;
 };
 
 export function defineGameNavigation<
-  const TGameType extends GameType,
+  const TGameType extends string,
   const TConfig extends GameNavigationRouteDefinition,
   const TGuide extends GameNavigationRouteDefinition,
   const TNotepad extends GameNavigationRouteDefinition,
@@ -69,7 +69,7 @@ export function defineGameNavigation<
 }
 
 function bindRoute(
-  gameType: GameType,
+  gameType: string,
   routeKind: GameNavigationRouteKind,
   definition: GameNavigationRouteDefinition,
   screenComponent: React.ComponentType | undefined,
@@ -88,7 +88,7 @@ function bindRoute(
   return { ...definition, Screen: screenComponent };
 }
 
-export function bindGameNavigation<TDefinition extends GameNavigationDefinition>(
+export function bindGameNavigation<TDefinition extends GameNavigationDefinition<string>>(
   definition: TDefinition,
   screens: GameNavigationScreenBindings<TDefinition>,
 ): GameNavigationContribution<TDefinition['gameType']> {

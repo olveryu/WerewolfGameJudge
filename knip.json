@@ -5,7 +5,13 @@
   "exclude": ["types"],
   "workspaces": {
     ".": {
-      "entry": ["App.tsx!", "scripts/*.{ts,mjs,sh}", "functions/**/*.ts!", "e2e/**/*.ts"],
+      "entry": [
+        "App.tsx!",
+        "scripts/*.{ts,mjs,sh}",
+        "functions/**/*.ts!",
+        "e2e/**/*.ts",
+        "type-tests/**/*.{ts,tsx}!"
+      ],
       "project": ["src/**/*.{ts,tsx}!", "e2e/**/*.ts", "__mocks__/**/*.{ts,tsx}"],
       "ignoreDependencies": [
         "@sentry/browser",
@@ -22,11 +28,12 @@
       ]
     },
     "packages/game-engine": {
+      "entry": ["type-tests/**/*.ts!"],
       "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
-      "entry": ["src/e2e/index.ts!"],
-      "project": ["src/**/*.ts!"],
+      "entry": ["src/e2e/index.ts!", "type-tests/**/*.ts!"],
+      "project": ["src/**/*.ts!", "type-tests/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
     }
   }

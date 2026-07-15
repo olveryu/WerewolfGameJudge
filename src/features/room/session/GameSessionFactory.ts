@@ -1,6 +1,5 @@
 /** Typed factory contract for creating the single shared room-session implementation. */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
@@ -14,7 +13,7 @@ import type {
 import type { RoomSessionClient } from './types';
 
 export interface GameSessionDefinition<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent,
 > {
   readonly stateCodec: GameStateCodec<TState>;
@@ -23,7 +22,7 @@ export interface GameSessionDefinition<
 
 export interface GameSessionFactory {
   create<
-    TState extends BaseGameState<GameType>,
+    TState extends BaseGameState<string>,
     TCommand extends object,
     TEvent extends RealtimeUserEvent,
   >(

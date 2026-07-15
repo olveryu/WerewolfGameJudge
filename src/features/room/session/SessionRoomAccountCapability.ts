@@ -4,7 +4,6 @@ import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
 } from '@game-judge/game-engine/platform/protocol/commands';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import type {
   RoomProfileUpdate,
@@ -31,7 +30,7 @@ import type {
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
 
-interface RoomAccountSession<TState extends BaseGameState<GameType>> {
+interface RoomAccountSession<TState extends BaseGameState<string>> {
   getSnapshot(): RoomSessionSnapshot<TState>;
   subscribe(listener: () => void): () => void;
 }
@@ -41,7 +40,7 @@ type RoomAccountCommand =
   | RoomSeatCommand<RoomSeatProfile>;
 
 interface RoomAccountCommandSession<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
 > extends RoomAccountSession<TState> {
   dispatch(
     command: RoomAccountCommand,
@@ -50,7 +49,7 @@ interface RoomAccountCommandSession<
 }
 
 interface SessionRoomAccountCapabilityDeps<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > {
   readonly gameType: TGameType;
@@ -62,7 +61,7 @@ interface SessionRoomAccountCapabilityDeps<
 }
 
 interface CreateSessionRoomAccountCapabilityParams<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > {
   readonly gameType: TGameType;
@@ -72,7 +71,7 @@ interface CreateSessionRoomAccountCapabilityParams<
 }
 
 export class SessionRoomAccountCapability<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
 > implements RoomAccountCapability<TGameType> {
   readonly gameType: TGameType;
@@ -149,7 +148,7 @@ export class SessionRoomAccountCapability<
 }
 
 export function createSessionRoomAccountCapability<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
 >({
   gameType,

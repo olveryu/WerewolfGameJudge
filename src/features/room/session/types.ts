@@ -10,8 +10,8 @@ import type {
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 
-export interface ActiveRoomIdentity {
-  readonly room: RoomRecord;
+export interface ActiveRoomIdentity<TGameType extends string = GameType> {
+  readonly room: RoomRecord<TGameType>;
   readonly userId: string;
 }
 
@@ -24,7 +24,7 @@ interface RoomSessionSnapshotBase {
   readonly connection: RoomConnectionStatus;
 }
 
-export type RoomSessionSnapshot<TState extends BaseGameState<GameType>> =
+export type RoomSessionSnapshot<TState extends BaseGameState<string>> =
   | (RoomSessionSnapshotBase & {
       readonly phase: 'idle';
       readonly identity: null;
@@ -34,14 +34,14 @@ export type RoomSessionSnapshot<TState extends BaseGameState<GameType>> =
     })
   | (RoomSessionSnapshotBase & {
       readonly phase: 'entering';
-      readonly identity: ActiveRoomIdentity;
+      readonly identity: ActiveRoomIdentity<TState['gameType']>;
       readonly snapshot: null;
       readonly lastCommand: null;
       readonly error: null;
     })
   | (RoomSessionSnapshotBase & {
       readonly phase: 'ready';
-      readonly identity: ActiveRoomIdentity;
+      readonly identity: ActiveRoomIdentity<TState['gameType']>;
       readonly snapshot: RoomSnapshot<TState>;
       readonly lastCommand: {
         readonly revision: number;
@@ -51,7 +51,7 @@ export type RoomSessionSnapshot<TState extends BaseGameState<GameType>> =
     })
   | (RoomSessionSnapshotBase & {
       readonly phase: 'failed';
-      readonly identity: ActiveRoomIdentity;
+      readonly identity: ActiveRoomIdentity<TState['gameType']>;
       readonly snapshot: null;
       readonly lastCommand: null;
       readonly error: Error;
@@ -75,7 +75,7 @@ export interface PreparedRoomCommand<TCommand extends object> {
   readonly controlledSeat: number | null;
 }
 
-export type RoomCommandDispatchOutcome<TState extends BaseGameState<GameType>> =
+export type RoomCommandDispatchOutcome<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'decided';
       readonly decision: RoomCommandResult<TState>;
@@ -91,13 +91,16 @@ export type RoomCommandDispatchOutcome<TState extends BaseGameState<GameType>> =
     };
 
 export interface RoomSessionClient<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 > {
   getSnapshot(): RoomSessionSnapshot<TState>;
   subscribe(listener: () => void): () => void;
-  connect(identity: ActiveRoomIdentity, signal?: AbortSignal): Promise<RoomConnectOutcome>;
+  connect(
+    identity: ActiveRoomIdentity<TState['gameType']>,
+    signal?: AbortSignal,
+  ): Promise<RoomConnectOutcome>;
   reconnect(signal?: AbortSignal): Promise<RoomConnectOutcome>;
   disconnect(): void;
   prepare<TPreparedCommand extends TCommand>(

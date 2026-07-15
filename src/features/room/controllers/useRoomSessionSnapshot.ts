@@ -1,6 +1,5 @@
 /** React subscription for the single immutable room-session snapshot. */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { useCallback, useSyncExternalStore } from 'react';
 
@@ -11,7 +10,7 @@ import type {
 } from '@/features/room/session/types';
 
 export function useRoomSessionSnapshot<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
   TEvent extends RoomUserEvent,
 >(

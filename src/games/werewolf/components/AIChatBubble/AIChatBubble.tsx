@@ -49,7 +49,7 @@ const PULSE_DURATION = 1000;
 
 interface AIChatBubbleProps {
   readonly client: WerewolfGameClient;
-  readonly identity: ActiveRoomIdentity;
+  readonly identity: ActiveRoomIdentity<'werewolf'>;
   /** When this transitions from false -> true, trigger a pulse animation */
   triggerPulse?: boolean;
 }

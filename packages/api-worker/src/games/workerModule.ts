@@ -4,6 +4,9 @@ import type { GameEngineCatalog } from '@game-judge/game-engine/games/catalog';
 import type {
   CommandContext,
   CommandOf,
+  CommittedCommandOutcome,
+  CommonGameLifecycle,
+  CreateGameContext,
   GameCommand,
   GameEffect,
   GameEngineDefinition,
@@ -24,20 +27,17 @@ import type { ZodType } from 'zod';
 
 import type { AppEnv, Env } from '../env';
 import type {
-  RuntimeDecision,
   RuntimeWorkerGameModule,
   WorkerEffectBusinessContext,
   WorkerEffectRoomIdentity,
 } from '../platform/room/runtimeGameModule';
 
-export type RegisteredGameEngine = GameEngineCatalog[GameType];
-
-export interface WorkerGameHttpRoute<TGameType extends GameType> {
+export interface WorkerGameHttpRoute<TGameType extends string> {
   readonly path: `/api/games/${TGameType}/${string}`;
   readonly router: Hono<AppEnv>;
 }
 
-export interface WorkerEffectContext<TState extends BaseGameState<GameType>, TInternalCommand> {
+export interface WorkerEffectContext<TState extends BaseGameState<string>, TInternalCommand> {
   readonly bindings: Env;
   readonly effectId: string;
   readonly state: TState;
@@ -46,12 +46,86 @@ export interface WorkerEffectContext<TState extends BaseGameState<GameType>, TIn
   dispatchInternal(
     commandId: string,
     command: TInternalCommand,
-  ): Promise<RoomCommandResult<BaseGameState<GameType>>>;
+  ): Promise<RoomCommandResult<TState>>;
   publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
 }
 
+export interface WorkerModuleCommittedDecision<
+  TState extends BaseGameState<string>,
+  TEffect extends GameEffect,
+> {
+  readonly kind: 'commit';
+  readonly commandType: string;
+  readonly state: TState;
+  readonly hasStateEvents: boolean;
+  readonly effects: readonly TEffect[];
+  readonly broadcast: 'state' | 'none';
+  readonly outcome: CommittedCommandOutcome;
+  readonly previousLifecycle: CommonGameLifecycle;
+  readonly lifecycle: CommonGameLifecycle;
+}
+
+export type WorkerModuleDecision<
+  TState extends BaseGameState<string>,
+  TEffect extends GameEffect,
+> =
+  | WorkerModuleCommittedDecision<TState, TEffect>
+  | { readonly kind: 'reject'; readonly reason: string };
+
+export type WorkerModuleCreateResult<TState extends BaseGameState<string>> =
+  | {
+      readonly kind: 'created';
+      readonly state: TState;
+      readonly configJson: string;
+    }
+  | { readonly kind: 'invalidConfig'; readonly reason: string };
+
+export type WorkerModuleConfigResult<TConfig> =
+  | {
+      readonly kind: 'valid';
+      readonly config: TConfig;
+      readonly configJson: string;
+    }
+  | { readonly kind: 'invalid'; readonly reason: string };
+
+export interface WorkerModuleRuntimeEffectContext<TState extends BaseGameState<string>> {
+  readonly bindings: Env;
+  readonly effectId: string;
+  readonly state: TState;
+  readonly roomIdentity: WorkerEffectRoomIdentity;
+  readonly createdRevision: number;
+  dispatchInternal(commandId: string, command: unknown): Promise<RoomCommandResult<TState>>;
+  publishUserEvent(userId: string, eventId: string, message: object): Promise<void>;
+}
+
+export interface WorkerModuleRuntime<
+  TState extends BaseGameState<string>,
+  TConfig,
+  TEffect extends GameEffect,
+  TPublicUserStats,
+> {
+  readonly stateVersion: number;
+  parseCreateConfig(config: unknown): WorkerModuleConfigResult<TConfig>;
+  createInitialState(config: unknown, context: CreateGameContext): WorkerModuleCreateResult<TState>;
+  parseState(value: unknown): TState;
+  parseCommandResult(value: unknown): RoomCommandResult<TState>;
+  decidePublic(
+    state: unknown,
+    command: unknown,
+    context: CommandContext,
+  ): WorkerModuleDecision<TState, TEffect>;
+  decideInternal(
+    state: unknown,
+    command: unknown,
+    context: CommandContext,
+  ): WorkerModuleDecision<TState, TEffect>;
+  getPublicUserStats(userId: string, bindings: Env): Promise<TPublicUserStats>;
+  getEffectBusinessKey(effect: unknown, context: WorkerEffectBusinessContext): string;
+  handleEffect(effect: unknown, context: WorkerModuleRuntimeEffectContext<TState>): Promise<void>;
+}
+
 export interface WorkerGameModuleDefinition<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
   TEvent extends GameEvent,
@@ -86,7 +160,7 @@ export interface WorkerGameModuleDefinition<
 }
 
 export type WorkerGameModule<
-  TGameType extends GameType,
+  TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
   TEvent extends GameEvent,
@@ -102,18 +176,21 @@ export type WorkerGameModule<
     TEffect
   >,
   TPublicUserStats,
-> = WorkerGameModuleDefinition<
-  TGameType,
-  TState,
-  TConfig,
-  TEvent,
-  TEffect,
-  TPublicCommand,
-  TInternalCommand,
-  TEngine,
-  TPublicUserStats
+> = Omit<
+  WorkerGameModuleDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TEvent,
+    TEffect,
+    TPublicCommand,
+    TInternalCommand,
+    TEngine,
+    TPublicUserStats
+  >,
+  'getPublicUserStats' | 'getEffectBusinessKey' | 'handleEffect'
 > &
-  RuntimeWorkerGameModule;
+  WorkerModuleRuntime<TState, TConfig, TEffect, TPublicUserStats>;
 
 type ExactCommandPartition<TCommand, TPublicCommand, TInternalCommand> =
   Exclude<TCommand, TPublicCommand | TInternalCommand> extends never
@@ -122,9 +199,9 @@ type ExactCommandPartition<TCommand, TPublicCommand, TInternalCommand> =
       : never
     : never;
 
-/** Close concrete game types inside callable runtime operations. */
+/** Build callable runtime operations while preserving the authored game identity. */
 export function defineWorkerGameModule<
-  const TGameType extends GameType,
+  const TGameType extends string,
   TState extends BaseGameState<TGameType>,
   TConfig,
   TEvent extends GameEvent,
@@ -152,9 +229,7 @@ export function defineWorkerGameModule<
     TEngine,
     TPublicUserStats
   > &
-    ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand> & {
-      readonly engine: TEngine & GameEngineCatalog[TGameType];
-    },
+    ExactCommandPartition<CommandOf<TEngine>, TPublicCommand, TInternalCommand>,
 ): WorkerGameModule<
   TGameType,
   TState,
@@ -221,7 +296,7 @@ export function defineWorkerGameModule<
     state: TState,
     command: TPublicCommand | TInternalCommand,
     context: CommandContext,
-  ): RuntimeDecision => {
+  ): WorkerModuleDecision<TState, TEffect> => {
     const decision = engine.decide(state, command, context);
     if (decision.kind === 'reject') return decision;
 
@@ -308,6 +383,71 @@ export function defineWorkerGameModule<
         publishUserEvent: (userId, eventId, message) =>
           context.publishUserEvent(userId, eventId, message),
       }),
+  };
+}
+
+/** Erase one authored module only after its ID and engine match the production catalog. */
+export function registerWorkerGameModule<
+  const TGameType extends GameType,
+  TState extends BaseGameState<TGameType>,
+  TConfig,
+  TEvent extends GameEvent,
+  TEffect extends GameEffect,
+  const TPublicCommand extends GameCommand,
+  const TInternalCommand extends GameCommand,
+  const TEngine extends GameEngineDefinition<
+    TGameType,
+    TState,
+    TConfig,
+    TPublicCommand | TInternalCommand,
+    TEvent,
+    TEffect
+  > &
+    GameEngineCatalog[TGameType],
+  const TPublicUserStats,
+>(
+  module: WorkerGameModule<
+    TGameType,
+    TState,
+    TConfig,
+    TEvent,
+    TEffect,
+    TPublicCommand,
+    TInternalCommand,
+    TEngine,
+    TPublicUserStats
+  >,
+) {
+  const runtimeModule: RuntimeWorkerGameModule = {
+    gameType: module.gameType,
+    stateVersion: module.stateVersion,
+    parseCreateConfig: (config) => module.parseCreateConfig(config),
+    createInitialState: (config, context) => module.createInitialState(config, context),
+    parseState: (value) => module.parseState(value),
+    parseCommandResult: (value) => module.parseCommandResult(value),
+    decidePublic: (state, command, context) => module.decidePublic(state, command, context),
+    decideInternal: (state, command, context) => module.decideInternal(state, command, context),
+    getPublicUserStats: (userId, bindings) => module.getPublicUserStats(userId, bindings),
+    getEffectBusinessKey: (effect, context) => module.getEffectBusinessKey(effect, context),
+    handleEffect: (effect, context) =>
+      module.handleEffect(effect, {
+        bindings: context.bindings,
+        effectId: context.effectId,
+        state: module.parseState(context.state),
+        roomIdentity: context.roomIdentity,
+        createdRevision: context.createdRevision,
+        dispatchInternal: async (commandId, command) =>
+          module.parseCommandResult(await context.dispatchInternal(commandId, command)),
+        publishUserEvent: (userId, eventId, message) =>
+          context.publishUserEvent(userId, eventId, message),
+      }),
+  };
+
+  return {
+    ...module,
+    ...runtimeModule,
+    gameType: module.gameType,
+    engine: module.engine,
   };
 }
 

@@ -1,7 +1,6 @@
 /** Production room-session factory bound to Cloudflare state and realtime adapters. */
 
 import { newRequestId } from '@game-judge/game-engine/platform/identifiers';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type {
@@ -16,7 +15,7 @@ import type { RealtimeUserEvent } from '@/services/types/IRealtimeTransport';
 
 export class CloudflareGameSessionFactory implements GameSessionFactory {
   create<
-    TState extends BaseGameState<GameType>,
+    TState extends BaseGameState<string>,
     TCommand extends object,
     TEvent extends RealtimeUserEvent,
   >(

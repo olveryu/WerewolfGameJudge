@@ -35,7 +35,7 @@ interface TestEvent {
   readonly eventId: string;
 }
 
-function createRoom(): RoomRecord {
+function createRoom(): RoomRecord<'werewolf'> {
   return {
     roomCode: '1234',
     roomId: 'room-id-1234',
@@ -58,7 +58,7 @@ function idleSnapshot(epoch = 0): RoomSessionSnapshot<TestState> {
 }
 
 function readySnapshot(
-  identity: ActiveRoomIdentity,
+  identity: ActiveRoomIdentity<'werewolf'>,
   connection: 'live' | 'failed' = 'live',
 ): RoomSessionSnapshot<TestState> {
   return {
@@ -80,7 +80,7 @@ function readySnapshot(
   };
 }
 
-function failedSnapshot(identity: ActiveRoomIdentity): RoomSessionSnapshot<TestState> {
+function failedSnapshot(identity: ActiveRoomIdentity<'werewolf'>): RoomSessionSnapshot<TestState> {
   return {
     phase: 'failed',
     epoch: 1,
@@ -99,7 +99,10 @@ function createSession(initial: RoomSessionSnapshot<TestState> = idleSnapshot())
     snapshot = next;
     for (const listener of listeners) listener();
   };
-  const connect = jest.fn<Promise<RoomConnectOutcome>, [ActiveRoomIdentity, AbortSignal?]>();
+  const connect = jest.fn<
+    Promise<RoomConnectOutcome>,
+    [ActiveRoomIdentity<'werewolf'>, AbortSignal?]
+  >();
   const reconnect = jest.fn<Promise<RoomConnectOutcome>, [AbortSignal?]>();
   const disconnect = jest.fn(() => emit(idleSnapshot(snapshot.epoch + 1)));
   connect.mockImplementation(async (identity) => {
@@ -154,7 +157,7 @@ describe('useRoomEntryController', () => {
     const room = createRoom();
     const { session, connect, disconnect } = createSession();
     const { result, rerender, unmount } = renderHook(
-      ({ resolvedRoom }: { resolvedRoom: RoomRecord }) =>
+      ({ resolvedRoom }: { resolvedRoom: RoomRecord<'werewolf'> }) =>
         useRoomEntryController({
           room: resolvedRoom,
           session,

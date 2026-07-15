@@ -21,7 +21,6 @@
  * - ConnectionManager (imperative shell) executes side effects
  */
 
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import {
   parseRoomLocator,
   type RoomLocator,
@@ -62,7 +61,7 @@ function toError(value: unknown): Error {
 
 /** ConnectionManager dependency injection interface. */
 export interface ConnectionManagerDeps<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent = RealtimeUserEvent,
 > {
   /** WebSocket transport layer (IRealtimeTransport) */
@@ -96,7 +95,7 @@ export interface ConnectionManagerDeps<
  *   revision poll: polls DB revision every REVISION_POLL_BASE_MS~MAX_MS to detect missed WS broadcasts.
  */
 export class ConnectionManager<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TEvent extends RealtimeUserEvent = RealtimeUserEvent,
 > {
   #ctx: FSMContext;

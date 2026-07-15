@@ -5,7 +5,6 @@ import {
   RoomCommandProtocolError,
   type RoomCommandResult,
 } from '@game-judge/game-engine/platform/protocol/commandResult';
-import type { GameType } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import type {
   BaseGameState,
   GameStateCodec,
@@ -31,7 +30,7 @@ interface PrepareRoomCommandOptions<TCommand extends object> {
 }
 
 interface SendPreparedRoomCommandOptions<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
 > {
   readonly prepared: PreparedRoomCommand<TCommand>;
@@ -39,7 +38,7 @@ interface SendPreparedRoomCommandOptions<
   readonly label: string;
 }
 
-export type RoomCommandTransportAttempt<TState extends BaseGameState<GameType>> =
+export type RoomCommandTransportAttempt<TState extends BaseGameState<string>> =
   | {
       readonly kind: 'decided';
       readonly decision: RoomCommandResult<TState>;
@@ -168,7 +167,7 @@ function wait(delayMs: number): Promise<void> {
 
 /** Send an immutable command without applying its snapshot or changing its ID. */
 export async function sendPreparedRoomCommand<
-  TState extends BaseGameState<GameType>,
+  TState extends BaseGameState<string>,
   TCommand extends object,
 >({
   prepared,
