@@ -16,6 +16,8 @@ import path from 'node:path';
 
 import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
+import { getModuleSpecifiers } from '../../packages/game-engine/src/platform/__tests__/moduleSpecifiers';
+
 // ─── Shared file walker ─────────────────────────────────────────────────────
 
 function getAllProductionFiles(dir: string): string[] {
@@ -40,10 +42,26 @@ function getAllProductionFiles(dir: string): string[] {
   return results;
 }
 
-function getImportSpecifiers(content: string): string[] {
-  return [...content.matchAll(/^\s*import\b[\s\S]*?from\s+['"]([^'"]+)['"];?/gm)].map(
-    (match) => match[1]!,
-  );
+function isPathWithin(directory: string, candidate: string): boolean {
+  return candidate === directory || candidate.startsWith(`${directory}${path.sep}`);
+}
+
+function hasPathSegment(specifier: string, segment: string): boolean {
+  return specifier.split('/').includes(segment);
+}
+
+function isGameDomainSpecifier(specifier: string): boolean {
+  return GAME_TYPES.some((gameType) => {
+    const domainPath = `/games/${gameType}/domain`;
+    return specifier.endsWith(domainPath) || specifier.includes(`${domainPath}/`);
+  });
+}
+
+function isGameTestingSpecifier(specifier: string): boolean {
+  return GAME_TYPES.some((gameType) => {
+    const testingPath = `/games/${gameType}/testing`;
+    return specifier.endsWith(testingPath) || specifier.includes(`${testingPath}/`);
+  });
 }
 
 // ─── Paths ──────────────────────────────────────────────────────────────────
@@ -77,16 +95,12 @@ describe('Layer boundary: services → UI (forbidden)', () => {
     expect(servicesFiles.length).toBeGreaterThan(0);
   });
 
-  const uiImportPatterns = [
-    /^\s*import\b.*from\s+['"].*screens\//m,
-    /^\s*import\b.*from\s+['"]@\/games\//m,
-  ];
-
   it.each(servicesFiles)('%s must not import screens/ or games/', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    for (const pattern of uiImportPatterns) {
-      expect(content.match(pattern)).toBeNull();
-    }
+    const violations = getModuleSpecifiers(filePath, content).filter(
+      (specifier) => hasPathSegment(specifier, 'screens') || specifier.startsWith('@/games/'),
+    );
+    expect(violations).toEqual([]);
   });
 });
 
@@ -97,19 +111,14 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
     expect(gameEngineFiles.length).toBeGreaterThan(0);
   });
 
-  // game-engine must not import from @/ alias or ../../../src/ relative paths
-  // Only match actual import statements (not comments)
-  const clientImportPatterns = [
-    /^\s*import\b.*from\s+['"]@\//m,
-    /^\s*import\b.*from\s+['"]\.\.\/(.*)\/src\/(screens|services|hooks|components|contexts|utils|config|navigation)\//m,
-  ];
-
   it.each(gameEngineFiles)('%s must not import client code', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    for (const pattern of clientImportPatterns) {
-      const match = content.match(pattern);
-      expect(match).toBeNull();
-    }
+    const violations = getModuleSpecifiers(filePath, content).filter((specifier) => {
+      if (specifier.startsWith('@/')) return true;
+      if (!specifier.startsWith('.')) return false;
+      return isPathWithin(srcDir, path.resolve(path.dirname(filePath), specifier));
+    });
+    expect(violations).toEqual([]);
   });
 });
 
@@ -117,17 +126,13 @@ describe('Game-engine package boundary: consumers use explicit public APIs', () 
   const consumerFiles = [...srcFiles, ...workerFiles];
 
   it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
-    const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
-    expect(imports.filter((specifier) => specifier.includes('/games/werewolf/domain/'))).toEqual(
-      [],
-    );
+    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter(isGameDomainSpecifier)).toEqual([]);
   });
 
   it.each(consumerFiles)('%s must not import a game testing API in production', (filePath) => {
-    const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
-    expect(imports.filter((specifier) => specifier.endsWith('/games/werewolf/testing'))).toEqual(
-      [],
-    );
+    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter(isGameTestingSpecifier)).toEqual([]);
   });
 });
 
@@ -140,7 +145,10 @@ describe('Layer boundary: Worker platform → game composition (forbidden)', () 
     '%s must receive game modules through platform ports',
     (filePath) => {
       const content = fs.readFileSync(filePath, 'utf-8');
-      expect(content).not.toMatch(/^\s*import\b.*from\s+['"].*\/games\//m);
+      const violations = getModuleSpecifiers(filePath, content).filter((specifier) =>
+        hasPathSegment(specifier, 'games'),
+      );
+      expect(violations).toEqual([]);
     },
   );
 });
@@ -150,18 +158,16 @@ describe('Layer boundary: shared room → game-specific code (forbidden)', () =>
     expect(sharedRoomFiles.length).toBeGreaterThan(0);
   });
 
-  const forbiddenImports = [
-    /^\s*import\b.*from\s+['"]@\/games\//m,
-    /^\s*import\b.*from\s+['"]@\/screens\/RoomScreen\//m,
-    /^\s*import\b.*from\s+['"]@werewolf\/game-engine['"]/m,
-    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(?!(?:platform|growth)\/)/m,
-  ];
-
   it.each(sharedRoomFiles)('%s must not import a game implementation', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    for (const pattern of forbiddenImports) {
-      expect(content.match(pattern)).toBeNull();
-    }
+    const violations = getModuleSpecifiers(filePath, content).filter((specifier) => {
+      if (specifier.startsWith('@/games/')) return true;
+      if (specifier.startsWith('@/screens/RoomScreen/')) return true;
+      if (specifier === '@werewolf/game-engine') return true;
+      if (!specifier.startsWith('@werewolf/game-engine/')) return false;
+      return !/^@werewolf\/game-engine\/(?:platform|growth)\//.test(specifier);
+    });
+    expect(violations).toEqual([]);
   });
 
   const forbiddenGameSemanticIdentifiers =
@@ -178,17 +184,15 @@ describe('Layer boundary: product components → game-specific code (forbidden)'
     expect(productComponentFiles.length).toBeGreaterThan(0);
   });
 
-  const forbiddenImports = [
-    /^\s*import\b.*from\s+['"]@\/games\//m,
-    /^\s*import\b.*from\s+['"]@werewolf\/game-engine['"]/m,
-    /^\s*import\b.*from\s+['"]@werewolf\/game-engine\/(?!(?:platform|growth)\/)/m,
-  ];
-
   it.each(productComponentFiles)('%s must not import a game implementation', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    for (const pattern of forbiddenImports) {
-      expect(content.match(pattern)).toBeNull();
-    }
+    const violations = getModuleSpecifiers(filePath, content).filter((specifier) => {
+      if (specifier.startsWith('@/games/')) return true;
+      if (specifier === '@werewolf/game-engine') return true;
+      if (!specifier.startsWith('@werewolf/game-engine/')) return false;
+      return !/^@werewolf\/game-engine\/(?:platform|growth)\//.test(specifier);
+    });
+    expect(violations).toEqual([]);
   });
 });
 
@@ -209,7 +213,7 @@ describe('Layer boundary: game modules are isolated', () => {
     for (const gameType of GAME_TYPES) {
       const files = getAllProductionFiles(path.join(root, gameType));
       it.each(files)(`${layer} ${gameType}: %s must not import another game`, (filePath) => {
-        const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
+        const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
         const otherGameTypes = GAME_TYPES.filter((candidate) => candidate !== gameType);
         const offenders = imports.filter((specifier) =>
           otherGameTypes.some((otherGameType) => specifier.split('/').includes(otherGameType)),
@@ -301,8 +305,15 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
 
   it.each(genericHostFiles)('%s must not import a concrete game implementation', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    expect(content).not.toMatch(/@\/games\/werewolf/);
-    expect(content).not.toMatch(/@werewolf\/game-engine\/(?:games\/werewolf|models)\//);
+    const violations = getModuleSpecifiers(filePath, content).filter(
+      (specifier) =>
+        GAME_TYPES.some(
+          (gameType) =>
+            specifier.startsWith(`@/games/${gameType}`) ||
+            specifier.startsWith(`@werewolf/game-engine/games/${gameType}`),
+        ) || specifier.startsWith('@werewolf/game-engine/models/'),
+    );
+    expect(violations).toEqual([]);
   });
 
   it.each(genericHostFiles)('%s must not branch on a literal game type', (filePath) => {
@@ -340,7 +351,7 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
 
   it('loads the concrete client catalog only from the application composition root', () => {
     const consumers = srcFiles.filter((filePath) =>
-      /^\s*import\b.*from\s+['"]@\/games\/catalog['"]/m.test(fs.readFileSync(filePath, 'utf-8')),
+      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes('@/games/catalog'),
     );
 
     expect(consumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
@@ -405,11 +416,14 @@ describe('Client composition: one game-neutral catalog provider', () => {
 
   it.each(compositionRootFiles)('%s must not import a concrete game module', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    expect(
-      content.match(
-        /^\s*import\b.*from\s+['"]@\/games\/(?!catalog|ClientGameCatalogContext|model\/)/m,
-      ),
-    ).toBeNull();
+    const violations = getModuleSpecifiers(filePath, content).filter(
+      (specifier) =>
+        specifier.startsWith('@/games/') &&
+        specifier !== '@/games/catalog' &&
+        specifier !== '@/games/ClientGameCatalogContext' &&
+        !specifier.startsWith('@/games/model/'),
+    );
+    expect(violations).toEqual([]);
   });
 
   it('does not define a provider or React context inside a concrete game slice', () => {

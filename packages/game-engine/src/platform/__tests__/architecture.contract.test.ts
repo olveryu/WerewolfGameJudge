@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { getModuleSpecifiers } from './moduleSpecifiers';
+
 const platformDirectory = path.resolve(__dirname, '..');
 const gamesDirectory = path.resolve(__dirname, '..', '..', 'games');
 const sourceDirectory = path.resolve(__dirname, '..', '..');
@@ -34,17 +36,6 @@ function collectProductionFiles(directory: string): string[] {
   return files;
 }
 
-function importSpecifiers(source: string): string[] {
-  const specifiers: string[] = [];
-  for (const match of source.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
-    specifiers.push(match[1]!);
-  }
-  for (const match of source.matchAll(/\bimport\s+['"]([^'"]+)['"]/g)) {
-    specifiers.push(match[1]!);
-  }
-  return specifiers;
-}
-
 describe('game-engine platform dependency boundary', () => {
   const platformFiles = collectProductionFiles(platformDirectory);
 
@@ -54,7 +45,7 @@ describe('game-engine platform dependency boundary', () => {
 
   it.each(platformFiles)('%s imports only other platform modules', (filePath) => {
     const source = fs.readFileSync(filePath, 'utf8');
-    const violations = importSpecifiers(source).filter((specifier) => {
+    const violations = getModuleSpecifiers(filePath, source).filter((specifier) => {
       if (!specifier.startsWith('.')) return true;
       const resolvedPath = path.resolve(path.dirname(filePath), specifier);
       return !resolvedPath.startsWith(`${platformDirectory}${path.sep}`);
@@ -80,7 +71,7 @@ describe('game-engine game module dependency boundary', () => {
 
     it.each(productionFiles)(`${gameName}: %s does not import another game module`, (filePath) => {
       const source = fs.readFileSync(filePath, 'utf8');
-      const violations = importSpecifiers(source).filter((specifier) => {
+      const violations = getModuleSpecifiers(filePath, source).filter((specifier) => {
         if (specifier.startsWith('.')) {
           const resolvedPath = path.resolve(path.dirname(filePath), specifier);
           return (
@@ -151,8 +142,10 @@ describe('game-engine ownership layout', () => {
     }
 
     const invalidGameExports = Object.keys(packageExports).filter((exportPath) => {
+      if (exportPath === './games/catalog') return false;
       const match = GAME_EXPORT_PATTERN.exec(exportPath);
-      if (match === null || match[1] === 'catalog') return false;
+      if (match === null) return false;
+      if (match[1] === 'catalog') return true;
       const entrypoint = match[2];
       return entrypoint === undefined || !ALLOWED_GAME_MODULE_ENTRYPOINTS.has(entrypoint);
     });

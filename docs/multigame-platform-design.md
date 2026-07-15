@@ -2370,3 +2370,23 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - 提交前完整 `pnpm run quality` 通过：root 212 suites/7403 tests、game-engine 84 suites/2458 tests、
   api-worker 14 files/107 tests 全绿。Phase 8 当前完成 game-engine 狼人杀 domain 与共享 protocol/room 原语的
   物理归位；Worker game-owned settlement/provider/schema/D1 所有权是下一提交，Phase 8 尚未完成。
+
+### 当前提交：Phase 8.1 架构门禁补强
+
+- 独立 delegated audit 在上一提交推送后发现三个门禁假阴性：root consumer 规则把 `werewolf` 写死；两套
+  import regex 漏掉 side-effect import、re-export、dynamic `import()`、CommonJS `require()` 与 import type；
+  package export 规则对 `games/catalog/*` 进行了过宽豁免。审计同时确认当前 production 没有实际越界代码，
+  问题位于约束本身。
+- 新增共享测试解析器，使用仓库当前 TypeScript compiler AST 读取 static/type/side-effect import、re-export、
+  import-equals、import type、dynamic import、`require()`、`require.resolve()` 与 `module.require()`。计算式 module
+  path 不再被静默跳过，而是以 `[FAIL-FAST]` 直接使架构测试失败。
+- root 的 services、game-engine consumer、Worker platform、shared room、product component、game isolation、
+  generic host 与 composition-root import 规则统一改用 AST 结果。game domain/testing 规则按权威 `GAME_TYPES`
+  动态生成，FibKing 与后续注册游戏不再能绕过 Werewolf-only 断言。
+- game-engine 的 platform/game dependency 规则同样改用 AST；package export 仅精确允许
+  `./games/catalog`，`./games/catalog/internal` 一类路径会被拒绝。解析器有独立语法覆盖测试，避免门禁再次
+  vacuous pass。
+- 定向验证通过：root TypeScript；AST 与 engine architecture 2 suites/121 tests；root architecture
+  1 suite/2561 tests。下一步仍是 Worker game-owned settlement/provider/schema/D1 所有权，Phase 8 尚未完成。
+- 提交前完整 `pnpm run quality` 通过：typecheck、game-engine build、Knip、ESLint、Prettier 全绿；root
+  212 suites/7403 tests、game-engine 85 suites/2460 tests、api-worker 14 files/107 tests 全部通过。
