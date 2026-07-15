@@ -13,7 +13,7 @@ import { toast } from 'sonner-native';
 
 import { ResetPasswordForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { useForgotPassword, useResetPassword } from '@/hooks/mutations/useAuthMutations';
+import { useForgotPassword, useResetPassword } from '@/features/auth/controllers/useAuthMutations';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { getErrorMessage } from '@/utils/errorUtils';

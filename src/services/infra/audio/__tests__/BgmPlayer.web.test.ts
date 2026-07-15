@@ -15,7 +15,7 @@
 jest.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 
 // Avoid loading static BGM assets in this playback-only test.
-jest.mock('../bgmCatalog', () => ({ BGM_VOLUME: 0.3 }));
+jest.mock('@/features/product/model/BgmCatalog', () => ({ BGM_VOLUME: 0.3 }));
 
 // Factories must be self-contained (jest hoists them above const declarations);
 // grab handles by re-importing the mocked modules.

@@ -31,11 +31,11 @@ import type { AudioPlayer } from 'expo-audio';
 import { createAudioPlayer } from 'expo-audio';
 import { Platform } from 'react-native';
 
+import type { AudioAsset } from '@/features/product/model/AudioClip';
+import { BGM_VOLUME } from '@/features/product/model/BgmCatalog';
 import { audioLog } from '@/utils/logger';
 
 import { ensureAudioContextRunning, getAudioContext } from './AudioContextOwner';
-import { BGM_VOLUME } from './bgmCatalog';
-import type { AudioAsset } from './types';
 import { audioAssetToUrl } from './types';
 import { getUnlockedBgmElement } from './webAudioUnlock';
 

@@ -19,9 +19,10 @@
 import type { AudioPlayer, AudioStatus } from 'expo-audio';
 import { createAudioPlayer } from 'expo-audio';
 
+import type { AudioAsset } from '@/features/product/model/AudioClip';
 import { audioLog } from '@/utils/logger';
 
-import type { AudioAsset, AudioPlaybackStrategy } from './types';
+import type { AudioPlaybackStrategy } from './types';
 import { NATIVE_AUDIO_TIMEOUT_MS } from './types';
 
 const isJest = typeof process !== 'undefined' && !!process.env?.JEST_WORKER_ID;

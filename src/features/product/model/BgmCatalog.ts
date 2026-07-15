@@ -9,7 +9,7 @@ import bgmLumiereALaube from '../../../../assets/bgm/lumiere_a_laube.m4a';
 import bgmSpeakSoftlyLove from '../../../../assets/bgm/speak_softly_love.m4a';
 import bgmTheGodfatherWaltz from '../../../../assets/bgm/the_godfather_waltz.m4a';
 import bgmTheImmigrant from '../../../../assets/bgm/the_immigrant.m4a';
-import type { AudioAsset } from './types';
+import type { AudioAsset } from './AudioClip';
 
 export type BgmTrackId =
   | 'finale'

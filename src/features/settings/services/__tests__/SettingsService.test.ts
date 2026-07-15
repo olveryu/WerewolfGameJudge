@@ -2,7 +2,7 @@
  * SettingsService.test.ts - Tests for the settings service
  */
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
-import { SettingsService } from '@/services/feature/SettingsService';
+import { SettingsService } from '@/features/settings/services/SettingsService';
 import { storage } from '@/services/infra/localStorage';
 
 jest.mock('@/services/infra/localStorage', () => {

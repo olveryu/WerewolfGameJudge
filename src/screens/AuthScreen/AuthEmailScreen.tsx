@@ -13,9 +13,9 @@ import { useWindowDimensions, View } from 'react-native';
 
 import { EmailForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthForm } from '@/features/auth/controllers/useAuthForm';
+import { useSignOut } from '@/features/auth/controllers/useAuthMutations';
 import { clearRecentRooms } from '@/features/room/services/recentRooms';
-import { useSignOut } from '@/hooks/mutations/useAuthMutations';
-import { useAuthForm } from '@/hooks/useAuthForm';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';

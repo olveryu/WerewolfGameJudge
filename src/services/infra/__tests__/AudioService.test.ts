@@ -30,7 +30,7 @@ jest.mock('expo-audio', () => ({
 // Now import AudioService after mocks are set up
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
-import { BGM_VOLUME } from '@/services/infra/audio/bgmCatalog';
+import { BGM_VOLUME } from '@/features/product/model/BgmCatalog';
 import { audioAssetToUrl } from '@/services/infra/audio/types';
 import { AudioService } from '@/services/infra/AudioService';
 

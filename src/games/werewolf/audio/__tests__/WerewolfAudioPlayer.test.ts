@@ -1,8 +1,8 @@
+import type { AudioClip } from '@/features/product/model/AudioClip';
 import {
   type WerewolfAudioPlaybackPort,
   WerewolfAudioPlayer,
 } from '@/games/werewolf/audio/WerewolfAudioPlayer';
-import type { AudioClip } from '@/services/infra/audio/types';
 
 function createPlayback(): jest.Mocked<WerewolfAudioPlaybackPort> {
   return {

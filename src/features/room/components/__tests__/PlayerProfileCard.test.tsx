@@ -1,15 +1,15 @@
 import { render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import { ClientProductUiProvider } from '@/features/product/context/ClientProductUiContext';
 import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import type { UserPublicProfile } from '@/services/feature/StatsService';
 
 import { PlayerProfileCard } from '../PlayerProfileCard';
 
 const mockUseUserProfileQuery = jest.fn<unknown, unknown[]>();
-jest.mock('@/hooks/queries/useUserProfileQuery', () => ({
+jest.mock('@/features/account/queries/useUserProfileQuery', () => ({
   useUserProfileQuery: (...args: unknown[]) => mockUseUserProfileQuery(...args),
 }));
 

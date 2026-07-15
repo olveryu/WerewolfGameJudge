@@ -25,12 +25,12 @@ import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
 import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import { uploadNightReviewImage } from '@/games/werewolf/services/uploadNightReviewImage';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
 import type { RootStackParamList } from '@/navigation/types';
-import { uploadShareImage } from '@/services/feature/ShareImageService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
@@ -422,7 +422,7 @@ export function useWerewolfRoomScreenState(
     if (isMiniProgram()) {
       try {
         const canvasBase64 = renderNightReviewToCanvas(nightReviewData, roomCode, colors);
-        const url = await uploadShareImage(canvasBase64);
+        const url = await uploadNightReviewImage(canvasBase64);
         await wxPreviewImage(url);
         return true;
       } catch (err) {

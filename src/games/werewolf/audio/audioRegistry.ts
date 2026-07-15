@@ -7,7 +7,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
-import type { AudioAsset, AudioClip } from '@/services/infra/audio/types';
+import type { AudioAsset, AudioClip } from '@/features/product/model/AudioClip';
 
 import avengerBegin from '../../../../assets/audio/avenger.mp3';
 import awakenedGargoyleBegin from '../../../../assets/audio/awakened_gargoyle.mp3';

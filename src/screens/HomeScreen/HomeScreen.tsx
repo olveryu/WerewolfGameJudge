@@ -30,6 +30,11 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import { getUnreadFeedbackCount } from '@/features/feedback/services/feedbackApi';
+import {
+  useAutoClaimDailyReward,
+  useGachaStatusQuery,
+} from '@/features/gacha/queries/useGachaQuery';
 import {
   hasSeenAnnouncement,
   markAnnouncementSeen,
@@ -37,9 +42,7 @@ import {
 import { getRecentRooms, type RecentRoomIdentity } from '@/features/room/services/recentRooms';
 import { useClientGameHome } from '@/games/ClientGameCatalogContext';
 import type { ClientGameModeOption } from '@/games/home';
-import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { type RootStackParamList } from '@/navigation/types';
-import { getUnreadFeedbackCount } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, layout } from '@/theme';
 import { homeLog } from '@/utils/logger';

@@ -14,12 +14,13 @@ import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { gachaStatusOptions } from '@/features/gacha/queries/gachaQueryOptions';
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type {
   WerewolfSettlementEvent,
   WerewolfUserEvent,
 } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import { gachaStatusOptions, userStatsOptions } from '@/hooks/queries/queryOptions';
 import { gameRoomLog } from '@/utils/logger';
 
 interface UseSettleToastParams {

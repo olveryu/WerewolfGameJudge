@@ -2,7 +2,7 @@
 
 import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
-import type { AudioClip } from '@/services/infra/audio/types';
+import type { AudioClip } from '@/features/product/model/AudioClip';
 
 import {
   getWerewolfNightAudio,

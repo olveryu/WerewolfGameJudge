@@ -1,5 +1,5 @@
 /**
- * FeedbackService — user feedback submission + history queries + follow-up replies + unread
+ * feedbackApi — user feedback submission, history, follow-up replies, and unread state
  *
  * POST /api/feedback — submit new feedback
  * GET  /api/feedback/history — fetch feedback history with replies

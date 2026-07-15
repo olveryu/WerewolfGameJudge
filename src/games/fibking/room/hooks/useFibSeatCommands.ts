@@ -5,9 +5,9 @@ import type { FibSeatProfile, FibState } from '@werewolf/game-engine/games/fibki
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
-import { userStatsOptions } from '@/hooks/queries/queryOptions';
 
 interface UseFibSeatCommandsParams {
   readonly session: FibRoomSession;

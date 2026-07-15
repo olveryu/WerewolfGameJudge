@@ -19,14 +19,14 @@ import {
 import { toast } from 'sonner-native';
 
 import { APP_VERSION } from '@/config/version';
-import type { FeedbackItem } from '@/services/feature/FeedbackService';
+import type { FeedbackItem } from '@/features/feedback/services/feedbackApi';
 import {
   getFeedbackHistory,
   markFeedbackRead,
   replyToFeedback,
   resolveFeedback,
   submitFeedback,
-} from '@/services/feature/FeedbackService';
+} from '@/features/feedback/services/feedbackApi';
 import { TESTIDS } from '@/testids';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';

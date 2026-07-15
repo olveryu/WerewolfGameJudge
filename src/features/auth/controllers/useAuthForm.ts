@@ -18,7 +18,7 @@ import {
   useSignInAnonymously,
   useSignInWithEmail,
   useSignUpWithEmail,
-} from '@/hooks/mutations/useAuthMutations';
+} from '@/features/auth/controllers/useAuthMutations';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { getUserFacingMessage } from '@/utils/errorUtils';
 

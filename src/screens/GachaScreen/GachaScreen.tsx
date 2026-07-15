@@ -9,6 +9,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import { PITY_THRESHOLD } from '@werewolf/game-engine/product/rewards';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useRef, useState } from 'react';
@@ -28,10 +29,9 @@ import { toast } from 'sonner-native';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { userStatsOptions } from '@/hooks/queries/queryOptions';
-import { useDrawMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { queryClient } from '@/lib/queryClient';
-import type { DrawResultItem } from '@/services/feature/GachaService';
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { useDrawMutation, useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { createSharedStyles } from '@/theme/sharedStyles';
 import { getUserFacingMessage } from '@/utils/errorUtils';
@@ -54,6 +54,7 @@ export function GachaScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const queryClient = useQueryClient();
   const { user } = useAuthContext();
   const isAnon = !user || user.isAnonymous;
   const { data: status, isLoading } = useGachaStatusQuery();

@@ -1,5 +1,5 @@
 /**
- * StatsService — client service for user growth data
+ * accountApi — client API for user growth data and public profiles
  *
  * Read-only queries: fetch user XP/level/games played, and view other players' public profiles.
  * Uses cfGet wrapper (auto-injects token + timeout + error handling).

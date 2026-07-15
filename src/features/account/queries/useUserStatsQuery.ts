@@ -1,5 +1,6 @@
-import { userStatsOptions } from './queryOptions';
-import { useAuthenticatedQuery } from './useAuthenticatedQuery';
+import { useAuthenticatedQuery } from '@/features/auth/queries/useAuthenticatedQuery';
+
+import { userStatsOptions } from './accountQueryOptions';
 
 /**
  * useUserStatsQuery — Current user growth data (XP / level / unlocked items).

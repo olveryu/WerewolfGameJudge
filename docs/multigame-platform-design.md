@@ -246,16 +246,34 @@ packages/
 │
 src/
 ├── features/
+│   ├── account/
+│   │   ├── controllers/
+│   │   ├── queries/
+│   │   └── services/
+│   ├── auth/
+│   │   ├── controllers/
+│   │   └── queries/
+│   ├── feedback/
+│   │   └── services/
+│   ├── gacha/
+│   │   ├── queries/
+│   │   └── services/
 │   ├── home/
+│   │   ├── controllers/
 │   │   └── model/
 │   │       └── GameHomeContribution.ts
 │   ├── navigation/
 │   │   └── model/
 │   │       └── GameNavigationContribution.ts
 │   ├── product/
+│   │   ├── hooks/
 │   │   └── model/
+│   │       ├── AudioClip.ts
+│   │       ├── BgmCatalog.ts
 │   │       ├── GameProductUi.ts
 │   │       └── GameAudioPreview.ts
+│   ├── settings/
+│   │   └── services/
 │   └── room/
 │       ├── components/
 │       │   ├── RoomShell.tsx
@@ -329,7 +347,7 @@ src/
 │   │   ├── fibRoomAdapter.ts
 │   │   └── module.ts
 ├── screens/                 # 只放非游戏页面
-├── services/                # auth、transport、settings、stats、storage
+├── services/                # Cloudflare adapter、connection、audio/storage infra、transport port
 ├── components/              # 产品级组件，不放 room/game 业务
 └── navigation/
     ├── AppNavigator.tsx
@@ -344,6 +362,8 @@ src/
 - Worker game module 只 import 对应游戏的 game-engine public API。
 - `src/features/room/` 不得 import `src/games/*` 或 game-engine 的具体游戏路径。
 - `src/features/home/` 和 `src/features/navigation/` 只定义 contribution contract，不注册具体游戏。
+- 非游戏产品 API、query 和 controller 放在对应 `src/features/<feature>/`；screen/component 不直接 runtime import
+  `src/services/`。`src/services/` 只保留基础设施 adapter 与 port。
 - `src/navigation/GameHostRoutes.tsx` 只能按 canonical `gameType` 查询 client catalog，不能出现具体游戏 ID、
   config mode 或具体 screen import。
 - `src/games/*` 可以 compose room feature 和产品级组件。
@@ -1897,17 +1917,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                             | 尚未完成                                                       |
-| ------- | ------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                               | -                                                              |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位  | -                                                              |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                             | -                                                              |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                             | -                                                              |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                    | -                                                              |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                            | -                                                              |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                  | -                                                              |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                | -                                                              |
-| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage/room creation、navigation capability、测试所有权、精确目录/exports | 动态 AST import 门禁、scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                 |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                        |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                        |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                        |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                        |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                        |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                        |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                        |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                        |
+| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、AST/目录/exports 门禁               | scope 中性化、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2580,3 +2600,30 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 8 尚余：把 screens runtime service import 的行级 allowlist 换成 AST ownership contract，收口 root
   hooks/lib/feature service 的物理归属，中性化 workspace scope，补 compile-only Pictionary 接入证明，最后执行
   migration、seed、quality 与全量 E2E。
+
+### 当前提交：Phase 8.7 client feature ownership 与 AST runtime import 门禁
+
+- 删除 root `src/hooks`、`src/lib` 和 `src/services/feature` 的生产模块所有权。boot/query-client/Sentry composition
+  归 `src/app`；auth、account、gacha、feedback、settings、home 与 product controller/query/API 分别归对应
+  `src/features/<feature>`；狼人杀夜间复盘图片上传归 `src/games/werewolf/services`。architecture contract 会拒绝这三个
+  horizontal catch-all root 再出现 production module。
+- `useUpdateProfile` 从 auth mutation 拆到 account controller；auth 不再为了 profile cache 反向依赖 account query。
+  account/gacha query option 各自拥有 query key 与 query function，原有 `userStats`、`userProfile`、`userUnlocks`、
+  `gachaStatus` key 和失效范围保持不变。
+- `GachaScreen` 与 shared `PlayerProfileCard` 改用当前 `QueryClientProvider` 的 `useQueryClient()`；只有 `App.tsx`
+  持有 application singleton。测试或嵌套 provider 不会再被模块级 singleton 绕过。
+- `AudioAsset`/`AudioClip` 与 BGM catalog 归 product model；狼人杀 audio registry、settings feature 和 infra playback
+  adapter 共同依赖这份值模型。infra `audio/types.ts` 只保留 adapter contract、转换与 native timeout，不再反向拥有
+  product/game 需要的类型。
+- `getRuntimeModuleSpecifiers()` 使用仓库当前 TypeScript AST 区分 declaration-level/specifier-level type import、
+  mixed import/export、side-effect import、dynamic import 与 CommonJS loader；计算 module path 继续 fail fast。screen
+  architecture gate 删除 symbol allowlist，直接断言 runtime `@/services/*` import 为零。
+- `agents/path-rules/services.md`、debug skill、gacha design 和本设计的目标树同步新所有权；agent 规则不再指导新增
+  `services/feature` 或 root `hooks` 文件。
+- 定向验证通过：root TypeScript；AST parser 4 tests；auth/settings/BGM/Home/profile/architecture 共 8 suites、
+  3711 tests。测试只输出仓库已记录的 Expo/React Native teardown 噪声，命令退出码为 0。
+- 完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；root
+  220 suites/8616 tests、game-engine 86 suites/2513 tests、api-worker 16 files/116 tests 全部通过。root Jest 仍只有
+  仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
+- Phase 8 尚余：workspace scope 一次性中性化且不保留 alias，开放单个 game module contract 并补 compile-only
+  Pictionary 接入证明，最后执行 migration、seed、quality 与全量 E2E。

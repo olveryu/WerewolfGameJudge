@@ -19,9 +19,9 @@ import {
   VirtualizedList,
 } from 'react-native';
 
+import { useAppVisibility } from '@/features/product/hooks/useAppVisibility';
 import type { RoomSeatDataSource } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomSeatBoardModel } from '@/features/room/model/RoomShellModel';
-import { useAppVisibility } from '@/hooks/useAppVisibility';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes, fixed, spacing, typography } from '@/theme';
 

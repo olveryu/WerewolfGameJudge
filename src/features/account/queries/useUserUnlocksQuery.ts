@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { userUnlocksOptions } from './queryOptions';
+import { userUnlocksOptions } from './accountQueryOptions';
 
 /**
  * useUserUnlocksQuery — list of unlocked items for a given user.

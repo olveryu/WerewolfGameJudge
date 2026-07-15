@@ -17,9 +17,10 @@
  * - Eliminates "streaming stall" issues (partially buffered audio never firing `ended`)
  */
 
+import type { AudioAsset } from '@/features/product/model/AudioClip';
 import { audioLog } from '@/utils/logger';
 
-import type { AudioAsset, AudioPlaybackStrategy } from './types';
+import type { AudioPlaybackStrategy } from './types';
 import { audioAssetToUrl } from './types';
 import { getUnlockedAudioElement } from './webAudioUnlock';
 

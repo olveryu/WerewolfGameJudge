@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
 import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
@@ -27,7 +28,6 @@ import type { RoomShellModel } from '@/features/room/model/RoomShellModel';
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { dispatchRoomOperation } from '@/features/room/session/roomOperationCommandClient';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
-import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import type { RootStackParamList } from '@/navigation/types';
 import { showConfirmAlert, showErrorAlert } from '@/utils/alertPresets';
 

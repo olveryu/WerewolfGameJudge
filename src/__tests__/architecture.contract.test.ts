@@ -8,7 +8,7 @@
  * Forbidden directions:
  *   - services/ → screens/  (infra must not know about UI)
  *   - game-engine → @/ or src/ client code  (domain is leaf)
- *   - screens/ → services/ with runtime (non-type) imports, except allowed enums
+ *   - screens/ → services/ with runtime (non-type) imports
  */
 
 import fs from 'node:fs';
@@ -16,7 +16,10 @@ import path from 'node:path';
 
 import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
-import { getModuleSpecifiers } from '../../packages/game-engine/src/platform/__tests__/moduleSpecifiers';
+import {
+  getModuleSpecifiers,
+  getRuntimeModuleSpecifiers,
+} from '../../packages/game-engine/src/platform/__tests__/moduleSpecifiers';
 
 // ─── Shared file walker ─────────────────────────────────────────────────────
 
@@ -383,21 +386,9 @@ describe('Layer boundary: game modules are isolated', () => {
   }
 });
 
-describe('Client ownership: removed generic Werewolf paths stay removed', () => {
+describe('Client ownership: game-specific modules stay in game slices', () => {
   const removedPaths = [
     'src/screens/RoomScreen',
-    'src/hooks/useGameRoom.ts',
-    'src/hooks/useGameActions.ts',
-    'src/hooks/useDebugMode.ts',
-    'src/hooks/useBgmControl.ts',
-    'src/hooks/useLastActionToast.ts',
-    'src/hooks/useNightDerived.ts',
-    'src/hooks/useRoomLifecycle.ts',
-    'src/hooks/useConnectionStatus.ts',
-    'src/hooks/useSettleToast.ts',
-    'src/hooks/usePendingAcks.ts',
-    'src/hooks/useAckMutation.ts',
-    'src/hooks/adapters/toLocalState.ts',
     'src/services/registry.ts',
     'src/services/facade',
     'src/services/types/IGameFacade.ts',
@@ -436,14 +427,9 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/components/SettingsSheet',
     'src/components/SkiaShaderWarmup.tsx',
     'src/components/roleDisplayUtils.ts',
-    'src/hooks/useNotepad.ts',
-    'src/hooks/mutations/useRoomMutations.ts',
-    'src/lib/recentRooms.ts',
-    'src/lib/storage.ts',
     'src/services/cloudflare/CFStorageService.ts',
     'src/services/types/IRoomDirectoryService.ts',
     'src/services/types/IStorageService.ts',
-    'src/services/feature/AIChatService.ts',
     'src/types/GameStateTypes.ts',
     'src/utils/aiChatBridge.ts',
     'src/screens/HomeScreen/components/RandomRoleCard.tsx',
@@ -452,6 +438,14 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+});
+
+describe('Client ownership: horizontal catch-all roots stay empty', () => {
+  const removedCatchAllRoots = ['src/hooks', 'src/lib', 'src/services/feature'];
+
+  it.each(removedCatchAllRoots)('%s must not own production modules', (relativePath) => {
+    expect(getAllProductionFiles(path.join(process.cwd(), relativePath))).toEqual([]);
   });
 });
 
@@ -687,53 +681,19 @@ describe('Client composition: one game-neutral catalog provider', () => {
   });
 });
 
-// ─── Rule 3: screens/ runtime imports from services/ are restricted ──────────
+// ─── Rule 3: screens/ must call feature APIs instead of infrastructure ───────
 
-describe('Layer boundary: screens → services runtime imports (restricted)', () => {
+describe('Layer boundary: screens → services runtime imports (forbidden)', () => {
   it('should find screens files to check', () => {
     expect(screensFiles.length).toBeGreaterThan(0);
   });
 
-  // Allowed runtime imports from services/ (enums that must be runtime values)
-  const allowedRuntimeImports = [
-    'isAIChatReady',
-    'BGM_TRACKS',
-    'BGM_VOLUME',
-    'getBgmTrack',
-    'fetchUserStats',
-    'fetchUserProfile',
-    'fetchUserUnlocks',
-    'uploadShareImage',
-    'submitFeedback',
-    'getFeedbackHistory',
-    'getUnreadFeedbackCount',
-    'markFeedbackRead',
-    'replyToFeedback',
-    'resolveFeedback',
-  ];
-
-  it.each(screensFiles)('%s runtime imports from services/ must be in allow-list', (filePath) => {
+  it.each(screensFiles)('%s must not runtime import services/', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.split('\n');
+    const violations = getRuntimeModuleSpecifiers(filePath, content).filter((specifier) =>
+      specifier.startsWith('@/services/'),
+    );
 
-    for (const line of lines) {
-      // Skip type-only imports
-      if (/import\s+type\b/.test(line)) continue;
-      // Skip non-import lines
-      if (!/from\s+['"]@\/services\//.test(line)) continue;
-
-      // Extract imported symbols
-      const symbolMatch = line.match(/import\s+\{([^}]+)\}/);
-      if (!symbolMatch) continue;
-
-      const symbols = symbolMatch[1]!
-        .split(',')
-        .map((s: string) => s.trim().replace(/\s+as\s+\w+/, ''));
-      const disallowed = symbols.filter(
-        (s: string) => s.length > 0 && !s.startsWith('type ') && !allowedRuntimeImports.includes(s),
-      );
-
-      expect(disallowed).toEqual([]);
-    }
+    expect(violations).toEqual([]);
   });
 });

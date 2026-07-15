@@ -21,6 +21,7 @@ import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode'
 import type React from 'react';
 import { useCallback } from 'react';
 
+import { reactNavigationIntegration } from '@/app/sentryIntegrations';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
 import type { GameNavigationRouteKind } from '@/features/navigation/model/GameNavigationContribution';
@@ -29,7 +30,6 @@ import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
 import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModule } from '@/games/model/ClientGameCatalog';
 import { getGameNavigationRoomCode } from '@/games/navigation';
-import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
 import { AuthEmailScreen } from '@/screens/AuthScreen/AuthEmailScreen';

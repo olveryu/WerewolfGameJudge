@@ -4,12 +4,12 @@ import { CloudflareGameSessionFactory } from '@/app/CloudflareGameSessionFactory
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
 import { RoomCreationIntentStore } from '@/features/room/services/RoomCreationIntentStore';
 import { RoomCreationService } from '@/features/room/services/RoomCreationService';
+import { SettingsService } from '@/features/settings/services/SettingsService';
 import { createClientGameCatalog } from '@/games/catalog';
 import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
-import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import { log } from '@/utils/logger';
 

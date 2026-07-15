@@ -609,7 +609,7 @@ fields say they were earned.
 
 ### 7.2 New Gacha Service
 
-**File**: `src/services/feature/GachaService.ts`
+**File**: `src/features/gacha/services/gachaApi.ts`
 
 ```typescript
 interface GachaStatus {
@@ -656,7 +656,7 @@ export async function performDraw(
 
 ### 7.3 TanStack Query Hooks
 
-**File**: `src/hooks/queries/useGachaQuery.ts`
+**File**: `src/features/gacha/queries/useGachaQuery.ts`
 
 ```typescript
 // useGachaStatusQuery — queryKey: ['gachaStatus']
@@ -866,8 +866,8 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **New files**:
 
-- `src/services/feature/GachaService.ts`
-- `src/hooks/queries/useGachaQuery.ts`
+- `src/features/gacha/services/gachaApi.ts`
+- `src/features/gacha/queries/useGachaQuery.ts`
 
 ### Phase 1g — seed-local.mjs Update
 

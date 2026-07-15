@@ -14,9 +14,9 @@ import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';
-import type { BgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
-import { BGM_TRACKS, getBgmTrack } from '@/services/infra/audio/bgmCatalog';
-import type { AudioAsset } from '@/services/infra/audio/types';
+import type { AudioAsset } from '@/features/product/model/AudioClip';
+import type { BgmTrackSetting } from '@/features/product/model/BgmCatalog';
+import { BGM_TRACKS, getBgmTrack } from '@/features/product/model/BgmCatalog';
 import { bgmLog } from '@/utils/logger';
 
 export interface WerewolfBgmControlState {

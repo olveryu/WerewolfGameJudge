@@ -25,9 +25,12 @@ import { toast } from 'sonner-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
+import {
+  useExchangeShardMutation,
+  useGachaStatusQuery,
+} from '@/features/gacha/queries/useGachaQuery';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
-import { useExchangeShardMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import type { RootStackParamList } from '@/navigation/types';
 import { borderRadius, colors, fixed, shadows, spacing, typography, withAlpha } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';

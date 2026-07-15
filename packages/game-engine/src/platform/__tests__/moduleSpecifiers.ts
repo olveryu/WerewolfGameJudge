@@ -29,8 +29,29 @@ function requireLiteralModulePath(filePath: string, node: ts.Node | undefined): 
   throw new Error(`[FAIL-FAST] ${filePath} contains a non-literal module path`);
 }
 
-/** Parse every statically knowable TypeScript module dependency in source order. */
-export function getModuleSpecifiers(filePath: string, source: string): readonly string[] {
+function importDeclarationHasRuntimeDependency(node: ts.ImportDeclaration): boolean {
+  const clause = node.importClause;
+  if (clause === undefined) return true;
+  if (clause.isTypeOnly) return false;
+  if (clause.name !== undefined) return true;
+
+  const bindings = clause.namedBindings;
+  if (bindings === undefined || ts.isNamespaceImport(bindings)) return true;
+  return bindings.elements.length === 0 || bindings.elements.some((element) => !element.isTypeOnly);
+}
+
+function exportDeclarationHasRuntimeDependency(node: ts.ExportDeclaration): boolean {
+  if (node.isTypeOnly) return false;
+  const clause = node.exportClause;
+  if (clause === undefined || ts.isNamespaceExport(clause)) return true;
+  return clause.elements.length === 0 || clause.elements.some((element) => !element.isTypeOnly);
+}
+
+function collectModuleSpecifiers(
+  filePath: string,
+  source: string,
+  includeTypeOnly: boolean,
+): readonly string[] {
   const sourceFile = ts.createSourceFile(
     filePath,
     source,
@@ -41,15 +62,25 @@ export function getModuleSpecifiers(filePath: string, source: string): readonly 
   const specifiers: string[] = [];
 
   function visit(node: ts.Node): void {
-    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
-      if (node.moduleSpecifier !== undefined) {
+    if (ts.isImportDeclaration(node)) {
+      if (includeTypeOnly || importDeclarationHasRuntimeDependency(node)) {
+        specifiers.push(requireLiteralModulePath(filePath, node.moduleSpecifier));
+      }
+    } else if (ts.isExportDeclaration(node)) {
+      if (
+        node.moduleSpecifier !== undefined &&
+        (includeTypeOnly || exportDeclarationHasRuntimeDependency(node))
+      ) {
         specifiers.push(requireLiteralModulePath(filePath, node.moduleSpecifier));
       }
     } else if (ts.isImportEqualsDeclaration(node)) {
-      if (ts.isExternalModuleReference(node.moduleReference)) {
+      if (
+        ts.isExternalModuleReference(node.moduleReference) &&
+        (includeTypeOnly || !node.isTypeOnly)
+      ) {
         specifiers.push(requireLiteralModulePath(filePath, node.moduleReference.expression));
       }
-    } else if (ts.isImportTypeNode(node)) {
+    } else if (includeTypeOnly && ts.isImportTypeNode(node)) {
       const argument = node.argument;
       if (!ts.isLiteralTypeNode(argument)) {
         throw new Error(`[FAIL-FAST] ${filePath} contains a non-literal import type`);
@@ -68,4 +99,14 @@ export function getModuleSpecifiers(filePath: string, source: string): readonly 
 
   visit(sourceFile);
   return specifiers;
+}
+
+/** Parse every statically knowable TypeScript module dependency in source order. */
+export function getModuleSpecifiers(filePath: string, source: string): readonly string[] {
+  return collectModuleSpecifiers(filePath, source, true);
+}
+
+/** Parse module dependencies that survive TypeScript type erasure. */
+export function getRuntimeModuleSpecifiers(filePath: string, source: string): readonly string[] {
+  return collectModuleSpecifiers(filePath, source, false);
 }

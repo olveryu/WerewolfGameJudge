@@ -9,7 +9,7 @@ import type React from 'react';
 import { createContext, use, useMemo } from 'react';
 
 import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
-import type { SettingsService } from '@/services/feature/SettingsService';
+import type { SettingsService } from '@/features/settings/services/SettingsService';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IAuthService } from '@/services/types/IAuthService';
 import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';

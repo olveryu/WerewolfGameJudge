@@ -21,8 +21,8 @@ import Animated, {
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
+import type { DrawResultItem } from '@/features/gacha/services/gachaApi';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
-import type { DrawResultItem } from '@/services/feature/GachaService';
 import {
   borderRadius,
   colors,

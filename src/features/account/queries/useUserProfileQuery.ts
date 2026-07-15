@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { userProfileOptions } from './queryOptions';
+import { userProfileOptions } from './accountQueryOptions';
 
 /**
  * useUserProfileQuery — public profile for a given user.

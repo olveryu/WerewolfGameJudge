@@ -18,11 +18,11 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useServices } from '@/contexts/ServiceContext';
+import type { BgmTrackId, BgmTrackSetting } from '@/features/product/model/BgmCatalog';
+import { BGM_TRACKS, BGM_VOLUME, getBgmTrack } from '@/features/product/model/BgmCatalog';
 import type { ClientGameAudioPreview } from '@/games/audioPreviews';
 import { useClientGameAudioPreviews } from '@/games/ClientGameCatalogContext';
 import type { RootStackParamList } from '@/navigation/types';
-import type { BgmTrackId, BgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
-import { BGM_TRACKS, BGM_VOLUME, getBgmTrack } from '@/services/infra/audio/bgmCatalog';
 import { colors, componentSizes, fixed, spacing, withAlpha } from '@/theme';
 import { log } from '@/utils/logger';
 

@@ -7,6 +7,7 @@
  */
 import { useNavigation } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   getLevelProgress,
   getLevelTitle,
@@ -34,13 +35,12 @@ import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import { userUnlocksOptions } from '@/features/account/queries/accountQueryOptions';
+import { useUserProfileQuery } from '@/features/account/queries/useUserProfileQuery';
+import type { UserPublicProfile } from '@/features/account/services/accountApi';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
-import { userUnlocksOptions } from '@/hooks/queries/queryOptions';
-import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
-import { queryClient } from '@/lib/queryClient';
 import { type RootStackParamList } from '@/navigation/types';
-import type { UserPublicProfile } from '@/services/feature/StatsService';
 import { borderRadius, colors, componentSizes, spacing, typography, withAlpha } from '@/theme';
 import { getBuiltinAvatarId, isBuiltinAvatarUrl } from '@/utils/avatar';
 
@@ -291,6 +291,7 @@ EquipmentShowcase.displayName = 'EquipmentShowcase';
 // ---------------------------------------------------------------------------
 const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const queryClient = useQueryClient();
   const productUi = useClientProductUi();
   const { target } = model;
   const isBot = target.occupantKind === 'bot';
@@ -321,7 +322,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
       userId: target.userId,
       displayName: profile?.displayName,
     });
-  }, [model, navigation, profile?.displayName, target.userId]);
+  }, [model, navigation, profile?.displayName, queryClient, target.userId]);
 
   const xpProgress = useMemo(() => (profile ? getLevelProgress(profile.xp) : 0), [profile]);
 

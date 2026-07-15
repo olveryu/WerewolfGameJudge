@@ -1,5 +1,5 @@
 /**
- * GachaService — gacha/draw client service
+ * gachaApi — gacha/draw client API
  *
  * Queries draw status, performs draws, claims daily login rewards, and exchanges shards.
  * Wrapped uniformly via cfGet/cfPost.

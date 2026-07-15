@@ -24,9 +24,9 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { compareByRarity } from '@/config/rarityVisual';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
+import { useUserUnlocksQuery } from '@/features/account/queries/useUserUnlocksQuery';
 import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 
 function getUnlocksNumColumns(screenWidth: number): number {
   if (screenWidth >= 768) return 6;

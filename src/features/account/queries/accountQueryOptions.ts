@@ -8,36 +8,35 @@
 
 import { queryOptions } from '@tanstack/react-query';
 
-import { fetchGachaStatus } from '@/services/feature/GachaService';
 import {
   fetchUserProfile,
   fetchUserStats,
   fetchUserUnlocks,
-} from '@/services/feature/StatsService';
+} from '@/features/account/services/accountApi';
+
+export const accountQueryKeys = {
+  stats: ['userStats'] as const,
+  profiles: ['userProfile'] as const,
+  profile: (userId: string) => ['userProfile', userId] as const,
+  unlocks: (userId: string) => ['userUnlocks', userId] as const,
+};
 
 export const userStatsOptions = () =>
   queryOptions({
-    queryKey: ['userStats'] as const,
+    queryKey: accountQueryKeys.stats,
     queryFn: fetchUserStats,
     staleTime: 5 * 60_000,
   });
 
 export const userProfileOptions = (userId: string) =>
   queryOptions({
-    queryKey: ['userProfile', userId] as const,
+    queryKey: accountQueryKeys.profile(userId),
     queryFn: () => fetchUserProfile(userId),
     staleTime: 0,
   });
 
 export const userUnlocksOptions = (userId: string) =>
   queryOptions({
-    queryKey: ['userUnlocks', userId] as const,
+    queryKey: accountQueryKeys.unlocks(userId),
     queryFn: () => fetchUserUnlocks(userId).then((r) => r.unlockedItems),
-  });
-
-export const gachaStatusOptions = () =>
-  queryOptions({
-    queryKey: ['gachaStatus'] as const,
-    queryFn: fetchGachaStatus,
-    staleTime: 60_000,
   });

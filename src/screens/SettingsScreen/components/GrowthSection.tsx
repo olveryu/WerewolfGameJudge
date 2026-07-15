@@ -16,7 +16,7 @@ import {
 import { memo } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-import type { UserStats } from '@/services/feature/StatsService';
+import type { UserStats } from '@/features/account/services/accountApi';
 import { colors, componentSizes, fixed } from '@/theme';
 
 import type { SettingsScreenStyles } from './styles';

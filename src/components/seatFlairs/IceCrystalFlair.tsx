@@ -9,7 +9,7 @@ import { StyleSheet, View } from 'react-native';
 import { useAnimatedProps } from 'react-native-reanimated';
 import Svg from 'react-native-svg';
 
-import { useLoopProgress } from '@/hooks/useLoopProgress';
+import { useLoopProgress } from '@/features/product/hooks/useLoopProgress';
 
 import type { FlairProps } from './FlairProps';
 import { AnimatedCircle, AnimatedLine, AnimatedPath } from './svgAnimatedPrimitives';

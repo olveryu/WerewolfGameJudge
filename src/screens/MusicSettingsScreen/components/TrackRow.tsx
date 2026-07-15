@@ -16,7 +16,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import type { BgmTrackEntry, BgmTrackId } from '@/services/infra/audio/bgmCatalog';
+import type { BgmTrackEntry, BgmTrackId } from '@/features/product/model/BgmCatalog';
 import {
   borderRadius,
   colors,

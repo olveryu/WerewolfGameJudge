@@ -20,6 +20,7 @@ import { AlertModal } from '@/components/AlertModal';
 import { Button } from '@/components/Button';
 import { DebugPanel } from '@/components/DebugPanel';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
 import { RoomEntryBoundary } from '@/features/room/components/RoomEntryBoundary';
 import { RoomShell } from '@/features/room/components/RoomShell';
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
@@ -39,7 +40,6 @@ import {
   createWerewolfSeatDataSource,
   createWerewolfStatusRibbon,
 } from '@/games/werewolf/werewolfRoomAdapter';
-import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { TESTIDS } from '@/testids';
 import { colors, componentSizes } from '@/theme';
 import { handleError } from '@/utils/errorPipeline';

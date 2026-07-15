@@ -10,12 +10,12 @@ import { resolveRandomAnimation } from '@werewolf/game-engine/product/rewards';
 import { useCallback } from 'react';
 
 import type { User } from '@/contexts/AuthContext';
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
 import { useRoomSeatCommands as useSharedRoomSeatCommands } from '@/features/room/controllers/useRoomSeatCommands';
 import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { RoomSessionClient } from '@/features/room/session/types';
 import { createWerewolfDefaultDisplayName } from '@/games/werewolf/profile/createWerewolfDefaultDisplayName';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import { userStatsOptions } from '@/hooks/queries/queryOptions';
 
 interface UseWerewolfSeatCommandsParams {
   readonly session: RoomSessionClient<GameState, WerewolfPublicCommand, WerewolfUserEvent>;

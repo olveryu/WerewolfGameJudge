@@ -18,18 +18,18 @@ import { LoginOptions } from '@/components/auth';
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
-import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
-import { clearRecentRooms } from '@/features/room/services/recentRooms';
-import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
-import { getClientGameModules } from '@/games/model/ClientGameCatalog';
+import { useUpdateProfile } from '@/features/account/controllers/useUpdateProfile';
+import { useUserStatsQuery } from '@/features/account/queries/useUserStatsQuery';
 import {
   useChangePassword,
   useSignInAnonymously,
   useSignOut,
-  useUpdateProfile,
-} from '@/hooks/mutations/useAuthMutations';
-import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
+} from '@/features/auth/controllers/useAuthMutations';
+import { useGachaStatusQuery } from '@/features/gacha/queries/useGachaQuery';
+import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
+import { clearRecentRooms } from '@/features/room/services/recentRooms';
+import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';

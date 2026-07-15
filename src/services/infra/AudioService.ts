@@ -7,12 +7,13 @@
 import { setAudioModeAsync } from 'expo-audio';
 import { Platform } from 'react-native';
 
+import type { AudioAsset, AudioClip } from '@/features/product/model/AudioClip';
 import { handleError } from '@/utils/errorPipeline';
 import { audioLog } from '@/utils/logger';
 
 import { BgmPlayer } from './audio/BgmPlayer';
 import { NativeAudioStrategy } from './audio/NativeAudioStrategy';
-import type { AudioAsset, AudioClip, AudioPlaybackStrategy } from './audio/types';
+import type { AudioPlaybackStrategy } from './audio/types';
 import { WebAudioStrategy } from './audio/WebAudioStrategy';
 import { setupWebAudioUnlock } from './audio/webAudioUnlock';
 

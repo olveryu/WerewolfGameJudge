@@ -11,6 +11,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner-native';
 
+import { userStatsOptions } from '@/features/account/queries/accountQueryOptions';
+import { useAuthenticatedQuery } from '@/features/auth/queries/useAuthenticatedQuery';
 import {
   claimDailyReward,
   type DailyRewardResponse,
@@ -18,11 +20,10 @@ import {
   type ExchangeResponse,
   exchangeShard,
   performDraw,
-} from '@/services/feature/GachaService';
+} from '@/features/gacha/services/gachaApi';
 import { gachaLog } from '@/utils/logger';
 
-import { gachaStatusOptions, userStatsOptions } from './queryOptions';
-import { useAuthenticatedQuery } from './useAuthenticatedQuery';
+import { gachaStatusOptions } from './gachaQueryOptions';
 
 /** Player's local date as YYYY-MM-DD (locale-independent, zero-padded) */
 function getLocalDate(): string {
