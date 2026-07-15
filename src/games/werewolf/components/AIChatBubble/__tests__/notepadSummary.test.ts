@@ -1,21 +1,20 @@
 /**
  * notepadSummary.test - Unit tests for buildNotepadSummary
  *
- * Verifies the pure function that formats NotepadState into
+ * Verifies the pure function that formats WerewolfNotepadState into
  * a structured AI analysis request text.
  */
 
 import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
-import type { NotepadState } from '@/games/werewolf/hooks/useNotepad';
+import type { WerewolfNotepadState } from '@/games/werewolf/state/WerewolfNotepadState';
 
 import { buildNotepadSummary } from '../notepadSummary';
 
-function emptyState(): NotepadState {
+function emptyState(): WerewolfNotepadState {
   return {
     playerNotes: {},
     handStates: {},
-    identityStates: {},
     roleGuesses: {},
     publicNoteLeft: '',
     publicNoteRight: '',
@@ -103,7 +102,7 @@ describe('buildNotepadSummary', () => {
   });
 
   it('combines role guess, hand state, and note on same seat', () => {
-    const state: NotepadState = {
+    const state: WerewolfNotepadState = {
       ...emptyState(),
       playerNotes: { 1: '逻辑清晰' },
       handStates: { 1: true },

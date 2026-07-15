@@ -52,7 +52,7 @@ jest.mock('../../../contexts/AuthContext', () => ({
 }));
 
 // Mock MMKV storage
-jest.mock('@/lib/storage', () => ({
+jest.mock('@/services/infra/localStorage', () => ({
   storage: {
     getString: jest.fn(() => undefined),
     set: jest.fn(),

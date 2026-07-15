@@ -11,9 +11,9 @@ import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
+import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import { colors, spacing, type ThemeColors, typography } from '@/theme';
 
-import type { DisplayMessage } from './AIChatBubble.styles';
 import { SimpleMarkdown } from './SimpleMarkdown';
 
 // ── Types ────────────────────────────────────────────────

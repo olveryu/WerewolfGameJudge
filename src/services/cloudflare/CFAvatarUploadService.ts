@@ -1,8 +1,8 @@
 /**
- * CFStorageService — Cloudflare R2 avatar upload service.
+ * CFAvatarUploadService — Cloudflare R2 avatar upload service.
  *
  * Responsibilities:
- * - Implements the IStorageService interface
+ * - Implements the IAvatarUploadService interface
  * - Uploads via multipart/form-data to Workers /avatar/upload
  * - On Web, compresses locally with DOM Canvas before upload
  *
@@ -15,7 +15,7 @@
  * - Relies on cfUpload for token injection and error interception
  */
 
-import type { IStorageService } from '@/services/types/IStorageService';
+import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 import { log } from '@/utils/logger';
 
 import { cfUpload } from './cfFetch';
@@ -33,11 +33,11 @@ function describeUriScheme(uri: string): string {
 }
 
 /**
- * CFStorageService — uploads avatars via Cloudflare R2.
+ * CFAvatarUploadService — uploads avatars via Cloudflare R2.
  *
  * Responsibilities: image compression, FormData construction, upload call.
  */
-export class CFStorageService implements IStorageService {
+export class CFAvatarUploadService implements IAvatarUploadService {
   async uploadAvatar(fileUri: string): Promise<string> {
     // Compress image before upload (Web only — RN fallback to original)
     const blob = await this.#prepareImage(fileUri);

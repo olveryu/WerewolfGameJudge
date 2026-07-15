@@ -5,13 +5,13 @@ import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/room
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomConnectionViewModel } from '@/features/room/model/RoomShellModel';
 import type {
   ActiveRoomIdentity,
   RoomSessionClient,
   RoomUserEvent,
 } from '@/features/room/session/types';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { showConfirmAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { roomScreenLog } from '@/utils/logger';

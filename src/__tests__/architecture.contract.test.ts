@@ -390,6 +390,7 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/services/types/IRoomService.ts',
     'src/features/room/services/RoomCommandDispatcher.ts',
     'src/features/room/services/RoomSession.ts',
+    'src/features/room/services/completeRoomCreation.ts',
     'src/features/room/services/roomCommandClient.ts',
     'src/features/room/services/roomSeatCommands.ts',
     'src/features/room/controllers/useRoomLifecycle.ts',
@@ -420,14 +421,101 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/components/SkiaShaderWarmup.tsx',
     'src/components/roleDisplayUtils.ts',
     'src/hooks/useNotepad.ts',
+    'src/hooks/mutations/useRoomMutations.ts',
+    'src/lib/recentRooms.ts',
+    'src/lib/storage.ts',
+    'src/services/cloudflare/CFStorageService.ts',
+    'src/services/types/IRoomDirectoryService.ts',
+    'src/services/types/IStorageService.ts',
     'src/services/feature/AIChatService.ts',
     'src/types/GameStateTypes.ts',
     'src/utils/aiChatBridge.ts',
     'src/screens/HomeScreen/components/RandomRoleCard.tsx',
+    'src/screens/AdminScreen/adminApi.ts',
   ];
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+});
+
+describe('Client storage ownership', () => {
+  it('creates MMKV only from the infrastructure storage primitive', () => {
+    const consumers = srcFiles.filter((filePath) =>
+      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(
+        'react-native-mmkv',
+      ),
+    );
+
+    expect(consumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/services/infra/localStorage.ts',
+    ]);
+  });
+
+  it('keeps direct local-storage access inside service ownership', () => {
+    const consumers = srcFiles.filter((filePath) =>
+      getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(
+        '@/services/infra/localStorage',
+      ),
+    );
+    const offenders = consumers.filter((filePath) => {
+      const relativePath = path.relative(srcDir, filePath);
+      return (
+        !relativePath.startsWith(`services${path.sep}`) &&
+        !relativePath.split(path.sep).includes('services')
+      );
+    });
+
+    expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
+  });
+});
+
+describe('Client room creation ownership', () => {
+  const concreteGameFiles = GAME_TYPES.flatMap((gameType) =>
+    getAllProductionFiles(path.join(gamesDir, gameType)),
+  );
+  const applicationCreationModules = [
+    '@/features/room/services/RoomCreationIntentStore',
+    '@/features/room/services/RoomCreationService',
+    '@/services/cloudflare/CFRoomDirectoryService',
+  ];
+
+  it.each(concreteGameFiles)(
+    '%s must create rooms through the shared React controller',
+    (filePath) => {
+      const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+      const violations = imports.filter((specifier) =>
+        applicationCreationModules.includes(specifier),
+      );
+
+      expect(violations).toEqual([]);
+    },
+  );
+
+  it('composes the room creation application service only at the app root', () => {
+    for (const moduleSpecifier of applicationCreationModules) {
+      const consumers = srcFiles.filter((filePath) =>
+        getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8')).includes(moduleSpecifier),
+      );
+      const expected =
+        moduleSpecifier === '@/features/room/services/RoomCreationIntentStore'
+          ? ['src/app/createAppServices.ts', 'src/features/room/services/RoomCreationService.ts']
+          : ['src/app/createAppServices.ts'];
+
+      expect(consumers.map((filePath) => path.relative(process.cwd(), filePath)).sort()).toEqual(
+        expected,
+      );
+    }
+  });
+
+  it('keeps direct room-directory creation inside the application service', () => {
+    const consumers = srcFiles.filter((filePath) =>
+      /\broomDirectory\s*\.\s*createRoom\s*\(/.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(consumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/features/room/services/RoomCreationService.ts',
+    ]);
   });
 });
 

@@ -1,4 +1,4 @@
-/** Game-neutral room directory contracts used before a game module is selected. */
+/** Game-neutral room directory and creation contracts. */
 
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type { RoomLocator } from '@werewolf/game-engine/platform/protocol/roomLocator';
@@ -8,26 +8,28 @@ export interface RoomIdentity extends RoomLocator {
   readonly hostUserId: string;
 }
 
-/** Active room metadata resolved before selecting a game UI module. */
 export interface RoomRecord extends RoomIdentity {
   readonly createdAt: Date;
 }
 
-export interface CreateRoomRequest {
+export interface RoomCreationRequest {
   readonly expectedHostUserId: string;
   readonly gameType: GameType;
   readonly config: Readonly<Record<string, unknown>>;
 }
 
-export interface CreatedRoom extends RoomRecord {
+export interface RoomCreationTransportRequest extends RoomCreationRequest {
   readonly creationId: string;
 }
 
-export interface IRoomDirectoryService {
-  createRoom(request: CreateRoomRequest): Promise<CreatedRoom>;
-  acknowledgeRoomCreation(creationId: string): void;
+export interface RoomDirectory {
+  createRoom(request: RoomCreationTransportRequest): Promise<RoomRecord>;
   getRoom(roomCode: string): Promise<RoomRecord | null>;
   deleteRoom(room: RoomLocator): Promise<void>;
+}
+
+export interface RoomCreator {
+  createRoom(request: RoomCreationRequest): Promise<RoomRecord>;
 }
 
 /** A newer server game ID that this client cannot render. */

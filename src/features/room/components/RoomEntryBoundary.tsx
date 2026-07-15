@@ -13,8 +13,8 @@ import {
   type RoomEntryController,
   useRoomEntryController,
 } from '@/features/room/controllers/useRoomEntryController';
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomSessionClient, RoomUserEvent } from '@/features/room/session/types';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { colors, componentSizes } from '@/theme';
 import { isMiniProgram } from '@/utils/miniProgram';
 

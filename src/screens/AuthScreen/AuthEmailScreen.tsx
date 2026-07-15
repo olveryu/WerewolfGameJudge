@@ -13,9 +13,9 @@ import { useWindowDimensions, View } from 'react-native';
 
 import { EmailForm } from '@/components/auth';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { useSignOut } from '@/hooks/mutations/useAuthMutations';
 import { useAuthForm } from '@/hooks/useAuthForm';
-import { clearRecentRooms } from '@/lib/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -45,7 +45,7 @@ export const AuthEmailScreen: React.FC = () => {
     openedFromAuthLogin = false,
   } = route.params;
 
-  const { error: authError, refreshUser } = useAuthContext();
+  const { error: authError, refreshUser, user } = useAuthContext();
   const { mutateAsync: signOut, isPending: isSignOutPending } = useSignOut();
 
   const handleSuccess = useCallback(() => {
@@ -89,9 +89,13 @@ export const AuthEmailScreen: React.FC = () => {
   /** Email auth — optionally signOut first (switch-account mode) */
   const handleSubmit = useCallback(async () => {
     if (signOutFirst) {
+      if (user === null) {
+        throw new Error('[FAIL-FAST] Account switching requires a current user');
+      }
       try {
+        const previousUserId = user.id;
         await signOut();
-        clearRecentRooms();
+        clearRecentRooms(previousUserId);
         await refreshUser();
       } catch (e: unknown) {
         handleError(e, {
@@ -105,7 +109,7 @@ export const AuthEmailScreen: React.FC = () => {
       }
     }
     await handleEmailAuth();
-  }, [signOutFirst, signOut, refreshUser, handleEmailAuth]);
+  }, [signOutFirst, signOut, refreshUser, handleEmailAuth, user]);
 
   const handleShowForgotPassword = useCallback(() => {
     navigation.navigate('AuthForgotPassword', { email });

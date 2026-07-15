@@ -3,8 +3,7 @@
  *
  * Standalone screen, navigated to from RoomScreen's BoardInfoCard "笔记" button (modal presentation).
  * Shows a single-column notepad panel + public note area + faction legend.
- * Reads the active Werewolf snapshot; useNotepad manages pure-client notes.
- * Does not call services directly (notepad persistence is handled inside useNotepad via AsyncStorage).
+ * Reads the active Werewolf snapshot; useNotepad manages game-owned local persistence.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -49,8 +48,16 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
   const roomCode = parseRoomCode(route.params.roomCode);
 
   const room = useRoomSessionSnapshot(client.roomSession);
-  const gameState = room.phase === 'ready' ? room.snapshot.state : null;
-  const notepad = useNotepad(gameState);
+  const activeNotepadRoom =
+    room.phase === 'ready' && room.identity.room.roomCode === roomCode
+      ? {
+          userId: room.identity.userId,
+          roomId: room.identity.room.roomId,
+          gameState: room.snapshot.state,
+        }
+      : null;
+  const gameState = activeNotepadRoom?.gameState ?? null;
+  const notepad = useNotepad(activeNotepadRoom);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
@@ -68,12 +75,11 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
     }
 
     // Build recorder's own role info
-    const identity = room.phase === 'idle' ? null : room.identity;
-    const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
+    const mySeat = getWerewolfUserSeat(gameState, activeNotepadRoom?.userId ?? null);
     const myRole = mySeat != null ? gameState?.players[mySeat]?.role : undefined;
     const myRoleInfo =
       mySeat != null && myRole
-        ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole]?.displayName ?? myRole }
+        ? { seat: mySeat + 1, roleName: ROLE_SPECS[myRole].displayName }
         : undefined;
 
     const summary = buildNotepadSummary(notepad.state, notepad.playerCount, myRoleInfo);
@@ -89,7 +95,7 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
         maxTokens: 10000,
       });
     });
-  }, [gameState, notepad.state, notepad.playerCount, room]);
+  }, [activeNotepadRoom?.userId, gameState, notepad.state, notepad.playerCount]);
 
   const panelStyles = useMemo(
     () => ({

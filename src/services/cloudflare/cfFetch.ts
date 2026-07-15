@@ -40,7 +40,7 @@ export function setOnAuthExpired(handler: () => void): void {
   onAuthExpired = handler;
 }
 
-/** Get current JWT token (for non-cfFetch callers like CFStorageService) */
+/** Get current JWT token (for non-cfFetch callers such as the avatar upload adapter). */
 export function getCurrentToken(): string | null {
   return tokenProvider?.() ?? null;
 }

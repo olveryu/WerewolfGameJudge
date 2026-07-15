@@ -8,9 +8,10 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import type { AdminStats } from '@/features/admin/model/adminContracts';
+import { fetchStats } from '@/features/admin/services/adminApi';
 import { spacing } from '@/theme';
 
-import { type AdminStats, fetchStats } from '../adminApi';
 import { AdminEmptyState, BarChart, MetricCard, TimeRangeSelector } from '../components';
 
 export const StatsTab: React.FC = () => {

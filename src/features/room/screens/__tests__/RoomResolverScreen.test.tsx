@@ -4,9 +4,9 @@ import type React from 'react';
 import { Text } from 'react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
+import type { RoomDirectory, RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RootStackParamList } from '@/navigation/types';
-import type { IRoomDirectoryService, RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 import { RoomResolverScreen } from '../RoomResolverScreen';
 
@@ -15,7 +15,7 @@ jest.mock('@/contexts/ServiceContext', () => ({ useServices: jest.fn() }));
 
 const mockUseServices = jest.mocked(useServices);
 const getRoom = jest.fn<Promise<RoomRecord | null>, [string]>();
-const roomDirectory = { getRoom } as unknown as IRoomDirectoryService;
+const roomDirectory = { getRoom } as unknown as RoomDirectory;
 const navigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),

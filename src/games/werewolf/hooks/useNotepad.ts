@@ -1,108 +1,167 @@
-/**
- * useNotepad - notepad state management hook.
- *
- * Manages player notes (text + sheriff/identity/role-guess markers) persisted via AsyncStorage.
- * Provides toggleHand / cycleIdentity / setNote / setRole / clearAll operations.
- * Pure client-side state; no server API or game-engine logic involved.
- */
+/** React controller for the game-owned Werewolf notepad. */
 
-import type { Faction } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
-import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
-import { Team } from '@werewolf/game-engine/games/werewolf/public';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { GameState, RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { ROLE_SPECS, Team } from '@werewolf/game-engine/games/werewolf/public';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { storage } from '@/lib/storage';
-import { chatLog } from '@/utils/logger';
+import {
+  clearWerewolfNotepad,
+  getWerewolfNotepadRoundId,
+  readWerewolfNotepad,
+  type WerewolfNotepadOwner,
+  type WerewolfNotepadRoundId,
+  writeWerewolfNotepad,
+} from '@/games/werewolf/services/notepadRepository';
+import {
+  createEmptyWerewolfNotepadState,
+  type RoleTagInfo,
+  type WerewolfNotepadState,
+} from '@/games/werewolf/state/WerewolfNotepadState';
 
-// ── Types ────────────────────────────────────────────────
-
-/** Identity marker: 0=unmarked, 1=good, 2=bad, 3=suspect */
-export type IdentityState = 0 | 1 | 2 | 3;
-
-/** Role tag info (derived from ROLE_SPECS) */
-export interface RoleTagInfo {
-  roleId: RoleId;
-  shortName: string;
-  team: Team;
-  faction: Faction;
-}
-
-export interface NotepadState {
-  playerNotes: Record<number, string>;
-  handStates: Record<number, boolean>;
-  identityStates: Record<number, IdentityState>;
-  roleGuesses: Record<number, RoleId | null>;
-  /** Public notes area (left) — free text not bound to a seat */
-  publicNoteLeft: string;
-  /** Public notes area (right) — free text not bound to a seat */
-  publicNoteRight: string;
+export interface ActiveWerewolfNotepadRoom {
+  readonly userId: string;
+  readonly roomId: string;
+  readonly gameState: GameState;
 }
 
 interface UseNotepadReturn {
-  state: NotepadState;
-  playerCount: number;
-  roleTags: readonly RoleTagInfo[];
-  setNote: (seat: number, text: string) => void;
-  setPublicNoteLeft: (text: string) => void;
-  setPublicNoteRight: (text: string) => void;
-  toggleHand: (seat: number) => void;
-  cycleIdentity: (seat: number) => void;
-  setRole: (seat: number, roleId: RoleId | null) => void;
-  clearAll: () => void;
+  readonly state: WerewolfNotepadState;
+  readonly playerCount: number;
+  readonly roleTags: readonly RoleTagInfo[];
+  readonly setNote: (seat: number, text: string) => void;
+  readonly setPublicNoteLeft: (text: string) => void;
+  readonly setPublicNoteRight: (text: string) => void;
+  readonly toggleHand: (seat: number) => void;
+  readonly setRole: (seat: number, roleId: RoleId | null) => void;
+  readonly clearAll: () => void;
 }
 
-// ── Constants ────────────────────────────────────────────
+type PersistenceIntent = 'none' | 'write' | 'clear';
 
-const STORAGE_KEY_PREFIX = '@notepad:';
-const IDENTITY_COUNT = 4; // 0→1→2→3→0
-
-function emptyState(): NotepadState {
-  return {
-    playerNotes: {},
-    handStates: {},
-    identityStates: {},
-    roleGuesses: {},
-    publicNoteLeft: '',
-    publicNoteRight: '',
-  };
+interface ScopedNotepadState {
+  readonly roomId: string | null;
+  readonly userId: string | null;
+  readonly roundId: WerewolfNotepadRoundId | null;
+  readonly seatCount: number;
+  readonly state: WerewolfNotepadState;
+  readonly persistence: PersistenceIntent;
 }
 
-/** Build the AsyncStorage key for a given room code. */
-export function getNotepadStorageKey(roomCode: string | null): string | null {
-  return roomCode ? `${STORAGE_KEY_PREFIX}${roomCode}` : null;
+function isCurrentScope(
+  scoped: ScopedNotepadState,
+  userId: string | null,
+  roomId: string | null,
+  roundId: WerewolfNotepadRoundId | null,
+  seatCount: number,
+): boolean {
+  return (
+    scoped.userId === userId &&
+    scoped.roomId === roomId &&
+    scoped.roundId === roundId &&
+    scoped.seatCount === seatCount
+  );
 }
 
-// ══════════════════════════════════════════════════════════
-// Hook
-// ══════════════════════════════════════════════════════════
-/**
- * Manages player notepad state (identity markers / text notes) with AsyncStorage persistence.
- *
- * @param gameState - Current immutable Werewolf room state.
- */ export function useNotepad(gameState: GameState | null): UseNotepadReturn {
-  const [state, setState] = useState<NotepadState>(emptyState);
-  const playerCount = gameState?.templateRoles?.length ?? 12;
-  const templateRoles = gameState?.templateRoles;
-  const roomCode = gameState?.roomCode ?? null;
-  const storageKey = getNotepadStorageKey(roomCode);
-  const status = gameState?.status;
+function requireNotepadSeat(seat: number, seatCount: number): void {
+  if (!Number.isSafeInteger(seat) || seat < 1 || seat > seatCount) {
+    throw new Error(`[FAIL-FAST] Notepad seat ${seat} is outside 1..${seatCount}`);
+  }
+}
 
-  // ── Derive role tags from templateRoles (schema-driven) ──
+/** Manage notes for one immutable room and one Werewolf round generation. */
+export function useNotepad(room: ActiveWerewolfNotepadRoom | null): UseNotepadReturn {
+  const userId = room?.userId ?? null;
+  const roomId = room?.roomId ?? null;
+  const gameState = room?.gameState ?? null;
+  const roundId =
+    gameState === null ? null : getWerewolfNotepadRoundId(gameState.roleRevealRandomNonce);
+  const seatCount = gameState?.templateRoles.length ?? 0;
+  const owner = useMemo<WerewolfNotepadOwner | null>(
+    () => (userId === null || roomId === null ? null : { userId, roomId }),
+    [roomId, userId],
+  );
+
+  const stored = useMemo(() => {
+    if (owner === null || roundId === null) return { kind: 'missing' as const };
+    return readWerewolfNotepad(owner, roundId, seatCount);
+  }, [owner, roundId, seatCount]);
+  const loadedState = useMemo(
+    () => (stored.kind === 'found' ? stored.state : createEmptyWerewolfNotepadState()),
+    [stored],
+  );
+
+  const [scopedState, setScopedState] = useState<ScopedNotepadState>(() => ({
+    userId,
+    roomId,
+    roundId,
+    seatCount,
+    state: loadedState,
+    persistence: 'none',
+  }));
+  const state = isCurrentScope(scopedState, userId, roomId, roundId, seatCount)
+    ? scopedState.state
+    : loadedState;
+
+  useEffect(() => {
+    if (stored.kind === 'stale' && owner !== null) {
+      clearWerewolfNotepad(owner);
+    }
+  }, [owner, stored.kind]);
+
+  useEffect(() => {
+    if (
+      !isCurrentScope(scopedState, userId, roomId, roundId, seatCount) ||
+      scopedState.persistence === 'none'
+    ) {
+      return;
+    }
+    if (owner === null || roundId === null) {
+      throw new Error('[FAIL-FAST] Cannot persist a Werewolf notepad without an active room');
+    }
+
+    if (scopedState.persistence === 'clear') {
+      clearWerewolfNotepad(owner);
+    } else {
+      writeWerewolfNotepad(owner, roundId, seatCount, scopedState.state);
+    }
+
+    setScopedState((current) =>
+      current === scopedState ? { ...current, persistence: 'none' } : current,
+    );
+  }, [owner, roomId, roundId, scopedState, seatCount, userId]);
+
+  const updateState = useCallback(
+    (update: (current: WerewolfNotepadState) => WerewolfNotepadState) => {
+      if (userId === null || roomId === null || roundId === null) {
+        throw new Error('[FAIL-FAST] Cannot edit a Werewolf notepad without an active room');
+      }
+      setScopedState((current) => ({
+        userId,
+        roomId,
+        roundId,
+        seatCount,
+        state: update(
+          isCurrentScope(current, userId, roomId, roundId, seatCount) ? current.state : loadedState,
+        ),
+        persistence: 'write',
+      }));
+    },
+    [loadedState, roomId, roundId, seatCount, userId],
+  );
+
+  const playerCount = gameState === null ? 0 : gameState.templateRoles.length;
   const roleTags = useMemo<readonly RoleTagInfo[]>(() => {
-    if (!templateRoles) return [];
+    if (gameState === null) return [];
     const seen = new Set<RoleId>();
     const good: RoleTagInfo[] = [];
     const wolf: RoleTagInfo[] = [];
     const third: RoleTagInfo[] = [];
-    for (const roleId of templateRoles) {
+    for (const roleId of gameState.templateRoles) {
       if (seen.has(roleId)) continue;
       seen.add(roleId);
       const spec = ROLE_SPECS[roleId];
-      if (!spec) continue;
       const info: RoleTagInfo = {
-        roleId: roleId,
+        roleId,
         shortName: spec.shortName,
         team: spec.team,
         faction: spec.faction,
@@ -112,150 +171,71 @@ export function getNotepadStorageKey(roomCode: string | null): string | null {
       else good.push(info);
     }
     return [...good, ...wolf, ...third];
-  }, [templateRoles]);
-
-  // ── Load from MMKV on mount / room change ────
-  useEffect(() => {
-    if (!storageKey) return;
-    const raw = storage.getString(storageKey);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as NotepadState;
-        // Backward compat: migrate old single publicNote → left/right
-        const legacy = (parsed as unknown as Record<string, unknown>).publicNote;
-        if (legacy !== undefined) {
-          parsed.publicNoteLeft = legacy as string;
-          delete (parsed as unknown as Record<string, unknown>).publicNote;
-        }
-        if (parsed.publicNoteLeft === undefined) parsed.publicNoteLeft = '';
-        if (parsed.publicNoteRight === undefined) parsed.publicNoteRight = '';
-        setState(parsed);
-      } catch {
-        chatLog.warn('Failed to parse notepad state');
-      }
-    }
-  }, [storageKey]);
-
-  // ── Persist helper (debounced to avoid thrashing) ────
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Cleanup pending save timer on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, []);
-
-  const persistState = useCallback(
-    (newState: NotepadState) => {
-      if (!storageKey) return;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(() => {
-        storage.set(storageKey, JSON.stringify(newState));
-      }, 500);
-    },
-    [storageKey],
-  );
-
-  // ── Detect game restart: status transitions back to Seated ────
-  const prevStatusRef = useRef(status);
-  useEffect(() => {
-    const prev = prevStatusRef.current;
-    if (
-      prev !== undefined &&
-      prev !== GameStatus.Unseated &&
-      prev !== GameStatus.Seated &&
-      status === GameStatus.Seated
-    ) {
-      chatLog.info('Game restarted, clearing notepad');
-      setState(emptyState());
-      if (storageKey) {
-        storage.remove(storageKey);
-      }
-    }
-    prevStatusRef.current = status;
-  }, [status, storageKey]);
-
-  // ── Actions ──────────────────────────────────────────
+  }, [gameState]);
 
   const setNote = useCallback(
     (seat: number, text: string) => {
-      setState((prev) => {
-        const next = { ...prev, playerNotes: { ...prev.playerNotes, [seat]: text } };
-        persistState(next);
-        return next;
-      });
+      requireNotepadSeat(seat, seatCount);
+      updateState((current) => ({
+        ...current,
+        playerNotes: { ...current.playerNotes, [seat]: text },
+      }));
     },
-    [persistState],
+    [seatCount, updateState],
   );
 
   const setPublicNoteLeft = useCallback(
     (text: string) => {
-      setState((prev) => {
-        const next = { ...prev, publicNoteLeft: text };
-        persistState(next);
-        return next;
-      });
+      updateState((current) => ({ ...current, publicNoteLeft: text }));
     },
-    [persistState],
+    [updateState],
   );
 
   const setPublicNoteRight = useCallback(
     (text: string) => {
-      setState((prev) => {
-        const next = { ...prev, publicNoteRight: text };
-        persistState(next);
-        return next;
-      });
+      updateState((current) => ({ ...current, publicNoteRight: text }));
     },
-    [persistState],
+    [updateState],
   );
 
   const toggleHand = useCallback(
     (seat: number) => {
-      setState((prev) => {
-        const current = prev.handStates[seat] ?? false;
-        const newState = { ...prev, handStates: { ...prev.handStates, [seat]: !current } };
-        persistState(newState);
-        return newState;
-      });
+      requireNotepadSeat(seat, seatCount);
+      updateState((current) => ({
+        ...current,
+        handStates: { ...current.handStates, [seat]: !(current.handStates[seat] ?? false) },
+      }));
     },
-    [persistState],
-  );
-
-  const cycleIdentity = useCallback(
-    (seat: number) => {
-      setState((prev) => {
-        const current = prev.identityStates[seat] ?? 0;
-        const next: IdentityState = ((current + 1) % IDENTITY_COUNT) as IdentityState;
-        const newState = { ...prev, identityStates: { ...prev.identityStates, [seat]: next } };
-        persistState(newState);
-        return newState;
-      });
-    },
-    [persistState],
+    [seatCount, updateState],
   );
 
   const setRole = useCallback(
     (seat: number, roleId: RoleId | null) => {
-      setState((prev) => {
-        const currentRole = prev.roleGuesses[seat] ?? null;
-        const newRole = currentRole === roleId ? null : roleId;
-        const newState = { ...prev, roleGuesses: { ...prev.roleGuesses, [seat]: newRole } };
-        persistState(newState);
-        return newState;
-      });
+      requireNotepadSeat(seat, seatCount);
+      updateState((current) => ({
+        ...current,
+        roleGuesses: {
+          ...current.roleGuesses,
+          [seat]: (current.roleGuesses[seat] ?? null) === roleId ? null : roleId,
+        },
+      }));
     },
-    [persistState],
+    [seatCount, updateState],
   );
 
   const clearAll = useCallback(() => {
-    const cleared = emptyState();
-    setState(cleared);
-    if (storageKey) {
-      storage.remove(storageKey);
+    if (userId === null || roomId === null || roundId === null) {
+      throw new Error('[FAIL-FAST] Cannot clear a Werewolf notepad without an active room');
     }
-  }, [storageKey]);
+    setScopedState({
+      userId,
+      roomId,
+      roundId,
+      seatCount,
+      state: createEmptyWerewolfNotepadState(),
+      persistence: 'clear',
+    });
+  }, [roomId, roundId, seatCount, userId]);
 
   return {
     state,
@@ -265,7 +245,6 @@ export function getNotepadStorageKey(roomCode: string | null): string | null {
     setPublicNoteLeft,
     setPublicNoteRight,
     toggleHand,
-    cycleIdentity,
     setRole,
     clearAll,
   };

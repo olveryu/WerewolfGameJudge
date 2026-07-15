@@ -17,15 +17,15 @@ import {
   PRESET_TEMPLATES,
   validateTemplateRoles,
 } from '@werewolf/game-engine/games/werewolf/public';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
 import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
+import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { useCreateRoomSaga } from '@/hooks/mutations/useRoomMutations';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
@@ -99,7 +99,7 @@ export function useConfigScreenState({
       presetInitial?.selection ??
       (isEditMode || isNominateMode ? getInitialSelection() : getEmptySelection()),
   );
-  const [isCreating, setIsCreating] = useState(false);
+  const [isWorkflowSubmitting, setIsWorkflowSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(isEditMode || isNominateMode);
   const [selectedTemplate, setSelectedTemplate] = useState(
     presetInitial?.matchedPreset ??
@@ -189,15 +189,6 @@ export function useConfigScreenState({
     }
   }, [updatedRules]);
 
-  // ── Reset transient states when screen regains focus ─────────────────────
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      setIsCreating(false);
-    });
-    return unsubscribe;
-  }, [navigation]);
-
   // ── Auto-navigate back when game progresses past nomination phase ───────
 
   useEffect(() => {
@@ -255,27 +246,24 @@ export function useConfigScreenState({
     setRules(newRules);
   }, []);
 
-  const { createRoom } = useCreateRoomSaga();
-  const creatingRef = useRef(false);
+  const { createRoom, isCreating: isRoomCreating } = useRoomCreationController();
   const handleCreateRoom = useCallback(async () => {
-    if (creatingRef.current || isLoading) return;
-    creatingRef.current = true;
-
+    if (isLoading) {
+      throw new Error('[FAIL-FAST] Werewolf config cannot submit before room state is loaded');
+    }
     const roles = selectionToRoles(selection, variantOverrides);
     if (roles.length === 0) {
       showErrorAlert('配置有误', '请至少选择一个角色');
-      creatingRef.current = false;
       return;
     }
 
     const validationError = validateTemplateRoles(roles);
     if (validationError) {
       showErrorAlert('配置有误', validationError);
-      creatingRef.current = false;
       return;
     }
 
-    setIsCreating(true);
+    setIsWorkflowSubmitting(true);
     try {
       // ── Nominate mode: submit board nomination ──
       if (nominateMode) {
@@ -329,8 +317,7 @@ export function useConfigScreenState({
         alertMessage: isEditMode ? '更新房间失败，请重试' : '创建房间失败，请重试',
       });
     } finally {
-      setIsCreating(false);
-      creatingRef.current = false;
+      setIsWorkflowSubmitting(false);
     }
   }, [
     selection,
@@ -530,7 +517,8 @@ export function useConfigScreenState({
     [activeTab],
   );
 
-  const isDisabled = isCreating || isLoading;
+  const isSubmitting = isWorkflowSubmitting || isRoomCreating;
+  const isDisabled = isSubmitting || isLoading;
 
   // ── Return bag ───────────────────────────────────────────────────────────
 
@@ -540,7 +528,7 @@ export function useConfigScreenState({
     isNominateMode,
     isDisabled,
     isLoading,
-    isCreating,
+    isSubmitting,
 
     // Core state
     selection,

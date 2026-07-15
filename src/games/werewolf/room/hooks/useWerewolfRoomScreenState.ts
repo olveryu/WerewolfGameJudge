@@ -22,17 +22,15 @@ import { useRoomProfileController } from '@/features/room/controllers/useRoomPro
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
 import type { RoomCapabilities } from '@/features/room/model/RoomCapabilities';
-import { getNotepadStorageKey } from '@/games/werewolf/hooks/useNotepad';
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { useWerewolfRoom } from '@/games/werewolf/hooks/useWerewolfRoom';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import {
   createWerewolfRoomCapabilities,
   WEREWOLF_DISPLAY_NAME,
 } from '@/games/werewolf/werewolfRoomAdapter';
-import { storage } from '@/lib/storage';
 import type { RootStackParamList } from '@/navigation/types';
 import { uploadShareImage } from '@/services/feature/ShareImageService';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { roomScreenLog } from '@/utils/logger';
@@ -687,27 +685,6 @@ export function useWerewolfRoomScreenState(
         return null;
     }
   }, [isHost, gameState, roomStatus]);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Notepad cleanup on game restart (NotepadScreen is not always mounted)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  const notepadPrevStatusRef = useRef(roomStatus);
-  useEffect(() => {
-    const prev = notepadPrevStatusRef.current;
-    if (
-      prev !== null &&
-      prev !== GameStatus.Unseated &&
-      prev !== GameStatus.Seated &&
-      roomStatus === GameStatus.Seated
-    ) {
-      const key = getNotepadStorageKey(gameState?.roomCode ?? null);
-      if (key) {
-        storage.remove(key);
-      }
-    }
-    notepadPrevStatusRef.current = roomStatus;
-  }, [roomStatus, gameState?.roomCode]);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Choose card handler (treasureMaster / thief bottom card selection)

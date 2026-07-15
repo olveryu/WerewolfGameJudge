@@ -30,15 +30,12 @@ import {
 
 import { Modal } from '@/components/AppModal';
 import { UI_ICONS } from '@/config/iconTokens';
+import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
+import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 
-import {
-  BUBBLE_PULSE_MAX_SCALE,
-  createStyles,
-  type DisplayMessage,
-  getChatHeight,
-} from './AIChatBubble.styles';
+import { BUBBLE_PULSE_MAX_SCALE, createStyles, getChatHeight } from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useAIChat } from './useAIChat';
@@ -52,17 +49,22 @@ const PULSE_DURATION = 1000;
 
 interface AIChatBubbleProps {
   readonly client: WerewolfGameClient;
+  readonly identity: ActiveRoomIdentity;
   /** When this transitions from false -> true, trigger a pulse animation */
   triggerPulse?: boolean;
 }
 
-export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ client, triggerPulse = false }) => {
+export const AIChatBubble: React.FC<AIChatBubbleProps> = ({
+  client,
+  identity,
+  triggerPulse = false,
+}) => {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const styles = createStyles(colors, screenWidth);
   const flatListRef = useRef<FlatList>(null);
   const chatHeight = getChatHeight(screenHeight);
 
-  const chat = useAIChat(client);
+  const chat = useAIChat(client, identity);
 
   // ── Pulse animation after roles are assigned ────────
   const pulseAnim = useRef(new Animated.Value(1)).current;

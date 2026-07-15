@@ -39,15 +39,6 @@ export function getDefaultPosition(screenWidth: number, screenHeight: number) {
   };
 }
 
-// ── DisplayMessage type ─────────────────────────────────
-
-export interface DisplayMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
-
 // ── Factory ──────────────────────────────────────────────
 
 export const createStyles = (colors: ThemeColors, screenWidth: number) => ({

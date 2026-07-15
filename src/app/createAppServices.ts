@@ -2,11 +2,13 @@
 
 import { CloudflareGameSessionFactory } from '@/app/CloudflareGameSessionFactory';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
+import { RoomCreationIntentStore } from '@/features/room/services/RoomCreationIntentStore';
+import { RoomCreationService } from '@/features/room/services/RoomCreationService';
 import { createClientGameCatalog } from '@/games/catalog';
 import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
+import { CFAvatarUploadService } from '@/services/cloudflare/CFAvatarUploadService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
-import { CFStorageService } from '@/services/cloudflare/CFStorageService';
 import { SettingsService } from '@/services/feature/SettingsService';
 import { AudioService } from '@/services/infra/AudioService';
 import { log } from '@/utils/logger';
@@ -17,14 +19,16 @@ export function createAppServices(): {
 } {
   const authService = new CFAuthService();
   const roomDirectory = new CFRoomDirectoryService();
+  const roomCreator = new RoomCreationService(roomDirectory, new RoomCreationIntentStore());
   const settingsService = new SettingsService();
   const audioService = new AudioService();
-  const avatarUploadService = new CFStorageService();
+  const avatarUploadService = new CFAvatarUploadService();
   const sessionFactory = new CloudflareGameSessionFactory();
 
   const services: ServiceContextValue = {
     authService,
     roomDirectory,
+    roomCreator,
     settingsService,
     audioService,
     avatarUploadService,

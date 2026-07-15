@@ -9,9 +9,12 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 
-import { ADMIN_PASSWORD_KEY } from '@/config/storageKeys';
-import { storage } from '@/lib/storage';
-import { verifyAdminPassword } from '@/screens/AdminScreen/adminApi';
+import { verifyAdminPassword } from '@/features/admin/services/adminApi';
+import {
+  clearAdminCredential,
+  readAdminCredential,
+  writeAdminCredential,
+} from '@/features/admin/services/adminCredentialStore';
 import { showPrompt } from '@/utils/alert';
 import { roomScreenLog } from '@/utils/logger';
 import { mobileDebug } from '@/utils/mobileDebug';
@@ -44,7 +47,7 @@ async function verifyAndToggle(cached: string): Promise<void> {
   if (valid) {
     mobileDebug.toggle();
   } else {
-    storage.remove(ADMIN_PASSWORD_KEY);
+    clearAdminCredential();
     roomScreenLog.warn('Cached admin password invalid, cleared');
   }
 }
@@ -54,12 +57,13 @@ function promptAdminPassword(): void {
   showPrompt('Admin 密码', {
     placeholder: '请输入管理员密码',
     onConfirm: (value: string) => {
-      if (!value.trim()) return;
+      const credential = value.trim();
+      if (!credential) return;
       void (async () => {
         try {
-          const valid = await verifyAdminPassword(value);
+          const valid = await verifyAdminPassword(credential);
           if (valid) {
-            storage.set(ADMIN_PASSWORD_KEY, value);
+            writeAdminCredential(credential);
             mobileDebug.toggle();
           } else {
             roomScreenLog.warn('Admin password rejected');
@@ -101,7 +105,7 @@ export function useHiddenDebugTrigger(): UseHiddenDebugTriggerResult {
       tapCountRef.current = 0;
       roomScreenLog.debug('Debug trigger activated, verifying admin');
 
-      const cached = storage.getString(ADMIN_PASSWORD_KEY);
+      const cached = readAdminCredential();
       if (cached) {
         void verifyAndToggle(cached);
       } else {

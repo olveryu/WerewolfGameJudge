@@ -19,5 +19,12 @@ export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ client }
     room.snapshot.state.status !== GameStatus.Unseated &&
     room.snapshot.state.status !== GameStatus.Seated;
 
-  return <AIChatBubble client={client} triggerPulse={triggerPulse} />;
+  return (
+    <AIChatBubble
+      key={`${room.identity.userId}:${room.identity.room.roomId}`}
+      client={client}
+      identity={room.identity}
+      triggerPulse={triggerPulse}
+    />
+  );
 };

@@ -8,19 +8,20 @@
 import type React from 'react';
 import { createContext, use, useMemo } from 'react';
 
+import type { RoomCreator, RoomDirectory } from '@/features/room/model/RoomDirectory';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { AudioService } from '@/services/infra/AudioService';
 import type { IAuthService } from '@/services/types/IAuthService';
-import type { IRoomDirectoryService } from '@/services/types/IRoomDirectoryService';
-import type { IStorageService } from '@/services/types/IStorageService';
+import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService';
 
 /** Set of service instances provided by the DI container. */
 export interface ServiceContextValue {
   authService: IAuthService;
-  roomDirectory: IRoomDirectoryService;
+  roomDirectory: RoomDirectory;
+  roomCreator: RoomCreator;
   settingsService: SettingsService;
   audioService: AudioService;
-  avatarUploadService: IStorageService;
+  avatarUploadService: IAvatarUploadService;
 }
 
 const ServiceContext = createContext<ServiceContextValue | null>(null);

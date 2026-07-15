@@ -8,9 +8,10 @@ import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import type { AdminUser } from '@/features/admin/model/adminContracts';
+import { fetchUsers } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 
-import { type AdminUser, fetchUsers } from '../adminApi';
 import { AdminEmptyState, AdminPill, Pagination } from '../components';
 
 const SORT_OPTIONS = [

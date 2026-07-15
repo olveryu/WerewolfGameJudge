@@ -19,6 +19,7 @@ import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
+import { clearRecentRooms } from '@/features/room/services/recentRooms';
 import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
 import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import {
@@ -29,7 +30,6 @@ import {
 } from '@/hooks/mutations/useAuthMutations';
 import { useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
-import { clearRecentRooms } from '@/lib/recentRooms';
 import { type RootStackParamList } from '@/navigation/types';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 import { showPrompt } from '@/utils/alert';
@@ -148,17 +148,21 @@ export const SettingsScreen: React.FC = () => {
   }, [navigation]);
 
   const handleSignOut = useCallback(async () => {
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Sign out requires a current user');
+    }
     try {
       wasAuthenticatedRef.current = false;
+      const previousUserId = user.id;
       await signOut();
-      clearRecentRooms();
+      clearRecentRooms(previousUserId);
       await refreshUser();
     } catch (e: unknown) {
       const message = getErrorMessage(e);
       settingsLog.error('Sign out failed', { message }, e);
       showErrorAlert('退出失败', message);
     }
-  }, [signOut, refreshUser]);
+  }, [signOut, refreshUser, user]);
 
   const handlePickAvatar = useCallback(() => {
     navigation.navigate('Appearance');

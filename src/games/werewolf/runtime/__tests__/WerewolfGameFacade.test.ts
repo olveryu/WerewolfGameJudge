@@ -4,6 +4,7 @@ import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type {
   PreparedRoomCommand,
   RoomSessionClient,
@@ -11,7 +12,6 @@ import type {
 } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import type { WerewolfUserEvent } from '@/games/werewolf/realtime/werewolfUserEventCodec';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 import { WerewolfGameFacade } from '../WerewolfGameFacade';
 import { buildApiTestState } from './apiTestState';

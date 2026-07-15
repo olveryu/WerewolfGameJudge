@@ -11,6 +11,7 @@
  * mirroring the real lib's filter-by-mutationKey aggregation.
  */
 import type React from 'react';
+import { useCallback, useState } from 'react';
 
 const noopRefetch = jest.fn().mockResolvedValue({ data: undefined });
 
@@ -20,6 +21,11 @@ type MutationOptions = {
   onSuccess?: (data: unknown, args: unknown) => void;
   onError?: (error: unknown, args: unknown) => void;
 };
+
+interface MutationCallbacks {
+  readonly onSuccess?: MutationOptions['onSuccess'];
+  readonly onError?: MutationOptions['onError'];
+}
 
 interface MutationRecord {
   key: readonly unknown[];
@@ -50,32 +56,60 @@ function keysEqual(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.every((seg, i) => seg === b[i]);
 }
 
-function buildMutate(opts: MutationOptions) {
-  return jest.fn(
-    (
-      args?: unknown,
-      callbacks?: { onSuccess?: typeof opts.onSuccess; onError?: typeof opts.onError },
-    ) => {
-      const finish = startMutation(opts.mutationKey ?? []);
+interface MutationState {
+  readonly data: unknown;
+  readonly error: unknown;
+  readonly isError: boolean;
+  readonly isPending: boolean;
+  readonly isSuccess: boolean;
+}
+
+const IDLE_MUTATION_STATE: MutationState = {
+  data: undefined,
+  error: null,
+  isError: false,
+  isPending: false,
+  isSuccess: false,
+};
+
+function useMutationMock(opts: MutationOptions) {
+  const [state, setState] = useState<MutationState>(IDLE_MUTATION_STATE);
+  const mutateAsync = useCallback(
+    async (args?: unknown, callbacks?: MutationCallbacks): Promise<unknown> => {
       const fn = opts.mutationFn;
-      if (!fn) {
+      if (fn === undefined) throw new Error('Mocked useMutation requires mutationFn');
+      const finish = startMutation(opts.mutationKey ?? []);
+      setState({
+        data: undefined,
+        error: null,
+        isError: false,
+        isPending: true,
+        isSuccess: false,
+      });
+      try {
+        const data = await fn(args);
+        opts.onSuccess?.(data, args);
+        callbacks?.onSuccess?.(data, args);
+        setState({ data, error: null, isError: false, isPending: false, isSuccess: true });
+        return data;
+      } catch (error) {
+        opts.onError?.(error, args);
+        callbacks?.onError?.(error, args);
+        setState({ data: undefined, error, isError: true, isPending: false, isSuccess: false });
+        throw error;
+      } finally {
         finish();
-        return;
       }
-      void Promise.resolve(fn(args)).then(
-        (data) => {
-          opts.onSuccess?.(data, args);
-          callbacks?.onSuccess?.(data, args);
-          finish();
-        },
-        (err) => {
-          opts.onError?.(err, args);
-          callbacks?.onError?.(err, args);
-          finish();
-        },
-      );
     },
+    [opts],
   );
+  const mutate = useCallback(
+    (args?: unknown, callbacks?: MutationCallbacks): void => {
+      void mutateAsync(args, callbacks).catch(() => undefined);
+    },
+    [mutateAsync],
+  );
+  return { mutate, mutateAsync, ...state };
 }
 
 module.exports = {
@@ -89,18 +123,7 @@ module.exports = {
     isFetching: false,
     refetch: noopRefetch,
   }),
-  useMutation: jest.fn().mockImplementation((opts: MutationOptions) => {
-    const mutate = buildMutate(opts);
-    return {
-      mutate,
-      mutateAsync: mutate,
-      isPending: false,
-      isError: false,
-      isSuccess: false,
-      data: undefined,
-      error: null,
-    };
-  }),
+  useMutation: jest.fn().mockImplementation(useMutationMock),
   useIsMutating: jest.fn().mockImplementation((filter?: { mutationKey?: readonly unknown[] }) => {
     const filterKey = filter?.mutationKey;
     if (!filterKey) return inflight.reduce((sum, r) => sum + r.pending, 0);

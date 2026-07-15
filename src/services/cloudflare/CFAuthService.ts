@@ -19,7 +19,7 @@
 
 import * as Sentry from '@sentry/react-native';
 
-import { storage } from '@/lib/storage';
+import { storage } from '@/services/infra/localStorage';
 import type { AuthUser, GetCurrentUserResponse, IAuthService } from '@/services/types/IAuthService';
 import { handleError } from '@/utils/errorPipeline';
 import { authLog } from '@/utils/logger';

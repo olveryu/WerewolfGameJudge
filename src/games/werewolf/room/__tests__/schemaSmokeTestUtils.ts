@@ -6,9 +6,9 @@ import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { getSchema, type SchemaId } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 type RoomScreenProps = React.ComponentProps<typeof WerewolfRoomScreen>;
 

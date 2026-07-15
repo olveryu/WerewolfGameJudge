@@ -5,9 +5,6 @@
  * Pure constants module — no business logic or side effects.
  */
 
-/** Recent room code list JSON (string[], most recent first, max 5 items) */
-export const RECENT_ROOM_CODES_KEY = 'recentRoomCodes';
-
 /** Unacknowledged room creation intents used for exact retry after restart. */
 export const ROOM_CREATION_INTENTS_KEY = '@room_creation_intents';
 

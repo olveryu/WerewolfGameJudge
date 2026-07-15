@@ -6,14 +6,16 @@
  * Composes sub-hooks and manages open/close state. Drag/keyboard/message logic is delegated entirely to sub-hooks.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Animated, GestureResponderEvent } from 'react-native';
 
+import type { ActiveRoomIdentity } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { setAIChatBridgeListener } from '@/games/werewolf/services/aiChatBridge';
+import type { AIChatStorageOwner } from '@/games/werewolf/services/aiChatLocalStore';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
+import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 
-import type { DisplayMessage } from './AIChatBubble.styles';
 import { generateQuickQuestions } from './quickQuestions';
 import { useBubbleDrag } from './useBubbleDrag';
 import { useChatMessages, type UseChatMessagesReturn } from './useChatMessages';
@@ -56,26 +58,33 @@ interface UseAIChatReturn {
 // Hook
 // ══════════════════════════════════════════════════════════
 
-export function useAIChat(werewolfClient: WerewolfGameClient): UseAIChatReturn {
+export function useAIChat(
+  werewolfClient: WerewolfGameClient,
+  identity: ActiveRoomIdentity,
+): UseAIChatReturn {
   const { roomSession } = werewolfClient;
+  const storageOwner = useMemo<AIChatStorageOwner>(
+    () => ({ userId: identity.userId, roomId: identity.room.roomId }),
+    [identity.room.roomId, identity.userId],
+  );
 
   // ── Open/close state ─────────────────────────────────
   const [isOpen, setIsOpen] = useState(false);
 
   // ── Sub-hooks ────────────────────────────────────────
-  const bubble = useBubbleDrag(useCallback(() => setIsOpen(true), []));
+  const bubble = useBubbleDrag(
+    useCallback(() => setIsOpen(true), []),
+    identity.userId,
+  );
   const keyboardHeight = useKeyboardHeight();
-  const chat: UseChatMessagesReturn = useChatMessages(roomSession, isOpen);
+  const chat: UseChatMessagesReturn = useChatMessages(roomSession, isOpen, storageOwner);
 
   // ── Bridge listener (cross-component message requests) ──
   const sendWithDisplay = chat.sendWithDisplay;
   useEffect(() => {
     setAIChatBridgeListener((payload) => {
       setIsOpen(true);
-      // Use setTimeout to ensure isOpen propagates before sending
-      setTimeout(() => {
-        sendWithDisplay(payload.fullText, payload.displayText, payload.maxTokens);
-      }, 0);
+      sendWithDisplay(payload.fullText, payload.displayText, payload.maxTokens);
     });
     return () => setAIChatBridgeListener(null);
   }, [sendWithDisplay]);

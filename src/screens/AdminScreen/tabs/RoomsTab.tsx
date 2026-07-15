@@ -9,9 +9,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
+import { type AdminRoom, type AdminRoomPlayer } from '@/features/admin/model/adminContracts';
+import { fetchRoomPlayers, fetchRooms } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, shadows, spacing, typography } from '@/theme';
 
-import { type AdminRoom, type AdminRoomPlayer, fetchRoomPlayers, fetchRooms } from '../adminApi';
 import { AdminEmptyState, Pagination } from '../components';
 
 export const RoomsTab: React.FC = () => {

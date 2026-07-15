@@ -15,9 +15,9 @@
  * - Silently degrades to in-memory defaults when MMKV is unavailable
  */
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
-import { storage } from '@/lib/storage';
 import type { BgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
 import { BGM_VOLUME, isBgmTrackSetting } from '@/services/infra/audio/bgmCatalog';
+import { storage } from '@/services/infra/localStorage';
 import { handleError } from '@/utils/errorPipeline';
 import { settingsServiceLog } from '@/utils/logger';
 

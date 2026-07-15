@@ -10,9 +10,10 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PressableScale } from '@/components/PressableScale';
+import type { TimePreset } from '@/features/admin/model/adminContracts';
+import { getTimeRange } from '@/features/admin/services/adminApi';
 import { borderRadius, colors, spacing, typography } from '@/theme';
 
-import { getTimeRange, type TimePreset } from '../adminApi';
 import { AdminPill } from './AdminPill';
 
 const PRESET_LABELS: Record<TimePreset, string> = {

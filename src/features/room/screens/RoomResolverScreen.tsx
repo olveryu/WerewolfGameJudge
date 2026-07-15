@@ -9,12 +9,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
+import { type RoomRecord, UnsupportedRoomGameTypeError } from '@/features/room/model/RoomDirectory';
 import type { RoomUiModule } from '@/features/room/model/RoomUiModule';
 import type { RootStackParamList } from '@/navigation/types';
-import {
-  type RoomRecord,
-  UnsupportedRoomGameTypeError,
-} from '@/services/types/IRoomDirectoryService';
 import { log } from '@/utils/logger';
 
 type NavigationProps = NativeStackScreenProps<RootStackParamList, 'Room'>;

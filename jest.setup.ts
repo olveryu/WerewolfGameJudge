@@ -418,18 +418,31 @@ jest.mock('./src/contexts/ServiceContext', () => {
         .fn()
         .mockReturnValue({ data: { subscription: { unsubscribe: jest.fn() } } }),
     },
-    roomService: {
+    roomDirectory: {
       createRoom: jest.fn().mockResolvedValue({
         roomCode: '1234',
+        roomId: 'room-id-1234',
+        gameType: 'werewolf',
         hostUserId: 'test-uid',
         createdAt: new Date(),
       }),
       getRoom: jest.fn().mockResolvedValue({
         roomCode: '1234',
+        roomId: 'room-id-1234',
+        gameType: 'werewolf',
         hostUserId: 'test-uid',
         createdAt: new Date(),
       }),
       deleteRoom: jest.fn().mockResolvedValue(undefined),
+    },
+    roomCreator: {
+      createRoom: jest.fn().mockResolvedValue({
+        roomCode: '1234',
+        roomId: 'room-id-1234',
+        gameType: 'werewolf',
+        hostUserId: 'test-uid',
+        createdAt: new Date(),
+      }),
     },
     settingsService: {
       load: jest.fn().mockResolvedValue(undefined),

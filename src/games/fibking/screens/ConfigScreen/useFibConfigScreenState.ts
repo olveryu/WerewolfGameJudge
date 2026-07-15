@@ -2,9 +2,10 @@
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FIB_DEFAULT_PLAYERS, FIB_MIN_PLAYERS } from '@werewolf/game-engine/games/fibking/public';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useRoomCreationController } from '@/features/room/controllers/useRoomCreationController';
 import { useRoomOperationSubmission } from '@/features/room/controllers/useRoomOperationSubmission';
 import {
   replaceWithCreatedRoom,
@@ -13,7 +14,6 @@ import {
 import { dispatchRoomOperation } from '@/features/room/session/roomOperationCommandClient';
 import type { FibRoomSession } from '@/games/fibking/model/FibRoomSession';
 import type { FibConfigRouteParams } from '@/games/fibking/navigation/types';
-import { useCreateRoomSaga } from '@/hooks/mutations/useRoomMutations';
 import type { RootStackParamList } from '@/navigation/types';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -46,10 +46,9 @@ export function useFibConfigScreenState({
   session,
 }: UseFibConfigScreenStateParams): FibConfigScreenState {
   const { user } = useAuthContext();
-  const { createRoom } = useCreateRoomSaga();
+  const { createRoom, isCreating } = useRoomCreationController();
   const { isSubmitting: isOperationSubmitting, submit: submitOperation } =
     useRoomOperationSubmission(getFibRoomOperationFailureMessage);
-  const createSubmissionRef = useRef<Promise<void> | null>(null);
   const initialCount = (() => {
     if (params.mode === 'create') return FIB_DEFAULT_PLAYERS;
     const snapshot = session.getSnapshot();
@@ -62,7 +61,6 @@ export function useFibConfigScreenState({
     return snapshot.snapshot.state.numberOfPlayers;
   })();
   const [playerCountText, setPlayerCountText] = useState(String(initialCount));
-  const [isCreating, setIsCreating] = useState(false);
 
   const getPlayerCount = useCallback((): number | null => {
     const result = parseFibPlayerCountInput(playerCountText);
@@ -114,34 +112,25 @@ export function useFibConfigScreenState({
       return;
     }
 
-    if (createSubmissionRef.current !== null) {
-      throw new Error('[FAIL-FAST] FibKing room creation is already in progress');
-    }
     if (user === null) {
       throw new Error('[FAIL-FAST] FibKing room creation requires an authenticated user');
     }
 
-    const creation = (async (): Promise<void> => {
-      setIsCreating(true);
-      try {
-        const record = await createRoom({
-          expectedHostUserId: user.id,
-          gameType: 'fibking',
-          config: { numberOfPlayers },
-        });
+    void createRoom({
+      expectedHostUserId: user.id,
+      gameType: 'fibking',
+      config: { numberOfPlayers },
+    })
+      .then((record) => {
         replaceWithCreatedRoom(navigation, record.roomCode);
-      } catch (error) {
+      })
+      .catch((error: unknown) => {
         handleError(error, {
           label: '创建瞎掰王房间',
           logger: configLog,
           alertMessage: '创建房间失败，请重试',
         });
-      } finally {
-        createSubmissionRef.current = null;
-        setIsCreating(false);
-      }
-    })();
-    createSubmissionRef.current = creation;
+      });
   }, [
     createRoom,
     getPlayerCount,

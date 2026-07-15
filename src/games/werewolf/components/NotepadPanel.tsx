@@ -4,8 +4,8 @@
  * Renders a player card list: each row has seat number (tap to select role) + role badge + hand-up tag + note input.
  * Tapping the seat number opens a role-picker popover; selection shows a role badge next to the seat number.
  * Card background color follows the role guess (4-color distinction: wolf / god / villager / third party).
- * Receives notepad state and action callbacks (from useNotepad), plus a styles prop.
- * Does not directly call service / AsyncStorage / game-engine.
+ * Receives notepad state and action callbacks, plus a styles prop.
+ * Does not directly call persistence services.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -26,7 +26,10 @@ import {
 } from 'react-native';
 
 import { Modal } from '@/components/AppModal';
-import type { NotepadState, RoleTagInfo } from '@/games/werewolf/hooks/useNotepad';
+import type {
+  RoleTagInfo,
+  WerewolfNotepadState,
+} from '@/games/werewolf/state/WerewolfNotepadState';
 import { fixed } from '@/theme';
 
 // ── NotepadStyles (NotepadPanel depends on this type) ─────────────
@@ -101,7 +104,7 @@ function getFactionStyleKey(faction: Faction): 'Wolf' | 'God' | 'Villager' | 'Th
       return 'God';
     case Faction.Villager:
       return 'Villager';
-    default:
+    case Faction.Special:
       return 'Third';
   }
 }
@@ -147,12 +150,32 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
       : null;
 
     const factionKey = selectedTag ? getFactionStyleKey(selectedTag.faction) : null;
-    const cardBgStyle = factionKey
-      ? (styles[`card${factionKey}` as keyof NotepadStyles] as ViewStyle)
-      : undefined;
+    const factionStyles =
+      factionKey === null
+        ? null
+        : {
+            card: {
+              Wolf: styles.cardWolf,
+              God: styles.cardGod,
+              Villager: styles.cardVillager,
+              Third: styles.cardThird,
+            }[factionKey],
+            roleBadge: {
+              Wolf: styles.roleBadgeWolf,
+              God: styles.roleBadgeGod,
+              Villager: styles.roleBadgeVillager,
+              Third: styles.roleBadgeThird,
+            }[factionKey],
+            roleBadgeText: {
+              Wolf: styles.roleBadgeTextWolf,
+              God: styles.roleBadgeTextGod,
+              Villager: styles.roleBadgeTextVillager,
+              Third: styles.roleBadgeTextThird,
+            }[factionKey],
+          };
 
     return (
-      <View style={[styles.card, cardBgStyle]}>
+      <View style={[styles.card, factionStyles?.card]}>
         {/* Seat + role badge + hand */}
         <View style={styles.cardHeader}>
           <TouchableOpacity
@@ -162,19 +185,11 @@ const NotepadCard: React.FC<NotepadCardProps> = React.memo(
             activeOpacity={fixed.activeOpacity}
           >
             <Text style={styles.seat}>{seat}</Text>
-            <View
-              style={[
-                styles.roleBadge,
-                factionKey
-                  ? (styles[`roleBadge${factionKey}` as keyof NotepadStyles] as ViewStyle) // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
-                  : styles.roleBadgeEmpty,
-              ]}
-            >
+            <View style={[styles.roleBadge, factionStyles?.roleBadge ?? styles.roleBadgeEmpty]}>
               <Text
                 style={[
                   selectedTag ? styles.roleBadgeText : styles.seatPlaceholder,
-                  factionKey &&
-                    (styles[`roleBadgeText${factionKey}` as keyof NotepadStyles] as TextStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
+                  factionStyles?.roleBadgeText,
                 ]}
               >
                 {selectedTag ? selectedTag.shortName : '+'}
@@ -230,22 +245,29 @@ const RolePickerModal: React.FC<RolePickerModalProps> = React.memo(
               {roleTags.map((tag) => {
                 const isSelected = selectedRoleId === tag.roleId;
                 const fKey = getFactionStyleKey(tag.faction);
+                const selectedBackground = {
+                  Wolf: styles.popoverTagSelectedWolf,
+                  God: styles.popoverTagSelectedGod,
+                  Villager: styles.popoverTagSelectedVillager,
+                  Third: styles.popoverTagSelectedThird,
+                }[fKey];
+                const factionText = {
+                  Wolf: styles.popoverTagTextWolf,
+                  God: styles.popoverTagTextGod,
+                  Villager: styles.popoverTagTextVillager,
+                  Third: styles.popoverTagTextThird,
+                }[fKey];
                 return (
                   <TouchableOpacity
                     key={tag.roleId}
                     onPress={() => onSelect(seat, tag.roleId)}
-                    style={[
-                      styles.popoverTag,
-                      isSelected &&
-                        (styles[`popoverTagSelected${fKey}` as keyof NotepadStyles] as ViewStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
-                    ]}
+                    style={[styles.popoverTag, isSelected && selectedBackground]}
                     activeOpacity={fixed.activeOpacity}
                   >
                     <Text
                       style={[
                         styles.popoverTagText,
-                        !isSelected &&
-                          (styles[`popoverTagText${fKey}` as keyof NotepadStyles] as TextStyle), // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
+                        !isSelected && factionText,
                         isSelected && styles.popoverTagTextSelected,
                       ]}
                     >
@@ -274,7 +296,7 @@ RolePickerModal.displayName = 'RolePickerModal';
 // ── Props ────────────────────────────────────────────────
 
 interface NotepadPanelProps {
-  state: NotepadState;
+  state: WerewolfNotepadState;
   playerCount: number;
   roleTags: readonly RoleTagInfo[];
   onNoteChange: (seat: number, text: string) => void;

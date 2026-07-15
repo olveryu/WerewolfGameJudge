@@ -16,9 +16,9 @@ import { Team } from '@werewolf/game-engine/games/werewolf/public';
 import React from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { TESTIDS } from '@/testids';
 
 import { type RoomScreenTestHarness } from './RoomScreenTestHarness';

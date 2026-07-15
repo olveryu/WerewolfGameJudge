@@ -9,17 +9,17 @@
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import { useServices } from '@/contexts/ServiceContext';
+import type { RoomCreationRequest, RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
-import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
 // Mock the complete shared room-creation saga at the screen boundary.
-const mockCreateRoom = jest.fn<Promise<RoomRecord & { creationId: string }>, [CreateRoomRequest]>();
-jest.mock('@/hooks/mutations/useRoomMutations', () => ({
-  useCreateRoomSaga: () => ({ createRoom: mockCreateRoom }),
+const mockCreateRoom = jest.fn<Promise<RoomRecord>, [RoomCreationRequest]>();
+jest.mock('@/features/room/controllers/useRoomCreationController', () => ({
+  useRoomCreationController: () => ({ createRoom: mockCreateRoom, isCreating: false }),
 }));
 
 // Mock navigation
@@ -37,7 +37,7 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 // Mock MMKV storage
-jest.mock('@/lib/storage', () => ({
+jest.mock('@/services/infra/localStorage', () => ({
   storage: {
     getString: jest.fn(() => undefined),
     set: jest.fn(),
@@ -99,7 +99,6 @@ describe('Room creation → navigation roomCode contract', () => {
       gameType: 'werewolf',
       hostUserId: 'test-uid',
       createdAt: new Date(),
-      creationId: 'creation-id-7777',
     });
 
     // Override global ServiceContext mock with test-specific services

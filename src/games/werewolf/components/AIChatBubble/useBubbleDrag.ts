@@ -11,7 +11,10 @@ import { Animated, type GestureResponderEvent, Platform, useWindowDimensions } f
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
-import { storage } from '@/lib/storage';
+import {
+  readAIChatBubblePosition,
+  writeAIChatBubblePosition,
+} from '@/games/werewolf/services/aiChatBubblePositionStore';
 
 import {
   BUBBLE_HEIGHT,
@@ -21,7 +24,6 @@ import {
   getDefaultPosition,
 } from './AIChatBubble.styles';
 
-const STORAGE_KEY_POSITION = '@ai_chat_bubble_position';
 const DRAG_THRESHOLD = 10;
 
 interface UseBubbleDragReturn {
@@ -36,7 +38,7 @@ interface UseBubbleDragReturn {
 /**
  * @param onOpen callback when bubble is tapped (opens chat window)
  */
-export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
+export function useBubbleDrag(onOpen: () => void, userId: string): UseBubbleDragReturn {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   // Stable height that ignores keyboard-induced viewport shrink (WeChat web-view).
@@ -66,22 +68,21 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
 
   // ── Load saved position ────────────────────────────
   useEffect(() => {
-    const saved = storage.getString(STORAGE_KEY_POSITION);
-    if (saved) {
-      const parsed = JSON.parse(saved) as { x: number; y: number };
+    const saved = readAIChatBubblePosition(userId);
+    if (saved !== null) {
       // Clamp to current screen bounds (screen may have rotated since save)
       const clampedX = Math.max(
         BUBBLE_HORIZONTAL_MARGIN,
-        Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN, parsed.x),
+        Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN, saved.x),
       );
       const clampedY = Math.max(
         BUBBLE_MARGIN + 50,
-        Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, parsed.y),
+        Math.min(stableHeight - BUBBLE_HEIGHT - BUBBLE_MARGIN, saved.y),
       );
       setPosition({ x: clampedX, y: clampedY });
     }
     // Re-clamp when screen dimensions change (rotation)
-  }, [screenWidth, stableHeight]);
+  }, [screenWidth, stableHeight, userId]);
 
   // ── Bubble press (short tap) ───────────────────────
   const handleBubblePress = useCallback(() => {
@@ -142,13 +143,13 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
 
   const handleTouchEnd = useCallback(() => {
     if (isDraggingRef.current) {
-      storage.set(STORAGE_KEY_POSITION, JSON.stringify(positionRef.current));
+      writeAIChatBubblePosition(userId, positionRef.current);
       justHandledTouchRef.current = true;
     } else {
       justHandledTouchRef.current = true;
       handleBubblePress();
     }
-  }, [handleBubblePress]);
+  }, [handleBubblePress, userId]);
 
   return {
     position,

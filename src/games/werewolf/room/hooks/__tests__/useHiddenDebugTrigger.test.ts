@@ -32,21 +32,19 @@ jest.mock('@/utils/mobileDebug', () => ({
   },
 }));
 
-// Mock storage
-const mockGetString = jest.fn<string | undefined, [string]>();
-const mockSet = jest.fn<void, [string, string]>();
-const mockRemove = jest.fn<void, [string]>();
-jest.mock('@/lib/storage', () => ({
-  storage: {
-    getString: (...args: [string]) => mockGetString(...args),
-    set: (...args: [string, string]) => mockSet(...args),
-    remove: (...args: [string]) => mockRemove(...args),
-  },
+// Mock credential store
+const mockReadCredential = jest.fn<string | null, []>();
+const mockWriteCredential = jest.fn<void, [string]>();
+const mockClearCredential = jest.fn<void, []>();
+jest.mock('@/features/admin/services/adminCredentialStore', () => ({
+  readAdminCredential: () => mockReadCredential(),
+  writeAdminCredential: (credential: string) => mockWriteCredential(credential),
+  clearAdminCredential: () => mockClearCredential(),
 }));
 
 // Mock verifyAdminPassword
 const mockVerify = jest.fn<Promise<boolean>, [string]>();
-jest.mock('@/screens/AdminScreen/adminApi', () => ({
+jest.mock('@/features/admin/services/adminApi', () => ({
   verifyAdminPassword: (pw: string) => mockVerify(pw),
 }));
 
@@ -59,7 +57,7 @@ describe('useHiddenDebugTrigger', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    mockGetString.mockReturnValue('test-password');
+    mockReadCredential.mockReturnValue('test-password');
     mockVerify.mockResolvedValue(true);
   });
 
@@ -111,11 +109,11 @@ describe('useHiddenDebugTrigger', () => {
     });
 
     expect(mockToggle).not.toHaveBeenCalled();
-    expect(mockRemove).toHaveBeenCalled();
+    expect(mockClearCredential).toHaveBeenCalled();
   });
 
   it('shows prompt when no cached password', () => {
-    mockGetString.mockReturnValue(undefined);
+    mockReadCredential.mockReturnValue(null);
     const alertMock: { showPrompt: jest.Mock } = jest.requireMock('@/utils/alert');
     const { showPrompt } = alertMock;
 

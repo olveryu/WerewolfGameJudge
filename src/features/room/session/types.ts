@@ -8,7 +8,7 @@ import type {
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 
 export interface ActiveRoomIdentity {
   readonly room: RoomRecord;

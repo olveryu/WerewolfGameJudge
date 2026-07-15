@@ -2,10 +2,10 @@
  * SettingsService.test.ts - Tests for the settings service
  */
 import { USER_SETTINGS_KEY } from '@/config/storageKeys';
-import { storage } from '@/lib/storage';
 import { SettingsService } from '@/services/feature/SettingsService';
+import { storage } from '@/services/infra/localStorage';
 
-jest.mock('@/lib/storage', () => {
+jest.mock('@/services/infra/localStorage', () => {
   const store: Record<string, string> = {};
   return {
     storage: {

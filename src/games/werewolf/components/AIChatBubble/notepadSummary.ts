@@ -1,14 +1,14 @@
 /**
  * notepadSummary - formats notepad state as AI analysis request text
  *
- * Pure function, no side effects. Reads NotepadState + roleTags,
+ * Pure function, no side effects. Reads WerewolfNotepadState + role tags,
  * outputs structured text for AI to analyze game situation.
  * Does not call services, does not mutate state.
  */
 
 import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
 
-import type { NotepadState } from '@/games/werewolf/hooks/useNotepad';
+import type { WerewolfNotepadState } from '@/games/werewolf/state/WerewolfNotepadState';
 
 /** Max total text length (truncates public note section) */
 const MAX_SUMMARY_LENGTH = 1500;
@@ -24,7 +24,7 @@ interface NotepadRoleInfo {
  * Returns null for empty notepad.
  */
 export function buildNotepadSummary(
-  state: NotepadState,
+  state: WerewolfNotepadState,
   playerCount: number,
   myRoleInfo?: NotepadRoleInfo,
 ): string | null {

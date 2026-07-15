@@ -1889,17 +1889,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                                      |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                                             |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                                             |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                                             |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                                             |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                                             |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                                             |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                                             |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                                             |
-| Phase 8 | 进行中 | engine domain/public、Worker game ownership、product/platform primitive、精确 exports 与 AST gates                | 客户端 storage/navigation、动态门禁、scope 中性化、第三游戏编译门禁、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                                       |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                                              |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                                              |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                                              |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                                              |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                                              |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                                              |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                                              |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                                              |
+| Phase 8 | 进行中 | engine/Worker/product ownership、客户端 storage 与 room creation、精确 exports 与 AST gates                       | navigation、动态门禁、scope 中性化、第三游戏编译门禁、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2476,3 +2476,50 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   212 suites/8213 tests、game-engine 86 suites/2511 tests、api-worker 16 files/116 tests 全部通过。
 - Phase 8 仍未完成。下一批处理客户端 storage/navigation/shared mutation 的物理所有权，然后完成动态门禁、
   workspace scope 中性化、compile-only 第三游戏证明与全量 E2E 验收。
+
+### 当前提交：Phase 8.4 客户端持久化与房间创建所有权
+
+- 删除 `src/lib/storage.ts`，MMKV 只能由 `src/services/infra/localStorage.ts` 创建；production consumer 必须位于
+  owner 的 `services/` 目录。头像上传的 `IStorageService` / `CFStorageService` 误名也已删除，改为
+  `IAvatarUploadService` / `CFAvatarUploadService`，不再把单一 R2 头像能力描述成 app-wide storage abstraction。
+- Product storage 按 feature 归位：announcement receipt 属于 `features/home/services`；admin credential、HTTP
+  client、response contracts 和 exact runtime codec 属于 `features/admin`。Admin API 不再在 screen 目录访问
+  MMKV，也不再把 `response.json()` 直接断言为 UI 类型；未知字段、非法 game type、负数统计与错误 envelope
+  直接失败。原 `src/screens/AdminScreen/adminApi.ts` 已删除，没有 forwarding file。
+- Recent rooms 从全局 room-code 数组切到 user-scoped、versioned immutable identity：每项必须同时包含
+  `{ roomCode, roomId, gameType }`，按 `roomId` 判断同一个房间实例，公开 code 被复用时替换旧实例。登录切换只清理
+  原用户自己的历史；modal 并发检查绑定 effect generation，旧用户或已关闭 modal 的 response 不能写回新视图。
+- 狼人杀 notepad 由 `WerewolfNotepadState` 与 `notepadRepository` 所有，key 同时绑定 `userId + roomId`，payload
+  再绑定显式 `first-round | restart:<nonce>` round ID。seat key 必须在当前 template 人数内，role guess 必须是
+  canonical Werewolf role ID；owner、round 和 seat count 在任何 storage read/write 前校验。删除未被 UI 消费的
+  `identityStates/cycleIdentity`，不迁移死状态，也不在 render 期间清理 storage。
+- 狼人杀 AI chat message key 绑定 `userId + roomId`，bubble position 绑定 user；两者使用 version 1 exact
+  envelope，拒绝 unversioned payload、未知字段、重复 message ID、非法 timestamp 和非有限坐标。发送前先核对
+  active `RoomSession` 的 user/room identity，再产生 cooldown、message 或 streaming side effect；AI bridge 删除
+  卸载后仍可能执行的零延迟 timer，pending debounced write 在清空与 unmount 时有唯一确定的提交路径。
+- 本次明确采用一次性客户端 storage cutover：旧的全局 recent-room、notepad、AI chat 和 bubble-position key
+  不读取、不猜测、不迁移；新 key 尚未发布，不增加 migration-only adapter 或 compatibility reader。格式损坏时
+  repository fail fast，不把错误数据重置成默认值继续运行。
+- Room creation contract 归入 `features/room/model/RoomDirectory.ts`。`CFRoomDirectoryService` 现在是纯 HTTP
+  transport，只接受 application layer 明确提供的 `creationId` 并解析 exact response；它不再创建 request ID、
+  访问 MMKV、维护 in-flight map 或暴露 acknowledge API。
+- `RoomCreationService` 成为唯一 application saga：canonical request 对应一个持久 creation intent，同意图并发
+  共用一个 operation；未知 delivery 和 429 保留 ID，确定的 4xx 清理 intent；成功时先提交 user-scoped recent
+  room identity，再移除 intent。任一步骤中断后重放同一 ID，recent write 本身按 room identity 幂等，因此不会
+  通过生成新 ID 掩盖未知 delivery。
+- `useRoomCreationController` 只把 saga 接入 TanStack mutation 并暴露 `isCreating`。Fib 与 Werewolf config
+  均调用这一 controller，删除各自的 `creatingRef/createSubmissionRef` 和 acknowledge helper；游戏层只组装自己
+  的 config、显示错误并导航。Architecture contract 禁止 concrete game 直接 import creation service、intent
+  store 或 Cloudflare adapter，并锁定唯一 `roomDirectory.createRoom()` consumer。
+- 定向测试覆盖 strict storage codec、用户/房间隔离、notepad scope 切换与 stale round effect、AI stale-owner
+  零副作用、creation intent 跨实例复用、同意图 single flight、unknown delivery retry、terminal rejection、
+  recent commit failure、transport exact envelope 和 React mutation lifecycle。审计同时发现 Jest 的 TanStack
+  mock 把 `mutateAsync` 错误实现为返回 `void` 的 `mutate`，
+  且把 `isPending` 永久写死；mock 已按
+  [TanStack Query v5 `useMutation` 官方契约](https://tanstack.com/query/latest/docs/framework/react/reference/useMutation)
+  重写 `mutate` 的 void、`mutateAsync` 的 Promise 与 pending transition，避免 controller test 假绿。
+- 提交前完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、Prettier 全绿；
+  root 223 suites/8581 tests、game-engine 86 suites/2511 tests、api-worker 16 files/116 tests 全部通过。root Jest
+  仍输出仓库已记录的 Expo late-log/forced-exit 噪声，但命令退出码为 0，没有为噪声修改 production 行为。
+- Phase 8 仍未完成。下一批统一 navigation capability contribution 与 deep-link registration，然后删除过期
+  hard gate/allowlist，完成 workspace scope 中性化、compile-only Pictionary 接入证明和最终 migration/E2E 验收。

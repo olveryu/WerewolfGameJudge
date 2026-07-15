@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import { useRoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type {
   ActiveRoomIdentity,
   RoomCommandDispatchOutcome,
@@ -9,7 +10,6 @@ import type {
   RoomSessionClient,
   RoomSessionSnapshot,
 } from '@/features/room/session/types';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import type { handleError } from '@/utils/errorPipeline';
 
 const mockHandleError = jest.fn<ReturnType<typeof handleError>, Parameters<typeof handleError>>();

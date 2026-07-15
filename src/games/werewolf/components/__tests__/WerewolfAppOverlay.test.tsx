@@ -2,21 +2,30 @@ import { render } from '@testing-library/react-native';
 import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
-import type { RoomSessionSnapshot } from '@/features/room/session/types';
+import type { ActiveRoomIdentity, RoomSessionSnapshot } from '@/features/room/session/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 
 import { WerewolfAppOverlay } from '../WerewolfAppOverlay';
 
 const mockUseRoomSessionSnapshot = jest.fn<RoomSessionSnapshot<GameState>, [unknown]>();
-const mockAIChatBubble = jest.fn<void, [{ readonly triggerPulse: boolean }]>();
+const mockAIChatBubble = jest.fn<
+  void,
+  [{ readonly triggerPulse: boolean; readonly identity: ActiveRoomIdentity }]
+>();
 
 jest.mock('@/features/room/controllers/useRoomSessionSnapshot', () => ({
   useRoomSessionSnapshot: (session: unknown) => mockUseRoomSessionSnapshot(session),
 }));
 
 jest.mock('@/games/werewolf/components/AIChatBubble', () => ({
-  AIChatBubble: ({ triggerPulse }: { readonly triggerPulse: boolean }) => {
-    mockAIChatBubble({ triggerPulse });
+  AIChatBubble: ({
+    triggerPulse,
+    identity,
+  }: {
+    readonly triggerPulse: boolean;
+    readonly identity: ActiveRoomIdentity;
+  }) => {
+    mockAIChatBubble({ triggerPulse, identity });
     return null;
   },
 }));
@@ -78,6 +87,9 @@ describe('WerewolfAppOverlay', () => {
 
     render(<WerewolfAppOverlay client={client} />);
 
-    expect(mockAIChatBubble).toHaveBeenCalledWith({ triggerPulse });
+    const props = mockAIChatBubble.mock.calls[0]?.[0];
+    if (props === undefined) throw new Error('AI chat bubble was not rendered');
+    expect(props.triggerPulse).toBe(triggerPulse);
+    expect(props.identity.userId).toBe('host');
   });
 });

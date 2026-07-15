@@ -28,14 +28,16 @@ import { Button } from '@/components/Button';
 import { PressableScale } from '@/components/PressableScale';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ANNOUNCEMENT_VERSIONS, ANNOUNCEMENTS } from '@/config/announcements';
-import { LAST_SEEN_ANNOUNCEMENT_VERSION_KEY } from '@/config/storageKeys';
 import { APP_VERSION } from '@/config/version';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
+import {
+  hasSeenAnnouncement,
+  markAnnouncementSeen,
+} from '@/features/home/services/announcementReceiptStore';
+import { getRecentRooms, type RecentRoomIdentity } from '@/features/room/services/recentRooms';
 import { useClientGameHome } from '@/games/ClientGameCatalogContext';
 import type { ClientGameModeOption } from '@/games/home';
 import { useAutoClaimDailyReward, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
-import { getRecentRooms } from '@/lib/recentRooms';
-import { storage } from '@/lib/storage';
 import { type RootStackParamList } from '@/navigation/types';
 import { getUnreadFeedbackCount } from '@/services/feature/FeedbackService';
 import { TESTIDS } from '@/testids';
@@ -69,7 +71,7 @@ export const HomeScreen: React.FC = () => {
   const [showRecentRooms, setShowRecentRooms] = useState(false);
   const [pickerPurpose, setPickerPurpose] = useState<PickerPurpose | null>(null);
   const [roomCode, setRoomCode] = useState('');
-  const [recentRoomCodes, setRecentRoomCodes] = useState<string[]>([]);
+  const [recentRooms, setRecentRooms] = useState<RecentRoomIdentity[]>([]);
 
   // Announcement modal state (auto-show once per version + manual open from card)
   const [showAnnouncement, setShowAnnouncement] = useState(false);
@@ -78,14 +80,13 @@ export const HomeScreen: React.FC = () => {
   // Show announcement after auth loading settles (avoid flashing modal over loading state)
   useEffect(() => {
     if (authLoading) return;
-    const lastSeen = storage.getString(LAST_SEEN_ANNOUNCEMENT_VERSION_KEY);
-    if (lastSeen === APP_VERSION) return;
+    if (hasSeenAnnouncement(APP_VERSION)) return;
     if (ANNOUNCEMENTS[APP_VERSION]) {
       setShowAnnouncement(true);
       return;
     }
     // No announcement for this version — silently mark as seen
-    storage.set(LAST_SEEN_ANNOUNCEMENT_VERSION_KEY, APP_VERSION);
+    markAnnouncementSeen(APP_VERSION);
   }, [authLoading]);
 
   // Fetch unread feedback count when user is logged in
@@ -145,12 +146,12 @@ export const HomeScreen: React.FC = () => {
   // Load recent room codes on mount and when returning to screen
   useEffect(() => {
     const readRecent = () => {
-      setRecentRoomCodes(getRecentRooms());
+      setRecentRooms(user === null ? [] : getRecentRooms(user.id));
     };
     readRecent();
     const unsubscribeFocus = navigation.addListener('focus', readRecent);
     return unsubscribeFocus;
-  }, [navigation]);
+  }, [navigation, user]);
 
   // Get user display name
   const userName = useMemo(() => {
@@ -192,15 +193,21 @@ export const HomeScreen: React.FC = () => {
   }, [roomCode, navigation]);
 
   const handleShowRecentRooms = useCallback(() => {
-    setRecentRoomCodes(getRecentRooms());
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Recent rooms require an authenticated user');
+    }
+    setRecentRooms(getRecentRooms(user.id));
     setShowRecentRooms(true);
-  }, []);
+  }, [user]);
 
   const handleCloseRecentRooms = useCallback(() => {
     setShowRecentRooms(false);
     // Refresh list (offline rooms were removed during check)
-    setRecentRoomCodes(getRecentRooms());
-  }, []);
+    if (user === null) {
+      throw new Error('[FAIL-FAST] Recent rooms require an authenticated user');
+    }
+    setRecentRooms(getRecentRooms(user.id));
+  }, [user]);
 
   const handleJoinFromRecent = useCallback(
     (code: string) => {
@@ -315,7 +322,7 @@ export const HomeScreen: React.FC = () => {
 
   const handleCloseAnnouncement = useCallback(() => {
     setShowAnnouncement(false);
-    storage.set(LAST_SEEN_ANNOUNCEMENT_VERSION_KEY, APP_VERSION);
+    markAnnouncementSeen(APP_VERSION);
   }, []);
 
   const handleOpenAnnouncement = useCallback(() => {
@@ -470,10 +477,10 @@ export const HomeScreen: React.FC = () => {
           </PressableScale>
           <PressableScale
             onPress={handleReturnLastGamePress}
-            disabled={authLoading || recentRoomCodes.length === 0}
+            disabled={authLoading || recentRooms.length === 0}
             style={[
               styles.actionCard,
-              (authLoading || recentRoomCodes.length === 0) && styles.actionCardDisabled,
+              (authLoading || recentRooms.length === 0) && styles.actionCardDisabled,
             ]}
             testID={TESTIDS.homeReturnLastGameButton}
           >
@@ -482,7 +489,7 @@ export const HomeScreen: React.FC = () => {
             </View>
             <Text style={styles.actionCardTitle}>最近房间</Text>
             <Text style={styles.actionCardSubtitle}>
-              {recentRoomCodes.length > 0 ? `${recentRoomCodes.length} 个房间` : '无记录'}
+              {recentRooms.length > 0 ? `${recentRooms.length} 个房间` : '无记录'}
             </Text>
           </PressableScale>
         </View>
@@ -555,12 +562,15 @@ export const HomeScreen: React.FC = () => {
       />
 
       {/* Recent Rooms Modal */}
-      <RecentRoomsModal
-        visible={showRecentRooms}
-        roomCodes={recentRoomCodes}
-        onClose={handleCloseRecentRooms}
-        onJoin={handleJoinFromRecent}
-      />
+      {user !== null && (
+        <RecentRoomsModal
+          visible={showRecentRooms}
+          ownerUserId={user.id}
+          rooms={recentRooms}
+          onClose={handleCloseRecentRooms}
+          onJoin={handleJoinFromRecent}
+        />
+      )}
 
       {/* What's New announcement modal */}
       <AnnouncementModal

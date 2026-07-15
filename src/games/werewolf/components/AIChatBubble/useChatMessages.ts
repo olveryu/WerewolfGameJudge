@@ -14,26 +14,29 @@ import { Keyboard } from 'react-native';
 import { NETWORK_ERROR } from '@/config/errorMessages';
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import {
+  type AIChatStorageOwner,
+  clearAIChatMessages,
+  readAIChatMessages,
+  writeAIChatMessages,
+} from '@/games/werewolf/services/aiChatLocalStore';
+import {
   type ChatMessage,
   isAIChatReady,
   streamChatMessage,
 } from '@/games/werewolf/services/AIChatService';
 import { getWerewolfUserSeat } from '@/games/werewolf/state/getWerewolfUserSeat';
-import { storage } from '@/lib/storage';
+import type { DisplayMessage } from '@/games/werewolf/state/WerewolfAIChatState';
 import { showDestructiveAlert, showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
 import { getUserFacingMessage, isNetworkError } from '@/utils/errorUtils';
 import { triggerHaptic } from '@/utils/haptics';
 import { chatLog } from '@/utils/logger';
 
-import type { DisplayMessage } from './AIChatBubble.styles';
 import { buildPlayerContext } from './playerContext';
 
 // ── Constants ────────────────────────────────────────────
 
-const STORAGE_KEY_MESSAGES = '@ai_chat_messages';
 const COOLDOWN_SECONDS = 5;
-const MAX_PERSISTED_MESSAGES = 50;
 const MAX_CONTEXT_MESSAGES = 9;
 
 /** Typewriter: minimum ms between flushing buffered tokens to UI */
@@ -68,8 +71,9 @@ interface WerewolfRoomContextSource {
 export function useChatMessages(
   source: WerewolfRoomContextSource,
   isOpen: boolean,
+  owner: AIChatStorageOwner,
 ): UseChatMessagesReturn {
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>(() => readAIChatMessages(owner));
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -86,22 +90,16 @@ export function useChatMessages(
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  // ── Load saved messages ────────────────────────────
-  useEffect(() => {
-    const saved = storage.getString(STORAGE_KEY_MESSAGES);
-    if (saved) setMessages(JSON.parse(saved) as DisplayMessage[]);
-  }, []);
-
   // ── Persist messages (debounced 500ms) ─────────────────────
   useEffect(() => {
     if (messages.length > 0) {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(() => {
-        storage.set(STORAGE_KEY_MESSAGES, JSON.stringify(messages.slice(-MAX_PERSISTED_MESSAGES)));
+        writeAIChatMessages(owner, messages);
         saveTimerRef.current = null;
       }, 500);
     }
-  }, [messages]);
+  }, [messages, owner]);
 
   // ── Abort on close / unmount ───────────────────────
   useEffect(() => {
@@ -124,11 +122,12 @@ export function useChatMessages(
         typewriterTimerRef.current = null;
       }
       if (saveTimerRef.current) {
+        writeAIChatMessages(owner, messagesRef.current);
         clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
       }
     };
-  }, []);
+  }, [owner]);
 
   // ── Cooldown timer ─────────────────────────────────
   useEffect(() => {
@@ -144,6 +143,17 @@ export function useChatMessages(
     async (text: string, displayText?: string, maxTokens?: number, skipHistory?: boolean) => {
       if (!text || loadingRef.current) return;
       if (cooldownRef.current > 0) return;
+      const room = source.getSnapshot();
+      if (
+        room.phase !== 'ready' ||
+        room.identity.userId !== owner.userId ||
+        room.identity.room.roomId !== owner.roomId
+      ) {
+        throw new Error('[FAIL-FAST] AI chat owner does not match the active room session');
+      }
+      const gameState = room.snapshot.state;
+      const mySeat = getWerewolfUserSeat(gameState, owner.userId);
+      const gameContext = buildPlayerContext(gameState, mySeat);
       if (!isAIChatReady()) {
         showErrorAlert('AI 助手', 'AI 助手暂不可用');
         return;
@@ -186,12 +196,6 @@ export function useChatMessages(
       setMessages((prev) => [...prev, assistantMessage]);
 
       try {
-        const room = source.getSnapshot();
-        const gameState = room.phase === 'ready' ? room.snapshot.state : null;
-        const identity = room.phase === 'idle' ? null : room.identity;
-        const mySeat = getWerewolfUserSeat(gameState, identity?.userId ?? null);
-        const gameContext = buildPlayerContext(gameState, mySeat);
-
         const contextMessages: ChatMessage[] = skipHistory
           ? []
           : prevMessages
@@ -321,7 +325,7 @@ export function useChatMessages(
         setIsStreaming(false);
       }
     },
-    [source],
+    [owner, source],
   );
 
   // ── Public actions ─────────────────────────────────
@@ -351,11 +355,15 @@ export function useChatMessages(
       '确定要清除所有聊天记录吗？此操作不可恢复。',
       '清除',
       () => {
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
         setMessages([]);
-        storage.remove(STORAGE_KEY_MESSAGES);
+        clearAIChatMessages(owner);
       },
     );
-  }, []);
+  }, [owner]);
 
   return {
     messages,

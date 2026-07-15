@@ -128,7 +128,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     isNominateMode,
     isDisabled,
     isLoading,
-    isCreating,
+    isSubmitting,
     selection,
     totalCount,
     variantOverrides,
@@ -312,7 +312,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
             void handleCreateRoom();
           }}
           disabled={isDisabled}
-          loading={isCreating}
+          loading={isSubmitting}
         >
           {isNominateMode ? '提交建议' : isEditMode ? '保存配置' : '创建房间'}
         </Button>

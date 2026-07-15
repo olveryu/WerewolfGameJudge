@@ -4,8 +4,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
+import type { RoomRecord } from '@/features/room/model/RoomDirectory';
 import type { RootStackParamList } from '@/navigation/types';
-import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 
 export type RoomEntryReason = 'created' | null;
 
