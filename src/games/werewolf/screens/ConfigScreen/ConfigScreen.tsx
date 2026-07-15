@@ -18,10 +18,10 @@ import { Button } from '@/components/Button';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { useServices } from '@/contexts/ServiceContext';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
-import { type RootStackParamList } from '@/navigation/types';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -81,11 +81,23 @@ const rulesEntryStyles = StyleSheet.create({
 // Main Component
 // ============================================
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
-type ConfigRouteProp = RouteProp<RootStackParamList, 'Config'>;
+type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Config'>;
+type ConfigRouteProp = RouteProp<WerewolfConfigStackParamList, 'Config'>;
+
+interface ConfigScreenProps {
+  readonly client: WerewolfGameClient;
+  readonly onExitFlow: () => void;
+  readonly onReturnToRoom: (roomCode: string) => void;
+  readonly onRoomCreated: (roomCode: string) => void;
+}
 
 /** Role configuration screen. */
-export const ConfigScreen: React.FC<{ readonly client: WerewolfGameClient }> = ({ client }) => {
+export const ConfigScreen: React.FC<ConfigScreenProps> = ({
+  client,
+  onExitFlow,
+  onReturnToRoom,
+  onRoomCreated,
+}) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createConfigScreenStyles(colors), []);
 
@@ -107,6 +119,9 @@ export const ConfigScreen: React.FC<{ readonly client: WerewolfGameClient }> = (
     facade: client,
     settingsService,
     roomDirectory,
+    onExitFlow,
+    onReturnToRoom,
+    onRoomCreated,
   });
 
   const {

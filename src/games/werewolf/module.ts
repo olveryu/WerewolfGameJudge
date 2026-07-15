@@ -5,13 +5,15 @@ import {
   type WerewolfPublicCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import { type ComponentType, createElement } from 'react';
+import { createElement } from 'react';
 
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import type { GameSessionFactory } from '@/features/room/session/GameSessionFactory';
 import { WerewolfAudioPlayer } from '@/games/werewolf/audio/WerewolfAudioPlayer';
 import { WerewolfAccountStatsSection } from '@/games/werewolf/components/WerewolfAccountStatsSection';
 import { WerewolfAppOverlay } from '@/games/werewolf/components/WerewolfAppOverlay';
+import { werewolfHomeContribution } from '@/games/werewolf/home';
+import { WerewolfConfigFlowScreen } from '@/games/werewolf/navigation/WerewolfConfigFlowScreen';
 import { werewolfProductUi } from '@/games/werewolf/productUi';
 import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';
 import {
@@ -19,25 +21,10 @@ import {
   type WerewolfUserEvent,
 } from '@/games/werewolf/realtime/werewolfUserEventCodec';
 import { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';
-import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { WerewolfGameFacade } from '@/games/werewolf/runtime/WerewolfGameFacade';
-import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
-import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
 import { EncyclopediaScreen } from '@/games/werewolf/screens/EncyclopediaScreen/EncyclopediaScreen';
-import { GameRulesScreen } from '@/games/werewolf/screens/GameRulesScreen/GameRulesScreen';
 import { NotepadScreen } from '@/games/werewolf/screens/NotepadScreen/NotepadScreen';
 import type { AudioService } from '@/services/infra/AudioService';
-
-export interface WerewolfUiModuleExtension {
-  readonly client: WerewolfGameClient;
-  readonly screens: {
-    readonly boardPicker: ComponentType;
-    readonly config: ComponentType;
-    readonly encyclopedia: ComponentType;
-    readonly rules: ComponentType;
-    readonly notepad: ComponentType;
-  };
-}
 
 interface CreateWerewolfUiModuleDeps {
   readonly sessionFactory: GameSessionFactory;
@@ -64,8 +51,8 @@ export function createWerewolfUiModule({
     return createElement(WerewolfAppOverlay, { client });
   }
 
-  function BoundWerewolfConfigScreen() {
-    return createElement(ConfigScreen, { client });
+  function BoundWerewolfConfigFlowScreen() {
+    return createElement(WerewolfConfigFlowScreen, { client });
   }
 
   function BoundWerewolfNotepadScreen() {
@@ -75,6 +62,12 @@ export function createWerewolfUiModule({
   return {
     gameType: 'werewolf' as const,
     client,
+    home: werewolfHomeContribution,
+    navigation: {
+      configScreen: BoundWerewolfConfigFlowScreen,
+      guideScreen: EncyclopediaScreen,
+      notepadScreen: BoundWerewolfNotepadScreen,
+    },
     roomScreen: BoundWerewolfRoomScreen,
     roomAccount,
     productUi: werewolfProductUi,
@@ -85,12 +78,5 @@ export function createWerewolfUiModule({
     },
     accountStatsSection: WerewolfAccountStatsSection,
     appOverlay: BoundWerewolfAppOverlay,
-    screens: {
-      boardPicker: BoardPickerScreen,
-      config: BoundWerewolfConfigScreen,
-      encyclopedia: EncyclopediaScreen,
-      rules: GameRulesScreen,
-      notepad: BoundWerewolfNotepadScreen,
-    },
   };
 }

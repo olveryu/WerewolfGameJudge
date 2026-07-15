@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import { TESTIDS } from '../../src/testids';
+import { startRoomCreation } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
 
 /**
@@ -36,7 +37,7 @@ export class HomePage {
 
   async expectNavigationTilesVisible() {
     await expect(this.page.getByText('进入房间')).toBeVisible({ timeout: 10000 });
-    await expect(this.page.getByText('创建房间')).toBeVisible();
+    await expect(this.createRoomButton).toBeVisible();
     await expect(this.page.getByText('最近房间')).toBeVisible();
     await expect(this.settingsButton).toBeVisible();
   }
@@ -46,7 +47,7 @@ export class HomePage {
   // ---------------------------------------------------------------------------
 
   async clickCreateRoom() {
-    await this.page.getByText('创建房间').click();
+    await startRoomCreation(this.page, 'werewolf');
   }
 
   async clickJoinRoom() {

@@ -1,7 +1,7 @@
 /**
  * AppNavigator - Root navigation stack for the app
  *
- * Registers all screens (Home / Config / Room / Settings) and configures the navigation header.
+ * Registers product screens and game-neutral host routes selected by canonical game type.
  * URL ↔ navigation state two-way sync via `linking` config (restores page on Web refresh).
  * Covers navigator definition, screen registration, header style config, and linking route mapping.
  * No business logic; does not call services directly.
@@ -16,14 +16,18 @@ import {
   createNativeStackNavigator,
   type NativeStackScreenProps,
 } from '@react-navigation/native-stack';
+import { parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
+import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback } from 'react';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { SITE_URL } from '@/config/api';
+import { parseRouteParams } from '@/features/navigation/model/routeParams';
 import { RoomResolverScreen } from '@/features/room/screens/RoomResolverScreen';
-import { getClientGameModule } from '@/games/catalog';
-import { useClientGameCatalog, useClientGameModule } from '@/games/ClientGameCatalogContext';
+import { useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModule } from '@/games/model/ClientGameCatalog';
+import { getGameConfigRoomCode } from '@/games/navigation';
 import { reactNavigationIntegration } from '@/lib/sentryIntegrations';
 import { AdminScreen } from '@/screens/AdminScreen/AdminScreen';
 import { AppearanceScreen } from '@/screens/AppearanceScreen/AppearanceScreen';
@@ -40,6 +44,7 @@ import { UnlocksScreen } from '@/screens/UnlocksScreen/UnlocksScreen';
 import { colors } from '@/theme';
 import { log } from '@/utils/logger';
 
+import { GameConfigHostRoute, GameGuideHostRoute, GameNotepadHostRoute } from './GameHostRoutes';
 import { navigationRef } from './navigationRef';
 import { type RootStackParamList } from './types';
 
@@ -53,7 +58,7 @@ const navLog = log.extend('AppNavigator');
  * | Screen   | URL                            |
  * |----------|--------------------------------|
  * | Home     | `/`                            |
- * | Config   | `/config`                      |
+ * | Config   | `/game/:gameType/config/:mode` |
  * | Room     | `/room/:roomCode`             |
  * | Settings | `/settings`                    |
  *
@@ -72,22 +77,16 @@ const RoomResolverRoute: React.FC<NativeStackScreenProps<RootStackParamList, 'Ro
   return <RoomResolverScreen {...props} getGameModule={resolveGameModule} />;
 };
 
-function createWerewolfScreenRoute(
-  screenName: keyof ReturnType<typeof useClientGameModule<'werewolf'>>['screens'],
-): React.ComponentType {
-  const Route: React.FC = () => {
-    const Screen = useClientGameModule('werewolf').screens[screenName];
-    return <Screen />;
-  };
-  Route.displayName = `Werewolf${screenName}Route`;
-  return Route;
+function getOptionalRoomCode(params: unknown): string | null {
+  if (params === undefined) return null;
+  const roomCode = parseRouteParams(params, 'Navigation').roomCode;
+  return roomCode === undefined ? null : parseRoomCode(roomCode);
 }
 
-const WerewolfBoardPickerRoute = createWerewolfScreenRoute('boardPicker');
-const WerewolfConfigRoute = createWerewolfScreenRoute('config');
-const WerewolfEncyclopediaRoute = createWerewolfScreenRoute('encyclopedia');
-const WerewolfRulesRoute = createWerewolfScreenRoute('rules');
-const WerewolfNotepadRoute = createWerewolfScreenRoute('notepad');
+function getParentRoomCode(routeName: string, params: unknown): string | null {
+  if (routeName === 'GameConfig') return getGameConfigRoomCode(params);
+  return getOptionalRoomCode(params);
+}
 
 /** @internal Exported for contract testing only. */
 export const linking: LinkingOptions<RootStackParamList> = {
@@ -95,12 +94,31 @@ export const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Home: '',
-      BoardPicker: 'board-picker',
-      Config: 'config',
+      GameConfig: {
+        path: 'game/:gameType/config/:mode/:roomCode?',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
+      GameGuide: {
+        path: 'game/:gameType/guide/:roomCode?',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
+      GameNotepad: {
+        path: 'game/:gameType/notepad/:roomCode',
+        parse: {
+          gameType: parseGameType,
+          roomCode: parseRoomCode,
+        },
+      },
       Room: {
         path: 'room/:roomCode',
         parse: {
-          roomCode: (roomCode: string) => roomCode,
+          roomCode: parseRoomCode,
         },
         stringify: {
           roomCode: (roomCode: string) => roomCode,
@@ -108,8 +126,6 @@ export const linking: LinkingOptions<RootStackParamList> = {
       },
       Settings: 'settings/:roomCode?',
       MusicSettings: 'settings/music/:roomCode?',
-      Encyclopedia: 'encyclopedia/:roomCode?',
-      Notepad: 'notepad/:roomCode',
       Appearance: 'appearance',
       Unlocks: 'unlocks/:userId?',
       Gacha: 'gacha',
@@ -120,7 +136,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
     },
   },
   // Rebuild navigation stack when deep-linking into screens that expect a parent.
-  // e.g. /notepad/ABC123 → [Home, Room({roomCode: 'ABC123'}), Notepad({roomCode: 'ABC123'})]
+  // e.g. a game notepad URL becomes [Home, Room({roomCode}), GameNotepad({roomCode})].
   getStateFromPath(path, options) {
     const state = defaultGetStateFromPath(path, options);
     if (!state) return state;
@@ -133,10 +149,16 @@ export const linking: LinkingOptions<RootStackParamList> = {
     if (topRoute && topRoute.name !== 'Home' && routes.length === 1) {
       // Screens that can be opened from Room: inject Home + Room when roomCode is present.
       // Without roomCode, they were opened from Home — just inject Home as base.
-      const ROOM_CHILD_SCREENS = new Set(['Notepad', 'MusicSettings', 'Settings', 'Encyclopedia']);
+      const ROOM_CHILD_SCREENS = new Set([
+        'GameConfig',
+        'GameGuide',
+        'GameNotepad',
+        'MusicSettings',
+        'Settings',
+      ]);
       if (ROOM_CHILD_SCREENS.has(topRoute.name)) {
-        const roomCode = (topRoute.params as { roomCode?: string })?.roomCode;
-        if (roomCode) {
+        const roomCode = getParentRoomCode(topRoute.name, topRoute.params);
+        if (roomCode !== null) {
           return {
             ...state,
             routes: [
@@ -204,30 +226,26 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
         }}
         screenLayout={({ children }) => <ErrorBoundary>{children}</ErrorBoundary>}
       >
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: '桌游电子裁判助手' }} />
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: '狼人面杀电子裁判助手' }}
+          name="GameConfig"
+          component={GameConfigHostRoute}
+          options={{ title: '游戏配置', animation: 'slide_from_bottom' }}
+          getId={({ params }) =>
+            params.mode === 'create'
+              ? undefined
+              : `${params.gameType}-${params.mode}-${params.roomCode}`
+          }
         />
         <Stack.Screen
-          name="BoardPicker"
-          component={WerewolfBoardPickerRoute}
-          options={{ title: '选择板子' }}
+          name="GameGuide"
+          component={GameGuideHostRoute}
+          options={{ title: '游戏图鉴', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
-          name="Config"
-          component={WerewolfConfigRoute}
-          options={{ title: '创建房间', animation: 'slide_from_bottom' }}
-          getId={({ params }) => {
-            if (params?.nominateMode) return 'nominate';
-            if (params?.existingRoomCode) return `edit-${params.existingRoomCode}`;
-            return undefined;
-          }}
-        />
-        <Stack.Screen
-          name="GameRules"
-          component={WerewolfRulesRoute}
-          options={{ title: '游戏规则' }}
+          name="GameNotepad"
+          component={GameNotepadHostRoute}
+          options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen name="Room" component={RoomResolverRoute} options={{ title: '房间' }} />
         <Stack.Screen
@@ -239,16 +257,6 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({ onReady }) => {
           name="MusicSettings"
           component={MusicSettingsScreen}
           options={{ title: '音乐设置' }}
-        />
-        <Stack.Screen
-          name="Encyclopedia"
-          component={WerewolfEncyclopediaRoute}
-          options={{ title: '角色图鉴', animation: 'slide_from_bottom' }}
-        />
-        <Stack.Screen
-          name="Notepad"
-          component={WerewolfNotepadRoute}
-          options={{ title: '笔记', animation: 'slide_from_bottom' }}
         />
         <Stack.Screen
           name="Appearance"

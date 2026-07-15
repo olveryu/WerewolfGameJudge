@@ -24,6 +24,8 @@ export const TESTIDS = {
   homeEnterRoomButton: 'home-enter-room-button',
   homeCreateRoomButton: 'home-create-room-button',
   homeReturnLastGameButton: 'home-return-last-game-button',
+  gameModePickerModal: 'game-mode-picker-modal',
+  gameModePickerOption: (gameType: string) => `game-mode-picker-option-${gameType}`,
 
   // User bar / login (HomeScreen)
   homeUserName: 'home-user-name',
@@ -113,7 +115,7 @@ export const TESTIDS = {
   roleRevealTapReveal: (effect: string) => `${effect}-tap-reveal`,
 
   // EncyclopediaScreen
-  homeEncyclopediaButton: 'home-encyclopedia-button',
+  homeGuideButton: 'home-guide-button',
 
   // Feedback (AnnouncementModal)
   feedbackInput: 'feedback-input',

@@ -2,7 +2,8 @@
 
 import { CloudflareGameSessionFactory } from '@/app/CloudflareGameSessionFactory';
 import type { ServiceContextValue } from '@/contexts/ServiceContext';
-import { type ClientGameCatalog, createClientGameCatalog } from '@/games/catalog';
+import { createClientGameCatalog } from '@/games/catalog';
+import type { ClientGameCatalog } from '@/games/model/ClientGameCatalog';
 import { CFAuthService } from '@/services/cloudflare/CFAuthService';
 import { CFRoomDirectoryService } from '@/services/cloudflare/CFRoomDirectoryService';
 import { CFStorageService } from '@/services/cloudflare/CFStorageService';

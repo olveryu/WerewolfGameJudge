@@ -183,7 +183,11 @@ describe('useRoomHostDialogs', () => {
         result.current.handleSettingsPress();
       });
 
-      expect(mockNavigate).toHaveBeenCalledWith('Config', { existingRoomCode: '5678' });
+      expect(mockNavigate).toHaveBeenCalledWith('GameConfig', {
+        gameType: 'werewolf',
+        mode: 'edit',
+        roomCode: '5678',
+      });
     });
   });
 

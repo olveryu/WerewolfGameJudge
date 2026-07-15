@@ -21,11 +21,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 
 import { useAuthContext } from '@/contexts/AuthContext';
+import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
 import { addRecentRoom } from '@/lib/recentRooms';
-import type { RootStackParamList } from '@/navigation/types';
 import type { SettingsService } from '@/services/feature/SettingsService';
 import type { IRoomDirectoryService } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
@@ -47,7 +48,7 @@ import {
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type ConfigNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Config'>;
+type ConfigNavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Config'>;
 
 interface UseConfigScreenStateParams {
   existingRoomCode: string | undefined;
@@ -58,6 +59,9 @@ interface UseConfigScreenStateParams {
   facade: WerewolfGameClient;
   settingsService: SettingsService;
   roomDirectory: IRoomDirectoryService;
+  onExitFlow: () => void;
+  onReturnToRoom: (roomCode: string) => void;
+  onRoomCreated: (roomCode: string) => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +77,9 @@ export function useConfigScreenState({
   facade,
   settingsService,
   roomDirectory,
+  onExitFlow,
+  onReturnToRoom,
+  onRoomCreated,
 }: UseConfigScreenStateParams) {
   const { user } = useAuthContext();
   const { roomSession } = facade;
@@ -203,21 +210,19 @@ export function useConfigScreenState({
     const canNominate =
       gameState.status === GameStatus.Unseated || gameState.status === GameStatus.Seated;
     if (!canNominate) {
-      navigation.popTo('Room', {
-        roomCode: nominateMode.roomCode,
-      });
+      onReturnToRoom(nominateMode.roomCode);
     }
-  }, [gameState, gameState?.status, nominateMode, navigation]);
+  }, [gameState, nominateMode, onReturnToRoom]);
 
   // ── Callback handlers ────────────────────────────────────────────────────
 
   const handleGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
+    if (hasPreviousRouteInCurrentNavigator(navigation)) {
       navigation.goBack();
-    } else {
-      navigation.navigate('Home');
+      return;
     }
-  }, [navigation]);
+    onExitFlow();
+  }, [navigation, onExitFlow]);
 
   const handleTemplatePillPress = useCallback(() => {
     navigation.navigate('BoardPicker', {
@@ -242,7 +247,7 @@ export function useConfigScreenState({
 
   /** Navigate to GameRulesScreen */
   const handleOpenGameRules = useCallback(() => {
-    navigation.navigate('GameRules', {
+    navigation.navigate('Rules', {
       rules,
       ...(existingRoomCode ? { existingRoomCode } : {}),
       ...(nominateMode ? { nominateMode } : {}),
@@ -287,9 +292,7 @@ export function useConfigScreenState({
         if (result.reason === 'DEDUPLICATED') {
           toast.info('已有相同板子建议，已自动为你投票');
         }
-        navigation.popTo('Room', {
-          roomCode: nominateMode.roomCode,
-        });
+        onReturnToRoom(nominateMode.roomCode);
         return;
       }
 
@@ -306,16 +309,11 @@ export function useConfigScreenState({
           showErrorAlert('更新失败', result.reason ?? '更新房间设置失败，请重试');
           return;
         }
-        if (navigation.canGoBack()) {
-          navigation.goBack();
-        } else {
-          navigation.navigate('Home');
-        }
+        onExitFlow();
       } else {
         // Create room record in DB first — get confirmed/final roomCode
         if (user === null) {
-          navigation.navigate('Home');
-          return;
+          throw new Error('[FAIL-FAST] Werewolf room creation requires an authenticated user');
         }
         const record = await createRoom({
           expectedHostUserId: user.id,
@@ -328,10 +326,7 @@ export function useConfigScreenState({
         const roomCode = record.roomCode;
         addRecentRoom(roomCode);
         roomDirectory.acknowledgeRoomCreation(record.creationId);
-        navigation.navigate('Room', {
-          roomCode,
-          entryReason: 'created',
-        });
+        onRoomCreated(roomCode);
       }
     } catch (e) {
       handleError(e, {
@@ -345,7 +340,6 @@ export function useConfigScreenState({
     }
   }, [
     selection,
-    navigation,
     isEditMode,
     nominateMode,
     existingRoomCode,
@@ -358,6 +352,9 @@ export function useConfigScreenState({
     variantOverrides,
     rules,
     user,
+    onExitFlow,
+    onReturnToRoom,
+    onRoomCreated,
   ]);
 
   // ── Template label ───────────────────────────────────────────────────────

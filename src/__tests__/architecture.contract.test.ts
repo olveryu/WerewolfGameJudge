@@ -41,6 +41,7 @@ function getAllProductionFiles(dir: string): string[] {
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
 const screensDir = path.join(process.cwd(), 'src', 'screens');
+const homeScreenDir = path.join(screensDir, 'HomeScreen');
 const productComponentsDir = path.join(process.cwd(), 'src', 'components');
 const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
 const gamesDir = path.join(process.cwd(), 'src', 'games');
@@ -214,10 +215,80 @@ describe('Client ownership: removed generic Werewolf paths stay removed', () => 
     'src/services/feature/AIChatService.ts',
     'src/types/GameStateTypes.ts',
     'src/utils/aiChatBridge.ts',
+    'src/screens/HomeScreen/components/RandomRoleCard.tsx',
   ];
 
   it.each(removedPaths)('%s must not exist', (relativePath) => {
     expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+});
+
+describe('Client ownership: Home and root navigation stay game-neutral', () => {
+  const sharedHomeFiles = getAllProductionFiles(path.join(srcDir, 'features', 'home'));
+  const sharedNavigationFiles = getAllProductionFiles(path.join(srcDir, 'features', 'navigation'));
+  const genericHostFiles = [
+    ...getAllProductionFiles(homeScreenDir),
+    ...sharedHomeFiles,
+    ...sharedNavigationFiles,
+    path.join(srcDir, 'games', 'home.ts'),
+    path.join(srcDir, 'games', 'model', 'ClientGameCatalog.ts'),
+    path.join(srcDir, 'games', 'ClientGameCatalogContext.tsx'),
+    path.join(srcDir, 'navigation', 'AppNavigator.tsx'),
+    path.join(srcDir, 'navigation', 'GameHostRoutes.tsx'),
+    path.join(srcDir, 'navigation', 'types.ts'),
+  ];
+
+  it.each(genericHostFiles)('%s must not import a concrete game implementation', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    expect(content).not.toMatch(/@\/games\/werewolf/);
+    expect(content).not.toMatch(/@werewolf\/game-engine\/(?:games\/werewolf|models)\//);
+  });
+
+  it.each(genericHostFiles)('%s must not branch on a literal game type', (filePath) => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    expect(content).not.toMatch(/['"]werewolf['"]/);
+  });
+
+  it('keeps concrete config sub-routes out of the root stack', () => {
+    const rootTypes = fs.readFileSync(path.join(srcDir, 'navigation', 'types.ts'), 'utf-8');
+    const appNavigator = fs.readFileSync(
+      path.join(srcDir, 'navigation', 'AppNavigator.tsx'),
+      'utf-8',
+    );
+    const removedRootRoutes = ['BoardPicker', 'Config', 'GameRules', 'Encyclopedia', 'Notepad'];
+
+    for (const routeName of removedRootRoutes) {
+      expect(rootTypes).not.toMatch(new RegExp(`^\\s*${routeName}:`, 'm'));
+      expect(appNavigator).not.toContain(`name="${routeName}"`);
+    }
+  });
+
+  it('selects root game hosts from the catalog without a literal game type', () => {
+    const gameHostRoutes = fs.readFileSync(
+      path.join(srcDir, 'navigation', 'GameHostRoutes.tsx'),
+      'utf-8',
+    );
+    expect(gameHostRoutes).not.toMatch(/['"]werewolf['"]/);
+    expect(gameHostRoutes).not.toMatch(/['"]nominate['"]/);
+    expect(gameHostRoutes).not.toMatch(/useClientGameModule\s*\(\s*['"]/);
+  });
+
+  it('loads the concrete client catalog only from the application composition root', () => {
+    const consumers = srcFiles.filter((filePath) =>
+      /^\s*import\b.*from\s+['"]@\/games\/catalog['"]/m.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(consumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'src/app/createAppServices.ts',
+    ]);
+  });
+});
+
+describe('Test boundary: real navigation is opt-in', () => {
+  it('does not load the full navigation module from the global Jest mock', () => {
+    const jestSetup = fs.readFileSync(path.join(process.cwd(), 'jest.setup.ts'), 'utf-8');
+
+    expect(jestSetup).not.toMatch(/jest\.requireActual[\s\S]{0,200}@react-navigation\/native/);
   });
 });
 
@@ -270,7 +341,9 @@ describe('Client composition: one game-neutral catalog provider', () => {
   it.each(compositionRootFiles)('%s must not import a concrete game module', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
     expect(
-      content.match(/^\s*import\b.*from\s+['"]@\/games\/(?!catalog|ClientGameCatalogContext)/m),
+      content.match(
+        /^\s*import\b.*from\s+['"]@\/games\/(?!catalog|ClientGameCatalogContext|model\/)/m,
+      ),
     ).toBeNull();
   });
 

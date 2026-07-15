@@ -11,8 +11,33 @@ const mockNavigation = {
   addListener: jest.fn(() => jest.fn()),
 };
 
+const mockClientGameHome = {
+  modeOptions: [
+    {
+      gameType: 'werewolf' as const,
+      displayName: '狼人杀',
+      subtitle: '经典身份推理',
+      iconName: 'moon-outline' as const,
+    },
+  ],
+  guideOptions: [
+    {
+      gameType: 'werewolf' as const,
+      displayName: '狼人杀',
+      subtitle: '经典身份推理',
+      iconName: 'moon-outline' as const,
+    },
+  ],
+  spotlights: [],
+  announcementTabs: [],
+};
+
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
+}));
+
+jest.mock('@/games/ClientGameCatalogContext', () => ({
+  useClientGameHome: () => mockClientGameHome,
 }));
 
 // Mock useAuth hook
@@ -57,7 +82,7 @@ describe('HomeScreen', () => {
     it('should render the app title', () => {
       const { getByText } = render(<HomeScreen />);
 
-      expect(getByText('狼人面杀电子裁判助手')).toBeTruthy();
+      expect(getByText('桌游电子裁判助手')).toBeTruthy();
     });
 
     it('should render settings button in top bar', () => {
@@ -68,7 +93,7 @@ describe('HomeScreen', () => {
   });
 
   describe('Navigation', () => {
-    it('should navigate to Config screen when "创建房间" is pressed', async () => {
+    it('should select a catalog game before navigating to its config host', async () => {
       // Set up authenticated user
       jest.spyOn(require('@/contexts/AuthContext'), 'useAuthContext').mockReturnValue({
         user: { id: 'test-user', displayName: 'Test' },
@@ -78,12 +103,17 @@ describe('HomeScreen', () => {
         refreshUser: jest.fn().mockResolvedValue(undefined),
       });
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText, getByTestId } = render(<HomeScreen />);
 
       fireEvent.press(getByText('创建房间'));
+      expect(getByTestId('game-mode-picker-modal')).toBeTruthy();
+      fireEvent.press(getByTestId('game-mode-picker-option-werewolf'));
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('BoardPicker');
+        expect(mockNavigate).toHaveBeenCalledWith('GameConfig', {
+          gameType: 'werewolf',
+          mode: 'create',
+        });
       });
     });
 

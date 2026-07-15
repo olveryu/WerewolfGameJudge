@@ -1,42 +1,21 @@
-import { type GameRuleOverrides } from '@werewolf/game-engine/models/Template';
+import type {
+  GameConfigRouteParams,
+  GameGuideRouteParams,
+  GameNotepadRouteParams,
+} from '@/games/navigation';
 
 export type RootStackParamList = {
   Home: undefined;
   Admin: undefined;
-  BoardPicker:
-    | {
-        existingRoomCode?: string;
-        nominateMode?: { roomCode: string };
-      }
-    | undefined;
-  Config:
-    | {
-        // Optional: if provided, update existing room instead of creating new one
-        existingRoomCode?: string;
-        // Optional: if provided, auto-apply this preset template
-        presetName?: string;
-        // Optional: if provided, ConfigScreen is in "nominate" mode
-        // User edits roles and submits as a board nomination
-        nominateMode?: { roomCode: string };
-        // Optional: rules returned from GameRulesScreen
-        updatedRules?: GameRuleOverrides;
-      }
-    | undefined;
-  GameRules:
-    | {
-        rules?: GameRuleOverrides;
-        existingRoomCode?: string;
-        nominateMode?: { roomCode: string };
-      }
-    | undefined;
+  GameConfig: GameConfigRouteParams;
+  GameGuide: GameGuideRouteParams;
+  GameNotepad: GameNotepadRouteParams;
   Room: {
     roomCode: string;
     entryReason?: 'created';
   };
   Settings: { roomCode?: string } | undefined;
   MusicSettings: { roomCode?: string } | undefined;
-  Encyclopedia: { roomCode?: string; roleId?: string; initialTab?: 'roles' | 'boards' } | undefined;
-  Notepad: { roomCode: string };
   Appearance: undefined;
   Unlocks: { userId?: string; displayName?: string } | undefined;
   Gacha: undefined;

@@ -56,7 +56,13 @@ const CATEGORY_TABS: TemplateCategory[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Screen
 // ─────────────────────────────────────────────────────────────────────────────
-/** Board picker screen. */ export const BoardPickerScreen: React.FC = () => {
+interface BoardPickerScreenProps {
+  readonly onExitFlow: () => void;
+}
+
+/** Board picker screen. */ export const BoardPickerScreen: React.FC<BoardPickerScreenProps> = ({
+  onExitFlow,
+}) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createBoardPickerStyles(colors), []);
   const { width: screenWidth } = useWindowDimensions();
@@ -88,7 +94,7 @@ const CATEGORY_TABS: TemplateCategory[] = [
     handleToggleRole,
     handleClearFilter,
     handleToggleFactionSection,
-  } = useBoardPickerScreenState();
+  } = useBoardPickerScreenState({ onExitFlow });
 
   // ── Strategy Modal state ──
   const [strategyBoardName, setStrategyBoardName] = useState<string | null>(null);

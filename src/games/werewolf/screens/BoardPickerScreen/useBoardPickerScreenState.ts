@@ -11,19 +11,24 @@ import { PRESET_TEMPLATES, TemplateCategory } from '@werewolf/game-engine/models
 import { useCallback, useMemo, useState } from 'react';
 import { LayoutAnimation } from 'react-native';
 
+import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/navigationState';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import {
   filterTemplates,
   getDistinctiveRoles,
   groupTemplatesByCategory,
 } from '@/games/werewolf/screens/ConfigScreen/configHelpers';
-import type { RootStackParamList } from '@/navigation/types';
 import { colors } from '@/theme';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'BoardPicker'>;
-type BoardPickerRouteProp = RouteProp<RootStackParamList, 'BoardPicker'>;
+type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'BoardPicker'>;
+type BoardPickerRouteProp = RouteProp<WerewolfConfigStackParamList, 'BoardPicker'>;
+
+interface UseBoardPickerScreenStateParams {
+  readonly onExitFlow: () => void;
+}
 
 /** Board picker screen state hook. */
-export function useBoardPickerScreenState() {
+export function useBoardPickerScreenState({ onExitFlow }: UseBoardPickerScreenStateParams) {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<BoardPickerRouteProp>();
   const existingRoomCode = route.params?.existingRoomCode;
@@ -96,12 +101,12 @@ export function useBoardPickerScreenState() {
 
   // ── Handlers ──
   const handleGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
+    if (hasPreviousRouteInCurrentNavigator(navigation)) {
       navigation.goBack();
-    } else {
-      navigation.navigate('Home');
+      return;
     }
-  }, [navigation]);
+    onExitFlow();
+  }, [navigation, onExitFlow]);
 
   const handleSelect = useCallback(
     (presetName: string) => {

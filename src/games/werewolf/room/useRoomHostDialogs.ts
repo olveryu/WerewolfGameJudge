@@ -177,7 +177,11 @@ export const useRoomHostDialogs = ({
   }, [gameState.status, shareNightReviewReport, handleRestart]);
 
   const handleSettingsPress = useCallback(() => {
-    navigation.navigate('Config', { existingRoomCode: roomCode });
+    navigation.navigate('GameConfig', {
+      gameType: 'werewolf',
+      mode: 'edit',
+      roomCode,
+    });
   }, [navigation, roomCode]);
 
   return {

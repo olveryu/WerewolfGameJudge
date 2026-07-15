@@ -7,7 +7,8 @@
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { getAllRoleIds } from '@werewolf/game-engine/models/roles';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getAllRoleIds, isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
 import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
 import type React from 'react';
 import { useCallback, useState } from 'react';
@@ -34,23 +35,47 @@ const GUIDE_SEGMENTS: readonly { key: GuideTab; label: string }[] = [
   { key: 'boards', label: `板子 · ${PRESET_TEMPLATES.length}` },
 ];
 
+function parseGuideTab(value: unknown): GuideTab {
+  if (value === undefined || value === 'roles') return 'roles';
+  if (value === 'boards') return 'boards';
+  if (typeof value !== 'string') {
+    throw new Error('[FAIL-FAST] Werewolf guide tab must be a string');
+  }
+  throw new Error(`[FAIL-FAST] Unknown Werewolf guide tab: ${value}`);
+}
+
+function parseGuideRoleId(value: unknown): RoleId | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string') {
+    throw new Error('[FAIL-FAST] Werewolf guide role must be a string');
+  }
+  if (!isValidRoleId(value)) {
+    throw new Error(`[FAIL-FAST] Unknown Werewolf guide role: ${value}`);
+  }
+  return value;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 /** Role encyclopedia / board guide screen. */
 export const EncyclopediaScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
-  const initialTab = route.params?.initialTab ?? 'roles';
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameGuide'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'GameGuide'>>();
+  if (route.params.gameType !== 'werewolf') {
+    throw new Error(`[FAIL-FAST] Werewolf guide received game type ${route.params.gameType}`);
+  }
+  const initialTab = parseGuideTab(route.params.initialTab);
+  const initialRoleId = parseGuideRoleId(route.params.roleId);
   const [activeTab, setActiveTab] = useState<GuideTab>(initialTab);
 
-  const rolesState = useEncyclopediaScreenState();
+  const rolesState = useEncyclopediaScreenState(initialRoleId);
 
   const handleGoBack = useCallback(() => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Home' as never);
+      navigation.navigate('Home');
     }
   }, [navigation]);
 

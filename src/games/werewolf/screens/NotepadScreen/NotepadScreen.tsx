@@ -12,6 +12,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -40,8 +41,12 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
 }> = ({ client }) => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createNotepadScreenStyles(colors), []);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'Notepad'>>();
-  const route = useRoute<RouteProp<RootStackParamList, 'Notepad'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList, 'GameNotepad'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'GameNotepad'>>();
+  if (route.params.gameType !== 'werewolf') {
+    throw new Error(`[FAIL-FAST] Werewolf notepad received game type ${route.params.gameType}`);
+  }
+  const roomCode = parseRoomCode(route.params.roomCode);
 
   const room = useRoomSessionSnapshot(client.roomSession);
   const gameState = room.phase === 'ready' ? room.snapshot.state : null;
@@ -52,9 +57,9 @@ import { createNotepadScreenStyles } from './NotepadScreen.styles';
       navigation.goBack();
     } else {
       // Stale Tab reload: stack lost, navigate back to Room with roomCode from URL
-      navigation.navigate('Room', { roomCode: route.params.roomCode });
+      navigation.navigate('Room', { roomCode });
     }
-  }, [navigation, route.params.roomCode]);
+  }, [navigation, roomCode]);
 
   const handleAIAnalysis = useCallback(() => {
     if (!isAIChatReady()) {

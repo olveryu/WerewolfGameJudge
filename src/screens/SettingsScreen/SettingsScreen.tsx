@@ -19,8 +19,8 @@ import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useAuthContext as useAuth } from '@/contexts/AuthContext';
 import type { RoomProfilePatch } from '@/features/room/model/RoomAccountCapability';
-import { getClientGameModules } from '@/games/catalog';
 import { useActiveRoomAccount, useClientGameCatalog } from '@/games/ClientGameCatalogContext';
+import { getClientGameModules } from '@/games/model/ClientGameCatalog';
 import {
   useChangePassword,
   useSignInAnonymously,

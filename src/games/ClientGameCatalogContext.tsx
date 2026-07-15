@@ -7,7 +7,8 @@ import { createContext, use, useMemo, useSyncExternalStore } from 'react';
 import type { ActiveRoomAccountSnapshot } from '@/features/room/model/RoomAccountCapability';
 import { createActiveRoomAccountSource } from '@/games/activeRoomAccount';
 import { type ClientGameAudioPreview, getClientGameAudioPreviews } from '@/games/audioPreviews';
-import { type ClientGameCatalog, getClientGameModules } from '@/games/catalog';
+import { type ClientGameHome, createClientGameHome } from '@/games/home';
+import { type ClientGameCatalog, getClientGameModules } from '@/games/model/ClientGameCatalog';
 import { type ClientProductUi, createClientProductUi } from '@/games/productUi';
 
 const ClientGameCatalogContext = createContext<ClientGameCatalog | null>(null);
@@ -59,4 +60,9 @@ export function useClientProductUi(): ClientProductUi {
 export function useClientGameAudioPreviews(): readonly ClientGameAudioPreview[] {
   const catalog = useClientGameCatalog();
   return useMemo(() => getClientGameAudioPreviews(getClientGameModules(catalog)), [catalog]);
+}
+
+export function useClientGameHome(): ClientGameHome {
+  const catalog = useClientGameCatalog();
+  return useMemo(() => createClientGameHome(getClientGameModules(catalog)), [catalog]);
 }

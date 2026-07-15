@@ -115,7 +115,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
 
   // ─── Notepad ──────────────────────────────────────────────────────────
   const handleNotepadPress = useCallback(() => {
-    navigation.navigate('Notepad', { roomCode });
+    navigation.navigate('GameNotepad', { gameType: 'werewolf', roomCode });
   }, [navigation, roomCode]);
 
   // ─── Strategy Modal ───────────────────────────────────────────────────
@@ -137,7 +137,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   }, [navigation, roomCode]);
 
   const handleEncyclopedia = useCallback(() => {
-    navigation.navigate('Encyclopedia', { roomCode });
+    navigation.navigate('GameGuide', { gameType: 'werewolf', roomCode });
   }, [navigation, roomCode]);
 
   const handleMusicSettings = useCallback(() => {
@@ -245,8 +245,10 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
   const hasMyNomination = user?.id ? !!gameState?.boardNominations?.[user.id] : false;
 
   const handleNominate = useCallback(() => {
-    navigation.navigate('BoardPicker', {
-      nominateMode: { roomCode: roomCode },
+    navigation.navigate('GameConfig', {
+      gameType: 'werewolf',
+      mode: 'nominate',
+      roomCode,
     });
   }, [navigation, roomCode]);
 

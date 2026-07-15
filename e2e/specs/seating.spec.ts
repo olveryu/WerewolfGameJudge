@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
-import { enterRoomCodeViaNumPad } from '../helpers/home';
+import { enterRoomCodeViaNumPad, startRoomCreation } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
 import { waitForRoomScreenReady } from '../helpers/waits';
 import { BoardPickerPage } from '../pages/BoardPickerPage';
@@ -90,7 +90,7 @@ test.describe('Seating', () => {
 
     try {
       const home = page;
-      await home.getByText('创建房间').click();
+      await startRoomCreation(home, 'werewolf');
       const bp = new BoardPickerPage(page);
       await bp.waitForReady();
       await bp.selectDefaultTemplate();
@@ -132,7 +132,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp1 = new BoardPickerPage(pageA);
       await bp1.waitForReady();
       await bp1.selectDefaultTemplate();
@@ -185,7 +185,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp2 = new BoardPickerPage(pageA);
       await bp2.waitForReady();
       await bp2.selectDefaultTemplate();
@@ -242,7 +242,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp3 = new BoardPickerPage(pageA);
       await bp3.waitForReady();
       await bp3.selectDefaultTemplate();
@@ -291,7 +291,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp4 = new BoardPickerPage(pageA);
       await bp4.waitForReady();
       await bp4.selectDefaultTemplate();
@@ -349,7 +349,7 @@ test.describe('Seating', () => {
 
     try {
       // Host creates room
-      await pageA.getByText('创建房间').click();
+      await startRoomCreation(pageA, 'werewolf');
       const bp5 = new BoardPickerPage(pageA);
       await bp5.waitForReady();
       await bp5.selectDefaultTemplate();

@@ -31,10 +31,8 @@ jest.mock('@/hooks/mutations/useRoomMutations', () => ({
 }));
 
 // Mock navigation
-const mockNavigate = jest.fn<
-  void,
-  [string, { roomCode: string; isHost: boolean; template: unknown }]
->();
+const mockNavigate = jest.fn();
+const mockOnRoomCreated = jest.fn();
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
@@ -88,7 +86,14 @@ const createMockFacade = (): WerewolfGameClient =>
 
 function renderConfigScreen() {
   const mockFacade = createMockFacade();
-  return render(<ConfigScreen client={mockFacade} />);
+  return render(
+    <ConfigScreen
+      client={mockFacade}
+      onExitFlow={jest.fn()}
+      onReturnToRoom={jest.fn()}
+      onRoomCreated={mockOnRoomCreated}
+    />,
+  );
 }
 
 describe('Room creation → navigation roomCode contract', () => {
@@ -136,17 +141,13 @@ describe('Room creation → navigation roomCode contract', () => {
     fireEvent.press(createButton);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockOnRoomCreated).toHaveBeenCalledTimes(1);
     });
 
     // CRITICAL CONTRACT: The roomCode passed to navigation MUST be the one
     // returned by createRoomMutation.mutateAsync (the confirmed DB record), not a
     // locally pre-generated code.
-    const navArgs = mockNavigate.mock.calls[0];
-    if (navArgs === undefined) throw new Error('Missing room navigation call');
-    expect(navArgs[0]).toBe('Room');
-    expect(navArgs[1].roomCode).toBe('7777');
-    expect(navArgs[1]).toEqual({ roomCode: '7777', entryReason: 'created' });
+    expect(mockOnRoomCreated).toHaveBeenCalledWith('7777');
     const createRequest = mockCreateRoomMutateAsync.mock.calls[0]?.[0];
     if (createRequest === undefined) throw new Error('Missing create-room request');
     expect(createRequest.expectedHostUserId).toBe('test-uid');
@@ -167,8 +168,8 @@ describe('Room creation → navigation roomCode contract', () => {
 
     // Wait for async to settle
     await waitFor(() => {
-      // createRoomRecord returns null on error → showAlert → no navigation
-      expect(mockNavigate).not.toHaveBeenCalled();
+      // A failed create operation never crosses the flow boundary.
+      expect(mockOnRoomCreated).not.toHaveBeenCalled();
     });
   });
 
@@ -183,7 +184,7 @@ describe('Room creation → navigation roomCode contract', () => {
     fireEvent.press(createButton);
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalled();
+      expect(mockOnRoomCreated).toHaveBeenCalledWith('7777');
     });
 
     // recentRoomCodes stored must contain the confirmed DB code

@@ -232,6 +232,12 @@ packages/
 │
 src/
 ├── features/
+│   ├── home/
+│   │   └── model/
+│   │       └── GameHomeContribution.ts
+│   ├── navigation/
+│   │   └── model/
+│   │       └── GameNavigationContribution.ts
 │   ├── product/
 │   │   └── model/
 │   │       ├── GameProductUi.ts
@@ -260,19 +266,30 @@ src/
 │       │   ├── RoomSeatDataSource.ts
 │       │   └── RoomShellModel.ts
 │       ├── services/
-│       │   ├── RoomSession.ts
-│       │   └── roomCommandClient.ts
+│       ├── session/
+│       │   ├── GameSessionFactory.ts
+│       │   └── RoomSession.ts
 │       └── screens/
-│           ├── GameRoomHostScreen.tsx
-│           ├── GameConfigHostScreen.tsx
-│           ├── GameRulesHostScreen.tsx
 │           └── RoomResolverScreen.tsx
 ├── games/
+│   ├── catalog.ts
+│   ├── home.ts
+│   ├── navigation.ts
+│   ├── model/
+│   │   └── ClientGameCatalog.ts
+│   ├── ClientGameCatalogContext.tsx
 │   ├── werewolf/
 │   │   ├── assets/
 │   │   ├── audio/
 │   │   ├── components/
+│   │   ├── home/
 │   │   ├── hooks/
+│   │   ├── navigation/
+│   │   │   ├── WerewolfConfigFlowScreen.tsx
+│   │   │   ├── types.ts
+│   │   │   └── werewolfConfigFlow.ts
+│   │   ├── profile/
+│   │   ├── realtime/
 │   │   ├── room/
 │   │   │   ├── components/
 │   │   │   ├── executors/
@@ -280,12 +297,15 @@ src/
 │   │   │   ├── policy/
 │   │   │   ├── seatTap/
 │   │   │   └── WerewolfRoomScreen.tsx
+│   │   ├── runtime/
 │   │   ├── screens/
 │   │   ├── services/
 │   │   ├── state/
 │   │   ├── werewolfRoomAdapter.ts
 │   │   └── module.ts
 │   ├── fibking/
+│   │   ├── home/
+│   │   ├── navigation/
 │   │   ├── components/
 │   │   ├── hooks/
 │   │   ├── room/
@@ -294,11 +314,13 @@ src/
 │   │   ├── state/
 │   │   ├── fibRoomAdapter.ts
 │   │   └── module.ts
-│   └── catalog.ts
 ├── screens/                 # 只放非游戏页面
 ├── services/                # auth、transport、settings、stats、storage
 ├── components/              # 产品级组件，不放 room/game 业务
 └── navigation/
+    ├── AppNavigator.tsx
+    ├── GameHostRoutes.tsx
+    └── types.ts
 ```
 
 ### 7.1 所有权规则
@@ -307,6 +329,9 @@ src/
 - `games/werewolf/` 和 `games/fibking/` 可以 import `platform/`，但不能互相 import。
 - Worker game module 只 import 对应游戏的 game-engine public API。
 - `src/features/room/` 不得 import `src/games/*` 或 game-engine 的具体游戏路径。
+- `src/features/home/` 和 `src/features/navigation/` 只定义 contribution contract，不注册具体游戏。
+- `src/navigation/GameHostRoutes.tsx` 只能按 canonical `gameType` 查询 client catalog，不能出现具体游戏 ID、
+  config mode 或具体 screen import。
 - `src/games/*` 可以 compose room feature 和产品级组件。
 - growth/rewards 属于产品能力，不属于某个游戏规则。狼人杀通过自己的 Worker effect module 选择使用它们。
 - 角色翻牌动画是客户端 cosmetic。如果服务端规则不依赖它，就不应放进 generic engine protocol。狼人杀专用 reveal 组件放在 `src/games/werewolf/components/`。
@@ -1379,24 +1404,64 @@ interface RoomSeatDataSource {
 
 ### 24.1 Mode picker
 
-Home 的创建命令打开现有 centered modal。选项来自 `GAME_UI_CATALOG`，包含 icon、游戏真名和简短类别。
+Home 的创建命令打开现有 centered modal。选项来自 `ClientGameModule.home.mode`，由
+`createClientGameHome()` 穷尽聚合，包含 icon、游戏真名和简短类别。即使当前 catalog 只有一个游戏，也保留
+显式选择；Home 不用“只有一个选项”作为默认进入狼人杀的理由。
 
 Home 不再维护 `handlePickWerewolf`、`handlePickFib`。它只把所选 `gameType` 交给 generic create route。
 
+随机角色、板子发布公告等 concrete game 内容也属于 `GameHomeContribution`：
+
+```ts
+interface GameHomeContribution {
+  mode: GameModePresentation;
+  spotlight: React.ComponentType | null;
+  announcementTabs: readonly GameAnnouncementTabContribution[];
+}
+```
+
+因此 `HomeScreen` 不 import role、template、game asset 或具体 game module。公告 modal 只渲染 catalog
+提供的 tab content；tab key 使用 `<gameType>:<localId>`，重复注册立即 fail fast。
+
 ### 24.2 Generic host screens
 
-Navigation 使用稳定 host route：
+Root navigation 使用稳定、游戏中性的 host route：
 
 ```ts
 type RootStackParamList = {
-  GameConfig: { gameType: GameType; existingRoomCode?: string };
-  GameRoom: { roomCode: string; gameType: GameType; isHost: boolean };
-  GameRules: { gameType: GameType };
-  RoomResolver: { roomCode: string };
+  GameConfig: GameConfigRouteParams;
+  GameGuide: GameGuideRouteParams;
+  GameNotepad: GameNotepadRouteParams;
+  Room: { roomCode: string; entryReason?: 'created' };
 };
 ```
 
-Host screen 解析 UI module，把 typed content 放进共享 screen shell。新增游戏时不修改 `AppNavigator` 和 Home。
+`GameHostRoutes.tsx` 只解析 canonical `gameType`，再从 `ClientGameCatalog` 取
+`configScreen/guideScreen/notepadScreen`。缺失可选 screen 直接抛错，不 fallback 到狼人杀。`Room` 继续是唯一
+公开房间 URL，并由 `RoomResolverScreen` 读取权威 metadata 后选择 module。
+
+Root stack 不注册 `BoardPicker`、`Config`、`GameRules`、`Encyclopedia` 或 `Notepad` 等狼人杀页面。狼人杀的
+`BoardPicker -> Config -> Rules` 是 `WerewolfConfigFlowScreen` 内部 native stack；创建、编辑、板子提案三种
+入口先由纯 `werewolfConfigFlow.ts` 严格解析，再映射到内部初始 route。跨出 flow 的行为只有三个显式回调：
+
+- 退出配置 flow。
+- 返回权威 `Room` route。
+- 用服务端确认的 room code 进入新房。
+
+子页面的业务完成路径不通过 `as never`、root route 名或隐式 action bubbling 访问其他游戏/产品页面。新增游戏
+只注册自己的 flow contribution 和 exhaustive route extension，不修改 `AppNavigator` 或 `HomeScreen`。
+
+Canonical linking path 为：
+
+```text
+/game/:gameType/config/:mode/:roomCode?
+/game/:gameType/guide/:roomCode?
+/game/:gameType/notepad/:roomCode
+/room/:roomCode
+```
+
+`gameType` 与 room code 在外部输入边界解析；config `mode` 由对应游戏 flow 解析，避免 generic navigator
+枚举 `nominate` 等游戏专属意图。旧 `/config`、`/board-picker`、`/encyclopedia`、`/notepad/*` 不保留 alias。
 
 ### 24.3 Screen folder 一致性
 
@@ -1405,12 +1470,12 @@ Host screen 解析 UI module，把 typed content 放进共享 screen shell。新
 ```text
 games/<game>/
 ├── components/
+├── home/
+├── navigation/
 ├── screens/
-│   ├── ConfigContent.tsx
-│   ├── RoomContent.tsx
-│   └── RulesContent.tsx
+├── room/
+├── runtime/
 ├── services/
-├── <game>RoomAdapter.ts
 ├── module.ts
 └── __tests__/
 ```
@@ -1426,7 +1491,7 @@ games/<game>/
 3. 为 state、command、event、normalize、lifecycle 添加 engine test。
 4. 实现一个 Worker module，包含 create/command schema 和 effect。
 5. 加入穷尽式 Worker catalog。
-6. 实现一个 client game module、room adapter、config content、game content、rules content。
+6. 实现一个 client game module、Home contribution、game-owned config flow、room adapter 和玩法 screen。
 7. 加入穷尽式 client catalog。
 8. 添加 create、join、deep link、room shell 和主玩法测试。
 
@@ -1437,7 +1502,7 @@ games/<game>/
 - `RoomShell.tsx`
 - Shared room controllers
 - `HomeScreen.tsx`
-- Generic room/config/rules host screens
+- `AppNavigator.tsx` 与 `GameHostRoutes.tsx`
 - 已有游戏 module
 
 如果确实要改其中一个文件，必须先说明缺少的能力为什么是多个游戏真正共用的能力，不能加入按游戏名判断的条件分支。
@@ -1810,15 +1875,15 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                            | 尚未完成                 |
-| --------- | ------ | ------------------------------------------------------------------------------------------------- | ------------------------ |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                              | -                        |
-| Phase 1   | 进行中 | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets 归位 | Home/navigation 边界清零 |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                            | -                        |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event            | -                        |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                   | -                        |
-| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位           | -                        |
-| Phase 6-8 | 未开始 | -                                                                                                 | Fib engine/UI、清理      |
+| 阶段      | 状态   | 已完成                                                                                                            | 尚未完成            |
+| --------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                   |
+| Phase 1   | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                   |
+| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                   |
+| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                   |
+| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                   |
+| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                   |
+| Phase 6-8 | 未开始 | -                                                                                                                 | Fib engine/UI、清理 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2161,3 +2226,51 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   4 suites/819 tests 通过；Settings、Music Settings、AudioService 共 3 suites/30 tests 通过。
 - Phase 1 仍进行中：只剩 Home 的 random role/board announcement/建房入口和 navigation params 中的
   Werewolf 语义。下一提交完成该边界并按 Phase 1 退出条件验收，随后暂停。
+
+### 当前提交：Phase 1 Home contribution 与中性 navigation host 收口
+
+- `ClientGameModule` 新增必填 `home` 与 `navigation` contribution。`createClientGameHome()` 从 exhaustive
+  catalog 聚合模式选项、可用图鉴、spotlight 和公告 tab；空 catalog、重复 game contribution 或重复 tab key
+  立即 fail fast。测试 fixture 同样必须提供完整 contribution，不允许用 optional field 绕过 production contract。
+- Home 的创建入口始终打开 centered `GameModePickerModal`，选项只来自 catalog。Home 不再 import role、
+  template、random、Werewolf avatar 或具体 game module；狼人杀随机角色卡与板子发布历史完整归入
+  `src/games/werewolf/home/`。板子发布 metadata 与 `PRESET_TEMPLATES` 双向核对，漏项、悬空项、未知/空版本
+  都会在渲染前失败。
+- 公告 modal 只拥有产品更新日志与反馈，game tab 作为 typed content contribution 注入。原 generic
+  `RandomRoleCard`、`BOARD_VERSION_MAP`、`BOARD_VERSIONS_DESC` 和 `@werewolf_last_seen_version` 已删除；
+  announcement seen key 直接切到中性 key，不读取旧 key 或增加 migration/compatibility 分支。
+- Root stack 只注册 `GameConfig`、`GameGuide`、`GameNotepad` 和 canonical `Room`。`GameHostRoutes.tsx`
+  严格解析 `gameType` 后从 catalog 选择 screen，不 import/branch concrete game；旧 root
+  `BoardPicker/Config/GameRules/Encyclopedia/Notepad` route 与 URL 全部删除，没有 alias、forwarding screen 或
+  默认狼人杀 fallback。
+- 狼人杀 `BoardPicker -> Config -> Rules` 已成为 module-owned nested native stack。纯
+  `werewolfConfigFlow.ts` 从外部 `unknown` params 严格解析 create/edit/nominate 和 room code；创建完成、编辑
+  返回、提案返回只通过显式 flow callback 跨 root 边界。Guide 的 role/tab 与 Notepad room code 同样在
+  game-owned screen boundary fail fast，不再静默忽略 malformed deep-link params 或使用 `as never`。
+- `GameConfig` 的 runtime decoder 由 exhaustive game composition 选择 concrete parser；狼人杀 parser 校验
+  exact keys，并明确拒绝 create 携带 room code、edit/nominate 缺少 room code、未知 mode 和数组参数。
+  Canonical URL matrix 同时断言 root stack 只在 edit/nominate 时注入权威 `Room` parent。
+- Nested Config flow 的返回判断只读取当前 navigator 的 `state.index`；root history 不再被误判成 nested history。
+  真实 `NavigationContainer + root native stack + nested native stack` contract 覆盖退出到 Home、创建后进入新
+  Room、编辑后返回既有 Room 三条边界。Safe-area Jest mock 同步当前 5.7.0 Context/Provider 契约，只替代原生
+  metrics，不 mock React Navigation。
+- 全局 React Navigation Jest mock 只提供普通 screen 测试需要的 hooks/ref；真实 navigation contract 显式
+  `jest.unmock`。禁止在全局 mock 中 `requireActual` 后展开整个模块，避免每个 room UI worker 重复加载完整
+  navigator。修复后原超时的两个 board suites 连同 deep-link、nested navigation、Settings 共 5 suites/82
+  tests 在并发模式下 7.85 秒全绿，没有增加 timeout、重试或降低 worker 数。
+- `ClientGameCatalog` 中性 contract 与 exhaustive lookup 已归入 `games/model/ClientGameCatalog.ts`；
+  `games/catalog.ts` 只做 application composition，并且是客户端唯一允许 import concrete game module 的文件。
+  Context、App、Settings、Home 和 navigation host 不再因查询 catalog 而执行狼人杀 module 或创建 native stack；
+  generic catalog 也不再公开 concrete `client` extension，没有 re-export compatibility 层。
+- Home、room header/board nomination、Notepad、Encyclopedia 和 host settings 的所有 route consumer 已原子
+  切到中性 host params。Playwright 的既有建房 helper 明确执行“点击创建 -> 选择 catalog game”，没有自动关闭
+  expected modal、重试 click 或按测试环境跳过模式选择；所有原 Werewolf flow 在选择后继续走同一
+  BoardPicker/Config/Room 行为。匿名登录 helper 只使用 canonical “进入房间”auth trigger；入口缺失立即失败，
+  不再用“创建房间”兜底后暗中选择狼人杀。
+- Architecture contract 锁定 generic Home/navigation 不得 import concrete game、按 literal game type 分支或
+  恢复旧 root route/path；扫描范围包含 Home、shared feature、root navigator、catalog context 和 game home
+  composition。Home/navigation 首轮门禁 10 suites/1208 tests 通过；最终 route boundary 审计 7 suites/916
+  tests 与 root typecheck 通过；提交前以完整 `pnpm run quality` 全量通过作为最终证据。
+- Phase 1 至此满足退出条件并标记完成：platform/protocol、Worker/client catalogs、客户端目录所有权、Home 与
+  navigation 均已中性化，且没有 compatibility layer。按实施顺序暂停在 Phase 1 完成点，Phase 6
+  `fibking` vertical slice 尚未开始。

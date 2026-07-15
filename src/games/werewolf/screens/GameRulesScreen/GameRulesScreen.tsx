@@ -14,7 +14,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/Button';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { type RootStackParamList } from '@/navigation/types';
+import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import {
   borderRadius,
   colors,
@@ -32,8 +32,8 @@ import { showConfirmAlert } from '@/utils/alertPresets';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'GameRules'>;
-type ScreenRouteProp = RouteProp<RootStackParamList, 'GameRules'>;
+type NavigationProp = NativeStackNavigationProp<WerewolfConfigStackParamList, 'Rules'>;
+type ScreenRouteProp = RouteProp<WerewolfConfigStackParamList, 'Rules'>;
 
 interface RuleItemConfig {
   key: keyof GameRuleOverrides;
@@ -87,11 +87,11 @@ export const GameRulesScreen: FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ScreenRouteProp>();
   const insets = useSafeAreaInsets();
-  const initialRules = route.params?.rules;
-  const existingRoomCode = route.params?.existingRoomCode;
-  const nominateMode = route.params?.nominateMode;
+  const initialRules = route.params.rules;
+  const existingRoomCode = route.params.existingRoomCode;
+  const nominateMode = route.params.nominateMode;
 
-  const [rules, setRules] = useState<GameRuleOverrides>(initialRules ?? {});
+  const [rules, setRules] = useState<GameRuleOverrides>(initialRules);
 
   const handleGoBack = useCallback(() => {
     navigation.goBack();

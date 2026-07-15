@@ -3,18 +3,14 @@
  *
  * Faction/tag filtering, search, role detail panel, section building.
  */
-import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import {
   Faction,
   getAllRoleIds,
-  isValidRoleId,
   ROLE_SPECS,
   type RoleAbilityTag,
   type RoleId,
 } from '@werewolf/game-engine/models/roles';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-
-import type { RootStackParamList } from '@/navigation/types';
 
 import { FACTION_SECTIONS } from './constants';
 
@@ -114,9 +110,7 @@ function buildSections(
 // ── Hook ────────────────────────────────────────────────────────────────────
 
 /** Encyclopedia screen state hook. */
-export function useEncyclopediaScreenState() {
-  const navigation = useNavigation();
-  const route = useRoute<RouteProp<RootStackParamList, 'Encyclopedia'>>();
+export function useEncyclopediaScreenState(initialRoleId?: RoleId) {
   const [activeFilter, setActiveFilter] = useState<FactionFilterKey>('all');
   const [activeTag, setActiveTag] = useState<RoleAbilityTag | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -126,11 +120,8 @@ export function useEncyclopediaScreenState() {
 
   // Auto-open role detail if navigated with roleId param
   useEffect(() => {
-    const roleId = route.params?.roleId;
-    if (roleId && isValidRoleId(roleId)) {
-      setSelectedRole(roleId);
-    }
-  }, [route.params?.roleId]);
+    setSelectedRole(initialRoleId ?? null);
+  }, [initialRoleId]);
 
   const allRoleIds = useMemo(() => getAllRoleIds(), []);
 
@@ -160,14 +151,6 @@ export function useEncyclopediaScreenState() {
   const handleCloseDetail = useCallback(() => {
     setSelectedRole(null);
   }, []);
-
-  const handleGoBack = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-    } else {
-      navigation.navigate('Home' as never);
-    }
-  }, [navigation]);
 
   const handleFactionChange = useCallback((key: Exclude<FactionFilterKey, 'all'>) => {
     setActiveFilter((prev) => (prev === key ? 'all' : key));
@@ -218,7 +201,6 @@ export function useEncyclopediaScreenState() {
     // Handlers
     handleRolePress,
     handleCloseDetail,
-    handleGoBack,
     handleFactionChange,
     handleTagPress,
     toggleSearch,
