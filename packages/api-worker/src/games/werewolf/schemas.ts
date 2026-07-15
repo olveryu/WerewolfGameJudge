@@ -3,13 +3,13 @@
 import type {
   WerewolfConfig,
   WerewolfInternalCommand,
-  WerewolfProfileUpdate,
   WerewolfPublicCommand,
-  WerewolfSeatProfile,
 } from '@werewolf/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
 import { validateTemplateRoles } from '@werewolf/game-engine/models/Template';
 import { z } from 'zod';
+
+import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';
 
 const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),
@@ -20,30 +20,9 @@ const ruleOverridesSchema = z.strictObject({
   witchCanSelfHeal: z.boolean().optional(),
 });
 
-const seatProfileSchema: z.ZodType<WerewolfSeatProfile> = z.strictObject({
-  displayName: z.string().min(1),
-  avatarUrl: z.string().optional(),
-  avatarFrame: z.string().optional(),
-  seatFlair: z.string().optional(),
-  nameStyle: z.string().optional(),
-  roleRevealEffect: z.string().optional(),
-  seatAnimation: z.string().optional(),
-  level: z.number().int().nonnegative().optional(),
-});
-
-const profileUpdateSchema: z.ZodType<WerewolfProfileUpdate> = z.strictObject({
-  displayName: z.string().min(1).optional(),
-  avatarUrl: z.string().optional(),
-  avatarFrame: z.string().optional(),
-  seatFlair: z.string().optional(),
-  nameStyle: z.string().optional(),
-  roleRevealEffect: z.string().optional(),
-  seatAnimation: z.string().optional(),
-});
-
 export const werewolfCreateConfigSchema: z.ZodType<WerewolfConfig> = z
   .strictObject({
-    templateRoles: z.array(roleIdSchema),
+    templateRoles: z.array(roleIdSchema).readonly(),
     rules: ruleOverridesSchema.optional(),
   })
   .superRefine((config, context) => {
@@ -62,22 +41,7 @@ function defineWerewolfPublicCommandOptions<const TOptions extends readonly z.Zo
 }
 
 const publicCommandOptions = defineWerewolfPublicCommandOptions([
-  z.strictObject({
-    type: z.literal('room.seat.take'),
-    seat: z.number().int().nonnegative(),
-    profile: seatProfileSchema,
-  }),
-  z.strictObject({ type: z.literal('room.seat.leave') }),
-  z.strictObject({
-    type: z.literal('room.seat.kick'),
-    seat: z.number().int().nonnegative(),
-  }),
-  z.strictObject({ type: z.literal('room.seat.clear') }),
-  z.strictObject({ type: z.literal('room.seat.fillBots') }),
-  z.strictObject({
-    type: z.literal('room.profile.update'),
-    profile: profileUpdateSchema,
-  }),
+  ...ROOM_PUBLIC_COMMAND_SCHEMAS,
   z.strictObject({ type: z.literal('werewolf.roles.assign') }),
   z.strictObject({ type: z.literal('werewolf.game.restart') }),
   z.strictObject({ type: z.literal('werewolf.bots.markRolesViewed') }),
@@ -90,7 +54,7 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
       }),
       z.strictObject({
         kind: z.literal('multiTarget'),
-        targets: z.array(z.number().int().nonnegative()),
+        targets: z.array(z.number().int().nonnegative()).readonly(),
       }),
       z.strictObject({ kind: z.literal('confirm') }),
       z.strictObject({
@@ -105,17 +69,17 @@ const publicCommandOptions = defineWerewolfPublicCommandOptions([
   z.strictObject({ type: z.literal('werewolf.role.view') }),
   z.strictObject({
     type: z.literal('werewolf.config.update'),
-    templateRoles: z.array(roleIdSchema),
+    templateRoles: z.array(roleIdSchema).readonly(),
     rules: ruleOverridesSchema.optional(),
   }),
   z.strictObject({
     type: z.literal('werewolf.review.share'),
-    allowedSeats: z.array(z.number().int().nonnegative()),
+    allowedSeats: z.array(z.number().int().nonnegative()).readonly(),
   }),
   z.strictObject({
     type: z.literal('werewolf.board.nominate'),
     displayName: z.string().min(1),
-    roles: z.array(roleIdSchema),
+    roles: z.array(roleIdSchema).readonly(),
   }),
   z.strictObject({
     type: z.literal('werewolf.board.upvote'),

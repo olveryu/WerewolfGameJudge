@@ -8,7 +8,6 @@
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
-import { RECENT_ROOM_CODES_KEY } from '@/config/storageKeys';
 import { useServices } from '@/contexts/ServiceContext';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
@@ -17,17 +16,10 @@ import type { CreateRoomRequest, RoomRecord } from '@/services/types/IRoomDirect
 // Access the jest-mocked useServices to override return values per test
 const mockUseServices = useServices as jest.Mock;
 
-// Mock useCreateRoom mutation hook
-const mockCreateRoomMutateAsync = jest.fn<
-  Promise<RoomRecord & { creationId: string }>,
-  [CreateRoomRequest]
->();
-const mockAcknowledgeRoomCreation = jest.fn();
+// Mock the complete shared room-creation saga at the screen boundary.
+const mockCreateRoom = jest.fn<Promise<RoomRecord & { creationId: string }>, [CreateRoomRequest]>();
 jest.mock('@/hooks/mutations/useRoomMutations', () => ({
-  useCreateRoom: () => ({
-    mutateAsync: mockCreateRoomMutateAsync,
-    isPending: false,
-  }),
+  useCreateRoomSaga: () => ({ createRoom: mockCreateRoom }),
 }));
 
 // Mock navigation
@@ -101,7 +93,7 @@ describe('Room creation → navigation roomCode contract', () => {
     jest.clearAllMocks();
 
     // Mutation mock returns the room code allocated by the server saga.
-    mockCreateRoomMutateAsync.mockResolvedValue({
+    mockCreateRoom.mockResolvedValue({
       roomCode: '7777',
       roomId: 'room-id-7777',
       gameType: 'werewolf',
@@ -115,7 +107,6 @@ describe('Room creation → navigation roomCode contract', () => {
       authService: {
         waitForInit: jest.fn().mockResolvedValue(undefined),
       },
-      roomDirectory: { acknowledgeRoomCreation: mockAcknowledgeRoomCreation },
       settingsService: {
         load: jest.fn().mockResolvedValue(undefined),
         setBgmEnabled: jest.fn().mockResolvedValue(undefined),
@@ -148,7 +139,7 @@ describe('Room creation → navigation roomCode contract', () => {
     // returned by createRoomMutation.mutateAsync (the confirmed DB record), not a
     // locally pre-generated code.
     expect(mockOnRoomCreated).toHaveBeenCalledWith('7777');
-    const createRequest = mockCreateRoomMutateAsync.mock.calls[0]?.[0];
+    const createRequest = mockCreateRoom.mock.calls[0]?.[0];
     if (createRequest === undefined) throw new Error('Missing create-room request');
     expect(createRequest.expectedHostUserId).toBe('test-uid');
     expect(createRequest.gameType).toBe('werewolf');
@@ -159,7 +150,7 @@ describe('Room creation → navigation roomCode contract', () => {
 
   it('should NOT navigate when createRoomRecord fails', async () => {
     // Simulate DB creation failure
-    mockCreateRoomMutateAsync.mockRejectedValueOnce(new Error('服务未配置'));
+    mockCreateRoom.mockRejectedValueOnce(new Error('服务未配置'));
 
     const { getByText } = renderConfigScreen();
 
@@ -170,37 +161,6 @@ describe('Room creation → navigation roomCode contract', () => {
     await waitFor(() => {
       // A failed create operation never crosses the flow boundary.
       expect(mockOnRoomCreated).not.toHaveBeenCalled();
-    });
-  });
-
-  it('should save confirmed roomCode to MMKV storage (not a pre-generated code)', async () => {
-    const { storage } = require('@/lib/storage') as {
-      storage: { set: jest.Mock; getString: jest.Mock };
-    };
-    storage.getString.mockReturnValue(undefined);
-    const { getByText } = renderConfigScreen();
-
-    const createButton = getByText('创建房间');
-    fireEvent.press(createButton);
-
-    await waitFor(() => {
-      expect(mockOnRoomCreated).toHaveBeenCalledWith('7777');
-    });
-
-    // recentRoomCodes stored must contain the confirmed DB code
-    expect(storage.set).toHaveBeenCalledWith(
-      RECENT_ROOM_CODES_KEY,
-      expect.stringContaining('7777'),
-    );
-  });
-
-  it('acknowledges the creation intent after persisting the recent room', async () => {
-    const { getByText } = renderConfigScreen();
-
-    fireEvent.press(getByText('创建房间'));
-
-    await waitFor(() => {
-      expect(mockAcknowledgeRoomCreation).toHaveBeenCalledWith('creation-id-7777');
     });
   });
 });

@@ -1,3 +1,10 @@
+export {
+  type ActorResolution,
+  resolveHostActorId,
+  resolveSystemActorEffectId,
+  resolveUncontrolledUserActorId,
+  resolveUserActorId,
+} from './actor';
 export { defineGameEngineCatalog } from './catalog';
 export { commit, commitDomainRejection, reject } from './decision';
 export type {

@@ -18,6 +18,7 @@ export const TESTIDS = {
   // RoomScreen - Seat Grid (pressable target)
   // Purpose: avoid duplicate testID collisions when the wrapper View also has seatTile.
   seatTilePressable: (seat: number) => `seat-tile-pressable-${seat}`,
+  mySeatBadge: 'my-seat-badge',
 
   // Home / Config / Room readiness gates (stable, non-copy based)
   homeScreenRoot: 'home-screen-root',
@@ -46,12 +47,20 @@ export const TESTIDS = {
   configStepperInc: (roleId: string) => `config-stepper-inc-${roleId}`,
   configStepperCount: (roleId: string) => `config-stepper-count-${roleId}`,
   configFactionTab: (key: string) => `config-faction-tab-${key}`,
+  fibPlayerCountInput: 'fib-player-count-input',
+  fibConfigSubmitButton: 'fib-config-submit-button',
+  fibRulesScreenRoot: 'fib-rules-screen-root',
 
   roomScreenRoot: 'room-screen-root',
   roomBackButton: 'room-back-button',
   roomHeader: 'room-header',
+  roomSeatPagination: 'room-seat-pagination',
+  roomSeatPreviousPage: 'room-seat-previous-page',
+  roomSeatNextPage: 'room-seat-next-page',
+  roomSeatPageInput: 'room-seat-page-input',
   roomEncyclopediaButton: 'room-encyclopedia-button',
   roomMenuButton: 'room-menu-button',
+  roomUserSettingsButton: 'room-user-settings-button',
   roomSettingsButton: 'room-settings-button',
   roomSettingsOverlay: 'room-settings-overlay',
   prepareToFlipButton: 'prepare-to-flip-button',
@@ -75,6 +84,20 @@ export const TESTIDS = {
 
   // RoomProgressIndicator
   roomProgressIndicator: 'room-progress-indicator',
+  controlledSeatBanner: 'controlled-seat-banner',
+  controlledSeatReleaseButton: 'controlled-seat-release-button',
+  fibIdentityModal: 'fib-identity-modal',
+  fibIdentityRole: 'fib-identity-role',
+  fibIdentityWord: 'fib-identity-word',
+  fibIdentityDefinition: 'fib-identity-definition',
+  fibRulesButton: 'fib-rules-button',
+  fibStartRoundButton: 'fib-start-round-button',
+  fibCancelPreparingButton: 'fib-cancel-preparing-button',
+  fibRevealRoundButton: 'fib-reveal-round-button',
+  fibViewIdentityButton: 'fib-view-identity-button',
+  fibNextRoundButton: 'fib-next-round-button',
+  fibViewResultButton: 'fib-view-result-button',
+  fibConfigureButton: 'fib-configure-button',
 
   // AlertModal
   alertModalOverlay: 'alert-modal-overlay',

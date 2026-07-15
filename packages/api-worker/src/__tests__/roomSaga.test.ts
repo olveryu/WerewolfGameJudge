@@ -4,7 +4,7 @@ import { canonicalJson } from '@werewolf/game-engine/platform/protocol/canonical
 import { env, runInDurableObject } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { GameRoom } from '../platform/room/GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../platform/room/GameRoom';
 import {
   beginRoomDeletion,
   claimRoomCreation,

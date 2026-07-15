@@ -5,62 +5,23 @@ import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes
 import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
-import type {
-  RoomCommandDispatchOptions,
-  RoomCommandDispatchOutcome,
-} from '@/features/room/session/types';
+import {
+  dispatchRoomOperation,
+  type RoomOperationCommandContext,
+} from '@/features/room/session/roomOperationCommandClient';
 import { roomSessionLog } from '@/utils/logger';
 
-export interface RoomSeatCommandContext<TState extends BaseGameState<GameType>, TProfile> {
-  dispatch(
-    command: RoomSeatCommand<TProfile>,
-    options: RoomCommandDispatchOptions,
-  ): Promise<RoomCommandDispatchOutcome<TState>>;
-}
-
-function mapSeatCommandResult<TState extends BaseGameState<GameType>>(
-  outcome: RoomCommandDispatchOutcome<TState>,
-): RoomOperationResult {
-  if (outcome.kind === 'superseded') {
-    throw new Error(`Room seat command ${outcome.commandId} was superseded by another session`);
-  }
-  if (outcome.kind !== 'decided') {
-    return {
-      success: false,
-      failureKind: outcome.kind,
-      commandId: outcome.commandId,
-      reason: outcome.reason,
-    };
-  }
-
-  const { decision } = outcome;
-  if (decision.kind === 'rejected') {
-    return {
-      success: false,
-      failureKind: 'rejected',
-      commandId: decision.commandId,
-      reason: decision.reason,
-    };
-  }
-  if (decision.outcome.kind === 'domainRejected') {
-    return {
-      success: false,
-      failureKind: 'rejected',
-      commandId: decision.commandId,
-      reason: decision.outcome.reason,
-    };
-  }
-  return decision.outcome.reason === undefined
-    ? { success: true }
-    : { success: true, reason: decision.outcome.reason };
-}
+export type RoomSeatCommandContext<
+  TState extends BaseGameState<GameType>,
+  TProfile,
+> = RoomOperationCommandContext<TState, RoomSeatCommand<TProfile>>;
 
 async function dispatchSeatCommand<TState extends BaseGameState<GameType>, TProfile>(
   context: RoomSeatCommandContext<TState, TProfile>,
   command: RoomSeatCommand<TProfile>,
   label: string,
 ): Promise<RoomOperationResult> {
-  return mapSeatCommandResult(await context.dispatch(command, { controlledSeat: null, label }));
+  return dispatchRoomOperation(context, command, label);
 }
 
 export function takeRoomSeat<TState extends BaseGameState<GameType>, TProfile>(

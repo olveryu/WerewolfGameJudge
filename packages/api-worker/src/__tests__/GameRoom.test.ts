@@ -15,7 +15,7 @@ import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { GameRoom } from '../platform/room/GameRoom';
+import type { GameRoomRuntime as GameRoom } from '../platform/room/GameRoom';
 import { initializeRoomStorage } from '../platform/room/storageSchema';
 import type { DispatchRoomResult, InitializeRoomResult } from '../platform/room/types';
 import { enqueueUserEvent } from '../platform/userEvents/inbox';
@@ -391,11 +391,15 @@ describe('GameRoom command receipts', () => {
       expect(
         state.storage.sql
           .exec(
-            `SELECT status, effect_type
+            `SELECT status, effect_type, business_key
             FROM effect_outbox WHERE origin_command_id = 'seat-with-effect'`,
           )
           .one(),
-      ).toEqual({ status: 'pending', effect_type: 'platform.room.participantJoined' });
+      ).toEqual({
+        status: 'pending',
+        effect_type: 'platform.room.participantJoined',
+        business_key: 'user:host-1',
+      });
     });
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {

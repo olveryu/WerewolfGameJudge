@@ -78,6 +78,17 @@ export function parsePlatformRoomEffect(value: unknown): PlatformRoomEffect {
   return platformRoomEffectSchema.parse(value);
 }
 
+export function getPlatformRoomEffectBusinessKey(effect: PlatformRoomEffect): string {
+  switch (effect.type) {
+    case 'platform.room.participantJoined':
+      return `user:${effect.userId}`;
+    case 'platform.room.gameStarted':
+      return `revision:${effect.startedRevision}`;
+  }
+  const exhaustive: never = effect;
+  return exhaustive;
+}
+
 export async function handlePlatformRoomEffect(
   effectId: string,
   effect: PlatformRoomEffect,

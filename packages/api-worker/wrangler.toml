@@ -72,6 +72,7 @@ binding = "CF_VERSION_METADATA"
 [vars]
 ENVIRONMENT = "production"
 CORS_ORIGIN = "*"
+FIB_WORD_PROVIDER = "workers-ai"
 SENTRY_DSN = "https://ab73f1bb71521dace0123c021e0130e9@o4510871644209152.ingest.us.sentry.io/4511310645035008"
 
 # ── Cron Triggers ────────────────────────────────────────────────────────────
@@ -90,4 +91,4 @@ port = 8787
 
 # ── Development Overrides ────────────────────────────────────────────────────
 [env.dev]
-vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*", SENTRY_DSN = "" }
+vars = { ENVIRONMENT = "development", CORS_ORIGIN = "*", FIB_WORD_PROVIDER = "local", SENTRY_DSN = "" }

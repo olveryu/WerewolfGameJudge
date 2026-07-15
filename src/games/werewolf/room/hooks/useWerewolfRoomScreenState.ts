@@ -7,17 +7,20 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  RANDOMIZABLE_ANIMATIONS,
+  type ResolvedRoleRevealAnimation,
+} from '@werewolf/game-engine/growth/revealEffect';
 import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
 import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
-import { RANDOMIZABLE_ANIMATIONS } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 
 import type { RoomEntryController } from '@/features/room/controllers/useRoomEntryController';
+import { useRoomHostOperations } from '@/features/room/controllers/useRoomHostOperations';
 import { useRoomProfileController } from '@/features/room/controllers/useRoomProfileController';
 import { useRoomSeatController } from '@/features/room/controllers/useRoomSeatController';
 import { useRoomShareController } from '@/features/room/controllers/useRoomShareController';
@@ -35,8 +38,6 @@ import { uploadShareImage } from '@/services/feature/ShareImageService';
 import type { RoomRecord } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
-import { handleError } from '@/utils/errorPipeline';
-import { getUserFacingMessage } from '@/utils/errorUtils';
 import { roomScreenLog } from '@/utils/logger';
 import { isMiniProgram, wxPreviewImage } from '@/utils/miniProgram';
 
@@ -481,32 +482,10 @@ export function useWerewolfRoomScreenState(
     roomCode,
   });
 
-  const executeClearSeats = useCallback(() => {
-    void clearAllSeats().catch((error: unknown) => {
-      handleError(error, {
-        label: '清空座位',
-        logger: roomScreenLog,
-        alertMessage: '无法清空座位，请稍后重试。',
-      });
-    });
-  }, [clearAllSeats]);
-
-  const executeFillBots = useCallback(() => {
-    void fillWithBots()
-      .then((result) => {
-        if (!result.success) {
-          roomScreenLog.warn('fill bots rejected', { reason: result.reason });
-          showErrorAlert('填充机器人失败', getUserFacingMessage(result));
-        }
-      })
-      .catch((error: unknown) => {
-        handleError(error, {
-          label: '填充机器人',
-          logger: roomScreenLog,
-          alertMessage: '无法填充机器人，请稍后重试。',
-        });
-      });
-  }, [fillWithBots]);
+  const hostOperations = useRoomHostOperations({
+    clearSeats: clearAllSeats,
+    fillBots: fillWithBots,
+  });
 
   const hasOccupiedSeats = useMemo(
     () =>
@@ -527,8 +506,8 @@ export function useWerewolfRoomScreenState(
         requestMoveSeat: seatController.requestMoveSeat,
         requestLeaveSeat: seatController.requestLeaveSeat,
         kickSeat: profileController.kick,
-        clearSeats: executeClearSeats,
-        fillBots: executeFillBots,
+        clearSeats: hostOperations.requestClearSeats,
+        fillBots: hostOperations.requestFillBots,
         configureGame: handleSettingsPress,
         openProfile: profileController.open,
         takeOverBot,
@@ -546,8 +525,8 @@ export function useWerewolfRoomScreenState(
       seatController.requestLeaveSeat,
       profileController.kick,
       profileController.open,
-      executeClearSeats,
-      executeFillBots,
+      hostOperations.requestClearSeats,
+      hostOperations.requestFillBots,
       handleSettingsPress,
       takeOverBot,
       shareController.open,

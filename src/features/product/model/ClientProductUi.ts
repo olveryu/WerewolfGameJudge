@@ -8,8 +8,8 @@ import type {
 } from '@/features/product/model/GameProductUi';
 
 export interface ClientProductUi {
-  getAvatarDisplayName(avatarId: string): string;
-  getRevealEffectPresentation(effectId: string): RevealEffectPresentation;
+  readonly getAvatarDisplayName: (avatarId: string) => string;
+  readonly getRevealEffectPresentation: (effectId: string) => RevealEffectPresentation;
 }
 
 const AVATAR_ID_SET: ReadonlySet<string> = new Set(AVATAR_IDS);

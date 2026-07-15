@@ -24,7 +24,7 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { compareByRarity } from '@/config/rarityVisual';
-import { useClientProductUi } from '@/games/ClientGameCatalogContext';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import { useUserUnlocksQuery } from '@/hooks/queries/useUserUnlocksQuery';
 

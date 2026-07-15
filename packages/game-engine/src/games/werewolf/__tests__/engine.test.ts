@@ -3,6 +3,7 @@ import type { StateAction } from '../../../engine/reducer/types';
 import { buildInitialGameState } from '../../../engine/state/buildInitialState';
 import { GameStatus, type GameTemplate, type RoleId } from '../../../models';
 import type { CommandContext, CreateGameContext } from '../../../platform/engine';
+import { GAME_TYPES } from '../../../platform/protocol/gameTypes';
 import {
   REASON_CONTROLLED_SEAT_NOT_ALLOWED,
   REASON_CONTROLLED_SEAT_NOT_BOT,
@@ -340,7 +341,8 @@ describe('Werewolf engine definition and catalog', () => {
   } as const satisfies Record<WerewolfCommand['type'], WerewolfCommand>;
 
   it('registers exactly one concrete engine for every current game type', () => {
-    expect(GAME_ENGINE_CATALOG).toEqual({ werewolf: werewolfEngine });
+    expect(Object.keys(GAME_ENGINE_CATALOG)).toEqual([...GAME_TYPES]);
+    expect(GAME_ENGINE_CATALOG.werewolf).toBe(werewolfEngine);
   });
 
   it('exhaustively dispatches all 25 command discriminants', () => {

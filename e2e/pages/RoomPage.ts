@@ -1,6 +1,7 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
 
+import { TESTIDS } from '../../src/testids';
 import { extractRoomCode } from '../helpers/home';
 import { waitForRoomScreenReady } from '../helpers/waits';
 
@@ -13,7 +14,7 @@ import { waitForRoomScreenReady } from '../helpers/waits';
  * - Game flow triggers (prepare roles, view role, start game, restart)
  */
 export class RoomPage {
-  constructor(private readonly page: Page) {}
+  constructor(protected readonly page: Page) {}
 
   // ---------------------------------------------------------------------------
   // Selectors
@@ -58,7 +59,7 @@ export class RoomPage {
     });
     await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for seat broadcast to arrive — green seat badge confirms the seat is taken
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
       timeout: 10_000,
     });
   }
@@ -70,7 +71,7 @@ export class RoomPage {
       timeout: 5000,
     });
     await this.page.getByTestId('seat-confirm-ok').click();
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({
       timeout: 10_000,
     });
   }
@@ -87,7 +88,7 @@ export class RoomPage {
     });
     await this.page.getByTestId('seat-confirm-ok').click();
     // Wait for green seat badge to disappear, confirming stand-up broadcast arrived
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
       timeout: 5000,
     });
   }
@@ -115,7 +116,13 @@ export class RoomPage {
 
   /** Check if green seat badge (my seat) is visible anywhere. */
   async expectMyBadgeVisible() {
-    await expect(this.page.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({ timeout: 3000 });
+  }
+
+  async expectNotSeated(): Promise<void> {
+    await expect(this.page.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
+      timeout: 10_000,
+    });
   }
 
   /**

@@ -1,8 +1,16 @@
-import { type Browser, type BrowserContext, type Page, test as base } from '@playwright/test';
+import {
+  type Browser,
+  type BrowserContext,
+  expect,
+  type Page,
+  test as base,
+} from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { type DiagnosticData, setupDiagnostics } from '../helpers/diagnostics';
 import { ensureAnonLogin, registerAutoDismissers, waitForAppReady } from '../helpers/home';
 import { gotoWithRetry } from '../helpers/ui';
+import { waitForRoomScreenReady } from '../helpers/waits';
 
 /**
  * App fixture: ensures a single logged-in page ready on the home screen.
@@ -27,6 +35,12 @@ export interface MultiPlayerFixture {
   diags: DiagnosticData[];
   /** Contexts for cleanup. */
   contexts: BrowserContext[];
+}
+
+export interface ColdRoomFixture {
+  readonly page: Page;
+  readonly diag: DiagnosticData;
+  readonly context: BrowserContext;
 }
 
 export const test = base.extend<{
@@ -73,6 +87,28 @@ export async function createPlayerContexts(
   }
 
   return { pages: pages as [Page, ...Page[]], diags, contexts };
+}
+
+/** Open a room URL in a brand-new context before any Home navigation or authentication. */
+export async function createColdRoomContext(
+  browser: Browser,
+  roomCode: string,
+): Promise<ColdRoomFixture> {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const diag = setupDiagnostics(page, 'COLD-DEEP-LINK');
+  try {
+    await registerAutoDismissers(page);
+    await page.goto(`/room/${roomCode}`);
+    const anonymousLogin = page.getByTestId(TESTIDS.homeAnonLoginButton);
+    await expect(anonymousLogin).toBeVisible({ timeout: 15_000 });
+    await anonymousLogin.click();
+    await waitForRoomScreenReady(page, { role: 'joiner' });
+    return { page, diag, context };
+  } catch (error) {
+    await context.close();
+    throw error;
+  }
 }
 
 /**

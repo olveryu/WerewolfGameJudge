@@ -59,6 +59,7 @@ const RoomHeaderActionsComponent: React.FC<RoomHeaderActionsProps> = ({
           user={userAction.user}
           ticketCount={userAction.ticketCount}
           onPress={userAction.onPress}
+          testID={TESTIDS.roomUserSettingsButton}
         />
       </View>
     );
@@ -87,7 +88,11 @@ const RoomHeaderActionsComponent: React.FC<RoomHeaderActionsProps> = ({
               ))}
 
               {userAction && (
-                <TouchableOpacity style={styles.menuItem} onPress={runUserAction}>
+                <TouchableOpacity
+                  testID={TESTIDS.roomUserSettingsButton}
+                  style={styles.menuItem}
+                  onPress={runUserAction}
+                >
                   {userAction.user ? (
                     <Avatar
                       value={userAction.user.id}

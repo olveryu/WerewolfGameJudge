@@ -10,6 +10,7 @@ import {
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../env';
+import { getWorkerGameModule } from '../games/catalog';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';
 import {
@@ -21,7 +22,6 @@ import {
   resolveActiveRoom,
   type RoomDirectoryRecord,
 } from '../platform/room/roomDirectory';
-import { getWorkerGameModule } from '../platform/room/roomRepository';
 import { resumeRoomCreation, resumeRoomDeletion } from '../platform/room/roomSaga';
 import { getGameRoomStub } from '../platform/room/roomStub';
 import {

@@ -18,6 +18,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
+import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import { FactionRoleList } from '@/games/werewolf/components/FactionRoleList';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
@@ -51,7 +52,7 @@ interface BoardNominationModalProps {
   /** Withdraw own nomination */
   onWithdraw: () => void;
   /** Clear all seats (called before adopt when player count changes) */
-  clearAllSeats: () => Promise<void>;
+  clearAllSeats: () => Promise<RoomOperationResult>;
   /** Close the modal */
   onClose: () => void;
 }
@@ -219,7 +220,11 @@ export const BoardNominationModal = memo(function BoardNominationModal({
     async (roles: readonly RoleId[]) => {
       const newCount = getPlayerCount(roles);
       if (newCount !== currentPlayerCount) {
-        await clearAllSeats();
+        const clearResult = await clearAllSeats();
+        if (!clearResult.success) {
+          showErrorAlert('采纳失败', clearResult.reason);
+          return;
+        }
       }
       const template = createCustomTemplate([...roles]);
       const result = await client.updateTemplate(template);

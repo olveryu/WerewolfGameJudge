@@ -9,6 +9,19 @@ import { isValidSchemaId } from '../../../models/roles/spec/schemas';
 import { Team } from '../../../models/roles/spec/types';
 import type { GameRuleOverrides } from '../../../models/Template';
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
+import {
+  failDecode as fail,
+  finishObject,
+  parseArray,
+  parseBoolean,
+  parseInteger,
+  parseNonEmptyString,
+  parseNullable,
+  parseObject,
+  parseOptional,
+  parseSeat,
+  parseString,
+} from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
 import type {
   AudioEffect,
@@ -21,85 +34,10 @@ import type {
 import type { CurrentNightResults } from '../../../resolvers/types';
 import { WEREWOLF_STATE_VERSION } from './version';
 
-type Decoder<T> = (value: unknown, path: string) => T;
-
-function fail(path: string, expectation: string): never {
-  throw new Error(`${path} must be ${expectation}`);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parseObject(value: unknown, path: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    return fail(path, 'an object');
-  }
-  return value;
-}
-
-function finishObject<T extends object>(raw: Record<string, unknown>, parsed: T, path: string): T {
-  const knownKeys = new Set(Object.keys(parsed));
-  for (const key of Object.keys(raw)) {
-    if (!knownKeys.has(key)) {
-      throw new Error(`${path} contains unknown field: ${key}`);
-    }
-  }
-  return parsed;
-}
-
-function parseString(value: unknown, path: string): string {
-  if (typeof value !== 'string') return fail(path, 'a string');
-  return value;
-}
-
-function parseNonEmptyString(value: unknown, path: string): string {
-  const parsed = parseString(value, path);
-  if (parsed.length === 0) return fail(path, 'a non-empty string');
-  return parsed;
-}
-
-function parseBoolean(value: unknown, path: string): boolean {
-  if (typeof value !== 'boolean') return fail(path, 'a boolean');
-  return value;
-}
-
-function parseNumber(value: unknown, path: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return fail(path, 'a finite number');
-  }
-  return value;
-}
-
-function parseInteger(value: unknown, path: string): number {
-  const parsed = parseNumber(value, path);
-  if (!Number.isSafeInteger(parsed)) return fail(path, 'a safe integer');
-  return parsed;
-}
-
-function parseSeat(value: unknown, path: string): number {
-  const parsed = parseInteger(value, path);
-  if (parsed < 0) return fail(path, 'a non-negative seat number');
-  return parsed;
-}
-
 function parseSeatOrNoTarget(value: unknown, path: string): number {
   const parsed = parseInteger(value, path);
   if (parsed < -1) return fail(path, 'a seat number or -1');
   return parsed;
-}
-
-function parseOptional<T>(value: unknown, path: string, decoder: Decoder<T>): T | undefined {
-  return value === undefined ? undefined : decoder(value, path);
-}
-
-function parseNullable<T>(value: unknown, path: string, decoder: Decoder<T>): T | null {
-  return value === null ? null : decoder(value, path);
-}
-
-function parseArray<T>(value: unknown, path: string, decoder: Decoder<T>): T[] {
-  if (!Array.isArray(value)) return fail(path, 'an array');
-  return value.map((item, index) => decoder(item, `${path}[${index}]`));
 }
 
 function parseSeatPair(value: unknown, path: string): readonly [number, number] {
@@ -218,11 +156,7 @@ function parseRosterEntry(value: unknown, path: string): RosterEntry {
       seatFlair: parseOptional(raw.seatFlair, `${path}.seatFlair`, parseString),
       seatAnimation: parseOptional(raw.seatAnimation, `${path}.seatAnimation`, parseString),
       nameStyle: parseOptional(raw.nameStyle, `${path}.nameStyle`, parseString),
-      roleRevealEffect: parseOptional(
-        raw.roleRevealEffect,
-        `${path}.roleRevealEffect`,
-        parseString,
-      ),
+      revealEffect: parseOptional(raw.revealEffect, `${path}.revealEffect`, parseString),
       level: parseOptional(raw.level, `${path}.level`, parseInteger),
     },
     path,

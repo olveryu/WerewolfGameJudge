@@ -14,7 +14,7 @@ import { HomePage } from '../pages/HomePage';
 test.describe('Config Screen', () => {
   test('can access config screen via board picker', async ({ app }) => {
     const home = new HomePage(app.page);
-    await home.clickCreateRoom();
+    await home.clickCreateRoom('werewolf');
 
     const boardPicker = new BoardPickerPage(app.page);
     await boardPicker.waitForReady();
@@ -27,7 +27,7 @@ test.describe('Config Screen', () => {
 
   test('can select different templates via board picker', async ({ app }) => {
     const home = new HomePage(app.page);
-    await home.clickCreateRoom();
+    await home.clickCreateRoom('werewolf');
 
     const boardPicker = new BoardPickerPage(app.page);
     await boardPicker.waitForReady();
@@ -45,7 +45,7 @@ test.describe('Config Screen', () => {
 
   test('can change template after initial selection', async ({ app }) => {
     const home = new HomePage(app.page);
-    await home.clickCreateRoom();
+    await home.clickCreateRoom('werewolf');
 
     const boardPicker = new BoardPickerPage(app.page);
     await boardPicker.waitForReady();

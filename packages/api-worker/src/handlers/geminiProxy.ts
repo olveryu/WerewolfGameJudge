@@ -3,7 +3,7 @@
  *
  * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.1-flash-lite.
  * Fallback: geo block (400) / quota exhausted (429) / overload (503 after 1 retry)
- *       -> fall back to Workers AI (@cf/google/gemma-4-26b-a4b-it).
+ *       -> fall back to Workers AI Chat Completions (@cf/google/gemma-4-26b-a4b-it).
  * Workers AI has no geo restriction; 10K Neurons/day budget mainly serves users in restricted regions.
  *
  * @throws 401 — requireAuth failed
@@ -27,117 +27,8 @@ const MAX_TOKENS_CAP = 10240;
 const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const GEMINI_TIMEOUT_MS = 15_000;
 
-/**
- * Convert Workers AI SSE stream (`{"response":"..."}` format) to OpenAI-compatible format
- * (`{"choices":[{"delta":{"content":"..."}}]}`); the client parser only recognizes the latter.
- */
-function toOpenAIStream(workersAIStream: ReadableStream): ReadableStream {
-  const decoder = new TextDecoder();
-  const encoder = new TextEncoder();
-  let buffer = '';
-
-  return workersAIStream.pipeThrough(
-    new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        buffer += decoder.decode(chunk, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data: ')) continue;
-          const data = trimmed.slice(6);
-
-          if (data === '[DONE]') {
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-            continue;
-          }
-
-          try {
-            const parsed: unknown = JSON.parse(data);
-            // Workers AI: {"response":"..."} -> OpenAI: {"choices":[{"delta":{"content":"..."}}]}
-            if (typeof parsed === 'object' && parsed !== null && 'response' in parsed) {
-              const openAIChunk = {
-                choices: [{ delta: { content: (parsed as { response: string }).response } }],
-              };
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(openAIChunk)}\n\n`));
-            } else {
-              // Already OpenAI format or unknown — pass through
-              controller.enqueue(encoder.encode(`${trimmed}\n\n`));
-            }
-          } catch {
-            controller.enqueue(encoder.encode(`${trimmed}\n\n`));
-          }
-        }
-      },
-      flush(controller) {
-        if (buffer.trim()) {
-          controller.enqueue(encoder.encode(`${buffer}\n\n`));
-        }
-      },
-    }),
-  );
-}
-
 /** Gemini AI proxy routes. */
 export const geminiRoutes = new Hono<AppEnv>();
-
-type Message = { role: string; content: string };
-
-/**
- * Transform OpenAI-style messages for Workers AI (Gemma) compatibility:
- * 1. Merge "system" messages into the next "user" message (Gemma has no system role)
- * 2. Enforce strict user→assistant→user alternation by merging consecutive same-role messages
- * 3. Ensure conversation starts with "user" and ends with "user"
- */
-function toWorkersAIMessages(messages: Message[]): Message[] {
-  // Step 1: Merge system into next user message
-  const merged: Message[] = [];
-  let pendingSystem = '';
-  for (const msg of messages) {
-    if (msg.role === 'system') {
-      pendingSystem += (pendingSystem ? '\n' : '') + msg.content;
-    } else {
-      if (pendingSystem && msg.role === 'user') {
-        merged.push({ role: 'user', content: `${pendingSystem}\n\n${msg.content}` });
-        pendingSystem = '';
-      } else {
-        if (pendingSystem) {
-          // system before assistant — push as user message
-          merged.push({ role: 'user', content: pendingSystem });
-          pendingSystem = '';
-        }
-        merged.push({ role: msg.role, content: msg.content });
-      }
-    }
-  }
-  if (pendingSystem) {
-    merged.push({ role: 'user', content: pendingSystem });
-  }
-
-  // Step 2: Enforce alternation — merge consecutive same-role messages
-  const alternated: Message[] = [];
-  for (const msg of merged) {
-    const last = alternated[alternated.length - 1];
-    if (last && last.role === msg.role) {
-      last.content += '\n' + msg.content;
-    } else {
-      alternated.push({ ...msg });
-    }
-  }
-
-  // Step 3: Ensure starts with user
-  if (alternated.length > 0 && alternated[0].role !== 'user') {
-    alternated.unshift({ role: 'user', content: '(continue)' });
-  }
-
-  // Step 4: Ensure ends with user (last message should be the question)
-  if (alternated.length > 0 && alternated[alternated.length - 1].role !== 'user') {
-    alternated.push({ role: 'user', content: '(continue)' });
-  }
-
-  return alternated;
-}
 
 geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   const env = c.env;
@@ -227,27 +118,30 @@ geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
   }
 
   // ── Fallback: Workers AI ───────────────────────────────────────────────
-  // Gemma models don't support "system" role and require strict user/assistant alternation.
-  // Merge system prompts into the first user message, then enforce alternation.
-  const workersMessages = toWorkersAIMessages(messages);
-
   try {
-    const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
-      messages: workersMessages,
-      stream,
-      temperature,
-      max_tokens: maxTokens,
-    });
-
-    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
     if (stream) {
-      return new Response(toOpenAIStream(aiResponse as unknown as ReadableStream), {
+      const aiStream = await env.AI.run(WORKERS_AI_MODEL, {
+        messages,
+        stream: true,
+        temperature,
+        max_tokens: maxTokens,
+      });
+      writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
+      return new Response(aiStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
         },
       });
     }
+
+    const aiResponse = await env.AI.run(WORKERS_AI_MODEL, {
+      messages,
+      stream: false,
+      temperature,
+      max_tokens: maxTokens,
+    });
+    writeUsage(WORKERS_AI_MODEL, 'workers-ai', 'ok');
     return Response.json(aiResponse);
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);

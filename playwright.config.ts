@@ -69,6 +69,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: /fibking-responsive\.spec/,
     },
 
     /* Narrow viewport (320×640) — catches responsive overflow on small Android phones */
@@ -78,8 +79,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         viewport: { width: 320, height: 640 },
       },
-      // Only run home + config specs — enough to catch layout overflow
-      testMatch: /home\.spec|config\.spec/,
+      testMatch: /home\.spec|config\.spec|fibking-responsive\.spec/,
     },
   ],
 

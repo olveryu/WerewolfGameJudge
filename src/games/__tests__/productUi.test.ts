@@ -1,5 +1,5 @@
+import { createClientProductUi } from '@/features/product/model/ClientProductUi';
 import type { GameProductUiContribution } from '@/features/product/model/GameProductUi';
-import { createClientProductUi } from '@/games/productUi';
 
 const Preview = () => null;
 

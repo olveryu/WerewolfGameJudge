@@ -53,7 +53,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     avatarFrame,
     seatFlair,
     nameStyle,
-    roleRevealEffect,
+    revealEffect,
     seatAnimation,
     level,
   } = intent.payload;
@@ -109,7 +109,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
               avatarFrame,
               seatFlair,
               nameStyle,
-              roleRevealEffect,
+              revealEffect,
               seatAnimation,
               level,
             },
@@ -220,7 +220,7 @@ export function handleUpdatePlayerProfile(
     avatarFrame,
     seatFlair,
     nameStyle,
-    roleRevealEffect,
+    revealEffect,
     seatAnimation,
   } = intent.payload;
   const { state, mySeat } = context;
@@ -246,7 +246,7 @@ export function handleUpdatePlayerProfile(
       avatarFrame,
       seatFlair,
       nameStyle,
-      roleRevealEffect,
+      revealEffect,
       seatAnimation,
     },
   };

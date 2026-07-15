@@ -280,11 +280,16 @@ describe('Werewolf game-ended effect handler', () => {
     let dispatchOutcome: 'transportRejected' | 'domainRejected' | 'success' = 'transportRejected';
     const snapshot = buildSnapshot();
 
-    const context: WorkerEffectContext<WerewolfInternalCommand> = {
+    const context: WorkerEffectContext<GameState, WerewolfInternalCommand> = {
       bindings: env,
       effectId: 'effect-handler-retry',
-      roomCode: 'EFFECT-ROOM',
-      revision: 12,
+      state: snapshot.state,
+      roomIdentity: {
+        roomId: 'effect-room-id',
+        roomCode: 'EFFECT-ROOM',
+        creationId: 'effect-room-creation',
+      },
+      createdRevision: 12,
       dispatchInternal: async (commandId, command): Promise<RoomCommandResult<GameState>> => {
         dispatchCalls.push({ commandId, command });
         if (dispatchOutcome === 'transportRejected') {

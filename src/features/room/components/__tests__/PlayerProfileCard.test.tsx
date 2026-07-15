@@ -1,6 +1,8 @@
 import { render } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
+import { ClientProductUiProvider } from '@/features/product/context/ClientProductUiContext';
+import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import type { UserPublicProfile } from '@/services/feature/StatsService';
 
@@ -10,6 +12,21 @@ const mockUseUserProfileQuery = jest.fn<unknown, unknown[]>();
 jest.mock('@/hooks/queries/useUserProfileQuery', () => ({
   useUserProfileQuery: (...args: unknown[]) => mockUseUserProfileQuery(...args),
 }));
+
+const productUi: ClientProductUi = {
+  getAvatarDisplayName: (avatarId) => avatarId,
+  getRevealEffectPresentation: () => {
+    throw new Error('[FAIL-FAST] Profile test does not render reveal-effect presentation');
+  },
+};
+
+function renderProfile(model: RoomProfileCardModel) {
+  return render(
+    <ClientProductUiProvider value={productUi}>
+      <PlayerProfileCard model={model} />
+    </ClientProductUiProvider>,
+  );
+}
 
 function createModel(overrides: Partial<RoomProfileCardModel> = {}): RoomProfileCardModel {
   return {
@@ -23,7 +40,6 @@ function createModel(overrides: Partial<RoomProfileCardModel> = {}): RoomProfile
     onClose: jest.fn(),
     onKick: jest.fn(),
     onLeaveSeat: null,
-    resolveBuiltinAvatarName: (avatarId) => avatarId,
     gameDetails: null,
     ...overrides,
   };
@@ -40,7 +56,7 @@ beforeEach(() => {
 
 describe('PlayerProfileCard', () => {
   it('uses explicit occupant kind for a bot and does not issue a profile query', () => {
-    const view = render(<PlayerProfileCard model={createModel()} />);
+    const view = renderProfile(createModel());
 
     expect(view.getByText('机器人3号')).toBeTruthy();
     expect(view.getByText('机器人')).toBeTruthy();
@@ -51,17 +67,15 @@ describe('PlayerProfileCard', () => {
   });
 
   it('does not infer bot identity from a userId prefix', () => {
-    render(
-      <PlayerProfileCard
-        model={createModel({
-          target: {
-            seat: 2,
-            userId: 'bot-looking-human-id',
-            occupantKind: 'human',
-            rosterName: '真人玩家',
-          },
-        })}
-      />,
+    renderProfile(
+      createModel({
+        target: {
+          seat: 2,
+          userId: 'bot-looking-human-id',
+          occupantKind: 'human',
+          rosterName: '真人玩家',
+        },
+      }),
     );
 
     expect(mockUseUserProfileQuery).toHaveBeenCalledWith(
@@ -71,11 +85,11 @@ describe('PlayerProfileCard', () => {
   });
 
   it('shows kick only when the executable capability is present', () => {
-    const withKick = render(<PlayerProfileCard model={createModel()} />);
+    const withKick = renderProfile(createModel());
     expect(withKick.getByText('移出座位')).toBeTruthy();
     withKick.unmount();
 
-    const withoutKick = render(<PlayerProfileCard model={createModel({ onKick: null })} />);
+    const withoutKick = renderProfile(createModel({ onKick: null }));
     expect(withoutKick.queryByText('移出座位')).toBeNull();
   });
 
@@ -94,21 +108,19 @@ describe('PlayerProfileCard', () => {
       isError: false,
     });
 
-    const view = render(
-      <PlayerProfileCard
-        model={createModel({
-          target: {
-            seat: 1,
-            userId: 'user-abc',
-            occupantKind: 'human',
-            rosterName: 'Alice',
-          },
-          gameDetails: {
-            title: '阵营分布',
-            content: <Text>狼人杀阵营详情</Text>,
-          },
-        })}
-      />,
+    const view = renderProfile(
+      createModel({
+        target: {
+          seat: 1,
+          userId: 'user-abc',
+          occupantKind: 'human',
+          rosterName: 'Alice',
+        },
+        gameDetails: {
+          title: '阵营分布',
+          content: <Text>狼人杀阵营详情</Text>,
+        },
+      }),
     );
 
     expect(view.getByText('Alice')).toBeTruthy();

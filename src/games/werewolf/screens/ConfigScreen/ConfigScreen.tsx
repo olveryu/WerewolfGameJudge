@@ -108,7 +108,7 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
   const nominateMode = route.params?.nominateMode;
   const updatedRules = route.params?.updatedRules;
 
-  const { settingsService, roomDirectory } = useServices();
+  const { settingsService } = useServices();
 
   const state = useConfigScreenState({
     existingRoomCode,
@@ -118,7 +118,6 @@ export const ConfigScreen: React.FC<ConfigScreenProps> = ({
     navigation,
     facade: client,
     settingsService,
-    roomDirectory,
     onExitFlow,
     onReturnToRoom,
     onRoomCreated,

@@ -14,6 +14,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
+
 // ─── Shared file walker ─────────────────────────────────────────────────────
 
 function getAllProductionFiles(dir: string): string[] {
@@ -38,6 +40,12 @@ function getAllProductionFiles(dir: string): string[] {
   return results;
 }
 
+function getImportSpecifiers(content: string): string[] {
+  return [...content.matchAll(/^\s*import\b[\s\S]*?from\s+['"]([^'"]+)['"];?/gm)].map(
+    (match) => match[1]!,
+  );
+}
+
 // ─── Paths ──────────────────────────────────────────────────────────────────
 
 const screensDir = path.join(process.cwd(), 'src', 'screens');
@@ -45,18 +53,20 @@ const homeScreenDir = path.join(screensDir, 'HomeScreen');
 const productComponentsDir = path.join(process.cwd(), 'src', 'components');
 const sharedRoomDir = path.join(process.cwd(), 'src', 'features', 'room');
 const gamesDir = path.join(process.cwd(), 'src', 'games');
-const werewolfClientDir = path.join(gamesDir, 'werewolf');
 const servicesDir = path.join(process.cwd(), 'src', 'services');
 const srcDir = path.join(process.cwd(), 'src');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
+const engineGamesDir = path.join(gameEngineDir, 'games');
+const workerPlatformDir = path.join(process.cwd(), 'packages', 'api-worker', 'src', 'platform');
+const workerGamesDir = path.join(process.cwd(), 'packages', 'api-worker', 'src', 'games');
 
 const screensFiles = getAllProductionFiles(screensDir);
 const productComponentFiles = getAllProductionFiles(productComponentsDir);
 const sharedRoomFiles = getAllProductionFiles(sharedRoomDir);
-const werewolfClientFiles = getAllProductionFiles(werewolfClientDir);
 const servicesFiles = getAllProductionFiles(servicesDir);
 const srcFiles = getAllProductionFiles(srcDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
+const workerPlatformFiles = getAllProductionFiles(workerPlatformDir);
 
 // ─── Rule 1: services/ must NOT import UI ownership roots ───────────────────
 
@@ -99,6 +109,20 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
       expect(match).toBeNull();
     }
   });
+});
+
+describe('Layer boundary: Worker platform → game composition (forbidden)', () => {
+  it('should find Worker platform files to check', () => {
+    expect(workerPlatformFiles.length).toBeGreaterThan(0);
+  });
+
+  it.each(workerPlatformFiles)(
+    '%s must receive game modules through platform ports',
+    (filePath) => {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      expect(content).not.toMatch(/^\s*import\b.*from\s+['"].*\/games\//m);
+    },
+  );
 });
 
 describe('Layer boundary: shared room → game-specific code (forbidden)', () => {
@@ -149,14 +173,31 @@ describe('Layer boundary: product components → game-specific code (forbidden)'
 });
 
 describe('Layer boundary: game modules are isolated', () => {
-  it('should find Werewolf client files to check', () => {
-    expect(werewolfClientFiles.length).toBeGreaterThan(0);
+  const gameRoots: readonly [string, string][] = [
+    ['client', gamesDir],
+    ['engine', engineGamesDir],
+    ['worker', workerGamesDir],
+  ];
+
+  it.each(gameRoots)('%s defines one concrete directory per canonical game', (_layer, root) => {
+    for (const gameType of GAME_TYPES) {
+      expect(getAllProductionFiles(path.join(root, gameType)).length).toBeGreaterThan(0);
+    }
   });
 
-  it.each(werewolfClientFiles)('%s must not import another game module', (filePath) => {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    expect(content.match(/^\s*import\b.*from\s+['"]@\/games\/(?!werewolf(?:\/|['"]))/m)).toBeNull();
-  });
+  for (const [layer, root] of gameRoots) {
+    for (const gameType of GAME_TYPES) {
+      const files = getAllProductionFiles(path.join(root, gameType));
+      it.each(files)(`${layer} ${gameType}: %s must not import another game`, (filePath) => {
+        const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
+        const otherGameTypes = GAME_TYPES.filter((candidate) => candidate !== gameType);
+        const offenders = imports.filter((specifier) =>
+          otherGameTypes.some((otherGameType) => specifier.split('/').includes(otherGameType)),
+        );
+        expect(offenders).toEqual([]);
+      });
+    }
+  }
 });
 
 describe('Client ownership: removed generic Werewolf paths stay removed', () => {
@@ -246,7 +287,9 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
 
   it.each(genericHostFiles)('%s must not branch on a literal game type', (filePath) => {
     const content = fs.readFileSync(filePath, 'utf-8');
-    expect(content).not.toMatch(/['"]werewolf['"]/);
+    for (const gameType of GAME_TYPES) {
+      expect(content).not.toMatch(new RegExp(`['"]${gameType}['"]`));
+    }
   });
 
   it('keeps concrete config sub-routes out of the root stack', () => {
@@ -268,7 +311,9 @@ describe('Client ownership: Home and root navigation stay game-neutral', () => {
       path.join(srcDir, 'navigation', 'GameHostRoutes.tsx'),
       'utf-8',
     );
-    expect(gameHostRoutes).not.toMatch(/['"]werewolf['"]/);
+    for (const gameType of GAME_TYPES) {
+      expect(gameHostRoutes).not.toMatch(new RegExp(`['"]${gameType}['"]`));
+    }
     expect(gameHostRoutes).not.toMatch(/['"]nominate['"]/);
     expect(gameHostRoutes).not.toMatch(/useClientGameModule\s*\(\s*['"]/);
   });

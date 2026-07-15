@@ -5,27 +5,11 @@ import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
+import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
 
-export interface WerewolfSeatProfile {
-  readonly displayName: string;
-  readonly avatarUrl?: string;
-  readonly avatarFrame?: string;
-  readonly seatFlair?: string;
-  readonly nameStyle?: string;
-  readonly roleRevealEffect?: string;
-  readonly seatAnimation?: string;
-  readonly level?: number;
-}
+export type WerewolfSeatProfile = RoomSeatProfile;
 
-export interface WerewolfProfileUpdate {
-  readonly displayName?: string;
-  readonly avatarUrl?: string;
-  readonly avatarFrame?: string;
-  readonly seatFlair?: string;
-  readonly nameStyle?: string;
-  readonly roleRevealEffect?: string;
-  readonly seatAnimation?: string;
-}
+export type WerewolfProfileUpdate = RoomProfileUpdate;
 
 export type WerewolfActionInput =
   | { readonly kind: 'target'; readonly target: number | null }

@@ -105,6 +105,9 @@ const RoomProbe: React.FC = () => {
       >
         <Text>Edit</Text>
       </Pressable>
+      <Pressable testID="leave-room" onPress={() => navigation.goBack()}>
+        <Text>Leave</Text>
+      </Pressable>
     </>
   );
 };
@@ -150,6 +153,8 @@ describe('WerewolfConfigFlowScreen root boundary', () => {
     act(() => mockConfigProps.current?.onRoomCreated('7777'));
 
     await waitFor(() => expect(screen.getByTestId('room-probe')).toHaveTextContent('7777:created'));
+    fireEvent.press(screen.getByTestId('leave-room'));
+    await waitFor(() => expect(screen.getByTestId('home-probe')).toBeVisible());
   });
 
   it('returns an edit flow to its existing root room', async () => {

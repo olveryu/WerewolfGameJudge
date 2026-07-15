@@ -34,6 +34,7 @@ import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { RoomProfileCardModel } from '@/features/room/model/RoomProfile';
 import { userUnlocksOptions } from '@/hooks/queries/queryOptions';
 import { useUserProfileQuery } from '@/hooks/queries/useUserProfileQuery';
@@ -290,6 +291,7 @@ EquipmentShowcase.displayName = 'EquipmentShowcase';
 // ---------------------------------------------------------------------------
 const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const productUi = useClientProductUi();
   const { target } = model;
   const isBot = target.occupantKind === 'bot';
 
@@ -482,7 +484,7 @@ const PlayerProfileCardComponent: React.FC<PlayerProfileCardProps> = ({ model })
             {/* ── Equipment showcase ── */}
             <EquipmentShowcase
               profile={profile}
-              resolveBuiltinAvatarName={model.resolveBuiltinAvatarName}
+              resolveBuiltinAvatarName={productUi.getAvatarDisplayName}
             />
 
             {/* ── Self leave seat button ── */}

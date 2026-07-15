@@ -23,7 +23,8 @@ import { EffectOutbox } from './effectOutbox';
 import type { IGameRoomRPC } from './IGameRoomRPC';
 import { handlePlatformRoomEffect, parsePlatformRoomEffect } from './platformEffects';
 import { assertRoomEffectDirectory } from './roomDirectory';
-import { getWorkerGameModule, RoomRepository } from './roomRepository';
+import { RoomRepository } from './roomRepository';
+import type { RuntimeWorkerGameModule, WorkerGameModuleResolver } from './runtimeGameModule';
 import { initializeRoomStorage } from './storageSchema';
 import type {
   AuthorizeRoomDeletionCommand,
@@ -59,14 +60,18 @@ function assertEffectType(effect: PendingOutboxEffect): void {
   }
 }
 
-class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
+export abstract class GameRoomRuntime extends DurableObject<Env> implements IGameRoomRPC {
   readonly #repository: RoomRepository;
   readonly #outbox: EffectOutbox;
+  readonly #gameModuleResolver: WorkerGameModuleResolver;
   #isStorageDeleted = false;
+
+  protected abstract resolveGameModule(gameType: GameType): RuntimeWorkerGameModule;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-    this.#repository = new RoomRepository(ctx.storage);
+    this.#gameModuleResolver = (gameType) => this.resolveGameModule(gameType);
+    this.#repository = new RoomRepository(ctx.storage, this.#gameModuleResolver);
     this.#outbox = new EffectOutbox(ctx.storage);
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
     void ctx.blockConcurrencyWhile(async () => {
@@ -96,6 +101,7 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     }
     const pipeline = await dispatchRoomCommand(
       this.#repository,
+      this.#gameModuleResolver,
       {
         roomCode: command.roomCode,
         commandId: command.commandId,
@@ -236,15 +242,17 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
       return;
     }
 
-    const module = getWorkerGameModule(room.gameType);
+    const module = this.#gameModuleResolver(room.gameType);
     await module.handleEffect(effect.payload, {
       bindings: this.env,
       effectId: effect.id,
-      roomCode: room.roomCode,
-      revision: effect.createdRevision,
+      state: room.state,
+      roomIdentity: directoryIdentity,
+      createdRevision: effect.createdRevision,
       dispatchInternal: async (commandId, command) => {
         const dispatched = await dispatchRoomCommand(
           this.#repository,
+          this.#gameModuleResolver,
           {
             roomCode: room.roomCode,
             commandId,
@@ -438,14 +446,3 @@ class GameRoomBase extends DurableObject<Env> implements IGameRoomRPC {
     socket.close();
   }
 }
-
-export const GameRoom = Sentry.instrumentDurableObjectWithSentry(
-  (env: Env) => ({
-    dsn: env.SENTRY_DSN,
-    tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
-    environment: env.ENVIRONMENT,
-  }),
-  GameRoomBase,
-);
-
-export type GameRoom = InstanceType<typeof GameRoom>;

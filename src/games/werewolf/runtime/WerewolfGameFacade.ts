@@ -16,17 +16,12 @@
  * - Does not own room entry, identity, connection, seat commands, or user-event delivery
  */
 
-import type {
-  WerewolfActionInput,
-  WerewolfProfileUpdate,
-  WerewolfPublicCommand,
-} from '@werewolf/game-engine';
+import type { WerewolfActionInput, WerewolfPublicCommand } from '@werewolf/game-engine';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
-import { resolveRandomAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';
@@ -185,19 +180,6 @@ export class WerewolfGameFacade implements WerewolfGameClient {
   }
 
   /**
-   * Sync player profile to GameState (any seated player)
-   *
-   * Called after user changes name/avatar in SettingsScreen, broadcasts new profile to all clients.
-   * If not seated, server returns NOT_SEATED (silently ignore).
-   */
-  async updatePlayerProfile(profile: WerewolfProfileUpdate): Promise<ActionResult> {
-    return gameActions.updatePlayerProfile(this.#getActionsContext(), {
-      ...profile,
-      roleRevealEffect: this.#resolveEffect(profile.roleRevealEffect),
-    });
-  }
-
-  /**
    * Host: share "detailed info" to specified seats
    *
    * In ended phase, Host selects seats allowed to view night action details.
@@ -340,19 +322,6 @@ export class WerewolfGameFacade implements WerewolfGameClient {
     const session = this.roomSession.getSnapshot();
     if (session.phase !== 'ready') return null;
     return { state: session.snapshot.state, connection: session.connection };
-  }
-
-  /**
-   * Resolve 'random' equippedEffect to a concrete animation ID.
-   * Uses roomCode + userId as seed for deterministic per-room selection.
-   */
-  #resolveEffect(effect: string | undefined): string | undefined {
-    if (effect !== 'random') return effect;
-    const session = this.roomSession.getSnapshot();
-    if (session.phase !== 'ready') {
-      throw new Error('[FAIL-FAST] Cannot resolve a room effect outside an active session');
-    }
-    return resolveRandomAnimation(session.identity.room.roomCode + session.identity.userId);
   }
 
   #isActiveUserHost(): boolean {

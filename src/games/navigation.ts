@@ -3,6 +3,12 @@
 import { type GameType, parseGameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
 import { parseRouteParams } from '@/features/navigation/model/routeParams';
+import { parseFibConfigRouteParams } from '@/games/fibking/navigation/fibConfigRoute';
+import type {
+  FibConfigRouteParams,
+  FibGuideRouteExtension,
+  FibNotepadRouteParams,
+} from '@/games/fibking/navigation/types';
 import type {
   WerewolfConfigRouteParams,
   WerewolfGuideRouteExtension,
@@ -15,6 +21,11 @@ interface ClientGameRouteExtensionsByType {
     readonly config: WerewolfConfigRouteParams;
     readonly guide: WerewolfGuideRouteExtension;
     readonly notepad: WerewolfNotepadRouteParams;
+  };
+  readonly fibking: {
+    readonly config: FibConfigRouteParams;
+    readonly guide: FibGuideRouteExtension;
+    readonly notepad: FibNotepadRouteParams;
   };
 }
 
@@ -39,6 +50,7 @@ type GameConfigRouteParser = (params: unknown) => GameConfigRouteParams;
 
 const GAME_CONFIG_ROUTE_PARSERS = {
   werewolf: parseWerewolfConfigRouteParams,
+  fibking: parseFibConfigRouteParams,
 } satisfies Readonly<Record<GameType, GameConfigRouteParser>>;
 
 function parseGameConfigRouteParams(params: unknown): GameConfigRouteParams {

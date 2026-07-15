@@ -27,7 +27,7 @@ function createFullState(): GameState {
         seatFlair: 'flair',
         seatAnimation: 'animation',
         nameStyle: 'style',
-        roleRevealEffect: 'effect',
+        revealEffect: 'effect',
         level: 3,
       },
     },

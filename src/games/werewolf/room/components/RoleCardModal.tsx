@@ -11,6 +11,7 @@
  * no StyleSheet.create (styles passed from parent or via shared components).
  */
 
+import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/growth/revealEffect';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import {
   Faction,
@@ -18,7 +19,6 @@ import {
   getRoleDisplayName,
   getRoleSpec,
 } from '@werewolf/game-engine/models/roles';
-import type { ResolvedRoleRevealAnimation } from '@werewolf/game-engine/types/RoleRevealAnimation';
 import { Asset } from 'expo-asset';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 

@@ -1,5 +1,7 @@
 import { type Page, type TestInfo } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
+
 /**
  * NightFlowPage Page Object
  *
@@ -127,14 +129,14 @@ async function parseWolfVoteCount(page: Page): Promise<{ current: number; total:
 }
 
 async function getMySeat(page: Page): Promise<number | null> {
-  const myBadge = page.locator('[data-testid="my-seat-badge"]');
+  const myBadge = page.getByTestId(TESTIDS.mySeatBadge);
   if (!(await myBadge.isVisible().catch(() => false))) return null;
 
   for (let i = 0; i < 12; i++) {
     const tile = page.locator(`[data-testid="seat-tile-${i}"]`);
     if (
       await tile
-        .locator('[data-testid="my-seat-badge"]')
+        .getByTestId(TESTIDS.mySeatBadge)
         .isVisible()
         .catch(() => false)
     )

@@ -1,6 +1,5 @@
 /** Werewolf-only statistics rendered inside the shared player profile card. */
 
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
 import type React from 'react';
 import { ActivityIndicator, StyleSheet, Text } from 'react-native';
 
@@ -16,10 +15,6 @@ export const WerewolfProfileDetails: React.FC<{ readonly userId: string }> = ({ 
   if (isError) return <Text style={styles.errorText}>阵营统计加载失败</Text>;
   return <CampDistributionBar campStats={data.campStats} compact />;
 };
-
-export function resolveWerewolfBuiltinAvatarName(avatarId: string): string {
-  return getRoleDisplayName(avatarId);
-}
 
 const styles = StyleSheet.create({
   errorText: {

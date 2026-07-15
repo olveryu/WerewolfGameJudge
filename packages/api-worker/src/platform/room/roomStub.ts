@@ -1,7 +1,7 @@
 /** Typed Durable Object stub lookup from an immutable directory instance ID. */
 
 import type { Env } from '../../env';
-import type { GameRoom } from './GameRoom';
+import type { GameRoomRuntime } from './GameRoom';
 
 type StripDisposable<T> = T extends Disposable ? Omit<T, keyof Disposable> : T;
 
@@ -11,7 +11,7 @@ type CleanRpcMethods<DO> = {
     : DO[K];
 };
 
-export type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoom>>;
+export type GameRoomStub = CleanRpcMethods<DurableObjectStub<GameRoomRuntime>>;
 
 const CONTINENT_TO_HINT: Partial<Record<string, DurableObjectLocationHint>> = {
   AS: 'apac',

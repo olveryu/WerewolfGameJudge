@@ -59,7 +59,7 @@ export interface RoomSeatBoardModel {
   readonly source: RoomSeatDataSource;
   readonly visuallyDisabled: boolean;
   readonly onSeatPress: (seat: number, disabledReason?: string) => void;
-  readonly onSeatLongPress: ((seat: number) => void) | null;
+  readonly onBotSeatLongPress: ((seat: number) => void) | null;
 }
 
 export type RoomControlledSeatModel =

@@ -30,7 +30,7 @@ import { resolveActiveRoom } from './platform/room/roomDirectory';
 
 // Re-export Durable Object class for wrangler
 export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
-export { GameRoom } from './platform/room/GameRoom';
+export { GameRoom } from './games/GameRoom';
 
 // Route groups
 import { adminRoutes } from './handlers/adminHandlers';

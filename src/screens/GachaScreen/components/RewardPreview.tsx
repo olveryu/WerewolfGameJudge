@@ -20,8 +20,8 @@ import { GeneratedAvatar, isGeneratedAvatar } from '@/components/GeneratedAvatar
 import { getNameStyleById, NameStyleText } from '@/components/nameStyles';
 import { getSeatAnimationById } from '@/components/seatAnimations';
 import { getFlairById } from '@/components/seatFlairs';
-import { useClientProductUi } from '@/games/ClientGameCatalogContext';
-import type { ClientProductUi } from '@/games/productUi';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
+import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import { borderRadius, colors } from '@/theme';
 import { getAvatarThumbByIndex, HAND_DRAWN_KEYS } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';

@@ -72,7 +72,7 @@ export {
   parseUserEventAckMessage,
   type UserEventAckMessage,
 } from './platform/protocol/userEvents';
-export type { RosterEntry } from './platform/room/roster';
+export type { RoomProfileUpdate, RoomSeatProfile, RosterEntry } from './platform/room/roster';
 export {
   decideClearSeats,
   decideKickSeat,
@@ -153,7 +153,7 @@ export {
 } from './protocol/types';
 
 // === Types ===
-export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './types/RoleRevealAnimation';
+export type { ResolvedRoleRevealAnimation, RoleRevealAnimation } from './growth/revealEffect';
 
 // === Resolvers ===
 export { RESOLVERS } from './resolvers';
@@ -223,8 +223,9 @@ export { GameStore } from './engine/store';
 export { WEREWOLF_STATE_CODEC } from './games/werewolf/state/codec';
 export { parseWerewolfState } from './games/werewolf/state/parseState';
 export { WEREWOLF_STATE_IDENTITY, WEREWOLF_STATE_VERSION } from './games/werewolf/state/version';
-export type { GameType, WerewolfGameType } from './platform/protocol/gameTypes';
+export type { FibKingGameType, GameType, WerewolfGameType } from './platform/protocol/gameTypes';
 export {
+  FIBKING_GAME_TYPE,
   GAME_TYPES,
   isGameType,
   parseGameType,

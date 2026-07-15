@@ -476,7 +476,7 @@ const RoomSeatTileComponent: React.FC<RoomSeatTileProps> = ({
       {/* Floating seat number badge - overlaps top-left corner of tile */}
       <View
         style={[styles.seatNumberBadge, isMySpot && hasPlayer && styles.mySeatBadge]}
-        testID={isMySpot && hasPlayer ? 'my-seat-badge' : undefined}
+        testID={isMySpot && hasPlayer ? TESTIDS.mySeatBadge : undefined}
       >
         <Text style={styles.seatNumberText}>{seat + 1}</Text>
       </View>

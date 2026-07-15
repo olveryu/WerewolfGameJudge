@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 
 import { TESTIDS } from '../../src/testids';
 import { startRoomCreation } from '../helpers/home';
@@ -46,8 +47,8 @@ export class HomePage {
   // Actions
   // ---------------------------------------------------------------------------
 
-  async clickCreateRoom() {
-    await startRoomCreation(this.page, 'werewolf');
+  async clickCreateRoom(gameType: GameType) {
+    await startRoomCreation(this.page, gameType);
   }
 
   async clickJoinRoom() {

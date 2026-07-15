@@ -10,16 +10,24 @@ const OUTBOX_RETRY_BASE_MS = 2_000;
 const OUTBOX_RETRY_MAX_MS = 5 * 60_000;
 const OUTBOX_ERROR_MAX_LENGTH = 2_000;
 
-interface RawOutboxEffect {
-  readonly id: unknown;
-  readonly scope: unknown;
-  readonly game_type: unknown;
-  readonly effect_type: unknown;
-  readonly payload_json: unknown;
-  readonly attempt_count: unknown;
-  readonly available_at: unknown;
-  readonly created_revision: unknown;
-  readonly created_at: unknown;
+interface RawOutboxEffect extends Record<string, SqlStorageValue> {
+  readonly id: SqlStorageValue;
+  readonly scope: SqlStorageValue;
+  readonly game_type: SqlStorageValue;
+  readonly effect_type: SqlStorageValue;
+  readonly payload_json: SqlStorageValue;
+  readonly attempt_count: SqlStorageValue;
+  readonly available_at: SqlStorageValue;
+  readonly created_revision: SqlStorageValue;
+  readonly created_at: SqlStorageValue;
+}
+
+interface AvailableAtRow extends Record<string, SqlStorageValue> {
+  readonly available_at: SqlStorageValue;
+}
+
+interface EffectCountRow extends Record<string, SqlStorageValue> {
+  readonly effect_count: SqlStorageValue;
 }
 
 export type ClaimOutboxResult =
@@ -146,7 +154,7 @@ export class EffectOutbox {
 
   readNextAvailableAt(): number | null {
     const row = this.#sql
-      .exec<{ available_at: unknown }>(
+      .exec<AvailableAtRow>(
         `SELECT MIN(available_at) AS available_at
         FROM effect_outbox
         WHERE status = 'pending'`,
@@ -159,7 +167,7 @@ export class EffectOutbox {
 
   hasOutstandingEffects(): boolean {
     const row = this.#sql
-      .exec<{ effect_count: unknown }>('SELECT COUNT(*) AS effect_count FROM effect_outbox')
+      .exec<EffectCountRow>('SELECT COUNT(*) AS effect_count FROM effect_outbox')
       .one();
     const effectCount = parseNonNegativeInteger(row.effect_count, 'effect_outbox count');
     return effectCount > 0;

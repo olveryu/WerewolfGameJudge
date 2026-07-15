@@ -71,7 +71,7 @@ export interface UpdatePlayerProfileAction {
     avatarFrame?: string;
     seatFlair?: string;
     nameStyle?: string;
-    roleRevealEffect?: string;
+    revealEffect?: string;
     seatAnimation?: string;
   };
 }

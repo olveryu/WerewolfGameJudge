@@ -25,5 +25,6 @@ export const werewolfWorkerModule = defineWorkerGameModule({
   effectSchema: werewolfEffectSchema,
   parsePublicUserStats: parseWerewolfPublicStats,
   getPublicUserStats: getWerewolfPublicUserStats,
+  getEffectBusinessKey: (_effect, context) => `revision:${context.createdRevision}`,
   handleEffect: handleWerewolfEffect,
 });

@@ -224,7 +224,7 @@ export function handleUpdatePlayerProfile(
     avatarFrame,
     seatFlair,
     nameStyle,
-    roleRevealEffect,
+    revealEffect,
     seatAnimation,
   } = action.payload;
   const existing = state.roster[userId];
@@ -241,7 +241,7 @@ export function handleUpdatePlayerProfile(
         ...(avatarFrame !== undefined && { avatarFrame }),
         ...(seatFlair !== undefined && { seatFlair }),
         ...(nameStyle !== undefined && { nameStyle }),
-        ...(roleRevealEffect !== undefined && { roleRevealEffect }),
+        ...(revealEffect !== undefined && { revealEffect }),
         ...(seatAnimation !== undefined && { seatAnimation }),
       },
     },

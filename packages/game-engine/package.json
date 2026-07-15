@@ -50,6 +50,10 @@
       "types": "./src/games/werewolf/public.ts",
       "default": "./dist/games/werewolf/public.js"
     },
+    "./games/fibking/public": {
+      "types": "./src/games/fibking/public.ts",
+      "default": "./dist/games/fibking/public.js"
+    },
     "./games/werewolf/domain/handlers/commandHandlers": {
       "types": "./src/games/werewolf/domain/handlers/commandHandlers.ts",
       "default": "./dist/games/werewolf/domain/handlers/commandHandlers.js"
@@ -81,10 +85,6 @@
     "./platform/room/roster": {
       "types": "./src/platform/room/roster.ts",
       "default": "./dist/platform/room/roster.js"
-    },
-    "./types/*": {
-      "types": "./src/types/*.ts",
-      "default": "./dist/types/*.js"
     },
     "./resolvers/*": {
       "types": "./src/resolvers/*.ts",

@@ -1875,15 +1875,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段      | 状态   | 已完成                                                                                                            | 尚未完成            |
-| --------- | ------ | ----------------------------------------------------------------------------------------------------------------- | ------------------- |
-| Phase 0   | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                   |
-| Phase 1   | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                   |
-| Phase 2   | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                   |
-| Phase 3   | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                   |
-| Phase 4   | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                   |
-| Phase 5   | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                   |
-| Phase 6-8 | 未开始 | -                                                                                                                 | Fib engine/UI、清理 |
+| 阶段    | 状态   | 已完成                                                                                                            | 尚未完成                                     |
+| ------- | ------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                              | -                                            |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位 | -                                            |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                            | -                                            |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                            | -                                            |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                   | -                                            |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                           | -                                            |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                 | -                                            |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E               | -                                            |
+| Phase 8 | 未开始 | -                                                                                                                 | 过渡代码删除、scope 中性化、第三游戏编译门禁 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2295,3 +2297,48 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   200 suites/5544 tests、game-engine 83 suites/2393 tests、api-worker 12 files/90 tests 全部通过。另从 run
   `29379097267` 下载四个真实 blob artifacts，使用仓库锁定的 Playwright 完成 merge 并生成 HTML report，验证
   新聚合步骤与现有 shard 产物兼容。
+
+### 当前提交：Phase 6-7 瞎掰王完整垂直链路
+
+- game-engine 新增 `games/fibking` concrete module。权威状态只保存真实玩家的 sparse seat map、两个特殊角色
+  seat、当前/历史词条和 round metadata；空座、implicit bot 和普通角色不展开成 N 大小数组。人数统一使用
+  `isValidFibPlayerCount` 校验：默认 8、最少 4、最大为 JavaScript safe integer，不添加产品上限。
+- Fib lifecycle 使用 shared `lobby/preparing/ongoing/ended` 映射；`startRound` 先提交 preparing state 和 durable
+  word-generation effect，system completion 才进入 ongoing。主持人可以取消 preparing；ended 只提供“下一轮”，
+  保留 seats 和 used-word history，不再增加语义重复的 restart action。
+- Fib role assignment 使用常数空间的无偏抽样，权威 round view 统一投影所有视角：大聪明与瞎掰者都能看词，
+  只有老实人能在 ongoing 看定义；ended 后所有角色都能看完整答案。bot takeover 只改变客户端控制视角，不把
+  controlled seat 写入 room command actor。
+- Worker 通过 exhaustive game catalog 注册 Fib module、exact command/config/state schema 和 post-commit effect。
+  word provider port 支持 local、Gemini structured output 与 Cloudflare Workers AI JSON Mode；provider response
+  严格解析、trim、去重后才提交 internal completion。effect identity、candidate result 和 retry ledger 持久化，
+  alarm 中断后复用同一结果，不重新生成词条；stale effect 和 identity 冲突直接失败。
+- 新增 D1 migration `0037_add_fibking_game_type.sql` 与 `0038_fib_word_generation_results.sql`，并在本地 D1
+  实际执行。Worker integration test 覆盖 catalog 建房、sparse state、outbox alarm 中断恢复和 provider replay。
+- 客户端新增 Fib module、config、rules、summary、identity 与 room adapter，但不增加 Fib facade/context/store。
+  Fib 和狼人杀共用同一个 `RoomSession`、`RoomShell`、seat/profile/share/header/status/bottom controllers；游戏层只
+  投影 Fib phase action、身份内容和规则。百万级人数使用 lazy seat source 分页，DOM 不按总人数展开。
+- 建房和房内编辑统一使用 shared room-flow navigation：创建成功以 `replace` 移除 Config，编辑完成以 `popTo`
+  返回当前 Room。真实 navigator contract 同时覆盖狼人杀，避免 root stack 残留两个 Config screen。
+- Playwright 新增 Fib 专用 page object，只保留 Fib phase/identity 操作；seat、profile 和直接踢人沿用 shared room
+  page contract。`createColdRoomContext` 使用全新 browser context 首次直达 `/room/:code`，不再先访问 Home
+  预热认证或 product catalog；shared 用户设置入口也有稳定 test ID，不借用狼人杀底部设置按钮。
+- E2E Worker 使用独立 composition root：第一次 provider effect 把真实 local provider 结果写入 D1 ledger 后，
+  在 internal completion 前中断；alarm 重放必须读取同一持久结果并推进 `preparing -> ongoing`。该故障注入只存在于
+  E2E `GameRoom` 装配，不在 production module 中增加环境分支、retry helper 或吞错。
+- 定向 Playwright 验证通过 3 条用例：1,000,001 人稀疏建房、8 人四个真人加 implicit bot 的完整 round，以及
+  320×640 配置/房间/规则/身份布局。完整 round 同时覆盖缩容拒绝、换座、离座、直接踢人、机器人填充与接管、
+  三种身份 visibility、公布和保留座位的下一轮；没有 force click、定时等待或失败后自动重试。
+- 窄屏检查发现 AI chat pulse 的视觉缩放超出可拖动边界。bubble 样式、动画 scale 和 drag clamp 现在共用同一
+  `BUBBLE_PULSE_MAX_SCALE` 几何常量，修复真实布局根因，并增加样式 contract test；没有在 Fib 页面加 overflow
+  隐藏。狼人杀 overlay 只在自己的 `RoomSession` 为 ready 时挂载，不再泄漏到 Fib route。
+- Shared seat board 只给 bot seat 绑定长按接管；真人座位没有会抛错的长按 handler。Fib config rejection 由
+  game-owned failure presenter 穷尽映射，缩容时明确提示目标范围之外仍有真人，而不是显示 generic reason。
+- Architecture contract 从 canonical `GAME_TYPES` 动态检查 client、engine、Worker 三端目录和 cross-game import，
+  不再只对狼人杀写死断言；Worker config schema 使用 Zod 4 `z.int()` 校验 safe integer，非整数直接拒绝。
+- 提交前完整 `pnpm run quality` 通过：typecheck、game-engine build、knip、ESLint、Prettier 全绿；root
+  212 suites/5813 tests、game-engine 85 suites/2418 tests、api-worker 14 files/107 tests 全部通过。Fib 定向
+  Playwright 另通过 chromium 2/2 与 small-mobile 1/1。
+- Phase 6 与 Phase 7 的退出条件均已满足。Phase 8 仍未开始；下一提交按审计顺序处理 engine/Worker/client 物理
+  所有权、一次性 storage migration、architecture allowlist、compile-only 第三游戏门禁与 workspace scope
+  中性化，期间不保留 migration-only compatibility layer。

@@ -445,24 +445,25 @@ describe('useWerewolfGameActions - game state queries', () => {
 describe('useWerewolfGameActions - handleMutationResult', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('should toast a shared seat-command rejection', async () => {
-    const clearSeats = jest.fn(
-      async (): Promise<RoomOperationResult> => ({
-        success: false,
-        failureKind: 'rejected',
-        commandId: 'clear-command',
-        reason: 'invalid_status',
-      }),
-    );
+  it('returns a shared seat-command rejection without duplicating presentation', async () => {
+    const rejection: RoomOperationResult = {
+      success: false,
+      failureKind: 'rejected',
+      commandId: 'clear-command',
+      reason: 'invalid_status',
+    };
+    const clearSeats = jest.fn(async (): Promise<RoomOperationResult> => rejection);
     const deps = createDeps({ clearSeats });
     const { result } = renderHook(() => useWerewolfGameActions(deps));
+    let clearResult: RoomOperationResult | null = null;
 
-    await act(() => result.current.clearAllSeats());
-
-    expect(mockShowAlert).not.toHaveBeenCalled();
-    expect(toast.error).toHaveBeenCalledWith('全员起立失败', {
-      description: '当前状态不允许此操作',
+    await act(async () => {
+      clearResult = await result.current.clearAllSeats();
     });
+
+    expect(clearResult).toEqual(rejection);
+    expect(mockShowAlert).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('should alert on NETWORK_ERROR even without onBusinessError callback', async () => {

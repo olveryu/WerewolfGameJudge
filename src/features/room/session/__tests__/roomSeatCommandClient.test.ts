@@ -156,7 +156,7 @@ describe('roomSeatCommandClient', () => {
     const { context } = createContext({ kind: 'superseded', commandId: 'command-7' });
 
     await expect(leaveRoomSeat(context)).rejects.toThrow(
-      'Room seat command command-7 was superseded',
+      'Room command command-7 was superseded by another session',
     );
   });
 });

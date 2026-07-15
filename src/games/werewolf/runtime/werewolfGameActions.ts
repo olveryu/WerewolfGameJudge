@@ -5,11 +5,7 @@
  * responsible for actor resolution, authorization, validation, and game rules.
  */
 
-import {
-  type WerewolfActionInput,
-  type WerewolfProfileUpdate,
-  type WerewolfPublicCommand,
-} from '@werewolf/game-engine';
+import { type WerewolfActionInput, type WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -258,18 +254,6 @@ export function markAllBotsGroupConfirmed(ctx: GameActionsContext): Promise<Acti
     { type: 'werewolf.groupConfirm.ackBots' },
     null,
     'markAllBotsGroupConfirmed',
-  );
-}
-
-export function updatePlayerProfile(
-  ctx: GameActionsContext,
-  profile: WerewolfProfileUpdate,
-): Promise<ActionResult> {
-  return dispatchWerewolfCommand(
-    ctx,
-    { type: 'room.profile.update', profile },
-    null,
-    'updatePlayerProfile',
   );
 }
 

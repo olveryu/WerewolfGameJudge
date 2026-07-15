@@ -12,7 +12,7 @@ import { NAME_STYLES } from '@/components/nameStyles';
 import { SEAT_ANIMATIONS } from '@/components/seatAnimations';
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { compareByRarity } from '@/config/rarityVisual';
-import type { ClientProductUi } from '@/games/productUi';
+import type { ClientProductUi } from '@/features/product/model/ClientProductUi';
 import { AVATAR_KEYS } from '@/utils/avatar';
 
 import {

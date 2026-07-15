@@ -5,10 +5,13 @@ import {
   createNativeStackNavigator,
   type NativeStackNavigationProp,
 } from '@react-navigation/native-stack';
-import { parseRoomCode } from '@werewolf/game-engine/platform/protocol/roomCode';
 import type React from 'react';
 import { useCallback } from 'react';
 
+import {
+  replaceWithCreatedRoom,
+  returnToActiveRoom,
+} from '@/features/room/navigation/roomFlowNavigation';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { BoardPickerScreen } from '@/games/werewolf/screens/BoardPickerScreen/BoardPickerScreen';
 import { ConfigScreen } from '@/games/werewolf/screens/ConfigScreen/ConfigScreen';
@@ -40,17 +43,14 @@ export const WerewolfConfigFlowScreen: React.FC<WerewolfConfigFlowScreenProps> =
 
   const handleReturnToRoom = useCallback(
     (roomCode: string) => {
-      navigation.popTo('Room', { roomCode: parseRoomCode(roomCode) });
+      returnToActiveRoom(navigation, roomCode);
     },
     [navigation],
   );
 
   const handleRoomCreated = useCallback(
     (roomCode: string) => {
-      navigation.navigate('Room', {
-        roomCode: parseRoomCode(roomCode),
-        entryReason: 'created',
-      });
+      replaceWithCreatedRoom(navigation, roomCode);
     },
     [navigation],
   );

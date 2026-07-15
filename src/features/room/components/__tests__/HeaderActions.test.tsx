@@ -19,7 +19,7 @@ describe('RoomHeaderActions', () => {
 
   it('renders user settings directly when it is the only action', () => {
     const onPress = jest.fn();
-    const { getByLabelText, queryByTestId } = render(
+    const { getByTestId, queryByTestId } = render(
       <RoomHeaderActions
         userAction={{ user: { id: 'user-1', avatarUrl: null }, ticketCount: null, onPress }}
         items={[]}
@@ -28,7 +28,30 @@ describe('RoomHeaderActions', () => {
     );
 
     expect(queryByTestId(TESTIDS.roomMenuButton)).toBeNull();
-    fireEvent.press(getByLabelText('设置'));
+    fireEvent.press(getByTestId(TESTIDS.roomUserSettingsButton));
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens user settings from the shared room menu when utility actions exist', () => {
+    const onPress = jest.fn();
+    const item: RoomHeaderMenuItem = {
+      id: 'share',
+      label: '分享房间',
+      icon: 'share-outline',
+      group: 'utility',
+      tone: 'default',
+      onPress: jest.fn(),
+    };
+    const { getByTestId } = render(
+      <RoomHeaderActions
+        userAction={{ user: null, ticketCount: null, onPress }}
+        items={[item]}
+        styles={styles}
+      />,
+    );
+
+    fireEvent.press(getByTestId(TESTIDS.roomMenuButton));
+    fireEvent.press(getByTestId(TESTIDS.roomUserSettingsButton));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 

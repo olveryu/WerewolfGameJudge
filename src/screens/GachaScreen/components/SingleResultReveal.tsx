@@ -26,7 +26,7 @@ import Animated, {
 import { Modal } from '@/components/AppModal';
 import { CloseButton } from '@/components/CloseButton';
 import { RARITY_VISUAL } from '@/config/rarityVisual';
-import { useClientProductUi } from '@/games/ClientGameCatalogContext';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import type { DrawResultItem } from '@/services/feature/GachaService';
 import { borderRadius, colors, shadows, spacing, textStyles, typography, withAlpha } from '@/theme';
 

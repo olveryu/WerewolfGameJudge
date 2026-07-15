@@ -9,6 +9,10 @@ export type RoomOperationResult =
       readonly reason: string;
     };
 
+export type FailedRoomOperationResult = Extract<RoomOperationResult, { readonly success: false }>;
+
+export type RoomOperationFailureMessage = (result: FailedRoomOperationResult) => string;
+
 export type RoomCapability<TArgs extends readonly unknown[] = readonly [], TResult = void> =
   | {
       readonly isAllowed: false;

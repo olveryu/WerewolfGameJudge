@@ -1,23 +1,23 @@
 /** Authoritative Werewolf command actor resolution. */
 
 import type { HandlerContext } from '../../../engine/handlers/types';
-import type { CommandContext } from '../../../platform/engine';
 import {
-  REASON_CONTROLLED_SEAT_NOT_ALLOWED,
+  type ActorResolution,
+  type CommandContext,
+  resolveHostActorId,
+  resolveSystemActorEffectId,
+  resolveUncontrolledUserActorId,
+  resolveUserActorId,
+} from '../../../platform/engine';
+import {
   REASON_CONTROLLED_SEAT_NOT_BOT,
   REASON_INVALID_SEAT,
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
   REASON_SEAT_EMPTY,
-  REASON_SYSTEM_ACTOR_REQUIRED,
-  REASON_USER_ACTOR_REQUIRED,
 } from '../../../platform/protocol/reasons';
 import { findSeatByUserId } from '../../../platform/room/seating';
 import type { GameState } from '../../../protocol/types';
-
-export type ActorResolution<T> =
-  | { readonly kind: 'resolved'; readonly value: T }
-  | { readonly kind: 'rejected'; readonly reason: string };
 
 export interface ResolvedUserActor {
   readonly userId: string;
@@ -44,11 +44,9 @@ export function resolveUserActor(
   state: GameState,
   context: CommandContext,
 ): ActorResolution<ResolvedUserActor> {
-  if (context.actor.kind !== 'user') {
-    return rejected(REASON_USER_ACTOR_REQUIRED);
-  }
-
-  const userId = context.actor.userId;
+  const actor = resolveUserActorId(context);
+  if (actor.kind === 'rejected') return actor;
+  const userId = actor.value;
   const mySeat = findSeatByUserId(state.players, seatCount(state), userId);
   return resolved({
     userId,
@@ -60,24 +58,18 @@ export function resolveUncontrolledUserActor(
   state: GameState,
   context: CommandContext,
 ): ActorResolution<ResolvedUserActor> {
-  const actor = resolveUserActor(state, context);
-  if (actor.kind === 'rejected') return actor;
-  if (context.controlledSeat !== null) {
-    return rejected(REASON_CONTROLLED_SEAT_NOT_ALLOWED);
-  }
-  return actor;
+  const actorId = resolveUncontrolledUserActorId(context);
+  if (actorId.kind === 'rejected') return actorId;
+  return resolveUserActor(state, context);
 }
 
 export function resolveHostActor(
   state: GameState,
   context: CommandContext,
 ): ActorResolution<ResolvedUserActor> {
-  const actor = resolveUserActor(state, context);
-  if (actor.kind === 'rejected') return actor;
-  if (actor.value.userId !== state.hostUserId) {
-    return rejected(REASON_NOT_HOST);
-  }
-  return actor;
+  const actorId = resolveHostActorId(context, state.hostUserId);
+  if (actorId.kind === 'rejected') return actorId;
+  return resolveUserActor(state, context);
 }
 
 export function resolveEffectiveSeatActor(
@@ -125,8 +117,7 @@ export function resolveSystemActor(
   state: GameState,
   context: CommandContext,
 ): ActorResolution<HandlerContext> {
-  if (context.actor.kind !== 'system') {
-    return rejected(REASON_SYSTEM_ACTOR_REQUIRED);
-  }
+  const actor = resolveSystemActorEffectId(context);
+  if (actor.kind === 'rejected') return actor;
   return resolved({ state, myUserId: null, mySeat: null });
 }

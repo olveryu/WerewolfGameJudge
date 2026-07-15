@@ -10,7 +10,6 @@ export interface RoomProfileCardModel {
   readonly onClose: () => void;
   readonly onKick: (() => void) | null;
   readonly onLeaveSeat: (() => void) | null;
-  readonly resolveBuiltinAvatarName: (avatarId: string) => string;
   readonly gameDetails: {
     readonly title: string;
     readonly content: React.ReactElement;

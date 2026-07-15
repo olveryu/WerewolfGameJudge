@@ -22,6 +22,9 @@ function getChatWidth(screenWidth: number): number {
 export const BUBBLE_HEIGHT = 56;
 export const BUBBLE_WIDTH = 56;
 export const BUBBLE_MARGIN = 16;
+export const BUBBLE_PULSE_MAX_SCALE = 1.8;
+export const BUBBLE_PULSE_OVERHANG = (BUBBLE_WIDTH * (BUBBLE_PULSE_MAX_SCALE - 1)) / 2;
+export const BUBBLE_HORIZONTAL_MARGIN = Math.ceil(Math.max(BUBBLE_MARGIN, BUBBLE_PULSE_OVERHANG));
 
 /** Dynamically compute chat window height based on screen height (55%, clamped to 320–600). */
 export function getChatHeight(screenHeight: number): number {
@@ -31,7 +34,7 @@ export function getChatHeight(screenHeight: number): number {
 /** Compute default bubble position for given screen dimensions */
 export function getDefaultPosition(screenWidth: number, screenHeight: number) {
   return {
-    x: screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN,
+    x: screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN,
     y: screenHeight - BUBBLE_HEIGHT - 60,
   };
 }

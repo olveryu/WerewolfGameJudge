@@ -76,7 +76,7 @@ interface WerewolfGameActionsState {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  clearAllSeats: () => Promise<void>;
+  clearAllSeats: () => Promise<RoomOperationResult>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   setAudioPlaying: (isPlaying: boolean) => Promise<ActionResult>;
 
@@ -166,10 +166,11 @@ interface WerewolfGameActionsDeps {
   }, [facade, bgm, debug, isHost]);
 
   // Clear all seats (host only)
-  const clearAllSeats = useCallback(async (): Promise<void> => {
-    if (!isHost) return;
-    const result = await clearSeats();
-    handleMutationResult(result, '全员起立', toastError);
+  const clearAllSeats = useCallback(async (): Promise<RoomOperationResult> => {
+    if (!isHost) {
+      throw new Error('[FAIL-FAST] Clearing Werewolf seats requires the host');
+    }
+    return clearSeats();
   }, [clearSeats, isHost]);
 
   // Share night review to selected seats (host only)

@@ -28,13 +28,23 @@ export type InitializeRoomResult =
     }
   | { readonly success: false; readonly reason: string };
 
-export interface DispatchRoomCommand {
+interface DispatchRoomCommandBase {
   readonly roomCode: string;
   readonly commandId: string;
-  readonly actor: CommandActor;
-  readonly controlledSeat: number | null;
   readonly command: unknown;
 }
+
+export type DispatchRoomCommand = DispatchRoomCommandBase &
+  (
+    | {
+        readonly actor: Extract<CommandActor, { readonly kind: 'user' }>;
+        readonly controlledSeat: number | null;
+      }
+    | {
+        readonly actor: Extract<CommandActor, { readonly kind: 'system' }>;
+        readonly controlledSeat: null;
+      }
+  );
 
 export interface DispatchUserRoomCommand extends RoomInstanceIdentity {
   readonly commandId: string;

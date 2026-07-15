@@ -25,7 +25,7 @@ import { toast } from 'sonner-native';
 
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { RARITY_ORDER, RARITY_VISUAL } from '@/config/rarityVisual';
-import { useClientProductUi } from '@/games/ClientGameCatalogContext';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { useExchangeShardMutation, useGachaStatusQuery } from '@/hooks/queries/useGachaQuery';
 import { useUserStatsQuery } from '@/hooks/queries/useUserStatsQuery';
 import type { RootStackParamList } from '@/navigation/types';

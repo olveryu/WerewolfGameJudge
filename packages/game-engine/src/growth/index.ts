@@ -39,6 +39,12 @@ export {
   XP_RANDOM_BASE,
 } from './level';
 export {
+  RANDOMIZABLE_ANIMATIONS,
+  type ResolvedRoleRevealAnimation,
+  resolveRandomAnimation,
+  type RoleRevealAnimation,
+} from './revealEffect';
+export {
   AVATAR_IDS,
   type AvatarId,
   type FlairId,

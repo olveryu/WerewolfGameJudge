@@ -84,7 +84,7 @@ interface UseWerewolfRoomResult {
   assignRoles: () => Promise<void>;
   startGame: () => Promise<void>;
   restartGame: () => Promise<void>;
-  clearAllSeats: () => Promise<void>;
+  clearAllSeats: () => Promise<RoomOperationResult>;
   shareNightReview: (allowedSeats: number[]) => Promise<void>;
   viewedRole: () => Promise<ActionResult>;
   submitAction: (input: WerewolfActionInput) => Promise<void>;
@@ -148,7 +148,6 @@ interface UseWerewolfRoomResult {
   const myUserId = identity.userId;
   const isHost = identity.room.hostUserId === identity.userId;
   const mySeat = getWerewolfUserSeat(snapshot, myUserId);
-  const connectionStatus = sessionSnapshot.connection;
 
   // Toast notifications for passive actions (kick, clearAllSeats, assignRoles, etc.)
   useWerewolfLastActionToast({
@@ -190,34 +189,6 @@ interface UseWerewolfRoomResult {
 
   // Night-phase derived values (pure computation)
   const nightDerived = useWerewolfNightDerived(gameState);
-
-  // =========================================================================
-  // Profile sync on reconnect
-  //
-  // When connection is restored (Live) and player is seated, pull the latest profile from D1
-  // and push it to the DO roster. Covers: rejoining a room, and auto-reconnect after WS drop
-  // when the roster still caches stale data.
-  // Fire-and-forget: failure only warns, does not block game flow.
-  // =========================================================================
-  useEffect(() => {
-    if (connectionStatus !== 'live') return;
-    if (mySeat === null) return;
-
-    const displayName = user.displayName ?? undefined;
-    facade
-      .updatePlayerProfile({
-        displayName,
-        avatarUrl: user.avatarUrl ?? undefined,
-        avatarFrame: user.avatarFrame ?? '',
-        seatFlair: user.seatFlair ?? '',
-        nameStyle: user.nameStyle ?? '',
-        roleRevealEffect: user.equippedEffect ?? '',
-        seatAnimation: user.seatAnimation ?? '',
-      })
-      .catch((err: unknown) => {
-        gameRoomLog.warn('Profile sync on reconnect failed', err);
-      });
-  }, [connectionStatus, mySeat, facade, user]);
 
   // Game actions: game control + night actions
   const actions = useWerewolfGameActions({

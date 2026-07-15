@@ -13,7 +13,7 @@ export interface Env {
   AVATARS: R2Bucket;
 
   // ── Durable Objects ─────────────────────────────────────────────
-  GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoom').GameRoom>;
+  GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoom').GameRoomRuntime>;
   WECHAT_AUTH: DurableObjectNamespace<import('./durableObjects/WeChatAuthProxy').WeChatAuthProxy>;
   // ── Workers AI ─────────────────────────────────────────────────────
   AI: Ai;
@@ -24,6 +24,9 @@ export interface Env {
   // ── Environment Variables ──────────────────────────────────────
   ENVIRONMENT: string;
   CORS_ORIGIN: string;
+
+  /** Raw Wrangler variable parsed by the FibKing provider composition boundary. */
+  FIB_WORD_PROVIDER: string;
 
   /** JWT signing secret — set via `wrangler secret put JWT_SECRET` */
   JWT_SECRET: string;

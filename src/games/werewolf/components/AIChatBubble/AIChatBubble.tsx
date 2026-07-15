@@ -33,7 +33,12 @@ import { UI_ICONS } from '@/config/iconTokens';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { colors, componentSizes, fixed, typography } from '@/theme';
 
-import { createStyles, type DisplayMessage, getChatHeight } from './AIChatBubble.styles';
+import {
+  BUBBLE_PULSE_MAX_SCALE,
+  createStyles,
+  type DisplayMessage,
+  getChatHeight,
+} from './AIChatBubble.styles';
 import { MessageBubble } from './MessageBubble';
 import { TypingIndicator } from './TypingIndicator';
 import { useAIChat } from './useAIChat';
@@ -180,7 +185,7 @@ export const AIChatBubble: React.FC<AIChatBubbleProps> = ({ client, triggerPulse
                 {
                   scale: pulseAnim.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [1, 1.8],
+                    outputRange: [1, BUBBLE_PULSE_MAX_SCALE],
                   }),
                 },
               ],

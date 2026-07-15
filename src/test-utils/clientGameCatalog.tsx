@@ -1,5 +1,6 @@
 /** Typed client game catalog fixture for React tests. */
 
+import type { GameType } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import type React from 'react';
 
 import type { RevealEffectPreviewProps } from '@/features/product/model/GameProductUi';
@@ -10,6 +11,26 @@ const EmptyRoomScreen: React.FC<GameRoomScreenProps> = () => null;
 const EmptyAccountStatsSection: React.FC<{ readonly userId: string }> = () => null;
 const EmptyScreen: React.FC = () => null;
 const EmptyRevealEffectPreview: React.FC<RevealEffectPreviewProps> = () => null;
+
+function createIdleRoomAccount<TGameType extends GameType>(gameType: TGameType) {
+  return {
+    gameType,
+    getSnapshot: () => ({
+      gameType,
+      phase: 'idle' as const,
+      isSeated: false as const,
+      canSwitchAccount: true,
+      canSyncProfile: false,
+    }),
+    subscribe: () => () => {},
+    updateProfile: async () => {
+      throw new Error('[FAIL-FAST] Test room account is idle');
+    },
+    leaveSeat: async () => {
+      throw new Error('[FAIL-FAST] Test room account is idle');
+    },
+  };
+}
 
 export function createTestClientGameCatalog(): ClientGameCatalog {
   return {
@@ -30,23 +51,7 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
         notepadScreen: EmptyScreen,
       },
       roomScreen: EmptyRoomScreen,
-      roomAccount: {
-        gameType: 'werewolf',
-        getSnapshot: () => ({
-          gameType: 'werewolf',
-          phase: 'idle',
-          isSeated: false,
-          canSwitchAccount: true,
-          canSyncProfile: false,
-        }),
-        subscribe: () => () => {},
-        updateProfile: async () => {
-          throw new Error('[FAIL-FAST] Test room account is idle');
-        },
-        leaveSeat: async () => {
-          throw new Error('[FAIL-FAST] Test room account is idle');
-        },
-      },
+      roomAccount: createIdleRoomAccount('werewolf'),
       productUi: {
         getAvatarDisplayName: (avatarId) => avatarId,
         getRevealEffectPresentation: (effectId) =>
@@ -59,6 +64,32 @@ export function createTestClientGameCatalog(): ClientGameCatalog {
                 Preview: EmptyRevealEffectPreview,
               }
             : null,
+      },
+      audioPreview: null,
+      accountStatsSection: EmptyAccountStatsSection,
+      appOverlay: null,
+    },
+    fibking: {
+      gameType: 'fibking',
+      home: {
+        mode: {
+          displayName: '瞎掰王',
+          subtitle: '看词描述，真假难辨',
+          iconName: 'bulb-outline',
+        },
+        spotlight: null,
+        announcementTabs: [],
+      },
+      navigation: {
+        configScreen: EmptyScreen,
+        guideScreen: EmptyScreen,
+        notepadScreen: null,
+      },
+      roomScreen: EmptyRoomScreen,
+      roomAccount: createIdleRoomAccount('fibking'),
+      productUi: {
+        getAvatarDisplayName: () => null,
+        getRevealEffectPresentation: () => null,
       },
       audioPreview: null,
       accountStatsSection: EmptyAccountStatsSection,

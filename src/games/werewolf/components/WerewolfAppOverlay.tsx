@@ -13,8 +13,9 @@ interface WerewolfAppOverlayProps {
 
 export const WerewolfAppOverlay: React.FC<WerewolfAppOverlayProps> = ({ client }) => {
   const room = useRoomSessionSnapshot(client.roomSession);
+  if (room.phase !== 'ready') return null;
+
   const triggerPulse =
-    room.phase === 'ready' &&
     room.snapshot.state.status !== GameStatus.Unseated &&
     room.snapshot.state.status !== GameStatus.Seated;
 

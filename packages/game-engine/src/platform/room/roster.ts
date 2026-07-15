@@ -11,6 +11,10 @@ export interface RosterEntry {
   /** Equipped name style gacha item ID. */
   nameStyle?: string;
   /** Equipped reveal effect gacha item ID. */
-  roleRevealEffect?: string;
+  revealEffect?: string;
   level?: number;
 }
+
+export type RoomSeatProfile = Readonly<RosterEntry>;
+
+export type RoomProfileUpdate = Readonly<Partial<Omit<RoomSeatProfile, 'level'>>>;

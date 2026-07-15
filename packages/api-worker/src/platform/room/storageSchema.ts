@@ -47,8 +47,16 @@ const EFFECT_OUTBOX_COLUMNS = [
   'last_error',
 ] as const;
 
+interface ColumnInfoRow extends Record<string, SqlStorageValue> {
+  readonly name: SqlStorageValue;
+}
+
+interface SchemaVersionRow extends Record<string, SqlStorageValue> {
+  readonly version: SqlStorageValue;
+}
+
 function readColumnNames(sql: SqlStorage, table: string): string[] {
-  const rows = sql.exec<{ name: unknown }>(`PRAGMA table_info(${table})`).toArray();
+  const rows = sql.exec<ColumnInfoRow>(`PRAGMA table_info(${table})`).toArray();
   return rows.map((row, index) => {
     if (typeof row.name !== 'string') {
       throw new Error(`${table} column ${index} has an invalid name`);
@@ -147,9 +155,7 @@ export function initializeRoomStorage(storage: DurableObjectStorage, nowMs: numb
     `);
 
     const currentVersion = sql
-      .exec<{
-        version: unknown;
-      }>('SELECT COALESCE(MAX(id), 0) AS version FROM _sql_schema_migrations')
+      .exec<SchemaVersionRow>('SELECT COALESCE(MAX(id), 0) AS version FROM _sql_schema_migrations')
       .one().version;
     if (
       typeof currentVersion !== 'number' ||

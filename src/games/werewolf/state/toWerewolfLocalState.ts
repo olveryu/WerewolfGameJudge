@@ -39,7 +39,7 @@ function toLocalPlayer(bp: Player, seat: number, roster?: RosterEntry): LocalPla
     seatFlair: roster?.seatFlair,
     seatAnimation: roster?.seatAnimation,
     nameStyle: roster?.nameStyle,
-    roleRevealEffect: roster?.roleRevealEffect,
+    roleRevealEffect: roster?.revealEffect,
     level: roster?.level,
     role: bp.role ?? null,
     hasViewedRole: bp.hasViewedRole,

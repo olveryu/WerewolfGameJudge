@@ -5,6 +5,7 @@
  * Table and column names use snake_case to match physical columns in D1.
  */
 
+import { FIB_WORD_SOURCES } from '@werewolf/game-engine/games/fibking/public';
 import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import {
   index,
@@ -114,6 +115,29 @@ export const roomGameStarts = sqliteTable(
   (table) => [
     uniqueIndex('idx_room_game_starts_room_revision').on(table.roomId, table.startedRevision),
     index('idx_room_game_starts_room_started').on(table.roomId, table.startedAt),
+  ],
+);
+
+/** Exact FibKing word-provider results used to replay nondeterministic effects. */
+export const fibWordGenerationResults = sqliteTable(
+  'fib_word_generation_results',
+  {
+    roomId: text('room_id')
+      .notNull()
+      .references(() => rooms.id, { onDelete: 'cascade' }),
+    roomCreationId: text('room_creation_id').notNull(),
+    effectId: text('effect_id').notNull(),
+    roundId: text('round_id').notNull(),
+    requestFingerprint: text('request_fingerprint').notNull(),
+    word: text('word').notNull(),
+    definition: text('definition').notNull(),
+    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roomId, table.effectId] }),
+    uniqueIndex('idx_fib_word_generation_results_room_round').on(table.roomId, table.roundId),
+    index('idx_fib_word_generation_results_created').on(table.createdAt),
   ],
 );
 

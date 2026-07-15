@@ -25,6 +25,7 @@
       "project": ["src/**/*.ts!"]
     },
     "packages/api-worker": {
+      "entry": ["src/e2e/index.ts!"],
       "project": ["src/**/*.ts!"],
       "ignoreDependencies": ["cloudflare"]
     }

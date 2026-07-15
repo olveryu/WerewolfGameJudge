@@ -14,7 +14,7 @@ import { LoopingSeatAnimation } from '@/components/seatAnimations/LoopingSeatAni
 import { SEAT_FLAIRS } from '@/components/seatFlairs';
 import { getPetByEffectId } from '@/components/seatPets';
 import { getRarityCellConfig, getRarityCellStyle } from '@/config/rarityVisual';
-import { useClientProductUi } from '@/games/ClientGameCatalogContext';
+import { useClientProductUi } from '@/features/product/context/ClientProductUiContext';
 import { borderRadius, colors, shadows, spacing, typography, withAlpha } from '@/theme';
 import { getHandDrawnThumb } from '@/utils/avatar';
 import { getAvatarIcon } from '@/utils/defaultAvatarIcons';

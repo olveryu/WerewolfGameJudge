@@ -28,7 +28,6 @@ import {
   submitAction,
   submitGroupConfirmAck,
   submitRevealAck,
-  updatePlayerProfile,
   updateTemplate,
 } from '@/games/werewolf/runtime/werewolfGameActions';
 
@@ -203,36 +202,6 @@ describe('canonical Werewolf command builders', () => {
     expect(command).not.toHaveProperty('userId');
     expect(command).not.toHaveProperty('seat');
     expect(command).not.toHaveProperty('role');
-  });
-
-  it('maps the canonical profile update object without userId', async () => {
-    const ctx = createContext();
-
-    await updatePlayerProfile(ctx, {
-      displayName: 'Alice',
-      avatarUrl: 'avatar',
-      avatarFrame: 'frame',
-      seatFlair: 'flair',
-      nameStyle: 'style',
-      roleRevealEffect: 'effect',
-      seatAnimation: 'seat',
-    });
-
-    expectCommand(
-      {
-        type: 'room.profile.update',
-        profile: {
-          displayName: 'Alice',
-          avatarUrl: 'avatar',
-          avatarFrame: 'frame',
-          seatFlair: 'flair',
-          nameStyle: 'style',
-          roleRevealEffect: 'effect',
-          seatAnimation: 'seat',
-        },
-      },
-      null,
-    );
   });
 
   it('preloads audio only after a successful night start', async () => {

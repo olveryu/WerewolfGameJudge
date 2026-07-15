@@ -14,8 +14,7 @@ import {
   type RoomSnapshot,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
-import { WORKER_GAME_CATALOG } from '../../games/catalog';
-import type { RuntimeWorkerGameModule } from '../../games/workerModule';
+import type { RuntimeWorkerGameModule, WorkerGameModuleResolver } from './runtimeGameModule';
 import type {
   DispatchRoomCommand,
   EffectScope,
@@ -26,29 +25,29 @@ import type {
 
 const COMMAND_RECEIPT_RETENTION_MS = 7 * 24 * 60 * 60 * 1_000;
 
-interface RawRoomRow {
-  readonly creation_id: unknown;
-  readonly initialization_json: unknown;
-  readonly game_type: unknown;
-  readonly state_version: unknown;
-  readonly game_state: unknown;
-  readonly revision: unknown;
-  readonly created_at: unknown;
-  readonly updated_at: unknown;
+interface RawRoomRow extends Record<string, SqlStorageValue> {
+  readonly creation_id: SqlStorageValue;
+  readonly initialization_json: SqlStorageValue;
+  readonly game_type: SqlStorageValue;
+  readonly state_version: SqlStorageValue;
+  readonly game_state: SqlStorageValue;
+  readonly revision: SqlStorageValue;
+  readonly created_at: SqlStorageValue;
+  readonly updated_at: SqlStorageValue;
 }
 
-interface RawCommandReceipt {
-  readonly game_type: unknown;
-  readonly state_version: unknown;
-  readonly actor_kind: unknown;
-  readonly actor_id: unknown;
-  readonly controlled_seat: unknown;
-  readonly command_type: unknown;
-  readonly request_json: unknown;
-  readonly random_seed: unknown;
-  readonly decision_kind: unknown;
-  readonly revision: unknown;
-  readonly result_json: unknown;
+interface RawCommandReceipt extends Record<string, SqlStorageValue> {
+  readonly game_type: SqlStorageValue;
+  readonly state_version: SqlStorageValue;
+  readonly actor_kind: SqlStorageValue;
+  readonly actor_id: SqlStorageValue;
+  readonly controlled_seat: SqlStorageValue;
+  readonly command_type: SqlStorageValue;
+  readonly request_json: SqlStorageValue;
+  readonly random_seed: SqlStorageValue;
+  readonly decision_kind: SqlStorageValue;
+  readonly revision: SqlStorageValue;
+  readonly result_json: SqlStorageValue;
 }
 
 export interface StoredCommandReceipt {
@@ -164,17 +163,13 @@ export function serializeCommandRequest(request: DispatchRoomCommand): string {
   });
 }
 
-export function getWorkerGameModule(gameType: GameType): RuntimeWorkerGameModule {
-  return WORKER_GAME_CATALOG[gameType];
-}
-
 export function getCommittedRevision(previous: StoredRoomRow, hasStateEvents: boolean): number {
   return hasStateEvents ? previous.revision + 1 : previous.revision;
 }
 
-function parseRoomRow(raw: RawRoomRow): StoredRoomRow {
+function parseRoomRow(raw: RawRoomRow, resolveGameModule: WorkerGameModuleResolver): StoredRoomRow {
   const gameType = parseGameType(raw.game_type);
-  const module = getWorkerGameModule(gameType);
+  const module = resolveGameModule(gameType);
   const stateVersion = parsePositiveInteger(raw.state_version, 'room_state.state_version');
   if (stateVersion !== module.stateVersion) {
     throw new Error(`Unsupported ${gameType} state version: ${stateVersion}`);
@@ -224,10 +219,12 @@ function createInitializationJson(
 export class RoomRepository {
   readonly #storage: DurableObjectStorage;
   readonly #sql: SqlStorage;
+  readonly #resolveGameModule: WorkerGameModuleResolver;
 
-  constructor(storage: DurableObjectStorage) {
+  constructor(storage: DurableObjectStorage, resolveGameModule: WorkerGameModuleResolver) {
     this.#storage = storage;
     this.#sql = storage.sql;
+    this.#resolveGameModule = resolveGameModule;
   }
 
   readRoom(): StoredRoomRow | null {
@@ -250,7 +247,7 @@ export class RoomRepository {
     if (rows.length !== 1) {
       throw new Error(`room_state must contain at most one row, received ${rows.length}`);
     }
-    return parseRoomRow(rows[0]);
+    return parseRoomRow(rows[0], this.#resolveGameModule);
   }
 
   readSnapshot(): RoomSnapshot<BaseGameState<GameType>> | null {
@@ -260,7 +257,7 @@ export class RoomRepository {
 
   initialize(command: InitializeRoomCommand, nowMs: number): InitializeRoomResult {
     const gameType = parseGameType(command.gameType);
-    const module = getWorkerGameModule(gameType);
+    const module = this.#resolveGameModule(gameType);
     const createContext: CreateGameContext = {
       roomCode: command.roomCode,
       hostUserId: command.hostUserId,

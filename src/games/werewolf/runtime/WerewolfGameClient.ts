@@ -1,10 +1,6 @@
 /** Werewolf client runtime commands composed around one shared room session. */
 
-import type {
-  WerewolfActionInput,
-  WerewolfProfileUpdate,
-  WerewolfPublicCommand,
-} from '@werewolf/game-engine';
+import type { WerewolfActionInput, WerewolfPublicCommand } from '@werewolf/game-engine';
 import type { RoleId } from '@werewolf/game-engine/models/roles';
 import type { GameTemplate } from '@werewolf/game-engine/models/Template';
 import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
@@ -48,13 +44,6 @@ export interface WerewolfGameClient {
    * Mark all bots as having confirmed groupConfirm step (Debug-only, Host-only)
    */
   markAllBotsGroupConfirmed(): Promise<ActionResult>;
-
-  /**
-   * Sync player profile to GameState (any seated player)
-   * Called after user changes name/avatar in Settings, broadcasts new profile to all clients.
-   * Server returns NOT_SEATED when not seated, caller can silently ignore.
-   */
-  updatePlayerProfile(profile: WerewolfProfileUpdate): Promise<ActionResult>;
 
   /**
    * Share "detailed info" to specified seats (Host-only, ended phase)

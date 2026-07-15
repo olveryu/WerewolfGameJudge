@@ -12,15 +12,18 @@ import {
 } from '@werewolf/game-engine/platform/protocol/reasons';
 import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
-import type { RuntimeCommittedDecision } from '../../games/workerModule';
-import { derivePlatformRoomEffects } from './platformEffects';
+import { derivePlatformRoomEffects, getPlatformRoomEffectBusinessKey } from './platformEffects';
 import {
   getCommittedRevision,
-  getWorkerGameModule,
   type NewOutboxEffect,
   type RoomRepository,
   serializeCommandRequest,
 } from './roomRepository';
+import type {
+  RuntimeCommittedDecision,
+  RuntimeWorkerGameModule,
+  WorkerGameModuleResolver,
+} from './runtimeGameModule';
 import type { DispatchRoomCommand, DispatchRoomResult, StoredRoomRow } from './types';
 
 export interface PipelineDispatchResult {
@@ -41,15 +44,25 @@ function createCommandContext(
   nowMs: number,
   randomSeed: string,
 ): CommandContext {
-  if (request.actor.kind === 'system' && request.controlledSeat !== null) {
-    throw new Error('System commands cannot specify controlledSeat');
-  }
-  return {
-    actor: request.actor,
-    controlledSeat: request.controlledSeat,
+  const execution = {
     nowMs,
     commandId: request.commandId,
     randomSeed,
+  };
+  if (request.actor.kind === 'system') {
+    if (request.controlledSeat !== null) {
+      throw new Error('System commands cannot specify controlledSeat');
+    }
+    return {
+      ...execution,
+      actor: request.actor,
+      controlledSeat: null,
+    };
+  }
+  return {
+    ...execution,
+    actor: request.actor,
+    controlledSeat: request.controlledSeat,
   };
 }
 
@@ -57,9 +70,11 @@ function buildOutboxEffects(
   room: StoredRoomRow,
   request: DispatchRoomCommand,
   decision: RuntimeCommittedDecision,
+  module: RuntimeWorkerGameModule,
   nowMs: number,
 ): readonly NewOutboxEffect[] {
   const actorUserId = request.actor.kind === 'user' ? request.actor.userId : null;
+  const createdRevision = getCommittedRevision(room, decision.hasStateEvents);
   const platformEffects = derivePlatformRoomEffects({
     roomCode: room.roomCode,
     actorUserId,
@@ -67,21 +82,33 @@ function buildOutboxEffects(
     outcomeKind: decision.outcome.kind,
     previousLifecycle: decision.previousLifecycle,
     lifecycle: decision.lifecycle,
-    committedRevision: getCommittedRevision(room, decision.hasStateEvents),
+    committedRevision: createdRevision,
     nowMs,
   });
   const scopedEffects: readonly {
     readonly scope: 'platform' | 'game';
     readonly effect: GameEffect;
+    readonly businessKey: string;
   }[] = [
-    ...platformEffects.map((effect) => ({ scope: 'platform' as const, effect })),
-    ...decision.effects.map((effect) => ({ scope: 'game' as const, effect })),
+    ...platformEffects.map((effect) => ({
+      scope: 'platform' as const,
+      effect,
+      businessKey: getPlatformRoomEffectBusinessKey(effect),
+    })),
+    ...decision.effects.map((effect) => ({
+      scope: 'game' as const,
+      effect,
+      businessKey: module.getEffectBusinessKey(effect, {
+        originCommandId: request.commandId,
+        createdRevision,
+      }),
+    })),
   ];
-  return scopedEffects.map(({ scope, effect }, index) => {
+  return scopedEffects.map(({ scope, effect, businessKey }, index) => {
     const id = `${room.roomCode}:${request.commandId}:${index}`;
     return {
       id,
-      businessKey: id,
+      businessKey,
       scope,
       gameType: room.gameType,
       effect,
@@ -104,6 +131,7 @@ function rejectedPipelineResult(commandId: string, reason: string): PipelineDisp
 /** Execute one command and atomically persist its receipt, state, effects, and alarm. */
 export async function dispatchRoomCommand(
   repository: RoomRepository,
+  resolveGameModule: WorkerGameModuleResolver,
   request: DispatchRoomCommand,
   nowMs: number,
 ): Promise<PipelineDispatchResult> {
@@ -122,7 +150,7 @@ export async function dispatchRoomCommand(
   }
 
   repository.deleteExpiredReceipts(nowMs);
-  const module = getWorkerGameModule(room.gameType);
+  const module = resolveGameModule(room.gameType);
   const requestJson = serializeCommandRequest(request);
   const receipt = repository.readReceipt(request, requestJson, room, module);
   if (receipt === 'conflict') {
@@ -170,7 +198,7 @@ export async function dispatchRoomCommand(
     revision,
     outcome: decision.outcome,
   });
-  const effects = buildOutboxEffects(room, request, decision, nowMs);
+  const effects = buildOutboxEffects(room, request, decision, module, nowMs);
   await repository.persist({
     previous: room,
     state: decision.state,

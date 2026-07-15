@@ -1,0 +1,293 @@
+import type { FibState } from '@werewolf/game-engine/games/fibking/public';
+
+import {
+  createFibBottomActions,
+  createFibRoomCapabilities,
+  createFibSeatDataSource,
+  createFibStatusRibbon,
+  getFibProfileTarget,
+} from '@/games/fibking/room/fibRoomAdapter';
+import { TESTIDS } from '@/testids';
+
+const callbacks = {
+  requestTakeSeat: jest.fn(),
+  requestMoveSeat: jest.fn(),
+  requestLeaveSeat: jest.fn(),
+  kickSeat: jest.fn(),
+  clearSeats: jest.fn(),
+  fillBots: jest.fn(),
+  configureGame: jest.fn(),
+  openProfile: jest.fn(),
+  takeOverBot: jest.fn(),
+  shareRoom: jest.fn(),
+};
+
+function createLobby(numberOfPlayers = 8): Extract<FibState, { phase: 'lobby' }> {
+  return {
+    gameType: 'fibking',
+    stateVersion: 1,
+    roomCode: '4321',
+    hostUserId: 'host',
+    phase: 'lobby',
+    numberOfPlayers,
+    realSeats: {
+      0: {
+        userId: 'host',
+        seat: 0,
+        profile: { displayName: '房主' },
+      },
+    },
+    fillEmptySeatsWithBots: false,
+    usedWords: [],
+    pendingRound: null,
+    round: null,
+  };
+}
+
+function createOngoing(): Extract<FibState, { phase: 'ongoing' }> {
+  return {
+    ...createLobby(4),
+    phase: 'ongoing',
+    fillEmptySeatsWithBots: true,
+    usedWords: ['山谷'],
+    pendingRound: null,
+    round: {
+      roundId: 'round-1',
+      word: '山谷',
+      definition: '两山之间低洼狭长的地带',
+      source: 'local',
+      roles: { guesserSeat: 1, honestSeat: 2 },
+    },
+  };
+}
+
+describe('FibKing room adapter', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('derives shared lobby operations without a Fib-specific header implementation', () => {
+    const state = createLobby();
+    const capabilities = createFibRoomCapabilities({
+      state,
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+
+    expect(capabilities.canMoveSeat.isAllowed).toBe(true);
+    expect(capabilities.canLeaveSeat.isAllowed).toBe(true);
+    expect(capabilities.canKickSeat.isAllowed).toBe(true);
+    expect(capabilities.canClearSeats.isAllowed).toBe(true);
+    expect(capabilities.canFillBots.isAllowed).toBe(true);
+    expect(capabilities.canConfigureGame.isAllowed).toBe(true);
+    expect(capabilities.canShareRoom.isAllowed).toBe(true);
+    expect(capabilities.canTakeOverBots.isAllowed).toBe(false);
+  });
+
+  it('locks seat mutation during a round while retaining profile and bot-control capabilities', () => {
+    const capabilities = createFibRoomCapabilities({
+      state: createOngoing(),
+      isHost: true,
+      mySeat: 0,
+      ...callbacks,
+    });
+
+    expect(capabilities.canTakeSeat.isAllowed).toBe(false);
+    expect(capabilities.canMoveSeat.isAllowed).toBe(false);
+    expect(capabilities.canLeaveSeat.isAllowed).toBe(false);
+    expect(capabilities.canKickSeat.isAllowed).toBe(false);
+    expect(capabilities.canClearSeats.isAllowed).toBe(false);
+    expect(capabilities.canFillBots.isAllowed).toBe(false);
+    expect(capabilities.canConfigureGame.isAllowed).toBe(false);
+    expect(capabilities.canViewProfiles.isAllowed).toBe(true);
+    expect(capabilities.canTakeOverBots.isAllowed).toBe(true);
+  });
+
+  it('projects sparse human seats and implicit bots without materializing the configured count', () => {
+    const state = {
+      ...createLobby(Number.MAX_SAFE_INTEGER),
+      fillEmptySeatsWithBots: true,
+    } satisfies FibState;
+    const source = createFibSeatDataSource({
+      state,
+      revision: 7,
+      myUserId: 'host',
+      controlledSeat: Number.MAX_SAFE_INTEGER - 1,
+    });
+
+    expect(source.count).toBe(Number.MAX_SAFE_INTEGER);
+    expect(source.getSeat(0)).toMatchObject({
+      player: { kind: 'human', userId: 'host' },
+      isSelf: true,
+    });
+    expect(source.getSeat(Number.MAX_SAFE_INTEGER - 1)).toMatchObject({
+      player: { kind: 'bot' },
+      highlight: 'controlled',
+    });
+    expect(Object.keys(state.realSeats)).toEqual(['0']);
+  });
+
+  it('reveals only the public guesser label during play and every role after reveal', () => {
+    const ongoing = createOngoing();
+    const ongoingSource = createFibSeatDataSource({
+      state: ongoing,
+      revision: 1,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+    expect(ongoingSource.getSeat(1).secondaryLabel).toBe('大聪明');
+    expect(ongoingSource.getSeat(2).secondaryLabel).toBeNull();
+    expect(ongoingSource.getSeat(3).secondaryLabel).toBeNull();
+
+    const ended = { ...ongoing, phase: 'ended' as const };
+    const endedSource = createFibSeatDataSource({
+      state: ended,
+      revision: 2,
+      myUserId: 'host',
+      controlledSeat: null,
+    });
+    expect(endedSource.getSeat(1).secondaryLabel).toBe('大聪明');
+    expect(endedSource.getSeat(2).secondaryLabel).toBe('老实人');
+    expect(endedSource.getSeat(3).secondaryLabel).toBe('瞎掰王');
+  });
+
+  it('represents implicit bots as profile targets without treating them as kickable humans', () => {
+    const ongoing = createOngoing();
+    expect(getFibProfileTarget(ongoing, 0)).toEqual({
+      seat: 0,
+      userId: 'host',
+      occupantKind: 'human',
+      rosterName: '房主',
+    });
+    expect(getFibProfileTarget(ongoing, 3)).toEqual({
+      seat: 3,
+      userId: 'fib-bot:4321:3',
+      occupantKind: 'bot',
+      rosterName: '机器人4号',
+    });
+  });
+
+  it('uses next round as the sole ended host progression action', () => {
+    const ongoing = createOngoing();
+    const ended = { ...ongoing, phase: 'ended' as const };
+    const actions = createFibBottomActions({
+      state: ended,
+      isHost: true,
+      hasPerspective: true,
+      startRound: jest.fn(),
+      cancelPreparing: jest.fn(),
+      revealRound: jest.fn(),
+      openIdentity: jest.fn(),
+      configureGame: jest.fn(),
+      onStartDisabled: jest.fn(),
+    });
+
+    expect(actions.layout.primary).toMatchObject([
+      { label: '下一轮', testID: TESTIDS.fibNextRoundButton, isEnabled: true },
+    ]);
+    expect(actions.layout.secondary).toMatchObject([
+      { label: '查看结果', testID: TESTIDS.fibViewResultButton, isEnabled: true },
+    ]);
+    expect(JSON.stringify(actions)).not.toContain('重新开始');
+    expect(createFibStatusRibbon(ended)).toMatchObject({ text: '本轮答案已公布' });
+  });
+
+  it('derives the complete host bottom-action matrix from Fib phases', () => {
+    const startRound = jest.fn();
+    const cancelPreparing = jest.fn();
+    const revealRound = jest.fn();
+    const openIdentity = jest.fn();
+    const configureGame = jest.fn();
+    const onStartDisabled = jest.fn();
+    const common = {
+      isHost: true,
+      hasPerspective: true,
+      startRound,
+      cancelPreparing,
+      revealRound,
+      openIdentity,
+      configureGame,
+      onStartDisabled,
+    };
+
+    const lobby = createFibBottomActions({ state: createLobby(), ...common });
+    expect(lobby.layout.primary).toMatchObject([
+      {
+        label: '开始本轮',
+        testID: TESTIDS.fibStartRoundButton,
+        isEnabled: false,
+        disabledReason: '座位尚未坐满',
+      },
+    ]);
+    expect(lobby.layout.ghost).toMatchObject([
+      { label: '房间设置', testID: TESTIDS.fibConfigureButton, isEnabled: true },
+    ]);
+
+    const ongoing = createOngoing();
+    const preparing: FibState = {
+      ...createLobby(4),
+      phase: 'preparing',
+      fillEmptySeatsWithBots: true,
+      pendingRound: { roundId: 'round-1', requestedAt: 1 },
+      round: null,
+    };
+    const preparingActions = createFibBottomActions({ state: preparing, ...common });
+    expect(preparingActions.layout.ghost).toMatchObject([
+      {
+        label: '取消准备',
+        testID: TESTIDS.fibCancelPreparingButton,
+        isEnabled: true,
+      },
+    ]);
+
+    const ongoingActions = createFibBottomActions({ state: ongoing, ...common });
+    expect(ongoingActions.layout.primary).toMatchObject([
+      {
+        label: '公布答案',
+        testID: TESTIDS.fibRevealRoundButton,
+        isEnabled: true,
+      },
+    ]);
+    expect(ongoingActions.layout.secondary).toMatchObject([
+      {
+        label: '查看身份',
+        testID: TESTIDS.fibViewIdentityButton,
+        isEnabled: true,
+      },
+    ]);
+  });
+
+  it('does not expose host progression actions to a non-host', () => {
+    const callbacks = {
+      startRound: jest.fn(),
+      cancelPreparing: jest.fn(),
+      revealRound: jest.fn(),
+      openIdentity: jest.fn(),
+      configureGame: jest.fn(),
+      onStartDisabled: jest.fn(),
+    };
+
+    const lobby = createFibBottomActions({
+      state: createLobby(),
+      isHost: false,
+      hasPerspective: false,
+      ...callbacks,
+    });
+    expect(lobby.layout).toEqual({ primary: [], secondary: [], ghost: [] });
+    expect(lobby.message).toBe('等待房主开始本轮');
+
+    const ongoing = createFibBottomActions({
+      state: createOngoing(),
+      isHost: false,
+      hasPerspective: true,
+      ...callbacks,
+    });
+    expect(ongoing.layout.primary).toEqual([]);
+    expect(ongoing.layout.secondary).toMatchObject([
+      {
+        label: '查看身份',
+        testID: TESTIDS.fibViewIdentityButton,
+        isEnabled: true,
+      },
+    ]);
+  });
+});

@@ -8,6 +8,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { UI_ICONS } from '@/config/iconTokens';
 import { formatRoomSeat } from '@/features/room/model/RoomSeatDataSource';
 import type { RoomControlledSeatModel } from '@/features/room/model/RoomShellModel';
+import { TESTIDS } from '@/testids';
 import { typography } from '@/theme';
 
 import type { ControlledSeatBannerStyles } from './styles';
@@ -32,12 +33,17 @@ const ControlledSeatBannerComponent: React.FC<ControlledSeatBannerProps> = ({ mo
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID={TESTIDS.controlledSeatBanner}>
       <Text style={styles.text}>
         <Ionicons name={UI_ICONS.GAMEPAD} size={typography.secondary} />
         {` 正在操控 ${formatRoomSeat(model.seat)} 位（${model.displayName}）`}
       </Text>
-      <TouchableOpacity style={styles.releaseButton} onPress={model.onRelease}>
+      <TouchableOpacity
+        style={styles.releaseButton}
+        onPress={model.onRelease}
+        testID={TESTIDS.controlledSeatReleaseButton}
+        accessibilityLabel="退出机器人接管"
+      >
         <Text style={styles.releaseButtonText}>退出</Text>
       </TouchableOpacity>
     </View>

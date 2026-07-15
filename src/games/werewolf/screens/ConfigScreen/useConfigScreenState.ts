@@ -25,10 +25,8 @@ import { hasPreviousRouteInCurrentNavigator } from '@/features/navigation/model/
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';
 import type { WerewolfConfigStackParamList } from '@/games/werewolf/navigation/types';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
-import { useCreateRoom } from '@/hooks/mutations/useRoomMutations';
-import { addRecentRoom } from '@/lib/recentRooms';
+import { useCreateRoomSaga } from '@/hooks/mutations/useRoomMutations';
 import type { SettingsService } from '@/services/feature/SettingsService';
-import type { IRoomDirectoryService } from '@/services/types/IRoomDirectoryService';
 import { colors } from '@/theme';
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';
@@ -58,7 +56,6 @@ interface UseConfigScreenStateParams {
   navigation: ConfigNavigationProp;
   facade: WerewolfGameClient;
   settingsService: SettingsService;
-  roomDirectory: IRoomDirectoryService;
   onExitFlow: () => void;
   onReturnToRoom: (roomCode: string) => void;
   onRoomCreated: (roomCode: string) => void;
@@ -76,7 +73,6 @@ export function useConfigScreenState({
   navigation,
   facade,
   settingsService,
-  roomDirectory,
   onExitFlow,
   onReturnToRoom,
   onRoomCreated,
@@ -259,7 +255,7 @@ export function useConfigScreenState({
     setRules(newRules);
   }, []);
 
-  const { mutateAsync: createRoom } = useCreateRoom();
+  const { createRoom } = useCreateRoomSaga();
   const creatingRef = useRef(false);
   const handleCreateRoom = useCallback(async () => {
     if (creatingRef.current || isLoading) return;
@@ -324,8 +320,6 @@ export function useConfigScreenState({
           },
         });
         const roomCode = record.roomCode;
-        addRecentRoom(roomCode);
-        roomDirectory.acknowledgeRoomCreation(record.creationId);
         onRoomCreated(roomCode);
       }
     } catch (e) {
@@ -347,7 +341,6 @@ export function useConfigScreenState({
     settingsService,
     bgmEnabled,
     isLoading,
-    roomDirectory,
     createRoom,
     variantOverrides,
     rules,

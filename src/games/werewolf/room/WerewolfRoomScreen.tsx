@@ -29,10 +29,7 @@ import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';
 import { BOARD_STRATEGY, BoardStrategyModal } from '@/games/werewolf/components/BoardStrategy';
 import { RoleCardSimple } from '@/games/werewolf/components/RoleCardSimple';
 import { useSkiaShaderWarmup } from '@/games/werewolf/components/SkiaShaderWarmup';
-import {
-  resolveWerewolfBuiltinAvatarName,
-  WerewolfProfileDetails,
-} from '@/games/werewolf/components/WerewolfProfileDetails';
+import { WerewolfProfileDetails } from '@/games/werewolf/components/WerewolfProfileDetails';
 import type { WerewolfGameClient } from '@/games/werewolf/runtime/WerewolfGameClient';
 import { askAIAboutRole } from '@/games/werewolf/services/aiChatBridge';
 import { isAIChatReady } from '@/games/werewolf/services/AIChatService';
@@ -520,7 +517,6 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         !profileSelection.isSelf && capabilities.canKickSeat.isAllowed ? handleProfileKick : null,
       onLeaveSeat:
         profileSelection.isSelf && capabilities.canLeaveSeat.isAllowed ? handleProfileLeave : null,
-      resolveBuiltinAvatarName: resolveWerewolfBuiltinAvatarName,
       gameDetails: {
         title: '阵营分布',
         content: <WerewolfProfileDetails userId={profileSelection.target.userId} />,
@@ -556,7 +552,7 @@ export const WerewolfRoomContent: React.FC<WerewolfRoomContentProps> = ({
         visuallyDisabled:
           (roomStatus === GameStatus.Ongoing && isAudioPlaying) || isActionSubmitting,
         onSeatPress: onSeatTapped,
-        onSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPressed : null,
+        onBotSeatLongPress: capabilities.canTakeOverBots.isAllowed ? onSeatLongPressed : null,
       },
       seatConfirmation,
       profile,

@@ -98,7 +98,7 @@ test.describe('Room Lifecycle', () => {
 
     try {
       const home = new HomePage(page);
-      await home.clickCreateRoom();
+      await home.clickCreateRoom('werewolf');
 
       const { BoardPickerPage } = await import('../pages/BoardPickerPage');
       const bp = new BoardPickerPage(page);

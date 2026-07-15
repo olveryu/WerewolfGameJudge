@@ -6,9 +6,11 @@ import type {
   WerewolfInternalCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { z } from 'zod';
 
 import { settleGameResults } from '../../growth/settleGameResults';
+import { createEffectCommandId } from '../effectCommandId';
 import type { WorkerEffectContext } from '../workerModule';
 
 const roleIdSchema = z.custom<RoleId>(
@@ -31,22 +33,17 @@ export const werewolfEffectSchema: z.ZodType<WerewolfEffect> = z.strictObject({
   }),
 });
 
-async function sha256Hex(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-}
-
 async function createApplyRosterCommandId(effectId: string): Promise<string> {
-  return `werewolf:growth:${await sha256Hex(effectId)}`;
+  return createEffectCommandId('werewolf:growth', effectId);
 }
 
 async function handleGameEnded(
   effect: WerewolfGameEndedEffect,
-  context: WorkerEffectContext<WerewolfInternalCommand>,
+  context: WorkerEffectContext<GameState, WerewolfInternalCommand>,
 ): Promise<void> {
-  if (effect.payload.roomCode !== context.roomCode) {
+  if (effect.payload.roomCode !== context.roomIdentity.roomCode) {
     throw new Error(
-      `[FAIL-FAST] Werewolf game-ended effect room ${effect.payload.roomCode} does not match ${context.roomCode}`,
+      `[FAIL-FAST] Werewolf game-ended effect room ${effect.payload.roomCode} does not match ${context.roomIdentity.roomCode}`,
     );
   }
 
@@ -78,7 +75,7 @@ async function handleGameEnded(
       eventId,
       gameType: 'werewolf',
       settlementId: context.effectId,
-      endedRevision: context.revision,
+      endedRevision: context.createdRevision,
       xpEarned: result.xpEarned,
       newXp: result.newXp,
       newLevel: result.newLevel,
@@ -91,7 +88,7 @@ async function handleGameEnded(
 
 export async function handleWerewolfEffect(
   effect: WerewolfEffect,
-  context: WorkerEffectContext<WerewolfInternalCommand>,
+  context: WorkerEffectContext<GameState, WerewolfInternalCommand>,
 ): Promise<void> {
   await handleGameEnded(effect, context);
 }

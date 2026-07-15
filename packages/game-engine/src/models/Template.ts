@@ -47,7 +47,7 @@ export const MINIMUM_PLAYERS = 1;
  * Validate a list of roles for template creation.
  * Returns null if valid, otherwise a human-readable reason string.
  */
-export function validateTemplateRoles(roles: RoleId[]): string | null {
+export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   // Rule 1: must have at least MINIMUM_PLAYERS (actual players, excluding bottom cards)
   const playerCount = getPlayerCount(roles);
   if (playerCount < MINIMUM_PLAYERS) {

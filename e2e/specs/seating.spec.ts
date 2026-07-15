@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 
+import { TESTIDS } from '../../src/testids';
 import { closeAll, createPlayerContexts } from '../fixtures/app.fixture';
 import { enterRoomCodeViaNumPad, startRoomCreation } from '../helpers/home';
 import { getVisibleText } from '../helpers/ui';
@@ -166,7 +167,7 @@ test.describe('Seating', () => {
 
       // Joiner takes seat 2 instead
       await roomB.seatAt(1);
-      await expect(pageB.locator('[data-testid="my-seat-badge"]')).toBeVisible({ timeout: 3000 });
+      await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).toBeVisible({ timeout: 3000 });
 
       // Host should see seat 2 occupied
       const hostSeat2 = await pollSeatOccupied(roomA, 2);
@@ -225,7 +226,7 @@ test.describe('Seating', () => {
       expect(hostSeat2After.isEmpty, 'Kicked seat should be empty').toBe(true);
 
       // Joiner sees their seat badge disappear (kicked)
-      await expect(pageB.locator('[data-testid="my-seat-badge"]')).not.toBeVisible({
+      await expect(pageB.getByTestId(TESTIDS.mySeatBadge)).not.toBeVisible({
         timeout: 10_000,
       });
 

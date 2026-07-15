@@ -1,4 +1,4 @@
-import type { WerewolfProfileUpdate } from '@werewolf/game-engine/games/werewolf/public';
+import { resolveRandomAnimation } from '@werewolf/game-engine/growth/revealEffect';
 import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
 import type { GameState } from '@werewolf/game-engine/protocol/types';
 
@@ -36,9 +36,6 @@ function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> 
 }
 
 function createClient(isSeated: boolean) {
-  const updatePlayerProfile = jest.fn<Promise<{ success: true }>, [WerewolfProfileUpdate]>(
-    async () => ({ success: true }),
-  );
   const dispatch = jest.fn(async () => ({
     kind: 'decided' as const,
     decision: {
@@ -54,9 +51,8 @@ function createClient(isSeated: boolean) {
     dispatch,
   };
   return {
-    client: { roomSession, updatePlayerProfile } as unknown as WerewolfGameClient,
+    client: { roomSession } as unknown as WerewolfGameClient,
     dispatch,
-    updatePlayerProfile,
   };
 }
 
@@ -75,20 +71,26 @@ describe('WerewolfRoomAccountCapability', () => {
   });
 
   it('maps the neutral profile patch to one Werewolf profile command', async () => {
-    const { client, updatePlayerProfile } = createClient(true);
+    const { client, dispatch } = createClient(true);
     const capability = new WerewolfRoomAccountCapability(client);
 
     await capability.updateProfile({ displayName: 'Alice', revealEffect: 'roulette' });
 
-    expect(updatePlayerProfile).toHaveBeenCalledWith({
-      displayName: 'Alice',
-      avatarUrl: undefined,
-      avatarFrame: undefined,
-      seatFlair: undefined,
-      nameStyle: undefined,
-      roleRevealEffect: 'roulette',
-      seatAnimation: undefined,
-    });
+    expect(dispatch).toHaveBeenCalledWith(
+      {
+        type: 'room.profile.update',
+        profile: {
+          displayName: 'Alice',
+          avatarUrl: undefined,
+          avatarFrame: undefined,
+          seatFlair: undefined,
+          nameStyle: undefined,
+          revealEffect: 'roulette',
+          seatAnimation: undefined,
+        },
+      },
+      { controlledSeat: null, label: 'updateRoomProfile' },
+    );
   });
 
   it('dispatches the canonical shared leave command', async () => {
@@ -100,6 +102,29 @@ describe('WerewolfRoomAccountCapability', () => {
     expect(dispatch).toHaveBeenCalledWith(
       { type: 'room.seat.leave' },
       { controlledSeat: null, label: 'leaveRoomSeat' },
+    );
+  });
+
+  it('resolves random reveal effects once at the shared account boundary', async () => {
+    const { client, dispatch } = createClient(true);
+    const capability = new WerewolfRoomAccountCapability(client);
+
+    await capability.updateProfile({ revealEffect: 'random' });
+
+    expect(dispatch).toHaveBeenCalledWith(
+      {
+        type: 'room.profile.update',
+        profile: {
+          displayName: undefined,
+          avatarUrl: undefined,
+          avatarFrame: undefined,
+          seatFlair: undefined,
+          nameStyle: undefined,
+          revealEffect: resolveRandomAnimation('1234u1'),
+          seatAnimation: undefined,
+        },
+      },
+      { controlledSeat: null, label: 'updateRoomProfile' },
     );
   });
 

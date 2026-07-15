@@ -1,0 +1,25 @@
+/** Worker runtime module for FibKing. */
+
+import {
+  FIB_STATE_CODEC,
+  fibEngine,
+  parseFibPublicStats,
+} from '@werewolf/game-engine/games/fibking/public';
+
+import { defineWorkerGameModule } from '../workerModule';
+import { fibEffectSchema, handleFibEffect } from './effects';
+import { fibCreateConfigSchema, fibInternalCommandSchema, fibPublicCommandSchema } from './schemas';
+
+export const fibWorkerModule = defineWorkerGameModule({
+  gameType: 'fibking',
+  engine: fibEngine,
+  stateCodec: FIB_STATE_CODEC,
+  createConfigSchema: fibCreateConfigSchema,
+  publicCommandSchema: fibPublicCommandSchema,
+  internalCommandSchema: fibInternalCommandSchema,
+  effectSchema: fibEffectSchema,
+  parsePublicUserStats: parseFibPublicStats,
+  getPublicUserStats: () => Promise.resolve({ gameType: 'fibking' }),
+  getEffectBusinessKey: (effect) => effect.payload.roundId,
+  handleEffect: handleFibEffect,
+});

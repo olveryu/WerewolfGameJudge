@@ -15,6 +15,7 @@ import { storage } from '@/lib/storage';
 
 import {
   BUBBLE_HEIGHT,
+  BUBBLE_HORIZONTAL_MARGIN,
   BUBBLE_MARGIN,
   BUBBLE_WIDTH,
   getDefaultPosition,
@@ -70,8 +71,8 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
       const parsed = JSON.parse(saved) as { x: number; y: number };
       // Clamp to current screen bounds (screen may have rotated since save)
       const clampedX = Math.max(
-        BUBBLE_MARGIN,
-        Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN, parsed.x),
+        BUBBLE_HORIZONTAL_MARGIN,
+        Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN, parsed.x),
       );
       const clampedY = Math.max(
         BUBBLE_MARGIN + 50,
@@ -122,8 +123,11 @@ export function useBubbleDrag(onOpen: () => void): UseBubbleDragReturn {
         isDraggingRef.current = true;
 
         const newX = Math.max(
-          BUBBLE_MARGIN,
-          Math.min(screenWidth - BUBBLE_WIDTH - BUBBLE_MARGIN, dragStartRef.current.posX + dx),
+          BUBBLE_HORIZONTAL_MARGIN,
+          Math.min(
+            screenWidth - BUBBLE_WIDTH - BUBBLE_HORIZONTAL_MARGIN,
+            dragStartRef.current.posX + dx,
+          ),
         );
         const newY = Math.max(
           BUBBLE_MARGIN + 50,
