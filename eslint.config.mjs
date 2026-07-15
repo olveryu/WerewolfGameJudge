@@ -345,7 +345,7 @@ export default tseslint.config(
   // projectService doesn't discover non-standard tsconfig filenames;
   // explicit `project` is required per typescript-eslint docs.
   {
-    files: ['packages/api-worker/src/__tests__/**/*.ts'],
+    files: ['packages/api-worker/src/**/__tests__/**/*.ts'],
     languageOptions: {
       parserOptions: {
         projectService: false,

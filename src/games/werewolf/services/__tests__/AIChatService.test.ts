@@ -151,6 +151,10 @@ describe('AIChatService - streamChatMessage', () => {
       { type: 'delta', content: '好' },
       { type: 'done', content: '' },
     ]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://test-api.workers.dev/api/games/werewolf/ai-chat',
+      expect.objectContaining<RequestInit>({ method: 'POST' }),
+    );
   });
 
   it('skips malformed JSON chunks in SSE', async () => {

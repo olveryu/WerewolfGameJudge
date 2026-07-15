@@ -7,7 +7,7 @@ import { randomIntInclusive } from '@werewolf/game-engine/utils/random';
 import { and, eq, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
-import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from '../../db/schema';
+import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from '../../db/applicationSchema';
 import type { Env } from '../../env';
 
 const PUBLIC_ROOM_CODE_MIN = 1000;

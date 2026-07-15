@@ -1,5 +1,5 @@
 /**
- * Werewolf API Worker -- Hono app entry point
+ * Game Judge API Worker -- Hono app entry point
  *
  * Declarative routes; CORS / error-handling middleware managed centrally.
  * Each handler file exports a Hono route group; this file composes them.
@@ -14,7 +14,7 @@
  *   POST /auth/forgot-password    -- send password reset code
  *   POST /auth/reset-password     -- reset password with code
  *   POST /room/command            -- authenticated game command API
- *   POST /gemini-proxy            -- Gemini AI proxy
+ *   POST /api/games/werewolf/ai-chat -- Werewolf AI assistant
  *   GET  /health                  -- health check
  */
 
@@ -33,13 +33,13 @@ export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
 export { GameRoom } from './games/GameRoom';
 
 // Route groups
+import { werewolfAiChatRoutes } from './games/werewolf/aiChat/routes';
 import { adminRoutes } from './handlers/adminHandlers';
 import { authRoutes } from './handlers/authHandlers';
 import { avatarRoutes } from './handlers/avatarUpload';
 import { runScheduledCron } from './handlers/cronHandlers';
 import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
 import { gachaRoutes } from './handlers/gachaHandlers';
-import { geminiRoutes } from './handlers/geminiProxy';
 import { roomRoutes } from './handlers/roomHandlers';
 import { callDO } from './handlers/shared';
 import { shareRoutes } from './handlers/shareImage';
@@ -152,7 +152,7 @@ app.get('/ws', async (c) => {
 app.route('/admin', adminRoutes);
 app.route('/auth', authRoutes);
 app.route('/room', roomRoutes);
-app.route('/gemini-proxy', geminiRoutes);
+app.route('/api/games/werewolf/ai-chat', werewolfAiChatRoutes);
 app.route('/avatar', avatarRoutes);
 app.route('/share', shareRoutes);
 app.route('/api', statsRoutes);

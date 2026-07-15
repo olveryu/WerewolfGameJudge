@@ -12,10 +12,10 @@ import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/room
 import { env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { handleWerewolfEffect, werewolfEffectSchema } from '../games/werewolf/effects';
-import type { WorkerEffectContext } from '../games/workerModule';
-import { settleGameResults } from '../growth/settleGameResults';
-import { bootstrapTestSchema } from './testSchemaBootstrap';
+import { bootstrapTestSchema } from '../../../../__tests__/testSchemaBootstrap';
+import type { WorkerEffectContext } from '../../../workerModule';
+import { handleWerewolfEffect, werewolfEffectSchema } from '../../effects';
+import { settleGameResults } from '../settleGameResults';
 
 const ROLES: readonly RoleId[] = ['wolf', 'seer', 'villager', 'villager', 'villager', 'villager'];
 

@@ -4,7 +4,7 @@
 
 ### Valid Game Definition
 
-> `status === Ended` and the room has **≥ 9 distinct real players** (`uid` deduplicated, including anonymous).
+> `status === Ended` and the room has **≥ 6 distinct real players** (`userId` deduplicated, including anonymous).
 > XP is only written for registered users with `is_anonymous = 0`; anonymous players only count toward the valid game player threshold.
 
 ### Growth System
@@ -73,32 +73,32 @@ Range [50, 70], expected ~60. Early: 1 game/level, later: 2 games/level.
 
 ## 3. Server-Side Settlement
 
-`packages/api-worker/src/growth/settleGameResults.ts`
+`packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts`
 
 ### Flow
 
-1. `endNight()` handler broadcasts `END_NIGHT`, then `ctx.waitUntil(settleGameResults(state, env))`
-2. Collects non-empty non-bot player UIDs, checks `≥ MIN_PLAYERS`
-3. Queries D1 (via Drizzle ORM) to filter anonymous users
-4. Per registered player: `rollXp()` → Drizzle upsert (`onConflictDoUpdate` + `last_room_code` idempotency guard)
-5. Reads back xp → `getLevel()` → updates level → returns `PlayerSettleResult[]`
+1. Werewolf engine commits the ended state and emits `werewolf.game.ended` into the generic effect outbox.
+2. `games/werewolf/effects.ts` validates the effect/room identity and calls the game-owned settlement service.
+3. Settlement deduplicates participants, checks at least six humans, and only rewards registered users.
+4. A deterministic RNG derived from `effectId + userId + reward kind` computes XP and draw tickets.
+5. One D1 batch writes the immutable result ledger, applies `user_stats`, and records Werewolf camp history.
+6. The effect dispatches one idempotent internal roster-level command and publishes durable user events.
 
 ### Idempotency Guarantee
 
-`user_stats.last_room_code` column: `ON CONFLICT DO UPDATE`'s `WHERE` clause excludes duplicate room_code; when `meta.changes === 0`, that player is skipped.
+`game_settlement_results` uses `(effect_id, user_id)` as its primary key and stores the participant fingerprint plus the exact reward. Retries validate and return that committed result; a changed participant set or malformed ledger fails fast. `stats_applied` ensures the corresponding `user_stats` mutation is applied exactly once.
 
 ### WebSocket Unicast
 
-`GameRoom.#sendSettleResults(results)` iterates connected WebSockets, `deserializeAttachment()` reads userId, matches then sends `{ type: 'SETTLE_RESULT', xpEarned, newXp, newLevel, previousLevel }`.
+Each result is first inserted into `user_event_inbox` with deterministic event ID `${effectId}:${userId}`. The shared room runtime delivers one event at a time and deletes it only after an authenticated client ACK, so reconnects replay unacknowledged settlement notifications.
 
 ---
 
 ## 4. Client Receive Chain
 
 ```
-GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
-  → ConnectionManager.onSettleResult → GameFacade.handleSettleResult
-  → #settleResultListeners → useSettleToast → sonner-native toast
+Werewolf effect → user_event_inbox → RoomSession user-event decoder
+  → useWerewolfSettleToast → sonner-native toast + query invalidation
 ```
 
 ### Toast Display Logic (`src/games/werewolf/hooks/useWerewolfSettleToast.ts`)
@@ -137,14 +137,14 @@ GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
 
 ### user_stats (0008 + 0009 migration)
 
-| Column         | Type    | Notes                             |
-| -------------- | ------- | --------------------------------- |
-| user_id        | TEXT PK | references users(id)              |
-| xp             | INTEGER | Cumulative XP                     |
-| level          | INTEGER | Current level                     |
-| games_played   | INTEGER | Valid games count                 |
-| last_room_code | TEXT    | Idempotency guard (added in 0009) |
-| updated_at     | TEXT    | Last update time                  |
+| Column         | Type    | Notes                                                             |
+| -------------- | ------- | ----------------------------------------------------------------- |
+| user_id        | TEXT PK | references users(id)                                              |
+| xp             | INTEGER | Cumulative XP                                                     |
+| level          | INTEGER | Current level                                                     |
+| games_played   | INTEGER | Valid games count                                                 |
+| last_room_code | TEXT    | Historical product field; not the settlement idempotency boundary |
+| updated_at     | TEXT    | Last update time                                                  |
 
 ### Dropped Tables (0009 migration DROP)
 
@@ -160,7 +160,7 @@ GameRoom DO → WebSocket → CFRealtimeService.#parseMessage (SETTLE_RESULT)
 | `packages/game-engine/src/growth/level.ts`                                 | Level thresholds + `getLevel` + `getLevelProgress` + `rollXp` |
 | `packages/game-engine/src/growth/frameUnlock.ts`                           | Level reward table + unlock queries                           |
 | `packages/game-engine/src/growth/index.ts`                                 | Barrel export                                                 |
-| `packages/api-worker/src/growth/settleGameResults.ts`                      | Server-side settlement                                        |
+| `packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts`   | Werewolf server-side settlement                               |
 | `packages/api-worker/src/handlers/statsHandlers.ts`                        | GET /api/user/stats                                           |
 | `packages/api-worker/migrations/0009_simplify_growth.sql`                  | D1 migration                                                  |
 | `src/services/feature/StatsService.ts`                                     | Client stats query                                            |

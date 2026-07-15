@@ -16,7 +16,7 @@ import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
 import { createDb } from '../db';
-import { roomParticipants, rooms, users, userStats } from '../db/schema';
+import { roomParticipants, rooms, users, userStats } from '../db/applicationSchema';
 import type { AppEnv, Env } from '../env';
 import { createLogger } from '../lib/logger';
 

@@ -17,7 +17,7 @@ import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { users, userStats } from '../db/schema';
+import { users, userStats } from '../db/applicationSchema';
 import type { AppEnv } from '../env';
 import { WORKER_GAME_CATALOG } from '../games/catalog';
 import { requireAuth } from '../lib/auth';

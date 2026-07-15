@@ -40,7 +40,7 @@ import {
   users,
   userStats,
   wxClaims,
-} from '../db/schema';
+} from '../db/applicationSchema';
 import type { AppEnv, Env } from '../env';
 import {
   bumpTokenVersion,

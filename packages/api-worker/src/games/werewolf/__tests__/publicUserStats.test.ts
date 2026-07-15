@@ -9,7 +9,7 @@ import { env, SELF } from 'cloudflare:test';
 import { SignJWT } from 'jose';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { bootstrapTestSchema } from './testSchemaBootstrap';
+import { bootstrapTestSchema } from '../../../__tests__/testSchemaBootstrap';
 
 const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production');
 const TARGET_USER_ID = 'camp-stats-target-user';

@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import type { roomGameStarts } from '../../db/applicationSchema';
 import type { Env } from '../../env';
 import type { RoomEffectDirectoryIdentity } from './roomDirectory';
 import { assertRoomEffectDirectory } from './roomDirectory';
@@ -121,6 +122,12 @@ export async function handlePlatformRoomEffect(
       return;
     case 'platform.room.gameStarted': {
       const startedAt = new Date(effect.startedAtMs).toISOString();
+      const gameStart: typeof roomGameStarts.$inferInsert = {
+        effectId,
+        roomId: identity.roomId,
+        startedRevision: effect.startedRevision,
+        startedAt,
+      };
       await env.DB.batch([
         env.DB.prepare(
           `INSERT INTO room_game_starts (
@@ -134,10 +141,10 @@ export async function handlePlatformRoomEffect(
           WHERE id = ? AND code = ? AND creation_id = ?
           ON CONFLICT DO NOTHING`,
         ).bind(
-          effectId,
-          effect.startedRevision,
-          startedAt,
-          identity.roomId,
+          gameStart.effectId,
+          gameStart.startedRevision,
+          gameStart.startedAt,
+          gameStart.roomId,
           identity.roomCode,
           identity.creationId,
         ),

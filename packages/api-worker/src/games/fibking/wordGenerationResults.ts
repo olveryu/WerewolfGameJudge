@@ -9,10 +9,24 @@ import { z } from 'zod';
 
 import { sha256Hex } from '../../platform/crypto/sha256Hex';
 import type { WorkerEffectRoomIdentity } from '../../platform/room/runtimeGameModule';
+import type { fibWordGenerationResults } from './dbSchema';
 import { parseFibWordCandidate } from './wordProviders/candidate';
 import type { FibWordCandidate, FibWordProvider } from './wordProviders/types';
 
-const fibWordGenerationResultRowSchema = z.strictObject({
+type FibWordGenerationResult = typeof fibWordGenerationResults.$inferSelect;
+
+interface RawFibWordGenerationResultRow {
+  readonly room_id: FibWordGenerationResult['roomId'];
+  readonly room_creation_id: FibWordGenerationResult['roomCreationId'];
+  readonly effect_id: FibWordGenerationResult['effectId'];
+  readonly round_id: FibWordGenerationResult['roundId'];
+  readonly request_fingerprint: FibWordGenerationResult['requestFingerprint'];
+  readonly word: FibWordGenerationResult['word'];
+  readonly definition: FibWordGenerationResult['definition'];
+  readonly source: FibWordGenerationResult['source'];
+}
+
+const fibWordGenerationResultRowSchema: z.ZodType<RawFibWordGenerationResultRow> = z.strictObject({
   room_id: z.string().min(1),
   room_creation_id: z.string().min(1),
   effect_id: z.string().min(1),

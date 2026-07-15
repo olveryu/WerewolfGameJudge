@@ -73,23 +73,23 @@ Introduce gacha mechanism:
 
 ```
 Game ends
-  → GameRoom DO #settleIfEnded()
-    → settleGameResults() [packages/api-worker/src/growth/settleGameResults.ts]
-      → per player: rollXp() → Drizzle upsert → check level up → pickRandomReward()
-    → #sendSettleResults() — WebSocket unicast SETTLE_RESULT
-    → #updateRosterLevels() — broadcast UPDATE_ROSTER_LEVELS action
+  → generic effect outbox commits werewolf.game.ended
+    → Werewolf effect handler
+      → settleGameResults() [packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts]
+      → effect-idempotent D1 ledger + user_stats + camp history
+      → internal roster-level command
+      → durable user_event_inbox SETTLE_RESULT
 
 Client
-  → CFRealtimeService parses SETTLE_RESULT
-    → facade.handleSettleResult()
-      → useSettleToast hook shows toast
+  → shared RoomSession decodes the acknowledged user event
+    → useWerewolfSettleToast shows toast and invalidates product queries
 ```
 
 **Key change point**: `settleGameResults()` no longer calls `pickRandomReward()`, instead increments ticket count.
 
 ### 2.4 D1 Schema
 
-**File**: `packages/api-worker/src/db/schema.ts`
+**File**: `packages/api-worker/src/db/applicationSchema.ts`
 
 ```
 user_stats:
@@ -163,7 +163,7 @@ CREATE INDEX idx_draw_history_created ON draw_history(created_at);
 
 ### 3.2 Drizzle Schema Update
 
-`packages/api-worker/src/db/schema.ts` — `userStats` table gains 4 columns:
+`packages/api-worker/src/db/applicationSchema.ts` — `userStats` table gains 4 columns:
 
 ```typescript
 export const userStats = sqliteTable('user_stats', {
@@ -210,22 +210,27 @@ export interface RewardItem {
 
 Each entry in `REWARD_POOL` gains a `rarity` field. Specific distribution in §5.
 
-### 3.4 SettleResultMessage Changes
+### 3.4 Werewolf Settlement Event
 
-`src/services/types/IRealtimeTransport.ts`:
+`src/games/werewolf/realtime/werewolfUserEventCodec.ts`:
 
 ```typescript
-export interface SettleResultMessage {
+export interface WerewolfSettlementEvent {
+  type: 'SETTLE_RESULT';
+  eventId: string;
+  gameType: 'werewolf';
+  settlementId: string;
+  endedRevision: number;
   xpEarned: number;
   newXp: number;
   newLevel: number;
   previousLevel: number;
-  normalDrawsEarned: number; // usually = 1 (valid game)
-  goldenDrawsEarned: number; // = 1 on level-up (0 otherwise)
+  normalDrawsEarned: number;
+  goldenDrawsEarned: number;
 }
 ```
 
-`reward` field removed outright (Web client + Worker deploy atomically, no old/new version coexistence).
+`reward` field was removed outright. The Worker and client use one strict game-owned event shape; no old/new version coexistence.
 
 ---
 
@@ -477,7 +482,7 @@ Full collection of 563 items: ~2000+ games (normal draws only, excluding golden 
 
 ```typescript
 export interface PlayerSettleResult {
-  uid: string;
+  userId: string;
   xpEarned: number;
   newXp: number;
   newLevel: number;
@@ -488,7 +493,7 @@ export interface PlayerSettleResult {
 }
 ```
 
-**`#sendSettleResults` changes**: WebSocket message adds `normalDrawsEarned` / `goldenDrawsEarned` fields.
+**Settlement user event changes**: the Werewolf effect publishes `normalDrawsEarned` / `goldenDrawsEarned` through the durable user inbox.
 
 ### 6.2 New Gacha API: `gachaHandlers.ts`
 
@@ -680,7 +685,7 @@ Normal (every game has normal ticket) → "+55 XP · 获得抽奖券"
 
 **SettleResultMessage interface changes**: Directly replaced with §3.4 definition (remove `reward` field, `normalDrawsEarned`/`goldenDrawsEarned` are required).
 
-**CFRealtimeService parsing changes**: Parse new fields, remove old `reward` parsing logic.
+**RoomSession parsing changes**: the Werewolf user-event codec parses the required ticket fields and rejects malformed payloads.
 
 ### 7.2 New Gacha Service
 
@@ -902,7 +907,7 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **Changed files**:
 
-- `packages/api-worker/src/db/schema.ts` — add 4 columns + drawHistory table
+- `packages/api-worker/src/db/applicationSchema.ts` — add 4 columns + drawHistory table
 
 **Impact analysis**:
 
@@ -914,16 +919,16 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **Changed files**:
 
-- `packages/api-worker/src/growth/settleGameResults.ts` — Remove `pickRandomReward` call, replace with ticket accumulation
-- `packages/api-worker/src/durableObjects/GameRoom.ts` — `#sendSettleResults` adds fields
-- `src/services/types/IRealtimeTransport.ts` — `SettleResultMessage` replaced with ticket count fields (remove `reward`)
-- `src/services/cloudflare/CFRealtimeService.ts` — Parse new fields
+- `packages/api-worker/src/games/werewolf/settlement/settleGameResults.ts` — remove `pickRandomReward` call, replace with ticket accumulation
+- `packages/api-worker/src/games/werewolf/effects.ts` — publish durable settlement events with ticket fields
+- `src/games/werewolf/realtime/werewolfUserEventCodec.ts` — parse the game-owned settlement event
+- `src/features/room/session/RoomSession.ts` — deliver and acknowledge durable user events
 - `src/games/werewolf/hooks/useWerewolfSettleToast.ts` — Display changed to ticket notification
 
 **Impact analysis**:
 
 - `PlayerSettleResult` interface change: `reward` → `normalDrawsEarned` / `goldenDrawsEarned`
-- Consumers: `#sendSettleResults`, `#updateRosterLevels` — former needs change, latter unaffected
+- Consumers: Werewolf internal roster-level command and durable user-event publisher
 - `getRewardDisplayName` function no longer needed (delete)
 - `useSettleToast`'s `showSettleToast` logic rewritten
 

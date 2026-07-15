@@ -27,7 +27,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { drawHistory, idempotencyKeys, userStats } from '../db/schema';
+import { drawHistory, idempotencyKeys, userStats } from '../db/applicationSchema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';

@@ -14,19 +14,16 @@ import type { BaseGameState } from '@werewolf/game-engine/platform/protocol/room
 import { env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { handleFibGenerateWordEffect } from '../games/fibking/effects';
-import { createConfiguredFibWordProvider } from '../games/fibking/wordProviders';
-import {
-  FIB_WORD_JSON_SCHEMA,
-  parseFibWordCandidate,
-} from '../games/fibking/wordProviders/candidate';
-import { createGeminiFibWordProvider } from '../games/fibking/wordProviders/gemini';
-import { createLocalFibWordProvider } from '../games/fibking/wordProviders/local';
-import { LOCAL_FIB_WORD_BANK } from '../games/fibking/wordProviders/localWordBank';
-import type { FibWordProvider } from '../games/fibking/wordProviders/types';
-import { createWorkersAiFibWordProvider } from '../games/fibking/wordProviders/workersAi';
-import type { WorkerEffectContext } from '../games/workerModule';
-import { bootstrapTestSchema } from './testSchemaBootstrap';
+import { bootstrapTestSchema } from '../../../../__tests__/testSchemaBootstrap';
+import type { WorkerEffectContext } from '../../../workerModule';
+import { handleFibGenerateWordEffect } from '../../effects';
+import { createConfiguredFibWordProvider } from '..';
+import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidate } from '../candidate';
+import { createGeminiFibWordProvider } from '../gemini';
+import { createLocalFibWordProvider } from '../local';
+import { LOCAL_FIB_WORD_BANK } from '../localWordBank';
+import type { FibWordProvider } from '../types';
+import { createWorkersAiFibWordProvider } from '../workersAi';
 
 const ROOM_ID = 'fib-provider-room';
 const ROOM_CODE = '9876';

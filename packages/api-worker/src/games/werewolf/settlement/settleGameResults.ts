@@ -18,6 +18,8 @@ import {
 } from '@werewolf/game-engine/growth/level';
 import { createSeededRng } from '@werewolf/game-engine/utils/random';
 
+import type { gameSettlementResults } from '../dbSchema';
+
 const MIN_HUMAN_PLAYERS = 6;
 
 interface SettlementEnv {
@@ -29,21 +31,23 @@ interface HumanParticipant {
   readonly camp: CampBucket;
 }
 
+type GameSettlementResult = typeof gameSettlementResults.$inferSelect;
+
 interface StoredSettlementResultRow {
-  effect_id: string;
-  user_id: string;
-  room_code: string;
-  participant_fingerprint: string;
-  camp: string;
-  previous_xp: number;
-  xp_earned: number;
-  new_xp: number;
-  previous_level: number;
-  new_level: number;
-  normal_draws_earned: number;
-  golden_draws_earned: number;
-  stats_applied: number;
-  settled_at: string;
+  effect_id: GameSettlementResult['effectId'];
+  user_id: GameSettlementResult['userId'];
+  room_code: GameSettlementResult['roomCode'];
+  participant_fingerprint: GameSettlementResult['participantFingerprint'];
+  camp: GameSettlementResult['camp'];
+  previous_xp: GameSettlementResult['previousXp'];
+  xp_earned: GameSettlementResult['xpEarned'];
+  new_xp: GameSettlementResult['newXp'];
+  previous_level: GameSettlementResult['previousLevel'];
+  new_level: GameSettlementResult['newLevel'];
+  normal_draws_earned: GameSettlementResult['normalDrawsEarned'];
+  golden_draws_earned: GameSettlementResult['goldenDrawsEarned'];
+  stats_applied: GameSettlementResult['statsApplied'];
+  settled_at: GameSettlementResult['settledAt'];
 }
 
 function compareUserIds(left: { readonly userId: string }, right: { readonly userId: string }) {

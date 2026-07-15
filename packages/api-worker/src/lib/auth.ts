@@ -11,7 +11,7 @@ import { createMiddleware } from 'hono/factory';
 import { jwtVerify, SignJWT } from 'jose';
 
 import { createDb } from '../db';
-import { refreshTokens, users } from '../db/schema';
+import { refreshTokens, users } from '../db/applicationSchema';
 import type { Env } from '../env';
 
 /** User info contained in JWT payload */

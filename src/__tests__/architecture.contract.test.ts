@@ -87,6 +87,26 @@ const srcFiles = getAllProductionFiles(srcDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
 const workerPlatformFiles = getAllProductionFiles(workerPlatformDir);
 const workerFiles = getAllProductionFiles(workerSrcDir);
+const workerFileSet = new Set(workerFiles);
+
+function resolveWorkerRelativeModule(importer: string, specifier: string): string | null {
+  if (!specifier.startsWith('.')) return null;
+  const base = path.resolve(path.dirname(importer), specifier);
+  const candidates = [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    path.join(base, 'index.ts'),
+    path.join(base, 'index.tsx'),
+  ];
+  const resolved = candidates.find((candidate) => workerFileSet.has(candidate));
+  if (resolved === undefined) {
+    throw new Error(
+      `[FAIL-FAST] Worker architecture test cannot resolve ${specifier} from ${path.relative(process.cwd(), importer)}`,
+    );
+  }
+  return resolved;
+}
 
 // ─── Rule 1: services/ must NOT import UI ownership roots ───────────────────
 
@@ -151,6 +171,115 @@ describe('Layer boundary: Worker platform → game composition (forbidden)', () 
       expect(violations).toEqual([]);
     },
   );
+
+  it.each(workerPlatformFiles)('%s must not reach a game implementation transitively', (entry) => {
+    const visited = new Set<string>();
+    const pending = [entry];
+    const violations: string[] = [];
+
+    while (pending.length > 0) {
+      const filePath = pending.pop();
+      if (filePath === undefined || visited.has(filePath)) continue;
+      visited.add(filePath);
+
+      const specifiers = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+      for (const specifier of specifiers) {
+        const dependency = resolveWorkerRelativeModule(filePath, specifier);
+        if (dependency === null) continue;
+        if (isPathWithin(workerGamesDir, dependency)) {
+          violations.push(path.relative(process.cwd(), dependency));
+          continue;
+        }
+        pending.push(dependency);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('Worker ownership: game-specific persistence and HTTP stay game-owned', () => {
+  const removedWorkerPaths = [
+    'packages/api-worker/src/__tests__/fibGameRoom.test.ts',
+    'packages/api-worker/src/__tests__/fibWordProvider.test.ts',
+    'packages/api-worker/src/__tests__/settleGameResults.test.ts',
+    'packages/api-worker/src/__tests__/werewolfPublicStats.test.ts',
+    'packages/api-worker/src/db/schema.ts',
+    'packages/api-worker/src/growth/settleGameResults.ts',
+    'packages/api-worker/src/handlers/geminiProxy.ts',
+    'packages/api-worker/src/schemas/gemini.ts',
+  ];
+
+  it.each(removedWorkerPaths)('%s must not exist', (relativePath) => {
+    expect(fs.existsSync(path.join(process.cwd(), relativePath))).toBe(false);
+  });
+
+  it('keeps the runtime Drizzle driver schema-free', () => {
+    const dbIndex = fs.readFileSync(path.join(workerSrcDir, 'db', 'index.ts'), 'utf-8');
+    const imports = getModuleSpecifiers(path.join(workerSrcDir, 'db', 'index.ts'), dbIndex);
+
+    expect(imports.filter((specifier) => hasPathSegment(specifier, 'games'))).toEqual([]);
+    expect(dbIndex).toContain('return drizzle(d1);');
+  });
+
+  it('keeps game-owned tables out of the game-independent application schema', () => {
+    const schema = fs.readFileSync(path.join(workerSrcDir, 'db', 'applicationSchema.ts'), 'utf-8');
+
+    expect(schema).not.toMatch(
+      /\b(?:fibWordGenerationResults|campSettlements|gameSettlementResults)\b|fib_word_generation_results|camp_settlements|game_settlement_results/,
+    );
+  });
+
+  it('keeps game-owned DB schemas independent from the runtime driver and removed aggregate', () => {
+    const gameSchemaFiles = GAME_TYPES.map((gameType) =>
+      path.join(workerGamesDir, gameType, 'dbSchema.ts'),
+    ).filter((filePath) => fs.existsSync(filePath));
+
+    expect(gameSchemaFiles.length).toBeGreaterThan(0);
+    for (const filePath of gameSchemaFiles) {
+      const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+      expect(imports.filter((specifier) => /\/db(?:\/index|\/schema)?$/.test(specifier))).toEqual(
+        [],
+      );
+    }
+  });
+
+  it('defines each game-owned physical table only in its owner schema', () => {
+    const fibSchema = fs.readFileSync(path.join(workerGamesDir, 'fibking', 'dbSchema.ts'), 'utf-8');
+    const werewolfSchema = fs.readFileSync(
+      path.join(workerGamesDir, 'werewolf', 'dbSchema.ts'),
+      'utf-8',
+    );
+
+    expect(fibSchema).toContain("'fib_word_generation_results'");
+    expect(fibSchema).not.toMatch(/camp_settlements|game_settlement_results/);
+    expect(werewolfSchema).toMatch(/'camp_settlements'[\s\S]*'game_settlement_results'/);
+    expect(werewolfSchema).not.toContain('fib_word_generation_results');
+  });
+
+  it('composes multiple concrete Worker games only in the exhaustive catalog', () => {
+    const multiGameConsumers = workerFiles.filter((filePath) => {
+      const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+      const importedGames = GAME_TYPES.filter((gameType) =>
+        imports.some((specifier) => specifier.split('/').includes(gameType)),
+      );
+      return importedGames.length > 1;
+    });
+
+    expect(multiGameConsumers.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([
+      'packages/api-worker/src/games/catalog.ts',
+    ]);
+  });
+
+  it('exposes Werewolf AI chat through a game-owned route only', () => {
+    const workerEntry = fs.readFileSync(path.join(workerSrcDir, 'index.ts'), 'utf-8');
+    const providerNamedRouteOwners = workerFiles.filter((filePath) =>
+      fs.readFileSync(filePath, 'utf-8').includes('/gemini-proxy'),
+    );
+
+    expect(workerEntry).toContain("app.route('/api/games/werewolf/ai-chat', werewolfAiChatRoutes)");
+    expect(providerNamedRouteOwners).toEqual([]);
+  });
 });
 
 describe('Layer boundary: shared room → game-specific code (forbidden)', () => {

@@ -3,10 +3,10 @@ import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import type { GameRoomRuntime as GameRoom } from '../platform/room/GameRoom';
-import type { DispatchRoomResult, InitializeRoomResult } from '../platform/room/types';
-import { deleteCurrentRoomAlarms } from './roomTestCleanup';
-import { bootstrapTestSchema } from './testSchemaBootstrap';
+import { deleteCurrentRoomAlarms } from '../../../__tests__/roomTestCleanup';
+import { bootstrapTestSchema } from '../../../__tests__/testSchemaBootstrap';
+import type { GameRoomRuntime as GameRoom } from '../../../platform/room/GameRoom';
+import type { DispatchRoomResult, InitializeRoomResult } from '../../../platform/room/types';
 
 const ROOM_CODE = '8642';
 

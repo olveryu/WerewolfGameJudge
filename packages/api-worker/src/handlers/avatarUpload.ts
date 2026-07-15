@@ -15,7 +15,7 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { users } from '../db/schema';
+import { users } from '../db/applicationSchema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 

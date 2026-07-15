@@ -17,7 +17,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../db';
-import { feedbackReplies, feedbacks, users } from '../db/schema';
+import { feedbackReplies, feedbacks, users } from '../db/applicationSchema';
 import type { AppEnv } from '../env';
 import { requireAuth } from '../lib/auth';
 import { createLogger } from '../lib/logger';

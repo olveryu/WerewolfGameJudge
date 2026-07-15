@@ -9,9 +9,9 @@ import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
-import { settleGameResults } from '../../growth/settleGameResults';
 import { createEffectCommandId } from '../effectCommandId';
 import type { WorkerEffectContext } from '../workerModule';
+import { settleGameResults } from './settlement/settleGameResults';
 
 const roleIdSchema = z.custom<RoleId>(
   (value): value is RoleId => typeof value === 'string' && isValidRoleId(value),

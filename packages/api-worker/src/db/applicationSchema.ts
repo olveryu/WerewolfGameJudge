@@ -1,11 +1,10 @@
 /**
- * Drizzle ORM schema — D1 table definitions
+ * Game-independent Drizzle ORM schema — D1 table definitions
  *
  * Stay consistent with SQL under migrations/. When modifying fields, add a corresponding migration file.
  * Table and column names use snake_case to match physical columns in D1.
  */
 
-import { FIB_WORD_SOURCES } from '@werewolf/game-engine/games/fibking/public';
 import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import {
   index,
@@ -115,29 +114,6 @@ export const roomGameStarts = sqliteTable(
   (table) => [
     uniqueIndex('idx_room_game_starts_room_revision').on(table.roomId, table.startedRevision),
     index('idx_room_game_starts_room_started').on(table.roomId, table.startedAt),
-  ],
-);
-
-/** Exact FibKing word-provider results used to replay nondeterministic effects. */
-export const fibWordGenerationResults = sqliteTable(
-  'fib_word_generation_results',
-  {
-    roomId: text('room_id')
-      .notNull()
-      .references(() => rooms.id, { onDelete: 'cascade' }),
-    roomCreationId: text('room_creation_id').notNull(),
-    effectId: text('effect_id').notNull(),
-    roundId: text('round_id').notNull(),
-    requestFingerprint: text('request_fingerprint').notNull(),
-    word: text('word').notNull(),
-    definition: text('definition').notNull(),
-    source: text('source', { enum: FIB_WORD_SOURCES }).notNull(),
-    createdAt: text('created_at').notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.roomId, table.effectId] }),
-    uniqueIndex('idx_fib_word_generation_results_room_round').on(table.roomId, table.roundId),
-    index('idx_fib_word_generation_results_created').on(table.createdAt),
   ],
 );
 
@@ -255,63 +231,6 @@ export const drawHistory = sqliteTable('draw_history', {
   /** ISO 8601 UTC */
   createdAt: text('created_at').notNull(),
 });
-
-// ── camp_settlements ──────────────────────────────────────────────────────────
-
-/**
- * Per-game camp history (one row per registered player per settled game).
- *
- * Camp probability is computed on read by aggregating these rows. Public reads only
- * count rows where settled_at <= datetime('now', '-2 hours') (anti-cheat delay); self
- * reads count all rows. Idempotent under settlement retries via PK (user_id, settle_key).
- */
-export const campSettlements = sqliteTable(
-  'camp_settlements',
-  {
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    /** Game-ended effect ID; shared with game_settlement_results.effect_id. */
-    settleKey: text('settle_key').notNull(),
-    /** Camp bucket: 'wolf' | 'god' | 'villager' | 'third' (CampBucket) */
-    camp: text('camp').notNull(),
-    /** ISO 8601 UTC; the game's settlement timestamp (drives the 2h public delay) */
-    settledAt: text('settled_at').notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.userId, table.settleKey] }),
-    index('idx_camp_settlements_user_settled').on(table.userId, table.settledAt),
-  ],
-);
-
-// ── game_settlement_results ─────────────────────────────────────────────────
-
-/** Exact per-player rewards committed for an at-least-once game-ended effect. */
-export const gameSettlementResults = sqliteTable(
-  'game_settlement_results',
-  {
-    effectId: text('effect_id').notNull(),
-    userId: text('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    roomCode: text('room_code').notNull(),
-    participantFingerprint: text('participant_fingerprint').notNull(),
-    camp: text('camp').notNull(),
-    previousXp: integer('previous_xp').notNull(),
-    xpEarned: integer('xp_earned').notNull(),
-    newXp: integer('new_xp').notNull(),
-    previousLevel: integer('previous_level').notNull(),
-    newLevel: integer('new_level').notNull(),
-    normalDrawsEarned: integer('normal_draws_earned').notNull(),
-    goldenDrawsEarned: integer('golden_draws_earned').notNull(),
-    statsApplied: integer('stats_applied').notNull().default(0),
-    settledAt: text('settled_at').notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.effectId, table.userId] }),
-    index('idx_game_settlement_results_user_settled').on(table.userId, table.settledAt),
-  ],
-);
 
 // ── user_event_inbox ───────────────────────────────────────────────────────
 

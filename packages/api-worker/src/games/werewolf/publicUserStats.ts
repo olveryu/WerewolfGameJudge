@@ -7,8 +7,8 @@ import type {
 import { and, eq, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
-import { campSettlements } from '../../db/schema';
 import type { Env } from '../../env';
+import { campSettlements } from './dbSchema';
 
 /** Hours a finished game stays hidden from public camp statistics. */
 const PUBLIC_VISIBILITY_DELAY_HOURS = 2;

@@ -9,7 +9,7 @@
 import { eq } from 'drizzle-orm';
 
 import type { createDb } from '../db';
-import { users } from '../db/schema';
+import { users } from '../db/applicationSchema';
 
 // ── Wire format (API -> client) ─────────────────────────────────────────────
 

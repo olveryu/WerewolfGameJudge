@@ -1,8 +1,8 @@
-/** Zod schemas for /gemini-proxy */
+/** Runtime request schema for the Werewolf AI chat endpoint. */
 
 import { z } from 'zod';
 
-export const geminiProxySchema = z.object({
+export const werewolfAiChatRequestSchema = z.object({
   messages: z
     .array(
       z.object({

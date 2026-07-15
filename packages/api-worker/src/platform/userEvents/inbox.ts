@@ -1,5 +1,9 @@
 /** D1-backed at-least-once delivery inbox for authenticated user events. */
 
+import type { userEventInbox } from '../../db/applicationSchema';
+
+type UserEventInboxInsert = typeof userEventInbox.$inferInsert;
+
 interface RawUserEventRow {
   readonly event_id: unknown;
   readonly event_type: unknown;
@@ -60,6 +64,13 @@ export async function enqueueUserEvent(db: D1Database, input: PublishUserEvent):
   requireNonEmptyString(input.userId, 'User event userId');
   requireNonEmptyString(input.eventId, 'User event eventId');
   const { eventType, payloadJson } = serializeMessage(input);
+  const event: UserEventInboxInsert = {
+    userId: input.userId,
+    eventId: input.eventId,
+    eventType,
+    payloadJson,
+    createdAt: new Date().toISOString(),
+  };
   await db
     .prepare(
       `INSERT INTO user_event_inbox (
@@ -71,7 +82,7 @@ export async function enqueueUserEvent(db: D1Database, input: PublishUserEvent):
       ) VALUES (?1, ?2, ?3, ?4, ?5)
       ON CONFLICT (user_id, event_id) DO NOTHING`,
     )
-    .bind(input.userId, input.eventId, eventType, payloadJson, new Date().toISOString())
+    .bind(event.userId, event.eventId, event.eventType, event.payloadJson, event.createdAt)
     .run();
 
   const stored = await db

@@ -10,7 +10,7 @@
 import { sql } from 'drizzle-orm';
 
 import { createDb } from '../db';
-import { idempotencyKeys, loginAttempts, users, wxClaims } from '../db/schema';
+import { idempotencyKeys, loginAttempts, users, wxClaims } from '../db/applicationSchema';
 import type { Env } from '../env';
 import { createLogger } from '../lib/logger';
 import { markExpiredRoomsDeleting } from '../platform/room/roomDirectory';

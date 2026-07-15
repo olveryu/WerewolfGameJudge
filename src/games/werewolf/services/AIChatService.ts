@@ -20,7 +20,7 @@ const chatLog = log.extend('AIChatService');
 
 const API_CONFIG = {
   /** Workers AI chat endpoint */
-  baseURL: `${API_BASE_URL}/gemini-proxy`,
+  baseURL: `${API_BASE_URL}/api/games/werewolf/ai-chat`,
   maxTokens: 2048,
 };
 

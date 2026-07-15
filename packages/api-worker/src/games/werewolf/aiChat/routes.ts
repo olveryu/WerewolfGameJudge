@@ -1,5 +1,5 @@
 /**
- * AI Chat Hono routes — Gemini (primary) + Workers AI (fallback)
+ * Werewolf AI chat routes — Gemini (primary) + Workers AI (fallback).
  *
  * Primary: Gemini API (OpenAI-compatible layer), fixed model gemini-3.1-flash-lite.
  * Fallback: geo block (400) / quota exhausted (429) / overload (503 after 1 retry)
@@ -8,16 +8,16 @@
  *
  * @throws 401 — requireAuth failed
  * @throws 400 — zod validation failed
- * @throws 502 — Both Gemini and Workers AI failed (final fallback failed)
+ * @returns 429 when both provider quotas are exhausted; 503 when both providers are unavailable.
  */
 
 import { Hono } from 'hono';
 
-import type { AppEnv } from '../env';
-import { requireAuth } from '../lib/auth';
-import { createLogger } from '../lib/logger';
-import { geminiProxySchema } from '../schemas/gemini';
-import { jsonBody } from './shared';
+import type { AppEnv } from '../../../env';
+import { jsonBody } from '../../../handlers/shared';
+import { requireAuth } from '../../../lib/auth';
+import { createLogger } from '../../../lib/logger';
+import { werewolfAiChatRequestSchema } from './schema';
 
 const log = createLogger('ai-chat');
 
@@ -27,10 +27,10 @@ const MAX_TOKENS_CAP = 10240;
 const WORKERS_AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const GEMINI_TIMEOUT_MS = 15_000;
 
-/** Gemini AI proxy routes. */
-export const geminiRoutes = new Hono<AppEnv>();
+/** Authenticated Werewolf AI chat routes. */
+export const werewolfAiChatRoutes = new Hono<AppEnv>();
 
-geminiRoutes.post('/', requireAuth, jsonBody(geminiProxySchema), async (c) => {
+werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema), async (c) => {
   const env = c.env;
   const parsed = c.req.valid('json');
   const startTime = Date.now();
