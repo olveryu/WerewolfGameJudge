@@ -205,45 +205,101 @@ packages/
 │       └── index.ts
 │
 ├── api-worker/
-│   └── src/
-│       ├── platform/
-│       │   ├── room/
-│       │   │   ├── GameRoom.ts
-│       │   │   ├── IGameRoomRPC.ts
-│       │   │   ├── actionPipeline.ts
-│       │   │   ├── roomCreationSaga.ts
-│       │   │   ├── roomRepository.ts
-│       │   │   └── effectOutbox.ts
-│       │   ├── http/
-│       │   │   ├── roomRoutes.ts
-│       │   │   └── commandRoute.ts
-│       │   └── realtime/
-│       │       ├── webSocketAttachment.ts
-│       │       └── messages.ts
-│       ├── games/
-│       │   ├── werewolf/
-│       │   │   ├── module.ts
-│       │   │   ├── schemas.ts
-│       │   │   ├── effects.ts
-│       │   │   ├── dbSchema.ts
-│       │   │   ├── aiChat/
-│       │   │   └── settlement/
-│       │   ├── fibking/
-│       │   │   ├── module.ts
-│       │   │   ├── schemas.ts
-│       │   │   ├── effects.ts
-│       │   │   ├── dbSchema.ts
-│       │   │   └── wordProviders/
-│       │   │       ├── types.ts
-│       │   │       ├── gemini.ts
-│       │   │       ├── workersAI.ts
-│       │   │       └── localBank.ts
-│       │   └── catalog.ts
-│       ├── growth/
-│       ├── db/
-│       │   ├── applicationSchema.ts
-│       │   └── index.ts
-│       └── index.ts
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── GameRoom.ts
+│   │   │   └── scheduled.ts
+│   │   ├── db/
+│   │   │   └── index.ts
+│   │   ├── e2e/
+│   │   │   ├── GameRoom.ts
+│   │   │   ├── fibRecoveryModule.ts
+│   │   │   └── index.ts
+│   │   ├── features/
+│   │   │   ├── account/
+│   │   │   │   ├── authRoutes.ts
+│   │   │   │   ├── avatarRoutes.ts
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── maintenance.ts
+│   │   │   │   ├── profile.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── schemas.ts
+│   │   │   ├── admin/
+│   │   │   │   └── routes.ts
+│   │   │   ├── auth/
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── maintenance.ts
+│   │   │   │   ├── passwordHash.ts
+│   │   │   │   ├── passwordResetEmail.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   ├── schemas.ts
+│   │   │   │   ├── tokenAuth.ts
+│   │   │   │   └── wechat/
+│   │   │   │       ├── WeChatAuthProxy.ts
+│   │   │   │       └── weChatAuthStub.ts
+│   │   │   ├── feedback/
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── schemas.ts
+│   │   │   ├── gacha/
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── maintenance.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── schemas.ts
+│   │   │   └── sharing/
+│   │   │       ├── routes.ts
+│   │   │       └── schemas.ts
+│   │   ├── games/
+│   │   │   ├── werewolf/
+│   │   │   │   ├── module.ts
+│   │   │   │   ├── schemas.ts
+│   │   │   │   ├── effects.ts
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── aiChat/
+│   │   │   │   └── settlement/
+│   │   │   ├── fibking/
+│   │   │   │   ├── module.ts
+│   │   │   │   ├── schemas.ts
+│   │   │   │   ├── effects.ts
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   └── wordProviders/
+│   │   │   ├── catalog.ts
+│   │   │   └── publicStatsRoutes.ts
+│   │   ├── platform/
+│   │   │   ├── crypto/
+│   │   │   ├── gameModules/
+│   │   │   │   ├── effectCommandId.ts
+│   │   │   │   ├── runtimeGameModule.ts
+│   │   │   │   └── workerModule.ts
+│   │   │   ├── http/
+│   │   │   │   ├── callDurableObject.ts
+│   │   │   │   └── jsonBody.ts
+│   │   │   ├── observability/
+│   │   │   │   └── logger.ts
+│   │   │   ├── room/
+│   │   │   │   ├── GameRoomRuntime.ts
+│   │   │   │   ├── IGameRoomRPC.ts
+│   │   │   │   ├── actionPipeline.ts
+│   │   │   │   ├── dbSchema.ts
+│   │   │   │   ├── effectOutbox.ts
+│   │   │   │   ├── roomRepository.ts
+│   │   │   │   ├── roomSaga.ts
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── webSocketRoutes.ts
+│   │   │   ├── telemetry/
+│   │   │   │   ├── routes.ts
+│   │   │   │   └── schemas.ts
+│   │   │   └── userEvents/
+│   │   │       ├── dbSchema.ts
+│   │   │       └── inbox.ts
+│   │   ├── env.ts
+│   │   ├── index.ts
+│   │   └── worker-globals.d.ts
+│   └── test/
+│       ├── applyMigrations.ts
+│       ├── bindings.d.ts
+│       ├── clearRoomAlarms.ts
+│       └── uploadTestSupport.ts
 │
 src/
 ├── features/
@@ -1935,17 +1991,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                                                                | 尚未完成                                   |
-| ------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                  | -                                          |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                     | -                                          |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                | -                                          |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                | -                                          |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                       | -                                          |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                               | -                                          |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                     | -                                          |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                   | -                                          |
-| Phase 8 | 进行中 | engine/Worker/client ownership、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁 | 精确门禁、fail-fast/命名残留清理、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                                                                                                         | 尚未完成                                                 |
+| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                           | -                                                        |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                              | -                                                        |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                         | -                                                        |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                         | -                                                        |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                | -                                                        |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                        | -                                                        |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                              | -                                                        |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                            | -                                                        |
+| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁 | engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2712,3 +2768,28 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   仓库已记录的 Expo/React Native teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
 - Phase 8 尚余精确 AST/目录/exports 门禁、fail-fast 与残留命名清理，以及 local migration、seed、最终 quality
   和全量 E2E。
+
+### 当前提交：Phase 8.11 Worker vertical ownership 与 migration-backed tests
+
+- 删除 Worker 根目录的 `handlers/`、`schemas/`、`lib/`、`durableObjects/` 和集中式 `__tests__/` 所有权。
+  非游戏 HTTP capability 按 `features/account|admin|auth|feedback|gacha|sharing` 纵向归位；头像由 account、临时分享图
+  由 sharing 所有，遥测属于 `platform/telemetry`，不再创建按存储介质命名的 `media` feature。WeChat proxy、token、
+  password 和 profile 暂由 auth feature 持有，Wrangler 依赖的 `WeChatAuthProxy` export class name 保持不变。
+- room HTTP route 与 request schema 归入 `platform/room`；JSON validator、Durable Object availability translator
+  和 logger 分别归入 `platform/http` 与 `platform/observability`。原 `handlers/shared.ts` 已拆除，不保留旧 path
+  export；DO error 的未知边界通过 `unknown` + `Reflect.get` 检查，不再用 object cast 假装已验证。
+- Worker tests 与生产 owner 共置，跨 owner 的测试基础设施放在 package-level `test/`。删除手写的第二份 D1 DDL；
+  Vitest 按 Cloudflare 当前 `readD1Migrations()` / `applyD1Migrations()` 流程直接执行 production migrations，新增
+  migration 不再要求同步维护 `testSchemaBootstrap.ts`。
+- 根 architecture contract 新增 Worker `src`、`features`、`platform` 的精确非空目录集合，并明确禁止旧横向根
+  恢复；Worker game composition test 作为 `games/__tests__` 例外，不会被误判为第三个游戏目录。
+- room route 通过 composition 注入 `WorkerGameModuleResolver` 与认证 middleware；`platform/room` 不再为了选游戏
+  反向 import `games/catalog`，新增 platform-to-games 门禁可以真实执行。
+- 定向验证通过：Worker production typecheck 全绿，Vitest 17 files / 117 tests 全绿；architecture contract
+  1 suite / 3683 tests 全绿。完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、
+  ESLint、Prettier 全绿；root 221 suites / 8656 tests、game-engine 86 suites / 2513 tests、api-worker
+  17 files / 117 tests 全部通过。root Jest 仍只有仓库已记录的 Expo teardown 与 forced-exit 噪声，没有为测试进程
+  噪声修改 production 行为。
+- Phase 8.11 下一批继续处理 Worker 的 `platform/gameModules`、DO composition、D1 schema ownership、scheduled
+  maintenance、WebSocket route 与严格 owned request schema；之后再完成 engine/client 精确目录与 exports 门禁、
+  fail-fast/命名残留清理，以及 local migration、seed、最终 quality 和全量 E2E。

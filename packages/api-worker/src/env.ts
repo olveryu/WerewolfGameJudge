@@ -14,7 +14,7 @@ export interface Env {
 
   // ── Durable Objects ─────────────────────────────────────────────
   GAME_ROOM: DurableObjectNamespace<import('./platform/room/GameRoom').GameRoomRuntime>;
-  WECHAT_AUTH: DurableObjectNamespace<import('./durableObjects/WeChatAuthProxy').WeChatAuthProxy>;
+  WECHAT_AUTH: DurableObjectNamespace<import('./features/auth/WeChatAuthProxy').WeChatAuthProxy>;
   // ── Workers AI ─────────────────────────────────────────────────────
   AI: Ai;
   // ── Analytics Engine (load timing telemetry) ────────────────────────
@@ -65,5 +65,11 @@ export interface Env {
   CF_API_TOKEN?: string;
 }
 
-/** Hono app environment type (Bindings = Worker Env) */
-export type AppEnv = { Bindings: Env };
+/** Hono app environment shared by routes and authentication middleware. */
+export type AppEnv = {
+  Bindings: Env;
+  Variables: {
+    userId: string;
+    isAnonymous: boolean;
+  };
+};

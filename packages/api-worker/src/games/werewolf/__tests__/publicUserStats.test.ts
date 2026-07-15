@@ -7,9 +7,7 @@
 
 import { env, SELF } from 'cloudflare:test';
 import { SignJWT } from 'jose';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-
-import { bootstrapTestSchema } from '../../../__tests__/testSchemaBootstrap';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production');
 const TARGET_USER_ID = 'camp-stats-target-user';
@@ -34,10 +32,6 @@ interface CampStatsResponse {
 }
 
 const werewolfStatsPath = `/api/games/werewolf/users/${TARGET_USER_ID}/stats`;
-
-beforeAll(async () => {
-  await bootstrapTestSchema(env.DB);
-});
 
 async function ensureUser(userId: string): Promise<void> {
   await env.DB.prepare(

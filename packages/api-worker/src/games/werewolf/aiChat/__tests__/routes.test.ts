@@ -2,9 +2,7 @@
 
 import { env, SELF } from 'cloudflare:test';
 import { SignJWT } from 'jose';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-
-import { bootstrapTestSchema } from '../../../../__tests__/testSchemaBootstrap';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 const USER_ID = 'werewolf-ai-chat-user';
 const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production');
@@ -15,10 +13,6 @@ async function mintToken(): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .sign(JWT_SECRET);
 }
-
-beforeAll(async () => {
-  await bootstrapTestSchema(env.DB);
-});
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(USER_ID).run();

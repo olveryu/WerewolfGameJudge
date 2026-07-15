@@ -14,9 +14,9 @@
 import { Hono } from 'hono';
 
 import type { AppEnv } from '../../../env';
-import { jsonBody } from '../../../handlers/shared';
-import { requireAuth } from '../../../lib/auth';
-import { createLogger } from '../../../lib/logger';
+import { requireAuth } from '../../../features/auth/tokenAuth';
+import { jsonBody } from '../../../platform/http/jsonBody';
+import { createLogger } from '../../../platform/observability/logger';
 import { werewolfAiChatRequestSchema } from './schema';
 
 const log = createLogger('ai-chat');

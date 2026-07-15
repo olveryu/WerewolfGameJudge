@@ -12,9 +12,8 @@ import type { RoomCommandResult } from '@game-judge/game-engine/platform/protoco
 import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { bootstrapTestSchema } from '../../../../__tests__/testSchemaBootstrap';
 import type { WorkerEffectContext } from '../../../workerModule';
 import { handleFibGenerateWordEffect } from '../../effects';
 import { createConfiguredFibWordProvider } from '..';
@@ -95,10 +94,6 @@ function committedResult(commandId: string): RoomCommandResult<BaseGameState<'fi
     outcome: { kind: 'success' },
   });
 }
-
-beforeAll(async () => {
-  await bootstrapTestSchema(env.DB);
-});
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM fib_word_generation_results').run();

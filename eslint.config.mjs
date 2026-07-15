@@ -345,7 +345,7 @@ export default tseslint.config(
   // projectService doesn't discover non-standard tsconfig filenames;
   // explicit `project` is required per typescript-eslint docs.
   {
-    files: ['packages/api-worker/src/**/__tests__/**/*.ts'],
+    files: ['packages/api-worker/src/**/__tests__/**/*.ts', 'packages/api-worker/test/**/*.ts'],
     languageOptions: {
       parserOptions: {
         projectService: false,
@@ -356,7 +356,7 @@ export default tseslint.config(
   },
   // Allow console.* only in the Worker logger abstraction
   {
-    files: ['packages/api-worker/src/lib/logger.ts'],
+    files: ['packages/api-worker/src/platform/observability/logger.ts'],
     rules: {
       'no-console': 'off',
     },

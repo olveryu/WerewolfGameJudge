@@ -13,7 +13,7 @@ describe('No console.* in production code', () => {
   /** Files allowed to use console.* directly */
   const ALLOWED_FILES = new Set([
     path.join(process.cwd(), 'src/utils/logger.ts'),
-    path.join(process.cwd(), 'packages/api-worker/src/lib/logger.ts'),
+    path.join(process.cwd(), 'packages/api-worker/src/platform/observability/logger.ts'),
   ]);
 
   /**

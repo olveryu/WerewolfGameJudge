@@ -24,32 +24,32 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
+import { runScheduledCron } from './app/runScheduledMaintenance';
 import type { AppEnv, Env } from './env';
-import { WORKER_GAME_HTTP_ROUTES } from './games/catalog';
-import { createLogger } from './lib/logger';
+import { avatarRoutes } from './features/account/avatarRoutes';
+import { statsRoutes } from './features/account/routes';
+import { adminRoutes } from './features/admin/routes';
+import { authRoutes } from './features/auth/routes';
+import { requireAuth, verifyToken } from './features/auth/tokenAuth';
+import { feedbackRoutes, feedbackWebhookRoutes } from './features/feedback/routes';
+import { gachaRoutes } from './features/gacha/routes';
+import { shareRoutes } from './features/sharing/routes';
+import { getWorkerGameModule, WORKER_GAME_HTTP_ROUTES } from './games/catalog';
+import { callDurableObject } from './platform/http/callDurableObject';
+import { createLogger } from './platform/observability/logger';
 import { resolveActiveRoom } from './platform/room/roomDirectory';
+import { getGameRoomStub } from './platform/room/roomStub';
+import { createRoomRoutes } from './platform/room/routes';
+import { telemetryRoutes } from './platform/telemetry/routes';
 
 // Re-export Durable Object class for wrangler
-export { WeChatAuthProxy } from './durableObjects/WeChatAuthProxy';
+export { WeChatAuthProxy } from './features/auth/WeChatAuthProxy';
 export { GameRoom } from './games/GameRoom';
-
-// Route groups
-import { adminRoutes } from './handlers/adminHandlers';
-import { authRoutes } from './handlers/authHandlers';
-import { avatarRoutes } from './handlers/avatarUpload';
-import { runScheduledCron } from './handlers/cronHandlers';
-import { feedbackRoutes, feedbackWebhookRoutes } from './handlers/feedbackHandlers';
-import { gachaRoutes } from './handlers/gachaHandlers';
-import { roomRoutes } from './handlers/roomHandlers';
-import { callDO } from './handlers/shared';
-import { shareRoutes } from './handlers/shareImage';
-import { statsRoutes } from './handlers/statsHandlers';
-import { telemetryRoutes } from './handlers/telemetryHandlers';
-import { getGameRoomStub } from './platform/room/roomStub';
 
 // ── App ─────────────────────────────────────────────────────────────────────
 
 const app = new Hono<AppEnv>();
+const roomRoutes = createRoomRoutes(getWorkerGameModule, requireAuth);
 
 const log = createLogger('worker');
 
@@ -121,7 +121,6 @@ app.get('/ws', async (c) => {
   }
 
   // Verify JWT before allowing WebSocket upgrade
-  const { verifyToken } = await import('./lib/auth');
   const payload = await verifyToken(token, c.env);
   if (!payload) {
     return c.json({ error: 'unauthorized' }, 401);
@@ -144,7 +143,7 @@ app.get('/ws', async (c) => {
   doUrl.searchParams.set('roomCode', room.roomCode);
   doUrl.searchParams.set('roomId', room.roomId);
   doUrl.searchParams.set('creationId', room.creationId);
-  return await callDO(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
+  return await callDurableObject(() => stub.fetch(new Request(doUrl.toString(), c.req.raw)));
 });
 
 // ── Route groups ────────────────────────────────────────────────────────────

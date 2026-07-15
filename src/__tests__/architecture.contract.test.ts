@@ -53,6 +53,31 @@ function getAllProductionFiles(dir: string): string[] {
   return results;
 }
 
+function getTopLevelProductionDirectories(dir: string): string[] {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() && getAllProductionFiles(path.join(dir, entry.name)).length > 0,
+    )
+    .map((entry) => entry.name)
+    .sort();
+}
+
+function getTopLevelProductionFiles(dir: string): string[] {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx')) &&
+        !entry.name.includes('.test.') &&
+        !entry.name.includes('.spec.'),
+    )
+    .map((entry) => entry.name)
+    .sort();
+}
+
 function isPathWithin(directory: string, candidate: string): boolean {
   return candidate === directory || candidate.startsWith(`${directory}${path.sep}`);
 }
@@ -313,6 +338,53 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
   });
 });
 
+describe('Worker ownership: source tree is exact', () => {
+  it('allows only declared top-level production ownership roots', () => {
+    expect(getTopLevelProductionDirectories(workerSrcDir)).toEqual([
+      'app',
+      'db',
+      'e2e',
+      'features',
+      'games',
+      'platform',
+    ]);
+    expect(getTopLevelProductionFiles(workerSrcDir)).toEqual([
+      'env.ts',
+      'index.ts',
+      'worker-globals.d.ts',
+    ]);
+  });
+
+  it('defines the exact non-game feature ownership roots', () => {
+    expect(getTopLevelProductionDirectories(path.join(workerSrcDir, 'features'))).toEqual([
+      'account',
+      'admin',
+      'auth',
+      'feedback',
+      'gacha',
+      'sharing',
+    ]);
+  });
+
+  it('defines the exact shared platform ownership roots', () => {
+    expect(getTopLevelProductionDirectories(workerPlatformDir)).toEqual([
+      'crypto',
+      'http',
+      'observability',
+      'room',
+      'telemetry',
+      'userEvents',
+    ]);
+  });
+
+  it.each(['__tests__', 'durableObjects', 'handlers', 'lib', 'schemas'])(
+    'keeps removed horizontal root %s empty',
+    (removedRoot) => {
+      expect(getAllProductionFiles(path.join(workerSrcDir, removedRoot))).toEqual([]);
+    },
+  );
+});
+
 describe('Layer boundary: shared room → game-specific code (forbidden)', () => {
   it('should find shared room files to check', () => {
     expect(sharedRoomFiles.length).toBeGreaterThan(0);
@@ -364,7 +436,7 @@ describe('Layer boundary: game modules are isolated', () => {
       compositionDirectories: ['__tests__', 'model'],
     },
     { layer: 'engine', root: engineGamesDir, compositionDirectories: [] },
-    { layer: 'worker', root: workerGamesDir, compositionDirectories: [] },
+    { layer: 'worker', root: workerGamesDir, compositionDirectories: ['__tests__'] },
   ];
 
   it.each(gameRoots)(

@@ -10,9 +10,8 @@ import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/te
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
-import { bootstrapTestSchema } from '../../../../__tests__/testSchemaBootstrap';
 import type { WorkerEffectContext } from '../../../workerModule';
 import { handleWerewolfEffect, werewolfEffectSchema } from '../../effects';
 import { settleGameResults } from '../settleGameResults';
@@ -92,10 +91,6 @@ function buildSnapshot(): ReturnType<typeof createRoomSnapshot<GameState>> {
   });
   return createRoomSnapshot(state, 1);
 }
-
-beforeAll(async () => {
-  await bootstrapTestSchema(env.DB);
-});
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM game_settlement_results').run();

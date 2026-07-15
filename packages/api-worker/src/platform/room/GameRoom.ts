@@ -16,7 +16,7 @@ import * as Sentry from '@sentry/cloudflare';
 import { DurableObject } from 'cloudflare:workers';
 
 import type { Env } from '../../env';
-import { createLogger } from '../../lib/logger';
+import { createLogger } from '../observability/logger';
 import { acknowledgeUserEvent, enqueueUserEvent, readNextUserEvent } from '../userEvents/inbox';
 import { dispatchRoomCommand } from './actionPipeline';
 import { EffectOutbox } from './effectOutbox';

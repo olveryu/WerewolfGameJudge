@@ -5,7 +5,7 @@ import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/ro
 import * as Sentry from '@sentry/cloudflare';
 
 import type { Env } from '../../env';
-import { createLogger } from '../../lib/logger';
+import { createLogger } from '../observability/logger';
 import {
   activateRoomCreation,
   deleteRoomDirectoryEntry,

@@ -4,18 +4,13 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { deleteCurrentRoomAlarms } from '../../../__tests__/roomTestCleanup';
-import { bootstrapTestSchema } from '../../../__tests__/testSchemaBootstrap';
+import { deleteCurrentRoomAlarms } from '../../../../test/clearRoomAlarms';
 import type { GameRoomRuntime as GameRoom } from '../../../platform/room/GameRoom';
 import type { DispatchRoomResult, InitializeRoomResult } from '../../../platform/room/types';
 
 const ROOM_CODE = '8642';
-
-beforeAll(async () => {
-  await bootstrapTestSchema(env.DB);
-});
 
 beforeEach(async () => {
   await env.DB.prepare('DELETE FROM user_event_inbox').run();

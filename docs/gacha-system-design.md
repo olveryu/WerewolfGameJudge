@@ -426,9 +426,9 @@ export interface PlayerSettleResult {
 
 **Settlement user event changes**: the Werewolf effect publishes `normalDrawsEarned` / `goldenDrawsEarned` through the durable user inbox.
 
-### 6.2 New Gacha API: `gachaHandlers.ts`
+### 6.2 Gacha API routes
 
-**File**: `packages/api-worker/src/handlers/gachaHandlers.ts`
+**File**: `packages/api-worker/src/features/gacha/routes.ts`
 
 **Routes**:
 
@@ -508,7 +508,7 @@ POST /api/gacha/draw:
 
 ### 6.3 New Zod Schema
 
-**File**: `packages/api-worker/src/schemas/gacha.ts`
+**File**: `packages/api-worker/src/features/gacha/schemas.ts`
 
 ```typescript
 import { z } from 'zod';
@@ -525,8 +525,8 @@ export const gachaDrawSchema = z.object({
 `packages/api-worker/src/index.ts`:
 
 ```diff
- import { statsRoutes } from './handlers/statsHandlers';
-+import { gachaRoutes } from './handlers/gachaHandlers';
+ import { statsRoutes } from './features/account/routes';
++import { gachaRoutes } from './features/gacha/routes';
 
  // ... existing routes ...
  app.route('/api', statsRoutes);
@@ -556,7 +556,7 @@ WHERE user_id = '00000000-0000-4000-a000-000000000001';
 
 **Migration**: `0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
 
-**Schema**: `packages/api-worker/src/schemas/gacha.ts`
+**Schema**: `packages/api-worker/src/features/gacha/schemas.ts`
 
 ```typescript
 export const dailyRewardSchema = z.object({
@@ -855,8 +855,8 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 **New files**:
 
-- `packages/api-worker/src/handlers/gachaHandlers.ts`
-- `packages/api-worker/src/schemas/gacha.ts`
+- `packages/api-worker/src/features/gacha/routes.ts`
+- `packages/api-worker/src/features/gacha/schemas.ts`
 
 **Changed files**:
 
