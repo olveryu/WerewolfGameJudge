@@ -13,7 +13,7 @@
  * - POST /auth/forgot-password — 500 EMAIL_SEND_FAILED
  * - POST /auth/reset-password — 400 INVALID_OR_EXPIRED_CODE (expired/5-attempt limit/already used)
  * - POST /auth/refresh — 401 INVALID_REFRESH_TOKEN
- * - POST /auth/wechat-claim — 500 WECHAT_NOT_CONFIGURED | 504 WECHAT_TIMEOUT | 401 WECHAT_AUTH_FAILED
+ * - POST /auth/wechat-claim — 504 WECHAT_TIMEOUT | 401 WECHAT_AUTH_FAILED
  * - POST /auth/claim — 404 nonce not found | 410 CLAIM_EXPIRED (>2 minutes)
  * - POST /auth/claim-bind — 404 | 410 | 409 OPENID_ALREADY_BOUND
  */
@@ -807,10 +807,6 @@ authRoutes.post('/refresh', jsonBody(refreshTokenSchema), async (c) => {
 authRoutes.post('/wechat-claim', jsonBody(wechatClaimSchema), async (c) => {
   const env = c.env;
   const { code, nonce } = c.req.valid('json');
-
-  if (!env.WECHAT_APP_ID || !env.WECHAT_APP_SECRET) {
-    return c.json({ success: false, reason: 'WECHAT_NOT_CONFIGURED' }, 500);
-  }
 
   // Exchange code for openid via WeChatAuthProxy DO
   const wxStub = getWeChatAuthStub(env);

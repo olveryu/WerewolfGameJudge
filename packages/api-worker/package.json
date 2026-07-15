@@ -3,13 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var ENVIRONMENT:development --var FIB_WORD_PROVIDER:local --var SENTRY_DSN:",
     "dev:test": "wrangler dev --config wrangler.e2e.toml",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply werewolf-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply werewolf-db --remote",
     "db:seed:local": "node ../../scripts/seed-local.mjs",
-    "typecheck": "tsc --noEmit",
+    "types": "wrangler types worker-configuration.d.ts --config wrangler.toml --env-interface WorkerBindings --strict-vars=false",
+    "types:check": "wrangler types worker-configuration.d.ts --config wrangler.toml --env-interface WorkerBindings --strict-vars=false --check",
+    "typecheck": "pnpm run types:check && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
@@ -22,8 +24,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/node": "^25.0.0",
     "@cloudflare/vitest-pool-workers": "~0.13.5",
-    "@cloudflare/workers-types": "^4.20260528.1",
     "vitest": "~4.1.7",
     "wrangler": "^4.95.0"
   }

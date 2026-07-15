@@ -46,10 +46,6 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
   const { content, appVersion } = c.req.valid('json');
 
   const token = c.env.GITHUB_TOKEN;
-  if (!token) {
-    log.error('GITHUB_TOKEN not configured');
-    return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
-  }
 
   const titlePreview = content.length > 20 ? `${content.slice(0, 20)}…` : content;
 
@@ -218,10 +214,6 @@ feedbackRoutes.post(
     }
 
     const token = c.env.GITHUB_TOKEN;
-    if (!token) {
-      log.error('GITHUB_TOKEN not configured');
-      return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
-    }
 
     // Add comment to GitHub Issue
     const resp = await fetch(
@@ -329,22 +321,20 @@ feedbackRoutes.post(
 
     // Sync GitHub Issue state
     const token = c.env.GITHUB_TOKEN;
-    if (token) {
-      const githubState = action === 'resolve' ? 'closed' : 'open';
-      await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
-        {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'WerewolfGameJudge-Worker',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ state: githubState }),
+    const githubState = action === 'resolve' ? 'closed' : 'open';
+    await fetch(
+      `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'WerewolfGameJudge-Worker',
+          'Content-Type': 'application/json',
         },
-      );
-    }
+        body: JSON.stringify({ state: githubState }),
+      },
+    );
 
     log.info('feedback status changed', { feedbackId, from: feedback.status, to: newStatus });
     return c.json({ success: true });
@@ -462,17 +452,8 @@ function hexToBytes(hex: string): Uint8Array | null {
   return bytes;
 }
 
-/** Resolve the admin login: prefer GITHUB_REPO_OWNER env var, fallback to repo owner from constant */
-function getAdminLogin(env: { GITHUB_REPO_OWNER?: string }): string {
-  return env.GITHUB_REPO_OWNER ?? GITHUB_REPO.split('/')[0];
-}
-
 feedbackWebhookRoutes.post('/feedback/webhook', async (c) => {
   const secret = c.env.GITHUB_WEBHOOK_SECRET;
-  if (!secret) {
-    log.error('GITHUB_WEBHOOK_SECRET not configured');
-    return c.body(null, 503);
-  }
 
   const event = c.req.header('x-github-event');
 
@@ -533,7 +514,7 @@ async function handleIssueCommentEvent(
     return c.body(null, 204);
   }
 
-  const adminLogin = getAdminLogin(c.env);
+  const adminLogin = c.env.GITHUB_REPO_OWNER;
   if (payload.comment.user.login !== adminLogin) {
     log.info('webhook ignored non-admin comment', { login: payload.comment.user.login });
     return c.body(null, 204);

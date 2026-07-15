@@ -55,65 +55,64 @@ werewolfAiChatRoutes.post('/', requireAuth, jsonBody(werewolfAiChatRequestSchema
     : MAX_TOKENS_CAP;
 
   // ── Primary: Gemini API (fixed model, retry once on 503) ─────────────────
-  if (env.GEMINI_API_KEY) {
-    const geminiBody = JSON.stringify({
-      messages,
-      model: GEMINI_MODEL,
-      stream,
-      temperature,
-      max_tokens: maxTokens,
-    });
+  const geminiBody = JSON.stringify({
+    messages,
+    model: GEMINI_MODEL,
+    stream,
+    temperature,
+    max_tokens: maxTokens,
+  });
 
-    const maxAttempts = 2; // 1 initial + 1 retry on 503
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const geminiResponse = await fetch(`${GEMINI_OPENAI_BASE}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${env.GEMINI_API_KEY}`,
-          },
-          body: geminiBody,
-          signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-        });
+  const maxAttempts = 2; // 1 initial + 1 retry on 503
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const geminiResponse = await fetch(`${GEMINI_OPENAI_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.GEMINI_API_KEY}`,
+        },
+        body: geminiBody,
+        signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
+      });
 
-        if (geminiResponse.ok) {
-          writeUsage(GEMINI_MODEL, 'gemini', 'ok');
-          if (stream) {
-            return new Response(geminiResponse.body, {
-              headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-              },
-            });
-          }
-          const data: Record<string, unknown> = await geminiResponse.json();
-          return c.json(data, 200);
+      if (geminiResponse.ok) {
+        writeUsage(GEMINI_MODEL, 'gemini', 'ok');
+        if (stream) {
+          return new Response(geminiResponse.body, {
+            headers: {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+            },
+          });
         }
-
-        const status = geminiResponse.status;
-
-        // 503 overload — retry once
-        if (status === 503 && attempt === 0) {
-          log.info('Gemini 503, retrying once', { model: GEMINI_MODEL });
-          continue;
-        }
-
-        // 400 (geo block) / 429 (quota) / other — fall through to Workers AI
-        const errorText = await geminiResponse.text();
-        log.info('Gemini failed, falling back to Workers AI', {
-          model: GEMINI_MODEL,
-          status,
-          error: errorText.slice(0, 200),
+        return new Response(geminiResponse.body, {
+          headers: { 'Content-Type': 'application/json' },
         });
-        break;
-      } catch (error) {
-        log.warn('Gemini request error, falling back to Workers AI', {
-          model: GEMINI_MODEL,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        break;
       }
+
+      const status = geminiResponse.status;
+
+      // 503 overload — retry once
+      if (status === 503 && attempt === 0) {
+        log.info('Gemini 503, retrying once', { model: GEMINI_MODEL });
+        continue;
+      }
+
+      // 400 (geo block) / 429 (quota) / other — fall through to Workers AI
+      const errorText = await geminiResponse.text();
+      log.info('Gemini failed, falling back to Workers AI', {
+        model: GEMINI_MODEL,
+        status,
+        error: errorText.slice(0, 200),
+      });
+      break;
+    } catch (error) {
+      log.warn('Gemini request error, falling back to Workers AI', {
+        model: GEMINI_MODEL,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      break;
     }
   }
 

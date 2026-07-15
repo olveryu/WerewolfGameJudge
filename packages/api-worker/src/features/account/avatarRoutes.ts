@@ -28,7 +28,6 @@ export const avatarRoutes = new Hono<AppEnv>();
 // POST /avatar/upload — upload avatar to R2
 avatarRoutes.post('/upload', requireAuth, async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const userId = c.var.userId;
 
@@ -40,17 +39,14 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
     return c.json({ success: false, reason: 'FILE_REQUIRED' }, 400);
   }
 
-  // Workers runtime: non-string FormData entries are File objects
-  const file = rawFile as unknown as File;
-
   // Validate file type — whitelist safe raster formats; reject SVG (XSS risk)
   const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+  if (!ALLOWED_IMAGE_TYPES.has(rawFile.type)) {
     return c.json({ success: false, reason: 'INVALID_FILE_TYPE' }, 400);
   }
 
   // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
+  if (rawFile.size > 5 * 1024 * 1024) {
     return c.json({ success: false, reason: 'FILE_TOO_LARGE' }, 400);
   }
 
@@ -62,12 +58,12 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
 
   // Upload new avatar
   const suffix = randomHex(AVATAR_SUFFIX_HEX_LENGTH);
-  const ext = file.type === 'image/png' ? 'png' : 'jpg';
+  const ext = rawFile.type === 'image/png' ? 'png' : 'jpg';
   const key = `${userId}/${Date.now()}-${suffix}.${ext}`;
 
-  await env.AVATARS.put(key, file.stream(), {
+  await env.AVATARS.put(key, rawFile.stream(), {
     httpMetadata: {
-      contentType: file.type,
+      contentType: rawFile.type,
     },
   });
 
@@ -95,7 +91,6 @@ avatarRoutes.post('/upload', requireAuth, async (c) => {
 // GET /avatar/:userId/:filename — serve avatar file from R2
 avatarRoutes.get('/:userId/:filename', async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const key = `${c.req.param('userId')}/${c.req.param('filename')}`;
   const object = await env.AVATARS.get(key);

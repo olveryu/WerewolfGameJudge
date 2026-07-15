@@ -27,7 +27,6 @@ export const shareRoutes = new Hono<AppEnv>();
 // POST /share/image — upload share image
 shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const { base64 } = c.req.valid('json');
 
@@ -60,7 +59,6 @@ shareRoutes.post('/image', requireAuth, jsonBody(shareImageUploadSchema), async 
 // GET /share/:key+ — serve image from R2
 shareRoutes.get('/:key{.+}', async (c) => {
   const env = c.env;
-  if (!env.AVATARS) return c.json({ success: false, reason: 'STORAGE_NOT_CONFIGURED' }, 503);
 
   const key = `share/${c.req.param('key')}`;
   const object = await env.AVATARS.get(key);

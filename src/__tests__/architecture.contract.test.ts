@@ -87,6 +87,21 @@ function hasPathSegment(specifier: string, segment: string): boolean {
   return specifier.split('/').includes(segment);
 }
 
+function parseStringRecord(value: unknown, source: string): Record<string, string> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error(`${source} must contain an object`);
+  }
+
+  const result: Record<string, string> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (typeof entry !== 'string') {
+      throw new Error(`${source}.${key} must contain a string`);
+    }
+    result[key] = entry;
+  }
+  return result;
+}
+
 function getSqliteTableNames(filePath: string): readonly string[] {
   const source = fs.readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
@@ -173,9 +188,11 @@ const servicesDir = path.join(process.cwd(), 'src', 'services');
 const srcDir = path.join(process.cwd(), 'src');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 const engineGamesDir = path.join(gameEngineDir, 'games');
-const workerSrcDir = path.join(process.cwd(), 'packages', 'api-worker', 'src');
+const workerDir = path.join(process.cwd(), 'packages', 'api-worker');
+const workerSrcDir = path.join(workerDir, 'src');
 const workerPlatformDir = path.join(workerSrcDir, 'platform');
 const workerGamesDir = path.join(workerSrcDir, 'games');
+const pagesFunctionsDir = path.join(process.cwd(), 'functions');
 
 const screensFiles = getAllProductionFiles(screensDir);
 const productComponentFiles = getAllProductionFiles(productComponentsDir);
@@ -437,11 +454,140 @@ describe('Worker ownership: source tree is exact', () => {
       'games',
       'platform',
     ]);
-    expect(getTopLevelProductionFiles(workerSrcDir)).toEqual([
-      'env.ts',
-      'index.ts',
-      'worker-globals.d.ts',
-    ]);
+    expect(getTopLevelProductionFiles(workerSrcDir)).toEqual(['env.ts', 'index.ts']);
+  });
+
+  it('derives Worker bindings from the committed Wrangler declaration', () => {
+    const envPath = path.join(workerSrcDir, 'env.ts');
+    const envSource = fs.readFileSync(envPath, 'utf-8');
+    const envSourceFile = ts.createSourceFile(
+      envPath,
+      envSource,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    );
+    const envAliases = envSourceFile.statements.filter(
+      (statement): statement is ts.TypeAliasDeclaration =>
+        ts.isTypeAliasDeclaration(statement) && statement.name.text === 'Env',
+    );
+    const handwrittenEnvInterfaces = envSourceFile.statements.filter(
+      (statement) => ts.isInterfaceDeclaration(statement) && statement.name.text === 'Env',
+    );
+
+    expect(envAliases).toHaveLength(1);
+    expect(envAliases[0]?.type.getText(envSourceFile)).toBe('WorkerBindings');
+    expect(handwrittenEnvInterfaces).toEqual([]);
+    expect(fs.existsSync(path.join(workerDir, 'worker-configuration.d.ts'))).toBe(true);
+
+    const packageJson: unknown = JSON.parse(
+      fs.readFileSync(path.join(workerDir, 'package.json'), 'utf-8'),
+    );
+    if (typeof packageJson !== 'object' || packageJson === null || Array.isArray(packageJson)) {
+      throw new Error('api-worker package.json must contain an object');
+    }
+    if (
+      !('scripts' in packageJson) ||
+      typeof packageJson.scripts !== 'object' ||
+      packageJson.scripts === null ||
+      Array.isArray(packageJson.scripts)
+    ) {
+      throw new Error('api-worker package.json must define scripts');
+    }
+    if (
+      !('devDependencies' in packageJson) ||
+      typeof packageJson.devDependencies !== 'object' ||
+      packageJson.devDependencies === null ||
+      Array.isArray(packageJson.devDependencies)
+    ) {
+      throw new Error('api-worker package.json must define devDependencies');
+    }
+    const workerScripts = parseStringRecord(packageJson.scripts, 'api-worker package.json scripts');
+    const workerDevDependencies = parseStringRecord(
+      packageJson.devDependencies,
+      'api-worker package.json devDependencies',
+    );
+    expect(workerScripts.dev).toContain('--var FIB_WORD_PROVIDER:local');
+    expect(workerScripts.types).toContain('--env-interface WorkerBindings');
+    expect(workerScripts['types:check']).toContain('--check');
+    expect(workerScripts.typecheck).toContain('types:check');
+    expect(workerDevDependencies).not.toHaveProperty('@cloudflare/workers-types');
+  });
+
+  it('derives Pages runtime types from the committed Wrangler declaration', () => {
+    const rootPackageJson: unknown = JSON.parse(
+      fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'),
+    );
+    if (
+      typeof rootPackageJson !== 'object' ||
+      rootPackageJson === null ||
+      Array.isArray(rootPackageJson)
+    ) {
+      throw new Error('root package.json must contain an object');
+    }
+    if (
+      !('scripts' in rootPackageJson) ||
+      typeof rootPackageJson.scripts !== 'object' ||
+      rootPackageJson.scripts === null ||
+      Array.isArray(rootPackageJson.scripts)
+    ) {
+      throw new Error('root package.json must define scripts');
+    }
+    if (
+      !('devDependencies' in rootPackageJson) ||
+      typeof rootPackageJson.devDependencies !== 'object' ||
+      rootPackageJson.devDependencies === null ||
+      Array.isArray(rootPackageJson.devDependencies)
+    ) {
+      throw new Error('root package.json must define devDependencies');
+    }
+
+    const pagesTsconfig: unknown = JSON.parse(
+      fs.readFileSync(path.join(pagesFunctionsDir, 'tsconfig.json'), 'utf-8'),
+    );
+    if (
+      typeof pagesTsconfig !== 'object' ||
+      pagesTsconfig === null ||
+      Array.isArray(pagesTsconfig) ||
+      !('compilerOptions' in pagesTsconfig) ||
+      typeof pagesTsconfig.compilerOptions !== 'object' ||
+      pagesTsconfig.compilerOptions === null ||
+      Array.isArray(pagesTsconfig.compilerOptions) ||
+      !('include' in pagesTsconfig) ||
+      !Array.isArray(pagesTsconfig.include)
+    ) {
+      throw new Error('functions/tsconfig.json must define compilerOptions');
+    }
+
+    const pagesConfigPath = path.join(process.cwd(), 'wrangler.jsonc');
+    const pagesConfigResult = ts.parseConfigFileTextToJson(
+      pagesConfigPath,
+      fs.readFileSync(pagesConfigPath, 'utf-8'),
+    );
+    if (pagesConfigResult.error) {
+      throw new Error(ts.flattenDiagnosticMessageText(pagesConfigResult.error.messageText, '\n'));
+    }
+    const pagesConfig: unknown = pagesConfigResult.config;
+    expect(pagesConfig).toMatchObject({
+      name: 'werewolfgamejudge',
+      pages_build_output_dir: './dist',
+      compatibility_date: '2026-04-03',
+    });
+    expect(pagesConfig).not.toHaveProperty('vars');
+    expect(fs.existsSync(path.join(pagesFunctionsDir, 'types.d.ts'))).toBe(true);
+    expect(pagesTsconfig.compilerOptions).toMatchObject({ lib: ['ES2022'] });
+    expect(pagesTsconfig.compilerOptions).not.toHaveProperty('types');
+    expect(pagesTsconfig.include).toContain('types.d.ts');
+    const rootScripts = parseStringRecord(rootPackageJson.scripts, 'root package.json scripts');
+    const rootDevDependencies = parseStringRecord(
+      rootPackageJson.devDependencies,
+      'root package.json devDependencies',
+    );
+    expect(rootScripts['types:pages']).toContain('--env-file env/pages-types.env');
+    expect(rootScripts['types:pages:check']).toContain('--check');
+    expect(rootScripts.typecheck).toContain('tsc -p functions/tsconfig.json --noEmit');
+    expect(rootDevDependencies).toHaveProperty('wrangler');
+    expect(rootDevDependencies).not.toHaveProperty('@cloudflare/workers-types');
   });
 
   it('defines the exact non-game feature ownership roots', () => {

@@ -4,7 +4,7 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["./worker-configuration.d.ts", "node"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -17,6 +17,6 @@
       "@game-judge/game-engine": ["../game-engine/src/index.ts"]
     }
   },
-  "include": ["src/**/*.ts", "type-tests/**/*.ts"],
+  "include": ["worker-configuration.d.ts", "src/**/*.ts", "type-tests/**/*.ts"],
   "exclude": ["node_modules", "dist", "src/**/__tests__"]
 }

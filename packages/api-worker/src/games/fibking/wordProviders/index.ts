@@ -18,9 +18,6 @@ export function createConfiguredFibWordProvider(bindings: Env): FibWordProvider 
 
   switch (configuredSource) {
     case 'gemini':
-      if (bindings.GEMINI_API_KEY === undefined) {
-        throw new Error('FIB_WORD_PROVIDER=gemini requires GEMINI_API_KEY');
-      }
       return createGeminiFibWordProvider(bindings.GEMINI_API_KEY);
     case 'workers-ai':
       return createWorkersAiFibWordProvider(bindings.AI);

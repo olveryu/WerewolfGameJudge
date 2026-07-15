@@ -337,9 +337,6 @@ adminRoutes.get('/analytics', async (c) => {
   }
 
   const apiToken = c.env.CF_API_TOKEN;
-  if (!apiToken) {
-    throw new HTTPException(503, { message: 'CF_API_TOKEN_NOT_CONFIGURED' });
-  }
 
   // Analytics Engine toDateTime() accepts 'YYYY-MM-DDTHH:MM:SS' only (no Z, no ms)
   const aeFrom = fromDate.toISOString().slice(0, 19);
@@ -473,9 +470,6 @@ adminRoutes.get('/ai-usage', async (c) => {
   }
 
   const apiToken = c.env.CF_API_TOKEN;
-  if (!apiToken) {
-    throw new HTTPException(503, { message: 'CF_API_TOKEN_NOT_CONFIGURED' });
-  }
 
   const aeFrom = fromDate.toISOString().slice(0, 19);
   const aeTo = toDate.toISOString().slice(0, 19);

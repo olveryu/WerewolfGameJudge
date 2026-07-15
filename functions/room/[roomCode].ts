@@ -10,10 +10,6 @@
 
 import { isRoomCode } from '@game-judge/game-engine/platform/protocol/roomCode';
 
-interface Env {
-  ASSETS: Fetcher;
-}
-
 /** OG property → replacement content value mapping. */
 const OG_REPLACEMENTS: Record<string, (roomCode: string, ogUrl: string) => string> = {
   'og:title': (roomCode) => `游戏房间 ${roomCode} · 加入游戏`,
@@ -52,7 +48,7 @@ class TitleRewriter implements HTMLRewriterElementContentHandlers {
   }
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest: PagesFunction<PagesBindings> = async (context) => {
   const { request, params, env } = context;
 
   const roomCode = String(params.roomCode ?? '');

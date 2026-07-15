@@ -18,13 +18,9 @@ interface SendEmailOptions {
 
 /**
  * Send email via Resend.
- * @throws if Resend API call fails or API key is not configured
+ * @throws if the Resend API call fails
  */
 async function sendEmail(env: Env, options: SendEmailOptions): Promise<void> {
-  if (!env.RESEND_API_KEY) {
-    throw new Error('RESEND_API_KEY not configured');
-  }
-
   const res = await fetch(RESEND_API_URL, {
     method: 'POST',
     headers: {

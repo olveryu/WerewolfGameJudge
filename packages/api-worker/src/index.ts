@@ -61,7 +61,7 @@ const log = createLogger('worker');
 app.use(
   '*',
   cors({
-    origin: (_, c) => (c.env as Env).CORS_ORIGIN,
+    origin: '*',
     allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization', 'x-region', 'x-request-id', 'x-admin-token'],
     maxAge: 3600,
@@ -134,7 +134,7 @@ app.route('/telemetry', telemetryRoutes);
 export default Sentry.withSentry(
   (env: Env) => ({
     dsn: env.SENTRY_DSN,
-    release: env.CF_VERSION_METADATA?.id,
+    release: env.CF_VERSION_METADATA.id,
     tracesSampleRate: env.ENVIRONMENT === 'production' ? 0.2 : 1.0,
     environment: env.ENVIRONMENT,
     sendDefaultPii: true,

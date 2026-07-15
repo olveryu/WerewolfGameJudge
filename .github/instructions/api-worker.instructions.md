@@ -55,28 +55,28 @@ xxxRoutes.post('/action', requireAuth, jsonBody(xxxSchema), async (c) => {
 
 ## Auth Middleware
 
-- `requireAuth` (`lib/auth.ts`, `createMiddleware` from `hono/factory`): verifies Bearer token, sets `c.var.userId` and `c.var.jwtPayload`.
+- `requireAuth` (`features/auth/tokenAuth.ts`, `createMiddleware` from `hono/factory`): verifies the Bearer token and sets `c.var.userId` plus `c.var.isAnonymous`.
 - Optional auth (e.g., signup) is handled inline in handler via `extractBearerToken` + `verifyToken`.
 
 ## Error Handling
 
-- `callDO(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
+- `callDurableObject(fn)` throws `HTTPException` on DO errors (503 retryable, 429 overloaded).
 - `app.onError` catches `HTTPException`, `SyntaxError` (malformed JSON), and generic errors uniformly.
 - Handlers don't need `try/catch` for DO call errors.
 
-## Shared Utilities (`handlers/shared.ts`)
+## Platform Utilities
 
-| Export                    | Purpose                                                                                                                                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `jsonBody<T>(schema)`     | `hono/validator` middleware: JSON parsing + zod validation                                                                                                                                                          |
-| `callDO<T>(fn)`           | DO RPC call + HTTPException error handling. **Note**: `@cloudflare/workers-types` injects `& Disposable` to DO RPC return values, breaking DU narrowing. Call site needs `as Promise<GameActionResult>` (see JSDoc) |
-| `getGameRoomStub(env, c)` | Get DO stub                                                                                                                                                                                                         |
-| `resultToStatus(result)`  | Input `{ success: boolean; reason?: string }` (structural subtype, compatible with `ActionResult` & `GameActionResult`) → `200 \| 400 \| 500`                                                                       |
-| `isValidSeat(value)`      | seat number type guard                                                                                                                                                                                              |
+| Export                       | Owner                                | Purpose                                     |
+| ---------------------------- | ------------------------------------ | ------------------------------------------- |
+| `jsonBody(schema)`           | `platform/http/jsonBody.ts`          | JSON parsing plus strict Zod validation     |
+| `callDurableObject(fn)`      | `platform/http/callDurableObject.ts` | DO availability to HTTP status translation  |
+| `getGameRoomStub(env, id)`   | `platform/room/roomStub.ts`          | Typed room Durable Object stub resolution   |
+| `resolveRoomLocator(...)`    | `platform/room/roomDirectory.ts`     | Exact room code and immutable ID resolution |
+| `translatePlatformEffects()` | `platform/room/platformEffects.ts`   | Shared room effect execution                |
 
 ## Gacha System
 
-### Routes (`gachaHandlers.ts` → `/api/gacha/*`)
+### Routes (`features/gacha/routes.ts` → `/api/gacha/*`)
 
 | Method | Path                      | Auth | Body Schema         | Description                                              |
 | ------ | ------------------------- | ---- | ------------------- | -------------------------------------------------------- |
