@@ -11,7 +11,7 @@
     "db:seed:local": "node ../../scripts/seed-local.mjs",
     "types": "wrangler types worker-configuration.d.ts --config wrangler.toml --env-interface WorkerBindings --strict-vars=false",
     "types:check": "wrangler types worker-configuration.d.ts --config wrangler.toml --env-interface WorkerBindings --strict-vars=false --check",
-    "typecheck": "pnpm run types:check && tsc --noEmit",
+    "typecheck": "pnpm run types:check && tsc --noEmit && tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run"
   },
   "dependencies": {

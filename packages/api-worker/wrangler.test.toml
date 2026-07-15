@@ -13,6 +13,7 @@ JWT_SECRET = "e2e-test-jwt-secret-do-not-use-in-production"
 ADMIN_PASSWORD = "test-admin-token-do-not-use-in-production"
 ENVIRONMENT = "test"
 FIB_WORD_PROVIDER = "local"
+CLOUDFLARE_ACCOUNT_ID = "test-cloudflare-account"
 SENTRY_DSN = ""
 
 # ── D1 Database (local miniflare) ───────────────────────────────────────────

@@ -6,17 +6,20 @@
  * Adding a new avatar/frame requires only appending here + adding the corresponding image/component on the client.
  */
 
-/** Unlockable item type. */
-export type RewardType =
-  | 'avatar'
-  | 'frame'
-  | 'seatFlair'
-  | 'nameStyle'
-  | 'roleRevealEffect'
-  | 'seatAnimation';
+/** Unlockable item types used by runtime schemas and compile-time contracts. */
+export const REWARD_TYPES = [
+  'avatar',
+  'frame',
+  'seatFlair',
+  'nameStyle',
+  'roleRevealEffect',
+  'seatAnimation',
+] as const;
+export type RewardType = (typeof REWARD_TYPES)[number];
 
-/** Rarity tier. */
-export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+/** Rarity tiers used by runtime schemas and compile-time contracts. */
+export const RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
+export type Rarity = (typeof RARITIES)[number];
 
 /** Single unlockable item entry. */
 export interface RewardItem {

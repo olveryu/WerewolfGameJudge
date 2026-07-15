@@ -123,7 +123,7 @@ New gacha route approach: add `/api/gacha/*` within the `/api` route group.
 
 ### 2.6 Migration Numbers
 
-Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column).
+Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column), `0022_gacha_idempotency_keys.sql` (replay table), and `0039_gacha_mutation_ledger.sql` (atomic claim/application state).
 
 ---
 
@@ -200,6 +200,23 @@ export const drawHistory = sqliteTable('draw_history', {
   createdAt: text('created_at').notNull(),
 });
 ```
+
+`idempotency_keys` is the mutation ledger, not a best-effort response cache:
+
+```sql
+CREATE TABLE idempotency_keys (
+  key TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  claim_id TEXT NOT NULL,
+  operation TEXT NOT NULL CHECK (operation IN ('draw', 'exchange')),
+  is_applied INTEGER NOT NULL CHECK (is_applied IN (0, 1)),
+  response TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+```
+
+`claim_id` identifies the one request allowed to apply a globally unique key. Only rows with
+`is_applied = 1` are externally replayable; an unapplied claim is deleted inside the same D1 batch.
 
 ### 3.3 RewardItem Gains Rarity
 
@@ -493,7 +510,7 @@ Execute draw.
 ```
 POST /api/gacha/draw:
 1. requireAuth → userId
-2. Validate body and return a cached response for an existing idempotency key
+2. Validate body; return the committed response for the same owner/operation, or 409 on identity conflict
 3. Read user_stats with its OCC version
 4. Check ticket balance >= count, otherwise → INSUFFICIENT_DRAWS
 5. FOR each draw:
@@ -501,9 +518,13 @@ POST /api/gacha/draw:
    b. selectReward(rarity, unlockedSet, secureRng) from the exact rarity pool
    c. add a new item, or add shards for a duplicate
    d. update pity and prepare one draw_history row
-6. UPDATE user_stats WHERE version = readVersion; retry the whole calculation on conflict
-7. Batch-insert draw_history rows
-8. Store the response by idempotency key and return it
+6. Execute one D1 batch transaction:
+   a. INSERT the key/claim/operation/response with is_applied = 0; key conflict is a no-op
+   b. INSERT history only when this claim owns the key and user_stats.version = readVersion
+   c. mark this claim applied under the same version predicate
+   d. UPDATE user_stats under the applied-claim and version predicates
+   e. DELETE this claim when it was not applied
+7. Read the committed ledger row: replay the winner, or retry from a fresh stats snapshot after OCC loss
 ```
 
 ### 6.3 New Zod Schema
@@ -536,7 +557,9 @@ export const gachaDrawSchema = z.object({
 ### 6.5 Idempotency & Concurrency Safety
 
 - **Settlement idempotency**: `game_settlement_results.effect_id` is the durable settlement ledger
-- **Draw concurrency — OCC (Optimistic Concurrency Control)**: `user_stats.version` column (Migration `0015`). Each draw reads version → writes with `WHERE version = readVersion`; 0 affected rows triggers retry (MAX_DRAW_RETRIES=3). Stricter than D1 balance conditions, prevents two concurrent draws from reading the same snapshot and double-deducting
+- **Draw/exchange idempotency**: `idempotency_keys.key` is globally unique; owner and operation must match. `claim_id` prevents a losing concurrent request from using the winner's row. Stored responses are parsed by operation-specific Zod schemas before replay.
+- **Atomic mutation**: claim, draw history, applied state, and `user_stats` update execute in one `D1Database.batch()` transaction. Any statement error rolls back the whole sequence; no response is committed without the matching balance/version mutation.
+- **Draw concurrency — OCC (Optimistic Concurrency Control)**: `user_stats.version` (Migration `0015`) is read before calculation and rechecked inside the ledger transaction. A different-key loser leaves no claim/history and retries from a fresh snapshot (maximum `MAX_GACHA_OCC_ATTEMPTS=3`). Same-key concurrency returns the one committed response and applies one mutation.
 - **Random number source**: Worker injects `secureRng` from `platform/random`; selection uses the same validated `[0, 1)` contract as engine tests
 
 ### 6.6 seed-local.mjs Update
@@ -570,12 +593,12 @@ export const dailyRewardSchema = z.object({
 
 - Client passes `localDate` (player's local date YYYY-MM-DD, `new Date().toLocaleDateString('en-CA')`)
 - Server checks:
-  1. No user_stats row → auto-create (`INSERT ... ON CONFLICT DO UPDATE`)
-  2. `lastLoginRewardAt === localDate` → `{ claimed: false, reason: 'already_claimed' }`
+  1. No user_stats row → `INSERT ... ON CONFLICT DO NOTHING`; exactly one concurrent request creates and claims it
+  2. An insert loser restarts the OCC loop and observes the committed cooldown
   3. Less than 20h since last claim → `{ claimed: false, reason: 'cooldown' }`
-  4. Passes → `normalDraws + 1`, update `lastLoginRewardAt`, return `{ claimed: true, normalDrawsAdded: 1 }`
+  4. Passes → add 1–5 normal draws and one golden draw, update `lastLoginRewardAt`, and bump `version`
 - 20h cooldown guard prevents timezone abuse (face-to-face party game trust model, lightweight protection suffices)
-- OCC retry (MAX_DRAW_RETRIES=3), reuses draw concurrency safety pattern
+- OCC retry (`MAX_GACHA_OCC_ATTEMPTS=3`) reuses the stats-version concurrency pattern
 
 **Client auto-claim**: `useAutoClaimDailyReward()` hook:
 
@@ -903,21 +926,21 @@ No need to invalidate `['userStats']` XP/level data (draws don't affect those). 
 
 ### 10.1 Edge Cases
 
-| Scenario                       | Handling                                                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| 10-pull but only 3 tickets     | API returns `INSUFFICIENT_DRAWS`; client controls are disabled when balance is insufficient                   |
-| Complete collection            | Draws continue with duplicate-to-shard conversion; deterministic exchange remains available                   |
-| Missing account stats          | API returns `NO_STATS`; no ticket deduction occurs                                                            |
-| Offline / disconnected         | `cfPost` reports the request failure and the client presents the draw error                                   |
-| Multi-device simultaneous draw | `user_stats.version` OCC retries from a fresh snapshot, then returns `CONFLICT` after the bounded retry limit |
-| Settlement retry               | The effect ledger returns the already-committed per-user result without rolling rewards again                 |
+| Scenario                       | Handling                                                                                             |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 10-pull but only 3 tickets     | API returns `INSUFFICIENT_DRAWS`; client controls are disabled when balance is insufficient          |
+| Complete collection            | Draws continue with duplicate-to-shard conversion; deterministic exchange remains available          |
+| Missing account stats          | API returns `NO_STATS`; no ticket deduction occurs                                                   |
+| Offline / disconnected         | `cfPost` reports the request failure and the client presents the draw error                          |
+| Multi-device simultaneous draw | Same key replays one atomic ledger result; different keys serialize through `user_stats.version` OCC |
+| Settlement retry               | The effect ledger returns the already-committed per-user result without rolling rewards again        |
 
 ### 10.2 Risks
 
-| Risk                                                     | Level  | Mitigation                                                                                                                                                                                                       |
-| -------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1 concurrency race (two draws reading same balance)     | Low    | D1 single writer guarantee. UPDATE SET WHERE condition as safety net                                                                                                                                             |
-| Invalid RNG or empty rarity catalog                      | Low    | Shared random contracts and module-initialization checks fail fast before an invalid result can be persisted                                                                                                     |
-| Partial failure mid-10-pull (partial DB write success)   | Low    | 10 draws execute serially in same handler, D1 write atomicity is sufficient. Worst case: some items written but tickets not deducted → user gains extra items (acceptable risk). Can further reduce with batch() |
-| Skia animation performance (28 ball physics + particles) | Medium | HTML prototype verified smooth. Skia's GPU acceleration should be better. If needed, reduce ball count to 20                                                                                                     |
-| Probability engine bug                                   | Medium | §4.5 test coverage + 100K Monte Carlo verification                                                                                                                                                               |
+| Risk                                                     | Level  | Mitigation                                                                                                          |
+| -------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| D1 concurrency race (two draws reading same balance)     | Low    | One D1 batch owns the claim, verifies OCC version, writes history, updates stats, and commits the replay atomically |
+| Invalid RNG or empty rarity catalog                      | Low    | Shared random contracts and module-initialization checks fail fast before an invalid result can be persisted        |
+| Partial failure mid-10-pull                              | Low    | D1 rolls back the claim, all history rows, applied marker, and stats mutation as one batch transaction              |
+| Skia animation performance (28 ball physics + particles) | Medium | HTML prototype verified smooth. Skia's GPU acceleration should be better. If needed, reduce ball count to 20        |
+| Probability engine bug                                   | Medium | §4.5 test coverage + 100K Monte Carlo verification                                                                  |

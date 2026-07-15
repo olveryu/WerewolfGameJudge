@@ -1,8 +1,11 @@
 /** Gacha-owned D1 table definitions. */
 
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 import { users } from '../account/dbSchema';
+
+export const GACHA_MUTATION_OPERATIONS = ['draw', 'exchange'] as const;
+export type GachaMutationOperation = (typeof GACHA_MUTATION_OPERATIONS)[number];
 
 /** Immutable gacha draw history. */
 export const drawHistory = sqliteTable('draw_history', {
@@ -29,8 +32,14 @@ export const idempotencyKeys = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
+    claimId: text('claim_id').notNull(),
+    operation: text('operation', { enum: GACHA_MUTATION_OPERATIONS }).notNull(),
+    isApplied: integer('is_applied').notNull(),
     response: text('response').notNull(),
     createdAt: text('created_at').notNull(),
   },
-  (table) => [index('idx_idempotency_keys_created_at').on(table.createdAt)],
+  (table) => [
+    uniqueIndex('idx_idempotency_keys_claim_id').on(table.claimId),
+    index('idx_idempotency_keys_created_at').on(table.createdAt),
+  ],
 );

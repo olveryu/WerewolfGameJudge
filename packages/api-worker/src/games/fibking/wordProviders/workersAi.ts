@@ -1,26 +1,30 @@
 /** Workers AI structured-output adapter for the Fib word provider port. */
 
+import { z } from 'zod';
+
 import { FIB_WORD_JSON_SCHEMA, parseFibWordCandidate } from './candidate';
 import { createFibWordMessages } from './prompt';
 import type { FibWordProvider } from './types';
 
 const WORKERS_AI_MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
+const workersAiResponseSchema = z.object({ response: z.unknown() });
 
-export function createWorkersAiFibWordProvider(ai: Ai): FibWordProvider {
+export type FibWorkersAiRun = (model: string, input: Record<string, unknown>) => Promise<unknown>;
+
+export function createWorkersAiFibWordProvider(run: FibWorkersAiRun): FibWordProvider {
   return {
     async generate(request) {
-      const response = await ai.run(WORKERS_AI_MODEL, {
-        messages: [...createFibWordMessages(request)],
-        temperature: 1,
-        max_tokens: 256,
-        response_format: {
-          type: 'json_schema',
-          json_schema: FIB_WORD_JSON_SCHEMA,
-        },
-      });
-      if (typeof response === 'string' || !('response' in response)) {
-        throw new Error('Workers AI Fib word response is not synchronous text output');
-      }
+      const response = workersAiResponseSchema.parse(
+        await run(WORKERS_AI_MODEL, {
+          messages: [...createFibWordMessages(request)],
+          temperature: 1,
+          max_tokens: 256,
+          response_format: {
+            type: 'json_schema',
+            json_schema: FIB_WORD_JSON_SCHEMA,
+          },
+        }),
+      );
       return parseFibWordCandidate(response.response, 'workers-ai', request.avoidWords);
     },
   };

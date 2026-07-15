@@ -1991,17 +1991,17 @@ pnpm run e2e
 
 每个实现提交都必须更新本节，并在提交前运行完整 `pnpm run quality`。阶段状态只按退出条件判断，不能因类型或局部测试通过而提前标记完成。
 
-| 阶段    | 状态   | 已完成                                                                                                                                                                                                                                                                                       | 尚未完成                                                                                                      |
-| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                                                                                                         | -                                                                                                             |
-| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                                                                                                            | -                                                                                                             |
-| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                                                                                                       | -                                                                                                             |
-| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                                                                                                       | -                                                                                                             |
-| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                                                                              | -                                                                                                             |
-| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                                                                                      | -                                                                                                             |
-| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                                                                            | -                                                                                                             |
-| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                                                                          | -                                                                                                             |
-| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary、Wrangler binding 单一权威、JWT principal 单一认证边界 | provider payload runtime parsing、engine/client 精确门禁、test type-honesty、fail-fast/命名残留清理、最终验收 |
+| 阶段    | 状态   | 已完成                                                                                                                                                                                                                                                                                                                                                                                 | 尚未完成                                                                        |
+| ------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Phase 0 | 完成   | `main` 行为 contract、characterization test、四个 Werewolf E2E shard                                                                                                                                                                                                                                                                                                                   | -                                                                               |
+| Phase 1 | 完成   | canonical identity、shared roster/session/catalog、Werewolf UI/profile/cosmetic/audio/assets/Home/navigation 归位                                                                                                                                                                                                                                                                      | -                                                                               |
+| Phase 2 | 完成   | concrete engine、exhaustive catalogs、Worker schema、完整 Werewolf E2E                                                                                                                                                                                                                                                                                                                 | -                                                                               |
+| Phase 3 | 完成   | generic command、atomic DO storage、receipt/outbox、client cutover、durable user event                                                                                                                                                                                                                                                                                                 | -                                                                               |
+| Phase 4 | 完成   | creation saga、immutable locator、单一 deep link、resolver、定时 reconciliation                                                                                                                                                                                                                                                                                                        | -                                                                               |
+| Phase 5 | 完成   | shared shell/controllers、单一 RoomSession、entry/connection/command 下沉、runtime 归位                                                                                                                                                                                                                                                                                                | -                                                                               |
+| Phase 6 | 完成   | compact Fib state、implicit bots、word outbox、engine/Worker catalog、DO 恢复测试                                                                                                                                                                                                                                                                                                      | -                                                                               |
+| Phase 7 | 完成   | Fib client module、shared RoomShell、完整 round、真实 cold deep link、百万级人数与 320px 响应式 E2E                                                                                                                                                                                                                                                                                    | -                                                                               |
+| Phase 8 | 进行中 | engine/Worker/client ownership、Worker vertical features、migration-backed Worker tests、storage/room creation、navigation capability、scope 中性化、单一插件组合点、开放 module contract、Pictionary 编译门禁、严格 request boundary、Wrangler binding 单一权威、JWT principal 单一认证边界、provider payload runtime parsing、Worker test type-honesty、gacha atomic mutation ledger | request metadata cast、engine/client 精确门禁、fail-fast/命名残留清理、最终验收 |
 
 Phase 0 与 Phase 2 的远端证据是 commit `16edbe4c` 对应 CI run `29124207971`：quality 和四个
 Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时失败，属于报告聚合 job 配置问题，
@@ -2917,3 +2917,36 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   以及 missing-user token-version bump 回归测试。Worker 22 files / 140 tests 与 production Worker TypeScript 均通过。
   `tsconfig.test.json` 仍只剩审计前已记录的 daily-reward unknown JSON 与 Fib word-provider mock state 擦除，下一提交
   Phase 8.12B 负责把这两组连同 provider payload runtime parsing 一并收口。
+
+### 当前提交：Phase 8.12B provider runtime contract 与 Worker test type-honesty
+
+- Cloudflare Analytics Engine SQL 请求从 admin route 抽入 `features/admin/providers/analyticsEngine.ts`。adapter 按官方
+  [JSON FORMAT](https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/statements/#format-clause)
+  解析 required `data` envelope 与两种查询各自的 strict row schema，并把 API 可能返回的 number/string 数值显式规范成
+  finite decimal number；空白、hex、Infinity、缺字段、非数字或非 2xx 都记录 provider failure 并返回 502。account ID 由
+  production/test/E2E Wrangler composition 提供 `CLOUDFLARE_ACCOUNT_ID`，不再藏在 adapter 常量中。route 不再用
+  `const data: { ... } = await response.json()` 假装外部 JSON 已可信，也不再用 `data ?? []` 把 malformed response 当空结果。
+- GitHub issue、comment 与 state PATCH 从 feedback route 抽入 `features/feedback/providers/github.ts`，固定官方当前
+  `2026-03-10` REST API version。create issue/comment 分别要求文档规定的 201 与正整数 `number/id`，state update 要求 200；
+  provider 错误抛给 Worker 统一 logging/Sentry/500 管线，不再把失败 PATCH 静默当成功。参考 GitHub 官方
+  [issue API](https://docs.github.com/en/rest/issues/issues) 与
+  [comment API](https://docs.github.com/en/rest/issues/comments)。resolved feedback 的 reopen 先同步 GitHub，再创建 comment，
+  最后用 D1 batch 原子写 reply 与本地 status；显式 resolve/reopen 同样在 provider 成功后才写本地状态。
+- gacha idempotency 从“先改余额、后写 replay、冲突静默忽略”改为 `0039_gacha_mutation_ledger.sql` 支撑的原子 ledger。
+  全局 key、owner、claim、operation 与 applied state 都持久化；draw 的 claim、全部 history、applied 标记、OCC stats update 和
+  loser cleanup 在一个 D1 batch 中顺序执行，exchange 同样把 claim/stats/replay 放在同一 transaction。依据 Cloudflare 当前
+  [D1 batch 文档](https://developers.cloudflare.com/d1/worker-api/d1-database/#batch)，batch 内 statement 顺序、非并发执行，
+  任一失败会回滚整批。same-key 并发只应用 winner 一次并返回同一 response；different-key loser 不留下 claim/history，读取
+  新 version 后重算。首次 daily reward 也删除 conflict-upsert 双发路径，只有 insert winner 获奖，loser 进入 cooldown。
+- replay 读取先验证 applied、owner 与 operation，再由 draw/exchange 各自 Zod schema 解析持久化 JSON；语法损坏会被重新分类为
+  服务端持久化不变量错误，不能落入 request `INVALID_JSON`，shape 损坏或未知 reward ID 同样立即失败。game-engine reward
+  catalog 增加 `REWARD_TYPES/RARITIES` runtime tuple，Zod 与 TypeScript type 从同一来源生成，避免 Worker 再抄一份枚举。
+- Fib Workers AI adapter 只依赖最小 `run(model, input)` port，并在 candidate parser 前验证 required `response` envelope；测试
+  不再把普通 object 双重断言成整个 Cloudflare `Ai`。word effect 的 committed result helper 保留 `FibState`，不再擦成
+  `BaseGameState<'fibking'>`。daily reward 测试用 discriminated Zod output contract 解析实际 response，不以 `unknown` 或泛型
+  注解绕过。
+- `tsconfig.test.json` 正式进入 Worker `typecheck` 和 root `quality`，production/test 两套 TypeScript 都必须为零错误。
+  新增 Analytics Engine、GitHub provider 与 gacha replay 的成功、malformed、错误状态、跨用户、跨 operation、同 key/不同 key
+  并发和 daily 首次并发测试；Worker 定向验证为 25 files / 159 tests。完整 `pnpm run quality` 在本提交前通过，root 仍只保留
+  已记录的 Expo teardown/forced-exit 噪声。
+  Phase 8.12 下一批删除 request metadata cast，并继续 engine/client 精确 exports 与 fallback/旧命名审计。

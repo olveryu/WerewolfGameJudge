@@ -20,10 +20,9 @@ import type { AppEnv, Env } from '../../env';
 import { createLogger } from '../../platform/observability/logger';
 import { roomParticipants, rooms } from '../../platform/room/dbSchema';
 import { users, userStats } from '../account/dbSchema';
+import { queryAIUsageAnalytics, queryLoadTimingAnalytics } from './providers/analyticsEngine';
 
 const log = createLogger('admin');
-
-const CF_ACCOUNT_ID = 'a38318fda66da2d2d931d8ab2d98e1c0';
 
 // ── Admin auth middleware ────────────────────────────────────────────────────
 
@@ -336,8 +335,6 @@ adminRoutes.get('/analytics', async (c) => {
     throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
   }
 
-  const apiToken = c.env.CF_API_TOKEN;
-
   // Analytics Engine toDateTime() accepts 'YYYY-MM-DDTHH:MM:SS' only (no Z, no ms)
   const aeFrom = fromDate.toISOString().slice(0, 19);
   const aeTo = toDate.toISOString().slice(0, 19);
@@ -356,26 +353,7 @@ adminRoutes.get('/analytics', async (c) => {
     ORDER BY cnt DESC
   `;
 
-  const resp = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/analytics_engine/sql`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        'Content-Type': 'text/plain',
-      },
-      body: sqlQuery,
-    },
-  );
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    log.error('Analytics Engine query failed', { status: resp.status, body: text });
-    throw new HTTPException(502, { message: 'ANALYTICS_QUERY_FAILED' });
-  }
-
-  const data: { data: AnalyticsRow[] } = await resp.json();
-  const rows = data.data ?? [];
+  const rows = await queryLoadTimingAnalytics(c.env, sqlQuery);
 
   // Aggregate by country
   const countryMap = new Map<string, { count: number; totalLoadMs: number; totalTtfbMs: number }>();
@@ -387,9 +365,9 @@ adminRoutes.get('/analytics', async (c) => {
   let totalTtfbMs = 0;
 
   for (const row of rows) {
-    const cnt = Number(row.cnt);
-    const avgLoad = Number(row.avg_load_ms);
-    const avgTtfb = Number(row.avg_ttfb_ms);
+    const cnt = row.cnt;
+    const avgLoad = row.avg_load_ms;
+    const avgTtfb = row.avg_ttfb_ms;
 
     totalCount += cnt;
     totalLoadMs += avgLoad * cnt;
@@ -445,15 +423,6 @@ adminRoutes.get('/analytics', async (c) => {
   return c.json({ avgLoadMs, avgTtfbMs, totalRequests: totalCount, countries, colos, isps });
 });
 
-interface AnalyticsRow {
-  country: string;
-  colo: string;
-  isp: string;
-  cnt: string;
-  avg_load_ms: string;
-  avg_ttfb_ms: string;
-}
-
 // ── GET /admin/ai-usage ─────────────────────────────────────────────────────
 
 adminRoutes.get('/ai-usage', async (c) => {
@@ -468,8 +437,6 @@ adminRoutes.get('/ai-usage', async (c) => {
   if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
     throw new HTTPException(400, { message: 'INVALID_TIME_RANGE' });
   }
-
-  const apiToken = c.env.CF_API_TOKEN;
 
   const aeFrom = fromDate.toISOString().slice(0, 19);
   const aeTo = toDate.toISOString().slice(0, 19);
@@ -491,26 +458,7 @@ adminRoutes.get('/ai-usage', async (c) => {
     ORDER BY cnt DESC
   `;
 
-  const resp = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/analytics_engine/sql`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-        'Content-Type': 'text/plain',
-      },
-      body: sqlQuery,
-    },
-  );
-
-  if (!resp.ok) {
-    const text = await resp.text();
-    log.error('AI usage query failed', { status: resp.status, body: text });
-    throw new HTTPException(502, { message: 'AI_USAGE_QUERY_FAILED' });
-  }
-
-  const result: { data: AIUsageRow[] } = await resp.json();
-  const rows = result.data ?? [];
+  const rows = await queryAIUsageAnalytics(c.env, sqlQuery);
 
   // Aggregate into dimensions
   let totalRequests = 0;
@@ -523,9 +471,9 @@ adminRoutes.get('/ai-usage', async (c) => {
   const userMap = new Map<string, number>();
 
   for (const row of rows) {
-    const cnt = Number(row.cnt);
+    const cnt = row.cnt;
     totalRequests += cnt;
-    totalTtfrMs += Number(row.avgTtfrMs) * cnt;
+    totalTtfrMs += row.avgTtfrMs * cnt;
     if (row.status === 'error') totalErrors += cnt;
 
     providerMap.set(row.provider, (providerMap.get(row.provider) ?? 0) + cnt);
@@ -572,13 +520,3 @@ adminRoutes.get('/ai-usage', async (c) => {
     })),
   });
 });
-
-interface AIUsageRow {
-  userId: string;
-  model: string;
-  provider: string;
-  country: string;
-  status: string;
-  cnt: string;
-  avgTtfrMs: string;
-}

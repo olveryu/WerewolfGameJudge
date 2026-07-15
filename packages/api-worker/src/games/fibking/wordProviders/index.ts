@@ -20,7 +20,7 @@ export function createConfiguredFibWordProvider(bindings: Env): FibWordProvider 
     case 'gemini':
       return createGeminiFibWordProvider(bindings.GEMINI_API_KEY);
     case 'workers-ai':
-      return createWorkersAiFibWordProvider(bindings.AI);
+      return createWorkersAiFibWordProvider((model, input) => bindings.AI.run(model, input));
     case 'local':
       return createLocalFibWordProvider();
   }

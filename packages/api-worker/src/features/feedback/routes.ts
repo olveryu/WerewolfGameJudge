@@ -24,6 +24,7 @@ import { users } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
 import { feedbackReplies, feedbacks } from './dbSchema';
 import { githubIssueCommentPayloadSchema, githubIssuesPayloadSchema } from './githubWebhookSchemas';
+import { createGitHubFeedbackProvider } from './providers/github';
 import {
   feedbackMarkReadSchema,
   feedbackReplySchema,
@@ -36,16 +37,11 @@ const log = createLogger('feedback');
 /** Feedback routes (submit / list / reply). */
 export const feedbackRoutes = new Hono<AppEnv>();
 
-/** GitHub repo receiving feedback issues */
-const GITHUB_REPO = 'olveryu/WerewolfGameJudge';
-
 // ── POST /feedback — submit new feedback ────────────────────────────────────
 
 feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c) => {
   const userId = c.var.userId;
   const { content, appVersion } = c.req.valid('json');
-
-  const token = c.env.GITHUB_TOKEN;
 
   const titlePreview = content.length > 20 ? `${content.slice(0, 20)}…` : content;
 
@@ -60,36 +56,21 @@ feedbackRoutes.post('/feedback', requireAuth, jsonBody(feedbackSchema), async (c
     .from(users)
     .where(eq(users.id, userId))
     .get();
+  if (user === undefined) throw new Error(`Authenticated user ${userId} disappeared`);
 
   const metaLines = [
     `**用户 ID：** \`${userId}\``,
-    `**昵称：** ${user?.displayName || '（未设置）'}`,
-    `**地区：** ${user?.lastCountry || '未知'} / ${user?.lastColo || '未知'}`,
+    `**昵称：** ${user.displayName ?? '（未设置）'}`,
+    `**地区：** ${user.lastCountry ?? '未知'} / ${user.lastColo ?? '未知'}`,
     `**版本：** ${appVersion}`,
   ];
 
-  const resp = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/issues`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/vnd.github+json',
-      'User-Agent': 'WerewolfGameJudge-Worker',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      title: `[反馈] ${titlePreview}`,
-      body: [...metaLines, '', '---', '', content].join('\n'),
-      labels: ['user-feedback'],
-    }),
+  const github = createGitHubFeedbackProvider(c.env.GITHUB_TOKEN);
+  const issueData = await github.createIssue({
+    title: `[反馈] ${titlePreview}`,
+    body: [...metaLines, '', '---', '', content].join('\n'),
+    labels: ['user-feedback'],
   });
-
-  if (!resp.ok) {
-    const detail = await resp.text();
-    log.error('GitHub issue creation failed', { status: resp.status, detail });
-    return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
-  }
-
-  const issueData: { number: number } = await resp.json();
 
   // Store in D1
   const feedbackId = crypto.randomUUID();
@@ -213,36 +194,18 @@ feedbackRoutes.post(
       return c.json({ success: false, reason: 'NOT_FOUND' }, 404);
     }
 
-    const token = c.env.GITHUB_TOKEN;
-
-    // Add comment to GitHub Issue
-    const resp = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}/comments`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'WerewolfGameJudge-Worker',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          body: `**用户追问（\`${userId}\`）：**\n\n${content}`,
-        }),
-      },
-    );
-
-    if (!resp.ok) {
-      const detail = await resp.text();
-      log.error('GitHub comment creation failed', { status: resp.status, detail });
-      return c.json({ success: false, reason: 'INTERNAL_ERROR' }, 500);
+    const github = createGitHubFeedbackProvider(c.env.GITHUB_TOKEN);
+    if (feedback.status === 'resolved') {
+      await github.setIssueState(feedback.githubIssueNumber, 'open');
     }
-
-    const commentData: { id: number } = await resp.json();
+    const commentData = await github.createComment(
+      feedback.githubIssueNumber,
+      `**用户追问（\`${userId}\`）：**\n\n${content}`,
+    );
 
     // Store reply in D1
     const replyId = crypto.randomUUID();
-    await db.insert(feedbackReplies).values({
+    const insertReply = db.insert(feedbackReplies).values({
       id: replyId,
       feedbackId,
       isAdmin: 0,
@@ -252,31 +215,22 @@ feedbackRoutes.post(
       createdAt: new Date().toISOString(),
     });
 
+    if (feedback.status === 'resolved') {
+      await db.batch([
+        insertReply,
+        db.update(feedbacks).set({ status: 'open' }).where(eq(feedbacks.id, feedbackId)),
+      ]);
+    } else {
+      await insertReply;
+    }
+
     log.info('user reply added to feedback', {
       userId,
       feedbackId,
       issueNumber: feedback.githubIssueNumber,
     });
 
-    // Auto-reopen if resolved — user follow-up means the issue is active again
     if (feedback.status === 'resolved') {
-      await db.update(feedbacks).set({ status: 'open' }).where(eq(feedbacks.id, feedbackId));
-
-      // Reopen GitHub Issue
-      await fetch(
-        `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
-        {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'WerewolfGameJudge-Worker',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ state: 'open' }),
-        },
-      );
-
       log.info('auto-reopened resolved feedback on user reply', { feedbackId });
     }
 
@@ -317,24 +271,16 @@ feedbackRoutes.post(
       return c.json({ success: true }); // Already in desired state
     }
 
-    await db.update(feedbacks).set({ status: newStatus }).where(eq(feedbacks.id, feedbackId));
-
     // Sync GitHub Issue state
-    const token = c.env.GITHUB_TOKEN;
     const githubState = action === 'resolve' ? 'closed' : 'open';
-    await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/issues/${feedback.githubIssueNumber}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'WerewolfGameJudge-Worker',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ state: githubState }),
-      },
-    );
+    const github = createGitHubFeedbackProvider(c.env.GITHUB_TOKEN);
+    await github.setIssueState(feedback.githubIssueNumber, githubState);
+    const updated = await db
+      .update(feedbacks)
+      .set({ status: newStatus })
+      .where(eq(feedbacks.id, feedbackId))
+      .returning({ id: feedbacks.id });
+    if (updated.length !== 1) throw new Error(`Feedback ${feedbackId} disappeared during update`);
 
     log.info('feedback status changed', { feedbackId, from: feedback.status, to: newStatus });
     return c.json({ success: true });

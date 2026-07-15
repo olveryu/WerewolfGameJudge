@@ -5,8 +5,8 @@
  * POST /api/gacha/draw     -- execute draw (deduct ticket + roll + unlock/shards + history)
  * POST /api/gacha/exchange -- exchange shards for a specific item
  *
- * Transactional: draw/exchange/daily-reward use OCC (userStats.version optimistic lock);
- * on conflict, retry up to MAX_DRAW_RETRIES=3 times. Idempotency keys prevent duplicate submissions.
+ * Transactional: draw/exchange commit ledger, history, and stats in one D1 batch; daily-reward
+ * uses userStats.version OCC. Version conflicts retry up to MAX_GACHA_OCC_ATTEMPTS times.
  *
  * @throws Per-route error codes:
  * - POST /gacha/draw -- 400 NO_STATS | 400 INSUFFICIENT_DRAWS | 409 CONFLICT (OCC exhausted)
@@ -20,11 +20,11 @@
 
 import { secureRng } from '@game-judge/game-engine/platform/random';
 import {
-  type DrawType,
   parseUnlockedRewardIds,
+  RARITIES,
   type Rarity,
   REWARD_POOL_BY_ID,
-  type RewardType,
+  REWARD_TYPES,
   rollNormalDraws,
   rollRarity,
   selectReward,
@@ -32,6 +32,7 @@ import {
 } from '@game-judge/game-engine/product/rewards';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
+import { z } from 'zod';
 
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
@@ -39,7 +40,12 @@ import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
 import { userStats } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
-import { drawHistory, idempotencyKeys } from './dbSchema';
+import {
+  commitGachaDraw,
+  commitGachaExchange,
+  type GachaDrawHistoryEntry,
+  readGachaReplay,
+} from './mutationLedger';
 import { dailyRewardSchema, gachaDrawSchema, shardExchangeSchema } from './schemas';
 
 const log = createLogger('gacha');
@@ -49,46 +55,6 @@ export const gachaRoutes = new Hono<AppEnv>();
 
 /** Minimum hours between daily reward claims (server-side cooldown guard) */
 const DAILY_REWARD_COOLDOWN_HOURS = 20;
-
-/**
- * Check if an idempotency key has already been used.
- * Returns the cached response if found, null otherwise.
- */
-async function getIdempotentResponse<T>(
-  db: ReturnType<typeof createDb>,
-  userId: string,
-  key: string,
-): Promise<T | null> {
-  const existing = await db
-    .select({ response: idempotencyKeys.response })
-    .from(idempotencyKeys)
-    .where(eq(idempotencyKeys.key, key))
-    .get();
-
-  if (!existing) return null;
-  return JSON.parse(existing.response) as T;
-}
-
-/**
- * Store a successful response against an idempotency key.
- * Silently ignores conflicts (race between parallel retries — first writer wins).
- */
-async function storeIdempotentResponse(
-  db: ReturnType<typeof createDb>,
-  userId: string,
-  key: string,
-  response: unknown,
-): Promise<void> {
-  await db
-    .insert(idempotencyKeys)
-    .values({
-      key,
-      userId,
-      response: JSON.stringify(response),
-      createdAt: new Date().toISOString(),
-    })
-    .onConflictDoNothing();
-}
 
 /** GET /api/gacha/status */
 gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
@@ -134,35 +100,41 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
   });
 });
 
-interface DrawResult {
-  rarity: Rarity;
-  rewardType: RewardType;
-  rewardId: string;
-  isNew: boolean;
-  isPityTriggered: boolean;
-  isDuplicate: boolean;
-  shardsAwarded: number;
-}
+const nonnegativeIntegerSchema = z.number().int().nonnegative();
+const rewardIdSchema = z.string().refine((rewardId) => REWARD_POOL_BY_ID.has(rewardId), {
+  error: 'Unknown persisted reward ID',
+});
+const drawResultSchema = z.strictObject({
+  rarity: z.enum(RARITIES),
+  rewardType: z.enum(REWARD_TYPES),
+  rewardId: rewardIdSchema,
+  isNew: z.boolean(),
+  isPityTriggered: z.boolean(),
+  isDuplicate: z.boolean(),
+  shardsAwarded: nonnegativeIntegerSchema,
+});
+const drawResponseSchema = z.strictObject({
+  results: z.array(drawResultSchema).min(1),
+  totalShardsAwarded: nonnegativeIntegerSchema,
+  remaining: z.strictObject({
+    normalDraws: nonnegativeIntegerSchema,
+    goldenDraws: nonnegativeIntegerSchema,
+  }),
+});
+const exchangeResponseSchema = z.strictObject({
+  rewardId: rewardIdSchema,
+  rewardType: z.enum(REWARD_TYPES),
+  rarity: z.enum(RARITIES),
+  cost: nonnegativeIntegerSchema,
+  remainingShards: nonnegativeIntegerSchema,
+});
 
-interface DrawResponse {
-  results: DrawResult[];
-  totalShardsAwarded: number;
-  remaining: {
-    normalDraws: number;
-    goldenDraws: number;
-  };
-}
+type DrawResult = z.infer<typeof drawResultSchema>;
+type DrawResponse = z.infer<typeof drawResponseSchema>;
+type ExchangeResponse = z.infer<typeof exchangeResponseSchema>;
 
-interface ExchangeResponse {
-  rewardId: string;
-  rewardType: RewardType;
-  rarity: Rarity;
-  cost: number;
-  remainingShards: number;
-}
-
-/** Max OCC retries for concurrent draw conflict */
-const MAX_DRAW_RETRIES = 3;
+/** Max OCC attempts for one gacha mutation. */
+const MAX_GACHA_OCC_ATTEMPTS = 3;
 
 /** POST /api/gacha/draw */
 gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c) => {
@@ -171,14 +143,21 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
   const { drawType, count, idempotencyKey } = c.req.valid('json');
   log.info('draw request', { userId, drawType, count });
 
-  // Idempotency check: return cached response if key already used
-  const cached = await getIdempotentResponse<DrawResponse>(db, userId, idempotencyKey);
-  if (cached) {
+  const cached = await readGachaReplay(c.env.DB, {
+    userId,
+    key: idempotencyKey,
+    operation: 'draw',
+    responseSchema: drawResponseSchema,
+  });
+  if (cached.kind === 'conflict') {
+    return c.json({ success: false, reason: 'CONFLICT' }, 409);
+  }
+  if (cached.kind === 'replay') {
     log.info('draw idempotent hit', { userId, idempotencyKey });
-    return c.json(cached);
+    return c.json(cached.response);
   }
 
-  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < MAX_GACHA_OCC_ATTEMPTS; attempt++) {
     // 1. Read current stats (including version for OCC)
     const stats = await db
       .select({
@@ -216,19 +195,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 
     let currentPity = drawType === 'golden' ? stats.goldenPity : stats.normalPity;
     const results: DrawResult[] = [];
-    const historyEntries: Array<{
-      id: string;
-      userId: string;
-      drawType: DrawType;
-      rarity: Rarity;
-      rewardType: string;
-      rewardId: string;
-      pityCount: number;
-      isPityTriggered: number;
-      isDuplicate: number;
-      shardsAwarded: number;
-      createdAt: string;
-    }> = [];
+    const historyEntries: GachaDrawHistoryEntry[] = [];
 
     let totalShardsAwarded = 0;
     const now = new Date().toISOString();
@@ -258,7 +225,6 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 
       historyEntries.push({
         id: crypto.randomUUID(),
-        userId,
         drawType,
         rarity,
         rewardType: reward.type,
@@ -273,50 +239,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       currentPity = pityReset ? 0 : currentPity + 1;
     }
 
-    // 5. OCC write: deduct tickets, update pity, update unlocked items, add shards, bump version
     const updatedItems = JSON.stringify([...unlockedSet]);
-
-    const pityUpdate =
-      drawType === 'golden'
-        ? { goldenPity: currentPity, goldenDraws: sql`${userStats.goldenDraws} - ${count}` }
-        : { normalPity: currentPity, normalDraws: sql`${userStats.normalDraws} - ${count}` };
-
-    const updated = await db
-      .update(userStats)
-      .set({
-        ...pityUpdate,
-        unlockedItems: updatedItems,
-        shards: sql`${userStats.shards} + ${totalShardsAwarded}`,
-        version: sql`${userStats.version} + 1`,
-        updatedAt: sql`datetime('now')`,
-      })
-      .where(and(eq(userStats.userId, userId), eq(userStats.version, stats.version)))
-      .returning({ version: userStats.version });
-
-    if (updated.length === 0) {
-      // Version conflict -- another request modified stats concurrently, retry
-      continue;
-    }
-
-    // 6. Insert draw history records via D1 batch API.
-    // Each statement carries only 11 params (one row), avoiding D1's 100-param-per-query limit.
-    // Batch is transactional: all-or-nothing.
-    const stmts = historyEntries.map((entry) => db.insert(drawHistory).values(entry));
-    const firstStatement = stmts[0];
-    if (firstStatement === undefined) {
-      throw new Error('[FAIL-FAST] A validated draw must produce at least one history statement');
-    }
-    await db.batch([firstStatement, ...stmts.slice(1)]);
-
-    // 7. Return results
-    const rarities: Rarity[] = results.map((r: DrawResult): Rarity => r.rarity);
-    log.info('draw success', {
-      userId,
-      drawType,
-      count,
-      rarities,
-      totalShardsAwarded,
-    });
     const response: DrawResponse = {
       results,
       totalShardsAwarded,
@@ -325,8 +248,35 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
         goldenDraws: drawType === 'golden' ? availableTickets - count : stats.goldenDraws,
       },
     };
-    await storeIdempotentResponse(db, userId, idempotencyKey, response);
-    return c.json(response);
+    const committed = await commitGachaDraw(c.env.DB, {
+      userId,
+      key: idempotencyKey,
+      drawType,
+      expectedVersion: stats.version,
+      count,
+      nextPity: currentPity,
+      unlockedItemsJson: updatedItems,
+      shardsAwarded: totalShardsAwarded,
+      historyEntries,
+      response,
+      responseSchema: drawResponseSchema,
+    });
+    if (committed.kind === 'conflict') {
+      return c.json({ success: false, reason: 'CONFLICT' }, 409);
+    }
+    if (committed.kind === 'miss') continue;
+
+    const rarities: Rarity[] = committed.response.results.map(
+      (result: DrawResult): Rarity => result.rarity,
+    );
+    log.info('draw success', {
+      userId,
+      drawType,
+      count,
+      rarities,
+      totalShardsAwarded: committed.response.totalShardsAwarded,
+    });
+    return c.json(committed.response);
   }
 
   // All retries exhausted -- concurrent conflict persisted
@@ -340,7 +290,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
   const userId = c.var.userId;
   const { localDate: _localDate } = c.req.valid('json');
 
-  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < MAX_GACHA_OCC_ATTEMPTS; attempt++) {
     const stats = await db
       .select({
         lastLoginRewardAt: userStats.lastLoginRewardAt,
@@ -351,11 +301,11 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       .where(eq(userStats.userId, userId))
       .get();
 
-    // ── No stats row yet -> create one with the daily reward ──
+    // ── No stats row yet -> exactly one concurrent request creates and claims it ──
     if (!stats) {
       const dailyDraws = rollNormalDraws();
       const claimedAt = new Date().toISOString();
-      await db
+      const inserted = await db
         .insert(userStats)
         .values({
           userId,
@@ -364,18 +314,16 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
           lastLoginRewardAt: claimedAt,
           updatedAt: claimedAt,
         })
-        .onConflictDoUpdate({
-          target: userStats.userId,
-          set: {
-            normalDraws: sql`${userStats.normalDraws} + ${dailyDraws}`,
-            goldenDraws: sql`${userStats.goldenDraws} + 1`,
-            lastLoginRewardAt: claimedAt,
-            version: sql`${userStats.version} + 1`,
-            updatedAt: sql`datetime('now')`,
-          },
-        });
+        .onConflictDoNothing()
+        .returning({ userId: userStats.userId });
 
-      return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
+      if (inserted.length === 1) {
+        return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
+      }
+      if (inserted.length !== 0) {
+        throw new Error(`[FAIL-FAST] Daily reward insert returned ${inserted.length} rows`);
+      }
+      continue;
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
@@ -419,11 +367,18 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
   const { rewardId, idempotencyKey } = c.req.valid('json');
   log.info('exchange request', { userId, rewardId });
 
-  // Idempotency check: return cached response if key already used
-  const cached = await getIdempotentResponse<ExchangeResponse>(db, userId, idempotencyKey);
-  if (cached) {
+  const cached = await readGachaReplay(c.env.DB, {
+    userId,
+    key: idempotencyKey,
+    operation: 'exchange',
+    responseSchema: exchangeResponseSchema,
+  });
+  if (cached.kind === 'conflict') {
+    return c.json({ success: false, reason: 'CONFLICT' }, 409);
+  }
+  if (cached.kind === 'replay') {
     log.info('exchange idempotent hit', { userId, idempotencyKey });
-    return c.json(cached);
+    return c.json(cached.response);
   }
 
   // 1. Validate the item exists in the reward pool
@@ -435,7 +390,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
 
   const cost = SHARD_COSTS[rewardItem.rarity];
 
-  for (let attempt = 0; attempt < MAX_DRAW_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < MAX_GACHA_OCC_ATTEMPTS; attempt++) {
     // 2. Read current stats
     const stats = await db
       .select({
@@ -465,25 +420,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
       return c.json({ success: false, reason: 'ALREADY_OWNED' }, 400);
     }
 
-    // 5. OCC write: deduct shards, add to unlocked, bump version
     const updatedItems = JSON.stringify([...unlockedIds, rewardId]);
-
-    const updated = await db
-      .update(userStats)
-      .set({
-        shards: sql`${userStats.shards} - ${cost}`,
-        unlockedItems: updatedItems,
-        version: sql`${userStats.version} + 1`,
-        updatedAt: sql`datetime('now')`,
-      })
-      .where(and(eq(userStats.userId, userId), eq(userStats.version, stats.version)))
-      .returning({ version: userStats.version });
-
-    if (updated.length === 0) {
-      continue;
-    }
-
-    log.info('exchange success', { userId, rewardId, cost, remainingShards: stats.shards - cost });
     const response: ExchangeResponse = {
       rewardId,
       rewardType: rewardItem.type,
@@ -491,8 +428,27 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
       cost,
       remainingShards: stats.shards - cost,
     };
-    await storeIdempotentResponse(db, userId, idempotencyKey, response);
-    return c.json(response);
+    const committed = await commitGachaExchange(c.env.DB, {
+      userId,
+      key: idempotencyKey,
+      expectedVersion: stats.version,
+      cost,
+      unlockedItemsJson: updatedItems,
+      response,
+      responseSchema: exchangeResponseSchema,
+    });
+    if (committed.kind === 'conflict') {
+      return c.json({ success: false, reason: 'CONFLICT' }, 409);
+    }
+    if (committed.kind === 'miss') continue;
+
+    log.info('exchange success', {
+      userId,
+      rewardId: committed.response.rewardId,
+      cost: committed.response.cost,
+      remainingShards: committed.response.remainingShards,
+    });
+    return c.json(committed.response);
   }
 
   log.error('OCC retries exhausted', { userId, rewardId });

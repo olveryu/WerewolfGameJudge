@@ -10,7 +10,6 @@ import {
 } from '@game-judge/game-engine/games/fibking/public';
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createRoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
-import type { BaseGameState } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -81,11 +80,8 @@ function createEffectContext(
   };
 }
 
-function committedResult(commandId: string): RoomCommandResult<BaseGameState<'fibking'>> {
-  const state = fibEngine.createInitialState(
-    { numberOfPlayers: 4 },
-    { roomCode: ROOM_CODE, hostUserId: 'host', nowMs: 1, commandId: 'create-1' },
-  );
+function committedResult(commandId: string): RoomCommandResult<FibState> {
+  const state = createPreparingState();
   return createRoomCommandResult({
     kind: 'committed',
     commandId,
@@ -185,24 +181,24 @@ describe('Fib word providers', () => {
   it('uses a Workers AI model with a documented JSON Mode contract', async () => {
     let receivedModel = '';
     let receivedInput: unknown;
-    const ai = {
-      run: (model: string, input: unknown) => {
-        receivedModel = model;
-        receivedInput = input;
-        return Promise.resolve({
-          response: {
-            word: '菡萏',
-            definition: '尚未开放的荷花，也泛指荷花。',
-          },
-        });
-      },
-    } as unknown as Ai;
+    const run = (model: string, input: Record<string, unknown>) => {
+      receivedModel = model;
+      receivedInput = input;
+      return Promise.resolve({
+        response: {
+          word: '菡萏',
+          definition: '尚未开放的荷花，也泛指荷花。',
+        },
+      });
+    };
 
-    await expect(createWorkersAiFibWordProvider(ai).generate({ avoidWords: [] })).resolves.toEqual({
-      word: '菡萏',
-      definition: '尚未开放的荷花，也泛指荷花。',
-      source: 'workers-ai',
-    });
+    await expect(createWorkersAiFibWordProvider(run).generate({ avoidWords: [] })).resolves.toEqual(
+      {
+        word: '菡萏',
+        definition: '尚未开放的荷花，也泛指荷花。',
+        source: 'workers-ai',
+      },
+    );
     expect(receivedModel).toBe('@cf/meta/llama-3.1-8b-instruct-fast');
     expect(receivedInput).toMatchObject({
       max_tokens: 256,
