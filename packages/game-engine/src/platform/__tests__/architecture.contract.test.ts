@@ -28,6 +28,29 @@ const REMOVED_PACKAGE_EXPORT_PREFIXES = [
 ] as const;
 const GAME_EXPORT_PATTERN = /^\.\/games\/([^/]+)(?:\/(.+))?$/;
 const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public', 'testing']);
+const EXPECTED_PACKAGE_EXPORTS = [
+  './games/catalog',
+  './games/fibking/public',
+  './games/werewolf/public',
+  './games/werewolf/testing',
+  './platform/engine',
+  './platform/identifiers',
+  './platform/protocol/actionResult',
+  './platform/protocol/canonicalJson',
+  './platform/protocol/commandResult',
+  './platform/protocol/commands',
+  './platform/protocol/gameTypes',
+  './platform/protocol/reasons',
+  './platform/protocol/roomCode',
+  './platform/protocol/roomLocator',
+  './platform/protocol/roomSnapshot',
+  './platform/protocol/userEvents',
+  './platform/random',
+  './platform/room/formatSeat',
+  './platform/room/roster',
+  './product/growth',
+  './product/rewards',
+] as const;
 
 interface PackageExportEntry {
   readonly exportPath: string;
@@ -171,22 +194,6 @@ describe('game-engine game module dependency boundary', () => {
   }
 });
 
-describe('game-engine root public API boundary', () => {
-  const rootIndexPath = path.join(sourceDirectory, 'index.ts');
-
-  it('aggregates platform/product APIs and the game catalog without concrete games', () => {
-    const source = fs.readFileSync(rootIndexPath, 'utf8');
-    const violations = findBoundaryViolations(
-      rootIndexPath,
-      source,
-      [productDirectory, platformDirectory],
-      [path.join(gamesDirectory, 'catalog')],
-    );
-
-    expect(violations).toEqual([]);
-  });
-});
-
 describe('game-engine dependency boundary fixtures', () => {
   it.each([
     {
@@ -211,18 +218,26 @@ describe('game-engine dependency boundary fixtures', () => {
       ],
       expected: '../fibking/public',
     },
-    {
-      filePath: path.join(sourceDirectory, 'index.ts'),
-      source: "export * from './games/werewolf/public';",
-      allowedDirectories: [productDirectory, platformDirectory],
-      expected: './games/werewolf/public',
-    },
   ])('rejects $expected', ({ filePath, source, allowedDirectories, expected }) => {
     expect(findBoundaryViolations(filePath, source, allowedDirectories)).toEqual([expected]);
   });
 });
 
 describe('game-engine ownership layout', () => {
+  it('has no aggregate package-root entrypoint', () => {
+    expect(fs.existsSync(path.join(sourceDirectory, 'index.ts'))).toBe(false);
+
+    const packageJson: unknown = JSON.parse(
+      fs.readFileSync(path.join(packageDirectory, 'package.json'), 'utf8'),
+    );
+    if (typeof packageJson !== 'object' || packageJson === null || Array.isArray(packageJson)) {
+      throw new Error('game-engine package.json must contain an object');
+    }
+
+    expect(Reflect.has(packageJson, 'main')).toBe(false);
+    expect(Reflect.has(packageJson, 'types')).toBe(false);
+  });
+
   it.each(REMOVED_ROOT_DIRECTORIES)('does not restore src/%s', (directoryName) => {
     expect(fs.existsSync(path.join(sourceDirectory, directoryName))).toBe(false);
   });
@@ -255,7 +270,13 @@ describe('game-engine ownership layout', () => {
   });
 
   it('uses exact package exports backed by source files', () => {
-    for (const entry of readPackageExports()) {
+    const packageExports = readPackageExports();
+
+    expect(packageExports.map(({ exportPath }) => exportPath).sort()).toEqual(
+      [...EXPECTED_PACKAGE_EXPORTS].sort(),
+    );
+
+    for (const entry of packageExports) {
       expect(entry.exportPath).not.toContain('*');
       expect(fs.existsSync(path.resolve(packageDirectory, entry.typesPath))).toBe(true);
       expect(entry.defaultPath).toBe(

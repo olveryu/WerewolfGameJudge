@@ -6,7 +6,6 @@ export {
   findSeatByUserId,
 } from './kernel';
 export {
-  SEAT_OPERATION_REASONS,
   type SeatChange,
   type SeatMap,
   type SeatOccupant,

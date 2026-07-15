@@ -287,6 +287,11 @@ describe('Game-engine package boundary: consumers use explicit public APIs', () 
     '@game-judge/game-engine/utils',
   ] as const;
 
+  it.each(consumerFiles)('%s must not import the aggregate package root', (filePath) => {
+    const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter((specifier) => specifier === GAME_ENGINE_PACKAGE)).toEqual([]);
+  });
+
   it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
     const imports = getModuleSpecifiers(filePath, fs.readFileSync(filePath, 'utf-8'));
     expect(imports.filter(isGameDomainSpecifier)).toEqual([]);

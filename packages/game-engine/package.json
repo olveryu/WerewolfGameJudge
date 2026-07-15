@@ -2,14 +2,8 @@
   "name": "@game-judge/game-engine",
   "version": "0.0.1",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "sideEffects": false,
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/index.js"
-    },
     "./games/catalog": {
       "types": "./src/games/catalog.ts",
       "default": "./dist/games/catalog.js"
@@ -69,10 +63,6 @@
     "./platform/engine": {
       "types": "./src/platform/engine/index.ts",
       "default": "./dist/platform/engine/index.js"
-    },
-    "./platform/room/seating": {
-      "types": "./src/platform/room/seating/index.ts",
-      "default": "./dist/platform/room/seating/index.js"
     },
     "./platform/room/roster": {
       "types": "./src/platform/room/roster.ts",

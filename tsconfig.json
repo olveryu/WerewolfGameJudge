@@ -8,9 +8,6 @@
       "@/*": [
         "./src/*"
       ],
-      "@game-judge/game-engine": [
-        "./packages/game-engine/src/index.ts"
-      ],
       "@game-judge/game-engine/*": [
         "./packages/game-engine/src/*"
       ]
