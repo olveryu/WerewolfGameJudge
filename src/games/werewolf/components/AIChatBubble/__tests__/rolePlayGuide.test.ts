@@ -5,7 +5,7 @@
  * for role-specific gameplay guidance.
  */
 
-import { getAllRoleIds, type RoleId } from '@werewolf/game-engine/models/roles';
+import { getAllRoleIds, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
 import { buildRolePlayGuidePrompt } from '../rolePlayGuide';
 

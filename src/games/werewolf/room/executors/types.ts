@@ -10,10 +10,10 @@
  */
 
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import type { MutableRefObject } from 'react';
 
 import type { ActionIntent, ActionIntentType } from '@/games/werewolf/room/policy/types';

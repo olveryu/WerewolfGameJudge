@@ -8,7 +8,7 @@
  * Pure data — no React, no hooks, no side effects.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';
 import { TESTIDS } from '@/testids';

@@ -1,4 +1,4 @@
-import { NIGHT_STEPS } from '@werewolf/game-engine/models/roles/spec';
+import { NIGHT_STEPS } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   getWerewolfPreloadAudio,

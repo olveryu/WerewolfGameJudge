@@ -10,10 +10,11 @@
  * Architecture: intents → handlers → reducer → GameState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { Team } from '@werewolf/game-engine/games/werewolf/public';
 
-import { cleanupGame, createGame, type GameContext } from './gameFactory';
+import type { GameContext } from './gameContext';
+import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 // =============================================================================

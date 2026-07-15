@@ -1,7 +1,7 @@
 /** Map the Werewolf room session to product-level account operations. */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import type {
   RoomAccountCapability,

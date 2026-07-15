@@ -16,12 +16,15 @@
  * - Does not own room entry, identity, connection, seat commands, or user-event delivery
  */
 
-import type { WerewolfActionInput, WerewolfPublicCommand } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type {
+  WerewolfActionInput,
+  WerewolfPublicCommand,
+} from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
 import type { RoomSessionClient } from '@/features/room/session/types';
 import type { WerewolfAudioRuntime } from '@/games/werewolf/audio/WerewolfAudioPlayer';

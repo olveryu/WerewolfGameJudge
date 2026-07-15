@@ -13,8 +13,8 @@
  * services, navigation, showAlert, or React.
  */
 
-import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RevealKind, RoleId } from '@werewolf/game-engine/models/roles';
+import type { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { RevealKind, RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
 // =============================================================================
 // ActionIntent Types (must be serializable - no callbacks/refs/functions)

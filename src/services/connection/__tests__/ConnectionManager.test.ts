@@ -1,9 +1,9 @@
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
 import {
   createStateUpdateMessage,
   type RoomSnapshot,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type {
   IRealtimeTransport,

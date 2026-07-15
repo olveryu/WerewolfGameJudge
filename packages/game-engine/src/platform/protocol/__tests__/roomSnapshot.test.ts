@@ -1,7 +1,9 @@
-import { buildInitialGameState } from '../../../engine/state/buildInitialState';
-import { WEREWOLF_STATE_CODEC } from '../../../games/werewolf/state/codec';
-import { WEREWOLF_STATE_IDENTITY } from '../../../games/werewolf/state/version';
-import type { GameTemplate } from '../../../models/Template';
+import {
+  type GameTemplate,
+  WEREWOLF_STATE_CODEC,
+  WEREWOLF_STATE_IDENTITY,
+} from '../../../games/werewolf/public';
+import { buildInitialGameState } from '../../../games/werewolf/testing';
 import {
   createRoomSnapshot,
   createStateUpdateMessage,

@@ -1,9 +1,9 @@
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema, type SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
-import type { CurrentNightResults } from '@werewolf/game-engine/resolvers/types';
+import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema, type SchemaId } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 
 import type { WerewolfRoomScreen } from '@/games/werewolf/room/WerewolfRoomScreen';

@@ -10,7 +10,7 @@
  * Does not directly operate on game state.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServices } from '@/contexts/ServiceContext';

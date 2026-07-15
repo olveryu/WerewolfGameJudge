@@ -5,8 +5,8 @@
  * after selecting the first seat (firstSwapSeat is set).
  */
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { GameContext } from '@/games/werewolf/room/hooks/useRoomActions';
 import { useRoomActions } from '@/games/werewolf/room/hooks/useRoomActions';

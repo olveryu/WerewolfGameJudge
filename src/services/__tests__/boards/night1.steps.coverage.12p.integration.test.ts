@@ -9,7 +9,7 @@
  * - No bypassing the handler
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
@@ -147,7 +147,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   // Full integration test with 15-role template deferred to dedicated test file.
   it('treasureMasterChoose step exists in NIGHT_STEPS', () => {
     const { NIGHT_STEPS } =
-      require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');
+      require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
     const step = NIGHT_STEPS.find((s) => s.id === 'treasureMasterChoose');
     expect(step).toBeDefined();
     // Pattern recognized by boards coverage contract (stepId === '...')
@@ -159,7 +159,7 @@ describe('Night-1: step-level coverage (12p)', () => {
   // Full integration test with the Hidden Wolf + Crow template deferred to a dedicated test file.
   it('hiddenWolfReveal step exists in NIGHT_STEPS', () => {
     const { NIGHT_STEPS } =
-      require('@werewolf/game-engine/models/roles/spec/nightSteps') as typeof import('@werewolf/game-engine/models/roles/spec/nightSteps');
+      require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
     const step = NIGHT_STEPS.find((s) => s.id === 'hiddenWolfReveal');
     expect(step).toBeDefined();
     // Pattern recognized by boards coverage contract (stepId === '...')

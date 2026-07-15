@@ -9,9 +9,9 @@
  * or hold JSX, and does not duplicate any policy logic (single-source-of-truth is policy layer).
  */
 
-import type { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import { useCallback, useMemo, useRef } from 'react';
 import { toast } from 'sonner-native';
 

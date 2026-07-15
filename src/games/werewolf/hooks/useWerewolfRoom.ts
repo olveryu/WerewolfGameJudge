@@ -14,11 +14,11 @@
  */
 
 import { useIsFocused } from '@react-navigation/native';
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionSchema, SchemaId } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useAuthContext } from '@/contexts/AuthContext';

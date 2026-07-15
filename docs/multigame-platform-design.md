@@ -2342,3 +2342,31 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
 - Phase 6 与 Phase 7 的退出条件均已满足。Phase 8 仍未开始；下一提交按审计顺序处理 engine/Worker/client 物理
   所有权、一次性 storage migration、architecture allowlist、compile-only 第三游戏门禁与 workspace scope
   中性化，期间不保留 migration-only compatibility layer。
+
+### 当前提交：Phase 8.1 game-engine 物理所有权收口
+
+- 删除 `packages/game-engine/src/engine`、`models`、`resolvers`、`protocol` 四个伪通用目录。狼人杀的
+  handlers、intents、models、protocol、reducer、resolvers 与 state 全部归入
+  `games/werewolf/domain`；原来已经存在的 typed command handler 与旧 handler 实现合并到同一个
+  `domain/handlers`，没有保留第二套 `domain/engine/handlers`。
+- 原 `GameStore` 已没有 production consumer，只有自己的单元测试和 `store/types` 的 `GameState` 转发；本提交
+  删除该 class、barrel 与测试，调用方直接使用权威 protocol type，不把死代码随目录迁移继续保留。
+- 原 `protocol/ActionResult` 并不包含狼人杀语义，归入 `platform/protocol/actionResult`；座位显示规则归入
+  `platform/room/formatSeat`。`audioKeyOverride` 与 `playerHelpers` 依赖狼人杀角色和状态，归入狼人杀 domain，
+  不再以 generic `utils` 名义暴露。
+- `games/werewolf/public.ts` 成为客户端与 Worker 唯一 production API，公开 state、config、commands、角色
+  registry、codec 与必要的纯查询；跨 package 的规则集成测试使用单独的 `games/werewolf/testing.ts`。
+  `package.json` 删除 `./engine/*`、`./models/*`、`./protocol/*`、`./resolvers/*` exports，根 `index.ts` 只聚合
+  platform、product 与 engine catalog，不再充当狼人杀 compatibility barrel。无人使用的
+  `./games/werewolf/commands` 与 `./games/werewolf/domain/handlers/commandHandlers` exports 也一并删除；每个游戏
+  package 只允许暴露 `public` 与测试专用 `testing` 入口，不能绕过 facade 导入任意 domain 文件。
+- 全仓 production consumer 已从 game-owned deep path 改到 `games/werewolf/public`。架构测试禁止 client/Worker
+  production 导入 domain deep path 或 testing API，并禁止恢复旧顶层目录与旧 package exports；package export
+  门禁按游戏目录动态匹配，因此新增游戏同样不能发布平行的 commands/domain 入口。
+- 原先扫描旧目录而会 vacuous pass 的 dynamic-require、resolver/UI boundary 和唯一 `NIGHT_STEPS` hard gate
+  同步指向新 domain；active path rules、role/board/E2E skills 与 preset 文档也改为 canonical 路径。
+- 定向验证通过：game-engine build；root 与 Worker TypeScript；game-engine 84 suites/2458 tests；game-engine
+  architecture 119 tests；client architecture 2567 tests；迁移后的三个 hard-gate suites 23 tests。
+- 提交前完整 `pnpm run quality` 通过：root 212 suites/7403 tests、game-engine 84 suites/2458 tests、
+  api-worker 14 files/107 tests 全绿。Phase 8 当前完成 game-engine 狼人杀 domain 与共享 protocol/room 原语的
+  物理归位；Worker game-owned settlement/provider/schema/D1 所有权是下一提交，Phase 8 尚未完成。

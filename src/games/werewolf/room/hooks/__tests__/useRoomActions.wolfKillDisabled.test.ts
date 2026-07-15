@@ -10,8 +10,8 @@
  * This test now verifies normal wolf vote behavior without block-related fields.
  */
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { GameContext } from '@/games/werewolf/room/hooks/useRoomActions';
 import { useRoomActions } from '@/games/werewolf/room/hooks/useRoomActions';

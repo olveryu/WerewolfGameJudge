@@ -5,7 +5,7 @@
  * WerewolfRoomScreen only needs to call these returned functions.
  */
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { randomBool, randomIntInclusive, type Rng } from '@werewolf/game-engine/utils/random';
 import { useCallback, useRef, useState } from 'react';
 

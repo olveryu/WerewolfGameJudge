@@ -153,7 +153,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('should have exactly one NIGHT_STEPS export', () => {
       const nightStepsFile = readFileContent(
-        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+        'packages/game-engine/src/games/werewolf/domain/models/roles/spec/nightSteps.ts',
       );
 
       // Count export statements for NIGHT_STEPS
@@ -164,7 +164,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
 
     it('NIGHT_STEPS should derive audioKey from ROLE_SPECS (no independent definitions)', () => {
       const nightStepsContent = readFileContent(
-        'packages/game-engine/src/models/roles/spec/nightSteps.ts',
+        'packages/game-engine/src/games/werewolf/domain/models/roles/spec/nightSteps.ts',
       );
 
       // nightSteps.ts should NOT hardcode audioKey string literals — it derives them from ROLE_SPECS.

@@ -1,14 +1,9 @@
 /** Pure Werewolf command handlers shared by the current Durable Object and typed engine. */
 
-import {
-  type HandlerContext,
-  handlerError,
-  type HandlerResult,
-  handlerSuccess,
-} from '../../../../engine/handlers/types';
-import type { StateAction } from '../../../../engine/reducer/types';
-import { GameStatus } from '../../../../models/GameStatus';
-import { SCHEMAS } from '../../../../models/roles/spec/schemas';
+import { GameStatus } from '../models/GameStatus';
+import { SCHEMAS } from '../models/roles/spec/schemas';
+import type { StateAction } from '../reducer/types';
+import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess } from './types';
 
 export function handleAudioAck(context: HandlerContext): HandlerResult {
   const state = context.state;

@@ -4,8 +4,8 @@
  * Ability tag Chinese label mapping, faction display config.
  * No business logic, side effects, or platform dependencies.
  */
-import type { RoleAbilityTag } from '@werewolf/game-engine/models/roles';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleAbilityTag } from '@werewolf/game-engine/games/werewolf/public';
+import { Faction } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { ThemeColors } from '@/theme';
 

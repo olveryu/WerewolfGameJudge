@@ -1,6 +1,34 @@
 /** Concrete authoritative Werewolf engine definition. */
 
-import { handleSubmitAction } from '../../engine/handlers/actionHandler';
+import {
+  type CommandContext,
+  type CommonGameLifecycle,
+  type CreateGameContext,
+  type Decision,
+  type GameEngineDefinition,
+  reject,
+} from '../../platform/engine';
+import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
+import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
+import type { WerewolfCommand } from './commands/types';
+import { resolveSubmitActionIntent } from './domain/actionInput';
+import {
+  resolveEffectiveSeatActor,
+  resolveHostActor,
+  resolveSystemActor,
+  resolveUncontrolledUserActor,
+  resolveUserActor,
+} from './domain/actor';
+import { handlerResultToDecision } from './domain/decision';
+import { handleSubmitAction } from './domain/handlers/actionHandler';
+import {
+  handleApplyRosterLevels,
+  handleAudioAck,
+  handleGroupConfirmAck,
+  handleMarkBotsGroupConfirmed,
+  handleProgressionRequest,
+  handleRevealAck,
+} from './domain/handlers/commandHandlers';
 import {
   handleAssignRoles,
   handleBoardNominate,
@@ -12,58 +40,30 @@ import {
   handleShareNightReview,
   handleStartNight,
   handleUpdateTemplate,
-} from '../../engine/handlers/gameControlHandler';
+} from './domain/handlers/gameControlHandler';
 import {
   handleClearAllSeats,
   handleJoinSeat,
   handleKickPlayer,
   handleLeaveMySeat,
   handleUpdatePlayerProfile,
-} from '../../engine/handlers/seatHandler';
-import { handleSetAudioPlaying } from '../../engine/handlers/stepTransitionHandler';
-import type { HandlerResult } from '../../engine/handlers/types';
-import { handleViewedRole } from '../../engine/handlers/viewedRoleHandler';
-import { handleSetWolfRobotHunterStatusViewed } from '../../engine/handlers/wolfRobotHunterGateHandler';
-import { gameReducer } from '../../engine/reducer/gameReducer';
-import type { StateAction } from '../../engine/reducer/types';
-import { buildInitialGameState } from '../../engine/state/buildInitialState';
-import { normalizeState } from '../../engine/state/normalize';
+} from './domain/handlers/seatHandler';
+import { handleSetAudioPlaying } from './domain/handlers/stepTransitionHandler';
+import type { HandlerResult } from './domain/handlers/types';
+import { handleViewedRole } from './domain/handlers/viewedRoleHandler';
+import { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobotHunterGateHandler';
 import {
   createTemplateFromRoles,
   type GameRuleOverrides,
   GameStatus,
   type RoleId,
   validateTemplateRoles,
-} from '../../models';
-import {
-  type CommandContext,
-  type CommonGameLifecycle,
-  type CreateGameContext,
-  type Decision,
-  type GameEngineDefinition,
-  reject,
-} from '../../platform/engine';
-import { WEREWOLF_GAME_TYPE, type WerewolfGameType } from '../../platform/protocol/gameTypes';
-import { REASON_CONTROLLED_SEAT_NOT_ALLOWED } from '../../platform/protocol/reasons';
-import type { GameState } from '../../protocol/types';
-import type { WerewolfCommand } from './commands/types';
-import { resolveSubmitActionIntent } from './domain/actionInput';
-import {
-  resolveEffectiveSeatActor,
-  resolveHostActor,
-  resolveSystemActor,
-  resolveUncontrolledUserActor,
-  resolveUserActor,
-} from './domain/actor';
-import { handlerResultToDecision } from './domain/decision';
-import {
-  handleApplyRosterLevels,
-  handleAudioAck,
-  handleGroupConfirmAck,
-  handleMarkBotsGroupConfirmed,
-  handleProgressionRequest,
-  handleRevealAck,
-} from './domain/handlers/commandHandlers';
+} from './domain/models';
+import type { GameState } from './domain/protocol/types';
+import { gameReducer } from './domain/reducer/gameReducer';
+import type { StateAction } from './domain/reducer/types';
+import { buildInitialGameState } from './domain/state/buildInitialState';
+import { normalizeState } from './domain/state/normalize';
 import { createWerewolfGameEndedEffect } from './effects/gameEnded';
 import type { WerewolfEffect } from './effects/types';
 import { WEREWOLF_STATE_VERSION } from './state/version';

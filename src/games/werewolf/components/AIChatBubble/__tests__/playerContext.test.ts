@@ -5,9 +5,9 @@
  * Ensures only player-visible info is included (no cheating data).
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameState, Player } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState, Player } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import { buildPlayerContext } from '../playerContext';
 

@@ -7,13 +7,13 @@
  * Opened by the "查看建议" button in BoardInfoCard.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { BoardNomination } from '@werewolf/game-engine/games/werewolf/public';
 import {
   createCustomTemplate,
   findMatchingPresetName,
   getPlayerCount,
-} from '@werewolf/game-engine/models/Template';
-import type { BoardNomination } from '@werewolf/game-engine/protocol/types';
+} from '@werewolf/game-engine/games/werewolf/public';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 

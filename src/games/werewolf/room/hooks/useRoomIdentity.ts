@@ -6,7 +6,7 @@
  * beyond the diagnostic log.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { useEffect, useMemo } from 'react';
 
 import { roomScreenLog } from '@/utils/logger';

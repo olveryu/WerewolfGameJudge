@@ -1,6 +1,6 @@
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
 
 import { cfPost } from '../cfFetch';

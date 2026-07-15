@@ -43,10 +43,10 @@ function scanDirForNeedle(dir: string, needle: string): Match[] {
 describe('hard gates (contract)', () => {
   const repoRoot = path.resolve(__dirname, '../../..');
   const werewolfRuntimeRoot = path.join(repoRoot, 'src/games/werewolf/runtime');
-  const engineRoot = path.join(repoRoot, 'packages/game-engine/src/engine');
+  const werewolfDomainRoot = path.join(repoRoot, 'packages/game-engine/src/games/werewolf/domain');
 
-  it('forbids dynamic require() in game-engine/engine/** (non-tests)', () => {
-    const matches = scanDirForNeedle(engineRoot, 'require(').filter(
+  it('forbids dynamic require() in the Werewolf domain (non-tests)', () => {
+    const matches = scanDirForNeedle(werewolfDomainRoot, 'require(').filter(
       (m) => !m.file.includes(`${path.sep}__tests__${path.sep}`),
     );
 

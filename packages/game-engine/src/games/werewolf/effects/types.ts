@@ -1,6 +1,6 @@
 /** Schema-independent domain effects emitted by the Werewolf engine. */
 
-import type { RoleId } from '../../../models';
+import type { RoleId } from '../domain/models';
 
 export interface WerewolfGameEndedParticipant {
   readonly userId: string;

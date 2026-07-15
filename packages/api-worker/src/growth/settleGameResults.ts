@@ -6,6 +6,7 @@
  */
 
 import type { WerewolfGameEndedEffect } from '@werewolf/game-engine/games/werewolf/public';
+import { type CampBucket, getRoleCamp } from '@werewolf/game-engine/games/werewolf/public';
 import {
   getLevel,
   LEVEL_THRESHOLDS,
@@ -15,7 +16,6 @@ import {
   XP_BASE,
   XP_RANDOM_BASE,
 } from '@werewolf/game-engine/growth/level';
-import { type CampBucket, getRoleCamp } from '@werewolf/game-engine/models/roles';
 import { createSeededRng } from '@werewolf/game-engine/utils/random';
 
 const MIN_HUMAN_PLAYERS = 6;

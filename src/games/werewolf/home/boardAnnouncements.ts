@@ -1,6 +1,6 @@
 /** Werewolf board release metadata shown in the product announcement modal. */
 
-import type { PresetTemplate } from '@werewolf/game-engine/models/Template';
+import type { PresetTemplate } from '@werewolf/game-engine/games/werewolf/public';
 
 const WEREWOLF_BOARD_VERSION_BY_NAME: Readonly<Record<string, string>> = {
   预女猎白: 'v1.0.0',

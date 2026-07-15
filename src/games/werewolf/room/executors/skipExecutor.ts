@@ -4,7 +4,7 @@
  * Shows a skip-confirmation dialog, then submits the canonical skip input.
  */
 
-import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/models/roles/spec';
+import { BLOCKED_UI_DEFAULTS } from '@werewolf/game-engine/games/werewolf/public';
 
 import { getSubStepByKey } from '../hooks/actionIntentHelpers';
 import type { IntentExecutor } from './types';

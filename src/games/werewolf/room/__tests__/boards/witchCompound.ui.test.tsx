@@ -11,8 +11,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { CompoundSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { CompoundSchema } from '@werewolf/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createGameRoomMock,

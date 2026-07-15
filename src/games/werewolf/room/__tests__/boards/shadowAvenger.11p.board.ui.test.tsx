@@ -13,9 +13,9 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import { Team } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   coverageChainActionPrompt,

@@ -20,9 +20,9 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   chainConfirmTrigger,

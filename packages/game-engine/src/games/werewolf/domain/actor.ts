@@ -1,6 +1,5 @@
 /** Authoritative Werewolf command actor resolution. */
 
-import type { HandlerContext } from '../../../engine/handlers/types';
 import {
   type ActorResolution,
   type CommandContext,
@@ -17,7 +16,8 @@ import {
   REASON_SEAT_EMPTY,
 } from '../../../platform/protocol/reasons';
 import { findSeatByUserId } from '../../../platform/room/seating';
-import type { GameState } from '../../../protocol/types';
+import type { HandlerContext } from './handlers/types';
+import type { GameState } from './protocol/types';
 
 export interface ResolvedUserActor {
   readonly userId: string;

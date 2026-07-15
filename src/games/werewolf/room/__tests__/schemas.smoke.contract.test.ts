@@ -1,4 +1,4 @@
-import { getAllSchemaIds } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { getAllSchemaIds } from '@werewolf/game-engine/games/werewolf/public';
 
 // Keep this list in sync with `schemas.smoke.ui.test.tsx`.
 //

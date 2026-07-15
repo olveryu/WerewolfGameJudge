@@ -1,9 +1,5 @@
 /** Translate existing Werewolf handler results into the platform decision contract. */
 
-import type { HandlerResult, SideEffect } from '../../../engine/handlers/types';
-import { runInlineProgression } from '../../../engine/inlineProgression';
-import { gameReducer } from '../../../engine/reducer/gameReducer';
-import type { StateAction } from '../../../engine/reducer/types';
 import {
   type CommandContext,
   commit,
@@ -11,8 +7,12 @@ import {
   type Decision,
   reject,
 } from '../../../platform/engine';
-import type { AudioEffect, GameState } from '../../../protocol/types';
 import type { WerewolfEffect } from '../effects/types';
+import type { HandlerResult, SideEffect } from './handlers/types';
+import { runInlineProgression } from './inlineProgression';
+import type { AudioEffect, GameState } from './protocol/types';
+import { gameReducer } from './reducer/gameReducer';
+import type { StateAction } from './reducer/types';
 
 interface HandlerDecisionOptions {
   readonly progressAfterSuccess?: boolean;

@@ -1,13 +1,5 @@
 /** Runtime decoder for persisted and transported Werewolf state. */
 
-import type { DeathReason } from '../../../engine/DeathCalculator';
-import { type Complete, normalizeState } from '../../../engine/state/normalize';
-import { GameStatus } from '../../../models/GameStatus';
-import { isValidRoleId, type RoleId } from '../../../models/roles';
-import type { WolfKillOverride } from '../../../models/roles/spec/schema.types';
-import { isValidSchemaId } from '../../../models/roles/spec/schemas';
-import { Team } from '../../../models/roles/spec/types';
-import type { GameRuleOverrides } from '../../../models/Template';
 import { WEREWOLF_GAME_TYPE } from '../../../platform/protocol/gameTypes';
 import {
   failDecode as fail,
@@ -23,6 +15,13 @@ import {
   parseString,
 } from '../../../platform/protocol/runtimeDecoder';
 import type { RosterEntry } from '../../../platform/room/roster';
+import type { DeathReason } from '../domain/DeathCalculator';
+import { GameStatus } from '../domain/models/GameStatus';
+import { isValidRoleId, type RoleId } from '../domain/models/roles';
+import type { WolfKillOverride } from '../domain/models/roles/spec/schema.types';
+import { isValidSchemaId } from '../domain/models/roles/spec/schemas';
+import { Team } from '../domain/models/roles/spec/types';
+import type { GameRuleOverrides } from '../domain/models/Template';
 import type {
   AudioEffect,
   BoardNomination,
@@ -30,8 +29,9 @@ import type {
   GameState,
   Player,
   ProtocolAction,
-} from '../../../protocol/types';
-import type { CurrentNightResults } from '../../../resolvers/types';
+} from '../domain/protocol/types';
+import type { CurrentNightResults } from '../domain/resolvers/types';
+import { type Complete, normalizeState } from '../domain/state/normalize';
 import { WEREWOLF_STATE_VERSION } from './version';
 
 function parseSeatOrNoTarget(value: unknown, path: string): number {

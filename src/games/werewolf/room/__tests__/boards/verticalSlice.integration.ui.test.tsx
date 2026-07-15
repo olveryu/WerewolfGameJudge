@@ -12,11 +12,11 @@
  */
 
 import { render, waitFor } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/models/roles';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { doesRoleParticipateInWolfVote } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createShowAlertMock,

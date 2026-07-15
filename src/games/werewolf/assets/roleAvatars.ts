@@ -1,6 +1,6 @@
 /** Resolve Werewolf role IDs to the product's hand-drawn avatar assets. */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
 import { AVATAR_IMAGE_MAP } from '@/utils/avatarImages';
 

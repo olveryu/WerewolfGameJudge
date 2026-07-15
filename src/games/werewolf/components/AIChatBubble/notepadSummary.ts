@@ -6,7 +6,7 @@
  * Does not call services, does not mutate state.
  */
 
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { NotepadState } from '@/games/werewolf/hooks/useNotepad';
 

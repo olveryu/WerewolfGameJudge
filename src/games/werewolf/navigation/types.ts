@@ -1,7 +1,7 @@
 /** Werewolf-owned root route extensions and configuration-flow routes. */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameRuleOverrides } from '@werewolf/game-engine/models/Template';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameRuleOverrides } from '@werewolf/game-engine/games/werewolf/public';
 
 export type WerewolfConfigRouteParams =
   | {

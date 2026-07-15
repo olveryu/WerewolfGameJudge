@@ -31,7 +31,8 @@ const mockSubmitAction = jest.fn();
 
 // Witch poison phase: seat tap opens poison confirm and submits poisonTarget.
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
-  const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
+  const { GameStatus } =
+    require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
   return {
     useWerewolfRoom: () => {
       const gameState = {
@@ -70,13 +71,13 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
 
         isHost: false,
         roomStatus: (
-          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+          require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public')
         ).GameStatus.Ongoing,
 
         currentActionRole: 'witch',
         currentSchema: (() => {
           const { getSchema } =
-            require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
+            require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
           return getSchema('witchAction');
         })(),
 

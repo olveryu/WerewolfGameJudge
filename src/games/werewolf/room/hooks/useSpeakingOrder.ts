@@ -7,7 +7,7 @@
  * Uses a ref for gameState to avoid cancelling the 60s timer on every broadcast.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { createSeededRng } from '@werewolf/game-engine/utils/random';
 import { useEffect, useRef, useState } from 'react';
 

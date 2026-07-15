@@ -7,10 +7,10 @@
  * 3. Button only appears for wolfRobot step
  */
 
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import { createTemplateFromRoles } from '@werewolf/game-engine/models/Template';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import { createTemplateFromRoles } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 

@@ -102,7 +102,10 @@ describe('Import Boundary Enforcement', () => {
 
   describe('Resolver imports should only come from services/night/', () => {
     // Source of truth is now in @werewolf/game-engine
-    const gameEngineResolversDir = path.join(workspaceRoot, 'packages/game-engine/src/resolvers');
+    const gameEngineResolversDir = path.join(
+      workspaceRoot,
+      'packages/game-engine/src/games/werewolf/domain/resolvers',
+    );
 
     it('resolvers/index.ts should exist and export RESOLVERS', () => {
       const resolversIndexPath = path.join(gameEngineResolversDir, 'index.ts');
@@ -153,7 +156,7 @@ describe('Import Boundary Enforcement', () => {
     // Source of truth is now in @werewolf/game-engine
     const gameEngineSpecRoot = path.join(
       workspaceRoot,
-      'packages/game-engine/src/models/roles/spec',
+      'packages/game-engine/src/games/werewolf/domain/models/roles/spec',
     );
 
     it('spec/index.ts should NOT export resolvers', () => {

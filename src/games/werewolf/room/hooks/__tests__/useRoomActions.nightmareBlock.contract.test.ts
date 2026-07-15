@@ -12,8 +12,8 @@
  */
 
 import { renderHook } from '@testing-library/react-native';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   type ActionDeps,

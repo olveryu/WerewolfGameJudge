@@ -1,9 +1,9 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 import type { LocalPlayer } from '@/games/werewolf/state/LocalGameState';
@@ -188,7 +188,7 @@ jest.mock('../useRoomActionDialogs', () => ({
         msg = schema.ui!.emptyVoteConfirmTemplate!.replace('{wolf}', wolfName);
       } else {
         const { formatSeat: mockFormatSeat } =
-          require('@werewolf/game-engine/utils/formatSeat') as typeof import('@werewolf/game-engine/utils/formatSeat');
+          require('@werewolf/game-engine/platform/room/formatSeat') as typeof import('@werewolf/game-engine/platform/room/formatSeat');
         msg = schema
           .ui!.voteConfirmTemplate!.replace('{wolf}', wolfName)
           .replace('{seat}', mockFormatSeat(targetSeat));

@@ -10,11 +10,11 @@
  * No runtime logic or service dependencies.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { type GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { type RoleId } from '@werewolf/game-engine/models/roles';
-import { type GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { type GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { type RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { type GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
 
 // =============================================================================
 // Player Types

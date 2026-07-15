@@ -1,6 +1,6 @@
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 /** Build a minimal API state for Werewolf runtime tests. */
 export function buildApiTestState(overrides: Partial<GameState> = {}): GameState {

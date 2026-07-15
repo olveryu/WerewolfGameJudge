@@ -4,9 +4,9 @@
  * Covers: L2 status listener ack retry, stopping when online retry limit is reached, dispose cleanup.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import type { RoomCommandDispatchOutcome } from '@/features/room/session/types';

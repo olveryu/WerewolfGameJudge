@@ -30,7 +30,9 @@ High-level facades combining infra/transport services to provide business capabi
 - Resolvers / calculators / validators are pure functions. IO/UI is forbidden.
 - Server-side business logic (night flow / death calc / state transition / reducer) is executed by Cloudflare Worker (Durable Objects).
 - Client facade handles: HTTP API submission + Realtime receive + audio orchestration. Client running resolvers / reducers / death calculation is forbidden.
-- Facade methods return `Promise<ActionResult>` (imported from `@werewolf/game-engine/protocol/ActionResult`). Returning bare `boolean` or loose `{ success: boolean; reason?: string }` type is forbidden.
+- Facade methods return `Promise<ActionResult>` imported from
+  `@werewolf/game-engine/platform/protocol/actionResult`. Returning bare `boolean` or a loose result shape is
+  forbidden.
 - Infra services may use platform APIs (MMKV / Platform / expo-audio etc.).
 - Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
 - Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.

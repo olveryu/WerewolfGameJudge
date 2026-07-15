@@ -11,8 +11,8 @@
  * same attemptAck closure for retry.
  */
 
-import { getRoleDisplayName } from '@werewolf/game-engine/models/roles';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import { getRoleDisplayName } from '@werewolf/game-engine/games/werewolf/public';
+import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import { showErrorAlert } from '@/utils/alertPresets';
 import { handleError } from '@/utils/errorPipeline';

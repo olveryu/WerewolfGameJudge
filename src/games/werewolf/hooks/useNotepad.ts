@@ -6,11 +6,11 @@
  * Pure client-side state; no server API or game-engine logic involved.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models';
-import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/models/roles';
-import type { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { Faction } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { ROLE_SPECS, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { Team } from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { storage } from '@/lib/storage';

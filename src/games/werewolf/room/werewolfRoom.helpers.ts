@@ -6,26 +6,26 @@
  * Does not import services, navigation, or React.
  */
 
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
 import {
   canRoleSeeWolves,
   doesRoleParticipateInWolfVote,
   getRoleSpec,
   isWolfRole,
-} from '@werewolf/game-engine/models/roles';
+} from '@werewolf/game-engine/games/werewolf/public';
 import {
   type ActionSchema,
   SCHEMAS,
   TargetConstraint,
-} from '@werewolf/game-engine/models/roles/spec';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+} from '@werewolf/game-engine/games/werewolf/public';
+import { Faction } from '@werewolf/game-engine/games/werewolf/public';
 import {
   getBottomCardEffectiveRole,
   isBottomCardWolfVoteExcluded,
-} from '@werewolf/game-engine/utils/playerHelpers';
+} from '@werewolf/game-engine/games/werewolf/public';
+import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 

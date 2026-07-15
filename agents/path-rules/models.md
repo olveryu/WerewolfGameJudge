@@ -1,12 +1,13 @@
 ---
 name: 'Models'
 description: 'Model layer standards: ROLE_SPECS/SCHEMAS/NIGHT_STEPS three-tier table-driven, pure declarative. Use when: editing models, role specs, schemas, night steps, type definitions, enums'
-applyTo: 'src/models/**'
+applyTo: 'packages/game-engine/src/games/*/domain/models/**'
 ---
 
 # Model Layer Standards
 
-Models are defined in `@werewolf/game-engine` (`packages/game-engine/src/models/`). `src/models/` only contains tests (`roles/spec/__tests__/`).
+Each game owns its models. Werewolf models live in
+`packages/game-engine/src/games/werewolf/domain/models/`; other games must not import them.
 
 ## Rules
 

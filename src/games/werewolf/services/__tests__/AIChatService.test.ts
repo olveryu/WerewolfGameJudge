@@ -20,7 +20,7 @@ jest.mock('@/services/cloudflare/cfFetch', () => ({
   getCurrentToken: () => 'test-jwt-token',
 }));
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { ChatMessage, GameContext } from '@/games/werewolf/services/AIChatService';
 import { isAIChatReady, streamChatMessage } from '@/games/werewolf/services/AIChatService';

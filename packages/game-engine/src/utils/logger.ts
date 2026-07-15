@@ -36,7 +36,7 @@ let _root: EngineLogger = noopLogger;
  * @example
  * // React Native client
  * import { log } from '@/utils/logger';
- * import { setEngineLogger } from '@werewolf/game-engine';
+ * import { setEngineLogger } from '@werewolf/game-engine/games/werewolf/public';
  * setEngineLogger(log);
  *
  * // Cloudflare Worker server

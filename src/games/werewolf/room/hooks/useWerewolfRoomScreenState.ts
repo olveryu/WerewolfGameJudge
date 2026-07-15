@@ -7,15 +7,15 @@
  */
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
+import { Faction } from '@werewolf/game-engine/games/werewolf/public';
 import {
   RANDOMIZABLE_ANIMATIONS,
   type ResolvedRoleRevealAnimation,
 } from '@werewolf/game-engine/growth/revealEffect';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles/spec/specs';
-import { Faction } from '@werewolf/game-engine/models/roles/spec/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { View } from 'react-native';
 

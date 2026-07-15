@@ -1,6 +1,6 @@
 /** Werewolf narration semantics layered over the platform audio primitives. */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { AudioClip } from '@/services/infra/audio/types';
 

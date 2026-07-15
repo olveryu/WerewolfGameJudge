@@ -16,28 +16,28 @@
 
 ## Top 20 Files by Line Count (excl. RoleRevealEffects)
 
-| #   | Lines | File                                                                |
-| --- | ----- | ------------------------------------------------------------------- |
-| 1   | 791   | `src/screens/RoomScreen/hooks/useRoomScreenState.ts`                |
-| 2   | 768   | `src/games/werewolf/screens/ConfigScreen/components/styles.ts`      |
-| 3   | 761   | `src/screens/RoomScreen/hooks/useActionOrchestrator.ts`             |
-| 4   | 656   | `packages/game-engine/src/engine/handlers/actionHandler.ts`         |
-| 5   | 648   | `src/services/facade/GameFacade.ts`                                 |
-| 6   | 640   | `packages/game-engine/src/engine/reducer/gameReducer.ts`            |
-| 7   | 634   | `src/games/werewolf/components/AIChatBubble/AIChatBubble.styles.ts` |
-| 8   | 629   | `packages/game-engine/src/engine/handlers/stepTransitionHandler.ts` |
-| 9   | 603   | `src/services/facade/gameActions.ts`                                |
-| 10  | 577   | `src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts`   |
-| 11  | 573   | `src/screens/RoomScreen/components/styles.ts`                       |
-| 12  | 561   | `src/screens/RoomScreen/RoomScreen.tsx`                             |
-| 13  | 540   | `src/screens/RoomScreen/hooks/useRoomActions.ts`                    |
-| 14  | 517   | `src/games/werewolf/components/AIChatBubble/quickQuestions.ts`      |
-| 15  | 499   | `src/screens/HomeScreen/HomeScreen.tsx`                             |
-| 16  | 468   | `packages/game-engine/src/models/roles/spec/specs.ts`               |
-| 17  | 449   | `packages/game-engine/src/engine/handlers/gameControlHandler.ts`    |
-| 18  | 436   | `src/screens/RoomScreen/RoomScreen.helpers.ts`                      |
-| 19  | 430   | `src/screens/RoomScreen/hooks/useInteractionDispatcher.ts`          |
-| 20  | 428   | `packages/game-engine/src/models/roles/spec/schemas.ts`             |
+| #   | Lines | File                                                                               |
+| --- | ----- | ---------------------------------------------------------------------------------- |
+| 1   | 791   | `src/screens/RoomScreen/hooks/useRoomScreenState.ts`                               |
+| 2   | 768   | `src/games/werewolf/screens/ConfigScreen/components/styles.ts`                     |
+| 3   | 761   | `src/screens/RoomScreen/hooks/useActionOrchestrator.ts`                            |
+| 4   | 656   | `packages/game-engine/src/games/werewolf/domain/handlers/actionHandler.ts`         |
+| 5   | 648   | `src/services/facade/GameFacade.ts`                                                |
+| 6   | 640   | `packages/game-engine/src/games/werewolf/domain/reducer/gameReducer.ts`            |
+| 7   | 634   | `src/games/werewolf/components/AIChatBubble/AIChatBubble.styles.ts`                |
+| 8   | 629   | `packages/game-engine/src/games/werewolf/domain/handlers/stepTransitionHandler.ts` |
+| 9   | 603   | `src/services/facade/gameActions.ts`                                               |
+| 10  | 577   | `src/games/werewolf/screens/ConfigScreen/useConfigScreenState.ts`                  |
+| 11  | 573   | `src/screens/RoomScreen/components/styles.ts`                                      |
+| 12  | 561   | `src/screens/RoomScreen/RoomScreen.tsx`                                            |
+| 13  | 540   | `src/screens/RoomScreen/hooks/useRoomActions.ts`                                   |
+| 14  | 517   | `src/games/werewolf/components/AIChatBubble/quickQuestions.ts`                     |
+| 15  | 499   | `src/screens/HomeScreen/HomeScreen.tsx`                                            |
+| 16  | 468   | `packages/game-engine/src/games/werewolf/domain/models/roles/spec/specs.ts`        |
+| 17  | 449   | `packages/game-engine/src/games/werewolf/domain/handlers/gameControlHandler.ts`    |
+| 18  | 436   | `src/screens/RoomScreen/RoomScreen.helpers.ts`                                     |
+| 19  | 430   | `src/screens/RoomScreen/hooks/useInteractionDispatcher.ts`                         |
+| 20  | 428   | `packages/game-engine/src/games/werewolf/domain/models/roles/spec/schemas.ts`      |
 
 ## Hook Complexity — `useRoomScreenState.ts`
 

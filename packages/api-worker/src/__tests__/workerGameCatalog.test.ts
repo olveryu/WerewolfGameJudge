@@ -1,4 +1,3 @@
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import {
   FIB_STATE_CODEC,
   fibEngine,
@@ -10,6 +9,7 @@ import {
   type WerewolfInternalCommand,
   type WerewolfPublicCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
 import { GAME_TYPES } from '@werewolf/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 

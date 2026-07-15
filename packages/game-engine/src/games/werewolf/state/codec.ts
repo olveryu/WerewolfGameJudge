@@ -1,7 +1,7 @@
 /** Werewolf runtime state codec shared by persistence and network boundaries. */
 
 import type { GameStateCodec } from '../../../platform/protocol/roomSnapshot';
-import type { GameState } from '../../../protocol/types';
+import type { GameState } from '../domain/protocol/types';
 import { parseWerewolfState } from './parseState';
 import { WEREWOLF_STATE_IDENTITY } from './version';
 

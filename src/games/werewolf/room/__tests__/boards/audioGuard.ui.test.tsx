@@ -10,7 +10,7 @@
  */
 
 import { render, waitFor } from '@testing-library/react-native';
-import { getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   createGameRoomMock,

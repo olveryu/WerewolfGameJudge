@@ -9,41 +9,39 @@
  * Single source of truth: GameState
  */
 
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/engine/handlers/actionHandler';
-import {
-  handleAdvanceNight as executeAdvanceNight,
-  handleEndNight as executeEndNight,
-} from '@werewolf/game-engine/engine/handlers/stepTransitionHandler';
-import type {
-  HandlerContext,
-  HandlerExecutionContext,
-  HandlerResult,
-} from '@werewolf/game-engine/engine/handlers/types';
-import { handlerSuccess } from '@werewolf/game-engine/engine/handlers/types';
-import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/engine/handlers/wolfRobotHunterGateHandler';
-import type { SubmitActionIntent } from '@werewolf/game-engine/engine/intents/types';
-import { gameReducer } from '@werewolf/game-engine/engine/reducer';
-import type { StateAction } from '@werewolf/game-engine/engine/reducer/types';
-import { normalizeState } from '@werewolf/game-engine/engine/state/normalize';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import { buildNightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/models/roles/spec/schema.types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
+import type { NightPlan } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState, PlayerMessage } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { buildNightPlan } from '@werewolf/game-engine/games/werewolf/public';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '@werewolf/game-engine/games/werewolf/public';
 import {
   createTemplateFromRoles,
   type GameTemplate,
   getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
-} from '@werewolf/game-engine/models/Template';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+} from '@werewolf/game-engine/games/werewolf/public';
+import type {
+  HandlerContext,
+  HandlerExecutionContext,
+  HandlerResult,
+} from '@werewolf/game-engine/games/werewolf/testing';
+import type { SubmitActionIntent } from '@werewolf/game-engine/games/werewolf/testing';
+import type { StateAction } from '@werewolf/game-engine/games/werewolf/testing';
+import { handleSubmitAction as executeSubmitAction } from '@werewolf/game-engine/games/werewolf/testing';
+import {
+  handleAdvanceNight as executeAdvanceNight,
+  handleEndNight as executeEndNight,
+} from '@werewolf/game-engine/games/werewolf/testing';
+import { handlerSuccess } from '@werewolf/game-engine/games/werewolf/testing';
+import { handleSetWolfRobotHunterStatusViewed } from '@werewolf/game-engine/games/werewolf/testing';
+import { gameReducer } from '@werewolf/game-engine/games/werewolf/testing';
+import { normalizeState } from '@werewolf/game-engine/games/werewolf/testing';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
-// Re-export types from gameContext.ts for backward compatibility
-export type { GameContext } from './gameContext';
 import type { CapturedMessage, GameContext } from './gameContext';
 
 // =============================================================================

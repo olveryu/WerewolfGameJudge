@@ -57,8 +57,9 @@ const servicesDir = path.join(process.cwd(), 'src', 'services');
 const srcDir = path.join(process.cwd(), 'src');
 const gameEngineDir = path.join(process.cwd(), 'packages', 'game-engine', 'src');
 const engineGamesDir = path.join(gameEngineDir, 'games');
-const workerPlatformDir = path.join(process.cwd(), 'packages', 'api-worker', 'src', 'platform');
-const workerGamesDir = path.join(process.cwd(), 'packages', 'api-worker', 'src', 'games');
+const workerSrcDir = path.join(process.cwd(), 'packages', 'api-worker', 'src');
+const workerPlatformDir = path.join(workerSrcDir, 'platform');
+const workerGamesDir = path.join(workerSrcDir, 'games');
 
 const screensFiles = getAllProductionFiles(screensDir);
 const productComponentFiles = getAllProductionFiles(productComponentsDir);
@@ -67,6 +68,7 @@ const servicesFiles = getAllProductionFiles(servicesDir);
 const srcFiles = getAllProductionFiles(srcDir);
 const gameEngineFiles = getAllProductionFiles(gameEngineDir);
 const workerPlatformFiles = getAllProductionFiles(workerPlatformDir);
+const workerFiles = getAllProductionFiles(workerSrcDir);
 
 // ─── Rule 1: services/ must NOT import UI ownership roots ───────────────────
 
@@ -108,6 +110,24 @@ describe('Layer boundary: game-engine → client (forbidden)', () => {
       const match = content.match(pattern);
       expect(match).toBeNull();
     }
+  });
+});
+
+describe('Game-engine package boundary: consumers use explicit public APIs', () => {
+  const consumerFiles = [...srcFiles, ...workerFiles];
+
+  it.each(consumerFiles)('%s must not import a game-owned domain deep path', (filePath) => {
+    const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter((specifier) => specifier.includes('/games/werewolf/domain/'))).toEqual(
+      [],
+    );
+  });
+
+  it.each(consumerFiles)('%s must not import a game testing API in production', (filePath) => {
+    const imports = getImportSpecifiers(fs.readFileSync(filePath, 'utf-8'));
+    expect(imports.filter((specifier) => specifier.endsWith('/games/werewolf/testing'))).toEqual(
+      [],
+    );
   });
 });
 

@@ -5,8 +5,8 @@ import type {
   WerewolfInternalCommand,
   WerewolfPublicCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
-import { validateTemplateRoles } from '@werewolf/game-engine/models/Template';
+import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { validateTemplateRoles } from '@werewolf/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
 import { ROOM_PUBLIC_COMMAND_SCHEMAS } from '../../platform/room/commandSchemas';

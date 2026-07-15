@@ -1,4 +1,4 @@
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { SeatViewModel } from '@/games/werewolf/room/werewolfRoom.helpers';
 import {

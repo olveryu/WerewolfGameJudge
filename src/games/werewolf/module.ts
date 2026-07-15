@@ -1,10 +1,10 @@
 /** Werewolf client runtime registration. */
 
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import {
   WEREWOLF_STATE_CODEC,
   type WerewolfPublicCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { createElement } from 'react';
 
 import type { GameRoomScreenProps } from '@/features/room/model/RoomUiModule';

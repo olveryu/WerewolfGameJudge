@@ -1,14 +1,14 @@
 /** Game settlement ledger, deterministic rewards, and outbox retry contracts. */
 
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
 import type {
   WerewolfGameEndedEffect,
   WerewolfInternalCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
 import type { RoomCommandResult } from '@werewolf/game-engine/platform/protocol/commandResult';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import { env } from 'cloudflare:test';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 

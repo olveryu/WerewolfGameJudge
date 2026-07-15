@@ -10,38 +10,6 @@
       "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
-    "./models/*": {
-      "types": "./src/models/*.ts",
-      "default": "./dist/models/*.js"
-    },
-    "./models/roles": {
-      "types": "./src/models/roles/index.ts",
-      "default": "./dist/models/roles/index.js"
-    },
-    "./models/roles/*": {
-      "types": "./src/models/roles/*.ts",
-      "default": "./dist/models/roles/*.js"
-    },
-    "./models/actions/*": {
-      "types": "./src/models/actions/*.ts",
-      "default": "./dist/models/actions/*.js"
-    },
-    "./engine/*": {
-      "types": "./src/engine/*.ts",
-      "default": "./dist/engine/*.js"
-    },
-    "./engine/store": {
-      "types": "./src/engine/store/index.ts",
-      "default": "./dist/engine/store/index.js"
-    },
-    "./engine/store/*": {
-      "types": "./src/engine/store/*.ts",
-      "default": "./dist/engine/store/*.js"
-    },
-    "./games/werewolf/commands": {
-      "types": "./src/games/werewolf/commands/types.ts",
-      "default": "./dist/games/werewolf/commands/types.js"
-    },
     "./games/catalog": {
       "types": "./src/games/catalog.ts",
       "default": "./dist/games/catalog.js"
@@ -50,25 +18,17 @@
       "types": "./src/games/werewolf/public.ts",
       "default": "./dist/games/werewolf/public.js"
     },
+    "./games/werewolf/testing": {
+      "types": "./src/games/werewolf/testing.ts",
+      "default": "./dist/games/werewolf/testing.js"
+    },
     "./games/fibking/public": {
       "types": "./src/games/fibking/public.ts",
       "default": "./dist/games/fibking/public.js"
     },
-    "./games/werewolf/domain/handlers/commandHandlers": {
-      "types": "./src/games/werewolf/domain/handlers/commandHandlers.ts",
-      "default": "./dist/games/werewolf/domain/handlers/commandHandlers.js"
-    },
-    "./engine/state/*": {
-      "types": "./src/engine/state/*.ts",
-      "default": "./dist/engine/state/*.js"
-    },
-    "./engine/reducer/*": {
-      "types": "./src/engine/reducer/*.ts",
-      "default": "./dist/engine/reducer/*.js"
-    },
-    "./protocol/*": {
-      "types": "./src/protocol/*.ts",
-      "default": "./dist/protocol/*.js"
+    "./platform/protocol/actionResult": {
+      "types": "./src/platform/protocol/actionResult.ts",
+      "default": "./dist/platform/protocol/actionResult.js"
     },
     "./platform/protocol/*": {
       "types": "./src/platform/protocol/*.ts",
@@ -86,9 +46,9 @@
       "types": "./src/platform/room/roster.ts",
       "default": "./dist/platform/room/roster.js"
     },
-    "./resolvers/*": {
-      "types": "./src/resolvers/*.ts",
-      "default": "./dist/resolvers/*.js"
+    "./platform/room/formatSeat": {
+      "types": "./src/platform/room/formatSeat.ts",
+      "default": "./dist/platform/room/formatSeat.js"
     },
     "./utils/*": {
       "types": "./src/utils/*.ts",

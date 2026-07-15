@@ -1,6 +1,6 @@
 /** Public Werewolf statistics contract shared by Worker and client runtimes. */
 
-import { CAMP_ORDER, type CampBucket } from '../../models/roles/camp';
+import { CAMP_ORDER, type CampBucket } from './domain/models/roles/camp';
 
 export const WEREWOLF_CAMP_ORDER = CAMP_ORDER;
 

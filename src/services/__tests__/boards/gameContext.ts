@@ -5,12 +5,12 @@
  * Contains only type/interface, no implementation code.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import type { NightPlan } from '@werewolf/game-engine/models/roles/spec/plan';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState, PlayerMessage } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
+import type { NightPlan } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState, PlayerMessage } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
 // =============================================================================
 // Types

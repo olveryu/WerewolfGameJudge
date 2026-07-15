@@ -15,7 +15,7 @@
 6. 认证、命令幂等、状态恢复和用户事件确认各自只有一套机制。
 
 本文不把 TanStack Query 用作游戏状态缓存。账号、统计、抽卡等 meta-game 请求可以使用 Query；实时房间
-仍使用 `GameStore + RoomCommandSession + ConnectionManager`。
+仍使用 `RoomSession + ConnectionManager`；`RoomSession` 同时持有权威 snapshot mirror 与 command session。
 
 ## 2. 当前分层
 

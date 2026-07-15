@@ -5,11 +5,14 @@
  * responsible for actor resolution, authorization, validation, and game rules.
  */
 
-import { type WerewolfActionInput, type WerewolfPublicCommand } from '@werewolf/game-engine';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  type WerewolfActionInput,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
 import type {
   PreparedRoomCommand,

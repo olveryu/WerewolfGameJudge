@@ -8,8 +8,8 @@
  * services, does not contain business rules, and does not hold execution functions.
  */
 
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
+import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 import { useCallback } from 'react';
 
 import { showAlert } from '@/utils/alert';

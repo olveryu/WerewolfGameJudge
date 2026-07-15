@@ -1,7 +1,3 @@
-import { handlerError, handlerRejection, handlerSuccess } from '../../../engine/handlers/types';
-import type { StateAction } from '../../../engine/reducer/types';
-import { buildInitialGameState } from '../../../engine/state/buildInitialState';
-import { GameStatus, type GameTemplate, type RoleId } from '../../../models';
 import type { CommandContext, CreateGameContext } from '../../../platform/engine';
 import { GAME_TYPES } from '../../../platform/protocol/gameTypes';
 import {
@@ -12,12 +8,16 @@ import {
   REASON_SYSTEM_ACTOR_REQUIRED,
   REASON_USER_ACTOR_REQUIRED,
 } from '../../../platform/protocol/reasons';
-import type { GameState } from '../../../protocol/types';
 import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { WerewolfCommand } from '../commands/types';
 import { REASON_ACTION_INPUT_MISMATCH, resolveSubmitActionIntent } from '../domain/actionInput';
 import { resolveEffectiveSeatActor, resolveSystemActor, resolveUserActor } from '../domain/actor';
 import { handlerResultToDecision, translateHandlerSideEffects } from '../domain/decision';
+import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
+import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
+import type { GameState } from '../domain/protocol/types';
+import type { StateAction } from '../domain/reducer/types';
+import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
 
 const TEMPLATE: GameTemplate = {

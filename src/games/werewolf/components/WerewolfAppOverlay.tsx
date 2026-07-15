@@ -1,6 +1,6 @@
 /** Werewolf-owned global overlay bound to one Werewolf client runtime. */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 
 import { useRoomSessionSnapshot } from '@/features/room/controllers/useRoomSessionSnapshot';

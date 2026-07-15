@@ -6,7 +6,7 @@
  * Excludes shared room modals and Werewolf action dialogs.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useRef, useState } from 'react';
 
 import { DISMISS_BUTTON, showAlert } from '@/utils/alert';

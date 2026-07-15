@@ -8,8 +8,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { getAllRoleIds, isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+import {
+  getAllRoleIds,
+  isValidRoleId,
+  type RoleId,
+} from '@werewolf/game-engine/games/werewolf/public';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { ChooseSeatSchema } from '@werewolf/game-engine/models/roles/spec/schema.types';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { ChooseSeatSchema } from '@werewolf/game-engine/games/werewolf/public';
+import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
@@ -35,7 +35,7 @@ let mockedSchemaId: ChooseSeatSchema['id'] = 'seerCheck';
 const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema => {
   // Use the real schema as source-of-truth, then override the one test-specific knob.
   const { getSchema } =
-    require('@werewolf/game-engine/models/roles/spec/schemas') as typeof import('@werewolf/game-engine/models/roles/spec/schemas');
+    require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
   const schema = getSchema(schemaId as SchemaId);
   if (schema.kind !== 'chooseSeat') {
     throw new Error(`Expected chooseSeat schema for ${schemaId}`);
@@ -48,7 +48,8 @@ const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema
 
 // Minimal WerewolfRoomScreen runtime: pressing "不用技能" submits a null target input.
 jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
-  const { GameStatus } = require('@werewolf/game-engine') as typeof import('@werewolf/game-engine');
+  const { GameStatus } =
+    require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public');
   return {
     useWerewolfRoom: () => {
       const gameState = {
@@ -89,7 +90,7 @@ jest.mock('@/games/werewolf/hooks/useWerewolfRoom', () => {
 
         isHost: false,
         roomStatus: (
-          require('@werewolf/game-engine/models/GameStatus') as typeof import('@werewolf/game-engine/models/GameStatus')
+          require('@werewolf/game-engine/games/werewolf/public') as typeof import('@werewolf/game-engine/games/werewolf/public')
         ).GameStatus.Ongoing,
 
         currentActionRole: 'seer',

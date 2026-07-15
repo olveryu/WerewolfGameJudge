@@ -10,14 +10,14 @@ import {
   isValidRoleId,
   ROLE_SPECS,
   type RoleId,
-} from '@werewolf/game-engine/models/roles';
+} from '@werewolf/game-engine/games/werewolf/public';
 import {
   findMatchingPresetName,
   getPlayerCount,
   type PresetTemplate,
   TEMPLATE_CATEGORY_LABELS,
   TemplateCategory,
-} from '@werewolf/game-engine/models/Template';
+} from '@werewolf/game-engine/games/werewolf/public';
 
 import type { FactionColorKey } from './components';
 import { buildInitialSelection, FACTION_GROUPS } from './configData';

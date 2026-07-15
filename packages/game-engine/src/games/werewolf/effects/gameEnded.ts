@@ -1,6 +1,6 @@
 /** Build the settlement trigger from an authoritative ended Werewolf state. */
 
-import type { GameState } from '../../../protocol/types';
+import type { GameState } from '../domain/protocol/types';
 import type { WerewolfGameEndedEffect, WerewolfGameEndedParticipant } from './types';
 
 export function createWerewolfGameEndedEffect(state: GameState): WerewolfGameEndedEffect {

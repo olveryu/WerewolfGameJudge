@@ -1,9 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { WEREWOLF_STATE_IDENTITY, type WerewolfPublicCommand } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  WEREWOLF_STATE_IDENTITY,
+  type WerewolfPublicCommand,
+} from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 import type React from 'react';
 
 import type { RoomSessionClient } from '@/features/room/session/types';

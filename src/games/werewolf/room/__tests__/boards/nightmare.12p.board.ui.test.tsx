@@ -22,8 +22,8 @@
  */
 
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { BLOCKED_UI_DEFAULTS, getSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { BLOCKED_UI_DEFAULTS, getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   boardHasNightmare,

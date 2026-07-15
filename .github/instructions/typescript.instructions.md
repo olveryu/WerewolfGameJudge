@@ -20,7 +20,9 @@ applyTo: 'src/**/\*.ts,src/**/_.tsx,packages/game-engine/src/\*\*/_.ts'
   - Compound assignment (`+=`, `|=`) needs expansion: `data[x] = data[x]! + y`.
   - Adding `!` to expressions already non-`undefined` is forbidden (ESLint `no-unnecessary-type-assertion` will warn).
 - Discriminated Union (`type` / `kind` tag field). Optional field stacking to distinguish variants is forbidden.
-- Operation results uniformly use `ActionResult` (`@werewolf/game-engine/protocol/ActionResult`) DU: `{ success: true; reason?: string } | { success: false; reason: string }`. Loose `{ success: boolean; reason?: string }` is forbidden.
+- Operation results uniformly use `ActionResult`
+  (`@werewolf/game-engine/platform/protocol/actionResult`) DU:
+  `{ success: true; reason?: string } | { success: false; reason: string }`. Loose result shapes are forbidden.
 - Exhaustive `switch`: `default` uses `assertNever` or `const _: never`.
 - `satisfies` used for "both type-check and preserve literal inference" (`ROLE_SPECS`, `SCHEMAS`, config objects etc.).
 - Function parameter arrays/objects prefer `readonly`; exported constants prefer `as const`.

@@ -5,9 +5,12 @@
  * No hooks, no side effects, no closure captures.
  */
 
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import type { RevealKind } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, InlineSubStepSchema } from '@werewolf/game-engine/models/roles/spec';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { RevealKind } from '@werewolf/game-engine/games/werewolf/public';
+import type {
+  ActionSchema,
+  InlineSubStepSchema,
+} from '@werewolf/game-engine/games/werewolf/public';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';
 

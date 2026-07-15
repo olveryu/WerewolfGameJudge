@@ -6,13 +6,13 @@
  */
 
 import { fireEvent, waitFor } from '@testing-library/react-native';
-import type { RoleAction } from '@werewolf/game-engine/models/actions/RoleAction';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import { getSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import type { ConfirmStatus } from '@werewolf/game-engine/protocol/types';
+import type { RoleAction } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { SchemaId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ConfirmStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { getSchema, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
+import { Team } from '@werewolf/game-engine/games/werewolf/public';
 import React from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 

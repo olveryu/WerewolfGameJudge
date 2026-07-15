@@ -7,13 +7,13 @@
  * No side effects, no state mutation, no service calls.
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { buildNightPlan, type RoleId } from '@werewolf/game-engine/models/roles';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { buildNightPlan, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import {
   type ActionSchema,
   getSchema,
   type SchemaId,
-} from '@werewolf/game-engine/models/roles/spec';
+} from '@werewolf/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
 
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';

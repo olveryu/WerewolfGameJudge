@@ -1,9 +1,9 @@
 /** Convert canonical Werewolf action commands into the existing pure handler intent. */
 
-import type { SubmitActionIntent } from '../../../engine/intents/types';
-import { type ActionSchema, SCHEMAS } from '../../../models';
-import type { GameState } from '../../../protocol/types';
 import type { WerewolfActionInput } from '../commands/types';
+import type { SubmitActionIntent } from './intents/types';
+import { type ActionSchema, SCHEMAS } from './models';
+import type { GameState } from './protocol/types';
 
 export const REASON_ACTION_INPUT_MISMATCH = 'action_input_mismatch' as const;
 

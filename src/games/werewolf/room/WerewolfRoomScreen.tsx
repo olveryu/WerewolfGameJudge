@@ -9,8 +9,8 @@
  * services / policy / helpers.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { findClosestPresetName } from '@werewolf/game-engine/models/Template';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { findClosestPresetName } from '@werewolf/game-engine/games/werewolf/public';
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';

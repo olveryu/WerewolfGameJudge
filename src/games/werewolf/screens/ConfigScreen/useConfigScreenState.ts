@@ -9,14 +9,14 @@
  */
 
 import { type NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { Faction } from '@werewolf/game-engine/models/roles';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { Faction } from '@werewolf/game-engine/games/werewolf/public';
 import {
   createCustomTemplate,
   type GameRuleOverrides,
   PRESET_TEMPLATES,
   validateTemplateRoles,
-} from '@werewolf/game-engine/models/Template';
+} from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner-native';
 

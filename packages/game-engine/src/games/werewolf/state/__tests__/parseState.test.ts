@@ -1,7 +1,7 @@
-import { normalizeState } from '../../../../engine/state/normalize';
-import { GameStatus } from '../../../../models/GameStatus';
-import { Team } from '../../../../models/roles/spec/types';
-import type { GameState } from '../../../../protocol/types';
+import { GameStatus } from '../../domain/models/GameStatus';
+import { Team } from '../../domain/models/roles/spec/types';
+import type { GameState } from '../../domain/protocol/types';
+import { normalizeState } from '../../domain/state/normalize';
 import { parseWerewolfState } from '../parseState';
 import { WEREWOLF_STATE_IDENTITY } from '../version';
 

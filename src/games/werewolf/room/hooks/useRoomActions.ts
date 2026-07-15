@@ -9,18 +9,22 @@
  * Phase 3: Schema-driven - uses currentSchema.kind instead of role names
  */
 
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import type {
+  ActionSchema,
+  RevealKind,
+  SchemaId,
+} from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import {
   doesRoleParticipateInWolfVote,
   isWolfRole,
   type RoleId,
-} from '@werewolf/game-engine/models/roles';
-import type { ActionSchema, RevealKind, SchemaId } from '@werewolf/game-engine/models/roles/spec';
-import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+} from '@werewolf/game-engine/games/werewolf/public';
+import { isValidSchemaId, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 import {
   getBottomCardEffectiveRole,
   isBottomCardWolfVoteExcluded,
-} from '@werewolf/game-engine/utils/playerHelpers';
+} from '@werewolf/game-engine/games/werewolf/public';
 import { useCallback, useMemo } from 'react';
 
 import type { ActionIntent } from '@/games/werewolf/room/policy/types';

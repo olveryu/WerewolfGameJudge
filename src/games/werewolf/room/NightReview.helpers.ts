@@ -6,11 +6,15 @@
  * No service / hook / React imports; relies only on game-engine types and getRoleDisplayName.
  */
 
-import type { DeathReason } from '@werewolf/game-engine/engine/DeathCalculator';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getRoleDisplayName, getRoleEmoji, ROLE_SPECS } from '@werewolf/game-engine/models/roles';
-import { Team } from '@werewolf/game-engine/models/roles/spec/types';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import type { DeathReason } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import {
+  getRoleDisplayName,
+  getRoleEmoji,
+  ROLE_SPECS,
+} from '@werewolf/game-engine/games/werewolf/public';
+import { Team } from '@werewolf/game-engine/games/werewolf/public';
+import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import { ACTION, STATUS } from '@/config/emojiTokens';
 import type { LocalGameState, LocalPlayer } from '@/games/werewolf/state/LocalGameState';

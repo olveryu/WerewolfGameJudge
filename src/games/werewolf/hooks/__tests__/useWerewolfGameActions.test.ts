@@ -6,8 +6,8 @@
  */
 
 import { act, renderHook } from '@testing-library/react-native';
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
 import type { RoomOperationResult } from '@/features/room/model/RoomCapabilities';
 import type { WerewolfBgmControlState } from '@/games/werewolf/hooks/useWerewolfBgmControl';

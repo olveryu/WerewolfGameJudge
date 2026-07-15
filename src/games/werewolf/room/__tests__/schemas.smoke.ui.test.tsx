@@ -1,6 +1,6 @@
 import { render, waitFor } from '@testing-library/react-native';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { getAllSchemaIds, getSchema } from '@werewolf/game-engine/games/werewolf/public';
 
 import { WerewolfRoomScreen } from '@/games/werewolf/room/__tests__/harness/ReadyWerewolfRoomScreen';
 

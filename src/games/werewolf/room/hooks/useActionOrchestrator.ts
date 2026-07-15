@@ -16,11 +16,11 @@
  * and does not modify GameState directly.
  */
 
-import type { WerewolfActionInput } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionSchema } from '@werewolf/game-engine/models/roles/spec';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { WerewolfActionInput } from '@werewolf/game-engine/games/werewolf/public';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionSchema } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useWerewolfAckMutation } from '@/games/werewolf/hooks/useWerewolfAckMutation';

@@ -1,4 +1,4 @@
-import { PRESET_TEMPLATES } from '@werewolf/game-engine/models/Template';
+import { PRESET_TEMPLATES } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   getWerewolfBoardsByVersion,

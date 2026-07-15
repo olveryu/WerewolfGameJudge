@@ -1,6 +1,6 @@
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import { resolveRandomAnimation } from '@werewolf/game-engine/growth/revealEffect';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
 import { WerewolfRoomAccountCapability } from '@/games/werewolf/profile/WerewolfRoomAccountCapability';

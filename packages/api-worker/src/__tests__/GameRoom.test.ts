@@ -4,7 +4,7 @@ import {
   WEREWOLF_STATE_CODEC,
   type WerewolfPublicCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
 import {
   REASON_COMMAND_ID_CONFLICT,
   REASON_NO_STATE,

@@ -1,11 +1,11 @@
 /** Typed Werewolf commands. Actor identity is supplied only by CommandContext. */
 
-import type { GameRuleOverrides, RoleId } from '../../../models';
 import type {
   RoomProfileUpdateCommand,
   RoomSeatCommand,
 } from '../../../platform/protocol/commands';
 import type { RoomProfileUpdate, RoomSeatProfile } from '../../../platform/room/roster';
+import type { GameRuleOverrides, RoleId } from '../domain/models';
 
 export type WerewolfSeatProfile = RoomSeatProfile;
 

@@ -11,8 +11,8 @@
  * Does not directly modify GameState or bypass facade game operations.
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 import { useCallback } from 'react';
 
 import { useRoomBotControl } from '@/features/room/controllers/useRoomBotControl';

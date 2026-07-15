@@ -1,11 +1,11 @@
-import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine';
-import { buildInitialGameState } from '@werewolf/game-engine/engine/state/buildInitialState';
-import type { GameTemplate } from '@werewolf/game-engine/models/Template';
+import type { GameTemplate } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_CODEC } from '@werewolf/game-engine/games/werewolf/public';
+import { buildInitialGameState } from '@werewolf/game-engine/games/werewolf/testing';
 import {
   createRoomSnapshot,
   createStateUpdateMessage,
 } from '@werewolf/game-engine/platform/protocol/roomSnapshot';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
 
 import {
   WEREWOLF_USER_EVENT_CODEC,

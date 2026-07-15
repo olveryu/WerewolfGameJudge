@@ -5,8 +5,8 @@ import type {
   WerewolfGameEndedEffect,
   WerewolfInternalCommand,
 } from '@werewolf/game-engine/games/werewolf/public';
-import { isValidRoleId, type RoleId } from '@werewolf/game-engine/models/roles';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { isValidRoleId, type RoleId } from '@werewolf/game-engine/games/werewolf/public';
 import { z } from 'zod';
 
 import { settleGameResults } from '../../growth/settleGameResults';

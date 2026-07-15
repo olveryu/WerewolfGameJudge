@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { formatSeat } from '@werewolf/game-engine/utils/formatSeat';
+import { formatSeat } from '@werewolf/game-engine/platform/room/formatSeat';
 
 import {
   clickBottomButton,

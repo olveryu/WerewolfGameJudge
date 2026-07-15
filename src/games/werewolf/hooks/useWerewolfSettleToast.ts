@@ -9,8 +9,8 @@
  */
 
 import { useQueryClient } from '@tanstack/react-query';
-import type { WerewolfPublicCommand } from '@werewolf/game-engine';
-import type { GameState } from '@werewolf/game-engine/protocol/types';
+import type { WerewolfPublicCommand } from '@werewolf/game-engine/games/werewolf/public';
+import type { GameState } from '@werewolf/game-engine/games/werewolf/public';
 import { useEffect } from 'react';
 import { toast } from 'sonner-native';
 

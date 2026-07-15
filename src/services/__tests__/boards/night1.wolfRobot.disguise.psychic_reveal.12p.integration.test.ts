@@ -20,9 +20,10 @@
  * Architecture: intents -> handlers -> resolver(resolveRoleForChecks) -> GameState
  */
 
-import type { RoleId } from '@werewolf/game-engine/models/roles';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
 
-import { cleanupGame, createGame, type GameContext } from './gameFactory';
+import type { GameContext } from './gameContext';
+import { cleanupGame, createGame } from './gameFactory';
 import { executeFullNight } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '机械狼人通灵师';

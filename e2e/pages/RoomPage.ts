@@ -1,5 +1,5 @@
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { ROLE_SPECS } from '@werewolf/game-engine/models/roles';
+import { ROLE_SPECS } from '@werewolf/game-engine/games/werewolf/public';
 
 import { TESTIDS } from '../../src/testids';
 import { extractRoomCode } from '../helpers/home';

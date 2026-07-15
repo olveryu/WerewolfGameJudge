@@ -15,7 +15,7 @@
  * - Only for Jest test environment; must not be referenced from production code
  */
 
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import type { AlertButton } from '@/utils/alert';
 

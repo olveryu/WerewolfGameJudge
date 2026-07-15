@@ -2,9 +2,9 @@
  * Tests for seer reveal intent
  */
 import { renderHook } from '@testing-library/react-native';
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import { type ActionSchema, SCHEMAS } from '@werewolf/game-engine/models/roles/spec';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { type ActionSchema, SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import { useRoomActions } from '@/games/werewolf/room/hooks/useRoomActions';
 import type { LocalGameState } from '@/games/werewolf/state/LocalGameState';

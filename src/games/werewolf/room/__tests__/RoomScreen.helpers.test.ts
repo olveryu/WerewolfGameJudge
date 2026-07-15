@@ -2,11 +2,11 @@
  * werewolfRoom.helpers.test.ts - Unit tests for pure helper functions
  */
 
-import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine';
-import { GameStatus } from '@werewolf/game-engine/models/GameStatus';
-import type { RoleId } from '@werewolf/game-engine/models/roles';
-import { TargetConstraint } from '@werewolf/game-engine/models/roles/spec/schema.types';
-import { SCHEMAS } from '@werewolf/game-engine/models/roles/spec/schemas';
+import type { RoleId } from '@werewolf/game-engine/games/werewolf/public';
+import { WEREWOLF_STATE_IDENTITY } from '@werewolf/game-engine/games/werewolf/public';
+import { GameStatus } from '@werewolf/game-engine/games/werewolf/public';
+import { TargetConstraint } from '@werewolf/game-engine/games/werewolf/public';
+import { SCHEMAS } from '@werewolf/game-engine/games/werewolf/public';
 
 import {
   buildSeatViewModels,

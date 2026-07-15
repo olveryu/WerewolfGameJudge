@@ -19,10 +19,10 @@
  *   After reconnect, resends ack via resumeAfterRejoin (if last ack was lost during disconnect).
  */
 
-import { getStepSpec } from '@werewolf/game-engine/models/roles/spec/nightSteps';
-import type { ActionResult } from '@werewolf/game-engine/protocol/ActionResult';
-import type { AudioEffect, GameState } from '@werewolf/game-engine/protocol/types';
-import { resolveSeerAudioKey } from '@werewolf/game-engine/utils/audioKeyOverride';
+import type { AudioEffect, GameState } from '@werewolf/game-engine/games/werewolf/public';
+import { getStepSpec } from '@werewolf/game-engine/games/werewolf/public';
+import { resolveSeerAudioKey } from '@werewolf/game-engine/games/werewolf/public';
+import type { ActionResult } from '@werewolf/game-engine/platform/protocol/actionResult';
 
 import type { RoomConnectionStatus } from '@/features/room/model/RoomConnection';
 import { MissingWerewolfAudioError } from '@/games/werewolf/audio/audioRegistry';
