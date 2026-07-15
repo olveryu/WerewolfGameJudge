@@ -23,7 +23,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 
-import { runScheduledCron } from './app/runScheduledMaintenance';
+import { runScheduledCron } from './app/scheduled';
 import type { AppEnv, Env } from './env';
 import { avatarRoutes } from './features/account/avatarRoutes';
 import { statsRoutes } from './features/account/routes';

@@ -3,7 +3,7 @@
 import { FIB_WORD_SOURCES } from '@game-judge/game-engine/games/fibking/public';
 import { index, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-import { rooms } from '../../db/applicationSchema';
+import { rooms } from '../../platform/room/dbSchema';
 
 /** Exact word-provider results used to replay nondeterministic effects. */
 export const fibWordGenerationResults = sqliteTable(

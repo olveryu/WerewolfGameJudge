@@ -1,6 +1,6 @@
 /** D1-backed at-least-once delivery inbox for authenticated user events. */
 
-import type { userEventInbox } from '../../db/applicationSchema';
+import type { userEventInbox } from './dbSchema';
 
 type UserEventInboxInsert = typeof userEventInbox.$inferInsert;
 

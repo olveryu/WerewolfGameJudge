@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 
-import type { roomGameStarts } from '../../db/applicationSchema';
 import type { Env } from '../../env';
+import type { roomGameStarts } from './dbSchema';
 import type { RoomEffectDirectoryIdentity } from './roomDirectory';
 import { assertRoomEffectDirectory } from './roomDirectory';
 

@@ -2,7 +2,7 @@
 
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-import { users } from '../../db/applicationSchema';
+import { users } from '../../features/account/dbSchema';
 
 /** Per-game camp history used by Werewolf public statistics. */
 export const campSettlements = sqliteTable(

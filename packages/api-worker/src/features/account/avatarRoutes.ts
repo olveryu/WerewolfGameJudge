@@ -16,9 +16,9 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
-import { users } from '../../db/applicationSchema';
 import type { AppEnv } from '../../env';
 import { requireAuth } from '../auth/tokenAuth';
+import { users } from './dbSchema';
 
 const AVATAR_SUFFIX_HEX_LENGTH = 8;
 

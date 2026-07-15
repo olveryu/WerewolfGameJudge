@@ -3,7 +3,7 @@
 import { env } from 'cloudflare:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { runScheduledCron } from '../runScheduledMaintenance';
+import { runScheduledCron } from '../scheduled';
 
 const NOW_MS = Date.parse('2026-07-10T12:00:00.000Z');
 
@@ -12,6 +12,7 @@ beforeEach(async () => {
   await env.DB.prepare('DELETE FROM room_game_starts').run();
   await env.DB.prepare('DELETE FROM rooms').run();
   await env.DB.prepare('DELETE FROM login_attempts').run();
+  await env.DB.prepare("DELETE FROM users WHERE id IN ('stale-anonymous', 'room-host')").run();
 });
 
 describe('runScheduledCron', () => {
@@ -42,5 +43,30 @@ describe('runScheduledCron', () => {
     await expect(runScheduledCron(env, '1 2 3 4 5', NOW_MS)).rejects.toThrow(
       'Unknown cron trigger: 1 2 3 4 5',
     );
+  });
+
+  it('deletes stale anonymous non-hosts and preserves room hosts', async () => {
+    await env.DB.prepare(
+      `INSERT INTO users (id, is_anonymous, created_at, updated_at) VALUES
+        ('stale-anonymous', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z'),
+        ('room-host', 1, '2000-01-01T00:00:00.000Z', '2000-01-01T00:00:00.000Z')`,
+    ).run();
+    await env.DB.prepare(
+      `INSERT INTO rooms (
+        id, code, game_type, host_user_id, creation_id, config_json, status,
+        created_at, updated_at, games_started
+      ) VALUES ('active-room-id', '8766', 'werewolf', 'room-host',
+        'active-room-creation', '{}', 'active',
+        '2026-07-10T12:00:00.000Z', '2026-07-10T12:00:00.000Z', 0)`,
+    ).run();
+
+    await runScheduledCron(env, '0 3 * * *', NOW_MS);
+
+    expect(
+      await env.DB.prepare("SELECT id FROM users WHERE id = 'stale-anonymous'").first(),
+    ).toBeNull();
+    expect(await env.DB.prepare("SELECT id FROM users WHERE id = 'room-host'").first()).toEqual({
+      id: 'room-host',
+    });
   });
 });

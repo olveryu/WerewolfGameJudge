@@ -18,10 +18,10 @@ import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
-import { users, userStats } from '../../db/applicationSchema';
 import type { AppEnv } from '../../env';
 import { WORKER_GAME_CATALOG } from '../../games/catalog';
 import { requireAuth } from '../auth/tokenAuth';
+import { users, userStats } from './dbSchema';
 
 /** User stats/profile routes. */
 export const statsRoutes = new Hono<AppEnv>();

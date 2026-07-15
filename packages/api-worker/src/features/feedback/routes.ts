@@ -17,11 +17,12 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
-import { feedbackReplies, feedbacks, users } from '../../db/applicationSchema';
 import type { AppEnv } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
+import { users } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
+import { feedbackReplies, feedbacks } from './dbSchema';
 import {
   feedbackMarkReadSchema,
   feedbackReplySchema,

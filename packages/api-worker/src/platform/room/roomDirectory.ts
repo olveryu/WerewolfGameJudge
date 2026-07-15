@@ -7,8 +7,8 @@ import { randomIntInclusive } from '@game-judge/game-engine/platform/random';
 import { and, eq, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
-import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from '../../db/applicationSchema';
 import type { Env } from '../../env';
+import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from './dbSchema';
 
 const PUBLIC_ROOM_CODE_MIN = 1000;
 const PUBLIC_ROOM_CODE_MAX = 9999;

@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
+import ts from 'typescript';
 
 import {
   getModuleSpecifiers,
@@ -84,6 +85,38 @@ function isPathWithin(directory: string, candidate: string): boolean {
 
 function hasPathSegment(specifier: string, segment: string): boolean {
   return specifier.split('/').includes(segment);
+}
+
+function getSqliteTableNames(filePath: string): readonly string[] {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const tableNames: string[] = [];
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 'sqliteTable'
+    ) {
+      const tableName = node.arguments[0];
+      if (tableName === undefined || !ts.isStringLiteralLike(tableName)) {
+        throw new Error(
+          `[FAIL-FAST] ${path.relative(process.cwd(), filePath)} declares a non-literal SQLite table`,
+        );
+      }
+      tableNames.push(tableName.text);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return tableNames;
 }
 
 function isGameDomainSpecifier(specifier: string): boolean {
@@ -272,12 +305,36 @@ describe('Worker ownership: game-specific persistence and HTTP stay game-owned',
     expect(dbIndex).toContain('return drizzle(d1);');
   });
 
-  it('keeps game-owned tables out of the game-independent application schema', () => {
-    const schema = fs.readFileSync(path.join(workerSrcDir, 'db', 'applicationSchema.ts'), 'utf-8');
+  it('declares every physical D1 table exactly once in its owner module', () => {
+    const expectedOwners = new Map<string, string>([
+      ['camp_settlements', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
+      ['draw_history', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
+      ['feedback_replies', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
+      ['feedbacks', 'packages/api-worker/src/features/feedback/dbSchema.ts'],
+      ['fib_word_generation_results', 'packages/api-worker/src/games/fibking/dbSchema.ts'],
+      ['game_settlement_results', 'packages/api-worker/src/games/werewolf/dbSchema.ts'],
+      ['idempotency_keys', 'packages/api-worker/src/features/gacha/dbSchema.ts'],
+      ['login_attempts', 'packages/api-worker/src/features/auth/dbSchema.ts'],
+      ['password_reset_tokens', 'packages/api-worker/src/features/auth/dbSchema.ts'],
+      ['refresh_tokens', 'packages/api-worker/src/features/auth/dbSchema.ts'],
+      ['room_game_starts', 'packages/api-worker/src/platform/room/dbSchema.ts'],
+      ['room_participants', 'packages/api-worker/src/platform/room/dbSchema.ts'],
+      ['rooms', 'packages/api-worker/src/platform/room/dbSchema.ts'],
+      ['user_event_inbox', 'packages/api-worker/src/platform/userEvents/dbSchema.ts'],
+      ['user_stats', 'packages/api-worker/src/features/account/dbSchema.ts'],
+      ['users', 'packages/api-worker/src/features/account/dbSchema.ts'],
+      ['wx_claims', 'packages/api-worker/src/features/auth/dbSchema.ts'],
+    ]);
+    const actualOwners = workerFiles
+      .flatMap((filePath) =>
+        getSqliteTableNames(filePath).map(
+          (tableName) =>
+            [tableName, path.relative(process.cwd(), filePath)] satisfies [string, string],
+        ),
+      )
+      .sort(([left], [right]) => left.localeCompare(right));
 
-    expect(schema).not.toMatch(
-      /\b(?:fibWordGenerationResults|campSettlements|gameSettlementResults)\b|fib_word_generation_results|camp_settlements|game_settlement_results/,
-    );
+    expect(actualOwners).toEqual([...expectedOwners.entries()]);
   });
 
   it('keeps game-owned DB schemas independent from the runtime driver and removed aggregate', () => {
@@ -376,6 +433,14 @@ describe('Worker ownership: source tree is exact', () => {
       'telemetry',
       'userEvents',
     ]);
+  });
+
+  it('keeps application composition and the schema-free DB driver exact', () => {
+    expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'app'))).toEqual([
+      'GameRoom.ts',
+      'scheduled.ts',
+    ]);
+    expect(getTopLevelProductionFiles(path.join(workerSrcDir, 'db'))).toEqual(['index.ts']);
   });
 
   it('keeps generic Worker game-module infrastructure platform-owned', () => {

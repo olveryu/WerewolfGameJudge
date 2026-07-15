@@ -2817,3 +2817,25 @@ Playwright shard 全部通过。该 run 的 `merge-reports` job 在零 step 时�
   噪声修改 production 行为。
 - Phase 8.11 尚余 D1 schema ownership、scheduled maintenance owner 拆分、严格 owned request schema、account/auth 路由
   边界与 Worker binding 类型收口；之后进入 engine/client residual cleanup 和最终验收。
+
+### 当前提交：Phase 8.11C Worker D1 与 scheduled maintenance 所有权
+
+- 删除 `db/applicationSchema.ts` 聚合 schema。17 张物理 D1 表现在只在自己的 owner 中声明：account 持有
+  `users/user_stats`，auth 持有 token、login attempt 与 WeChat claim，gacha 持有 draw history 与 idempotency，
+  feedback 持有 feedback/reply，room platform 持有 room directory、game start 与 participant，user-events platform
+  持有 inbox，狼人杀与瞎掰王继续各自持有游戏专属表。`db/index.ts` 只创建 schema-free Drizzle driver，没有 barrel
+  或兼容转发。
+- 表拆分没有修改 migration SQL、列、索引或外键。跨 owner 的业务事务直接 import 权威表定义，例如 auth 的匿名账号
+  升级会迁移 account stats 与 gacha history；这种显式依赖不复制 schema，也不隐藏跨 owner transaction。
+- 原 `app/runScheduledMaintenance.ts` 改为薄的 `app/scheduled.ts`。匿名账号、认证记录、抽卡幂等记录和房间 saga 的
+  maintenance 分别归 account、auth、gacha 与 room owner；app 只按 Cloudflare cron expression 组合任务。每日任务仍逐个
+  隔离执行，全部结束后以 `AggregateError` 抛出完整失败，未知 cron 立即失败，不吞错、不重试、不改变保留期限。
+- architecture contract 使用 TypeScript AST 读取全部 production `sqliteTable()` 调用，精确断言每张物理表的名称、唯一性
+  和 owner path；同时锁定 `db/` 只有 `index.ts`，`app/` 只有 `GameRoom.ts` 与 `scheduled.ts`，防止聚合 schema 或第二套
+  scheduler 再次出现。
+- 定向验证通过：root/Worker TypeScript、architecture contract 1 suite / 3727 tests、Worker production migrations 与
+  Vitest 18 files / 121 tests。完整 `pnpm run quality` 通过：root/Worker TypeScript、game-engine build、Knip、ESLint、
+  Prettier 全绿；root 221 suites / 8710 tests、game-engine 86 suites / 2513 tests、api-worker 18 files / 121 tests
+  全部通过。root Jest 仍只有仓库已记录的 Expo teardown 与 forced-exit 噪声，没有为测试进程噪声修改 production 行为。
+- Phase 8.11 尚余严格 owned request schema、account/auth 路由边界与 Worker binding 类型收口；之后进入 engine/client
+  residual cleanup 和 local migration、seed、最终 quality、全量 E2E 验收。

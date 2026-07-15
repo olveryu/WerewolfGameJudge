@@ -34,11 +34,12 @@ import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
-import { drawHistory, idempotencyKeys, userStats } from '../../db/applicationSchema';
 import type { AppEnv } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
+import { userStats } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
+import { drawHistory, idempotencyKeys } from './dbSchema';
 import { dailyRewardSchema, gachaDrawSchema, shardExchangeSchema } from './schemas';
 
 const log = createLogger('gacha');

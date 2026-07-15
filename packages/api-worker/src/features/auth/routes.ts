@@ -35,17 +35,12 @@ import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 
 import { createDb } from '../../db';
-import {
-  drawHistory,
-  loginAttempts,
-  passwordResetTokens,
-  users,
-  userStats,
-  wxClaims,
-} from '../../db/applicationSchema';
 import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
+import { users, userStats } from '../account/dbSchema';
+import { drawHistory } from '../gacha/dbSchema';
+import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
 import { hashPassword, verifyPassword } from './passwordHash';
 import { sendPasswordResetEmail } from './passwordResetEmail';
 import {
