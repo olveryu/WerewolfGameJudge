@@ -82,12 +82,6 @@ export interface CurrentNightResults {
   /** TreasureMaster: chosen card role ID */
   readonly treasureMasterChosenCard?: RoleId;
 
-  /** TreasureMaster: effective team (derived from bottom card composition) */
-  readonly effectiveTeam?: Team;
-
-  /** TreasureMaster: bottom card roles revealed during step (for UI display) */
-  readonly bottomCardStepRoles?: readonly RoleId[];
-
   /** Thief: chosen card role ID */
   readonly thiefChosenCard?: RoleId;
 

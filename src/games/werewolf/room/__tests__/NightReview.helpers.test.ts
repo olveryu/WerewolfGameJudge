@@ -22,14 +22,20 @@ function makeGameState(
     seerReveal: { targetSeat: number; result: '好人' | '狼人' };
     wolfRobotReveal: { targetSeat: number; result: string; learnedRoleId: string };
     bottomCards: readonly RoleId[];
-    bottomCardStepRoles: readonly RoleId[];
     treasureMasterChosenCard: RoleId;
+    thiefChosenCard: RoleId;
     witchContext: { killedSeat: number; canSave: boolean; canPoison: boolean };
     loverSeats: readonly [number, number];
   }> = {},
 ): LocalGameState {
   return {
-    currentNightResults: overrides.currentNightResults ?? {},
+    currentNightResults: {
+      ...(overrides.currentNightResults ?? {}),
+      ...(overrides.treasureMasterChosenCard
+        ? { treasureMasterChosenCard: overrides.treasureMasterChosenCard }
+        : {}),
+      ...(overrides.thiefChosenCard ? { thiefChosenCard: overrides.thiefChosenCard } : {}),
+    },
     lastNightDeaths: overrides.lastNightDeaths ?? [],
     deathReasons: overrides.deathReasons,
     players: overrides.players ?? new Map(),
@@ -37,8 +43,6 @@ function makeGameState(
     seerReveal: overrides.seerReveal,
     wolfRobotReveal: overrides.wolfRobotReveal,
     bottomCards: overrides.bottomCards,
-    bottomCardStepRoles: overrides.bottomCardStepRoles,
-    treasureMasterChosenCard: overrides.treasureMasterChosenCard,
     witchContext: overrides.witchContext,
     loverSeats: overrides.loverSeats,
   } as unknown as LocalGameState;
@@ -182,7 +186,7 @@ describe('NightReview.helpers', () => {
     });
 
     it('shows treasureMaster chosen card', () => {
-      const lines = buildActionLines(makeGameState({ treasureMasterChosenCard: 'seer' as RoleId }));
+      const lines = buildActionLines(makeGameState({ treasureMasterChosenCard: 'seer' }));
       expect(lines).toContainEqual(expect.stringContaining('盗宝大师选择了 预言家'));
     });
 
@@ -609,6 +613,7 @@ describe('NightReview.helpers', () => {
           shadowMimicTarget: 3,
           cursedSeat: 12,
           shelteredSeat: 13,
+          treasureMasterChosenCard: 'seer',
         },
         lastNightDeaths: [8],
         players,
@@ -621,12 +626,18 @@ describe('NightReview.helpers', () => {
         pureWhiteReveal: { targetSeat: 5, result: '守卫' },
         wolfWitchReveal: { targetSeat: 6, result: '猎人' },
         wolfRobotReveal: { targetSeat: 7, result: '猎人', learnedRoleId: 'hunter' },
-        treasureMasterChosenCard: 'seer',
-        thiefChosenCard: 'villager',
         loverSeats: [28, 29],
       } as unknown as LocalGameState;
 
-      const lines = buildActionLines(gs);
+      const thiefState = {
+        ...gs,
+        currentNightResults: {
+          ...gs.currentNightResults,
+          treasureMasterChosenCard: undefined,
+          thiefChosenCard: 'villager',
+        },
+      } as unknown as LocalGameState;
+      const lines = [...buildActionLines(gs), ...buildActionLines(thiefState)];
       const joined = lines.join('\n');
 
       // Every NIGHT_STEPS role must appear in output by its canonical displayName

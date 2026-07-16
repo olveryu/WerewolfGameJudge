@@ -7,6 +7,7 @@
  */
 
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { ActionSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { useMemo } from 'react';
@@ -29,10 +30,8 @@ export interface UseActionerStateParams {
   wolfVotes: Map<number, number>;
   /** Already submitted role actions */
   actions: Map<RoleId, RoleAction>;
-  /** The role treasureMaster chose from bottom cards (if any) */
-  treasureMasterChosenCard?: RoleId | null;
-  /** The role thief chose from bottom cards (if any) */
-  thiefChosenCard?: RoleId | null;
+  /** Authoritative accumulated night results. */
+  currentNightResults?: CurrentNightResults;
   /** Seats that have already acked the current groupConfirm step */
   groupConfirmAcks: readonly number[];
 }
@@ -48,8 +47,7 @@ export function useActionerState({
   actorSeat,
   wolfVotes,
   actions,
-  treasureMasterChosenCard,
-  thiefChosenCard,
+  currentNightResults,
   groupConfirmAcks,
 }: UseActionerStateParams): ActionerState {
   return useMemo(() => {
@@ -60,8 +58,7 @@ export function useActionerState({
       actorSeat,
       wolfVotes,
       actions,
-      treasureMasterChosenCard,
-      thiefChosenCard,
+      currentNightResults,
       groupConfirmAcks,
     );
   }, [
@@ -71,8 +68,7 @@ export function useActionerState({
     actorSeat,
     wolfVotes,
     actions,
-    treasureMasterChosenCard,
-    thiefChosenCard,
+    currentNightResults,
     groupConfirmAcks,
   ]);
 }

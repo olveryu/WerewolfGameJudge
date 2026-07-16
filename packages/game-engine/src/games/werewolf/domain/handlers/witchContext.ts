@@ -15,7 +15,7 @@
 import type { Rng } from '../../../../platform/random';
 import { GameStatus } from '../models';
 import type { SchemaId } from '../models/roles/spec';
-import { findSeatByRole } from '../playerHelpers';
+import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
 import type { NonNullState } from './types';
@@ -65,8 +65,8 @@ function computeWitchContext(
   }
 
   // 2. Find the witch's seat, used for the notSelf constraint
-  const witchSeat = findSeatByRole(state.players, 'witch');
-  if (witchSeat === null) {
+  const witchActor = resolveNightStepActor(state, 'witch');
+  if (witchActor === null) {
     throw new Error('[FAIL-FAST] witchAction step has no assigned witch seat');
   }
 
@@ -74,7 +74,7 @@ function computeWitchContext(
   // canSave must be false when:
   //   (1) no one was killed (killedSeat < 0)
   //   (2) the killed seat is the witch herself (killedSeat === witchSeat)
-  const canSave = killedSeat >= 0 && killedSeat !== witchSeat;
+  const canSave = killedSeat >= 0 && killedSeat !== witchActor.seat;
 
   // Night-1 only (project rule): poison is always available
   // If multi-night becomes supported, switch to reading whether the witch has already used poison from state
@@ -100,7 +100,12 @@ export function maybeCreateWitchContextAction(
   const hasWitch = state.templateRoles.includes('witch');
 
   // Only trigger when entering the witchAction step and witchContext has not yet been set
-  if (nextStepId !== 'witchAction' || !hasWitch || state.witchContext) {
+  if (
+    nextStepId !== 'witchAction' ||
+    !hasWitch ||
+    state.witchContext ||
+    isVacantBottomCardStep(state, nextStepId)
+  ) {
     return null;
   }
 

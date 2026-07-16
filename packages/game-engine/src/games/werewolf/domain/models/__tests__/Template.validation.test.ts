@@ -23,6 +23,23 @@ describe('validateTemplateRoles', () => {
     expect(result).toBeNull();
   });
 
+  it.each([
+    ['thief', 'treasureMaster'],
+    ['thief', 'thief'],
+    ['treasureMaster', 'treasureMaster'],
+  ] as const)('rejects ambiguous bottom-card actors: %s + %s', (first, second) => {
+    const roles: RoleId[] = [first, second, 'wolf', 'seer', 'villager'];
+
+    expect(validateTemplateRoles(roles)).toContain('只能选择一个');
+  });
+
+  it('rejects duplicate singleton night actors but permits the shared wolf meeting role', () => {
+    expect(validateTemplateRoles(['seer', 'seer', 'wolf', 'villager'])).toContain(
+      '预言家不能重复选择',
+    );
+    expect(validateTemplateRoles(['wolf', 'wolf', 'seer', 'villager'])).toBeNull();
+  });
+
   it('rejects when fewer than MINIMUM_PLAYERS', () => {
     const roles: RoleId[] = ['wolf', 'seer', 'witch'];
     if (roles.length < MINIMUM_PLAYERS) {

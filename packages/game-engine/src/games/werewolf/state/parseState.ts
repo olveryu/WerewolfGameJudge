@@ -242,12 +242,6 @@ function parseCurrentNightResults(value: unknown, path: string): CurrentNightRes
       `${path}.treasureMasterChosenCard`,
       parseRoleId,
     ),
-    effectiveTeam: parseOptional(raw.effectiveTeam, `${path}.effectiveTeam`, parseTeam),
-    bottomCardStepRoles: parseOptional(
-      raw.bottomCardStepRoles,
-      `${path}.bottomCardStepRoles`,
-      parseRoleIds,
-    ),
     thiefChosenCard: parseOptional(raw.thiefChosenCard, `${path}.thiefChosenCard`, parseRoleId),
     loverSeats: parseOptional(raw.loverSeats, `${path}.loverSeats`, parseSeatPair),
   } satisfies Complete<CurrentNightResults>;
@@ -543,7 +537,7 @@ function parseBoardNominations(
   return result;
 }
 
-/** Decode unknown JSON and reject state that does not match Werewolf state version 1. */
+/** Decode unknown JSON and reject state that does not match the current Werewolf state version. */
 export function parseWerewolfState(value: unknown): GameState {
   const raw = parseObject(value, 'GameState');
   const parsed = {
@@ -684,19 +678,7 @@ export function parseWerewolfState(value: unknown): GameState {
       'GameState.treasureMasterSeat',
       parseSeat,
     ),
-    treasureMasterChosenCard: parseOptional(
-      raw.treasureMasterChosenCard,
-      'GameState.treasureMasterChosenCard',
-      parseRoleId,
-    ),
-    effectiveTeam: parseOptional(raw.effectiveTeam, 'GameState.effectiveTeam', parseTeam),
-    bottomCardStepRoles: parseOptional(
-      raw.bottomCardStepRoles,
-      'GameState.bottomCardStepRoles',
-      parseRoleIds,
-    ),
     thiefSeat: parseOptional(raw.thiefSeat, 'GameState.thiefSeat', parseSeat),
-    thiefChosenCard: parseOptional(raw.thiefChosenCard, 'GameState.thiefChosenCard', parseRoleId),
     loverSeats: parseOptional(raw.loverSeats, 'GameState.loverSeats', parseSeatPair),
     cupidSeat: parseOptional(raw.cupidSeat, 'GameState.cupidSeat', parseSeat),
     cupidLoversRevealAcks: parseArray(

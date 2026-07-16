@@ -282,16 +282,23 @@ describe('runInlineProgression', () => {
 
   describe('底牌空步骤 stepDeadline (auto-skip)', () => {
     /**
-     * Scenario: treasureMaster chose 'seer', and there's a 'poisoner' in bottom cards.
-     * When poisoner's step is current & no player has that role → vacant step.
+     * Scenario: treasureMaster chose villager, and witch is in bottom cards.
+     * When witch's step is current and no player has that role, the step is vacant.
      * runInlineProgression should set stepDeadline and NOT advance immediately.
      */
     it('should set stepDeadline for vacant bottom card step instead of instant advance', () => {
-      // Template includes treasureMaster + seer + poisoner (poisoner also in bottom cards)
-      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const templateRoles = [
+        'treasureMaster',
+        'wolf',
+        'seer',
+        'guard',
+        'wolf',
+        'witch',
+        'villager',
+      ] as const;
       const plan = buildNightPlan(templateRoles);
-      const poisonerIdx = plan.steps.findIndex((s) => s.stepId === 'poisonerPoison');
-      expect(poisonerIdx).toBeGreaterThanOrEqual(0);
+      const witchIndex = plan.steps.findIndex((s) => s.stepId === 'witchAction');
+      expect(witchIndex).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
       const state: GameState = {
@@ -301,14 +308,14 @@ describe('runInlineProgression', () => {
         status: GameStatus.Ongoing,
         templateRoles: [...templateRoles],
         players: {
-          // No player has 'poisoner' role — it's in bottom cards
+          // No player has witch; that role is in bottom cards.
           0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'treasureMaster' },
           1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
           2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'seer' },
-          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
+          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'guard' },
         },
-        currentStepIndex: poisonerIdx,
-        currentStepId: 'poisonerPoison',
+        currentStepIndex: witchIndex,
+        currentStepId: 'witchAction',
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
@@ -317,8 +324,8 @@ describe('runInlineProgression', () => {
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
-        treasureMasterChosenCard: 'seer',
-        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        currentNightResults: { treasureMasterChosenCard: 'villager' },
+        bottomCards: ['wolf', 'witch', 'villager'],
         treasureMasterSeat: 0,
       };
 
@@ -333,10 +340,18 @@ describe('runInlineProgression', () => {
     });
 
     it('should advance vacant step when stepDeadline has passed', () => {
-      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const templateRoles = [
+        'treasureMaster',
+        'wolf',
+        'seer',
+        'guard',
+        'wolf',
+        'witch',
+        'villager',
+      ] as const;
       const plan = buildNightPlan(templateRoles);
-      const poisonerIdx = plan.steps.findIndex((s) => s.stepId === 'poisonerPoison');
-      expect(poisonerIdx).toBeGreaterThanOrEqual(0);
+      const witchIndex = plan.steps.findIndex((s) => s.stepId === 'witchAction');
+      expect(witchIndex).toBeGreaterThanOrEqual(0);
 
       const nowMs = Date.now();
       const state: GameState = {
@@ -349,10 +364,10 @@ describe('runInlineProgression', () => {
           0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'treasureMaster' },
           1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
           2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'seer' },
-          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
+          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'guard' },
         },
-        currentStepIndex: poisonerIdx,
-        currentStepId: 'poisonerPoison',
+        currentStepIndex: witchIndex,
+        currentStepId: 'witchAction',
         isAudioPlaying: false,
         actions: [],
         pendingRevealAcks: [],
@@ -361,8 +376,8 @@ describe('runInlineProgression', () => {
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
-        treasureMasterChosenCard: 'seer',
-        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        currentNightResults: { treasureMasterChosenCard: 'villager' },
+        bottomCards: ['wolf', 'witch', 'villager'],
         treasureMasterSeat: 0,
         // Deadline already passed
         stepDeadline: nowMs - 1000,
@@ -373,14 +388,22 @@ describe('runInlineProgression', () => {
       // Should advance past the vacant step
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       // stepDeadline should be cleared (advance clears it)
-      expect(result.finalState.currentStepId).not.toBe('poisonerPoison');
+      expect(result.finalState.currentStepId).not.toBe('witchAction');
     });
 
     it('should defer stepDeadline when advancing into vacant step produces audio', () => {
-      // Scenario: wolfKill complete → advance → lands on poisonerPoison (vacant).
+      // Scenario: wolfKill complete -> advance -> lands on witchAction (vacant).
       // Step transition produces audio effects → deadline should NOT be set yet.
       // It will be set later when audio-ack triggers another inline progression.
-      const templateRoles = ['treasureMaster', 'wolf', 'seer', 'poisoner', 'villager'] as const;
+      const templateRoles = [
+        'treasureMaster',
+        'wolf',
+        'seer',
+        'guard',
+        'wolf',
+        'witch',
+        'villager',
+      ] as const;
       const plan = buildNightPlan(templateRoles);
       const wolfKillIdx = plan.steps.findIndex((s) => s.stepId === 'wolfKill');
       expect(wolfKillIdx).toBeGreaterThanOrEqual(0);
@@ -396,7 +419,7 @@ describe('runInlineProgression', () => {
           0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'treasureMaster' },
           1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'wolf' },
           2: { userId: 'p2', seat: 2, hasViewedRole: true, role: 'seer' },
-          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'villager' },
+          3: { userId: 'p3', seat: 3, hasViewedRole: true, role: 'guard' },
         },
         currentStepIndex: wolfKillIdx,
         currentStepId: 'wolfKill',
@@ -408,9 +431,11 @@ describe('runInlineProgression', () => {
         conversionRevealAcks: [],
         cupidLoversRevealAcks: [],
         roster: {},
-        currentNightResults: { wolfVotesBySeat: { '1': 3 } },
-        treasureMasterChosenCard: 'seer',
-        bottomCardStepRoles: ['poisoner', 'wolf', 'villager'],
+        currentNightResults: {
+          wolfVotesBySeat: { '1': 3 },
+          treasureMasterChosenCard: 'villager',
+        },
+        bottomCards: ['wolf', 'witch', 'villager'],
         treasureMasterSeat: 0,
       };
 

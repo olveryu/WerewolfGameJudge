@@ -1,5 +1,5 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_VERSION } from '@game-judge/game-engine/games/werewolf/public';
 import { resolveRandomAnimation } from '@game-judge/game-engine/product/rewards';
 
 import type { RoomSessionSnapshot } from '@/features/room/session/types';
@@ -23,7 +23,7 @@ function createReadySnapshot(isSeated: boolean): RoomSessionSnapshot<GameState> 
     connection: 'live',
     snapshot: {
       gameType: 'werewolf',
-      stateVersion: 1,
+      stateVersion: WEREWOLF_STATE_VERSION,
       revision: 1,
       state: {
         status: GameStatus.Seated,

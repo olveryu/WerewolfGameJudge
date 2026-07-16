@@ -121,13 +121,9 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
     // Treasure Master
     bottomCards: undefined,
     treasureMasterSeat: undefined,
-    treasureMasterChosenCard: undefined,
-    effectiveTeam: undefined,
-    bottomCardStepRoles: undefined,
 
     // Thief
     thiefSeat: undefined,
-    thiefChosenCard: undefined,
 
     // Cupid
     loverSeats: undefined,

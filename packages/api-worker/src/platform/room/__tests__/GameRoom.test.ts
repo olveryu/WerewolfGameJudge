@@ -2,6 +2,7 @@
 
 import {
   WEREWOLF_STATE_CODEC,
+  WEREWOLF_STATE_VERSION,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
@@ -143,7 +144,7 @@ describe('GameRoom initialization', () => {
     const state = WEREWOLF_STATE_CODEC.parse(first.snapshot.state);
     expect(state).toMatchObject({
       gameType: 'werewolf',
-      stateVersion: 1,
+      stateVersion: WEREWOLF_STATE_VERSION,
       roomCode: ROOM_CODE,
       hostUserId: 'host-1',
       status: GameStatus.Unseated,
@@ -378,7 +379,11 @@ describe('GameRoom command receipts', () => {
           FROM command_receipts WHERE command_id = 'seat-with-effect'`,
         )
         .one();
-      expect(room).toEqual({ game_type: 'werewolf', state_version: 1, revision: 2 });
+      expect(room).toEqual({
+        game_type: 'werewolf',
+        state_version: WEREWOLF_STATE_VERSION,
+        revision: 2,
+      });
       expect(receipt).toEqual({
         actor_id: 'host-1',
         command_type: 'room.seat.take',

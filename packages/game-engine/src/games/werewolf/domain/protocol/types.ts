@@ -423,10 +423,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   conversionRevealAcks: readonly number[];
 
-  // --- Treasure Master ---
+  // --- Bottom-card actors ---
   /**
-   * Deck cards (3 identity cards), split from 15 template roles during dealing.
-   * Only exists when Treasure Master is present. Unchanged after dealing.
+   * Physical identity cards split from templateRoles during dealing.
+   * Contains three cards for treasureMaster or two cards for thief.
    */
   bottomCards?: readonly RoleId[];
 
@@ -437,39 +437,10 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   treasureMasterSeat?: number;
 
   /**
-   * Identity chosen by Treasure Master from deck.
-   * Written by treasureMasterChoose resolver.
-   * Returns this identity when checking treasureMasterSeat.
-   */
-  treasureMasterChosenCard?: RoleId;
-
-  /**
-   * Treasure Master's dynamic faction after card selection.
-   * Determined by deck composition (contains wolf->Wolf, >=2 god->Good, >=2 villager->Good).
-   * Used when checking treasureMasterSeat's team.
-   */
-  effectiveTeam?: Team;
-
-  /**
-   * List of deck roles with night steps that were not chosen by Treasure Master.
-   * These roles' steps remain in nightPlan but no one operates them (auto-skip).
-   * Written by handleStartNight / treasureMasterChoose resolver.
-   */
-  bottomCardStepRoles?: readonly RoleId[];
-
-  // --- Thief ---
-  /**
    * Thief seat number.
    * Written during dealing, used for resolver actor routing and check disguise.
    */
   thiefSeat?: number;
-
-  /**
-   * Identity chosen by Thief from deck.
-   * Written by thiefChoose resolver.
-   * Returns this identity when checking thiefSeat.
-   */
-  thiefChosenCard?: RoleId;
 
   // --- Cupid ---
   /**

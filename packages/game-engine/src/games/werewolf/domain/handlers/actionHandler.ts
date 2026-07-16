@@ -165,17 +165,23 @@ export function handleSubmitAction(
 
   // Bottom card actor override: when acting on the chosen card's step,
   // use the chosen card's role for the resolver context
+  const currentNightResults = state.currentNightResults;
+  if (currentNightResults === undefined) {
+    throw new Error('[FAIL-FAST] Ongoing action requires currentNightResults');
+  }
   let resolverRole = role;
   if (role === 'treasureMaster' && isBottomCardActorOverride(state, schemaId)) {
-    if (!state.treasureMasterChosenCard) {
+    const chosenCard = currentNightResults.treasureMasterChosenCard;
+    if (!chosenCard) {
       throw new Error('[FAIL-FAST] Treasure master is acting without a chosen bottom card');
     }
-    resolverRole = state.treasureMasterChosenCard;
+    resolverRole = chosenCard;
   } else if (role === 'thief' && isBottomCardActorOverride(state, schemaId)) {
-    if (!state.thiefChosenCard) {
+    const chosenCard = currentNightResults.thiefChosenCard;
+    if (!chosenCard) {
       throw new Error('[FAIL-FAST] Thief is acting without a chosen bottom card');
     }
-    resolverRole = state.thiefChosenCard;
+    resolverRole = chosenCard;
   }
 
   // Build context

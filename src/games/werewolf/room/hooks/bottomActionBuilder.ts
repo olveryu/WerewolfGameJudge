@@ -91,11 +91,7 @@ export function buildBottomAction(ctx: BottomActionContext): BottomActionVM {
   const hint = gameState.ui?.currentActorHint;
   // For bottom card actors (thief/treasureMaster), check hint against effective role
   const effectiveActorRole = actorRole
-    ? getBottomCardEffectiveRole(
-        actorRole,
-        gameState.thiefChosenCard,
-        gameState.treasureMasterChosenCard,
-      )
+    ? getBottomCardEffectiveRole(actorRole, gameState.currentNightResults)
     : null;
   const hintApplies = hint && effectiveActorRole && hint.targetRoleIds.includes(effectiveActorRole);
   if (hintApplies) {

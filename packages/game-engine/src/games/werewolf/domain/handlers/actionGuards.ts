@@ -25,15 +25,19 @@ import { handlerError } from './types';
  * Supports both treasureMaster and thief.
  */
 export function isBottomCardActorOverride(state: NonNullState, stepId: SchemaId): boolean {
+  const results = state.currentNightResults;
+  if (results === undefined) {
+    throw new Error('[FAIL-FAST] Bottom-card actor override requires currentNightResults');
+  }
   // treasureMaster
-  if (state.treasureMasterChosenCard) {
+  if (results.treasureMasterChosenCard) {
     const step = getStepSpec(stepId);
-    if (step && step.roleId === state.treasureMasterChosenCard) return true;
+    if (step && step.roleId === results.treasureMasterChosenCard) return true;
   }
   // thief
-  if (state.thiefChosenCard) {
+  if (results.thiefChosenCard) {
     const step = getStepSpec(stepId);
-    if (step && step.roleId === state.thiefChosenCard) return true;
+    if (step && step.roleId === results.thiefChosenCard) return true;
   }
   return false;
 }

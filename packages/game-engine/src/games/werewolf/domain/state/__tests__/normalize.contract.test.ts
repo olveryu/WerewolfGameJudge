@@ -95,13 +95,9 @@ const GAME_STATE_FIELDS: (keyof GameState)[] = [
   // Treasure Master
   'bottomCards',
   'treasureMasterSeat',
-  'treasureMasterChosenCard',
-  'effectiveTeam',
-  'bottomCardStepRoles',
 
   // Thief
   'thiefSeat',
-  'thiefChosenCard',
 
   // Cupid
   'loverSeats',
@@ -126,9 +122,10 @@ describe('normalizeState contract', () => {
       templateRoles: ['villager', 'wolf'],
       rules: { isPlagueMode: false },
       players: {
-        1: { userId: 'p1', seat: 1, hasViewedRole: true },
+        0: { userId: 'p0', seat: 0, role: 'villager', hasViewedRole: true },
+        1: { userId: 'p1', seat: 1, role: 'wolf', hasViewedRole: true },
       },
-      roster: { p1: { displayName: 'P1' } },
+      roster: { p0: { displayName: 'P0' }, p1: { displayName: 'P1' } },
       currentStepIndex: 0,
       isAudioPlaying: false,
 
@@ -190,10 +187,6 @@ describe('normalizeState contract', () => {
 
       // Night review share permissions
       nightReviewAllowedSeats: [0, 2],
-
-      // Thief
-      thiefSeat: 0,
-      thiefChosenCard: 'wolf',
 
       // Cupid
       loverSeats: [1, 3] as readonly [number, number],

@@ -2,19 +2,17 @@
  * TreasureMaster Resolver Unit Tests
  *
  * Validates card selection (wolf-faction cards rejected),
- * effectiveTeam computation, skip handling (nightmare block),
- * and invalid index rejection.
+ * skip handling (nightmare block), context invariants, and invalid index rejection.
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
-import { Team } from '@game-judge/game-engine/games/werewolf/domain/models/roles/spec/types';
-import { BOTTOM_CARD_COUNT } from '@game-judge/game-engine/games/werewolf/domain/models/Template';
 import type {
   ActionInput,
   ResolverContext,
 } from '@game-judge/game-engine/games/werewolf/domain/resolvers/types';
 
-import { computeEffectiveTeam, treasureMasterChooseResolver } from '../treasureMaster';
+import { getBottomCardCountForRole } from '../../models/BottomCards';
+import { treasureMasterChooseResolver } from '../treasureMaster';
 
 // =============================================================================
 // Helpers
@@ -63,8 +61,6 @@ describe('treasureMasterChooseResolver', () => {
     const result = treasureMasterChooseResolver(ctx, createInput(0)); // seer
     expect(result.valid).toBe(true);
     expect(result.updates?.treasureMasterChosenCard).toBe('seer');
-    expect(result.updates?.effectiveTeam).toBe(Team.Wolf); // bottom cards contain wolf
-    expect(result.updates?.bottomCardStepRoles).toEqual(['seer', 'wolf', 'villager']);
   });
 
   it('should accept villager card selection', () => {
@@ -90,7 +86,10 @@ describe('treasureMasterChooseResolver', () => {
 
   it('should reject cardIndex out of range (too large)', () => {
     const ctx = createContext();
-    const result = treasureMasterChooseResolver(ctx, createInput(BOTTOM_CARD_COUNT));
+    const result = treasureMasterChooseResolver(
+      ctx,
+      createInput(getBottomCardCountForRole('treasureMaster')),
+    );
     expect(result.valid).toBe(false);
     expect(result.rejectReason).toBe('无效的卡牌索引');
   });
@@ -125,31 +124,10 @@ describe('treasureMasterChooseResolver', () => {
     expect(result.updates).toBeUndefined();
   });
 
-  it('should reject when missing bottomCardContext', () => {
+  it('fails fast when bottomCardContext is missing', () => {
     const ctx = createContext({ bottomCardContext: undefined });
-    const result = treasureMasterChooseResolver(ctx, createInput(0));
-    expect(result.valid).toBe(false);
-    expect(result.rejectReason).toBe('缺少盗宝大师上下文');
-  });
-});
-
-describe('computeEffectiveTeam', () => {
-  it('should return Team.Wolf when bottom cards contain wolf', () => {
-    expect(computeEffectiveTeam(BOTTOM_CARDS)).toBe(Team.Wolf);
-  });
-
-  it('should return Team.Good when 2+ god cards (no wolf)', () => {
-    const cards: RoleId[] = ['seer', 'guard', 'villager'];
-    expect(computeEffectiveTeam(cards)).toBe(Team.Good);
-  });
-
-  it('should return Team.Good when 2+ villager cards (no wolf)', () => {
-    const cards: RoleId[] = ['villager', 'villager', 'seer'];
-    expect(computeEffectiveTeam(cards)).toBe(Team.Good);
-  });
-
-  it('should return Team.Good for mixed composition (no wolf)', () => {
-    const cards: RoleId[] = ['seer', 'villager', 'slacker'];
-    expect(computeEffectiveTeam(cards)).toBe(Team.Good);
+    expect(() => treasureMasterChooseResolver(ctx, createInput(0))).toThrow(
+      '[FAIL-FAST] Treasure master resolver requires bottomCardContext',
+    );
   });
 });

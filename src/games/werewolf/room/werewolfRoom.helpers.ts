@@ -7,6 +7,7 @@
  */
 
 import type { RoleAction } from '@game-judge/game-engine/games/werewolf/public';
+import type { CurrentNightResults } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import {
@@ -54,8 +55,7 @@ interface GameRoomLike {
   actions: Map<RoleId, RoleAction>;
   wolfVotes: Map<number, number>;
   currentStepIndex: number;
-  thiefChosenCard?: RoleId | null;
-  treasureMasterChosenCard?: RoleId | null;
+  currentNightResults: CurrentNightResults;
 }
 
 /** Whether the current player is the actioner and whether to show wolf teammates. */
@@ -129,8 +129,7 @@ export interface SeatViewModel {
  * @param actorSeat - Actor's seat number (actorSeatForUi — may be bot's seat when delegating)
  * @param wolfVotes - Map of wolf votes (seat -> target)
  * @param actions - Map of already submitted role actions
- * @param treasureMasterChosenCard - The role treasureMaster chose from bottom cards (if any)
- * @param thiefChosenCard - The role thief chose from bottom cards (if any)
+ * @param currentNightResults - The authoritative accumulated night results
  * @param groupConfirmAcks - Seats that have already acked the current groupConfirm step
  */
 export function determineActionerState(
@@ -140,8 +139,7 @@ export function determineActionerState(
   actorSeat: number | null,
   wolfVotes: Map<number, number>,
   actions: Map<RoleId, RoleAction> = new Map(),
-  treasureMasterChosenCard?: RoleId | null,
-  thiefChosenCard?: RoleId | null,
+  currentNightResults?: CurrentNightResults,
   groupConfirmAcks: readonly number[] = [],
 ): ActionerState {
   if (!currentActionRole || !actorRole) {
@@ -159,11 +157,7 @@ export function determineActionerState(
     currentSchema?.kind === 'wolfVote' && currentSchema.meeting?.canSeeEachOther === true;
 
   // Effective role: for bottom card actors (thief/treasureMaster), use the chosen card's role
-  const effectiveRole = getBottomCardEffectiveRole(
-    actorRole,
-    thiefChosenCard,
-    treasureMasterChosenCard,
-  );
+  const effectiveRole = getBottomCardEffectiveRole(actorRole, currentNightResults);
 
   // My effective role matches current action
   if (effectiveRole === currentActionRole) {
@@ -228,8 +222,7 @@ export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
     actions: gameState.actions,
     wolfVotes: gameState.wolfVotes,
     currentStepIndex: gameState.currentStepIndex,
-    thiefChosenCard: gameState.thiefChosenCard,
-    treasureMasterChosenCard: gameState.treasureMasterChosenCard,
+    currentNightResults: gameState.currentNightResults,
   };
 }
 
@@ -248,11 +241,7 @@ export function getWolfVoteSummary(room: GameRoomLike): string {
   const wolfSeats: number[] = [];
   room.players.forEach((player, seat) => {
     if (player?.role) {
-      const effectiveRole = getBottomCardEffectiveRole(
-        player.role,
-        room.thiefChosenCard,
-        room.treasureMasterChosenCard,
-      );
+      const effectiveRole = getBottomCardEffectiveRole(player.role, room.currentNightResults);
       if (
         doesRoleParticipateInWolfVote(effectiveRole) &&
         !isBottomCardWolfVoteExcluded(player.role)
@@ -399,11 +388,7 @@ export function buildSeatViewModels(
     // For bottom card actors (thief/treasureMaster), use the chosen card's role
     // so they are highlighted as wolf / shown vote badge during wolfKill.
     const effectiveRole = player?.role
-      ? getBottomCardEffectiveRole(
-          player.role,
-          gameState.thiefChosenCard,
-          gameState.treasureMasterChosenCard,
-        )
+      ? getBottomCardEffectiveRole(player.role, gameState.currentNightResults)
       : role;
     // Wolf visibility is controlled by ActionerState.showWolves.
     // When true, only wolf-faction roles with canSeeWolves=true are highlighted.

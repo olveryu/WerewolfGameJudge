@@ -118,7 +118,7 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     const state = ctx.getGameState();
 
     // Core assertion: Thief card selection result
-    expect(state.thiefChosenCard).toBe('idiot');
+    expect(state.currentNightResults?.thiefChosenCard).toBe('idiot');
 
     // Core assertion: Cupid lover linking result
     expect(state.loverSeats).toEqual([0, 1]);
@@ -150,7 +150,7 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     const state = ctx.getGameState();
 
     // Thief picked villager
-    expect(state.thiefChosenCard).toBe('villager');
+    expect(state.currentNightResults?.thiefChosenCard).toBe('villager');
 
     // Cupid links seer and thief
     expect(state.loverSeats).toEqual([7, 10]);

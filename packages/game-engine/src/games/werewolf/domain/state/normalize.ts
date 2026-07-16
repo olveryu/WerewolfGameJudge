@@ -11,6 +11,7 @@
 import { WEREWOLF_GAME_TYPE } from '../../../../platform/protocol/gameTypes';
 import { WEREWOLF_STATE_VERSION } from '../../state/version';
 import type { GameState } from '../protocol/types';
+import { assertWerewolfStateInvariants } from './assertStateInvariants';
 
 /**
  * Compile-time exhaustiveness guard for normalizeState.
@@ -75,7 +76,7 @@ export function normalizeState(raw: GameState): GameState {
       }
     : raw.currentNightResults;
 
-  return {
+  const normalized = {
     // Required fields (fail-fast to avoid masking state corruption)
     gameType: requireIdentity(raw.gameType, WEREWOLF_GAME_TYPE, 'gameType'),
     stateVersion: requireIdentity(raw.stateVersion, WEREWOLF_STATE_VERSION, 'stateVersion'),
@@ -150,13 +151,9 @@ export function normalizeState(raw: GameState): GameState {
     // Treasure Master (pass-through)
     bottomCards: raw.bottomCards,
     treasureMasterSeat: raw.treasureMasterSeat,
-    treasureMasterChosenCard: raw.treasureMasterChosenCard,
-    effectiveTeam: raw.effectiveTeam,
-    bottomCardStepRoles: raw.bottomCardStepRoles,
 
     // Thief (pass-through)
     thiefSeat: raw.thiefSeat,
-    thiefChosenCard: raw.thiefChosenCard,
 
     // Cupid (pass-through)
     loverSeats: raw.loverSeats,
@@ -166,4 +163,7 @@ export function normalizeState(raw: GameState): GameState {
     // Board nominations (pass-through)
     boardNominations: raw.boardNominations,
   } satisfies Complete<GameState>;
+
+  assertWerewolfStateInvariants(normalized);
+  return normalized;
 }

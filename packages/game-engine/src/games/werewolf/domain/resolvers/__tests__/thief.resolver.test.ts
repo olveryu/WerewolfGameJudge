@@ -4,7 +4,7 @@
  * Validates bottom card selection logic:
  * - Must choose a card (canSkip=false)
  * - If wolf exists in bottom cards, must choose wolf
- * - Sets bottomCardStepRoles to all bottom cards (matching treasureMaster behavior)
+ * - Corrupt server context fails fast
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/domain/models/roles';
@@ -62,7 +62,6 @@ describe('thiefChooseResolver', () => {
     const result = thiefChooseResolver(ctx, createInput(0));
     expect(result.valid).toBe(true);
     expect(result.updates?.thiefChosenCard).toBe('seer');
-    expect(result.updates?.bottomCardStepRoles).toEqual(['seer', 'hunter']);
   });
 
   it('should reject out-of-range index', () => {
@@ -84,7 +83,6 @@ describe('thiefChooseResolver', () => {
     const result = thiefChooseResolver(ctx, createInput(0)); // choosing wolf
     expect(result.valid).toBe(true);
     expect(result.updates?.thiefChosenCard).toBe('wolf');
-    expect(result.updates?.bottomCardStepRoles).toEqual(['wolf', 'seer']);
   });
 
   it('should allow skip when blocked by nightmare', () => {
@@ -93,5 +91,19 @@ describe('thiefChooseResolver', () => {
     });
     const result = thiefChooseResolver(ctx, createInput());
     expect(result.valid).toBe(true);
+  });
+
+  it('fails fast when bottomCardContext is missing', () => {
+    const ctx = createContext(['seer', 'hunter'], { bottomCardContext: undefined });
+    expect(() => thiefChooseResolver(ctx, createInput(0))).toThrow(
+      '[FAIL-FAST] Thief resolver requires bottomCardContext',
+    );
+  });
+
+  it('fails fast when the server provides the wrong deck size', () => {
+    const ctx = createContext(['seer']);
+    expect(() => thiefChooseResolver(ctx, createInput(0))).toThrow(
+      '[FAIL-FAST] Thief requires 2 bottom cards, received 1',
+    );
   });
 });

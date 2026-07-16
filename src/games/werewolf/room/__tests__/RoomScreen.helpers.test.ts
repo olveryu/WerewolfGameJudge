@@ -158,7 +158,7 @@ describe('determineActionerState', () => {
         2,
         new Map(),
         new Map(),
-        'psychic', // treasureMasterChosenCard
+        { treasureMasterChosenCard: 'psychic' },
       );
 
       expect(result.imActioner).toBe(true);
@@ -173,7 +173,7 @@ describe('determineActionerState', () => {
         2,
         new Map(),
         new Map(),
-        'seer', // chose seer, not psychic
+        { treasureMasterChosenCard: 'seer' },
       );
 
       expect(result.imActioner).toBe(false);
@@ -205,7 +205,6 @@ describe('determineActionerState', () => {
         new Map(),
         new Map(),
         undefined,
-        undefined,
         [0, 1], // other seats acked, not seat 3
       );
 
@@ -222,7 +221,6 @@ describe('determineActionerState', () => {
         new Map(),
         new Map(),
         undefined,
-        undefined,
         [3, 0, 1], // seat 3 already acked
       );
 
@@ -238,7 +236,6 @@ describe('determineActionerState', () => {
         5,
         new Map(),
         new Map(),
-        undefined,
         undefined,
         [],
       );
@@ -934,6 +931,7 @@ describe('getWolfVoteSummary', () => {
       ),
       actions: new Map(),
       wolfVotes,
+      currentNightResults: {},
       currentStepIndex: 0,
     };
   }
@@ -1001,6 +999,7 @@ describe('getWolfVoteSummary', () => {
       ]),
       actions: new Map(),
       wolfVotes: new Map([[1, 0]]),
+      currentNightResults: {},
       currentStepIndex: 0,
     };
     expect(getWolfVoteSummary(room)).toBe('1/1 狼人已确认');

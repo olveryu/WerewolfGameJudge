@@ -11,13 +11,13 @@ function createFullState(): GameState {
     roomCode: 'ROOM',
     hostUserId: 'host',
     status: GameStatus.Ongoing,
-    templateRoles: ['wolf', 'seer', 'villager', 'villager'],
+    templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager', 'wolf', 'witch', 'villager'],
     rules: { isPlagueMode: false, witchCanSelfHeal: true },
     players: {
-      0: { userId: 'host', seat: 0, role: 'wolf', hasViewedRole: true },
-      1: { userId: 'player', seat: 1, role: 'seer', hasViewedRole: true, isBot: false },
-      2: null,
-      3: null,
+      0: { userId: 'host', seat: 0, role: 'treasureMaster', hasViewedRole: true },
+      1: { userId: 'player', seat: 1, role: 'wolf', hasViewedRole: true, isBot: false },
+      2: { userId: 'seer', seat: 2, role: 'seer', hasViewedRole: true },
+      3: { userId: 'villager', seat: 3, role: 'villager', hasViewedRole: true },
     },
     roster: {
       host: {
@@ -62,10 +62,7 @@ function createFullState(): GameState {
       convertedSeat: 3,
       shadowMimicTarget: 2,
       avengerFaction: Team.Good,
-      treasureMasterChosenCard: 'seer',
-      effectiveTeam: Team.Wolf,
-      bottomCardStepRoles: ['seer'],
-      thiefChosenCard: 'wolf',
+      treasureMasterChosenCard: 'witch',
       loverSeats: [0, 1],
     },
     pendingRevealAcks: ['host'],
@@ -122,13 +119,8 @@ function createFullState(): GameState {
     piperRevealAcks: [0],
     convertedSeat: 2,
     conversionRevealAcks: [0, 1],
-    bottomCards: ['wolf', 'seer', 'villager'],
+    bottomCards: ['wolf', 'witch', 'villager'],
     treasureMasterSeat: 0,
-    treasureMasterChosenCard: 'seer',
-    effectiveTeam: Team.Good,
-    bottomCardStepRoles: ['wolf'],
-    thiefSeat: 1,
-    thiefChosenCard: 'wolf',
     loverSeats: [0, 1],
     cupidSeat: 2,
     cupidLoversRevealAcks: [0, 1],
@@ -184,8 +176,8 @@ describe('parseWerewolfState', () => {
   });
 
   it('rejects a different state version', () => {
-    const encoded = { ...createFullState(), stateVersion: 2 };
+    const encoded = { ...createFullState(), stateVersion: 1 };
 
-    expect(() => parseWerewolfState(encoded)).toThrow('GameState.stateVersion must be 1');
+    expect(() => parseWerewolfState(encoded)).toThrow('GameState.stateVersion must be 2');
   });
 });

@@ -270,14 +270,8 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
   // for wolf participation checks and meeting visibility.
   const effectiveActorRole = useMemo(
     () =>
-      actorRole
-        ? getBottomCardEffectiveRole(
-            actorRole,
-            gameState?.thiefChosenCard,
-            gameState?.treasureMasterChosenCard,
-          )
-        : null,
-    [actorRole, gameState?.thiefChosenCard, gameState?.treasureMasterChosenCard],
+      actorRole ? getBottomCardEffectiveRole(actorRole, gameState?.currentNightResults) : null,
+    [actorRole, gameState?.currentNightResults],
   );
 
   // ─────────────────────────────────────────────────────────────────────────

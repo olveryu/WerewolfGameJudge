@@ -10,8 +10,7 @@
  * does not directly modify state (returns StateAction list for reducer to execute).
  */
 
-import { createSeededRng, type Rng } from '../../../../platform/random';
-import { shuffleArray } from '../../../../platform/random';
+import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../../platform/random';
 import { formatSeat } from '../../../../platform/room/formatSeat';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
@@ -27,16 +26,18 @@ import type {
   StartNightIntent,
   UpdateTemplateIntent,
 } from '../intents/types';
-import { GameStatus, type RoleId } from '../models';
-import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { Faction } from '../models/roles/spec/types';
 import {
   type BottomCardRoleId,
+  GameStatus,
   getBottomCardCount,
   getBottomCardRoleId,
   getPlayerCount,
-} from '../models/Template';
+  getRoleDealPool,
+  getValidBottomCardDeals,
+  type RoleId,
+} from '../models';
+import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
+import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
 import type { Player } from '../protocol/types';
 import type { GameState } from '../protocol/types';
 import type {
@@ -106,18 +107,8 @@ export function handleAssignRoles(
     return handlerError('role_count_mismatch');
   }
 
-  // Plague mode: replace all wolf-team roles with villager before shuffling
-  // Includes Faction.Wolf + treasureMaster (Special faction but permanently wolf-team)
   const isPlagueMode = state.rules?.isPlagueMode ?? false;
-  const effectiveRoles: RoleId[] = isPlagueMode
-    ? state.templateRoles.map((roleId) => {
-        const spec = getRoleSpec(roleId);
-        if (spec.faction === Faction.Wolf || roleId === 'treasureMaster') {
-          return 'villager';
-        }
-        return roleId;
-      })
-    : [...state.templateRoles];
+  const roleDealPool = getRoleDealPool(state.templateRoles, state.rules);
 
   let seatedRoles: RoleId[];
   let bottomCards: RoleId[] | undefined;
@@ -125,18 +116,19 @@ export function handleAssignRoles(
   let thiefSeat: number | undefined;
   let cupidSeat: number | undefined;
 
-  if (bottomCardRoleId && !isPlagueMode) {
-    // Deck role present: shuffle -> first seatCount assigned to seats + remaining N as deck
-    const result = shuffleWithBottomCardConstraints(
-      state.templateRoles,
-      seatCount,
-      bottomCardRoleId,
-      rng,
-    );
+  const shouldDealBottomCards =
+    bottomCardRoleId !== null && (bottomCardRoleId === 'thief' || !isPlagueMode);
+  if (shouldDealBottomCards) {
+    const result = createBottomCardDeal(roleDealPool, bottomCardRoleId, rng);
+    if (result.seatedRoles.length !== seatCount) {
+      throw new Error(
+        `[FAIL-FAST] Bottom-card deal produced ${result.seatedRoles.length} roles for ${seatCount} seats`,
+      );
+    }
     seatedRoles = result.seatedRoles;
     bottomCards = result.bottomCards;
   } else {
-    seatedRoles = shuffleArray(effectiveRoles, rng);
+    seatedRoles = shuffleArray(roleDealPool, rng).slice(0, seatCount);
   }
 
   // Assign seated roles to seats
@@ -200,82 +192,27 @@ export function handleAssignRoles(
 }
 
 // ---------------------------------------------------------------------------
-// Bottom card shuffle with constraints (rejection sampling)
+// Bottom-card physical partition selection
 // ---------------------------------------------------------------------------
 
-/** Maximum retry count (deck constraint satisfaction probability is very high, rarely needs retry) */
-const MAX_SHUFFLE_RETRIES = 100;
-
 /**
- * Shuffle roles and split into seated + bottom cards with constraints.
- *
- * Bottom card constraints vary by role:
- * - treasureMaster: at most 1 regular wolf; not all gods; not all villagers; no skill wolves
- * - thief: <=1 wolf-team card (including skill wolves); cannot have 2 wolf-team cards
+ * Select one legal physical-card partition, then randomize both visible orders.
  */
-function shuffleWithBottomCardConstraints(
+function createBottomCardDeal(
   templateRoles: readonly RoleId[],
-  seatCount: number,
   bottomCardRoleId: BottomCardRoleId,
   rng: Rng,
 ): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
-  for (let attempt = 0; attempt < MAX_SHUFFLE_RETRIES; attempt++) {
-    const shuffled = shuffleArray([...templateRoles], rng);
-    const seated = shuffled.slice(0, seatCount);
-    const bottom = shuffled.slice(seatCount);
-
-    if (validateBottomCards(bottom, bottomCardRoleId)) {
-      return { seatedRoles: seated, bottomCards: bottom };
-    }
+  const deals = getValidBottomCardDeals(templateRoles, bottomCardRoleId);
+  if (deals.length === 0) {
+    throw new Error(`[FAIL-FAST] Template cannot deal legal cards for ${bottomCardRoleId}`);
   }
 
-  // Should never happen given the loose constraints
-  throw new Error(
-    `[FAIL-FAST] Failed to satisfy bottom card constraints after ${MAX_SHUFFLE_RETRIES} retries`,
-  );
-}
-
-/**
- * Validate bottom card constraints (parameterized by bottom card role).
- */
-function validateBottomCards(cards: RoleId[], bottomCardRoleId: BottomCardRoleId): boolean {
-  // Common: bottom card role itself must not be in bottom cards
-  if (cards.includes(bottomCardRoleId)) return false;
-
-  // Common: cupid must not be in bottom cards
-  if (cards.includes('cupid')) return false;
-
-  if (bottomCardRoleId === 'treasureMaster') {
-    return validateTreasureMasterBottomCards(cards);
-  }
-  if (bottomCardRoleId === 'thief') {
-    return validateThiefBottomCards(cards);
-  }
-  const exhaustive: never = bottomCardRoleId;
-  return exhaustive;
-}
-
-/** TreasureMaster deck constraint: S21 strict 1Wolf(regular wolf) + 1God + 1Villager */
-function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
-  const factions = cards.map((roleId) => getRoleSpec(roleId).faction);
-  const wolfCount = factions.filter((f) => f === Faction.Wolf).length;
-  const godCount = factions.filter((f) => f === Faction.God).length;
-  const villagerCount = factions.filter((f) => f === Faction.Villager).length;
-  if (wolfCount !== 1 || godCount !== 1 || villagerCount !== 1) return false;
-  // Wolf faction deck card can only be regular wolf, no skill wolves
-  const wolfCard = cards.find((roleId) => getRoleSpec(roleId).faction === Faction.Wolf);
-  return wolfCard === 'wolf';
-}
-
-/** Thief deck constraint */
-function validateThiefBottomCards(cards: RoleId[]): boolean {
-  // <=1 wolf-team card (including skill wolves)
-  const wolfFactionCount = cards.filter(
-    (roleId) => getRoleSpec(roleId).faction === Faction.Wolf,
-  ).length;
-  if (wolfFactionCount > 1) return false;
-
-  return true;
+  const deal = randomPick(deals, rng);
+  return {
+    seatedRoles: shuffleArray([...deal.seatedRoles], rng),
+    bottomCards: shuffleArray([...deal.bottomCards], rng),
+  };
 }
 
 /**
@@ -305,13 +242,17 @@ export function handleStartNight(
   // First step comes from buildNightPlan table-driven single source (filtered by current template roles)
   const nightPlan = buildNightPlan(state.templateRoles, state.seerLabelMap);
 
-  // No roles with night actions (e.g. pure villager board): skip night, end directly, no deaths
+  // Empty plans still initialize the night result aggregate before ending.
   if (nightPlan.steps.length === 0) {
+    const startNightAction: StartNightAction = {
+      type: 'START_NIGHT',
+      payload: { currentStepIndex: -1, currentStepId: null },
+    };
     const endNightAction: EndNightAction = {
       type: 'END_NIGHT',
       payload: { deaths: [] },
     };
-    return handlerSuccess([endNightAction], STANDARD_SIDE_EFFECTS);
+    return handlerSuccess([startNightAction, endNightAction], STANDARD_SIDE_EFFECTS);
   }
 
   const firstStepId = nightPlan.steps[0]!.stepId;

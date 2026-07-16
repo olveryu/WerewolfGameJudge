@@ -47,11 +47,7 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
     if (!player.role) {
       throw new Error(`[FAIL-FAST] Player at seat ${seat} has no role during wolf vote`);
     }
-    const effectiveRole = getBottomCardEffectiveRole(
-      player.role,
-      state.thiefChosenCard,
-      state.treasureMasterChosenCard,
-    );
+    const effectiveRole = getBottomCardEffectiveRole(player.role, state.currentNightResults);
     if (
       doesRoleParticipateInWolfVote(effectiveRole) &&
       !isBottomCardWolfVoteExcluded(player.role)

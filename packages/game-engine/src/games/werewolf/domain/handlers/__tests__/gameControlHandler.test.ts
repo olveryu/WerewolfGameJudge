@@ -18,6 +18,8 @@ import type {
   UpdateTemplateIntent,
 } from '@game-judge/game-engine/games/werewolf/domain/intents/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
+import { gameReducer } from '@game-judge/game-engine/games/werewolf/domain/reducer/gameReducer';
+import { normalizeState } from '@game-judge/game-engine/games/werewolf/domain/state/normalize';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
 
@@ -112,6 +114,52 @@ describe('handleAssignRoles', () => {
     const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
 
     expect(handleAssignRoles(intent, context)).toEqual(handleAssignRoles(intent, context));
+  });
+
+  it('deals treasure-master cards from one legal physical partition', () => {
+    const state = createMinimalState({
+      status: GameStatus.Seated,
+      templateRoles: ['treasureMaster', 'wolf', 'seer', 'villager'],
+      players: {
+        0: { userId: 'p1', seat: 0, role: null, hasViewedRole: false },
+      },
+    });
+
+    const success = expectSuccess(
+      handleAssignRoles({ type: 'ASSIGN_ROLES' }, createContext(state)),
+    );
+    const action = success.actions[0];
+    expect(action?.type).toBe('ASSIGN_ROLES');
+    if (action?.type !== 'ASSIGN_ROLES') throw new Error('expected ASSIGN_ROLES');
+    const bottomCards = action.payload.bottomCards;
+    if (bottomCards === undefined) throw new Error('expected treasure-master bottom cards');
+    expect(action.payload.assignments).toEqual({ 0: 'treasureMaster' });
+    expect([...bottomCards].sort()).toEqual(['seer', 'villager', 'wolf']);
+    expect(action.payload.treasureMasterSeat).toBe(0);
+    expect(action.payload.thiefSeat).toBeUndefined();
+  });
+
+  it('deals transformed thief cards in plague mode instead of dropping the deck', () => {
+    const state = createMinimalState({
+      status: GameStatus.Seated,
+      templateRoles: ['thief', 'wolf', 'seer'],
+      rules: { isPlagueMode: true },
+      players: {
+        0: { userId: 'p1', seat: 0, role: null, hasViewedRole: false },
+      },
+    });
+
+    const success = expectSuccess(
+      handleAssignRoles({ type: 'ASSIGN_ROLES' }, createContext(state)),
+    );
+    const action = success.actions[0];
+    expect(action?.type).toBe('ASSIGN_ROLES');
+    if (action?.type !== 'ASSIGN_ROLES') throw new Error('expected ASSIGN_ROLES');
+    const bottomCards = action.payload.bottomCards;
+    if (bottomCards === undefined) throw new Error('expected thief bottom cards');
+    expect(action.payload.assignments).toEqual({ 0: 'thief' });
+    expect([...bottomCards].sort()).toEqual(['seer', 'villager']);
+    expect(action.payload.thiefSeat).toBe(0);
   });
 
   it('should fail when status is not seated (edge case)', () => {
@@ -341,7 +389,7 @@ describe('handleStartNight', () => {
     expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
-  it('should skip night and return END_NIGHT with empty deaths for all-villager template', () => {
+  it('initializes and ends an empty night plan with canonical results', () => {
     const allVillagerState = createMinimalState({
       status: GameStatus.Ready,
       templateRoles: ['villager', 'villager', 'villager'],
@@ -357,11 +405,19 @@ describe('handleStartNight', () => {
     const result = handleStartNight(intent, context);
 
     const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
-    expect(success.actions[0]!.type).toBe('END_NIGHT');
-    if (success.actions[0]!.type === 'END_NIGHT') {
-      expect(success.actions[0].payload.deaths).toEqual([]);
-    }
+    expect(success.actions).toEqual([
+      {
+        type: 'START_NIGHT',
+        payload: { currentStepIndex: -1, currentStepId: null },
+      },
+      { type: 'END_NIGHT', payload: { deaths: [] } },
+    ]);
+    const finalState = success.actions.reduce(gameReducer, allVillagerState);
+    expect(normalizeState(finalState)).toMatchObject({
+      status: GameStatus.Ended,
+      currentNightResults: {},
+      lastNightDeaths: [],
+    });
     expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });

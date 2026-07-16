@@ -22,12 +22,12 @@ import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGua
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext, SideEffect } from './handlers/types';
 import { GameStatus, SCHEMAS } from './models';
-import { getStepSpec } from './models/roles/spec/nightSteps';
+import { isVacantBottomCardStep } from './playerHelpers';
 import type { AudioEffect, GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
 import type { StateAction } from './reducer/types';
 
-/** Random delay range for vacant bottom card step (ms) */
+/** Random delay range for a vacant bottom-card step (ms). */
 const AUTO_SKIP_DELAY_MIN_MS = 5000;
 const AUTO_SKIP_DELAY_MAX_MS = 10000;
 
@@ -90,25 +90,9 @@ function isStepComplete(state: GameState): boolean {
  * have no player operating them → auto-advance immediately after audio.
  */
 function isUnchosenBottomCardStep(state: GameState): boolean {
-  const { currentStepId, bottomCardStepRoles } = state;
-  // Determine the chosen card (either treasureMaster or thief)
-  const chosenCard = state.treasureMasterChosenCard ?? state.thiefChosenCard;
-  if (!currentStepId || !bottomCardStepRoles || !chosenCard) return false;
-
-  const step = getStepSpec(currentStepId);
-  if (!step) return false;
-
-  // Not a bottom card role → not applicable
-  if (!bottomCardStepRoles.includes(step.roleId)) return false;
-
-  // This IS the chosen card's step → the bottom card role holder will act, don't skip
-  if (step.roleId === chosenCard) return false;
-
-  // Role also exists as a player (e.g. wolf in bottom + wolf players) → don't skip
-  const hasPlayerWithRole = Object.values(state.players).some((p) => p?.role === step.roleId);
-  if (hasPlayerWithRole) return false;
-
-  return true;
+  return state.currentStepId === undefined
+    ? false
+    : isVacantBottomCardStep(state, state.currentStepId);
 }
 
 /**

@@ -1,5 +1,5 @@
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
+import { GameStatus, WEREWOLF_STATE_VERSION } from '@game-judge/game-engine/games/werewolf/public';
 import { render } from '@testing-library/react-native';
 
 import type { ActiveRoomIdentity, RoomSessionSnapshot } from '@/features/room/session/types';
@@ -49,7 +49,7 @@ function readySnapshot(status: GameStatus): RoomSessionSnapshot<GameState> {
     connection: 'live',
     snapshot: {
       gameType: 'werewolf',
-      stateVersion: 1,
+      stateVersion: WEREWOLF_STATE_VERSION,
       revision: 1,
       state: { status } as GameState,
     },

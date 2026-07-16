@@ -38,7 +38,7 @@ export function handleStartNight(state: GameState, action: StartNightAction): Ga
     ...state,
     status: GameStatus.Ongoing,
     currentStepIndex,
-    currentStepId,
+    currentStepId: currentStepId ?? undefined,
     // Do not set isAudioPlaying in reducer; Host UI controls it via SET_AUDIO_PLAYING
     actions: [],
     currentNightResults: {},
@@ -141,22 +141,6 @@ export function handleApplyResolverResult(
   const convertedSeat =
     updates && 'convertedSeat' in updates ? updates.convertedSeat : state.convertedSeat;
 
-  // Sync treasureMaster fields from resolver updates to top-level state
-  const treasureMasterChosenCard =
-    updates && 'treasureMasterChosenCard' in updates
-      ? updates.treasureMasterChosenCard
-      : state.treasureMasterChosenCard;
-  const effectiveTeam =
-    updates && 'effectiveTeam' in updates ? updates.effectiveTeam : state.effectiveTeam;
-  const bottomCardStepRoles =
-    updates && 'bottomCardStepRoles' in updates
-      ? updates.bottomCardStepRoles
-      : state.bottomCardStepRoles;
-
-  // Sync thief fields from resolver updates to top-level state
-  const thiefChosenCard =
-    updates && 'thiefChosenCard' in updates ? updates.thiefChosenCard : state.thiefChosenCard;
-
   // Sync cupid fields from resolver updates to top-level state
   const loverSeats = updates && 'loverSeats' in updates ? updates.loverSeats : state.loverSeats;
 
@@ -167,10 +151,6 @@ export function handleApplyResolverResult(
     wolfKillOverride,
     hypnotizedSeats,
     convertedSeat,
-    treasureMasterChosenCard,
-    effectiveTeam,
-    bottomCardStepRoles,
-    thiefChosenCard,
     loverSeats,
     seerReveal: seerReveal ?? state.seerReveal,
     mirrorSeerReveal: mirrorSeerReveal ?? state.mirrorSeerReveal,

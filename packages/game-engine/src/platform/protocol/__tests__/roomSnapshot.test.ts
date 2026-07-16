@@ -17,6 +17,8 @@ const TEMPLATE: GameTemplate = {
   roles: ['wolf', 'seer', 'villager', 'villager'],
 };
 
+const UNSUPPORTED_WEREWOLF_STATE_VERSION = WEREWOLF_STATE_IDENTITY.stateVersion + 1;
+
 describe('room snapshot protocol', () => {
   it('copies authoritative state identity into the envelope', () => {
     const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
@@ -56,7 +58,10 @@ describe('room snapshot protocol', () => {
 
   it('rejects snapshot identity drift before broadcast', () => {
     const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
-    const snapshot = { ...createRoomSnapshot(state, 4), stateVersion: 2 };
+    const snapshot = {
+      ...createRoomSnapshot(state, 4),
+      stateVersion: UNSUPPORTED_WEREWOLF_STATE_VERSION,
+    };
 
     expect(() => createStateUpdateMessage(snapshot, null)).toThrow(
       'Snapshot identity does not match its state',
@@ -90,10 +95,13 @@ describe('room snapshot protocol', () => {
 
   it('rejects envelope and payload identity drift', () => {
     const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
-    const encoded = { ...createRoomSnapshot(state, 3), stateVersion: 2 };
+    const encoded = {
+      ...createRoomSnapshot(state, 3),
+      stateVersion: UNSUPPORTED_WEREWOLF_STATE_VERSION,
+    };
 
     expect(() => parseRoomSnapshot(encoded, WEREWOLF_STATE_CODEC)).toThrow(
-      'Unsupported snapshot state version: 2',
+      `Unsupported snapshot state version: ${UNSUPPORTED_WEREWOLF_STATE_VERSION}`,
     );
   });
 });

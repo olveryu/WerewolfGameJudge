@@ -275,10 +275,13 @@ function executeCurrentStep(ctx: GameContext, customActions: CustomActions): voi
   // TreasureMaster actor override: the chosen deck card role's step is performed by Treasure Master
   if (actorSeat === -1) {
     const state2 = ctx.getGameState();
-    if (state2.treasureMasterChosenCard === roleId && state2.treasureMasterSeat != null) {
+    if (
+      state2.currentNightResults?.treasureMasterChosenCard === roleId &&
+      state2.treasureMasterSeat != null
+    ) {
       actorSeat = state2.treasureMasterSeat;
       actorRole = 'treasureMaster'; // Gate 4b/5b requires sending the actual seat's role
-    } else if (state2.thiefChosenCard === roleId && state2.thiefSeat != null) {
+    } else if (state2.currentNightResults?.thiefChosenCard === roleId && state2.thiefSeat != null) {
       actorSeat = state2.thiefSeat;
       actorRole = 'thief';
     } else {

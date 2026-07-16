@@ -22,6 +22,7 @@ export {
   makeWitchSave,
   type WitchAction,
 } from './domain/models/actions/WitchAction';
+export { getBottomCardCount } from './domain/models/BottomCards';
 export { GameStatus } from './domain/models/GameStatus';
 export {
   type ActionSchema,
@@ -67,14 +68,12 @@ export {
 } from './domain/models/roles/spec/schema.types';
 export { getAllSchemaIds, isValidSchemaId } from './domain/models/roles/spec/schemas';
 export {
-  BOTTOM_CARD_COUNT,
   createCustomTemplate,
   createTemplateFromRoles,
   findClosestPresetName,
   findMatchingPresetName,
   type GameRuleOverrides,
   type GameTemplate,
-  getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
   type PresetTemplate,

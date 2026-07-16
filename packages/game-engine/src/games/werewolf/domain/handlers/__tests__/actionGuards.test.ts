@@ -34,6 +34,7 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     currentStepId: 'seerCheck',
     isAudioPlaying: false,
     actions: [],
+    currentNightResults: {},
     pendingRevealAcks: [],
     roster: {},
     ...overrides,
@@ -51,23 +52,25 @@ describe('isBottomCardActorOverride', () => {
   });
 
   it('should return true when treasureMasterChosenCard matches step roleId', () => {
-    const state = createMinimalState({ treasureMasterChosenCard: 'seer' });
+    const state = createMinimalState({ currentNightResults: { treasureMasterChosenCard: 'seer' } });
     // seerCheck step has roleId 'seer'
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(true);
   });
 
   it('should return false when treasureMasterChosenCard does not match', () => {
-    const state = createMinimalState({ treasureMasterChosenCard: 'witch' });
+    const state = createMinimalState({
+      currentNightResults: { treasureMasterChosenCard: 'witch' },
+    });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(false);
   });
 
   it('should return true when thiefChosenCard matches step roleId', () => {
-    const state = createMinimalState({ thiefChosenCard: 'seer' });
+    const state = createMinimalState({ currentNightResults: { thiefChosenCard: 'seer' } });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(true);
   });
 
   it('should return false when thiefChosenCard does not match', () => {
-    const state = createMinimalState({ thiefChosenCard: 'guard' });
+    const state = createMinimalState({ currentNightResults: { thiefChosenCard: 'guard' } });
     expect(isBottomCardActorOverride(state, 'seerCheck')).toBe(false);
   });
 });

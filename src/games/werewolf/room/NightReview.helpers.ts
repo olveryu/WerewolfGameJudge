@@ -155,12 +155,12 @@ export function buildActionLines(gameState: LocalGameState): string[] {
     const cardNames = gameState.bottomCards.map((id) => getRoleDisplayName(id)).join('、');
     lines.push(`${getRoleEmoji('treasureMaster')} 底牌组成：${cardNames}`);
   }
-  if (gameState.treasureMasterChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.treasureMasterChosenCard);
+  if (gameState.currentNightResults.treasureMasterChosenCard) {
+    const chosenName = getRoleDisplayName(gameState.currentNightResults.treasureMasterChosenCard);
     lines.push(`${getRoleEmoji('treasureMaster')} 盗宝大师选择了 ${chosenName}`);
   }
-  if (gameState.thiefChosenCard) {
-    const chosenName = getRoleDisplayName(gameState.thiefChosenCard);
+  if (gameState.currentNightResults.thiefChosenCard) {
+    const chosenName = getRoleDisplayName(gameState.currentNightResults.thiefChosenCard);
     lines.push(`${getRoleEmoji('thief')} 盗贼选择了 ${chosenName}`);
   }
   if (gameState.loverSeats && gameState.loverSeats.length === 2) {

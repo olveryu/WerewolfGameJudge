@@ -20,6 +20,7 @@ import type { GameState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
 import { buildInitialGameState } from '../domain/state/buildInitialState';
 import { getWerewolfLifecycle, werewolfEngine } from '../engine';
+import { WEREWOLF_STATE_VERSION } from '../state/version';
 
 const TEMPLATE: GameTemplate = {
   name: 'test',
@@ -476,7 +477,7 @@ describe('Werewolf engine definition and catalog', () => {
 
     expect(state).toMatchObject({
       gameType: 'werewolf',
-      stateVersion: 1,
+      stateVersion: WEREWOLF_STATE_VERSION,
       roomCode: '9876',
       hostUserId: 'creator',
       status: GameStatus.Unseated,

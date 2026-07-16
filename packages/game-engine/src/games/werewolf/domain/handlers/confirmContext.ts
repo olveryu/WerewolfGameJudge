@@ -22,7 +22,7 @@
 import { type RoleId, type SchemaId } from '../models/roles/spec';
 import { getAllRoleIds, getRoleSpec } from '../models/roles/spec/specs';
 import { Faction } from '../models/roles/spec/types';
-import { findSeatByRole } from '../playerHelpers';
+import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
 import type { ConfirmStatus, WolfTeammatesConfirmStatus } from '../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
 import type { NonNullState } from './types';
@@ -95,13 +95,13 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
   }
 
   // Hunter / DarkWolfKing
-  const roleSeat = findSeatByRole(state.players, role);
+  const roleActor = resolveNightStepActor(state, role);
 
-  if (roleSeat === null) {
+  if (roleActor === null) {
     throw new Error(`[FAIL-FAST] ${role} confirm step has no assigned role seat`);
   }
 
-  return { role, canShoot: computeCanShootForSeat(roleSeat, state) };
+  return { role, canShoot: computeCanShootForSeat(roleActor.seat, state) };
 }
 
 /**
@@ -190,10 +190,10 @@ function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
   if (results?.dreamingSeat !== seat) return false;
 
-  const dreamcatcherSeat = findSeatByRole(state.players, 'dreamcatcher');
-  if (dreamcatcherSeat === null) return false;
+  const dreamcatcherActor = resolveNightStepActor(state, 'dreamcatcher');
+  if (dreamcatcherActor === null) return false;
 
-  return willDieTonight(dreamcatcherSeat, state);
+  return willDieTonight(dreamcatcherActor.seat, state);
 }
 
 /**
@@ -205,10 +205,10 @@ function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
   const results = state.currentNightResults;
   if (results?.charmedSeat !== seat) return false;
 
-  const wolfQueenSeat = findSeatByRole(state.players, 'wolfQueen');
-  if (wolfQueenSeat === null) return false;
+  const wolfQueenActor = resolveNightStepActor(state, 'wolfQueen');
+  if (wolfQueenActor === null) return false;
 
-  return willDieTonight(wolfQueenSeat, state);
+  return willDieTonight(wolfQueenActor.seat, state);
 }
 
 /**
@@ -233,6 +233,7 @@ export function maybeCreateConfirmStatusAction(
   if (!state.templateRoles.includes(role)) {
     return null;
   }
+  if (isVacantBottomCardStep(state, nextStepId)) return null;
 
   return {
     type: 'SET_CONFIRM_STATUS',

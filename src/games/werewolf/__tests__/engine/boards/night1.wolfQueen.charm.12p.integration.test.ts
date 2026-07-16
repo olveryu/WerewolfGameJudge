@@ -10,7 +10,7 @@
  *   seat 7: wolfQueen
  *   seat 8: seer
  *   seat 9: witch
- *   seat 10: hunter
+ *   seat 10: knight
  *   seat 11: guard
  *
  * Core rules:
@@ -43,7 +43,7 @@ function createRoleAssignment(): Map<number, RoleId> {
   map.set(7, 'wolfQueen');
   map.set(8, 'seer');
   map.set(9, 'witch');
-  map.set(10, 'hunter');
+  map.set(10, 'knight');
   map.set(11, 'guard');
   return map;
 }

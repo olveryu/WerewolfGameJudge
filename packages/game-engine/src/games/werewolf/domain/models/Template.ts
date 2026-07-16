@@ -4,6 +4,12 @@
  * Defines the GameTemplate interface, template validation, preset templates, and template factories.
  * Exports type definitions, pure-function validators/factories, and preset constants. No service deps, side effects, or IO.
  */
+import {
+  countBottomCardRoles,
+  getBottomCardCount,
+  getBottomCardRoleId,
+  getValidBottomCardDeals,
+} from './BottomCards';
 import { Faction, ROLE_SPECS, type RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
@@ -48,10 +54,24 @@ export const MINIMUM_PLAYERS = 1;
  * Returns null if valid, otherwise a human-readable reason string.
  */
 export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
+  const bottomCardRoleCount = countBottomCardRoles(roles);
+  if (bottomCardRoleCount > 1) {
+    return '盗贼与盗宝大师只能选择一个，且同一角色不能重复选择';
+  }
+
   // Rule 1: must have at least MINIMUM_PLAYERS (actual players, excluding bottom cards)
   const playerCount = getPlayerCount(roles);
   if (playerCount < MINIMUM_PLAYERS) {
     return `至少需要 ${MINIMUM_PLAYERS} 名玩家`;
+  }
+
+  const roleCounts = new Map<RoleId, number>();
+  for (const roleId of roles) {
+    const count = (roleCounts.get(roleId) ?? 0) + 1;
+    roleCounts.set(roleId, count);
+    if (count > 1 && roleId !== 'wolf' && ROLE_SPECS[roleId].nightSteps?.length) {
+      return `${ROLE_SPECS[roleId].displayName}不能重复选择`;
+    }
   }
 
   // Rule 2: treasureMaster bottom card constraint prerequisites
@@ -60,8 +80,8 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
   if (roles.includes('treasureMaster')) {
     const otherRoles = roles.filter((roleId) => roleId !== 'treasureMaster');
     const hasRegularWolf = otherRoles.includes('wolf');
-    const hasGod = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.God);
-    const hasVillager = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.Villager);
+    const hasGod = otherRoles.some((r) => ROLE_SPECS[r].faction === Faction.God);
+    const hasVillager = otherRoles.some((r) => ROLE_SPECS[r].faction === Faction.Villager);
     if (!hasRegularWolf) {
       return '含宝藏猎人时必须有至少 1 名普通狼人（底牌需要）';
     }
@@ -71,6 +91,11 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
     if (!hasVillager) {
       return '含宝藏猎人时必须有至少 1 名村民（底牌需要）';
     }
+  }
+
+  const bottomCardRoleId = getBottomCardRoleId(roles);
+  if (bottomCardRoleId !== null && getValidBottomCardDeals(roles, bottomCardRoleId).length === 0) {
+    return `当前角色组合无法为${bottomCardRoleId === 'thief' ? '盗贼' : '盗宝大师'}发出合法底牌`;
   }
 
   return null;
@@ -103,36 +128,14 @@ export interface GameTemplate {
   rules?: GameRuleOverrides;
 }
 
-/** Treasure Master deck card count */
-export const BOTTOM_CARD_COUNT = 3;
-
-/** Thief deck card count */
-const THIEF_BOTTOM_CARD_COUNT = 2;
-
-/** Deck-card role IDs (mutually exclusive: at most one per template) */
-const BOTTOM_CARD_ROLE_IDS = ['treasureMaster', 'thief'] as const;
-
-export type BottomCardRoleId = (typeof BOTTOM_CARD_ROLE_IDS)[number];
-
-/**
- * Get the deck-card role ID in the template, if any.
- * treasureMaster and thief are mutually exclusive.
- */
-export function getBottomCardRoleId(roles: readonly RoleId[]): BottomCardRoleId | null {
-  for (const id of BOTTOM_CARD_ROLE_IDS) {
-    if (roles.includes(id)) return id;
-  }
-  return null;
-}
-
-/**
- * Get the number of deck cards. treasureMaster=3, thief=2, no deck-card role=0.
- */
-export function getBottomCardCount(roles: readonly RoleId[]): number {
-  const bottomCardRole = getBottomCardRoleId(roles);
-  if (bottomCardRole === 'treasureMaster') return BOTTOM_CARD_COUNT;
-  if (bottomCardRole === 'thief') return THIEF_BOTTOM_CARD_COUNT;
-  return 0;
+/** Build the physical role-card pool used by assignment. */
+export function getRoleDealPool(roles: readonly RoleId[], rules?: GameRuleOverrides): RoleId[] {
+  if (rules?.isPlagueMode !== true) return [...roles];
+  return roles.map((roleId) =>
+    ROLE_SPECS[roleId].faction === Faction.Wolf || roleId === 'treasureMaster'
+      ? 'villager'
+      : roleId,
+  );
 }
 
 /**

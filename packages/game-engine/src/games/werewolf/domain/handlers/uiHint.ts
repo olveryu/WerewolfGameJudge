@@ -10,7 +10,7 @@
 
 import { getWolfRoleIds, type NightPlanStep, SCHEMAS } from '../models';
 import { BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
-import { findSeatByRole } from '../playerHelpers';
+import { resolveNightStepActor } from '../playerHelpers';
 import type { SetUiHintAction } from '../reducer/types';
 import type { NonNullState } from './types';
 
@@ -37,7 +37,7 @@ export function maybeCreateUiHintAction(
   const { stepId, roleId } = nextStep;
   const schema = SCHEMAS[stepId];
 
-  const nextActorSeat = findSeatByRole(state.players, roleId);
+  const nextActor = resolveNightStepActor(state, roleId);
 
   // Schema-driven blocked UI: prefer per-role override from schema.ui, otherwise use defaults
   // Type assertion needed because SCHEMAS uses as const inference; literal type omits optional blocked* fields
@@ -99,13 +99,13 @@ export function maybeCreateUiHintAction(
   }
 
   // Case 2: next actor is blocked by nightmare
-  if (nextActorSeat !== null && state.nightmareBlockedSeat === nextActorSeat) {
+  if (nextActor !== null && state.nightmareBlockedSeat === nextActor.seat) {
     return {
       type: 'SET_UI_HINT',
       payload: {
         currentActorHint: {
           kind: 'blocked_by_nightmare',
-          targetRoleIds: [roleId], // only the blocked role sees this
+          targetRoleIds: [nextActor.role], // only the blocked player sees this
           message: blockedSkipButtonText, // text for the skip button
           bottomAction: 'skipOnly',
           promptOverride: {

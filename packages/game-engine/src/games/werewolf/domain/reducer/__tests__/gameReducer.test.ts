@@ -251,6 +251,21 @@ describe('gameReducer', () => {
 
       expect(newState.currentStepId).toBe('wolfKill');
     });
+
+    it('initializes results without inventing a step for an empty night plan', () => {
+      const state = createMinimalState({ status: GameStatus.Ready });
+      const action: StartNightAction = {
+        type: 'START_NIGHT',
+        payload: { currentStepIndex: -1, currentStepId: null },
+      };
+
+      const newState = gameReducer(state, action);
+
+      expect(newState.status).toBe(GameStatus.Ongoing);
+      expect(newState.currentStepIndex).toBe(-1);
+      expect(newState.currentStepId).toBeUndefined();
+      expect(newState.currentNightResults).toEqual({});
+    });
   });
 
   describe('ADVANCE_TO_NEXT_ACTION', () => {

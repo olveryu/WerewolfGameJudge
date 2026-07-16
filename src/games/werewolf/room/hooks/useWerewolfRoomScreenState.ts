@@ -243,8 +243,7 @@ export function useWerewolfRoomScreenState(
     actorSeat: actorSeatForUi,
     wolfVotes: wolfVotesMap,
     actions: gameState?.actions ?? EMPTY_ACTIONS,
-    treasureMasterChosenCard: gameState?.treasureMasterChosenCard,
-    thiefChosenCard: gameState?.thiefChosenCard,
+    currentNightResults: gameState?.currentNightResults,
     groupConfirmAcks,
   });
 

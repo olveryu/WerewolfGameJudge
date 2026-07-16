@@ -101,8 +101,8 @@ export interface StartNightAction {
   type: 'START_NIGHT';
   payload: {
     currentStepIndex: number;
-    /** First step stepId, from NIGHT_STEPS[0].id table-driven single source */
-    currentStepId: SchemaId;
+    /** First step ID, or null when the plan has no night steps. */
+    currentStepId: SchemaId | null;
   };
 }
 
