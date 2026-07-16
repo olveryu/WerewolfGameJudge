@@ -113,14 +113,7 @@ describe('maybeCreateWitchContextAction', () => {
       expect(action?.payload.canSave).toBe(false);
     });
 
-    /**
-     * Edge case: witchSeat === -1
-     *
-     * Scenario: templateRoles contains witch, but no player in players has role === 'witch'
-     * Expected: canSave must be false (defensive: block save to prevent errors in invalid state)
-     */
-    it('should set canSave=false when witch seat is not found in players (defensive)', () => {
-      // Build invalid state: templateRoles has witch but players has no witch
+    it('fails fast when the template has witch but no player owns the role', () => {
       const state = createOngoingState({
         templateRoles: ['wolf', 'witch', 'villager'],
         players: {
@@ -131,11 +124,9 @@ describe('maybeCreateWitchContextAction', () => {
         currentNightResults: { wolfVotesBySeat: { '0': 2 } }, // wolf kills villager at seat 2
       });
 
-      const action = maybeCreateWitchContextAction('witchAction', state);
-
-      // Key assertion: even with a killed player, canSave must be false when witchSeat=-1
-      expect(action?.payload.killedSeat).toBe(2);
-      expect(action?.payload.canSave).toBe(false);
+      expect(() => maybeCreateWitchContextAction('witchAction', state)).toThrow(
+        '[FAIL-FAST] witchAction step has no assigned witch seat',
+      );
     });
   });
 

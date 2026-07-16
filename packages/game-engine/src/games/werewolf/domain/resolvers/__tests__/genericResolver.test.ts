@@ -524,10 +524,6 @@ describe('genericResolver: learn effect', () => {
 // =============================================================================
 
 describe('genericResolver: error handling', () => {
-  it('should throw for non-existent role', () => {
-    expect(() => createGenericResolver('nonexistent')).toThrow('not found in ROLE_SPECS');
-  });
-
   it('should throw for role without active ability', () => {
     // villager has no active abilities
     expect(() => createGenericResolver('villager')).toThrow('not an active ability');

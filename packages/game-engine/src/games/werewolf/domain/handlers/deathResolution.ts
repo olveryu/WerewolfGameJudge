@@ -25,8 +25,7 @@ import {
   makeWitchPoison,
   makeWitchSave,
 } from '../models/actions/WitchAction';
-import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
+import { getRoleSpec } from '../models/roles/spec/specs';
 import { buildSeatRoleMap } from '../playerHelpers';
 import type { ProtocolAction } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
@@ -83,9 +82,9 @@ export function buildRoleSeatMap(
   let poisonSourceSeat = -1;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId] as RoleSpec;
+    const spec = getRoleSpec(roleId);
 
-    // Flag-driven seat arrays (unchanged from V2)
+    // Flag-driven seat arrays
     if (spec.immunities?.some((i) => i.kind === 'poison')) {
       poisonImmuneSeats.push(seat);
     }
@@ -160,7 +159,7 @@ export function buildCheckedSeats(
   const { nightmareBlock } = nightActions;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId] as RoleSpec;
+    const spec = getRoleSpec(roleId);
     if (spec.deathCalcRole !== 'checkSource') continue;
 
     // Skip nightmare-blocked check sources
@@ -196,7 +195,7 @@ export function buildReflectionSources(
   const { nightmareBlock } = nightActions;
 
   for (const [roleId, seat] of effectiveRoleSeatMap) {
-    const spec = ROLE_SPECS[roleId] as RoleSpec;
+    const spec = getRoleSpec(roleId);
     if (!spec.deathCalcRole) continue;
 
     // Skip nightmare-blocked sources
@@ -206,7 +205,7 @@ export function buildReflectionSources(
       // Find schemaId from the role's first nightStep
       const stepId = spec.nightSteps?.[0]?.stepId;
       if (!stepId) continue;
-      const action = findActionBySchemaId(protocolActions, stepId as SchemaId);
+      const action = findActionBySchemaId(protocolActions, stepId);
       if (action?.targetSeat !== undefined) {
         sources.push({ sourceSeat: seat, targetSeat: action.targetSeat });
       }

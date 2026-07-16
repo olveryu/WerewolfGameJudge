@@ -47,6 +47,8 @@ function buildResolverContext(
     throw new Error('[FAIL-FAST] currentNightResults missing in ongoing state');
   }
 
+  const bottomCardActorSeat = state.treasureMasterSeat ?? state.thiefSeat;
+
   return {
     rng,
     actorSeat,
@@ -61,32 +63,14 @@ function buildResolverContext(
       hypnotizedSeats: state.hypnotizedSeats ?? [],
       witchCanSelfHeal: state.rules?.witchCanSelfHeal ?? false,
     },
-    ...(state.bottomCards && (state.treasureMasterSeat != null || state.thiefSeat != null)
+    ...(state.bottomCards && bottomCardActorSeat != null
       ? {
           bottomCardContext: {
             bottomCards: state.bottomCards,
-            actorSeat: state.treasureMasterSeat ?? state.thiefSeat!,
+            actorSeat: bottomCardActorSeat,
           },
         }
       : {}),
-  };
-}
-
-/**
- * Build ActionInput
- */
-function buildActionInput(
-  schemaId: SchemaId,
-  target: number | null,
-  extra?: Record<string, unknown>,
-): ActionInput {
-  return {
-    schemaId,
-    target: target ?? undefined,
-    confirmed: extra?.confirmed as boolean | undefined,
-    targets: extra?.targets as readonly number[] | undefined,
-    stepResults: extra?.stepResults as Record<string, number | null> | undefined,
-    cardIndex: extra?.cardIndex as number | undefined,
   };
 }
 
@@ -133,7 +117,7 @@ function applyShelterRedirect(
 }
 
 /**
- * Handle submit action (PR4: SUBMIT_ACTION)
+ * Handle SUBMIT_ACTION.
  *
  * Resolver-first: all business validation is handled by the resolver
  * Rejections are also broadcast: prevents the UI from getting stuck in a pending state
@@ -143,7 +127,7 @@ export function handleSubmitAction(
   context: HandlerContext,
   execution: HandlerExecutionContext,
 ): HandlerResult {
-  const { seat, role, target, extra } = intent.payload;
+  const { seat, role, actionInput: submittedActionInput } = intent.payload;
 
   // Validate preconditions (full gate chain)
   const validation = validateActionPreconditions(context.state, seat, role);
@@ -152,12 +136,13 @@ export function handleSubmitAction(
   }
   const { schemaId, state, schema } = validation;
 
-  // Build ActionInput (built first, used by nightmare guard and resolver)
-  let actionInput = buildActionInput(
-    schemaId,
-    target,
-    extra as Record<string, unknown> | undefined,
-  );
+  if (submittedActionInput.schemaId !== schemaId) {
+    throw new Error(
+      `[FAIL-FAST] SubmitActionIntent schema ${submittedActionInput.schemaId} does not match current step ${schemaId}`,
+    );
+  }
+
+  let actionInput = submittedActionInput;
 
   // Eclipse Wolf Queen shelter redirect (applied before nightmare guard and resolver)
   const shelteredSeat = state.currentNightResults?.shelteredSeat;
@@ -176,15 +161,21 @@ export function handleSubmitAction(
   }
 
   // Get resolver
-  const resolver = RESOLVERS[schemaId]!;
+  const resolver = RESOLVERS[schemaId];
 
   // Bottom card actor override: when acting on the chosen card's step,
   // use the chosen card's role for the resolver context
   let resolverRole = role;
-  if (role === ('treasureMaster' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
-    resolverRole = state.treasureMasterChosenCard as RoleId;
-  } else if (role === ('thief' as RoleId) && isBottomCardActorOverride(state, schemaId)) {
-    resolverRole = state.thiefChosenCard as RoleId;
+  if (role === 'treasureMaster' && isBottomCardActorOverride(state, schemaId)) {
+    if (!state.treasureMasterChosenCard) {
+      throw new Error('[FAIL-FAST] Treasure master is acting without a chosen bottom card');
+    }
+    resolverRole = state.treasureMasterChosenCard;
+  } else if (role === 'thief' && isBottomCardActorOverride(state, schemaId)) {
+    if (!state.thiefChosenCard) {
+      throw new Error('[FAIL-FAST] Thief is acting without a chosen bottom card');
+    }
+    resolverRole = state.thiefChosenCard;
   }
 
   // Build context

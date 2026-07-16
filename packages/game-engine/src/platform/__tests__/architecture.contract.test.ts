@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import ts from 'typescript';
+
 import { GAME_TYPES } from '../protocol/gameTypes';
 import { getModuleSpecifiers } from './moduleSpecifiers';
 
@@ -74,6 +76,32 @@ function collectProductionFiles(directory: string): string[] {
     }
   }
   return files;
+}
+
+function getOrdinaryTypeAssertions(filePath: string, source?: string): readonly string[] {
+  const content = source ?? fs.readFileSync(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const violations: string[] = [];
+
+  function visit(node: ts.Node): void {
+    if (
+      ts.isTypeAssertionExpression(node) ||
+      (ts.isAsExpression(node) && node.type.getText(sourceFile) !== 'const')
+    ) {
+      const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+      violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return violations;
 }
 
 function findBoundaryViolations(
@@ -220,6 +248,28 @@ describe('game-engine dependency boundary fixtures', () => {
     },
   ])('rejects $expected', ({ filePath, source, allowedDirectories, expected }) => {
     expect(findBoundaryViolations(filePath, source, allowedDirectories)).toEqual([expected]);
+  });
+});
+
+describe('game-engine production type honesty', () => {
+  const productionFiles = collectProductionFiles(sourceDirectory);
+
+  it('forbids ordinary type assertions while allowing const assertions', () => {
+    const violations = productionFiles.flatMap((filePath) => getOrdinaryTypeAssertions(filePath));
+
+    expect(violations).toEqual([]);
+  });
+
+  it('rejects ordinary and angle-bracket assertion fixtures', () => {
+    const fixturePath = path.join(sourceDirectory, 'typeAssertion.fixture.ts');
+
+    expect(getOrdinaryTypeAssertions(fixturePath, 'value as RoleId;')).toEqual([
+      'src/typeAssertion.fixture.ts:1',
+    ]);
+    expect(getOrdinaryTypeAssertions(fixturePath, '<RoleId>value;')).toEqual([
+      'src/typeAssertion.fixture.ts:1',
+    ]);
+    expect(getOrdinaryTypeAssertions(fixturePath, 'value as const;')).toEqual([]);
   });
 });
 

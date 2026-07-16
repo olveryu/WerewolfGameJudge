@@ -1,7 +1,7 @@
 /**
  * ViewedRole handler -- marks a player as having viewed their assigned role.
  *
- * PR2: VIEWED_ROLE (assigned -> ready).
+ * Handles VIEWED_ROLE (assigned -> ready).
  * When all players have viewed, reducer transitions status -> GameStatus.Ready.
  */
 

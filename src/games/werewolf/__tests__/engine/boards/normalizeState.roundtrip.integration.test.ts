@@ -139,8 +139,8 @@ describe('normalizeState round-trip (integration with real board state)', () => 
         type: 'ACTION',
         seat: 9,
         role: 'witch',
-        target: -1,
-        extra: { usePoison: false, poisonTarget: -1 },
+        target: null,
+        extra: { stepResults: { save: null, poison: null } },
       },
       'witchAction',
     );

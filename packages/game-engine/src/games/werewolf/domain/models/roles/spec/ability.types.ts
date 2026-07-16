@@ -1,17 +1,18 @@
 /**
- * V2 Ability System — ability / effect / immunity / recognition / resource type definitions
+ * Ability System — ability / effect / immunity / recognition / resource type definitions
  *
  * Atomic building blocks for role behavior. Each AbilityEffect maps to one effect processor in genericResolver.
  * Types are designed to be pure JSON-serializable (no functions, no classes), storable in DB and transportable across Edge Functions.
  * Contains no business logic, side effects, or platform dependencies.
  *
- * Reuses V1's Faction / Team / TargetConstraint enums; no duplicate definitions.
+ * Reuses the canonical Faction / Team / TargetConstraint definitions.
  */
 
+import type { NightStepId } from './nightStepIds';
 import type { ConfirmStatusUi } from './schema.types';
 import { TargetConstraint } from './schema.types';
 
-// Re-export TargetConstraint so V2 consumers can import from v2/
+// Re-export TargetConstraint from the role-spec boundary.
 export { TargetConstraint };
 
 // ---------------------------------------------------------------------------
@@ -94,10 +95,10 @@ export interface SwapEffect {
 /**
  * Learn effect — learn target's identity and ability (wolfRobot)
  */
-export interface LearnEffect {
+export interface LearnEffect<TRoleId extends string = string> {
   readonly kind: 'learn';
   /** Role IDs that trigger a gate when learned */
-  readonly gateTriggersOnRoles?: readonly string[];
+  readonly gateTriggersOnRoles?: readonly TRoleId[];
 }
 
 /** ChooseIdol effect — choose an idol (slacker / wildChild) */
@@ -108,10 +109,10 @@ export interface ChooseIdolEffect {
 /**
  * Mimic effect — mimic target (shadow)
  */
-export interface MimicEffect {
+export interface MimicEffect<TRoleId extends string = string> {
   readonly kind: 'mimic';
   /** When mimicking this roleId, triggers faction binding (shadow -> avenger) */
-  readonly pairedRole?: string;
+  readonly pairedRole?: TRoleId;
 }
 
 /** Hypnotize effect — hypnotize multiple targets (piper) */
@@ -149,15 +150,15 @@ export interface ConfirmEffect {
 }
 
 /** All possible effects (discriminated by `kind`) */
-export type AbilityEffect =
+export type AbilityEffect<TRoleId extends string = string> =
   | CheckEffect
   | WriteSlotEffect
   | BlockEffect
   | CharmEffect
   | SwapEffect
-  | LearnEffect
+  | LearnEffect<TRoleId>
   | ChooseIdolEffect
-  | MimicEffect
+  | MimicEffect<TRoleId>
   | HypnotizeEffect
   | ConvertEffect
   | GroupRevealEffect
@@ -188,7 +189,7 @@ export type ActionKind =
  *
  * Choose targets at night/day, produces effects
  */
-export interface ActiveAbility {
+export interface ActiveAbility<TRoleId extends string = string> {
   readonly type: 'active';
   readonly timing: AbilityTiming;
   /** Action kind for UI dispatch */
@@ -198,7 +199,7 @@ export interface ActiveAbility {
   /** Can the player skip this ability? */
   readonly canSkip: boolean;
   /** Effects produced when ability is used */
-  readonly effects: readonly AbilityEffect[];
+  readonly effects: readonly AbilityEffect<TRoleId>[];
   /** Night-1 specific: is this ability active during night 1? */
   readonly activeOnNight1: boolean;
   /**
@@ -206,7 +207,7 @@ export interface ActiveAbility {
    * expressed purely declaratively). Engine falls back to generic
    * processor when undefined.
    */
-  readonly customResolver?: string;
+  readonly customResolver?: NightStepId;
 }
 
 /**
@@ -257,7 +258,10 @@ export type TriggeredEffectKind =
   | 'stab'
   | 'reverseVote';
 
-export type Ability = ActiveAbility | PassiveAbility | TriggeredAbility;
+export type Ability<TRoleId extends string = string> =
+  | ActiveAbility<TRoleId>
+  | PassiveAbility
+  | TriggeredAbility;
 
 // ---------------------------------------------------------------------------
 // Immunities
@@ -305,7 +309,7 @@ export interface Resource {
 /**
  * UI metadata for a night step's action.
  *
- * Mirrors V1 SchemaUi fields relevant to night actions.
+ * Contains the UI fields relevant to night actions.
  * Separated from behavior to keep spec JSON-serializable.
  */
 export interface NightStepUi {
@@ -358,7 +362,7 @@ export interface MeetingConfig {
 /**
  * Sub-step definition within a compound night action (e.g. witch save/poison).
  *
- * Mirrors V1's InlineSubStepSchema. Only used by compound actionKind steps.
+ * Only used by compound actionKind steps.
  */
 export interface CompoundSubStepDef {
   readonly key: string;

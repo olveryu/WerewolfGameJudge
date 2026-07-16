@@ -102,7 +102,7 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
 
         // ResolverFn signature: (context, input)
         const context = createBaseContext(seat, roleId);
-        const result = resolver!(context, input);
+        const result = resolver(context, input);
 
         expect(result.valid).toBe(true);
         // Skip behavior should produce no updates (no-op)
@@ -122,7 +122,7 @@ describe('Schema-Resolver canSkip alignment (anti-drift contract)', () => {
       };
 
       const context = createBaseContext(2, 'witch');
-      const result = resolver!(context, input);
+      const result = resolver(context, input);
 
       expect(result.valid).toBe(true);
       // No effects should apply when skipped
@@ -161,7 +161,7 @@ describe('witchContext.canSave notSelf alignment (PR contract)', () => {
     };
 
     const context = createBaseContext(2, 'witch');
-    const result = resolver!(context, input);
+    const result = resolver(context, input);
 
     // resolver should reject self-save
     expect(result.valid).toBe(false);

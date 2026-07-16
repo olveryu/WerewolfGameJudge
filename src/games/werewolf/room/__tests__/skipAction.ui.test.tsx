@@ -1,5 +1,4 @@
 import type { ChooseSeatSchema } from '@game-judge/game-engine/games/werewolf/public';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 
@@ -36,7 +35,7 @@ const getChooseSeatSchema = (schemaId: ChooseSeatSchema['id']): ChooseSeatSchema
   // Use the real schema as source-of-truth, then override the one test-specific knob.
   const { getSchema } =
     require('@game-judge/game-engine/games/werewolf/public') as typeof import('@game-judge/game-engine/games/werewolf/public');
-  const schema = getSchema(schemaId as SchemaId);
+  const schema = getSchema(schemaId);
   if (schema.kind !== 'chooseSeat') {
     throw new Error(`Expected chooseSeat schema for ${schemaId}`);
   }

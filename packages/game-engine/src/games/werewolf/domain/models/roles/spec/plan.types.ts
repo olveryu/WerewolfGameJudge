@@ -5,7 +5,7 @@
  * Exports NightPlan / NightPlanStep / NightPlanBuildError type definitions; no service dependencies, no side effects.
  */
 
-import type { SchemaId } from './schemas';
+import type { NightStepId } from './nightStepIds';
 import type { RoleId } from './specs';
 
 /** Single step in the night plan */
@@ -18,7 +18,7 @@ export interface NightPlanStep {
    *
    * Single source of truth: derived from NIGHT_STEPS[].id
    */
-  readonly stepId: SchemaId;
+  readonly stepId: NightStepId;
 
   /**
    * Step order inside THIS plan.

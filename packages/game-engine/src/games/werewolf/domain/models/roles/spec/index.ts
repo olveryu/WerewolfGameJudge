@@ -84,6 +84,7 @@ export {
   buildSchemas,
   getAllSchemaIds,
   getSchema,
+  getSchemaOfKind,
   isValidSchemaId,
   type SchemaId,
   SCHEMAS,

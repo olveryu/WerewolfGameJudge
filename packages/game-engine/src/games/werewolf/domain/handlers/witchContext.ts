@@ -13,6 +13,7 @@
  */
 
 import type { Rng } from '../../../../platform/random';
+import { GameStatus } from '../models';
 import type { SchemaId } from '../models/roles/spec';
 import { findSeatByRole } from '../playerHelpers';
 import type { SetWitchContextAction } from '../reducer/types';
@@ -42,11 +43,16 @@ function computeWitchContext(
   let killedSeat = -1;
 
   if (!state.wolfKillOverride) {
+    if (!state.currentNightResults && state.status !== GameStatus.Ready) {
+      throw new Error('[FAIL-FAST] witchAction step has no currentNightResults');
+    }
     const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat ?? {};
     const votes = new Map<number, number>();
     for (const [seatStr, targetSeat] of Object.entries(wolfVotesBySeat)) {
       const seat = Number.parseInt(seatStr, 10);
-      if (!Number.isFinite(seat) || typeof targetSeat !== 'number') continue;
+      if (!Number.isSafeInteger(seat)) {
+        throw new Error(`[FAIL-FAST] Invalid wolf-vote seat key: ${seatStr}`);
+      }
       votes.set(seat, targetSeat);
     }
     const resolved = resolveWolfVotes(votes, {
@@ -59,14 +65,16 @@ function computeWitchContext(
   }
 
   // 2. Find the witch's seat, used for the notSelf constraint
-  const witchSeat = findSeatByRole(state.players, 'witch') ?? -1;
+  const witchSeat = findSeatByRole(state.players, 'witch');
+  if (witchSeat === null) {
+    throw new Error('[FAIL-FAST] witchAction step has no assigned witch seat');
+  }
 
   // 3. Schema-first: witchAction.steps[0] (save) has the notSelf constraint
   // canSave must be false when:
   //   (1) no one was killed (killedSeat < 0)
   //   (2) the killed seat is the witch herself (killedSeat === witchSeat)
-  //   (3) the witch's seat is not found (witchSeat === -1; defensive: forbid save to avoid mishandling abnormal state)
-  const canSave = killedSeat >= 0 && witchSeat >= 0 && killedSeat !== witchSeat;
+  const canSave = killedSeat >= 0 && killedSeat !== witchSeat;
 
   // Night-1 only (project rule): poison is always available
   // If multi-night becomes supported, switch to reading whether the witch has already used poison from state

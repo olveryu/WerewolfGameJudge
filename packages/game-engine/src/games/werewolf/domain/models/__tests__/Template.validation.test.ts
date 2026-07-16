@@ -23,13 +23,6 @@ describe('validateTemplateRoles', () => {
     expect(result).toBeNull();
   });
 
-  it('rejects invalid role name (defensive)', () => {
-    const roles = ['wolf', 'seer', 'NOT_A_ROLE'] as unknown as RoleId[];
-    const result = validateTemplateRoles(roles);
-    expect(result).not.toBeNull();
-    expect(result).toContain('无效角色');
-  });
-
   it('rejects when fewer than MINIMUM_PLAYERS', () => {
     const roles: RoleId[] = ['wolf', 'seer', 'witch'];
     if (roles.length < MINIMUM_PLAYERS) {

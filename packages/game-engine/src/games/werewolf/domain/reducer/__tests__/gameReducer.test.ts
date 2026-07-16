@@ -1162,8 +1162,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         templateRoles: ['wolf', 'seer', 'villager'],
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seer' },
+          0: { userId: 'p0', seat: 0, hasViewedRole: false, role: null },
+          1: { userId: 'p1', seat: 1, hasViewedRole: false, role: null },
           2: null,
         },
       });
@@ -1175,7 +1175,7 @@ describe('gameReducer', () => {
       const newState = gameReducer(state, action);
 
       expect(newState.templateRoles).toEqual(['wolf', 'wolf', 'seer', 'villager']);
-      // Existing players preserved but role reset
+      // Existing unassigned players are preserved
       expect(newState.players[0]).toMatchObject({ userId: 'p0', role: null, hasViewedRole: false });
       expect(newState.players[1]).toMatchObject({ userId: 'p1', role: null, hasViewedRole: false });
       // New seat = null
@@ -1188,8 +1188,8 @@ describe('gameReducer', () => {
       const state = createMinimalState({
         templateRoles: ['wolf', 'seer'],
         players: {
-          0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
-          1: { userId: 'p1', seat: 1, hasViewedRole: true, role: 'seer' },
+          0: { userId: 'p0', seat: 0, hasViewedRole: false, role: null },
+          1: { userId: 'p1', seat: 1, hasViewedRole: false, role: null },
         },
       });
       const action: UpdateTemplateAction = {

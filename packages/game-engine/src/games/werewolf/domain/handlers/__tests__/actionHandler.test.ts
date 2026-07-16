@@ -224,7 +224,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -240,7 +240,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -256,7 +256,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -276,7 +276,7 @@ describe('handleSubmitAction', () => {
     };
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -292,7 +292,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -308,7 +308,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -324,7 +324,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -348,7 +348,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'guard', target: 1, extra: {} },
+      payload: { seat: 0, role: 'guard', actionInput: { schemaId: 'guardProtect', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -370,7 +370,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 1, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 1, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -387,7 +387,7 @@ describe('handleSubmitAction', () => {
     // seat 0 is villager but submitted role is seer
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -403,7 +403,7 @@ describe('handleSubmitAction', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -433,7 +433,11 @@ describe('handleSubmitAction', () => {
       // wolfRobot (seat 2) attempts self-targeting (target: 2)
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 2, role: 'wolfRobot', target: 2, extra: {} },
+        payload: {
+          seat: 2,
+          role: 'wolfRobot',
+          actionInput: { schemaId: 'wolfRobotLearn', target: 2 },
+        },
       };
 
       const result = handleSubmitAction(intent, context);
@@ -460,7 +464,11 @@ describe('handleSubmitAction', () => {
       // wolfRobot (seat 2) selects seat 0 (not itself)
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 2, role: 'wolfRobot', target: 0, extra: {} },
+        payload: {
+          seat: 2,
+          role: 'wolfRobot',
+          actionInput: { schemaId: 'wolfRobotLearn', target: 0 },
+        },
       };
 
       const result = handleSubmitAction(intent, context);
@@ -487,7 +495,11 @@ describe('handleSubmitAction', () => {
         });
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 2, role: 'wolfRobot', target: 0, extra: {} },
+          payload: {
+            seat: 2,
+            role: 'wolfRobot',
+            actionInput: { schemaId: 'wolfRobotLearn', target: 0 },
+          },
         };
 
         const success = expectSuccess(handleSubmitAction(intent, createContext(state)));
@@ -529,7 +541,7 @@ describe('handleSubmitAction', () => {
       const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 0, role: 'seer', target: 1, extra: {} }, // trying to check seat 1
+        payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } }, // trying to check seat 1
       };
 
       const result = handleSubmitAction(intent, context);
@@ -551,7 +563,7 @@ describe('handleSubmitAction', () => {
       const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 0, role: 'seer', target: null, extra: {} }, // skip
+        payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck' } }, // skip
       };
 
       const result = handleSubmitAction(intent, context);
@@ -571,7 +583,7 @@ describe('handleSubmitAction', () => {
       const context = createContext(state);
       const intent: SubmitActionIntent = {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+        payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
       };
 
       const result = handleSubmitAction(intent, context);
@@ -597,8 +609,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'magician',
-          target: null, // target is null but...
-          extra: { targets: [1, 2] }, // trying to swap via targets array
+          actionInput: { schemaId: 'magicianSwap', targets: [1, 2] },
         },
       };
 
@@ -625,8 +636,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'magician',
-          target: null,
-          extra: { targets: [] }, // skip via empty targets
+          actionInput: { schemaId: 'magicianSwap', targets: [] },
         },
       };
 
@@ -656,8 +666,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: 0, poison: null } }, // trying to save despite blocked
+          actionInput: { schemaId: 'witchAction', stepResults: { save: 0, poison: null } },
         },
       };
 
@@ -684,8 +693,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: null, poison: 0 } }, // trying to poison despite blocked
+          actionInput: { schemaId: 'witchAction', stepResults: { save: null, poison: 0 } },
         },
       };
 
@@ -713,8 +721,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: null, poison: null } }, // skip
+          actionInput: { schemaId: 'witchAction', stepResults: { save: null, poison: null } },
         },
       };
 
@@ -743,8 +750,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: 0, poison: null } },
+          actionInput: { schemaId: 'witchAction', stepResults: { save: 0, poison: null } },
         },
       };
 
@@ -770,8 +776,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'hunter',
-          target: null,
-          extra: { confirmed: true }, // trying to confirm despite being blocked
+          actionInput: { schemaId: 'hunterConfirm', confirmed: true },
         },
       };
 
@@ -797,8 +802,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'hunter',
-          target: null,
-          extra: { confirmed: false }, // skip
+          actionInput: { schemaId: 'hunterConfirm', confirmed: false },
         },
       };
 
@@ -822,8 +826,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'hunter',
-          target: null,
-          extra: { confirmed: false }, // trying to skip despite not being blocked
+          actionInput: { schemaId: 'hunterConfirm', confirmed: false },
         },
       };
 
@@ -849,8 +852,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'hunter',
-          target: null,
-          extra: { confirmed: true }, // proper confirmation
+          actionInput: { schemaId: 'hunterConfirm', confirmed: true },
         },
       };
 
@@ -876,8 +878,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'darkWolfKing',
-          target: null,
-          extra: { confirmed: true },
+          actionInput: { schemaId: 'darkWolfKingConfirm', confirmed: true },
         },
       };
 
@@ -902,8 +903,7 @@ describe('handleSubmitAction', () => {
         payload: {
           seat: 0,
           role: 'darkWolfKing',
-          target: null,
-          extra: {}, // no confirmed field = skip
+          actionInput: { schemaId: 'darkWolfKingConfirm' },
         },
       };
 

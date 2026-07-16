@@ -213,7 +213,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         // target = 0 (selects villager)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 0, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 0 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -242,7 +242,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: null, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -269,7 +269,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         // target = 1 (self, seat 1)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 1, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 1 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -289,7 +289,7 @@ describe('chooseSeat Batch Handler Contract', () => {
         // target = 1 (self)
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 1, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 1 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -310,7 +310,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 0, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 0 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -337,7 +337,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: null, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -358,7 +358,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 0, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 0 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -385,7 +385,7 @@ describe('chooseSeat Batch Handler Contract', () => {
 
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role, target: 0, extra: {} },
+          payload: { seat: 1, role: role, actionInput: { schemaId, target: 0 } },
         };
 
         const result = handleSubmitAction(intent, context);
@@ -406,7 +406,7 @@ describe('chooseSeat canSkip=false edge case', () => {
 
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 1, role: 'slacker', target: null, extra: {} },
+      payload: { seat: 1, role: 'slacker', actionInput: { schemaId: 'slackerChooseIdol' } },
     };
 
     const result = handleSubmitAction(intent, context);

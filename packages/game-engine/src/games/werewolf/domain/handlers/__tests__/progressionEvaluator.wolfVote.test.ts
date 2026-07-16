@@ -72,7 +72,7 @@ describe('isWolfVoteAllComplete', () => {
     expect(isWolfVoteAllComplete(state)).toBe(false);
   });
 
-  it('player.role missing -> false (fail-closed; the old `continue` logic would incorrectly mark complete)', () => {
+  it('fails fast when an ongoing player has no assigned role', () => {
     const state = createWolfKillState({
       players: {
         0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'wolf' },
@@ -83,10 +83,12 @@ describe('isWolfVoteAllComplete', () => {
         wolfVotesBySeat: { '0': 2 },
       },
     });
-    expect(isWolfVoteAllComplete(state)).toBe(false);
+    expect(() => isWolfVoteAllComplete(state)).toThrow(
+      '[FAIL-FAST] Player at seat 1 has no role during wolf vote',
+    );
   });
 
-  it('no participating wolves (0 wolves) -> false', () => {
+  it('fails fast when wolfKill has no participating wolves', () => {
     const state = createWolfKillState({
       players: {
         0: { userId: 'p0', seat: 0, hasViewedRole: true, role: 'villager' },
@@ -94,7 +96,9 @@ describe('isWolfVoteAllComplete', () => {
       },
       currentNightResults: {},
     });
-    expect(isWolfVoteAllComplete(state)).toBe(false);
+    expect(() => isWolfVoteAllComplete(state)).toThrow(
+      '[FAIL-FAST] wolfKill step has no participating wolves',
+    );
   });
 
   it('after repeated submits on the same target, allVoted remains true', () => {

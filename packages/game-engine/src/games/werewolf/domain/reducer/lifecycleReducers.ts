@@ -50,9 +50,7 @@ export function handleInitializeGame(state: GameState, action: InitializeGameAct
 
 /** Restart game (keep players, clear role assignments, back to Seated). */
 export function handleRestartGame(state: GameState, action: RestartGameAction): GameState {
-  // PR9: align with v1 behavior - keep players but clear roles
-  // v1: keep players unchanged, only clear role/hasViewedRole
-  // v1: status resets to GameStatus.Seated (not GameStatus.Unseated)
+  // Keep seated players while clearing role assignments and reveal state.
   const players: Record<number, (typeof state.players)[number]> = {};
   const seatCount = Object.keys(state.players).length;
 
@@ -86,7 +84,7 @@ export function handleRestartGame(state: GameState, action: RestartGameAction): 
 
     // ── Reset fields ─────────────────────────────────────────
     players,
-    status: GameStatus.Seated, // v1: reset to seated, not unseated
+    status: GameStatus.Seated,
     currentStepIndex: -1, // consistent with buildInitialGameState
     isAudioPlaying: false,
     currentStepId: undefined, // clear night step
@@ -155,10 +153,11 @@ export function handleUpdateTemplate(state: GameState, action: UpdateTemplateAct
   for (let i = 0; i < newCount; i++) {
     const existingPlayer = oldPlayers[i];
     if (existingPlayer) {
-      // Keep player but clear role (safety fallback; should not have role at this point)
+      if (existingPlayer.role != null) {
+        throw new Error(`[FAIL-FAST] UPDATE_TEMPLATE cannot resize assigned player at seat ${i}`);
+      }
       newPlayers[i] = {
         ...existingPlayer,
-        role: null,
         hasViewedRole: false,
       };
     } else {

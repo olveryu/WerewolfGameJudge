@@ -34,7 +34,7 @@ function makeContext(overrides: Partial<GameContext> = {}): GameContext {
 describe('useRoomActions.getBottomAction (server-authoritative)', () => {
   it('shows normal skip button when nightmare-blocked (no forced label)', () => {
     const chooseSeatSchema: ActionSchema = {
-      id: 'seerAction',
+      id: 'seerCheck',
       kind: 'chooseSeat',
       displayName: '查验',
       constraints: [],
@@ -67,7 +67,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
 
   it('shows wolf empty-vote label from schema.ui.emptyVoteText', () => {
     const wolfVoteSchema: ActionSchema = {
-      id: 'wolfVote',
+      id: 'wolfKill',
       kind: 'wolfVote',
       displayName: '袭击',
       constraints: [],
@@ -110,7 +110,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
 
   it('hides when chooseSeat schema has canSkip=false', () => {
     const chooseSeatSchema: ActionSchema = {
-      id: 'seerAction',
+      id: 'seerCheck',
       kind: 'chooseSeat',
       displayName: '查验',
       constraints: [],
@@ -137,7 +137,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
 
   it('blocked wolf during wolfVote shows normal empty vote (no forced skip)', () => {
     const wolfVoteSchema: ActionSchema = {
-      id: 'wolfVote',
+      id: 'wolfKill',
       kind: 'wolfVote',
       displayName: '袭击',
       constraints: [],
@@ -178,7 +178,7 @@ describe('useRoomActions.getBottomAction (server-authoritative)', () => {
 describe('useRoomActions.getActionIntent (server-authoritative)', () => {
   it('blocked player tapping seat returns normal intent (server validates)', () => {
     const chooseSeatSchema: ActionSchema = {
-      id: 'seerAction',
+      id: 'seerCheck',
       kind: 'chooseSeat',
       displayName: '查验',
       constraints: [],
@@ -221,7 +221,7 @@ describe('useRoomActions.getActionIntent (server-authoritative)', () => {
 
   it('non-blocked player tapping seat returns normal intent', () => {
     const chooseSeatSchema: ActionSchema = {
-      id: 'seerAction',
+      id: 'seerCheck',
       kind: 'chooseSeat',
       displayName: '查验',
       constraints: [],

@@ -11,15 +11,14 @@
  */
 
 import { formatSeat } from '../../../../platform/room/formatSeat';
-import { SCHEMAS } from '../models';
-import type { MultiChooseSeatSchema } from '../models/roles/spec/schema.types';
+import { getSchemaOfKind } from '../models';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
 
 export const piperHypnotizeResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players } = context;
   const targets = input.targets;
-  const schema: MultiChooseSeatSchema = SCHEMAS.piperHypnotize as MultiChooseSeatSchema;
+  const schema = getSchemaOfKind('piperHypnotize', 'multiChooseSeat');
 
   // Piper can skip (canSkip: true)
   if (!targets || targets.length === 0) {

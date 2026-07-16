@@ -8,85 +8,10 @@
 import type { NightPlan, NightPlanStep } from './plan.types';
 import { NightPlanBuildError } from './plan.types';
 export type { NightPlan, NightPlanStep };
-import type { NightStepDef, RoleSpec } from './roleSpec.types';
-import { isValidRoleId, ROLE_SPECS, type RoleId } from './specs';
-
-// =============================================================================
-// NIGHT_STEP_ORDER — global step execution order (single source of truth)
-// =============================================================================
-
-/**
- * Global step execution order.
- *
- * Array position = authority. Replaces V1's NIGHT_STEPS array ordering.
- * Each entry is a stepId matching a NightStepDef.stepId in ROLE_SPECS_V2.
- */
-const NIGHT_STEP_ORDER_INTERNAL = [
-  // === Deck card roles (act first, pick deck card identity) ===
-  'thiefChoose',
-  'treasureMasterChoose',
-
-  // === Cupid (after deck cards, before other special roles) ===
-  'cupidChooseLovers',
-  'cupidLoversReveal',
-
-  // === Special roles (act first) ===
-  'magicianSwap',
-  'slackerChooseIdol',
-  'wildChildChooseIdol',
-  'shadowChooseMimic',
-  'avengerConfirm',
-
-  // === Eclipse Wolf Queen shelter (before all good faction actions) ===
-  'eclipseWolfQueenShelter',
-
-  // === Protect/check (before kill) ===
-  'nightmareBlock',
-  'dreamcatcherDream',
-  'guardProtect',
-  'silenceElderSilence',
-  'votebanElderBan',
-  'crowCurse',
-
-  // === Wolf meeting phase ===
-  'wolfKill',
-  'wolfQueenCharm',
-  'hiddenWolfReveal',
-
-  // === Witch / Poisoner ===
-  'witchAction',
-  'poisonerPoison',
-
-  // === Confirm types ===
-  'hunterConfirm',
-  'darkWolfKingConfirm',
-
-  // === Last four roles (Wolf Robot -> Seer -> Gargoyle -> Psychic) ===
-  'wolfRobotLearn',
-  'seerCheck',
-  'mirrorSeerCheck',
-  'drunkSeerCheck',
-  'wolfWitchCheck',
-  'gargoyleCheck',
-  'pureWhiteCheck',
-  'psychicCheck',
-
-  // === Awakened Gargoyle conversion (after check types) ===
-  'awakenedGargoyleConvert',
-
-  // === Piper (hypnotize -> all-confirm) ===
-  'piperHypnotize',
-  'piperHypnotizedReveal',
-
-  // === Awakened Gargoyle conversion reveal (last) ===
-  'awakenedGargoyleConvertReveal',
-] as const;
-
-/** Public readonly array for external consumers. */
-export const NIGHT_STEP_ORDER: readonly NightStepId[] = [...NIGHT_STEP_ORDER_INTERNAL];
-
-/** Literal union of all step IDs (= SchemaId). Derived from NIGHT_STEP_ORDER. */
-export type NightStepId = (typeof NIGHT_STEP_ORDER_INTERNAL)[number];
+import type { NightStepDef } from './roleSpec.types';
+import { getAllRoleIds, getRoleSpec, isValidRoleId, type RoleId } from './specs';
+export { NIGHT_STEP_ORDER, type NightStepId } from './nightStepIds';
+import { NIGHT_STEP_ORDER, type NightStepId } from './nightStepIds';
 
 // =============================================================================
 // Builder
@@ -104,8 +29,15 @@ export function buildNightPlan(
   templateRoles: readonly string[],
   seerLabelMap?: Readonly<Record<string, number>>,
 ): NightPlan {
-  // Fail-fast: validate all roleIds
-  const invalidRoleIds = templateRoles.filter((id) => !isValidRoleId(id));
+  const canonicalRoleIds: RoleId[] = [];
+  const invalidRoleIds: string[] = [];
+  for (const roleId of templateRoles) {
+    if (isValidRoleId(roleId)) {
+      canonicalRoleIds.push(roleId);
+    } else {
+      invalidRoleIds.push(roleId);
+    }
+  }
   if (invalidRoleIds.length > 0) {
     throw new NightPlanBuildError(
       `Invalid roleIds in template: ${invalidRoleIds.join(', ')}. All roleIds must be canonical.`,
@@ -113,19 +45,18 @@ export function buildNightPlan(
     );
   }
 
-  const templateRoleSet = new Set(templateRoles);
+  const templateRoleSet = new Set(canonicalRoleIds);
 
   // Check if any wolf participates in vote (for wolfKill step inclusion)
-  const hasWolfVotingParticipant = templateRoles.some((roleId) => {
-    const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
-    return spec.recognition?.participatesInWolfVote === true;
+  const hasWolfVotingParticipant = canonicalRoleIds.some((roleId) => {
+    return getRoleSpec(roleId).recognition?.participatesInWolfVote === true;
   });
 
   // Collect step definitions from specs
-  const stepMap = new Map<string, { roleId: string; stepDef: NightStepDef }>();
+  const stepMap = new Map<NightStepId, { roleId: RoleId; stepDef: NightStepDef }>();
 
-  for (const roleId of Object.keys(ROLE_SPECS) as RoleId[]) {
-    const spec: RoleSpec = ROLE_SPECS[roleId];
+  for (const roleId of getAllRoleIds()) {
+    const spec = getRoleSpec(roleId);
     if (!spec.nightSteps) continue;
 
     // wolfKill special case: include wolf's steps only if any wolf votes
@@ -141,33 +72,43 @@ export function buildNightPlan(
   }
 
   // Build steps ordered by NIGHT_STEP_ORDER
-  let steps: NightPlanStep[] = NIGHT_STEP_ORDER.filter((stepId) => stepMap.has(stepId)).map(
-    (stepId, idx) => {
-      const { roleId, stepDef } = stepMap.get(stepId)!;
-      const spec: RoleSpec = ROLE_SPECS[roleId as RoleId];
-      return {
-        roleId: roleId as RoleId,
-        stepId: stepId,
-        order: idx,
-        displayName: spec.displayName,
-        audioKey: stepDef.audioKey ?? roleId,
-      };
-    },
-  );
+  let steps: NightPlanStep[] = [];
+  for (const stepId of NIGHT_STEP_ORDER) {
+    const entry = stepMap.get(stepId);
+    if (!entry) continue;
+    const { roleId, stepDef } = entry;
+    steps.push({
+      roleId,
+      stepId,
+      order: steps.length,
+      displayName: getRoleSpec(roleId).displayName,
+      audioKey: stepDef.audioKey ?? roleId,
+    });
+  }
 
   // Reorder seer-like steps by label number when seerLabelMap is provided
   if (seerLabelMap) {
     const seerIndices: number[] = [];
-    const seerSteps: NightPlanStep[] = [];
+    const seerSteps: { step: NightPlanStep; label: number }[] = [];
     for (let i = 0; i < steps.length; i++) {
-      if (seerLabelMap[steps[i]!.roleId] != null) {
+      const step = steps[i];
+      if (!step) {
+        throw new Error(`[nightPlan] Missing step at index ${i}`);
+      }
+      const label = seerLabelMap[step.roleId];
+      if (label !== undefined) {
         seerIndices.push(i);
-        seerSteps.push(steps[i]!);
+        seerSteps.push({ step, label });
       }
     }
-    seerSteps.sort((a, b) => seerLabelMap[a.roleId]! - seerLabelMap[b.roleId]!);
+    seerSteps.sort((a, b) => a.label - b.label);
     for (let i = 0; i < seerIndices.length; i++) {
-      steps[seerIndices[i]!] = seerSteps[i]!;
+      const targetIndex = seerIndices[i];
+      const orderedStep = seerSteps[i];
+      if (targetIndex === undefined || !orderedStep) {
+        throw new Error('[nightPlan] Seer ordering index mismatch');
+      }
+      steps[targetIndex] = orderedStep.step;
     }
     // Recompute order
     steps = steps.map((s, i) => ({ ...s, order: i }));

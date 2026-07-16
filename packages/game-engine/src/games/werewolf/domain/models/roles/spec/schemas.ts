@@ -5,51 +5,87 @@
  * Exports the buildSchemas pure function; no service dependencies, no side effects or IO.
  */
 
-import type { ActiveAbility, NightStepUi } from './ability.types';
+import type { ActiveAbility, NightStepUi, TargetRule } from './ability.types';
+import { isNightStepId, NIGHT_STEP_ORDER, type NightStepId } from './nightStepIds';
 import type { NightStepDef, RoleSpec } from './roleSpec.types';
 import type { ActionSchema, InlineSubStepSchema, RevealKind, SchemaUi } from './schema.types';
-import { ROLE_SPECS } from './specs';
+import { getAllRoleIds, getRoleSpec, type RoleId } from './specs';
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
-type SpecRoleId = keyof typeof ROLE_SPECS;
-
-/** Roles whose check/learn effects produce a revealKind in the schema UI. */
-const REVEAL_ROLE_IDS = new Set<string>([
-  'seer',
-  'mirrorSeer',
-  'drunkSeer',
-  'psychic',
-  'gargoyle',
-  'pureWhite',
-  'wolfWitch',
-  'wolfRobot',
-]);
-
 /**
  * Find the matching active ability for a night step by actionKind.
  * Returns undefined if no matching ability (e.g. groupConfirm reveal steps).
  */
-function findMatchingAbility(spec: RoleSpec, step: NightStepDef): ActiveAbility | undefined {
+function findMatchingAbility(
+  spec: RoleSpec<RoleId>,
+  step: NightStepDef,
+): ActiveAbility<RoleId> | undefined {
   return spec.abilities.find(
-    (a): a is ActiveAbility => a.type === 'active' && a.actionKind === step.actionKind,
+    (ability): ability is ActiveAbility<RoleId> =>
+      ability.type === 'active' && ability.actionKind === step.actionKind,
   );
+}
+
+function requireMatchingAbility(
+  roleId: RoleId,
+  step: NightStepDef,
+  ability: ActiveAbility<RoleId> | undefined,
+): ActiveAbility<RoleId> {
+  if (!ability) {
+    throw new Error(
+      `[schemas] ${roleId}.${step.stepId} has no active ability for ${step.actionKind}`,
+    );
+  }
+  return ability;
+}
+
+function requireTargetRule(
+  roleId: RoleId,
+  step: NightStepDef,
+  ability: ActiveAbility<RoleId>,
+): TargetRule {
+  if (!ability.target) {
+    throw new Error(`[schemas] ${roleId}.${step.stepId} requires a target rule`);
+  }
+  return ability.target;
+}
+
+function getRevealKind(roleId: RoleId): RevealKind | undefined {
+  switch (roleId) {
+    case 'seer':
+    case 'mirrorSeer':
+    case 'drunkSeer':
+    case 'psychic':
+    case 'gargoyle':
+    case 'pureWhite':
+    case 'wolfWitch':
+    case 'wolfRobot':
+      return roleId;
+    default:
+      return undefined;
+  }
 }
 
 /**
  * Build SchemaUi from NightStepUi, adding revealKind when applicable.
  * NightStepUi is structurally assignable to SchemaUi (a superset of shared optional fields).
  */
-function buildSchemaUi(roleId: string, stepUi: NightStepUi, ability?: ActiveAbility): SchemaUi {
-  const base = stepUi as SchemaUi;
+function buildSchemaUi(
+  roleId: RoleId,
+  stepUi: NightStepUi,
+  ability?: ActiveAbility<RoleId>,
+): SchemaUi {
+  const base: SchemaUi = { ...stepUi };
+  const revealKind = getRevealKind(roleId);
 
   // Derive revealKind for check/learn effects
-  if (REVEAL_ROLE_IDS.has(roleId) && ability) {
+  if (revealKind && ability) {
     const hasRevealEffect = ability.effects.some((e) => e.kind === 'check' || e.kind === 'learn');
     if (hasRevealEffect) {
-      return { ...base, revealKind: roleId as RevealKind };
+      return { ...base, revealKind };
     }
   }
 
@@ -60,40 +96,53 @@ function buildSchemaUi(roleId: string, stepUi: NightStepUi, ability?: ActiveAbil
  * Build an ActionSchema from a NightStepDef and its matching ability.
  */
 function buildSchema(
-  roleId: string,
+  roleId: RoleId,
   step: NightStepDef,
-  ability: ActiveAbility | undefined,
+  ability: ActiveAbility<RoleId> | undefined,
 ): ActionSchema {
   const ui = buildSchemaUi(roleId, step.ui, ability);
 
   switch (step.actionKind) {
-    case 'chooseSeat':
+    case 'chooseSeat': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
+      const target = requireTargetRule(roleId, step, activeAbility);
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'chooseSeat',
-        constraints: ability?.target?.constraints ?? [],
-        canSkip: ability?.canSkip ?? true,
+        constraints: target.constraints,
+        canSkip: activeAbility.canSkip,
         ui,
       };
+    }
 
-    case 'wolfVote':
+    case 'wolfVote': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
+      const target = requireTargetRule(roleId, step, activeAbility);
+      if (!step.meeting) {
+        throw new Error(`[schemas] ${roleId}.${step.stepId} requires meeting configuration`);
+      }
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'wolfVote',
-        constraints: ability?.target?.constraints ?? [],
-        meeting: step.meeting!,
+        constraints: target.constraints,
+        meeting: step.meeting,
         ui,
       };
+    }
 
-    case 'compound':
+    case 'compound': {
+      requireMatchingAbility(roleId, step, ability);
+      if (!step.compoundSteps) {
+        throw new Error(`[schemas] ${roleId}.${step.stepId} requires compound steps`);
+      }
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'compound',
         ui,
-        steps: (step.compoundSteps ?? []).map(
+        steps: step.compoundSteps.map(
           (sub): InlineSubStepSchema => ({
             key: sub.key,
             displayName: sub.displayName,
@@ -104,37 +153,46 @@ function buildSchema(
           }),
         ),
       };
+    }
 
-    case 'swap':
+    case 'swap': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
+      const target = requireTargetRule(roleId, step, activeAbility);
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'swap',
-        constraints: ability?.target?.constraints ?? [],
-        canSkip: ability?.canSkip ?? true,
+        constraints: target.constraints,
+        canSkip: activeAbility.canSkip,
         ui,
       };
+    }
 
-    case 'confirm':
+    case 'confirm': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'confirm',
-        canSkip: ability?.canSkip ?? true,
+        canSkip: activeAbility.canSkip,
         ui,
       };
+    }
 
-    case 'multiChooseSeat':
+    case 'multiChooseSeat': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
+      const target = requireTargetRule(roleId, step, activeAbility);
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'multiChooseSeat',
-        constraints: ability?.target?.constraints ?? [],
-        minTargets: ability?.target?.count.min ?? 1,
-        maxTargets: ability?.target?.count.max ?? 2,
-        canSkip: ability?.canSkip ?? true,
+        constraints: target.constraints,
+        minTargets: target.count.min,
+        maxTargets: target.count.max,
+        canSkip: activeAbility.canSkip,
         ui,
       };
+    }
 
     case 'groupConfirm':
       return {
@@ -145,14 +203,16 @@ function buildSchema(
         ui,
       };
 
-    case 'chooseCard':
+    case 'chooseCard': {
+      const activeAbility = requireMatchingAbility(roleId, step, ability);
       return {
         id: step.stepId,
         displayName: step.displayName,
         kind: 'chooseCard',
-        canSkip: ability?.canSkip ?? false,
+        canSkip: activeAbility.canSkip,
         ui,
       };
+    }
   }
 }
 
@@ -166,16 +226,31 @@ function buildSchema(
  * Iterates all roles with nightSteps, matches each step to its active ability
  * for constraint/canSkip extraction, and produces the ActionSchema shape.
  */
-export function buildSchemas(): Record<string, ActionSchema> {
+export function buildSchemas(): Record<NightStepId, ActionSchema> {
   const result: Record<string, ActionSchema> = {};
 
-  for (const roleId of Object.keys(ROLE_SPECS) as SpecRoleId[]) {
-    const spec: RoleSpec = ROLE_SPECS[roleId];
+  for (const roleId of getAllRoleIds()) {
+    const spec = getRoleSpec(roleId);
     if (!spec.nightSteps) continue;
 
     for (const step of spec.nightSteps) {
+      if (Object.hasOwn(result, step.stepId)) {
+        throw new Error(`[schemas] Duplicate night step: ${step.stepId}`);
+      }
       const ability = findMatchingAbility(spec, step);
       result[step.stepId] = buildSchema(roleId, step, ability);
+    }
+  }
+
+  for (const stepId of NIGHT_STEP_ORDER) {
+    if (!Object.hasOwn(result, stepId)) {
+      throw new Error(`[schemas] Missing schema for night step: ${stepId}`);
+    }
+  }
+
+  for (const schemaId of Object.keys(result)) {
+    if (!isNightStepId(schemaId)) {
+      throw new Error(`[schemas] Schema is not in the canonical night order: ${schemaId}`);
     }
   }
 
@@ -186,16 +261,14 @@ export function buildSchemas(): Record<string, ActionSchema> {
 // Cached Registry + Helpers
 // =============================================================================
 
-import type { NightStepId } from './plan';
-
 /** Build once at module init (deterministic, no side effects) */
-const _SCHEMAS: Record<string, ActionSchema> = buildSchemas();
+const BUILT_SCHEMAS = buildSchemas();
 
 /**
  * Complete action schema registry — derived from ROLE_SPECS.
  * Keyed by NightStepId (e.g. 'seerCheck', 'wolfKill', 'witchAction').
  */
-export const SCHEMAS = _SCHEMAS as Record<NightStepId, ActionSchema>;
+export const SCHEMAS: Readonly<Record<NightStepId, ActionSchema>> = BUILT_SCHEMAS;
 
 /** Schema ID type — alias for NightStepId. */
 export type SchemaId = NightStepId;
@@ -205,12 +278,30 @@ export function getSchema(id: SchemaId): ActionSchema {
   return SCHEMAS[id];
 }
 
+export function getSchemaOfKind<K extends ActionSchema['kind']>(
+  id: SchemaId,
+  kind: K,
+): Extract<ActionSchema, { readonly kind: K }> {
+  const schema = getSchema(id);
+  if (!isSchemaKind(schema, kind)) {
+    throw new Error(`[schemas] ${id} has kind ${schema.kind}; expected ${kind}`);
+  }
+  return schema;
+}
+
+function isSchemaKind<K extends ActionSchema['kind']>(
+  schema: ActionSchema,
+  kind: K,
+): schema is Extract<ActionSchema, { readonly kind: K }> {
+  return schema.kind === kind;
+}
+
 /** Check if a string is a valid SchemaId */
 export function isValidSchemaId(id: string): id is SchemaId {
-  return id in SCHEMAS;
+  return isNightStepId(id) && Object.hasOwn(SCHEMAS, id);
 }
 
 /** Get all schema IDs */
 export function getAllSchemaIds(): SchemaId[] {
-  return Object.keys(SCHEMAS) as SchemaId[];
+  return [...NIGHT_STEP_ORDER];
 }

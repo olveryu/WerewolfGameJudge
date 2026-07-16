@@ -9,6 +9,7 @@
 import {
   buildNightPlan,
   buildSchemas,
+  getAllSchemaIds,
   NIGHT_STEP_ORDER,
   NIGHT_STEPS,
   ROLE_SPECS,
@@ -73,7 +74,7 @@ describe('buildNightPlan', () => {
 
 describe('buildSchemas ↔ SCHEMAS equivalence', () => {
   const builtSchemas = buildSchemas();
-  const schemaKeys = Object.keys(SCHEMAS).sort();
+  const schemaKeys = getAllSchemaIds().sort();
   const builtSchemaKeys = Object.keys(builtSchemas).sort();
 
   it('should produce same schema key set', () => {
@@ -81,9 +82,9 @@ describe('buildSchemas ↔ SCHEMAS equivalence', () => {
   });
 
   describe.each(schemaKeys)('schema "%s"', (schemaId) => {
-    const cached = SCHEMAS[schemaId as keyof typeof SCHEMAS];
+    const cached = SCHEMAS[schemaId];
 
-    const built = builtSchemas[schemaId]!;
+    const built = builtSchemas[schemaId];
 
     it('should have same actionKind', () => {
       expect(built.kind).toBe(cached.kind);

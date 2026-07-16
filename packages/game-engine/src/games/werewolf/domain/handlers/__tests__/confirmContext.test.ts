@@ -135,7 +135,7 @@ describe('maybeCreateConfirmStatusAction', () => {
 
   // ---- invalid state ----
 
-  it('角色不在 players 中（异常态）→ canShoot = false（fail-closed）', () => {
+  it('角色不在 players 中（异常态）时立即失败', () => {
     const state = createOngoingState({
       // templateRoles still contains hunter, but players does not
       players: {
@@ -144,11 +144,9 @@ describe('maybeCreateConfirmStatusAction', () => {
       },
       currentNightResults: {},
     });
-    const action = maybeCreateConfirmStatusAction('hunterConfirm', state);
-    expect(action).toEqual({
-      type: 'SET_CONFIRM_STATUS',
-      payload: { role: 'hunter', canShoot: false },
-    });
+    expect(() => maybeCreateConfirmStatusAction('hunterConfirm', state)).toThrow(
+      '[FAIL-FAST] hunter confirm step has no assigned role seat',
+    );
   });
 
   // ---- gate logic ----
@@ -423,7 +421,7 @@ describe('maybeCreateConfirmStatusAction', () => {
     });
   });
 
-  it('影子未选人（被封锁）→ 复仇者兗底好人阵营 (faction = good)', () => {
+  it('复仇者缺少已解析阵营时立即失败', () => {
     const state = createOngoingState({
       templateRoles: [
         'wolf',
@@ -453,11 +451,9 @@ describe('maybeCreateConfirmStatusAction', () => {
       },
       currentNightResults: {}, // no shadowMimicTarget
     });
-    const action = maybeCreateConfirmStatusAction('avengerConfirm', state);
-    expect(action).toEqual({
-      type: 'SET_CONFIRM_STATUS',
-      payload: { role: 'avenger', faction: Team.Good },
-    });
+    expect(() => maybeCreateConfirmStatusAction('avengerConfirm', state)).toThrow(
+      '[FAIL-FAST] Avenger confirm step has no resolved faction',
+    );
   });
 
   it('影子模仿复仇者 → 绑定 (faction = Team.Third)', () => {

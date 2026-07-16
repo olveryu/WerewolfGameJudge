@@ -161,7 +161,7 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -192,7 +192,7 @@ describe('Gate Contract: nightmare blocked reason stability', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: null, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck' } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -227,7 +227,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'guard', target: 1, extra: {} },
+      payload: { seat: 0, role: 'guard', actionInput: { schemaId: 'guardProtect', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -249,7 +249,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -269,7 +269,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -290,7 +290,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -311,7 +311,7 @@ describe('Gate Contract: audio gate priority (handler level)', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'wolf', target: 1, extra: {} },
+      payload: { seat: 0, role: 'wolf', actionInput: { schemaId: 'wolfKill', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -347,7 +347,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const context1 = createContext(state1);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result1 = handleSubmitAction(intent, context1);
@@ -383,7 +383,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     // First submit
@@ -414,7 +414,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const context1 = createContext(state1);
     const intent1: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 1, role: 'wolf', target: 0, extra: {} },
+      payload: { seat: 1, role: 'wolf', actionInput: { schemaId: 'wolfKill', target: 0 } },
     };
 
     const result1 = handleSubmitAction(intent1, context1);
@@ -448,7 +448,7 @@ describe('Gate Contract: duplicate submit idempotency', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', target: 0, extra: {} },
+      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -508,7 +508,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     };
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -524,7 +524,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -540,7 +540,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);
@@ -556,7 +556,7 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
     const context = createContext(state);
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: {} },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
 
     const result = handleSubmitAction(intent, context);

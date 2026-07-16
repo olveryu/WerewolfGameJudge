@@ -30,6 +30,7 @@ import type {
   HandlerResult,
 } from '@game-judge/game-engine/games/werewolf/testing';
 import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/testing';
+import type { ActionInput } from '@game-judge/game-engine/games/werewolf/testing';
 import type { StateAction } from '@game-judge/game-engine/games/werewolf/testing';
 import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/testing';
 import {
@@ -345,6 +346,29 @@ export function createGame(
 
     const context = createContext(internal.state);
 
+    const createActionInput = (
+      target: number | null,
+      extra?: {
+        readonly confirmed?: boolean;
+        readonly targets?: readonly number[];
+        readonly stepResults?: Readonly<Record<string, number | null>>;
+        readonly cardIndex?: number;
+      },
+    ): ActionInput => {
+      const schemaId = internal.state.currentStepId;
+      if (!schemaId) {
+        throw new Error('[FAIL-FAST] Test player action submitted without a current step');
+      }
+      return {
+        schemaId,
+        target: target ?? undefined,
+        confirmed: extra?.confirmed,
+        targets: extra?.targets,
+        stepResults: extra?.stepResults,
+        cardIndex: extra?.cardIndex,
+      };
+    };
+
     switch (msg.type) {
       case 'ACTION': {
         const intent: SubmitActionIntent = {
@@ -352,8 +376,7 @@ export function createGame(
           payload: {
             seat: msg.seat,
             role: msg.role,
-            target: msg.target,
-            extra: msg.extra,
+            actionInput: createActionInput(msg.target, msg.extra),
           },
         };
         const result = executeSubmitAction(intent, context, execution);
@@ -361,13 +384,16 @@ export function createGame(
       }
 
       case 'WOLF_VOTE': {
+        const playerRole = state.players[msg.seat]?.role;
+        if (!playerRole) {
+          throw new Error(`[FAIL-FAST] Wolf vote actor seat ${msg.seat} has no assigned role`);
+        }
         const intent: SubmitActionIntent = {
           type: 'SUBMIT_ACTION',
           payload: {
             seat: msg.seat,
-            role: state.players[msg.seat]?.role ?? 'wolf',
-            target: msg.target === -1 ? null : msg.target,
-            extra: {},
+            role: playerRole,
+            actionInput: createActionInput(msg.target === -1 ? null : msg.target),
           },
         };
         const result = executeSubmitAction(intent, context, execution);

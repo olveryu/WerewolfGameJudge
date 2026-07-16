@@ -7,6 +7,8 @@
  * No service dependencies, no side effects or flow control.
  */
 
+import type { NightStepId } from './nightStepIds';
+
 // === Confirm Status Dialog UI (discriminated union, kind tag) ===
 
 /** Binary-state confirm UI — Hunter/Wolf King: can/cannot use ability */
@@ -203,7 +205,7 @@ export interface SchemaUi {
 
 /** Base schema interface */
 interface BaseActionSchema {
-  readonly id: string;
+  readonly id: NightStepId;
   readonly displayName: string;
   readonly ui?: SchemaUi;
 }

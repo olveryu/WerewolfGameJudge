@@ -1,5 +1,5 @@
 /**
- * V2 Role Specification — core types for role definitions
+ * Role Specification — core types for role definitions
  *
  * The single source of truth for everything a role IS and DOES.
  * Handler code only fills gaps that cannot be expressed declaratively (customResolver).
@@ -16,6 +16,7 @@ import type {
   RecognitionConfig,
   Resource,
 } from './ability.types';
+import type { NightStepId } from './nightStepIds';
 import type { Faction, Team } from './types';
 
 /**
@@ -67,14 +68,14 @@ export interface RoleDescription {
 }
 
 /**
- * Complete Role Specification v2
+ * Complete Role Specification
  *
  * The single source of truth for everything a role IS and DOES.
  * Handler code only fills gaps that cannot be expressed declaratively.
  */
-export interface RoleSpec {
+export interface RoleSpec<TRoleId extends string = string> {
   // --- Identity ---
-  readonly id: string;
+  readonly id: TRoleId;
   readonly displayName: string;
   readonly shortName: string;
   readonly emoji: string;
@@ -89,7 +90,7 @@ export interface RoleSpec {
   readonly groups?: readonly RoleGroupTag[];
 
   // --- Abilities ---
-  readonly abilities: readonly Ability[];
+  readonly abilities: readonly Ability<TRoleId>[];
 
   // --- Immunities ---
   readonly immunities?: readonly Immunity[];
@@ -111,7 +112,7 @@ export interface RoleSpec {
   readonly description: string;
   readonly structuredDescription?: RoleDescription;
   /** Disguised identity for player-facing UI */
-  readonly displayAs?: string;
+  readonly displayAs?: TRoleId;
 
   // --- Death Calculation Participation ---
   /**
@@ -126,7 +127,7 @@ export interface RoleSpec {
  */
 export interface NightStepDef {
   /** Step/schema ID (must be globally unique) */
-  readonly stepId: string;
+  readonly stepId: NightStepId;
   /** Display name for this step's schema (e.g. '查验', '守护') */
   readonly displayName: string;
   /** Audio key for this step (defaults to role ID) */

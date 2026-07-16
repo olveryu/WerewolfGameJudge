@@ -19,10 +19,9 @@
  *   deriveConfirmStepRoleMap() builds a static mapping from ROLE_SPECS at module load time.
  */
 
-import { type SchemaId } from '../models/roles/spec';
-import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
-import { Faction, Team } from '../models/roles/spec/types';
+import { type RoleId, type SchemaId } from '../models/roles/spec';
+import { getAllRoleIds, getRoleSpec } from '../models/roles/spec/specs';
+import { Faction } from '../models/roles/spec/types';
 import { findSeatByRole } from '../playerHelpers';
 import type { ConfirmStatus, WolfTeammatesConfirmStatus } from '../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
@@ -30,18 +29,30 @@ import type { NonNullState } from './types';
 
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf';
 
+function isConfirmRole(roleId: RoleId): roleId is ConfirmRole {
+  return (
+    roleId === 'hunter' ||
+    roleId === 'darkWolfKing' ||
+    roleId === 'avenger' ||
+    roleId === 'hiddenWolf'
+  );
+}
+
 /**
  * Derive the confirm-step → role mapping from ROLE_SPECS.
  * Scans for roles with confirm-kind nightSteps.
  */
-function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
-  const map: Record<string, ConfirmRole> = {};
-  for (const [roleId, rawSpec] of Object.entries(ROLE_SPECS)) {
-    const spec = rawSpec as RoleSpec;
+function deriveConfirmStepRoleMap(): Partial<Record<SchemaId, ConfirmRole>> {
+  const map: Partial<Record<SchemaId, ConfirmRole>> = {};
+  for (const roleId of getAllRoleIds()) {
+    const spec = getRoleSpec(roleId);
     if (!spec.nightSteps) continue;
     for (const step of spec.nightSteps) {
       if (step.actionKind === 'confirm') {
-        map[step.stepId] = roleId as ConfirmRole;
+        if (!isConfirmRole(roleId)) {
+          throw new Error(`[confirmContext] Unsupported confirm role: ${roleId}`);
+        }
+        map[step.stepId] = roleId;
       }
     }
   }
@@ -49,7 +60,7 @@ function deriveConfirmStepRoleMap(): Record<string, ConfirmRole> {
 }
 
 /** hunterConfirm / darkWolfKingConfirm / avengerConfirm stepId -> role mapping */
-const CONFIRM_STEP_ROLE: Record<string, ConfirmRole> = deriveConfirmStepRoleMap();
+const CONFIRM_STEP_ROLE = deriveConfirmStepRoleMap();
 
 /**
  * Determine whether a seat can shoot at night (only when killed by wolves or exiled by vote).
@@ -86,9 +97,8 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
   // Hunter / DarkWolfKing
   const roleSeat = findSeatByRole(state.players, role);
 
-  // Fail-closed: if the role seat is not found, canShoot = false (abnormal state should not trigger the skill)
   if (roleSeat === null) {
-    return { role, canShoot: false };
+    throw new Error(`[FAIL-FAST] ${role} confirm step has no assigned role seat`);
   }
 
   return { role, canShoot: computeCanShootForSeat(roleSeat, state) };
@@ -101,9 +111,13 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
  * Just read it here; no need to re-derive. No target selected (blocked / not in template) -> default to good faction.
  */
 function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
+  const faction = state.currentNightResults?.avengerFaction;
+  if (!faction) {
+    throw new Error('[FAIL-FAST] Avenger confirm step has no resolved faction');
+  }
   return {
     role: 'avenger',
-    faction: state.currentNightResults?.avengerFaction ?? Team.Good,
+    faction,
   };
 }
 
@@ -116,9 +130,13 @@ function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfi
   const wolfTeammates: number[] = [];
   for (const [seatStr, player] of Object.entries(state.players)) {
     if (!player?.role) continue;
-    const spec = ROLE_SPECS[player.role];
+    const spec = getRoleSpec(player.role);
     if (spec.faction === Faction.Wolf && player.role !== 'hiddenWolf') {
-      wolfTeammates.push(Number.parseInt(seatStr, 10));
+      const seat = Number.parseInt(seatStr, 10);
+      if (!Number.isSafeInteger(seat)) {
+        throw new Error(`[FAIL-FAST] Invalid player seat key: ${seatStr}`);
+      }
+      wolfTeammates.push(seat);
     }
   }
   return { role: 'hiddenWolf', wolfTeammates };

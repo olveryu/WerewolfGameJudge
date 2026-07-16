@@ -122,16 +122,15 @@ describe('UPDATE_TEMPLATE player retention', () => {
     expect(newState.status).toBe(GameStatus.Seated);
   });
 
-  it('should clear role if player somehow has one (safety fallback)', () => {
+  it('should fail fast if an assigned player reaches template resizing', () => {
     const state = createStateWithPlayers([{ userId: 'u1', displayName: 'Player1', role: 'wolf' }]);
 
-    const newState = gameReducer(state, {
-      type: 'UPDATE_TEMPLATE',
-      payload: { templateRoles: ['villager'] },
-    });
-
-    expect(newState.players[0]?.role).toBeNull();
-    expect(newState.players[0]?.hasViewedRole).toBe(false);
+    expect(() =>
+      gameReducer(state, {
+        type: 'UPDATE_TEMPLATE',
+        payload: { templateRoles: ['villager'] },
+      }),
+    ).toThrow('[FAIL-FAST] UPDATE_TEMPLATE cannot resize assigned player at seat 0');
   });
 
   it('should preserve avatarUrl when retaining players', () => {

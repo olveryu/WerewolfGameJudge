@@ -21,7 +21,7 @@ import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
 import type { HandlerContext, HandlerExecutionContext, SideEffect } from './handlers/types';
-import { GameStatus, type SchemaId, SCHEMAS } from './models';
+import { GameStatus, SCHEMAS } from './models';
 import { getStepSpec } from './models/roles/spec/nightSteps';
 import type { AudioEffect, GameState } from './protocol/types';
 import { gameReducer } from './reducer/gameReducer';
@@ -66,8 +66,8 @@ function isStepComplete(state: GameState): boolean {
   }
 
   // groupConfirm steps: complete when all seated players have acked.
-  const schema = SCHEMAS[stepId as SchemaId];
-  if (schema?.kind === 'groupConfirm') {
+  const schema = SCHEMAS[stepId];
+  if (schema.kind === 'groupConfirm') {
     const acks =
       stepId === 'awakenedGargoyleConvertReveal'
         ? (state.conversionRevealAcks ?? [])

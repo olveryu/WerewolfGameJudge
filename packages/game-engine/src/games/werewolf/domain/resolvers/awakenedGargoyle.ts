@@ -9,15 +9,14 @@
  * NOTE: Nightmare block guard is handled at actionHandler layer (single-point guard).
  */
 
-import { SCHEMAS } from '../models';
-import type { ChooseSeatSchema } from '../models/roles/spec/schema.types';
+import { getSchemaOfKind } from '../models';
 import { validateConstraints } from './constraintValidator';
 import type { ResolverContext, ResolverFn } from './types';
 
 export const awakenedGargoyleConvertResolver: ResolverFn = (context: ResolverContext, input) => {
   const { actorSeat, players, currentNightResults } = context;
   const target = input.target;
-  const schema: ChooseSeatSchema = SCHEMAS.awakenedGargoyleConvert as ChooseSeatSchema;
+  const schema = getSchemaOfKind('awakenedGargoyleConvert', 'chooseSeat');
 
   // canSkip: false — mandatory action, no skip allowed
   if (target === undefined || target === null) {

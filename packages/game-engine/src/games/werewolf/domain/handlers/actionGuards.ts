@@ -14,7 +14,6 @@ import {
   SCHEMAS,
 } from '../models';
 import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../models/roles/spec';
-import { RESOLVERS } from '../resolvers';
 import type { ActionInput } from '../resolvers/types';
 import type { HandlerResult, NonNullState } from './types';
 import { handlerError } from './types';
@@ -52,7 +51,7 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
 }
 
 /**
- * Validate action preconditions (PR4 full gate).
+ * Validate the full action precondition chain.
  *
  * Gate order (must follow):
  * 1. no_state
@@ -146,14 +145,6 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 6: resolver existence check
-  if (!RESOLVERS[currentStepId]) {
-    return {
-      valid: false,
-      result: handlerError('no_resolver'),
-    };
-  }
-
   return { valid: true, schemaId: currentStepId, state, schema };
 }
 
@@ -178,6 +169,7 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
 
     case 'chooseSeat':
     case 'wolfVote':
+    case 'confirmTarget':
       // chooseSeat kind: target == null is treated as skip
       return actionInput.target === undefined || actionInput.target === null;
 
@@ -206,10 +198,13 @@ export function isSkipAction(schema: ActionSchema, actionInput: ActionInput): bo
       // chooseCard kind: cardIndex == null is treated as skip
       return actionInput.cardIndex === undefined || actionInput.cardIndex === null;
 
-    default:
-      // Unknown kind: safe policy — treat as non-skip
-      // When blocked, prefer over-rejecting to avoid letting invalid input through
-      return false;
+    case 'skip':
+      return true;
+
+    default: {
+      const exhaustive: never = schema;
+      return exhaustive;
+    }
   }
 }
 

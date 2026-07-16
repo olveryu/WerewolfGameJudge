@@ -6,6 +6,7 @@
  */
 
 import type { GameRuleOverrides, RoleId } from '../models';
+import type { ActionInput } from '../resolvers/types';
 
 // =============================================================================
 // Seat-related Intents
@@ -137,8 +138,7 @@ export interface SubmitActionIntent {
   payload: {
     seat: number;
     role: RoleId;
-    target: number | null;
-    extra?: unknown;
+    actionInput: ActionInput;
   };
 }
 
@@ -160,7 +160,7 @@ export interface ViewedRoleIntent {
 /**
  * Set audio playing state Intent (Host-only)
  *
- * PR7: audio timing control
+ * Audio timing control
  * - When audio starts playing, call setAudioPlaying(true)
  * - When audio ends (or is skipped), call setAudioPlaying(false)
  *

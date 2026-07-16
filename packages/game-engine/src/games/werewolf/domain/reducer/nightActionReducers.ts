@@ -55,7 +55,7 @@ export function handleAdvanceToNextAction(
   return {
     ...state,
     currentStepIndex: nextStepIndex,
-    // PR6 contract: sync currentStepId on advance (single source of truth)
+    // Keep currentStepId synchronized on advance.
     currentStepId: nextStepId ?? undefined,
     // Clear previous step's stepDeadline when advancing to a new step
     stepDeadline: undefined,
@@ -80,7 +80,7 @@ export function handleEndNight(state: GameState, action: EndNightAction): GameSt
     lastNightDeaths: deaths,
     deathReasons,
     currentStepIndex: -1,
-    // PR6 contract: clear stepId and isAudioPlaying when night ends
+    // Clear step state and audio state when night ends.
     currentStepId: undefined,
     isAudioPlaying: false,
   };

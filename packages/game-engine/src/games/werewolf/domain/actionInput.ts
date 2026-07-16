@@ -4,6 +4,7 @@ import type { WerewolfActionInput } from '../commands/types';
 import type { SubmitActionIntent } from './intents/types';
 import { type ActionSchema, SCHEMAS } from './models';
 import type { GameState } from './protocol/types';
+import type { ActionInput } from './resolvers/types';
 
 export const REASON_ACTION_INPUT_MISMATCH = 'action_input_mismatch' as const;
 
@@ -50,9 +51,6 @@ export function resolveSubmitActionIntent(
   }
 
   const schema = SCHEMAS[stepId];
-  if (schema === undefined) {
-    return { kind: 'rejected', reason: 'invalid_step' };
-  }
   const expectedKind = expectedInputKind(schema);
   const isCanonicalSkip = input.kind === 'skip' && schema.kind !== 'groupConfirm';
   if (!isCanonicalSkip && (expectedKind === null || expectedKind !== input.kind)) {
@@ -75,83 +73,42 @@ export function resolveSubmitActionIntent(
     throw new Error(`[FAIL-FAST] Resolved action actor seat ${actorSeat} has no assigned role`);
   }
 
+  let actionInput: ActionInput;
+
   switch (input.kind) {
     case 'target':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: { seat: actorSeat, role: player.role, target: input.target },
-        },
-      };
+      actionInput = { schemaId: stepId, target: input.target ?? undefined };
+      break;
     case 'multiTarget':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: actorSeat,
-            role: player.role,
-            target: null,
-            extra: { targets: [...input.targets] },
-          },
-        },
-      };
+      actionInput = { schemaId: stepId, targets: [...input.targets] };
+      break;
     case 'confirm':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: actorSeat,
-            role: player.role,
-            target: null,
-            extra: { confirmed: true },
-          },
-        },
-      };
+      actionInput = { schemaId: stepId, confirmed: true };
+      break;
     case 'witch':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: actorSeat,
-            role: player.role,
-            target: actorSeat,
-            extra: {
-              stepResults: {
-                save: input.saveTarget,
-                poison: input.poisonTarget,
-              },
-            },
-          },
-        },
+      actionInput = {
+        schemaId: stepId,
+        target: actorSeat,
+        stepResults: { save: input.saveTarget, poison: input.poisonTarget },
       };
+      break;
     case 'card':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: actorSeat,
-            role: player.role,
-            target: null,
-            extra: { cardIndex: input.cardIndex },
-          },
-        },
-      };
+      actionInput = { schemaId: stepId, cardIndex: input.cardIndex };
+      break;
     case 'skip':
-      return {
-        kind: 'resolved',
-        intent: {
-          type: 'SUBMIT_ACTION',
-          payload: { seat: actorSeat, role: player.role, target: null },
-        },
-      };
+      actionInput = { schemaId: stepId };
+      break;
     default: {
       const exhaustive: never = input;
       return exhaustive;
     }
   }
+
+  return {
+    kind: 'resolved',
+    intent: {
+      type: 'SUBMIT_ACTION',
+      payload: { seat: actorSeat, role: player.role, actionInput },
+    },
+  };
 }

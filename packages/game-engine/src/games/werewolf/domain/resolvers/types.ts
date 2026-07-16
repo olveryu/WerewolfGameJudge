@@ -140,7 +140,7 @@ export interface ActionInput {
   readonly schemaId: SchemaId;
   readonly target?: number; // For chooseSeat, wolfVote
   readonly targets?: readonly number[]; // For swap
-  readonly stepResults?: Record<string, number | null>; // For compound
+  readonly stepResults?: Readonly<Record<string, number | null>>; // For compound
   readonly confirmed?: boolean; // For confirm
   readonly cardIndex?: number; // For chooseCard (treasureMaster bottom card index)
   /** Set by shelter redirect — target was rewritten from shelteredSeat to actorSeat */
@@ -187,7 +187,7 @@ export type ResolverResult = ResolverSuccess | ResolverRejection;
 export type ResolverFn = (context: ResolverContext, input: ActionInput) => ResolverResult;
 
 /** Resolver registry type */
-export type ResolverRegistry = Partial<Record<SchemaId, ResolverFn>>;
+export type ResolverRegistry = Readonly<Record<SchemaId, ResolverFn>>;
 
 // =============================================================================
 // Magician Swap Helpers (SERVER-ONLY)

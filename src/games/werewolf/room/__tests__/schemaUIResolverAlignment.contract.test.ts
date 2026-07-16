@@ -104,7 +104,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
         const context = createContext(actorSeat, roleId);
         const input: ActionInput = { schemaId, target: actorSeat };
 
-        const result = resolver!(context, input);
+        const result = resolver(context, input);
 
         expect(result.valid).toBe(false);
         expect(result.rejectReason).toBeDefined();
@@ -131,7 +131,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
         const context = createContext(actorSeat, roleId);
         const input: ActionInput = { schemaId, target: actorSeat };
 
-        const result = resolver!(context, input);
+        const result = resolver(context, input);
 
         expect(result.valid).toBe(true);
       },
@@ -172,7 +172,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
         };
         const input: ActionInput = { schemaId, target: wolfTargetSeat };
 
-        const result = resolver!(context, input);
+        const result = resolver(context, input);
 
         expect(result.valid).toBe(false);
         expect(result.rejectReason).toContain('狼人阵营');
@@ -197,7 +197,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
         stepResults: { save: witchSeat },
       };
 
-      const result = resolver!(context, input);
+      const result = resolver(context, input);
 
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toContain('自救');
@@ -219,7 +219,7 @@ describe('Schema notSelf constraint - single source of truth', () => {
         stepResults: { poison: witchSeat },
       };
 
-      const result = resolver!(context, input);
+      const result = resolver(context, input);
 
       expect(result.valid).toBe(true);
     });

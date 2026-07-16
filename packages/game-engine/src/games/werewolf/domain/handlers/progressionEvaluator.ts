@@ -19,27 +19,34 @@ export const WOLF_VOTE_COUNTDOWN_MS = 5000;
 /**
  * Determine whether all wolves participating in the vote have voted (exported pure function).
  *
- * Fail-closed design:
- * - player.role missing -> return false (cannot determine role -> not considered all-complete)
- * - 0 participating wolves -> return false (no wolves under wolfKill step is abnormal, should not progress)
+ * Ongoing-state invariants fail fast:
+ * - every seat must contain an assigned player
+ * - wolfKill must have at least one participating wolf
  * - Retracted (-2) wolf key already removed by resolver, not in wolfVotesBySeat -> not voted -> false
  *
  * @invariant player.role !== null when status=Ongoing (this function only called during wolfKill step).
  * Guarantee chain: handleAssignRoles writes role for all seats -> status=Assigned ->
  * handleStartNight sets status=Ongoing. During Ongoing, handleTakeSeat rejects joining
  * (status !== Unseated/Seated), handleLeaveMySeat rejects leaving (status === Ongoing).
- * Thus the fail-closed `return false` will not trigger deadlock in production.
- *
- * Behavior change (vs old isCurrentStepComplete wolfKill branch):
- * Old logic `continue` skipped seats with missing role; new logic `return false` (fail-closed).
+ * Violating those invariants is corrupt state and must not turn into a stuck timer.
  */
 export function isWolfVoteAllComplete(state: GameState): boolean {
-  const wolfVotes = state.currentNightResults?.wolfVotesBySeat ?? {};
+  if (!state.currentNightResults) {
+    throw new Error('[FAIL-FAST] wolfKill step has no currentNightResults');
+  }
+  const wolfVotes = state.currentNightResults.wolfVotesBySeat ?? {};
   const participatingWolfSeats: number[] = [];
   for (const [seatStr, player] of Object.entries(state.players)) {
     const seat = Number.parseInt(seatStr, 10);
-    if (!Number.isFinite(seat)) continue;
-    if (!player?.role) return false; // fail-closed: role missing -> uncertain -> false
+    if (!Number.isSafeInteger(seat)) {
+      throw new Error(`[FAIL-FAST] Invalid player seat key during wolf vote: ${seatStr}`);
+    }
+    if (!player) {
+      throw new Error(`[FAIL-FAST] Empty seat ${seat} during wolf vote`);
+    }
+    if (!player.role) {
+      throw new Error(`[FAIL-FAST] Player at seat ${seat} has no role during wolf vote`);
+    }
     const effectiveRole = getBottomCardEffectiveRole(
       player.role,
       state.thiefChosenCard,
@@ -52,7 +59,9 @@ export function isWolfVoteAllComplete(state: GameState): boolean {
       participatingWolfSeats.push(seat);
     }
   }
-  if (participatingWolfSeats.length === 0) return false; // fail-closed: 0 wolves -> abnormal -> false
+  if (participatingWolfSeats.length === 0) {
+    throw new Error('[FAIL-FAST] wolfKill step has no participating wolves');
+  }
   return participatingWolfSeats.every((seat) => {
     const v = wolfVotes[String(seat)];
     return typeof v === 'number' && (v >= 0 || v === -1);

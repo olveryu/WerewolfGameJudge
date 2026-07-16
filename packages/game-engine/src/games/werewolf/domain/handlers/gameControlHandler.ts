@@ -28,12 +28,15 @@ import type {
   UpdateTemplateIntent,
 } from '../intents/types';
 import { GameStatus, type RoleId } from '../models';
-import { buildNightPlan, getStepSpec } from '../models/roles/spec';
-import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
+import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Faction } from '../models/roles/spec/types';
-import { getBottomCardCount, getBottomCardRoleId, getPlayerCount } from '../models/Template';
+import {
+  type BottomCardRoleId,
+  getBottomCardCount,
+  getBottomCardRoleId,
+  getPlayerCount,
+} from '../models/Template';
 import type { Player } from '../protocol/types';
 import type { GameState } from '../protocol/types';
 import type {
@@ -108,8 +111,8 @@ export function handleAssignRoles(
   const isPlagueMode = state.rules?.isPlagueMode ?? false;
   const effectiveRoles: RoleId[] = isPlagueMode
     ? state.templateRoles.map((roleId) => {
-        const spec = ROLE_SPECS[roleId];
-        if (spec?.faction === Faction.Wolf || roleId === ('treasureMaster' as RoleId)) {
+        const spec = getRoleSpec(roleId);
+        if (spec.faction === Faction.Wolf || roleId === 'treasureMaster') {
           return 'villager';
         }
         return roleId;
@@ -169,8 +172,7 @@ export function handleAssignRoles(
     ...new Set(
       allRoles.filter((r) => {
         if (r === 'seer') return true;
-        const spec = ROLE_SPECS[r as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-        return spec?.groups?.includes('seerFamily') === true;
+        return getRoleSpec(r).groups?.includes('seerFamily') === true;
       }),
     ),
   ];
@@ -214,7 +216,7 @@ const MAX_SHUFFLE_RETRIES = 100;
 function shuffleWithBottomCardConstraints(
   templateRoles: readonly RoleId[],
   seatCount: number,
-  bottomCardRoleId: RoleId,
+  bottomCardRoleId: BottomCardRoleId,
   rng: Rng,
 ): { seatedRoles: RoleId[]; bottomCards: RoleId[] } {
   for (let attempt = 0; attempt < MAX_SHUFFLE_RETRIES; attempt++) {
@@ -236,7 +238,7 @@ function shuffleWithBottomCardConstraints(
 /**
  * Validate bottom card constraints (parameterized by bottom card role).
  */
-function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean {
+function validateBottomCards(cards: RoleId[], bottomCardRoleId: BottomCardRoleId): boolean {
   // Common: bottom card role itself must not be in bottom cards
   if (cards.includes(bottomCardRoleId)) return false;
 
@@ -249,33 +251,28 @@ function validateBottomCards(cards: RoleId[], bottomCardRoleId: RoleId): boolean
   if (bottomCardRoleId === 'thief') {
     return validateThiefBottomCards(cards);
   }
-  return true;
+  const exhaustive: never = bottomCardRoleId;
+  return exhaustive;
 }
 
 /** TreasureMaster deck constraint: S21 strict 1Wolf(regular wolf) + 1God + 1Villager */
 function validateTreasureMasterBottomCards(cards: RoleId[]): boolean {
-  const factions = cards.map((r) => {
-    const spec = ROLE_SPECS[r] as RoleSpec | undefined;
-    return spec?.faction;
-  });
+  const factions = cards.map((roleId) => getRoleSpec(roleId).faction);
   const wolfCount = factions.filter((f) => f === Faction.Wolf).length;
   const godCount = factions.filter((f) => f === Faction.God).length;
   const villagerCount = factions.filter((f) => f === Faction.Villager).length;
   if (wolfCount !== 1 || godCount !== 1 || villagerCount !== 1) return false;
   // Wolf faction deck card can only be regular wolf, no skill wolves
-  const wolfCard = cards.find(
-    (r) => (ROLE_SPECS[r] as RoleSpec | undefined)?.faction === Faction.Wolf,
-  );
+  const wolfCard = cards.find((roleId) => getRoleSpec(roleId).faction === Faction.Wolf);
   return wolfCard === 'wolf';
 }
 
 /** Thief deck constraint */
 function validateThiefBottomCards(cards: RoleId[]): boolean {
   // <=1 wolf-team card (including skill wolves)
-  const wolfFactionCount = cards.filter((r) => {
-    const spec = ROLE_SPECS[r] as RoleSpec | undefined;
-    return spec?.faction === Faction.Wolf;
-  }).length;
+  const wolfFactionCount = cards.filter(
+    (roleId) => getRoleSpec(roleId).faction === Faction.Wolf,
+  ).length;
   if (wolfFactionCount > 1) return false;
 
   return true;
@@ -289,7 +286,7 @@ function validateThiefBottomCards(cards: RoleId[]): boolean {
  * - status -> GameStatus.Ongoing
  * - Broadcast STATE_UPDATE
  *
- * PR3 scope: state initialization only, no audio/advance/action handling
+ * Initializes state only; audio and progression are handled separately.
  */
 export function handleStartNight(
   _intent: StartNightIntent,

@@ -7,38 +7,30 @@
  */
 
 import { type RevealKind, type RoleId, type SchemaId, SCHEMAS } from '../models';
-import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
+import { getRoleSpec } from '../models/roles/spec/specs';
 import type { ApplyResolverResultAction } from '../reducer/types';
 import type { ResolverSuccess } from '../resolvers/types';
 
 // ---------------------------------------------------------------------------
-// V2-derived gate trigger roles (replaces hardcoded 'hunter' check)
+// Registry-derived gate trigger roles
 // ---------------------------------------------------------------------------
 
 /**
  * Extract gateTriggersOnRoles from the first learn effect in wolfRobot's abilities.
- * Returns empty array if not found (no gate triggered).
- * Validates each role string against ROLE_SPECS at startup (fail-fast).
+ * The role registry type-checks every referenced role ID.
  */
 function deriveGateTriggerRoles(): readonly RoleId[] {
-  const spec = ROLE_SPECS.wolfRobot as RoleSpec;
+  const spec = getRoleSpec('wolfRobot');
   for (const ability of spec.abilities) {
     if (ability.type !== 'active') continue;
     const active = ability;
     for (const effect of active.effects) {
       if (effect.kind === 'learn') {
-        const raw = effect.gateTriggersOnRoles ?? [];
-        for (const r of raw) {
-          if (!(r in ROLE_SPECS)) {
-            throw new Error(`[FAIL-FAST] gateTriggersOnRoles contains unknown role: '${r}'`);
-          }
-        }
-        return raw as RoleId[];
+        return effect.gateTriggersOnRoles ?? [];
       }
     }
   }
-  return [];
+  throw new Error('[revealPayload] wolfRobot must declare a learn effect');
 }
 
 export const WOLF_ROBOT_GATE_ROLES = deriveGateTriggerRoles();

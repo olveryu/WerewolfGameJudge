@@ -14,6 +14,7 @@ import { REASON_ACTION_INPUT_MISMATCH, resolveSubmitActionIntent } from '../doma
 import { resolveEffectiveSeatActor, resolveSystemActor, resolveUserActor } from '../domain/actor';
 import { handlerResultToDecision, translateHandlerSideEffects } from '../domain/decision';
 import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
+import type { SubmitActionIntent } from '../domain/intents/types';
 import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
 import type { GameState } from '../domain/protocol/types';
 import type { StateAction } from '../domain/reducer/types';
@@ -114,25 +115,37 @@ describe('Werewolf action input adapter', () => {
     stepId: GameState['currentStepId'];
     role: RoleId;
     input: Extract<WerewolfCommand, { type: 'werewolf.action.submit' }>['input'];
-    payload: Record<string, unknown>;
+    payload: SubmitActionIntent['payload'];
   }>([
     {
       stepId: 'seerCheck',
       role: 'seer',
       input: { kind: 'target', target: 3 },
-      payload: { seat: 1, role: 'seer', target: 3 },
+      payload: {
+        seat: 1,
+        role: 'seer',
+        actionInput: { schemaId: 'seerCheck', target: 3 },
+      },
     },
     {
       stepId: 'magicianSwap',
       role: 'magician',
       input: { kind: 'multiTarget', targets: [0, 3] },
-      payload: { seat: 1, role: 'magician', target: null, extra: { targets: [0, 3] } },
+      payload: {
+        seat: 1,
+        role: 'magician',
+        actionInput: { schemaId: 'magicianSwap', targets: [0, 3] },
+      },
     },
     {
       stepId: 'hunterConfirm',
       role: 'hunter',
       input: { kind: 'confirm' },
-      payload: { seat: 1, role: 'hunter', target: null, extra: { confirmed: true } },
+      payload: {
+        seat: 1,
+        role: 'hunter',
+        actionInput: { schemaId: 'hunterConfirm', confirmed: true },
+      },
     },
     {
       stepId: 'witchAction',
@@ -141,23 +154,30 @@ describe('Werewolf action input adapter', () => {
       payload: {
         seat: 1,
         role: 'witch',
-        target: 1,
-        extra: { stepResults: { save: 0, poison: null } },
+        actionInput: {
+          schemaId: 'witchAction',
+          target: 1,
+          stepResults: { save: 0, poison: null },
+        },
       },
     },
     {
       stepId: 'thiefChoose',
       role: 'thief',
       input: { kind: 'card', cardIndex: 1 },
-      payload: { seat: 1, role: 'thief', target: null, extra: { cardIndex: 1 } },
+      payload: {
+        seat: 1,
+        role: 'thief',
+        actionInput: { schemaId: 'thiefChoose', cardIndex: 1 },
+      },
     },
     {
       stepId: 'wolfKill',
       role: 'wolf',
       input: { kind: 'target', target: null },
-      payload: { seat: 1, role: 'wolf', target: null },
+      payload: { seat: 1, role: 'wolf', actionInput: { schemaId: 'wolfKill' } },
     },
-  ])('maps $input.kind into the existing handler intent', ({ stepId, role, input, payload }) => {
+  ])('maps $input.kind into the typed handler intent', ({ stepId, role, input, payload }) => {
     const state = createState({
       status: GameStatus.Ongoing,
       currentStepId: stepId,
@@ -203,7 +223,7 @@ describe('Werewolf action input adapter', () => {
       kind: 'resolved',
       intent: {
         type: 'SUBMIT_ACTION',
-        payload: { seat: 1, role, target: null },
+        payload: { seat: 1, role, actionInput: { schemaId: stepId } },
       },
     });
   });
@@ -355,7 +375,26 @@ describe('Werewolf engine definition and catalog', () => {
         command.type === 'werewolf.growth.applyRosterLevels'
           ? systemContext()
           : userContext('host');
-      expect(['commit', 'reject']).toContain(werewolfEngine.decide(state, command, context).kind);
+      const decisionState =
+        command.type === 'werewolf.config.update'
+          ? createState({
+              players: {
+                0: { userId: 'host', seat: 0, role: null, hasViewedRole: false },
+                1: { userId: 'user-1', seat: 1, role: null, hasViewedRole: false },
+                2: {
+                  userId: 'bot-2',
+                  seat: 2,
+                  role: null,
+                  hasViewedRole: false,
+                  isBot: true,
+                },
+                3: null,
+              },
+            })
+          : state;
+      expect(['commit', 'reject']).toContain(
+        werewolfEngine.decide(decisionState, command, context).kind,
+      );
     }
   });
 

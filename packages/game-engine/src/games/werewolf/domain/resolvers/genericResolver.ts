@@ -19,16 +19,20 @@
  */
 
 import type { RoleId } from '../models';
-import { getSeerCheckResultForTeam } from '../models/roles/spec';
-import type { ActiveAbility, CheckEffect } from '../models/roles/spec/ability.types';
+import { getRoleSpec, getSeerCheckResultForTeam } from '../models/roles/spec';
+import type { AbilityEffect, ActiveAbility, CheckEffect } from '../models/roles/spec/ability.types';
 import { TargetConstraint } from '../models/roles/spec/ability.types';
-import type { RoleSpec } from '../models/roles/spec/roleSpec.types';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import { ROLE_SPECS } from '../models/roles/spec/specs';
 import { Team } from '../models/roles/spec/types';
 import { validateConstraints } from './constraintValidator';
 import { invertCheckResult } from './shared';
-import type { ActionInput, ResolverContext, ResolverFn, ResolverResult } from './types';
+import type {
+  ActionInput,
+  CurrentNightResults,
+  ResolverContext,
+  ResolverFn,
+  ResolverResult,
+} from './types';
 import { getRoleAfterSwap, resolveRoleForChecks } from './types';
 
 // =============================================================================
@@ -43,7 +47,7 @@ const REJECT_MUST_CHOOSE_IDOL = '必须选择榜样' as const;
 // =============================================================================
 
 type EffectProcessor = (
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   context: ResolverContext,
   input: ActionInput,
   target: number,
@@ -53,7 +57,7 @@ type EffectProcessor = (
  * writeSlot: write target to specified slot in CurrentNightResults
  */
 function processWriteSlot(
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   _context: ResolverContext,
   _input: ActionInput,
   target: number,
@@ -75,7 +79,7 @@ function processWriteSlot(
  * charm: charm target (wolfQueen — writes charmedSeat update)
  */
 function processCharm(
-  _ability: ActiveAbility,
+  _ability: ActiveAbility<RoleId>,
   _context: ResolverContext,
   _input: ActionInput,
   target: number,
@@ -90,7 +94,7 @@ function processCharm(
  * chooseIdol: choose idol (slacker/wildChild)
  */
 function processChooseIdol(
-  _ability: ActiveAbility,
+  _ability: ActiveAbility<RoleId>,
   _context: ResolverContext,
   _input: ActionInput,
   _target: number,
@@ -102,7 +106,7 @@ function processChooseIdol(
  * check: faction check (seer family) or identity check (psychic/gargoyle/pureWhite/wolfWitch)
  */
 function processCheck(
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   context: ResolverContext,
   _input: ActionInput,
   target: number,
@@ -130,10 +134,7 @@ function processFactionCheck(
     return { valid: false, rejectReason: REJECT_TARGET_NOT_FOUND };
   }
 
-  const targetSpec = ROLE_SPECS[effectiveRoleId] as RoleSpec | undefined;
-  if (!targetSpec) {
-    throw new Error(`[FAIL-FAST] Unknown role after resolve: ${effectiveRoleId}`);
-  }
+  const targetSpec = getRoleSpec(effectiveRoleId);
   const normalResult = getSeerCheckResultForTeam(targetSpec.team);
 
   let checkResult = normalResult;
@@ -169,7 +170,7 @@ function processIdentityCheck(context: ResolverContext, target: number): Resolve
  * block: block target skill (nightmare)
  */
 function processBlock(
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   context: ResolverContext,
   _input: ActionInput,
   target: number,
@@ -179,15 +180,15 @@ function processBlock(
     throw new Error(`[FAIL-FAST] Expected block effect, got ${effect?.kind}`);
   }
 
-  const updates: Record<string, unknown> = { blockedSeat: target };
+  let wolfKillOverride: CurrentNightResults['wolfKillOverride'];
 
   // If target is wolf team and disablesWolfKillOnWolfTarget, disable wolf kill
   if (effect.disablesWolfKillOnWolfTarget) {
     const targetRoleId = context.players.get(target);
     if (targetRoleId) {
-      const targetSpec = ROLE_SPECS[targetRoleId];
+      const targetSpec = getRoleSpec(targetRoleId);
       if (targetSpec.team === Team.Wolf) {
-        updates.wolfKillOverride = {
+        wolfKillOverride = {
           source: 'nightmare',
           ui: WOLF_KILL_OVERRIDE_TEXTS.nightmare,
         };
@@ -197,7 +198,7 @@ function processBlock(
 
   return {
     valid: true,
-    updates,
+    updates: { blockedSeat: target, ...(wolfKillOverride ? { wolfKillOverride } : {}) },
   };
 }
 
@@ -205,7 +206,7 @@ function processBlock(
  * learn: learn target identity (wolfRobot)
  */
 function processLearn(
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   context: ResolverContext,
   _input: ActionInput,
   target: number,
@@ -216,7 +217,7 @@ function processLearn(
   }
 
   // Learn uses getRoleAfterSwap (magician swap only, no wolfRobot disguise)
-  // This matches V1 wolfRobot behavior: learns the real role after swap.
+  // Wolf Robot learns the real role after a magician swap.
   const effectiveRoleId = getRoleAfterSwap(
     target,
     context.players,
@@ -239,7 +240,7 @@ function processLearn(
  * confirm: confirmation type (hunter/darkWolfKing confirm status)
  */
 function processConfirm(
-  _ability: ActiveAbility,
+  _ability: ActiveAbility<RoleId>,
   _context: ResolverContext,
   _input: ActionInput,
   _target: number,
@@ -253,39 +254,52 @@ function processConfirm(
 // Effect Processor Registry
 // =============================================================================
 
-const EFFECT_PROCESSORS: Record<string, EffectProcessor> = {
-  writeSlot: processWriteSlot,
-  charm: processCharm,
-  chooseIdol: processChooseIdol,
-  check: processCheck,
-  block: processBlock,
-  learn: processLearn,
-  confirm: processConfirm,
-};
+function getEffectProcessor(
+  effectKind: AbilityEffect<RoleId>['kind'],
+): EffectProcessor | undefined {
+  switch (effectKind) {
+    case 'writeSlot':
+      return processWriteSlot;
+    case 'charm':
+      return processCharm;
+    case 'chooseIdol':
+      return processChooseIdol;
+    case 'check':
+      return processCheck;
+    case 'block':
+      return processBlock;
+    case 'learn':
+      return processLearn;
+    case 'confirm':
+      return processConfirm;
+    default:
+      return undefined;
+  }
+}
 
 // =============================================================================
 // Generic Resolver Entry Point
 // =============================================================================
 
 /**
- * Create a generic resolver for a given V2 role spec's active ability.
+ * Create a generic resolver for a role spec's active ability.
  *
  * @param roleId - The role ID in ROLE_SPECS
  * @param abilityIndex - Which ability to use (default 0)
  */
-export function createGenericResolver(roleId: string, abilityIndex = 0): ResolverFn {
-  const spec = ROLE_SPECS[roleId as keyof typeof ROLE_SPECS] as RoleSpec | undefined;
-  if (!spec) {
-    throw new Error(`[FAIL-FAST] Role ${roleId} not found in ROLE_SPECS`);
-  }
-
+export function createGenericResolver(roleId: RoleId, abilityIndex = 0): ResolverFn {
+  const spec = getRoleSpec(roleId);
   const ability = spec.abilities[abilityIndex];
   if (!ability || ability.type !== 'active') {
     throw new Error(`[FAIL-FAST] Role ${roleId} ability[${abilityIndex}] is not an active ability`);
   }
 
   const activeAbility = ability;
-  const effectKind = activeAbility.effects[0]?.kind ?? null;
+  const effectKind = activeAbility.effects[0]?.kind;
+  const processor = effectKind === undefined ? undefined : getEffectProcessor(effectKind);
+  if (effectKind !== undefined && !processor) {
+    throw new Error(`[FAIL-FAST] No generic effect processor for kind '${effectKind}'`);
+  }
 
   return (context: ResolverContext, input: ActionInput): ResolverResult => {
     // --- Handle skip ---
@@ -313,13 +327,8 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
     }
 
     // --- Process effect ---
-    if (!effectKind) {
-      return { valid: true };
-    }
-
-    const processor = EFFECT_PROCESSORS[effectKind];
     if (!processor) {
-      throw new Error(`[FAIL-FAST] No effect processor for kind '${effectKind}'`);
+      return { valid: true };
     }
 
     return processor(activeAbility, context, input, target);
@@ -333,14 +342,14 @@ export function createGenericResolver(roleId: string, abilityIndex = 0): Resolve
 /**
  * Extract target from input.
  */
-function getTarget(_ability: ActiveAbility, input: ActionInput): number | undefined {
+function getTarget(_ability: ActiveAbility<RoleId>, input: ActionInput): number | undefined {
   return input.target;
 }
 
 /**
  * Handle skip action. canSkip=false → reject (unless nightmare-blocked).
  */
-function handleSkip(ability: ActiveAbility, context: ResolverContext): ResolverResult {
+function handleSkip(ability: ActiveAbility<RoleId>, context: ResolverContext): ResolverResult {
   if (ability.canSkip) {
     return { valid: true };
   }
@@ -351,7 +360,7 @@ function handleSkip(ability: ActiveAbility, context: ResolverContext): ResolverR
   }
 
   // chooseIdol abilities require a target
-  if (ability.effects.some((e: { kind: string }) => e.kind === 'chooseIdol')) {
+  if (ability.effects.some((effect) => effect.kind === 'chooseIdol')) {
     return { valid: false, rejectReason: REJECT_MUST_CHOOSE_IDOL };
   }
 
@@ -363,7 +372,7 @@ function handleSkip(ability: ActiveAbility, context: ResolverContext): ResolverR
  * faction-based constraints (NotWolfFaction, AdjacentToWolfFaction).
  */
 function buildConstraintContext(
-  ability: ActiveAbility,
+  ability: ActiveAbility<RoleId>,
   context: ResolverContext,
   target: number,
 ): {

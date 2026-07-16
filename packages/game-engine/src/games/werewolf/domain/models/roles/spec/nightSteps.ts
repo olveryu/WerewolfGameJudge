@@ -9,22 +9,25 @@
 import type { StepSpec } from './nightSteps.types';
 import type { NightStepId } from './plan';
 import { NIGHT_STEP_ORDER } from './plan';
-import type { RoleSpec } from './roleSpec.types';
 import type { SchemaId } from './schemas';
-import { ROLE_SPECS, type RoleId } from './specs';
+import { getAllRoleIds, getRoleSpec } from './specs';
 
 // =============================================================================
 // Derive NIGHT_STEPS from ROLE_SPECS
 // =============================================================================
 
 function buildNightSteps(): readonly StepSpec[] {
-  const stepIndex = new Map<string, StepSpec>();
+  const stepIndex = new Map<NightStepId, StepSpec>();
 
-  for (const [roleId, spec] of Object.entries(ROLE_SPECS)) {
-    for (const ns of (spec as RoleSpec).nightSteps ?? []) {
+  for (const roleId of getAllRoleIds()) {
+    const spec = getRoleSpec(roleId);
+    for (const ns of spec.nightSteps ?? []) {
+      if (stepIndex.has(ns.stepId)) {
+        throw new Error(`[nightSteps] Duplicate night step: ${ns.stepId}`);
+      }
       stepIndex.set(ns.stepId, {
-        id: ns.stepId as SchemaId,
-        roleId: roleId as RoleId,
+        id: ns.stepId,
+        roleId,
         audioKey: ns.audioKey ?? roleId,
         ...(ns.audioEndKey ? { audioEndKey: ns.audioEndKey } : {}),
       });
@@ -35,7 +38,10 @@ function buildNightSteps(): readonly StepSpec[] {
   const result: StepSpec[] = [];
   for (const stepId of NIGHT_STEP_ORDER) {
     const spec = stepIndex.get(stepId);
-    if (spec) result.push(spec);
+    if (!spec) {
+      throw new Error(`[nightSteps] Missing role specification for night step: ${stepId}`);
+    }
+    result.push(spec);
   }
   return result;
 }

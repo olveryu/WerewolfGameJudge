@@ -4,7 +4,7 @@
  * Defines the GameTemplate interface, template validation, preset templates, and template factories.
  * Exports type definitions, pure-function validators/factories, and preset constants. No service deps, side effects, or IO.
  */
-import { Faction, isValidRoleId, ROLE_SPECS, type RoleId } from './roles';
+import { Faction, ROLE_SPECS, type RoleId } from './roles';
 
 // ---------------------------------------------------------------------------
 // Template categories (for grouped display in TemplatePicker)
@@ -54,18 +54,11 @@ export function validateTemplateRoles(roles: readonly RoleId[]): string | null {
     return `至少需要 ${MINIMUM_PLAYERS} 名玩家`;
   }
 
-  // Rule 2: all roles must be valid RoleId (defensive, in case of external data)
-  for (const r of roles) {
-    if (!isValidRoleId(r)) {
-      return '包含无效角色配置，请重新选择';
-    }
-  }
-
-  // Rule 3: treasureMaster bottom card constraint prerequisites
+  // Rule 2: treasureMaster bottom card constraint prerequisites
   // Bottom cards require exactly 1 wolf (regular) + 1 god + 1 villager.
   // If template cannot provide these, dealing will always fail.
   if (roles.includes('treasureMaster')) {
-    const otherRoles = roles.filter((r) => r !== ('treasureMaster' as RoleId));
+    const otherRoles = roles.filter((roleId) => roleId !== 'treasureMaster');
     const hasRegularWolf = otherRoles.includes('wolf');
     const hasGod = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.God);
     const hasVillager = otherRoles.some((r) => ROLE_SPECS[r]?.faction === Faction.Villager);
@@ -100,8 +93,7 @@ export interface GameRuleOverrides {
 /**
  * GameTemplate - defines the player composition for a game.
  *
- * Phase 5: actionOrder has been removed. Night action order is now
- * derived dynamically from roles via buildNightPlan(roles).
+ * Night action order is derived dynamically from roles via buildNightPlan(roles).
  */
 export interface GameTemplate {
   name: string;
@@ -120,11 +112,13 @@ const THIEF_BOTTOM_CARD_COUNT = 2;
 /** Deck-card role IDs (mutually exclusive: at most one per template) */
 const BOTTOM_CARD_ROLE_IDS = ['treasureMaster', 'thief'] as const;
 
+export type BottomCardRoleId = (typeof BOTTOM_CARD_ROLE_IDS)[number];
+
 /**
  * Get the deck-card role ID in the template, if any.
  * treasureMaster and thief are mutually exclusive.
  */
-export function getBottomCardRoleId(roles: readonly RoleId[]): RoleId | null {
+export function getBottomCardRoleId(roles: readonly RoleId[]): BottomCardRoleId | null {
   for (const id of BOTTOM_CARD_ROLE_IDS) {
     if (roles.includes(id)) return id;
   }

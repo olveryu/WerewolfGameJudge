@@ -1,8 +1,8 @@
 /**
- * V2 Role Specs Registry — declarative definitions for all 46 roles
+ * Role Specs Registry — declarative definitions for all 46 roles
  *
  * Single source of truth: role intrinsic properties + behavior (abilities / effects) + night steps + UI metadata
- * Merges the three V1 tables: ROLE_SPECS + SCHEMAS + NIGHT_STEPS.
+ * Owns role properties, behavior, night steps, and UI metadata.
  *
  * 46 roles total:
  * - Villager faction: villager, mirrorSeer, drunkSeer (3)
@@ -21,7 +21,7 @@ import { TargetConstraint } from './ability.types';
 import type { RoleAbilityTag, RoleDescription, RoleSpec } from './roleSpec.types';
 import { Faction, Team } from './types';
 
-export const ROLE_SPECS = {
+const ROLE_SPEC_DEFINITIONS = {
   // ===================================================================
   // VILLAGER FACTION (3)
   // ===================================================================
@@ -1947,17 +1947,24 @@ export const ROLE_SPECS = {
     abilities: [{ type: 'passive', effect: 'silentWolfKillImmune' }],
     deathCalcRole: 'checkDeathTarget',
   },
-} as const satisfies Record<string, RoleSpec>;
+} as const;
 
 /** Role ID type (auto-derived from registry keys) */
-export type RoleId = keyof typeof ROLE_SPECS;
+export type RoleId = keyof typeof ROLE_SPEC_DEFINITIONS;
+
+type RoleSpecRegistry = {
+  readonly [K in RoleId]: RoleSpec<RoleId> & { readonly id: K };
+};
+
+/** Complete role registry with key, identity, and cross-role references checked at compile time. */
+export const ROLE_SPECS: RoleSpecRegistry = ROLE_SPEC_DEFINITIONS;
 
 // =============================================================================
 // Helper Functions
 // =============================================================================
 
-/** Get spec by ID (preserves narrow literal type for discriminated access) */
-export function getRoleSpec<K extends RoleId>(id: K): (typeof ROLE_SPECS)[K] {
+/** Get a role specification by its canonical identifier. */
+export function getRoleSpec<K extends RoleId>(id: K): RoleSpecRegistry[K] {
   return ROLE_SPECS[id];
 }
 
@@ -1967,8 +1974,7 @@ export function getRoleSpec<K extends RoleId>(id: K): (typeof ROLE_SPECS)[K] {
  * or undefined if the role shows its own identity.
  */
 export function getRoleDisplayAs(roleId: RoleId): RoleId | undefined {
-  const spec: RoleSpec = ROLE_SPECS[roleId];
-  return spec.displayAs as RoleId | undefined;
+  return ROLE_SPECS[roleId].displayAs;
 }
 
 /** Get the emoji icon for a role (text character). */
@@ -1978,7 +1984,7 @@ export function getRoleEmoji(roleId: RoleId): string {
 
 /** Check if a string is a valid RoleId */
 export function isValidRoleId(id: string): id is RoleId {
-  return id in ROLE_SPECS;
+  return Object.hasOwn(ROLE_SPECS, id);
 }
 
 /**
@@ -1991,5 +1997,10 @@ export function getRoleStructuredDescription(roleId: RoleId): RoleDescription | 
 
 /** Get all role IDs */
 export function getAllRoleIds(): RoleId[] {
-  return Object.keys(ROLE_SPECS) as RoleId[];
+  return Object.keys(ROLE_SPECS).map((id) => {
+    if (!isValidRoleId(id)) {
+      throw new Error(`[roleSpecs] Registry contains unknown roleId: ${id}`);
+    }
+    return id;
+  });
 }

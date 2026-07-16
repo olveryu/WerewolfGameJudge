@@ -60,7 +60,7 @@ describe('handleSubmitAction', () => {
   it('does not fabricate targetSeat=0 when target is null', () => {
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: null },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck' } },
     };
     const result = handleSubmitAction(intent, baseContext);
 
@@ -81,7 +81,7 @@ describe('handleSubmitAction', () => {
   it('uses the server execution timestamp instead of a client field', () => {
     const intent: SubmitActionIntent = {
       type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', target: 1, extra: { timestamp: 123 } },
+      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
     };
     const result = handleSubmitAction(intent, baseContext);
 

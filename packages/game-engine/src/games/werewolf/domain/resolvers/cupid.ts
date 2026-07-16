@@ -43,7 +43,13 @@ export const cupidChooseLoversResolver: ResolverFn = (context, input) => {
     }
   }
 
-  const sortedTargets = [...targets].sort((a, b) => a - b) as [number, number];
+  const firstTarget = targets[0];
+  const secondTarget = targets[1];
+  if (firstTarget === undefined || secondTarget === undefined) {
+    throw new Error('[FAIL-FAST] Cupid target count changed after validation');
+  }
+  const sortedTargets: readonly [number, number] =
+    firstTarget < secondTarget ? [firstTarget, secondTarget] : [secondTarget, firstTarget];
 
   return {
     valid: true,

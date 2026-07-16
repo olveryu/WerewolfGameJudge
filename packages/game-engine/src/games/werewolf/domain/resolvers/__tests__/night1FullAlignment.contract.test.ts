@@ -139,7 +139,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
       const resolver = RESOLVERS.guardProtect;
       const context = createContext(6, 'guard');
 
-      const result = resolver!(context, { schemaId: 'guardProtect', target: 6 });
+      const result = resolver(context, { schemaId: 'guardProtect', target: 6 });
 
       expect(result.valid).toBe(true);
     });
@@ -165,7 +165,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
         stepResults: { save: witchSeat }, // 尝试救自己
       };
 
-      const result = resolver!(context, input);
+      const result = resolver(context, input);
 
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toContain('自救');
@@ -188,7 +188,7 @@ describe('Schema constraints ↔ Resolver alignment', () => {
         target: wolfSeat, // 袭击自己
       };
 
-      const result = resolver!(context, input);
+      const result = resolver(context, input);
 
       // Attack is neutral: any seat can be targeted
       expect(result.valid).toBe(true);
@@ -244,7 +244,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const targetSeat = 7; // wolf
 
       const context = createContext(seerSeat, 'seer');
-      const result = resolver!(context, { schemaId: 'seerCheck', target: targetSeat });
+      const result = resolver(context, { schemaId: 'seerCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toEqual({ kind: 'factionCheck', checkResult: '狼人' });
@@ -256,7 +256,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const targetSeat = 7; // wolf
 
       const context = createContext(psychicSeat, 'psychic');
-      const result = resolver!(context, { schemaId: 'psychicCheck', target: targetSeat });
+      const result = resolver(context, { schemaId: 'psychicCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
@@ -268,7 +268,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const targetSeat = 7; // wolf
 
       const context = createContext(gargoyleSeat, 'gargoyle');
-      const result = resolver!(context, { schemaId: 'gargoyleCheck', target: targetSeat });
+      const result = resolver(context, { schemaId: 'gargoyleCheck', target: targetSeat });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toEqual({ kind: 'identityCheck', roleId: 'wolf' });
@@ -280,7 +280,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
       const targetSeat = 10; // seer (good)
 
       const context = createContext(robotSeat, 'wolfRobot');
-      const result = resolver!(context, { schemaId: 'wolfRobotLearn', target: targetSeat });
+      const result = resolver(context, { schemaId: 'wolfRobotLearn', target: targetSeat });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toEqual({ kind: 'wolfRobotLearn', learnedRoleId: 'seer' });
@@ -291,7 +291,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
     it('seerCheck skip should not return result', () => {
       const resolver = RESOLVERS.seerCheck;
       const context = createContext(10, 'seer');
-      const result = resolver!(context, { schemaId: 'seerCheck', target: undefined });
+      const result = resolver(context, { schemaId: 'seerCheck', target: undefined });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toBeUndefined();
@@ -300,7 +300,7 @@ describe('revealKind ↔ Resolver result field alignment', () => {
     it('psychicCheck skip should not return result', () => {
       const resolver = RESOLVERS.psychicCheck;
       const context = createContext(11, 'psychic');
-      const result = resolver!(context, { schemaId: 'psychicCheck', target: undefined });
+      const result = resolver(context, { schemaId: 'psychicCheck', target: undefined });
 
       expect(result.valid).toBe(true);
       expect(result.reveal).toBeUndefined();
@@ -332,7 +332,7 @@ describe('Nightmare blocking behavior', () => {
           currentNightResults: { blockedSeat: actorSeat },
         });
 
-        const result = resolver!(context, { schemaId, target: undefined }); // skip
+        const result = resolver(context, { schemaId, target: undefined }); // skip
 
         expect(result.valid).toBe(true);
         expect(result.reveal).toBeUndefined();
@@ -351,7 +351,7 @@ describe('Nightmare blocking behavior', () => {
           currentNightResults: { blockedSeat: actorSeat },
         });
 
-        const result = resolver!(context, { schemaId, target: 7 }); // 选一个目标
+        const result = resolver(context, { schemaId, target: 7 }); // 选一个目标
 
         // Resolver returns valid=true, handler layer does the actual rejection
         expect(result.valid).toBe(true);
@@ -377,7 +377,7 @@ describe('Nightmare blocking behavior', () => {
         },
       });
 
-      const result = resolver!(context, { schemaId: 'wolfKill', target: 14 });
+      const result = resolver(context, { schemaId: 'wolfKill', target: 14 });
 
       expect(result.valid).toBe(false);
       expect(result.rejectReason).toBeDefined();
@@ -395,7 +395,7 @@ describe('Nightmare blocking behavior', () => {
         },
       });
 
-      const result = resolver!(context, { schemaId: 'wolfKill', target: undefined });
+      const result = resolver(context, { schemaId: 'wolfKill', target: undefined });
 
       expect(result.valid).toBe(true);
       // Should record the empty vote
@@ -409,7 +409,7 @@ describe('Nightmare blocking behavior', () => {
     const wolfSeat = 7;
     const context = createContext(nightmareSeat, 'nightmare');
 
-    const result = resolver!(context, { schemaId: 'nightmareBlock', target: wolfSeat });
+    const result = resolver(context, { schemaId: 'nightmareBlock', target: wolfSeat });
 
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(wolfSeat);
@@ -423,7 +423,7 @@ describe('Nightmare blocking behavior', () => {
     const seerSeat = 10;
     const context = createContext(nightmareSeat, 'nightmare');
 
-    const result = resolver!(context, { schemaId: 'nightmareBlock', target: seerSeat });
+    const result = resolver(context, { schemaId: 'nightmareBlock', target: seerSeat });
 
     expect(result.valid).toBe(true);
     expect(result.updates?.blockedSeat).toBe(seerSeat);
@@ -454,7 +454,7 @@ describe('canSkip behavior alignment', () => {
         const resolver = RESOLVERS[schemaId];
         const context = createContext(actorSeat, roleId);
 
-        const result = resolver!(context, { schemaId, target: undefined });
+        const result = resolver(context, { schemaId, target: undefined });
 
         expect(result.valid).toBe(true);
         expect(result.reveal).toBeUndefined();
@@ -566,7 +566,7 @@ describe('Confirm kind schemas', () => {
       const resolver = RESOLVERS[schemaId];
       const context = createContext(seat, roleId);
 
-      const result = resolver!(context, { schemaId, confirmed: true });
+      const result = resolver(context, { schemaId, confirmed: true });
 
       expect(result.valid).toBe(true);
     },

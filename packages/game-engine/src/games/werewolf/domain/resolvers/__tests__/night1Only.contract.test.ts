@@ -9,12 +9,12 @@ import { RESOLVERS } from '../index';
 import type { ResolverContext } from '../types';
 import { wolfKillResolver } from '../wolf';
 
-const dreamcatcherDreamResolver = RESOLVERS.dreamcatcherDream!;
-const guardProtectResolver = RESOLVERS.guardProtect!;
-const nightmareBlockResolver = RESOLVERS.nightmareBlock!;
-const slackerChooseIdolResolver = RESOLVERS.slackerChooseIdol!;
-const wolfQueenCharmResolver = RESOLVERS.wolfQueenCharm!;
-const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn!;
+const dreamcatcherDreamResolver = RESOLVERS.dreamcatcherDream;
+const guardProtectResolver = RESOLVERS.guardProtect;
+const nightmareBlockResolver = RESOLVERS.nightmareBlock;
+const slackerChooseIdolResolver = RESOLVERS.slackerChooseIdol;
+const wolfQueenCharmResolver = RESOLVERS.wolfQueenCharm;
+const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn;
 
 function makeContext(overrides: Partial<ResolverContext> = {}): ResolverContext {
   const players: ReadonlyMap<number, RoleId> = new Map<number, RoleId>([

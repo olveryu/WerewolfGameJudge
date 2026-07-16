@@ -89,8 +89,7 @@ describe('Witch buildActionInput contract', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: 0, poison: null } },
+          actionInput: { schemaId: 'witchAction', stepResults: { save: 0, poison: null } },
         },
       };
 
@@ -109,8 +108,7 @@ describe('Witch buildActionInput contract', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: null, poison: 2 } },
+          actionInput: { schemaId: 'witchAction', stepResults: { save: null, poison: 2 } },
         },
       };
 
@@ -129,8 +127,7 @@ describe('Witch buildActionInput contract', () => {
         payload: {
           seat: 3,
           role: 'witch',
-          target: null,
-          extra: { stepResults: { save: null, poison: null } },
+          actionInput: { schemaId: 'witchAction', stepResults: { save: null, poison: null } },
         },
       };
 

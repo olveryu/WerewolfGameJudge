@@ -13,5 +13,6 @@ export { handleSetWolfRobotHunterStatusViewed } from './domain/handlers/wolfRobo
 export type { SubmitActionIntent } from './domain/intents/types';
 export { gameReducer } from './domain/reducer';
 export type { StateAction } from './domain/reducer/types';
+export type { ActionInput } from './domain/resolvers/types';
 export { buildInitialGameState } from './domain/state/buildInitialState';
 export { normalizeState } from './domain/state/normalize';

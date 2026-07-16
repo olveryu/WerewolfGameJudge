@@ -5,7 +5,7 @@
  * Contains only the StepSpec type definition; no service dependencies, no side effects.
  */
 
-import type { SchemaId } from './schemas';
+import type { NightStepId } from './nightStepIds';
 import type { RoleId } from './specs';
 
 /**
@@ -15,7 +15,7 @@ import type { RoleId } from './specs';
  */
 export interface StepSpec {
   /** Step ID (also used as schemaId) */
-  readonly id: SchemaId;
+  readonly id: NightStepId;
   /** Role that performs this step */
   readonly roleId: RoleId;
   /** Start audio filename (without path or extension) */

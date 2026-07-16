@@ -20,10 +20,10 @@ import { RESOLVERS } from '../index';
 import { magicianSwapResolver } from '../magician';
 import type { ActionInput, CurrentNightResults, ResolverContext } from '../types';
 
-const gargoyleCheckResolver = RESOLVERS.gargoyleCheck!;
-const psychicCheckResolver = RESOLVERS.psychicCheck!;
-const seerCheckResolver = RESOLVERS.seerCheck!;
-const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn!;
+const gargoyleCheckResolver = RESOLVERS.gargoyleCheck;
+const psychicCheckResolver = RESOLVERS.psychicCheck;
+const seerCheckResolver = RESOLVERS.seerCheck;
+const wolfRobotLearnResolver = RESOLVERS.wolfRobotLearn;
 
 /** All roles absent */
 const NO_ROLES: RoleSeatMap = {

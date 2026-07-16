@@ -124,7 +124,7 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
   /** Game rule overrides (plague mode, witch self-heal, etc.) */
   rules?: GameRuleOverrides;
 
-  // ⚠️ Phase 1: players remains Record<number, ...> unchanged, consistent with existing implementation
+  // Numeric seat index -> player assignment.
   players: Record<number, Player | null>;
 
   /**
@@ -505,6 +505,13 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
 // Player Message (PlayerMessage) — integration test only
 // =============================================================================
 
+interface TestPlayerActionExtra {
+  readonly confirmed?: boolean;
+  readonly targets?: readonly number[];
+  readonly stepResults?: Readonly<Record<string, number | null>>;
+  readonly cardIndex?: number;
+}
+
 /**
  * Integration test only — message type simulating player->server intents
  *
@@ -515,7 +522,13 @@ export type PlayerMessage =
   | { type: 'REQUEST_STATE'; userId: string }
   | { type: 'JOIN'; seat: number; userId: string; displayName: string; avatarUrl?: string }
   | { type: 'LEAVE'; seat: number; userId: string }
-  | { type: 'ACTION'; seat: number; role: RoleId; target: number | null; extra?: unknown }
+  | {
+      type: 'ACTION';
+      seat: number;
+      role: RoleId;
+      target: number | null;
+      extra?: TestPlayerActionExtra;
+    }
   | { type: 'WOLF_VOTE'; seat: number; target: number }
   | { type: 'VIEWED_ROLE'; seat: number }
   | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
