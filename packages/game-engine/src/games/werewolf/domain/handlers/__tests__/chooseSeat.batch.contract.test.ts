@@ -375,27 +375,6 @@ describe('chooseSeat Batch Handler Contract', () => {
       },
     );
   });
-
-  describe('Side Effects', () => {
-    it.each(CHOOSE_SEAT_SCHEMAS)(
-      '$schemaId - should produce BROADCAST_STATE and SAVE_STATE side effects',
-      ({ schemaId, role }) => {
-        const state = createMinimalState(schemaId, role);
-        const context = createContext(state);
-
-        const intent: SubmitActionIntent = {
-          type: 'SUBMIT_ACTION',
-          payload: { seat: 1, role: role, actionInput: { schemaId, target: 0 } },
-        };
-
-        const result = handleSubmitAction(intent, context);
-
-        const success = expectSuccess(result);
-        expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-        expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
-      },
-    );
-  });
 });
 
 describe('chooseSeat canSkip=false edge case', () => {

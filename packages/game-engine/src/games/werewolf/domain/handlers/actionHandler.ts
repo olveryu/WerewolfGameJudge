@@ -14,7 +14,7 @@ import { createSeededRng, type Rng } from '../../../../platform/random';
 import type { SubmitActionIntent } from '../intents/types';
 import { ROLE_SPECS, type RoleId, type SchemaId, Team } from '../models';
 import { buildSeatRoleMap } from '../playerHelpers';
-import type { ProtocolAction } from '../protocol/types';
+import type { GameState, ProtocolAction } from '../protocol/types';
 import { gameReducer } from '../reducer/gameReducer';
 import type { ActionRejectedAction, RecordActionAction, StateAction } from '../reducer/types';
 import { RESOLVERS } from '../resolvers';
@@ -27,14 +27,14 @@ import {
 import { computeCanShootForSeat } from './confirmContext';
 import { decideWolfVoteTimerAction, isWolfVoteAllComplete } from './progressionEvaluator';
 import { buildRevealPayload, WOLF_ROBOT_GATE_ROLES } from './revealPayload';
-import type { HandlerContext, HandlerExecutionContext, HandlerResult, NonNullState } from './types';
-import { handlerRejection, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
+import { handlerRejection, handlerSuccess } from './types';
 
 /**
  * Build resolver context
  */
 function buildResolverContext(
-  state: NonNullState,
+  state: GameState,
   actorSeat: number,
   actorRoleId: RoleId,
   rng: Rng,
@@ -240,7 +240,7 @@ export function handleSubmitAction(
       extraActions.push({ type: 'CLEAR_STEP_DEADLINE' as const });
     }
     if (extraActions.length > 0) {
-      return handlerSuccess([...handlerResult.actions, ...extraActions], handlerResult.sideEffects);
+      return handlerSuccess([...handlerResult.actions, ...extraActions]);
     }
   }
 
@@ -253,7 +253,7 @@ export function handleSubmitAction(
 function buildRejectionResult(
   schemaId: SchemaId,
   rejectReason: string,
-  state: NonNullState,
+  state: GameState,
   seat: number,
   rejectionId: string,
 ): HandlerResult {
@@ -271,7 +271,7 @@ function buildRejectionResult(
     },
   };
 
-  return handlerRejection(rejectReason, [rejectAction], [{ type: 'BROADCAST_STATE' }]);
+  return handlerRejection(rejectReason, [rejectAction]);
 }
 
 /**
@@ -325,5 +325,5 @@ function buildSuccessResult(
     });
   }
 
-  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions);
 }

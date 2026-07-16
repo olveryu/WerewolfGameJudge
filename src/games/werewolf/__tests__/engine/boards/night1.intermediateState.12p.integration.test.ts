@@ -14,7 +14,7 @@ import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
 import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { sendMessageOrThrow } from './stepByStepRunner';
+import { submitActionOrThrow } from './stepByStepRunner';
 
 // =============================================================================
 // Constants
@@ -70,7 +70,7 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
 
@@ -83,82 +83,72 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
       expect(target).toBe(0);
     }
 
-    // Submit wolf lead action
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill lead',
-    );
-
-    const afterWolfAction = ctx.getGameState();
     // Wolf action should be recorded in actions array
-    expect(afterWolfAction.actions?.length).toBeGreaterThanOrEqual(1);
-    const wolfAction = afterWolfAction.actions?.find((a) => a.schemaId === 'wolfKill');
+    expect(afterWolfVotes.actions.length).toBeGreaterThanOrEqual(1);
+    const wolfAction = afterWolfVotes.actions.find((a) => a.schemaId === 'wolfKill');
     expect(wolfAction).toBeDefined();
     expect(wolfAction?.targetSeat).toBe(0);
 
-    // Advance past wolfKill
-    ctx.advanceNightOrThrow('past wolfKill');
+    const wolfVoteDeadline = afterWolfVotes.stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
+    );
 
     // --- Step 2: witchAction ---
     ctx.assertStep('witchAction');
 
     const beforeWitch = ctx.getGameState();
+    expect(beforeWitch.isAudioPlaying).toBe(true);
     // Witch should see who was killed
     expect(beforeWitch.witchContext).toBeDefined();
     expect(beforeWitch.witchContext?.killedSeat).toBe(0);
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
 
     // Witch skips (no save, no poison)
-    sendMessageOrThrow(
-      ctx,
-      {
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: null, poison: null } },
-      },
-      'witchAction',
-    );
+    submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
 
     const afterWitch = ctx.getGameState();
-    const witchAction = afterWitch.actions?.find((a) => a.schemaId === 'witchAction');
+    const witchAction = afterWitch.actions.find((a) => a.schemaId === 'witchAction');
     expect(witchAction).toBeDefined();
-
-    ctx.advanceNightOrThrow('past witchAction');
 
     // --- Step 3: hunterConfirm ---
     ctx.assertStep('hunterConfirm');
 
     const beforeHunter = ctx.getGameState();
+    expect(beforeHunter.isAudioPlaying).toBe(true);
     // confirmStatus should be set for hunter
     expect(beforeHunter.confirmStatus).toBeDefined();
     expect(beforeHunter.confirmStatus?.role).toBe('hunter');
-
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
-      'hunterConfirm',
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
     );
 
-    const afterHunter = ctx.getGameState();
-    const hunterAction = afterHunter.actions?.find((a) => a.schemaId === 'hunterConfirm');
-    expect(hunterAction).toBeDefined();
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
 
-    ctx.advanceNightOrThrow('past hunterConfirm');
+    const afterHunter = ctx.getGameState();
+    const hunterAction = afterHunter.actions.find((a) => a.schemaId === 'hunterConfirm');
+    expect(hunterAction).toBeDefined();
 
     // --- Step 4: seerCheck ---
     ctx.assertStep('seerCheck');
-
-    // Seer checks seat 1 (villager → should be 'good')
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 8, role: 'seer', target: 1, extra: undefined },
-      'seerCheck',
+    expect(afterHunter.isAudioPlaying).toBe(true);
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
     );
 
+    // Seer checks seat 1 (villager → should be 'good')
+    submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
+
     const afterSeer = ctx.getGameState();
-    const seerAction = afterSeer.actions?.find((a) => a.schemaId === 'seerCheck');
+    const seerAction = afterSeer.actions.find((a) => a.schemaId === 'seerCheck');
     expect(seerAction).toBeDefined();
 
     // seerReveal should be populated
@@ -167,26 +157,19 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     expect(afterSeer.seerReveal?.result).toBe('好人');
 
     // pendingRevealAcks should have seerCheck
-    expect(afterSeer.pendingRevealAcks?.length).toBeGreaterThan(0);
+    expect(afterSeer.pendingRevealAcks.length).toBeGreaterThan(0);
 
     // Ack the reveal
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
+    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
 
     const afterAck = ctx.getGameState();
-    expect(afterAck.pendingRevealAcks?.length ?? 0).toBe(0);
-
-    ctx.advanceNightOrThrow('past seerCheck');
+    expect(afterAck.pendingRevealAcks).toEqual([]);
 
     // --- Night should end ---
-    const endState = ctx.getGameState();
-    expect(endState.currentStepId).toBeUndefined();
-
-    ctx.endNight();
-
-    const finalState = ctx.getGameState();
-    expect(finalState.status).toBe(GameStatus.Ended);
+    expect(afterAck.currentStepId).toBeUndefined();
+    expect(afterAck.status).toBe(GameStatus.Ended);
     // Seat 0 should have died (wolf killed, witch didn't save)
-    expect(finalState.lastNightDeaths).toContain(0);
+    expect(afterAck.lastNightDeaths).toContain(0);
   });
 
   it('witch 救人后 → lastNightDeaths 不含被救座位', () => {
@@ -197,51 +180,46 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
     );
-    ctx.advanceNightOrThrow('past wolfKill');
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
 
     // witchAction: save seat 0
     ctx.assertStep('witchAction');
-    sendMessageOrThrow(
+    submitActionOrThrow(
       ctx,
-      {
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: 0, poison: null } },
-      },
+      9,
+      { kind: 'witch', saveTarget: 0, poisonTarget: null },
       'witchAction save',
     );
-    ctx.advanceNightOrThrow('past witchAction');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
+    );
 
     // hunterConfirm
     ctx.assertStep('hunterConfirm');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
-      'hunterConfirm',
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
     );
-    ctx.advanceNightOrThrow('past hunterConfirm');
 
     // seerCheck
     ctx.assertStep('seerCheck');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 8, role: 'seer', target: 1, extra: undefined },
-      'seerCheck',
-    );
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
-    ctx.advanceNightOrThrow('past seerCheck');
-
-    ctx.endNight();
+    submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
+    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
 
     const finalState = ctx.getGameState();
     expect(finalState.status).toBe(GameStatus.Ended);
@@ -257,51 +235,46 @@ describe('Night-1: intermediate state assertions (预女猎白)', () => {
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
     );
-    ctx.advanceNightOrThrow('past wolfKill');
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
 
     // witchAction: don't save, poison seat 2
     ctx.assertStep('witchAction');
-    sendMessageOrThrow(
+    submitActionOrThrow(
       ctx,
-      {
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: null, poison: 2 } },
-      },
+      9,
+      { kind: 'witch', saveTarget: null, poisonTarget: 2 },
       'witchAction poison',
     );
-    ctx.advanceNightOrThrow('past witchAction');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
+    );
 
     // hunterConfirm
     ctx.assertStep('hunterConfirm');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
-      'hunterConfirm',
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
     );
-    ctx.advanceNightOrThrow('past hunterConfirm');
 
     // seerCheck
     ctx.assertStep('seerCheck');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 8, role: 'seer', target: 1, extra: undefined },
-      'seerCheck',
-    );
-    sendMessageOrThrow(ctx, { type: 'REVEAL_ACK', seat: 8, role: 'seer', revision: 0 }, 'seer ack');
-    ctx.advanceNightOrThrow('past seerCheck');
-
-    ctx.endNight();
+    submitActionOrThrow(ctx, 8, { kind: 'target', target: 1 }, 'seerCheck');
+    ctx.dispatchAsSeatOrThrow(8, { type: 'werewolf.reveal.ack' }, 'seer ack');
 
     const finalState = ctx.getGameState();
     expect(finalState.status).toBe(GameStatus.Ended);

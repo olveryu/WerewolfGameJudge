@@ -91,13 +91,6 @@ describe('handleClearAllSeats', () => {
     expect(success.actions).toHaveLength(0);
   });
 
-  it('should reject when state is null', () => {
-    const context: HandlerContext = { state: null, myUserId: 'host-1', mySeat: null };
-    const result = handleClearAllSeats(intent, context);
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
-  });
-
   it('should reject when status is assigned', () => {
     const state = createMinimalState({ status: GameStatus.Assigned });
     const context = createContext(state);
@@ -112,14 +105,5 @@ describe('handleClearAllSeats', () => {
     const result = handleClearAllSeats(intent, context);
     const err = expectError(result);
     expect(err.reason).toBe('game_in_progress');
-  });
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
-    const context = createContext(seatedState);
-    const result = handleClearAllSeats(intent, context);
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toEqual(
-      expect.arrayContaining([{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]),
-    );
   });
 });

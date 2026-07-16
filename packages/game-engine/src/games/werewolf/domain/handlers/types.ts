@@ -17,11 +17,12 @@ export type HandlerExecutionContext = CommandExecutionContext;
  * Handler context
  * Provides dependencies required for handler execution
  *
- * State and actor identity remain nullable because initialization and system commands share this boundary.
+ * The platform command pipeline resolves an initialized room before entering a game handler.
+ * Actor identity remains nullable because system commands and unseated users share this boundary.
  */
 export interface HandlerContext {
-  /** Current state (read-only). null = room has not been initialized */
-  readonly state: GameState | null;
+  /** Current authoritative state (read-only). */
+  readonly state: GameState;
 
   /** Current user UID. null = system context (e.g., alarm callback) */
   readonly myUserId: string | null;
@@ -36,14 +37,13 @@ export interface HandlerContext {
  * Three result semantics:
  * - `success`: completed normally, has actions to apply + persist + broadcast
  * - `rejection`: business rejection (e.g., immune to attack), has actions (ACTION_REJECTED etc.) to persist + broadcast
- * - `error`: infrastructure/precondition failure (state missing, wrong status), no actions, returns HTTP error directly
+ * - `error`: command precondition failure (for example, wrong status), no actions
  */
 export type HandlerResult = HandlerSuccess | HandlerRejection | HandlerError;
 
 export interface HandlerSuccess {
   readonly kind: 'success';
   readonly actions: StateAction[];
-  readonly sideEffects?: readonly SideEffect[];
   /** Optional metadata (e.g., 'DEDUPLICATED'); does not affect success semantics, used by client toast */
   readonly reason?: string;
 }
@@ -52,7 +52,6 @@ export interface HandlerRejection {
   readonly kind: 'rejection';
   readonly reason: string;
   readonly actions: StateAction[];
-  readonly sideEffects?: readonly SideEffect[];
 }
 
 export interface HandlerError {
@@ -62,52 +61,14 @@ export interface HandlerError {
 
 // ── Factory functions ───────────────────────────────────────────────────────
 
-export function handlerSuccess(
-  actions: StateAction[],
-  sideEffects?: readonly SideEffect[],
-  reason?: string,
-): HandlerSuccess {
-  return { kind: 'success', actions, sideEffects, reason };
+export function handlerSuccess(actions: StateAction[], reason?: string): HandlerSuccess {
+  return { kind: 'success', actions, reason };
 }
 
-export function handlerRejection(
-  reason: string,
-  actions: StateAction[],
-  sideEffects?: readonly SideEffect[],
-): HandlerRejection {
-  return { kind: 'rejection', reason, actions, sideEffects };
+export function handlerRejection(reason: string, actions: StateAction[]): HandlerRejection {
+  return { kind: 'rejection', reason, actions };
 }
 
 export function handlerError(reason: string): HandlerError {
   return { kind: 'error', reason };
 }
-
-/**
- * Side effect types
- * Handlers do not execute side effects directly; they return descriptions executed by the outer layer
- */
-export type SideEffect =
-  /** Broadcast updated GameState to all connected WebSocket clients */
-  | { type: 'BROADCAST_STATE' }
-  /** Queue audio for Host device playback; isEndAudio=true loads from audio_end/ directory */
-  | { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean }
-  /** Reserved (unused) */
-  | { type: 'SEND_MESSAGE'; message: unknown }
-  /** Persist updated state to SQLite */
-  | { type: 'SAVE_STATE' };
-
-/**
- * Standard side effects: broadcast state + save state
- *
- * Most handler sideEffects are this pair combined.
- * Handlers including PLAY_AUDIO should construct the full list themselves.
- */
-export const STANDARD_SIDE_EFFECTS: readonly SideEffect[] = Object.freeze([
-  { type: 'BROADCAST_STATE' },
-  { type: 'SAVE_STATE' },
-] as const);
-
-/**
- * Non-null GameState type (used after handler validation)
- */
-export type NonNullState = NonNullable<HandlerContext['state']>;

@@ -16,9 +16,9 @@ import type { Rng } from '../../../../platform/random';
 import { GameStatus } from '../models';
 import type { SchemaId } from '../models/roles/spec';
 import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
+import type { GameState } from '../protocol/types';
 import type { SetWitchContextAction } from '../reducer/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
-import type { NonNullState } from './types';
 
 /**
  * Compute the witch context (pure function)
@@ -32,7 +32,7 @@ import type { NonNullState } from './types';
  * @returns witchContext payload
  */
 function computeWitchContext(
-  state: NonNullState,
+  state: GameState,
   rng: Rng,
 ): {
   killedSeat: number;
@@ -94,7 +94,7 @@ function computeWitchContext(
  */
 export function maybeCreateWitchContextAction(
   nextStepId: SchemaId,
-  state: NonNullState,
+  state: GameState,
   rng: Rng,
 ): SetWitchContextAction | null {
   const hasWitch = state.templateRoles.includes('witch');

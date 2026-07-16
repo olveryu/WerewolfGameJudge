@@ -2,7 +2,7 @@
  * Intent Types - intent type definitions
  *
  * Intent is an action request from UI layer, processed by Handler
- * Intent corresponds to PlayerMessage, but more type-safe
+ * Intents are private domain inputs resolved from typed Werewolf commands.
  */
 
 import type { GameRuleOverrides, RoleId } from '../models';
@@ -166,8 +166,7 @@ export interface ViewedRoleIntent {
  *
  * Gate:
  * - host_only
- * - no_state
- * - invalid_status (must be ongoing)
+ * - invalid_status (must be ongoing or ended)
  */
 export interface SetAudioPlayingIntent {
   type: 'SET_AUDIO_PLAYING';

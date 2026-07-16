@@ -1,7 +1,9 @@
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_CODEC } from '@game-judge/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import {
+  WEREWOLF_STATE_CODEC,
+  werewolfEngine,
+} from '@game-judge/game-engine/games/werewolf/public';
 import {
   createRoomSnapshot,
   createStateUpdateMessage,
@@ -30,6 +32,13 @@ const TEMPLATE: GameTemplate = {
   roles: ['wolf', 'seer', 'villager', 'villager'],
 };
 const ROOM = { roomCode: '1234', roomId: 'room-id-1234' } as const;
+
+function createState(): GameState {
+  return werewolfEngine.createInitialState(
+    { templateRoles: TEMPLATE.roles },
+    { roomCode: 'ROOM', hostUserId: 'HOST', nowMs: 1, commandId: 'create-realtime-test' },
+  );
+}
 
 class MockWebSocket {
   // eslint-disable-next-line @typescript-eslint/naming-convention -- WebSocket API constant
@@ -107,7 +116,7 @@ describe('CFRealtimeService protocol', () => {
 
   it('emits the canonical state update message', async () => {
     const { service, handlers, socket } = await connectService();
-    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const state = createState();
     const message = createStateUpdateMessage(createRoomSnapshot(state, 4), 'room.seat.take');
 
     socket.onmessage?.({ data: JSON.stringify(message) } as MessageEvent);
@@ -118,7 +127,7 @@ describe('CFRealtimeService protocol', () => {
 
   it('rejects the removed legacy state update shape and closes with 1002', async () => {
     const { handlers, socket } = await connectService();
-    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const state = createState();
 
     socket.onmessage?.({
       data: JSON.stringify({ type: 'STATE_UPDATE', state, revision: 4, lastAction: 'SIT' }),
@@ -131,7 +140,7 @@ describe('CFRealtimeService protocol', () => {
 
   it('rejects a non-increasing revision on one socket', async () => {
     const { handlers, socket } = await connectService();
-    const state = buildInitialGameState('ROOM', 'HOST', TEMPLATE);
+    const state = createState();
     socket.onmessage?.({
       data: JSON.stringify(
         createStateUpdateMessage(createRoomSnapshot(state, 4), 'room.seat.take'),

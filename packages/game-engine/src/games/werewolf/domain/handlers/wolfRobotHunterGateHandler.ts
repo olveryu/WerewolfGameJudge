@@ -15,7 +15,7 @@
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';
 import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
 import type { HandlerContext, HandlerResult } from './types';
-import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess } from './types';
 
 /**
  * Intent type: set Wolf Robot hunter status as viewed
@@ -29,10 +29,9 @@ interface SetWolfRobotHunterStatusViewedIntent {
  * Handle Wolf Robot viewing the hunter status
  *
  * Validation:
- * 1. state exists
- * 2. currentStepId === 'wolfRobotLearn'
- * 3. wolfRobotReveal.learnedRoleId in WOLF_ROBOT_GATE_ROLES
- * 4. player.role at seat === 'wolfRobot'
+ * 1. currentStepId === 'wolfRobotLearn'
+ * 2. wolfRobotReveal.learnedRoleId in WOLF_ROBOT_GATE_ROLES
+ * 3. player.role at seat === 'wolfRobot'
  *
  * Returns:
  * - success: true + actions: [SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED]
@@ -42,18 +41,14 @@ export function handleSetWolfRobotHunterStatusViewed(
   ctx: HandlerContext,
   intent: SetWolfRobotHunterStatusViewedIntent,
 ): HandlerResult {
-  // Gate 1: state exists
   const state = ctx.state;
-  if (!state) {
-    return handlerError('no_state');
-  }
 
-  // Gate 2: current step must be wolfRobotLearn
+  // Gate 1: current step must be wolfRobotLearn
   if (state.currentStepId !== 'wolfRobotLearn') {
     return handlerError('invalid_step');
   }
 
-  // Gate 3: wolfRobotReveal.learnedRoleId must be in the gate trigger role list
+  // Gate 2: wolfRobotReveal.learnedRoleId must be in the gate trigger role list
   if (
     !state.wolfRobotReveal?.learnedRoleId ||
     !WOLF_ROBOT_GATE_ROLES.includes(state.wolfRobotReveal.learnedRoleId)
@@ -61,7 +56,7 @@ export function handleSetWolfRobotHunterStatusViewed(
     return handlerError('not_learned_hunter');
   }
 
-  // Gate 4: seat must be the wolfRobot's seat
+  // Gate 3: seat must be the wolfRobot's seat
   const player = state.players[intent.seat];
   if (player?.role !== 'wolfRobot') {
     return handlerError('invalid_seat');
@@ -73,5 +68,5 @@ export function handleSetWolfRobotHunterStatusViewed(
     payload: { viewed: true },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }

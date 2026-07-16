@@ -11,6 +11,7 @@ const gamesDirectory = path.resolve(__dirname, '..', '..', 'games');
 const productDirectory = path.resolve(__dirname, '..', '..', 'product');
 const sourceDirectory = path.resolve(__dirname, '..', '..');
 const packageDirectory = path.resolve(sourceDirectory, '..');
+const werewolfHandlersDirectory = path.join(gamesDirectory, 'werewolf', 'domain', 'handlers');
 
 const REMOVED_ROOT_DIRECTORIES = [
   'engine',
@@ -29,12 +30,11 @@ const REMOVED_PACKAGE_EXPORT_PREFIXES = [
   './utils',
 ] as const;
 const GAME_EXPORT_PATTERN = /^\.\/games\/([^/]+)(?:\/(.+))?$/;
-const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public', 'testing']);
+const ALLOWED_GAME_MODULE_ENTRYPOINTS = new Set(['public']);
 const EXPECTED_PACKAGE_EXPORTS = [
   './games/catalog',
   './games/fibking/public',
   './games/werewolf/public',
-  './games/werewolf/testing',
   './platform/engine',
   './platform/identifiers',
   './platform/protocol/actionResult',
@@ -53,6 +53,17 @@ const EXPECTED_PACKAGE_EXPORTS = [
   './product/growth',
   './product/rewards',
 ] as const;
+const FORBIDDEN_HANDLER_CONTRACT_IDENTIFIERS = new Set([
+  'SideEffect',
+  'STANDARD_SIDE_EFFECTS',
+  'sideEffects',
+]);
+const FORBIDDEN_HANDLER_EFFECT_TYPES = new Set([
+  'BROADCAST_STATE',
+  'PLAY_AUDIO',
+  'SAVE_STATE',
+  'SEND_MESSAGE',
+]);
 
 interface PackageExportEntry {
   readonly exportPath: string;
@@ -96,6 +107,37 @@ function getOrdinaryTypeAssertions(filePath: string, source?: string): readonly 
     ) {
       const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
       violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return violations;
+}
+
+function getHandlerContractViolations(filePath: string, source?: string): readonly string[] {
+  const content = source ?? fs.readFileSync(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const violations: string[] = [];
+
+  function addViolation(node: ts.Node): void {
+    const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+    violations.push(
+      `${path.relative(process.cwd(), filePath)}:${line}:${node.getText(sourceFile)}`,
+    );
+  }
+
+  function visit(node: ts.Node): void {
+    if (ts.isIdentifier(node) && FORBIDDEN_HANDLER_CONTRACT_IDENTIFIERS.has(node.text)) {
+      addViolation(node);
+    } else if (ts.isStringLiteral(node) && FORBIDDEN_HANDLER_EFFECT_TYPES.has(node.text)) {
+      addViolation(node);
     }
     ts.forEachChild(node, visit);
   }
@@ -270,6 +312,35 @@ describe('game-engine production type honesty', () => {
       'src/typeAssertion.fixture.ts:1',
     ]);
     expect(getOrdinaryTypeAssertions(fixturePath, 'value as const;')).toEqual([]);
+  });
+});
+
+describe('Werewolf handler event boundary', () => {
+  const handlerFiles = collectProductionFiles(werewolfHandlersDirectory);
+
+  it('contains production handlers', () => {
+    expect(handlerFiles.length).toBeGreaterThan(0);
+  });
+
+  it('does not describe platform persistence, broadcast, messaging, or audio IO effects', () => {
+    const violations = handlerFiles.flatMap((filePath) => getHandlerContractViolations(filePath));
+
+    expect(violations).toEqual([]);
+  });
+
+  it('rejects identifier and effect-type fixtures', () => {
+    const fixturePath = path.join(werewolfHandlersDirectory, 'contract.fixture.ts');
+    const source = [
+      "type SideEffect = { type: 'BROADCAST_STATE' };",
+      'const sideEffects: SideEffect[] = [];',
+    ].join('\n');
+
+    expect(getHandlerContractViolations(fixturePath, source)).toEqual([
+      expect.stringContaining(':1:SideEffect'),
+      expect.stringContaining(":1:'BROADCAST_STATE'"),
+      expect.stringContaining(':2:sideEffects'),
+      expect.stringContaining(':2:SideEffect'),
+    ]);
   });
 });
 

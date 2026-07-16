@@ -9,7 +9,7 @@ import type { ViewedRoleIntent } from '../intents/types';
 import { GameStatus } from '../models';
 import type { PlayerViewedRoleAction } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
-import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess } from './types';
 
 /**
  * Handle a player's viewed-role intent.
@@ -19,11 +19,6 @@ import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
 export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerContext): HandlerResult {
   const { seat } = intent.payload;
   const { state, mySeat } = context;
-
-  // Validate: state must exist (null-state guard must come first)
-  if (!state) {
-    return handlerError('no_state');
-  }
 
   // Validate: seat ownership (Host may mark any seat for bot control; non-Host can only mark own seat)
   if (state.hostUserId !== context.myUserId && mySeat !== seat) {
@@ -45,5 +40,5 @@ export function handleViewedRole(intent: ViewedRoleIntent, context: HandlerConte
     payload: { seat },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }

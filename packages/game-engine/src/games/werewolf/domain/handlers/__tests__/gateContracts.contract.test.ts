@@ -500,22 +500,6 @@ describe('Gate Contract: validateActionPreconditions gate ordering', () => {
    * This prevents confusing error messages when multiple conditions fail.
    */
 
-  it('no_state fires before invalid_status', () => {
-    const context: HandlerContext = {
-      state: null,
-      myUserId: 'host-1',
-      mySeat: 0,
-    };
-    const intent: SubmitActionIntent = {
-      type: 'SUBMIT_ACTION',
-      payload: { seat: 0, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 1 } },
-    };
-
-    const result = handleSubmitAction(intent, context);
-    const err1 = expectError(result);
-    expect(err1.reason).toBe('no_state');
-  });
-
   it('invalid_status fires before forbidden_while_audio_playing', () => {
     const state = createMinimalState({
       status: GameStatus.Ended,

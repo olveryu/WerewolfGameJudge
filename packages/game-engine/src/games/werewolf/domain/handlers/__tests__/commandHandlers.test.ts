@@ -4,10 +4,7 @@ import {
   expectError,
   expectSuccess,
 } from '@game-judge/game-engine/games/werewolf/domain/handlers/__tests__/handlerTestUtils';
-import type {
-  HandlerContext,
-  HandlerResult,
-} from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
+import type { HandlerContext } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/domain/protocol/types';
 import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/state/version';
@@ -60,10 +57,7 @@ function createState(overrides: Partial<GameState> = {}): GameState {
   };
 }
 
-function createContext(
-  state: GameState | null,
-  overrides: Partial<HandlerContext> = {},
-): HandlerContext {
+function createContext(state: GameState, overrides: Partial<HandlerContext> = {}): HandlerContext {
   return {
     state,
     myUserId: PLAYER_USER_ID,
@@ -112,32 +106,6 @@ const GROUP_CONFIRM_CASES = [
 ] as const;
 
 describe('Werewolf command handlers', () => {
-  describe('null state', () => {
-    const cases: ReadonlyArray<{
-      name: string;
-      invoke: (context: HandlerContext) => HandlerResult;
-    }> = [
-      { name: 'audio ack', invoke: handleAudioAck },
-      { name: 'progression request', invoke: handleProgressionRequest },
-      { name: 'reveal ack', invoke: handleRevealAck },
-      {
-        name: 'group confirm ack',
-        invoke: (context) => handleGroupConfirmAck(PLAYER_SEAT, context),
-      },
-      { name: 'bot group confirm', invoke: handleMarkBotsGroupConfirmed },
-      {
-        name: 'roster level update',
-        invoke: (context) => handleApplyRosterLevels({}, context),
-      },
-    ];
-
-    it.each(cases)('$name returns no_state', ({ invoke }) => {
-      const error = expectError(invoke(createContext(null)));
-
-      expect(error.reason).toBe('no_state');
-    });
-  });
-
   describe('handleAudioAck', () => {
     const noOpCases: ReadonlyArray<{
       name: string;
@@ -195,14 +163,13 @@ describe('Werewolf command handlers', () => {
       expect(expectError(result).reason).toBe('no_pending_acks');
     });
 
-    it('clears pending acknowledgements and requests only a state broadcast', () => {
+    it('clears pending acknowledgements', () => {
       const result = handleRevealAck(
         createContext(createState({ pendingRevealAcks: [PLAYER_USER_ID] })),
       );
       const success = expectSuccess(result);
 
       expect(success.actions).toEqual([{ type: 'CLEAR_REVEAL_ACKS' }]);
-      expect(success.sideEffects).toEqual([{ type: 'BROADCAST_STATE' }]);
     });
   });
 
@@ -418,7 +385,7 @@ describe('Werewolf command handlers', () => {
         [HOST_USER_ID]: 3,
         [PLAYER_USER_ID]: 5,
       });
-      const result = handleApplyRosterLevels(levels, createContext(createState()));
+      const result = handleApplyRosterLevels(levels);
       const success = expectSuccess(result);
       const action = success.actions[0];
 
@@ -436,7 +403,7 @@ describe('Werewolf command handlers', () => {
     });
 
     it('still emits the roster event for an empty level map', () => {
-      const result = handleApplyRosterLevels({}, createContext(createState()));
+      const result = handleApplyRosterLevels({});
 
       expect(expectSuccess(result).actions).toEqual([
         { type: 'UPDATE_ROSTER_LEVELS', payload: { levels: {} } },

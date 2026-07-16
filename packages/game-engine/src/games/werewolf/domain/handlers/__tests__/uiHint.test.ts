@@ -6,7 +6,7 @@
 
 import type { NightPlanStep } from '../../models';
 import { GameStatus } from '../../models/GameStatus';
-import type { NonNullState } from '../types';
+import type { GameState } from '../../protocol/types';
 import { maybeCreateUiHintAction } from '../uiHint';
 
 // ---------------------------------------------------------------------------
@@ -17,7 +17,7 @@ function step(roleId: string, stepId: string, order = 0): NightPlanStep {
   return { roleId, stepId, order, displayName: roleId, audioKey: roleId } as NightPlanStep;
 }
 
-function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -33,7 +33,7 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     actions: [],
     pendingRevealAcks: [],
     ...overrides,
-  } as NonNullState;
+  } as GameState;
 }
 
 // =============================================================================
@@ -82,7 +82,7 @@ describe('maybeCreateUiHintAction', () => {
           emptyVoteText: '空刀（被封锁）',
         },
       },
-    } as Partial<NonNullState>);
+    } as Partial<GameState>);
     const action = maybeCreateUiHintAction(step('wolf', 'wolfKill', 2), state);
     expect(action.payload.currentActorHint).not.toBeNull();
     expect(action.payload.currentActorHint!.kind).toBe('wolf_kill_disabled');
@@ -119,7 +119,7 @@ describe('maybeCreateUiHintAction', () => {
           emptyVoteText: '空刀',
         },
       },
-    } as Partial<NonNullState>);
+    } as Partial<GameState>);
     const action = maybeCreateUiHintAction(step('wolf', 'wolfKill', 2), state);
     // wolfKillOverride check (Case 1) is before cupid check (Case 1.5)
     expect(action.payload.currentActorHint!.kind).toBe('wolf_kill_disabled');

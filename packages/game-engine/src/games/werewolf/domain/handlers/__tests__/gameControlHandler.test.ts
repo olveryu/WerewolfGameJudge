@@ -209,17 +209,6 @@ describe('handleAssignRoles', () => {
     const err = expectError(result);
     expect(err.reason).toBe('role_count_mismatch');
   });
-
-  it('should include side effects', () => {
-    const context = createContext(seatedState);
-    const intent: AssignRolesIntent = { type: 'ASSIGN_ROLES' };
-
-    const result = handleAssignRoles(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
-  });
 });
 
 // =============================================================================
@@ -243,7 +232,7 @@ describe('handleStartNight', () => {
     const result = handleStartNight(intent, context);
 
     const success = expectSuccess(result);
-    expect(success.actions).toHaveLength(1);
+    expect(success.actions).toHaveLength(3);
     expect(success.actions[0]!.type).toBe('START_NIGHT');
   });
 
@@ -295,8 +284,8 @@ describe('handleStartNight', () => {
 
     const success = expectSuccess(result);
 
-    // Should have two actions: START_NIGHT + SET_WITCH_CONTEXT
-    expect(success.actions.length).toBe(2);
+    // START_NIGHT + SET_WITCH_CONTEXT + authoritative audio queue pair.
+    expect(success.actions.length).toBe(4);
 
     const startNightAction = success.actions.find((a) => a.type === 'START_NIGHT');
     expect(startNightAction).toBeDefined();
@@ -315,20 +304,6 @@ describe('handleStartNight', () => {
       // Poison available
       expect(witchContextAction.payload.canPoison).toBe(true);
     }
-  });
-
-  it('should fail when state is null (gate: no_state)', () => {
-    const context: HandlerContext = {
-      state: null,
-      myUserId: 'host-1',
-      mySeat: 0,
-    };
-    const intent: StartNightIntent = { type: 'START_NIGHT' };
-
-    const result = handleStartNight(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
   });
 
   it('should fail when status is assigned (gate: invalid_status)', () => {
@@ -378,15 +353,26 @@ describe('handleStartNight', () => {
     expect(err.reason).toBe('invalid_status');
   });
 
-  it('should include side effects', () => {
+  it('should write the ordered Host audio queue into state actions', () => {
     const context = createContext(readyState);
     const intent: StartNightIntent = { type: 'START_NIGHT' };
 
     const result = handleStartNight(intent, context);
 
     const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
+    expect(success.actions).toContainEqual({
+      type: 'SET_PENDING_AUDIO_EFFECTS',
+      payload: {
+        effects: [
+          { audioKey: 'night', isEndAudio: false },
+          { audioKey: 'wolf', isEndAudio: false },
+        ],
+      },
+    });
+    expect(success.actions).toContainEqual({
+      type: 'SET_AUDIO_PLAYING',
+      payload: { isPlaying: true },
+    });
   });
 
   it('initializes and ends an empty night plan with canonical results', () => {
@@ -418,8 +404,6 @@ describe('handleStartNight', () => {
       currentNightResults: {},
       lastNightDeaths: [],
     });
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -437,18 +421,6 @@ describe('handleRestartGame', () => {
     if (success.actions[0]!.type === 'RESTART_GAME') {
       expect(success.actions[0].nonce).toBe(TEST_HANDLER_EXECUTION.randomSeed);
     }
-  });
-
-  it('should include side effects', () => {
-    const state = createMinimalState({ status: GameStatus.Ended });
-    const context = createContext(state);
-    const intent: RestartGameIntent = { type: 'RESTART_GAME' };
-
-    const result = handleRestartGame(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -471,8 +443,6 @@ describe('handleUpdateTemplate', () => {
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
     expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should succeed when status is seated', () => {
@@ -491,19 +461,6 @@ describe('handleUpdateTemplate', () => {
     const success = expectSuccess(result);
     expect(success.actions).toHaveLength(1);
     expect(success.actions[0]!.type).toBe('UPDATE_TEMPLATE');
-  });
-
-  it('should fail when state is null (gate: no_state)', () => {
-    const context: HandlerContext = {
-      state: null,
-      myUserId: 'host-1',
-      mySeat: 0,
-    };
-
-    const result = handleUpdateTemplate(updateIntent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
   });
 
   it.each([GameStatus.Assigned, GameStatus.Ready, GameStatus.Ongoing, GameStatus.Ended] as const)(

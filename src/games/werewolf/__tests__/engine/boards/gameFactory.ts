@@ -1,90 +1,111 @@
-/**
- * Game Factory for Integration Tests
- *
- * Fully based on the architecture:
- * - intents -> handlers -> reducer -> GameState
- * - No import of retired GameStateService / NightFlowController
- * - No encoded target protocol
- *
- * Single source of truth: GameState
- */
+/** Production-command Werewolf fixture builder for cross-package board tests. */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
-import type { NightPlan } from '@game-judge/game-engine/games/werewolf/public';
-import type { GameState, PlayerMessage } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { buildNightPlan } from '@game-judge/game-engine/games/werewolf/public';
-import { WOLF_KILL_OVERRIDE_TEXTS } from '@game-judge/game-engine/games/werewolf/public';
 import {
+  buildNightPlan,
   createTemplateFromRoles,
-  type GameTemplate,
+  type GameState,
   getBottomCardCount,
   getPlayerCount,
   PRESET_TEMPLATES,
+  type RoleId,
+  type SchemaId,
+  werewolfEngine,
+  type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import type {
-  HandlerContext,
-  HandlerExecutionContext,
-  HandlerResult,
-} from '@game-judge/game-engine/games/werewolf/testing';
-import type { SubmitActionIntent } from '@game-judge/game-engine/games/werewolf/testing';
-import type { ActionInput } from '@game-judge/game-engine/games/werewolf/testing';
-import type { StateAction } from '@game-judge/game-engine/games/werewolf/testing';
-import { handleSubmitAction as executeSubmitAction } from '@game-judge/game-engine/games/werewolf/testing';
+import type { CommandContext } from '@game-judge/game-engine/platform/engine';
 import {
-  handleAdvanceNight as executeAdvanceNight,
-  handleEndNight as executeEndNight,
-} from '@game-judge/game-engine/games/werewolf/testing';
-import { handlerSuccess } from '@game-judge/game-engine/games/werewolf/testing';
-import { handleSetWolfRobotHunterStatusViewed } from '@game-judge/game-engine/games/werewolf/testing';
-import { gameReducer } from '@game-judge/game-engine/games/werewolf/testing';
-import { normalizeState } from '@game-judge/game-engine/games/werewolf/testing';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
+  createRoomCommandResult,
+  type RoomCommandResult,
+} from '@game-judge/game-engine/platform/protocol/commandResult';
+import { createSeededRng, shuffleArray } from '@game-judge/game-engine/platform/random';
 
-import type { CapturedMessage, GameContext } from './gameContext';
+import type { GameContext, TestCommandActor, TestCommandExecution } from './gameContext';
 
-// =============================================================================
-// Internal State Management
-// =============================================================================
+const ROOM_CODE = 'TEST01';
+const HOST_USER_ID = 'host-uid';
+const INITIAL_NOW_MS = 1_000_000;
+const DEFAULT_RANDOM_SEED = 'board-test-seed';
+const ROLE_ASSIGNMENT_SEED_SUFFIX = 'role-assignment';
 
 interface InternalState {
   state: GameState;
   revision: number;
-  nightPlan: NightPlan;
-  template: GameTemplate;
-  /** Captured messages (for wire protocol contract tests) */
-  capturedMessages: CapturedMessage[];
+  commandSequence: number;
+  nowMs: number;
+  readonly randomSeed: string;
 }
-
-function applyActions(current: GameState, actions: StateAction[]): GameState {
-  return actions.reduce((s, action) => gameReducer(s, action), current);
-}
-
-function createContext(state: GameState): HandlerContext {
-  return {
-    state,
-    myUserId: 'host-uid',
-    mySeat: null,
-  };
-}
-
-const TEST_EXECUTION: HandlerExecutionContext = Object.freeze({
-  nowMs: 1_000_000,
-  commandId: 'board-test-command',
-  randomSeed: 'board-test-seed',
-});
-
-// =============================================================================
-// Factory Function
-// =============================================================================
 
 interface CreateGameOptions {
-  /** Treasure Master deck cards (3 cards), required only for 15-role templates */
-  bottomCards?: readonly RoleId[];
-  /** Server-generated random seed used by deterministic engine decisions. */
-  randomSeed?: string;
+  /** Base seed used to derive deterministic, command-scoped random seeds. */
+  readonly randomSeed?: string;
+}
+
+function assertSameRoleMultiset(actual: readonly RoleId[], expected: readonly RoleId[]): void {
+  const count = (roles: readonly RoleId[]): Map<RoleId, number> => {
+    const result = new Map<RoleId, number>();
+    for (const role of roles) result.set(role, (result.get(role) ?? 0) + 1);
+    return result;
+  };
+  const actualCounts = count(actual);
+  const expectedCounts = count(expected);
+  if (
+    actualCounts.size !== expectedCounts.size ||
+    [...actualCounts].some(([role, value]) => expectedCounts.get(role) !== value)
+  ) {
+    throw new Error('[FAIL-FAST] Requested seat roles do not match the template role multiset');
+  }
+}
+
+function getDesiredSeatRoles(
+  templateRoles: readonly RoleId[],
+  roleAssignment: ReadonlyMap<number, RoleId> | undefined,
+): RoleId[] {
+  const playerCount = getPlayerCount(templateRoles);
+  if (roleAssignment === undefined) return templateRoles.slice(0, playerCount);
+  if (roleAssignment.size !== playerCount) {
+    throw new Error(
+      `[FAIL-FAST] Role fixture has ${roleAssignment.size} seats; expected ${playerCount}`,
+    );
+  }
+  return Array.from({ length: playerCount }, (_, seat) => {
+    const role = roleAssignment.get(seat);
+    if (role === undefined) {
+      throw new Error(`[FAIL-FAST] Role fixture is missing seat ${seat}`);
+    }
+    return role;
+  });
+}
+
+/**
+ * Invert the production Fisher-Yates permutation so the public assign command
+ * produces the seat arrangement requested by a deterministic test fixture.
+ */
+function createTemplateRolesForDesiredSeats(
+  templateRoles: readonly RoleId[],
+  desiredSeatRoles: readonly RoleId[],
+  roleAssignmentSeed: string,
+): RoleId[] {
+  if (getBottomCardCount(templateRoles) !== 0) return [...templateRoles];
+  assertSameRoleMultiset(desiredSeatRoles, templateRoles);
+
+  const shuffledSourceIndexes = shuffleArray(
+    Array.from({ length: desiredSeatRoles.length }, (_, index) => index),
+    createSeededRng(`${roleAssignmentSeed}:roles`),
+  );
+  const configuredRoles = new Array<RoleId>(desiredSeatRoles.length);
+  for (let seat = 0; seat < desiredSeatRoles.length; seat += 1) {
+    configuredRoles[shuffledSourceIndexes[seat]!] = desiredSeatRoles[seat]!;
+  }
+  return configuredRoles;
+}
+
+function assertCommitted(result: RoomCommandResult<GameState>, context: string): void {
+  if (result.kind === 'rejected') {
+    throw new Error(`[${context}] rejected: ${result.reason}`);
+  }
+  if (result.outcome.kind === 'domainRejected') {
+    throw new Error(`[${context}] domain rejected: ${result.outcome.reason}`);
+  }
 }
 
 export function createGame(
@@ -92,361 +113,197 @@ export function createGame(
   roleAssignment?: Map<number, RoleId>,
   options?: CreateGameOptions,
 ): GameContext {
-  const execution: HandlerExecutionContext = {
-    ...TEST_EXECUTION,
-    randomSeed: options?.randomSeed ?? TEST_EXECUTION.randomSeed,
-  };
-  let template: GameTemplate;
-  if (typeof templateNameOrRoles === 'string') {
-    const preset = PRESET_TEMPLATES.find((t) => t.name === templateNameOrRoles);
-    if (!preset) throw new Error(`Unknown template: ${templateNameOrRoles}`);
-    template = createTemplateFromRoles(preset.roles);
-  } else {
-    template = createTemplateFromRoles(templateNameOrRoles);
+  const sourceRoles =
+    typeof templateNameOrRoles === 'string'
+      ? PRESET_TEMPLATES.find((candidate) => candidate.name === templateNameOrRoles)?.roles
+      : templateNameOrRoles;
+  if (sourceRoles === undefined) {
+    throw new Error(`Unknown template: ${String(templateNameOrRoles)}`);
   }
 
-  const initialPlayers: Record<number, GameState['players'][number]> = {};
-  const roster: Record<string, { displayName: string }> = {};
-  for (let i = 0; i < template.numberOfPlayers; i++) {
-    initialPlayers[i] = {
-      userId: `player_${i}`,
-      seat: i,
-      role: null,
-      hasViewedRole: false,
-    };
-    roster[`player_${i}`] = { displayName: `Player ${i + 1}` };
-  }
+  const randomSeed = options?.randomSeed ?? DEFAULT_RANDOM_SEED;
+  const roleAssignmentSeed = `${randomSeed}:${ROLE_ASSIGNMENT_SEED_SUFFIX}`;
+  const desiredSeatRoles = getDesiredSeatRoles(sourceRoles, roleAssignment);
+  const configuredRoles = createTemplateRolesForDesiredSeats(
+    sourceRoles,
+    desiredSeatRoles,
+    roleAssignmentSeed,
+  );
+  const template = createTemplateFromRoles(configuredRoles);
 
-  let state: GameState = {
-    ...WEREWOLF_STATE_IDENTITY,
-    roomCode: 'TEST01',
-    hostUserId: 'host-uid',
-    status: GameStatus.Seated,
-    templateRoles: template.roles,
-    players: initialPlayers,
-    currentStepIndex: 0,
-    isAudioPlaying: false,
-    actions: [],
-    pendingRevealAcks: [],
-    hypnotizedSeats: [],
-    piperRevealAcks: [],
-    conversionRevealAcks: [],
-    cupidLoversRevealAcks: [],
-    roster,
-  };
-
-  const assignments: Record<number, RoleId> = {};
-  if (roleAssignment) {
-    roleAssignment.forEach((role, seat) => {
-      assignments[seat] = role;
-    });
-  } else {
-    // Auto-assign: first N roles to seats, rest become bottom cards
-    const playerCount = getPlayerCount(template.roles);
-    template.roles.forEach((role, idx) => {
-      if (idx < playerCount) {
-        assignments[idx] = role;
-      }
-    });
-  }
-
-  // Bottom card roles (treasureMaster / thief): derive bottomCards and seat
-  const hasBottomCardRole =
-    template.roles.includes('treasureMaster') || template.roles.includes('thief');
-  let bottomCards: readonly RoleId[] | undefined;
-  let treasureMasterSeat: number | undefined;
-  let thiefSeat: number | undefined;
-
-  if (hasBottomCardRole) {
-    if (options?.bottomCards) {
-      bottomCards = options.bottomCards;
-    } else {
-      // Auto-derive: last N roles in templateRoles that are not assigned
-      const assignedRoles = new Set(Object.values(assignments));
-      const remaining = template.roles.filter((r) => !assignedRoles.has(r));
-      const cardCount = getBottomCardCount(template.roles);
-      bottomCards = remaining.slice(0, cardCount);
-    }
-
-    // Find bottom card role seats
-    for (const [seatStr, role] of Object.entries(assignments)) {
-      if (role === 'treasureMaster') {
-        treasureMasterSeat = Number.parseInt(seatStr, 10);
-      } else if (role === 'thief') {
-        thiefSeat = Number.parseInt(seatStr, 10);
-      }
-    }
-  }
-
-  // Cupid seat
-  let cupidSeat: number | undefined;
-  for (const [seatStr, role] of Object.entries(assignments)) {
-    if (role === 'cupid') {
-      cupidSeat = Number.parseInt(seatStr, 10);
-      break;
-    }
-  }
-
-  state = gameReducer(state, {
-    type: 'ASSIGN_ROLES',
-    payload: { assignments, bottomCards, treasureMasterSeat, thiefSeat, cupidSeat },
-  });
-
-  for (let i = 0; i < template.numberOfPlayers; i++) {
-    state = gameReducer(state, {
-      type: 'PLAYER_VIEWED_ROLE',
-      payload: { seat: i },
-    });
-  }
-
-  const nightPlan = buildNightPlan(template.roles, state.seerLabelMap);
-  const firstStepId = nightPlan.steps[0]?.stepId;
-  if (!firstStepId) {
-    throw new Error('Night plan has no steps');
-  }
-
-  state = gameReducer(state, {
-    type: 'START_NIGHT',
-    payload: {
-      currentStepIndex: 0,
-      currentStepId: firstStepId,
-    },
-  });
-
-  // Poisoner present: night-1 wolfKillOverride (consistent with handleStartNight behavior)
-  if (template.roles.includes('poisoner')) {
-    state = gameReducer(state, {
-      type: 'SET_WOLF_KILL_OVERRIDE',
-      payload: {
-        override: {
-          source: 'poisoner',
-          ui: WOLF_KILL_OVERRIDE_TEXTS.poisoner,
-        },
-      },
-    });
-  }
-
-  const revision = 1;
   const internal: InternalState = {
-    state,
-    revision,
-    nightPlan,
-    template,
-    capturedMessages: [],
+    state: werewolfEngine.createInitialState(
+      { templateRoles: configuredRoles },
+      {
+        roomCode: ROOM_CODE,
+        hostUserId: HOST_USER_ID,
+        nowMs: INITIAL_NOW_MS,
+        commandId: 'board-fixture-create',
+      },
+    ),
+    revision: 0,
+    commandSequence: 0,
+    nowMs: INITIAL_NOW_MS,
+    randomSeed,
   };
 
   const getGameState = (): GameState => internal.state;
   const getRevision = (): number => internal.revision;
-  const getNightPlan = (): NightPlan => internal.nightPlan;
-  const getCapturedMessages = (): readonly CapturedMessage[] => internal.capturedMessages;
-  const clearCapturedMessages = (): void => {
-    internal.capturedMessages = [];
+  const getNightPlan = () =>
+    buildNightPlan(internal.state.templateRoles, internal.state.seerLabelMap);
+
+  const dispatch = (
+    command: WerewolfPublicCommand,
+    actor: TestCommandActor = { userId: HOST_USER_ID, controlledSeat: null },
+    execution: TestCommandExecution = {},
+  ): RoomCommandResult<GameState> => {
+    internal.commandSequence += 1;
+    const commandId = `board-command-${internal.commandSequence}`;
+    const nowMs = execution.nowMs ?? internal.nowMs + 1;
+    internal.nowMs = nowMs;
+    const context: CommandContext = {
+      nowMs,
+      commandId,
+      randomSeed:
+        execution.randomSeed ?? `${internal.randomSeed}:command:${internal.commandSequence}`,
+      actor: { kind: 'user', userId: actor.userId },
+      controlledSeat: actor.controlledSeat,
+    };
+    const decision = werewolfEngine.decide(internal.state, command, context);
+    if (decision.kind === 'reject') {
+      return createRoomCommandResult({ kind: 'rejected', commandId, reason: decision.reason });
+    }
+
+    for (const event of decision.events) {
+      internal.state = werewolfEngine.evolve(internal.state, event);
+    }
+    internal.state = werewolfEngine.normalize(internal.state);
+    if (decision.events.length > 0) internal.revision += 1;
+    return createRoomCommandResult({
+      kind: 'committed',
+      commandId,
+      state: internal.state,
+      revision: internal.revision,
+      outcome: decision.outcome,
+    });
+  };
+
+  const dispatchAsSeat = (
+    seat: number,
+    command: WerewolfPublicCommand,
+    execution?: TestCommandExecution,
+  ): RoomCommandResult<GameState> => {
+    const player = internal.state.players[seat];
+    if (player === null || player === undefined) {
+      throw new Error(`[FAIL-FAST] Cannot dispatch as vacant seat ${seat}`);
+    }
+    const actor: TestCommandActor = player.isBot
+      ? { userId: HOST_USER_ID, controlledSeat: seat }
+      : { userId: player.userId, controlledSeat: null };
+    return dispatch(command, actor, execution);
+  };
+
+  const dispatchOrThrow = (
+    command: WerewolfPublicCommand,
+    context: string,
+    actor?: TestCommandActor,
+    execution?: TestCommandExecution,
+  ): RoomCommandResult<GameState> => {
+    const result = dispatch(command, actor, execution);
+    assertCommitted(result, context);
+    return result;
+  };
+
+  const dispatchAsSeatOrThrow = (
+    seat: number,
+    command: WerewolfPublicCommand,
+    context: string,
+    execution?: TestCommandExecution,
+  ): RoomCommandResult<GameState> => {
+    const result = dispatchAsSeat(seat, command, execution);
+    assertCommitted(result, context);
+    return result;
+  };
+
+  const acknowledgePendingAudioOrThrow = (context: string): void => {
+    if (!internal.state.isAudioPlaying || internal.state.pendingAudioEffects?.length === 0) {
+      throw new Error(`[FAIL-FAST] ${context}: no authoritative audio batch is pending`);
+    }
+    dispatchOrThrow({ type: 'werewolf.audio.ack' }, context);
+  };
+
+  const assertStep = (expectedStepId: SchemaId): void => {
+    const currentStepId = internal.state.currentStepId;
+    if (currentStepId !== expectedStepId) {
+      throw new Error(`Step mismatch: expected ${expectedStepId}, got ${String(currentStepId)}`);
+    }
   };
 
   const findSeatByRole = (role: RoleId): number => {
-    for (const [seatStr, player] of Object.entries(internal.state.players)) {
-      if (player?.role === role) {
-        return Number.parseInt(seatStr, 10);
-      }
+    for (const [seatText, player] of Object.entries(internal.state.players)) {
+      if (player?.role === role) return Number.parseInt(seatText, 10);
     }
     return -1;
   };
 
-  const getRoleAtSeat = (seat: number): RoleId | null => {
-    return internal.state.players[seat]?.role ?? null;
-  };
+  const getRoleAtSeat = (seat: number): RoleId | null => internal.state.players[seat]?.role ?? null;
 
-  const assertStep = (expectedStepId: SchemaId): void => {
-    const current = internal.state.currentStepId;
-    if (current !== expectedStepId) {
-      throw new Error(`Step mismatch: expected ${expectedStepId}, got ${current}`);
-    }
-  };
-
-  const executeHandler = (result: HandlerResult): ActionResult => {
-    if (result.kind === 'error') {
-      return { success: false, reason: result.reason };
-    }
-    // 'success' | 'rejection': apply actions (mirror production gameStateManager)
-    // (e.g. ACTION_REJECTED must be applied so gameState.actionRejected is set)
-    internal.state = normalizeState(applyActions(internal.state, result.actions));
-    internal.revision++;
-    if (result.kind === 'rejection') {
-      return { success: false, reason: result.reason };
-    }
-    return { success: true };
-  };
-
-  const advanceNight = (): ActionResult => {
-    const context = createContext(internal.state);
-    const result = executeAdvanceNight({ type: 'ADVANCE_NIGHT' }, context, execution);
-    return executeHandler(result);
-  };
-
-  /**
-   * Advance to the next night step (fail-fast version)
-   *
-   * Logic identical to stepByStepRunner.advanceNightOrThrow:
-   * - Call advanceNight()
-   * - Throw if success: false
-   *
-   * Two implementations stay behaviorally consistent to avoid circular dependency.
-   * Logic is minimal (call + throw) — no drift risk.
-   *
-   * @param context - Context info (used for error messages)
-   * @throws if advanceNight returns success: false
-   */
-  const advanceNightOrThrow = (context: string): void => {
-    const result = advanceNight();
-    if (!result.success) {
-      const currentStepId = internal.state.currentStepId;
-      throw new Error(
-        `[advanceNightOrThrow] failed at ${context}: ` +
-          `currentStepId=${currentStepId ?? 'null'}, ` +
-          `reason=${result.reason ?? 'unknown'}`,
-      );
-    }
-  };
-
-  /**
-   * End the night, trigger death settlement
-   *
-   * FAIL-FAST: Only allowed once the night plan is complete (currentStepId is null).
-   * Mid-flight calls throw because they violate NightFlow invariants.
-   *
-   * Reuses production handleEndNight handler — does not fabricate deaths.
-   * Goes through unified executeHandler pipeline (applyActions + normalizeState).
-   */
-  const endNight = (): { success: boolean; deaths: number[] } => {
-    const context = createContext(internal.state);
-    const result = executeEndNight({ type: 'END_NIGHT' }, context, execution);
-    if (result.kind !== 'success') {
-      // FAIL-FAST: night_not_complete means test code tried to endNight mid-flight, an architectural violation
-      if (result.kind === 'error' && result.reason === 'night_not_complete') {
-        throw new Error(
-          `endNight() called before night plan completed. currentStepId=${internal.state.currentStepId}. ` +
-            `You must advanceNight() through all steps first.`,
-        );
-      }
-      return { success: false, deaths: [] };
-    }
-    executeHandler(result);
-    return {
-      success: true,
-      deaths: internal.state.lastNightDeaths ?? [],
-    };
-  };
-
-  const sendPlayerMessage = (msg: PlayerMessage): ActionResult => {
-    // Capture messages for wire protocol contract tests
-    internal.capturedMessages.push({
-      stepId: internal.state.currentStepId ?? null,
-      message: msg,
-    });
-
-    const context = createContext(internal.state);
-
-    const createActionInput = (
-      target: number | null,
-      extra?: {
-        readonly confirmed?: boolean;
-        readonly targets?: readonly number[];
-        readonly stepResults?: Readonly<Record<string, number | null>>;
-        readonly cardIndex?: number;
-      },
-    ): ActionInput => {
-      const schemaId = internal.state.currentStepId;
-      if (!schemaId) {
-        throw new Error('[FAIL-FAST] Test player action submitted without a current step');
-      }
-      return {
-        schemaId,
-        target: target ?? undefined,
-        confirmed: extra?.confirmed,
-        targets: extra?.targets,
-        stepResults: extra?.stepResults,
-        cardIndex: extra?.cardIndex,
-      };
-    };
-
-    switch (msg.type) {
-      case 'ACTION': {
-        const intent: SubmitActionIntent = {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: msg.seat,
-            role: msg.role,
-            actionInput: createActionInput(msg.target, msg.extra),
-          },
-        };
-        const result = executeSubmitAction(intent, context, execution);
-        return executeHandler(result);
-      }
-
-      case 'WOLF_VOTE': {
-        const playerRole = state.players[msg.seat]?.role;
-        if (!playerRole) {
-          throw new Error(`[FAIL-FAST] Wolf vote actor seat ${msg.seat} has no assigned role`);
-        }
-        const intent: SubmitActionIntent = {
-          type: 'SUBMIT_ACTION',
-          payload: {
-            seat: msg.seat,
-            role: playerRole,
-            actionInput: createActionInput(msg.target === -1 ? null : msg.target),
-          },
-        };
-        const result = executeSubmitAction(intent, context, execution);
-        return executeHandler(result);
-      }
-
-      case 'REVEAL_ACK': {
-        // Mirror production handleRevealAck:
-        // - no pending acks → fail (idempotent no-op guard)
-        // - dispatch CLEAR_REVEAL_ACKS through reducer (clears ALL acks, not just current step)
-        if (!internal.state.pendingRevealAcks || internal.state.pendingRevealAcks.length === 0) {
-          return { success: false, reason: 'no_pending_acks' };
-        }
-        const revealAckResult: HandlerResult = handlerSuccess(
-          [{ type: 'CLEAR_REVEAL_ACKS' as const }],
-          [{ type: 'BROADCAST_STATE' as const }],
-        );
-        return executeHandler(revealAckResult);
-      }
-
-      case 'WOLF_ROBOT_HUNTER_STATUS_VIEWED': {
-        const result = handleSetWolfRobotHunterStatusViewed(context, {
-          type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: msg.seat,
-        });
-        return executeHandler(result);
-      }
-
-      default:
-        return {
-          success: false,
-          reason: `Unsupported message type: ${(msg as { type: string }).type}`,
-        };
-    }
-  };
-
-  return {
+  const context: GameContext = {
     getGameState,
     getRevision,
     getNightPlan,
-    sendPlayerMessage,
-    advanceNight,
-    advanceNightOrThrow,
-    endNight,
+    dispatch,
+    dispatchAsSeat,
+    dispatchOrThrow,
+    dispatchAsSeatOrThrow,
+    acknowledgePendingAudioOrThrow,
     assertStep,
     findSeatByRole,
     getRoleAtSeat,
-    template,
-    getCapturedMessages,
-    clearCapturedMessages,
   };
+
+  for (let seat = 0; seat < template.numberOfPlayers; seat += 1) {
+    const userId = seat === 0 ? HOST_USER_ID : `player_${seat}`;
+    context.dispatchOrThrow(
+      {
+        type: 'room.seat.take',
+        seat,
+        profile: { displayName: `Player ${seat + 1}` },
+      },
+      `seat player ${seat}`,
+      { userId, controlledSeat: null },
+    );
+  }
+
+  context.dispatchOrThrow({ type: 'werewolf.roles.assign' }, 'assign roles', undefined, {
+    randomSeed: roleAssignmentSeed,
+  });
+
+  if (getBottomCardCount(sourceRoles) === 0) {
+    for (let seat = 0; seat < desiredSeatRoles.length; seat += 1) {
+      if (internal.state.players[seat]?.role !== desiredSeatRoles[seat]) {
+        throw new Error(`[FAIL-FAST] Production role assignment did not satisfy seat ${seat}`);
+      }
+    }
+  } else if (roleAssignment !== undefined) {
+    throw new Error(
+      '[FAIL-FAST] Bottom-card fixtures must use a production seed and assert the resulting deal',
+    );
+  }
+
+  for (let seat = 0; seat < template.numberOfPlayers; seat += 1) {
+    context.dispatchAsSeatOrThrow(
+      seat,
+      { type: 'werewolf.role.view' },
+      `view role at seat ${seat}`,
+    );
+  }
+  context.dispatchOrThrow({ type: 'werewolf.night.start' }, 'start night');
+  context.acknowledgePendingAudioOrThrow('complete initial night audio');
+
+  return context;
 }
 
 export function cleanupGame(): void {
-  // No singleton — nothing to clean up
+  // Each fixture owns isolated state; no process-global cleanup is required.
 }

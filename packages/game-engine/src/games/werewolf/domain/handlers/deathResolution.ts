@@ -27,10 +27,9 @@ import {
 } from '../models/actions/WitchAction';
 import { getRoleSpec } from '../models/roles/spec/specs';
 import { buildSeatRoleMap } from '../playerHelpers';
-import type { ProtocolAction } from '../protocol/types';
+import type { GameState, ProtocolAction } from '../protocol/types';
 import { getRoleAfterSwap } from '../resolvers/types';
 import { resolveWolfVotes } from '../resolveWolfVotes';
-import type { NonNullState } from './types';
 
 /**
  * Build RoleSeatMap from state.players (magician swap aware)
@@ -43,7 +42,7 @@ import type { NonNullState } from './types';
  * Constraint validation still uses the original players map (players don't know about
  * swap; action legality is judged by known information).
  */
-export function buildEffectiveRoleSeatMap(state: NonNullState): Map<RoleId, number> {
+export function buildEffectiveRoleSeatMap(state: GameState): Map<RoleId, number> {
   const swappedSeats = state.currentNightResults?.swappedSeats;
   const players = buildSeatRoleMap(state.players);
 
@@ -268,7 +267,7 @@ function extractWitchAction(currentNightResults?: {
  *
  * All seat numbers are physical seats (0-based), consistent coordinate space.
  */
-export function buildNightActions(state: NonNullState, rng: Rng): NightActions {
+export function buildNightActions(state: GameState, rng: Rng): NightActions {
   const actions = state.actions;
   const nightActions: NightActions = {};
 

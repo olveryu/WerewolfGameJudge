@@ -127,23 +127,6 @@ describe('handleViewedRole', () => {
     expect(err.reason).toBe('not_my_seat');
   });
 
-  it('should fail when state is null (no_state)', () => {
-    const context: HandlerContext = {
-      state: null,
-      myUserId: 'host-1',
-      mySeat: 0,
-    };
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
-  });
-
   it('should fail when status is not assigned (invalid_status)', () => {
     const state = createMinimalState({ status: GameStatus.Ongoing });
     const context = createContext(state);
@@ -172,21 +155,6 @@ describe('handleViewedRole', () => {
 
     const err = expectError(result);
     expect(err.reason).toBe('not_seated');
-  });
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
-    const state = createAssignedState();
-    const context = createContext(state);
-    const intent: ViewedRoleIntent = {
-      type: 'VIEWED_ROLE',
-      payload: { seat: 0 },
-    };
-
-    const result = handleViewedRole(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 });
 
@@ -249,40 +217,6 @@ describe('handleSubmitAction', () => {
     const actionTypes = success.actions.map((a) => a.type);
     expect(actionTypes).toContain('RECORD_ACTION');
     expect(actionTypes).toContain('APPLY_RESOLVER_RESULT');
-  });
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
-    const state = createOngoingState();
-    const context = createContext(state);
-    const intent: SubmitActionIntent = {
-      type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
-    };
-
-    const result = handleSubmitAction(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
-  });
-
-  // === Gate: no_state ===
-
-  it('should fail when state is null (gate: no_state)', () => {
-    const context: HandlerContext = {
-      state: null,
-      myUserId: 'host-1',
-      mySeat: 0,
-    };
-    const intent: SubmitActionIntent = {
-      type: 'SUBMIT_ACTION',
-      payload: { seat: 2, role: 'seer', actionInput: { schemaId: 'seerCheck', target: 0 } },
-    };
-
-    const result = handleSubmitAction(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
   });
 
   // === Gate: invalid_status ===
@@ -396,9 +330,7 @@ describe('handleSubmitAction', () => {
     expect(err.reason).toBe('role_mismatch');
   });
 
-  // === Reject also broadcasts ===
-
-  it('should broadcast on rejection (reject also broadcasts)', () => {
+  it('returns a command error without fabricating a domain rejection action', () => {
     const state = createOngoingState({ isAudioPlaying: true });
     const context = createContext(state);
     const intent: SubmitActionIntent = {
@@ -408,9 +340,7 @@ describe('handleSubmitAction', () => {
 
     const result = handleSubmitAction(intent, context);
 
-    expectError(result);
-    // Gate rejection produces no sideEffects (only resolver rejection has them)
-    // But per PR4 requirements, reject must also broadcast - needs fix
+    expect(expectError(result).reason).toBe('forbidden_while_audio_playing');
   });
 
   // === Schema constraints (resolver-first) ===
@@ -447,8 +377,6 @@ describe('handleSubmitAction', () => {
       expect(rej.reason).toContain('不能选择自己');
       // resolver rejection produces an ACTION_REJECTED action
       expect(rej.actions.some((a) => a.type === 'ACTION_REJECTED')).toBe(true);
-      // resolver rejection must broadcast
-      expect(rej.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
     });
 
     it('should allow other target when schema has notSelf constraint', () => {

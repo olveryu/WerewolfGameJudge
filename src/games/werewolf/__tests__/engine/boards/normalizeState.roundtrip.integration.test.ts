@@ -12,10 +12,10 @@
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
-import { normalizeState } from '@game-judge/game-engine/games/werewolf/testing';
+import { werewolfEngine } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, sendMessageOrThrow } from './stepByStepRunner';
+import { executeFullNight, submitActionOrThrow } from './stepByStepRunner';
 
 // =============================================================================
 // Constants
@@ -75,7 +75,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
   it('初始 ongoing 状态 → normalizeState 幂等', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
     // Core fields should match exactly
@@ -94,17 +94,12 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
-    );
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
     // wolfVotesBySeat keys should be string-canonicalized
@@ -124,43 +119,36 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
     );
-    ctx.advanceNightOrThrow('past wolfKill');
-    sendMessageOrThrow(
-      ctx,
-      {
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: null, poison: null } },
-      },
-      'witchAction',
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
     );
-    ctx.advanceNightOrThrow('past witchAction');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
-      'hunterConfirm',
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
     );
-    ctx.advanceNightOrThrow('past hunterConfirm');
 
     // seer checks seat 4 (wolf → bad)
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 8, role: 'seer', target: 4, extra: undefined },
-      'seerCheck',
-    );
+    submitActionOrThrow(ctx, 8, { kind: 'target', target: 4 }, 'seerCheck');
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
     expect(normalized.seerReveal).toEqual(state.seerReveal);
@@ -172,7 +160,7 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     executeFullNight(ctx);
 
     const state = ctx.getGameState();
-    const normalized = normalizeState(state);
+    const normalized = werewolfEngine.normalize(state);
 
     assertNoKeysLost(state, normalized);
     expect(normalized.status).toBe(state.status);
@@ -184,8 +172,8 @@ describe('normalizeState round-trip (integration with real board state)', () => 
     executeFullNight(ctx);
 
     const state = ctx.getGameState();
-    const once = normalizeState(state);
-    const twice = normalizeState(once);
+    const once = werewolfEngine.normalize(state);
+    const twice = werewolfEngine.normalize(once);
 
     // Second normalization result must be identical
     expect(twice).toEqual(once);

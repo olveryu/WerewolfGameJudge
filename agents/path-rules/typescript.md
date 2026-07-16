@@ -16,9 +16,9 @@ applyTo: 'src/**/*.ts,src/**/*.tsx,packages/game-engine/src/**/*.ts'
   - Compound assignment (`+=`, `|=`) needs expansion: `data[x] = data[x]! + y`.
   - Adding `!` to expressions already non-`undefined` is forbidden (ESLint `no-unnecessary-type-assertion` will warn).
 - Discriminated Union (`type` / `kind` tag field). Optional field stacking to distinguish variants is forbidden.
-- Operation results uniformly use `ActionResult`
-  (`@game-judge/game-engine/platform/protocol/actionResult`) DU:
-  `{ success: true; reason?: string } | { success: false; reason: string }`. Loose result shapes are forbidden.
+- Result types follow their boundary: engine/Worker transport uses `RoomCommandResult`; client controllers use
+  `RoomOperationResult`, which preserves `failureKind` and `commandId`. Bare booleans and lossy duplicate result types
+  are forbidden.
 - Exhaustive `switch`: `default` uses `assertNever` or `const _: never`.
 - `satisfies` used for "both type-check and preserve literal inference" (`ROLE_SPECS`, `SCHEMAS`, config objects etc.).
 - Function parameter arrays/objects prefer `readonly`; exported constants prefer `as const`.

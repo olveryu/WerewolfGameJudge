@@ -14,8 +14,9 @@ import {
   SCHEMAS,
 } from '../models';
 import { BLOCKED_UI_DEFAULTS, getStepSpec, NIGHT_STEPS } from '../models/roles/spec';
+import type { GameState } from '../protocol/types';
 import type { ActionInput } from '../resolvers/types';
-import type { HandlerResult, NonNullState } from './types';
+import type { HandlerResult } from './types';
 import { handlerError } from './types';
 
 /**
@@ -24,7 +25,7 @@ import { handlerError } from './types';
  * Used for Gate 4b override and for resolver role substitution.
  * Supports both treasureMaster and thief.
  */
-export function isBottomCardActorOverride(state: NonNullState, stepId: SchemaId): boolean {
+export function isBottomCardActorOverride(state: GameState, stepId: SchemaId): boolean {
   const results = state.currentNightResults;
   if (results === undefined) {
     throw new Error('[FAIL-FAST] Bottom-card actor override requires currentNightResults');
@@ -58,29 +59,20 @@ function getSchemaIdForRole(role: RoleId): SchemaId | null {
  * Validate the full action precondition chain.
  *
  * Gate order (must follow):
- * 1. no_state
- * 2. invalid_status (must be ongoing)
- * 3. forbidden_while_audio_playing
- * 4. invalid_step (currentStepId must exist and match)
- * 5. not_seated (actor seat must have a player)
- * 6. schema constraints (handled by resolver)
+ * 1. invalid_status (must be ongoing)
+ * 2. forbidden_while_audio_playing
+ * 3. invalid_step (currentStepId must exist and match)
+ * 4. not_seated (actor seat must have a player)
+ * 5. schema constraints (handled by resolver)
  */
 export function validateActionPreconditions(
-  state: NonNullState | null,
+  state: GameState,
   actorSeat: number,
   role: RoleId,
 ):
   | { valid: false; result: HandlerResult }
-  | { valid: true; schemaId: SchemaId; state: NonNullState; schema: ActionSchema } {
-  // Gate 1: no_state
-  if (!state) {
-    return {
-      valid: false,
-      result: handlerError('no_state'),
-    };
-  }
-
-  // Gate 2: invalid_status (must be ongoing)
+  | { valid: true; schemaId: SchemaId; state: GameState; schema: ActionSchema } {
+  // Gate 1: invalid_status (must be ongoing)
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
@@ -88,7 +80,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 3: forbidden_while_audio_playing
+  // Gate 2: forbidden_while_audio_playing
   if (state.isAudioPlaying) {
     return {
       valid: false,
@@ -96,7 +88,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 4: invalid_step (currentStepId must exist and be found in SCHEMAS)
+  // Gate 3: invalid_step (currentStepId must exist and be found in SCHEMAS)
   const currentStepId = state.currentStepId;
   if (!currentStepId) {
     return {
@@ -113,7 +105,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 4b: step mismatch - submitted role must match the current step
+  // Gate 3b: step mismatch - submitted role must match the current step
   const expectedSchemaId = getSchemaIdForRole(role);
   // Special case: wolfKill is a meeting step shared by multiple wolf-team roles
   // (e.g. wolf, spiritKnight, wolfQueen...). For this step we validate participation
@@ -132,7 +124,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 5: not_seated (actor seat must have a player)
+  // Gate 4: not_seated (actor seat must have a player)
   const player = state.players[actorSeat];
   if (!player) {
     return {
@@ -141,7 +133,7 @@ export function validateActionPreconditions(
     };
   }
 
-  // Gate 5b: player role must match
+  // Gate 4b: player role must match
   if (player.role !== role) {
     return {
       valid: false,

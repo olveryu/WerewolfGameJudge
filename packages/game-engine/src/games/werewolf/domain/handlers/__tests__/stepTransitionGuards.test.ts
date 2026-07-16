@@ -5,20 +5,21 @@
  */
 
 import { GameStatus } from '../../models/GameStatus';
+import type { GameState } from '../../protocol/types';
 import { WOLF_ROBOT_GATE_ROLES } from '../revealPayload';
 import {
   isWolfRobotHunterStatusGatePending,
   validateNightFlowPreconditions,
   validateSetAudioPlayingPreconditions,
 } from '../stepTransitionGuards';
-import type { HandlerContext, NonNullState } from '../types';
+import type { HandlerContext } from '../types';
 import { expectError } from './handlerTestUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -30,10 +31,10 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     actions: [],
     pendingRevealAcks: [],
     ...overrides,
-  } as NonNullState;
+  } as GameState;
 }
 
-function createContext(state: NonNullState | null): HandlerContext {
+function createContext(state: GameState): HandlerContext {
   return { state, myUserId: 'host-1', mySeat: 0 };
 }
 
@@ -42,16 +43,7 @@ function createContext(state: NonNullState | null): HandlerContext {
 // =============================================================================
 
 describe('validateNightFlowPreconditions', () => {
-  it('should reject when state is null (Gate 1)', () => {
-    const result = validateNightFlowPreconditions(createContext(null));
-    expect(result.valid).toBe(false);
-    if (!result.valid) {
-      const err = expectError(result.result);
-      expect(err.reason).toBe('no_state');
-    }
-  });
-
-  it('should reject when status is not Ongoing (Gate 2)', () => {
+  it('should reject when status is not Ongoing (Gate 1)', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
@@ -61,7 +53,7 @@ describe('validateNightFlowPreconditions', () => {
     }
   });
 
-  it('should reject when audio is playing (Gate 3)', () => {
+  it('should reject when audio is playing (Gate 2)', () => {
     const state = createMinimalState({ isAudioPlaying: true });
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
@@ -81,7 +73,7 @@ describe('validateNightFlowPreconditions', () => {
         learnedRoleId: gateTriggerRole,
       },
       wolfRobotHunterStatusViewed: false,
-    } as Partial<NonNullState>);
+    } as Partial<GameState>);
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(false);
     if (!result.valid) {
@@ -100,7 +92,7 @@ describe('validateNightFlowPreconditions', () => {
         learnedRoleId: gateTriggerRole,
       },
       wolfRobotHunterStatusViewed: true,
-    } as Partial<NonNullState>);
+    } as Partial<GameState>);
     const result = validateNightFlowPreconditions(createContext(state));
     expect(result.valid).toBe(true);
   });
@@ -162,15 +154,6 @@ describe('isWolfRobotHunterStatusGatePending', () => {
 // =============================================================================
 
 describe('validateSetAudioPlayingPreconditions', () => {
-  it('should reject when state is null', () => {
-    const result = validateSetAudioPlayingPreconditions(createContext(null));
-    expect(result.valid).toBe(false);
-    if (!result.valid) {
-      const err = expectError(result.result);
-      expect(err.reason).toBe('no_state');
-    }
-  });
-
   it('should reject when status is Unseated', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const result = validateSetAudioPlayingPreconditions(createContext(state));

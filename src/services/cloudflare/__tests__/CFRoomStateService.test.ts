@@ -1,6 +1,8 @@
 import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
-import { WEREWOLF_STATE_CODEC } from '@game-judge/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import {
+  WEREWOLF_STATE_CODEC,
+  werewolfEngine,
+} from '@game-judge/game-engine/games/werewolf/public';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import { cfPost } from '../cfFetch';
@@ -16,6 +18,13 @@ const TEMPLATE: GameTemplate = {
 const ROOM = { roomCode: '4567', roomId: 'room-id-4567' } as const;
 const mockCfPost = jest.mocked(cfPost);
 
+function createState() {
+  return werewolfEngine.createInitialState(
+    { templateRoles: TEMPLATE.roles },
+    { roomCode: '4567', hostUserId: 'HOST', nowMs: 1, commandId: 'create-room-state-test' },
+  );
+}
+
 function respondWithJson(value: unknown): void {
   mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode(value));
 }
@@ -24,7 +33,7 @@ describe('CFRoomStateService', () => {
   beforeEach(() => mockCfPost.mockReset());
 
   it('decodes the canonical snapshot response', async () => {
-    const snapshot = createRoomSnapshot(buildInitialGameState('4567', 'HOST', TEMPLATE), 3);
+    const snapshot = createRoomSnapshot(createState(), 3);
     respondWithJson({ snapshot });
 
     await expect(new CFRoomStateService(WEREWOLF_STATE_CODEC).getGameState(ROOM)).resolves.toEqual(
@@ -41,7 +50,7 @@ describe('CFRoomStateService', () => {
   });
 
   it('rejects a removed flat state response', async () => {
-    const state = buildInitialGameState('4567', 'HOST', TEMPLATE);
+    const state = createState();
     respondWithJson({ state, revision: 3 });
 
     await expect(new CFRoomStateService(WEREWOLF_STATE_CODEC).getGameState(ROOM)).rejects.toThrow(

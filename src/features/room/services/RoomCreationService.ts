@@ -50,7 +50,11 @@ export class RoomCreationService implements RoomCreator {
       if (room.hostUserId !== request.expectedHostUserId || room.gameType !== request.gameType) {
         throw new Error('Created room identity does not match its creation request');
       }
-      addRecentRoom(request.expectedHostUserId, room);
+      addRecentRoom(request.expectedHostUserId, {
+        roomCode: room.roomCode,
+        roomId: room.roomId,
+        gameType: room.gameType,
+      });
       this.intentStore.remove(creationId);
       return room;
     } catch (error) {

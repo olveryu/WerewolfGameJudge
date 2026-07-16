@@ -15,17 +15,17 @@
  *
  * Core rules (nightmare block semantics):
  * - **Blocked player submits non-skip action -> server rejects** (actionHandler layer checkNightmareBlockGuard)
- * - **Blocked player submits skip (target: null) -> valid but has no effect**
+ * - **Blocked player submits { kind: 'skip' } -> valid but has no effect**
  * - If nightmare selects a wolf-faction player: wolfKillDisabled === true, kill invalidated
  *
  * Architecture: intents -> handlers -> reducer -> GameState
  */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
+import { BLOCKED_UI_DEFAULTS, type RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeStepsUntil } from './stepByStepRunner';
+import { executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '噩梦之影守卫';
 
@@ -64,14 +64,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks wolf(seat 4)
-      const blockResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 4,
-      });
-      expect(blockResult.success).toBe(true);
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 4 }, 'nightmare blocks wolf');
 
       // Core assertion: wolfKillOverride set
       const state = ctx.getGameState();
@@ -85,14 +78,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks itself
-      const blockResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 7,
-      });
-      expect(blockResult.success).toBe(true);
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 7 }, 'nightmare blocks itself');
 
       // nightmare is wolf faction; selecting itself also triggers the kill disable
       const state = ctx.getGameState();
@@ -106,13 +92,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks villager
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 0,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 0 }, 'nightmare blocks villager');
 
       // Core assertion: wolfKillOverride not set (undefined)
       const state = ctx.getGameState();
@@ -127,34 +107,28 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks guard(11)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 11,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 11 }, 'nightmare blocks guard');
 
       // Advance to the guard step
-      executeStepsUntil(ctx, 'guardProtect', {});
+      expect(executeStepsUntil(ctx, 'guardProtect')).toBe(true);
       ctx.assertStep('guardProtect');
 
       // guard attempts to protect seat 0 (should be rejected)
-      const guardResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 11,
-        role: 'guard',
-        target: 0,
+      const guardResult = ctx.dispatchAsSeat(11, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 0 },
       });
 
       // Core assertion: non-skip action after being blocked is rejected
-      expect(guardResult.success).toBe(false);
-      expect(guardResult.reason).toContain('噩梦之影封锁');
+      expect(guardResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected', reason: BLOCKED_UI_DEFAULTS.message },
+      });
 
       // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
-      expect(state.actionRejected!.reason).toContain('噩梦之影封锁');
+      expect(state.actionRejected?.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
 
     it('seer 被阻断后尝试查验 → reject', () => {
@@ -162,39 +136,35 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks seer(8)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 8,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 8 }, 'nightmare blocks seer');
 
       // Advance to the seer step
-      executeStepsUntil(ctx, 'seerCheck', {
-        guard: null,
-        wolf: 0,
-        witch: { save: null, poison: null },
-        hunter: { confirmed: true },
-      });
+      expect(
+        executeStepsUntil(ctx, 'seerCheck', {
+          guard: null,
+          wolf: 0,
+          witch: { save: null, poison: null },
+          hunter: { confirmed: true },
+        }),
+      ).toBe(true);
       ctx.assertStep('seerCheck');
 
       // seer attempts to check seat 4 (should be rejected)
-      const seerResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 8,
-        role: 'seer',
-        target: 4,
+      const seerResult = ctx.dispatchAsSeat(8, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 4 },
       });
 
       // Core assertion: non-skip action after being blocked is rejected
-      expect(seerResult.success).toBe(false);
-      expect(seerResult.reason).toContain('噩梦之影封锁');
+      expect(seerResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected', reason: BLOCKED_UI_DEFAULTS.message },
+      });
 
       // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
-      expect(state.actionRejected!.reason).toContain('噩梦之影封锁');
+      expect(state.actionRejected?.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
 
     it('witch 被阻断后尝试救人 → reject', () => {
@@ -202,39 +172,33 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks witch(9)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 9,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 9 }, 'nightmare blocks witch');
 
       // Advance to the witch step
-      executeStepsUntil(ctx, 'witchAction', {
-        guard: null,
-        wolf: 0, // kill seat 0
-      });
+      expect(
+        executeStepsUntil(ctx, 'witchAction', {
+          guard: null,
+          wolf: 0, // kill seat 0
+        }),
+      ).toBe(true);
       ctx.assertStep('witchAction');
 
       // witch attempts to save seat 0 (should be rejected)
-      // Correct witch message format: use stepResults
-      const witchResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: 0, poison: null } },
+      const witchResult = ctx.dispatchAsSeat(9, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'witch', saveTarget: 0, poisonTarget: null },
       });
 
       // Core assertion: non-skip action after being blocked is rejected
-      expect(witchResult.success).toBe(false);
-      expect(witchResult.reason).toContain('噩梦之影封锁');
+      expect(witchResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected', reason: BLOCKED_UI_DEFAULTS.message },
+      });
 
       // Verify ACTION_REJECTED is applied to GameState (full intent->handler->reducer->state pipeline)
       const state = ctx.getGameState();
       expect(state.actionRejected).toBeDefined();
-      expect(state.actionRejected!.reason).toContain('噩梦之影封锁');
+      expect(state.actionRejected?.reason).toBe(BLOCKED_UI_DEFAULTS.message);
     });
   });
 
@@ -244,33 +208,21 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks seer(8)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: 8,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 8 }, 'nightmare blocks seer');
 
       // Advance to the seer step
-      executeStepsUntil(ctx, 'seerCheck', {
-        guard: null,
-        wolf: 0,
-        witch: { save: null, poison: null },
-        hunter: { confirmed: true },
-      });
+      expect(
+        executeStepsUntil(ctx, 'seerCheck', {
+          guard: null,
+          wolf: 0,
+          witch: { save: null, poison: null },
+          hunter: { confirmed: true },
+        }),
+      ).toBe(true);
       ctx.assertStep('seerCheck');
 
       // seer skip (only skip is allowed after being blocked)
-      const seerResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 8,
-        role: 'seer',
-        target: null, // skip
-      });
-
-      // Core assertion: skip is valid
-      expect(seerResult.success).toBe(true);
+      submitActionOrThrow(ctx, 8, { kind: 'skip' }, 'blocked seer skips');
 
       // seerReveal is empty (because of skip)
       const state = ctx.getGameState();
@@ -284,13 +236,7 @@ describe('Night-1: Nightmare Blocks Actions and Disables Wolf Kill (12p)', () =>
       ctx.assertStep('nightmareBlock');
 
       // nightmare skip
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'nightmare',
-        target: null,
-      });
-      ctx.advanceNight();
+      submitActionOrThrow(ctx, 7, { kind: 'skip' }, 'nightmare skips block');
 
       const state = ctx.getGameState();
       expect(state.currentNightResults?.blockedSeat).toBeUndefined();

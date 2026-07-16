@@ -37,7 +37,8 @@ the infrastructure adapter directly.
 - Pure type files (`src/services/types/**`) may be `import type`'d by any layer.
 - Cross-night state (`previousActions` / `lastNightTarget` etc.) is forbidden.
 - SRP ~400 line split signal (see `screens.instructions.md`). When exceeding threshold, first evaluate whether independent reuse/test/modification scenarios exist — don't mechanically apply.
-- Wire protocol (`PlayerMessage` / `GameState`) must maintain compatibility.
+- Realtime and HTTP room boundaries decode exact `RoomSnapshot` / `RoomCommandResult` contracts. Removed command
+  shapes and legacy snapshot fields are rejected; compatibility readers are forbidden.
 
 ## Resolver Standards
 
@@ -81,13 +82,15 @@ UI state loaded from MMKV / DB (coordinates, enums, config values) must validate
 
 ## Audio Orchestration
 
-Single orchestration source: Handler declares → Facade executes → UI read-only.
+Single orchestration source: Engine commits authoritative audio events → game runtime executes → UI reads state.
 
 - **Handler** (server-side): writes `pendingAudioEffects`, `audioKey` / `audioEndKey` comes from `NIGHT_STEPS` — dual-writing in specs/steps is forbidden. Audio IO is forbidden.
-- **Facade** (client-side): reactively watches store's `pendingAudioEffects` → plays → `postAudioAck` releases gate. Wolf vote deadline expires → `postProgression` triggers advancement (one-time guard prevents re-entry).
+- **Game runtime** (client-side): reactively watches `pendingAudioEffects` → plays → submits
+  `werewolf.audio.ack`. Wolf vote deadline expiry submits `werewolf.progress.request`.
 - **UI**: reads `isAudioPlaying` only. useEffect playing audio is forbidden. UI toggling `setAudioPlaying` is forbidden.
 - `isAudioPlaying` is factual state; sole modification path: `SET_AUDIO_PLAYING` action. Other actions "incidentally" setting it is forbidden.
-- **Rejoin recovery**: `joinRoom(isHost=true)` recovers from DB → continue game AlertModal user gesture (Web autoplay needs gesture unlock) → `resumeAfterRejoin()` replays current step audio → `postAudioAck`. useEffect auto-triggering is forbidden.
+- **Rejoin recovery**: `RoomSession` restores the authoritative snapshot; the game audio runtime resumes the pending
+  batch after a user gesture when Web autoplay requires one, then dispatches the same audio ACK command.
 - **Audio-ack disconnect retry** (two-layer mutual exclusion):
   - **L1: Status listener** — WebSocket truly disconnects, SDK reconnects → `ConnectionStatus.Live` → retry `postAudioAck`. Covers real network disconnect.
   - **L2: Browser `online` event** — `window.addEventListener('online', ...)` zero-delay network recovery detection → retry `postAudioAck`. Covers scenario where WebSocket hasn't disconnected but HTTP has (e.g., Playwright `setOffline`, brief DNS failure). Web platform only (`typeof globalThis.window?.addEventListener === 'function'` capability check); native covered by L1.

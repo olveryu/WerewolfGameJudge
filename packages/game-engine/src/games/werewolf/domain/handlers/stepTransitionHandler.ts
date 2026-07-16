@@ -6,8 +6,8 @@
  * - END_NIGHT: run death settlement after night ends
  * - SET_AUDIO_PLAYING: set the audio playback gate state
  *
- * Returns StateAction list and SideEffect (PLAY_AUDIO); does not perform IO
- * (network / audio playback / Alert — audio IO is executed by the outer runtime), does not
+ * Returns authoritative StateAction lists, including the Host audio queue; does not perform IO
+ * (network / audio playback / Alert), does not
  * mutate state directly (returned StateAction list is applied by the reducer),
  * does not manually advance index (`++` fallback strategy is forbidden).
  *
@@ -23,11 +23,13 @@
 
 import { createSeededRng } from '../../../../platform/random';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
+import { createAudioQueueActions } from '../audioQueue';
 import { calculateDeathsDetailed } from '../DeathCalculator';
 import type { AdvanceNightIntent, EndNightIntent, SetAudioPlayingIntent } from '../intents/types';
 import { type SchemaId } from '../models';
 import { buildNightPlan, getStepSpec } from '../models/roles/spec';
 import { Team } from '../models/roles/spec/types';
+import type { AudioEffect } from '../protocol/types';
 import type {
   AdvanceToNextActionAction,
   EndNightAction,
@@ -46,7 +48,7 @@ import {
   validateNightFlowPreconditions,
   validateSetAudioPlayingPreconditions,
 } from './stepTransitionGuards';
-import type { HandlerContext, HandlerExecutionContext, HandlerResult, SideEffect } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
 import { handlerError, handlerSuccess } from './types';
 import { maybeCreateUiHintAction } from './uiHint';
 import { maybeCreateWitchContextAction } from './witchContext';
@@ -60,9 +62,8 @@ import { maybeCreateWitchContextAction } from './witchContext';
  *
  * Gate:
  * 1. host_only
- * 2. no_state
- * 3. invalid_status
- * 4. forbidden_while_audio_playing
+ * 2. invalid_status
+ * 3. forbidden_while_audio_playing
  *
  * Logic:
  * - Advance from current currentStepIndex to the next
@@ -133,18 +134,16 @@ export function handleAdvanceNight(
   const uiHintAction = maybeCreateUiHintAction(nextStep, state);
   actions.push(uiHintAction);
 
-  // Audio playback: current step's end audio + next step's start audio
-  // Append to sideEffects in the order consumed by the outer runtime.
+  // Audio playback: current step's end audio + next step's start audio.
   const currentStepId = state.currentStepId;
-  const sideEffects: SideEffect[] = [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }];
+  const audioEffects: AudioEffect[] = [];
 
   // 1) Current step's end audio
   if (currentStepId) {
     const currentStep = getStepSpec(currentStepId);
     if (currentStep) {
       const audioEndKey = currentStep.audioEndKey ?? currentStep.audioKey;
-      sideEffects.push({
-        type: 'PLAY_AUDIO',
+      audioEffects.push({
         audioKey: resolveSeerAudioKey(audioEndKey, state.seerLabelMap),
         isEndAudio: true, // mark as end audio, routed to the audio_end directory
       });
@@ -155,15 +154,17 @@ export function handleAdvanceNight(
   if (nextStepId) {
     const nextStepSpec = getStepSpec(nextStepId);
     if (nextStepSpec) {
-      sideEffects.push({
-        type: 'PLAY_AUDIO',
+      audioEffects.push({
         audioKey: resolveSeerAudioKey(nextStepSpec.audioKey, state.seerLabelMap),
         isEndAudio: false, // start audio, routed to the normal directory
       });
     }
   }
 
-  return handlerSuccess(actions, sideEffects);
+  if (audioEffects.length > 0) {
+    actions.push(...createAudioQueueActions(audioEffects));
+  }
+  return handlerSuccess(actions);
 }
 
 // =============================================================================
@@ -175,10 +176,9 @@ export function handleAdvanceNight(
  *
  * Gate:
  * 1. host_only
- * 2. no_state
- * 3. invalid_status
- * 4. forbidden_while_audio_playing
- * 5. night_not_complete (currentStepId must be undefined - all steps must be finished)
+ * 2. invalid_status
+ * 3. forbidden_while_audio_playing
+ * 4. night_not_complete (currentStepId must be undefined - all steps must be finished)
  *
  * Logic:
  * - Call resolveWolfVotes on wolfVotes to derive wolfKill
@@ -239,15 +239,7 @@ export function handleEndNight(
     payload: { deaths, deathReasons },
   };
 
-  return handlerSuccess(
-    [endNightAction],
-    [
-      { type: 'BROADCAST_STATE' },
-      { type: 'SAVE_STATE' },
-      // P0-1: return the night-end audio playback side effect
-      { type: 'PLAY_AUDIO', audioKey: 'night_end' },
-    ],
-  );
+  return handlerSuccess([endNightAction, ...createAudioQueueActions([{ audioKey: 'night_end' }])]);
 }
 
 // =============================================================================
@@ -261,8 +253,7 @@ export function handleEndNight(
  *
  * Gate:
  * 1. host_only
- * 2. no_state
- * 3. invalid_status (must be ongoing or ended)
+ * 2. invalid_status (must be ongoing or ended)
  *
  * Logic:
  * - Set isAudioPlaying = payload.isPlaying
@@ -282,5 +273,5 @@ export function handleSetAudioPlaying(
     payload: { isPlaying: intent.payload.isPlaying },
   };
 
-  return handlerSuccess([setAudioAction], [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]);
+  return handlerSuccess([setAudioAction]);
 }

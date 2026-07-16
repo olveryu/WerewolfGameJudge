@@ -9,12 +9,13 @@
  */
 
 import { GameStatus } from '../models';
+import type { GameState } from '../protocol/types';
 import { WOLF_ROBOT_GATE_ROLES } from './revealPayload';
-import type { HandlerContext, HandlerResult, NonNullState } from './types';
+import type { HandlerContext, HandlerResult } from './types';
 import { handlerError } from './types';
 
 /** Whether the current step is waiting for the Wolf Robot hunter-status acknowledgement. */
-export function isWolfRobotHunterStatusGatePending(state: NonNullState): boolean {
+export function isWolfRobotHunterStatusGatePending(state: GameState): boolean {
   return (
     state.currentStepId === 'wolfRobotLearn' &&
     state.wolfRobotReveal?.learnedRoleId != null &&
@@ -27,25 +28,16 @@ export function isWolfRobotHunterStatusGatePending(state: NonNullState): boolean
  * Validate preconditions (shared by ADVANCE_NIGHT / END_NIGHT)
  *
  * Gate order:
- * 1. no_state
- * 2. invalid_status (must be ongoing)
- * 3. forbidden_while_audio_playing
- * 4. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
+ * 1. invalid_status (must be ongoing)
+ * 2. forbidden_while_audio_playing
+ * 3. wolfrobot_hunter_status_not_viewed (if learned hunter but not viewed)
  */
 export function validateNightFlowPreconditions(
   context: HandlerContext,
-): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
+): { valid: false; result: HandlerResult } | { valid: true; state: GameState } {
   const { state } = context;
 
-  // Gate 1: no_state
-  if (!state) {
-    return {
-      valid: false,
-      result: handlerError('no_state'),
-    };
-  }
-
-  // Gate 2: invalid_status (must be ongoing)
+  // Gate 1: invalid_status (must be ongoing)
   if (state.status !== GameStatus.Ongoing) {
     return {
       valid: false,
@@ -53,7 +45,7 @@ export function validateNightFlowPreconditions(
     };
   }
 
-  // Gate 3: forbidden_while_audio_playing
+  // Gate 2: forbidden_while_audio_playing
   if (state.isAudioPlaying) {
     return {
       valid: false,
@@ -61,7 +53,7 @@ export function validateNightFlowPreconditions(
     };
   }
 
-  // Gate 4: wolfrobot_hunter_status_not_viewed
+  // Gate 3: wolfrobot_hunter_status_not_viewed
   // If current step is wolfRobotLearn and learned a gate-triggering role but not viewed, reject advance
   if (isWolfRobotHunterStatusGatePending(state)) {
     return {
@@ -77,25 +69,16 @@ export function validateNightFlowPreconditions(
  * Validate SET_AUDIO_PLAYING preconditions
  *
  * Gate order:
- * 1. no_state
- * 2. invalid_status (must be ongoing or ended)
+ * 1. invalid_status (must be ongoing or ended)
  *
  * Note: does not check isAudioPlaying, since this handler is what sets it.
  */
 export function validateSetAudioPlayingPreconditions(
   context: HandlerContext,
-): { valid: false; result: HandlerResult } | { valid: true; state: NonNullState } {
+): { valid: false; result: HandlerResult } | { valid: true; state: GameState } {
   const { state } = context;
 
-  // Gate 1: no_state
-  if (!state) {
-    return {
-      valid: false,
-      result: handlerError('no_state'),
-    };
-  }
-
-  // Gate 2: invalid_status (must be ongoing or ended)
+  // Gate 1: invalid_status (must be ongoing or ended)
   // ended is allowed because the daybreak audio plays after endNight
   if (state.status !== GameStatus.Ongoing && state.status !== GameStatus.Ended) {
     return {

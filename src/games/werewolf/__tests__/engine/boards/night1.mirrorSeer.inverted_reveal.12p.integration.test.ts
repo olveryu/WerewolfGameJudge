@@ -23,9 +23,9 @@
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
-import type { GameContext } from './gameContext';
+import type { GameContext, TestCommandExecution } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
+import { executeRemainingSteps, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 const TEMPLATE_NAME = '灯影预言家';
 
@@ -93,6 +93,9 @@ const DRUNK_SEER_ROLES: RoleId[] = [
   'drunkSeer',
 ];
 
+const DRUNK_SEER_NORMAL_REVEAL_EXECUTION: TestCommandExecution = { randomSeed: 'seed-1' };
+const DRUNK_SEER_INVERTED_REVEAL_EXECUTION: TestCommandExecution = { randomSeed: 'seed-2' };
+
 describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
   let ctx: GameContext;
 
@@ -114,15 +117,12 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       expect(ctx.getGameState().currentStepId).toBe('drunkSeerCheck');
 
       // drunkSeer checks seat 0 (villager)
-      sendMessageOrThrow(
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: 11,
-          role: 'drunkSeer',
-          target: 0,
-        },
+        11,
+        { kind: 'target', target: 0 },
         'drunkSeerCheck',
+        DRUNK_SEER_NORMAL_REVEAL_EXECUTION,
       );
 
       const state = ctx.getGameState();
@@ -132,9 +132,7 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
     });
 
     it('drunkSeer 查验 villager(0)，server seed 对应值 <0.5 时 result 为 "狼人"', () => {
-      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment(), {
-        randomSeed: 'seed-2',
-      });
+      ctx = createGame(DRUNK_SEER_ROLES, createDrunkSeerRoleAssignment());
 
       const reached = executeStepsUntil(ctx, 'drunkSeerCheck', {
         wolf: 1,
@@ -143,15 +141,12 @@ describe('Night-1: 灯影预言家 - DrunkSeer Random Reveal (12p)', () => {
       });
       expect(reached).toBe(true);
 
-      sendMessageOrThrow(
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: 11,
-          role: 'drunkSeer',
-          target: 0,
-        },
+        11,
+        { kind: 'target', target: 0 },
         'drunkSeerCheck',
+        DRUNK_SEER_INVERTED_REVEAL_EXECUTION,
       );
 
       const state = ctx.getGameState();
@@ -201,16 +196,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
 
       // mirrorSeer checks seat 0 (villager)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'ACTION',
-          seat: 8,
-          role: 'mirrorSeer',
-          target: 0,
-        },
-        'mirrorSeerCheck',
-      );
+      submitActionOrThrow(ctx, 8, { kind: 'target', target: 0 }, 'mirrorSeerCheck');
 
       const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
@@ -229,16 +215,7 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
       expect(reached).toBe(true);
 
       // mirrorSeer checks seat 3 (wolf)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'ACTION',
-          seat: 8,
-          role: 'mirrorSeer',
-          target: 3,
-        },
-        'mirrorSeerCheck',
-      );
+      submitActionOrThrow(ctx, 8, { kind: 'target', target: 3 }, 'mirrorSeerCheck');
 
       const state = ctx.getGameState();
       expect(state.mirrorSeerReveal).toBeDefined();
@@ -252,56 +229,41 @@ describe('Night-1: 灯影预言家 - MirrorSeer Inverted Reveal (12p)', () => {
     it('seer 和 mirrorSeer 各自写入独立 reveal', () => {
       ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
 
-      // Advance to seerCheck
-      const reachedSeer = executeStepsUntil(ctx, 'seerCheck', {
+      // Follow the production seerLabelMap order: mirrorSeerCheck precedes seerCheck for this seed
+      const reachedMirror = executeStepsUntil(ctx, 'mirrorSeerCheck', {
         wolf: 1,
       });
-      expect(reachedSeer).toBe(true);
+      expect(reachedMirror).toBe(true);
 
-      // seer checks seat 3 (wolf)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'ACTION',
-          seat: 7,
-          role: 'seer',
-          target: 3,
-        },
-        'seerCheck',
-      );
-
-      // Verify seerReveal
-      const stateAfterSeer = ctx.getGameState();
-      expect(stateAfterSeer.seerReveal).toBeDefined();
-      expect(stateAfterSeer.seerReveal!.result).toBe('狼人');
-
-      // ack seer reveal
-      sendMessageOrThrow(
-        ctx,
-        { type: 'REVEAL_ACK', seat: 7, role: 'seer', revision: 0 },
-        'seerCheck reveal ack',
-      );
-
-      // Advance to mirrorSeerCheck
-      ctx.advanceNightOrThrow('after seerCheck');
-
-      expect(ctx.getGameState().currentStepId).toBe('mirrorSeerCheck');
-
-      // mirrorSeer checks seat 3 (wolf) -> should return "好人" (inverted)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'ACTION',
-          seat: 8,
-          role: 'mirrorSeer',
-          target: 3,
-        },
-        'mirrorSeerCheck',
-      );
+      // mirrorSeer checks seat 3 (wolf) -> returns "好人" (inverted)
+      submitActionOrThrow(ctx, 8, { kind: 'target', target: 3 }, 'mirrorSeerCheck');
 
       const stateAfterMirror = ctx.getGameState();
       expect(stateAfterMirror.mirrorSeerReveal).toBeDefined();
       expect(stateAfterMirror.mirrorSeerReveal!.result).toBe('好人');
+
+      // The public reveal ACK advances to seerCheck inline
+      const revealAckResult = ctx.dispatchAsSeat(8, { type: 'werewolf.reveal.ack' });
+      expect(revealAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
+
+      const audioAckResult = ctx.dispatch({ type: 'werewolf.audio.ack' });
+      expect(audioAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+
+      // seer checks seat 3 (wolf)
+      submitActionOrThrow(ctx, 7, { kind: 'target', target: 3 }, 'seerCheck');
+
+      const stateAfterSeer = ctx.getGameState();
+      expect(stateAfterSeer.seerReveal).toBeDefined();
+      expect(stateAfterSeer.seerReveal!.result).toBe('狼人');
+      expect(stateAfterSeer.mirrorSeerReveal).toBeDefined();
+      expect(stateAfterSeer.mirrorSeerReveal!.result).toBe('好人');
     });
   });
 

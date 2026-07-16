@@ -9,16 +9,14 @@
  * - Seer checks seat 0 should return "狼人/wolf" (now wolf)
  * - Seer checks seat 1 should return "好人/good" (now magician)
  *
- * Wire Protocol:
- * - magician swap: target=null + extra.targets=[seatA, seatB]
+ * Production action input:
+ * - magician swap: { kind: 'multiTarget', targets: [seatA, seatB] }
  */
 
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { createGame } from './gameFactory';
-
-/** Hard cap for step progression loops to avoid infinite loops */
-const MAX_STEP_ADVANCES = 20;
+import { executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 describe('Magician Swap → Seer Reveal Regression', () => {
   /**
@@ -42,83 +40,29 @@ describe('Magician Swap → Seer Reveal Regression', () => {
     return map;
   }
 
-  /** Helper to advance to a specific step (with hard cap) */
-  function advanceToStep(
-    ctx: ReturnType<typeof createGame>,
-    targetStepId: string,
-    handleStep?: (stepId: string) => void,
-  ): void {
-    for (let i = 0; i < MAX_STEP_ADVANCES; i++) {
-      const currentStepId = ctx.getGameState().currentStepId;
-
-      if (currentStepId === targetStepId) {
-        return;
-      }
-
-      // Allow caller to handle intermediate steps
-      if (handleStep) {
-        handleStep(currentStepId!);
-      }
-
-      const result = ctx.advanceNight();
-      if (!result.success) {
-        break;
-      }
-    }
-
-    if (ctx.getGameState().currentStepId !== targetStepId) {
-      throw new Error(`Failed to reach ${targetStepId} within ${MAX_STEP_ADVANCES} advances`);
-    }
-  }
-
   describe('Seer should use post-swap identity', () => {
     it('seer checks swapped seat 0 → should see wolf (original wolf was swapped to seat 0)', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // First step should be magicianSwap
-      expect(ctx.getGameState().currentStepId).toBe('magicianSwap');
+      ctx.assertStep('magicianSwap');
 
       // Magician swaps seat 0 (magician) with seat 1 (wolf)
-      // Wire protocol: target=null, extra.targets=[seatA, seatB]
-      const swapResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'magician',
-        target: null,
-        extra: { targets: [0, 1] },
-      });
-      expect(swapResult.success).toBe(true);
+      submitActionOrThrow(
+        ctx,
+        0,
+        { kind: 'multiTarget', targets: [0, 1] },
+        'magician swaps seats 0 and 1',
+      );
 
-      // Advance to seerCheck, handle intermediate steps (wolves skip attack)
-      advanceToStep(ctx, 'seerCheck', (stepId) => {
-        if (stepId === 'wolfKill') {
-          // Wolves skip attack
-          ctx.sendPlayerMessage({
-            type: 'WOLF_VOTE',
-            seat: 1,
-            target: -1,
-          });
-          ctx.sendPlayerMessage({
-            type: 'ACTION',
-            seat: 1,
-            role: 'wolf',
-            target: null,
-          });
-        }
-      });
+      // Advance to seerCheck; wolves skip the attack.
+      expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
 
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       // Seer checks seat 0 (should be wolf after swap)
       // Note: after swap, seat 0's role is now wolf
-      const checkResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 2,
-        role: 'seer',
-        target: 0, // check seat 0
-      });
-
-      expect(checkResult.success).toBe(true);
+      submitActionOrThrow(ctx, 2, { kind: 'target', target: 0 }, 'seer checks swapped seat 0');
 
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
@@ -131,43 +75,20 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // Magician swaps seat 0 (magician) with seat 1 (wolf)
-      const swapResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'magician',
-        target: null,
-        extra: { targets: [0, 1] },
-      });
-      expect(swapResult.success).toBe(true);
+      submitActionOrThrow(
+        ctx,
+        0,
+        { kind: 'multiTarget', targets: [0, 1] },
+        'magician swaps seats 0 and 1',
+      );
 
-      // Advance to seerCheck, handle intermediate steps
-      advanceToStep(ctx, 'seerCheck', (stepId) => {
-        if (stepId === 'wolfKill') {
-          ctx.sendPlayerMessage({
-            type: 'WOLF_VOTE',
-            seat: 1,
-            target: -1,
-          });
-          ctx.sendPlayerMessage({
-            type: 'ACTION',
-            seat: 1,
-            role: 'wolf',
-            target: null,
-          });
-        }
-      });
+      // Advance to seerCheck; wolves skip the attack.
+      expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
 
       expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       // Seer checks seat 1 (should be magician = good after swap)
-      const checkResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 2,
-        role: 'seer',
-        target: 1, // check seat 1
-      });
-
-      expect(checkResult.success).toBe(true);
+      submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks swapped seat 1');
 
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();
@@ -180,41 +101,14 @@ describe('Magician Swap → Seer Reveal Regression', () => {
       const ctx = createGame(SWAP_TEMPLATE, createSwapAssignment());
 
       // Magician skips (no swap)
-      const skipResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'magician',
-        target: null,
-        extra: { targets: [] }, // empty targets means skip
-      });
-      expect(skipResult.success).toBe(true);
+      submitActionOrThrow(ctx, 0, { kind: 'skip' }, 'magician skips swap');
 
-      // Advance to seerCheck
-      advanceToStep(ctx, 'seerCheck', (stepId) => {
-        if (stepId === 'wolfKill') {
-          ctx.sendPlayerMessage({
-            type: 'WOLF_VOTE',
-            seat: 1,
-            target: -1,
-          });
-          ctx.sendPlayerMessage({
-            type: 'ACTION',
-            seat: 1,
-            role: 'wolf',
-            target: null,
-          });
-        }
-      });
+      // Advance to seerCheck; wolves skip the attack.
+      expect(executeStepsUntil(ctx, 'seerCheck', { wolf: null })).toBe(true);
+      expect(ctx.getGameState().currentStepId).toBe('seerCheck');
 
       // Seer checks seat 1 (original identity should still be wolf)
-      const checkResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 2,
-        role: 'seer',
-        target: 1,
-      });
-
-      expect(checkResult.success).toBe(true);
+      submitActionOrThrow(ctx, 2, { kind: 'target', target: 1 }, 'seer checks original wolf');
 
       const state = ctx.getGameState();
       expect(state.seerReveal).toBeDefined();

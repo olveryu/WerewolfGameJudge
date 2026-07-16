@@ -1,615 +1,370 @@
-/**
- * Step-by-Step Night Runner
- *
- * Execute night flow step-by-step in real NightPlan order (no one-shot fast-forward)
- *
- * Hard requirements:
- * 1. Each step must: submit real PlayerMessage.ACTION -> advanceNight()
- * 2. Any gate (e.g. wolfRobotHunterStatusViewed) must be cleared by explicit test message
- * 3. Helpers must NOT auto-send any confirmation/ack messages
- * 4. Every sendPlayerMessage / advanceNight must fail-fast (throw on failure)
- * 5. The single source of advanceNightOrThrow is ctx.advanceNightOrThrow() (in gameFactory.ts)
- */
+/** Production-command Night-1 scenario runner for Werewolf board tests. */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
-import type { PlayerMessage } from '@game-judge/game-engine/games/werewolf/public';
-import { GameStatus } from '@game-judge/game-engine/games/werewolf/public';
-import { doesRoleParticipateInWolfVote } from '@game-judge/game-engine/games/werewolf/public';
+import {
+  doesRoleParticipateInWolfVote,
+  GameStatus,
+  getSchema,
+  type RoleId,
+  type SchemaId,
+  type WerewolfActionInput,
+} from '@game-judge/game-engine/games/werewolf/public';
 
-import type { GameContext } from './gameContext';
+import type { GameContext, TestCommandExecution } from './gameContext';
 
-// =============================================================================
-// Fail-Fast Helpers (Exported for direct use in tests)
-// =============================================================================
+const MAX_NIGHT_TRANSITIONS = 64;
 
-/**
- * Send PlayerMessage and fail-fast (throw on failure)
- *
- * Single fail-fast entry point for all board integration tests to send messages.
- * Do NOT reimplement similar helpers in test files or elsewhere to prevent drift.
- *
- * Hard requirements:
- * - This function does NOT auto-send any ack/gate message
- * - All gates (REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED) must be sent explicitly by tests
- *
- * @param ctx - GameContext
- * @param message - PlayerMessage
- * @param context - Context info (for error messages)
- * @throws if sendPlayerMessage returns success: false
- */
-export function sendMessageOrThrow(
-  ctx: GameContext,
-  message: PlayerMessage,
-  context: string | { stepId?: SchemaId | null },
-): void {
-  const result = ctx.sendPlayerMessage(message);
-  if (!result.success) {
-    let contextStr: string;
-    if (typeof context === 'string') {
-      contextStr = context;
-    } else if (context.stepId) {
-      contextStr = `step "${context.stepId}"`;
-    } else {
-      contextStr = 'unknown step';
-    }
-    throw new Error(
-      `[sendMessageOrThrow] failed at ${contextStr}: ` +
-        `type=${message.type}, seat=${'seat' in message ? message.seat : 'N/A'}, ` +
-        `reason=${result.reason ?? 'unknown'}`,
-    );
-  }
-}
-
-// =============================================================================
-// Types
-// =============================================================================
-
-/**
- * Custom action config
- *
- * Supported value types:
- * - number: target seat
- * - null: skip attack / no action
- * - { save: number | null; poison: number | null }: witch compound action
- * - { targets: number[] }: magician swap
- * - { confirmed: boolean }: confirmation-type action
- * - { cardIndex: number }: Treasure Master card pick
- */
 type ActionValue =
   | number
   | null
-  | { save: number | null; poison: number | null }
-  | { targets: readonly number[] }
-  | { confirmed: boolean }
-  | { cardIndex: number };
+  | { readonly save: number | null; readonly poison: number | null }
+  | { readonly targets: readonly number[] }
+  | { readonly confirmed: boolean }
+  | { readonly cardIndex: number };
 
 type CustomActions = Partial<Record<RoleId, ActionValue>>;
 
-/**
- * Execution result
- */
 interface StepByStepResult {
-  /** Final deaths list */
-  deaths: number[];
-  /** Whether the night completed */
-  completed: boolean;
+  readonly deaths: number[];
+  readonly completed: boolean;
 }
 
-// =============================================================================
-// Core Functions
-// =============================================================================
+export function submitActionOrThrow(
+  ctx: GameContext,
+  actorSeat: number,
+  input: WerewolfActionInput,
+  context: string | { readonly stepId?: SchemaId },
+  execution?: TestCommandExecution,
+): void {
+  const contextText =
+    typeof context === 'string' ? context : `step "${context.stepId ?? 'unknown'}"`;
+  ctx.dispatchAsSeatOrThrow(
+    actorSeat,
+    { type: 'werewolf.action.submit', input },
+    contextText,
+    execution,
+  );
+}
 
-/**
- * Execute step-by-step in real NightPlan order until target step (skipping nothing)
- *
- * For each step:
- * 1. Submit that role's action
- * 2. advanceNight() to next step
- *
- * Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
- *    must be cleared by explicit test message in customActions callback
- *
- * @param ctx - GameContext
- * @param targetStepId - Target step ID
- * @param customActions - Custom actions for specific roles
- * @returns Whether target step was reached
- * @throws if advanceNight fails
- */
+function acknowledgeAudio(ctx: GameContext, context: string): boolean {
+  if (!ctx.getGameState().isAudioPlaying) return false;
+  ctx.acknowledgePendingAudioOrThrow(context);
+  return true;
+}
+
+function acknowledgeReveal(ctx: GameContext): boolean {
+  const state = ctx.getGameState();
+  if (state.pendingRevealAcks.length === 0) return false;
+  const stepId = state.currentStepId;
+  if (stepId === undefined) {
+    throw new Error('[FAIL-FAST] Reveal acknowledgement exists without a current step');
+  }
+  const action = [...state.actions].reverse().find((candidate) => candidate.schemaId === stepId);
+  if (action === undefined) {
+    throw new Error(`[FAIL-FAST] Reveal acknowledgement has no action for ${stepId}`);
+  }
+  ctx.dispatchAsSeatOrThrow(
+    action.actorSeat,
+    { type: 'werewolf.reveal.ack' },
+    `acknowledge reveal for ${stepId}`,
+  );
+  return true;
+}
+
+function acknowledgeWolfRobotHunterStatus(ctx: GameContext): boolean {
+  const state = ctx.getGameState();
+  if (
+    state.currentStepId !== 'wolfRobotLearn' ||
+    state.wolfRobotHunterStatusViewed !== false ||
+    state.wolfRobotReveal?.learnedRoleId === undefined
+  ) {
+    return false;
+  }
+  const actorSeat = ctx.findSeatByRole('wolfRobot');
+  if (actorSeat === -1) {
+    throw new Error('[FAIL-FAST] Wolf Robot gate exists without a seated Wolf Robot');
+  }
+  ctx.dispatchAsSeatOrThrow(
+    actorSeat,
+    { type: 'werewolf.wolfRobot.ackHunterStatus' },
+    'acknowledge Wolf Robot hunter status',
+  );
+  return true;
+}
+
+function acknowledgeGroupConfirmation(ctx: GameContext): boolean {
+  const state = ctx.getGameState();
+  const stepId = state.currentStepId;
+  if (stepId === undefined || getSchema(stepId).kind !== 'groupConfirm') return false;
+
+  for (const player of Object.values(state.players)) {
+    if (player === null) continue;
+    ctx.dispatchAsSeatOrThrow(
+      player.seat,
+      { type: 'werewolf.groupConfirm.ack' },
+      `acknowledge group confirmation for ${stepId} at seat ${player.seat}`,
+    );
+  }
+  return true;
+}
+
+function releaseStepDeadline(ctx: GameContext): boolean {
+  const deadline = ctx.getGameState().stepDeadline;
+  if (deadline === undefined) return false;
+  ctx.dispatchOrThrow(
+    { type: 'werewolf.progress.request' },
+    `release step deadline at ${deadline}`,
+    undefined,
+    { nowMs: deadline },
+  );
+  return true;
+}
+
+function settleCompletedStep(ctx: GameContext): boolean {
+  return (
+    acknowledgeAudio(ctx, 'complete authoritative playback') ||
+    acknowledgeReveal(ctx) ||
+    acknowledgeWolfRobotHunterStatus(ctx) ||
+    acknowledgeGroupConfirmation(ctx) ||
+    releaseStepDeadline(ctx)
+  );
+}
+
 export function executeStepsUntil(
   ctx: GameContext,
   targetStepId: SchemaId,
   customActions: CustomActions = {},
 ): boolean {
-  const MAX_ITERATIONS = 30;
-
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
+  for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
+    acknowledgeAudio(ctx, `complete playback before ${targetStepId}`);
     const state = ctx.getGameState();
-    const currentStepId = state.currentStepId;
-    if (!currentStepId) return false;
-
-    // Target reached
-    if (currentStepId === targetStepId) {
-      return true;
-    }
-
-    // Execute current step
+    if (state.currentStepId === targetStepId) return true;
+    if (state.status === GameStatus.Ended || state.currentStepId === undefined) return false;
+    if (settleCompletedStep(ctx)) continue;
     executeCurrentStep(ctx, customActions);
-
-    // Advance to next step (use ctx.advanceNightOrThrow - single source)
-    ctx.advanceNightOrThrow(`executeStepsUntil step "${currentStepId}"`);
   }
-
-  return false;
+  throw new Error(
+    `[FAIL-FAST] executeStepsUntil exceeded ${MAX_NIGHT_TRANSITIONS} transitions before ${targetStepId}`,
+  );
 }
 
-/**
- * Continue from current step to end of Night-1
- *
- * Semantics: continue step-by-step from current `GameState.currentStepId` until Night-1 ends.
- * Supports calling `executeStepsUntil` to a step first, then invoking this to finish the rest.
- *
- * Hard requirements (MUST follow):
- * - This function does NOT auto-send any ack/gate message
- * - Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
- *   must be cleared by explicit test message
- * - Throws (fail-fast) when blocked by a gate; does NOT auto-handle
- *
- * @param ctx - GameContext
- * @param customActions - Custom actions for specific roles
- * @returns Execution result (deaths list + completion flag)
- * @throws if advanceNight fails (including gate blockage)
- * @throws if state.status !== Ongoing while currentStepId exists (inconsistent state)
- */
 export function executeRemainingSteps(
   ctx: GameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
-  const MAX_ITERATIONS = 30;
+  for (let transition = 0; transition < MAX_NIGHT_TRANSITIONS; transition += 1) {
+    if (settleCompletedStep(ctx)) continue;
 
-  // Fail-fast check: state must be valid (read-only check, does not mutate state)
-  const initialState = ctx.getGameState();
-  if (initialState.currentStepId && initialState.status !== GameStatus.Ongoing) {
-    throw new Error(
-      `[executeRemainingSteps] Invalid state: currentStepId="${initialState.currentStepId}" ` +
-        `but status="${initialState.status}" (expected "ongoing"). ` +
-        `Night flow may have been corrupted.`,
-    );
-  }
-
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
     const state = ctx.getGameState();
-    const currentStepId = state.currentStepId;
-
-    // Night already ended (currentStepId empty)
-    if (!currentStepId) {
-      // Trigger death settlement
-      const result = ctx.endNight();
-      return {
-        deaths: result.deaths,
-        completed: true,
-      };
-    }
-
-    // Check whether already ended
     if (state.status === GameStatus.Ended) {
-      return {
-        deaths: state.lastNightDeaths ?? [],
-        completed: true,
-      };
+      return { deaths: state.lastNightDeaths ?? [], completed: true };
     }
-
-    // Execute current step
+    if (state.status !== GameStatus.Ongoing) {
+      throw new Error(`[FAIL-FAST] Night runner received lifecycle ${state.status}`);
+    }
+    if (state.currentStepId === undefined) {
+      ctx.dispatchOrThrow({ type: 'werewolf.progress.request' }, 'finish Night-1');
+      continue;
+    }
     executeCurrentStep(ctx, customActions);
-
-    // Advance to next step (use ctx.advanceNightOrThrow - single source)
-    ctx.advanceNightOrThrow(`executeRemainingSteps step "${currentStepId}"`);
   }
-
-  // Exceeded max iterations, trigger end
-  const result = ctx.endNight();
-  return {
-    deaths: result.deaths,
-    completed: true,
-  };
+  throw new Error(`[FAIL-FAST] Night runner exceeded ${MAX_NIGHT_TRANSITIONS} transitions`);
 }
 
-/**
- * Execute the full Night-1 flow (test-intent alias)
- *
- * This is a thin wrapper around `executeRemainingSteps` to improve test readability.
- *
- * Hard guardrails (MUST follow):
- * - This function does **NOT** start night or reset state
- * - This function does **NOT** auto-handle any ack/gate, including:
- *   - pendingRevealAcks (test must send REVEAL_ACK explicitly)
- *   - wolfRobotHunterStatusViewed (test must send WOLF_ROBOT_HUNTER_STATUS_VIEWED explicitly)
- * - Gates must be cleared by explicit test message
- * - Throws (fail-fast) when blocked by a gate; does NOT auto-handle
- *
- * Do NOT add to this function:
- * - Auto-sending REVEAL_ACK / WOLF_ROBOT_HUNTER_STATUS_VIEWED
- * - Auto-clearing any gate
- * - Auto skip step / fast-forward / jump
- * - Any "auto-handle when encountering a gate" logic
- *
- * @param ctx - GameContext
- * @param customActions - Custom actions for specific roles
- * @returns Execution result (deaths list + completion flag)
- * @throws if advanceNight fails (including gate blockage)
- */
 export function executeFullNight(
   ctx: GameContext,
   customActions: CustomActions = {},
 ): StepByStepResult {
-  // Thin wrapper: only call executeRemainingSteps, do NOT add any extra logic
   return executeRemainingSteps(ctx, customActions);
 }
 
-// =============================================================================
-// Helper Functions
-// =============================================================================
-
-/**
- * Execute the current step (without advancing)
- *
- * Only submits the action for the current step.
- *
- * Any gate (e.g. pendingRevealAcks / wolfRobotHunterStatusViewed)
- *    must be cleared by explicit test message in customActions callback
- */
 function executeCurrentStep(ctx: GameContext, customActions: CustomActions): void {
-  const plan = ctx.getNightPlan();
   const state = ctx.getGameState();
   const currentStepId = state.currentStepId;
-  if (!currentStepId) return;
+  if (currentStepId === undefined) {
+    throw new Error('[FAIL-FAST] Cannot execute an action without a current step');
+  }
+  const step = ctx.getNightPlan().steps.find((candidate) => candidate.stepId === currentStepId);
+  if (step === undefined) {
+    throw new Error(`[FAIL-FAST] Night plan does not contain current step ${currentStepId}`);
+  }
 
-  // Find the config for the current step
-  const stepConfig = plan.steps.find((s) => s.stepId === currentStepId);
-  if (!stepConfig) return;
-
-  const roleId = stepConfig.roleId;
-  let actorSeat = ctx.findSeatByRole(roleId);
-  let actorRole: RoleId = roleId;
-
-  // TreasureMaster actor override: the chosen deck card role's step is performed by Treasure Master
+  let actorSeat = ctx.findSeatByRole(step.roleId);
   if (actorSeat === -1) {
-    const state2 = ctx.getGameState();
     if (
-      state2.currentNightResults?.treasureMasterChosenCard === roleId &&
-      state2.treasureMasterSeat != null
+      state.currentNightResults?.treasureMasterChosenCard === step.roleId &&
+      state.treasureMasterSeat !== undefined
     ) {
-      actorSeat = state2.treasureMasterSeat;
-      actorRole = 'treasureMaster'; // Gate 4b/5b requires sending the actual seat's role
-    } else if (state2.currentNightResults?.thiefChosenCard === roleId && state2.thiefSeat != null) {
-      actorSeat = state2.thiefSeat;
-      actorRole = 'thief';
-    } else {
-      // Role not in template, skip (advanceNight will be called by caller)
+      actorSeat = state.treasureMasterSeat;
+    } else if (
+      state.currentNightResults?.thiefChosenCard === step.roleId &&
+      state.thiefSeat !== undefined
+    ) {
+      actorSeat = state.thiefSeat;
+    } else if (state.stepDeadline !== undefined) {
+      releaseStepDeadline(ctx);
       return;
+    } else {
+      throw new Error(`[FAIL-FAST] Current step ${currentStepId} has no effective actor`);
     }
   }
 
-  // Get custom action
-  const actionValue = customActions[roleId];
-
-  // Submit action based on step type
-  submitActionForStep(ctx, currentStepId, actorRole, actorSeat, actionValue);
-
-  // Note: reveal ack / wolfRobot hunter gate and other confirmation messages
-  // must be sent explicitly by the test in customActions; not auto-sent here
+  submitActionForStep(ctx, currentStepId, step.roleId, actorSeat, customActions[step.roleId]);
 }
 
-/**
- * Submit the corresponding action based on step type
- */
 function submitActionForStep(
   ctx: GameContext,
   stepId: SchemaId,
   roleId: RoleId,
   actorSeat: number,
-  actionValue: ActionValue | undefined,
+  value: ActionValue | undefined,
 ): void {
+  if (stepId === 'wolfKill') {
+    submitWolfVotes(ctx, stepId, value);
+    return;
+  }
+  if (stepId === 'witchAction') {
+    submitWitchAction(ctx, stepId, actorSeat, value);
+    return;
+  }
+  if (stepId === 'magicianSwap') {
+    submitMultiTargetAction(ctx, stepId, actorSeat, value);
+    return;
+  }
+  if (stepId === 'piperHypnotize') {
+    submitPiperAction(ctx, stepId, actorSeat, value);
+    return;
+  }
+  if (stepId === 'cupidChooseLovers') {
+    submitCupidAction(ctx, stepId, actorSeat, value);
+    return;
+  }
   if (stepId === 'treasureMasterChoose' || stepId === 'thiefChoose') {
-    submitChooseCardAction(ctx, stepId, roleId, actorSeat, actionValue);
-  } else if (stepId === 'wolfKill') {
-    submitWolfKillAction(ctx, stepId, actorSeat, actionValue);
-  } else if (stepId === 'witchAction') {
-    submitWitchAction(ctx, stepId, actorSeat, actionValue);
-  } else if (stepId === 'magicianSwap') {
-    submitMagicianSwapAction(ctx, stepId, actorSeat, actionValue);
-  } else if (
+    if (value === null || typeof value !== 'object' || !('cardIndex' in value)) {
+      throw new Error(`[FAIL-FAST] ${stepId} fixture must provide cardIndex`);
+    }
+    submitActionOrThrow(ctx, actorSeat, { kind: 'card', cardIndex: value.cardIndex }, { stepId });
+    return;
+  }
+  if (
     stepId === 'hunterConfirm' ||
     stepId === 'darkWolfKingConfirm' ||
     stepId === 'avengerConfirm'
   ) {
-    submitConfirmAction(ctx, stepId, roleId, actorSeat, actionValue);
-  } else if (stepId === 'piperHypnotize') {
-    submitPiperHypnotizeAction(ctx, stepId, roleId, actorSeat, actionValue);
-  } else if (stepId === 'cupidChooseLovers') {
-    submitCupidChooseLoversAction(ctx, stepId, roleId, actorSeat, actionValue);
-  } else if (stepId === 'piperHypnotizedReveal') {
-    // groupConfirm: auto-completes after audio, no action submission needed
+    const shouldConfirm =
+      value === null || typeof value !== 'object' || !('confirmed' in value) || value.confirmed;
+    submitActionOrThrow(ctx, actorSeat, shouldConfirm ? { kind: 'confirm' } : { kind: 'skip' }, {
+      stepId,
+    });
     return;
-  } else if (stepId === 'awakenedGargoyleConvertReveal') {
-    // groupConfirm: auto-completes after audio, no action submission needed
-    return;
-  } else if (stepId === 'cupidLoversReveal') {
-    // groupConfirm: auto-completes after audio, no action submission needed
-    return;
-  } else {
-    // Normal action (seer, guard, nightmare, etc.)
-    submitNormalAction(ctx, stepId, roleId, actorSeat, actionValue);
   }
-}
 
-/**
- * Submit Treasure Master card pick action
- */
-function submitChooseCardAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  roleId: RoleId,
-  actorSeat: number,
-  actionValue: ActionValue | undefined,
-): void {
-  const cardIndex =
-    actionValue != null && typeof actionValue === 'object' && 'cardIndex' in actionValue
-      ? actionValue.cardIndex
-      : null;
-
-  sendMessageOrThrow(
+  const target = typeof value === 'number' ? value : null;
+  submitActionOrThrow(
     ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: roleId,
-      target: null,
-      extra: cardIndex != null ? { cardIndex } : undefined,
-    },
-    { stepId },
+    actorSeat,
+    target === null ? { kind: 'skip' } : { kind: 'target', target },
+    `${stepId} (${roleId})`,
   );
 }
 
-/**
- * Submit attack action
- */
-function submitWolfKillAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  actorSeat: number,
-  actionValue: ActionValue | undefined,
-): void {
-  const target = typeof actionValue === 'number' ? actionValue : null;
-  const state = ctx.getGameState();
-
-  // All wolves participating in attack vote (fail-fast)
-  // Note: only roles with participatesInWolfVote=true send WOLF_VOTE
-  if (target !== null) {
-    for (const [seatStr, player] of Object.entries(state.players)) {
-      const seat = Number.parseInt(seatStr, 10);
-      const role = player?.role;
-      if (role && doesRoleParticipateInWolfVote(role)) {
-        sendMessageOrThrow(
-          ctx,
-          {
-            type: 'WOLF_VOTE',
-            seat,
-            target,
-          },
-          { stepId },
-        );
-      }
-    }
+function submitWolfVotes(ctx: GameContext, stepId: SchemaId, value: ActionValue | undefined): void {
+  const target = typeof value === 'number' ? value : null;
+  const wolfSeats = Object.values(ctx.getGameState().players)
+    .filter((player) => player?.role && doesRoleParticipateInWolfVote(player.role))
+    .map((player) => player!.seat);
+  if (wolfSeats.length === 0) {
+    throw new Error('[FAIL-FAST] wolfKill step has no participating wolf');
   }
-
-  // Find lead wolf seat (first wolf participating in attack)
-  let leadWolfSeat = actorSeat;
-  let leadWolfRole: RoleId = 'wolf';
-  for (const [seatStr, player] of Object.entries(state.players)) {
-    const seat = Number.parseInt(seatStr, 10);
-    const role = player?.role;
-    // Only roles with participatesInWolfVote=true can be lead wolf
-    if (role && doesRoleParticipateInWolfVote(role)) {
-      leadWolfSeat = seat;
-      leadWolfRole = role;
-      break;
-    }
+  for (const seat of wolfSeats) {
+    submitActionOrThrow(
+      ctx,
+      seat,
+      target === null ? { kind: 'skip' } : { kind: 'target', target },
+      { stepId },
+    );
   }
-
-  sendMessageOrThrow(
-    ctx,
-    {
-      type: 'ACTION',
-      seat: leadWolfSeat,
-      role: leadWolfRole,
-      target,
-      extra: undefined,
-    },
-    { stepId },
-  );
 }
 
-/**
- * Submit witch action
- */
 function submitWitchAction(
   ctx: GameContext,
   stepId: SchemaId,
   actorSeat: number,
-  actionValue: ActionValue | undefined,
+  value: ActionValue | undefined,
 ): void {
-  let stepResults = { save: null as number | null, poison: null as number | null };
-
-  if (actionValue && typeof actionValue === 'object' && 'save' in actionValue) {
-    stepResults = actionValue;
-  } else if (typeof actionValue === 'number') {
-    // A single number means save
-    stepResults = { save: actionValue, poison: null };
+  if (typeof value === 'number') {
+    submitActionOrThrow(
+      ctx,
+      actorSeat,
+      { kind: 'witch', saveTarget: value, poisonTarget: null },
+      { stepId },
+    );
+    return;
   }
-
-  sendMessageOrThrow(
-    ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: 'witch',
-      target: null,
-      extra: { stepResults },
-    },
-    { stepId },
-  );
+  if (value !== null && typeof value === 'object' && 'save' in value) {
+    const input: WerewolfActionInput =
+      value.save === null && value.poison === null
+        ? { kind: 'skip' }
+        : { kind: 'witch', saveTarget: value.save, poisonTarget: value.poison };
+    submitActionOrThrow(ctx, actorSeat, input, { stepId });
+    return;
+  }
+  submitActionOrThrow(ctx, actorSeat, { kind: 'skip' }, { stepId });
 }
 
-/**
- * Submit magician swap action
- */
-function submitMagicianSwapAction(
+function submitMultiTargetAction(
   ctx: GameContext,
   stepId: SchemaId,
   actorSeat: number,
-  actionValue: ActionValue | undefined,
+  value: ActionValue | undefined,
 ): void {
-  let targets: readonly number[] = [];
-
-  if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
-    targets = actionValue.targets;
-  }
-
-  sendMessageOrThrow(
+  const targets =
+    value !== null && typeof value === 'object' && 'targets' in value ? value.targets : [];
+  submitActionOrThrow(
     ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: 'magician',
-      target: null,
-      extra: targets.length > 0 ? { targets } : undefined,
-    },
+    actorSeat,
+    targets.length === 0 ? { kind: 'skip' } : { kind: 'multiTarget', targets },
     { stepId },
   );
 }
 
-/**
- * Submit confirmation-type action
- *
- * Defaults confirmed = true (normal confirm passes)
- * Tests that need to skip (confirmed: false) must specify explicitly
- */
-function submitConfirmAction(
+function submitPiperAction(
   ctx: GameContext,
   stepId: SchemaId,
-  roleId: RoleId,
   actorSeat: number,
-  actionValue: ActionValue | undefined,
+  value: ActionValue | undefined,
 ): void {
-  // Default true: under normal conditions, confirm step requires confirmed: true
-  let confirmed = true;
-
-  if (actionValue && typeof actionValue === 'object' && 'confirmed' in actionValue) {
-    confirmed = actionValue.confirmed;
-  }
-
-  sendMessageOrThrow(
+  const configuredTargets =
+    value !== null && typeof value === 'object' && 'targets' in value
+      ? value.targets
+      : typeof value === 'number'
+        ? [value]
+        : undefined;
+  const targets =
+    configuredTargets ??
+    Object.values(ctx.getGameState().players)
+      .filter((player) => player !== null && player.seat !== actorSeat)
+      .slice(0, 1)
+      .map((player) => player!.seat);
+  submitActionOrThrow(
     ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: roleId,
-      target: null,
-      extra: { confirmed },
-    },
+    actorSeat,
+    targets.length === 0 ? { kind: 'skip' } : { kind: 'multiTarget', targets },
     { stepId },
   );
 }
 
-/**
- * Submit Piper hypnotize action (multiChooseSeat)
- */
-function submitPiperHypnotizeAction(
+function submitCupidAction(
   ctx: GameContext,
   stepId: SchemaId,
-  roleId: RoleId,
   actorSeat: number,
-  actionValue: ActionValue | undefined,
+  value: ActionValue | undefined,
 ): void {
-  let targets: readonly number[];
-  if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
-    targets = actionValue.targets;
-  } else if (typeof actionValue === 'number') {
-    targets = [actionValue];
-  } else {
-    // Default: hypnotize seat 0 (test convenience — pick any valid seat)
-    targets = [0];
-  }
-
-  sendMessageOrThrow(
-    ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: roleId,
-      target: null,
-      extra: { targets },
-    },
-    { stepId },
-  );
+  const targets =
+    value !== null && typeof value === 'object' && 'targets' in value
+      ? value.targets
+      : Object.values(ctx.getGameState().players)
+          .filter((player) => player !== null)
+          .slice(0, 2)
+          .map((player) => player.seat);
+  submitActionOrThrow(ctx, actorSeat, { kind: 'multiTarget', targets }, { stepId });
 }
-
-/**
- * Submit Cupid choose-lovers action (multiChooseSeat, 2 targets)
- */
-function submitCupidChooseLoversAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  roleId: RoleId,
-  actorSeat: number,
-  actionValue: ActionValue | undefined,
-): void {
-  let targets: readonly number[];
-  if (actionValue && typeof actionValue === 'object' && 'targets' in actionValue) {
-    targets = actionValue.targets;
-  } else {
-    // Default: connect seats 0 and 1 (test convenience)
-    targets = [0, 1];
-  }
-
-  sendMessageOrThrow(
-    ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: roleId,
-      target: null,
-      extra: { targets },
-    },
-    { stepId },
-  );
-}
-
-/**
- * Submit normal action
- */
-function submitNormalAction(
-  ctx: GameContext,
-  stepId: SchemaId,
-  roleId: RoleId,
-  actorSeat: number,
-  actionValue: ActionValue | undefined,
-): void {
-  const target = typeof actionValue === 'number' ? actionValue : null;
-
-  sendMessageOrThrow(
-    ctx,
-    {
-      type: 'ACTION',
-      seat: actorSeat,
-      role: roleId,
-      target,
-      extra: undefined,
-    },
-    { stepId },
-  );
-}
-
-// handleRevealAck / handleWolfRobotHunterGate have been removed
-// All confirmation messages must be sent explicitly by tests in customActions callback

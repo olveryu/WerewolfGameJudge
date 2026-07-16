@@ -17,8 +17,8 @@
  * Core rules (WolfRobot Hunter Gate):
  * - After wolfRobot learns hunter, wolfRobotReveal.learnedRoleId === 'hunter'
  * - wolfRobotContext.disguisedRole === 'hunter'
- * - wolfRobotHunterStatusViewed starts as false; becomes true after WOLF_ROBOT_HUNTER_STATUS_VIEWED is sent
- * - Night can only advance after the gate is cleared
+ * - wolfRobotHunterStatusViewed starts as false; becomes true after the hunter-status ACK commits
+ * - Inline progression can only advance after the reveal and hunter-status ACKs commit
  *
  * Test style: execute every step in NightPlan order; skip nothing
  * Use the unified runner (stepByStepRunner.ts); no custom runners
@@ -30,7 +30,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import type { GameContext } from './gameContext';
 import { cleanupGame, createGame } from './gameFactory';
-import { executeRemainingSteps, executeStepsUntil, sendMessageOrThrow } from './stepByStepRunner';
+import { executeRemainingSteps, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 /**
  * Custom role list (with wolfRobot + witch + hunter)
@@ -81,7 +81,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
   });
 
   describe('Hunter Gate 行为验证', () => {
-    it('wolfRobot 学习 hunter 后，wolfRobotHunterStatusViewed 初始为 false，发送 WOLF_ROBOT_HUNTER_STATUS_VIEWED 后变为 true', () => {
+    it('wolfRobot 学习 hunter 后，提交公开 ACK 会清除 gate 并触发内联推进', () => {
       ctx = createGame(CUSTOM_ROLES, createRoleAssignment());
 
       // Step 1: execute in order up to wolfRobotLearn step (using unified runner)
@@ -93,16 +93,11 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: submit wolfRobot's action to learn hunter (seat 3) (explicit send, fail-fast)
-      sendMessageOrThrow(
+      // Step 2: submit wolfRobot's action to learn hunter (seat 3)
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: WOLF_ROBOT_SEAT,
-          role: 'wolfRobot',
-          target: HUNTER_SEAT,
-          extra: undefined,
-        },
+        WOLF_ROBOT_SEAT,
+        { kind: 'target', target: HUNTER_SEAT },
         'wolfRobot learn hunter',
       );
 
@@ -122,31 +117,46 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Assertion 4: current step is still wolfRobotLearn (blocked by gate)
       expect(stateAfterLearn.currentStepId).toBe('wolfRobotLearn');
 
-      // Step 3: attempt advance (should be blocked by gate)
-      const advResultBlocked = ctx.advanceNight();
-      expect(advResultBlocked.success).toBe(false);
-      expect(advResultBlocked.reason).toContain('wolfrobot_hunter_status_not_viewed');
+      // Step 3: a production progression request commits but cannot bypass either ACK gate
+      const blockedProgressResult = ctx.dispatch({ type: 'werewolf.progress.request' });
+      expect(blockedProgressResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      expect(ctx.getGameState().currentStepId).toBe('wolfRobotLearn');
 
-      // Step 4: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send, real protocol)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: WOLF_ROBOT_SEAT,
-        },
-        'wolf robot hunter gate',
-      );
+      // Step 4: only the Wolf Robot seat can acknowledge its hunter status
+      const rejectedHunterStatusAck = ctx.dispatchAsSeat(HUNTER_SEAT, {
+        type: 'werewolf.wolfRobot.ackHunterStatus',
+      });
+      expect(rejectedHunterStatusAck).toMatchObject({
+        kind: 'rejected',
+        reason: 'invalid_seat',
+      });
 
-      // Assertion 5: gate cleared
+      // Step 5: reveal ACK commits, but the hunter-status gate still blocks inline progression
+      const revealAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.reveal.ack',
+      });
+      expect(revealAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      expect(ctx.getGameState().currentStepId).toBe('wolfRobotLearn');
+      expect(ctx.getGameState().wolfRobotHunterStatusViewed).toBe(false);
+
+      // Step 6: hunter-status ACK clears the gate and production inline progression advances
+      const hunterStatusAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.wolfRobot.ackHunterStatus',
+      });
+      expect(hunterStatusAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+
       const stateAfterGate = ctx.getGameState();
       expect(stateAfterGate.wolfRobotHunterStatusViewed).toBe(true);
-
-      // Assertion 6: advance no longer rejected (can move to next step)
-      ctx.advanceNightOrThrow('after gate cleared');
-
-      // Assertion 7: advanced to next step (no longer wolfRobotLearn)
-      const stateAfterAdvance = ctx.getGameState();
-      expect(stateAfterAdvance.currentStepId).not.toBe('wolfRobotLearn');
+      expect(stateAfterGate.currentStepId).not.toBe('wolfRobotLearn');
     });
   });
 
@@ -164,16 +174,11 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: wolfRobot learns hunter (explicit send)
-      sendMessageOrThrow(
+      // Step 2: wolfRobot learns hunter
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: WOLF_ROBOT_SEAT,
-          role: 'wolfRobot',
-          target: HUNTER_SEAT,
-          extra: undefined,
-        },
+        WOLF_ROBOT_SEAT,
+        { kind: 'target', target: HUNTER_SEAT },
         'wolfRobot learn hunter',
       );
 
@@ -183,21 +188,25 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
 
-      // Step 3: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: WOLF_ROBOT_SEAT,
-        },
-        'wolf robot hunter gate',
-      );
+      // Step 3: commit both public ACKs; the second ACK advances inline
+      const revealAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.reveal.ack',
+      });
+      expect(revealAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      const hunterStatusAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.wolfRobot.ackHunterStatus',
+      });
+      expect(hunterStatusAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
 
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
-
-      // Advance to next step
-      ctx.advanceNightOrThrow('after wolfRobot gate cleared');
+      expect(state.currentStepId).not.toBe('wolfRobotLearn');
 
       // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
@@ -234,16 +243,11 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(reachedWolfRobot).toBe(true);
       ctx.assertStep('wolfRobotLearn');
 
-      // Step 2: wolfRobot learns hunter (explicit send)
-      sendMessageOrThrow(
+      // Step 2: wolfRobot learns hunter
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: WOLF_ROBOT_SEAT,
-          role: 'wolfRobot',
-          target: HUNTER_SEAT,
-          extra: undefined,
-        },
+        WOLF_ROBOT_SEAT,
+        { kind: 'target', target: HUNTER_SEAT },
         'wolfRobot learn hunter',
       );
 
@@ -253,21 +257,25 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       expect(state.wolfRobotContext?.disguisedRole).toBe('hunter');
       expect(state.wolfRobotHunterStatusViewed).toBe(false);
 
-      // Step 3: send WOLF_ROBOT_HUNTER_STATUS_VIEWED to clear gate (explicit send)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-          seat: WOLF_ROBOT_SEAT,
-        },
-        'wolf robot hunter gate',
-      );
+      // Step 3: commit both public ACKs; the second ACK advances inline
+      const revealAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.reveal.ack',
+      });
+      expect(revealAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      const hunterStatusAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.wolfRobot.ackHunterStatus',
+      });
+      expect(hunterStatusAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
 
       state = ctx.getGameState();
       expect(state.wolfRobotHunterStatusViewed).toBe(true);
-
-      // Advance to next step
-      ctx.advanceNightOrThrow('after wolfRobot gate cleared');
+      expect(state.currentStepId).not.toBe('wolfRobotLearn');
 
       // Step 4: complete remaining steps (using unified runner)
       const { deaths } = executeRemainingSteps(ctx, {
@@ -302,16 +310,11 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       });
       expect(reachedWolfRobot).toBe(true);
 
-      // wolfRobot learns villager (seat 0) (explicit send)
-      sendMessageOrThrow(
+      // wolfRobot learns villager (seat 0)
+      submitActionOrThrow(
         ctx,
-        {
-          type: 'ACTION',
-          seat: WOLF_ROBOT_SEAT,
-          role: 'wolfRobot',
-          target: 0, // villager
-          extra: undefined,
-        },
+        WOLF_ROBOT_SEAT,
+        { kind: 'target', target: 0 },
         'wolfRobot learn villager',
       );
 
@@ -323,8 +326,15 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Should not trigger hunter gate (wolfRobotHunterStatusViewed should be absent or not false)
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
-      // Can advance directly (not blocked by gate)
-      ctx.advanceNightOrThrow('after learning non-hunter');
+      // Reveal ACK releases production inline progression without a hunter-status ACK
+      const revealAckResult = ctx.dispatchAsSeat(WOLF_ROBOT_SEAT, {
+        type: 'werewolf.reveal.ack',
+      });
+      expect(revealAckResult).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'success' },
+      });
+      expect(ctx.getGameState().currentStepId).not.toBe('wolfRobotLearn');
     });
 
     it('wolfRobot 跳过学习时，不触发 hunter gate', () => {
@@ -338,18 +348,8 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       });
       expect(reachedWolfRobot).toBe(true);
 
-      // wolfRobot skips learning (explicit send)
-      sendMessageOrThrow(
-        ctx,
-        {
-          type: 'ACTION',
-          seat: WOLF_ROBOT_SEAT,
-          role: 'wolfRobot',
-          target: null, // skip
-          extra: undefined,
-        },
-        'wolfRobot skip',
-      );
+      // wolfRobot skips learning; the action advances inline because it creates no reveal ACK
+      submitActionOrThrow(ctx, WOLF_ROBOT_SEAT, { kind: 'skip' }, 'wolfRobot skip');
 
       const state = ctx.getGameState();
 
@@ -359,8 +359,7 @@ describe('Night-1: WolfRobot learns Hunter + Witch poison scenarios (12p)', () =
       // Should not trigger hunter gate
       expect(state.wolfRobotHunterStatusViewed).not.toBe(false);
 
-      // Can advance directly
-      ctx.advanceNightOrThrow('after skip');
+      expect(state.currentStepId).not.toBe('wolfRobotLearn');
     });
   });
 });

@@ -6,7 +6,7 @@ import type {
 } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import type { GameState } from '@game-judge/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
+import { werewolfEngine } from '@game-judge/game-engine/games/werewolf/public';
 import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 import { createRoomSnapshot } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 import { env } from 'cloudflare:test';
@@ -84,11 +84,15 @@ async function readStats(userId: string): Promise<{
 }
 
 function buildSnapshot(): ReturnType<typeof createRoomSnapshot<GameState>> {
-  const state = buildInitialGameState('EFFECT-ROOM', 'user-0', {
-    name: 'Settlement effect test',
-    numberOfPlayers: ROLES.length,
-    roles: [...ROLES],
-  });
+  const state = werewolfEngine.createInitialState(
+    { templateRoles: ROLES },
+    {
+      roomCode: 'EFFECT-ROOM',
+      hostUserId: 'user-0',
+      nowMs: 1,
+      commandId: 'create-settlement-test',
+    },
+  );
   return createRoomSnapshot(state, 1);
 }
 

@@ -3,7 +3,7 @@
  *
  * Covers: piperHypnotize + piperHypnotizedReveal steps
  * - piperHypnotize: multi-target hypnotize (multiChooseSeat schema)
- * - piperHypnotizedReveal: group confirm (auto-completes)
+ * - piperHypnotizedReveal: group confirm (requires every player to acknowledge)
  *
  * Board: custom 12-player (includes piper)
  */
@@ -11,7 +11,7 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
+import { executeFullNight, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 const _TEMPLATE_NAME = '预女猎白'; // coverage contract marker
 
@@ -42,31 +42,35 @@ describe('Night-1: piper hypnotize + hypnotized reveal (12p)', () => {
     expect(ctx.getGameState().actions?.length).toBeGreaterThanOrEqual(0);
 
     // Execute to piperHypnotize step
-    const reached = executeStepsUntil(ctx, 'piperHypnotize', {
-      piper: { targets: [3, 5] },
-    });
+    const reached = executeStepsUntil(ctx, 'piperHypnotize');
     expect(reached).toBe(true);
     ctx.assertStep('piperHypnotize');
 
     // Submit piper hypnotize action (targets seats 3 and 5)
     const piperSeat = ctx.findSeatByRole('piper');
-    ctx.sendPlayerMessage({
-      type: 'ACTION',
-      seat: piperSeat,
-      role: 'piper' as RoleId,
-      target: null,
-      extra: { targets: [3, 5] },
-    });
+    submitActionOrThrow(
+      ctx,
+      piperSeat,
+      { kind: 'multiTarget', targets: [3, 5] },
+      'piper hypnotizes seats 3 and 5',
+    );
 
-    // Advance past piperHypnotize → should be at piperHypnotizedReveal
-    ctx.advanceNightOrThrow('after piperHypnotize');
+    // Settle authoritative progression through piperHypnotize
+    expect(executeStepsUntil(ctx, 'piperHypnotizedReveal')).toBe(true);
     ctx.assertStep('piperHypnotizedReveal');
 
-    // piperHypnotizedReveal auto-completes (groupConfirm kind) — advance to next step
+    // piperHypnotizedReveal remains active until every player acknowledges
     const state = ctx.getGameState();
-    // After advance, we should be at piperHypnotizedReveal or past it
-    // (inline progression may auto-advance through it)
     expect(state.currentNightResults?.hypnotizedSeats).toEqual([3, 5]);
+
+    for (const player of Object.values(state.players)) {
+      if (player === null) continue;
+      ctx.dispatchAsSeatOrThrow(
+        player.seat,
+        { type: 'werewolf.groupConfirm.ack' },
+        `acknowledge hypnotized-player reveal at seat ${player.seat}`,
+      );
+    }
 
     // Complete the night
     executeFullNight(ctx);

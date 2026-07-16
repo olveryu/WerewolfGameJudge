@@ -168,22 +168,6 @@ describe('WolfRobot Hunter Status Gate - Server Enforcement (handleAdvanceNight)
 
 describe('handleSetWolfRobotHunterStatusViewed - Handler Contract', () => {
   describe('validation gates', () => {
-    it('rejects when state is null', () => {
-      const context: HandlerContext = {
-        state: null, // no state
-        myUserId: 'HOST',
-        mySeat: 0,
-      };
-
-      const result = handleSetWolfRobotHunterStatusViewed(context, {
-        type: 'SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED',
-        seat: 0,
-      });
-
-      const err = expectError(result);
-      expect(err.reason).toBe('no_state');
-    });
-
     it('rejects when step is not wolfRobotLearn', () => {
       const state = createTestState({
         currentStepId: 'seerCheck', // wrong step

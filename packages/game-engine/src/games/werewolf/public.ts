@@ -95,7 +95,6 @@ export type {
   FactionConfirmStatus,
   GameState,
   Player,
-  PlayerMessage,
   ProtocolAction,
   ShootConfirmStatus,
 } from './domain/protocol/types';

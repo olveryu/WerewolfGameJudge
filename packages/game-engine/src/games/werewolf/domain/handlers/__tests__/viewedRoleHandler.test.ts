@@ -40,10 +40,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(
-  state: GameState | null,
-  overrides?: Partial<HandlerContext>,
-): HandlerContext {
+function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return { state, myUserId: 'p0', mySeat: 0, ...overrides };
 }
 
@@ -56,12 +53,6 @@ function intent(seat: number): ViewedRoleIntent {
 // =============================================================================
 
 describe('handleViewedRole', () => {
-  it('should reject when state is null', () => {
-    const result = handleViewedRole(intent(0), createContext(null));
-    const err = expectError(result);
-    expect(err.reason).toBe('no_state');
-  });
-
   it('should reject when non-host tries to mark another seat', () => {
     const state = createMinimalState();
     const ctx = createContext(state, { myUserId: 'p1', mySeat: 1 });
@@ -105,16 +96,5 @@ describe('handleViewedRole', () => {
     const result = handleViewedRole(intent(0), ctx);
     const err = expectError(result);
     expect(err.reason).toBe('not_seated');
-  });
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
-    const state = createMinimalState();
-    const ctx = createContext(state, { myUserId: 'p0', mySeat: 0 });
-    const result = handleViewedRole(intent(0), ctx);
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toBeDefined();
-    const types = success.sideEffects!.map((se) => se.type);
-    expect(types).toContain('BROADCAST_STATE');
-    expect(types).toContain('SAVE_STATE');
   });
 });

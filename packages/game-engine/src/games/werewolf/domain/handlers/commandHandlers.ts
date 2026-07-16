@@ -7,7 +7,6 @@ import { type HandlerContext, handlerError, type HandlerResult, handlerSuccess }
 
 export function handleAudioAck(context: HandlerContext): HandlerResult {
   const state = context.state;
-  if (!state) return handlerError('no_state');
 
   if (
     !state.isAudioPlaying &&
@@ -24,7 +23,6 @@ export function handleAudioAck(context: HandlerContext): HandlerResult {
 
 export function handleProgressionRequest(context: HandlerContext): HandlerResult {
   const state = context.state;
-  if (!state) return handlerError('no_state');
 
   if (state.status !== GameStatus.Ongoing) {
     return handlerError('not_ongoing');
@@ -35,18 +33,16 @@ export function handleProgressionRequest(context: HandlerContext): HandlerResult
 
 export function handleRevealAck(context: HandlerContext): HandlerResult {
   const state = context.state;
-  if (!state) return handlerError('no_state');
 
   if (state.pendingRevealAcks.length === 0) {
     return handlerError('no_pending_acks');
   }
 
-  return handlerSuccess([{ type: 'CLEAR_REVEAL_ACKS' }], [{ type: 'BROADCAST_STATE' }]);
+  return handlerSuccess([{ type: 'CLEAR_REVEAL_ACKS' }]);
 }
 
 export function handleGroupConfirmAck(seat: number, context: HandlerContext): HandlerResult {
   const state = context.state;
-  if (!state) return handlerError('no_state');
 
   if (state.status !== GameStatus.Ongoing) {
     return handlerError('not_ongoing');
@@ -88,7 +84,6 @@ export function handleGroupConfirmAck(seat: number, context: HandlerContext): Ha
 
 export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerResult {
   const state = context.state;
-  if (!state) return handlerError('no_state');
 
   if (!state.debugMode?.botsEnabled) {
     return handlerError('debug_not_enabled');
@@ -133,11 +128,6 @@ export function handleMarkBotsGroupConfirmed(context: HandlerContext): HandlerRe
   return handlerSuccess(actions);
 }
 
-export function handleApplyRosterLevels(
-  levels: Readonly<Record<string, number>>,
-  context: HandlerContext,
-): HandlerResult {
-  if (!context.state) return handlerError('no_state');
-
+export function handleApplyRosterLevels(levels: Readonly<Record<string, number>>): HandlerResult {
   return handlerSuccess([{ type: 'UPDATE_ROSTER_LEVELS', payload: { levels: { ...levels } } }]);
 }

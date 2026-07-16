@@ -13,7 +13,7 @@
 import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 
 import { createGame } from './gameFactory';
-import { executeFullNight } from './stepByStepRunner';
+import { executeFullNight, submitActionOrThrow } from './stepByStepRunner';
 
 describe('WolfVote Integration Tests', () => {
   // 12-player board: contains 4 wolf roles
@@ -65,7 +65,7 @@ describe('WolfVote Integration Tests', () => {
       expect(wolfVotesBySeat!['7']).toBe(0);
     });
 
-    it('放弃袭击时 wolfVotesBySeat 记录 -1', () => {
+    it('放弃袭击时每个参狼座位都记录 -1', () => {
       const ctx = createGame(TEMPLATE_ROLES, createRoleAssignment());
 
       // Run night: wolves abstain from attacking
@@ -82,14 +82,8 @@ describe('WolfVote Integration Tests', () => {
       const state = ctx.getGameState();
       const wolfVotesBySeat = state.currentNightResults?.wolfVotesBySeat;
 
-      // When abstaining, the lead wolf's vote should be recorded as -1
-      // Note: in the current implementation, when abstaining, only the lead wolf sends ACTION; other wolves don't send WOLF_VOTE
-      // So only the lead wolf may have a record
       expect(wolfVotesBySeat).toBeDefined();
-      // At least the lead wolf should have a record
-      const wolfSeats = ['4', '5', '6', '7'];
-      const hasEmptyAttackRecord = wolfSeats.some((seat) => wolfVotesBySeat![seat] === -1);
-      expect(hasEmptyAttackRecord).toBe(true);
+      expect(wolfVotesBySeat).toMatchObject({ 4: -1, 5: -1, 6: -1, 7: -1 });
     });
 
     it('投票后 night 正常结束（不会卡住）', () => {
@@ -135,44 +129,32 @@ describe('WolfVote Integration Tests', () => {
       return map;
     }
 
-    it('WOLF_VOTE 消息通过统一 resolver 管线处理', () => {
+    it('狼人 action command 通过统一 resolver 管线处理', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
 
       // For this template, the first step should be wolfKill (no preceding roles like guard/nightmare/magician)
       ctx.assertStep('wolfKill');
 
-      // Manually send WOLF_VOTE message
-      const sendResult = ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 4, // first wolf
-        target: 1,
-      });
-
-      expect(sendResult.success).toBe(true);
+      submitActionOrThrow(ctx, 4, { kind: 'target', target: 1 }, 'first wolf votes');
 
       // Verify wolfVotesBySeat is updated
       const state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
     });
 
-    it('非狼角色发送 WOLF_VOTE 被拒绝', () => {
+    it('非狼角色在 wolfKill 提交 action 被拒绝', () => {
       const ctx = createGame(SIMPLE_TEMPLATE, createSimpleRoleAssignment());
       ctx.assertStep('wolfKill');
 
-      // Non-wolf role attempts to send WOLF_VOTE
-      const sendResult = ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 0, // villager
-        target: 1,
+      const result = ctx.dispatchAsSeat(0, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 1 },
       });
 
-      expect(sendResult.success).toBe(false);
-      // When villager sends WOLF_VOTE:
-      // - First goes through validateActionPreconditions step check
-      // - villager doesn't satisfy doesRoleParticipateInWolfVote, so step_mismatch
-      // - Or falls through to not_wolf_participant
-      // As long as it's rejected, the behavior is correct
-      expect(['step_mismatch', 'not_wolf_participant']).toContain(sendResult.reason);
+      if (result.kind !== 'rejected') {
+        throw new Error('[FAIL-FAST] A non-wolf vote must reject the command');
+      }
+      expect(['step_mismatch', 'not_wolf_participant']).toContain(result.reason);
     });
 
     it('狼可以改票（覆盖之前的投票）', () => {
@@ -180,22 +162,14 @@ describe('WolfVote Integration Tests', () => {
       ctx.assertStep('wolfKill');
 
       // First vote
-      ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 4,
-        target: 1,
-      });
+      submitActionOrThrow(ctx, 4, { kind: 'target', target: 1 }, 'first wolf vote');
 
       // Verify first vote
       let state = ctx.getGameState();
       expect(state.currentNightResults?.wolfVotesBySeat?.['4']).toBe(1);
 
       // Change vote
-      ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 4,
-        target: 2,
-      });
+      submitActionOrThrow(ctx, 4, { kind: 'target', target: 2 }, 'changed wolf vote');
 
       // Verify result after vote change
       state = ctx.getGameState();
@@ -207,18 +181,10 @@ describe('WolfVote Integration Tests', () => {
       ctx.assertStep('wolfKill');
 
       // Wolf 1 votes
-      ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 4,
-        target: 0,
-      });
+      submitActionOrThrow(ctx, 4, { kind: 'target', target: 0 }, 'first wolf votes');
 
       // Wolf 2 votes a different target
-      ctx.sendPlayerMessage({
-        type: 'WOLF_VOTE',
-        seat: 5,
-        target: 1,
-      });
+      submitActionOrThrow(ctx, 5, { kind: 'target', target: 1 }, 'second wolf votes');
 
       // Verify all votes are recorded
       const state = ctx.getGameState();
@@ -260,13 +226,7 @@ describe('WolfVote Integration Tests', () => {
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks seat 4 (first wolf)
-      const blockResult = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'nightmare',
-        target: 4,
-      });
-      expect(blockResult.success).toBe(true);
+      submitActionOrThrow(ctx, 0, { kind: 'target', target: 4 }, 'nightmare blocks wolf');
 
       // Verify block state
       const state = ctx.getGameState();
@@ -280,12 +240,7 @@ describe('WolfVote Integration Tests', () => {
       ctx.assertStep('nightmareBlock');
 
       // nightmare blocks seat 1 (villager, not wolf)
-      ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 0,
-        role: 'nightmare',
-        target: 1,
-      });
+      submitActionOrThrow(ctx, 0, { kind: 'target', target: 1 }, 'nightmare blocks villager');
 
       // Verify wolves are not disabled
       const state = ctx.getGameState();

@@ -21,7 +21,6 @@ import { WEREWOLF_STATE_IDENTITY } from '@game-judge/game-engine/games/werewolf/
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
-  REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
@@ -52,10 +51,7 @@ function createMinimalState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createContext(
-  state: GameState | null,
-  overrides?: Partial<HandlerContext>,
-): HandlerContext {
+function createContext(state: GameState, overrides?: Partial<HandlerContext>): HandlerContext {
   return {
     state,
     myUserId: 'player-1',
@@ -144,23 +140,6 @@ describe('handleJoinSeat', () => {
     expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
   });
 
-  it('should fail when state is null (no_state)', () => {
-    const context = createContext(null);
-    const intent: JoinSeatIntent = {
-      type: 'JOIN_SEAT',
-      payload: {
-        seat: 0,
-        userId: 'player-1',
-        displayName: 'Alice',
-      },
-    };
-
-    const result = handleJoinSeat(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe(REASON_NO_STATE);
-  });
-
   it('should fail when userId is empty (not_authenticated)', () => {
     const state = createMinimalState();
     const context = createContext(state);
@@ -177,25 +156,6 @@ describe('handleJoinSeat', () => {
 
     const err = expectError(result);
     expect(err.reason).toBe(REASON_NOT_AUTHENTICATED);
-  });
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects', () => {
-    const state = createMinimalState();
-    const context = createContext(state);
-    const intent: JoinSeatIntent = {
-      type: 'JOIN_SEAT',
-      payload: {
-        seat: 0,
-        userId: 'player-1',
-        displayName: 'Alice',
-      },
-    };
-
-    const result = handleJoinSeat(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should handle seat switching (leave old seat, join new seat)', () => {
@@ -299,19 +259,6 @@ describe('handleLeaveMySeat', () => {
     expect(err.reason).toBe(REASON_NOT_SEATED);
   });
 
-  it('should fail with no_state when state is null', () => {
-    const context = createContext(null);
-    const intent: LeaveMySeatIntent = {
-      type: 'LEAVE_MY_SEAT',
-      payload: { userId: 'player-1' },
-    };
-
-    const result = handleLeaveMySeat(intent, context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe(REASON_NO_STATE);
-  });
-
   it('should fail with not_authenticated when userId is empty', () => {
     const state = createMinimalState({
       players: {
@@ -376,27 +323,6 @@ describe('handleLeaveMySeat', () => {
       expect(err.reason).toBe(REASON_GAME_IN_PROGRESS);
     },
   );
-
-  it('should include BROADCAST_STATE and SAVE_STATE side effects on success', () => {
-    const state = createMinimalState({
-      players: {
-        0: { userId: 'player-1', seat: 0, role: null, hasViewedRole: false },
-        1: null,
-        2: null,
-      },
-    });
-    const context = createContext(state, { mySeat: 0 });
-    const intent: LeaveMySeatIntent = {
-      type: 'LEAVE_MY_SEAT',
-      payload: { userId: 'player-1' },
-    };
-
-    const result = handleLeaveMySeat(intent, context);
-
-    const success = expectSuccess(result);
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
-  });
 });
 
 describe('handleUpdatePlayerProfile', () => {
@@ -409,14 +335,6 @@ describe('handleUpdatePlayerProfile', () => {
       displayName: 'NewName',
       ...overrides,
     },
-  });
-
-  it('should fail when state is null', () => {
-    const context = createContext(null);
-    const result = handleUpdatePlayerProfile(makeIntent(), context);
-
-    const err = expectError(result);
-    expect(err.reason).toBe(REASON_NO_STATE);
   });
 
   it('should fail when userId is missing', () => {
@@ -461,8 +379,6 @@ describe('handleUpdatePlayerProfile', () => {
         avatarFrame: undefined,
       },
     });
-    expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
-    expect(success.sideEffects).toContainEqual({ type: 'SAVE_STATE' });
   });
 
   it('should pass only displayName when avatarUrl is undefined', () => {
@@ -497,13 +413,6 @@ describe('handleKickPlayer', () => {
   const makeKickIntent = (targetSeat = 1): KickPlayerIntent => ({
     type: 'KICK_PLAYER',
     payload: { targetSeat },
-  });
-
-  it('should fail when state is null', () => {
-    const context = createContext(null, { myUserId: 'host-1' });
-    const result = handleKickPlayer(makeKickIntent(), context);
-    const err = expectError(result);
-    expect(err.reason).toBe(REASON_NO_STATE);
   });
 
   it('should fail when caller is not host', () => {

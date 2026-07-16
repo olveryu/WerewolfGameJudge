@@ -62,7 +62,7 @@ function createTestState(overrides?: Partial<GameState>): GameState {
   };
 }
 
-function createTestContext(overrides?: { state?: GameState | null }): HandlerContext {
+function createTestContext(overrides?: { state?: GameState }): HandlerContext {
   return {
     state: overrides?.state === undefined ? createTestState() : overrides.state,
     myUserId: 'host-uid',
@@ -151,14 +151,6 @@ describe('handleFillWithBots', () => {
 
       const err = expectError(result);
       expect(err.reason).toBe('invalid_status');
-    });
-
-    it('should reject when no state', () => {
-      const context = createTestContext({ state: null });
-      const result = handleFillWithBots({ type: 'FILL_WITH_BOTS' }, context);
-
-      const err = expectError(result);
-      expect(err.reason).toBe('no_state');
     });
   });
 });

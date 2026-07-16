@@ -19,7 +19,7 @@ import { getSchema } from '@game-judge/game-engine/games/werewolf/public';
 import { render, waitFor } from '@testing-library/react-native';
 
 import { cleanupGame, createGame } from '@/games/werewolf/__tests__/engine/boards/gameFactory';
-import { sendMessageOrThrow } from '@/games/werewolf/__tests__/engine/boards/stepByStepRunner';
+import { submitActionOrThrow } from '@/games/werewolf/__tests__/engine/boards/stepByStepRunner';
 import {
   createShowAlertMock,
   mockNavigation,
@@ -118,20 +118,25 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     const ctx = createGame(TEMPLATE_NAME, createRoleAssignment());
     const s0 = ctx.getGameState();
 
-    // Submit wolf votes + action to pass wolfKill
+    // Submit all wolf votes, then release the authoritative deadline gate
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
     );
-    ctx.advanceNightOrThrow('past wolfKill');
     ctx.assertStep('witchAction');
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
 
     // 2. Get real broadcast state at witchAction
     const realState = ctx.getGameState();
@@ -204,34 +209,31 @@ describe('Vertical Slice: real state -> UI rendering', () => {
     for (const [seatStr, player] of Object.entries(s0.players)) {
       const seat = Number.parseInt(seatStr, 10);
       if (player?.role && doesRoleParticipateInWolfVote(player.role)) {
-        sendMessageOrThrow(ctx, { type: 'WOLF_VOTE', seat, target: 0 }, 'wolfKill');
+        submitActionOrThrow(ctx, seat, { kind: 'target', target: 0 }, 'wolfKill');
       }
     }
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 4, role: 'wolf', target: 0, extra: undefined },
-      'wolfKill',
+    const wolfVoteDeadline = ctx.getGameState().stepDeadline;
+    if (wolfVoteDeadline === undefined) {
+      throw new Error('[FAIL-FAST] Completed wolf vote must set a progression deadline');
+    }
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.progress.request' },
+      'past wolfKill deadline',
+      undefined,
+      { nowMs: wolfVoteDeadline },
     );
-    ctx.advanceNightOrThrow('past wolfKill');
-    sendMessageOrThrow(
-      ctx,
-      {
-        type: 'ACTION',
-        seat: 9,
-        role: 'witch',
-        target: null,
-        extra: { stepResults: { save: null, poison: null } },
-      },
-      'witchAction',
+    ctx.dispatchOrThrow({ type: 'werewolf.audio.ack' }, 'complete wolfKill to witchAction audio');
+    submitActionOrThrow(ctx, 9, { kind: 'skip' }, 'witchAction');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete witchAction to hunterConfirm audio',
     );
-    ctx.advanceNightOrThrow('past witchAction');
-    sendMessageOrThrow(
-      ctx,
-      { type: 'ACTION', seat: 10, role: 'hunter', target: null, extra: { confirmed: true } },
-      'hunterConfirm',
-    );
-    ctx.advanceNightOrThrow('past hunterConfirm');
+    submitActionOrThrow(ctx, 10, { kind: 'confirm' }, 'hunterConfirm');
     ctx.assertStep('seerCheck');
+    ctx.dispatchOrThrow(
+      { type: 'werewolf.audio.ack' },
+      'complete hunterConfirm to seerCheck audio',
+    );
 
     const realState = ctx.getGameState();
     const seerSeat = 8;

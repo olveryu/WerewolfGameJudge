@@ -12,7 +12,7 @@ import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
 import { Team } from '@game-judge/game-engine/games/werewolf/public';
 
 import { cleanupGame, createGame } from './gameFactory';
-import { executeFullNight, executeStepsUntil } from './stepByStepRunner';
+import { executeFullNight, executeStepsUntil, submitActionOrThrow } from './stepByStepRunner';
 
 const CUSTOM_ROLES: RoleId[] = [
   'shadow',
@@ -50,15 +50,10 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
 
     // Submit shadow action: mimic seat 5
     const shadowSeat = ctx.findSeatByRole('shadow');
-    ctx.sendPlayerMessage({
-      type: 'ACTION',
-      seat: shadowSeat,
-      role: 'shadow' as RoleId,
-      target: 5,
-    });
+    submitActionOrThrow(ctx, shadowSeat, { kind: 'target', target: 5 }, 'shadow mimics seat 5');
 
     // Advance past shadowChooseMimic → should be at avengerConfirm
-    ctx.advanceNightOrThrow('after shadowChooseMimic');
+    expect(executeStepsUntil(ctx, 'avengerConfirm')).toBe(true);
     ctx.assertStep('avengerConfirm');
 
     // Verify shadowMimicTarget recorded
@@ -67,13 +62,7 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
 
     // Submit avenger confirm
     const avengerSeat = ctx.findSeatByRole('avenger');
-    ctx.sendPlayerMessage({
-      type: 'ACTION',
-      seat: avengerSeat,
-      role: 'avenger' as RoleId,
-      target: null,
-      extra: { confirmed: true },
-    });
+    submitActionOrThrow(ctx, avengerSeat, { kind: 'confirm' }, 'avenger confirms faction');
 
     // Complete the night
     executeFullNight(ctx);
@@ -93,39 +82,30 @@ describe('Night-1: shadow choose mimic + avenger confirm (12p)', () => {
 
     // Submit shadow action: mimic avenger
     const shadowSeat = ctx.findSeatByRole('shadow');
-    ctx.sendPlayerMessage({
-      type: 'ACTION',
-      seat: shadowSeat,
-      role: 'shadow' as RoleId,
-      target: avengerSeat,
-    });
+    submitActionOrThrow(
+      ctx,
+      shadowSeat,
+      { kind: 'target', target: avengerSeat },
+      'shadow mimics avenger',
+    );
 
     // Should have avengerFaction set since target is avenger
     const state = ctx.getGameState();
     expect(state.currentNightResults?.avengerFaction).toBe(Team.Third);
     expect(state.currentNightResults?.shadowMimicTarget).toBe(avengerSeat);
 
-    // Ack the reveal
-    ctx.sendPlayerMessage({
-      type: 'REVEAL_ACK',
-      seat: shadowSeat,
-      role: 'shadow' as RoleId,
-      revision: 0,
-    });
-
     // Advance to avengerConfirm
-    ctx.advanceNightOrThrow('after shadowChooseMimic reveal');
+    expect(executeStepsUntil(ctx, 'avengerConfirm')).toBe(true);
     ctx.assertStep('avengerConfirm');
 
     // Complete the night
     const avengerSeatForConfirm = ctx.findSeatByRole('avenger');
-    ctx.sendPlayerMessage({
-      type: 'ACTION',
-      seat: avengerSeatForConfirm,
-      role: 'avenger' as RoleId,
-      target: null,
-      extra: { confirmed: true },
-    });
+    submitActionOrThrow(
+      ctx,
+      avengerSeatForConfirm,
+      { kind: 'confirm' },
+      'avenger confirms bonded faction',
+    );
     executeFullNight(ctx);
   });
 });

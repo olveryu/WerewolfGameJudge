@@ -326,7 +326,7 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    * Non-Host devices ignore this.
    *
    * Lifecycle:
-   * - Write: extracted from sideEffects during server-side inline progression (action -> advance/endNight)
+   * - Write: composed from authoritative audio-queue events during inline progression
    * - Consume: Host device watches state changes -> detects non-empty -> plays -> POST ack clears
    * - Clear: committed `werewolf.audio.ack` empties the array and releases the audio gate
    */
@@ -471,38 +471,3 @@ export interface GameState extends BaseGameState<WerewolfGameType> {
    */
   boardNominations?: Readonly<Record<string, BoardNomination>>;
 }
-
-// =============================================================================
-// Player Message (PlayerMessage) — integration test only
-// =============================================================================
-
-interface TestPlayerActionExtra {
-  readonly confirmed?: boolean;
-  readonly targets?: readonly number[];
-  readonly stepResults?: Readonly<Record<string, number | null>>;
-  readonly cardIndex?: number;
-}
-
-/**
- * Integration test only — message type simulating player->server intents
- *
- * In production, players submit actions via HTTP API; this type is not used.
- * Retained for board integration tests (hostGameContext / hostGameFactory).
- */
-export type PlayerMessage =
-  | { type: 'REQUEST_STATE'; userId: string }
-  | { type: 'JOIN'; seat: number; userId: string; displayName: string; avatarUrl?: string }
-  | { type: 'LEAVE'; seat: number; userId: string }
-  | {
-      type: 'ACTION';
-      seat: number;
-      role: RoleId;
-      target: number | null;
-      extra?: TestPlayerActionExtra;
-    }
-  | { type: 'WOLF_VOTE'; seat: number; target: number }
-  | { type: 'VIEWED_ROLE'; seat: number }
-  | { type: 'REVEAL_ACK'; seat: number; role: RoleId; revision: number }
-  | { type: 'SNAPSHOT_REQUEST'; requestId: string; userId: string; lastRevision?: number }
-  /** WolfRobot learned hunter: player viewed status, Host clears gate */
-  | { type: 'WOLF_ROBOT_HUNTER_STATUS_VIEWED'; seat: number };

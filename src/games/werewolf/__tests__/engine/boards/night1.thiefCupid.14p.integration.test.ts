@@ -43,36 +43,7 @@ const TEMPLATE_ROLES: RoleId[] = [
 // =============================================================================
 
 describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () => {
-  /**
-   * Fixed seat-role assignment (12 players):
-   *   seat 0-3: villager x4
-   *   seat 4-6: wolf x3
-   *   seat 7: seer
-   *   seat 8: witch
-   *   seat 9: hunter
-   *   seat 10: thief
-   *   seat 11: cupid
-   *
-   * Deck cards: villager, idiot
-   */
-  function createRoleAssignment(): Map<number, RoleId> {
-    const map = new Map<number, RoleId>();
-    map.set(0, 'villager');
-    map.set(1, 'villager');
-    map.set(2, 'villager');
-    map.set(3, 'villager');
-    map.set(4, 'wolf');
-    map.set(5, 'wolf');
-    map.set(6, 'wolf');
-    map.set(7, 'seer');
-    map.set(8, 'witch');
-    map.set(9, 'hunter');
-    map.set(10, 'thief');
-    map.set(11, 'cupid');
-    return map;
-  }
-
-  const BOTTOM_CARDS: RoleId[] = ['villager', 'idiot'];
+  const RANDOM_SEED = 'bottom-fixture-1';
 
   let ctx: GameContext;
 
@@ -81,35 +52,44 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
   });
 
   it('盗贼选 idiot（cardIndex=1），丘比特连线 seat 0 和 1，全夜完成', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
 
     // Verify initial state
     const initState = ctx.getGameState();
-    expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
-    expect(initState.thiefSeat).toBe(10);
+    expect(initState.bottomCards).toEqual(['idiot', 'villager']);
+    expect(initState.thiefSeat).toBe(ctx.findSeatByRole('thief'));
+    const idiotCardIndex = initState.bottomCards!.indexOf('idiot');
+    const seerSeat = ctx.findSeatByRole('seer');
+    const villagerSeats = Object.values(initState.players)
+      .filter((player) => player?.role === 'villager')
+      .map((player) => player!.seat);
+    const firstVillagerSeat = villagerSeats[0];
+    const secondVillagerSeat = villagerSeats[1];
+    if (firstVillagerSeat === undefined || secondVillagerSeat === undefined) {
+      throw new Error('[FAIL-FAST] Thief fixture requires two seated villagers');
+    }
+    const loverSeats = [firstVillagerSeat, secondVillagerSeat];
 
     // First step = thiefChoose
     ctx.assertStep('thiefChoose');
 
     // Run to cupidChooseLovers to verify step progression
     executeStepsUntil(ctx, 'cupidChooseLovers', {
-      thief: { cardIndex: 1 },
+      thief: { cardIndex: idiotCardIndex },
     });
     ctx.assertStep('cupidChooseLovers');
 
     // Continue to cupidLoversReveal
     executeStepsUntil(ctx, 'cupidLoversReveal', {
-      cupid: { targets: [0, 1] },
+      cupid: { targets: loverSeats },
     });
     ctx.assertStep('cupidLoversReveal');
 
     // Execute remaining night
     const result = executeFullNight(ctx, {
-      wolf: 7, // Attack seer (seat 7)
-      witch: { save: 7, poison: null }, // Witch saves
-      seer: 0, // Check seat 0
+      wolf: seerSeat,
+      witch: { save: seerSeat, poison: null },
+      seer: firstVillagerSeat,
       hunter: { confirmed: true },
     });
 
@@ -121,27 +101,32 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     expect(state.currentNightResults?.thiefChosenCard).toBe('idiot');
 
     // Core assertion: Cupid lover linking result
-    expect(state.loverSeats).toEqual([0, 1]);
+    expect(state.loverSeats).toEqual(loverSeats);
 
     // Seer normal check
     expect(state.seerReveal).toBeDefined();
-    expect(state.seerReveal!.targetSeat).toBe(0);
+    expect(state.seerReveal!.targetSeat).toBe(firstVillagerSeat);
 
     // wolf -> seer saved by witch -> peaceful night
     expect(result.deaths).toEqual([]);
   });
 
   it('盗贼选 villager（cardIndex=0），丘比特连线 seat 7 和 10（异阵营），全夜完成', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
+    const initState = ctx.getGameState();
+    const villagerCardIndex = initState.bottomCards!.indexOf('villager');
+    const seerSeat = ctx.findSeatByRole('seer');
+    const thiefSeat = ctx.findSeatByRole('thief');
+    const wolfSeat = ctx.findSeatByRole('wolf');
+    const villagerSeat = ctx.findSeatByRole('villager');
+    const loverSeats = [seerSeat, thiefSeat];
 
     const result = executeFullNight(ctx, {
-      thief: { cardIndex: 0 }, // Pick villager (index 0)
-      cupid: { targets: [7, 10] }, // Link seer and thief
-      wolf: 0, // Attack villager (seat 0)
+      thief: { cardIndex: villagerCardIndex },
+      cupid: { targets: loverSeats },
+      wolf: villagerSeat,
       witch: null, // Witch does not save
-      seer: 4, // Check seat 4 (wolf)
+      seer: wolfSeat,
       hunter: { confirmed: true },
     });
 
@@ -153,10 +138,10 @@ describe(`Night-1: ${TEMPLATE_NAME} — 盗贼选底牌 + 丘比特连线`, () =
     expect(state.currentNightResults?.thiefChosenCard).toBe('villager');
 
     // Cupid links seer and thief
-    expect(state.loverSeats).toEqual([7, 10]);
+    expect(state.loverSeats).toEqual(loverSeats);
 
     // cupidLoversReveal should have passed
     // wolf attacks seat 0 -> dies
-    expect(result.deaths).toEqual([0]);
+    expect(result.deaths).toEqual([villagerSeat]);
   });
 });

@@ -457,7 +457,7 @@ function decideWerewolfCommandRules(
     case 'werewolf.growth.applyRosterLevels': {
       const actor = resolveSystemActor(state, context);
       if (actor.kind === 'rejected') return reject(actor.reason);
-      return decideHandler(state, handleApplyRosterLevels(command.levels, actor.value), context);
+      return decideHandler(state, handleApplyRosterLevels(command.levels), context);
     }
   }
 

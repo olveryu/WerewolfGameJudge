@@ -12,10 +12,6 @@
       "types": "./src/games/werewolf/public.ts",
       "default": "./dist/games/werewolf/public.js"
     },
-    "./games/werewolf/testing": {
-      "types": "./src/games/werewolf/testing.ts",
-      "default": "./dist/games/werewolf/testing.js"
-    },
     "./games/fibking/public": {
       "types": "./src/games/fibking/public.ts",
       "default": "./dist/games/fibking/public.js"

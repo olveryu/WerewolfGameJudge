@@ -9,7 +9,6 @@ import {
   type WerewolfInternalCommand,
   type WerewolfPublicCommand,
 } from '@game-judge/game-engine/games/werewolf/public';
-import { buildInitialGameState } from '@game-judge/game-engine/games/werewolf/testing';
 import { GAME_TYPES } from '@game-judge/game-engine/platform/protocol/gameTypes';
 import { describe, expect, it } from 'vitest';
 
@@ -113,11 +112,10 @@ describe('Worker game catalog', () => {
     expect(module.internalCommandSchema).toBe(werewolfInternalCommandSchema);
     expect(module.effectSchema).toBe(werewolfEffectSchema);
 
-    const state = buildInitialGameState('1234', 'host', {
-      name: 'test',
-      numberOfPlayers: 1,
-      roles: ['villager'],
-    });
+    const state = werewolfEngine.createInitialState(
+      { templateRoles: ['villager'] },
+      { roomCode: '1234', hostUserId: 'host', nowMs: 1, commandId: 'create-catalog-test' },
+    );
     expect(module.stateCodec.parse(state)).toEqual(state);
   });
 

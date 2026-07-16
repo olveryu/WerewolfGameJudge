@@ -12,7 +12,6 @@
 import {
   REASON_GAME_IN_PROGRESS,
   REASON_INVALID_SEAT,
-  REASON_NO_STATE,
   REASON_NOT_AUTHENTICATED,
   REASON_NOT_HOST,
   REASON_NOT_SEATED,
@@ -38,7 +37,7 @@ import type {
   UpdatePlayerProfileAction,
 } from '../reducer/types';
 import type { HandlerContext, HandlerResult } from './types';
-import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
+import { handlerError, handlerSuccess } from './types';
 
 /**
  * Handle joining a seat
@@ -58,11 +57,6 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
     level,
   } = intent.payload;
   const { state } = context;
-
-  // Validate: state exists
-  if (!state) {
-    return handlerError(REASON_NO_STATE);
-  }
 
   // Validate: userId is valid
   if (!userId) {
@@ -117,7 +111,7 @@ export function handleJoinSeat(intent: JoinSeatIntent, context: HandlerContext):
         },
   );
 
-  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions);
 }
 
 /**
@@ -132,11 +126,6 @@ export function handleLeaveMySeat(
 ): HandlerResult {
   const { userId } = intent.payload;
   const { state, mySeat } = context;
-
-  // Validate: state exists
-  if (!state) {
-    return handlerError(REASON_NO_STATE);
-  }
 
   // Validate: userId is valid
   if (!userId) {
@@ -167,7 +156,7 @@ export function handleLeaveMySeat(
     payload: { seat: change.seat },
   }));
 
-  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions);
 }
 
 /**
@@ -181,10 +170,6 @@ export function handleClearAllSeats(
   context: HandlerContext,
 ): HandlerResult {
   const { state } = context;
-
-  if (!state) {
-    return handlerError(REASON_NO_STATE);
-  }
 
   if (state.status !== GameStatus.Unseated && state.status !== GameStatus.Seated) {
     return handlerError(REASON_GAME_IN_PROGRESS);
@@ -200,7 +185,7 @@ export function handleClearAllSeats(
     payload: { seat: change.seat },
   }));
 
-  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions);
 }
 
 /**
@@ -223,11 +208,7 @@ export function handleUpdatePlayerProfile(
     revealEffect,
     seatAnimation,
   } = intent.payload;
-  const { state, mySeat } = context;
-
-  if (!state) {
-    return handlerError(REASON_NO_STATE);
-  }
+  const { mySeat } = context;
 
   if (!userId) {
     return handlerError(REASON_NOT_AUTHENTICATED);
@@ -251,7 +232,7 @@ export function handleUpdatePlayerProfile(
     },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -263,10 +244,6 @@ export function handleUpdatePlayerProfile(
 export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerContext): HandlerResult {
   const { targetSeat } = intent.payload;
   const { state } = context;
-
-  if (!state) {
-    return handlerError(REASON_NO_STATE);
-  }
 
   // Validate: only Host can kick
   if (state.hostUserId !== context.myUserId) {
@@ -292,5 +269,5 @@ export function handleKickPlayer(intent: KickPlayerIntent, context: HandlerConte
     payload: { seat: change.seat },
   }));
 
-  return handlerSuccess(actions, STANDARD_SIDE_EFFECTS);
+  return handlerSuccess(actions);
 }

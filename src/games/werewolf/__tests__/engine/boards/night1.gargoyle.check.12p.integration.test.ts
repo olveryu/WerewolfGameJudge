@@ -169,15 +169,19 @@ describe('Night-1: Gargoyle Check (12p)', () => {
       ctx.assertStep('gargoyleCheck');
 
       // Gargoyle checking self should be rejected
-      const result = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 7,
-        role: 'gargoyle',
-        target: 7,
+      const result = ctx.dispatchAsSeat(7, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 7 },
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('自己');
+      expect(result).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected' },
+      });
+      if (result.kind !== 'committed' || result.outcome.kind !== 'domainRejected') {
+        throw new Error('Expected Gargoyle self-check to be rejected by the domain');
+      }
+      expect(result.outcome.reason).toContain('自己');
     });
   });
 });

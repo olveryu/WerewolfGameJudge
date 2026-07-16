@@ -21,7 +21,12 @@ alwaysApply: false
 
 ## Integration Board Tests (`boards/**`)
 
-Run real NightFlow, execute step by step following `NIGHT_STEPS` order. advanceToStep / skipToStep / fastForward is forbidden. Helpers auto-clearing gates (`pendingRevealAcks`, `isAudioPlaying` etc.) or auto-sending confirmation messages (`REVEAL_ACK` etc.) is forbidden — test cases must send explicitly. `sendPlayerMessage()` / `advanceNight()` failure must fail-fast (include stepId, seat, reason). warn / swallowing failures is forbidden.
+Build fixtures only through `werewolfEngine.createInitialState` and public commands, then execute real `NIGHT_STEPS`
+order through `decide -> evolve -> normalize`. Direct handler/reducer calls and manual step-index mutation are forbidden.
+Scenario drivers may simulate routine playback and acknowledgements, but must dispatch the same typed public commands
+as production; directly clearing gates is forbidden. Tests whose subject is an audio/reveal/group/Wolf Robot gate must
+dispatch and assert each acknowledgement explicitly. Every rejected command fails the scenario immediately unless the
+rejection itself is the assertion target.
 
 ## Board UI Tests (`boards-ui/**`)
 

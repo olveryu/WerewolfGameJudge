@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  * - After action processing completes, evaluate and execute night progression (advance / endNight) within the same request
- * - Collect PLAY_AUDIO sideEffects produced during progression -> AudioEffect[]
+ * - Compose audio-queue StateActions produced during progression into one playback batch
  * - All StateActions accumulate in order, reduced uniformly by the outer caller
  *
  * Design:
@@ -17,10 +17,11 @@
  */
 
 import { createSeededRng, randomIntInclusive } from '../../../platform/random';
+import { createAudioQueueActions, isAudioQueueAction } from './audioQueue';
 import { isWolfVoteAllComplete } from './handlers/progressionEvaluator';
 import { isWolfRobotHunterStatusGatePending } from './handlers/stepTransitionGuards';
 import { handleAdvanceNight, handleEndNight } from './handlers/stepTransitionHandler';
-import type { HandlerContext, HandlerExecutionContext, SideEffect } from './handlers/types';
+import type { HandlerContext, HandlerExecutionContext } from './handlers/types';
 import { GameStatus, SCHEMAS } from './models';
 import { isVacantBottomCardStep } from './playerHelpers';
 import type { AudioEffect, GameState } from './protocol/types';
@@ -40,8 +41,6 @@ const MAX_PROGRESSION_LOOPS = 20;
 interface InlineProgressionResult {
   /** All StateActions accumulated during progression (excluding the trigger action itself) */
   actions: StateAction[];
-  /** Pending audio collected during progression (in playback order) */
-  audioEffects: AudioEffect[];
   /** Final state after applying all actions (may differ from input) */
   finalState: GameState;
   /** Number of steps advanced (0 = no progression); each ADVANCE_NIGHT or END_NIGHT counts as 1 */
@@ -130,17 +129,36 @@ function evaluateProgression(state: GameState, nowMs: number): 'advance' | 'end_
   return 'none';
 }
 
-/**
- * Extract AudioEffect[] from sideEffects
- */
-function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): AudioEffect[] {
-  if (!sideEffects) return [];
-  return sideEffects
-    .filter(
-      (e): e is { type: 'PLAY_AUDIO'; audioKey: string; isEndAudio?: boolean } =>
-        e.type === 'PLAY_AUDIO',
-    )
-    .map((e) => ({ audioKey: e.audioKey, isEndAudio: e.isEndAudio }));
+interface ProgressionActionBatch {
+  readonly stateActions: StateAction[];
+  readonly audioEffects: AudioEffect[];
+}
+
+/** Delay the audio gate until all immediately available transitions have been composed. */
+function splitProgressionActions(actions: readonly StateAction[]): ProgressionActionBatch {
+  const stateActions: StateAction[] = [];
+  const audioEffects: AudioEffect[] = [];
+  let hasAudioGate = false;
+
+  for (const action of actions) {
+    if (!isAudioQueueAction(action)) {
+      stateActions.push(action);
+      continue;
+    }
+    if (action.type === 'SET_PENDING_AUDIO_EFFECTS') {
+      audioEffects.push(...action.payload.effects);
+      continue;
+    }
+    if (!action.payload.isPlaying) {
+      throw new Error('[FAIL-FAST] Progression cannot clear the audio gate');
+    }
+    hasAudioGate = true;
+  }
+
+  if (hasAudioGate !== audioEffects.length > 0) {
+    throw new Error('[FAIL-FAST] Progression audio queue and gate must be emitted together');
+  }
+  return { stateActions, audioEffects };
 }
 
 /**
@@ -157,7 +175,7 @@ function extractAudioEffects(sideEffects: readonly SideEffect[] | undefined): Au
  * @param state - state after action processing
  * @param hostUserId - Host UID (used to build HandlerContext)
  * @param execution - command-scoped time and deterministic random seed
- * @returns progression result (actions + audioEffects + finalState)
+ * @returns progression result (actions + finalState)
  */
 export function runInlineProgression(
   state: GameState,
@@ -190,12 +208,12 @@ export function runInlineProgression(
         throw new Error(`[FAIL-FAST] Inline advance failed: ${result.reason}`);
       }
 
-      // Apply actions to get new state
-      for (const action of result.actions) {
+      const batch = splitProgressionActions(result.actions);
+      for (const action of batch.stateActions) {
         currentState = gameReducer(currentState, action);
       }
-      allActions.push(...result.actions);
-      allAudioEffects.push(...extractAudioEffects(result.sideEffects));
+      allActions.push(...batch.stateActions);
+      allAudioEffects.push(...batch.audioEffects);
       stepsAdvanced++;
 
       // Continue loop to evaluate next step
@@ -208,11 +226,12 @@ export function runInlineProgression(
         throw new Error(`[FAIL-FAST] Inline endNight failed: ${result.reason}`);
       }
 
-      for (const action of result.actions) {
+      const batch = splitProgressionActions(result.actions);
+      for (const action of batch.stateActions) {
         currentState = gameReducer(currentState, action);
       }
-      allActions.push(...result.actions);
-      allAudioEffects.push(...extractAudioEffects(result.sideEffects));
+      allActions.push(...batch.stateActions);
+      allAudioEffects.push(...batch.audioEffects);
       stepsAdvanced++;
 
       // end_night terminates progression
@@ -252,22 +271,15 @@ export function runInlineProgression(
 
   // If there are audio effects, add SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING actions
   if (allAudioEffects.length > 0) {
-    const setEffectsAction: StateAction = {
-      type: 'SET_PENDING_AUDIO_EFFECTS',
-      payload: { effects: allAudioEffects },
-    };
-    const setAudioPlayingAction: StateAction = {
-      type: 'SET_AUDIO_PLAYING',
-      payload: { isPlaying: true },
-    };
-    currentState = gameReducer(currentState, setEffectsAction);
-    currentState = gameReducer(currentState, setAudioPlayingAction);
-    allActions.push(setEffectsAction, setAudioPlayingAction);
+    const audioQueueActions = createAudioQueueActions(allAudioEffects);
+    for (const action of audioQueueActions) {
+      currentState = gameReducer(currentState, action);
+    }
+    allActions.push(...audioQueueActions);
   }
 
   return {
     actions: allActions,
-    audioEffects: allAudioEffects,
     finalState: currentState,
     stepsAdvanced,
   };

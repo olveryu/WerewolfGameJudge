@@ -70,7 +70,11 @@ describe('RoomCreationService', () => {
 
     await expect(Promise.all([first, second])).resolves.toEqual([ROOM, ROOM]);
     expect(mockAddRecentRoom).toHaveBeenCalledTimes(1);
-    expect(mockAddRecentRoom).toHaveBeenCalledWith('host-user', ROOM);
+    expect(mockAddRecentRoom).toHaveBeenCalledWith('host-user', {
+      roomCode: ROOM.roomCode,
+      roomId: ROOM.roomId,
+      gameType: ROOM.gameType,
+    });
     expect(harness.remove).toHaveBeenCalledTimes(1);
     expect(harness.remove).toHaveBeenCalledWith('creation-id-1');
   });

@@ -14,6 +14,7 @@ import { createSeededRng, randomPick, type Rng, shuffleArray } from '../../../..
 import { formatSeat } from '../../../../platform/room/formatSeat';
 import type { RosterEntry } from '../../../../platform/room/roster';
 import { resolveSeerAudioKey } from '../audioKeyOverride';
+import { createAudioQueueActions } from '../audioQueue';
 import type {
   AssignRolesIntent,
   BoardNominateIntent,
@@ -38,8 +39,7 @@ import {
 } from '../models';
 import { buildNightPlan, getRoleSpec, getStepSpec } from '../models/roles/spec';
 import { WOLF_KILL_OVERRIDE_TEXTS } from '../models/roles/spec/schema.types';
-import type { Player } from '../protocol/types';
-import type { GameState } from '../protocol/types';
+import type { AudioEffect, Player } from '../protocol/types';
 import type {
   AssignRolesAction,
   EndNightAction,
@@ -56,22 +56,9 @@ import type {
   WithdrawBoardNominationAction,
 } from '../reducer/types';
 import { maybeCreateConfirmStatusAction } from './confirmContext';
-import type { HandlerContext, HandlerExecutionContext, HandlerResult, SideEffect } from './types';
-import { handlerError, handlerSuccess, STANDARD_SIDE_EFFECTS } from './types';
+import type { HandlerContext, HandlerExecutionContext, HandlerResult } from './types';
+import { handlerError, handlerSuccess } from './types';
 import { maybeCreateWitchContextAction } from './witchContext';
-
-// ---------------------------------------------------------------------------
-// Shared guard: state must exist
-// ---------------------------------------------------------------------------
-type StateGuardOk = { ok: true; state: GameState };
-type StateGuardFail = { ok: false; result: HandlerResult };
-
-function requireState(context: HandlerContext): StateGuardOk | StateGuardFail {
-  if (!context.state) {
-    return { ok: false, result: handlerError('no_state') };
-  }
-  return { ok: true, state: context.state };
-}
 
 /**
  * Handle assign roles (only seated -> assigned)
@@ -87,9 +74,7 @@ export function handleAssignRoles(
   context: HandlerContext,
   execution: HandlerExecutionContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
   const rng = createSeededRng(`${execution.randomSeed}:roles`);
 
   // Gate: game status must be GameStatus.Seated
@@ -188,7 +173,7 @@ export function handleAssignRoles(
     },
   };
 
-  return handlerSuccess([assignRolesAction], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([assignRolesAction]);
 }
 
 // ---------------------------------------------------------------------------
@@ -230,9 +215,7 @@ export function handleStartNight(
   context: HandlerContext,
   execution: HandlerExecutionContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   // Gate: status must be GameStatus.Ready
   if (state.status !== GameStatus.Ready) {
@@ -252,7 +235,7 @@ export function handleStartNight(
       type: 'END_NIGHT',
       payload: { deaths: [] },
     };
-    return handlerSuccess([startNightAction, endNightAction], STANDARD_SIDE_EFFECTS);
+    return handlerSuccess([startNightAction, endNightAction]);
   }
 
   const firstStepId = nightPlan.steps[0]!.stepId;
@@ -298,24 +281,18 @@ export function handleStartNight(
     actions.push(wolfKillOverrideAction);
   }
 
-  // Build sideEffects: broadcast + save first, then play night start audio + first step audio
-  const sideEffects: SideEffect[] = [
-    { type: 'BROADCAST_STATE' },
-    { type: 'SAVE_STATE' },
-    // Night start background sound
-    { type: 'PLAY_AUDIO', audioKey: 'night', isEndAudio: false },
-  ];
+  const audioEffects: AudioEffect[] = [{ audioKey: 'night', isEndAudio: false }];
 
   // Add first step (usually wolf) start audio
   if (firstStepSpec) {
-    sideEffects.push({
-      type: 'PLAY_AUDIO',
+    audioEffects.push({
       audioKey: resolveSeerAudioKey(firstStepSpec.audioKey, state.seerLabelMap),
       isEndAudio: false,
     });
   }
 
-  return handlerSuccess(actions, sideEffects);
+  actions.push(...createAudioQueueActions(audioEffects));
+  return handlerSuccess(actions);
 }
 
 /**
@@ -326,15 +303,12 @@ export function handleRestartGame(
   context: HandlerContext,
   execution: HandlerExecutionContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-
   const action: RestartGameAction = {
     type: 'RESTART_GAME',
     nonce: execution.randomSeed,
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -346,9 +320,7 @@ export function handleUpdateTemplate(
   intent: UpdateTemplateIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   // Validate: only allow modification "before role assignment" (unseated/seated).
   // Once in assigned/ready/ongoing/ended, modifications cause state machine and player perception drift, so RESTART_GAME is required first.
@@ -368,7 +340,7 @@ export function handleUpdateTemplate(
     },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -385,9 +357,7 @@ export function handleFillWithBots(
   _intent: FillWithBotsIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   // Gate: only allow bot fill in unseated phase
   if (state.status !== GameStatus.Unseated) {
@@ -425,7 +395,7 @@ export function handleFillWithBots(
     payload: { bots, botRoster },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -441,9 +411,7 @@ export function handleMarkAllBotsViewed(
   _intent: MarkAllBotsViewedIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   // Gate: debugMode.botsEnabled must be true
   if (!state.debugMode?.botsEnabled) {
@@ -459,7 +427,7 @@ export function handleMarkAllBotsViewed(
     type: 'MARK_ALL_BOTS_VIEWED',
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -472,9 +440,7 @@ export function handleShareNightReview(
   intent: ShareNightReviewIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   if (state.status !== GameStatus.Ended) {
     return handlerError('invalid_status');
@@ -485,7 +451,7 @@ export function handleShareNightReview(
     allowedSeats: intent.allowedSeats,
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 // =============================================================================
@@ -502,9 +468,7 @@ export function handleBoardNominate(
   intent: BoardNominateIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   const canNominate = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canNominate) {
@@ -532,7 +496,7 @@ export function handleBoardNominate(
           type: 'UPVOTE_BOARD_NOMINATION',
           payload: { targetUserId: existingUid, voterUid: intent.payload.userId },
         };
-        return handlerSuccess([action], STANDARD_SIDE_EFFECTS, 'DEDUPLICATED');
+        return handlerSuccess([action], 'DEDUPLICATED');
       }
     }
   }
@@ -549,7 +513,7 @@ export function handleBoardNominate(
     },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -564,9 +528,7 @@ export function handleBoardUpvote(
   intent: BoardUpvoteIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   const canVote = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canVote) {
@@ -584,7 +546,7 @@ export function handleBoardUpvote(
     payload: { targetUserId, voterUid },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }
 
 /**
@@ -597,9 +559,7 @@ export function handleBoardWithdraw(
   intent: BoardWithdrawIntent,
   context: HandlerContext,
 ): HandlerResult {
-  const guard = requireState(context);
-  if (!guard.ok) return guard.result;
-  const { state } = guard;
+  const { state } = context;
 
   const canWithdraw = state.status === GameStatus.Unseated || state.status === GameStatus.Seated;
   if (!canWithdraw) {
@@ -615,5 +575,5 @@ export function handleBoardWithdraw(
     payload: { userId: intent.payload.userId },
   };
 
-  return handlerSuccess([action], STANDARD_SIDE_EFFECTS);
+  return handlerSuccess([action]);
 }

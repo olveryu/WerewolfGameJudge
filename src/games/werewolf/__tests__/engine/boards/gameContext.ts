@@ -1,75 +1,50 @@
-/**
- * Game Context Types
- *
- * Pure type file, used to break stepByStepRunner <-> gameFactory circular dependency.
- * Contains only type/interface, no implementation code.
- */
+/** Canonical Werewolf command harness contract used by cross-package board tests. */
 
-import type { RoleId } from '@game-judge/game-engine/games/werewolf/public';
-import type { SchemaId } from '@game-judge/game-engine/games/werewolf/public';
-import type { NightPlan } from '@game-judge/game-engine/games/werewolf/public';
-import type { GameTemplate } from '@game-judge/game-engine/games/werewolf/public';
-import type { GameState, PlayerMessage } from '@game-judge/game-engine/games/werewolf/public';
-import type { ActionResult } from '@game-judge/game-engine/platform/protocol/actionResult';
+import type {
+  GameState,
+  NightPlan,
+  RoleId,
+  SchemaId,
+  WerewolfPublicCommand,
+} from '@game-judge/game-engine/games/werewolf/public';
+import type { CommandExecutionContext } from '@game-judge/game-engine/platform/engine';
+import type { RoomCommandResult } from '@game-judge/game-engine/platform/protocol/commandResult';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-/**
- * Captured message record (for wire protocol contract tests)
- */
-export interface CapturedMessage {
-  /** currentStepId when the message was sent */
-  stepId: SchemaId | null;
-  /** Original PlayerMessage */
-  message: PlayerMessage;
+export interface TestCommandActor {
+  readonly userId: string;
+  readonly controlledSeat: number | null;
 }
 
-/**
- * Host Game Context
- *
- * Game context interface used by integration tests.
- * Implementation lives in gameFactory.ts createGame().
- */
+export type TestCommandExecution = Partial<Pick<CommandExecutionContext, 'nowMs' | 'randomSeed'>>;
+
 export interface GameContext {
-  /** Get current GameState */
-  getGameState: () => GameState;
-  /** Get current revision */
-  getRevision: () => number;
-  /** Get NightPlan */
-  getNightPlan: () => NightPlan;
-  /** Send PlayerMessage (simulates player->host intent) */
-  sendPlayerMessage: (msg: PlayerMessage) => ActionResult;
-  /** Advance to the next night step */
-  advanceNight: () => ActionResult;
-  /**
-   * Advance to the next night step (fail-fast version)
-   *
-   * This is the **single fail-fast implementation source** for all board integration tests.
-   * Implementation lives in gameFactory.ts.
-   *
-   * Hard requirements:
-   * - No custom similar helpers in test files or runners
-   * - This function does not automatically send any ack/gate messages
-   * - Throws on gate blocks; no automatic handling
-   *
-   * @param context - Context info (used for error messages)
-   * @throws if advanceNight returns success: false
-   */
-  advanceNightOrThrow: (context: string) => void;
-  /** End the night, trigger death settlement */
-  endNight: () => { success: boolean; deaths: number[] };
-  /** Assert the current step */
-  assertStep: (expectedStepId: SchemaId) => void;
-  /** Find seat number by role */
-  findSeatByRole: (role: RoleId) => number;
-  /** Get the role at a seat */
-  getRoleAtSeat: (seat: number) => RoleId | null;
-  /** Get the template */
-  template: GameTemplate;
-  /** Get captured messages (for wire protocol contract tests) */
-  getCapturedMessages: () => readonly CapturedMessage[];
-  /** Clear captured messages */
-  clearCapturedMessages: () => void;
+  readonly getGameState: () => GameState;
+  readonly getRevision: () => number;
+  readonly getNightPlan: () => NightPlan;
+  readonly dispatch: (
+    command: WerewolfPublicCommand,
+    actor?: TestCommandActor,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  readonly dispatchAsSeat: (
+    seat: number,
+    command: WerewolfPublicCommand,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  readonly dispatchOrThrow: (
+    command: WerewolfPublicCommand,
+    context: string,
+    actor?: TestCommandActor,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  readonly dispatchAsSeatOrThrow: (
+    seat: number,
+    command: WerewolfPublicCommand,
+    context: string,
+    execution?: TestCommandExecution,
+  ) => RoomCommandResult<GameState>;
+  readonly acknowledgePendingAudioOrThrow: (context: string) => void;
+  readonly assertStep: (expectedStepId: SchemaId) => void;
+  readonly findSeatByRole: (role: RoleId) => number;
+  readonly getRoleAtSeat: (seat: number) => RoleId | null;
 }

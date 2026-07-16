@@ -5,7 +5,6 @@
  *
  * Gate tests:
  * - host_only
- * - no_state
  * - invalid_status
  * - forbidden_while_audio_playing
  *
@@ -101,21 +100,6 @@ describe('nightFlowHandler', () => {
   describe('handleAdvanceNight', () => {
     const intent: AdvanceNightIntent = { type: 'ADVANCE_NIGHT' };
 
-    describe('Gate: no_state', () => {
-      it('should reject when state is null', () => {
-        const context: HandlerContext = {
-          state: null,
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleAdvanceNight(intent, context);
-
-        const err = expectError(result);
-        expect(err.reason).toBe('no_state');
-      });
-    });
-
     describe('Gate: invalid_status', () => {
       it.each([
         GameStatus.Unseated,
@@ -173,8 +157,8 @@ describe('nightFlowHandler', () => {
         const result = handleAdvanceNight(intent, context);
 
         const success = expectSuccess(result);
-        // Progressing from wolfKill with witch present, should return 3 actions (ADVANCE + SET_WITCH_CONTEXT + SET_UI_HINT)
-        expect(success.actions).toHaveLength(3);
+        // Domain transition actions are followed by one authoritative audio queue batch.
+        expect(success.actions).toHaveLength(5);
 
         const advanceAction = success.actions[0]!;
         expect(advanceAction.type).toBe('ADVANCE_TO_NEXT_ACTION');
@@ -192,7 +176,11 @@ describe('nightFlowHandler', () => {
         const uiHintAction = success.actions[2]!;
         expect(uiHintAction.type).toBe('SET_UI_HINT');
 
-        expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+        expect(success.actions[3]?.type).toBe('SET_PENDING_AUDIO_EFFECTS');
+        expect(success.actions[4]).toEqual({
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        });
       });
 
       it('should set nextStepId to null when no more steps', () => {
@@ -278,21 +266,6 @@ describe('nightFlowHandler', () => {
       expect(end!.payload.deaths).toEqual([0]);
     });
 
-    describe('Gate: no_state', () => {
-      it('should reject when state is null', () => {
-        const context: HandlerContext = {
-          state: null,
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleEndNight(intent, context);
-
-        const err = expectError(result);
-        expect(err.reason).toBe('no_state');
-      });
-    });
-
     describe('Gate: invalid_status', () => {
       it.each([
         GameStatus.Unseated,
@@ -364,7 +337,7 @@ describe('nightFlowHandler', () => {
         const result = handleEndNight(intent, context);
 
         const success = expectSuccess(result);
-        expect(success.actions).toHaveLength(1);
+        expect(success.actions).toHaveLength(3);
 
         const action = success.actions[0]!;
         expect(action.type).toBe('END_NIGHT');
@@ -372,7 +345,14 @@ describe('nightFlowHandler', () => {
           expect(action.payload.deaths).toEqual([]);
         }
 
-        expect(success.sideEffects).toContainEqual({ type: 'BROADCAST_STATE' });
+        expect(success.actions[1]).toEqual({
+          type: 'SET_PENDING_AUDIO_EFFECTS',
+          payload: { effects: [{ audioKey: 'night_end' }] },
+        });
+        expect(success.actions[2]).toEqual({
+          type: 'SET_AUDIO_PLAYING',
+          payload: { isPlaying: true },
+        });
       });
 
       it('should calculate wolf kill death (simple case)', () => {
@@ -661,25 +641,6 @@ describe('nightFlowHandler', () => {
   // SET_AUDIO_PLAYING Handler (PR7)
   // ==========================================================================
   describe('handleSetAudioPlaying', () => {
-    describe('Gate: no_state', () => {
-      it('should reject when state is null', () => {
-        const intent: SetAudioPlayingIntent = {
-          type: 'SET_AUDIO_PLAYING',
-          payload: { isPlaying: true },
-        };
-        const context: HandlerContext = {
-          state: null,
-          myUserId: 'host-uid',
-          mySeat: null,
-        };
-
-        const result = handleSetAudioPlaying(intent, context);
-
-        const err = expectError(result);
-        expect(err.reason).toBe('no_state');
-      });
-    });
-
     describe('Gate: invalid_status', () => {
       it('should reject when status is not ongoing', () => {
         const intent: SetAudioPlayingIntent = {
@@ -720,7 +681,6 @@ describe('nightFlowHandler', () => {
         if (action.type === 'SET_AUDIO_PLAYING') {
           expect(action.payload.isPlaying).toBe(true);
         }
-        expect(success.sideEffects).toEqual([{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }]);
       });
 
       it('should set isAudioPlaying to false', () => {

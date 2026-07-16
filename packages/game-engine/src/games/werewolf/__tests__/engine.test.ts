@@ -12,7 +12,7 @@ import { GAME_ENGINE_CATALOG } from '../../catalog';
 import type { WerewolfCommand } from '../commands/types';
 import { REASON_ACTION_INPUT_MISMATCH, resolveSubmitActionIntent } from '../domain/actionInput';
 import { resolveEffectiveSeatActor, resolveSystemActor, resolveUserActor } from '../domain/actor';
-import { handlerResultToDecision, translateHandlerSideEffects } from '../domain/decision';
+import { handlerResultToDecision } from '../domain/decision';
 import { handlerError, handlerRejection, handlerSuccess } from '../domain/handlers/types';
 import type { SubmitActionIntent } from '../domain/intents/types';
 import { GameStatus, type GameTemplate, type RoleId } from '../domain/models';
@@ -281,29 +281,6 @@ describe('Werewolf handler decision adapter', () => {
       broadcast: 'state',
       outcome: { kind: 'domainRejected', reason: 'blocked' },
     });
-  });
-
-  it('translates ordered audio into state events and rejects unsupported effects', () => {
-    expect(
-      translateHandlerSideEffects([
-        { type: 'SAVE_STATE' },
-        { type: 'PLAY_AUDIO', audioKey: 'night' },
-        { type: 'PLAY_AUDIO', audioKey: 'wolf', isEndAudio: true },
-        { type: 'BROADCAST_STATE' },
-      ]),
-    ).toEqual([
-      {
-        type: 'SET_PENDING_AUDIO_EFFECTS',
-        payload: {
-          effects: [{ audioKey: 'night' }, { audioKey: 'wolf', isEndAudio: true }],
-        },
-      },
-      { type: 'SET_AUDIO_PLAYING', payload: { isPlaying: true } },
-    ]);
-
-    expect(() =>
-      translateHandlerSideEffects([{ type: 'SEND_MESSAGE', message: 'unsupported' }]),
-    ).toThrow('[FAIL-FAST] SEND_MESSAGE is not a Werewolf domain effect');
   });
 });
 

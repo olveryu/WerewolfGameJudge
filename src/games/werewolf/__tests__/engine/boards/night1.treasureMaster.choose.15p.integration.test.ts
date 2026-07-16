@@ -43,37 +43,7 @@ const TEMPLATE_ROLES: RoleId[] = [
 // =============================================================================
 
 describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
-  /**
-   * Fixed seat-role assignment (12 players):
-   *   seat 0-3: villager ×4
-   *   seat 4-5: wolf ×2
-   *   seat 6: darkWolfKing
-   *   seat 7: psychic
-   *   seat 8: poisoner
-   *   seat 9: hunter
-   *   seat 10: dreamcatcher
-   *   seat 11: treasureMaster
-   *
-   * Deck cards: wolf, crow, villager
-   */
-  function createRoleAssignment(): Map<number, RoleId> {
-    const map = new Map<number, RoleId>();
-    map.set(0, 'villager');
-    map.set(1, 'villager');
-    map.set(2, 'villager');
-    map.set(3, 'villager');
-    map.set(4, 'wolf');
-    map.set(5, 'wolf');
-    map.set(6, 'darkWolfKing');
-    map.set(7, 'psychic');
-    map.set(8, 'poisoner');
-    map.set(9, 'hunter');
-    map.set(10, 'dreamcatcher');
-    map.set(11, 'treasureMaster');
-    return map;
-  }
-
-  const BOTTOM_CARDS: RoleId[] = ['wolf', 'crow', 'villager'];
+  const RANDOM_SEED = 'bottom-fixture-9';
 
   let ctx: GameContext;
 
@@ -82,27 +52,28 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
   });
 
   it('TreasureMaster picks crow (cardIndex=1), proxies crowCurse, full night completes', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
 
     // Verify initial state
     const initState = ctx.getGameState();
-    expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
-    expect(initState.treasureMasterSeat).toBe(11);
+    expect(initState.bottomCards).toEqual(['crow', 'villager', 'wolf']);
+    expect(initState.treasureMasterSeat).toBe(ctx.findSeatByRole('treasureMaster'));
+    const crowCardIndex = initState.bottomCards!.indexOf('crow');
+    const villagerSeat = ctx.findSeatByRole('villager');
+    const wolfSeat = ctx.findSeatByRole('wolf');
 
     // First step = treasureMasterChoose
     ctx.assertStep('treasureMasterChoose');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 1 }, // pick crow (index 1)
-      dreamcatcher: 0, // dream on seat 0
-      crow: 3, // treasureMaster proxies crowCurse, curses seat 3
+      treasureMaster: { cardIndex: crowCardIndex },
+      dreamcatcher: villagerSeat,
+      crow: villagerSeat,
       wolf: null, // Poisoner present, no kill on night 1
       poisoner: null, // no poison
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
-      psychic: 4, // psychic checks seat 4 (wolf)
+      psychic: wolfSeat,
     });
 
     expect(result.completed).toBe(true);
@@ -117,30 +88,32 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
     expect(result.deaths).toEqual([]);
 
     // crowCurse proxied by TreasureMaster → cursedSeat is written
-    expect(state.currentNightResults?.cursedSeat).toBe(3);
+    expect(state.currentNightResults?.cursedSeat).toBe(villagerSeat);
 
     // dreamcatcher acts normally
-    expect(state.currentNightResults?.dreamingSeat).toBe(0);
+    expect(state.currentNightResults?.dreamingSeat).toBe(villagerSeat);
 
     // psychic checks normally
     expect(state.psychicReveal).toBeDefined();
-    expect(state.psychicReveal!.targetSeat).toBe(4);
+    expect(state.psychicReveal!.targetSeat).toBe(wolfSeat);
   });
 
   it('TreasureMaster picks villager (cardIndex=2), no step proxy, full night completes', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
+    const stateBeforeNight = ctx.getGameState();
+    const villagerCardIndex = stateBeforeNight.bottomCards!.indexOf('villager');
+    const villagerSeat = ctx.findSeatByRole('villager');
+    const wolfSeat = ctx.findSeatByRole('wolf');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 2 }, // pick villager (index 2)
-      dreamcatcher: 0,
+      treasureMaster: { cardIndex: villagerCardIndex },
+      dreamcatcher: villagerSeat,
       // crow in deck and not picked → crowCurse auto-skip
       wolf: null, // Poisoner present, no kill on night 1
       poisoner: null,
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
-      psychic: 4,
+      psychic: wolfSeat,
     });
 
     expect(result.completed).toBe(true);
@@ -164,37 +137,7 @@ describe('Night-1: TreasureMaster (15p) — deck contains wolf', () => {
 // =============================================================================
 
 describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
-  /**
-   * Fixed seat-role assignment (12 players):
-   *   seat 0-3: villager ×4
-   *   seat 4-5: wolf ×2
-   *   seat 6: poisoner
-   *   seat 7: darkWolfKing
-   *   seat 8: psychic
-   *   seat 9: hunter
-   *   seat 10: crow
-   *   seat 11: treasureMaster
-   *
-   * Deck cards: wolf, dreamcatcher, villager
-   */
-  function createRoleAssignment(): Map<number, RoleId> {
-    const map = new Map<number, RoleId>();
-    map.set(0, 'villager');
-    map.set(1, 'villager');
-    map.set(2, 'villager');
-    map.set(3, 'villager');
-    map.set(4, 'wolf');
-    map.set(5, 'wolf');
-    map.set(6, 'poisoner');
-    map.set(7, 'darkWolfKing');
-    map.set(8, 'psychic');
-    map.set(9, 'hunter');
-    map.set(10, 'crow');
-    map.set(11, 'treasureMaster');
-    return map;
-  }
-
-  const BOTTOM_CARDS: RoleId[] = ['wolf', 'dreamcatcher', 'villager'];
+  const RANDOM_SEED = 'bottom-fixture-2';
 
   let ctx: GameContext;
 
@@ -203,24 +146,25 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
   });
 
   it('TreasureMaster picks dreamcatcher (cardIndex=1) and proxies dream', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
 
     // Verify deck cards
     const initState = ctx.getGameState();
-    expect(initState.bottomCards).toEqual(BOTTOM_CARDS);
+    expect(initState.bottomCards).toEqual(['wolf', 'dreamcatcher', 'villager']);
+    const dreamcatcherCardIndex = initState.bottomCards!.indexOf('dreamcatcher');
+    const villagerSeat = ctx.findSeatByRole('villager');
+    const wolfSeat = ctx.findSeatByRole('wolf');
     ctx.assertStep('treasureMasterChoose');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 1 }, // pick dreamcatcher (index 1)
-      dreamcatcher: 0, // treasureMaster proxies dreamcatcherDream, dream on seat 0
-      crow: 3, // crow is a player, normal curse on seat 3
+      treasureMaster: { cardIndex: dreamcatcherCardIndex },
+      dreamcatcher: villagerSeat,
+      crow: villagerSeat,
       wolf: null, // Poisoner is present, so wolves cannot kill on night 1.
       poisoner: null,
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
-      psychic: 4,
+      psychic: wolfSeat,
     });
 
     expect(result.completed).toBe(true);
@@ -231,29 +175,31 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
     expect(state.currentNightResults?.treasureMasterChosenCard).toBe('dreamcatcher');
 
     // dreamcatcherDream proxied by TreasureMaster
-    expect(state.currentNightResults?.dreamingSeat).toBe(0);
+    expect(state.currentNightResults?.dreamingSeat).toBe(villagerSeat);
 
     // The seated poisoner skips, so no one dies.
     expect(result.deaths).toEqual([]);
 
     // crowCurse normal (crow is a player)
-    expect(state.currentNightResults?.cursedSeat).toBe(3);
+    expect(state.currentNightResults?.cursedSeat).toBe(villagerSeat);
   });
 
   it('TreasureMaster picks villager (cardIndex=2), dreamcatcher auto-skips', () => {
-    ctx = createGame(TEMPLATE_ROLES, createRoleAssignment(), {
-      bottomCards: BOTTOM_CARDS,
-    });
+    ctx = createGame(TEMPLATE_ROLES, undefined, { randomSeed: RANDOM_SEED });
+    const stateBeforeNight = ctx.getGameState();
+    const villagerCardIndex = stateBeforeNight.bottomCards!.indexOf('villager');
+    const villagerSeat = ctx.findSeatByRole('villager');
+    const wolfSeat = ctx.findSeatByRole('wolf');
 
     const result = executeFullNight(ctx, {
-      treasureMaster: { cardIndex: 2 }, // pick villager
+      treasureMaster: { cardIndex: villagerCardIndex },
       // dreamcatcher in deck and not picked → dreamcatcherDream auto-skip
-      crow: 3,
+      crow: villagerSeat,
       wolf: null,
-      poisoner: 2,
+      poisoner: villagerSeat,
       hunter: { confirmed: true },
       darkWolfKing: { confirmed: true },
-      psychic: 4,
+      psychic: wolfSeat,
     });
 
     expect(result.completed).toBe(true);
@@ -266,6 +212,6 @@ describe('Night-1: TreasureMaster (15p) — deck contains dreamcatcher', () => {
     expect(state.currentNightResults?.dreamingSeat).toBeUndefined();
 
     // The seated poisoner poisons seat 2 while wolf kill is disabled.
-    expect(result.deaths).toEqual([2]);
+    expect(result.deaths).toEqual([villagerSeat]);
   });
 });

@@ -23,9 +23,8 @@ import { type RoleId, type SchemaId } from '../models/roles/spec';
 import { getAllRoleIds, getRoleSpec } from '../models/roles/spec/specs';
 import { Faction } from '../models/roles/spec/types';
 import { isVacantBottomCardStep, resolveNightStepActor } from '../playerHelpers';
-import type { ConfirmStatus, WolfTeammatesConfirmStatus } from '../protocol/types';
+import type { ConfirmStatus, GameState, WolfTeammatesConfirmStatus } from '../protocol/types';
 import type { SetConfirmStatusAction } from '../reducer/types';
-import type { NonNullState } from './types';
 
 type ConfirmRole = 'hunter' | 'darkWolfKing' | 'avenger' | 'hiddenWolf';
 
@@ -68,7 +67,7 @@ const CONFIRM_STEP_ROLE = deriveConfirmStepRoleMap();
  * Abnormal night deaths (poison / lover suicide / dreamcatcher chain / charm chain) cannot shoot.
  * Shared by confirmContext (Hunter / DarkWolfKing) and actionHandler (wolfRobot learning Hunter).
  */
-export function computeCanShootForSeat(seat: number, state: NonNullState): boolean {
+export function computeCanShootForSeat(seat: number, state: GameState): boolean {
   const results = state.currentNightResults;
   return (
     results?.poisonedSeat !== seat &&
@@ -86,7 +85,7 @@ export function computeCanShootForSeat(seat: number, state: NonNullState): boole
  *
  * Avenger: faction is precomputed by the shadow resolver and stored in currentNightResults.avengerFaction; read directly here.
  */
-function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmStatus {
+function computeConfirmStatus(role: ConfirmRole, state: GameState): ConfirmStatus {
   if (role === 'avenger') {
     return computeAvengerConfirmStatus(state);
   }
@@ -110,7 +109,7 @@ function computeConfirmStatus(role: ConfirmRole, state: NonNullState): ConfirmSt
  * avengerFaction is computed directly by the shadow resolver during mimicry and stored in currentNightResults.
  * Just read it here; no need to re-derive. No target selected (blocked / not in template) -> default to good faction.
  */
-function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
+function computeAvengerConfirmStatus(state: GameState): ConfirmStatus {
   const faction = state.currentNightResults?.avengerFaction;
   if (!faction) {
     throw new Error('[FAIL-FAST] Avenger confirm step has no resolved faction');
@@ -126,7 +125,7 @@ function computeAvengerConfirmStatus(state: NonNullState): ConfirmStatus {
  *
  * Iterate over all seats and find those with faction === Faction.Wolf that are not the HiddenWolf itself.
  */
-function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfirmStatus {
+function computeHiddenWolfConfirmStatus(state: GameState): WolfTeammatesConfirmStatus {
   const wolfTeammates: number[] = [];
   for (const [seatStr, player] of Object.entries(state.players)) {
     if (!player?.role) continue;
@@ -152,7 +151,7 @@ function computeHiddenWolfConfirmStatus(state: NonNullState): WolfTeammatesConfi
  * Used only as a sub-condition for chain-death checks.
  * Called during hunterConfirm / darkWolfKingConfirm steps (after wolf/witch have acted).
  */
-function willDieTonight(seat: number, state: NonNullState): boolean {
+function willDieTonight(seat: number, state: GameState): boolean {
   const results = state.currentNightResults;
 
   // Poisoned
@@ -173,7 +172,7 @@ function willDieTonight(seat: number, state: NonNullState): boolean {
  *
  * Checks whether the seat is one of the lovers and whether the partner will die at night.
  */
-function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
+function isCoupleDeathVictim(seat: number, state: GameState): boolean {
   const loverSeats = state.loverSeats;
   if (!loverSeats || !loverSeats.includes(seat)) return false;
 
@@ -186,7 +185,7 @@ function isCoupleDeathVictim(seat: number, state: NonNullState): boolean {
  *
  * Condition: the seat is the dream target (dreamingSeat) and the dreamcatcher will die that night.
  */
-function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
+function isDreamLinkedDeath(seat: number, state: GameState): boolean {
   const results = state.currentNightResults;
   if (results?.dreamingSeat !== seat) return false;
 
@@ -201,7 +200,7 @@ function isDreamLinkedDeath(seat: number, state: NonNullState): boolean {
  *
  * Condition: the seat is the charm target (charmedSeat) and the Eclipse Wolf Queen will die that night.
  */
-function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
+function isWolfQueenCharmVictim(seat: number, state: GameState): boolean {
   const results = state.currentNightResults;
   if (results?.charmedSeat !== seat) return false;
 
@@ -222,7 +221,7 @@ function isWolfQueenCharmVictim(seat: number, state: NonNullState): boolean {
  */
 export function maybeCreateConfirmStatusAction(
   nextStepId: SchemaId,
-  state: NonNullState,
+  state: GameState,
 ): SetConfirmStatusAction | null {
   const role = CONFIRM_STEP_ROLE[nextStepId];
   if (!role) {

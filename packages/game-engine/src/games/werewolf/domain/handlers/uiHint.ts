@@ -11,8 +11,8 @@
 import { getWolfRoleIds, type NightPlanStep, SCHEMAS } from '../models';
 import { BLOCKED_UI_DEFAULTS } from '../models/roles/spec';
 import { resolveNightStepActor } from '../playerHelpers';
+import type { GameState } from '../protocol/types';
 import type { SetUiHintAction } from '../reducer/types';
-import type { NonNullState } from './types';
 
 /**
  * Create UI Hint Action
@@ -27,7 +27,7 @@ import type { NonNullState } from './types';
  */
 export function maybeCreateUiHintAction(
   nextStep: NightPlanStep | null,
-  state: NonNullState,
+  state: GameState,
 ): SetUiHintAction {
   // Night ended or no next step: clear hint
   if (!nextStep) {

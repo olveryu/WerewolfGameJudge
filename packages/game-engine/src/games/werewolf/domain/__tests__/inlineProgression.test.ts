@@ -5,7 +5,7 @@
  *
  * Test strategy:
  * - Build a GameState with completed actions
- * - Call runInlineProgression and verify: steps advanced, audioEffects, finalState
+ * - Call runInlineProgression and verify: steps advanced, authoritative audio queue, finalState
  */
 
 import { WEREWOLF_STATE_IDENTITY } from '../../state/version';
@@ -97,7 +97,7 @@ describe('runInlineProgression', () => {
       const state = make2PlayerState({ status: GameStatus.Ended });
       const result = runInlineProgression(state, 'host');
       expect(result.stepsAdvanced).toBe(0);
-      expect(result.audioEffects).toEqual([]);
+      expect(result.finalState.pendingAudioEffects ?? []).toEqual([]);
       expect(result.actions).toEqual([]);
     });
 
@@ -206,7 +206,7 @@ describe('runInlineProgression', () => {
   });
 
   describe('2-player template (wolf + villager)', () => {
-    it('wolfKill 完成 → advance to end → endNight (产生 audioEffects)', () => {
+    it('wolfKill 完成 → advance to end → endNight (写入音频队列)', () => {
       // In 2-player template, only step is wolfKill.
       // When wolf vote is complete (and no countdown), should advance past wolfKill → endNight
       const state = make2PlayerState({
@@ -221,7 +221,7 @@ describe('runInlineProgression', () => {
 
       // Should have advanced at least once (advance) + end_night
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
-      expect(result.audioEffects.length).toBeGreaterThan(0);
+      expect(result.finalState.pendingAudioEffects?.length).toBeGreaterThan(0);
       // Final state should be GameStatus.Ended
       expect(result.finalState.status).toBe(GameStatus.Ended);
       // Should have SET_PENDING_AUDIO_EFFECTS + SET_AUDIO_PLAYING in actions
@@ -252,11 +252,11 @@ describe('runInlineProgression', () => {
       // Should NOT end night (witch + seer still need to act)
       expect(result.finalState.status).toBe(GameStatus.Ongoing);
       // Audio effects from advance
-      expect(result.audioEffects.length).toBeGreaterThan(0);
+      expect(result.finalState.pendingAudioEffects?.length).toBeGreaterThan(0);
     });
   });
 
-  describe('audioEffects 收集', () => {
+  describe('音频队列组合', () => {
     it('advance 产生结束 + 开始音频', () => {
       const plan = buildNightPlan(TEMPLATE_5P);
       const wolfIdx = plan.steps.findIndex((s) => s.stepId === 'wolfKill');
@@ -273,8 +273,9 @@ describe('runInlineProgression', () => {
       const result = runInlineProgression(state, 'host');
       // Each advance step produces: current step end audio + next step begin audio
       // At least 1 end + 1 begin
-      const endAudios = result.audioEffects.filter((e) => e.isEndAudio === true);
-      const beginAudios = result.audioEffects.filter((e) => !e.isEndAudio);
+      const audioEffects = result.finalState.pendingAudioEffects ?? [];
+      const endAudios = audioEffects.filter((effect) => effect.isEndAudio === true);
+      const beginAudios = audioEffects.filter((effect) => !effect.isEndAudio);
       expect(endAudios.length).toBeGreaterThanOrEqual(1);
       expect(beginAudios.length).toBeGreaterThanOrEqual(1);
     });
@@ -444,7 +445,7 @@ describe('runInlineProgression', () => {
       // Should advance past wolfKill into poisonerPoison
       expect(result.stepsAdvanced).toBeGreaterThanOrEqual(1);
       // Audio effects should be produced (step transition audio)
-      expect(result.audioEffects.length).toBeGreaterThan(0);
+      expect(result.finalState.pendingAudioEffects?.length).toBeGreaterThan(0);
       // stepDeadline should NOT be set — deferred until audio-ack
       expect(result.finalState.stepDeadline).toBeUndefined();
       // isAudioPlaying should be set (audio effects → SET_AUDIO_PLAYING)

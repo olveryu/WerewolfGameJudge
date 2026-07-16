@@ -6,20 +6,20 @@
 
 import type { ActionSchema } from '../../models';
 import { GameStatus } from '../../models/GameStatus';
+import type { GameState } from '../../protocol/types';
 import {
   checkNightmareBlockGuard,
   isBottomCardActorOverride,
   isSkipAction,
   validateActionPreconditions,
 } from '../actionGuards';
-import type { NonNullState } from '../types';
 import { expectError } from './handlerTestUtils';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
+function createMinimalState(overrides?: Partial<GameState>): GameState {
   return {
     roomCode: 'TEST',
     hostUserId: 'host-1',
@@ -38,7 +38,7 @@ function createMinimalState(overrides?: Partial<NonNullState>): NonNullState {
     pendingRevealAcks: [],
     roster: {},
     ...overrides,
-  } as NonNullState;
+  } as GameState;
 }
 
 // =============================================================================
@@ -277,16 +277,7 @@ describe('checkNightmareBlockGuard', () => {
 // =============================================================================
 
 describe('validateActionPreconditions', () => {
-  it('should reject when state is null (Gate 1)', () => {
-    const result = validateActionPreconditions(null, 0, 'seer');
-    expect(result.valid).toBe(false);
-    if (!result.valid) {
-      const err = expectError(result.result);
-      expect(err.reason).toBe('no_state');
-    }
-  });
-
-  it('should reject when status is not Ongoing (Gate 2)', () => {
+  it('should reject when status is not Ongoing (Gate 1)', () => {
     const state = createMinimalState({ status: GameStatus.Unseated });
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
@@ -296,7 +287,7 @@ describe('validateActionPreconditions', () => {
     }
   });
 
-  it('should reject when audio is playing (Gate 3)', () => {
+  it('should reject when audio is playing (Gate 2)', () => {
     const state = createMinimalState({ isAudioPlaying: true });
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);
@@ -306,7 +297,7 @@ describe('validateActionPreconditions', () => {
     }
   });
 
-  it('should reject when currentStepId is null (Gate 4)', () => {
+  it('should reject when currentStepId is null (Gate 3)', () => {
     const state = createMinimalState({ currentStepId: undefined });
     const result = validateActionPreconditions(state, 0, 'seer');
     expect(result.valid).toBe(false);

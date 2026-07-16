@@ -5,7 +5,6 @@
  * witchContext computation logic is covered indirectly via the public API
  */
 
-import type { NonNullState } from '@game-judge/game-engine/games/werewolf/domain/handlers/types';
 import { maybeCreateWitchContextAction as createWitchContextAction } from '@game-judge/game-engine/games/werewolf/domain/handlers/witchContext';
 import type { SchemaId } from '@game-judge/game-engine/games/werewolf/domain/models';
 import { GameStatus } from '@game-judge/game-engine/games/werewolf/domain/models/GameStatus';
@@ -16,7 +15,7 @@ import type {
 
 const TEST_RNG = () => 0.75;
 
-function maybeCreateWitchContextAction(nextStepId: SchemaId, state: NonNullState) {
+function maybeCreateWitchContextAction(nextStepId: SchemaId, state: GameState) {
   return createWitchContextAction(nextStepId, state, TEST_RNG);
 }
 

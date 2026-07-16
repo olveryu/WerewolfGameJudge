@@ -18,7 +18,7 @@
  * - awakenedGargoyleConvert: chooseSeat (AdjacentToWolfFaction constraint)
  * - target must be adjacent to a wolf faction seat (swap-aware)
  * - conversion result written to GameState.convertedSeat
- * - awakenedGargoyleConvertReveal: groupConfirm (auto-completes)
+ * - awakenedGargoyleConvertReveal: groupConfirm (requires every player to acknowledge)
  *
  * Architecture: intents → handlers → reducer → GameState
  */
@@ -107,14 +107,15 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
       ctx.assertStep('awakenedGargoyleConvert');
 
-      const result = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 6,
-        role: 'awakenedGargoyle',
-        target: null,
+      const result = ctx.dispatchAsSeat(6, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'skip' },
       });
 
-      expect(result.success).toBe(false);
+      expect(result).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected' },
+      });
     });
   });
 
@@ -128,14 +129,15 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       // seat 10 (guard) is not adjacent to any wolf faction seat
       // wolves at 4,5; awakenedGargoyle at 6; adjacent non-wolf-faction: 3,7
       // seat 10 neighbors: 9,11 — both are non-wolf
-      const result = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 6,
-        role: 'awakenedGargoyle',
-        target: 10,
+      const result = ctx.dispatchAsSeat(6, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 10 },
       });
 
-      expect(result.success).toBe(false);
+      expect(result).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected' },
+      });
     });
 
     it('转化自己应被拒绝 (NotSelf constraint)', () => {
@@ -144,15 +146,19 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       expect(executeStepsUntil(ctx, 'awakenedGargoyleConvert')).toBe(true);
       ctx.assertStep('awakenedGargoyleConvert');
 
-      const result = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 6,
-        role: 'awakenedGargoyle',
-        target: 6,
+      const result = ctx.dispatchAsSeat(6, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 6 },
       });
 
-      expect(result.success).toBe(false);
-      expect(result.reason).toContain('自己');
+      expect(result).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected' },
+      });
+      if (result.kind !== 'committed' || result.outcome.kind !== 'domainRejected') {
+        throw new Error('Expected self-conversion to be rejected by the domain');
+      }
+      expect(result.outcome.reason).toContain('自己');
     });
 
     it('转化狼人阵营玩家应被拒绝 (NotWolfFaction constraint)', () => {
@@ -162,14 +168,15 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
       ctx.assertStep('awakenedGargoyleConvert');
 
       // seat 4 is wolf (wolf faction) — cannot convert wolf faction
-      const result = ctx.sendPlayerMessage({
-        type: 'ACTION',
-        seat: 6,
-        role: 'awakenedGargoyle',
-        target: 4,
+      const result = ctx.dispatchAsSeat(6, {
+        type: 'werewolf.action.submit',
+        input: { kind: 'target', target: 4 },
       });
 
-      expect(result.success).toBe(false);
+      expect(result).toMatchObject({
+        kind: 'committed',
+        outcome: { kind: 'domainRejected' },
+      });
     });
   });
 
@@ -188,6 +195,15 @@ describe('Night-1: AwakenedGargoyle Convert (12p)', () => {
         }),
       ).toBe(true);
       ctx.assertStep('awakenedGargoyleConvertReveal');
+
+      for (const player of Object.values(ctx.getGameState().players)) {
+        if (player === null) continue;
+        ctx.dispatchAsSeatOrThrow(
+          player.seat,
+          { type: 'werewolf.groupConfirm.ack' },
+          `acknowledge converted-player reveal at seat ${player.seat}`,
+        );
+      }
 
       // Night-1 completes after groupConfirm step advances
       const result = executeRemainingSteps(ctx);

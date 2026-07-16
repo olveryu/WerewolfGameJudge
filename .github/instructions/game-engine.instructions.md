@@ -26,11 +26,14 @@ Pure game logic workspace imported by client and Worker. It has no React, Cloudf
   `src/product/`.
 - Each game's state, models, handlers, reducers, and resolvers live under `src/games/<gameType>/`.
 - `platform/` cannot import `games/`. One game cannot import another game.
-- Client and Worker import a game only through `@game-judge/game-engine/games/<gameType>/public`.
-- Cross-package test harnesses use the explicit `games/<gameType>/testing` export. Production code cannot import it.
+- Client, Worker, and cross-package tests import a game only through
+  `@game-judge/game-engine/games/<gameType>/public`.
+- Cross-package state-transition tests dispatch typed public commands through the concrete engine. Test-only handler,
+  reducer, or state-builder exports are forbidden.
 - Game-owned domain deep paths are package-private. Restoring generic `src/engine`, `src/models`, `src/protocol`,
   or `src/resolvers` directories is forbidden.
-- Shared operation results use `@game-judge/game-engine/platform/protocol/actionResult`.
+- Authoritative command responses use `RoomCommandResult`; client room operations use their application-owned
+  `RoomOperationResult`. A second lossy protocol result shape is forbidden.
 
 ## Reducer Rules
 
@@ -39,19 +42,21 @@ Pure game logic workspace imported by client and Worker. It has no React, Cloudf
 
 ## Handler Rules
 
-- **Null-state guard**: All game control handlers must check `if (!state)` and return error on the first line. This is an established pattern (`handleStartGame` etc.) — new handlers must follow.
-- **sideEffects must not be omitted**: Handler results that modify state must include corresponding `sideEffects` (`BROADCAST_STATE` / `SAVE_STATE`). Omission = state changes not persisted, not broadcast.
+- **Initialized-state boundary**: `GameRoomRuntime` rejects `no_state` before invoking a concrete engine. Handler context
+  therefore requires a state; nullable state and repeated null guards are forbidden.
+- **Pure event contract**: Handlers return domain `StateAction` values and outcomes only. Persistence, broadcast, and
+  outbox delivery belong to platform decision/runtime code; handler-side `sideEffects` are forbidden.
 - **New `GameState` fields must sync `normalizeState`**
   (`games/werewolf/domain/state/normalize.ts`): the compile-time `satisfies Complete<...>` guard must remain.
 - **JSDoc requirement**: Handler module headers must contain `@remarks` explaining core logic (gate validation order, death calculation timing, etc.). Public handler functions annotated with `@pre` (state.status and other preconditions).
 
 ## Engine Internal Modules
 
-| Module                | File                                         | Responsibility                                                                                         |
-| --------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Intents**           | `games/werewolf/domain/intents/types.ts`     | Typed adapter intents consumed inside the Werewolf domain                                              |
-| **InlineProgression** | `games/werewolf/domain/inlineProgression.ts` | Pure recursive Werewolf night-step progression                                                         |
-| **ResolveWolfVotes**  | `games/werewolf/domain/resolveWolfVotes.ts`  | Werewolf vote aggregation                                                                              |
-| **DeathCalculator**   | `games/werewolf/domain/DeathCalculator.ts`   | Werewolf night death settlement                                                                        |
-| **Growth**            | `growth/`                                    | Product-wide XP, unlock, reward, and gacha calculations; scheduled to move under `product/` in Phase 8 |
-| **ActionResult**      | `platform/protocol/actionResult.ts`          | Shared operation-result discriminated union                                                            |
+| Module                | File                                         | Responsibility                                            |
+| --------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| **Intents**           | `games/werewolf/domain/intents/types.ts`     | Typed adapter intents consumed inside the Werewolf domain |
+| **InlineProgression** | `games/werewolf/domain/inlineProgression.ts` | Pure recursive Werewolf night-step progression            |
+| **ResolveWolfVotes**  | `games/werewolf/domain/resolveWolfVotes.ts`  | Werewolf vote aggregation                                 |
+| **DeathCalculator**   | `games/werewolf/domain/DeathCalculator.ts`   | Werewolf night death settlement                           |
+| **Growth**            | `product/growth/`                            | Product-wide XP and level calculations                    |
+| **Command result**    | `platform/protocol/commandResult.ts`         | Authoritative command receipt and snapshot envelope       |

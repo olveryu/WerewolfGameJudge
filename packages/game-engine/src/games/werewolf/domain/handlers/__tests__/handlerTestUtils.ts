@@ -2,7 +2,7 @@
  * Test assertion helpers for HandlerResult discriminated union.
  *
  * Narrows the union to the expected variant so tests can access
- * `.actions`, `.reason`, `.sideEffects` without manual type guards.
+ * `.actions` and `.reason` without manual type guards.
  */
 
 import type {

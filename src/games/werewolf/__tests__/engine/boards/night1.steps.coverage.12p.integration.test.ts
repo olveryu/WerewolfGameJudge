@@ -139,6 +139,14 @@ describe('Night-1: step-level coverage (12p)', () => {
     ).toBe(true);
     ctx.assertStep('poisonerPoison');
 
+    expect(
+      executeStepsUntil(ctx, 'darkWolfKingConfirm', {
+        poisoner: null,
+        hunter: { confirmed: true },
+      }),
+    ).toBe(true);
+    ctx.assertStep('darkWolfKingConfirm');
+
     // Wrap-up: run the full night
     executeFullNight(ctx);
   });
