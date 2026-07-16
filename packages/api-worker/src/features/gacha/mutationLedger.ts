@@ -17,14 +17,14 @@ export type GachaReplayResult<TResponse> =
   | { readonly kind: 'conflict' }
   | { readonly kind: 'replay'; readonly response: TResponse };
 
-interface ReplayIdentity<TSchema extends z.ZodType> {
+interface ReplayIdentity<TResponse> {
   readonly userId: string;
   readonly key: string;
   readonly operation: GachaMutationOperation;
-  readonly responseSchema: TSchema;
+  readonly decodeResponse: (value: unknown) => TResponse;
 }
 
-type MutationIdentity<TSchema extends z.ZodType> = Omit<ReplayIdentity<TSchema>, 'operation'>;
+type MutationIdentity<TResponse> = Omit<ReplayIdentity<TResponse>, 'operation'>;
 
 export interface GachaDrawHistoryEntry {
   readonly id: string;
@@ -39,7 +39,7 @@ export interface GachaDrawHistoryEntry {
   readonly createdAt: string;
 }
 
-interface DrawMutationInput<TSchema extends z.ZodType> extends MutationIdentity<TSchema> {
+interface DrawMutationInput<TResponse> extends MutationIdentity<TResponse> {
   readonly drawType: DrawType;
   readonly expectedVersion: number;
   readonly count: number;
@@ -47,14 +47,14 @@ interface DrawMutationInput<TSchema extends z.ZodType> extends MutationIdentity<
   readonly unlockedItemsJson: string;
   readonly shardsAwarded: number;
   readonly historyEntries: readonly GachaDrawHistoryEntry[];
-  readonly response: z.output<TSchema>;
+  readonly response: TResponse;
 }
 
-interface ExchangeMutationInput<TSchema extends z.ZodType> extends MutationIdentity<TSchema> {
+interface ExchangeMutationInput<TResponse> extends MutationIdentity<TResponse> {
   readonly expectedVersion: number;
   readonly cost: number;
   readonly unlockedItemsJson: string;
-  readonly response: z.output<TSchema>;
+  readonly response: TResponse;
 }
 
 function parsePersistedJson(response: string, key: string): unknown {
@@ -67,10 +67,10 @@ function parsePersistedJson(response: string, key: string): unknown {
 }
 
 /** Read and validate one committed replay without exposing another owner's response. */
-export async function readGachaReplay<TSchema extends z.ZodType>(
+export async function readGachaReplay<TResponse>(
   db: D1Database,
-  identity: ReplayIdentity<TSchema>,
-): Promise<GachaReplayResult<z.output<TSchema>>> {
+  identity: ReplayIdentity<TResponse>,
+): Promise<GachaReplayResult<TResponse>> {
   const row = await db
     .prepare(
       `SELECT user_id, operation, is_applied, response
@@ -91,13 +91,13 @@ export async function readGachaReplay<TSchema extends z.ZodType>(
 
   return {
     kind: 'replay',
-    response: identity.responseSchema.parse(parsePersistedJson(stored.response, identity.key)),
+    response: identity.decodeResponse(parsePersistedJson(stored.response, identity.key)),
   };
 }
 
 function createClaimStatement(
   db: D1Database,
-  input: ReplayIdentity<z.ZodType>,
+  input: Pick<ReplayIdentity<unknown>, 'key' | 'operation' | 'userId'>,
   claimId: string,
   responseJson: string,
 ): D1PreparedStatement {
@@ -120,7 +120,9 @@ function createClaimStatement(
 
 function createMarkAppliedStatement(
   db: D1Database,
-  input: ReplayIdentity<z.ZodType> & { readonly expectedVersion: number },
+  input: Pick<ReplayIdentity<unknown>, 'key' | 'operation' | 'userId'> & {
+    readonly expectedVersion: number;
+  },
   claimId: string,
 ): D1PreparedStatement {
   return db
@@ -149,15 +151,15 @@ function createCleanupStatement(db: D1Database, key: string, claimId: string): D
     .bind(key, claimId);
 }
 
-async function commitMutation<TSchema extends z.ZodType>(
+async function commitMutation<TResponse>(
   db: D1Database,
-  input: ReplayIdentity<TSchema> & {
+  input: ReplayIdentity<TResponse> & {
     readonly expectedVersion: number;
-    readonly response: z.output<TSchema>;
+    readonly response: TResponse;
   },
   createBeforeApplyStatements: (claimId: string) => readonly D1PreparedStatement[],
   createStatsMutationStatement: (claimId: string) => D1PreparedStatement,
-): Promise<GachaReplayResult<z.output<TSchema>>> {
+): Promise<GachaReplayResult<TResponse>> {
   const responseJson = JSON.stringify(input.response);
   if (responseJson === undefined) {
     throw new Error(`[FAIL-FAST] Gacha ${input.operation} response is not JSON serializable`);
@@ -182,10 +184,10 @@ async function commitMutation<TSchema extends z.ZodType>(
 }
 
 /** Commit draw stats, immutable history, and replay in one D1 transaction. */
-export function commitGachaDraw<TSchema extends z.ZodType>(
+export function commitGachaDraw<TResponse>(
   db: D1Database,
-  input: DrawMutationInput<TSchema>,
-): Promise<GachaReplayResult<z.output<TSchema>>> {
+  input: DrawMutationInput<TResponse>,
+): Promise<GachaReplayResult<TResponse>> {
   if (input.historyEntries.length === 0) {
     throw new Error('[FAIL-FAST] A validated draw must produce history entries');
   }
@@ -275,10 +277,10 @@ export function commitGachaDraw<TSchema extends z.ZodType>(
 }
 
 /** Commit shard exchange stats and replay in one D1 transaction. */
-export function commitGachaExchange<TSchema extends z.ZodType>(
+export function commitGachaExchange<TResponse>(
   db: D1Database,
-  input: ExchangeMutationInput<TSchema>,
-): Promise<GachaReplayResult<z.output<TSchema>>> {
+  input: ExchangeMutationInput<TResponse>,
+): Promise<GachaReplayResult<TResponse>> {
   return commitMutation(
     db,
     { ...input, operation: 'exchange' },

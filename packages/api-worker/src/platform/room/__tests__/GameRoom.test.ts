@@ -354,19 +354,21 @@ describe('GameRoom command receipts', () => {
   it('writes the authoritative state and receipt before delivering its platform effect', async () => {
     const stub = getStub();
     await initialize(stub);
-    requireCommitted(
-      await dispatch(stub, {
-        commandId: 'seat-with-effect',
-        actorUserId: 'host-1',
-        command: {
-          type: 'room.seat.take',
-          seat: 0,
-          profile: { displayName: '房主' },
-        },
-      }),
-    );
 
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      requireCommitted(
+        await instance.dispatchUserCommand({
+          ...roomIdentity(stub),
+          commandId: 'seat-with-effect',
+          actorUserId: 'host-1',
+          controlledSeat: null,
+          command: {
+            type: 'room.seat.take',
+            seat: 0,
+            profile: { displayName: '房主' },
+          },
+        }),
+      );
       const room = state.storage.sql
         .exec('SELECT game_type, state_version, revision FROM room_state WHERE id = 1')
         .one();
@@ -395,10 +397,10 @@ describe('GameRoom command receipts', () => {
         effect_type: 'platform.room.participantJoined',
         business_key: 'user:host-1',
       });
+      await state.storage.deleteAlarm();
     });
 
     await runInDurableObject(stub, async (instance: GameRoom, state) => {
-      await state.storage.deleteAlarm();
       await instance.alarm();
       expect(state.storage.sql.exec('SELECT COUNT(*) AS count FROM effect_outbox').one()).toEqual({
         count: 0,

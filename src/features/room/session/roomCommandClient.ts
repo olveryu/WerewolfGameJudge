@@ -11,7 +11,7 @@ import type {
 } from '@game-judge/game-engine/platform/protocol/roomSnapshot';
 
 import type { PreparedRoomCommand } from '@/features/room/session/types';
-import { cfPost } from '@/services/cloudflare/cfFetch';
+import { cfPost, CloudflareHttpError } from '@/services/cloudflare/cfFetch';
 import { handleError } from '@/utils/errorPipeline';
 import { isAbortError, isExpectedError, isNetworkError } from '@/utils/errorUtils';
 import { roomSessionLog } from '@/utils/logger';
@@ -105,22 +105,11 @@ export function prepareRoomCommand<TCommand extends object>({
   });
 }
 
-function readErrorStatus(error: unknown): number | null {
-  if (error === null || typeof error !== 'object' || !('status' in error)) return null;
-  return typeof error.status === 'number' ? error.status : null;
-}
-
-function readErrorReason(error: unknown): string | null {
-  if (error === null || typeof error !== 'object' || !('reason' in error)) return null;
-  return typeof error.reason === 'string' && error.reason.length > 0 ? error.reason : null;
-}
-
 function isBusinessRetryable(error: unknown): boolean {
   if (isAbortError(error)) return true;
-  const status = readErrorStatus(error);
-  if (status !== null && status >= 500 && status <= 599) return true;
-  const reason = readErrorReason(error);
-  return reason === 'SERVER_ERROR' || reason === 'INTERNAL_ERROR';
+  if (!(error instanceof CloudflareHttpError)) return false;
+  if (error.status >= 500 && error.status <= 599) return true;
+  return error.reason === 'SERVER_ERROR' || error.reason === 'INTERNAL_ERROR';
 }
 
 function reportTransportError(error: unknown, label: string): void {
@@ -145,14 +134,14 @@ function mapTransportError(
     reason = 'TIMEOUT';
   } else if (isNetworkError(error)) {
     reason = 'NETWORK_ERROR';
+  } else if (error instanceof CloudflareHttpError) {
+    reason = error.reason;
   } else {
-    const parsedReason = readErrorReason(error);
-    if (parsedReason === null) throw error;
-    reason = parsedReason;
+    throw error;
   }
 
-  const status = readErrorStatus(error);
-  const hasUnknownServerOutcome = status !== null && status >= 500 && status <= 599;
+  const hasUnknownServerOutcome =
+    error instanceof CloudflareHttpError && error.status >= 500 && error.status <= 599;
   return {
     kind:
       hasUnknownServerOutcome || isDeliveryUnknownReason(reason) ? 'deliveryUnknown' : 'notDecided',
@@ -182,11 +171,18 @@ export async function sendPreparedRoomCommand<
     controlledSeat: prepared.controlledSeat,
   };
 
-  let payload: unknown;
   for (let attempt = 0; ; attempt += 1) {
     try {
-      payload = await cfPost<unknown>(COMMAND_PATH, request);
-      break;
+      const decision = await cfPost(COMMAND_PATH, request, (value) => {
+        const parsed = parseRoomCommandResult(value, codec);
+        if (parsed.commandId !== prepared.commandId) {
+          throw new RoomCommandProtocolError(
+            `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${parsed.commandId}`,
+          );
+        }
+        return parsed;
+      });
+      return { kind: 'decided', decision };
     } catch (error) {
       const retryDelay = BUSINESS_RETRY_DELAYS_MS[attempt];
       if (retryDelay !== undefined && isBusinessRetryable(error)) {
@@ -201,18 +197,5 @@ export async function sendPreparedRoomCommand<
       }
       return mapTransportError(error, label, prepared.commandId);
     }
-  }
-
-  try {
-    const decision = parseRoomCommandResult(payload, codec);
-    if (decision.commandId !== prepared.commandId) {
-      throw new RoomCommandProtocolError(
-        `RoomCommandResult commandId mismatch: expected ${prepared.commandId}, received ${decision.commandId}`,
-      );
-    }
-    return { kind: 'decided', decision };
-  } catch (error) {
-    reportTransportError(error, label);
-    throw error;
   }
 }

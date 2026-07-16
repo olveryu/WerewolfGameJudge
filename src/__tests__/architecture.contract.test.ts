@@ -217,6 +217,51 @@ function getUnsafeTypeAssertions(filePath: string): readonly string[] {
   return violations;
 }
 
+function getUnvalidatedCloudflareCalls(filePath: string): readonly string[] {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const decoderIndexes = new Map([
+    ['cfGet', 1],
+    ['cfPost', 2],
+    ['cfPut', 2],
+    ['cfUpload', 2],
+  ]);
+  const violations: string[] = [];
+
+  function visit(node: ts.Node): void {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
+      const decoderIndex = decoderIndexes.get(node.expression.text);
+      if (decoderIndex !== undefined) {
+        const decoder = node.arguments[decoderIndex];
+        const identityParameter =
+          decoder !== undefined && ts.isArrowFunction(decoder) ? decoder.parameters[0] : undefined;
+        const isIdentityArrow =
+          decoder !== undefined &&
+          ts.isArrowFunction(decoder) &&
+          decoder.parameters.length === 1 &&
+          identityParameter !== undefined &&
+          ts.isIdentifier(identityParameter.name) &&
+          ts.isIdentifier(decoder.body) &&
+          decoder.body.text === identityParameter.name.text;
+        if (node.typeArguments !== undefined || decoder === undefined || isIdentityArrow) {
+          const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+          violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return violations;
+}
+
 function getIdentifierNames(filePath: string): readonly string[] {
   const source = fs.readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
@@ -1179,6 +1224,14 @@ describe('Production types: no escape-hatch assertions', () => {
     const violations = [...srcFiles, ...gameEngineFiles, ...workerFiles].flatMap(
       getUnsafeTypeAssertions,
     );
+
+    expect(violations).toEqual([]);
+  });
+});
+
+describe('Client HTTP: every Cloudflare success response has an owner decoder', () => {
+  it('forbids generic and identity-decoded cfFetch calls', () => {
+    const violations = srcFiles.flatMap(getUnvalidatedCloudflareCalls);
 
     expect(violations).toEqual([]);
   });

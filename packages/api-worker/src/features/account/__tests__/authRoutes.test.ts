@@ -13,6 +13,7 @@ interface UserProfileResponse {
     user: {
       email: string | null;
       is_anonymous: boolean;
+      has_wechat: boolean;
       user_metadata: { display_name?: string };
     };
   };
@@ -122,6 +123,7 @@ describe('GET /auth/user', () => {
     const body = await response.json<UserProfileResponse>();
     expect(body.data.user.email).toBe('profile@test.local');
     expect(body.data.user.is_anonymous).toBe(false);
+    expect(body.data.user.has_wechat).toBe(false);
     expect(body.data.user.user_metadata.display_name).toBe('Profiler');
   });
 });

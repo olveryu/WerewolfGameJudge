@@ -16,7 +16,7 @@ import type { AppEnv } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { authenticateAccessToken, extractBearerToken, requireAuth } from '../auth/tokenAuth';
 import { users, userStats } from './dbSchema';
-import { toUserMetadata } from './profile';
+import { selectAuthUserResponse } from './profile';
 import { updateProfileSchema } from './schemas';
 
 /** Current-account and profile mutation routes. */
@@ -40,39 +40,12 @@ accountAuthRoutes.get('/user', async (c) => {
     return c.json({ success: false, reason: 'TOKEN_REVOKED' }, 401);
   }
 
-  const user = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      customAvatarUrl: users.customAvatarUrl,
-      avatarFrame: users.avatarFrame,
-      equippedFlair: users.equippedFlair,
-      equippedNameStyle: users.equippedNameStyle,
-      equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
-      isAnonymous: users.isAnonymous,
-      wechatOpenid: users.wechatOpenid,
-    })
-    .from(users)
-    .where(eq(users.id, authentication.principal.userId))
-    .get();
-
-  if (user === undefined) {
-    throw new Error(`Authenticated user ${authentication.principal.userId} disappeared`);
-  }
+  const user = await selectAuthUserResponse(db, authentication.principal.userId);
 
   return c.json(
     {
       data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          is_anonymous: user.isAnonymous === 1,
-          has_wechat: user.wechatOpenid !== null,
-          user_metadata: toUserMetadata(user),
-        },
+        user,
       },
     },
     200,

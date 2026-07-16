@@ -16,6 +16,7 @@ interface AuthSuccessResponse {
     id: string;
     email: string | null;
     is_anonymous: boolean;
+    has_wechat: boolean;
     user_metadata: { display_name?: string };
   };
 }
@@ -75,6 +76,7 @@ describe('POST /auth/anonymous', () => {
     expect(body.access_token).toBeTruthy();
     expect(body.user.id).toBeTruthy();
     expect(body.user.is_anonymous).toBe(true);
+    expect(body.user.has_wechat).toBe(false);
     expect(body.user.email).toBeNull();
   });
 
@@ -101,6 +103,7 @@ describe('POST /auth/signup', () => {
     expect(body.access_token).toBeTruthy();
     expect(body.user.email).toBe('new@test.local');
     expect(body.user.is_anonymous).toBe(false);
+    expect(body.user.has_wechat).toBe(false);
   });
 
   it('grants welcome bonus on signup', async () => {
@@ -167,6 +170,7 @@ describe('POST /auth/signup', () => {
     expect(body.user.id).toBe(anonBody.user.id);
     expect(body.user.email).toBe('upgraded@test.local');
     expect(body.user.is_anonymous).toBe(false);
+    expect(body.user.has_wechat).toBe(false);
   });
 
   it('does not upgrade an anonymous account through a revoked token', async () => {
@@ -224,6 +228,7 @@ describe('POST /auth/signin', () => {
     expect(body.access_token).toBeTruthy();
     expect(body.user.email).toBe('login@test.local');
     expect(body.user.is_anonymous).toBe(false);
+    expect(body.user.has_wechat).toBe(false);
   });
 
   it('rejects wrong password', async () => {

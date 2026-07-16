@@ -8,45 +8,57 @@
  * POST /api/feedback/mark-read — mark as read
  */
 
+import { z } from 'zod';
+
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
-/** A single reply entry. */
-export interface FeedbackReply {
-  id: string;
-  isAdmin: number;
-  body: string;
-  isRead: number;
-  createdAt: string;
-}
+const nonnegativeIntegerSchema = z.number().int().nonnegative();
+const sqliteBooleanSchema = z.union([z.literal(0), z.literal(1)]);
 
-/** Single feedback item with replies */
-export interface FeedbackItem {
-  id: string;
-  content: string;
-  appVersion: string;
-  githubIssueNumber: number;
-  status: 'open' | 'resolved';
-  createdAt: string;
-  replies: FeedbackReply[];
-}
+const feedbackReplySchema = z.strictObject({
+  id: z.string().min(1),
+  isAdmin: sqliteBooleanSchema,
+  body: z.string(),
+  isRead: sqliteBooleanSchema,
+  createdAt: z.iso.datetime(),
+});
+
+const feedbackItemSchema = z.strictObject({
+  id: z.string().min(1),
+  content: z.string(),
+  appVersion: z.string().min(1),
+  githubIssueNumber: nonnegativeIntegerSchema,
+  status: z.enum(['open', 'resolved']),
+  createdAt: z.iso.datetime(),
+  replies: z.array(feedbackReplySchema),
+});
+
+const submitFeedbackResponseSchema = z.strictObject({
+  success: z.literal(true),
+  feedbackId: z.string().min(1),
+  githubIssueNumber: nonnegativeIntegerSchema,
+});
+
+const feedbackHistoryResponseSchema = z.strictObject({
+  feedbacks: z.array(feedbackItemSchema),
+});
+
+const unreadCountResponseSchema = z.strictObject({ count: nonnegativeIntegerSchema });
+const replyResponseSchema = z.strictObject({
+  success: z.literal(true),
+  replyId: z.string().min(1),
+});
+const successResponseSchema = z.strictObject({ success: z.literal(true) });
+
+/** A single reply entry. */
+export type FeedbackReply = z.infer<typeof feedbackReplySchema>;
+
+/** Single feedback item with replies. */
+export type FeedbackItem = z.infer<typeof feedbackItemSchema>;
 
 interface SubmitFeedbackResult {
   feedbackId: string;
   githubIssueNumber: number;
-}
-
-interface SubmitFeedbackResponse {
-  success: boolean;
-  feedbackId: string;
-  githubIssueNumber: number;
-}
-
-interface FeedbackHistoryResponse {
-  feedbacks: FeedbackItem[];
-}
-
-interface UnreadCountResponse {
-  count: number;
 }
 
 /**
@@ -59,13 +71,17 @@ export async function submitFeedback(
   content: string,
   appVersion: string,
 ): Promise<SubmitFeedbackResult> {
-  const res = await cfPost<SubmitFeedbackResponse>('/api/feedback', { content, appVersion });
+  const res = await cfPost('/api/feedback', { content, appVersion }, (value) =>
+    submitFeedbackResponseSchema.parse(value),
+  );
   return { feedbackId: res.feedbackId, githubIssueNumber: res.githubIssueNumber };
 }
 
 /** Fetches the current user's feedback history (including replies). */
 export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
-  const res = await cfGet<FeedbackHistoryResponse>('/api/feedback/history');
+  const res = await cfGet('/api/feedback/history', (value) =>
+    feedbackHistoryResponseSchema.parse(value),
+  );
   return res.feedbacks;
 }
 
@@ -76,18 +92,24 @@ export async function getFeedbackHistory(): Promise<FeedbackItem[]> {
  * @param content - reply body
  */
 export async function replyToFeedback(feedbackId: string, content: string): Promise<void> {
-  await cfPost(`/api/feedback/${feedbackId}/reply`, { content });
+  await cfPost(`/api/feedback/${feedbackId}/reply`, { content }, (value) => {
+    replyResponseSchema.parse(value);
+  });
 }
 
 /** Fetches the count of unread admin replies. */
 export async function getUnreadFeedbackCount(): Promise<number> {
-  const res = await cfGet<UnreadCountResponse>('/api/feedback/unread-count');
+  const res = await cfGet('/api/feedback/unread-count', (value) =>
+    unreadCountResponseSchema.parse(value),
+  );
   return res.count;
 }
 
 /** Marks replies for the specified feedback as read. */
 export async function markFeedbackRead(feedbackId: string): Promise<void> {
-  await cfPost('/api/feedback/mark-read', { feedbackId });
+  await cfPost('/api/feedback/mark-read', { feedbackId }, (value) => {
+    successResponseSchema.parse(value);
+  });
 }
 
 /**
@@ -100,5 +122,7 @@ export async function resolveFeedback(
   feedbackId: string,
   action: 'resolve' | 'reopen',
 ): Promise<void> {
-  await cfPost(`/api/feedback/${feedbackId}/resolve`, { action });
+  await cfPost(`/api/feedback/${feedbackId}/resolve`, { action }, (value) => {
+    successResponseSchema.parse(value);
+  });
 }

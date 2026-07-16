@@ -7,12 +7,39 @@ jest.unmock('../../contexts/AuthContext');
 import { useAuthContext as useAuth, type User } from '@/contexts/AuthContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useServices } from '@/contexts/ServiceContext';
+import type { AuthUser, UserMetadata } from '@/services/types/IAuthService';
 
 // Mock service functions used by AuthProvider via useServices()
 const mockGetCurrentUser = jest.fn();
 
 // Access the jest-mocked useServices to override return values
 const mockUseServices = useServices as jest.Mock;
+
+const EMPTY_USER_METADATA: UserMetadata = {
+  display_name: null,
+  avatar_url: null,
+  custom_avatar_url: null,
+  avatar_frame: null,
+  seat_flair: null,
+  name_style: null,
+  equipped_effect: null,
+  seat_animation: null,
+};
+
+function createAuthUser(options: {
+  id: string;
+  email: string | null;
+  isAnonymous?: boolean;
+  metadata?: Partial<UserMetadata>;
+}): AuthUser {
+  return {
+    id: options.id,
+    email: options.email,
+    is_anonymous: options.isAnonymous ?? false,
+    has_wechat: false,
+    user_metadata: { ...EMPTY_USER_METADATA, ...options.metadata },
+  };
+}
 
 // Wrapper for renderHook that includes AuthProvider
 const wrapper = ({ children }: { children: React.ReactNode }) =>
@@ -21,7 +48,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
 describe('useAuth hook', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
+    mockGetCurrentUser.mockResolvedValue(null);
 
     // Override global ServiceContext mock with test-specific mock functions
     mockUseServices.mockReturnValue({
@@ -77,12 +104,11 @@ describe('useAuth hook', () => {
     });
 
     it('should load user on mount via getCurrentUser', async () => {
-      const mockAuthUser = {
+      const mockAuthUser = createAuthUser({
         id: 'user-123',
         email: 'test@example.com',
-        user_metadata: { display_name: 'Test User' },
-        is_anonymous: false,
-      };
+        metadata: { display_name: 'Test User' },
+      });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -119,12 +145,11 @@ describe('useAuth hook', () => {
       expect(result.current.user).toBeNull();
 
       // Simulate sign-in happening externally (via mutation hook)
-      const mockAuthUser = {
+      const mockAuthUser = createAuthUser({
         id: 'user-456',
         email: 'refresh@example.com',
-        user_metadata: { display_name: 'Refreshed User' },
-        is_anonymous: false,
-      };
+        metadata: { display_name: 'Refreshed User' },
+      });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       await act(async () => {
@@ -149,12 +174,7 @@ describe('useAuth hook', () => {
 
     it('should clear user state when getCurrentUser returns null', async () => {
       // Start with a user
-      const mockAuthUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        user_metadata: {},
-        is_anonymous: false,
-      };
+      const mockAuthUser = createAuthUser({ id: 'user-123', email: 'test@example.com' });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -166,7 +186,7 @@ describe('useAuth hook', () => {
       expect(result.current.isAuthenticated).toBe(true);
 
       // Simulate sign-out: getCurrentUser now returns null
-      mockGetCurrentUser.mockResolvedValue({ data: { user: null } });
+      mockGetCurrentUser.mockResolvedValue(null);
 
       await act(async () => {
         await result.current.refreshUser();
@@ -178,12 +198,7 @@ describe('useAuth hook', () => {
 
     it('should keep current state when getCurrentUser throws', async () => {
       // Start with a user
-      const mockAuthUser = {
-        id: 'user-123',
-        email: 'test@example.com',
-        user_metadata: {},
-        is_anonymous: false,
-      };
+      const mockAuthUser = createAuthUser({ id: 'user-123', email: 'test@example.com' });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -209,15 +224,14 @@ describe('useAuth hook', () => {
 
   describe('User type conversion', () => {
     it('should correctly convert auth user to User type', async () => {
-      const mockAuthUser = {
+      const mockAuthUser = createAuthUser({
         id: 'user-456',
         email: 'full@example.com',
-        user_metadata: {
+        metadata: {
           display_name: 'Full User',
           avatar_url: 'https://example.com/avatar.png',
         },
-        is_anonymous: false,
-      };
+      });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -242,12 +256,11 @@ describe('useAuth hook', () => {
     });
 
     it('should handle anonymous users correctly', async () => {
-      const mockAuthUser = {
+      const mockAuthUser = createAuthUser({
         id: 'anon-123',
         email: null,
-        user_metadata: {},
-        is_anonymous: true,
-      };
+        isAnonymous: true,
+      });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -271,12 +284,8 @@ describe('useAuth hook', () => {
       });
     });
 
-    it('should handle missing user_metadata', async () => {
-      const mockAuthUser = {
-        id: 'user-789',
-        email: 'test@example.com',
-        is_anonymous: false,
-      };
+    it('should map empty canonical user metadata to null presentation fields', async () => {
+      const mockAuthUser = createAuthUser({ id: 'user-789', email: 'test@example.com' });
       mockGetCurrentUser.mockResolvedValue({ data: { user: mockAuthUser } });
 
       const { result } = renderHook(() => useAuth(), { wrapper });

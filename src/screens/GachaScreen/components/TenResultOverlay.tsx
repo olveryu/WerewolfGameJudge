@@ -37,7 +37,7 @@ import {
 import { getRewardDisplayName, RewardPreview } from './RewardPreview';
 
 interface TenResultOverlayProps {
-  results: DrawResultItem[];
+  results: readonly DrawResultItem[];
   drawType: 'normal' | 'golden';
   onClose: () => void;
   onGoEquip?: () => void;

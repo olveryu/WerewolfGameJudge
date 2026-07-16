@@ -20,11 +20,16 @@
 
 import { secureRng } from '@game-judge/game-engine/platform/random';
 import {
+  type GachaDrawResponse,
+  type GachaDrawResultItem,
+  type GachaExchangeResponse,
+  parseGachaDailyRewardResponse,
+  parseGachaDrawResponse,
+  parseGachaExchangeResponse,
+  parseGachaStatus,
   parseUnlockedRewardIds,
-  RARITIES,
   type Rarity,
   REWARD_POOL_BY_ID,
-  REWARD_TYPES,
   rollNormalDraws,
   rollRarity,
   selectReward,
@@ -32,7 +37,6 @@ import {
 } from '@game-judge/game-engine/product/rewards';
 import { and, eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
@@ -76,60 +80,31 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     .get();
 
   if (!stats) {
-    return c.json({
-      normalDraws: 0,
-      goldenDraws: 0,
-      normalPity: 0,
-      goldenPity: 0,
-      shards: 0,
-      unlockedCount: 0,
-    });
+    return c.json(
+      parseGachaStatus({
+        normalDraws: 0,
+        goldenDraws: 0,
+        normalPity: 0,
+        goldenPity: 0,
+        shards: 0,
+        unlockedCount: 0,
+      }),
+    );
   }
 
   const unlockedItems = parseUnlockedRewardIds(stats.unlockedItems);
 
-  return c.json({
-    normalDraws: stats.normalDraws,
-    goldenDraws: stats.goldenDraws,
-    normalPity: stats.normalPity,
-    goldenPity: stats.goldenPity,
-    shards: stats.shards,
-    unlockedCount: unlockedItems.length,
-  });
+  return c.json(
+    parseGachaStatus({
+      normalDraws: stats.normalDraws,
+      goldenDraws: stats.goldenDraws,
+      normalPity: stats.normalPity,
+      goldenPity: stats.goldenPity,
+      shards: stats.shards,
+      unlockedCount: unlockedItems.length,
+    }),
+  );
 });
-
-const nonnegativeIntegerSchema = z.number().int().nonnegative();
-const rewardIdSchema = z.string().refine((rewardId) => REWARD_POOL_BY_ID.has(rewardId), {
-  error: 'Unknown persisted reward ID',
-});
-const drawResultSchema = z.strictObject({
-  rarity: z.enum(RARITIES),
-  rewardType: z.enum(REWARD_TYPES),
-  rewardId: rewardIdSchema,
-  isNew: z.boolean(),
-  isPityTriggered: z.boolean(),
-  isDuplicate: z.boolean(),
-  shardsAwarded: nonnegativeIntegerSchema,
-});
-const drawResponseSchema = z.strictObject({
-  results: z.array(drawResultSchema).min(1),
-  totalShardsAwarded: nonnegativeIntegerSchema,
-  remaining: z.strictObject({
-    normalDraws: nonnegativeIntegerSchema,
-    goldenDraws: nonnegativeIntegerSchema,
-  }),
-});
-const exchangeResponseSchema = z.strictObject({
-  rewardId: rewardIdSchema,
-  rewardType: z.enum(REWARD_TYPES),
-  rarity: z.enum(RARITIES),
-  cost: nonnegativeIntegerSchema,
-  remainingShards: nonnegativeIntegerSchema,
-});
-
-type DrawResult = z.infer<typeof drawResultSchema>;
-type DrawResponse = z.infer<typeof drawResponseSchema>;
-type ExchangeResponse = z.infer<typeof exchangeResponseSchema>;
 
 /** Max OCC attempts for one gacha mutation. */
 const MAX_GACHA_OCC_ATTEMPTS = 3;
@@ -145,7 +120,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     userId,
     key: idempotencyKey,
     operation: 'draw',
-    responseSchema: drawResponseSchema,
+    decodeResponse: parseGachaDrawResponse,
   });
   if (cached.kind === 'conflict') {
     return c.json({ success: false, reason: 'CONFLICT' }, 409);
@@ -192,7 +167,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     const unlockedSet = new Set(unlockedIds);
 
     let currentPity = drawType === 'golden' ? stats.goldenPity : stats.normalPity;
-    const results: DrawResult[] = [];
+    const results: GachaDrawResultItem[] = [];
     const historyEntries: GachaDrawHistoryEntry[] = [];
 
     let totalShardsAwarded = 0;
@@ -238,14 +213,14 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     }
 
     const updatedItems = JSON.stringify([...unlockedSet]);
-    const response: DrawResponse = {
+    const response: GachaDrawResponse = parseGachaDrawResponse({
       results,
       totalShardsAwarded,
       remaining: {
         normalDraws: drawType === 'normal' ? availableTickets - count : stats.normalDraws,
         goldenDraws: drawType === 'golden' ? availableTickets - count : stats.goldenDraws,
       },
-    };
+    });
     const committed = await commitGachaDraw(c.env.DB, {
       userId,
       key: idempotencyKey,
@@ -257,7 +232,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
       shardsAwarded: totalShardsAwarded,
       historyEntries,
       response,
-      responseSchema: drawResponseSchema,
+      decodeResponse: parseGachaDrawResponse,
     });
     if (committed.kind === 'conflict') {
       return c.json({ success: false, reason: 'CONFLICT' }, 409);
@@ -265,7 +240,7 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
     if (committed.kind === 'miss') continue;
 
     const rarities: Rarity[] = committed.response.results.map(
-      (result: DrawResult): Rarity => result.rarity,
+      (result: GachaDrawResultItem): Rarity => result.rarity,
     );
     log.info('draw success', {
       userId,
@@ -315,7 +290,13 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
         .returning({ userId: userStats.userId });
 
       if (inserted.length === 1) {
-        return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
+        return c.json(
+          parseGachaDailyRewardResponse({
+            claimed: true,
+            normalDrawsAdded: dailyDraws,
+            goldenDrawsAdded: 1,
+          }),
+        );
       }
       if (inserted.length !== 0) {
         throw new Error(`[FAIL-FAST] Daily reward insert returned ${inserted.length} rows`);
@@ -331,7 +312,7 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       );
       const hoursSinceLastClaim = (Date.now() - lastClaimTime) / (1000 * 60 * 60);
       if (hoursSinceLastClaim < DAILY_REWARD_COOLDOWN_HOURS) {
-        return c.json({ claimed: false, reason: 'cooldown' });
+        return c.json(parseGachaDailyRewardResponse({ claimed: false, reason: 'cooldown' }));
       }
     }
 
@@ -353,7 +334,13 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
       continue;
     }
 
-    return c.json({ claimed: true, normalDrawsAdded: dailyDraws, goldenDrawsAdded: 1 });
+    return c.json(
+      parseGachaDailyRewardResponse({
+        claimed: true,
+        normalDrawsAdded: dailyDraws,
+        goldenDrawsAdded: 1,
+      }),
+    );
   }
 
   return c.json({ success: false, reason: 'CONFLICT' }, 409);
@@ -370,7 +357,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
     userId,
     key: idempotencyKey,
     operation: 'exchange',
-    responseSchema: exchangeResponseSchema,
+    decodeResponse: parseGachaExchangeResponse,
   });
   if (cached.kind === 'conflict') {
     return c.json({ success: false, reason: 'CONFLICT' }, 409);
@@ -420,13 +407,13 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
     }
 
     const updatedItems = JSON.stringify([...unlockedIds, rewardId]);
-    const response: ExchangeResponse = {
+    const response: GachaExchangeResponse = parseGachaExchangeResponse({
       rewardId,
       rewardType: rewardItem.type,
       rarity: rewardItem.rarity,
       cost,
       remainingShards: stats.shards - cost,
-    };
+    });
     const committed = await commitGachaExchange(c.env.DB, {
       userId,
       key: idempotencyKey,
@@ -434,7 +421,7 @@ gachaRoutes.post('/gacha/exchange', requireAuth, jsonBody(shardExchangeSchema), 
       cost,
       unlockedItemsJson: updatedItems,
       response,
-      responseSchema: exchangeResponseSchema,
+      decodeResponse: parseGachaExchangeResponse,
     });
     if (committed.kind === 'conflict') {
       return c.json({ success: false, reason: 'CONFLICT' }, 409);

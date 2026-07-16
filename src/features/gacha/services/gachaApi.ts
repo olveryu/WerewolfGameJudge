@@ -5,60 +5,28 @@
  * Wrapped uniformly via cfGet/cfPost.
  */
 
-import type { Rarity, RewardType } from '@game-judge/game-engine/product/rewards';
+import {
+  type GachaDailyRewardResponse,
+  type GachaDrawResponse,
+  type GachaDrawResultItem,
+  type GachaExchangeResponse,
+  type GachaStatus,
+  parseGachaDailyRewardResponse,
+  parseGachaDrawResponse,
+  parseGachaExchangeResponse,
+  parseGachaStatus,
+} from '@game-judge/game-engine/product/rewards';
 
 import { cfGet, cfPost } from '@/services/cloudflare/cfFetch';
 
-interface GachaStatus {
-  normalDraws: number;
-  goldenDraws: number;
-  normalPity: number;
-  goldenPity: number;
-  shards: number;
-  unlockedCount: number;
-}
-
-export interface DrawResultItem {
-  rarity: Rarity;
-  rewardType: RewardType;
-  rewardId: string;
-  isNew: boolean;
-  isPityTriggered: boolean;
-  isDuplicate: boolean;
-  shardsAwarded: number;
-}
-
-export interface DrawResponse {
-  results: DrawResultItem[];
-  totalShardsAwarded: number;
-  remaining: {
-    normalDraws: number;
-    goldenDraws: number;
-  };
-}
-
-export type DailyRewardResponse =
-  | {
-      claimed: true;
-      normalDrawsAdded: number;
-      goldenDrawsAdded: 1;
-    }
-  | {
-      claimed: false;
-      reason: 'cooldown';
-    };
-
-export interface ExchangeResponse {
-  rewardId: string;
-  rewardType: RewardType;
-  rarity: Rarity;
-  cost: number;
-  remainingShards: number;
-}
+export type DrawResultItem = GachaDrawResultItem;
+export type DrawResponse = GachaDrawResponse;
+export type DailyRewardResponse = GachaDailyRewardResponse;
+export type ExchangeResponse = GachaExchangeResponse;
 
 /** Gets the current user's gacha status */
 export async function fetchGachaStatus(): Promise<GachaStatus> {
-  return cfGet<GachaStatus>('/api/gacha/status');
+  return cfGet('/api/gacha/status', parseGachaStatus);
 }
 
 /** Performs a draw (idempotent: retrying with the same idempotencyKey returns the same result) */
@@ -67,16 +35,16 @@ export async function performDraw(
   count: number = 1,
 ): Promise<DrawResponse> {
   const idempotencyKey = crypto.randomUUID();
-  return cfPost<DrawResponse>('/api/gacha/draw', { drawType, count, idempotencyKey });
+  return cfPost('/api/gacha/draw', { drawType, count, idempotencyKey }, parseGachaDrawResponse);
 }
 
 /** Claims daily login reward (1-5 normal draws + 1 golden draw) */
 export async function claimDailyReward(): Promise<DailyRewardResponse> {
-  return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', {});
+  return cfPost('/api/gacha/daily-reward', {}, parseGachaDailyRewardResponse);
 }
 
 /** Exchanges shards for the specified item (idempotent: retrying with the same idempotencyKey returns the same result) */
 export async function exchangeShard(rewardId: string): Promise<ExchangeResponse> {
   const idempotencyKey = crypto.randomUUID();
-  return cfPost<ExchangeResponse>('/api/gacha/exchange', { rewardId, idempotencyKey });
+  return cfPost('/api/gacha/exchange', { rewardId, idempotencyKey }, parseGachaExchangeResponse);
 }

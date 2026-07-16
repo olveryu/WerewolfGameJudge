@@ -75,7 +75,7 @@ const userEquals = (a: User | null, b: User | null): boolean => {
 };
 
 /** Normalize empty string to null (server may send "" for unequipped fields). */
-function emptyToNull(val: string | null | undefined): string | null {
+function emptyToNull(val: string | null): string | null {
   return val && val !== '' ? val : null;
 }
 
@@ -85,16 +85,16 @@ const toUser = (authUser: AuthUser | null): User | null => {
   const meta = authUser.user_metadata;
   return {
     id: authUser.id,
-    email: authUser.email ?? null,
-    displayName: emptyToNull(meta?.display_name),
-    avatarUrl: emptyToNull(meta?.avatar_url),
-    customAvatarUrl: emptyToNull(meta?.custom_avatar_url),
-    avatarFrame: emptyToNull(meta?.avatar_frame),
-    seatFlair: emptyToNull(meta?.seat_flair),
-    nameStyle: emptyToNull(meta?.name_style),
-    equippedEffect: emptyToNull(meta?.equipped_effect),
-    seatAnimation: emptyToNull(meta?.seat_animation),
-    isAnonymous: authUser.is_anonymous ?? false,
+    email: authUser.email,
+    displayName: emptyToNull(meta.display_name),
+    avatarUrl: emptyToNull(meta.avatar_url),
+    customAvatarUrl: emptyToNull(meta.custom_avatar_url),
+    avatarFrame: emptyToNull(meta.avatar_frame),
+    seatFlair: emptyToNull(meta.seat_flair),
+    nameStyle: emptyToNull(meta.name_style),
+    equippedEffect: emptyToNull(meta.equipped_effect),
+    seatAnimation: emptyToNull(meta.seat_animation),
+    isAnonymous: authUser.is_anonymous,
   };
 };
 
@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.waitForInit();
       const result = await authService.getCurrentUser();
-      if (result?.data?.user) {
+      if (result !== null) {
         const u = toUser(result.data.user);
         updateUserIfChanged(u);
         if (u) {
@@ -158,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = useCallback(async () => {
     try {
       const result = await authService.getCurrentUser();
-      const u = result?.data?.user ? toUser(result.data.user) : null;
+      const u = result === null ? null : toUser(result.data.user);
       updateUserIfChanged(u);
     } catch (e: unknown) {
       authLog.warn('refreshUser failed, keeping current state', e);

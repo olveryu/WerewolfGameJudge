@@ -26,10 +26,10 @@ export interface UserMetadata {
  */
 export interface AuthUser {
   id: string;
-  email?: string | null;
-  is_anonymous?: boolean;
-  has_wechat?: boolean;
-  user_metadata?: UserMetadata;
+  email: string | null;
+  is_anonymous: boolean;
+  has_wechat: boolean;
+  user_metadata: UserMetadata;
 }
 
 /**
@@ -76,7 +76,7 @@ export interface IAuthService {
     email: string,
     password: string,
     displayName?: string,
-  ): Promise<{ userId: string; user: AuthUser | null }>;
+  ): Promise<{ userId: string; user: AuthUser }>;
 
   /** Email + password login, returns userId */
   signInWithEmail(email: string, password: string): Promise<string>;

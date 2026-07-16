@@ -14,7 +14,7 @@ import { users } from './dbSchema';
 // ── Wire format (API -> client) ─────────────────────────────────────────────
 
 /** Full user_metadata type returned to clients (snake_case wire format) */
-interface UserMetadata {
+export interface UserMetadata {
   display_name: string | null;
   avatar_url: string | null;
   custom_avatar_url: string | null;
@@ -23,6 +23,15 @@ interface UserMetadata {
   name_style: string | null;
   equipped_effect: string | null;
   seat_animation: string | null;
+}
+
+/** Canonical user identity returned by every successful auth endpoint. */
+export interface AuthUserResponse {
+  readonly id: string;
+  readonly email: string | null;
+  readonly is_anonymous: boolean;
+  readonly has_wechat: boolean;
+  readonly user_metadata: UserMetadata;
 }
 
 // ── DB select fields (single source of truth) ──────────────────────────────
@@ -42,15 +51,30 @@ const PROFILE_SELECT = {
   equippedSeatAnimation: users.equippedSeatAnimation,
 } as const;
 
+const AUTH_USER_SELECT = {
+  id: users.id,
+  email: users.email,
+  isAnonymous: users.isAnonymous,
+  wechatOpenid: users.wechatOpenid,
+  ...PROFILE_SELECT,
+} as const;
+
 /** DB query result row type */
 type ProfileRow = {
   [K in keyof typeof PROFILE_SELECT]: string | null;
 };
 
+type AuthUserRow = {
+  readonly id: string;
+  readonly email: string | null;
+  readonly isAnonymous: number;
+  readonly wechatOpenid: string | null;
+} & ProfileRow;
+
 // ── Serialization ───────────────────────────────────────────────────────────
 
 /** Converts a DB profile row to wire-format user_metadata */
-export function toUserMetadata(row: ProfileRow): UserMetadata {
+function toUserMetadata(row: ProfileRow): UserMetadata {
   return {
     display_name: row.displayName,
     avatar_url: row.avatarUrl,
@@ -77,17 +101,28 @@ export function createEmptyUserMetadata(): UserMetadata {
   };
 }
 
+/** Serialize one complete account row into the canonical auth wire shape. */
+function toAuthUserResponse(row: AuthUserRow): AuthUserResponse {
+  if (row.isAnonymous !== 0 && row.isAnonymous !== 1) {
+    throw new Error(`[FAIL-FAST] users.is_anonymous must be 0 or 1 for ${row.id}`);
+  }
+  return {
+    id: row.id,
+    email: row.email,
+    is_anonymous: row.isAnonymous === 1,
+    has_wechat: row.wechatOpenid !== null,
+    user_metadata: toUserMetadata(row),
+  };
+}
+
 // ── DB queries ──────────────────────────────────────────────────────────────
 
-/**
- * Queries user profile columns (excludes identity fields like id/email/isAnonymous).
- * Throws if the required user does not exist.
- */
-export async function selectUserProfile(
+/** Read and serialize the complete auth user or fail when the authoritative row disappeared. */
+export async function selectAuthUserResponse(
   db: ReturnType<typeof createDb>,
   userId: string,
-): Promise<ProfileRow> {
-  const row = await db.select(PROFILE_SELECT).from(users).where(eq(users.id, userId)).get();
-  if (row === undefined) throw new Error(`Expected profile for user ${userId}`);
-  return row;
+): Promise<AuthUserResponse> {
+  const row = await db.select(AUTH_USER_SELECT).from(users).where(eq(users.id, userId)).get();
+  if (row === undefined) throw new Error(`Expected auth user ${userId}`);
+  return toAuthUserResponse(row);
 }

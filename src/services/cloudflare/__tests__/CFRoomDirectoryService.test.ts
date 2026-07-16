@@ -8,13 +8,17 @@ jest.mock('../cfFetch', () => ({ cfPost: jest.fn() }));
 const TEMPLATE_ROLES = ['wolf', 'seer', 'villager', 'villager'] as const;
 const mockCfPost = jest.mocked(cfPost);
 
+function respondWithJson(value: unknown): void {
+  mockCfPost.mockImplementationOnce(async (_path, _body, decode) => decode(value));
+}
+
 describe('CFRoomDirectoryService', () => {
   beforeEach(() => {
     mockCfPost.mockReset();
   });
 
   it('sends the creation ID supplied by the room-creation service', async () => {
-    mockCfPost.mockResolvedValue({
+    respondWithJson({
       room: {
         roomCode: '2345',
         roomId: 'room-id-2345',
@@ -33,11 +37,15 @@ describe('CFRoomDirectoryService', () => {
       }),
     ).resolves.toMatchObject({ roomCode: '2345', roomId: 'room-id-2345' });
 
-    expect(mockCfPost).toHaveBeenCalledWith('/room/create', {
-      gameType: 'werewolf',
-      config: { templateRoles: TEMPLATE_ROLES },
-      creationId: 'creation-id-2345',
-    });
+    expect(mockCfPost).toHaveBeenCalledWith(
+      '/room/create',
+      {
+        gameType: 'werewolf',
+        config: { templateRoles: TEMPLATE_ROLES },
+        creationId: 'creation-id-2345',
+      },
+      expect.any(Function),
+    );
     const body = mockCfPost.mock.calls[0]?.[1];
     if (body === undefined) throw new Error('Missing create-room request body');
     expect(body).not.toHaveProperty('initialState');
@@ -45,7 +53,7 @@ describe('CFRoomDirectoryService', () => {
   });
 
   it('fails fast when created room identity differs from the authenticated request', async () => {
-    mockCfPost.mockResolvedValue({
+    respondWithJson({
       room: {
         roomCode: '3456',
         roomId: 'room-id-3456',
@@ -66,7 +74,7 @@ describe('CFRoomDirectoryService', () => {
   });
 
   it('parses active room metadata without a game state codec', async () => {
-    mockCfPost.mockResolvedValue({
+    respondWithJson({
       room: {
         roomCode: '5678',
         roomId: 'room-id-5678',
@@ -85,7 +93,7 @@ describe('CFRoomDirectoryService', () => {
   });
 
   it('reports a server game ID that this client cannot render', async () => {
-    mockCfPost.mockResolvedValue({
+    respondWithJson({
       room: {
         roomCode: '5678',
         roomId: 'room-id-5678',

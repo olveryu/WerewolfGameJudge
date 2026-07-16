@@ -6,13 +6,17 @@ jest.mock('@/services/cloudflare/cfFetch', () => ({ cfGet: jest.fn() }));
 
 const mockCfGet = jest.mocked(cfGet);
 
+function respondWithJson(value: unknown): void {
+  mockCfGet.mockImplementationOnce(async (_path, decode) => decode(value));
+}
+
 describe('werewolfStats', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('requests the game-namespaced user stats endpoint and parses its identity', async () => {
-    mockCfGet.mockResolvedValue({
+    respondWithJson({
       gameType: 'werewolf',
       campStats: {
         total: 3,
@@ -27,11 +31,14 @@ describe('werewolfStats', () => {
         counts: { wolf: 1, god: 1, villager: 1, third: 0 },
       },
     });
-    expect(mockCfGet).toHaveBeenCalledWith('/api/games/werewolf/users/user%20%2F%201/stats');
+    expect(mockCfGet).toHaveBeenCalledWith(
+      '/api/games/werewolf/users/user%20%2F%201/stats',
+      expect.any(Function),
+    );
   });
 
   it('rejects a malformed server payload', async () => {
-    mockCfGet.mockResolvedValue({
+    respondWithJson({
       gameType: 'werewolf',
       campStats: {
         total: 2,

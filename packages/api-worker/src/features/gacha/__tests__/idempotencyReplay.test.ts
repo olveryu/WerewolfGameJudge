@@ -1,34 +1,14 @@
 /** Gacha idempotency replay ownership and persisted-payload tests. */
 
-import { RARITIES, REWARD_POOL_BY_ID, REWARD_TYPES } from '@game-judge/game-engine/product/rewards';
+import { parseGachaDrawResponse, REWARD_POOL_BY_ID } from '@game-judge/game-engine/product/rewards';
 import { env, SELF } from 'cloudflare:test';
 import { SignJWT } from 'jose';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { z } from 'zod';
 
 const USER_ID = 'gacha-idempotency-user';
 const OTHER_USER_ID = 'gacha-idempotency-other-user';
 const IDEMPOTENCY_KEY = '00000000-0000-4000-8000-000000000001';
 const SECOND_IDEMPOTENCY_KEY = '00000000-0000-4000-8000-000000000002';
-
-const drawResponseSchema = z.strictObject({
-  results: z.array(
-    z.strictObject({
-      rarity: z.enum(RARITIES),
-      rewardType: z.enum(REWARD_TYPES),
-      rewardId: z.string(),
-      isNew: z.boolean(),
-      isPityTriggered: z.boolean(),
-      isDuplicate: z.boolean(),
-      shardsAwarded: z.number().int().nonnegative(),
-    }),
-  ),
-  totalShardsAwarded: z.number().int().nonnegative(),
-  remaining: z.strictObject({
-    normalDraws: z.number().int().nonnegative(),
-    goldenDraws: z.number().int().nonnegative(),
-  }),
-});
 
 async function mintToken(userId: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
@@ -242,8 +222,8 @@ describe('gacha idempotency replay', () => {
     expect(leftResponse.status).toBe(200);
     expect(rightResponse.status).toBe(200);
     const [left, right] = await Promise.all([
-      leftResponse.json().then((value) => drawResponseSchema.parse(value)),
-      rightResponse.json().then((value) => drawResponseSchema.parse(value)),
+      leftResponse.json().then(parseGachaDrawResponse),
+      rightResponse.json().then(parseGachaDrawResponse),
     ]);
     expect(right).toEqual(left);
     await expect(readMutationCounts(USER_ID)).resolves.toEqual({

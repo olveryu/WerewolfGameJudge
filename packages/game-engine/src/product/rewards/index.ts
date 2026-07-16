@@ -44,6 +44,17 @@ export {
   selectReward,
 } from './gacha';
 export {
+  type GachaDailyRewardResponse,
+  type GachaDrawResponse,
+  type GachaDrawResultItem,
+  type GachaExchangeResponse,
+  type GachaStatus,
+  parseGachaDailyRewardResponse,
+  parseGachaDrawResponse,
+  parseGachaExchangeResponse,
+  parseGachaStatus,
+} from './gachaContracts';
+export {
   parseResolvedRoleRevealAnimation,
   RANDOMIZABLE_ANIMATIONS,
   type ResolvedRoleRevealAnimation,

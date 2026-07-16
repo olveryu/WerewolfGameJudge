@@ -30,7 +30,7 @@ import { readCloudflareRequestMetadata } from '../../platform/http/requestMetada
 import { createLogger } from '../../platform/observability/logger';
 import { parseCanonicalIsoTimestampMs } from '../../platform/time/canonicalIsoTimestamp';
 import { users, userStats } from '../account/dbSchema';
-import { createEmptyUserMetadata, selectUserProfile, toUserMetadata } from '../account/profile';
+import { createEmptyUserMetadata, selectAuthUserResponse } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
 import { loginAttempts, passwordResetTokens, wxClaims } from './dbSchema';
 import { hashPassword, verifyPassword } from './passwordHash';
@@ -243,6 +243,7 @@ authRoutes.post('/anonymous', async (c) => {
         id: userId,
         is_anonymous: true,
         email: null,
+        has_wechat: false,
         user_metadata: createEmptyUserMetadata(),
       },
     },
@@ -350,20 +351,14 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
         return c.json({ success: false, reason: 'ACCOUNT_MERGE_FAILED' }, 500);
       }
 
-      // Read back merged account profile
-      const mergedProfile = await selectUserProfile(db, existing.id);
+      const mergedUser = await selectAuthUserResponse(db, existing.id);
 
       const tokens = await issueTokenPair(existing.id, env, existing.tokenVersion);
 
       return c.json(
         {
           ...tokens,
-          user: {
-            id: existing.id,
-            email,
-            is_anonymous: false,
-            user_metadata: toUserMetadata(mergedProfile),
-          },
+          user: mergedUser,
         },
         200,
       );
@@ -392,19 +387,13 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
     // Welcome bonus for anonymous/WeChat → email upgrade
     await grantWelcomeBonus(db, existingUserId);
 
-    // Read back full profile (user may have cosmetics from anonymous/WeChat era)
-    const upgradedProfile = await selectUserProfile(db, existingUserId);
+    const upgradedUser = await selectAuthUserResponse(db, existingUserId);
     const tokens = await issueTokenPair(existingUserId, env, upgradeAccount.tokenVersion);
 
     return c.json(
       {
         ...tokens,
-        user: {
-          id: existingUserId,
-          email,
-          is_anonymous: false,
-          user_metadata: toUserMetadata(upgradedProfile),
-        },
+        user: upgradedUser,
       },
       200,
     );
@@ -437,26 +426,13 @@ authRoutes.post('/signup', jsonBody(signUpSchema), async (c) => {
   // Welcome bonus for new registered user
   await grantWelcomeBonus(db, userId);
 
+  const createdUser = await selectAuthUserResponse(db, userId);
   const tokens = await issueTokenPair(userId, env, 0);
 
   return c.json(
     {
       ...tokens,
-      user: {
-        id: userId,
-        email,
-        is_anonymous: false,
-        user_metadata: toUserMetadata({
-          displayName,
-          avatarUrl: null,
-          customAvatarUrl: null,
-          avatarFrame: null,
-          equippedFlair: null,
-          equippedNameStyle: null,
-          equippedEffect: null,
-          equippedSeatAnimation: null,
-        }),
-      },
+      user: createdUser,
     },
     200,
   );
@@ -496,14 +472,6 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
     .select({
       id: users.id,
       passwordHash: users.passwordHash,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      customAvatarUrl: users.customAvatarUrl,
-      avatarFrame: users.avatarFrame,
-      equippedFlair: users.equippedFlair,
-      equippedNameStyle: users.equippedNameStyle,
-      equippedEffect: users.equippedEffect,
-      equippedSeatAnimation: users.equippedSeatAnimation,
       tokenVersion: users.tokenVersion,
     })
     .from(users)
@@ -539,17 +507,13 @@ authRoutes.post('/signin', jsonBody(signInSchema), async (c) => {
       .where(eq(users.id, user.id));
   }
 
+  const authenticatedUser = await selectAuthUserResponse(db, user.id);
   const tokens = await issueTokenPair(user.id, env, user.tokenVersion);
 
   return c.json(
     {
       ...tokens,
-      user: {
-        id: user.id,
-        email,
-        is_anonymous: false,
-        user_metadata: toUserMetadata(user),
-      },
+      user: authenticatedUser,
     },
     200,
   );
@@ -782,22 +746,15 @@ authRoutes.post('/reset-password', jsonBody(resetPasswordSchema), async (c) => {
   const newVer = await bumpTokenVersion(token.userId, env);
   await revokeAllRefreshTokens(token.userId, env);
 
+  const authenticatedUser = await selectAuthUserResponse(db, token.userId);
   // Auto-login: issue new token pair
   const tokens = await issueTokenPair(token.userId, env, newVer);
-
-  // Fetch user metadata for response
-  const profile = await selectUserProfile(db, token.userId);
 
   return c.json(
     {
       success: true,
       ...tokens,
-      user: {
-        id: token.userId,
-        email,
-        is_anonymous: false,
-        user_metadata: toUserMetadata(profile),
-      },
+      user: authenticatedUser,
     },
     200,
   );
@@ -946,21 +903,15 @@ authRoutes.post('/claim', jsonBody(claimNonceSchema), async (c) => {
     await grantWelcomeBonus(db, account.id);
   }
 
+  const authenticatedUser = await selectAuthUserResponse(db, account.id);
   const tokens = await issueTokenPair(account.id, env, account.tokenVersion);
-  const profile = await selectUserProfile(db, account.id);
 
   log.info('claim redeemed', { userId: account.id, nonce: nonce.slice(0, 8) });
   return c.json(
     {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      user: {
-        id: account.id,
-        email: account.email,
-        is_anonymous: account.isAnonymous === 1,
-        has_wechat: true,
-        user_metadata: toUserMetadata(profile),
-      },
+      user: authenticatedUser,
     },
     200,
   );

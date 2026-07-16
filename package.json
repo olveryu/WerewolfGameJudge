@@ -105,7 +105,8 @@
     "react-native-web": "^0.21.2",
     "react-native-worklets": "0.8.3",
     "sonner-native": "^0.24.0",
-    "ua-parser-js": "^2.0.10"
+    "ua-parser-js": "^2.0.10",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",

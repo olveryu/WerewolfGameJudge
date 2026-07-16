@@ -19,6 +19,7 @@ import type { IAvatarUploadService } from '@/services/types/IAvatarUploadService
 import { log } from '@/utils/logger';
 
 import { cfUpload } from './cfFetch';
+import { parseUrlResponse } from './responseCodecs';
 
 const avatarLog = log.extend('CFAvatar');
 
@@ -45,7 +46,7 @@ export class CFAvatarUploadService implements IAvatarUploadService {
     const formData = new FormData();
     formData.append('file', blob, 'avatar.jpg');
 
-    const data = await cfUpload<{ url: string }>('/avatar/upload', formData);
+    const data = await cfUpload('/avatar/upload', formData, parseUrlResponse);
     avatarLog.debug('Avatar uploaded', { url: data.url });
     return data.url;
   }

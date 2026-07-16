@@ -63,7 +63,7 @@ export function GachaScreen({ navigation }: Props) {
   const machineRef = useRef<CapsuleMachineRef>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [currentDrawType, setCurrentDrawType] = useState<'normal' | 'golden'>('normal');
-  const [lastResults, setLastResults] = useState<DrawResultItem[]>([]);
+  const [lastResults, setLastResults] = useState<readonly DrawResultItem[]>([]);
   const [showTenOverlay, setShowTenOverlay] = useState(false);
   const [showSingleResult, setShowSingleResult] = useState(false);
   const [activeTab, setActiveTab] = useState<'normal' | 'golden'>('normal');

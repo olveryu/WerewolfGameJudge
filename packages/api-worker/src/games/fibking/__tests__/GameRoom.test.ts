@@ -55,11 +55,12 @@ async function initialize(stub: DurableObjectStub<GameRoom>): Promise<Initialize
 }
 
 async function dispatch(
+  target: Pick<GameRoom, 'dispatchUserCommand'>,
   stub: DurableObjectStub<GameRoom>,
   commandId: string,
   command: FibPublicCommand,
 ): Promise<DispatchRoomResult> {
-  return stub.dispatchUserCommand({
+  return target.dispatchUserCommand({
     ...roomIdentity(stub),
     commandId,
     actorUserId: 'fib-host',
@@ -100,21 +101,24 @@ describe('FibKing generic GameRoom integration', () => {
   it('recovers an interrupted word effect and completes the round through generic alarm dispatch', async () => {
     const stub = getStub();
     await initialize(stub);
-    requireCommitted(
-      await dispatch(stub, 'fib-seat-host', {
-        type: 'room.seat.take',
-        seat: 0,
-        profile: { displayName: '房主' },
-      }),
-    );
-    requireCommitted(await dispatch(stub, 'fib-fill-bots', { type: 'room.seat.fillBots' }));
-    const preparing = requireCommitted(
-      await dispatch(stub, 'fib-start-round', { type: 'fib.round.start' }),
-    );
-    expect(preparing.snapshot.state.phase).toBe('preparing');
-    expect(Object.keys(preparing.snapshot.state.realSeats)).toEqual(['0']);
 
-    await runInDurableObject(stub, async (_instance: GameRoom, state) => {
+    await runInDurableObject(stub, async (instance: GameRoom, state) => {
+      requireCommitted(
+        await dispatch(instance, stub, 'fib-seat-host', {
+          type: 'room.seat.take',
+          seat: 0,
+          profile: { displayName: '房主' },
+        }),
+      );
+      requireCommitted(
+        await dispatch(instance, stub, 'fib-fill-bots', { type: 'room.seat.fillBots' }),
+      );
+      const preparing = requireCommitted(
+        await dispatch(instance, stub, 'fib-start-round', { type: 'fib.round.start' }),
+      );
+      expect(preparing.snapshot.state.phase).toBe('preparing');
+      expect(Object.keys(preparing.snapshot.state.realSeats)).toEqual(['0']);
+
       const wordEffect = state.storage.sql
         .exec<{ id: string; effect_type: string; business_key: string; status: string }>(
           `SELECT id, effect_type, business_key, status

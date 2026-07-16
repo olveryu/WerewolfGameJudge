@@ -11,10 +11,10 @@ import { cfGet } from '@/services/cloudflare/cfFetch';
 const WEREWOLF_STATS_STALE_TIME_MS = 5 * 60_000;
 
 export async function fetchWerewolfPublicStats(userId: string): Promise<WerewolfPublicStats> {
-  const value = await cfGet<unknown>(
+  return cfGet(
     `/api/games/werewolf/users/${encodeURIComponent(userId)}/stats`,
+    parseWerewolfPublicStats,
   );
-  return parseWerewolfPublicStats(value);
 }
 
 export const werewolfPublicStatsOptions = (userId: string) =>

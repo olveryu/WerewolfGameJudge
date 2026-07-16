@@ -25,7 +25,10 @@ export class CFRoomStateService<
   async getStateRevision(room: RoomLocator): Promise<number | null> {
     const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
     roomLog.debug('getStateRevision', locator);
-    const value: unknown = await cfPost<unknown>('/room/revision', { ...locator });
+    return cfPost('/room/revision', { ...locator }, (value) => this.#parseRevision(value));
+  }
+
+  #parseRevision(value: unknown): number | null {
     if (!isRoomResponseRecord(value)) throw new Error('Invalid /room/revision response envelope');
     assertExactRoomResponseKeys(value, ['revision'], '/room/revision response');
     if (
@@ -42,7 +45,10 @@ export class CFRoomStateService<
   async getGameState(room: RoomLocator): Promise<RoomSnapshot<TState> | null> {
     const locator = parseRoomLocator({ roomCode: room.roomCode, roomId: room.roomId });
     roomLog.debug('getGameState', locator);
-    const value: unknown = await cfPost<unknown>('/room/state', { ...locator });
+    return cfPost('/room/state', { ...locator }, (value) => this.#parseSnapshot(value));
+  }
+
+  #parseSnapshot(value: unknown): RoomSnapshot<TState> | null {
     if (!isRoomResponseRecord(value)) throw new Error('Invalid /room/state response envelope');
     assertExactRoomResponseKeys(value, ['snapshot'], '/room/state response');
     if (value.snapshot === null) return null;
