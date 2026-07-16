@@ -122,7 +122,7 @@ describe('Actor Identity Anti-Drift Contracts', () => {
   });
 
   describe('Night steps single source of truth', () => {
-    it('should not have any ACTION_ORDER definition (legacy pattern)', () => {
+    it('should not have any duplicate ACTION_ORDER definition', () => {
       const files = findFiles('src', /\.tsx?$/, [/__tests__/, /\.test\./, /node_modules/]);
 
       const violations: string[] = [];

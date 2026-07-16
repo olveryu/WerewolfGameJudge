@@ -14,21 +14,12 @@ jest.mock('@/utils/logger', () => ({
   roomScreenLog: { debug: jest.fn(), warn: jest.fn(), error: jest.fn() },
 }));
 
-// Mock mobileDebug
 const mockToggle = jest.fn<void, []>();
-jest.mock('@/utils/mobileDebug', () => ({
-  mobileDebug: {
-    toggle: (): void => {
+jest.mock('@/utils/debugLogStore', () => ({
+  debugLogStore: {
+    toggleVisibility: (): void => {
       mockToggle();
     },
-    log: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-    show: jest.fn(),
-    hide: jest.fn(),
-    clear: jest.fn(),
-    isVisible: jest.fn(),
   },
 }));
 

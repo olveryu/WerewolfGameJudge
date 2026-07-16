@@ -1,7 +1,7 @@
 /**
  * useHiddenDebugTrigger.ts - Hidden debug panel trigger (5-tap title)
  *
- * Tracks consecutive tap count on a hidden trigger area, toggles mobileDebug
+ * Tracks consecutive tap count on a hidden trigger area, toggles the debug log
  * panel after threshold taps with admin password gate.
  * Does not import services directly, does not contain game logic / policy logic,
  * does not render UI or hold JSX, and does not access any game state.
@@ -16,8 +16,8 @@ import {
   writeAdminCredential,
 } from '@/features/admin/services/adminCredentialStore';
 import { showPrompt } from '@/utils/alert';
+import { debugLogStore } from '@/utils/debugLogStore';
 import { roomScreenLog } from '@/utils/logger';
-import { mobileDebug } from '@/utils/mobileDebug';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -45,7 +45,7 @@ interface UseHiddenDebugTriggerResult {
 async function verifyAndToggle(cached: string): Promise<void> {
   const valid = await verifyAdminPassword(cached);
   if (valid) {
-    mobileDebug.toggle();
+    debugLogStore.toggleVisibility();
   } else {
     clearAdminCredential();
     roomScreenLog.warn('Cached admin password invalid, cleared');
@@ -64,7 +64,7 @@ function promptAdminPassword(): void {
           const valid = await verifyAdminPassword(credential);
           if (valid) {
             writeAdminCredential(credential);
-            mobileDebug.toggle();
+            debugLogStore.toggleVisibility();
           } else {
             roomScreenLog.warn('Admin password rejected');
           }

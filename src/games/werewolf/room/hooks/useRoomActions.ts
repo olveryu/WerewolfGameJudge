@@ -309,7 +309,7 @@ export function useRoomActions(gameContext: GameContext, deps: ActionDeps): UseR
     const confirmText = currentSchema?.ui?.confirmText;
 
     // Hardcore schema-driven UI contract:
-    // confirm copy must come from schema.ui.confirmText (no role/legacy/dev fallback).
+    // Confirm copy must come from schema.ui.confirmText; alternate derivation is forbidden.
     // NOTE: compound schemas don't confirm directly (they delegate to stepSchemaId);
     // for those, confirmText is not required here.
     if (currentSchema?.kind !== 'compound') {

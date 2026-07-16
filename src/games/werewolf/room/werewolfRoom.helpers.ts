@@ -219,8 +219,7 @@ function handleWolfTeamTurn(
 }
 
 /**
- * Convert LocalGameState to GameRoomLike for Room.ts helper functions
- * The types are compatible - LocalPlayer matches GameRoomLike's player type
+ * Project LocalGameState into the fields required by room helper functions.
  */
 export function toGameRoomLike(gameState: LocalGameState): GameRoomLike {
   return {

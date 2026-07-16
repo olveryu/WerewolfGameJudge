@@ -1143,6 +1143,18 @@ describe('Client interaction: disabled feedback is explicit', () => {
   });
 });
 
+describe('Client debug logs: one external store', () => {
+  it('does not restore the mobileDebug facade', () => {
+    const facadePath = path.join(srcDir, 'utils', 'mobileDebug.ts');
+    const offenders = srcFiles.filter((filePath) =>
+      /\bmobileDebug\b/.test(fs.readFileSync(filePath, 'utf-8')),
+    );
+
+    expect(fs.existsSync(facadePath)).toBe(false);
+    expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
+  });
+});
+
 describe('Client composition: one game-neutral catalog provider', () => {
   const compositionRootFiles = [
     path.join(process.cwd(), 'App.tsx'),

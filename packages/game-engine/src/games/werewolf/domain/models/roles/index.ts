@@ -1,5 +1,5 @@
 /**
- * Role Registry - Spec-based Facade
+ * Role Registry - Spec-based query boundary
  *
  * Single source of truth for all role definitions.
  * All role data comes from ROLE_SPECS.

@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  * - Handle JOIN_SEAT / LEAVE_MY_SEAT intents
- * - All validation (state/userId/seat validity/duplicate occupancy) lives here; Facade does no validation
+ * - Own domain validation for state, actor, seat bounds, and duplicate occupancy
  *
  * Performs seat validation and returns a StateAction list. No IO (network / audio / alert),
  * does not mutate state directly (returned StateAction list is executed by the reducer).

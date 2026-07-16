@@ -7,7 +7,7 @@
  * - SET_AUDIO_PLAYING: set the audio playback gate state
  *
  * Returns StateAction list and SideEffect (PLAY_AUDIO); does not perform IO
- * (network / audio playback / Alert — audio IO is executed by Facade), does not
+ * (network / audio playback / Alert — audio IO is executed by the outer runtime), does not
  * mutate state directly (returned StateAction list is applied by the reducer),
  * does not manually advance index (`++` fallback strategy is forbidden).
  *
@@ -134,7 +134,7 @@ export function handleAdvanceNight(
   actions.push(uiHintAction);
 
   // Audio playback: current step's end audio + next step's start audio
-  // Append to sideEffects in order; Facade plays them in sequence
+  // Append to sideEffects in the order consumed by the outer runtime.
   const currentStepId = state.currentStepId;
   const sideEffects: SideEffect[] = [{ type: 'BROADCAST_STATE' }, { type: 'SAVE_STATE' }];
 

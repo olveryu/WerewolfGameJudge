@@ -8,10 +8,10 @@
  *
  * Not responsible for:
  * - Game logic or auth logic
- * - Image compression on Native (falls back to uploading original)
+ * - Image compression on Native (uploads the fetched original)
  *
  * Boundary constraints:
- * - Behaviorally compatible with Supabase AvatarUploadService (upload -> returns public URL)
+ * - Implements the app-owned upload contract and returns the persisted public URL
  * - Relies on cfUpload for token injection and error interception
  */
 
@@ -39,7 +39,7 @@ function describeUriScheme(uri: string): string {
  */
 export class CFAvatarUploadService implements IAvatarUploadService {
   async uploadAvatar(fileUri: string): Promise<string> {
-    // Compress image before upload (Web only — RN fallback to original)
+    // Compress image before upload on Web; native uploads the fetched original.
     const blob = await this.#prepareImage(fileUri);
 
     const formData = new FormData();
@@ -81,7 +81,13 @@ export class CFAvatarUploadService implements IAvatarUploadService {
     const blob = await response.blob();
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => {
+        if (typeof reader.result !== 'string') {
+          reject(new Error('[FAIL-FAST] FileReader data URL result must be a string'));
+          return;
+        }
+        resolve(reader.result);
+      };
       // FileReader.error is a DOMException carrying the real failure reason — pass it as cause.
       reader.onerror = () =>
         reject(

@@ -6,7 +6,7 @@
  * When BGM is off the track list remains visible but disabled (avoids layout jumps).
  * Settings are persisted via SettingsService (AsyncStorage).
  * Preview goes through AudioService.startBgm / stopBgm.
- * Contains no game logic, does not import GameFacade.
+ * Game-specific previews enter through the client game catalog contribution.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';

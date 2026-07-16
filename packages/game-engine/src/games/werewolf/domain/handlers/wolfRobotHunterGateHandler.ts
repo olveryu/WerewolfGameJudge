@@ -9,7 +9,7 @@
  *
  * Not responsible for:
  * - Directly mutating state (handled by the reducer)
- * - Broadcasting (handled by the facade layer)
+ * - Broadcasting (handled by the outer command runtime)
  */
 
 import type { SetWolfRobotHunterStatusViewedAction } from '../reducer/types';

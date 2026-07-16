@@ -74,7 +74,7 @@ export interface HomeScreenStyles {
   linkButtonText: TextStyle;
   outlineButton: ViewStyle;
   outlineButtonText: TextStyle;
-  // Auth shared (AuthStyles-compatible aliases)
+  // Shared auth form contract
   formContainer: ViewStyle;
   formTitle: TextStyle;
   formSubtitle: TextStyle;

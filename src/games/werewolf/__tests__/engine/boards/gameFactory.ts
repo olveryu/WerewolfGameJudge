@@ -3,7 +3,7 @@
  *
  * Fully based on the architecture:
  * - intents -> handlers -> reducer -> GameState
- * - No import of legacy GameStateService / NightFlowController
+ * - No import of retired GameStateService / NightFlowController
  * - No encoded target protocol
  *
  * Single source of truth: GameState

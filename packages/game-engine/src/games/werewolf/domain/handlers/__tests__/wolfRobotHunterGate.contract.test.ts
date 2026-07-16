@@ -13,7 +13,7 @@
  * 4. Handler correctly validates and returns SET_WOLF_ROBOT_HUNTER_STATUS_VIEWED action
  *
  * This test file only tests Gate logic in handleAdvanceNight.
- * Facade security validation tests should go in gameActions unit tests.
+ * Command-runtime security validation belongs in game action unit tests.
  */
 
 import { handleAdvanceNight as executeAdvanceNight } from '@game-judge/game-engine/games/werewolf/domain/handlers/stepTransitionHandler';

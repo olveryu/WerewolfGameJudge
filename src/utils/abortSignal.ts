@@ -1,15 +1,14 @@
 /**
- * abortSignal — AbortSignal polyfills for legacy WebViews
+ * abortSignal — Portable AbortSignal timeout and composition helpers
  *
  * AbortSignal.timeout (Chrome 103+) and AbortSignal.any (Chrome 121+) are
- * unavailable in Chinese-market WebView shells (Baidu, WeChat) that ship
- * Chromium ≤97. These helpers provide equivalent semantics.
+ * unavailable in supported Chinese-market WebView shells that ship older Chromium.
+ * These helpers preserve the same timeout and any-signal semantics across runtimes.
  */
 
 /**
  * Create an AbortSignal that fires after `ms` milliseconds.
- * Uses native AbortSignal.timeout when available; falls back to
- * AbortController + setTimeout for Chromium <103.
+ * Uses native AbortSignal.timeout when available and an AbortController timer otherwise.
  */
 export function createTimeoutSignal(ms: number): AbortSignal {
   if (typeof AbortSignal.timeout === 'function') {
@@ -24,8 +23,7 @@ export function createTimeoutSignal(ms: number): AbortSignal {
 
 /**
  * Combine multiple AbortSignals — aborts when ANY of the inputs abort.
- * Uses native AbortSignal.any when available; falls back to manual
- * listener wiring for Chromium <121.
+ * Uses native AbortSignal.any when available and explicit listener composition otherwise.
  */
 export function combineSignals(signals: AbortSignal[]): AbortSignal {
   if (typeof AbortSignal.any === 'function') {

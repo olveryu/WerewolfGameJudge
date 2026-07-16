@@ -17,10 +17,10 @@ export type HandlerExecutionContext = CommandExecutionContext;
  * Handler context
  * Provides dependencies required for handler execution
  *
- * Note: state and myUserId may be null (Facade does not validate; handler is responsible)
+ * State and actor identity remain nullable because initialization and system commands share this boundary.
  */
 export interface HandlerContext {
-  /** Current state (read-only). null = DO uninitialized or read failure */
+  /** Current state (read-only). null = room has not been initialized */
   readonly state: GameState | null;
 
   /** Current user UID. null = system context (e.g., alarm callback) */

@@ -45,7 +45,7 @@ export interface SettingsScreenStyles {
   nameRow: ViewStyle;
   userName: TextStyle;
   editIcon: TextStyle;
-  // Auth form (AuthStyles-compatible)
+  // Shared auth form contract
   formContainer: ViewStyle;
   formTitle: TextStyle;
   formSubtitle: TextStyle;
