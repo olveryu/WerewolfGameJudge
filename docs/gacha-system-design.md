@@ -123,7 +123,7 @@ New gacha route approach: add `/api/gacha/*` within the `/api` route group.
 
 ### 2.6 Migration Numbers
 
-Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column), `0022_gacha_idempotency_keys.sql` (replay table), and `0039_gacha_mutation_ledger.sql` (atomic claim/application state).
+Gacha-related migrations: `0013_gacha_system.sql` (base columns + draw_history), `0015_gacha_version.sql` (OCC version column), `0016_daily_login_reward.sql` (last_login_reward_at column), `0022_gacha_idempotency_keys.sql` (replay table), `0039_gacha_mutation_ledger.sql` (atomic claim/application state), and `0040_normalize_daily_reward_timestamp.sql` (canonical UTC timestamp normalization and write constraints).
 
 ---
 
@@ -462,7 +462,6 @@ Returns current user's gacha status.
   goldenPity: number; // golden pity count
   shards: number;
   unlockedCount: number;
-  lastLoginRewardAt: string | null;
 }
 ```
 
@@ -577,33 +576,36 @@ WHERE user_id = '00000000-0000-4000-a000-000000000001';
 
 ### 6.7 Daily Login Reward
 
-**Migration**: `0016_daily_login_reward.sql` — `ALTER TABLE user_stats ADD COLUMN last_login_reward_at TEXT;`
+**Migrations**:
+
+- `0016_daily_login_reward.sql` adds `last_login_reward_at`.
+- `0040_normalize_daily_reward_timestamp.sql` converts valid historical `YYYY-MM-DD` values to canonical UTC timestamps, aborts on unrecognized persisted values, and adds D1 insert/update triggers that enforce the `Date.toISOString()` representation.
 
 **Schema**: `packages/api-worker/src/features/gacha/schemas.ts`
 
 ```typescript
-export const dailyRewardSchema = z.object({
-  localDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+// Strict empty command body. The server owns cooldown time.
+export const dailyRewardSchema = z.strictObject({});
 ```
 
 **Endpoint**: `POST /api/gacha/daily-reward` (requireAuth)
 
 **Mechanism**:
 
-- Client passes `localDate` (player's local date YYYY-MM-DD, `new Date().toLocaleDateString('en-CA')`)
+- Client sends an empty `{}` command; it cannot influence cooldown time.
 - Server checks:
   1. No user_stats row → `INSERT ... ON CONFLICT DO NOTHING`; exactly one concurrent request creates and claims it
   2. An insert loser restarts the OCC loop and observes the committed cooldown
   3. Less than 20h since last claim → `{ claimed: false, reason: 'cooldown' }`
-  4. Passes → add 1–5 normal draws and one golden draw, update `lastLoginRewardAt`, and bump `version`
+  4. Passes → add 1–5 normal draws and one golden draw, write a canonical UTC `lastLoginRewardAt`, and bump `version`
 - 20h cooldown guard prevents timezone abuse (face-to-face party game trust model, lightweight protection suffices)
 - OCC retry (`MAX_GACHA_OCC_ATTEMPTS=3`) reuses the stats-version concurrency pattern
+- `lastLoginRewardAt` is an internal persistence field and is not exposed by `GET /api/gacha/status`.
 
 **Client auto-claim**: `useAutoClaimDailyReward()` hook:
 
-- Mounted on HomeScreen, checks `status.lastLoginRewardAt !== today` on app startup
-- Auto-calls `claimDailyReward(getLocalDate())`, on success toasts "每日登录奖励 / 获得 1 次普通抽！"
+- Mounted on HomeScreen and asks the server once per app session; the server is the sole cooldown authority.
+- Auto-calls `claimDailyReward()`, on success toasts the exact normal/golden draw counts returned by the server.
 - `attemptedRef` ensures only one attempt per session
 
 ---
@@ -642,7 +644,6 @@ interface GachaStatus {
   goldenPity: number;
   shards: number;
   unlockedCount: number;
-  lastLoginRewardAt: string | null;
 }
 
 export interface DrawResultItem {

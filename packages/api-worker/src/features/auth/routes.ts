@@ -28,6 +28,7 @@ import type { AppEnv, Env } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { readCloudflareRequestMetadata } from '../../platform/http/requestMetadata';
 import { createLogger } from '../../platform/observability/logger';
+import { parseCanonicalIsoTimestampMs } from '../../platform/time/canonicalIsoTimestamp';
 import { users, userStats } from '../account/dbSchema';
 import { createEmptyUserMetadata, selectUserProfile, toUserMetadata } from '../account/profile';
 import { drawHistory } from '../gacha/dbSchema';
@@ -72,6 +73,21 @@ function requestGeo(request: Request) {
 /** Signup welcome bonus: 5 normal tickets + 1 golden ticket */
 const WELCOME_NORMAL_DRAWS = 5;
 const WELCOME_GOLDEN_DRAWS = 1;
+
+function latestLoginRewardTimestamp(source: string | null, target: string | null): string | null {
+  if (source === null) {
+    if (target !== null) {
+      parseCanonicalIsoTimestampMs(target, 'target user_stats.last_login_reward_at');
+    }
+    return target;
+  }
+
+  const sourceTime = parseCanonicalIsoTimestampMs(source, 'source user_stats.last_login_reward_at');
+  if (target === null) return source;
+
+  const targetTime = parseCanonicalIsoTimestampMs(target, 'target user_stats.last_login_reward_at');
+  return sourceTime > targetTime ? source : target;
+}
 
 /** Grant welcome draw tickets to a newly registered user (upsert; accumulates if row exists) */
 async function grantWelcomeBonus(db: ReturnType<typeof createDb>, userId: string): Promise<void> {
@@ -133,7 +149,7 @@ async function mergeUserStats(
         normalPity: sourceStats.normalPity,
         goldenPity: sourceStats.goldenPity,
         version: sourceStats.version + 1,
-        lastLoginRewardAt: sourceStats.lastLoginRewardAt,
+        lastLoginRewardAt: latestLoginRewardTimestamp(sourceStats.lastLoginRewardAt, null),
         updatedAt: sql`datetime('now')`,
       })
       .onConflictDoNothing();
@@ -185,10 +201,10 @@ async function mergeUserStats(
         (sourceStats.updatedAt ?? '') > (targetStats.updatedAt ?? '')
           ? sourceStats.lastRoomCode
           : targetStats.lastRoomCode,
-      lastLoginRewardAt:
-        (sourceStats.lastLoginRewardAt ?? '') > (targetStats.lastLoginRewardAt ?? '')
-          ? sourceStats.lastLoginRewardAt
-          : targetStats.lastLoginRewardAt,
+      lastLoginRewardAt: latestLoginRewardTimestamp(
+        sourceStats.lastLoginRewardAt,
+        targetStats.lastLoginRewardAt,
+      ),
       updatedAt: sql`datetime('now')`,
     })
     .where(eq(userStats.userId, targetId));

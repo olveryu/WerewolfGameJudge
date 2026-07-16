@@ -38,6 +38,7 @@ import { createDb } from '../../db';
 import type { AppEnv } from '../../env';
 import { jsonBody } from '../../platform/http/jsonBody';
 import { createLogger } from '../../platform/observability/logger';
+import { parseCanonicalIsoTimestampMs } from '../../platform/time/canonicalIsoTimestamp';
 import { userStats } from '../account/dbSchema';
 import { requireAuth } from '../auth/tokenAuth';
 import {
@@ -69,7 +70,6 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       goldenPity: userStats.goldenPity,
       shards: userStats.shards,
       unlockedItems: userStats.unlockedItems,
-      lastLoginRewardAt: userStats.lastLoginRewardAt,
     })
     .from(userStats)
     .where(eq(userStats.userId, userId))
@@ -83,7 +83,6 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
       goldenPity: 0,
       shards: 0,
       unlockedCount: 0,
-      lastLoginRewardAt: null,
     });
   }
 
@@ -96,7 +95,6 @@ gachaRoutes.get('/gacha/status', requireAuth, async (c) => {
     goldenPity: stats.goldenPity,
     shards: stats.shards,
     unlockedCount: unlockedItems.length,
-    lastLoginRewardAt: stats.lastLoginRewardAt,
   });
 });
 
@@ -288,7 +286,6 @@ gachaRoutes.post('/gacha/draw', requireAuth, jsonBody(gachaDrawSchema), async (c
 gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema), async (c) => {
   const db = createDb(c.env.DB);
   const userId = c.var.userId;
-  const { localDate: _localDate } = c.req.valid('json');
 
   for (let attempt = 0; attempt < MAX_GACHA_OCC_ATTEMPTS; attempt++) {
     const stats = await db
@@ -327,9 +324,11 @@ gachaRoutes.post('/gacha/daily-reward', requireAuth, jsonBody(dailyRewardSchema)
     }
 
     // ── Server-side cooldown guard: reject if < 20h since last claim ──
-    if (stats.lastLoginRewardAt) {
-      // lastLoginRewardAt is ISO datetime (or legacy YYYY-MM-DD -> parsed as midnight UTC)
-      const lastClaimTime = new Date(stats.lastLoginRewardAt).getTime();
+    if (stats.lastLoginRewardAt !== null) {
+      const lastClaimTime = parseCanonicalIsoTimestampMs(
+        stats.lastLoginRewardAt,
+        'user_stats.last_login_reward_at',
+      );
       const hoursSinceLastClaim = (Date.now() - lastClaimTime) / (1000 * 60 * 60);
       if (hoursSinceLastClaim < DAILY_REWARD_COOLDOWN_HOURS) {
         return c.json({ claimed: false, reason: 'cooldown' });

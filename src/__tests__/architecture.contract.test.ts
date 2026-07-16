@@ -694,7 +694,11 @@ describe('Worker ownership: source tree is exact', () => {
       'observability',
       'room',
       'telemetry',
+      'time',
       'userEvents',
+    ]);
+    expect(getTopLevelProductionFiles(path.join(workerPlatformDir, 'time'))).toEqual([
+      'canonicalIsoTimestamp.ts',
     ]);
   });
 

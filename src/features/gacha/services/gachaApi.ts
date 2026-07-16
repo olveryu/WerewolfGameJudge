@@ -16,7 +16,6 @@ interface GachaStatus {
   goldenPity: number;
   shards: number;
   unlockedCount: number;
-  lastLoginRewardAt: string | null;
 }
 
 export interface DrawResultItem {
@@ -38,12 +37,16 @@ export interface DrawResponse {
   };
 }
 
-export interface DailyRewardResponse {
-  claimed: boolean;
-  normalDrawsAdded?: number;
-  goldenDrawsAdded?: number;
-  reason?: string;
-}
+export type DailyRewardResponse =
+  | {
+      claimed: true;
+      normalDrawsAdded: number;
+      goldenDrawsAdded: 1;
+    }
+  | {
+      claimed: false;
+      reason: 'cooldown';
+    };
 
 export interface ExchangeResponse {
   rewardId: string;
@@ -68,8 +71,8 @@ export async function performDraw(
 }
 
 /** Claims daily login reward (1-5 normal draws + 1 golden draw) */
-export async function claimDailyReward(localDate: string): Promise<DailyRewardResponse> {
-  return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', { localDate });
+export async function claimDailyReward(): Promise<DailyRewardResponse> {
+  return cfPost<DailyRewardResponse>('/api/gacha/daily-reward', {});
 }
 
 /** Exchanges shards for the specified item (idempotent: retrying with the same idempotencyKey returns the same result) */

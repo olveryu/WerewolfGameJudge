@@ -10,6 +10,8 @@ import { SignJWT } from 'jose';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
+import { requireCanonicalIsoTimestamp } from '../../../platform/time/canonicalIsoTimestamp';
+
 const JWT_SECRET = new TextEncoder().encode('e2e-test-jwt-secret-do-not-use-in-production');
 const TEST_USER_ID = 'daily-reward-test-user';
 
@@ -28,7 +30,6 @@ const gachaStatusResponseSchema = z.strictObject({
   goldenPity: z.number().int().nonnegative(),
   shards: z.number().int().nonnegative(),
   unlockedCount: z.number().int().nonnegative(),
-  lastLoginRewardAt: z.string().nullable(),
 });
 
 async function mintToken(userId: string = TEST_USER_ID): Promise<string> {
@@ -36,10 +37,6 @@ async function mintToken(userId: string = TEST_USER_ID): Promise<string> {
   return new SignJWT({ sub: userId, ver: 0, iat: now, exp: now + 3600 })
     .setProtectedHeader({ alg: 'HS256' })
     .sign(JWT_SECRET);
-}
-
-function todayLocal(): string {
-  return new Date().toLocaleDateString('en-CA');
 }
 
 async function postJson(path: string, body: unknown, token: string): Promise<Response> {
@@ -82,7 +79,7 @@ describe('POST /api/gacha/daily-reward', () => {
 
   it('grants 1–5 normal draws + 1 golden draw on first claim (no user_stats row)', async () => {
     const token = await mintToken();
-    const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
     expect(res.status).toBe(200);
     const body = dailyRewardResponseSchema.parse(await res.json());
     expect(body.claimed).toBe(true);
@@ -96,13 +93,22 @@ describe('POST /api/gacha/daily-reward', () => {
     const status = gachaStatusResponseSchema.parse(await statusRes.json());
     expect(status.normalDraws).toBe(body.normalDrawsAdded);
     expect(status.goldenDraws).toBe(1);
-    expect(status.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+
+    const row = await env.DB.prepare(
+      `SELECT last_login_reward_at FROM user_stats WHERE user_id = ?`,
+    )
+      .bind(TEST_USER_ID)
+      .first<{ last_login_reward_at: string }>();
+    if (row === null) throw new Error('Expected persisted daily reward timestamp');
+    expect(requireCanonicalIsoTimestamp(row.last_login_reward_at, 'last_login_reward_at')).toBe(
+      row.last_login_reward_at,
+    );
   });
 
   it('rejects rapid double claim via cooldown', async () => {
     const token = await mintToken();
-    await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
-    const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
+    await postJson('/api/gacha/daily-reward', {}, token);
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
     expect(res.status).toBe(200);
     const body = dailyRewardResponseSchema.parse(await res.json());
     expect(body.claimed).toBe(false);
@@ -113,8 +119,8 @@ describe('POST /api/gacha/daily-reward', () => {
   it('grants exactly one reward when first claims arrive concurrently', async () => {
     const token = await mintToken();
     const [leftResponse, rightResponse] = await Promise.all([
-      postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token),
-      postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token),
+      postJson('/api/gacha/daily-reward', {}, token),
+      postJson('/api/gacha/daily-reward', {}, token),
     ]);
     expect([leftResponse.status, rightResponse.status]).toEqual([200, 200]);
 
@@ -139,11 +145,7 @@ describe('POST /api/gacha/daily-reward', () => {
 
   it('rejects unknown request fields instead of stripping them', async () => {
     const token = await mintToken();
-    const res = await postJson(
-      '/api/gacha/daily-reward',
-      { localDate: todayLocal(), unexpected: true },
-      token,
-    );
+    const res = await postJson('/api/gacha/daily-reward', { localDate: '2026-07-15' }, token);
 
     expect(res.status).toBe(400);
   });
@@ -159,7 +161,7 @@ describe('POST /api/gacha/daily-reward', () => {
       .bind(TEST_USER_ID, twentyOneHoursAgo)
       .run();
 
-    const res = await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
     expect(res.status).toBe(200);
     const body = dailyRewardResponseSchema.parse(await res.json());
     expect(body.claimed).toBe(true);
@@ -187,39 +189,53 @@ describe('POST /api/gacha/daily-reward', () => {
       .bind(TEST_USER_ID, oneHourAgo)
       .run();
 
-    // Try claiming with "tomorrow" as localDate — different date string, but < 20h
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toLocaleDateString('en-CA');
-
-    const res = await postJson('/api/gacha/daily-reward', { localDate: tomorrowStr }, token);
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
     expect(res.status).toBe(200);
     const body = dailyRewardResponseSchema.parse(await res.json());
     expect(body.claimed).toBe(false);
     if (body.claimed) throw new Error('Expected daily reward cooldown');
     expect(body.reason).toBe('cooldown');
   });
+
+  it('fails fast when a persisted cooldown timestamp is malformed', async () => {
+    const token = await mintToken();
+    await env.DB.exec(`
+      DROP TRIGGER user_stats_last_login_reward_at_insert;
+      DROP TRIGGER user_stats_last_login_reward_at_update;
+    `);
+    await env.DB.prepare(
+      `INSERT INTO user_stats (user_id, last_login_reward_at, updated_at)
+       VALUES (?, '', datetime('now'))`,
+    )
+      .bind(TEST_USER_ID)
+      .run();
+
+    const res = await postJson('/api/gacha/daily-reward', {}, token);
+    expect(res.status).toBe(500);
+    await expect(res.json()).resolves.toEqual({
+      success: false,
+      reason: 'INTERNAL_ERROR',
+    });
+  });
 });
 
-describe('GET /api/gacha/status — lastLoginRewardAt', () => {
+describe('GET /api/gacha/status', () => {
   beforeEach(async () => {
     await ensureUser();
     await cleanStats();
   });
 
-  it('returns null lastLoginRewardAt for new users', async () => {
+  it('returns zeroed public counters without exposing the internal cooldown timestamp', async () => {
     const token = await mintToken();
     const res = await getJson('/api/gacha/status', token);
     const body = gachaStatusResponseSchema.parse(await res.json());
-    expect(body.lastLoginRewardAt).toBeNull();
-  });
-
-  it('returns lastLoginRewardAt after daily claim', async () => {
-    const token = await mintToken();
-    await postJson('/api/gacha/daily-reward', { localDate: todayLocal() }, token);
-
-    const res = await getJson('/api/gacha/status', token);
-    const body = gachaStatusResponseSchema.parse(await res.json());
-    expect(body.lastLoginRewardAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(body).toEqual({
+      normalDraws: 0,
+      goldenDraws: 0,
+      normalPity: 0,
+      goldenPity: 0,
+      shards: 0,
+      unlockedCount: 0,
+    });
   });
 });

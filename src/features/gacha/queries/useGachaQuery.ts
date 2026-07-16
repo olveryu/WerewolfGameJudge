@@ -25,15 +25,6 @@ import { gachaLog } from '@/utils/logger';
 
 import { gachaStatusOptions } from './gachaQueryOptions';
 
-/** Player's local date as YYYY-MM-DD (locale-independent, zero-padded) */
-function getLocalDate(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 /**
  * useGachaStatusQuery — gacha status (ticket count/pity/unlocked count).
  *
@@ -69,7 +60,7 @@ function useClaimDailyRewardMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => claimDailyReward(getLocalDate()),
+    mutationFn: claimDailyReward,
     onSuccess: (data: DailyRewardResponse) => {
       if (data.claimed) {
         void queryClient.invalidateQueries({ queryKey: gachaStatusOptions().queryKey });
@@ -81,8 +72,7 @@ function useClaimDailyRewardMutation() {
 /**
  * useAutoClaimDailyReward — auto-claims the daily reward after gacha status loads.
  *
- * Checks lastLoginRewardAt !== today's local date → auto-claim → toast.
- * Attempts only once per session (useRef guard).
+ * Attempts once per session; the server is the sole authority for the 20-hour cooldown.
  */
 export function useAutoClaimDailyReward() {
   const { data: status } = useGachaStatusQuery();
@@ -92,15 +82,12 @@ export function useAutoClaimDailyReward() {
   useEffect(() => {
     if (attemptedRef.current || !status || isClaimPending) return;
 
-    const today = getLocalDate();
-    if (status.lastLoginRewardAt?.startsWith(today)) return;
-
     attemptedRef.current = true;
     claimDailyReward(undefined, {
       onSuccess: (data) => {
         if (data.claimed) {
           toast.success('每日登录奖励', {
-            description: `获得 ${data.normalDrawsAdded ?? 1} 次普通抽 + ${data.goldenDrawsAdded ?? 1} 次黄金抽！`,
+            description: `获得 ${data.normalDrawsAdded} 次普通抽 + ${data.goldenDrawsAdded} 次黄金抽！`,
           });
         }
       },

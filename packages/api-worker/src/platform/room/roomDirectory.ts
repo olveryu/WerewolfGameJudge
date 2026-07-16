@@ -8,6 +8,7 @@ import { and, eq, inArray, lte, or, sql } from 'drizzle-orm';
 
 import { createDb } from '../../db';
 import type { Env } from '../../env';
+import { requireCanonicalIsoTimestamp } from '../time/canonicalIsoTimestamp';
 import { ROOM_DIRECTORY_STATUSES, ROOM_SAGA_OPERATIONS, rooms } from './dbSchema';
 
 const PUBLIC_ROOM_CODE_MIN = 1000;
@@ -67,16 +68,8 @@ function requireNonEmptyString(value: string, label: string): string {
   return value;
 }
 
-function requireIsoTimestamp(value: string, label: string): string {
-  const time = Date.parse(value);
-  if (!Number.isFinite(time) || new Date(time).toISOString() !== value) {
-    throw new Error(`${label} must be a canonical ISO timestamp`);
-  }
-  return value;
-}
-
 function requireNullableIsoTimestamp(value: string | null, label: string): string | null {
-  return value === null ? null : requireIsoTimestamp(value, label);
+  return value === null ? null : requireCanonicalIsoTimestamp(value, label);
 }
 
 function parseDirectoryConfig(configJson: string): string {
@@ -111,8 +104,8 @@ function parseRoomDirectoryRecord(env: Env, row: RoomDirectoryRecord): RoomDirec
     throw new Error('rooms.reconciliation_attempt_count must be non-negative');
   }
   const reconcileAfter = requireNullableIsoTimestamp(row.reconcileAfter, 'rooms.reconcile_after');
-  const createdAt = requireIsoTimestamp(row.createdAt, 'rooms.created_at');
-  const updatedAt = requireIsoTimestamp(row.updatedAt, 'rooms.updated_at');
+  const createdAt = requireCanonicalIsoTimestamp(row.createdAt, 'rooms.created_at');
+  const updatedAt = requireCanonicalIsoTimestamp(row.updatedAt, 'rooms.updated_at');
   const lastStartedAt = requireNullableIsoTimestamp(row.lastStartedAt, 'rooms.last_started_at');
   if (!Number.isSafeInteger(row.gamesStarted) || row.gamesStarted < 0) {
     throw new Error('rooms.games_started must be non-negative');
