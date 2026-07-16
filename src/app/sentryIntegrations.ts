@@ -16,6 +16,11 @@ export const reactNavigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: true,
 });
 
+type SentryIntegrationList = Extract<
+  NonNullable<Sentry.ReactNativeOptions['integrations']>,
+  readonly unknown[]
+>;
+
 /**
  * Returns the platform-specific list of Sentry integrations for Sentry.init().
  *
@@ -25,25 +30,21 @@ export const reactNavigationIntegration = Sentry.reactNavigationIntegration({
  * @returns array of Sentry integration instances
  */
 export function getSentryIntegrations() {
-  const integrations: ReturnType<typeof Sentry.reactNavigationIntegration>[] = [
-    reactNavigationIntegration,
-  ];
+  const integrations: SentryIntegrationList = [reactNavigationIntegration];
   if (Platform.OS === 'web') {
-    integrations.push(
-      browserTracingIntegration() as ReturnType<typeof Sentry.reactNavigationIntegration>,
-    );
+    integrations.push(browserTracingIntegration());
     integrations.push(
       Sentry.browserReplayIntegration({
         maskAllText: true,
         maskAllInputs: true,
-      }) as unknown as ReturnType<typeof Sentry.reactNavigationIntegration>,
+      }),
     );
   } else {
     integrations.push(
       Sentry.mobileReplayIntegration({
         maskAllText: true,
         maskAllImages: true,
-      }) as unknown as ReturnType<typeof Sentry.reactNavigationIntegration>,
+      }),
     );
   }
   return integrations;

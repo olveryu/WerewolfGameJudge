@@ -16,6 +16,11 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 declare global {
+  interface Navigator {
+    /** Apple Web App standalone mode flag. */
+    readonly standalone?: boolean;
+  }
+
   interface Window {
     __pwaInstallPrompt?: BeforeInstallPromptEvent;
   }
@@ -43,7 +48,7 @@ function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia?.('(display-mode: standalone)')?.matches ||
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+    window.navigator.standalone === true
   );
 }
 

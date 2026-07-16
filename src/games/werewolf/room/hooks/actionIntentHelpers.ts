@@ -27,11 +27,28 @@ export function getRevealDataFromState(
   state: LocalGameState,
   kind: RevealKind,
 ): { targetSeat: number; result: string } | undefined {
-  const key = `${kind}Reveal`;
-  // LocalGameState has no index signature — cast via unknown to access by dynamic key.
-  return (state as unknown as Record<string, unknown>)[key] as
-    | { targetSeat: number; result: string }
-    | undefined;
+  switch (kind) {
+    case 'seer':
+      return state.seerReveal;
+    case 'psychic':
+      return state.psychicReveal;
+    case 'gargoyle':
+      return state.gargoyleReveal;
+    case 'wolfRobot':
+      return state.wolfRobotReveal;
+    case 'pureWhite':
+      return state.pureWhiteReveal;
+    case 'wolfWitch':
+      return state.wolfWitchReveal;
+    case 'mirrorSeer':
+      return state.mirrorSeerReveal;
+    case 'drunkSeer':
+      return state.drunkSeerReveal;
+    default: {
+      const unsupportedKind: never = kind;
+      throw new Error(`[FAIL-FAST] Unsupported reveal kind: ${unsupportedKind}`);
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -5,9 +5,9 @@
  * Mini program path uses Canvas 2D to draw the card directly (no html2canvas).
  */
 import type { RefObject } from 'react';
-import { Dimensions, Platform, type View } from 'react-native';
-import { captureRef } from 'react-native-view-shot';
+import { Dimensions, type View } from 'react-native';
 
+import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
 import { shareImageBase64 } from '@/features/room/services/shareImage';
 import { borderRadius, spacing, type ThemeColors, typography } from '@/theme';
 import { log } from '@/utils/logger';
@@ -88,7 +88,10 @@ export function renderNightReviewToCanvas(
   // ── Measure total height ──
   // We need a temporary canvas for measureText
   const tmpCanvas = document.createElement('canvas');
-  const tmpCtx = tmpCanvas.getContext('2d')!;
+  const tmpCtx = tmpCanvas.getContext('2d');
+  if (tmpCtx === null) {
+    throw new Error('[FAIL-FAST] Canvas 2D context is unavailable for night review measurement');
+  }
 
   let totalHeight = pad; // top padding
 
@@ -130,7 +133,10 @@ export function renderNightReviewToCanvas(
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(cardWidth * dpr);
   canvas.height = Math.round(totalHeight * dpr);
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (ctx === null) {
+    throw new Error('[FAIL-FAST] Canvas 2D context is unavailable for night review rendering');
+  }
   ctx.scale(dpr, dpr);
 
   // ── Card background ──
@@ -203,22 +209,14 @@ export function renderNightReviewToCanvas(
   const dataUrl = canvas.toDataURL('image/png');
   const prefix = 'base64,';
   const idx = dataUrl.indexOf(prefix);
-  return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
+  if (idx < 0) {
+    throw new Error('[FAIL-FAST] Night review canvas must produce a base64 data URL');
+  }
+  return dataUrl.slice(idx + prefix.length);
 }
 
 export async function captureNightReviewCard(ref: RefObject<View | null>): Promise<string> {
-  if (Platform.OS === 'web') {
-    const html2canvas = (await import('html2canvas')).default;
-    const node = ref.current as unknown as HTMLElement;
-    if (!node) throw new Error('Night review share card ref not ready');
-    const canvas = await html2canvas(node, { backgroundColor: null });
-    const dataUrl = canvas.toDataURL('image/png');
-    const prefix = 'base64,';
-    const idx = dataUrl.indexOf(prefix);
-    return idx >= 0 ? dataUrl.slice(idx + prefix.length) : dataUrl;
-  }
-
-  return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
+  return captureViewPngBase64(ref);
 }
 
 function isShareCancelledError(error: unknown): boolean {

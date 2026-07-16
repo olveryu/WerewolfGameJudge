@@ -74,7 +74,7 @@ export function GachaScreen({ navigation }: Props) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Home' as never);
+      navigation.navigate('Home');
     }
   }, [navigation]);
 

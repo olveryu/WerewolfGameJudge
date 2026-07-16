@@ -11,11 +11,11 @@ import type React from 'react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
-import { captureRef } from 'react-native-view-shot';
 
 import { BaseCenterModal } from '@/components/BaseCenterModal';
 import { Button } from '@/components/Button';
 import type { RoomShareModel } from '@/features/room/model/RoomShare';
+import { captureViewPngBase64 } from '@/features/room/services/captureViewPngBase64';
 import { TESTIDS } from '@/testids';
 import {
   borderRadius,
@@ -29,30 +29,6 @@ import {
 } from '@/theme';
 import { log } from '@/utils/logger';
 import { isMiniProgram } from '@/utils/miniProgram';
-
-/**
- * Capture the share card View as a base64-encoded PNG.
- *
- * - Native: `captureRef` from react-native-view-shot.
- * - Web: `html2canvas` directly — react-native-view-shot's `captureRef` calls
- *   `findNodeHandle` which is unsupported on web.  html2canvas is already a
- *   transitive dependency of react-native-view-shot.
- */
-async function captureShareCard(ref: React.RefObject<View | null>): Promise<string> {
-  if (Platform.OS === 'web') {
-    const html2canvas = (await import('html2canvas')).default;
-    const node = ref.current as unknown as HTMLElement;
-    if (!node) throw new Error('Share card ref not ready');
-    const canvas = await html2canvas(node, { backgroundColor: null });
-    const dataUrl = canvas.toDataURL('image/png');
-    // Strip "data:image/png;base64," prefix → raw base64
-    const prefix = 'base64,';
-    const index = dataUrl.indexOf(prefix);
-    if (index < 0) throw new Error('Captured share card is not a base64 data URL');
-    return dataUrl.slice(index + prefix.length);
-  }
-  return captureRef(ref, { format: 'png', result: 'base64', quality: 1 });
-}
 
 interface QRCodeModalProps {
   readonly model: RoomShareModel;
@@ -95,7 +71,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({ model }) => {
     }
     let cancelled = false;
     const frameId = requestAnimationFrame(() => {
-      void captureShareCard(shareCardRef)
+      void captureViewPngBase64(shareCardRef)
         .then((base64) => {
           if (cancelled) return;
           preCapturedRef.current = base64;
@@ -117,7 +93,7 @@ const QRCodeModalComponent: React.FC<QRCodeModalProps> = ({ model }) => {
 
   const getBase64 = useCallback(async () => {
     if (preCapturedRef.current) return preCapturedRef.current;
-    return captureShareCard(shareCardRef);
+    return captureViewPngBase64(shareCardRef);
   }, []);
 
   const handleShare = useCallback(async (): Promise<void> => {

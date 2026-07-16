@@ -186,6 +186,37 @@ function hasPropertyAccess(filePath: string, propertyName: string): boolean {
   return found;
 }
 
+function getUnsafeTypeAssertions(filePath: string): readonly string[] {
+  const source = fs.readFileSync(filePath, 'utf-8');
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    filePath.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+  );
+  const violations: string[] = [];
+
+  function visit(node: ts.Node): void {
+    if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node)) {
+      const isEscapeType =
+        node.type.kind === ts.SyntaxKind.AnyKeyword ||
+        node.type.kind === ts.SyntaxKind.NeverKeyword;
+      const isDoubleAssertion =
+        ts.isAsExpression(node.expression) || ts.isTypeAssertionExpression(node.expression);
+
+      if (isEscapeType || isDoubleAssertion) {
+        const line = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+        violations.push(`${path.relative(process.cwd(), filePath)}:${line}`);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return violations;
+}
+
 function getIdentifierNames(filePath: string): readonly string[] {
   const source = fs.readFileSync(filePath, 'utf-8');
   const sourceFile = ts.createSourceFile(
@@ -1140,6 +1171,16 @@ describe('Client interaction: disabled feedback is explicit', () => {
     );
 
     expect(offenders.map((filePath) => path.relative(process.cwd(), filePath))).toEqual([]);
+  });
+});
+
+describe('Production types: no escape-hatch assertions', () => {
+  it('forbids any, never, and double assertions across all runtime packages', () => {
+    const violations = [...srcFiles, ...gameEngineFiles, ...workerFiles].flatMap(
+      getUnsafeTypeAssertions,
+    );
+
+    expect(violations).toEqual([]);
   });
 });
 
